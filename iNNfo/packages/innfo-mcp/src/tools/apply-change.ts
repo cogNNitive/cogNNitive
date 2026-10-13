@@ -21,6 +21,8 @@ import {
   formatUtcStamp,
   escapeRegex,
   isChangeOp,
+  createFsSourceResolver,
+  resolveCitation,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -755,6 +757,39 @@ export async function executeChangesetApply(
       }
     }
 
+    // 4b. Proposal-time evidence citation (D3): a change's `sources` is written by the
+    // proposer and sealed with the proposal; apply only verifies that every citation
+    // resolves. One unresolved citation rejects the whole changeset, writes nothing and
+    // releases the lock — the same all-or-nothing shape as PROPOSAL_TAMPERED.
+    const citationResolver = createFsSourceResolver(rootDir)
+    for (const change of csDoc.changes) {
+      if (!change.sources) continue
+      const resolved = resolveCitation(
+        change.sources,
+        'sources',
+        citationResolver,
+        resolvedChangesetPath,
+      )
+      if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'rejected',
+          models: {},
+          appliedCount: 0,
+          errors: [
+            {
+              path: `changes.${change.id}.sources`,
+              message:
+                `CITATION_UNRESOLVED: change "${change.id}" cites "${change.sources}" ` +
+                `which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
+              code: 'CITATION_UNRESOLVED',
+            },
+          ],
+        }
+      }
+    }
+
     // Phase 1: In-Memory Compute & Validate
     interface LoadedModelEntry {
       modelSlug: string
@@ -837,10 +872,10 @@ export async function executeChangesetApply(
     }
     const slugResolution = resolveBatchSlugs(csDoc.changes, loadedModelAsts)
     csDoc.changes = slugResolution.changes
-    // D11 rewrites target/to/name/slug on slug collisions, so the seal computed at
-    // verification time no longer matches. Re-seal here so the persisted changeset
-    // stays self-consistent and re-verifiable (the seal covers the resolved changes).
-    csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+    // D11 rewrites target/to/name/slug in memory for the model mutation. The changeset
+    // file is written back through the raw-text-preserving serializer, which never
+    // re-renders a normative line, so the persisted proposal and its seal stay exactly
+    // as proposed — no re-seal here, or the on-disk seal would no longer match its body.
 
     // D12: Delete Impact Pre-Computation & Reference Scanning
     const { matrixCascades, referenceConflicts } = evaluateBatchDeleteImpact(
@@ -1223,7 +1258,11 @@ async function synthesizeAndExecuteChangeset(
   const doc: ChangesetDocument = {
     frontmatter: {
       spec_version: 'V_0-4-0',
-      parent_spec: 'changes',
+      level: 3,
+      parent_spec: {
+        name: 'changes',
+        url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md',
+      },
       blueprint_version: '0.1.0',
       status: 'proposed',
       proposal_sha: sha,

@@ -38,10 +38,18 @@ export interface ChangeItem {
   fields?: Record<string, string>
   author?: string
   notes?: string
+  /**
+   * Evidence citation written by the proposer at proposal time, in the shared
+   * citation grammar (`<path>@## <Heading>`, `<csv>@<row>`, `<json>@/<pointer>`,
+   * or a bare path). Sealed into `proposal_sha`; apply never writes it.
+   */
+  sources?: string
   /** Execution / Resolution annotations (excluded from proposal_sha) */
   status?: ChangeStatus
   resolution?: string
   resolved_slug?: string
+  /** Citations this change replaced, recorded at apply time (excluded from proposal_sha) */
+  replaced_sources?: string
 }
 
 export interface ModelVersionTransition {
@@ -49,13 +57,23 @@ export interface ModelVersionTransition {
   result_version: string
 }
 
+export interface ChangesetParentSpec {
+  name: 'changes'
+  url: string
+}
+
 export interface ChangesetFrontmatter {
   spec_version: string
-  parent_spec: 'changes' | string
+  /** A changeset is a valid iNNfo Level-3 document. */
+  level: 3
+  parent_spec: ChangesetParentSpec
   blueprint_version: string
   status: ChangeStatus
-  /** Deterministic SHA-256 seal computed over canonical proposed changes */
-  proposal_sha: string
+  /**
+   * Deterministic SHA-256 seal computed over canonical proposed changes.
+   * Absent only on an unsealed proposal; the apply engine seals it at intake.
+   */
+  proposal_sha?: string
   applied_at?: string
   /** Map of affected model slugs to base and result versions */
   models?: Record<string, ModelVersionTransition>

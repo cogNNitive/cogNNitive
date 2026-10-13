@@ -426,6 +426,15 @@ Do NOT hardcode specification URLs or versions in this skill: spec file names an
 8. **Conversational instruction:** If the project has cognitivized sources (files under `sources/` with sidecars), the agent should suggest adding `sources::`. If it is a greenfield / creative model from scratch, the agent does NOT request or require citations. In both cases the skill's general rule applies: never invent a `<ref>` or content that is not verifiably present in the cited file.
 9. **Retrieval queries (`?`) are never a citation.** A `path?filter=value` expression (e.g. `metricas_q3.csv?segmento=Enterprise`) selects a SET of units for retrieval tools — it MUST NEVER appear inside `sources::` (the validator rejects it: run the query, then cite the resulting `@` pointers). `@` addresses one unit; `?` selects many; the two never mix in one string.
 10. **`conflicts::` flags disagreeing Sources.** `conflicts::` is a reserved, OPTIONAL element property with the identical pointer-array grammar as `sources::` (same `<ref>` syntax, same bracketed-list requirement, same `@unit`/`&subunit` addressing). It is used when 2+ cited Sources genuinely disagree on a fact backing the element. The validator checks each `conflicts::` pointer exactly like a `sources::` pointer (same malformed-reference errors), but a `conflicts::` reference is **never** treated as a citation edge — it never contributes to `node.sources` or to any Lineage relationship. A valid `conflicts::` pointer instead raises a `SRC_CONFLICT_FLAGGED` warning, surfacing the disagreement for human review. Resolution is manual and out of band: state which Source is authoritative (or how the conflict was reconciled) in the element's `rationale::` field — there is no automated precedence or conflict-resolution ranking.
+11. **A change derived from evidence MUST carry `sources::`.** A change block (`## NN Change: <id>`) that derives from a Source, an imported old domain, or a transcript MUST declare a `sources::` line citing its evidence, in the single `<ref>` grammar above (a bare path or `<path>@<unit>`); a change with no evidence — a bare review comment — omits it. The proposer writes it at proposal time and it is sealed into the proposal; `apply_change` only verifies that every citation resolves and **never adds, removes or rewrites** it (an unresolvable citation rejects the whole changeset with `CITATION_UNRESOLVED`, writing nothing). Example:
+    ```markdown
+    ## NN Change: c-01
+    op:: update_field
+    target:: strategy@vision&statement
+    from:: "Initial draft"
+    to:: "Accelerate renewable adoption"
+    sources:: sources/import/client_interview_transcript.md@## Key Feedback
+    ```
 
 ---
 

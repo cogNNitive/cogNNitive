@@ -7,7 +7,10 @@ import type { ChangesetDocument } from '../../src/changeset/types.js'
 describe('Changeset Parser & Serializer', () => {
   const sampleMarkdown = `---
 spec_version: "V_0-4-0"
-parent_spec: "changes"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "0.1.0"
 status: proposed
 proposal_sha: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff"
@@ -60,7 +63,11 @@ notes:: Looks good, pending executive review
     const doc = parseChangeset(sampleMarkdown)
 
     expect(doc.frontmatter.spec_version).toBe('V_0-4-0')
-    expect(doc.frontmatter.parent_spec).toBe('changes')
+    expect(doc.frontmatter.level).toBe(3)
+    expect(doc.frontmatter.parent_spec).toEqual({
+      name: 'changes',
+      url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md',
+    })
     expect(doc.frontmatter.blueprint_version).toBe('0.1.0')
     expect(doc.frontmatter.status).toBe('proposed')
     expect(doc.frontmatter.title).toBe('Sample Changeset')
@@ -174,7 +181,9 @@ notes:: Looks good, pending executive review
     doc.changes[0].notes = 'Line one\nLine two with "quotes" and :: colons'
     doc.changes[0].resolution = 'resolved "value" with :: marker'
 
-    const serialized = serializeChangeset(doc)
+    // Normative lines are only re-rendered for an in-memory document (no rawContent);
+    // a parsed document preserves its normative bytes verbatim.
+    const serialized = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
     const reparsed = parseChangeset(serialized)
 
     expect(reparsed.changes[0].notes).toBe('Line one\nLine two with "quotes" and :: colons')
@@ -187,9 +196,65 @@ notes:: Looks good, pending executive review
     const before = computeProposalSha(doc.changes)
 
     doc.changes[0].base_hash = '0123456789abcdef'
-    const reparsed = parseChangeset(serializeChangeset(doc))
+    const reparsed = parseChangeset(
+      serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes }),
+    )
     expect(reparsed.changes[0].base_hash).toBe('0123456789abcdef')
     // Tampering with the precondition must break the seal; its absence leaves old seals valid.
     expect(computeProposalSha(doc.changes)).not.toBe(before)
+  })
+
+  it('rejects a file without a frontmatter block, naming the missing key', () => {
+    const body = `# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: strategy@vision&statement\n`
+    expect(() => parseChangeset(body)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*frontmatter/)
+  })
+
+  it('rejects a scalar parent_spec, naming parent_spec', () => {
+    const md = sampleMarkdown.replace(
+      'parent_spec:\n  name: changes\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      'parent_spec: "changes"',
+    )
+    expect(() => parseChangeset(md)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*parent_spec/)
+  })
+
+  it('rejects a missing level, naming level', () => {
+    const md = sampleMarkdown.replace('level: 3\n', '')
+    expect(() => parseChangeset(md)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*level/)
+  })
+
+  it('rejects a missing parent_spec.url, naming parent_spec.url', () => {
+    const md = sampleMarkdown.replace(
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"\n',
+      '',
+    )
+    expect(() => parseChangeset(md)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*parent_spec\.url/)
+  })
+
+  it('parses an L3 file without proposal_sha (unsealed proposal)', () => {
+    const md = sampleMarkdown.replace(/proposal_sha: "[0-9a-f]+"\n/, '')
+    const doc = parseChangeset(md)
+    expect(doc.frontmatter.proposal_sha).toBeFalsy()
+    expect(doc.frontmatter.level).toBe(3)
+  })
+
+  it('round-trips sources:: and replaced_sources:: through parse and structural serialize', () => {
+    const withSources = sampleMarkdown.replace(
+      'op:: update_field\ntarget:: strategy@vision&statement',
+      'op:: update_field\ntarget:: strategy@vision&statement\nsources:: sources/import/interview.md@## Needs',
+    )
+    const doc = parseChangeset(withSources)
+    expect(doc.changes[0].sources).toBe('sources/import/interview.md@## Needs')
+
+    // Structural serialization (document built in memory, no rawContent)
+    const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural).toContain('sources:: sources/import/interview.md@## Needs')
+
+    doc.changes[0].replaced_sources = 'sources/old.md@## Needs'
+    const structural2 = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural2).toContain('replaced_sources:: sources/old.md@## Needs')
+
+    const reparsed = parseChangeset(structural2)
+    expect(reparsed.changes[0].sources).toBe('sources/import/interview.md@## Needs')
+    expect(reparsed.changes[0].replaced_sources).toBe('sources/old.md@## Needs')
   })
 })

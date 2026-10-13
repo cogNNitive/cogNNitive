@@ -1,6 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { computeProposalSha, verifyProposalSha } from '../../src/changeset/hasher.js'
+import { computeProposalSha, verifyProposalSha, PROPOSAL_KEYS } from '../../src/changeset/hasher.js'
 import type { ChangeItem, ChangesetDocument } from '../../src/changeset/types.js'
+
+const SEALED_KEY_SPEC = [
+  'id',
+  'op',
+  'target',
+  'from',
+  'to',
+  'concept',
+  'name',
+  'slug',
+  'fields',
+  'author',
+  'notes',
+  'base_hash',
+  'sources',
+] as const
 
 describe('Proposal Hasher', () => {
   const sampleChanges: ChangeItem[] = [
@@ -78,7 +94,8 @@ describe('Proposal Hasher', () => {
     const doc: ChangesetDocument = {
       frontmatter: {
         spec_version: 'V_0-4-0',
-        parent_spec: 'changes',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
         blueprint_version: '0.1.0',
         status: 'proposed',
         proposal_sha: sha,
@@ -105,7 +122,8 @@ describe('Proposal Hasher', () => {
     const doc: ChangesetDocument = {
       frontmatter: {
         spec_version: 'V_0-4-0',
-        parent_spec: 'changes',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
         blueprint_version: '0.1.0',
         status: 'applied',
         proposal_sha: sha,
@@ -133,5 +151,36 @@ describe('Proposal Hasher', () => {
     }
 
     expect(verifyProposalSha(doc)).toBe(true)
+  })
+
+  it('seals the evidence citation (sources) into proposal_sha', () => {
+    const withSource: ChangeItem[] = [
+      { ...sampleChanges[0], sources: 'sources/import/interview.md@## Needs' },
+      sampleChanges[1],
+    ]
+    const withoutSource = computeProposalSha(sampleChanges)
+    const withSourceSha = computeProposalSha(withSource)
+
+    expect(withSourceSha).not.toBe(withoutSource)
+
+    // Changing only the citation value changes the seal
+    const otherSource: ChangeItem[] = [
+      { ...sampleChanges[0], sources: 'sources/import/other.md@## Needs' },
+      sampleChanges[1],
+    ]
+    expect(computeProposalSha(otherSource)).not.toBe(withSourceSha)
+  })
+
+  it('excludes replaced_sources from the seal alongside the other annotations', () => {
+    const baseSha = computeProposalSha(sampleChanges)
+    const annotated: ChangeItem[] = [
+      { ...sampleChanges[0], replaced_sources: 'sources/old.md@## Needs' },
+      { ...sampleChanges[1], replaced_sources: 'sources/legacy.md@## Context' },
+    ]
+    expect(computeProposalSha(annotated)).toBe(baseSha)
+  })
+
+  it('the sealed key list equals the normative spec list (base_hash included)', () => {
+    expect([...PROPOSAL_KEYS].sort()).toEqual([...SEALED_KEY_SPEC].sort())
   })
 })

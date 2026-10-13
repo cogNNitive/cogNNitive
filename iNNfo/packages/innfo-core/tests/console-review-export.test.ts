@@ -186,7 +186,9 @@ describe('console-review-export (preview + clipboard)', () => {
     const textarea = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="changeset-preview"]',
     ) as HTMLTextAreaElement
-    expect(textarea.value).toContain('parent_spec: "changes"')
+    expect(textarea.value).toContain('level: 3')
+    expect(textarea.value).toContain('parent_spec:')
+    expect(textarea.value).toContain('name: changes')
     expect(textarea.value).toContain('## NN Change: fb-001')
     expect(textarea.value).toContain('op:: update_field')
     // Addressed by the engine's model id and element slug, never by display title / console id.

@@ -49,6 +49,7 @@ const MAP = {
   PROJECTS_SPEC_CONTENT: 'bluepriNNts/projects/spec_NN.md',
   BUSINESS_MODEL_SPEC_CONTENT: 'bluepriNNts/business-model/spec_NN.md',
   BUSINESS_SPEC_CONTENT: 'bluepriNNts/business/spec_NN.md',
+  CHANGES_SPEC_CONTENT: 'bluepriNNts/changes/spec_NN.md',
 };
 
 /**

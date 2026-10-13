@@ -214,8 +214,11 @@ Transcribe it.
         join(tempDir, 'changes', 'business_reviewer_20260101T000000Z_changes_NN.md'),
         `---
 spec_version: "V_0-4-0"
-parent_spec: "changes"
-blueprint_version: "0.1.0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-1-0"
 status: applied
 title: "Review"
 author: "reviewer"

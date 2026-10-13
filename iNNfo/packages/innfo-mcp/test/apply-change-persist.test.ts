@@ -79,7 +79,8 @@ async function writeChangeset(): Promise<void> {
   const doc = {
     frontmatter: {
       spec_version: 'V_0-4-0',
-      parent_spec: 'changes',
+      level: 3 as const,
+      parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
       blueprint_version: '0.1.0',
       status: 'proposed' as const,
       proposal_sha: computeProposalSha(changes),

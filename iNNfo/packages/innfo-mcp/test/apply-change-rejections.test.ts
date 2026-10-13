@@ -43,7 +43,8 @@ function makeChangeset(doc: {
   return {
     frontmatter: {
       spec_version: 'V_0-4-0',
-      parent_spec: 'changes',
+      level: 3,
+      parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
       blueprint_version: '0.1.0',
       status: doc.status ?? 'proposed',
       proposal_sha: computeProposalSha(doc.changes),
@@ -121,6 +122,9 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     // The seal is written back and validates against the canonical proposal hash.
     const sealed = await readFile(csFile, 'utf-8')
     expect(verifyProposalSha(parseChangeset(sealed))).toBe(true)
+    // The written-back changeset is a valid Level-3 document.
+    expect(sealed).toContain('level: 3')
+    expect(sealed).toContain('name: changes')
 
     // Nothing was mutated, so no archive directory is created.
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
@@ -332,5 +336,66 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     })
     expect(res.success).toBe(false)
     expect(res.errors?.some((e) => /safe workspace-relative path/.test(e.message))).toBe(true)
+  })
+
+  it('Citation Resolution: an unresolved sources:: rejects with CITATION_UNRESOLVED, writes nothing, releases the lock', async () => {
+    const csFile = join(changesDir, 'ws_agent_citation_bad_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'evidence-backed note',
+          sources: 'sources/import/missing.md@## Needs',
+        },
+      ],
+    })
+    const serialized = serializeChangeset(csDoc)
+    await writeFile(csFile, serialized, 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_citation_bad_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(
+      res.errors?.some(
+        (e) => e.code === 'CITATION_UNRESOLVED' && /c-01/.test(e.message) && /missing\.md/.test(e.message),
+      ),
+    ).toBe(true)
+
+    // Nothing was written and the lock was released.
+    expect(await readFile(csFile, 'utf-8')).toBe(serialized)
+    expect(existsSync(join(changesDir, '.lock'))).toBe(false)
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('Accelerate green energy')
+  })
+
+  it('Citation Resolution: a resolving sources:: applies and the sources:: line is byte-identical after write-back', async () => {
+    await mkdir(join(csRoot, 'sources', 'import'), { recursive: true })
+    await writeFile(
+      join(csRoot, 'sources', 'import', 'interview.md'),
+      '# Interview\n\n## Needs\n\nWe need clean energy.\n',
+      'utf-8',
+    )
+
+    const csFile = join(changesDir, 'ws_agent_citation_ok_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'evidence-backed note',
+          sources: 'sources/import/interview.md@## Needs',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_citation_ok_changes_NN.md')
+    expect(res.success).toBe(true)
+
+    const written = await readFile(csFile, 'utf-8')
+    expect(written).toContain('sources:: sources/import/interview.md@## Needs')
   })
 })

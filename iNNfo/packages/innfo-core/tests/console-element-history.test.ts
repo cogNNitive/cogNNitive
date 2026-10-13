@@ -29,7 +29,10 @@ summary:: Other.
 
 const CHANGESET = `---
 spec_version: "V_0-4-0"
-parent_spec: "changes"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "0.1.0"
 status: applied
 title: "TestLab Domain"

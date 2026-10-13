@@ -8785,7 +8785,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.model_id || fallbackModel || 'model')
-    var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
+    // The element part of a target is always the element slug: never the display
+    // name or the element id (the engine resolves slugs, and every payload element
+    // carries one).
+    var elementTarget = oneLine(d.element_slug || 'elem')
     var matrixName = d.matrix != null && d.matrix !== '' ? oneLine(d.matrix) : ''
     var isMatrix = !!matrixName
     var canUpdate = (!!d.field && d.proposed !== undefined) || (isMatrix && d.proposed !== undefined)
@@ -8848,8 +8851,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var lines = [
       '---',
       'spec_version: "V_0-4-0"',
-      'parent_spec: "changes"',
-      'blueprint_version: "0.1.0"',
+      'level: 3',
+      'parent_spec:',
+      '  name: changes',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      'blueprint_version: "V_0-2-0"',
       'status: proposed',
       'title: ' + JSON.stringify(title),
       'author: ' + JSON.stringify(author),

@@ -28,7 +28,8 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
     const doc: ChangesetDocument = {
       frontmatter: {
         spec_version: 'V_0-4-0',
-        parent_spec: 'changes',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
         blueprint_version: '0.1.0',
         status: 'applied',
         proposal_sha: computeProposalSha(changes),

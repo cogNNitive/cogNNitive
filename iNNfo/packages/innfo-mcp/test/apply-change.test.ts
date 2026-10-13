@@ -268,7 +268,8 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     return {
       frontmatter: {
         spec_version: 'V_0-4-0',
-        parent_spec: 'changes',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
         blueprint_version: '0.1.0',
         status: doc.status ?? 'proposed',
         proposal_sha: sha,
@@ -517,6 +518,8 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     const parsedCs = parseChangeset(csContent)
     expect(parsedCs.frontmatter.status).toBe('applied')
     expect(parsedCs.frontmatter.proposal_sha).toBeDefined()
+    expect(parsedCs.frontmatter.level).toBe(3)
+    expect(parsedCs.frontmatter.parent_spec.name).toBe('changes')
     expect(parsedCs.changes.length).toBe(1)
   })
 
@@ -712,12 +715,15 @@ statement:: Execute plan
       expect(live).toContain('slug:: vision-1')
       expect(live).toContain('Suffixed vision statement')
 
-      // The slug-resolution rewrite changed upd-1.target; the persisted seal must be
-      // recomputed over the resolved changes so it stays re-verifiable.
+      // The proposal is immutable on write-back: the persisted changeset keeps the
+      // original target and its original seal (the slug resolution is applied to the
+      // model, never by rewriting the proposal).
       const persisted = await readFile(csFile, 'utf-8')
       const reparse = parseChangeset(persisted)
-      expect(reparse.frontmatter.proposal_sha).toBe(computeProposalSha(reparse.changes))
-      expect(reparse.frontmatter.proposal_sha).not.toBe(csDoc.frontmatter.proposal_sha)
+      expect(reparse.changes.find((c) => c.id === 'upd-1')?.target).toBe(
+        'strategy@vision&statement',
+      )
+      expect(reparse.frontmatter.proposal_sha).toBe(csDoc.frontmatter.proposal_sha)
     })
 
     it('remove_element cascades matrix cells and records count in resolution', async () => {

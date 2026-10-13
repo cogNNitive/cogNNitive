@@ -38,10 +38,12 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
   const snapshots: FileSnapshot[] = []
   for (const rel of rels) {
     const content = fs.readFileSync(path.join(rootDir, rel), 'utf8')
-    // `_NN.md` documents: sidecars and knowledge only (no record, entrypoint, spec, catalog, or procedure).
+    // `_NN.md` documents: sidecars, knowledge and changesets only (no record,
+    // entrypoint, spec, catalog, or procedure). A changeset is a lineage node.
     if (isNNName(rel) && !isSidecarName(rel)) {
       const parsed = parseKnowledge(content)
-      if (roleOf({ path: rel, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== 'knowledge') {
+      const role = roleOf({ path: rel, parentSpecName: parsed.frontmatter?.parent_spec?.name })
+      if (role !== 'knowledge' && role !== 'changeset') {
         continue
       }
     }

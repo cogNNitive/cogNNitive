@@ -376,7 +376,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
           drafts: () => [
             {
               id: 'c-01',
-              element_id: 'enterprise_plan',
+              element_slug: 'enterprise_plan',
               field: 'price',
               original: '100',
               proposed: '150',
@@ -384,7 +384,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
             },
             {
               id: 'c-02',
-              element_id: 'legacy_tier',
+              element_slug: 'legacy_tier',
               kind: 'delete',
             },
           ],
@@ -394,7 +394,9 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
       assert.equal(res.ok, true)
       assert.match(res.filename, /^businessmodel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
-      assert.match(res.text, /blueprint_version: "0.1.0"/)
+      assert.match(res.text, /level: 3/)
+      assert.match(res.text, /name: changes/)
+      assert.match(res.text, /blueprint_version: "V_0-2-0"/)
       assert.match(res.text, /status: proposed/)
       assert.match(res.text, /## NN Change: c-01/)
       assert.match(res.text, /op:: update_field/)

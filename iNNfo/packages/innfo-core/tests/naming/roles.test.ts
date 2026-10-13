@@ -26,6 +26,15 @@ describe('roleOf', () => {
     )
   })
 
+  it('classifies an L3 changes document as a changeset, never knowledge', () => {
+    expect(
+      roleOf({ path: 'changes/ws_agent_20261013T120000Z_changes_NN.md', parentSpecName: 'changes' }),
+    ).toBe('changeset')
+    expect(roleOf({ path: 'anywhere/x_changes_NN.md', parentSpecName: 'changes_V_0-2-0' })).toBe(
+      'changeset',
+    )
+  })
+
   it('treats any other _NN.md document as knowledge', () => {
     expect(roleOf({ path: 'kNNowledge/Client_business_NN.md', parentSpecName: 'business' })).toBe('knowledge')
     expect(roleOf({ path: 'kNNowledge/Client_business_NN.md' })).toBe('knowledge')

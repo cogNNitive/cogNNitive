@@ -19,7 +19,9 @@ import {
   isExcludedPath,
   isModelCandidate,
   parseName,
+  parentSpecNameOf,
   rawPathOfSidecar,
+  roleOf,
 } from '../naming/contract.js'
 
 export interface LineageSource {
@@ -62,10 +64,24 @@ export interface LineageDiagnostic {
   message: string
 }
 
+/**
+ * A changeset projected as a lineage node: an L3 `changes` document whose role
+ * derives from the naming contract (`parent_spec.name === "changes"`), not from
+ * the `changes/` folder.
+ */
+export interface LineageChangeset {
+  name: string
+  changeset_ref: string
+  status?: string
+  /** Change ids declared by the changeset, in document order. */
+  changes: string[]
+}
+
 export interface LineageProjection {
   sources: LineageSource[]
   knowledge: LineageKnowledge[]
   artifacts: LineageArtifact[]
+  changesets: LineageChangeset[]
   diagnostics: LineageDiagnostic[]
 }
 
@@ -310,6 +326,22 @@ export function projectLineage(files: FileSnapshot[]): LineageProjection {
     })
   }
 
+  // 2b. Changesets: L3 `changes` documents, a lineage node by role.
+  const changesets: LineageChangeset[] = []
+  for (const cf of live) {
+    const parsedName = parseName(getBasename(cf.path))
+    if (parsedName.kind !== 'nn' || parsedName.sidecarOf !== undefined) continue
+    const parsed = parseKnowledge(cf.content)
+    const fm = (parsed.frontmatter ?? {}) as Record<string, unknown>
+    if (roleOf({ path: cf.path, parentSpecName: parentSpecNameOf(fm) }) !== 'changeset') continue
+    changesets.push({
+      name: parsed.frontmatter?.title || displayStem(getBasename(cf.path)),
+      changeset_ref: cf.path,
+      status: typeof fm.status === 'string' ? fm.status : undefined,
+      changes: [...parsed.elements.entries()].flatMap(([, els]) => els.map((el) => el.name)),
+    })
+  }
+
   // 3. Artifacts: plain files that are not Sources and are family members or declare upstream.
   const sourcePaths = new Set(subjects.map((s) => s.subject))
   const familySizes = new Map<string, number>()
@@ -350,5 +382,5 @@ export function projectLineage(files: FileSnapshot[]): LineageProjection {
     })
   }
 
-  return { sources, knowledge, artifacts, diagnostics }
+  return { sources, knowledge, artifacts, changesets, diagnostics }
 }
