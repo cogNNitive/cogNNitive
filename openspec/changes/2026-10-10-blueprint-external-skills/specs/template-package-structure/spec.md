@@ -7,7 +7,7 @@
 Template packages in the source repository MUST use canonical unversioned filenames
 under `iNNfo/specs/bluepriNNts/<template-name>/`:
 - The primary Level 2 specification MUST be named `spec_NN.md` (the root workspace template is `workspace_spec_NN.md`).
-- `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/model_viewer.html`) MUST also use unversioned filenames.
+- `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/console-view-timeline.js`) MUST also use unversioned filenames.
 - A package MAY embed agent skills as `skills/<skill-name>/SKILL.md`, together with that skill's own scripts, references, tests and vendored data. An embedded skill is part of the package and MUST be versioned only through the package `blueprint_version`/`template_version`.
 - A package MAY instead *reference* an external skill in its frontmatter `skills:` array, pinned to a commit SHA with a `sha256` digest and a declared `license`. A referenced skill is NOT part of the package source and MUST NOT be copied into the repository.
 - Source paths MUST NOT encode a semantic version. The authoritative version MUST be declared in frontmatter as `template_version` (`V_x-y-z` or dotted `x.y.z`).
