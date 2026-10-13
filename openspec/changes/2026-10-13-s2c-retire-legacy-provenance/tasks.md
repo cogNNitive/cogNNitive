@@ -93,10 +93,10 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 6. Retire the Agent Modification block (S2c-2)
 
-- [ ] 6.1 TEST (`iNNfo/packages/innfo-core/tests/exports.test.ts`): `buildAgentModificationBlock`
+- [x] 6.1 TEST (`iNNfo/packages/innfo-core/tests/exports.test.ts`): `buildAgentModificationBlock`
       and `AgentModificationContext` are not exported from `index.ts` or `browser.ts`.
       [agent-modification-provenance: Agent Modification Block Builder (REMOVED)]
-- [ ] 6.2 Delete `agentModification.ts`, `agentModification.spec.ts` and the exports at
+- [x] 6.2 Delete `agentModification.ts`, `agentModification.spec.ts` and the exports at
       `index.ts:173-174`, `browser.ts:81-82`; rebuild innfo-core and the innfo-mcp bundle.
       [agent-modification-provenance: Agent Modification Block Builder (REMOVED)]
       [agent-modification-provenance: Canonical Block Field Contract (REMOVED)]

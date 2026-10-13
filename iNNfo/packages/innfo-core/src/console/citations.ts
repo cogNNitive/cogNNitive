@@ -165,7 +165,8 @@ function anchorOf(ref: SourceRef): string | undefined {
 }
 
 /**
- * Classify a citation origin by inspecting headings, enclosing Agent Modification blocks, or frontmatter.
+ * Classify a citation origin from the `## NN Change:` block a citation anchors to,
+ * or a plain `document` for every other anchor.
  */
 export function classifyOrigin(
   content: string,
