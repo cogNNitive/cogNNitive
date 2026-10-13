@@ -48,7 +48,7 @@ Conventions:
 - [x] S3.2 Re-point the 8 `console-review-*.test.ts`: drop `Viewer.boot()`, cards by `el-<qualified id>`, `#innfo-search`; each asserts non-empty card count first; mutation check per suite recorded. Deps: S3.1. (Re-point done; the 8 suites are green. Mutation checks + S3.3-S3.5 pending.)
 - [x] S3.3 Re-point `console-feedback-ui`, `console-citations-dom`, `console-renderers`, `console-ui-kit-renderers`, `console-thinning`, `console-shell`, `naming/*`, `test/console-element-card.test.mjs`; same non-empty guard and mutation check. Deps: S3.1. (Done: `console-renderers`/`console-ui-kit-renderers` deleted with the viewer; `console-citations-dom` retargeted to the runtime; the rest re-pointed to `artifact_shell.html`. Mutation checks pending.)
 - [x] S3.4 Delete the `describe.skip` block `console-citations-payload.test.ts:10-31`. Deps: S3.1.
-- [ ] S3.5 Verify: CORE full run; zero `render-model-viewer` / `Viewer.boot` references in tests (`rg`). Deps: S3.2-S3.4.
+- [x] S3.5 Verify: CORE full run; zero `render-model-viewer` / `Viewer.boot` references in tests (`rg`). Deps: S3.2-S3.4.
 
 ## Phase S4: Deletions, guards, docs
 
@@ -58,7 +58,7 @@ Conventions:
 - [x] S4.4 MCP: delete `tools/build-console-payload.ts` + `.spec.ts`, `test/console-golden-parity.test.ts`; edit `server.ts` (:51, :635-637, :1016-1019), `server.spec.ts:151`. Verify: MCP full run; core exports still used by `console-payload.generated.cjs`. Deps: S4.2.
 - [x] S4.5 Fix references: `nn-name-invariant-guard.test.js:84`, `check-procedures-version.test.mjs:58`, `reconcile_feedback_NN.md:141`, `export-console.mjs:626` comment, `schema-resolution.ts:5`, `skills/nn-innfo/SKILL.md:360`, `needs-registry.json` legacy anchors. Do NOT edit `business/spec_NN.md` or `canonical-registry.ts`. Deps: S4.2.
 - [x] S4.6 Docs: `docs/innfo/documentation/{offline-consoles,console-ui-kit,console-needs-and-visuals,innfo-mcp}.md`; `openspec/backlog.md` D17 (T0.7). Deps: S4.2.
-- [ ] S4.7 Verify: `rg "model_console|render-model-viewer|build_console_payload|compile_model_console" --glob '!openspec/changes/archive/**' --glob '!iNNfo/specs/bluepriNNts/business/**' --glob '!**/canonical-registry.ts'` finds only permanent history; `node scripts/verify.js`. Deps: S4.3-S4.6.
+- [x] S4.7 Verify: `rg "model_console|render-model-viewer|build_console_payload|compile_model_console" --glob '!openspec/changes/archive/**' --glob '!iNNfo/specs/bluepriNNts/business/**' --glob '!**/canonical-registry.ts'` finds only permanent history; `node scripts/verify.js`. Deps: S4.3-S4.6.
 
 ## Phase S5: Releases (tag-driven; never hand-edit pins)
 
