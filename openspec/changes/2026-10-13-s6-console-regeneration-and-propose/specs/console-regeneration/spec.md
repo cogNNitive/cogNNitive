@@ -8,7 +8,7 @@ Console HTML MUST be written by exactly one function, `writeConsole`, exported b
 `scripts/export-console.mjs` and used by the CLI and by the MCP (which imports it from
 the resolved console asset directory). Output paths MUST come from the single
 `consoleOutputPath` builder: `domaiNN_console.html` for the domain console and
-`artifacts/<stem>_console/<stem>_console.html` for a model console. A write MUST go
+`artifacts/<stem>_console/<stem>_console.html` for a single-model scoped console. A write MUST go
 through a temporary file renamed over the target, and MUST be skipped when the rendered
 bytes (with the previous `generated` stamp) equal the existing file. The `outputPath`
 reported by `regenerate_console` MUST equal the path `writeConsole` writes for that
@@ -16,7 +16,7 @@ model. Importing `export-console.mjs` MUST NOT run the CLI.
 
 #### Scenario: CLI and MCP write the same file
 - GIVEN a domain with model `strategy`
-- WHEN the CLI exports the model console and the MCP regenerates it
+- WHEN the CLI exports the single-model scoped console and the MCP regenerates it
 - THEN both write `artifacts/strategy_console/strategy_console.html`
 - AND the bytes are identical for identical inputs and stamp
 
@@ -92,7 +92,7 @@ run for `conflict` or `rejected`. The flow MUST NOT depend on any snapshot archi
 ### Requirement: Explicit console regeneration tool
 
 The MCP MUST expose `regenerate_console` (`domain`, optional `model`, `open` default
-`true`) that calls `writeConsole` for the domain console (or the given model console)
+`true`) that calls `writeConsole` for the domain console (or the given single-model scoped console)
 and returns the same `console` and `next_steps` shape. It MUST be idempotent and is the
 retry path after a failed regeneration.
 

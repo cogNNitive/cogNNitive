@@ -4,7 +4,7 @@
 
 ### Requirement: Console exports overwrite a stable file
 
-A model console MUST be written to the stable path
+A console scoped to a single model MUST be written to the stable path
 `artifacts/<stem>_console/<stem>_console.html` with `innfo-console.bundle.js` and
 `innfo-ui.css` beside it under fixed names; the domain console stays
 `domaiNN_console.html`. Exports MUST go through the shared `writeConsole` (see
@@ -63,7 +63,7 @@ The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and pos
 #### Scenario: Compiling only stale models
 - **GIVEN** one modified and two unchanged models
 - **WHEN** `--stale --no-open` runs
-- **THEN** the modified model console is rewritten in place and the others are skipped with a notice
+- **THEN** the modified scoped console is rewritten in place and the others are skipped with a notice
 
 #### Scenario: Filtering by pattern
 - **GIVEN** several models

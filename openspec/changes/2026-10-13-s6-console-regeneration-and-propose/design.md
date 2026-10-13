@@ -43,7 +43,7 @@
 - Paths (single builder `consoleOutputPath` in `innfo-core/src/console/`, mirrored into
   `console-payload.generated.cjs`):
   - domain console: `domaiNN_console.html` (unchanged);
-  - model console: `artifacts/<stem>_console/<stem>_console.html`, with
+  - single-model scoped console: `artifacts/<stem>_console/<stem>_console.html`, with
     `innfo-console.bundle.js` and `innfo-ui.css` beside it (fixed names).
 - `scripts/export-console.mjs` exports
   `writeConsole({ rootDir, scope, open, launcher })` where `scope` is `"domain"` or

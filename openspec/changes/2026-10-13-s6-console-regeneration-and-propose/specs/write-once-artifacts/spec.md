@@ -22,6 +22,6 @@ The following MUST write through `writeOnce`: the impact report (`impact-checker
 - THEN the curated CSV is a separate suffixed file in `artifacts/` and `sales.csv` is unchanged
 
 #### Scenario: Consoles are exempt
-- GIVEN a model console exported twice with a model change in between
+- GIVEN a single-model scoped console exported twice with a model change in between
 - WHEN the console folder is listed
 - THEN it holds one `<stem>_console.html`, not a suffixed family
