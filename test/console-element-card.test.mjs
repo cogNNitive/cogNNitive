@@ -289,39 +289,7 @@ describe('Model viewer end-to-end (renderElement)', () => {
     )
   })
 
-  function bootWithSourceUrl(sourceUrl) {
-    const dom = new JSDOM(
-      `<!doctype html><html><head></head><body>
-        <h1 id="doc-title"></h1><div id="doc-meta"></div>
-        <nav id="rail"></nav><input id="search" type="search" />
-        <main id="content"></main>
-        <script type="application/json" id="innfo-schema">{"concepts": [{"name": "Fleet"}]}</script>
-        <script type="application/json" id="innfo-model">${JSON.stringify({
-          meta: { title: 'T', sourceUrl },
-          elements: [{ id: 'a', concept: 'Fleet', name: 'A', fields: {}, markers: {}, hash: '0123456789abcdef' }],
-        })}</script>
-      </body></html>`,
-      { url: 'http://localhost' },
-    )
-    global.window = dom.window
-    global.document = dom.window.document
-    global.location = dom.window.location
-    global.CustomEvent = dom.window.CustomEvent
-    const Viewer = require(join(consoleDir, 'render-model-viewer.js'))
-    assert.equal(Viewer.boot().ok, true)
-    return dom.window.document.getElementById('doc-meta')
-  }
-
-  it('links only http(s) and relative source URLs; other schemes render as plain text', () => {
-    const https = bootWithSourceUrl('https://example.com/doc')
-    assert.equal(https.querySelector('a').getAttribute('href'), 'https://example.com/doc')
-    const rel = bootWithSourceUrl('docs/model.md')
-    assert.equal(rel.querySelector('a').getAttribute('href'), 'docs/model.md')
-    for (const bad of ['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<b>x</b>', 'vbscript:x']) {
-      const meta = bootWithSourceUrl(bad)
-      assert.equal(meta.querySelector('a'), null, `no link for ${bad}`)
-      assert.equal(meta.querySelector('b'), null)
-      assert.ok(meta.textContent.includes(bad.replace(/<b>x<\/b>/, '<b>x</b>')), 'shown as text')
-    }
-  })
+  // The sourceUrl link contract moved to `console-source-url.test.ts` and the
+  // runtime's `safeSourceHref` (SCS S1.5). The viewer that owned this case is
+  // retired in S4.
 })

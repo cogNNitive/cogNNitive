@@ -4824,6 +4824,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return node
   }
 
+  // Only http(s) and relative source URLs become links; any other scheme
+  // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Verbatim port
+  // of the retired model viewer's predicate (render-model-viewer.js).
+  function safeSourceHref(url) {
+    var raw = String(url == null ? '' : url).trim()
+    if (!raw) return ''
+    var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)
+    var safe = hasScheme ? /^https?:/i.test(raw) : !/^[\s\\]|^\/\/\s*$/.test(raw)
+    return safe ? raw : ''
+  }
+
   // The console header (`.innfo-navbar`) carries the model identity: the title in
   // `#innfo-domain-title` (the single model's title when scoped, else `meta.title`),
   // an optional `.innfo-scope-label`, and an extra meta line in `#innfo-navbar-extra`
@@ -4874,7 +4885,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           .trim()
         parts.push('Generated ' + stamp + ' UTC')
       }
-      host.textContent = parts.join(' \u00b7 ')
+      host.textContent = ''
+      if (parts.length) host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
+      if (meta.sourceUrl) {
+        if (parts.length) host.appendChild(doc.createTextNode(' \u00b7 '))
+        var href = safeSourceHref(meta.sourceUrl)
+        if (href) {
+          var link = doc.createElement('a')
+          link.className = 'innfo-source-link'
+          link.setAttribute('href', href)
+          link.setAttribute('target', '_blank')
+          link.setAttribute('rel', 'noopener')
+          link.textContent = 'source'
+          host.appendChild(link)
+        } else {
+          // Unsafe or absent scheme: shown as plain text, never a link.
+          host.appendChild(doc.createTextNode(String(meta.sourceUrl).trim()))
+        }
+      }
     }
   }
 
@@ -9661,6 +9689,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
     renderNavbarIdentity: renderNavbarIdentity,
+    safeSourceHref: safeSourceHref,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
     renderErrors: renderErrors,
