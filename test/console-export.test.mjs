@@ -122,7 +122,7 @@ level: 3
     assert.match(banner.textContent, /Offline Business Model/)
     const reviewerChip = banner.querySelector('.innfo-reviewer-chip')
     assert.ok(reviewerChip, 'Reviewer profile chip rendered in banner')
-    assert.match(reviewerChip.textContent, /reviewer/)
+    assert.match(reviewerChip.textContent, /Reviewer/)
 
     // Verify concept rail
     const rail = doc.getElementById('innfo-rail')

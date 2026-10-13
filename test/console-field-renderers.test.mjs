@@ -47,6 +47,33 @@ describe('FieldValue (type-aware read rendering)', () => {
     assert.equal(UI.FieldValue({ value: 'plain', type: 'string' }), null)
   })
 
+  it('renders plain objects as structured key-value chips instead of [object Object]', () => {
+    const document = dom()
+    const node = UI.FieldValue({
+      name: 'photo_metadata',
+      value: { title: 'Three-tray workbench', author: 'TestLab crew' },
+    })
+    document.body.appendChild(node)
+    assert.ok(node.classList.contains('innfo-obj-chips'))
+    assert.equal(node.querySelectorAll('.innfo-obj-chip').length, 2)
+    assert.doesNotMatch(node.textContent, /\[object Object\]/)
+    assert.match(node.textContent, /Three-tray workbench/)
+  })
+
+  it('renders image field values with inline preview and normalized path', () => {
+    const document = dom()
+    const node = UI.FieldValue({
+      name: 'photo',
+      value: 'test/fixtures/testlab/sources/import/photo.png',
+    })
+    document.body.appendChild(node)
+    assert.ok(node.classList.contains('innfo-field-image-wrap'))
+    const img = node.querySelector('img.innfo-field-image')
+    assert.ok(img, 'inline img preview rendered')
+    assert.equal(img.getAttribute('src'), 'sources/import/photo.png')
+    assert.match(node.textContent, /sources\/import\/photo\.png/)
+  })
+
   it('FieldRow keeps the plain field badge for strings but types a boolean', () => {
     const document = dom()
     const plain = UI.FieldRow({ name: 'f', value: 'v' })
@@ -138,5 +165,16 @@ describe('Console type-aware rendering + field detail + incoming + metamodel', (
     // relation haunts (Ghost→Fleet). Previously matrices only (1).
     assert.equal(panel.querySelectorAll('.innfo-metamodel-edge').length, 2)
     assert.match(panel.textContent, /Fleet/)
+  })
+
+  it('applies distinct concept slot colors to card borders and concept badges even without explicit schema colors', () => {
+    const { document } = bootConsole({ model: MODEL, schema: SCHEMA })
+    const cardA = document.querySelector('#innfo-content .innfo-card[data-element-id="a"]')
+    const cardB = document.querySelector('#innfo-content .innfo-card[data-element-id="b"]')
+    assert.equal(cardA.getAttribute('data-concept-slot'), '1')
+    assert.equal(cardB.getAttribute('data-concept-slot'), '2')
+    assert.notEqual(cardA.style.borderLeft, cardB.style.borderLeft)
+    assert.match(cardA.style.borderLeft, /#3b82f6|rgb\(59,\s*130,\s*246\)/i)
+    assert.match(cardB.style.borderLeft, /#8b5cf6|rgb\(139,\s*92,\s*246\)/i)
   })
 })

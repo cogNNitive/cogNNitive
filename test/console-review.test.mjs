@@ -101,8 +101,10 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
       const chip = banner.querySelector('.innfo-reviewer-chip')
       assert.ok(chip, 'Reviewer chip exists in banner')
-      assert.match(chip.querySelector('.innfo-reviewer-name').textContent, /Alice/)
-      assert.ok(chip.querySelector('.innfo-reviewer-edit'), 'Edit trigger exists in reviewer chip')
+      const nameInput = chip.querySelector('.innfo-reviewer-name')
+      assert.ok(nameInput, 'Reviewer name field exists in reviewer chip')
+      assert.equal(nameInput.tagName, 'INPUT', 'reviewer field is an inline text input')
+      assert.equal(nameInput.value, 'Alice')
     })
   })
 

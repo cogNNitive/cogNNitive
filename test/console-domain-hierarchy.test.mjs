@@ -62,6 +62,27 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     // Non-matching facet
     const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tag:executive')
     assert.equal(noMatch.length, 0)
+
+    // Quoted facet value with spaces after colon (e.g. concept:"Concept 1" or model:"Business Model")
+    const withSpaces = [
+      ...elements,
+      {
+        id: 'el-3',
+        name: 'Element 1A',
+        concept: 'Concept 1',
+        modelId: 'testlab',
+        modelFile: 'TestLab_coverage_TestLab_NN.md',
+        modelTitle: 'TestLab Coverage Model',
+        tags: [],
+      },
+    ]
+    const byQuotedConcept = InnfoConsole.filterElements(withSpaces, 'concept:"Concept 1"')
+    assert.equal(byQuotedConcept.length, 1)
+    assert.equal(byQuotedConcept[0].id, 'el-3')
+
+    const byQuotedModel = InnfoConsole.filterElements(withSpaces, 'model:"Business Model"')
+    assert.equal(byQuotedModel.length, 1)
+    assert.equal(byQuotedModel[0].id, 'el-1')
   })
 
   test('renderFilterBar renders facet dropdowns and toggles checkboxes', () => {
@@ -218,9 +239,9 @@ describe('Hostile text renders as text, never as markup', () => {
     const rail = document.getElementById('innfo-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('[onerror]'), null)
-    const dot = rail.querySelector('.innfo-concept-dot')
-    assert.ok(dot, 'dot still rendered with a fallback color')
-    assert.ok(!dot.getAttribute('style').includes('onerror'))
+    const icon = rail.querySelector('.innfo-rail-concept-icon')
+    assert.ok(icon, 'concept icon still rendered')
+    assert.ok(!rail.innerHTML.includes('onerror'))
   })
 
   test('search token and operator value in the filter pills are inert', () => {

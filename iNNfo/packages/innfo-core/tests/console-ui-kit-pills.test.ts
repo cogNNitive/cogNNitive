@@ -14,21 +14,22 @@ const UI = req(uiKitPath) as InnfoUI
 const comp = (root: HTMLElement) => root.getAttribute('data-innfo-component')
 
 describe('InnfoUI.ConceptPill', () => {
-  it('renders data hooks, dot, label and count', () => {
+  it('renders data hooks, icon, label and count (no dot)', () => {
     // slot = (index mod 12) + 1, so index 1 -> slot 2
     const pill = UI.ConceptPill({ id: 'paranormal-threat', label: 'ParanormalThreat', index: 1, count: 3 })
     expect(comp(pill)).toBe('concept-pill')
     expect(pill.getAttribute('data-concept-id')).toBe('paranormal-threat')
     expect(pill.getAttribute('data-concept-slot')).toBe('2')
-    expect(pill.querySelector('.innfo-concept-dot')).toBeTruthy()
+    expect(pill.querySelector('.innfo-concept-dot')).toBeNull()
+    expect(pill.querySelector('.innfo-concept-pill-icon')).toBeTruthy()
     expect(pill.textContent).toContain('ParanormalThreat')
     expect(pill.querySelector('.innfo-concept-count')!.textContent).toBe(' (3)')
   })
 
-  it('colors the dot from an explicit palette color (slot 2, CSS-token driven)', () => {
+  it('selects the slot from an explicit palette color (slot 2, CSS-token driven)', () => {
     const pill = UI.ConceptPill({ id: 'x', label: 'X', index: 14, color: 'violet' })
     expect(pill.getAttribute('data-concept-slot')).toBe('2')
-    // The dot color is applied by CSS via --innfo-concept-<slot>, never inline.
+    // The icon color is applied by CSS via --innfo-concept-<slot>, never inline.
     expect(UI.generateTokenCss()).toContain('[data-concept-slot="2"]')
   })
 
