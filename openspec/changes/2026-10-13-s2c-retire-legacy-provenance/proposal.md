@@ -35,8 +35,9 @@ origin (agent / human) comes from the `author` of the cited changeset change; th
 
 ### Out of Scope
 - The changeset model, apply engine and console ids (#1A to #1C, applied before this).
-- Renaming the console identifiers `feedback-export` (need) and `innfo-feedback-*` (DOM
-  ids) that now host the changeset export (dependency file, question 5).
+- The console identifiers are renamed by the console spine, not here: need
+  `feedback-export` → `changeset-export`, DOM ids `innfo-feedback-*` →
+  `innfo-changeset-*` (dependency file, question 5, resolved).
 - Existing domains: any `feedback-ledger.jsonl`, feedback JSON or Agent Modification block
   in a user domain is left untouched on disk and is not read by any tool. User data is
   never deleted (it lives in sha-checked Sources).

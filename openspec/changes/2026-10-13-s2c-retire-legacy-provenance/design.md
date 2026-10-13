@@ -45,5 +45,7 @@ tools and the JSON import removes every producer; nothing else depends on the fi
   `verify.js` gates (its shape-based suite discovery picks up deletions automatically).
 - Write-once: `reconcile_feedback_NN.md`, `feedback.schema.json` and `vocabulary.json` are
   unversioned and may be deleted or edited; no `_V_x-y-z_` spec file is edited.
-- The console identifiers `feedback-export` and `innfo-feedback-*` keep their names in
-  this slice; they now host only the changeset export (dependency file, question 5).
+- The console identifiers are renamed by the console spine (`single-console-shell`): need
+  `feedback-export` → `changeset-export`, DOM ids `#innfo-feedback-*` → `#innfo-changeset-*`
+  (and `[data-innfo-feedback-root]` → `[data-innfo-changeset-root]`). This slice does not
+  rename them (dependency file, question 5, resolved).

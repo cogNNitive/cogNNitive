@@ -99,52 +99,37 @@ Releases are tag-driven (`scripts/release/release-keys.js`: `skills|blueprints|i
 - **#1A–#1C** reach `main` in one batch; #1C cuts their tags.
 - **S2c, S4, S6 (S6e), S5** each cut their own after their batch.
 
-## Open questions for the maintainer
+## Decisions (resolved with the maintainer, 2026-10-13)
 
-1. **Badge.** S5 retargets the document badge to `https://cognnitive.com/innfo/` with the
-   wording in S5 `design.md`; that bumps every maintained bluepriNNt's `template_version`.
-   Confirm URL and wording.
-2. **CTAs.** "Open App" becomes "Read the docs" → `https://cognnitive.com/innfo/documentation/`. Confirm.
-3. **Write-once samples.** Published `_V_x-y-z_` samples cannot be edited. If one has
-   unfrozen slugs (#1C rejects its console) or a reference that only the deleted fuzzy step
-   resolved (S4), exclude it from export/validation, or record it in
-   `iNNfo/validation-baseline.json`?
-4. **Reference grammar.** S4 keeps exact display-name resolution because `[[Display Name]]`
-   wikilinks and name-based matrix headers are the iNNfo grammar; it deletes only the fuzzy
-   step. Slug-only references (and cross-model `[[Model Title :: Element Name]]`) would be a
-   separate, versioned iNNfo grammar change. Keep as-is, or spin a new change?
-5. **Console identifiers.** Rename the `feedback-export` need and the `innfo-feedback-*`
-   DOM ids (they now host the changeset export) in S2c, or leave them?
-6. **Legacy detection.** S4 keeps the legacy-layout detector, the MCP legacy hint and the
-   preflight detection (pointing at the new-domain recipe). Delete them too?
-7. **Apply target resolution by name.** `apply_change` still resolves a change target by
-   element name as well as slug (`batch-slug-resolution`). Keep?
-8. **Direct writers left.** Bare `apply_change` ops (`bump_version`, `generate_index`,
-   `add_concept`, `add_field`, `set_marker`, `freeze_slugs`) write without a changeset.
-   Schedule the follow-up change?
-
-### Reconciliation questions (new)
-
-9. **S3a audit scope.** SCS already ports the runtime parity gaps (identity header, `#el-`
-   deep links, `sourceUrl`, header sources icons). S3a was a parity audit that produced
-   `audit.md` before S3b. Keep S3a as a re-audit against the collapsed console, or fold its
-   outcome into SCS S3 and start the lineage set at S3b?
-10. **Lineage console deltas.** Confirm the rule above (lineage delta drops a requirement SCS
-    already decides) so the re-cut has one direction.
-
-### Reconciled with a decision (no answer needed, recorded for traceability)
-
-11. **Verdict source + stable console file.** The spine (SCS) currently adds
-    `meta.models[].feedbackState` read from the verdict ledger, and scoped exports as a
-    write-once family. Both contradict later maintainer decisions already documented in this
-    repo: (a) changesets are the ONLY mechanism to change data and the feedback ledger is
-    retired (S2c); (b) a console is a freshly generated FILE with a STABLE filename
-    (`domaiNN_console.html`, regenerated in place; S6). Resolution adopted: the spine is
-    re-cut to derive verdict badges from `changes`/`element.history` (no ledger) and to use
-    the stable console path; S2c's duplicate "Verdict Badges" and S6's REMOVE of "Console
-    exports are write-once" then become either no-ops or trivial. Flagged here for
-    traceability; no maintainer action required.
-
-12. **`nn-upgrade-contract-docs` — RESOLVED (folded into S4).** The maintainer confirmed the
-    fold. Its proposal-only change was removed; its surviving intent lives in S4 `design.md`
-    D6 and `proposal.md`. No further action.
+1. **Document badge.** Confirmed: `https://cognnitive.com/innfo/` with the wording in S5
+   `document-badge` (already in the delta). Maintained bluepriNNts take a `template_version`
+   bump.
+2. **CTAs.** Confirmed: "Open App" → "Read the docs" →
+   `https://cognnitive.com/innfo/documentation/` (already in S5 `design.md` and tasks 7.3).
+3. **Write-once samples.** Recorded in `iNNfo/validation-baseline.json`, not excluded: #1C
+   (unfrozen slugs) and S4 (fuzzy-only references) fold this into their tasks/risks.
+4. **Reference grammar.** Keep exact `[[Display Name]]` + ambiguity error (S4 unchanged). A
+   slug-only grammar (incl. cross-model `[[Model Title :: Element Name]]`) is NOT opened now;
+   it would be a separate versioned iNNfo grammar change.
+5. **Console identifiers.** Renamed in the console spine (SCS), where the ids are defined:
+   need `feedback-export` → `changeset-export`; ids `#innfo-feedback-*` → `#innfo-changeset-*`;
+   root `[data-innfo-feedback-root]` → `[data-innfo-changeset-root]`. S2c records the rename
+   and does not repeat it.
+6. **Legacy detection.** Kept (S4): the detector, the MCP hint and the preflight detection,
+   all pointing at the new-domain recipe. The whole detection half is later removed by the
+   blocked `nn-quarantine-removal` change.
+7. **Apply target by name.** Kept: `apply_change` resolves a target by slug or exact name
+   (`batch-slug-resolution`).
+8. **Direct writers.** The bare `apply_change` ops (`bump_version`, `generate_index`,
+   `add_concept`, `add_field`, `set_marker`, `freeze_slugs`) stay for now; a follow-up change
+   will route or remove them.
+9. **S3a.** Kept, narrowed: re-audits the editor against the already-unified console (the
+   safety gate before S5 deletes the editor); it does not re-audit what SCS ported.
+10. **Lineage console deltas.** Rule adopted: a lineage delta that touches a capability SCS
+    decides is re-cut against the post-SCS text and dropped when redundant. Applied.
+11. **Verdict source + stable console file.** Resolved: the spine was re-cut to drop the
+    verdict-ledger mechanism (S2c owns verdict badges from changesets); the stable console
+    file is S6's (applied after the spine). See the verified-overlap table.
+12. **`nn-upgrade-contract-docs`.** Folded into S4 and removed as a live change.
+13. **`init_knowledge` repair half.** Dropped: `init_knowledge` becomes create-only; broken
+    frontmatter is handled by `validate_knowledge` + `update_field` (S6 design).

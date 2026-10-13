@@ -155,18 +155,18 @@ The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global 
 
 ### Requirement: Bundle-Injected Feedback UI
 
-When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-feedback-root]` with `#innfo-feedback-banner`, `#innfo-feedback-open` and `#innfo-feedback-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with any other dialog in the page: the procedure view's step-log dialog MUST be scoped to its own container and MUST NOT use `#innfo-export-modal`. Styling MUST be minimal CSS classes.
+When `needs[]` declares `changeset-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-changeset-root]` with `#innfo-changeset-banner`, `#innfo-changeset-open` and `#innfo-changeset-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with any other dialog in the page: the procedure view's step-log dialog MUST be scoped to its own container and MUST NOT use `#innfo-export-modal`. Styling MUST be minimal CSS classes.
 (Previously: the first scenario used `model_console.html`.)
 
 #### Scenario: Shell gains feedback with no markup
-- GIVEN `artifact_shell.html` with unchanged markup declaring `feedback-export`
+- GIVEN `artifact_shell.html` with unchanged markup declaring `changeset-export`
 - WHEN opened
 - THEN the export button is present and the modal opens
 
 #### Scenario: Single injection
 - GIVEN a console where the bundle boots twice
 - WHEN the page loads
-- THEN exactly one feedback root, one banner and one export button exist
+- THEN exactly one changeset root, one banner and one export button exist
 
 #### Scenario: No clash with the procedure view
 - GIVEN a domaiNN console whose `procedure` view has a step-log dialog
@@ -176,7 +176,7 @@ When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner
 
 ### Requirement: Needs Registry Without Feedback Anchors
 
-`needs-registry.json` MUST declare `feedback-export` with empty anchors (`[]`). The shell guard (`scripts/lib/console-shell-guard.js`) MUST NOT contain a hard-coded exemption for any named shell or for `feedback-export`, and MUST NOT assume more than one live shell exists.
+`needs-registry.json` MUST declare `changeset-export` with empty anchors (`[]`). The shell guard (`scripts/lib/console-shell-guard.js`) MUST NOT contain a hard-coded exemption for any named shell or for `changeset-export`, and MUST NOT assume more than one live shell exists.
 (Previously: the guard was forbidden a hard-coded exemption for `model_console.html`.)
 
 #### Scenario: No shell-specific branch
@@ -185,7 +185,7 @@ When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner
 - THEN `artifact_shell.html` passes through the registry rule alone, and the guard source contains no shell-file-name branch
 
 #### Scenario: No anchors required
-- GIVEN a shell declaring `feedback-export` with no feedback markup
+- GIVEN a shell declaring `changeset-export` with no export markup
 - WHEN the guard runs
 - THEN it passes
 

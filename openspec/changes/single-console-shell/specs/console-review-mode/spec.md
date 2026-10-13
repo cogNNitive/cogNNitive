@@ -5,7 +5,7 @@
 ### Requirement: Review Mode Toggle
 
 The console MUST provide an explicit review mode toggle, off by default and not
-persisted across loads. The toggle MUST be offered only when `feedback-export` is
+persisted across loads. The toggle MUST be offered only when `changeset-export` is
 declared, `meta.modelId` is present, and EVERY element carries a `hash`; otherwise
 it MUST NOT render (no fallback). With review mode off, no edit, annotation, or
 reviewed control exists in the DOM (the info action and verdict badges remain).

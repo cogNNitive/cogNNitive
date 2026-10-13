@@ -84,7 +84,7 @@ the domain meta defined here. #1A to #1C reach `main` in one `dev → main` batc
 
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
-| A repo domain or sample has unfrozen models and its console export now fails | High | Inventory task freezes every repo domain the build exports; write-once samples are an open question |
+| A repo domain or sample has unfrozen models and its console export now fails | High | Inventory task freezes every repo domain the build exports; a write-once `_V_x-y-z_` sample is not edited but recorded in `iNNfo/validation-baseline.json` (question 3, resolved) |
 | Saved browser drafts keyed by old ids | Certain | Intended: the store version bump discards them (single maintainer) |
 | A consumer keys on the old id format | Med | Golden parity, review-store and console-export suites updated first |
 | A tag is cut on a red `main` | Low | nn-dev-release pre-release checklist |

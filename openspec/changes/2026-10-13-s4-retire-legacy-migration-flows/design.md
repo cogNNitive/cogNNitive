@@ -76,6 +76,9 @@ The `legacy:` markers of the deleted code go with it; `legacy-ledger-guard.js` p
 - Repo content: every tracked domain, fixture and sample that is not write-once is
   validated; a reference that only resolved through the fuzzy step is corrected by hand
   or with an agent changeset. No conversion script is committed.
+- A write-once `_V_x-y-z_` sample that only resolved through the fuzzy step is NOT edited
+  and NOT excluded: it is recorded in `iNNfo/validation-baseline.json` (question 3,
+  resolved), so the differential validator stays green without touching permanent history.
 
 ## D5 — Write-once and reports
 

@@ -30,7 +30,7 @@ Pre-condition: #1A and #1B are applied on `dev`.
 - [ ] 1.5 Freeze slugs in every repo domain and fixture whose console the build or the test
       suites export (`test/fixtures/testlab`, `_samples_nn`, `docs/cognitive_nn/use-cases/*`
       as exported by `scripts/build-docs.mjs`); regenerate `console-golden-parity` goldens.
-      Write-once `_V_x-y-z_` samples are not edited (dependency file, question 3).
+      Write-once `_V_x-y-z_` samples are not edited; a sample with unfrozen slugs is rejected by the console build and recorded in `iNNfo/validation-baseline.json` (dependency file, question 3, resolved).
       [console-payload-builder: Element Ids and Hashes]
 
 ## 2. Domain meta (#1C-1)
