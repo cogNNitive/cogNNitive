@@ -69,19 +69,20 @@ describe('console-review-math', () => {
     expect(Review.isAlreadyApplied(staleApplied, {})).toBe(false)
   })
 
-  it('verdictsByElement maps {status: count} per element and skips orphans', () => {
+  it('badgesByElement maps {status: count} from history + proposed changes, skipping orphans', () => {
     const Review = loadReview()
-    const byId = { a: { id: 'a' }, b: { id: 'b' } }
-    const feedbackState = [
-      { id: 'fb-001', element_id: 'a', status: 'applied' },
-      { id: 'fb-002', element_id: 'a', status: 'stale' },
-      { id: 'fb-003', element_id: 'b', status: 'applied' },
-      { id: 'fb-004', element_id: 'ghost', status: 'applied' },
+    const list = [
+      { id: 'a', history: [{ status: 'applied' }, { status: 'conflict' }, { status: 'proposed' }] },
+      { id: 'b' },
     ]
-    const verdicts = Review.verdictsByElement(feedbackState, byId)
-    expect(verdicts.a).toEqual({ applied: 1, stale: 1 })
-    expect(verdicts.b).toEqual({ applied: 1 })
-    expect(verdicts.ghost).toBeUndefined()
+    const changes = [
+      { status: 'proposed', changes: [{ target: 'm@a&f' }, { target: 'm@ghost&f' }] },
+      { status: 'applied', changes: [{ target: 'm@b&f' }] },
+    ]
+    const badges = Review.badgesByElement(list, changes)
+    expect(badges.a).toEqual({ applied: 1, conflict: 1, proposed: 1 })
+    expect(badges.b).toBeUndefined()
+    expect(badges.ghost).toBeUndefined()
   })
 
   it('changedIds returns reviewed ids whose hash drifted', () => {

@@ -471,6 +471,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-status-badge[data-status=applied]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
     '.innfo-status-badge[data-status=rejected]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
     '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
+    '.innfo-status-badge[data-status=conflict]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
+    '.innfo-status-badge[data-status=proposed]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
     '.innfo-draft-list{list-style:none;margin:0;padding:0}',
     '.innfo-draft-row{display:flex;align-items:baseline;gap:.5em;padding:.3em 0;border-bottom:1px solid var(--innfo-border)}',
     '.innfo-draft-kind{font-weight:600;color:var(--innfo-muted)}',
@@ -1055,7 +1057,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return btn
   }
 
-  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
+  var STATUSES = ['applied', 'conflict', 'proposed']
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -2878,18 +2880,73 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return out
   }
 
-  function verdictsByElement(feedbackState, elementsById) {
-    var entries = Array.isArray(feedbackState) ? feedbackState : []
-    var byId = isObject(elementsById) ? elementsById : {}
+  function normalizeAddressKey(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+  }
+
+  // Badges derive only from changesets: `applied` / `conflict` from each element's
+  // changeset `history`, `proposed` from the domain payload's proposed changesets.
+  // Local drafts and reviewer verdicts never produce a badge; entries whose element
+  // no longer exists are dropped.
+  function badgesByElement(elements, changes) {
+    var list = Array.isArray(elements) ? elements : []
+    var changesets = Array.isArray(changes) ? changes : []
     var out = {}
-    entries.forEach(function (entry) {
-      if (!isObject(entry)) return
-      var elId = entry.element_id
-      if (!elId || !byId[elId]) return
-      var status = entry.status
-      if (!status) return
+    function bump(elId, status) {
+      if (!elId || !status) return
       if (!out[elId]) out[elId] = {}
       out[elId][status] = (out[elId][status] || 0) + 1
+    }
+    list.forEach(function (el) {
+      if (!el || !el.id) return
+      var history = Array.isArray(el.history) ? el.history : []
+      history.forEach(function (h) {
+        if (!isObject(h)) return
+        if (h.status === 'applied' || h.status === 'conflict') bump(el.id, h.status)
+      })
+    })
+    function keysOf(el) {
+      var keys = {}
+      if (el && el.id) {
+        var id = String(el.id)
+        keys[normalizeAddressKey(id)] = true
+        var at = id.indexOf('@')
+        if (at !== -1) keys[normalizeAddressKey(id.slice(at + 1))] = true
+      }
+      if (el && el.name) keys[normalizeAddressKey(el.name)] = true
+      return keys
+    }
+    changesets.forEach(function (cs) {
+      if (!isObject(cs) || cs.status !== 'proposed') return
+      var items = Array.isArray(cs.changes) ? cs.changes : []
+      items.forEach(function (c) {
+        if (!isObject(c)) return
+        var target = String(c.target || '')
+        var at = target.indexOf('@')
+        if (at === -1) return
+        var modelPart = target.slice(0, at)
+        var elementPart = target.slice(at + 1).split('&')[0].trim()
+        if (!elementPart) return
+        var forms = [normalizeAddressKey(elementPart), normalizeAddressKey(modelPart + elementPart)]
+        for (var i = 0; i < list.length; i++) {
+          var el = list[i]
+          if (!el || !el.id) continue
+          var keys = keysOf(el)
+          var hit = false
+          for (var f = 0; f < forms.length; f++) {
+            if (forms[f] && keys[forms[f]]) {
+              hit = true
+              break
+            }
+          }
+          if (hit) {
+            bump(el.id, 'proposed')
+            break
+          }
+        }
+      })
     })
     return out
   }
@@ -2985,6 +3042,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var options = isObject(opts) ? opts : {}
     var meta = isObject(options.meta) ? options.meta : {}
     var elements = Array.isArray(options.elements) ? options.elements : []
+    var changes = Array.isArray(options.changes) ? options.changes : []
     var needs = Array.isArray(options.needs) ? options.needs : []
     var store = options.store
     var elementsById = {}
@@ -3751,14 +3809,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function decorateBadges() {
       if (!doc.querySelectorAll) return
-      var feedbackState = Array.isArray(meta.feedbackState) ? meta.feedbackState : []
-      if (!feedbackState.length) return
-      var verdicts = verdictsByElement(feedbackState, elementsById)
+      var badges = badgesByElement(elements, changes)
+      if (!Object.keys(badges).length) return
       Array.prototype.forEach.call(
         doc.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
         function (card) {
           var elId = card.getAttribute('data-element-id')
-          var statuses = verdicts[elId]
+          var statuses = badges[elId]
           if (!statuses) return
           var head = card.querySelector('.innfo-card-head') || card
           var host = head.querySelector('[data-innfo-review-badges]')
@@ -3998,7 +4055,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     isTargetChanged: isTargetChanged,
     isAlreadyApplied: isAlreadyApplied,
     progressByConcept: progressByConcept,
-    verdictsByElement: verdictsByElement,
+    badgesByElement: badgesByElement,
     changedIds: changedIds,
     canReview: canReview,
     flattenCitations: flattenCitations,
@@ -9573,6 +9630,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       state.controller = Review.createReviewController(active, {
         meta: meta,
         elements: elements,
+        changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
         onDraftsChanged: refreshDraftCounts,

@@ -5564,6 +5564,7 @@
       state.controller = Review.createReviewController(active, {
         meta: meta,
         elements: elements,
+        changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
         onDraftsChanged: refreshDraftCounts,

@@ -7364,7 +7364,7 @@ var require_dist = __commonJS({
 // iNNfo/packages/innfo-core/src/console/index.ts
 var index_exports = {};
 __export(index_exports, {
-  AGENT_MODIFICATION_CONCEPT: () => AGENT_MODIFICATION_CONCEPT,
+  CHANGE_CONCEPT: () => CHANGE_CONCEPT,
   EXCERPT_CHAR_CAP: () => EXCERPT_CHAR_CAP,
   FEEDBACK_LEDGER_FILENAME: () => FEEDBACK_LEDGER_FILENAME,
   KNOWN_AGENT_TOOL_IDS: () => KNOWN_AGENT_TOOL_IDS,
@@ -7385,7 +7385,7 @@ __export(index_exports, {
   evaluateFeedbackItems: () => evaluateFeedbackItems,
   extractExcerpt: () => extractExcerpt,
   feedbackStateFor: () => feedbackStateFor,
-  findEnclosingAgentModification: () => findEnclosingAgentModification,
+  findEnclosingChangeBlock: () => findEnclosingChangeBlock,
   groupCitationsByField: () => groupCitationsByField,
   hashParsedElement: () => hashParsedElement,
   isConsoleModel: () => isConsoleModel,
@@ -7403,7 +7403,7 @@ __export(index_exports, {
   parseFrontmatter: () => parseFrontmatter,
   parseName: () => parseName,
   parseYaml: () => parseYaml,
-  readAgentModificationAuthor: () => readAgentModificationAuthor,
+  readChangeAuthor: () => readChangeAuthor,
   resolveCitation: () => resolveCitation,
   resolveConsoleSchema: () => resolveConsoleSchema,
   roleOf: () => roleOf,
@@ -10452,28 +10452,28 @@ function hashParsedElement(concept, node) {
 
 // iNNfo/packages/innfo-core/src/console/citations.ts
 var EXCERPT_CHAR_CAP = 500;
-var AGENT_MODIFICATION_CONCEPT = "NN Agent Modification";
+var CHANGE_CONCEPT = "NN Change";
 var KNOWN_AGENT_TOOL_IDS = ["ClaudeCode", "OpenCode", "Antigravity"];
 function normalizeToolId(value) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 var NORMALIZED_KNOWN_AGENT_TOOL_IDS = new Set(KNOWN_AGENT_TOOL_IDS.map(normalizeToolId));
-function findEnclosingAgentModification(headings, idx) {
-  const isAgentModification = (h) => h.concept?.trim().toLowerCase() === AGENT_MODIFICATION_CONCEPT.toLowerCase();
-  if (isAgentModification(headings[idx])) return headings[idx];
+function findEnclosingChangeBlock(headings, idx) {
+  const isChange = (h) => h.concept?.trim().toLowerCase() === CHANGE_CONCEPT.toLowerCase();
+  if (isChange(headings[idx])) return headings[idx];
   let level = headings[idx].level;
   for (let j = idx - 1; j >= 0; j--) {
     if (headings[j].level < level) {
-      if (isAgentModification(headings[j])) return headings[j];
+      if (isChange(headings[j])) return headings[j];
       level = headings[j].level;
     }
   }
   return void 0;
 }
-function readAgentModificationAuthor(content, amHeading) {
+function readChangeAuthor(content, changeHeading) {
   const lines = content.split("\n");
   let endLine = lines.length;
-  for (let i = amHeading.line + 1; i < lines.length; i++) {
+  for (let i = changeHeading.line + 1; i < lines.length; i++) {
     if (/^#{1,6}\s/.test(lines[i])) {
       endLine = i;
       break;
@@ -10481,7 +10481,7 @@ function readAgentModificationAuthor(content, amHeading) {
   }
   const authorLineRe = /^\s*author\s*::\s*(.*?)\s*$/i;
   let value = "";
-  for (let i = amHeading.line + 1; i < endLine; i++) {
+  for (let i = changeHeading.line + 1; i < endLine; i++) {
     const match = lines[i].match(authorLineRe);
     if (match) {
       value = (match[1] ?? "").trim();
@@ -10496,10 +10496,7 @@ function readAgentModificationAuthor(content, amHeading) {
   }
   return { origin: "human", author: value };
 }
-function classifyFromFrontmatter(fm) {
-  if (fm?.source_type === "feedback") {
-    return { origin: "reviewer", ...fm.author ? { author: fm.author } : {} };
-  }
+function classifyFromFrontmatter(_fm) {
   return { origin: "document" };
 }
 function headingMatcher(ref) {
@@ -10542,8 +10539,8 @@ function classifyOrigin(content, fm, ref) {
     const headings = extractHeadings(content);
     const idx = headings.findIndex(headingMatcher(ref));
     if (idx !== -1) {
-      const amHeading = findEnclosingAgentModification(headings, idx);
-      if (amHeading) return readAgentModificationAuthor(content, amHeading);
+      const changeHeading = findEnclosingChangeBlock(headings, idx);
+      if (changeHeading) return readChangeAuthor(content, changeHeading);
     }
   }
   return classifyFromFrontmatter(fm);
@@ -11342,7 +11339,7 @@ async function resolveConsoleSchema(opts) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  AGENT_MODIFICATION_CONCEPT,
+  CHANGE_CONCEPT,
   EXCERPT_CHAR_CAP,
   FEEDBACK_LEDGER_FILENAME,
   KNOWN_AGENT_TOOL_IDS,
@@ -11363,7 +11360,7 @@ async function resolveConsoleSchema(opts) {
   evaluateFeedbackItems,
   extractExcerpt,
   feedbackStateFor,
-  findEnclosingAgentModification,
+  findEnclosingChangeBlock,
   groupCitationsByField,
   hashParsedElement,
   isConsoleModel,
@@ -11381,7 +11378,7 @@ async function resolveConsoleSchema(opts) {
   parseFrontmatter,
   parseName,
   parseYaml,
-  readAgentModificationAuthor,
+  readChangeAuthor,
   resolveCitation,
   resolveConsoleSchema,
   roleOf,

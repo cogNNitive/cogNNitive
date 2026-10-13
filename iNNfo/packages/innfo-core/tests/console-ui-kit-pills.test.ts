@@ -94,17 +94,19 @@ describe('InnfoUI.MarkerChip', () => {
 
 describe('InnfoUI.StatusBadge', () => {
   it('renders data-status and text/aria from count', () => {
-    const b = UI.StatusBadge({ status: 'pending', count: 4 })
+    const b = UI.StatusBadge({ status: 'applied', count: 4 })
     expect(comp(b)).toBe('status-badge')
-    expect(b.getAttribute('data-status')).toBe('pending')
+    expect(b.getAttribute('data-status')).toBe('applied')
     expect(b.textContent).toBe('4')
-    expect(b.getAttribute('aria-label')).toBe('4 pending')
+    expect(b.getAttribute('aria-label')).toBe('4 applied')
   })
 
-  it('falls back to the status as text and supports stale', () => {
-    const b = UI.StatusBadge({ status: 'stale' })
-    expect(b.textContent).toBe('stale')
-    expect(b.getAttribute('aria-label')).toBe('stale')
+  it('falls back to the status as text and supports conflict/proposed', () => {
+    const c = UI.StatusBadge({ status: 'conflict' })
+    expect(c.textContent).toBe('conflict')
+    expect(c.getAttribute('aria-label')).toBe('conflict')
+    const p = UI.StatusBadge({ status: 'proposed' })
+    expect(p.getAttribute('data-status')).toBe('proposed')
   })
 
   it('throws on unknown status', () => {

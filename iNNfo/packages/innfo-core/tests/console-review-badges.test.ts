@@ -7,26 +7,32 @@ const env = createConsoleEnv()
 
 const sampleSchema = { concepts: [{ name: 'ParanormalThreat' }] }
 
-function buildModel(feedbackState?: any[]) {
-  return {
+interface BuildOpts {
+  history?: any[]
+  changes?: any[]
+}
+
+function buildModel(opts: BuildOpts = {}) {
+  const element: any = {
+    id: 'threat-slimer',
+    concept: 'ParanormalThreat',
+    name: 'Slimer',
+    hash: 'abcdef0123456789',
+    fields: {},
+  }
+  if (opts.history) element.history = opts.history
+  const model: any = {
     meta: {
       modelId: 'ghostbusters-model',
       title: 'GhostbustersModel',
       modelVersion: 'V_0-2-1',
       sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-      ...(feedbackState ? { feedbackState } : {}),
     },
-    elements: [
-      {
-        id: 'threat-slimer',
-        concept: 'ParanormalThreat',
-        name: 'Slimer',
-        hash: 'abcdef0123456789',
-        fields: {},
-      },
-    ],
+    elements: [element],
     matrices: [],
   }
+  if (opts.changes) model.changes = opts.changes
+  return model
 }
 
 function renderModelConsole(model = buildModel()): void {
@@ -61,7 +67,15 @@ function boot(withReview: boolean) {
   return mods
 }
 
-describe('console-review-badges (verdict badges from feedbackState)', () => {
+function badgeStatuses(): string[] {
+  return Array.from(
+    env.document.querySelectorAll(
+      '[data-innfo-review-badges] [data-innfo-component="status-badge"]',
+    ),
+  ).map((b) => (b as HTMLElement).getAttribute('data-status') || '')
+}
+
+describe('console-review-badges (badges from changesets)', () => {
   beforeEach(() => {
     controllers = []
     env.setup(readFileSync(shellPath, 'utf8'))
@@ -75,9 +89,9 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders an applied StatusBadge in the card head', () => {
+  it('renders an applied StatusBadge from element.history', () => {
     renderModelConsole(
-      buildModel([{ id: 'fb-001', element_id: 'threat-slimer', status: 'applied' }]),
+      buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }),
     )
     boot(false)
     const badges = env.document.querySelector(
@@ -87,19 +101,40 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
     const badge = badges!.querySelector('[data-innfo-component="status-badge"]') as HTMLElement
     expect(badge).not.toBeNull()
     expect(badge.getAttribute('data-status')).toBe('applied')
+    expect(badge.textContent).toBe('1')
+  })
+
+  it('renders a conflict StatusBadge from element.history', () => {
+    renderModelConsole(
+      buildModel({ history: [{ id: 'c-01', op: 'update_field', status: 'conflict' }] }),
+    )
+    boot(false)
+    expect(badgeStatuses()).toEqual(['conflict'])
+  })
+
+  it('renders a proposed StatusBadge from the proposed changesets of payload.changes', () => {
+    renderModelConsole(
+      buildModel({
+        changes: [
+          {
+            path: 'changes/m_reviewer_1_changes_NN.md',
+            status: 'proposed',
+            changes: [{ id: 'c-01', op: 'comment', target: 'm@threat-slimer&note' }],
+          },
+        ],
+      }),
+    )
+    boot(false)
+    expect(badgeStatuses()).toEqual(['proposed'])
   })
 
   it('renders badges with review mode OFF', () => {
     renderModelConsole(
-      buildModel([{ id: 'fb-001', element_id: 'threat-slimer', status: 'stale' }]),
+      buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }),
     )
     boot(false)
     expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    const badge = env.document.querySelector(
-      '[data-innfo-review-badges] [data-innfo-component="status-badge"]',
-    ) as HTMLElement
-    expect(badge).not.toBeNull()
-    expect(badge.getAttribute('data-status')).toBe('stale')
+    expect(badgeStatuses()).toEqual(['applied'])
   })
 
   it('a local draft alone produces no verdict badge', () => {
@@ -127,9 +162,17 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
     expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()
   })
 
-  it('ignores orphan feedback entries targeting a missing element', () => {
+  it('ignores a proposed change targeting a missing element', () => {
     renderModelConsole(
-      buildModel([{ id: 'fb-001', element_id: 'ghost-element', status: 'applied' }]),
+      buildModel({
+        changes: [
+          {
+            path: 'changes/m_reviewer_1_changes_NN.md',
+            status: 'proposed',
+            changes: [{ id: 'c-01', op: 'comment', target: 'm@ghost-element&note' }],
+          },
+        ],
+      }),
     )
     expect(() => boot(false)).not.toThrow()
     expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()

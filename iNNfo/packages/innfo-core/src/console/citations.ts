@@ -22,10 +22,10 @@ import type {
 export const EXCERPT_CHAR_CAP = 500
 
 /** Origin classification for a resolved citation. */
-export type CitationOrigin = 'agent' | 'human' | 'reviewer' | 'document'
+export type CitationOrigin = 'agent' | 'human' | 'document'
 
-/** The `concept` half of a `## NN Agent Modification: <slug>` heading. */
-export const AGENT_MODIFICATION_CONCEPT = 'NN Agent Modification'
+/** The `concept` half of a `## NN Change: <id>` heading of a changeset. */
+export const CHANGE_CONCEPT = 'NN Change'
 
 /** Known agent tool ids. */
 export const KNOWN_AGENT_TOOL_IDS: readonly string[] = ['ClaudeCode', 'OpenCode', 'Antigravity']
@@ -56,21 +56,21 @@ export function normalizeToolId(value: string): string {
 export const NORMALIZED_KNOWN_AGENT_TOOL_IDS = new Set(KNOWN_AGENT_TOOL_IDS.map(normalizeToolId))
 
 /**
- * Walk from the target heading up through its structural ancestors looking for an enclosing Agent Modification block.
+ * Walk from the target heading up through its structural ancestors looking for an enclosing NN Change block.
  */
-export function findEnclosingAgentModification(
+export function findEnclosingChangeBlock(
   headings: HeadingInfo[],
   idx: number,
 ): HeadingInfo | undefined {
-  const isAgentModification = (h: HeadingInfo): boolean =>
-    h.concept?.trim().toLowerCase() === AGENT_MODIFICATION_CONCEPT.toLowerCase()
+  const isChange = (h: HeadingInfo): boolean =>
+    h.concept?.trim().toLowerCase() === CHANGE_CONCEPT.toLowerCase()
 
-  if (isAgentModification(headings[idx])) return headings[idx]
+  if (isChange(headings[idx])) return headings[idx]
 
   let level = headings[idx].level
   for (let j = idx - 1; j >= 0; j--) {
     if (headings[j].level < level) {
-      if (isAgentModification(headings[j])) return headings[j]
+      if (isChange(headings[j])) return headings[j]
       level = headings[j].level
     }
   }
@@ -78,15 +78,17 @@ export function findEnclosingAgentModification(
 }
 
 /**
- * Read the author line from an Agent Modification block.
+ * Read the `author::` line from an NN Change block and classify its origin:
+ * a known agent tool id is `agent`, any other value is `human`. Missing or `_`
+ * authors are `agent` with the literal author `"unknown"`.
  */
-export function readAgentModificationAuthor(
+export function readChangeAuthor(
   content: string,
-  amHeading: HeadingInfo,
+  changeHeading: HeadingInfo,
 ): { origin: CitationOrigin; author: string } {
   const lines = content.split('\n')
   let endLine = lines.length
-  for (let i = amHeading.line + 1; i < lines.length; i++) {
+  for (let i = changeHeading.line + 1; i < lines.length; i++) {
     if (/^#{1,6}\s/.test(lines[i])) {
       endLine = i
       break
@@ -95,7 +97,7 @@ export function readAgentModificationAuthor(
 
   const authorLineRe = /^\s*author\s*::\s*(.*?)\s*$/i
   let value = ''
-  for (let i = amHeading.line + 1; i < endLine; i++) {
+  for (let i = changeHeading.line + 1; i < endLine; i++) {
     const match = lines[i].match(authorLineRe)
     if (match) {
       value = (match[1] ?? '').trim()
@@ -112,14 +114,14 @@ export function readAgentModificationAuthor(
   return { origin: 'human', author: value }
 }
 
-/** Classify citation from frontmatter metadata. */
-export function classifyFromFrontmatter(fm: { source_type?: string; author?: string } | null): {
-  origin: CitationOrigin
+/**
+ * Classify citation from frontmatter metadata. A file-level flag never decides
+ * the origin: every non-change anchor is a plain `document`.
+ */
+export function classifyFromFrontmatter(_fm: {
+  source_type?: string
   author?: string
-} {
-  if (fm?.source_type === 'feedback') {
-    return { origin: 'reviewer', ...(fm.author ? { author: fm.author } : {}) }
-  }
+} | null): { origin: CitationOrigin; author?: string } {
   return { origin: 'document' }
 }
 
@@ -175,8 +177,8 @@ export function classifyOrigin(
     const idx = headings.findIndex(headingMatcher(ref))
 
     if (idx !== -1) {
-      const amHeading = findEnclosingAgentModification(headings, idx)
-      if (amHeading) return readAgentModificationAuthor(content, amHeading)
+      const changeHeading = findEnclosingChangeBlock(headings, idx)
+      if (changeHeading) return readChangeAuthor(content, changeHeading)
     }
   }
 
