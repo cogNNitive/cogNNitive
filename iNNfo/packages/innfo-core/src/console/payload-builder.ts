@@ -18,8 +18,6 @@ import {
 } from './citations.js'
 import type { ResolvedCitation } from './citations.js'
 import { canonicalJsonStringify, computeElementHash } from './element-hash.js'
-import { feedbackStateFor } from './feedback-ledger.js'
-import type { FeedbackVerdictEntry, FeedbackStateItem } from './feedback-ledger.js'
 import { buildConsoleSchemaSlot } from './slot.js'
 import type { ConsoleSchemaSlot, ConsoleProcedureSlot } from './slot.js'
 import { attachChangesetHistory } from './element-history.js'
@@ -81,7 +79,6 @@ export interface ConsolePayloadMeta {
   sources: string[]
   generated: string
   citationsResolvedAt?: string
-  feedbackState: FeedbackStateItem[]
 }
 
 export interface ConsolePayload {
@@ -98,7 +95,6 @@ export interface BuildConsolePayloadOptions {
   path?: string
   schema?: any
   resolver?: SourceResolver
-  ledgerEntries?: FeedbackVerdictEntry[]
   changesets?: ChangesetRecord[]
   generated?: string
   /** Blueprint procedure catalog to attach to the schema slot (parent + includes). */
@@ -139,7 +135,7 @@ export function normalizeModelId(filePath?: string, fallbackTitle?: string): str
  * Builds the canonical 2-slot console payload (schema + model).
  */
 export function buildConsolePayload(options: BuildConsolePayloadOptions): ConsolePayload {
-  const { content, path: modelPath, schema: inputSchema, resolver, ledgerEntries, changesets, generated } = options
+  const { content, path: modelPath, schema: inputSchema, resolver, changesets, generated } = options
   const rawSha256 = computeSha256(content)
   const parsed = parseKnowledge(content)
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
@@ -327,7 +323,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     sha256: rawSha256,
     sources: [sourceFile],
     generated: genTime,
-    feedbackState: feedbackStateFor(ledgerEntries || [], modelId),
   }
 
   if (template) {
