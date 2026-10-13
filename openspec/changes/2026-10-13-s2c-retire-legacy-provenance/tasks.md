@@ -46,11 +46,11 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 3. Retire the ledger (S2c-1)
 
-- [ ] 3.1 TEST (`iNNfo/packages/innfo-core/tests/console-payload*.test.ts`): built payloads
+- [x] 3.1 TEST (`iNNfo/packages/innfo-core/tests/console-payload*.test.ts`): built payloads
       have no `meta.feedbackState`; a domain with a `feedback-ledger.jsonl` file exports the
       same bytes as without it. [console-payload-builder: Payload Meta]
       [console-export-cli: Root Ledger Input (REMOVED)]
-- [ ] 3.2 Delete `console/feedback-ledger.ts` and its `console/index.ts` export,
+- [x] 3.2 Delete `console/feedback-ledger.ts` and its `console/index.ts` export,
       `tests/feedback-ledger.test.ts`, `meta.feedbackState` in `ConsolePayloadMeta` and
       `buildConsolePayload`, the ledger read in `scripts/export-console.mjs:600-604`, the
       `scripts/lib/legacy-write-guard.js:61` entry; regenerate
@@ -62,14 +62,14 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 4. Retire the MCP tools and the procedure (S2c-2)
 
-- [ ] 4.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): the tool list contains
+- [x] 4.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): the tool list contains
       neither `evaluate_feedback_items` nor `record_feedback_verdict`.
       [feedback-verdict-ledger: Writes Go Through a Validating Tool (REMOVED)]
-- [ ] 4.2 Delete `innfo-mcp/src/tools/feedback-verdict.ts` and `feedback-verdict.spec.ts`;
+- [x] 4.2 Delete `innfo-mcp/src/tools/feedback-verdict.ts` and `feedback-verdict.spec.ts`;
       deregister both tools in `server.ts`. [feedback-verdict-ledger: Writes Go Through a
       Validating Tool (REMOVED)] [feedback-verdict-ledger: sourcePath containment (REMOVED)]
       [feedback-verdict-ledger: Feedback Sources Stay Immutable (REMOVED)]
-- [ ] 4.3 Delete `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md`;
+- [x] 4.3 Delete `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md`;
       remove it from the workspace template package listing and procedure catalog; bump
       that template's `template_version`; `verify.js` template inventory green.
       [innfo-console-feedback: Reconcile Feedback Procedure (REMOVED)]
