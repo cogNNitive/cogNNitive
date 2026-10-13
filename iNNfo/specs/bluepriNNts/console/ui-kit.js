@@ -745,6 +745,10 @@
     if (typeof v !== 'string') return ''
     var s = v.replace(/\\/g, '/')
     if (/^(data:|blob:|https?:|file:)/i.test(s)) return v
+    // Already rebased to the rendered console location by export-console.mjs
+    // (rebaseModelAssets); leave it alone or the prefix is stripped and the
+    // stamped console 404s.
+    if (/^\.{1,2}\//.test(s)) return s
     var m = s.match(/^.+?\/((?:sources|kNNowledge|assets|evidence)\/.+)$/)
     return m ? m[1] : v
   }
@@ -905,6 +909,9 @@
     return IMAGE_VALUE_RE.test(s)
   }
 
+  // Last-resort prefix retry for payloads exported before the export-time
+  // rebase (scripts/export-console.mjs rebaseModelAssets); a correctly exported
+  // console loads the src on the first try.
   function retryImageSrc(img, fallback) {
     var cur = img.getAttribute('src') || ''
     if (/^(data:|blob:|https?:|file:)/i.test(cur)) {
