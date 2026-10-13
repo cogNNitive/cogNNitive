@@ -121,7 +121,7 @@ describe('InnfoUI.CitationIcon', () => {
     expect(comp(icon)).toBe('citation-icon')
     expect(icon.getAttribute('data-origin')).toBe('agent')
     expect(icon.getAttribute('data-field')).toBe('owner')
-    expect(icon.getAttribute('aria-label')).toBe('AI agent: owner')
+    expect(icon.getAttribute('aria-label')).toBe('Origin: owner')
     host.appendChild(icon)
     icon.click()
     expect(onOpen).toHaveBeenCalledTimes(1)

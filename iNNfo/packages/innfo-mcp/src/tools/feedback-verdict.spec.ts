@@ -36,12 +36,14 @@ level: 3
 
 # NN Mission
 ## NN Mission: Ghost Catching
+  slug:: ghost-catching
   scope:: "New York City"
 
   We eliminate ghosts.
 
 # NN Gear
 ## NN Gear: Proton Pack
+  slug:: proton-pack
   power:: "Particle accelerator"
 
   Nuclear accelerator pack.

@@ -59,10 +59,12 @@ title: "Strategy Review Board"
 
 # NN Work
 ## NN Work: Vision
+slug:: vision
 statement:: Accelerate green energy
 target_year:: 2030
 
 ## NN Work: Legacy Plan
+slug:: legacy-plan
 statement:: Keep the old plan
 target_year:: 2025
 `
