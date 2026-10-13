@@ -62,7 +62,7 @@ and a new `init_domain` for the empty container.
 - No schema (bluepriNNt Concept / Field) editing via changesets — that remains a
   bluepriNNt version upgrade (`nn-upgrade` Flow B).
 - Deleting `preview-server.ts`, the `mcp-live-preview` capability and the editor (S5).
-- The Changes collection / Changes console view and the L3 changeset frontmatter (#1).
+- The Changes collection / Changes console view (#1C) and the L3 changeset frontmatter (#1A).
 
 ## Capabilities
 
@@ -100,20 +100,27 @@ and a new `init_domain` for the empty container.
 
 ## Dependencies
 
-- **#1 `2026-10-13-changeset-first-class-and-lineage` MUST land before S6.** S6 writes
-  changesets with the L3 frontmatter from #1, relies on the `Change.sources` citation
-  field from #1 (a migration change cites the old domain), the Changes collection /
-  Changes view, the real per-model `knowledge_version` in the console (#1 D7), and
-  proposal immutability (#1 D4). S6 bumps the `changes` bluepriNNt again (`add_model`
-  option + new keys) on top of the #1 bump.
+- **#1A, #1B and #1C MUST land before S6** (`2026-10-13-changeset-first-class-and-lineage`,
+  `2026-10-13-changeset-immutability-and-snapshot-removal`,
+  `2026-10-13-console-changes-view-and-slug-ids`). S6 writes changesets with the L3
+  frontmatter and relies on the sealed `Change.sources` field (#1A; a migration change
+  cites the old domain), on proposal immutability and the copy-free persist (#1B), and on
+  the Changes collection / Changes view and the per-model `knowledge_version` and
+  `sha256` embedded in the domain meta (#1C). S6 bumps the `changes` bluepriNNt again
+  (`add_model` option + new keys) on top of #1A/#1C. S6's MODIFIED delta of
+  `Cryptographic Proposal Sealing (proposal_sha)` is written against the post-#1A text
+  and lists a superset of its keys.
 - **S2c `2026-10-13-s2c-retire-legacy-provenance` MUST land before S6.** Both touch
-  `build-console-payload.ts` and `scripts/export-console.mjs` (ledger inputs), and #1 and
+  `build-console-payload.ts` and `scripts/export-console.mjs` (ledger inputs), and #1C and
   S2c both carry `console-payload-builder` deltas. S6 deliberately adds **no**
   `console-payload-builder` delta, to avoid a third concurrent rewrite of that capability.
-  **Ordering: #1 → S2c → S6.**
+  **Ordering: #1A → #1B → #1C → S2c → S6.**
+- **S4 `2026-10-13-s4-retire-legacy-migration-flows` MUST land before S6c**: both edit
+  `skills/nn-upgrade/scripts/migrate-domain.js` (S4 deletes Flow A and `--migrate-references`;
+  S6c rewrites `runImportAsSource`).
 - **S5 `2026-10-13-s5-retire-innfo-editor` depends on S6**: S5 may delete
   `preview-server.ts`, `withPreview` and the editor only once preview-as-a-file exists.
-- No dependency on the `kNNowledge/archive/` snapshot or `persistWithArchive` (#1 removes
+- No dependency on the `kNNowledge/archive/` snapshot or `persistWithArchive` (#1B removes
   both); new files are persisted tmp + rename.
 
 ## Affected Areas
@@ -150,7 +157,7 @@ set (`export-console.mjs` changes). The `nn-innfo` skill MUST document
 | `add_model` + dependent changes half-applied | Med | A conflicted `add_model` conflicts every change targeting that model in the same changeset |
 | Dropping `init_knowledge` repair breaks a caller | Low | Verified: only tests depend on it (`mutate-repair.test.ts`, `init-knowledge.spec.ts`); no skill does |
 | Unresolvable blueprint now fails creation | Med | Intended (no frontmatter-only fallback); the error names the blueprint URL |
-| Three slices touch `export-console.mjs` | High | Ordering #1 → S2c → S6; S6 rebases last |
+| Three slices touch `export-console.mjs` | High | Ordering #1C → S2c → S6; S6 rebases last |
 | Work exceeds one PR review budget | High | Split into slices S6a–S6e (see `tasks.md`) |
 
 ## Rollback Plan

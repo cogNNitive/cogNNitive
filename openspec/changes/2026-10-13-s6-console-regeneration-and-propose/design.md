@@ -91,8 +91,8 @@
 - Regeneration is idempotent (same inputs, same bytes, `unchanged`) and retryable by
   calling `regenerate_console` explicitly.
 - The domain console embeds, per model, the `knowledge_version` and the content `sha256`
-  it was built from (#1 D7 carries the real `knowledge_version`), so a stale file is
-  detectable: `export-console.mjs --status` reports the domain console as `fresh` or
+  it was built from (#1C puts them in the domain meta; S6 adds no second embedding), so a
+  stale file is detectable: `export-console.mjs --status` reports the domain console as `fresh` or
   `stale` by comparing them with the live models.
 - This replaces the live preview as the way a user sees a change: **preview is a file**.
   `withPreview`/`preview-server.ts` remain until S5 deletes them; S6 adds nothing to them.
@@ -129,7 +129,7 @@ next_steps: {
   and the `add_model` keys), `title`, `author` (default `agent`), `domain`/`root`,
   `open` (default `true`). The agent derives operations; the MCP never interprets a
   conversation.
-- Ids are assigned `c-01`, `c-02`, ... in order. The frontmatter is the #1 L3 changeset
+- Ids are assigned `c-01`, `c-02`, ... in order. The frontmatter is the #1A L3 changeset
   frontmatter with `status: proposed`; `proposal_sha = computeProposalSha(changes)`
   (the same sealing apply uses at intake, `apply-change.ts:681-683`).
 - File name: `changes/<workspace_id>_<author>_<UTC stamp>_changes_NN.md`, where
@@ -169,14 +169,13 @@ notes:: Migrated from the old domain
 
 - `target` is the new model id (a safe relative id, no `@`). `blueprint_name` and
   `blueprint_url` are required; `name` is the title (defaults to the id);
-  `knowledge_version` is optional; `sources` is the #1 `Change.sources` citation field.
+  `knowledge_version` is optional; `sources` is the #1A `Change.sources` citation field.
 - New `ChangeItem` keys: `blueprint_name`, `blueprint_url`, `knowledge_version`. The
   parser reads them, the serializer writes them, and `PROPOSAL_KEYS` (`hasher.ts:8-21`)
-  gains them — and `sources`, which neither the parser nor `PROPOSAL_KEYS` covers today;
-  if #1 already added it, S6 only asserts it with a test.
+  gains them. `sources` and `base_hash` are already parsed and sealed by #1A.
 - The `changes` bluepriNNt gains `add_model` in the `op` options and three Change field
   definitions; `canonical-registry.ts` mirrors it; `blueprint_version` bumps on top of
-  the #1 bump.
+  the #1A/#1C bump.
 - **Initial content** is expressed as ordinary `add_element` changes that follow the
   `add_model` change in the same changeset and target the new id. `add_model` itself
   carries no element payload: one mutation path, and D8 concept validation applies to
@@ -214,7 +213,7 @@ notes:: Migrated from the old domain
   without it is rejected (`DOMAIN_LAYOUT_INVALID`) — no fallback to the domain root. No
   archive.
 - **Lineage**: the changeset is the record of creation; the Changes collection and the
-  per-element history of #1 attribute the model to the change through its `target`.
+  per-element history of #1C attribute the model to the change through its `target`.
   A migration change cites the old domain through `sources::` (a path under
   `sources/import/`), resolved by `createFsSourceResolver` like any citation.
 - **Domain manifest**: the manifest model list is a derived index, not authored data.
@@ -320,9 +319,9 @@ notes:: Migrated from the old domain
    or the level-2 primitives (`add_concept`, `add_field`, `set_marker`) still writes
    directly via `saveKnowledge` (`apply-change.ts:1257-1308`), contradicting
    "changesets are the only mechanism". Follow-up change.
-5. **`mcp-live-preview` removal.** S5 lists only the four `editor-*` specs; it must also
+5. **`mcp-live-preview` removal.** RESOLVED: S5 REMOVES the capability by exact requirement names and deletes `withPreview` (S5a). S5 lists only the four `editor-*` specs; it must also
    REMOVE `mcp-live-preview` and delete `withPreview` in `server.ts`.
-6. **Retired app link.** The scaffold notice links `https://cognnitive.com/innfo/app/`
+6. **Retired app link.** RESOLVED: S5c retargets the badge in the shared scaffold, templates and registry together. The scaffold notice links `https://cognnitive.com/innfo/app/`
    (retired with the editor). S6 keeps the bytes so `init_knowledge` output is unchanged;
    S5 must update the notice in the shared scaffold, the bluepriNNt templates and the
    canonical registry together.

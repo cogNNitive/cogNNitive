@@ -818,13 +818,15 @@ hand edits is a non-goal; the user owns that risk, but must be told.
 
 **Status:** vision settled in a grilling session on 2026-10-07, fact-checked against the code
 by two fresh-context reviews. **S1, S2a and S2b are DONE and archived** (see the slice table).
-Remaining slices open with their own `/sdd-new` only after the previous one is archived, so
-their specs are written against the code the earlier slices produced.
+The remaining work is fully specified as eight live changes (2026-10-13), each sliced into
+batch-sized apply units; their apply order is `openspec/changes/2026-10-13-DEPENDENCIES.md`.
 **State lives in `openspec/`**: a slice that has a live change is shown as a pointer here, and
 its line is deleted on archive.
 
-**Superseding change (2026-10-13):** `openspec/changes/2026-10-13-changeset-first-class-and-lineage`
-consolidates the coherence work found while auditing the domain console after the PoC — the
+**Superseding changes (2026-10-13):** #1A `changes/2026-10-13-changeset-first-class-and-lineage`,
+#1B `changes/2026-10-13-changeset-immutability-and-snapshot-removal` and
+#1C `changes/2026-10-13-console-changes-view-and-slug-ids` (one consolidated change, split for
+apply size) consolidate the coherence work found while auditing the domain console after the PoC — the
 changeset as a valid L3 doc + a first-class lineage node role, the removal of the dead
 `kNNowledge/archive/` snapshot, proposal immutability, the `changes` console view, the console
 element-identity/`domainId` draft-store decisions, and the Source/Citation/Lineage vocabulary
@@ -896,10 +898,11 @@ address.
 | S1 | `stable-element-identity` ✅ archived · `changes/archive/2026-10-10-2026-10-07-stable-element-identity` | D1, D3, D4, D5, D6, D18, D19: explicit immutable `slug::` and `model_slug`; new address unit kind and resolver; validator diagnostics (duplicate slug, ambiguous name, unfrozen model); `rename_element` keeps the slug; frontmatter allow-list; `freeze_slugs` per model plus the domain-wide `nn-upgrade` freeze; editor read-only; new `iNNfo` spec version; samples and fixtures. | — |
 | S2a | `changeset-apply-and-versioning` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-apply-and-versioning` | D7, D8, D9, D15, D20: `changes` bluepriNNt and naming; `apply_change` applies changesets (`update_field`, `add_element`, `rename_*`, matrix-cell op, `comment`); lock and two-phase apply; snapshots in `kNNowledge/archive/` with the deep `archive` exclusion. | S1 |
 | S2b | `changeset-conflicts-and-deletes` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-conflicts-and-deletes` | D10, D11, D12: per-change conflicts, console-proposed slugs and `resolved_slug::`, delete impact and cascades, slug reuse. | S2a |
-| S2c | `retire-legacy-provenance` → `changes/2026-10-13-s2c-retire-legacy-provenance` | Retire the Agent Modification block (core, `console/citations.ts`, specs, `nn-innfo`/`nn-trannsform` SKILL.md), the feedback ledger, the two MCP tools, the docx/console feedback import and the orphan change-log library. | S2a |
-| S3 | `domain-console-and-edit-modal` → `changes/2026-10-13-s3-domain-console-and-edit-modal` | D13, D14, D17 on the vanilla stack, with computed history and the shared modal; port only the editor widgets actually needed. | S2a, S2b |
-| S4 | `domain-reference-migration` → `changes/2026-10-13-s4-domain-reference-migration` | Rest of D16 in `nn-upgrade`: rewrite structural references and citations to the new grammar, remove retired blocks and ledgers; ledger and later remove the tolerant name read. | S1, S2a |
-| S5 | `retire-innfo-editor` → `changes/2026-10-13-s5-retire-innfo-editor` | Delete the Vue editor once S3 covers what is actually used, including its deploy to `docs/innfo/app/` (`build-docs.mjs`), `sync-versions.mjs` and `check-integrity.js` coupling, and the editor-specific `openspec/specs`. | S3 |
+| S2c | `retire-legacy-provenance` → `changes/2026-10-13-s2c-retire-legacy-provenance` | Retire the Agent Modification block (core, `console/citations.ts`, specs, `nn-innfo`/`nn-sources` SKILL.md), the feedback ledger, the two MCP tools, the console feedback JSON and its import, and the orphan change-log library. | #1C |
+| S3 | `domain-console-and-edit-modal` → `changes/2026-10-13-s3-domain-console-and-edit-modal` | D13, D14, D17: parity audit gate (S3a), then ports re-planned from the audit (S3b). | S2c |
+| S4 | `retire-legacy-migration-flows` → `changes/2026-10-13-s4-retire-legacy-migration-flows` | Rest of D16, re-scoped 2026-10-13 (no in-place migration): retire `nn-upgrade` Flow A and Flow C and `--migrate-references`; keep Flow B, `--freeze-slugs` and `--import-as-source`; delete the fuzzy reference step and its ledger entry. | — (before S6c) |
+| S5 | `retire-innfo-editor` → `changes/2026-10-13-s5-retire-innfo-editor` | Delete the Vue editor, the hosted app, the MCP live preview and every coupling once S3 covers what is actually used; retarget the document badge; remove the editor-bound living specs. | S3, S6 |
+| S6 | `console-regeneration-and-propose` → `changes/2026-10-13-s6-console-regeneration-and-propose` | Stable console files and regeneration after propose/apply, `propose_changeset`, `add_model`, `init_domain`, console New element. | #1C, S2c (S6c: S4) |
 
 **Closes:** "Intra-document element identity: key on the slug, not the display name" (above)
 and the change-log half of `feature/kb-change-governance`.

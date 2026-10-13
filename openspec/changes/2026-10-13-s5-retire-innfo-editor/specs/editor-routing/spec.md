@@ -1,15 +1,15 @@
 # Delta for editor-routing
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Editor routing
+### Requirement: Deprecation and Redirection of Legacy Editor Routes
 
-**Reason**: D13 retires the Vue `innfo-editor`; routing lives in the console (hash
-tabs).
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
 
-**Migration**: None.
+### Requirement: Removal of Legacy Single-Document View and Tests
 
-#### Scenario: No editor router remains
-- GIVEN the repository after this change
-- WHEN the editor source is searched for
-- THEN no router component exists
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)

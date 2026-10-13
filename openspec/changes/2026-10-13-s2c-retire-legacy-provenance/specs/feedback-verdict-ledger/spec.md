@@ -1,24 +1,40 @@
 # Delta for feedback-verdict-ledger
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Feedback verdict ledger
+### Requirement: Ledger Location and Format
 
-**Reason**: Per D15, the changeset is the single provenance medium. The
-`feedback-ledger.jsonl` file, its engine (`feedback-ledger.ts`, `feedbackStateFor`) and
-the two MCP tools (`evaluate_feedback_items`, `record_feedback_verdict`) are retired.
-`apply_change` never wrote the ledger, so its only writers were the retired tools.
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
 
-**Migration**: None. Reviewed/stale console state is derived from the changesets
-(per-element `history`) and per-draft `base_hash`. Any `feedback-ledger.jsonl` on disk is
-ignored.
+### Requirement: Writes Go Through a Validating Tool
 
-#### Scenario: The ledger engine is gone
-- GIVEN the repository after this change
-- WHEN `feedbackStateFor` or `feedback-ledger` is searched for
-- THEN no definition remains
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
 
-#### Scenario: The tools are gone
-- GIVEN the MCP tool list
-- WHEN it is read
-- THEN neither `evaluate_feedback_items` nor `record_feedback_verdict` is present
+### Requirement: Latest Entry Wins
+
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
+
+### Requirement: Stale Detection and Reconfirmation
+
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
+
+### Requirement: sourcePath containment
+
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
+
+### Requirement: Feedback Sources Stay Immutable
+
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)
+
+### Requirement: Triage Lives Only in the Ledger
+
+(Reason: the changeset is the only change record (D8, D15); the ledger, its engine and its two MCP tools are retired. `apply_change` never wrote the ledger.)
+(Migration: None. An existing `feedback-ledger.jsonl` is left on disk and read by no tool. Review state comes from changesets.)

@@ -1,90 +1,113 @@
-# Proposal: S2c — retire legacy provenance (feedback JSON, verdict ledger, Agent Modification)
+# Proposal: S2c — retire legacy provenance (feedback JSON, verdict ledger, Agent Modification, change-log)
 
 ## Intent
 
-Slice S2c of `refactor/stable-identity-and-changesets`, now unblocked by the archived
-S2a. With the changeset established as the single provenance medium (D8), the parallel
-feedback machinery is redundant and is retired per D15:
+Slice S2c of `refactor/stable-identity-and-changesets`. Changesets are the only mechanism
+that changes data and the only change record (D8, D15). The parallel machinery is retired
+with no tolerant read and no fallback:
 
-- The console (and docx) **feedback JSON export** — `serializeFeedback`,
-  `buildFeedbackFilename`, `feedback.schema.json`.
-- **`feedback-ledger.jsonl`** and its engine (`feedback-ledger.ts`, `feedbackStateFor`).
-- The MCP tools **`evaluate_feedback_items` / `record_feedback_verdict`**
-  (`feedback-verdict.ts`).
-- The **Agent Modification** provenance blocks (`agentModification.ts`; the
-  `## NN Agent Modification` origin handling in `citations.ts`).
-- The `source_type: feedback` import and the `reconcile_feedback` procedure.
+- the console **feedback JSON export** (`serializeFeedback`, `buildFeedbackFilename`,
+  `validateFeedback`, `feedback.schema.json`) and the `source_type: feedback` import in
+  `nn-sources`;
+- **`feedback-ledger.jsonl`** and its engine (`feedback-ledger.ts`, `feedbackStateFor`,
+  `FEEDBACK_LEDGER_FILENAME`, `meta.feedbackState`);
+- the MCP tools **`evaluate_feedback_items` / `record_feedback_verdict`**
+  (`feedback-verdict.ts`) and the `reconcile_feedback` procedure;
+- the **Agent Modification** block (`agentModification.ts`, its exports, the
+  `AGENT_MODIFICATION_CONCEPT` origin in `console/citations.ts` and `resolve-sources.ts`)
+  and the `nn-innfo` paste mandate that is already false (`SKILL.md:455-457`);
+- the orphan **change-log** library in `nn-sources` (`scripts/lib/change-log.js`).
 
-The one non-trivial work item: the console's review-state (stale-feedback banner and
-reviewed badges) currently reads the ledger (`meta.feedbackState`). It MUST be
-re-pointed at the changesets before the ledger is removed.
+What replaces them (stated, intended): the console exports a changeset (already the case);
+review state shown in the console comes from changesets — badges from `element.history`
+(applied / conflict) and from proposed changesets in the `changes` collection (#1C);
+staleness is per draft (`base_hash`). Reviewer verdicts `pending`, `rejected` and `stale`
+disappear: a proposal is reviewed by applying or not applying its changeset. Citation
+origin (agent / human) comes from the `author` of the cited changeset change; the
+`reviewer` origin disappears.
 
 ## Scope
 
 ### In Scope
-- Retire the feedback JSON export, the ledger, the two MCP tools, the Agent Modification
-  blocks, and the feedback import path.
-- Re-point console review-state from `feedbackState`/ledger to the changeset-derived
-  data (per-element `history`, D2).
-- Delete the retired specs' requirements (`feedback-verdict-ledger`,
-  `agent-modification-provenance`).
+- Delete the code, schema, procedure, tools, tests, fixtures and docs listed in `tasks.md`.
+- Re-point console verdict badges and citation origin to changesets.
+- Delta specs for every living requirement that mandates a retired piece.
 
 ### Out of Scope
-- The changeset document model / apply engine (S1, S2a, S2b, and the consolidated
-  `2026-10-13-changeset-first-class-and-lineage`).
-- Removing the `changes` console view (a different change).
+- The changeset model, apply engine and console ids (#1A to #1C, applied before this).
+- Renaming the console identifiers `feedback-export` (need) and `innfo-feedback-*` (DOM
+  ids) that now host the changeset export (dependency file, question 5).
+- Existing domains: any `feedback-ledger.jsonl`, feedback JSON or Agent Modification block
+  in a user domain is left untouched on disk and is not read by any tool. User data is
+  never deleted (it lives in sha-checked Sources).
 
 ## Capabilities
 
-### Removed Capabilities
+### Removed Capabilities (every requirement REMOVED by exact name)
 - `feedback-verdict-ledger`
 - `agent-modification-provenance`
 
 ### Modified Capabilities
-- `innfo-console-feedback`: the JSON export path is removed; the modal keeps only the
-  changeset export.
-- `console-payload-builder`: `meta.feedbackState` is removed; review-state is derived
-  from `changes`.
-- `review-workflow`: the reviewed/stale surfaces read changesets, not a ledger.
+- `console-payload-builder`: `Payload Meta` without `feedbackState`.
+- `console-export-cli`: `Root Ledger Input` REMOVED.
+- `innfo-console-feedback`: JSON schema, reconcile procedure and feedback anchors REMOVED;
+  `Export Modal` exports changesets only.
+- `review-workflow`: `Standardized Review JSON Export` REMOVED.
+- `console-review-mode`: `Verdict Badges` derive from changesets.
+- `citation-source-resolution`: origin from the cited change's author.
+- `source-sidecar`: authorship from changeset changes; no feedback sidecars.
+- `source-normalization-pipeline`: feedback ingestion REMOVED.
+- `changeset-document-model`: new requirement — changesets are the only change record.
 
 ## Approach
 
-Delete the feedback path end to end, then add a changeset-derived review-state. Because
-`apply_change` never wrote the ledger (only `record_feedback_verdict` did), removing the
-writer and the two tools removes the only producers; the console then derives reviewed
-state from `changes/*_md` exactly as `element.history` already does.
+Test-first deletion in the safe order of `design.md`: re-point the consumers (badges,
+origin) first, then delete producers (tools, procedure, import), then the engine and the
+block, then specs and docs. Generated mirrors and bundles are rebuilt in the same groups.
+
+## Dependencies
+
+After #1C (`changes` collection, slug ids; both slices modify `console-payload-builder`
+and `console-export-cli`, on different requirements). Before S3 and S6. S6 also modifies
+`console-review-mode` (ADDED `New element draft`) and `console-export-cli` (status, tree,
+selective compilation, write-once) — no requirement is modified by both.
 
 ## Affected Areas
 
 | Area | Impact | Description |
 |------|--------|-------------|
-| `iNNfo/packages/innfo-core/src/console/feedback-ledger.ts` | Removed | ledger engine |
-| `iNNfo/packages/innfo-core/src/agentModification.ts` | Removed | Agent Modification block parsing |
-| `iNNfo/packages/innfo-core/src/console/citations.ts` | Modified | drop `AGENT_MODIFICATION_CONCEPT` origin |
-| `iNNfo/packages/innfo-core/src/console/payload-builder.ts` | Modified | drop `meta.feedbackState` |
-| `iNNfo/packages/innfo-mcp/src/tools/feedback-verdict.ts` | Removed | the two MCP tools |
-| `iNNfo/packages/innfo-mcp/src/server.ts` | Modified | deregister the two tools |
-| `iNNfo/specs/bluepriNNts/console/feedback.schema.json` | Removed | feedback schema |
-| `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md` | Removed | feedback procedure |
-| `iNNfo/specs/bluepriNNts/console/*` (runtime + ui-kit) | Modified | drop feedback export; review-state from changes |
+| `iNNfo/packages/innfo-core/src/{agentModification.ts,console/feedback-ledger.ts,console/citations.ts,index.ts,browser.ts}` | Removed / Modified | block, ledger, origin, exports |
+| `iNNfo/packages/innfo-mcp/src/tools/{feedback-verdict.ts,resolve-sources.ts}`, `src/server.ts` | Removed / Modified | two tools; origin |
+| `iNNfo/specs/bluepriNNts/console/{feedback.schema.json,review.js,innfo-runtime.js,ui-kit.js}` | Removed / Modified | schema; JSON export; badges |
+| `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md` | Removed | procedure (unversioned file) |
+| `scripts/export-console.mjs`, `scripts/lib/legacy-write-guard.js` | Modified | ledger read; guard entry |
+| `skills/nn-innfo/SKILL.md`, `skills/nn-sources/**` | Modified / Removed | tools table, paste mandate; feedback import; change-log |
+| tests and fixtures listed in `tasks.md` | Removed / Modified | |
+| `docs/innfo/documentation/{innfo-mcp,reviewer-guide,lifecycle-walkthrough,templates}.md` | Modified | |
+
+Release impact: removing two MCP tools and changing `resolve_sources` needs an
+`innfo-mcp-v*` release; the console runtime and schema removal need `innfo-console-v*`;
+`nn-innfo` / `nn-sources` need `skills-v*`; removing `reconcile_feedback_NN.md` from the
+workspace template package needs a `template_version` bump and a `blueprints-v*` release.
+No published write-once `_V_x-y-z_` file is edited.
 
 ## Risks
 
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
-| Console loses reviewed/stale state | High | Re-point to changesets in the same change; test the banner |
-| A domain ships `feedback-ledger.jsonl` | Low | Ignored if present; no schema break |
-| Docx feedback import still referenced | Med | Grep the import path; remove it and its procedure |
+| Console loses its review badges | Med | Badges re-pointed and tested before the ledger is deleted |
+| A remaining import of a deleted symbol | Med | `typecheck`, the gated suites and a grep guard |
+| A doc keeps teaching the paste mandate or the feedback loop | Med | Grep guard over `docs/` and `skills/` |
 
 ## Rollback Plan
 
-Isolated to the feedback path. If review-state regresses, revert the console runtime
-files only (the ledger may be temporarily reinstated) while the deletions stay.
+Revert the slice commits before the release tags; after the tags, roll forward.
 
 ## Success Criteria
 
-- [ ] No code references `feedback-ledger`, `feedbackState`, `evaluate_feedback_items`,
-      `record_feedback_verdict`, `feedback.schema.json`, or `reconcile_feedback`.
-- [ ] The console review-state (stale banner, reviewed badges) derives from `changes`.
-- [ ] The Agent Modification origin no longer exists in `citations.ts`.
-- [ ] `node scripts/verify.js` and the affected package tests are green.
+- [ ] No code, test, doc or skill outside write-once files and `openspec/changes/archive/`
+      references `feedback-ledger`, `feedbackState`, `evaluate_feedback_items`,
+      `record_feedback_verdict`, `feedback.schema.json`, `reconcile_feedback`,
+      `agentModification`, `AGENT_MODIFICATION_CONCEPT` or `change-log.js`.
+- [ ] Console verdict badges derive from changesets; citation origin from change authors.
+- [ ] `node scripts/verify.js`, `npm run typecheck` and the package tests are green.

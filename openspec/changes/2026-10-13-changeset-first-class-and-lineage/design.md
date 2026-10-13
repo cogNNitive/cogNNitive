@@ -1,30 +1,39 @@
-# Design: changeset first-class + lineage closure + vocabulary alignment
+# Design: #1A — changeset as a valid L3 document with proposal-time evidence citation
 
-## Context
+## Context (verified against code, 2026-10-13)
 
-This change touches four subsystems that currently disagree: the `changes` document
-model + validator, the apply engine's provenance chain, the console payload/UI, and
-the canonical vocabulary. The unifying idea is the one the codebase already states but
-does not fully honour: **lineage is ONE edge primitive — a `sources` citation — and node
-roles are derived from folder + contract** (`openspec/specs/lineage-single-edge/spec.md`).
+- `ChangesetFrontmatter` (`innfo-core/src/changeset/types.ts:52-66`) types `parent_spec` as
+  `'changes' | string` and has no `level`. `parseChangeset` (`parser.ts:48-74`) starts from a
+  default frontmatter (`parent_spec: 'changes'`, `blueprint_version: '0.1.0'`) and spreads
+  the parsed YAML over it, so a file without frontmatter parses as a valid proposal.
+- `roleOf` (`naming/contract.ts:125-150`) derives `changeset` from the `parent_spec` NAME
+  (`NON_KNOWLEDGE_BLUEPRINT_RE`), and callers pass `frontmatter.parent_spec.name`
+  (`contract.ts:235,248`, `lineage/record.ts:152`). A scalar `parent_spec: "changes"` has no
+  `.name`, so today those callers do not classify a changeset as `changeset` at all.
+- The L3 validator (`validator/content.ts:127,169`) requires `level` and `parent_spec.name`;
+  it does not require a `type` key.
+- The parser's `switch` ignores unknown keys (`parser.ts:158`), so `sources::` is dropped;
+  `PROPOSAL_KEYS` (`hasher.ts:8-21`) is a whitelist that seals `base_hash` but not
+  `sources`; execution annotations are excluded because they are not in the whitelist.
+- `serializeChangeset` (`serializer.ts`) rebuilds the whole file from the object:
+  frontmatter via `yaml.stringify`, a fixed notice, then each change in a fixed key order.
+- Changeset writers: apply intake sealing and write-back (`apply-change.ts:681-683`,
+  `:880`, `:1142`), `synthesizeAndExecuteChangeset` (`apply-change.ts:1237`), and the
+  console export (`innfo-runtime.js:4745` `serializeChangesetMarkdown`, which writes
+  `parent_spec: "changes"` and `blueprint_version: "0.1.0"`).
 
-## D1 — Changeset is a valid iNNfo Level-3 document
+## D1 — L3 frontmatter, strict parse
 
-**Today**: a changeset's frontmatter is
-`{ spec_version, parent_spec: "changes", blueprint_version, status, proposal_sha, title, author }`.
-The L3 validator rejects it (`Missing level field`, `Parent_spec missing name`).
+Target frontmatter (every writer, the template, and the parser contract):
 
-**Target** frontmatter:
 ```yaml
 ---
 spec_version: "V_0-4-0"
 level: 3
-type: changeset
 parent_spec:
   name: changes
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
-blueprint_version: "V_0-2-0"      # bumped from V_0-1-0
-changeset_id: "<workspace_id>_<author>_<stamp>"   # optional, defaults to the file stem
+blueprint_version: "<changes template_version>"
 status: proposed
 proposal_sha: "<64 hex>"
 title: "..."
@@ -32,110 +41,78 @@ author: "..."
 ---
 ```
 
-- `changeset_id` is **optional**: the filename stem remains the de facto identity (it is
-  unique via the UTC stamp). It exists so a citation can reference a changeset without
-  depending on the file path, which is brittle if the file moves.
-- The `changes` blueprint template (`### Level 3 Changeset Template`) is fixed in the same
-  commit; `canonical-registry.ts` embeds the same content and is regenerated.
-- The changeset parser tolerates unknown frontmatter keys already; no break for files on
-  disk. `ChangesetFrontmatter` gains `changeset_id?: string` and keeps the index signature.
+- `ChangesetFrontmatter`: `level: 3`; `parent_spec: { name: 'changes'; url: string }`.
+- `parseChangeset` has NO default frontmatter. A file without a frontmatter block, or with
+  `level` other than `3`, `parent_spec.name` other than `changes`, a missing
+  `parent_spec.url`, or a missing `spec_version` / `blueprint_version` / `status`, throws
+  `CHANGESET_FRONTMATTER_INVALID` naming the key. `proposal_sha` stays optional: apply
+  seals an unsealed proposal at intake (`changeset-apply-engine`).
+- Dropped from the original #1: `changeset_id` (its "defaults to the file stem" rule is a
+  fallback; the path already identifies a changeset and changesets never move) and
+  `type: changeset` (the validator does not need it; the role derives from
+  `parent_spec.name`).
 
-## D2 — `Change` is a lineage node role, with a `sources` citation field
+## D2 — `Change.sources`, written by the proposer, sealed
 
-- Add to the `Change` concept a `sources` field typed `citation` (the single citation
-  field type). A change MAY cite the evidence it derives from.
-- No resolver work is required: `createFsSourceResolver` resolves a `changes/<file>@## NN Change: <id>`
-  reference against `rootDir` (it is not restricted to `sources/`), so a changeset is
-  already a valid citation target. This change only **declares** the role and writes the
-  edge.
-- **Chain closure rule**:
-  - A change backed by evidence (source import, cognitivize, an agent change derived from
-    a document) MUST carry `sources::` pointing at that evidence.
-  - A change with no evidence (a bare review comment) intentionally ends the chain at
-    itself; this is not an error, it is "manually authored".
-- Node roles become: **Source** (`sources/`), **kNNowledge** (`kNNowledge/`), **artifact**
-  (`artifacts/`), **change** (`changes/`). All folder-derived; no stored type field.
+- `ChangeItem.sources?: string` holds the raw citation value, in the grammar of every
+  `sources` field (`<path>@## <Heading>`, `<csv>@<row>`, `<json>@/<pointer>`, a bare path,
+  or the list form the citation parser accepts).
+- The parser reads `sources::`, the serializer writes it, and `PROPOSAL_KEYS` gains
+  `sources`, so editing it after sealing yields `PROPOSAL_TAMPERED`.
+- The `changes` bluepriNNt `Change` concept declares `sources` (type `citation`, optional).
+- The proposer writes it — the agent today, `propose_changeset` from S6 — never apply. A
+  change backed by evidence (a Source, an imported old domain, a transcript) MUST carry
+  it; a bare review comment ends the chain at itself. That "MUST carry" half is an agent
+  protocol rule in `skills/nn-innfo/SKILL.md`, because no tool can know that evidence
+  existed. The verifiable half is that a present citation resolves (D3).
 
-## D3 — Remove the dead snapshot mechanism
+## D3 — Apply verifies, never writes, `sources`
 
-- Delete the Phase-2 archival block in `apply-change.ts` (`kNNowledge/archive/` copy +
-  rename into it, ~`:1077-1104`). The model is still written atomically; only the
-  snapshot side-effect goes.
-- Keep `isExcludedPath`'s deep `archive`/`staging` exclusion: `sources/archive/` still
-  exists and must stay invisible.
-- Rationale: verified that **nothing reads `kNNowledge/archive/`** (it appears only in
-  exclusion lists). History is covered by the changeset chain (each change records
-  `from`→`to`) and by git.
+- At intake, after sealing or seal verification and before Phase 1, apply resolves every
+  change's `sources` with the workspace `createFsSourceResolver` (it resolves against
+  `rootDir`, so `changes/`, `sources/` and `kNNowledge/` targets all work).
+- Any unresolved citation rejects the whole changeset with `CITATION_UNRESOLVED`
+  (diagnostics: change id and citation). The lock is released and nothing is written:
+  the same all-or-nothing shape as `PROPOSAL_TAMPERED`.
+- Apply never adds, removes or rewrites a change's `sources::` (the D20 rewrite applies to
+  model fields, not to the changeset).
 
-## D4 — Proposal immutability; outcome recorded separately
+## D4 — Raw-text-preserving serialization and the annotation keys
 
-- The sealed proposal is the user's input and must not change. Today `apply_change`
-  rewrites the whole changeset file with annotations (`status::`, `applied_at`, `models`).
-- Target: keep the proposed change blocks byte-identical. The outcome lives in
-  frontmatter (`status`, `applied_at`, `models`, `changeset_id`) and a dedicated
-  trailing `## NN Changeset Outcome` section. `computeProposalSha` already excludes
-  execution fields, so the seal is unaffected; the guarantee is now that the **proposal
-  bytes never change**, not merely that the seal still matches.
-- No `change-log.jsonl`: a JSON ledger is an explicit non-goal (D865). The outcome stays
-  markdown.
+- `parseChangeset` keeps `rawContent` (it already does). `serializeChangeset(doc)` writes
+  from `rawContent` when present: it replaces the frontmatter execution keys (`status`,
+  `applied_at`, `models`) in place and, per change block, replaces or appends ONLY the
+  execution annotation lines (`status::`, `resolution::`, `resolved_slug::`,
+  `replaced_sources::`) after the block's last normative line. Every other byte (normative
+  lines, blank lines, line endings, the notice, unknown lines) is copied verbatim. Without
+  `rawContent` (a document built in memory) it renders structurally, including `sources::`.
+- The execution annotation keys are exactly `status`, `resolution`, `resolved_slug` and
+  `replaced_sources`. `replaced_sources` is defined here and written by #1B. None is sealed.
 
-## D5 — Changes as a renderable artifact (dog-fooding)
+## D5 — `changeset` is a lineage node
 
-- The `changes` blueprint ships `assets/console-view-changes.js` (blueprint-view
-  convention: flat under `assets/`, `console-view-` prefix), registered via
-  `registerView` with `kind: readonly` unless editing changes is intended (default
-  `readonly`).
-- The domain payload (`buildConsolePayload` for a domain, or the domain aggregation in
-  `export-console.mjs`) gains a `changes` collection: `{ changesetId, path, author,
-  status, appliedAt, changes: [...] }`, derived at export time from `changes/*.md`
-  (already loaded by `loadChangesetRecords`).
-- The view renders the collection as a tab in `domaiNN_console.html`. This reuses the
-  existing view registry + tab shell; no new console infrastructure.
+- The `lineage-single-edge` requirement "Node role derives from the naming contract" is
+  extended: a file whose `parent_spec.name` is `changes` has role `changeset`, is a lineage
+  node and a valid citation target (`changes/<file>@## NN Change: <id>`). The lineage
+  record projection (`lineage/record.ts`) includes it. Folders stay write destinations
+  only; the role still derives from the contract, not from `changes/`.
 
-## D6 — Console element identity keyed on the frozen slug
+## D6 — Console export
 
-- `payload-builder.ts` currently derives `id = slugify(concept + ' ' + name)` with an
-  occurrence suffix. Since S1, elements carry an immutable `slug`; the payload keeps it
-  in a separate `slug` field. This split is the root of the two-id-space friction.
-- Target: `element.id = element.slug` (the frozen slug). `relations[].target` and the
-  domain qualification in `export-console.mjs` follow. Both runtimes read `el.id`
-  opaquely, so the blast radius is the payload builder + the domain aggregation pass.
-- The `console-payload-builder` "Element Ids MUST NOT change" requirement is MODIFIED to
-  key on the slug.
+- `serializeChangesetMarkdown` emits the D1 frontmatter and `draftToChange` emits the
+  element slug as the element part of the target (`d.element_slug`, never `d.element` or
+  `d.element_id`). Every payload element carries a slug (derived for an unfrozen model,
+  which apply freezes first with the same derivation), so one always exists. #1C later
+  makes frozen slugs mandatory for the console.
 
-## D7 — Console draft-store decisions (documented, one code change)
+## Cross-cutting
 
-- **Key**: stable and path-scoped (`domainId = <folder>-<hash(abs path)>`). `workspace_id`
-  is NOT used. Drafts survive regeneration; they are browser-local by nature.
-- **Staleness**: per draft, via `base_hash` (`isTargetChanged`). No store-level staleness.
-- **Signal**: the fake `domainVersion = V_1-0-<content-hash-int>` is dropped; the console
-  carries each model's real `knowledge_version` + a build stamp.
-- **No rebase/refresh**: an outdated console is harmless — apply detects staleness
-  (`partitionChangeset`) and the agent resolves conflicts in chat (D10).
-- **`--view`**: keeps an isolated store (`::view:<id>`); unifying to shared is a future
-  option only if usage demands.
-
-## D8 — Vocabulary alignment
-
-- Canonical nouns stay exactly **Source / Citation / Lineage**; "provenance" is not a
-  standalone concept, "referencia/reference" is reserved for structural cross-model
-  fields (`type:: reference`).
-- Console UI: rename the "History & Provenance" tab to **Lineage**; the per-field control
-  is labelled **Origin** for users but maps 1:1 to *Citation* internally.
-- All console strings, docs and specs are English.
-
-## Cross-cutting constraints
-
-- **Generated mirrors**: bumping the `changes` blueprint regenerates
-  `canonical-registry.ts`, `blueprints` catalog and the console bundle/payload mirrors.
-  `verify.js` drift checks gate the run.
-- **Write-once specs**: the `changes` blueprint is a bluepriNNt → new `blueprint_version`,
-  catalog entry, and a `blueprints-v*` release inside the slice.
-- **Single writer**: unchanged; the lock + two-phase apply stay.
-- **TDD**: `openspec/config.yaml` is `strict_tdd: true`; test-first steps lead `tasks.md`.
-
-## Migration
-
-- Test domains are throwaway (single maintainer). No migration script: re-export the
-  console and re-seal changesets to pick up the L3 frontmatter.
-- `nn-upgrade` (slice S4) is out of scope here.
+- `strict_tdd: true`: each group leads with its failing test.
+- Generated mirrors: `canonical-registry.ts`, `console-payload.generated.cjs`, the console
+  bundle, the innfo-core build used by the innfo-mcp tests. `verify.js` drift checks gate.
+- Release: the `changes` template package changes here (template + `template_version`
+  bump). The `blueprints-v*`, `innfo-console-v*` and `skills-v*` tags for #1A–#1C are cut
+  once, in #1C, because #1A–#1C reach `main` in one `dev → main` batch (a template edit on
+  `main` without its tag and repin reddens `verify.js --release`).
+- Write-once: no `_V_x-y-z_` file is edited; the `changes` template is the unversioned
+  `spec_NN.md`, edited in place with a `template_version` bump.

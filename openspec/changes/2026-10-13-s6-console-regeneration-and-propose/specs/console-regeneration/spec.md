@@ -106,11 +106,11 @@ retry path after a failed regeneration.
 - WHEN it runs again with no model change
 - THEN `console.status` is `unchanged`
 
-### Requirement: Console embeds the versions it was built from
+### Requirement: Regeneration reports the versions it was built from
 
-The domain console MUST embed, per model, the `knowledge_version` and the content
-`sha256` it was built from, and the regeneration result MUST return them as
-`knowledgeVersions`. `export-console.mjs --status` MUST report the domain console as
+The regeneration result MUST return as `knowledgeVersions` the per-model
+`knowledge_version` and content `sha256` that the domain console embeds in its meta
+(`console-export-cli`: "Real domain identity and model-qualified element ids"). `export-console.mjs --status` MUST report the domain console as
 `fresh` when every embedded pair matches the live models and `stale` otherwise.
 
 #### Scenario: Stale file detected

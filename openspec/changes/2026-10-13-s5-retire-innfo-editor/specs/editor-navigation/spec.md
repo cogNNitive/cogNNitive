@@ -1,14 +1,20 @@
 # Delta for editor-navigation
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Editor navigation
+### Requirement: Sidebar Dedicated to Model and Concept Tree Navigation
 
-**Reason**: D13 retires the Vue `innfo-editor`; navigation lives in the console.
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
 
-**Migration**: None. The domain console is the navigation root (D14).
+### Requirement: Workspace View Controls in Header
 
-#### Scenario: No editor navigation remains
-- GIVEN the repository after this change
-- WHEN the editor source is searched for
-- THEN no editor navigation component exists
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Tree Node Selection Reactivity Across Workspace Views
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)

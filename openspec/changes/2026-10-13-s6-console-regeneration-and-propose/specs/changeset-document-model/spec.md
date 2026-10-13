@@ -11,9 +11,10 @@ Each change in a changeset document MUST be represented as an element heading `#
 4. `rename_concept`: Renames a concept's display name. Requires `target` (`<model_slug>@<concept_slug>`), `name` (new concept name).
 5. `update_matrix_cell`: Updates or inserts a cell in a matrix. Requires `target` (`<model_slug>@<matrix_slug>&<row_slug>&<col_slug>` or explicit matrix parameters), and `to` (cell value).
 6. `comment`: Represents review feedback or discussion annotations (per D15). Requires `target`, `author`, `notes`. MUST NOT require `to` or `from` value.
-7. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
+7. `remove_element`: Removes an element and applies the delete impact and cascades of `delete-impact-and-lifecycle`. Requires `target` (`<model_slug>@<element_slug>`) and optional `base_hash`.
+8. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
 
-The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare the `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields, with its `blueprint_version` bumped and the embedded canonical copy kept identical. (Previously: six operations; no way to create a model.)
+The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare the `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields, with its `blueprint_version` bumped and the embedded canonical copy kept identical. Every op MAY carry the `sources` evidence citation (#1A). (Previously: six operations were listed, `remove_element` — already implemented and exported by the console — was missing, and there was no way to create a model.)
 
 #### Scenario: Parsing an update_field operation
 - GIVEN a change item with `op:: update_field`, `target:: strategy@vision&statement`, `from:: Old statement`, `to:: New statement`
@@ -48,7 +49,7 @@ The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare t
 
 Changeset proposals MUST be cryptographically sealed via a SHA-256 hash stored in the frontmatter `proposal_sha` property. The `computeProposalSha` function MUST compute the hash deterministically across canonical representations of all proposed change elements (`id`, `op`, `target`, `from`, `to`, `concept`, `name`, `slug`, `fields`, `author`, `notes`, `base_hash`, `sources`, `blueprint_name`, `blueprint_url`, `knowledge_version`).
 The computation MUST exclude execution and resolution annotations (`status`, `resolution`, `resolved_slug`, and frontmatter execution fields `applied_at`, `models`).
-Before applying a changeset, the apply engine MUST call `verifyProposalSha`. If the computed hash does not match `proposal_sha`, the transaction MUST abort immediately with a `PROPOSAL_TAMPERED` error. (Previously: the listed keys omitted `base_hash`, which the code already sealed, and `sources`, which nothing sealed.)
+Before applying a changeset, the apply engine MUST call `verifyProposalSha`. If the computed hash does not match `proposal_sha`, the transaction MUST abort immediately with a `PROPOSAL_TAMPERED` error. The computation MUST also exclude `replaced_sources`. (Previously, after #1A: the sealed keys ended at `sources`; the `add_model` keys did not exist.)
 
 #### Scenario: Sealing a proposed changeset generates deterministic hash
 - GIVEN a list of proposed change items

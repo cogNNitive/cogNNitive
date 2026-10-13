@@ -1,18 +1,25 @@
 # Delta for agent-modification-provenance
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Agent Modification provenance block
+### Requirement: Agent Modification Block Builder
 
-**Reason**: Per D8/D15, the `## NN Agent Modification` block, its verbatim-paste mandate
-and its origin classification in `citations.ts` are retired. Provenance no longer depends
-on a manually pasted block; every graph change is a changeset.
+(Reason: the `## NN Agent Modification` block is retired (D8, D15). Every change is a changeset change with an `author`; lineage is the changeset citation chain.)
+(Migration: None. Blocks already pasted into transcripts stay as plain text in sha-checked Sources; no tool reads them.)
 
-**Migration**: None. Existing transcripts are not re-processed; the origin classifier
-loses the `agent-modification` case.
+### Requirement: Canonical Block Field Contract
 
-#### Scenario: The origin classifier no longer knows the block
-- GIVEN a citation in any document
-- WHEN `classifyOrigin` runs
-- THEN it never returns an `agent-modification` origin
-- AND `AGENT_MODIFICATION_CONCEPT` is not defined
+(Reason: the `## NN Agent Modification` block is retired (D8, D15). Every change is a changeset change with an `author`; lineage is the changeset citation chain.)
+(Migration: None. Blocks already pasted into transcripts stay as plain text in sha-checked Sources; no tool reads them.)
+
+### Requirement: Successful apply_change Results Carry the Modification Block
+
+(Reason: the `## NN Agent Modification` block is retired (D8, D15). Every change is a changeset change with an `author`; lineage is the changeset citation chain.)
+(Migration: None. Blocks already pasted into transcripts stay as plain text in sha-checked Sources; no tool reads them.)
+
+### Requirement: nn-innfo Mandates Verbatim Block Paste
+
+(Reason: the `## NN Agent Modification` block is retired (D8, D15). Every change is a changeset change with an `author`; lineage is the changeset citation chain.)
+(Migration: None. Blocks already pasted into transcripts stay as plain text in sha-checked Sources; no tool reads them.)

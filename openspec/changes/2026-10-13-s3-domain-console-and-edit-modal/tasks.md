@@ -1,30 +1,50 @@
-# Tasks: S3 — domain console and edit modal
+# Tasks: S3 — domain console parity gate and edit modal
 
-`strict_tdd: true`: each group leads with its test.
+`openspec/config.yaml` is `strict_tdd: true`. Every task names the requirement it serves
+as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
-## 1. Parity audit (explore)
+## Review Workload Forecast
 
-- [ ] 1.1 Enumerate every `innfo-editor` route/component and classify it
-      (in-console / port / unused) with the evidence of a real usage.
-- [ ] 1.2 Produce the audit table as the slice's gate artifact.
+| Item | Value |
+|------|-------|
+| Estimated changed lines | S3a: ~300 (audit doc, vocabulary, embed test); S3b: unknown until the audit |
+| 400-line budget risk | Low for S3a; S3b is forecast when re-planned |
+| Chained PRs recommended | Yes — S3a first; S3b one PR per port group after re-planning |
+| Decision needed before apply | Yes — the maintainer reviews `audit.md` before S3b is planned |
 
-## 2. Port the used widgets
+## 1. Parity audit (S3a — the gate)
 
-- [ ] 2.1 TEST: each ported widget renders offline and edits through the shared modal.
-- [ ] 2.2 For each "port" row, add an `InnfoUI` component + wire it in the runtime.
-- [ ] 2.3 Ensure no speculative ports: only rows with a real usage.
+- [ ] 1.1 Enumerate every route, view and component under `iNNfo/apps/innfo-editor/src/`
+      and write `audit.md` with one row each (design table), including the seven explicit
+      decisions of the design. [console-architecture: Console covers the editor's used
+      feature set]
+- [ ] 1.2 Maintainer review of `audit.md`; record the outcome and date at its top.
+      [console-architecture: Console covers the editor's used feature set]
 
-## 3. D14 remainder
+## 2. D14 remainder (S3a)
 
-- [ ] 3.1 TEST: the domain console embeds every model + history + source index.
-- [ ] 3.2 Fix any missing embed; confirm heavy sources are linked, not embedded.
-- [ ] 3.3 Confirm the size budget gate (`evaluateSizeBudget`).
+- [ ] 2.1 TEST (`test/console-export.test.mjs`): the domain console embeds every model, the
+      per-element history and the source index; a source above the embed threshold is
+      linked, not embedded; the size budget fails an oversized export.
+      [console-architecture: Level 3 Model Custom Consoles]
+- [ ] 2.2 Fix any missing embed in `scripts/export-console.mjs`.
+      [console-architecture: Level 3 Model Custom Consoles]
 
-## 4. D17 vocabulary
+## 3. D17 vocabulary (S3a)
 
-- [ ] 4.1 Record "console" in `vocabulary.json` + `docs/.../vocabulary.md`.
+- [ ] 3.1 TEST (`test/vocabulary.test.mjs` or the existing dictionary suite): `vocabulary.json`
+      defines "console" as user-facing and lists "editor" and "hosted app" as retired UI terms (the `app` alias of `bluepriNNt` is untouched).
+      [canonical-vocabulary: Console is the user-facing UI term]
+- [ ] 3.2 Record the term in `iNNfo/specs/vocabulary.json` and
+      `docs/innfo/documentation/vocabulary.md`. [canonical-vocabulary: Console is the
+      user-facing UI term]
 
-## 5. Verification
+## 4. Re-plan S3b (planning, not apply)
 
-- [ ] 5.1 `npm run typecheck` + `node scripts/verify.js` + regenerate the bundle.
-- [ ] 5.2 Re-export the TestLab domain console; eyeball the ported widgets.
+- [ ] 4.1 From the reviewed audit, write one delta requirement per *port* row and a
+      batch-sized task group per port (tests first) into this change, with a forecast.
+      [console-architecture: Console covers the editor's used feature set]
+
+## 5. Verification (S3a)
+
+- [ ] 5.1 `node scripts/verify.js`; re-export the TestLab domain console. [all requirements]

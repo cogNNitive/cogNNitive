@@ -1,15 +1,20 @@
 # Delta for editor-tag-authoring
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Editor tag authoring
+### Requirement: Element Tag Inspection in Read Mode
 
-**Reason**: D13 retires the Vue `innfo-editor`. Any tag-authoring feature with a real
-usage was ported to the console in S3; the editor's own implementation is deleted.
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
 
-**Migration**: None; the console is the authoring surface.
+### Requirement: Element Tag Authoring in Edit Mode
 
-#### Scenario: No editor tag-authoring remains
-- GIVEN the repository after this change
-- WHEN the editor source is searched for
-- THEN no tag-authoring component exists
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Concept Tag Authoring and Display
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)

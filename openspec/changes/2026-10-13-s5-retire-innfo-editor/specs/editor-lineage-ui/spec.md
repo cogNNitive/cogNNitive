@@ -1,16 +1,40 @@
 # Delta for editor-lineage-ui
 
+The whole capability is retired: every requirement is removed.
+
 ## REMOVED Requirements
 
-### Requirement: Editor lineage UI
+### Requirement: Pills and modal use the core parser and resolver
 
-**Reason**: D13 retires the Vue `innfo-editor`; the vanilla console is the only UI stack.
-The editor's lineage view is superseded by the console's Lineage tab.
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
 
-**Migration**: None. Lineage is viewed in the console. The app and its deploy to
-`docs/innfo/app/` are deleted.
+### Requirement: Explorer classifies files by contract role
 
-#### Scenario: The editor lineage view is gone
-- GIVEN the repository after this change
-- WHEN the editor source is searched for
-- THEN no editor lineage component exists
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Preview modal UI strings are English
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Lineage tab uses the single edge
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Editor reverse lookup uses canonical path equality
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: New bluepriNNt versions are registered
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)
+
+### Requirement: Read-Only Guard for Level 3 kNNowledge Models (D18)
+
+(Reason: the Vue `innfo-editor` is retired (D13, S5); the domain console is the only UI.)
+(Migration: None. See S3 `audit.md` for the console decision on this feature.)

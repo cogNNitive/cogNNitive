@@ -2,9 +2,9 @@
 
 `openspec/config.yaml` is `strict_tdd: true`: each group leads with its failing test,
 then the implementation, then the verification for that group. Every task names the
-requirement it serves as `[capability: Requirement]`. Pre-condition: #1
-(`2026-10-13-changeset-first-class-and-lineage`) and S2c are archived; rebase on them
-before starting (ordering #1 → S2c → S6).
+requirement it serves as `[capability: Requirement]`. Pre-condition: #1A, #1B, #1C and S2c are applied
+on `dev` (ordering #1A → #1B → #1C → S2c → S6); S6c additionally requires S4. See
+`openspec/changes/2026-10-13-DEPENDENCIES.md`.
 
 Test conventions: `innfo-core` Vitest suites under `iNNfo/packages/innfo-core/tests/`
 (changeset suites in `tests/changeset/`); `innfo-mcp` Vitest suites in
@@ -55,7 +55,7 @@ independent of S6b/S6c.
       domain console fresh/stale from embedded per-model `knowledge_version` + `sha256`.
       [console-export-cli: Status Reporting and Staleness Detection]
       [console-export-cli: Tree Hierarchy Visualization]
-      [console-regeneration: Console embeds the versions it was built from]
+      [console-regeneration: Regeneration reports the versions it was built from]
 - [ ] 1.6 TEST: a model console exported twice holds one file; `--view` still writes its
       write-once family. [write-once-artifacts: Producers adopt write-once]
 
@@ -100,8 +100,8 @@ independent of S6b/S6c.
       `unchanged` on a second call; retry after failure writes. [console-regeneration:
       Explicit console regeneration tool]
 - [ ] 3.7 Tool descriptions of `apply_change` and `regenerate_console` instruct the agent
-      to relay `next_steps.notice`; drop "snapshot archival" from the `apply_change`
-      description. [console-regeneration: Review-and-approve notice on tool results]
+      to relay `next_steps.notice` (#1B already removed "snapshot archival" from the
+      `apply_change` description). [console-regeneration: Review-and-approve notice on tool results]
 
 ## 4. `add_model` in the document model (S6b)
 
@@ -110,17 +110,17 @@ independent of S6b/S6c.
       `knowledge_version`, `sources`); `add_model` with `from`/`to`/`base_hash` is
       rejected. [changeset-document-model: Changeset Mutation and Comment Operations]
 - [ ] 4.2 TEST (`tests/changeset/hasher.test.ts`): editing `blueprint_url` or
-      `knowledge_version` breaks the seal; changes differing only in `sources` hash
-      differently. [changeset-document-model: Cryptographic Proposal Sealing
+      `knowledge_version` breaks the seal (`sources` and `base_hash` sealing is #1A's
+      test). [changeset-document-model: Cryptographic Proposal Sealing
       (`proposal_sha`)]
 - [ ] 4.3 `types.ts`: `add_model` in `ChangeOp`/`isChangeOp`; `blueprint_name`,
-      `blueprint_url`, `knowledge_version` (and `sources` if #1 did not add it) on
+      `blueprint_url`, `knowledge_version` on
       `ChangeItem`; `ModelVersionTransition.base_version` optional. `parser.ts`,
       `serializer.ts`, `hasher.ts` `PROPOSAL_KEYS` updated. [changeset-document-model:
       Changeset Mutation and Comment Operations] [changeset-document-model:
       Cryptographic Proposal Sealing (`proposal_sha`)]
 - [ ] 4.4 `changes` bluepriNNt: `add_model` option + three Change field definitions +
-      `blueprint_version` bump (on top of #1); mirror into `canonical-registry.ts`;
+      `template_version` bump (on top of #1A/#1C); mirror into `canonical-registry.ts`;
       catalog entry; `verify.js` drift green. [changeset-document-model: Changeset
       Mutation and Comment Operations]
 
