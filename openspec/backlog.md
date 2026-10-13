@@ -812,14 +812,26 @@ hand edits is a non-goal; the user owns that risk, but must be told.
 
 ---
 
-## `refactor/stable-identity-and-changesets` — one identity, one change record, one editing UI *(planned, 7 slices)*
+## `refactor/stable-identity-and-changesets` — one identity, one change record, one editing UI *(in progress, 4 slices remaining)*
 
 **Type:** architecture · **Size:** large (7 independent SDD changes)
 
-**Status:** vision settled in a grilling session on 2026-10-07, then fact-checked against the
-code by two fresh-context reviews (corrections folded in below). Not started. Open each slice
-with its own `/sdd-new` only after the previous one is archived, so its specs are written
-against the code the earlier slices produced.
+**Status:** vision settled in a grilling session on 2026-10-07, fact-checked against the code
+by two fresh-context reviews. **S1, S2a and S2b are DONE and archived** (see the slice table).
+Remaining slices open with their own `/sdd-new` only after the previous one is archived, so
+their specs are written against the code the earlier slices produced.
+**State lives in `openspec/`**: a slice that has a live change is shown as a pointer here, and
+its line is deleted on archive.
+
+**Superseding change (2026-10-13):** `openspec/changes/2026-10-13-changeset-first-class-and-lineage`
+consolidates the coherence work found while auditing the domain console after the PoC — the
+changeset as a valid L3 doc + a first-class lineage node role, the removal of the dead
+`kNNowledge/archive/` snapshot, proposal immutability, the `changes` console view, the console
+element-identity/`domainId` draft-store decisions, and the Source/Citation/Lineage vocabulary
+alignment. It also **amends D9** (snapshot removed), **D14** (drafts keyed by a stable
+path-scoped id; staleness per element via `base_hash`, resolved at apply; `--view` isolated),
+and **D15** (retire the feedback JSON/ledger as specified) and **D20** (a change cites its
+evidence so `field → change → source` closes).
 
 **Why:** discovery-driven development left several writers to the graph (hand edits, the MCP
 `apply_change`, the Vue editor writing directly through the File System Access API,
@@ -881,9 +893,9 @@ address.
 
 | # | Slice | Contents | Depends on |
 |---|---|---|---|
-| S1 | `stable-element-identity` | D1, D3, D4, D5, D6, D18, D19: explicit immutable `slug::` and `model_slug`; new address unit kind and resolver; validator diagnostics (duplicate slug, ambiguous name, unfrozen model); `rename_element` keeps the slug; frontmatter allow-list; `freeze_slugs` per model plus the domain-wide `nn-upgrade` freeze; editor read-only; new `iNNfo` spec version; samples and fixtures. | — |
-| S2a | `changeset-apply-and-versioning` | D7, D8, D9, D15, D20: `changes` bluepriNNt and naming; `apply_change` applies changesets (`update_field`, `add_element`, `rename_*`, matrix-cell op, `comment`); lock and two-phase apply; snapshots in `kNNowledge/archive/` with the deep `archive` exclusion. | S1 |
-| S2b | `changeset-conflicts-and-deletes` | D10, D11, D12: per-change conflicts, console-proposed slugs and `resolved_slug::`, delete impact and cascades, slug reuse. | S2a |
+| S1 | `stable-element-identity` ✅ archived · `changes/archive/2026-10-10-2026-10-07-stable-element-identity` | D1, D3, D4, D5, D6, D18, D19: explicit immutable `slug::` and `model_slug`; new address unit kind and resolver; validator diagnostics (duplicate slug, ambiguous name, unfrozen model); `rename_element` keeps the slug; frontmatter allow-list; `freeze_slugs` per model plus the domain-wide `nn-upgrade` freeze; editor read-only; new `iNNfo` spec version; samples and fixtures. | — |
+| S2a | `changeset-apply-and-versioning` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-apply-and-versioning` | D7, D8, D9, D15, D20: `changes` bluepriNNt and naming; `apply_change` applies changesets (`update_field`, `add_element`, `rename_*`, matrix-cell op, `comment`); lock and two-phase apply; snapshots in `kNNowledge/archive/` with the deep `archive` exclusion. | S1 |
+| S2b | `changeset-conflicts-and-deletes` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-conflicts-and-deletes` | D10, D11, D12: per-change conflicts, console-proposed slugs and `resolved_slug::`, delete impact and cascades, slug reuse. | S2a |
 | S2c | `retire-legacy-provenance` | Retire the Agent Modification block (core, `console/citations.ts`, specs, `nn-innfo`/`nn-trannsform` SKILL.md), the feedback ledger, the two MCP tools, the docx/console feedback import and the orphan change-log library. | S2a |
 | S3 | `domain-console-and-edit-modal` | D13, D14, D17 on the vanilla stack, with computed history and the shared modal; port only the editor widgets actually needed. | S2a, S2b |
 | S4 | `domain-reference-migration` | Rest of D16 in `nn-upgrade`: rewrite structural references and citations to the new grammar, remove retired blocks and ledgers; ledger and later remove the tolerant name read. | S1, S2a |
