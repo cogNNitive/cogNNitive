@@ -44,8 +44,8 @@ Conventions:
 
 ## Phase S3: Re-point suites (split S3a helper+review, S3b rest)
 
-- [ ] S3.1 `tests/helpers/console-review-env.ts`: default shell `console/artifact_shell.html`; `CONSOLE_SOURCES` without viewer; `loadConsole` returns `{UI,Review,Console}`. Verify: CORE `console-review-*`. Deps: S1.
-- [ ] S3.2 Re-point the 8 `console-review-*.test.ts`: drop `Viewer.boot()`, cards by `el-<qualified id>`, `#innfo-search`; each asserts non-empty card count first; mutation check per suite recorded. Deps: S3.1.
+- [x] S3.1 `tests/helpers/console-review-env.ts`: default shell `console/artifact_shell.html`; `CONSOLE_SOURCES` without viewer; `loadConsole` returns `{UI,Review,Console}`. Verify: CORE `console-review-*`. Deps: S1.
+- [x] S3.2 Re-point the 8 `console-review-*.test.ts`: drop `Viewer.boot()`, cards by `el-<qualified id>`, `#innfo-search`; each asserts non-empty card count first; mutation check per suite recorded. Deps: S3.1. (Re-point done; the 8 suites are green. Mutation checks + S3.3-S3.5 pending.)
 - [ ] S3.3 Re-point `console-feedback-ui`, `console-citations-dom`, `console-renderers`, `console-ui-kit-renderers`, `console-thinning`, `console-shell`, `naming/*`, `test/console-element-card.test.mjs`; same non-empty guard and mutation check. Deps: S3.1.
 - [ ] S3.4 Delete the `describe.skip` block `console-citations-payload.test.ts:10-31`. Deps: S3.1.
 - [ ] S3.5 Verify: CORE full run; zero `render-model-viewer` / `Viewer.boot` references in tests (`rg`). Deps: S3.2-S3.4.
