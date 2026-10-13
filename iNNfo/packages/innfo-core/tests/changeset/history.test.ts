@@ -4,6 +4,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { checkStaleTarget } from '../../src/changeset/history.js'
 import { serializeChangeset } from '../../src/changeset/serializer.js'
 import { computeProposalSha } from '../../src/changeset/hasher.js'
+import { loadChangesetRecords } from '../../src/console/element-history.js'
 import type { ChangeItem, ChangesetDocument } from '../../src/changeset/types.js'
 
 describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => {
@@ -148,5 +149,66 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
     // Since cap is 50, scanning from latest down will NOT reach the 56th file back
     const result = await checkStaleTarget(tmpDir, 'core', 'cache', 'V_0-1-0', 50)
     expect(result.stale).toBe(false)
+  })
+})
+
+describe('Replaced-citation lineage walk (no model snapshot)', () => {
+  const dir = join(process.cwd(), 'tmp-history-walk-test')
+
+  beforeEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+    await mkdir(join(dir, 'changes'), { recursive: true })
+  })
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function appliedChangeset(extra: Partial<ChangeItem>): string {
+    const change: ChangeItem = {
+      id: 'c-01',
+      op: 'update_field',
+      target: 'strategy@vision&statement',
+      from: 'a',
+      to: 'b',
+      status: 'applied',
+      ...extra,
+    }
+    const doc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: 'V_0-2-0',
+        status: 'applied',
+        proposal_sha: computeProposalSha([change]),
+      },
+      changes: [change],
+    }
+    return serializeChangeset(doc)
+  }
+
+  it('history entries expose sources and replaced_sources so the walk reaches the original Source', async () => {
+    await writeFile(
+      join(dir, 'changes', 'ws_agent_1_changes_NN.md'),
+      appliedChangeset({ sources: 'sources/interview.md@## Vision' }),
+      'utf-8',
+    )
+    await writeFile(
+      join(dir, 'changes', 'ws_agent_2_changes_NN.md'),
+      appliedChangeset({ replaced_sources: 'changes/ws_agent_1_changes_NN.md@## NN Change: c-01' }),
+      'utf-8',
+    )
+
+    const records = await loadChangesetRecords(dir)
+    const byPath = (p: string) => records.find((r) => r.path === p)!
+
+    // cs2's change records the citation it replaced.
+    const c2 = byPath('changes/ws_agent_2_changes_NN.md').changes[0]
+    expect(c2.replaced_sources).toBe('changes/ws_agent_1_changes_NN.md@## NN Change: c-01')
+
+    // Following replaced_sources reaches cs1's change, whose sources reaches the Source.
+    const c1 = byPath('changes/ws_agent_1_changes_NN.md').changes[0]
+    expect(c1.sources).toBe('sources/interview.md@## Vision')
   })
 })

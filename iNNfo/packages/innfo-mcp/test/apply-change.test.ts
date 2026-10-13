@@ -7,6 +7,7 @@ import {
   computeProposalSha,
   serializeChangeset,
   parseChangeset,
+  verifyProposalSha,
 } from '@cognnitive/innfo-core'
 import type { ChangesetDocument, ChangeItem } from '@cognnitive/innfo-core'
 
@@ -378,7 +379,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(existsSync(join(changesDir, '.lock'))).toBe(false)
   })
 
-  it('Phase 2 Persistence & Snapshot Archival: archives prior snapshot, bumps version, annotates changeset', async () => {
+  it('Phase 2 Persistence: bumps version, annotates the changeset, writes no snapshot', async () => {
     const csFile = join(changesDir, 'ws_agent_apply_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -403,18 +404,9 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
       result_version: 'V_0-1-1',
     })
 
-    // Check archive snapshot exists with correct naming contract
-    const archiveDir = join(knowledgeDir, 'archive')
-    expect(existsSync(archiveDir)).toBe(true)
-    const archivedFiles = await readdir(archiveDir)
-    expect(archivedFiles.length).toBe(1)
-    const archiveName = archivedFiles[0]
-    expect(archiveName).toMatch(/^strategy_V_0-1-0_\d{8}T\d{6}Z_ws_agent_apply_changes_NN\.md$/)
-
-    // Archived file holds original content
-    const archivedContent = await readFile(join(archiveDir, archiveName), 'utf-8')
-    expect(archivedContent).toContain('knowledge_version: "V_0-1-0"')
-    expect(archivedContent).toContain('Accelerate green energy')
+    // No snapshot is written: kNNowledge/archive/ does not exist, and no .tmp is left.
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'strategy.tmp'))).toBe(false)
 
     // Live file has bumped version and mutated content
     const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
@@ -456,9 +448,36 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(liveContent).toContain('statement_source:: changes/ws_agent_d20_changes_NN.md@## NN Change: c-01')
     // Untouched field retains previous citation
     expect(liveContent).toContain('target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline')
+
+    // D3: the replaced citation is recorded on the change (an annotation, unsealed).
+    const updatedCs = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(updatedCs.changes[0].replaced_sources).toBe('sources/interview.md@## Vision')
+    expect(verifyProposalSha(updatedCs)).toBe(true)
   })
 
-  it('Idempotent Replay: re-applying an already applied changeset returns success no-op without re-bumping or duplicating archives', async () => {
+  it('Replaced Citation Recording: add_element writes no replaced_sources', async () => {
+    const csFile = join(changesDir, 'ws_agent_add_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'add_element',
+          target: 'strategy@Work',
+          concept: 'Work',
+          name: 'Fresh Element',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_add_changes_NN.md')
+    expect(res.success).toBe(true)
+
+    const updatedCs = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(updatedCs.changes[0].replaced_sources).toBeUndefined()
+  })
+
+  it('Idempotent Replay: re-applying an applied changeset writes no file at all', async () => {
     const csFile = join(changesDir, 'ws_agent_replay_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -476,22 +495,21 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     // First apply
     const res1 = await applyChange(csRoot, 'changes/ws_agent_replay_changes_NN.md')
     expect(res1.success).toBe(true)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
 
-    const archiveDir = join(knowledgeDir, 'archive')
-    const archivesAfterFirst = await readdir(archiveDir)
-    expect(archivesAfterFirst.length).toBe(1)
+    const modelAfterFirst = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    const csAfterFirst = await readFile(csFile, 'utf-8')
 
     // Replay apply
     const res2 = await applyChange(csRoot, 'changes/ws_agent_replay_changes_NN.md')
     expect(res2.success).toBe(true)
 
-    // Archive count remains exactly 1 (no duplicate archives created)
-    const archivesAfterSecond = await readdir(archiveDir)
-    expect(archivesAfterSecond.length).toBe(1)
+    // No file is written on replay: the model and changeset bytes are unchanged.
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(modelAfterFirst)
+    expect(await readFile(csFile, 'utf-8')).toBe(csAfterFirst)
 
     // Model version not re-bumped (still V_0-1-1)
-    const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
-    expect(liveContent).toContain('knowledge_version: "V_0-1-1"')
+    expect(modelAfterFirst).toContain('knowledge_version: "V_0-1-1"')
   })
 
   it('Bare Operation Synthesis: calling apply_change with legacy bare args synthesizes, seals, and executes changeset', async () => {
@@ -652,10 +670,8 @@ statement:: Execute plan
       const liveExec = await readFile(join(knowledgeDir, 'execution_NN.md'), 'utf-8')
       expect(liveExec).toContain('knowledge_version: "V_0-1-0"')
 
-      // Only 1 archive file created (for strategy, none for execution)
-      const archives = await readdir(join(knowledgeDir, 'archive'))
-      expect(archives.length).toBe(1)
-      expect(archives[0]).toContain('strategy_')
+      // No snapshot directory is created for either model.
+      expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
     })
 
     it('idempotent replay of partially_applied changeset is safe no-op', async () => {

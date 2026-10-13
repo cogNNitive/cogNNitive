@@ -70,6 +70,12 @@ describe('isExcludedPath', () => {
     expect(isExcludedPath('sources/archive/a.md')).toBe(true)
   })
 
+  it('keeps the deep archive exclusion (snapshot removal does not relax it)', () => {
+    expect(isExcludedPath('sources/archive/x.csv')).toBe(true)
+    expect(isExcludedPath('a/archive/b/archive/c.md')).toBe(true)
+    expect(isExcludedPath('kNNowledge/archive/strategy_V_0-1-0_x_changes_NN.md')).toBe(true)
+  })
+
   it('excludes any staging segment', () => {
     expect(isExcludedPath('staging/a.md')).toBe(true)
     expect(isExcludedPath('sources/import/staging/a.md')).toBe(true)

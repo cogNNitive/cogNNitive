@@ -323,7 +323,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'apply_change',
       description:
-        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist with snapshot archival) from changes/ documents or legacy intent operations.',
+        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or legacy intent operations.',
       inputSchema: {
         type: 'object',
         properties: {

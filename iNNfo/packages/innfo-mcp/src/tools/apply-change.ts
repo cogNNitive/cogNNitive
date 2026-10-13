@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm, stat, rename, readdir, mkdir, copyFile } from 'node:fs/promises'
+import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
@@ -546,23 +546,55 @@ async function bumpVersion(
 }
 
 /**
- * Replaces `livePath` with the already-written `stagingPath`, archiving the prior
- * snapshot first. The live file is never moved away: it is copied to the archive and
- * then overwritten by an atomic rename, so at every instant (and after a crash between
- * the two steps) the live path holds a complete model — the old one or the new one.
+ * Replaces `livePath` with the already-written `stagingPath` by an atomic rename.
+ * The live file is never removed, moved or copied first, so at every instant (and
+ * after a crash) the live path holds a complete model — the old one or the new one.
+ * If the rename fails, the staging file is removed and the live file is untouched.
  */
-async function persistWithArchive(
-  stagingPath: string,
-  livePath: string,
-  archivePath: string,
-): Promise<void> {
+async function persistAtomic(stagingPath: string, livePath: string): Promise<void> {
   try {
-    await copyFile(livePath, archivePath)
     await rename(stagingPath, livePath)
   } catch (err) {
     await rm(stagingPath, { force: true })
     throw err
   }
+}
+
+/** Execution annotation keys: the only per-change lines apply may rewrite. */
+const ANNOTATION_LINE_RE = /^(status|resolution|resolved_slug|replaced_sources)::/
+
+/**
+ * The normative lines of every `## NN Change` block: the heading and every non-blank,
+ * non-annotation line, in document order. Used to assert proposal immutability on apply.
+ */
+function normativeChangeLines(text: string): string[] {
+  const out: string[] = []
+  let inBlock = false
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r$/, '')
+    if (/^##\s+NN\s+Change:/.test(line.trim())) {
+      inBlock = true
+      out.push(line.trim())
+      continue
+    }
+    if (/^#{1,6}\s/.test(line)) {
+      inBlock = false
+      continue
+    }
+    if (!inBlock) continue
+    if (line.trim() === '') continue
+    if (ANNOTATION_LINE_RE.test(line.trim())) continue
+    out.push(line)
+  }
+  return out
+}
+
+/** True when `writeBack` alters a normative line of any change block relative to `input`. */
+function altersNormativeLines(input: string, writeBack: string): boolean {
+  const before = normativeChangeLines(input)
+  const after = normativeChangeLines(writeBack)
+  if (before.length !== after.length) return true
+  return before.some((line, i) => line !== after[i])
 }
 
 function parseTargetAddress(target: string): {
@@ -913,6 +945,23 @@ export async function executeChangesetApply(
       csDoc.frontmatter.status = 'conflict'
       csDoc.frontmatter.applied_at = new Date().toISOString()
       const serializedCs = serializeChangeset(csDoc)
+      if (altersNormativeLines(rawChangeset, serializedCs)) {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'rejected',
+          models: {},
+          appliedCount: 0,
+          errors: [
+            {
+              path: relChangesetPath,
+              message:
+                'PROPOSAL_IMMUTABILITY_VIOLATION: the write-back would alter a normative line of a change block',
+              code: 'PROPOSAL_IMMUTABILITY_VIOLATION',
+            },
+          ],
+        }
+      }
       await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
 
       return {
@@ -1049,7 +1098,12 @@ export async function executeChangesetApply(
         const fieldIdent = parts.length > 1 ? parts[1] : ''
         const found = findElementInModel(entry.model, change.concept, elIdent)
         if (found) {
-          rewriteFieldCitation(found.element, fieldIdent, citationRef)
+          const replaced = rewriteFieldCitation(found.element, fieldIdent, citationRef)
+          // D3: keep the replaced citation in the change's execution annotation so the
+          // lineage walk reaches the field's previous origin without a model snapshot.
+          if (replaced !== undefined) {
+            change.replaced_sources = replaced
+          }
         }
       } else if (change.op === 'add_element') {
         const conceptName = (mutationArgs.conceptName as string) || change.concept
@@ -1107,15 +1161,28 @@ export async function executeChangesetApply(
       }
     }
 
-    // Phase 2: Atomic Persistence & Archival (touched models ONLY)
-    const stamp = formatUtcStamp(new Date())
-    const archiveDir = join(rootDir, 'kNNowledge', 'archive')
-    // No touched model means no snapshot to archive: a mutation-free changeset
-    // (e.g. comment-only) must not leave an empty archive directory behind.
-    if (Array.from(loadedModels.values()).some((entry) => entry.mutated)) {
-      await mkdir(archiveDir, { recursive: true })
+    // Proposal immutability (D1): the write-back must keep every normative line of every
+    // change block byte-identical to the input. A difference aborts before Phase 2:
+    // nothing is written and the lock is released (the surrounding finally).
+    if (altersNormativeLines(rawChangeset, serializeChangeset(csDoc))) {
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        status: 'rejected',
+        models: {},
+        appliedCount: 0,
+        errors: [
+          {
+            path: relChangesetPath,
+            message:
+              'PROPOSAL_IMMUTABILITY_VIOLATION: the write-back would alter a normative line of a change block',
+            code: 'PROPOSAL_IMMUTABILITY_VIOLATION',
+          },
+        ],
+      }
     }
 
+    // Phase 2: Atomic Persistence (touched models ONLY). No snapshot is written.
     const modelsTransitionMap: Record<string, ModelVersionTransition> = {}
 
     for (const [, entry] of loadedModels) {
@@ -1129,14 +1196,10 @@ export async function executeChangesetApply(
       const modelFile = entry.filePath
       const modelStem = displayStem(basename(modelFile))
       const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
-      const archivePath = join(
-        archiveDir,
-        `${modelStem}_${entry.baseVersion}_${stamp}_${changesetStem}_NN.md`,
-      )
 
       const serialized = serializeKnowledge(entry.model)
       await writeFile(stagingPath, serialized, 'utf-8')
-      await persistWithArchive(stagingPath, modelFile, archivePath)
+      await persistAtomic(stagingPath, modelFile)
 
       if (
         csDoc.changes.some(

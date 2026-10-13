@@ -20,6 +20,10 @@ export interface ElementHistoryItem {
   timestamp?: string
   notes?: string
   status?: string
+  /** The evidence citation the change derives from (its proposal-time `sources`). */
+  sources?: string
+  /** The field citation this change replaced (the field's previous origin), if any. */
+  replaced_sources?: string
 }
 
 interface ChangesetChangeRecord {
@@ -29,6 +33,8 @@ interface ChangesetChangeRecord {
   author?: string
   notes?: string
   status?: string
+  sources?: string
+  replaced_sources?: string
 }
 
 /** A parsed changeset reduced to what element history needs. */
@@ -118,6 +124,8 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
         author: c.author,
         notes: c.notes,
         status: c.status,
+        sources: c.sources,
+        replaced_sources: c.replaced_sources,
       })),
     })
   }
@@ -150,6 +158,8 @@ export function attachChangesetHistory(
           timestamp: cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
+          sources: change.sources,
+          replaced_sources: change.replaced_sources,
         }
         if (!el.history) el.history = []
         el.history.push(item)

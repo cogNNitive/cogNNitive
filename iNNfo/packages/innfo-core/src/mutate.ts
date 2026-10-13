@@ -977,7 +977,7 @@ export function rewriteFieldCitation(
   element: ElementNode,
   fieldName: string,
   citationRef: string,
-): void {
+): string | undefined {
   if (!element.fields) {
     element.fields = {}
   }
@@ -1033,5 +1033,10 @@ export function rewriteFieldCitation(
     delete element.rawFields[targetCitationField]
     delete element.rawFields[sourcesKey]
   }
+
+  // The citation this rewrite replaced (the field's previous origin), for the caller
+  // to record as the change's `replaced_sources::` annotation. `undefined` when the
+  // field had no prior citation (e.g. an added element).
+  return oldCitation
 }
 

@@ -10726,7 +10726,9 @@ async function loadChangesetRecords(rootDir) {
         target: c.target,
         author: c.author,
         notes: c.notes,
-        status: c.status
+        status: c.status,
+        sources: c.sources,
+        replaced_sources: c.replaced_sources
       }))
     });
   }
@@ -10747,7 +10749,9 @@ function attachChangesetHistory(elements, changesets) {
           author: change.author || cs.author,
           timestamp: cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
-          status: change.status || cs.status
+          status: change.status || cs.status,
+          sources: change.sources,
+          replaced_sources: change.replaced_sources
         };
         if (!el.history) el.history = [];
         el.history.push(item);

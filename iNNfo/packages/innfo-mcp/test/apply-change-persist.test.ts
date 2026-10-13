@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
-import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { computeProposalSha, serializeChangeset } from '@cognnitive/innfo-core'
 import type { ChangeItem } from '@cognnitive/innfo-core'
@@ -115,17 +115,15 @@ describe('apply persist is crash safe', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('installs the new model and archives the previous snapshot on success', async () => {
+  it('installs the new model with no snapshot and no leftover .tmp', async () => {
     const result = await applyChange(root, 'changes/persist_changes_NN.md')
     expect(result.success).toBe(true)
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toContain('Accelerate clean energy')
-    const archived = await readdir(join(knowledgeDir, 'archive'))
-    expect(archived).toHaveLength(1)
-    expect(await readFile(join(knowledgeDir, 'archive', archived[0]), 'utf-8')).toBe(LIVE_MODEL)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
     expect(existsSync(join(knowledgeDir, 'strategy.tmp'))).toBe(false)
   })
 
-  it('keeps the live model complete when the install step fails after archiving', async () => {
+  it('keeps the live model byte-identical and leaves no .tmp when the rename fails', async () => {
     injected.renameFailure = new Error('simulated crash before install')
 
     await expect(applyChange(root, 'changes/persist_changes_NN.md')).rejects.toThrow(/simulated crash/)
@@ -133,9 +131,8 @@ describe('apply persist is crash safe', () => {
     // The live path was never moved away: the old model is still there, byte for byte.
     expect(existsSync(join(knowledgeDir, 'strategy_NN.md'))).toBe(true)
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(LIVE_MODEL)
-    // The snapshot was taken by copy, and no staging file is left behind.
-    const archived = await readdir(join(knowledgeDir, 'archive'))
-    expect(await readFile(join(knowledgeDir, 'archive', archived[0]), 'utf-8')).toBe(LIVE_MODEL)
+    // No snapshot and no staging file is left behind.
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
     expect(existsSync(join(knowledgeDir, 'strategy.tmp'))).toBe(false)
   })
 })
