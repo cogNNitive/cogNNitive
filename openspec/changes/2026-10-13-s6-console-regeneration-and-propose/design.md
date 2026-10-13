@@ -8,7 +8,8 @@
   (`:837-886`). `--domain` already writes ONE fixed-name, self-contained
   `domaiNN_console.html` at the domain root (`:889-916`). `--view` writes a write-once
   family under `artifacts/<view>_view/`.
-- `build_console_payload` (`build-console-payload.ts:115`) returns
+- `build_console_payload` (`build-console-payload.ts:115`; removed by the spine
+  `single-console-shell`) returned
   `artifacts/<stem>_console/<stem>_console.html` and writes nothing.
 - The MCP has no access to console assets today. The CLI resolves them from
   `$INNFO_CONSOLE_DIR`, the repo `iNNfo/specs/bluepriNNts/console/`, then
@@ -54,8 +55,8 @@
 - The MCP resolves the console directory with the same chain the CLI uses and
   `import()`s `export-console.mjs` from it. One code path renders and writes; the MCP
   never re-implements rendering.
-- `build_console_payload` stays read-only; its `outputPath` comes from
-  `consoleOutputPath`, so it names the file `writeConsole` writes.
+- `regenerate_console` reports the path from `consoleOutputPath`, so the path it returns
+  names the file `writeConsole` writes.
 - `--view` exports keep their write-once family (not part of the regeneration flow).
 
 ## D2 — Opening the console

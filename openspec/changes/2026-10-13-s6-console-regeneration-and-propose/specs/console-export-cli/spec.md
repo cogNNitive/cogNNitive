@@ -75,7 +75,7 @@ The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and pos
 ### Requirement: Console exports are write-once
 
 **Reason**: The console is the live view of the domain (preview is a file). A stable
-path lets the agent, `build_console_payload` and the user name one file; a stamped family
+path lets the agent, the console regeneration tool and the user name one file; a stamped family
 made the reported path wrong and left a trail of obsolete consoles.
 
 **Migration**: None in code. Existing stamped files under `artifacts/<stem>_console/`

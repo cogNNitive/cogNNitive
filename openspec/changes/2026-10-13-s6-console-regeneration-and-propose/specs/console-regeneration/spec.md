@@ -11,7 +11,7 @@ the resolved console asset directory). Output paths MUST come from the single
 `artifacts/<stem>_console/<stem>_console.html` for a model console. A write MUST go
 through a temporary file renamed over the target, and MUST be skipped when the rendered
 bytes (with the previous `generated` stamp) equal the existing file. The `outputPath`
-reported by `build_console_payload` MUST equal the path `writeConsole` writes for that
+reported by `regenerate_console` MUST equal the path `writeConsole` writes for that
 model. Importing `export-console.mjs` MUST NOT run the CLI.
 
 #### Scenario: CLI and MCP write the same file
@@ -21,7 +21,7 @@ model. Importing `export-console.mjs` MUST NOT run the CLI.
 - AND the bytes are identical for identical inputs and stamp
 
 #### Scenario: Reported path exists
-- GIVEN `build_console_payload` returns `outputPath` for model `strategy`
+- GIVEN `regenerate_console` reports a console path for model `strategy`
 - WHEN `writeConsole` runs for that model
 - THEN the file at `outputPath` exists
 

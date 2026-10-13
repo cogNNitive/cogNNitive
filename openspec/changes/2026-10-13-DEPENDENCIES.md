@@ -56,33 +56,39 @@ SCS  single-console-shell ──────────────────
 | S6 | `2026-10-13-s6-console-regeneration-and-propose` | #1C, S2c; S6c also S4 | Re-cut: `console-export-cli`, `console-review-mode`. |
 | S5 | `2026-10-13-s5-retire-innfo-editor` | S3 (S3a+S3b) AND S6 | Re-cut: `console-architecture`, `editor-lineage-ui`. Editor retirement is orthogonal to SCS (which retires the model console, not the Vue editor). |
 
-## Requirement names modified by both SCS and a lineage change (re-cut list)
+## Verified requirement overlap (SCS vs lineage deltas)
 
-| Capability | Requirements both touch |
-|------------|-------------------------|
-| `console-architecture` | Level 1 Universal Runtime Primitives · Level 2 Template Domain Consoles · Level 3 Model Custom Consoles |
-| `console-payload-builder` | Payload Meta · Single Payload Builder · Single Citation Shape |
-| `console-review-mode` | Verdict Badges · Review Mode Toggle · Reviewed Marks and Rail Progress |
-| `console-export-cli` | Status Reporting and Staleness Detection · Selective Compilation and Filtering · Console exports are write-once |
-| `innfo-console-runtime` | Shared UMD/IIFE Runtime · No Duplicated Inline Runtime · Bundle-Injected Feedback UI · Bundle Matches Its Sources · Needs Registry Without Feedback Anchors |
-| `lineage-single-edge` | Staleness uses existing mechanisms only |
-| `editor-lineage-ui` | Explorer classifies files by contract role |
-| `innfo-console-feedback` | Reconcile Feedback Procedure |
-| `console-view-registry` | Standalone view export |
+Only these requirements are modified by BOTH the spine and a lineage delta (verified by
+reading both sides; archived changes excluded). An earlier list that also named Level 1,
+Level 2, the payload siblings, the runtime bundling requirements and
+`lineage-single-edge`/`console-view-registry` was WRONG — no live lineage delta touches
+those.
 
-Rule: the lineage delta is rewritten against the post-SCS requirement text. Where SCS
-already decides the outcome (shell consolidation, console-type retirement, MCP-tool removal,
-per-model `sha256`/`feedbackState` in `meta.models`), the lineage delta **drops** that
-requirement instead of re-modifying it.
+| Capability / requirement | Spine action | Lineage delta | Resolution |
+|--------------------------|--------------|---------------|------------|
+| `console-architecture` / Level 3 Model Custom Consoles | REMOVED | S3 MODIFIED (duplicate of SCS's ADDED "One Console Shell, Scoped Domain Consoles") | **Drop S3's delta** — it modifies a requirement SCS deletes. |
+| `console-payload-builder` / Payload Meta | MODIFIED (`feedbackState` from the verdict ledger) | S2c MODIFIED (no verdicts; state from `changes`) | **Hard contradiction** — verdict source (question 11). |
+| `console-review-mode` / Verdict Badges | MODIFIED (`meta.models[].feedbackState`) | S2c MODIFIED (`element.history` + `changes`) | **Hard contradiction** — same resolution. |
+| `console-export-cli` / Status Reporting and Staleness Detection | MODIFIED (newest member of the write-once family) | S6 MODIFIED (stable `artifacts/<stem>_console/<stem>_console.html`) | Re-cut SCS's write-once text to the maintainer's "stable filename" decision. |
+| `console-export-cli` / Selective Compilation and Filtering | MODIFIED (`writeOnce`) | S6 MODIFIED (`writeConsole`, stable path) | Same as above. |
+| `console-export-cli` / Console exports are write-once | MODIFIED | S6 REMOVED | Drop SCS's rewrite if SCS adopts the stable file (question 11); otherwise sequential. |
+| `innfo-console-feedback` / Reconcile Feedback Procedure | MODIFIED (keeps `record_feedback_verdict` + ledger) | S2c REMOVED (ledger retired; apply via `apply_change`) | **Hard contradiction** — same resolution. |
+| `editor-lineage-ui` / Explorer classifies files by contract role | MODIFIED | S5 REMOVED (editor retired) | Sequential (SCS modifies, S5 removes); SCS's edit is transient, harmless. |
+| `innfo-console-runtime` / `build_console_payload` references | REMOVED (tool + procedure) | S6 references it | **Dangling reference** — S6 must name the surviving mechanism. |
+
+Everything else the lineage set touches is orthogonal: keep it and only align wording to
+the post-SCS terminology. #1A's `innfo-console-runtime` "Exported changesets are resolvable
+by apply_change" and `lineage-single-edge` "Node role derives from the naming contract",
+#1C's console deltas, and S6's regeneration requirements are all unaffected by SCS.
 
 ## Affected pre-existing active changes (audited 2026-10-13)
 
 | Change | Coupling | Action |
 |--------|----------|--------|
-| `2026-10-10-blueprint-external-skills` | Shares `template-procedures-manifest-and-discovery`; its `template-package-structure` delta carries the stale `assets/model_viewer.html` example | **Archive first.** Fix the stale example (SCS T0.6) before its delta lands. |
-| `2026-09-30-nn-quarantine-removal` | BLOCKED. Names the editor `useLegacyDomain.ts` which S5 deletes | Whichever runs second updates the target list. No spec-delta collision (`legacy-quarantine` is untouched). |
+| `2026-10-10-blueprint-external-skills` | Shares `template-procedures-manifest-and-discovery` with SCS | **Archive first.** Its stale `assets/model_viewer.html` example is already fixed (SCS T0.6, commit `37a78215`). |
+| `2026-09-30-nn-quarantine-removal` | BLOCKED. Names the editor `useLegacyDomain.ts` (deleted by S5) and the quarantine half S4 shrinks | Whichever runs second updates the target list. No spec-delta collision (`legacy-quarantine` untouched), but its scope shrinks. |
 | `2026-10-01-nn-domain-git-workflow` | none | — |
-| `2026-10-07-nn-upgrade-contract-docs` | none | — |
+| `2026-10-07-nn-upgrade-contract-docs` | **Collides with S4** on `workspace-template-upgrade` and Flow A/C: the proposal keeps "Flow C unchanged" plus the per-layout Flow A tables and `lib/legacy-migrate.generated.cjs`, all retired by S4. Proposal-only (no tasks/specs/design). | Re-scope to Flow B + the import-as-source pointer, or fold into S4. See question 12. |
 | `2026-10-11-video-script-contract-additions` | none | — |
 
 ## Releases
@@ -125,3 +131,21 @@ Releases are tag-driven (`scripts/release/release-keys.js`: `skills|blueprints|i
    outcome into SCS S3 and start the lineage set at S3b?
 10. **Lineage console deltas.** Confirm the rule above (lineage delta drops a requirement SCS
     already decides) so the re-cut has one direction.
+
+### Reconciled with a decision (no answer needed, recorded for traceability)
+
+11. **Verdict source + stable console file.** The spine (SCS) currently adds
+    `meta.models[].feedbackState` read from the verdict ledger, and scoped exports as a
+    write-once family. Both contradict later maintainer decisions already documented in this
+    repo: (a) changesets are the ONLY mechanism to change data and the feedback ledger is
+    retired (S2c); (b) a console is a freshly generated FILE with a STABLE filename
+    (`domaiNN_console.html`, regenerated in place; S6). Resolution adopted: the spine is
+    re-cut to derive verdict badges from `changes`/`element.history` (no ledger) and to use
+    the stable console path; S2c's duplicate "Verdict Badges" and S6's REMOVE of "Console
+    exports are write-once" then become either no-ops or trivial. Flagged here for
+    traceability; no maintainer action required.
+
+12. **`nn-upgrade-contract-docs` re-scope.** See the affected-changes table. The proposal
+    predates the "no in-place migration" decision and still preserves Flow A/C. Default:
+    re-scope to Flow B + the new-domain/import-as-source pointer, or fold into S4. Confirm
+    before S4 applies.

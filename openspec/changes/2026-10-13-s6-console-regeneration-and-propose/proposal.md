@@ -16,7 +16,7 @@ mechanism that changes model or domain data. Three gaps keep that from being tru
    targets the hosted editor (`PREVIEW_APP_URL`, `preview-server.ts:21`) — the editor S5
    deletes. Per-model consoles are write-once stamped files
    (`artifacts/<stem>_console/<stem>_console_<UTC stamp>.html`), while
-   `build_console_payload` reports `artifacts/<stem>_console/<stem>_console.html`
+   the MCP console path reported `artifacts/<stem>_console/<stem>_console.html`
    (`build-console-payload.ts:115`) and writes nothing — the reported path never exists.
 3. **Creation bypasses the changeset.** Every change must name an existing model
    (`Model not found`, `apply-change.ts:775-784`); `init_knowledge` writes the model file
@@ -34,7 +34,7 @@ and a new `init_domain` for the empty container.
 
 ### In Scope
 - **Stable console filenames** and one shared console writer used by the CLI and the MCP;
-  the path `build_console_payload` reports becomes the real path.
+  the path the MCP reports becomes the real path.
 - **Regeneration with an open-in-browser step** (`open`, default `true`) after
   `propose_changeset` and after `apply_change` (statuses `applied` and
   `partially_applied`), plus an explicit `regenerate_console` tool for retry.
@@ -173,7 +173,7 @@ bluepriNNt bump; no production data migrates (domains are throwaway test fixture
 - [ ] `apply_change` regenerates the console after commit for `applied` and
       `partially_applied`; a regeneration failure leaves the apply outcome unchanged.
 - [ ] Console filenames are stable and identical between CLI and MCP; the path
-      `build_console_payload` reports is the file the shared writer writes.
+      the MCP reports is the file the shared writer writes.
 - [ ] `add_model` creates a valid L3 document, fails on an existing model, and is sealed.
 - [ ] `init_knowledge` produces an `add_model` changeset and the same document as before.
 - [ ] `init_domain` scaffolds a domain that `check_domain` accepts.
