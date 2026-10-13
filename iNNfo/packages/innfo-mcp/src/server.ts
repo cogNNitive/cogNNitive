@@ -48,7 +48,6 @@ import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
 import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
-import { buildConsolePayloadTool } from './tools/build-console-payload.js'
 import {
   recordFeedbackVerdictTool,
   evaluateFeedbackItemsTool,
@@ -632,24 +631,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   },
   {
     definition: {
-      name: 'build_console_payload',
-      description:
-        'Compile canonical schema and model JSON slot strings for an iNNfo model console artifact. Returns escaped slot strings and outputPath.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          model: { type: 'string', description: 'Model name or knowledge id' },
-          knowledge_id: { type: 'string', description: 'Model name or knowledge id (alias for model)' },
-          id: { type: 'string', description: 'Model name or knowledge id (alias for model)' },
-          domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
-        },
-      },
-    },
-    handler: handleBuildConsolePayload,
-  },
-  {
-    definition: {
       name: 'record_feedback_verdict',
       description:
         'Append a validated verdict entry to the root feedback-ledger.jsonl. Refuses writes if item is orphaned or stale without confirm_stale.',
@@ -1006,20 +987,6 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
   return textResult(
     JSON.stringify(envelopeList('innfo-resolve-sources', 'citations', results), null, 2),
   )
-}
-
-async function handleBuildConsolePayload(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
-  try {
-    const result = await buildConsolePayloadTool(root, {
-      model: (args.model as string) || (args.knowledge_id as string) || (args.id as string),
-    })
-    return textResult(JSON.stringify(envelope('innfo-build-console-payload', result), null, 2))
-  } catch (err) {
-    return errorResult(err instanceof Error ? err.message : String(err))
-  }
 }
 
 async function handleRecordFeedbackVerdict(args: Record<string, unknown>): Promise<CallToolResult> {

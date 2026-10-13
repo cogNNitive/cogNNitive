@@ -305,8 +305,7 @@ need a maintainer decision or a template bump. None blocks a release.
   V_0-2-1, metrics V_0-1-0, organization V_0-2-0, video V_0-1-0; one citation path each) to
   keep parity with `_samples_nn`. Parity and immutability gates pass, but published `_V_` files
   are meant to be write-once.
-- **Smaller:** `export-console.mjs` keeps its own `findModelFiles` walk; MCP
-  `build_console_payload` `outputPath` returns the unsuffixed family name;
+- **Smaller:** `export-console.mjs` keeps its own `findModelFiles` walk;
   `workspace/assets/workspace_hub.html` prompt text still uses unsuffixed console names;
   `meta.sources` holds the model path, not citation-level entries; conversation reservation
   still writes `conversations/YYYY-MM-DD_HHmmss.md` where the spec says

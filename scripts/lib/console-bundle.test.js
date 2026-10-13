@@ -58,7 +58,6 @@ function main() {
       'ui-kit.js',
       'review.js',
       'innfo-runtime.js',
-      'render-model-viewer.js',
       'render-procedure-stepper.js',
     ];
     const actualFiles = SOURCES.map(([f]) => f);

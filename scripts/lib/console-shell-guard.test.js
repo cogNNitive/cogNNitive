@@ -105,8 +105,9 @@ console.log('Running console-shell-guard unit tests...');
     result.errors.forEach((e) => console.error(`  - ${e}`));
   }
   assert.strictEqual(result.ok, true);
-  assert.ok(result.shells.length >= 2, `Expected at least 2 shells, got ${result.shells.length}`);
-  assert.ok(result.shells.some((s) => s.includes('model_console.html')), 'model_console.html must be among checked shells');
+  assert.ok(result.shells.length >= 1, `Expected at least 1 shell, got ${result.shells.length}`);
+  assert.ok(result.shells.some((s) => s.includes('artifact_shell.html')), 'artifact_shell.html must be among checked shells');
+  assert.ok(!result.shells.some((s) => s.includes('model_console.html')), 'the retired model_console.html must not be checked');
   console.log(`✔ Live repository check passes on all ${result.shells.length} shells:`);
   result.shells.forEach((s) => console.log(`  - ${s}`));
 }
@@ -163,10 +164,7 @@ console.log('Running console-shell-guard unit tests...');
   // All live shells must be fully tokenized (d1 + d2). The metrics timeline is
   // a registered view now, not a shell, so it is no longer a shell-guard target.
   const repoRoot = path.join(__dirname, '..', '..');
-  const liveShells = [
-    'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
-    'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
-  ];
+  const liveShells = ['iNNfo/specs/bluepriNNts/console/artifact_shell.html'];
   for (const rel of liveShells) {
     const html = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
     const offenders = findRootColorDeclarations(html);

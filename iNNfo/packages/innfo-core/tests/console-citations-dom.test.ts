@@ -1,51 +1,15 @@
-// @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+// @vitest-environment node
+//
+// SCS S3.3: the runtime (single shell) owns the citation-icon contract the
+// retired model viewer used to render. Header-level icons come from `opts.head`
+// (`InnfoUI.CitationIcons`); field-row icons from `FieldRow`'s `CitationIcon`.
+// The old suite required `render-model-viewer.js`; this one boots `InnfoConsole`
+// against `artifact_shell.html` (same helper the other console suites use).
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { createConsoleEnv, shellPath } from './helpers/console-review-env'
 
-/**
- * DOM-level contract for C3 (icon placement in `render-model-viewer.js`) and
- * C4 (the `innfo-citation-dialog` in `innfo-runtime.js`). Uses happy-dom, not
- * jsdom: jsdom (as vendored in this monorepo, hoisted from innfo-editor) does
- * not implement `HTMLDialogElement.showModal`, which both the existing
- * `innfo-ref-dialog` pattern and the new citation dialog depend on. happy-dom
- * does implement it. This mirrors the environment pragma already used by the
- * sibling `console-dom.test.ts` file for the same reason.
- */
-
-const req = createRequire(import.meta.url)
-const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const viewerAsset = join(
-  import.meta.dirname!,
-  '..',
-  '..',
-  '..',
-  'specs',
-  'bluepriNNts',
-  'workspace',
-  'assets',
-  'model_console.html',
-)
-
-type ModelViewerApi = {
-  boot: () => { ok: boolean }
-}
-
-function loadShell(): void {
-  const shell = readFileSync(viewerAsset, 'utf8')
-  const filled = shell
-    .replace(
-      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
-      `$1${JSON.stringify(schemaFixture)}$2`,
-    )
-    .replace(
-      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
-      `$1${JSON.stringify(modelFixture)}$2`,
-    )
-    .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-  document.documentElement.innerHTML = filled
-}
+const env = createConsoleEnv()
 
 const schemaFixture = { concepts: [{ name: 'Problems', weight: 90 }] }
 
@@ -55,31 +19,45 @@ let modelFixture: {
   matrices: unknown[]
 }
 
-function bootViewer(): ModelViewerApi {
-  // `require`'s CJS cache is not cleared by `vi.resetModules()`, and the
-  // module only auto-boots once at first load — so call `boot()` explicitly
-  // every time to force a fresh render against the freshly loaded shell.
-  const api = req(join(consoleDir, 'render-model-viewer.js')) as ModelViewerApi
-  api.boot()
-  return api
+function renderShell(): void {
+  const html = readFileSync(shellPath, 'utf8')
+    .replace(
+      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+      `$1${JSON.stringify(schemaFixture)}$2`,
+    )
+    .replace(
+      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+      `$1${JSON.stringify(modelFixture)}$2`,
+    )
+    .replace(
+      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      '$1{"needs":["concept-rail","fulltext-search"]}$2',
+    )
+    .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
+  env.setup(html)
 }
 
-// The viewer now consumes the real InnfoUI via require(); only the runtime
-// (dialog) is stubbed. window.InnfoConsole overrides the CJS require fallback.
-function stubRuntime(overrides: Partial<{ renderCitationDialog: unknown }> = {}) {
-  const w = (globalThis as unknown as { window: Record<string, unknown> }).window
-  w.InnfoConsole = {
-    renderCitationDialog: overrides.renderCitationDialog ?? vi.fn(),
-  }
+let controllers: any[] = []
+
+function boot(): void {
+  renderShell()
+  const mods = env.loadConsole()
+  const res = mods.Console.boot(env.document)
+  if (res && res.controller) controllers.push(res.controller)
 }
 
-function clearRuntime() {
-  const w = (globalThis as unknown as { window: Record<string, unknown> }).window
-  delete w.InnfoConsole
-}
+beforeEach(() => {
+  controllers = []
+})
 
-describe('render-model-viewer.js — citation icons (backward compatibility)', () => {
-  beforeEach(() => {
+afterEach(() => {
+  controllers.forEach((c) => c && c.destroy && c.destroy())
+  controllers = []
+  env.teardown()
+})
+
+describe('single shell — citation icons (backward compatibility)', () => {
+  it('renders no citation icons when the element has no citations key', () => {
     modelFixture = {
       meta: { title: 'Acme' },
       elements: [
@@ -95,18 +73,11 @@ describe('render-model-viewer.js — citation icons (backward compatibility)', (
       ],
       matrices: [],
     }
-    loadShell()
+    boot()
+    expect(env.document.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)
   })
 
-  it('renders no citation icons when the element has no citations key', () => {
-    stubRuntime()
-    bootViewer()
-    expect(document.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)
-  })
-
-  it('renders citations via the kit even with no InnfoConsole; clicking is inert without a dialog', () => {
-    // D5/D9 dropped the viewer's silent null degrade: icons come from InnfoUI,
-    // so they render whenever InnfoUI is loaded. Only the dialog is runtime-gated.
+  it('renders citations via the kit; clicking is inert without a dialog API', () => {
     modelFixture = {
       meta: { title: 'Acme' },
       elements: [
@@ -120,20 +91,16 @@ describe('render-model-viewer.js — citation icons (backward compatibility)', (
       ],
       matrices: [],
     }
-    loadShell()
-    clearRuntime()
-    bootViewer()
-    const icons = document.querySelectorAll('[data-innfo-component=citation-icon]')
+    boot()
+    const icons = env.document.querySelectorAll('[data-innfo-component=citation-icon]')
     expect(icons.length).toBe(1)
-    expect(() => (icons[0] as HTMLElement).dispatchEvent(new Event('click', { bubbles: true }))).not.toThrow()
+    expect(() =>
+      (icons[0] as HTMLElement).dispatchEvent(new env.window.Event('click', { bubbles: true })),
+    ).not.toThrow()
   })
 })
 
-describe('render-model-viewer.js — citation icons (origin-typed)', () => {
-  beforeEach(() => {
-    loadShell()
-  })
-
+describe('single shell — citation icons (origin-typed)', () => {
   it('places a header icon for a sources-family citation', () => {
     modelFixture = {
       meta: { title: 'Acme' },
@@ -150,11 +117,9 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    stubRuntime()
-    bootViewer()
+    boot()
 
-    const head = document.querySelector('.innfo-card-head')!
+    const head = env.document.querySelector('[data-element-id="problems-x"] .innfo-card-head')!
     const icons = head.querySelectorAll('[data-innfo-component=citation-icon][data-origin=document]')
     expect(icons).toHaveLength(1)
   })
@@ -175,12 +140,10 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    stubRuntime()
-    bootViewer()
+    boot()
 
-    const precioRow = document.querySelector('[data-ku-kind=field][data-field=precio]')
-    const precioSourceRow = document.querySelector(
+    const precioRow = env.document.querySelector('[data-ku-kind=field][data-field=precio]')
+    const precioSourceRow = env.document.querySelector(
       '[data-ku-kind=field][data-field=precio_source]',
     )
 
@@ -209,11 +172,9 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    stubRuntime()
-    bootViewer()
+    boot()
 
-    const icons = document.querySelectorAll('[data-innfo-component=citation-icon]')
+    const icons = env.document.querySelectorAll('[data-innfo-component=citation-icon]')
     expect(icons).toHaveLength(1)
     expect((icons[0] as HTMLElement).getAttribute('data-origin')).toBe('human')
   })
@@ -237,11 +198,9 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    stubRuntime()
-    bootViewer()
+    boot()
 
-    const icons = [...document.querySelectorAll('[data-innfo-component=citation-icon]')]
+    const icons = [...env.document.querySelectorAll('[data-innfo-component=citation-icon]')]
     expect(icons.map((i) => (i as HTMLElement).getAttribute('data-origin'))).toEqual([
       'error',
       'human',
@@ -264,15 +223,15 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    stubRuntime()
-    bootViewer()
+    boot()
 
-    const icons = document.querySelectorAll('[data-innfo-component=citation-icon][data-origin=document]')
+    const icons = env.document.querySelectorAll(
+      '[data-innfo-component=citation-icon][data-origin=document]',
+    )
     expect(icons).toHaveLength(1)
   })
 
-  it('clicking a citation icon calls InnfoConsole.renderCitationDialog without toggling the element open', () => {
+  it('clicking a citation icon does not toggle the element card open', () => {
     modelFixture = {
       meta: { title: 'Acme' },
       elements: [
@@ -288,19 +247,12 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
       ],
       matrices: [],
     }
-    loadShell()
-    const dialogSpy = vi.fn()
-    stubRuntime({ renderCitationDialog: dialogSpy })
-    bootViewer()
+    boot()
 
-    const card = document.querySelector('[data-innfo-component=element-card]') as HTMLElement
+    const card = env.document.querySelector('[data-element-id="problems-x"]') as HTMLElement
     const openBefore = card.getAttribute('data-open')
-    const icon = document.querySelector('[data-innfo-component=citation-icon]') as HTMLElement
-    icon.dispatchEvent(new Event('click', { bubbles: true }))
-
-    expect(dialogSpy).toHaveBeenCalledTimes(1)
-    expect(dialogSpy.mock.calls[0][1]).toBe('sources')
-    // Clicking a citation icon must not toggle the card open state.
+    const icon = env.document.querySelector('[data-innfo-component=citation-icon]') as HTMLElement
+    expect(() => icon.dispatchEvent(new env.window.Event('click', { bubbles: true }))).not.toThrow()
     expect(card.getAttribute('data-open')).toBe(openBefore)
   })
 })

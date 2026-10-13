@@ -838,7 +838,7 @@
 
   // Only http(s) and relative source URLs become links; any other scheme
   // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Verbatim port
-  // of the retired model viewer's predicate (render-model-viewer.js).
+  // of the retired model viewer's predicate.
   function safeSourceHref(url) {
     var raw = String(url == null ? '' : url).trim()
     if (!raw) return ''

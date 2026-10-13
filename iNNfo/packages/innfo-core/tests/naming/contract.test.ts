@@ -173,7 +173,7 @@ describe('procedureIdOf', () => {
   })
 
   it('keeps the stem of a frozen procedure that has no _procedures', () => {
-    expect(procedureIdOf('compile_model_console_NN.md')).toBe('compile-model-console')
+    expect(procedureIdOf('reconcile_feedback_NN.md')).toBe('reconcile-feedback')
   })
 })
 

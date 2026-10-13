@@ -1,5 +1,6 @@
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { JSDOM } from 'jsdom'
 import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
@@ -238,49 +239,69 @@ describe('Element Card Redesign Contract', () => {
   })
 })
 
-describe('Model viewer end-to-end (renderElement)', () => {
+describe('Single shell end-to-end (runtime renderElement)', () => {
   it('renders qud, path and structured relations through boot()', () => {
-    const dom = new JSDOM(
-      `<!doctype html><html><head></head><body>
-        <h1 id="doc-title"></h1><div id="doc-meta"></div>
-        <nav id="rail"></nav><input id="search" type="search" />
-        <main id="content"></main>
-        <script type="application/json" id="innfo-schema">{"concepts": [{"name": "Fleet"}]}</script>
-        <script type="application/json" id="innfo-model">{"meta": {"title": "T", "template": "ghostbusters"},
-          "elements": [
-            {"id": "ecto-1", "concept": "Fleet", "name": "Ecto-1", "description": "Car.",
-             "fields": {"role": "Interceptor"}, "markers": {"priority": "high"},
-             "relations": [{"field": "parked-at", "target": "hq-garage"}],
-             "hash": "0123456789abcdef"},
-            {"id": "hq-garage", "concept": "Fleet", "name": "HQ Garage",
-             "fields": {}, "markers": {}, "hash": "abcdef0123456789"}
-          ]}</script>
-      </body></html>`,
-      { url: 'http://localhost' },
-    )
-    // NOTE: globals stay on the inner dom for the rest of the process.
-    // render-model-viewer schedules a deferred autoBoot on DOMContentLoaded;
-    // restoring the outer globals first would crash that stray boot against
-    // an empty document. Each test file gets its own process, so this is safe.
+    const model = {
+      meta: { title: 'T', template: 'ghostbusters' },
+      elements: [
+        {
+          id: 'ecto-1',
+          concept: 'Fleet',
+          name: 'Ecto-1',
+          description: 'Car.',
+          fields: { role: 'Interceptor' },
+          markers: { priority: 'high' },
+          relations: [{ field: 'parked-at', target: 'hq-garage' }],
+          hash: '0123456789abcdef',
+          modelFile: 'ghostbusters_NN.md',
+        },
+        {
+          id: 'hq-garage',
+          concept: 'Fleet',
+          name: 'HQ Garage',
+          fields: {},
+          markers: {},
+          hash: 'abcdef0123456789',
+        },
+      ],
+    }
+    const filled = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
+      .replace(
+        /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+        '$1{"concepts": [{"name": "Fleet"}]}$2',
+      )
+      .replace(
+        /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+        `$1${JSON.stringify(model)}$2`,
+      )
+      .replace(
+        /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+        '$1{"needs":["concept-rail","fulltext-search"]}$2',
+      )
+      .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
+    const dom = new JSDOM(filled, { url: 'http://localhost' })
+    // The shell stays on the inner dom for the rest of the process (each test
+    // file has its own process).
     global.window = dom.window
     global.document = dom.window.document
     global.location = dom.window.location
     global.CustomEvent = dom.window.CustomEvent
-    const Viewer = require(join(consoleDir, 'render-model-viewer.js'))
-    const res = Viewer.boot()
-    assert.equal(res.ok, true)
-    assert.equal(res.elements, 2)
+    global.Event = dom.window.Event
+    global.InnfoUI = UI
+    global.InnfoReview = InnfoReview
+    const InnfoConsole = require(join(consoleDir, 'innfo-runtime.js'))
+    InnfoConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
     assert.ok(card.querySelector('[data-innfo-component="qud-chip"]'), 'qud chip')
     assert.match(
       card.querySelector('.innfo-card-path').textContent,
-      /ghostbusters \/ Fleet \/ ecto-1/,
+      /ghostbusters_NN\.md/,
     )
     const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
     assert.ok(rel, 'structured relation list (no legacy .rel-list)')
     assert.equal(rel.querySelector('a').getAttribute('href'), '#el-hq-garage')
-    assert.match(rel.textContent, /HQ Garage/)
+    assert.match(rel.textContent, /hq-garage/)
     assert.equal(card.querySelector('.rel-list'), null, 'legacy relation markup gone')
     assert.equal(
       card.querySelector('[data-innfo-component="tag-row"]'),
@@ -290,6 +311,5 @@ describe('Model viewer end-to-end (renderElement)', () => {
   })
 
   // The sourceUrl link contract moved to `console-source-url.test.ts` and the
-  // runtime's `safeSourceHref` (SCS S1.5). The viewer that owned this case is
-  // retired in S4.
+  // runtime's `safeSourceHref` (SCS S1.5).
 })

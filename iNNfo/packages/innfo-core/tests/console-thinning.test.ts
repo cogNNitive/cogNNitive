@@ -10,10 +10,8 @@ const repoRoot = join(here, '..', '..', '..', '..')
 
 const assets = {
   shell: join(templatesDir, 'console', 'artifact_shell.html'),
-  console: join(templatesDir, 'workspace', 'assets', 'model_console.html'),
 }
 const timelineView = join(templatesDir, 'metrics', 'assets', 'console-view-timeline.js')
-const consoleUiKit = join(templatesDir, 'console', 'ui-kit.js')
 
 // Markers that would indicate a duplicated inline copy of the shared runtime.
 // Static <script src="...innfo-runtime.js"> tags are REQUIRED (not markers).
@@ -28,10 +26,7 @@ function readAsset(path: string): string {
   return readFileSync(path, 'utf8')
 }
 
-describe.each([
-  ['shell', assets.shell],
-  ['console', assets.console],
-])('%s console asset', (_name, path) => {
+describe.each([['shell', assets.shell]])('%s console asset', (_name, path) => {
   it('declares an innfo-config block with a needs[] capability list', () => {
     const html = readAsset(path)
     expect(html).toContain('id="innfo-config"')
@@ -64,42 +59,24 @@ describe('artifact_shell slot payloads', () => {
   })
 })
 
-// The workspace-level console asset is the citation-aware sibling of the
-// business viewer shell: same renderer contract, plus the native citation
-// dialog and icon colour rules, plus the shared bundle (not the split
-// innfo-runtime.js/render-model-viewer.js tags the business shell still
-// uses).
-describe('console (workspace) slot payloads', () => {
-  it('keeps the #innfo-schema and #innfo-model slots', () => {
-    const html = readAsset(assets.console)
+// The single shell (artifact_shell.html) keeps the shared slots and the ref
+// dialog; the runtime creates #innfo-citation-dialog on demand and the
+// citation-icon colour rules live in the kit (data-origin driven).
+describe('single shell + kit citation styling', () => {
+  it('keeps the shared slots and the ref dialog, without legacy cite-icon rules', () => {
+    const html = readAsset(assets.shell)
     expect(html).toContain('id="innfo-schema"')
     expect(html).toContain('id="innfo-model"')
-  })
-
-  it('boots the shared console bundle (not the legacy split runtime/renderer tags)', () => {
-    const html = readAsset(assets.console)
-    expect(html).toContain('innfo-console.bundle.js')
-    expect(html).not.toContain('innfo-runtime.js')
-    expect(html).not.toContain('render-model-viewer.js')
-  })
-
-  it('declares the native citation dialog; colour rules now live in InnfoUI', () => {
-    const html = readAsset(assets.console)
-    expect(html).toContain('id="innfo-citation-dialog"')
-    expect(html).toContain('aria-label="Citation details"')
-    // Citation-icon colours moved to the kit (data-origin driven); the shell
-    // must no longer carry the legacy .cite-icon.cite-* rules.
+    expect(html).toContain('id="innfo-ref-dialog"')
     expect(html).not.toContain('.cite-icon.cite-agent')
-    const kit = readAsset(consoleUiKit)
+  })
+
+  it('ships origin tokens and rules in InnfoUI', () => {
+    const kit = readAsset(join(templatesDir, 'console', 'ui-kit.js'))
     for (const origin of ['agent', 'human', 'reviewer', 'document', 'error']) {
       expect(kit).toContain(`--innfo-origin-${origin}`)
     }
     expect(kit).toContain('[data-origin=agent]')
-  })
-
-  it('widens the innfo-ref-dialog CSS selectors to also cover innfo-citation-dialog', () => {
-    const html = readAsset(assets.console)
-    expect(html).toContain('#innfo-ref-dialog, #innfo-citation-dialog')
   })
 })
 
@@ -123,22 +100,6 @@ describe('frozen vendored console bundles (not migrated, not guarded)', () => {
   // inlined CSS and must never be swept into the token migration nor scanned
   // by the console-shell guard (which skips /samples/ and /export/).
   const frozen = [
-    join(
-      templatesDir,
-      'procedures',
-      'samples',
-      'export',
-      'Ghostbusters_V_0-2-0_procedures_console',
-      'Ghostbusters_V_0-2-0_procedures_console.html',
-    ),
-    join(
-      templatesDir,
-      'procedures',
-      'procedures',
-      'export',
-      'document_sop_console',
-      'document_sop_console.html',
-    ),
     join(
       repoRoot,
       'iNNfo',

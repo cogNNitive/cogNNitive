@@ -6,17 +6,7 @@ import { createRequire } from 'node:module'
 
 const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const modelConsolePath = join(
-  import.meta.dirname!,
-  '..',
-  '..',
-  '..',
-  'specs',
-  'bluepriNNts',
-  'workspace',
-  'assets',
-  'model_console.html',
-)
+const modelConsolePath = join(consoleDir, 'artifact_shell.html')
 
 type ConsoleApi = {
   boot: (doc: Document) => any
@@ -349,22 +339,20 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
 
   it('stamps the console header with the generated timestamp', () => {
     renderModelConsole()
-    const host = document.createElement('div')
-    host.id = 'innfo-navbar-extra'
-    document.body.appendChild(host)
     const api = loadRuntime()
     api.renderNavbarIdentity(document, { generated: '2026-10-11T16:56:22.123Z' })
+    const host = document.getElementById('innfo-navbar-extra')!
+    expect(host).not.toBeNull()
     expect(host.textContent).toBe('Generated 2026-10-11 16:56:22 UTC')
   })
 
-  it('viewer renders citation icon from builder output', () => {
+  it('the single shell renders a citation icon for an element with citations', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.boot(document)
-    const viewer = req(join(consoleDir, 'render-model-viewer.js'))
-    viewer.boot()
 
-    // Element 'el-threat-slimer' has citations
+    // Element 'el-threat-slimer' has citations; the runtime renders them from
+    // the kit (no model viewer).
     const card = document.getElementById('el-threat-slimer')!
     expect(card).not.toBeNull()
     const citeIcon = card.querySelector('.cite-icon')

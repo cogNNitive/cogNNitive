@@ -94,7 +94,7 @@ describe('innfo-console.bundle.js (single-file distribution)', () => {
     expect(bundle).toContain('InnfoVisuals')
     expect(bundle).toContain('InnfoIcons')
     expect(bundle).toContain('InnfoConsole')
-    expect(bundle).toContain('InnfoModelViewer')
+    expect(bundle).not.toContain('InnfoModelViewer')
     expect(bundle).toContain('InnfoProcedureStepper')
   })
 
