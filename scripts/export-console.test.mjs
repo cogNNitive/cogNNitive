@@ -184,8 +184,11 @@ Transcribe it.
       assert.ok(jsonMatch, 'innfo-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
-      assert.equal(modelJson.meta.sha256, expectedHash)
-      assert.equal(modelJson.meta.modelVersion, 'V_0-2-5')
+      assert.equal(modelJson.meta.models[0].filePath, 'business_V_0-2-5_NN.md')
+      assert.equal(modelJson.meta.models[0].sha256, expectedHash)
+      assert.equal(modelJson.meta.models[0].version, 'V_0-2-5')
+      assert.deepEqual(modelJson.meta.consoleScope.models, ['models/business_V_0-2-5'])
+      assert.ok(modelJson.meta.consoleScope.label)
     })
 
     it('emits embedded model JSON verbatim when fields contain $-sequences', async () => {
@@ -304,21 +307,22 @@ notes:: "Please review the tagline"
       assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
-    it('exports all models with --all', async () => {
+    it('exports one scoped console over every model with --all', async () => {
       const res = await runCli([tempDir, '--all'])
       assert.equal(res.code, 0)
-      assert.match(res.stdout, /Exported 3 console artifact\(s\)/)
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
-        true,
-      )
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'procedures_V_0-1-0')),
-        true,
-      )
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'metrics_V_0-1-0')),
-        true,
+      assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
+
+      const families = await readdir(join(tempDir, 'artifacts'))
+      assert.deepEqual(families.length, 1, 'a single scoped console family')
+      assert.match(families[0], /^business_V_0-2-5-plus2-[0-9a-f]{6}_console$/)
+      const members = await readdir(join(tempDir, 'artifacts', families[0]))
+      assert.equal(members.length, 1)
+      const html = await readFile(join(tempDir, 'artifacts', families[0], members[0]), 'utf-8')
+      const model = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      assert.equal(model.meta.consoleScope.models.length, 3)
+      assert.deepEqual(
+        model.meta.models.map((m) => m.filePath).sort(),
+        ['business_V_0-2-5_NN.md', 'metrics_V_0-1-0_NN.md', 'procedures_V_0-1-0_NN.md'],
       )
     })
 
@@ -407,10 +411,12 @@ notes:: "Please review the tagline"
       await mkdir(toolsDir, { recursive: true })
       await mkdir(consoleDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
+      await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       for (const name of [
         'artifact_shell.html',
         'innfo-console.bundle.js',
         'console-payload.generated.cjs',
+        'innfo-ui.css',
       ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
@@ -439,10 +445,12 @@ notes:: "Please review the tagline"
       await mkdir(assetsDir, { recursive: true })
       await mkdir(toolsDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
+      await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       // Installs made before the shell rename only carry the old filename.
       await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_blueprint.html'))
       await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
       await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
+      await copyFile(join(consoleSrc, 'innfo-ui.css'), join(assetsDir, 'innfo-ui.css'))
 
       const { stdout } = await execFileAsync(
         process.execPath,
@@ -464,11 +472,13 @@ notes:: "Please review the tagline"
       await mkdir(assetsDir, { recursive: true })
       await mkdir(toolsDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
+      await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_shell.html'))
       const shell = await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')
       await writeFile(join(assetsDir, 'artifact_blueprint.html'), shell.replace('<title>', '<title>STALE-LEGACY '))
       await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
       await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
+      await copyFile(join(consoleSrc, 'innfo-ui.css'), join(assetsDir, 'innfo-ui.css'))
 
       await execFileAsync(
         process.execPath,
@@ -489,10 +499,12 @@ notes:: "Please review the tagline"
       await mkdir(assetsDir, { recursive: true })
       await mkdir(toolsDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
+      await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       for (const name of [
         'artifact_shell.html',
         'innfo-console.bundle.js',
         'console-payload.generated.cjs',
+        'innfo-ui.css',
       ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
@@ -642,7 +654,7 @@ notes:: "Please review the tagline"
       await install(dir, { skip: ['console-views.mjs'] })
       const err = await failure(runInstalled(dir, ['--domain']))
       assert.notEqual(err.code, 0)
-      assert.match(err.stderr, /--domain needs console-views\.mjs next to this script/)
+      assert.match(err.stderr, /console-views\.mjs must sit next to this script/)
       assert.equal(existsSync(join(tempDir, 'domaiNN_console.html')), false)
     })
 
@@ -656,11 +668,13 @@ notes:: "Please review the tagline"
       assert.doesNotMatch(err.stderr, /next to this script/)
     })
 
-    it('still exports a single model without the view lib', async () => {
+    it('exports a scoped console over one model from an installed set', async () => {
       const dir = join(tempDir, 'installed')
-      await install(dir, { skip: ['console-views.mjs'] })
+      await install(dir)
       await runInstalled(dir, ['business'])
-      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
+      const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
+      const model = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      assert.deepEqual(model.meta.consoleScope.models, ['models/business_V_0-2-5'])
     })
   })
 
@@ -686,11 +700,15 @@ notes:: "Please review the tagline"
       assert.equal(again.code, 0)
       assert.match(again.stdout, /Exported 0 console artifact\(s\)/)
       assert.deepEqual(await tree(tempDir), first)
-      assert.equal(consoleMembers(tempDir, 'business_V_0-2-5').length, 1)
+      const families = await readdir(join(tempDir, 'artifacts'))
+      assert.equal(families.length, 1)
+      assert.equal((await readdir(join(tempDir, 'artifacts', families[0]))).length, 1)
     })
 
     it('adds a suffixed member for a changed model and leaves the earlier console byte-identical', async () => {
       await runCli([tempDir, 'business'])
+      // Compile the rest so only the edited model is stale afterwards.
+      await runCli([tempDir, '--all'])
       const [original] = consoleMembers(tempDir, 'business_V_0-2-5')
       const before = await sha(original)
 
@@ -708,23 +726,24 @@ notes:: "Please review the tagline"
       const meta = JSON.parse(
         (await readFile(members[1], 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1],
       ).meta
-      assert.equal(meta.sha256, computeHash(await readFile(file, 'utf-8')))
+      assert.equal(meta.models[0].sha256, computeHash(await readFile(file, 'utf-8')))
     })
 
-    it('embeds meta.sources from the core payload builder', async () => {
+    it('embeds per-model meta.sources from the core payload builder', async () => {
       await runCli([tempDir, 'business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
       const meta = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1]).meta
-      assert.ok(Array.isArray(meta.sources) && meta.sources.length > 0)
-      assert.ok(meta.sources[0].endsWith('business_V_0-2-5_NN.md'))
+      const sources = meta.models[0].sources
+      assert.ok(Array.isArray(sources) && sources.length > 0)
+      assert.ok(sources[0].endsWith('business_V_0-2-5_NN.md'))
     })
 
-    it('vendors the bundle as its own write-once member and points the HTML at it', async () => {
+    it('inlines the bundle instead of vendoring a sibling file', async () => {
       await runCli([tempDir, 'business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const bundle = consoleBundle(tempDir, 'business_V_0-2-5')
-      assert.equal(existsSync(bundle), true)
-      assert.ok(html.includes(`./${basename(bundle)}`))
+      assert.equal(existsSync(consoleBundle(tempDir, 'business_V_0-2-5')), false)
+      assert.ok(html.includes('single-file console runtime'), 'bundle inlined into the HTML')
+      assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'no external script tag')
     })
   })
 

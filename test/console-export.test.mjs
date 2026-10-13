@@ -65,21 +65,18 @@ level: 3
     }
   })
 
-  it('exports standalone 3-tier console artifact with embedded bundle and slots', async () => {
+  it('exports a standalone single-file console with the bundle, CSS, slots and views inlined', async () => {
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
     const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
-    const bundlePath = consoleBundle(tempDir, 'business_V_1-0-0')
-
     assert.equal(existsSync(htmlPath), true, 'HTML artifact was generated')
-    assert.equal(existsSync(bundlePath), true, 'console bundle vendored alongside HTML')
+    assert.equal(existsSync(consoleBundle(tempDir, 'business_V_1-0-0')), false, 'no sibling bundle')
 
     const htmlContent = await readFile(htmlPath, 'utf-8')
-    assert.ok(
-      htmlContent.includes(`./${basename(bundlePath)}`),
-      'the HTML loads the exact bundle member vendored next to it',
-    )
+    assert.equal(/<script[^>]*\ssrc=/.test(htmlContent), false, 'self-contained: no external script')
+    assert.ok(htmlContent.includes('single-file console runtime'), 'bundle inlined')
+    assert.match(htmlContent, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
     assert.match(htmlContent, /<script type="application\/json" id="innfo-config">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-schema">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-model">/)
@@ -90,10 +87,11 @@ level: 3
     await runCli([tempDir, '--all'])
 
     const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
-    const bundlePath = consoleBundle(tempDir, 'business_V_1-0-0')
-
     const html = await readFile(htmlPath, 'utf-8')
-    const bundleJs = await readFile(bundlePath, 'utf-8')
+    const bundleJs = await readFile(
+      resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+      'utf-8',
+    )
 
     // Hydrate in isolated JSDOM simulating offline file:// load
     const dom = new JSDOM(html, {
@@ -116,10 +114,12 @@ level: 3
     const doc = dom.window.document
     dom.window.InnfoConsole.boot(doc)
 
-    // Verify banner and reviewer chip
+    // Verify the navbar identity (single model -> the model title) and reviewer chip
+    const titleEl = doc.getElementById('innfo-domain-title')
+    assert.ok(titleEl, 'navbar identity title rendered')
+    assert.equal(titleEl.textContent, 'Offline Business Model')
     const banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     assert.ok(banner)
-    assert.match(banner.textContent, /Offline Business Model/)
     const reviewerChip = banner.querySelector('.innfo-reviewer-chip')
     assert.ok(reviewerChip, 'Reviewer profile chip rendered in banner')
     assert.match(reviewerChip.textContent, /Reviewer/)
@@ -163,7 +163,7 @@ level: 3
   Dangerous note with <div>HTML content</div>.
 `
     await writeFile(join(tempDir, 'models', 'xss_V_1-0-0_NN.md'), xssModel, 'utf-8')
-    const res = await runCli([tempDir, '--all'])
+    const res = await runCli([tempDir, 'xss_V_1-0-0'])
     assert.equal(res.code, 0)
 
     const htmlPath = consoleHtml(tempDir, 'xss_V_1-0-0')
@@ -238,7 +238,7 @@ level: 3
 `
     await writeFile(join(tempDir, 'models', 'cited_V_1-0-0_NN.md'), citedModel, 'utf-8')
 
-    const res = await runCli([tempDir, '--all'])
+    const res = await runCli([tempDir, 'cited_V_1-0-0'])
     assert.equal(res.code, 0)
 
     const htmlPath = consoleHtml(tempDir, 'cited_V_1-0-0')
@@ -270,10 +270,12 @@ level: 3
       const shellContent = await readFile(join(repoConsoleDir, 'artifact_shell.html'), 'utf-8')
       const bundleContent = await readFile(join(repoConsoleDir, 'innfo-console.bundle.js'), 'utf-8')
       const mirrorContent = await readFile(join(repoConsoleDir, 'console-payload.generated.cjs'), 'utf-8')
+      const cssContent = await readFile(join(repoConsoleDir, 'innfo-ui.css'), 'utf-8')
 
       await writeFile(join(standaloneDir, 'artifact_shell.html'), shellContent, 'utf-8')
       await writeFile(join(standaloneDir, 'innfo-console.bundle.js'), bundleContent, 'utf-8')
       await writeFile(join(standaloneDir, 'console-payload.generated.cjs'), mirrorContent, 'utf-8')
+      await writeFile(join(standaloneDir, 'innfo-ui.css'), cssContent, 'utf-8')
 
       const res = await runCli([tempDir, '--all'], {
         env: { INNFO_CONSOLE_DIR: standaloneDir },

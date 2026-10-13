@@ -155,15 +155,31 @@ describe('export-console size budget and --view (S2c2)', () => {
       await untouched()
     })
 
-    for (const extra of [['--all'], ['--filter', 'view'], ['--stale'], ['ViewModel']]) {
-      it(`refuses --view together with ${extra.join(' ')}, exit 2, nothing written`, async () => {
-        await addView('alpha', editableView('Alpha'))
-        const res = await runCli([root, '--view', 'alpha', ...extra])
+    it('combines --view with a model selection into one scoped view console', async () => {
+      await addView('alpha', editableView('Alpha'))
+      const res = await runCli([root, '--view', 'alpha', 'view_V_1-0-0'])
+      assert.equal(res.code, 0, res.stdout + res.stderr)
+      const dir = join(root, 'artifacts', 'alpha-view_V_1-0-0_view')
+      assert.equal(existsSync(dir), true)
+      const members = (await readdir(dir)).map((n) => join(dir, n))
+      assert.equal(members.length, 1)
+      const model = JSON.parse(
+        (await readFile(members[0], 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1],
+      )
+      assert.equal(model.meta.consoleScope.view, 'alpha')
+      assert.equal(model.meta.consoleScope.models.length, 1)
+      assert.ok(model.meta.consoleScope.label)
+      assert.equal(model.meta.models.length, 1)
+    })
+
+    it('exits 2 when --domain is combined with a model selection', async () => {
+      await addView('alpha', editableView('Alpha'))
+      for (const extra of [['--all'], ['--filter', 'view'], ['--stale'], ['view_V_1-0-0']]) {
+        const res = await runCli([root, '--domain', ...extra])
         assert.equal(res.code, 2, res.stdout + res.stderr)
-        assert.match(res.stderr, /--view cannot be combined with --all, --stale, --filter or a model name/)
         await untouched()
-      })
-    }
+      }
+    })
 
     it('exits 2 with a clear message when --view has no value', async () => {
       await addView('alpha', editableView('Alpha'))
