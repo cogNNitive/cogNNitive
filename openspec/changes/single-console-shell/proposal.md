@@ -88,7 +88,20 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 
 - `2026-10-10-blueprint-external-skills` also deltas `template-procedures-manifest-and-discovery` (R-TPD-04, not the `compile-model-console` scenario). Archive it before this change's delta lands, or rebase onto it.
 - That change's `specs/template-package-structure/spec.md:10` has a stale example, `assets/model_viewer.html`. Fix it there.
-- `2026-09-30-nn-quarantine-removal`, `2026-10-01-nn-domain-git-workflow`, `2026-10-07-nn-upgrade-contract-docs` and `2026-10-11-video-script-contract-additions` are unaffected (verified).
+- `2026-09-30-nn-quarantine-removal`, `2026-10-01-nn-domain-git-workflow`, `2026-10-07-nn-upgrade-contract-docs` and `2026-10-11-video-script-contract-additions` are unchecked, but only `nn-quarantine-removal` couples (it names the editor `useLegacyDomain.ts`, retired by the lineage change S5; it is BLOCKED).
+
+### Reconcile with the lineage change set (2026-10-13)
+
+This change was authored in parallel with the eight 2026-10-13 lineage changes
+(`2026-10-13-*`) and collides with six of them (#1A, #1C, S2c, S3, S5, S6) on the same
+capability requirements (console-architecture, console-payload-builder,
+console-review-mode, console-export-cli, innfo-console-runtime, lineage-single-edge,
+editor-lineage-ui, innfo-console-feedback, console-view-registry).
+
+**Authority:** this change is the console spine and applies **first**; the lineage deltas
+that touch console capabilities are re-cut against the post-SCS living specs. The full
+order, the requirement-by-requirement overlap list and the affected external changes live
+in [`openspec/changes/2026-10-13-DEPENDENCIES.md`](../2026-10-13-DEPENDENCIES.md).
 
 ## Affected Areas
 
