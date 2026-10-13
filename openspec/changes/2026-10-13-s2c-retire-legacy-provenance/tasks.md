@@ -76,17 +76,17 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 5. Retire the feedback import and the change-log library (S2c-2)
 
-- [ ] 5.1 TEST (`skills/nn-sources/test/unit/test-scanner.js`, replacing the cases at
+- [x] 5.1 TEST (`skills/nn-sources/test/unit/test-scanner.js`, replacing the cases at
       `:235-243`): a `.json` under `sources/import/feedback/` is cognitivized as a plain
       JSON source; no sidecar records a feedback source type.
       [source-normalization-pipeline: Removal of Legacy Slack/Teams JSON Parser]
       [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
-- [ ] 5.2 `skills/nn-sources/scripts/lib/normalizer.js:75` (delete the feedback source-type
+- [x] 5.2 `skills/nn-sources/scripts/lib/normalizer.js:75` (delete the feedback source-type
       branch), `scripts/lib/scanner-converters.js:355` (delete the feedback routing),
       `scripts/scanner.js` (delete the `import/feedback/` route).
       [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
       [innfo-console-feedback: Normalized Feedback Anchors (REMOVED)]
-- [ ] 5.3 Delete `skills/nn-sources/scripts/lib/change-log.js`,
+- [x] 5.3 Delete `skills/nn-sources/scripts/lib/change-log.js`,
       `skills/nn-sources/test/unit/test-change-log.js` and its entry in
       `skills/nn-sources/test/run.js`. [changeset-document-model: Changesets are the only
       change record]
