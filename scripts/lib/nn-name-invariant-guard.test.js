@@ -81,7 +81,7 @@ function main() {
       'docs/innfo/samples/x/Ghostbusters_Operations_V_1-0-0_NN.md': doc('business'),
       'docs/cognitive_nn/use-cases/a/Client_NN.md': doc('business'),
       'iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-3_business_NN.md': doc('business'),
-      'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md': doc('procedures'),
+      'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures'),
       'iNNfo/specs/bluepriNNts/base/samples/workspace_NN.md': doc('workspace_spec'),
     };
     const r = run(files);

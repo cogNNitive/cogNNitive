@@ -104,16 +104,16 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 7. Skills and docs (S2c-3)
 
-- [ ] 7.1 `skills/nn-innfo/SKILL.md`: delete the two tool rows (`:361-362`), the section
+- [x] 7.1 `skills/nn-innfo/SKILL.md`: delete the two tool rows (`:361-362`), the section
       "Agent Modification lineage (MANDATORY on every successful apply_change)" (`:455-457`)
       and the paste instruction (`:526`).
       [agent-modification-provenance: nn-innfo Mandates Verbatim Block Paste (REMOVED)]
-- [ ] 7.2 `skills/nn-sources/SKILL.md`: delete section 2a-1 (`:233-240`) and the feedback
+- [x] 7.2 `skills/nn-sources/SKILL.md`: delete section 2a-1 (`:233-240`) and the feedback
       line at `:450`. [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
-- [ ] 7.3 Docs: `docs/innfo/documentation/innfo-mcp.md:35-36`, `reviewer-guide.md:37,60`,
+- [x] 7.3 Docs: `docs/innfo/documentation/innfo-mcp.md:35-36`, `reviewer-guide.md:37,60`,
       `lifecycle-walkthrough.md:137`, `templates.md:43` describe the changeset review flow
       only. [changeset-document-model: Changesets are the only change record]
-- [ ] 7.4 Grep guard (`test/no-legacy-provenance.test.mjs`): the symbols listed in the
+- [x] 7.4 Grep guard (`test/no-legacy-provenance.test.mjs`): the symbols listed in the
       proposal's Success Criteria appear nowhere outside write-once `_V_x-y-z_` files,
       `openspec/changes/archive/` and this change's spec deltas.
       [changeset-document-model: Changesets are the only change record]
