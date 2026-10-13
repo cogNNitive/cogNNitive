@@ -860,8 +860,9 @@
     return IMAGE_VALUE_RE.test(s)
   }
 
-  // ponytail: naive prefix retry (kNNowledge/sources/assets) — proper fix is
-  // absolute asset URLs in the payload; upgrade when domains grow.
+  // ponytail: last-resort prefix retry for payloads exported before the
+  // export-time rebase (scripts/export-console.mjs rebaseModelAssets); a
+  // correctly exported console loads the src on the first try.
   function retryImageSrc(img, fallback) {
     var cur = img.getAttribute('src') || ''
     if (/^(data:|blob:|https?:|file:)/i.test(cur)) {
