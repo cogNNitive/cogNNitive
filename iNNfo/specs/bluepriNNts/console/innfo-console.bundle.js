@@ -624,6 +624,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-file-pill{display:inline-flex;align-items:center;gap:.35em;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:6px;padding:2px 8px;font-family:var(--innfo-mono);font-size:.76rem;color:var(--innfo-text)}',
     '.innfo-file-pill-icon{display:inline-flex;color:var(--innfo-accent)}',
     '.innfo-file-pill-path{font-family:inherit;font-size:inherit;background:transparent;padding:0;border:none}',
+    '.innfo-markdown{display:block;font-size:.88rem;line-height:1.5;color:var(--innfo-text);overflow-wrap:anywhere}',
+    '.innfo-markdown>:first-child{margin-top:0}',
+    '.innfo-markdown>:last-child{margin-bottom:0}',
+    '.innfo-markdown p{margin:.4em 0}',
+    '.innfo-markdown ul,.innfo-markdown ol{margin:.4em 0;padding-left:1.4em}',
+    '.innfo-markdown .innfo-md-heading{margin:.6em 0 .3em;font-size:1rem;font-weight:700}',
+    '.innfo-markdown code{font-family:var(--innfo-mono);font-size:.82em;background:var(--innfo-surface-2);border-radius:4px;padding:0 .3em}',
+    '.innfo-markdown a{color:var(--innfo-link);text-decoration:underline}',
+    '.innfo-markdown .innfo-md-quote{margin:.5em 0;padding:.2em .8em;border-left:3px solid var(--innfo-border);color:var(--innfo-muted)}',
+    '.innfo-markdown .innfo-md-quote[data-callout]{border-left-color:var(--innfo-accent);background:var(--innfo-surface-2)}',
+    '.innfo-markdown .innfo-md-callout-title{display:block;font-size:.72rem;letter-spacing:.04em;color:var(--innfo-accent)}',
+    '.innfo-file-pill[data-knowledge-bound=true]{cursor:pointer}',
+    '.innfo-file-pill[data-knowledge-bound=true]:hover{border-color:var(--innfo-accent)}',
+    '.innfo-tag[role=button]{cursor:pointer}',
+    '.innfo-tag[role=button]:hover{border-color:var(--innfo-link)}',
     '.innfo-card-meta-strip{display:flex;align-items:center;justify-content:space-between;gap:.5em;flex-wrap:wrap;padding:6px 10px;margin:.55em 0;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:6px}',
     '.innfo-lineage-pill{display:inline-flex;align-items:center;gap:.3em;font-family:var(--innfo-mono);font-size:.73rem;color:var(--innfo-muted);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:5px;padding:2px 7px}',
     '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-direction:column;gap:0;align-items:stretch;margin:.6em 0 0;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);overflow:hidden;background:var(--innfo-surface)}',
@@ -998,12 +1013,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.TagRow: data required')
     var doc = resolveDoc(opts)
     var tags = Array.isArray(data.tags) ? data.tags : []
+    var onTag = opts && typeof opts.onTag === 'function' ? opts.onTag : null
     var row = makeEl(doc, 'div', 'innfo-tag-row')
     row.setAttribute('data-innfo-component', 'tag-row')
     tags.forEach(function (t) {
       var tag = makeEl(doc, 'span', 'innfo-tag')
       tag.setAttribute('data-tag', String(t))
       tag.appendChild(doc.createTextNode(String(t)))
+      if (onTag) {
+        tag.setAttribute('role', 'button')
+        tag.setAttribute('tabindex', '0')
+        tag.setAttribute('title', 'Filter by tag ' + String(t))
+        tag.addEventListener('click', function (ev) {
+          // The review +/x controls live inside the chip and keep their own action.
+          var inner = ev && ev.target && typeof ev.target.closest === 'function' && ev.target.closest('[data-innfo-ctl]')
+          if (inner) return
+          onTag(String(t))
+        })
+        tag.addEventListener('keydown', function (ev) {
+          if (ev && ev.target === tag && (ev.key === 'Enter' || ev.key === ' ')) {
+            if (ev.preventDefault) ev.preventDefault()
+            onTag(String(t))
+          }
+        })
+      }
       row.appendChild(tag)
     })
     return row
@@ -1150,6 +1183,160 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return wrap.children.length ? [wrap] : []
   }
 
+  // ---- Markdown (safe subset) ----
+  // Builds DOM nodes only: every piece of text goes through createTextNode or
+  // textContent and every URL through setAttribute, so no markup in the input is
+  // ever parsed. Anything outside the subset stays literal text.
+
+  // http(s) and relative targets only. Control characters are refused outright
+  // (browsers strip tabs and newlines inside a scheme), as are protocol-relative
+  // and backslash-leading values.
+  function safeHref(url) {
+    var raw = String(url == null ? '' : url)
+    if (/[\u0000-\u001f\u007f]/.test(raw)) return ''
+    raw = raw.trim()
+    if (!raw) return ''
+    if (/^[\\/]{2}/.test(raw) || raw.charAt(0) === '\\') return ''
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return /^https?:/i.test(raw) ? raw : ''
+    return raw
+  }
+
+  var MD_INLINE =
+    /`([^`\n]+)`|\[([^\]\n]+)\]\(([^)\s]*)\)|\*\*([^*\n]+?)\*\*|\*([^*\s][^*\n]*?)\*|_([^_\s][^_\n]*?)_/
+  var MD_HEADING = /^(#{1,6})\s+(.*)$/
+  var MD_LIST = /^\s{0,3}([-*+]|\d+[.)])\s+(.*)$/
+  var MD_QUOTE = /^\s{0,3}>\s?(.*)$/
+  var MD_CALLOUTS = ['note', 'tip', 'important', 'warning', 'caution']
+
+  function mdInline(doc, parent, text) {
+    var re = new RegExp(MD_INLINE.source, 'g')
+    var last = 0
+    var m
+    function addText(s) {
+      if (s) parent.appendChild(doc.createTextNode(s))
+    }
+    function wrap(tag, inner) {
+      var node = makeEl(doc, tag)
+      mdInline(doc, node, inner)
+      parent.appendChild(node)
+    }
+    while ((m = re.exec(text)) !== null) {
+      addText(text.slice(last, m.index))
+      last = m.index + m[0].length
+      if (m[1] !== undefined) {
+        parent.appendChild(makeEl(doc, 'code', null, m[1]))
+      } else if (m[2] !== undefined) {
+        var href = safeHref(m[3])
+        if (!href) {
+          addText(m[0])
+          continue
+        }
+        var a = makeEl(doc, 'a', null, m[2])
+        a.setAttribute('href', href)
+        a.setAttribute('target', '_blank')
+        a.setAttribute('rel', 'noopener noreferrer')
+        parent.appendChild(a)
+      } else if (m[4] !== undefined) {
+        wrap('strong', m[4])
+      } else if (m[5] !== undefined) {
+        wrap('em', m[5])
+      } else if (/\w/.test(m.index > 0 ? text.charAt(m.index - 1) : '')) {
+        addText(m[0]) // snake_case_word, not emphasis
+      } else {
+        wrap('em', m[6])
+      }
+    }
+    addText(text.slice(last))
+  }
+
+  function mdParagraph(doc, parent, lines) {
+    var p = makeEl(doc, 'p')
+    lines.forEach(function (line, idx) {
+      if (idx) p.appendChild(doc.createElement('br'))
+      mdInline(doc, p, line)
+    })
+    parent.appendChild(p)
+  }
+
+  function Markdown(text, opts) {
+    var doc = resolveDoc(opts)
+    var root = makeEl(doc, 'div', 'innfo-markdown')
+    root.setAttribute('data-innfo-component', 'markdown')
+    var lines = String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n')
+    var i = 0
+    function blank(l) {
+      return !/\S/.test(l)
+    }
+    while (i < lines.length) {
+      var line = lines[i]
+      if (blank(line)) {
+        i++
+        continue
+      }
+      var hm = MD_HEADING.exec(line)
+      if (hm) {
+        var h = makeEl(doc, 'h' + hm[1].length, 'innfo-md-heading')
+        mdInline(doc, h, hm[2])
+        root.appendChild(h)
+        i++
+        continue
+      }
+      var lm = MD_LIST.exec(line)
+      if (lm) {
+        var ordered = /\d/.test(lm[1].charAt(0))
+        var list = makeEl(doc, ordered ? 'ol' : 'ul')
+        while (i < lines.length && (lm = MD_LIST.exec(lines[i])) && /\d/.test(lm[1].charAt(0)) === ordered) {
+          var li = makeEl(doc, 'li')
+          mdInline(doc, li, lm[2])
+          list.appendChild(li)
+          i++
+        }
+        root.appendChild(list)
+        continue
+      }
+      var qm = MD_QUOTE.exec(line)
+      if (qm) {
+        var quoted = []
+        while (i < lines.length && (qm = MD_QUOTE.exec(lines[i]))) {
+          quoted.push(qm[1])
+          i++
+        }
+        var bq = makeEl(doc, 'blockquote', 'innfo-md-quote')
+        var co = /^\[!([A-Za-z]+)\]\s*$/.exec(quoted[0])
+        if (co && MD_CALLOUTS.indexOf(co[1].toLowerCase()) !== -1) {
+          bq.setAttribute('data-callout', co[1].toLowerCase())
+          bq.appendChild(makeEl(doc, 'strong', 'innfo-md-callout-title', co[1].toUpperCase()))
+          quoted.shift()
+        }
+        var group = []
+        quoted.concat(['']).forEach(function (ql) {
+          if (blank(ql)) {
+            if (group.length) mdParagraph(doc, bq, group)
+            group = []
+          } else {
+            group.push(ql)
+          }
+        })
+        root.appendChild(bq)
+        continue
+      }
+      var para = []
+      while (
+        i < lines.length &&
+        !blank(lines[i]) &&
+        !MD_HEADING.test(lines[i]) &&
+        !MD_LIST.test(lines[i]) &&
+        !MD_QUOTE.test(lines[i])
+      ) {
+        para.push(lines[i])
+        i++
+      }
+      mdParagraph(doc, root, para)
+    }
+    return root
+  }
+  // ---- end Markdown ----
+
   function normalizeAssetPath(v) {
     if (typeof v !== 'string') return ''
     var s = v.replace(/\\/g, '/')
@@ -1188,7 +1375,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     audio: renderFieldMedia,
     url: renderFieldUrl,
     code: renderFieldCode,
-    knowledge: renderFieldFile,
+    knowledge: renderFieldKnowledge,
   }
 
   function renderFieldBoolean(d, doc) {
@@ -1218,7 +1405,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function renderFieldMarkdown(d, doc) {
-    return makeEl(doc, 'span', 'innfo-field-markdown', d.value == null ? '' : String(d.value))
+    var node = Markdown(d.value, { doc: doc })
+    node.className = 'innfo-markdown innfo-field-markdown'
+    return node
   }
 
   function renderFieldList(d, doc) {
@@ -1280,6 +1469,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function renderFieldMedia(d, doc) {
     if (typeof d.value !== 'string' || !d.value.trim()) return null
     var src = normalizeAssetPath(d.value)
+    // Only a relative path or an http(s) URL may become a media src; anything else
+    // (javascript:, data:, ...) falls back to the plain text value.
+    if (!safeHref(src)) return null
     var tag = String(d.type || '').toLowerCase() === 'audio' ? 'audio' : 'video'
     var media = makeEl(doc, tag, 'innfo-field-media')
     media.setAttribute('controls', 'controls')
@@ -1289,6 +1481,35 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     wrap.appendChild(media)
     wrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', src))
     return wrap
+  }
+
+  // A knowledge field names a model. The pill is clickable only when the caller
+  // can bind it (opts.onKnowledge, and opts.isKnowledgeBound when given); an
+  // unbound pill is inert.
+  function renderFieldKnowledge(d, doc, opts) {
+    var pill = renderFieldFile(d, doc)
+    pill.setAttribute('data-field-type', 'knowledge')
+    var raw = String(d.value == null ? '' : d.value)
+    var bound =
+      !!opts &&
+      typeof opts.onKnowledge === 'function' &&
+      (typeof opts.isKnowledgeBound !== 'function' || !!opts.isKnowledgeBound(raw))
+    if (bound) {
+      pill.setAttribute('data-knowledge-bound', 'true')
+      pill.setAttribute('role', 'button')
+      pill.setAttribute('tabindex', '0')
+      pill.addEventListener('click', function (ev) {
+        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+        opts.onKnowledge(raw)
+      })
+      pill.addEventListener('keydown', function (ev) {
+        if (ev && (ev.key === 'Enter' || ev.key === ' ')) {
+          if (ev.preventDefault) ev.preventDefault()
+          opts.onKnowledge(raw)
+        }
+      })
+    }
+    return pill
   }
 
   function isAssetPath(value) {
@@ -1306,12 +1527,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (type === 'boolean' || typeof value === 'boolean') return renderFieldBoolean(d, doc)
     if (Array.isArray(value)) return renderFieldList(d, doc)
     if (value !== null && typeof value === 'object') return renderFieldObject(d, doc)
-    if (typeof value === 'string' && /^https?:\/\//i.test(value)) return renderFieldUrl(d, doc)
+    if (typeof value === 'string' && /^https?:\/\//i.test(value) && type !== 'video' && type !== 'audio') {
+      return renderFieldUrl(d, doc)
+    }
 
     // 2. Declared-type renderer.
     var byType = FIELD_RENDERERS[type]
     if (byType) {
-      var typed = byType(d, doc)
+      var typed = byType(d, doc, opts)
       if (typed) return typed
     }
 
@@ -1896,7 +2119,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (bodyFields.length) {
       var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
       bodyFields.forEach(function (fr) {
-        fieldRow.appendChild(FieldRow(fr, { onRef: opts && opts.onRef, onCite: opts && opts.onCite }))
+        fieldRow.appendChild(
+          FieldRow(fr, {
+            onRef: opts && opts.onRef,
+            onCite: opts && opts.onCite,
+            onKnowledge: opts && opts.onKnowledge,
+            isKnowledgeBound: opts && opts.isKnowledgeBound,
+          }),
+        )
       })
       body.appendChild(fieldRow)
     }
@@ -1905,8 +2135,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (n) body.appendChild(n)
       })
     }
-    var tags = Array.isArray(data.tags) ? data.tags : null
-    if (tags) body.appendChild(TagRow({ tags: tags }))
+    // No tag row without tags (the review controller adds its own for "+ tag").
+    var tags = Array.isArray(data.tags) ? data.tags : []
+    if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
     if (relations) {
       body.appendChild(RelList({ relations: relations, byId: byId }))
     }
@@ -2128,13 +2359,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return wrap
   }
 
+  // Candidates are the elements the caller allows. The datalist offers display
+  // names; the proposal is always the exact reference grammar `[[Display Name]]`
+  // (see refProposal), never a slug.
   function FieldReferenceWidget(value, candidates, opts) {
     var doc = resolveDoc(opts)
     var wrap = makeEl(doc, 'div', 'innfo-edit-reference')
     wrap.setAttribute('data-innfo-widget', 'reference')
     var input = makeEl(doc, 'input', 'innfo-edit-input')
     input.setAttribute('type', 'text')
-    input.setAttribute('placeholder', 'target-slug or [[slug]]')
+    input.setAttribute('placeholder', 'Element name, e.g. [[Display Name]]')
     if (value != null) input.value = String(value)
     wrap.appendChild(input)
 
@@ -2144,15 +2378,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     dl.id = datalistId
     var list = Array.isArray(candidates) ? candidates : []
     list.forEach(function (c) {
+      var label = typeof c === 'string' ? c : c && (c.name || c.id)
+      if (!label) return
       var op = makeEl(doc, 'option')
-      var slugVal = typeof c === 'string' ? c : c.slug || c.id || c.name
-      var labelVal = typeof c === 'string' ? c : (c.name ? c.name + ' (' + slugVal + ')' : slugVal)
-      op.value = slugVal
-      op.textContent = labelVal
+      op.value = String(label)
+      op.textContent = c && typeof c === 'object' && c.concept ? label + ' (' + c.concept + ')' : String(label)
       dl.appendChild(op)
     })
     wrap.appendChild(dl)
     return wrap
+  }
+
+  // `[[Name]]` stays as is, a bare name is wrapped, blank stays blank.
+  function refProposal(raw) {
+    var v = String(raw == null ? '' : raw).trim()
+    if (!v) return ''
+    return /^\[\[[^\]]*\]\]$/.test(v) ? v : '[[' + v + ']]'
   }
 
   function FieldMarkdownWidget(value, opts) {
@@ -2394,7 +2635,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           result.proposed = Array.prototype.map.call(checkedBoxes, function (b) { return b.value })
         } else if (fieldType === 'reference') {
           var refInp = widgetRef.querySelector('input')
-          result.proposed = refInp ? refInp.value : ''
+          var refRaw = refInp ? refInp.value : ''
+          // Unchanged input proposes the original value as is.
+          result.proposed = refRaw === String(data.value == null ? '' : data.value) ? refRaw : refProposal(refRaw)
         } else {
           result.proposed = widgetRef.value
         }
@@ -2995,6 +3238,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     CitationIcons: CitationIcons,
     FieldRow: FieldRow,
     FieldValue: FieldValue,
+    Markdown: Markdown,
+    safeHref: safeHref,
     ElementCard: ElementCard,
     ElementMini: ElementMini,
     ElementPreview: ElementPreview,
@@ -3571,14 +3816,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Resolve an anchor to a KU-modal target. Returns null when the anchor is
     // not modal-editable (card comments, tag/relation proposals use popovers
     // or immediate comment drafts instead).
-    function referenceCandidates(def) {
+    // Candidates are the owner's own model only (a reference never crosses
+    // models) and, when the definition declares target_concepts, only those concepts.
+    function modelKeyOf(e) {
+      return String(e.modelId || e.modelFile || '')
+    }
+
+    function referenceCandidates(def, owner) {
       var allowed = def && Array.isArray(def.target_concepts) ? def.target_concepts : []
-      if (!allowed.length) return elements
       var set = allowed.map(function (c) {
         return String(c).toLowerCase()
       })
       return elements.filter(function (e) {
-        return e && set.indexOf(String(e.concept).toLowerCase()) !== -1
+        if (!e || (owner && modelKeyOf(e) !== modelKeyOf(owner))) return false
+        return !set.length || set.indexOf(String(e.concept).toLowerCase()) !== -1
       })
     }
 
@@ -3604,12 +3855,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         history: Array.isArray(el.history) ? el.history : [],
       }
       if (anchorData.relRetarget) {
+        var relTargetEl = elementsById[anchorData.relTarget]
         return {
           title: 'Retarget ' + (el.name || anchorData.elementId) + ' \u2192 ' + anchorData.relField,
           fieldName: anchorData.relField,
           type: 'reference',
-          value: anchorData.relTarget,
-          candidates: elements,
+          value: relTargetEl ? '[[' + (relTargetEl.name || relTargetEl.id) + ']]' : anchorData.relTarget,
+          candidates: referenceCandidates(fieldDefOf(options.schema, el.concept, anchorData.relField), el),
           draftField: anchorData.relField,
           original: anchorData.relTarget,
           citations: base.citations,
@@ -3679,7 +3931,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
           schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
-            ? referenceCandidates(schemaField)
+            ? referenceCandidates(schemaField, el)
             : undefined,
         draftField: field,
         original: fieldVal,
@@ -4151,7 +4403,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // +/x controls that record comment drafts. Marker chips keep pencils.
     function decorateTagRow(card, elId) {
       var row = card.querySelector('[data-innfo-component="tag-row"]')
-      if (!row) return
+      if (!row) {
+        // The card shows no row for an untagged element; the "+ tag" control still
+        // needs one, and it goes away again when review mode is disabled.
+        var cardBody = card.querySelector('.innfo-card-body')
+        if (!cardBody || typeof UI.TagRow !== 'function') return
+        row = UI.TagRow({ tags: [] }, { doc: doc })
+        row.setAttribute('data-innfo-review-ctl', '1')
+        cardBody.insertBefore(row, cardBody.querySelector('[data-innfo-component="rel-list"]'))
+      }
       Array.prototype.forEach.call(row.querySelectorAll('.innfo-tag'), function (tag) {
         if (tag.querySelector('[data-innfo-ctl="tag-remove"]')) return
         var name = tag.getAttribute('data-tag') || tag.textContent
@@ -4863,6 +5123,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var modelOps = []
     var conceptOps = []
     var tagOps = []
+    var tagAnyOps = []
     var otherOps = []
 
     for (var k = 0; k < parsed.operators.length; k++) {
@@ -4873,6 +5134,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         conceptOps.push(oper)
       } else if (oper.key === 'tag') {
         tagOps.push(oper)
+      } else if (oper.key === 'tag-any') {
+        tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -4910,29 +5173,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!matchesAnyConcept) return false
       }
 
-      // Check tag facet (OR across multiple tag selections)
-      if (tagOps.length > 0) {
-        var matchesAnyTag = tagOps.some(function (op) {
-          var hasTag = false
-          if (Array.isArray(el.tags)) {
-            hasTag = el.tags.some(function (t) {
-              return String(t).toLowerCase().indexOf(op.val) !== -1
+      // Tag facet: element.tags is the only tag source, matched exactly (case-insensitive).
+      // `tag:` tokens AND together; `tag-any:` tokens form one OR group.
+      if (tagOps.length > 0 || tagAnyOps.length > 0) {
+        var elTags = Array.isArray(el.tags)
+          ? el.tags.map(function (t) {
+              return String(t).toLowerCase()
             })
-          }
-          if (!hasTag && el.fields && isObject(el.fields)) {
-            if (Array.isArray(el.fields.tags)) {
-              hasTag = el.fields.tags.some(function (t) {
-                return String(t).toLowerCase().indexOf(op.val) !== -1
-              })
-            } else if (typeof el.fields.tags === 'string') {
-              hasTag = el.fields.tags.toLowerCase().indexOf(op.val) !== -1
-            } else if (typeof el.fields.tag === 'string') {
-              hasTag = el.fields.tag.toLowerCase().indexOf(op.val) !== -1
-            }
-          }
-          return hasTag
+          : []
+        var hasAllTags = tagOps.every(function (op) {
+          return elTags.indexOf(op.val) !== -1
         })
-        if (!matchesAnyTag) return false
+        if (!hasAllTags) return false
+        if (tagAnyOps.length > 0) {
+          var hasAnyTag = tagAnyOps.some(function (op) {
+            return elTags.indexOf(op.val) !== -1
+          })
+          if (!hasAnyTag) return false
+        }
       }
 
       for (var j = 0; j < otherOps.length; j++) {
@@ -4949,25 +5207,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             String(el.modelTitle || '')
           ).toLowerCase()
           if (modelHaystackNot.indexOf(op.val) !== -1) return false
-        } else if (op.key === 'tag') {
-          var hasTag = false
-          if (Array.isArray(el.tags)) {
-            hasTag = el.tags.some(function (t) {
-              return String(t).toLowerCase().indexOf(op.val) !== -1
-            })
-          }
-          if (!hasTag && el.fields && isObject(el.fields)) {
-            if (Array.isArray(el.fields.tags)) {
-              hasTag = el.fields.tags.some(function (t) {
-                return String(t).toLowerCase().indexOf(op.val) !== -1
-              })
-            } else if (typeof el.fields.tags === 'string') {
-              hasTag = el.fields.tags.toLowerCase().indexOf(op.val) !== -1
-            } else if (typeof el.fields.tag === 'string') {
-              hasTag = el.fields.tag.toLowerCase().indexOf(op.val) !== -1
-            }
-          }
-          if (!hasTag) return false
         } else if (op.key === 'is') {
           if (op.val === 'draft') {
             if (!draftsById[el.id]) return false
@@ -6142,6 +6381,39 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return projectedElements
   }
 
+  // A knowledge field names a model: strip `[[ ]]`, an alias or anchor, a leading
+  // `kNNowledge/` path and the `_NN.md` / `.md` suffix, case-insensitively.
+  function knowledgeStem(value) {
+    var s = String(value == null ? '' : value).trim()
+    s = s.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '')
+    s = s.split('|')[0].split('#')[0].replace(/\\/g, '/')
+    s = s.replace(/^(?:.*\/)?kNNowledge\//i, '')
+    return s.replace(/_NN\.md$/i, '').replace(/\.md$/i, '').trim().toLowerCase()
+  }
+
+  // The `meta.models[]` entry a knowledge value names (file stem, id or title), or
+  // null. Full-path matches win over bare-name matches.
+  function resolveKnowledgeModel(meta, value) {
+    var models = Array.isArray(meta && meta.models) ? meta.models : []
+    var want = knowledgeStem(value)
+    if (!want) return null
+    var wantTail = want.split('/').pop()
+    function keysOf(m) {
+      return [m.id, m.title, m.filePath].map(knowledgeStem).filter(Boolean)
+    }
+    for (var i = 0; i < models.length; i++) {
+      if (models[i] && keysOf(models[i]).indexOf(want) !== -1) return models[i]
+    }
+    for (var j = 0; j < models.length; j++) {
+      if (!models[j]) continue
+      var tails = keysOf(models[j]).map(function (k) {
+        return k.split('/').pop()
+      })
+      if (tails.indexOf(wantTail) !== -1) return models[j]
+    }
+    return null
+  }
+
   // Resolves a field's declared type from the schema, for type-aware read
   // rendering (FieldValue). Falls back to '' (plain text).
   var fieldDefOf = Review.fieldDefOf
@@ -6169,7 +6441,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -6290,6 +6562,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
+          onTag: actions && actions.onTag,
+          onKnowledge: actions && actions.onKnowledge,
+          isKnowledgeBound: actions && actions.isKnowledgeBound,
           onRef: function (refId) {
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
             if (target) renderRefDialog(doc, target)
@@ -8941,6 +9216,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       addField('Error', entry.error)
       if (dl && dl.children.length) body.appendChild(dl)
 
+      if (entry.href && !entry.error) {
+        var openHref = UI && typeof UI.safeHref === 'function' ? UI.safeHref(entry.href) : safeSourceHref(entry.href)
+        var openLink = openHref ? el('a', 'innfo-cite-open', 'Open original') : null
+        if (openLink) {
+          openLink.setAttribute('href', openHref)
+          openLink.setAttribute('target', '_blank')
+          openLink.setAttribute('rel', 'noopener noreferrer')
+          body.appendChild(openLink)
+        }
+      }
+
       if (entry.excerpt) {
         var excerptText = entry.excerpt + (entry.truncated ? ' … (truncated)' : '')
         var pre = el('pre', 'innfo-cite-excerpt', excerptText)
@@ -9789,6 +10075,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       refresh(next)
     }
 
+    // Click-throughs add a facet instead of toggling it: clicking a chip or a
+    // knowledge pill twice must not silently drop the filter.
+    function addFacetToken(key, val) {
+      var search = active.getElementById('innfo-search')
+      var current = activeSearchQuery !== undefined ? activeSearchQuery : search ? search.value : ''
+      var present = parseFilterQuery(current).operators.some(function (op) {
+        return op.key === key && String(op.val).toLowerCase() === String(val).toLowerCase()
+      })
+      if (!present) selectRailToken(formatFacetToken(key, val))
+    }
+
+    var cardActions = {
+      onTag: function (tag) {
+        addFacetToken('tag', tag)
+      },
+      isKnowledgeBound: function (value) {
+        return !!resolveKnowledgeModel(meta, value)
+      },
+      onKnowledge: function (value) {
+        var bound = resolveKnowledgeModel(meta, value)
+        if (bound) addFacetToken('model', String(bound.id || bound.filePath))
+      },
+    }
+
     // Lightweight update after a draft is saved: refreshes only the draft-count
     // surfaces and leaves the mounted element cards (and their focus) intact.
     var draftListeners = []
@@ -9887,7 +10197,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           refresh(activeSearchQuery)
         })
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions)
         focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {
