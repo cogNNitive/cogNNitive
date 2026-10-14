@@ -52,6 +52,7 @@ import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { checkLegacyDomain } from './tools/legacy-hint.js'
 import { getPreviewServer, modelIdForFile, modelUrl, appUrl } from './tools/preview-server.js'
+import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
@@ -319,7 +320,9 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'apply_change',
       description:
-        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or legacy intent operations.',
+        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or legacy intent operations. ' +
+        'After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). ' +
+        'The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -364,10 +367,39 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             description:
               'Operation-specific arguments for legacy bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }.',
           },
+          open: {
+            type: 'boolean',
+            description:
+              'Open the regenerated domain console in a browser tab (default true). When false, next_steps.notice gives the file path to open manually.',
+          },
         },
       },
     },
     handler: handleApplyChange,
+  },
+  {
+    definition: {
+      name: 'regenerate_console',
+      description:
+        'Regenerate the domain console (or one model-scoped console) and open it in a browser tab. Idempotent: an up-to-date console is reported as unchanged. ' +
+        'Also the retry path after an apply whose console regeneration failed. The result carries console and next_steps: you MUST relay next_steps.notice to the user.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          domain: { type: 'string', description: 'Optional domain root override (defaults to the server root).' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain).' },
+          model: {
+            type: 'string',
+            description: 'Optional model id: regenerate the console scoped to this model instead of the whole domain.',
+          },
+          open: {
+            type: 'boolean',
+            description: 'Open the regenerated console in a browser tab (default true).',
+          },
+        },
+      },
+    },
+    handler: handleRegenerateConsole,
   },
   {
     definition: {
@@ -794,11 +826,12 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
 
-  const result = changesetPath
-    ? await applyChange(root, changesetPath)
-    : await applyChange(root, id!, op!, opArgs)
+  const open = args.open === undefined ? true : Boolean(args.open)
+  const run = () => (changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs))
+  const applied = await applyWithConsole(root, run, { open })
+  const result = applied as unknown as Awaited<ReturnType<typeof run>>
 
-  let payload: Record<string, unknown> = { ...result }
+  let payload: Record<string, unknown> = { ...applied }
   if (result.success && id && op) {
     const filePath = result.newPath ?? (await findKnowledgeFile(root, id))
     const modelRootId = filePath ? modelIdForFile(filePath) : id
@@ -814,6 +847,21 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
     )
   }
   return textResult(JSON.stringify(envelope('innfo-apply-change', payload), null, 2))
+}
+
+async function handleRegenerateConsole(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const legacyErr = await checkDomainLegacy(root, 'write')
+  if (legacyErr) return legacyErr
+  const model = typeof args.model === 'string' && args.model !== '' ? args.model : undefined
+  const open = args.open === undefined ? true : Boolean(args.open)
+  const outcome = await regenerateConsole(root, { scope: model ? { model } : 'domain', open })
+  const payload = {
+    success: outcome.status !== 'failed',
+    console: outcome,
+    next_steps: buildNextSteps('regenerate', { console: outcome }),
+  }
+  return textResult(JSON.stringify(envelope('innfo-regenerate-console', payload), null, 2))
 }
 
 async function handleValidateBlueprint(args: Record<string, unknown>): Promise<CallToolResult> {

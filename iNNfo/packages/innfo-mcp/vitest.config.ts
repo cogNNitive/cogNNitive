@@ -31,6 +31,8 @@ export default defineConfig({
   },
   test: {
     clearMocks: true,
+    // No test may open a browser: regeneration after apply honors this kill switch.
+    env: { INNFO_CONSOLE_NO_OPEN: '1' },
     // Several suite tests resolve blueprints and touch the filesystem; on a
     // loaded CI runner they cross vitest's default 5s timeout, surfacing as
     // misleading assertion errors ("expected false to be true") rather than a

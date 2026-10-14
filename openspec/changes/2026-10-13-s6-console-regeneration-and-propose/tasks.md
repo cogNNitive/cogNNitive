@@ -34,72 +34,72 @@ independent of S6b/S6c.
 
 ## 1. Stable console filenames and the shared writer (S6a)
 
-- [ ] 1.1 TEST (`scripts/export-console.test.mjs`): a model export writes
+- [x] 1.1 TEST (`scripts/export-console.test.mjs`): a model export writes
       `artifacts/<stem>_console/<stem>_console.html` with fixed-name bundle and CSS; a
       changed model overwrites it; an unchanged model writes nothing; no stamped file
       appears. [console-export-cli: Console exports overwrite a stable file]
       [console-export-cli: Console exports are write-once (REMOVED)]
-- [ ] 1.2 TEST (`build-console-payload.spec.ts`): `outputPath` equals the path
+- [x] 1.2 TEST (`build-console-payload.spec.ts`): `outputPath` equals the path
       `writeConsole` writes for the model. [console-regeneration: One shared console
       writer for CLI and MCP]
-- [ ] 1.3 Add `consoleOutputPath` to `innfo-core/src/console/`; export it; regenerate
+- [x] 1.3 Add `consoleOutputPath` to `innfo-core/src/console/`; export it; regenerate
       `console-payload.generated.cjs`; use it in `build-console-payload.ts`.
       [console-regeneration: One shared console writer for CLI and MCP]
-- [ ] 1.4 Refactor `scripts/export-console.mjs`: export
+- [x] 1.4 Refactor `scripts/export-console.mjs`: export
       `writeConsole({ rootDir, scope, open, launcher })` (tmp + rename, byte-equality
       skip, returns path/status/knowledgeVersions/opened/openError); `main()` runs only
       as the entry point; drop the `writeOnce` family for model consoles and the stamped
       bundle. [console-export-cli: Console exports overwrite a stable file]
       [console-export-cli: Selective Compilation and Filtering]
-- [ ] 1.5 TEST + impl: `--status` / `--tree` read the stable file; `--status` reports the
+- [x] 1.5 TEST + impl: `--status` / `--tree` read the stable file; `--status` reports the
       domain console fresh/stale from embedded per-model `knowledge_version` + `sha256`.
       [console-export-cli: Status Reporting and Staleness Detection]
       [console-export-cli: Tree Hierarchy Visualization]
       [console-regeneration: Regeneration reports the versions it was built from]
-- [ ] 1.6 TEST: a model console exported twice holds one file; `--view` still writes its
+- [x] 1.6 TEST: a model console exported twice holds one file; `--view` still writes its
       write-once family. [write-once-artifacts: Producers adopt write-once]
 
 ## 2. Opening the console (S6a)
 
-- [ ] 2.1 TEST: `open: false` never calls the injected launcher; a throwing launcher
+- [x] 2.1 TEST: `open: false` never calls the injected launcher; a throwing launcher
       yields `opened: false` + `openError` with the file written; per platform the
       launcher receives `cmd /c start` / `open` / `xdg-open` and the absolute path.
       [console-regeneration: Opening the regenerated console]
-- [ ] 2.2 Implement the detached launcher in `export-console.mjs` (`writeConsole`) and
+- [x] 2.2 Implement the detached launcher in `export-console.mjs` (`writeConsole`) and
       the `--no-open` CLI flag. [console-regeneration: Opening the regenerated console]
-- [ ] 2.3 Add `--no-open` to every scripted caller (`build-docs.mjs`, `verify.js`,
+- [x] 2.3 Add `--no-open` to every scripted caller (`build-docs.mjs`, `verify.js`,
       existing `scripts/*.test.mjs` / `test/console-*.test.mjs` invocations).
       [console-export-cli: Console exports overwrite a stable file]
 
 ## 3. Regeneration in the MCP and the `next_steps` contract (S6a)
 
-- [ ] 3.1 TEST (`console-regeneration.spec.ts`): resolving the console directory via
+- [x] 3.1 TEST (`console-regeneration.spec.ts`): resolving the console directory via
       `INNFO_CONSOLE_DIR` / repo checkout / `~/.agents/console`; missing assets yield
       `console.status: failed` with `CONSOLE_ASSETS_NOT_FOUND`, never a throw.
       [console-regeneration: Console regeneration after apply]
-- [ ] 3.2 Implement `innfo-mcp/src/tools/console-regeneration.ts`
+- [x] 3.2 Implement `innfo-mcp/src/tools/console-regeneration.ts`
       (`regenerateConsole(root, { scope, open, launcher })` importing `writeConsole`;
       `buildNextSteps(kind, ...)`). [console-regeneration: One shared console writer for
       CLI and MCP] [console-regeneration: Review-and-approve notice on tool results]
-- [ ] 3.3 TEST (`test/apply-change.test.ts`): `apply_change` regenerates after commit and
+- [x] 3.3 TEST (`test/apply-change.test.ts`): `apply_change` regenerates after commit and
       after the lock is released (assert lock file absent when the stub writer runs) for
       `applied`; regenerates for `partially_applied`; a failing writer leaves
       `status: applied` and the model content applied with `console.status: failed`; no
       `console` field for `conflict` / `rejected`. [console-regeneration: Console
       regeneration after apply]
-- [ ] 3.4 Wire regeneration into `handleApplyChange` (post-commit, outside the lock);
+- [x] 3.4 Wire regeneration into `handleApplyChange` (post-commit, outside the lock);
       add `open` to the `apply_change` input schema; add `console` + `next_steps` to the
       payload. [console-regeneration: Console regeneration after apply]
-- [ ] 3.5 TEST: apply `next_steps` has steps 1–3, lists conflicted ids when
+- [x] 3.5 TEST: apply `next_steps` has steps 1–3, lists conflicted ids when
       `partially_applied`, has no `approve`; `opened: false` puts the absolute path in the
       notice; no editor or live-preview URL appears. [console-regeneration:
       Review-and-approve notice on tool results] [console-regeneration: Preview is a
       file]
-- [ ] 3.6 TEST + impl: `regenerate_console` tool (domain or model scope, `open`),
+- [x] 3.6 TEST + impl: `regenerate_console` tool (domain or model scope, `open`),
       registered in `server.ts` and the tool-list test (`server.spec.ts`); idempotent
       `unchanged` on a second call; retry after failure writes. [console-regeneration:
       Explicit console regeneration tool]
-- [ ] 3.7 Tool descriptions of `apply_change` and `regenerate_console` instruct the agent
+- [x] 3.7 Tool descriptions of `apply_change` and `regenerate_console` instruct the agent
       to relay `next_steps.notice` (#1B already removed "snapshot archival" from the
       `apply_change` description). [console-regeneration: Review-and-approve notice on tool results]
 
