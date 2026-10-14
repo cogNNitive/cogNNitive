@@ -120,76 +120,76 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 9. P0-4 — Tags in the payload + AND/OR tag facet (S3b, ~240 lines)
 
-- [ ] 9.1 TEST RED (`iNNfo/packages/innfo-core/tests/console-payload-builder.test.ts`): element
+- [x] 9.1 TEST RED (`iNNfo/packages/innfo-core/tests/console-payload-builder.test.ts`): element
       tags, inherited concept tags, union without duplicates, empty array when none; `hash` equal
       with and without tags and equal to `hashParsedElement`. [console-payload-builder: Element Tags in the Payload]
-- [ ] 9.2 TEST RED (`test/console-export.test.mjs`): a real fixture export carries `tags` on tagged
+- [x] 9.2 TEST RED (`test/console-export.test.mjs`): a real fixture export carries `tags` on tagged
       elements. Remove the hand-added `tags: ['iconic']` from `test/helpers/console-boot.mjs`.
       [console-payload-builder: Element Tags in the Payload]
-- [ ] 9.3 TEST RED (`test/console-rail-filter.test.mjs`): `tag:a tag:b` is AND; `tag:ai` does not
+- [x] 9.3 TEST RED (`test/console-rail-filter.test.mjs`): `tag:a tag:b` is AND; `tag:ai` does not
       match `retail`; `tag-any:` OR group; mixed query; a field named `tags` is not a tag source.
       Update the existing OR/substring assertions (they encode the bug). [innfo-console-runtime: Tag Facet Matching]
-- [ ] 9.4 Implement tags in `payload-builder.ts` (L158-205), outside `computeElementHash`; rebuild
+- [x] 9.4 Implement tags in `payload-builder.ts` (L158-205), outside `computeElementHash`; rebuild
       the mirror. [console-payload-builder: Element Tags in the Payload]
-- [ ] 9.5 Implement the facet in `innfo-runtime.js` (`tag-any` partition at RT:260-270, `every` +
+- [x] 9.5 Implement the facet in `innfo-runtime.js` (`tag-any` partition at RT:260-270, `every` +
       exact match at RT:305-328, delete the `el.fields.tags` branch); state the AND/OR asymmetry in
       the filter help and `console-ui-kit.md`. [innfo-console-runtime: Tag Facet Matching]
-- [ ] 9.6 Rebuild the bundle (`build:` commit); `node scripts/verify.js` green. [all P0-4 requirements]
+- [x] 9.6 Rebuild the bundle (`build:` commit); `node scripts/verify.js` green. [all P0-4 requirements]
 
 ## 10. P1 — Select, reference edit, declared media (S3b, ~320 lines)
 
-- [ ] 10.1 TEST RED (`test/console-field-renderers.test.mjs`, `test/console-review.test.mjs`):
+- [x] 10.1 TEST RED (`test/console-field-renderers.test.mjs`, `test/console-review.test.mjs`):
       declared select renders a pill, empty renders nothing, modal offers exactly blank + options +
       preserved value, no free-text input. [console-ui-kit: Select Field View and Edit]
-- [ ] 10.2 TEST RED (`test/console-review.test.mjs`): reference modal candidates follow
+- [x] 10.2 TEST RED (`test/console-review.test.mjs`): reference modal candidates follow
       `target_concepts` within the same model; undeclared targets offer the whole model and no other
       model; choosing proposes `[[Display Name]]`. [console-review-mode: Reference Edit Filtered by Target Concepts]
-- [ ] 10.3 TEST RED (`test/console-field-renderers.test.mjs`): declared `video`/`audio` render
+- [x] 10.3 TEST RED (`test/console-field-renderers.test.mjs`): declared `video`/`audio` render
       players; `javascript:` media value is text. [console-ui-kit: Declared Media Rendering]
-- [ ] 10.4 TEST RED (`test/console-export.test.mjs`): declared `video` value rebased for a console
+- [x] 10.4 TEST RED (`test/console-export.test.mjs`): declared `video` value rebased for a console
       under `artifacts/<stem>_console/`; remote URL untouched; citation entries carry `href` relative
       to the output file. [console-export-cli: Console Links Are Relative to the Console File]
-- [ ] 10.5 Implement: select pill/empty rule (UK:819); reference candidate filter + label/proposal
+- [x] 10.5 Implement: select pill/empty rule (UK:819); reference candidate filter + label/proposal
       in `review.js` and `FieldReferenceWidget` (UK:1532, fix the placeholder); media `src` scheme
       guard (UK:899); rebase + citation `href` in `export-console.mjs` (L384-424).
       [console-ui-kit: Select Field View and Edit] [console-review-mode: Reference Edit Filtered by Target Concepts]
       [console-ui-kit: Declared Media Rendering] [console-export-cli: Console Links Are Relative to the Console File]
-- [ ] 10.6 Rebuild the bundle (`build:` commit); docs in `console-ui-kit.md`; `node scripts/verify.js` green.
+- [x] 10.6 Rebuild the bundle (`build:` commit); docs in `console-ui-kit.md`; `node scripts/verify.js` green.
       [all group-10 requirements]
 
 ## 11. P1-6 — Safe markdown view + textarea edit (S3b, ~360 lines)
 
-- [ ] 11.1 TEST RED (new `test/console-markdown.test.mjs`, jsdom): subset renders as structure;
+- [x] 11.1 TEST RED (new `test/console-markdown.test.mjs`, jsdom): subset renders as structure;
       raw HTML inert (no `img`/`script`/`b`); four unsafe link schemes yield no `a`; safe link has
       `target=_blank` + `rel=noopener noreferrer`; source scan of the renderer finds no
       `innerHTML`/`outerHTML`/`insertAdjacentHTML`/`document.write`. [console-ui-kit: Markdown Inline View and Edit]
-- [ ] 11.2 TEST RED (`test/console-field-renderers.test.mjs`, `test/console-review.test.mjs`):
+- [x] 11.2 TEST RED (`test/console-field-renderers.test.mjs`, `test/console-review.test.mjs`):
       `markdown_inline` field renders through `InnfoUI.Markdown`; `markdown_file` stays a path pill;
       the modal uses a `textarea` and proposes the text verbatim. Update the old preformatted-span
       assertion. [console-ui-kit: Markdown Inline View and Edit]
-- [ ] 11.3 Implement `InnfoUI.Markdown` in `ui-kit.js` (design D-S3b-7), reusing the runtime's
+- [x] 11.3 Implement `InnfoUI.Markdown` in `ui-kit.js` (design D-S3b-7), reusing the runtime's
       safe-scheme check; wire `renderFieldMarkdown` (UK:839) and the modal branch (UK:1664).
       [console-ui-kit: Markdown Inline View and Edit]
-- [ ] 11.4 Kitchen-sink fixture entry (light + dark) and the documented subset in `console-ui-kit.md`;
+- [x] 11.4 Kitchen-sink fixture entry (light + dark) and the documented subset in `console-ui-kit.md`;
       rebuild the bundle (`build:` commit); `node scripts/verify.js` green. [console-ui-kit: Markdown Inline View and Edit]
 
 ## 12. P1 — Tag row, knowledge click-through, open original file (S3b, ~330 lines)
 
-- [ ] 12.1 TEST RED (`test/console-element-card.test.mjs`): tag row from `element.tags`; none when
+- [x] 12.1 TEST RED (`test/console-element-card.test.mjs`): tag row from `element.tags`; none when
       empty; hostile tag inert; chip click adds `tag:<t>` and filters (booted console).
       [console-ui-kit: Element Card Tag Row]
-- [ ] 12.2 TEST RED (`test/console-parity-features.test.mjs` or new suite): `knowledge` pill
+- [x] 12.2 TEST RED (`test/console-parity-features.test.mjs` or new suite): `knowledge` pill
       matching a model applies `model:<id>` (same as the rail); unknown model inert, no throw; no
       create/bind control. [innfo-console-runtime: Knowledge Field Click-Through]
-- [ ] 12.3 TEST RED (citation dialog suite): entry with `href` shows "Open original" link with
+- [x] 12.3 TEST RED (citation dialog suite): entry with `href` shows "Open original" link with
       `target=_blank` + `rel`; error entry and `javascript:` href show none.
       [innfo-console-runtime: Open Original Source File]
-- [ ] 12.4 Implement: `ElementCard` empty-row rule + `opts.onTag` (UK:1342, UK:616) and runtime
+- [x] 12.4 Implement: `ElementCard` empty-row rule + `opts.onTag` (UK:1342, UK:616) and runtime
       wiring; knowledge pill renderer (UK:810 → own renderer) + `onKnowledge` → rail model filter
       (RT ~1148); "Open original" in `renderCitationDialog` (RT:4282).
       [console-ui-kit: Element Card Tag Row] [innfo-console-runtime: Knowledge Field Click-Through]
       [innfo-console-runtime: Open Original Source File]
-- [ ] 12.5 Rebuild the bundle (`build:` commit); docs; `node scripts/verify.js` green. [all group-12 requirements]
+- [x] 12.5 Rebuild the bundle (`build:` commit); docs; `node scripts/verify.js` green. [all group-12 requirements]
 
 ## 13. P1-11 — Matrix-cell editor (S3b; SPIKE first, ~60 + ~280 lines)
 
