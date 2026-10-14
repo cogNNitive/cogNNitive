@@ -147,6 +147,14 @@ describe('proposal validation before write', () => {
     await nothingWritten()
   })
 
+  it('an unresolved sources citation is rejected at propose time and writes nothing', async () => {
+    const result = await propose([{ ...UPDATE, sources: 'sources/import/missing.md@## Needs' }])
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0].code).toBe('CITATION_UNRESOLVED')
+    expect(result.errors?.[0].message).toContain('missing.md')
+    await nothingWritten()
+  })
+
   it('add_model on an existing model returns MODEL_EXISTS and writes nothing', async () => {
     const result = await propose([
       { op: 'add_model', target: 'strategy', blueprint_name: 'strategy_V_0-2-0', blueprint_url: 'specs/strategy_V_0-2-0_NN.md' },

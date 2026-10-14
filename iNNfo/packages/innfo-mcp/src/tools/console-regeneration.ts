@@ -1,10 +1,9 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { isAbsolute, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseChangeset } from '@cognnitive/innfo-core'
-import { findRepoRoot } from './repo-root.js'
 import { syncDomainManifest } from './workspace-sync.js'
 
 /**
@@ -69,8 +68,8 @@ export interface RegenerateOptions {
   env?: NodeJS.ProcessEnv
   /** Home directory used to locate installed assets (tests). */
   home?: string
-  /** Working directory used to find a repo checkout (tests). */
-  cwd?: string
+  /** Dev checkout root holding the console assets (tests). `null` disables the dev fallback. */
+  devRoot?: string | null
   /** Injected manifest reconciler (tests). Defaults to `sync_domain_manifest` (non-dry). */
   syncManifest?: (root: string, options: { dry_run: boolean }) => Promise<unknown>
 }
@@ -80,22 +79,38 @@ const EXPORT_MODULE = 'export-console.mjs'
 /** Never open a browser when this is set (CI, headless runs, test suites). */
 export const NO_OPEN_ENV = 'INNFO_CONSOLE_NO_OPEN'
 
+/** Marker file that identifies the cogNNitive repo itself (not any repo that happens to have scripts/). */
+const DEV_ROOT_MARKER = join('iNNfo', 'specs', 'bluepriNNts', 'console', 'artifact_shell.html')
+
 /**
- * Locate `export-console.mjs`, in the same order the CLI resolves its assets:
- * `$INNFO_CONSOLE_DIR`, the cogNNitive repo checkout (`scripts/`), then the
- * installed set in `~/.agents/console`. Returns null when none holds the module.
+ * The cogNNitive dev checkout this MCP module runs from, or null. Derived from the
+ * module's own location, never from the domain path: the domain is untrusted input
+ * and `export-console.mjs` is imported (executed) once resolved.
+ */
+function devCheckoutRoot(): string | null {
+  let dir = dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    if (existsSync(join(dir, DEV_ROOT_MARKER)) && existsSync(join(dir, 'scripts', EXPORT_MODULE))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
+/**
+ * Locate `export-console.mjs` from trusted locations only: `$INNFO_CONSOLE_DIR`, the
+ * installed set in `~/.agents/console`, then the cogNNitive dev checkout this module
+ * itself lives in. Never from the domain or the working directory. Returns null when
+ * none holds the module.
  */
 export function resolveConsoleModulePath(
-  root: string,
-  opts: { env?: NodeJS.ProcessEnv; home?: string; cwd?: string } = {},
+  opts: { env?: NodeJS.ProcessEnv; home?: string; devRoot?: string | null } = {},
 ): string | null {
   const env = opts.env ?? process.env
   const candidates: string[] = []
   if (env.INNFO_CONSOLE_DIR) candidates.push(join(env.INNFO_CONSOLE_DIR, EXPORT_MODULE))
-  for (const start of [root, opts.cwd ?? process.cwd()]) {
-    const repo = findRepoRoot(start)
-    if (repo) candidates.push(join(repo, 'scripts', EXPORT_MODULE))
-  }
+  const devRoot = opts.devRoot === undefined ? devCheckoutRoot() : opts.devRoot
+  if (devRoot && existsSync(join(devRoot, DEV_ROOT_MARKER))) candidates.push(join(devRoot, 'scripts', EXPORT_MODULE))
   candidates.push(join(opts.home ?? homedir(), '.agents', 'console', EXPORT_MODULE))
   return candidates.find((candidate) => existsSync(candidate)) ?? null
 }
@@ -106,13 +121,12 @@ class ConsoleAssetsNotFoundError extends Error {
 
 /** The shared writer, imported from the resolved console asset directory. */
 async function loadSharedWriter(
-  root: string,
-  opts: { env?: NodeJS.ProcessEnv; home?: string; cwd?: string },
+  opts: { env?: NodeJS.ProcessEnv; home?: string; devRoot?: string | null },
 ): Promise<ConsoleWriter> {
-  const modulePath = resolveConsoleModulePath(root, opts)
+  const modulePath = resolveConsoleModulePath(opts)
   if (!modulePath) {
     throw new ConsoleAssetsNotFoundError(
-      'Console assets not found: no export-console.mjs in INNFO_CONSOLE_DIR, the repo checkout or ~/.agents/console. ' +
+      'Console assets not found: no export-console.mjs in INNFO_CONSOLE_DIR, ~/.agents/console or the cogNNitive dev checkout. ' +
         'Install the console assets or set INNFO_CONSOLE_DIR.',
     )
   }
@@ -134,7 +148,7 @@ export async function regenerateConsole(root: string, opts: RegenerateOptions = 
   const env = opts.env ?? process.env
   const open = (opts.open ?? true) && env[NO_OPEN_ENV] !== '1'
   try {
-    const writer = opts.writer ?? (await loadSharedWriter(root, { env, home: opts.home, cwd: opts.cwd }))
+    const writer = opts.writer ?? (await loadSharedWriter({ env, home: opts.home, devRoot: opts.devRoot }))
     const result = await writer({
       rootDir: root,
       scope: opts.scope ?? 'domain',

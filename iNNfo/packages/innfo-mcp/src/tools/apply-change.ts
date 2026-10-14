@@ -857,7 +857,7 @@ export async function executeChangesetApply(
     for (const [index, change] of csDoc.changes.entries()) {
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
-      if (!isSafeRelativeId(change.target)) {
+      if (!isSafeRelativeId(change.target) || /[\\/]/.test(change.target)) {
         return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`)
       }
       if (addModelIndex.has(key)) {
@@ -1356,46 +1356,62 @@ export async function executeChangesetApply(
       }
     }
 
-    for (const [, entry] of loadedModels) {
-      if (!entry.mutated) continue
+    // A failure while persisting must not strand models this run created: without a changeset
+    // annotation a replay would hit MODEL_EXISTS forever. Pre-existing models are never removed.
+    const rollbackCreatedModels = async (): Promise<void> => {
+      for (const [, entry] of loadedModels) {
+        if (!entry.created) continue
+        const stem = displayStem(basename(entry.filePath))
+        await rm(entry.filePath, { force: true }).catch(() => {})
+        await rm(join(dirname(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {})
+      }
+    }
 
-      modelsTransitionMap[entry.modelSlug] = entry.created
-        ? { result_version: entry.nextVersion }
-        : { base_version: entry.baseVersion, result_version: entry.nextVersion }
+    try {
+      for (const [, entry] of loadedModels) {
+        if (!entry.mutated) continue
 
-      const modelFile = entry.filePath
-      const modelStem = displayStem(basename(modelFile))
-      const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
+        modelsTransitionMap[entry.modelSlug] = entry.created
+          ? { result_version: entry.nextVersion }
+          : { base_version: entry.baseVersion, result_version: entry.nextVersion }
 
-      const serialized = serializeKnowledge(entry.model)
-      await writeFile(stagingPath, serialized, 'utf-8')
-      await persistAtomic(stagingPath, modelFile)
+        const modelFile = entry.filePath
+        const modelStem = displayStem(basename(modelFile))
+        const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
 
-      if (
-        csDoc.changes.some(
-          (c) =>
-            c.op === 'rename_element' &&
-            parseTargetAddress(c.target).modelSlug.toLowerCase() === entry.modelSlug.toLowerCase(),
-        )
-      ) {
-        for (const c of csDoc.changes) {
-          if (c.op === 'rename_element') {
-            try {
-              const modelDir = dirname(modelFile)
-              const oldSlug = parseTargetAddress(c.target).parts[0].toLowerCase().replace(/[^a-z0-9-]/g, '_')
-              const newSlug = (c.name || c.to || '').toLowerCase().replace(/[^a-z0-9-]/g, '_')
-              const oldAssetDir = join(modelDir, 'assets', oldSlug)
-              const newAssetDir = join(modelDir, 'assets', newSlug)
-              const st = await stat(oldAssetDir).catch(() => null)
-              if (st && st.isDirectory()) {
-                await rename(oldAssetDir, newAssetDir)
+        const serialized = serializeKnowledge(entry.model)
+        await writeFile(stagingPath, serialized, 'utf-8')
+        await persistAtomic(stagingPath, modelFile)
+
+        if (
+          csDoc.changes.some(
+            (c) =>
+              c.op === 'rename_element' &&
+              parseTargetAddress(c.target).modelSlug.toLowerCase() === entry.modelSlug.toLowerCase(),
+          )
+        ) {
+          for (const c of csDoc.changes) {
+            if (c.op === 'rename_element') {
+              try {
+                const modelDir = dirname(modelFile)
+                const oldSlug = parseTargetAddress(c.target).parts[0].toLowerCase().replace(/[^a-z0-9-]/g, '_')
+                const newSlug = (c.name || c.to || '').toLowerCase().replace(/[^a-z0-9-]/g, '_')
+                const oldAssetDir = join(modelDir, 'assets', oldSlug)
+                const newAssetDir = join(modelDir, 'assets', newSlug)
+                const st = await stat(oldAssetDir).catch(() => null)
+                if (st && st.isDirectory()) {
+                  await rename(oldAssetDir, newAssetDir)
+                }
+              } catch (err) {
+                console.warn(`[apply-change] Asset dir rename failed: ${err}`)
               }
-            } catch (err) {
-              console.warn(`[apply-change] Asset dir rename failed: ${err}`)
             }
           }
         }
       }
+    } catch (err) {
+      await rollbackCreatedModels()
+      throw err
     }
 
     const createdModelIds = Array.from(loadedModels.values())
@@ -1412,7 +1428,12 @@ export async function executeChangesetApply(
     csDoc.frontmatter.models = modelsTransitionMap
 
     const serializedCs = serializeChangeset(csDoc)
-    await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+    try {
+      await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+    } catch (err) {
+      await rollbackCreatedModels()
+      throw err
+    }
 
     return {
       success: true,

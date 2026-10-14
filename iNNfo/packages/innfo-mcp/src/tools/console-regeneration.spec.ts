@@ -34,36 +34,47 @@ describe('resolveConsoleModulePath', () => {
     const dir = join(sandbox, 'assets')
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, 'export-console.mjs'), '// stub', 'utf-8')
-    const found = resolveConsoleModulePath(join(sandbox, 'domain'), {
+    const found = resolveConsoleModulePath({
       env: { INNFO_CONSOLE_DIR: dir },
       home: join(sandbox, 'home'),
-      cwd: sandbox,
+      devRoot: null,
     })
     expect(found).toBe(join(dir, 'export-console.mjs'))
   })
 
-  it('falls back to the repo checkout scripts folder', async () => {
+  it('falls back to a dev checkout only when it carries the cogNNitive console marker', async () => {
     const repo = join(sandbox, 'repo')
-    await mkdir(join(repo, '.git'), { recursive: true })
     await mkdir(join(repo, 'scripts'), { recursive: true })
     await writeFile(join(repo, 'scripts', 'export-console.mjs'), '// stub', 'utf-8')
-    const found = resolveConsoleModulePath(repo, { env: {}, home: join(sandbox, 'home'), cwd: sandbox })
-    expect(found).toBe(join(repo, 'scripts', 'export-console.mjs'))
+    const opts = { env: {}, home: join(sandbox, 'home'), devRoot: repo }
+    expect(resolveConsoleModulePath(opts)).toBeNull()
+    await mkdir(join(repo, 'iNNfo', 'specs', 'bluepriNNts', 'console'), { recursive: true })
+    await writeFile(join(repo, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'artifact_shell.html'), '<html>', 'utf-8')
+    expect(resolveConsoleModulePath(opts)).toBe(join(repo, 'scripts', 'export-console.mjs'))
+  })
+
+  it('never imports export-console.mjs from the domain repo or the working directory', async () => {
+    const domainRepo = join(sandbox, 'untrusted')
+    await mkdir(join(domainRepo, '.git'), { recursive: true })
+    await mkdir(join(domainRepo, 'scripts'), { recursive: true })
+    await writeFile(join(domainRepo, 'scripts', 'export-console.mjs'), '// hostile', 'utf-8')
+    const found = resolveConsoleModulePath({ env: {}, home: join(sandbox, 'home'), devRoot: null })
+    expect(found).toBeNull()
   })
 
   it('falls back to the installed set under ~/.agents/console', async () => {
     const home = join(sandbox, 'home')
     await mkdir(join(home, '.agents', 'console'), { recursive: true })
     await writeFile(join(home, '.agents', 'console', 'export-console.mjs'), '// stub', 'utf-8')
-    const found = resolveConsoleModulePath(join(sandbox, 'domain'), { env: {}, home, cwd: sandbox })
+    const found = resolveConsoleModulePath({ env: {}, home, devRoot: null })
     expect(found).toBe(join(home, '.agents', 'console', 'export-console.mjs'))
   })
 
   it('returns null when no location holds the exporter', () => {
-    const found = resolveConsoleModulePath(join(sandbox, 'domain'), {
+    const found = resolveConsoleModulePath({
       env: {},
       home: join(sandbox, 'home'),
-      cwd: sandbox,
+      devRoot: null,
     })
     expect(found).toBeNull()
   })
@@ -74,7 +85,7 @@ describe('regenerateConsole', () => {
     const outcome = await regenerateConsole(join(sandbox, 'domain'), {
       env: {},
       home: join(sandbox, 'home'),
-      cwd: sandbox,
+      devRoot: null,
     })
     expect(outcome.status).toBe('failed')
     expect(outcome.code).toBe('CONSOLE_ASSETS_NOT_FOUND')
@@ -115,7 +126,7 @@ describe('regenerateConsole with the real shared writer', () => {
     await mkdir(join(domain, 'kNNowledge'), { recursive: true })
     const model = join(domain, 'kNNowledge', 'strategy_NN.md')
     await writeFile(model, MODEL_FRONTMATTER + MODEL_BODY, 'utf-8')
-    // The repo checkout holding this test provides the console assets.
+    // The dev checkout holding this module provides the console assets.
     const launches: unknown[] = []
     const launcher = (...args: unknown[]) => void launches.push(args)
     const first = await regenerateConsole(domain, { open: false, launcher })

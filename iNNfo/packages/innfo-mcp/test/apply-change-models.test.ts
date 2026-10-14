@@ -218,6 +218,36 @@ describe('add_model: model creation', () => {
     const res = await applyChange(root, cs)
     expect(res.success).toBe(false)
   })
+
+  it.each(['sub/dir/model', 'sub' + String.fromCharCode(92) + 'model'])(
+    'rejects a nested model id "%s" without touching kNNowledge/',
+    async (target) => {
+      const before = await kFiles()
+      const cs = await writeCs([{ ...ADD_ACME, target }], 'nested_changes_NN.md').catch((err) => err as Error)
+      if (cs instanceof Error) {
+        expect(cs.message).toMatch(/plain model id/)
+      } else {
+        const res = await applyChange(root, cs)
+        expect(res.success).toBe(false)
+      }
+      expect(await kFiles()).toEqual(before)
+    },
+  )
+
+  it('removes the models this run created when a later persist fails, and keeps pre-existing ones', async () => {
+    // A directory squatting on zeta's staging path makes the second write throw.
+    await mkdir(join(knowledgeDir, 'zeta.tmp'), { recursive: true })
+    const cs = await writeCs([ADD_ACME, { ...ADD_ACME, id: 'c-02', target: 'zeta', name: 'Zeta' }])
+    const outcome = await applyChange(root, cs).then(
+      (res) => res,
+      (err) => err as Error,
+    )
+    if (!(outcome instanceof Error)) expect(outcome.success).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'acme_NN.md'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'zeta_NN.md'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'strategy_NN.md'))).toBe(true)
+    expect(existsSync(join(changesDir, '.lock'))).toBe(false)
+  })
 })
 
 describe('add_element: concept conformance at mutation time', () => {

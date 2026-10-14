@@ -139,9 +139,10 @@ export function addModelProblems(change: ChangeItem): string[] {
     target.includes('@') ||
     target.includes('&') ||
     target.includes('..') ||
-    /^([a-zA-Z]:|[\\/])/.test(target)
+    /^[a-zA-Z]:/.test(target) ||
+    /[\\/]/.test(target)
   ) {
-    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", or absolute path)`)
+    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`)
   }
   return problems
 }

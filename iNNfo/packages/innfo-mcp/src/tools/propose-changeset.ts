@@ -14,6 +14,8 @@ import {
   isChangeOp,
   formatUtcStamp,
   slugify,
+  createFsSourceResolver,
+  resolveCitation,
 } from '@cognnitive/innfo-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
@@ -247,6 +249,22 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       errors.push({ path: label, code: 'ADD_MODEL_ORDER', message: `ADD_MODEL_ORDER: ${label} targets "${modelId}" before the add_model that creates it` })
     } else if (!(await findKnowledgeFile(rootDir, modelId))) {
       errors.push({ path: label, code: 'MODEL_NOT_FOUND', message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain` })
+    }
+  }
+
+  // Evidence citations must resolve now, not only at apply time (same rule as apply_change).
+  // The changeset will live in `changes/`, so relative anchors resolve from there.
+  const citationResolver = createFsSourceResolver(rootDir)
+  const futureChangesetPath = join(rootDir, 'changes', 'proposal_changes_NN.md')
+  for (const [index, change] of operations.entries()) {
+    if (!change.sources) continue
+    const resolved = resolveCitation(change.sources, 'sources', citationResolver, futureChangesetPath)
+    if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
+      errors.push({
+        path: `operations[${index}].sources`,
+        code: 'CITATION_UNRESOLVED',
+        message: `CITATION_UNRESOLVED: operations[${index}] cites "${change.sources}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
+      })
     }
   }
   if (errors.length > 0) return errors
