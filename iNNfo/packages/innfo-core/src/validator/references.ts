@@ -1,5 +1,4 @@
 import type { Concept, ElementNode, ParsedKnowledge } from '../types/index.js'
-import { normalizeSeparators } from '../parser/slug.js'
 import { IMPLICIT_REF_FIELDS } from './elementIndex.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
 
@@ -27,23 +26,20 @@ export type SubmodelResolver = (
 
 export interface ElementResolutionResult {
   found: boolean
-  exact: boolean
   ambiguous?: boolean
   matchedName?: string
   elements?: ElementNode[]
-  matchedBy?: 'slug' | 'name' | 'normalized'
+  matchedBy?: 'slug' | 'name'
 }
 
 export interface ElementIndexes {
   bySlug: Map<string, ElementNode[]>
   byName: Map<string, ElementNode[]>
-  byNormName: Map<string, ElementNode[]>
 }
 
 export function buildElementIndexes(model: ParsedKnowledge): ElementIndexes {
   const bySlug = new Map<string, ElementNode[]>()
   const byName = new Map<string, ElementNode[]>()
-  const byNormName = new Map<string, ElementNode[]>()
 
   for (const [, elements] of model.elements.entries()) {
     for (const el of elements) {
@@ -57,15 +53,10 @@ export function buildElementIndexes(model: ParsedKnowledge): ElementIndexes {
       const nList = byName.get(lowerName) ?? []
       nList.push(el)
       byName.set(lowerName, nList)
-
-      const normName = normalizeSeparators(lowerName)
-      const nnList = byNormName.get(normName) ?? []
-      nnList.push(el)
-      byNormName.set(normName, nnList)
     }
   }
 
-  return { bySlug, byName, byNormName }
+  return { bySlug, byName }
 }
 
 export function resolveReferenceTarget(
@@ -75,27 +66,25 @@ export function resolveReferenceTarget(
   const trimmed = value.trim()
   const lower = trimmed.toLowerCase()
 
-  // 1. Exact slug match (D6)
+  // 1. Exact slug match
   const slugMatches = indexes.bySlug.get(lower)
   if (slugMatches && slugMatches.length > 0) {
     return {
       found: true,
-      exact: true,
       elements: slugMatches,
       matchedName: slugMatches[0].name,
       matchedBy: 'slug',
     }
   }
 
-  // legacy:stable-element-identity/lineage-reference-name-fallback
-  // legacy:lineage-reference-name-fallback
-  // 2. Exact display name match (legacy fallback)
+  // 2. Exact display name match (iNNfo grammar; ambiguity is an error, never an
+  //    arbitrary pick). No separator-normalized, case-folded-beyond-lowercase, or
+  //    fuzzy fallback is applied.
   const nameMatches = indexes.byName.get(lower)
   if (nameMatches && nameMatches.length > 0) {
     if (nameMatches.length > 1) {
       return {
         found: true,
-        exact: true,
         ambiguous: true,
         elements: nameMatches,
         matchedBy: 'name',
@@ -103,36 +92,13 @@ export function resolveReferenceTarget(
     }
     return {
       found: true,
-      exact: true,
       elements: nameMatches,
       matchedName: nameMatches[0].name,
       matchedBy: 'name',
     }
   }
 
-  // 3. Separator-normalized display name match (legacy fallback)
-  const normKey = normalizeSeparators(lower)
-  const normMatches = indexes.byNormName.get(normKey)
-  if (normMatches && normMatches.length > 0) {
-    if (normMatches.length > 1) {
-      return {
-        found: true,
-        exact: false,
-        ambiguous: true,
-        elements: normMatches,
-        matchedBy: 'normalized',
-      }
-    }
-    return {
-      found: true,
-      exact: false,
-      elements: normMatches,
-      matchedName: normMatches[0].name,
-      matchedBy: 'normalized',
-    }
-  }
-
-  return { found: false, exact: false }
+  return { found: false }
 }
 
 /**
@@ -157,14 +123,8 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
           diagnostics.push({
             path: `matrices.${matrix.name}.row`,
             message: `Ambiguous element reference "${cell.row}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-            severity: 'warning',
+            severity: 'error',
             code: 'AMBIGUOUS_ELEMENT_NAME',
-          })
-        } else if (!resolved.exact) {
-          diagnostics.push({
-            path: `matrices.${matrix.name}.row`,
-            message: `Matrix reference "${cell.row}" doesn't exactly match element "${resolved.matchedName}" — separator character differs (hyphen vs dash). Consider using the exact same character.`,
-            severity: 'warning',
           })
         }
       }
@@ -180,14 +140,8 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
           diagnostics.push({
             path: `matrices.${matrix.name}.col`,
             message: `Ambiguous element reference "${cell.col}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-            severity: 'warning',
+            severity: 'error',
             code: 'AMBIGUOUS_ELEMENT_NAME',
-          })
-        } else if (!resolved.exact) {
-          diagnostics.push({
-            path: `matrices.${matrix.name}.col`,
-            message: `Matrix reference "${cell.col}" doesn't exactly match element "${resolved.matchedName}" — separator character differs (hyphen vs dash). Consider using the exact same character.`,
-            severity: 'warning',
           })
         }
       }
@@ -315,7 +269,7 @@ export function validateElementFieldReferences(
             diagnostics.push({
               path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
               message: `Ambiguous element reference "${rawValue}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-              severity: 'warning',
+              severity: 'error',
               code: 'AMBIGUOUS_ELEMENT_NAME',
             })
             continue

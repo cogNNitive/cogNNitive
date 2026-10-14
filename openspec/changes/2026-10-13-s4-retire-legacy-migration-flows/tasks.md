@@ -62,26 +62,26 @@ it serves as `[capability: Requirement]`. Pre-condition: none; lands before S6c.
 
 ## 4. Reference resolution (S4-2)
 
-- [ ] 4.1 TEST (`iNNfo/packages/innfo-core/tests/phase5-references*.test.ts`): `[[element-2a]]`
+- [x] 4.1 TEST (`iNNfo/packages/innfo-core/tests/phase5-references*.test.ts`): `[[element-2a]]`
       and `[[Element 2A]]` resolve; `[[Element_2A]]` (separator variant) is unresolved; two
       elements named `Total Revenue` make `[[Total Revenue]]` an `AMBIGUOUS_ELEMENT_NAME`
       error; the ledger-marker test at `phase5-references-ledger.test.ts:242-247` is deleted.
       [stable-element-identity: Diagnostics for Unfrozen Models and Ambiguous Names]
-- [ ] 4.2 `validator/references.ts`: delete the separator-normalized step (`:113-120` and
+- [x] 4.2 `validator/references.ts`: delete the separator-normalized step (`:113-120` and
       the `byNormName` index if unused elsewhere) and both `legacy:` markers (`:90-91`);
       delete the `lineage-reference-name-fallback` ledger entry.
       [stable-element-identity: Diagnostics for Unfrozen Models and Ambiguous Names]
 
 ## 5. Repo content (S4-2)
 
-- [ ] 5.1 Validate every tracked domain, fixture and sample with the new resolver; fix
+- [x] 5.1 Validate every tracked domain, fixture and sample with the new resolver; fix
       non-write-once references that only resolved through the fuzzy step (no committed
       conversion script); list any write-once file that fails for question 3.
       [stable-element-identity: Diagnostics for Unfrozen Models and Ambiguous Names]
 
 ## 6. Verification and release
 
-- [ ] 6.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
+- [x] 6.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
       `node scripts/verify.js`. [all requirements]
 - [ ] 6.2 After the `dev → main` batch: `skills-v<next>` (nn-upgrade, nn-preflight),
       `innfo-mcp-v<next>` (hint), `blueprints-v<next>` if the workspace procedure changed,
