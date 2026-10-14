@@ -65,3 +65,87 @@ describe('console matrix cell review editing', () => {
     assert.match(changeset.value, /to:: "NEW VALUE"/)
   })
 })
+
+// Constrained matrix cell editor (S3b P1-11): the governing definition of a cell
+// (the matrix definition of a free matrix, the column Marker of the reserved
+// item-markers matrix) decides the widget.
+function bootWith(matrix, schemaExtra) {
+  return bootConsole({
+    model: { ...MATRIX_MODEL, matrices: [matrix] },
+    schema: { concepts: [{ name: 'Fleet' }], ...schemaExtra },
+    config: { needs: ['feedback-export', 'matrix-grids'] },
+  })
+}
+
+function editCell(env, matrixName, row, col) {
+  const { document } = env
+  const toggle = document.querySelector('.innfo-review-toggle') || document.querySelector('[data-innfo="review-toggle"]')
+  toggle.click()
+  const td = document.querySelector(
+    `td[data-matrix="${matrixName}"][data-row="${row}"][data-col="${col}"]`,
+  )
+  td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]').click()
+  return document.querySelector('[data-innfo-component="edit-modal"]')
+}
+
+describe('constrained matrix cell editor', () => {
+  it('offers blank plus the declared values for a set matrix', () => {
+    const env = bootWith(
+      { name: 'Journey map', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'High' } } },
+      { matrices: [{ name: 'journey map', widgetType: 'set', values: ['Max', 'High', 'Low'] }] },
+    )
+    const modal = editCell(env, 'Journey map', 'r1', 'c1')
+    const select = modal.querySelector('select[data-innfo-widget="select"]')
+    assert.ok(select, 'a select replaces the free-text input')
+    assert.deepEqual([...select.options].map((o) => o.value), ['', 'Max', 'High', 'Low'])
+    assert.equal(select.value, 'High', 'the current value is preselected')
+    select.value = 'Low'
+    modal.querySelector('.innfo-edit-btn-save').click()
+    assert.equal(env.document.querySelectorAll('[data-draft-id]').length, 1)
+  })
+
+  it('preserves a current value that is not among the declared values', () => {
+    const env = bootWith(
+      { name: 'Journey map', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'Odd' } } },
+      { matrices: [{ name: 'Journey map', widgetType: 'scale', values: ['Max', 'Low'] }] },
+    )
+    const select = editCell(env, 'Journey map', 'r1', 'c1').querySelector('select[data-innfo-widget="select"]')
+    assert.equal(select.value, 'Odd')
+  })
+
+  it('proposes true from a boolean marker column of the item-markers matrix', () => {
+    const env = bootWith(
+      { name: 'item-markers matrix', source: 'Fleet', target: 'Markers', rows: ['r1'], cols: ['active'], cells: { r1: { active: '' } } },
+      { markers: [{ name: 'Active', widgetType: 'boolean' }] },
+    )
+    const modal = editCell(env, 'item-markers matrix', 'r1', 'active')
+    const cb = modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]')
+    assert.ok(cb, 'a checkbox is offered')
+    cb.checked = true
+    modal.querySelector('.innfo-edit-btn-save').click()
+    env.document.getElementById('innfo-feedback-open').click()
+    const id = env.document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    id.value = 'tester'
+    id.dispatchEvent(new env.dom.window.Event('input', { bubbles: true }))
+    const cs = env.document.querySelector('#innfo-feedback-modal [data-innfo="changeset-preview"]')
+    assert.match(cs.value, /to:: true/)
+  })
+
+  it('keeps the text input when no widget is declared', () => {
+    const env = bootWith(
+      { name: 'Coverage', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'old' } } },
+      { matrices: [{ name: 'Coverage' }, { name: 'Other', widgetType: 'text', values: ['a'] }] },
+    )
+    const modal = editCell(env, 'Coverage', 'r1', 'c1')
+    assert.ok(modal.querySelector('.innfo-edit-input'))
+    assert.equal(modal.querySelector('select'), null)
+  })
+
+  it('keeps the text input when the matrix is undeclared', () => {
+    const env = bootWith(
+      { name: 'Coverage', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'old' } } },
+      {},
+    )
+    assert.ok(editCell(env, 'Coverage', 'r1', 'c1').querySelector('.innfo-edit-input'))
+  })
+})

@@ -264,6 +264,35 @@ edits (RV:587-600) need the same constraint. The result is appended here as "D-S
 and decides whether task 13.4 (engine/validator rejection) is in scope; the console constraint
 (13.2-13.3) proceeds either way.
 
+#### D-S3b-11 result (spike 13.1, 2026-10-14)
+
+1. **Governing definition.** `extractBlueprintSchema` yields `MatrixDecl` (`values`, `widgetType`,
+   matched by matrix name) and `Marker` (`values`, `widgetType`). The validator
+   (`checkMatrixCells`) governs a free matrix by its matrix declaration (case-insensitive
+   name); the reserved `item-markers matrix` has columns that are Marker names and is governed
+   per column by `checkNodeMarkers`. The two never apply to the same cell, so there is no
+   conflict: the console resolves item-markers matrix -> column Marker, any other matrix ->
+   its declaration by name.
+2. **Post-apply rejection.** `checkMatrixCells` already reports an out-of-`values` cell, but as
+   a WARNING (R-MM-08), and `checkNodeMarkers` warns on a score outside the Marker's `values`.
+   `updateMatrixCell` stores any string. No new engine op or schema change is needed to
+   express a cell edit: `update_matrix_cell` already carries it.
+3. **Boolean cells in shipped samples.** `widget: boolean` matrices in the shipped
+   bluepriNNts (`organization`) declare `values: [Assumes]` and the samples hold `Assumes`/`-`;
+   the validator also always accepts `X`/`-`. The spec-mandated console proposal `true`
+   is therefore NOT in the declared value set and would raise the R-MM-08 warning after apply.
+   The console follows the spec (`true`/`false`) and shows a filled cell as checked; the
+   mismatch is an open product question (should a boolean with one declared value propose that
+   value?).
+4. **Element `marker:` edits** (RV `marker:` branch) score values against the Marker's `values`
+   (`checkNodeMarkers`); they stay a free-text input here and are a follow-up, not part of
+   P1-11.
+
+**Go/no-go for 13.4: NO-GO.** Rejecting an out-of-`values` cell in the engine would turn an
+existing validator warning into an error and change the apply contract for every matrix; that
+is a schema/contract decision, not a safe local change. Follow-up: promote R-MM-08 to an
+apply-time rejection (and decide the boolean value question) in a separate change.
+
 ### D-S3b-12 — line budget accounting
 
 Estimates count hand-written source, tests and docs. Regenerated artifacts

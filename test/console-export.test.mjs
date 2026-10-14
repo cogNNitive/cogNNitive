@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from 'node:test'
+import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -770,3 +770,68 @@ scenarioMonths:: 12
 
 
 
+
+describe('domain console schema slot carries marker and matrix definitions (S3b P1-11)', () => {
+  let root
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-matrix-defs-'))
+    const dir = join(root, 'specs', 'bluepriNNts', 'journey')
+    await mkdir(dir, { recursive: true })
+    await writeFile(
+      join(dir, 'spec_NN.md'),
+      `---
+level: 2
+spec_version: V_0-1-0
+title: "Journey"
+---
+
+# NN Concept Definition
+## NN Concept Definition: Step
+type:: text
+
+# NN Marker Definition
+## NN Marker Definition: Active
+widget:: boolean
+
+# NN Matrix Definition
+## NN Matrix Definition: Journey map
+source:: Step
+target:: Step
+values:: [Max, High, Low]
+widget:: set
+`,
+      'utf-8',
+    )
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(
+      join(root, 'models', 'j_journey_V_1-0-0_NN.md'),
+      `---
+title: "journey"
+model_version: "V_1-0-0"
+level: 3
+parent_spec:
+  name: "journey_V_0-1-0"
+---
+
+# NN Step
+## NN Step: A
+  slug:: a
+`,
+      'utf-8',
+    )
+  })
+  after(() => rm(root, { recursive: true, force: true }))
+
+  it('exports markers and matrices with widgetType and values in the domain innfo-schema slot', async () => {
+    const res = await runCli([root, '--domain'])
+    assert.equal(res.code, 0, res.stderr)
+    const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
+    const m = html.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)
+    const schema = JSON.parse(m[1])
+    assert.deepEqual(
+      schema.matrices.map((x) => [x.name, x.widgetType, x.values]),
+      [['Journey map', 'set', ['Max', 'High', 'Low']]],
+    )
+    assert.deepEqual(schema.markers.map((x) => [x.name, x.widgetType]), [['Active', 'boolean']])
+  })
+})

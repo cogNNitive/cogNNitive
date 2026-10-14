@@ -3285,6 +3285,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
+  // The definition governing a matrix cell: the column Marker of the reserved
+  // item-markers matrix, otherwise the matrix definition of the same name.
+  function matrixCellDef(schema, matrix, col) {
+    if (!schema) return null
+    function byName(list, name) {
+      var want = String(name).toLowerCase()
+      return (Array.isArray(list) ? list : []).filter(function (d) {
+        return d && String(d.name).toLowerCase() === want
+      })[0]
+    }
+    if (String(matrix).toLowerCase() === 'item-markers matrix') return byName(schema.markers, col) || null
+    return byName(schema.matrices, matrix) || null
+  }
+
   // Declared definition of a field, keyed by (concept, field) so two concepts that
   // share a field name keep their own type/options. Case-insensitive on both parts.
   function fieldDefOf(schema, concept, field) {
@@ -3837,11 +3851,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
         if (typeof UI.EditModal !== 'function') return null
+        var cellDef = matrixCellDef(options.schema, anchorData.matrix, anchorData.col)
+        var cellValues = cellDef && Array.isArray(cellDef.values) ? cellDef.values : null
+        var cellWidget = cellDef ? String(cellDef.widgetType || cellDef.widget || '') : ''
+        var cellType = 'string'
+        var cellValue = anchorData.original
+        if (cellWidget === 'boolean') {
+          cellType = 'boolean'
+          // Any filled cell (a declared value, X, true) reads as checked.
+          cellValue = anchorData.original !== '' && anchorData.original !== '-' && anchorData.original !== 'false'
+        } else if (
+          (cellWidget === 'set' || cellWidget === 'scale' || cellWidget === 'cycle') &&
+          cellValues &&
+          cellValues.length
+        ) {
+          cellType = 'select'
+        }
         return {
           title: 'Edit ' + anchorData.matrix + ' → ' + anchorData.row + ' × ' + anchorData.col,
           fieldName: '__cell',
-          type: 'string',
-          value: anchorData.original,
+          type: cellType,
+          options: cellType === 'select' ? cellValues : undefined,
+          value: cellValue,
           draftField: '__cell',
           original: anchorData.original,
           citations: [],

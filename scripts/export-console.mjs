@@ -810,6 +810,12 @@ export async function writeConsole(opts = {}) {
   const allConcepts = []
   const seenConcepts = new Set()
   const allFields = []
+  // Marker and matrix definitions (widgetType, values) so the matrix-cell editor can
+  // constrain a cell; first declaration per name wins, like concepts.
+  const allMarkers = []
+  const allMatrixDecls = []
+  const seenMarkers = new Set()
+  const seenMatrixDecls = new Set()
   const fieldIndex = new Map()
   const allProcedures = []
   const seenProcedureIds = new Set()
@@ -937,6 +943,19 @@ export async function writeConsole(opts = {}) {
         }
       }
     }
+    if (payload && payload.schema) {
+      for (const [list, seen, out] of [
+        [payload.schema.markers, seenMarkers, allMarkers],
+        [payload.schema.matrices, seenMatrixDecls, allMatrixDecls],
+      ]) {
+        for (const d of Array.isArray(list) ? list : []) {
+          const key = d && d.name ? String(d.name).toLowerCase() : ''
+          if (!key || seen.has(key)) continue
+          seen.add(key)
+          out.push(d)
+        }
+      }
+    }
     // Aggregate the blueprint procedure catalog (parent + includes) across the
     // exported models, deduplicated by id; the stepper reads `usage` first.
     for (const p of modelSchemaResolution.procedures) {
@@ -958,7 +977,13 @@ export async function writeConsole(opts = {}) {
     : baseDomainId
 
   const domainPayload = {
-    schema: { concepts: allConcepts, fields: allFields, procedures: allProcedures },
+    schema: {
+      concepts: allConcepts,
+      fields: allFields,
+      markers: allMarkers,
+      matrices: allMatrixDecls,
+      procedures: allProcedures,
+    },
     model: {
       meta: {
         title: basename(root) + ' Domain',
