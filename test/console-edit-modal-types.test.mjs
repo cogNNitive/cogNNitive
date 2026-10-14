@@ -186,3 +186,36 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
     })
   })
 })
+
+describe('Markdown and reference widgets (S3b groups 10-11)', () => {
+  it('a markdown_inline field edits in a textarea and proposes the text verbatim', () => {
+    const text = 'line one\n**line** two'
+    const t = mount({ title: 'Edit brief', fieldName: 'brief', type: 'markdown_inline', value: text })
+    assert.equal(t.widget().tagName, 'TEXTAREA')
+    t.save()
+    assert.equal(t.getSaved().proposed, text)
+    const edited = mount({ title: 'Edit brief', fieldName: 'brief', type: 'markdown_inline', value: text })
+    edited.widget().value = 'changed\n\n# H'
+    edited.save()
+    assert.equal(edited.getSaved().proposed, 'changed\n\n# H')
+  })
+
+  it('a reference proposes [[Display Name]] and keeps an unchanged value as it was', () => {
+    const candidates = [{ id: 'ana', name: 'Ana', concept: 'Person' }, { id: 'ben', name: 'Ben', concept: 'Person' }]
+    const t = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+    assert.deepEqual(
+      [...t.modal.querySelectorAll('datalist option')].map((o) => o.value),
+      ['Ana', 'Ben'],
+    )
+    t.save()
+    assert.equal(t.getSaved().proposed, '[[Ana]]')
+    const changed = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+    changed.modal.querySelector('.innfo-edit-reference input').value = 'Ben'
+    changed.save()
+    assert.equal(changed.getSaved().proposed, '[[Ben]]')
+    const blank = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+    blank.modal.querySelector('.innfo-edit-reference input').value = ''
+    blank.save()
+    assert.equal(blank.getSaved().proposed, '')
+  })
+})

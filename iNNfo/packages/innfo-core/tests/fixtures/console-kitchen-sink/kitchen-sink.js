@@ -16,6 +16,7 @@
     root.appendChild(UI.MarkerChip({ id: 'sev', label: 'Severity', kind: 'field', value: 'high' }))
     root.appendChild(UI.StatusBadge({ status: 'pending', count: 4 }))
     root.appendChild(UI.StatusBadge({ status: 'stale' }))
+    root.appendChild(UI.Markdown('## Notes\n\n- **bold** and _em_\n- [link](https://example.com)\n\n> [!NOTE]\n> Callout'))
 
     UI.setTheme(doc, root.getAttribute('data-theme'))
   }

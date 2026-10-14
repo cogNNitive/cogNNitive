@@ -21,7 +21,6 @@ export const MODEL = {
       name: 'Ecto-1',
       description: 'Car.',
       fields: { role: 'Interceptor' },
-      tags: ['iconic'],
       hash: '0123456789abcdef',
     },
   ],

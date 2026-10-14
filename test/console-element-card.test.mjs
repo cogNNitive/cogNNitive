@@ -96,6 +96,38 @@ describe('Element Card Redesign Contract', () => {
   })
 
   describe('Path, tags, relations', () => {
+    it('a hostile tag is inert text and an empty tag list renders no row', () => {
+      const hostile = '<img src=x onerror=alert(1)>'
+      const card = UI.ElementCard({ id: 'h', name: 'H', tags: [hostile] }, { doc: document })
+      document.body.appendChild(card)
+      assert.equal(card.querySelector('img'), null)
+      assert.equal(card.querySelector('[data-tag]').textContent, hostile)
+      const empty = UI.ElementCard({ id: 'e', name: 'E', tags: [] }, { doc: document })
+      assert.equal(empty.querySelector('[data-innfo-component="tag-row"]'), null)
+    })
+
+    it('a chip calls onTag with its tag; without onTag chips are not interactive', () => {
+      const seen = []
+      const card = UI.ElementCard({ id: 't', name: 'T', tags: ['pricing', 'ai'] }, { doc: document, onTag: (t) => seen.push(t) })
+      document.body.appendChild(card)
+      card.querySelector('[data-tag="pricing"]').dispatchEvent(new window.Event('click', { bubbles: true }))
+      assert.deepEqual(seen, ['pricing'])
+      const plain = UI.ElementCard({ id: 'p', name: 'P', tags: ['x'] }, { doc: document })
+      assert.equal(plain.querySelector('[data-tag]').getAttribute('role'), null)
+    })
+
+    it('review mode still offers "+ tag" on an element without tags', () => {
+      const card = UI.ElementCard({ id: 'u', name: 'U', fields: [{ name: 'f', value: 'v' }] }, { doc: document, domId: 'el-u' })
+      document.body.appendChild(card)
+      const elements = [{ id: 'u', concept: 'C', name: 'U', fields: { f: 'v' }, tags: [], hash: '0123456789abcdef' }]
+      const store = InnfoReview.createDraftStore(null, 'm')
+      const ctl = InnfoReview.createReviewController(document, { elements, store })
+      ctl.enable()
+      assert.ok(card.querySelector('[data-innfo-ctl="tag-add"]'), 'tag add on an untagged card')
+      ctl.disable()
+      assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null, 'the helper row goes away with review mode')
+    })
+
     it('renders path footer, tag row and relation list', () => {
       const card = fullCard()
       document.body.appendChild(card)

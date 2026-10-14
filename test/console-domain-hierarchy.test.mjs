@@ -50,7 +50,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(byTag.length, 1)
     assert.equal(byTag[0].id, 'el-2')
 
-    // Combined multi-facet query (AND between facets, OR within same facet)
+    // Combined multi-facet query (AND between facets; tag: is AND, model: is OR)
     const combined = InnfoConsole.filterElements(elements, 'model:business tag:executive')
     assert.equal(combined.length, 1)
     assert.equal(combined[0].id, 'el-1')

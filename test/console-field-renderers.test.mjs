@@ -42,7 +42,10 @@ describe('FieldValue (type-aware read rendering)', () => {
   it('renders code and markdown, arrays joined, plain as null', () => {
     const document = dom()
     assert.equal(UI.FieldValue({ value: 'x=1', type: 'code' }).tagName, 'CODE')
-    assert.equal(UI.FieldValue({ value: '# H', type: 'markdown' }).className, 'innfo-field-markdown')
+    const md = UI.FieldValue({ value: '# H', type: 'markdown' })
+    assert.ok(md.classList.contains('innfo-field-markdown'))
+    assert.equal(md.getAttribute('data-innfo-component'), 'markdown', 'rendered by InnfoUI.Markdown')
+    assert.equal(md.querySelector('h1').textContent, 'H')
     assert.equal(UI.FieldValue({ value: ['a', 'b'] }).textContent, 'a, b')
     assert.equal(UI.FieldValue({ value: 'plain', type: 'string' }), null)
   })
@@ -96,6 +99,46 @@ describe('FieldValue (type-aware read rendering)', () => {
     assert.ok(v.hasAttribute('controls'))
     assert.ok(a, 'audio player rendered')
     assert.equal(a.getAttribute('src'), 'sources/import/interview.mp3')
+  })
+
+  it('markdown_inline renders as markdown while markdown_file stays a path pill', () => {
+    dom()
+    const inline = UI.FieldValue({ value: '**x**', type: 'markdown_inline' })
+    assert.equal(inline.querySelector('strong').textContent, 'x')
+    const file = UI.FieldValue({ value: 'sources/notes.md', type: 'markdown_file' })
+    assert.ok(file.classList.contains('innfo-file-pill'))
+    assert.equal(file.querySelector('strong'), null)
+  })
+
+  it('declared media with an unsafe source is plain text, a remote one still plays', () => {
+    dom()
+    for (const type of ['video', 'audio']) {
+      assert.equal(UI.FieldValue({ name: 'm', value: 'javascript:alert(1)', type }), null)
+      assert.equal(UI.FieldValue({ name: 'm', value: 'data:text/html,x', type }), null)
+    }
+    const row = UI.FieldRow({ name: 'clip', value: 'javascript:alert(1)', type: 'video' })
+    assert.equal(row.querySelector('video'), null)
+    assert.match(row.textContent, /javascript:alert\(1\)/)
+    const remote = UI.FieldValue({ name: 'clip', value: 'https://example.com/v.mp4', type: 'video' })
+    assert.equal(remote.querySelector('video').getAttribute('src'), 'https://example.com/v.mp4')
+  })
+
+  it('a knowledge pill is clickable only when the caller can bind it', () => {
+    dom()
+    const seen = []
+    const bound = UI.FieldValue(
+      { name: 'k', value: '[[kNNowledge/a_NN.md]]', type: 'knowledge' },
+      { onKnowledge: (v) => seen.push(v), isKnowledgeBound: () => true },
+    )
+    bound.click()
+    assert.deepEqual(seen, ['[[kNNowledge/a_NN.md]]'])
+    const inert = UI.FieldValue(
+      { name: 'k', value: '[[kNNowledge/b_NN.md]]', type: 'knowledge' },
+      { onKnowledge: (v) => seen.push(v), isKnowledgeBound: () => false },
+    )
+    assert.doesNotThrow(() => inert.click())
+    assert.equal(seen.length, 1)
+    assert.equal(inert.getAttribute('data-knowledge-bound'), null)
   })
 
   it('renders knowledge fields as a document pill, stripping wikilink brackets', () => {

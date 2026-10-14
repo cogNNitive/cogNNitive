@@ -552,14 +552,20 @@
     // Resolve an anchor to a KU-modal target. Returns null when the anchor is
     // not modal-editable (card comments, tag/relation proposals use popovers
     // or immediate comment drafts instead).
-    function referenceCandidates(def) {
+    // Candidates are the owner's own model only (a reference never crosses
+    // models) and, when the definition declares target_concepts, only those concepts.
+    function modelKeyOf(e) {
+      return String(e.modelId || e.modelFile || '')
+    }
+
+    function referenceCandidates(def, owner) {
       var allowed = def && Array.isArray(def.target_concepts) ? def.target_concepts : []
-      if (!allowed.length) return elements
       var set = allowed.map(function (c) {
         return String(c).toLowerCase()
       })
       return elements.filter(function (e) {
-        return e && set.indexOf(String(e.concept).toLowerCase()) !== -1
+        if (!e || (owner && modelKeyOf(e) !== modelKeyOf(owner))) return false
+        return !set.length || set.indexOf(String(e.concept).toLowerCase()) !== -1
       })
     }
 
@@ -585,12 +591,13 @@
         history: Array.isArray(el.history) ? el.history : [],
       }
       if (anchorData.relRetarget) {
+        var relTargetEl = elementsById[anchorData.relTarget]
         return {
           title: 'Retarget ' + (el.name || anchorData.elementId) + ' \u2192 ' + anchorData.relField,
           fieldName: anchorData.relField,
           type: 'reference',
-          value: anchorData.relTarget,
-          candidates: elements,
+          value: relTargetEl ? '[[' + (relTargetEl.name || relTargetEl.id) + ']]' : anchorData.relTarget,
+          candidates: referenceCandidates(fieldDefOf(options.schema, el.concept, anchorData.relField), el),
           draftField: anchorData.relField,
           original: anchorData.relTarget,
           citations: base.citations,
@@ -660,7 +667,7 @@
         target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
           schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
-            ? referenceCandidates(schemaField)
+            ? referenceCandidates(schemaField, el)
             : undefined,
         draftField: field,
         original: fieldVal,
@@ -1132,7 +1139,15 @@
     // +/x controls that record comment drafts. Marker chips keep pencils.
     function decorateTagRow(card, elId) {
       var row = card.querySelector('[data-innfo-component="tag-row"]')
-      if (!row) return
+      if (!row) {
+        // The card shows no row for an untagged element; the "+ tag" control still
+        // needs one, and it goes away again when review mode is disabled.
+        var cardBody = card.querySelector('.innfo-card-body')
+        if (!cardBody || typeof UI.TagRow !== 'function') return
+        row = UI.TagRow({ tags: [] }, { doc: doc })
+        row.setAttribute('data-innfo-review-ctl', '1')
+        cardBody.insertBefore(row, cardBody.querySelector('[data-innfo-component="rel-list"]'))
+      }
       Array.prototype.forEach.call(row.querySelectorAll('.innfo-tag'), function (tag) {
         if (tag.querySelector('[data-innfo-ctl="tag-remove"]')) return
         var name = tag.getAttribute('data-tag') || tag.textContent

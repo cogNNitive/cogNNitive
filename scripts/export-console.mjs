@@ -452,38 +452,79 @@ function injectSlots(shell, config, schema, model) {
 // its own rebase, or the thumbnail 404s under file://.
 const IMAGE_ASSET_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)(?:[?#]|$)/i
 
-function rebaseAssetValue(value, outDirAbs, rootAbs) {
+// Field types whose value is a local file the console opens or plays.
+const FILE_FIELD_TYPES = new Set(['image', 'video', 'audio', 'file'])
+
+function relativeToOutDir(abs, outDirAbs) {
+  const rel = relative(outDirAbs, abs).split('\\').join('/')
+  return rel.startsWith('.') ? rel : './' + rel
+}
+
+// `declared` is true for a field declared image/video/audio/file: any local value is
+// rebased (to the domain root when no candidate exists on disk); undeclared values
+// keep the image-shaped, must-exist rule.
+function rebaseAssetValue(value, outDirAbs, rootAbs, declared = false) {
   if (typeof value !== 'string') return value
   const trimmed = value.trim()
   if (!trimmed || /^(data:|blob:|https?:|file:)/i.test(trimmed)) return value
-  if (!IMAGE_ASSET_RE.test(trimmed)) return value
+  if (declared && (trimmed.startsWith('[[') || /^[a-z][a-z0-9+.-]*:/i.test(trimmed))) return value
+  if (!declared && !IMAGE_ASSET_RE.test(trimmed)) return value
   for (const base of [rootAbs, repoRoot, process.cwd()]) {
     const abs = resolve(base, trimmed)
-    if (existsSync(abs)) {
-      let rel = relative(outDirAbs, abs).replace(/\\/g, '/')
-      if (!rel.startsWith('.')) rel = './' + rel
-      return rel
-    }
+    if (existsSync(abs)) return relativeToOutDir(abs, outDirAbs)
   }
-  return value
+  return declared ? relativeToOutDir(resolve(rootAbs, trimmed), outDirAbs) : value
 }
 
-function rebaseModelAssets(model, outDirAbs, rootAbs) {
+// Citation entries keep their domain-relative `path`; a resolved one (a path and no
+// error) gains an `href` to the source file, relative to the console file.
+function withCitationHrefs(citations, outDirAbs, rootAbs) {
+  if (!citations || typeof citations !== 'object') return citations
+  const next = {}
+  for (const [field, list] of Object.entries(citations)) {
+    next[field] = Array.isArray(list)
+      ? list.map((c) =>
+          c && c.path && !c.error && !/^[a-z][a-z0-9+.-]*:/i.test(String(c.path))
+            ? { ...c, href: relativeToOutDir(resolve(rootAbs, String(c.path)), outDirAbs) }
+            : c,
+        )
+      : list
+  }
+  return next
+}
+
+function rebaseModelAssets(model, outDirAbs, rootAbs, schema) {
   if (!model || !Array.isArray(model.elements)) return model
+  const declaredFile = new Set()
+  for (const f of Array.isArray(schema && schema.fields) ? schema.fields : []) {
+    if (f && FILE_FIELD_TYPES.has(String(f.type || '').toLowerCase())) {
+      declaredFile.add(`${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`)
+    }
+  }
   return {
     ...model,
     elements: model.elements.map((el) => {
-      if (!el || !el.fields || typeof el.fields !== 'object') return el
-      const fields = { ...el.fields }
-      let changed = false
-      for (const [k, v] of Object.entries(fields)) {
-        const next = rebaseAssetValue(v, outDirAbs, rootAbs)
-        if (next !== v) {
-          fields[k] = next
-          changed = true
+      if (!el) return el
+      let out = el
+      if (el.fields && typeof el.fields === 'object') {
+        const fields = { ...el.fields }
+        let changed = false
+        for (const [k, v] of Object.entries(fields)) {
+          const declared = declaredFile.has(
+            `${String(el.concept).toLowerCase()}\u0000${k.toLowerCase()}`,
+          )
+          const next = rebaseAssetValue(v, outDirAbs, rootAbs, declared)
+          if (next !== v) {
+            fields[k] = next
+            changed = true
+          }
         }
+        if (changed) out = { ...out, fields }
       }
-      return changed ? { ...el, fields } : el
+      if (el.citations && typeof el.citations === 'object') {
+        out = { ...out, citations: withCitationHrefs(el.citations, outDirAbs, rootAbs) }
+      }
+      return out
     }),
   }
 }
@@ -492,7 +533,9 @@ function rebaseModelAssets(model, outDirAbs, rootAbs) {
 function renderConsole(shell, bundleName, config, payload, outDirAbs, rootAbs) {
   const pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
   const model =
-    outDirAbs && rootAbs ? rebaseModelAssets(payload.model, outDirAbs, rootAbs) : payload.model
+    outDirAbs && rootAbs
+      ? rebaseModelAssets(payload.model, outDirAbs, rootAbs, payload.schema)
+      : payload.model
   return injectSlots(pinned, config, payload.schema, model)
 }
 
@@ -881,7 +924,7 @@ export async function writeConsole(opts = {}) {
       // concepts; a conflicting redeclaration by a later blueprint is warned about.
       for (const f of Array.isArray(payload.schema.fields) ? payload.schema.fields : []) {
         if (!f || !f.concept || !f.name) continue
-        const key = `${String(f.concept).toLowerCase()} ${String(f.name).toLowerCase()}`
+        const key = `${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`
         const kept = fieldIndex.get(key)
         if (!kept) {
           fieldIndex.set(key, f)

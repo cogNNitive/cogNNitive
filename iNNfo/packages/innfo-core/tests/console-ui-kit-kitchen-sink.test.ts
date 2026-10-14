@@ -26,6 +26,7 @@ const IMPLEMENTED = [
   'annotation-popover',
   'reviewed-toggle',
   'rail-progress',
+  'markdown',
 ]
 
 describe('console ui-kit kitchen sink', () => {
@@ -72,6 +73,7 @@ describe('console ui-kit kitchen sink', () => {
       root.appendChild(UI.AnnotationPopover({ label: 'f', kinds: ['comment'] }, {}))
       root.appendChild(UI.ReviewedToggle({ state: 'reviewed' }))
       root.appendChild(UI.RailProgress({ reviewed: 1, total: 2, pending: 1 }))
+      root.appendChild(UI.Markdown('## Title\n\n- **bold** and [safe](https://example.com)'))
       for (const name of IMPLEMENTED) {
         expect(
           root.querySelector(`[data-innfo-component=${name}]`),
