@@ -8,6 +8,7 @@ describe('S1c: export filename uses the model slug', () => {
       modelTitle: 'Ghost Busters Model',
       modelId: 'Ghost Busters Model',
       modelVersion: 'V_1-0-0',
+      meta: { changesBlueprintVersion: 'V_0-3-0' },
       store: {
         drafts: () => [
           {
@@ -33,6 +34,7 @@ describe('S1c: export filename uses the model slug', () => {
       modelTitle: 'Ghost Busters Model',
       modelSlug: 'ghost-busters',
       modelVersion: 'V_1-0-0',
+      meta: { changesBlueprintVersion: 'V_0-3-0' },
       store: { drafts: () => [] },
     }
     const res = InnfoConsole.composeExport(state, 'jane')
@@ -44,6 +46,7 @@ describe('S1c: export filename uses the model slug', () => {
     modelTitle: title,
     modelId: title,
     modelVersion: 'V_1-0-0',
+    meta: { changesBlueprintVersion: 'V_0-3-0' },
     store: { drafts: () => [] },
   })
   const modelPart = (res) => res.changesetFilename.split('_')[0]

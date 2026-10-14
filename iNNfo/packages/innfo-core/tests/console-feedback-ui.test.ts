@@ -24,6 +24,7 @@ const sampleModel = {
     modelId: 'ghostbusters-model',
     title: 'GhostbustersModel',
     modelVersion: 'V_0-2-1',
+    changesBlueprintVersion: 'V_0-3-0',
     sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   },
   elements: [
@@ -169,7 +170,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     // Re-boot so the controller reads the seeded store.
     api.boot(document)
     const composed = api.composeExport(
-      { store: { drafts: () => JSON.parse(localStorage.getItem(storeKey) || '{}').drafts }, modelId: 'ghostbusters-model', modelTitle: 'GhostbustersModel', modelVersion: 'V_0-2-1' },
+      { store: { drafts: () => JSON.parse(localStorage.getItem(storeKey) || '{}').drafts }, modelId: 'ghostbusters-model', modelTitle: 'GhostbustersModel', modelVersion: 'V_0-2-1', meta: { changesBlueprintVersion: 'V_0-3-0' } },
       'Egon Spengler',
     )
     expect(composed.ok).toBe(true)

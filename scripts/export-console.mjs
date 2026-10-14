@@ -768,6 +768,8 @@ export async function writeConsole(opts = {}) {
   const seenProcedureIds = new Set()
   const modelSummaries = []
   const scopeModelIds = []
+  // The changes bluepriNNt version every model payload was built against (identical across models).
+  let changesBlueprintVersion = ''
 
   for (const m of payloadModels) {
     const relPath = relative(root, m.filePath).replace(/\\/g, '/')
@@ -783,6 +785,7 @@ export async function writeConsole(opts = {}) {
       procedures: modelSchemaResolution.procedures,
     })
     if (payload && payload.model) {
+      changesBlueprintVersion = (payload.model.meta && payload.model.meta.changesBlueprintVersion) || changesBlueprintVersion
       const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
       const mId = (payload.model.meta && payload.model.meta.modelId) || modelStem
       const modelConcepts = new Set()
@@ -916,6 +919,7 @@ export async function writeConsole(opts = {}) {
         modelId: basename(root),
         domainId,
         generated: undefined,
+        changesBlueprintVersion,
         models: modelSummaries,
       },
       elements: allElements,

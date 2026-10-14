@@ -99,7 +99,13 @@ describe('console export round trip', () => {
     }
     const composed = runtime.composeChangesetExport(
       // modelTitle is a display title with spaces: it must NOT leak into targets.
-      { modelTitle: 'Strategy Review Board', modelId, store: { drafts: () => drafts } },
+      {
+        modelTitle: 'Strategy Review Board',
+        modelId,
+        // The real payload meta: it carries the changes bluepriNNt version the export stamps.
+        meta: buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' }).model.meta,
+        store: { drafts: () => drafts },
+      },
       'tester',
     )
     expect(composed.ok).toBe(true)

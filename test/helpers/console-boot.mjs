@@ -13,7 +13,7 @@ global.InnfoIcons = require(join(consoleDir, 'innfo-icons.js'))
 export const InnfoConsole = require(join(consoleDir, 'innfo-runtime.js'))
 
 export const MODEL = {
-  meta: { title: 'Ghost Busters Model', modelId: 'ghost-busters', modelVersion: 'V_1-0-0' },
+  meta: { title: 'Ghost Busters Model', modelId: 'ghost-busters', modelVersion: 'V_1-0-0', changesBlueprintVersion: 'V_0-3-0' },
   elements: [
     {
       id: 'ecto-1',

@@ -164,6 +164,7 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
       const res = InnfoConsole.composeChangesetExport(
         {
           modelTitle: 'BusinessModel',
+          meta: { changesBlueprintVersion: 'V_0-3-0' },
           store: {
             drafts: () => [
               {

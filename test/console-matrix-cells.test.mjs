@@ -6,7 +6,7 @@ import { bootConsole } from './helpers/console-boot.mjs'
 // edit modal and records a draft that exports as an `update_matrix_cell` change
 // addressed by `model@matrix&row&col`.
 const MATRIX_MODEL = {
-  meta: { title: 'Matrix Lab', modelId: 'matrix-lab', modelVersion: 'V_1-0-0' },
+  meta: { title: 'Matrix Lab', modelId: 'matrix-lab', modelVersion: 'V_1-0-0', changesBlueprintVersion: 'V_0-3-0' },
   elements: [
     { id: 'a1', concept: 'Fleet', name: 'Ecto-1', fields: {}, hash: '0123456789abcdef' },
   ],

@@ -191,6 +191,14 @@ Transcribe it.
       assert.equal(modelJson.meta.models[0].sha256, expectedHash)
       assert.equal(modelJson.meta.models[0].version, 'V_0-2-5')
       assert.deepEqual(modelJson.meta.consoleScope.models, ['models/business_V_0-2-5'])
+      // The domain meta carries the shipped changes bluepriNNt version, so console exports stamp it.
+      const changesSpec = await readFile(
+        join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'changes', 'spec_NN.md'),
+        'utf-8',
+      )
+      const shipped = changesSpec.match(/^blueprint_version:\s*"(V_[0-9-]+)"/m)
+      assert.ok(shipped, 'changes spec declares blueprint_version')
+      assert.equal(modelJson.meta.changesBlueprintVersion, shipped[1])
       assert.ok(modelJson.meta.consoleScope.label)
     })
 

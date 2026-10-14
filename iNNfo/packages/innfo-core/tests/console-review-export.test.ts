@@ -11,6 +11,7 @@ const sampleModel = {
     modelId: 'ghostbusters-model',
     title: 'GhostbustersModel',
     modelVersion: 'V_0-2-1',
+    changesBlueprintVersion: 'V_0-3-0',
     sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   },
   elements: [

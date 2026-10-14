@@ -35,6 +35,7 @@ const modelFixture = {
   meta: {
     title: 'Acme',
     modelId: 'acme',
+    changesBlueprintVersion: 'V_0-3-0',
     models: [{ id: 'acme', title: 'Acme', version: 'V_0-1-0', sha256: 'aa'.repeat(32) }],
   },
   elements: [
