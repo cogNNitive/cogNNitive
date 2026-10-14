@@ -60,7 +60,7 @@ describe('console ui-kit kitchen sink', () => {
       root.appendChild(UI.MarkerChip({ id: 'm', label: 'M', kind: 'field', value: 'v' }))
       root.appendChild(UI.KuBadge({ kind: 'field', name: 'f', value: 'v', changes: 1 }))
       root.appendChild(UI.KuActions({}, { onInfo: () => {} }))
-      root.appendChild(UI.StatusBadge({ status: 'pending', count: 2 }))
+      root.appendChild(UI.StatusBadge({ status: 'applied', count: 2 }))
       root.appendChild(
         UI.ElementCard({
           id: 'card',

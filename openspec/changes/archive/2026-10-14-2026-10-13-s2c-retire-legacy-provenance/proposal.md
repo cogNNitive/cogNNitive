@@ -59,6 +59,8 @@ origin (agent / human) comes from the `author` of the cited changeset change; th
 - `source-sidecar`: authorship from changeset changes; no feedback sidecars.
 - `source-normalization-pipeline`: feedback ingestion REMOVED.
 - `changeset-document-model`: new requirement — changesets are the only change record.
+- `nn-naming-contract`: the frozen-procedure example drops the deleted `reconcile_feedback_NN.md`.
+- `template-procedures-manifest-and-discovery`: the frozen-procedure example and folder count drop the deleted `reconcile_feedback_NN.md`.
 
 ## Approach
 

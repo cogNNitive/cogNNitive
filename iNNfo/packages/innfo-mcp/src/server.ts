@@ -48,10 +48,6 @@ import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
 import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
-import {
-  recordFeedbackVerdictTool,
-  evaluateFeedbackItemsTool,
-} from './tools/feedback-verdict.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { checkLegacyDomain } from './tools/legacy-hint.js'
@@ -604,7 +600,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'resolve_sources',
       description:
-        'Read-only: resolve an element\'s citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" | "human" | "reviewer" | "document"), resolved from the heading the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files.',
+        'Read-only: resolve an element\'s citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" | "human" | "document"), resolved from the `author::` of the `## NN Change:` block the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -628,62 +624,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       },
     },
     handler: handleResolveSources,
-  },
-  {
-    definition: {
-      name: 'record_feedback_verdict',
-      description:
-        'Append a validated verdict entry to the root feedback-ledger.jsonl. Refuses writes if item is orphaned or stale without confirm_stale.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          source_path: { type: 'string', description: 'Relative path to reviewer feedback JSON' },
-          item: { type: 'string', description: 'Feedback item identifier (e.g. fb-001)' },
-          status: {
-            type: 'string',
-            enum: ['applied', 'rejected', 'pending'],
-            description: 'Verdict status to record',
-          },
-          by: { type: 'string', description: 'Author or agent recording the verdict' },
-          confirm_stale: {
-            type: 'boolean',
-            description: 'Explicit confirmation required when recording applied on a stale item',
-          },
-          layer: {
-            type: 'string',
-            enum: ['scope', 'data', 'domain', 'anomaly'],
-            description: 'Optional triage layer',
-          },
-          severity: {
-            type: 'string',
-            enum: ['low', 'medium', 'high'],
-            description: 'Optional triage severity',
-          },
-          note: { type: 'string', description: 'Optional rationale or explanation' },
-          domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
-        },
-        required: ['source_path', 'item', 'status', 'by'],
-      },
-    },
-    handler: handleRecordFeedbackVerdict,
-  },
-  {
-    definition: {
-      name: 'evaluate_feedback_items',
-      description:
-        'Evaluate feedback items staleness and orphan status against current model. Appends stale entries to the root feedback-ledger.jsonl idempotently.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          source_path: { type: 'string', description: 'Relative path to reviewer feedback JSON' },
-          domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
-        },
-        required: ['source_path'],
-      },
-    },
-    handler: handleEvaluateFeedbackItems,
   },
   {
     definition: {
@@ -987,41 +927,6 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
   return textResult(
     JSON.stringify(envelopeList('innfo-resolve-sources', 'citations', results), null, 2),
   )
-}
-
-async function handleRecordFeedbackVerdict(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
-  try {
-    const result = await recordFeedbackVerdictTool(root, {
-      source_path: args.source_path as string,
-      item: args.item as string,
-      status: args.status as 'applied' | 'rejected' | 'pending',
-      by: args.by as string,
-      confirm_stale: args.confirm_stale as boolean | undefined,
-      layer: args.layer as any,
-      severity: args.severity as any,
-      note: args.note as string | undefined,
-    })
-    return textResult(JSON.stringify(envelope('innfo-record-feedback-verdict', result), null, 2))
-  } catch (err) {
-    return errorResult(err instanceof Error ? err.message : String(err))
-  }
-}
-
-async function handleEvaluateFeedbackItems(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
-  try {
-    const result = await evaluateFeedbackItemsTool(root, {
-      source_path: args.source_path as string,
-    })
-    return textResult(JSON.stringify(envelope('innfo-evaluate-feedback-items', result), null, 2))
-  } catch (err) {
-    return errorResult(err instanceof Error ? err.message : String(err))
-  }
 }
 
 async function handleListBlueprintProcedures(

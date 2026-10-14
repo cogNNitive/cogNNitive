@@ -11,7 +11,7 @@ import {
   splitSourceFieldValue,
   resolveCitation,
   EXCERPT_CHAR_CAP,
-  AGENT_MODIFICATION_CONCEPT,
+  CHANGE_CONCEPT,
   KNOWN_AGENT_TOOL_IDS,
   createFsSourceResolver,
 } from '@cognnitive/innfo-core'
@@ -27,7 +27,7 @@ import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 
 export {
   EXCERPT_CHAR_CAP,
-  AGENT_MODIFICATION_CONCEPT,
+  CHANGE_CONCEPT,
   KNOWN_AGENT_TOOL_IDS,
 }
 export type { CitationOrigin, ResolvedCitation }

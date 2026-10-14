@@ -15,30 +15,30 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 1. Re-point consumers (S2c-1)
 
-- [ ] 1.1 TEST (`iNNfo/packages/innfo-core/tests/console-review*.test.ts`): an element whose
+- [x] 1.1 TEST (`iNNfo/packages/innfo-core/tests/console-review*.test.ts`): an element whose
       `history` has an applied change shows an `applied` badge; a conflicted change shows
       `conflict`; a proposed changeset in `changes` targeting it shows `proposed`; a local
       draft shows no badge; no ledger exists. [console-review-mode: Verdict Badges]
-- [ ] 1.2 `review.js`: replace `verdictsByElement(feedbackState)` (`:318-319`,
+- [x] 1.2 `review.js`: replace `verdictsByElement(feedbackState)` (`:318-319`,
       `:1191-1193`) with badges from `element.history` and `payload.changes`; rebuild the
       console bundle. [console-review-mode: Verdict Badges]
-- [ ] 1.3 TEST (`iNNfo/packages/innfo-mcp/src/tools/resolve-sources.spec.ts`,
+- [x] 1.3 TEST (`iNNfo/packages/innfo-mcp/src/tools/resolve-sources.spec.ts`,
       `iNNfo/packages/innfo-core/tests/console-citations*.test.ts`): a citation of
       `changes/<f>@## NN Change: c-01` with `author:: ClaudeCode` has `origin: "agent"`;
       with `author:: Maria Lopez` `origin: "human"`; a plain heading `origin: "document"`;
       no result ever has `origin: "reviewer"`. [citation-source-resolution: Citation origin
       classification] [source-sidecar: `is_synthetic` is not stored]
-- [ ] 1.4 `console/citations.ts` and `resolve-sources.ts` (`:14`, `:30`): classify origin
+- [x] 1.4 `console/citations.ts` and `resolve-sources.ts` (`:14`, `:30`): classify origin
       from the cited change block's `author`; remove `AGENT_MODIFICATION_CONCEPT` and the
       feedback-source branch. [citation-source-resolution: Citation origin classification]
 
 ## 2. Retire the console feedback JSON export (S2c-1)
 
-- [ ] 2.1 TEST (`test/console-export.test.mjs:182-217`, `console-feedback-ui.test.ts`): the
+- [x] 2.1 TEST (`test/console-export.test.mjs:182-217`, `console-feedback-ui.test.ts`): the
       export modal offers only the changeset preview, download and copy; download and copy
       bytes are identical; the offline copy fallback works. [innfo-console-feedback: Export
       Modal] [review-workflow: Standardized Review JSON Export (REMOVED)]
-- [ ] 2.2 Delete the feedback branch of `composeExport`, `serializeFeedback`,
+- [x] 2.2 Delete the feedback branch of `composeExport`, `serializeFeedback`,
       `buildFeedbackFilename`, `validateFeedback`, `iNNfo/specs/bluepriNNts/console/feedback.schema.json`,
       `test/feedback-validators-parity.test.mjs`, `test/fixtures/feedback/**`,
       `iNNfo/packages/innfo-core/tests/console-feedback.test.ts`; rebuild the bundle.
@@ -46,11 +46,11 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 3. Retire the ledger (S2c-1)
 
-- [ ] 3.1 TEST (`iNNfo/packages/innfo-core/tests/console-payload*.test.ts`): built payloads
+- [x] 3.1 TEST (`iNNfo/packages/innfo-core/tests/console-payload*.test.ts`): built payloads
       have no `meta.feedbackState`; a domain with a `feedback-ledger.jsonl` file exports the
       same bytes as without it. [console-payload-builder: Payload Meta]
       [console-export-cli: Root Ledger Input (REMOVED)]
-- [ ] 3.2 Delete `console/feedback-ledger.ts` and its `console/index.ts` export,
+- [x] 3.2 Delete `console/feedback-ledger.ts` and its `console/index.ts` export,
       `tests/feedback-ledger.test.ts`, `meta.feedbackState` in `ConsolePayloadMeta` and
       `buildConsolePayload`, the ledger read in `scripts/export-console.mjs:600-604`, the
       `scripts/lib/legacy-write-guard.js:61` entry; regenerate
@@ -62,41 +62,41 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 4. Retire the MCP tools and the procedure (S2c-2)
 
-- [ ] 4.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): the tool list contains
+- [x] 4.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): the tool list contains
       neither `evaluate_feedback_items` nor `record_feedback_verdict`.
       [feedback-verdict-ledger: Writes Go Through a Validating Tool (REMOVED)]
-- [ ] 4.2 Delete `innfo-mcp/src/tools/feedback-verdict.ts` and `feedback-verdict.spec.ts`;
+- [x] 4.2 Delete `innfo-mcp/src/tools/feedback-verdict.ts` and `feedback-verdict.spec.ts`;
       deregister both tools in `server.ts`. [feedback-verdict-ledger: Writes Go Through a
       Validating Tool (REMOVED)] [feedback-verdict-ledger: sourcePath containment (REMOVED)]
       [feedback-verdict-ledger: Feedback Sources Stay Immutable (REMOVED)]
-- [ ] 4.3 Delete `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md`;
+- [x] 4.3 Delete `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md`;
       remove it from the workspace template package listing and procedure catalog; bump
       that template's `template_version`; `verify.js` template inventory green.
       [innfo-console-feedback: Reconcile Feedback Procedure (REMOVED)]
 
 ## 5. Retire the feedback import and the change-log library (S2c-2)
 
-- [ ] 5.1 TEST (`skills/nn-sources/test/unit/test-scanner.js`, replacing the cases at
+- [x] 5.1 TEST (`skills/nn-sources/test/unit/test-scanner.js`, replacing the cases at
       `:235-243`): a `.json` under `sources/import/feedback/` is cognitivized as a plain
       JSON source; no sidecar records a feedback source type.
       [source-normalization-pipeline: Removal of Legacy Slack/Teams JSON Parser]
       [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
-- [ ] 5.2 `skills/nn-sources/scripts/lib/normalizer.js:75` (delete the feedback source-type
+- [x] 5.2 `skills/nn-sources/scripts/lib/normalizer.js:75` (delete the feedback source-type
       branch), `scripts/lib/scanner-converters.js:355` (delete the feedback routing),
       `scripts/scanner.js` (delete the `import/feedback/` route).
       [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
       [innfo-console-feedback: Normalized Feedback Anchors (REMOVED)]
-- [ ] 5.3 Delete `skills/nn-sources/scripts/lib/change-log.js`,
+- [x] 5.3 Delete `skills/nn-sources/scripts/lib/change-log.js`,
       `skills/nn-sources/test/unit/test-change-log.js` and its entry in
       `skills/nn-sources/test/run.js`. [changeset-document-model: Changesets are the only
       change record]
 
 ## 6. Retire the Agent Modification block (S2c-2)
 
-- [ ] 6.1 TEST (`iNNfo/packages/innfo-core/tests/exports.test.ts`): `buildAgentModificationBlock`
+- [x] 6.1 TEST (`iNNfo/packages/innfo-core/tests/exports.test.ts`): `buildAgentModificationBlock`
       and `AgentModificationContext` are not exported from `index.ts` or `browser.ts`.
       [agent-modification-provenance: Agent Modification Block Builder (REMOVED)]
-- [ ] 6.2 Delete `agentModification.ts`, `agentModification.spec.ts` and the exports at
+- [x] 6.2 Delete `agentModification.ts`, `agentModification.spec.ts` and the exports at
       `index.ts:173-174`, `browser.ts:81-82`; rebuild innfo-core and the innfo-mcp bundle.
       [agent-modification-provenance: Agent Modification Block Builder (REMOVED)]
       [agent-modification-provenance: Canonical Block Field Contract (REMOVED)]
@@ -104,25 +104,31 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 7. Skills and docs (S2c-3)
 
-- [ ] 7.1 `skills/nn-innfo/SKILL.md`: delete the two tool rows (`:361-362`), the section
+- [x] 7.1 `skills/nn-innfo/SKILL.md`: delete the two tool rows (`:361-362`), the section
       "Agent Modification lineage (MANDATORY on every successful apply_change)" (`:455-457`)
       and the paste instruction (`:526`).
       [agent-modification-provenance: nn-innfo Mandates Verbatim Block Paste (REMOVED)]
-- [ ] 7.2 `skills/nn-sources/SKILL.md`: delete section 2a-1 (`:233-240`) and the feedback
+- [x] 7.2 `skills/nn-sources/SKILL.md`: delete section 2a-1 (`:233-240`) and the feedback
       line at `:450`. [source-normalization-pipeline: Feedback JSON Ingestion (REMOVED)]
-- [ ] 7.3 Docs: `docs/innfo/documentation/innfo-mcp.md:35-36`, `reviewer-guide.md:37,60`,
+- [x] 7.3 Docs: `docs/innfo/documentation/innfo-mcp.md:35-36`, `reviewer-guide.md:37,60`,
       `lifecycle-walkthrough.md:137`, `templates.md:43` describe the changeset review flow
       only. [changeset-document-model: Changesets are the only change record]
-- [ ] 7.4 Grep guard (`test/no-legacy-provenance.test.mjs`): the symbols listed in the
+- [x] 7.4 Grep guard (`test/no-legacy-provenance.test.mjs`): the symbols listed in the
       proposal's Success Criteria appear nowhere outside write-once `_V_x-y-z_` files,
       `openspec/changes/archive/` and this change's spec deltas.
       [changeset-document-model: Changesets are the only change record]
+- [x] 7.5 Delta specs for the two living capabilities whose examples named the deleted
+      `reconcile_feedback_NN.md` (`nn-naming-contract`, `template-procedures-manifest-and-discovery`):
+      re-point the frozen-procedure example to `reconcile_artifact_feedback_NN.md` and the
+      frozen-folder count to 6. [nn-naming-contract: Procedure file names]
+      [template-procedures-manifest-and-discovery: Transitive Procedure Discovery from Disk
+      and Frontmatter]
 
 ## 8. Release and verification (S2c-3)
 
-- [ ] 8.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
+- [x] 8.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
       `npm --prefix skills/nn-sources test`; `node scripts/verify.js`. [all requirements]
-- [ ] 8.2 After the `dev → main` batch, following `.agents/skills/nn-dev-release/SKILL.md`:
-      tag `innfo-mcp-v<next>` (tools removed), `innfo-console-v<next>` (bundle and shells),
-      `skills-v<next>` (`nn-innfo`, `nn-sources`), `blueprints-v<next>` (workspace template
-      without `reconcile_feedback`). [all requirements]
+- [x] 8.2 After the `dev → main` batch, following `.agents/skills/nn-dev-release/SKILL.md`:
+      tag `innfo-mcp-v0.19.0` (tools removed), `innfo-console-v0.12.0` (bundle and shells),
+      `skills-v2.20.0` (`nn-innfo` V_0-5-10, `nn-sources` V_3-5-1), `blueprints-v0.32.0`
+      (workspace template without `reconcile_feedback`). [all requirements]

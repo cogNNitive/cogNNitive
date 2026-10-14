@@ -3,9 +3,7 @@
 ## Purpose
 
 Give `innfo-mcp` clients a read-only tool that resolves an element's citations to their underlying file, anchor, and content, so "where did this value come from?" can be answered without manually tracing `sources::` values by hand.
-
 ## Requirements
-
 ### Requirement: `resolve_sources` resolves an element's citations
 
 `innfo-mcp` MUST expose a read-only tool `resolve_sources` accepting `{model, elementId, fieldName?}`. When `fieldName` is omitted, it MUST resolve citations across all citation-typed fields on the element. The tool MUST return an array of results, one per citation reference found, each shaped as `{path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}`.
@@ -61,33 +59,25 @@ When a citation resolves to an existing file and anchor, `resolve_sources` MUST 
 
 ### Requirement: Citation origin classification
 
-`resolve_sources` MUST classify each result's `origin` as `"agent"`, `"human"`, `"reviewer"`, or `"document"`, resolved per citation from the heading the `@` anchor targets. The file-level `is_synthetic` flag MUST NOT be used for this classification.
+`resolve_sources` MUST classify each result's `origin` as `"agent"`, `"human"` or `"document"`, resolved per citation from the unit the `@` anchor targets. The file-level `is_synthetic` flag MUST NOT be used for this classification.
 
-- `origin: "agent"` MUST be set when the anchor is a `## NN Agent Modification: …` heading AND that block's `author::` value matches a known-tool-id list maintained in the resolver (e.g. `ClaudeCode`, `OpenCode`, `Antigravity`). `author` MUST be set from `author::`; when `author::` is `_`, `author` MUST be `"unknown"`.
-- `origin: "human"` MUST be set when the anchor is a `## NN Agent Modification: …` heading AND `author::` holds a value NOT on the known-tool-id list. `author` MUST be set to that literal value.
-- `origin: "reviewer"` MUST be set when the target frontmatter has `source_type: feedback`. When that frontmatter has no author field, `author` MUST be omitted from the result rather than defaulted to a placeholder string.
-- `origin: "document"` MUST be the default when none of the above signals apply, including a plain heading with no Agent Modification block. No `"user"` category MUST be inferred from the absence of a signal.
+- `origin: "agent"` MUST be set when the anchor is a `## NN Change: …` block of a changeset AND that block's `author::` value matches a known-tool-id list maintained in the resolver (e.g. `ClaudeCode`, `OpenCode`, `Antigravity`). `author` MUST be set from `author::`; when `author::` is `_` or absent, `author` MUST be `"unknown"`.
+- `origin: "human"` MUST be set when the anchor is a `## NN Change: …` block AND `author::` holds a value NOT on the known-tool-id list. `author` MUST be set to that literal value.
+- `origin: "document"` MUST be the default for every other anchor. No `"user"` or `"reviewer"` category exists.
+(Previously: agent and human origins were read from `## NN Agent Modification` blocks, and a `reviewer` origin from feedback sources; both are retired.)
 
 #### Scenario: Known agent tool id
-
-- GIVEN a citation anchored at a `## NN Agent Modification: …` heading with `author:: ClaudeCode`
+- GIVEN a citation anchored at `changes/ws_agent_20261007T120000Z_changes_NN.md@## NN Change: c-01` whose block has `author:: ClaudeCode`
 - WHEN `resolve_sources` is called
 - THEN the entry has `origin: "agent"` and `author: "ClaudeCode"`
 
-#### Scenario: Unrecognized name inside an Agent Modification block
-
-- GIVEN a citation anchored at a `## NN Agent Modification: …` heading with `author:: Maria Lopez`
+#### Scenario: A human author
+- GIVEN a citation anchored at a `## NN Change:` block with `author:: Maria Lopez`
 - WHEN `resolve_sources` is called
-- THEN the entry has `origin: "human"` and `author: "Maria Lopez"`, not `"agent"`
-
-#### Scenario: Reviewer feedback citation
-
-- GIVEN a citation anchored in a file whose frontmatter has `source_type: feedback`
-- WHEN `resolve_sources` is called
-- THEN the entry has `origin: "reviewer"`
+- THEN the entry has `origin: "human"` and `author: "Maria Lopez"`
 
 #### Scenario: Plain document heading
-
-- GIVEN a citation anchored at a plain heading with no Agent Modification block and no `source_type: feedback` frontmatter
+- GIVEN a citation anchored at a plain heading of a Source
 - WHEN `resolve_sources` is called
 - THEN the entry has `origin: "document"`
+

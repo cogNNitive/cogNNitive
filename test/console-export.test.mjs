@@ -182,43 +182,41 @@ level: 3
     assert.ok(slotBody.includes('\\u003c/script>'))
   })
 
-  it('reads root feedback-ledger.jsonl and ignores legacy paths', async () => {
-    // Write root ledger entry
-    const rootLedgerContent = JSON.stringify({
-      v: 1,
-      at: '2026-10-01T10:00:00Z',
-      source: { kind: 'console-json', path: 'sources/import/feedback/f1.json', sha256: 'abc1234567890123456789012345678901234567890123456789012345678901' },
-      item: 'fb-001',
-      model_id: 'models/business_V_1-0-0_NN.md',
-      knowledge_version: 'V_1-0-0',
-      element_id: 'stakeholders-enterprise',
-      status: 'applied',
-      by: 'lead',
-    }) + '\n'
-    await writeFile(join(tempDir, 'feedback-ledger.jsonl'), rootLedgerContent, 'utf-8')
+  it('ignores any feedback-ledger.jsonl: a domain with one exports the same bytes', async () => {
+    const stripStamp = (html) => html.replace(/"generated": "[^"]*"/g, '"generated": "<stamp>"')
 
-    // Write decoy ledger in ignored location
+    // Baseline export, no ledger anywhere.
+    assert.equal((await runCli([tempDir, '--all'])).code, 0)
+    const baseline = stripStamp(await readFile(consoleHtml(tempDir, 'business_V_1-0-0'), 'utf-8'))
+
+    // A root ledger and a legacy-path decoy must change nothing.
+    await writeFile(
+      join(tempDir, 'feedback-ledger.jsonl'),
+      JSON.stringify({
+        v: 1,
+        at: '2026-10-01T10:00:00Z',
+        source: { kind: 'console-json', path: 'sources/import/feedback/f1.json', sha256: 'abc1' },
+        item: 'fb-001',
+        model_id: 'models/business_V_1-0-0_NN.md',
+        element_id: 'stakeholders-enterprise',
+        status: 'applied',
+        by: 'lead',
+      }) + '\n',
+      'utf-8',
+    )
     const legacyLedgerDir = join(tempDir, 'sources', 'import', 'feedback')
     await mkdir(legacyLedgerDir, { recursive: true })
-    const legacyLedgerContent = JSON.stringify({
-      v: 1,
-      at: '2026-10-01T11:00:00Z',
-      source: { kind: 'console-json', path: 'sources/import/feedback/f1.json', sha256: 'decoy123' },
-      item: 'fb-999-decoy',
-      model_id: 'models/business_V_1-0-0_NN.md',
-      knowledge_version: 'V_1-0-0',
-      status: 'rejected',
-      by: 'decoy',
-    }) + '\n'
-    await writeFile(join(legacyLedgerDir, 'ledger.jsonl'), legacyLedgerContent, 'utf-8')
+    await writeFile(
+      join(legacyLedgerDir, 'ledger.jsonl'),
+      JSON.stringify({ v: 1, item: 'fb-999-decoy', status: 'rejected', by: 'decoy' }) + '\n',
+      'utf-8',
+    )
 
-    const res = await runCli([tempDir, '--all'])
-    assert.equal(res.code, 0)
-
-    const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
-    const htmlContent = await readFile(htmlPath, 'utf-8')
-    assert.ok(htmlContent.includes('fb-001'), 'Root ledger entry fb-001 included in feedbackState')
-    assert.equal(htmlContent.includes('fb-999-decoy'), false, 'Decoy legacy ledger entry ignored')
+    assert.equal((await runCli([tempDir, '--all'])).code, 0)
+    const withLedger = stripStamp(await readFile(consoleHtml(tempDir, 'business_V_1-0-0'), 'utf-8'))
+    assert.equal(withLedger, baseline, 'a feedback-ledger.jsonl changes nothing')
+    assert.equal(withLedger.includes('feedbackState'), false, 'no feedbackState is emitted')
+    assert.equal(withLedger.includes('fb-001'), false, 'no ledger entry reaches the payload')
   })
 
   it('resolves citations to el.citations.sources map', async () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readdir } from 'node:fs/promises'
-import { buildAgentModificationBlock } from '@cognnitive/innfo-core'
 import { resolveSources, EXCERPT_CHAR_CAP } from './resolve-sources'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolve-sources')
@@ -86,15 +85,14 @@ async function writeWorkspace(): Promise<void> {
       'unknown_anchor_source:: sources/import/report.md@## Nonexistent Heading',
       'long_source:: sources/import/long.md@## Long Section',
       'short_source:: sources/import/short.md@## Short Section',
-      'agent_known_source:: sources/import/agent-mod.md@## NN Agent Modification: update-field-precio',
-      'agent_unknown_marker_source:: sources/import/agent-mod-unknown.md@## NN Agent Modification: update-field-precio',
-      'agent_missing_author_source:: sources/import/agent-mod-missing.md@## NN Agent Modification: update-field-precio',
-      'human_source:: sources/import/agent-mod-human.md@## NN Agent Modification: update-field-precio',
-      'nested_source:: sources/import/agent-mod-nested.md@### Sub Detail',
-      'sibling_source:: sources/import/agent-mod-sibling.md@## Sibling Heading',
-      'reviewer_source:: sources/import/reviewer-with-author.md@## Feedback Note',
-      'reviewer_no_author_source:: sources/import/reviewer-no-author.md@## Feedback Note',
+      'agent_known_source:: sources/import/change-agent-known.md@## NN Change: c-01',
+      'agent_unknown_marker_source:: sources/import/change-agent-unknown.md@## NN Change: c-01',
+      'agent_missing_author_source:: sources/import/change-agent-missing.md@## NN Change: c-01',
+      'human_source:: sources/import/change-human.md@## NN Change: c-01',
+      'nested_source:: sources/import/change-nested.md@### Sub Detail',
+      'sibling_source:: sources/import/change-sibling.md@## Sibling Heading',
       'document_source:: sources/import/plain-doc.md@## Plain Heading',
+      'frontmatter_author_source:: sources/import/author-doc.md@## Authored Heading',
       '',
     ].join('\n'),
     'utf-8',
@@ -135,89 +133,69 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod.md'),
+    join(rootDir, 'sources', 'import', 'change-agent-known.md'),
     [
-      '## NN Agent Modification: update-field-precio',
+      '## NN Change: c-01',
       '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
-      'author:: Claude Code',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod-unknown.md'),
-    [
-      '## NN Agent Modification: update-field-precio',
-      '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
-      'author:: _',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod-missing.md'),
-    [
-      '## NN Agent Modification: update-field-precio',
-      '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod-human.md'),
-    [
-      '## NN Agent Modification: update-field-precio',
-      '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
-      'author:: Maria Lopez',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod-nested.md'),
-    [
-      '## NN Agent Modification: update-field-precio',
-      '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
       'author:: ClaudeCode',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
+      'notes:: "agent authored"',
+      '',
+    ].join('\n'),
+    'utf-8',
+  )
+
+  await writeFile(
+    join(rootDir, 'sources', 'import', 'change-agent-unknown.md'),
+    [
+      '## NN Change: c-01',
+      '',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
+      'author:: _',
+      'notes:: "unknown"',
+      '',
+    ].join('\n'),
+    'utf-8',
+  )
+
+  await writeFile(
+    join(rootDir, 'sources', 'import', 'change-agent-missing.md'),
+    [
+      '## NN Change: c-01',
+      '',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
+      'notes:: "no author line"',
+      '',
+    ].join('\n'),
+    'utf-8',
+  )
+
+  await writeFile(
+    join(rootDir, 'sources', 'import', 'change-human.md'),
+    [
+      '## NN Change: c-01',
+      '',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
+      'author:: Maria Lopez',
+      'notes:: "human authored"',
+      '',
+    ].join('\n'),
+    'utf-8',
+  )
+
+  await writeFile(
+    join(rootDir, 'sources', 'import', 'change-nested.md'),
+    [
+      '## NN Change: c-01',
+      '',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
+      'author:: ClaudeCode',
+      'notes:: "nested"',
       '',
       '### Sub Detail',
       '',
@@ -228,51 +206,18 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'import', 'agent-mod-sibling.md'),
+    join(rootDir, 'sources', 'import', 'change-sibling.md'),
     [
-      '## NN Agent Modification: update-field-precio',
+      '## NN Change: c-01',
       '',
-      'scope:: add_field Producto.precio',
-      'change:: added field',
-      'rationale:: _',
-      'approved_by:: agent',
+      'op:: update_field',
+      'target:: Plan@Widget&precio_source',
       'author:: ClaudeCode',
-      'model:: Plan',
-      'knowledge_version:: V_1-0-0',
-      'timestamp:: 2026-01-01T00:00:00.000Z',
+      'notes:: "sibling"',
       '',
       '## Sibling Heading',
       '',
-      'Text here that is separate from the Agent Modification block above.',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'reviewer-with-author.md'),
-    [
-      '---',
-      'source_type: feedback',
-      'author: "Jane Reviewer"',
-      '---',
-      '',
-      '## Feedback Note',
-      'This section is a reviewed note.',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-
-  await writeFile(
-    join(rootDir, 'sources', 'import', 'reviewer-no-author.md'),
-    [
-      '---',
-      'source_type: feedback',
-      '---',
-      '',
-      '## Feedback Note',
-      'This section is a reviewed note.',
+      'Text here that is separate from the change block above.',
       '',
     ].join('\n'),
     'utf-8',
@@ -281,6 +226,21 @@ async function writeWorkspace(): Promise<void> {
   await writeFile(
     join(rootDir, 'sources', 'import', 'plain-doc.md'),
     ['---', 'sha256: "plaindoc1"', '---', '', '## Plain Heading', 'Just prose.', ''].join('\n'),
+    'utf-8',
+  )
+
+  await writeFile(
+    join(rootDir, 'sources', 'import', 'author-doc.md'),
+    [
+      '---',
+      'sha256: "authordoc1"',
+      'author: "Jane Reviewer"',
+      '---',
+      '',
+      '## Authored Heading',
+      'A plain document with a frontmatter author.',
+      '',
+    ].join('\n'),
     'utf-8',
   )
 }
@@ -411,7 +371,7 @@ describe('resolve_sources', () => {
   })
 
   describe('origin classification', () => {
-    it('classifies a known agent tool id as agent, normalizing case/spacing', async () => {
+    it('classifies a known agent tool id in a NN Change author as agent', async () => {
       const results = await resolveSources(rootDir, {
         model: 'Plan_V_1-0-0',
         elementId: 'Widget',
@@ -419,7 +379,7 @@ describe('resolve_sources', () => {
       })
       expect(results).toHaveLength(1)
       expect(results[0].origin).toBe('agent')
-      expect(results[0].author).toBe('Claude Code')
+      expect(results[0].author).toBe('ClaudeCode')
     })
 
     it('classifies an unfilled author marker (_) as agent with author "unknown"', async () => {
@@ -444,7 +404,7 @@ describe('resolve_sources', () => {
       expect(results[0].author).toBe('unknown')
     })
 
-    it('classifies an unrecognized name inside an Agent Modification block as human', async () => {
+    it('classifies an unrecognized name inside a NN Change block as human', async () => {
       const results = await resolveSources(rootDir, {
         model: 'Plan_V_1-0-0',
         elementId: 'Widget',
@@ -455,7 +415,7 @@ describe('resolve_sources', () => {
       expect(results[0].author).toBe('Maria Lopez')
     })
 
-    it('classifies a sub-heading nested under an Agent Modification block via ancestor walk', async () => {
+    it('classifies a sub-heading nested under a NN Change block via ancestor walk', async () => {
       const results = await resolveSources(rootDir, {
         model: 'Plan_V_1-0-0',
         elementId: 'Widget',
@@ -466,7 +426,7 @@ describe('resolve_sources', () => {
       expect(results[0].author).toBe('ClaudeCode')
     })
 
-    it('classifies a sibling heading of an Agent Modification block as document', async () => {
+    it('classifies a sibling heading of a NN Change block as document', async () => {
       const results = await resolveSources(rootDir, {
         model: 'Plan_V_1-0-0',
         elementId: 'Widget',
@@ -476,25 +436,14 @@ describe('resolve_sources', () => {
       expect(results[0].origin).toBe('document')
     })
 
-    it('classifies a reviewer-feedback citation with frontmatter author', async () => {
+    it('never yields a reviewer origin: a frontmatter-authored document heading is document', async () => {
       const results = await resolveSources(rootDir, {
         model: 'Plan_V_1-0-0',
         elementId: 'Widget',
-        fieldName: 'reviewer_source',
+        fieldName: 'frontmatter_author_source',
       })
       expect(results).toHaveLength(1)
-      expect(results[0].origin).toBe('reviewer')
-      expect(results[0].author).toBe('Jane Reviewer')
-    })
-
-    it('classifies a reviewer-feedback citation without frontmatter author, omitting author', async () => {
-      const results = await resolveSources(rootDir, {
-        model: 'Plan_V_1-0-0',
-        elementId: 'Widget',
-        fieldName: 'reviewer_no_author_source',
-      })
-      expect(results).toHaveLength(1)
-      expect(results[0].origin).toBe('reviewer')
+      expect(results[0].origin).toBe('document')
       expect(results[0].author).toBeUndefined()
     })
 
@@ -518,39 +467,6 @@ describe('resolve_sources', () => {
       expect(results[0].origin).toBe('document')
     })
 
-    it('contract test: a real buildAgentModificationBlock() output classifies as agent end-to-end', async () => {
-      const block = buildAgentModificationBlock(
-        'add_field',
-        { conceptName: 'Producto', fieldName: 'precio' },
-        { model: 'Plan', modelVersion: 'V_1-0-0', author: 'ClaudeCode' },
-      )
-      expect(block).toBeTruthy()
-
-      const headingLine = block!.split('\n')[0]
-      const headingText = headingLine.replace(/^#{1,6}\s+/, '')
-
-      await writeFile(join(rootDir, 'sources', 'import', 'contract-block.md'), block!, 'utf-8')
-
-      // Add the citation field dynamically, referencing the block's own real heading text.
-      const modelFile = join(rootDir, 'models', 'Plan_V_1-0-0_NN.md')
-      const { readFile } = await import('node:fs/promises')
-      const modelContent = await readFile(modelFile, 'utf-8')
-      const withContractField = modelContent.replace(
-        '## NN Producto: Widget\n',
-        `## NN Producto: Widget\ncontract_source:: sources/import/contract-block.md@${headingLine}\n`,
-      )
-      await writeFile(modelFile, withContractField, 'utf-8')
-
-      const results = await resolveSources(rootDir, {
-        model: 'Plan_V_1-0-0',
-        elementId: 'Widget',
-        fieldName: 'contract_source',
-      })
-      expect(results).toHaveLength(1)
-      expect(results[0].origin).toBe('agent')
-      expect(results[0].author).toBe('ClaudeCode')
-      expect(headingText.toLowerCase()).toContain('nn agent modification')
-    })
   })
 })
 

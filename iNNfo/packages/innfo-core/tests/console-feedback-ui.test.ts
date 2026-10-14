@@ -12,9 +12,7 @@ type ConsoleApi = {
   boot: (doc: Document) => any
   ensureFeedbackUi: (doc: Document, state?: any) => HTMLElement | null
   renderNavbarIdentity: (doc: Document, meta: any) => void
-  draftToItem: (draft: any, element?: any) => any
-  buildExportDoc: (args: any) => any
-  validateFeedback: (doc: any) => { ok: boolean; errors: string[] }
+  composeExport: (state: any, identifier?: string) => any
 }
 
 const sampleSchema = {
@@ -148,7 +146,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(showModalSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('seeded draft exports target.field and base_hash, passing validateFeedback', () => {
+  it('composeExport builds a changeset document and no JSON payload', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.boot(document)
@@ -168,77 +166,17 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     })
     localStorage.setItem(storeKey, JSON.stringify(existing))
 
-    const drafts = JSON.parse(localStorage.getItem(storeKey) || '{}').drafts
-    expect(drafts).toHaveLength(1)
-    expect(drafts[0].base_hash).toBe('abcdef0123456789')
-    expect(drafts[0].field).toBe('severity')
-
-    const exportDoc = api.buildExportDoc({
-      meta: {
-        source_knowledge: 'GhostbustersModel',
-        source_knowledge_version: 'V_0-2-1',
-        artifact: 'GhostbustersModel_console.html',
-        artifact_version: '0.7.3',
-        exported_at: '2026-10-02T12:00:00Z',
-        author: 'Egon Spengler',
-        feedback_slug: 'egon-spengler',
-        viewer: 'innfo-console@0.7.3',
-        source_sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-      },
-      drafts,
-    })
-
-    expect(exportDoc.items).toHaveLength(1)
-    expect(exportDoc.items[0].target.field).toBe('severity')
-    expect(exportDoc.items[0].base_hash).toBe('abcdef0123456789')
-    expect((exportDoc.items[0] as any).status).toBeUndefined()
-
-    const validation = api.validateFeedback(exportDoc)
-    expect(validation.ok).toBe(true)
-    expect(validation.errors).toHaveLength(0)
-  })
-
-  it('invalid meta prevents createObjectURL and lists errors in [data-innfo="errors"]', () => {
-    // Override meta with a forbidden property
-    renderModelConsole(undefined, {
-      title: 'GhostbustersModel',
-      knowledge: 'forbidden_alias',
-      modelVersion: 'V_0-2-1',
-    })
-
-    const api = loadRuntime()
+    // Re-boot so the controller reads the seeded store.
     api.boot(document)
-
-    const storeKey = 'innfo-console:v3:ghostbusters-model'
-    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":3,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
-    existing.drafts.push({
-      id: 'fb-001',
-      element_id: 'threat-slimer',
-      concept: 'ParanormalThreat',
-      element: 'Slimer',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'Needs check',
-      created_at: '2026-10-02T12:00:00Z',
-    })
-    localStorage.setItem(storeKey, JSON.stringify(existing))
-
-    const createObjectURLSpy = vi.fn().mockReturnValue('blob:stub')
-    globalThis.URL.createObjectURL = createObjectURLSpy
-
-    const openBtn = document.getElementById('innfo-feedback-open')!
-    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-
-    const idInput = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]') as HTMLInputElement
-    idInput.value = 'Reviewer-1'
-
-    const downloadBtn = document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]')!
-    downloadBtn.dispatchEvent(new Event('click', { bubbles: true }))
-
-    expect(createObjectURLSpy).not.toHaveBeenCalled()
-
-    const errorsEl = document.querySelector('#innfo-feedback-modal [data-innfo="errors"]')!
-    expect(errorsEl.textContent).toContain('forbidden property')
+    const composed = api.composeExport(
+      { store: { drafts: () => JSON.parse(localStorage.getItem(storeKey) || '{}').drafts }, modelId: 'ghostbusters-model', modelTitle: 'GhostbustersModel', modelVersion: 'V_0-2-1' },
+      'Egon Spengler',
+    )
+    expect(composed.ok).toBe(true)
+    expect(composed.changesetText).toContain('## NN Change: fb-001')
+    expect(composed.changesetFilename).toMatch(/_changes_NN\.md$/)
+    expect((composed as any).text).toBeUndefined()
+    expect((composed as any).payload).toBeUndefined()
   })
 
   it('injects nothing when feedback-export is not declared in needs', () => {

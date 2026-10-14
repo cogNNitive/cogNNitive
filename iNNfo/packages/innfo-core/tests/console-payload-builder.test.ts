@@ -4,14 +4,9 @@ import {
   computeSha256,
   computeElementHash,
   canonicalJsonStringify,
-  parseFeedbackLedger,
-  serializeFeedbackLedgerEntry,
-  effectiveStatusFor,
-  feedbackStateFor,
 } from '../src/index.js'
-import type { FeedbackVerdictEntry } from '../src/index.js'
 
-describe('Console Payload Builder & Feedback Ledger', () => {
+describe('Console Payload Builder', () => {
   const sampleMarkdown = `---
 title: "Ghostbusters Business Model"
 knowledge_version: "V_1-0-0"
@@ -111,43 +106,11 @@ price:: 5000
     expect(mission.citations!.sources![0].path).toBe('sources/import/initial-brief.md')
   })
 
-  it('parses and computes effective status from feedback verdict ledger', () => {
-    const entry1: FeedbackVerdictEntry = {
-      v: 1,
-      at: '2026-10-01T10:00:00Z',
-      source: { kind: 'console-json', path: 'sources/import/feedback/round1.json', sha256: 'abc1' },
-      item: 'fb-001',
-      model_id: 'kNNowledge/biz/Ghostbusters',
-      knowledge_version: 'V_1-0-0',
-      element_id: 'ghostbusters-mission',
-      status: 'rejected',
-      by: 'lead-reviewer',
-    }
-
-    const entry2: FeedbackVerdictEntry = {
-      v: 1,
-      at: '2026-10-01T12:00:00Z',
-      source: { kind: 'console-json', path: 'sources/import/feedback/round1.json', sha256: 'abc1' },
-      item: 'fb-001',
-      model_id: 'kNNowledge/biz/Ghostbusters',
-      knowledge_version: 'V_1-0-0',
-      element_id: 'ghostbusters-mission',
-      status: 'applied',
-      by: 'lead-reviewer',
-    }
-
-    const rawJsonl = serializeFeedbackLedgerEntry(entry1) + serializeFeedbackLedgerEntry(entry2)
-    const { entries, errors } = parseFeedbackLedger(rawJsonl)
-
-    expect(errors).toHaveLength(0)
-    expect(entries).toHaveLength(2)
-
-    const effective = effectiveStatusFor(entries)
-    expect(effective.get('abc1#fb-001')?.status).toBe('applied')
-
-    const state = feedbackStateFor(entries, 'kNNowledge/biz/Ghostbusters')
-    expect(state).toHaveLength(1)
-    expect(state[0].status).toBe('applied')
-    expect(state[0].element_id).toBe('ghostbusters-mission')
+  it('payload meta carries no feedbackState verdicts', () => {
+    const payload = buildConsolePayload({
+      content: sampleMarkdown,
+      path: 'kNNowledge/biz/Ghostbusters_NN.md',
+    })
+    expect(payload.model.meta).not.toHaveProperty('feedbackState')
   })
 })

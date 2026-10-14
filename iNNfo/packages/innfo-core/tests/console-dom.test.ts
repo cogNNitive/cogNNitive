@@ -10,9 +10,8 @@ import { createRequire } from 'node:module'
  *
  * That suite drove a real Chromium, so nothing ran it: Playwright was never
  * wired into CI. Most of what it checked was pure logic reached through
- * `page.evaluate` — `buildExportDoc`, `validateFeedback`,
- * `buildFeedbackFilename`, `parseFeedbackFilename`, `checkStaleness` — and all
- * of that already has gated coverage in `console-feedback.test.ts`,
+ * `page.evaluate` — `slugify`, slot parsing, tree helpers and the changeset
+ * export — and all of that already has gated coverage in
  * `console-export-naming.test.ts`, `console-runtime.test.ts` and
  * nn-trannsform's `test-scanner.js`. Duplicating it here would add no signal.
  *
@@ -173,7 +172,7 @@ describe('innfo-console — export gate', () => {
     expect(downloads).toEqual([])
   })
 
-  it('emits a file named by the feedback contract once an identifier is entered', () => {
+  it('emits a changeset named by the changeset contract once an identifier is entered', () => {
     localStorage.setItem(
       'innfo-console:v3:acme',
       JSON.stringify({

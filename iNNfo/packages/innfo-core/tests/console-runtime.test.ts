@@ -35,14 +35,6 @@ interface RuntimeCore {
   ) => { schema: Record<string, unknown>; model: Record<string, unknown> }
   resolveElementId: (concept: string, name: string) => string
   filterElements: (elements: ElementLike[], query: string) => ElementLike[]
-  checkStaleness: (
-    feedbackVersion: string,
-    liveVersion: string,
-  ) => { stale: boolean; report: string }
-  buildExportDoc: (args: {
-    meta: Record<string, unknown>
-    drafts: Array<Record<string, unknown>>
-  }) => { meta: Record<string, unknown>; items: Array<Record<string, unknown>> }
   buildTree: (elements: unknown[]) => {
     nodes: Record<string, { el: ElementLike; children: unknown[]; parentId: string | null }>
     roots: Array<{ el: ElementLike }>
@@ -139,41 +131,6 @@ describe('filterElements (console search)', () => {
     const core = loadCore()
     expect(core.filterElements(sampleElements, 'PARANORMAL').length).toBe(1)
     expect(core.filterElements(sampleElements, '').length).toBe(2)
-  })
-})
-
-describe('checkStaleness (apply-feedback guard)', () => {
-  it('reports fresh when versions match', () => {
-    const result = loadCore().checkStaleness('V_0-2-1', 'V_0-2-1')
-    expect(result.stale).toBe(false)
-  })
-
-  it('blocks with a report naming both versions on mismatch', () => {
-    const result = loadCore().checkStaleness('V_0-2-0', 'V_0-2-1')
-    expect(result.stale).toBe(true)
-    expect(result.report).toContain('V_0-2-0')
-    expect(result.report).toContain('V_0-2-1')
-  })
-})
-
-describe('buildExportDoc (localStorage + export modal)', () => {
-  it('assembles the export document from meta and drafts', () => {
-    const doc = loadCore().buildExportDoc({
-      meta: { source_model: 'Ghostbusters' },
-      drafts: [{ id: 'fb-001', kind: 'comment', base_hash: '0123456789abcdef' }],
-    })
-    expect(doc.meta['source_model']).toBe('Ghostbusters')
-    expect(doc.items.length).toBe(1)
-    expect(doc.items[0]['id']).toBe('fb-001')
-  })
-
-  it('fails with an error naming the draft when base_hash is missing', () => {
-    expect(() => {
-      loadCore().buildExportDoc({
-        meta: { source_model: 'Ghostbusters' },
-        drafts: [{ id: 'fb-001', kind: 'comment' }],
-      })
-    }).toThrow('fb-001')
   })
 })
 

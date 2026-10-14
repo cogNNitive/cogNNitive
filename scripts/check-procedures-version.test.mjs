@@ -55,7 +55,7 @@ function main() {
     const root = fixtureRoot();
     writeProceduresBlueprint(root, 'V_0-3-2');
     writeProcedure(root, 'analysis', 'run_coherence_audit_procedures_NN.md', 'procedures_V_0-3-2');
-    writeProcedure(root, 'workspace', 'reconcile_feedback_NN.md', 'procedures_V_0-3-2');
+    writeProcedure(root, 'workspace', 'reconcile_artifact_feedback_NN.md', 'procedures_V_0-3-2');
     const res = checkProceduresVersion({ blueprintsRoot: root });
     assert.strictEqual(res.ok, true, JSON.stringify(res.failures));
   });

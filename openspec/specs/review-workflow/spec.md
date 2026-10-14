@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the asynchronous review workflow, including reviewer identity, visual feedback badges, universal review summary, and standardized feedback artifact export.
-
 ## Requirements
-
 ### Requirement: Reviewer Identity Profile Chip
 
 Consoles MUST display a reviewer profile chip in the top-right header. The reviewer name MUST be editable on click and persisted in `localStorage`. If unset, it MUST default to `reviewer`.
@@ -33,11 +31,3 @@ Every console MUST provide a standardized "Review Summary" tab aggregating sessi
 - WHEN the user opens the "Review Summary" tab
 - THEN comments are grouped by element with direct links to each card
 
-### Requirement: Standardized Review JSON Export
-
-Consoles MUST provide an export button downloading feedback as JSON named `<Model>_V_<Version>_<user>_review.json`, sanitizing spaces and special characters.
-
-#### Scenario: Exporting review JSON
-- GIVEN model `BusinessModel`, version `1.2.0`, and user `Jane Doe`
-- WHEN the user clicks export feedback
-- THEN `BusinessModel_V_1.2.0_jane_doe_review.json` downloads containing structured feedback
