@@ -638,11 +638,15 @@
             : typeof fieldVal === 'boolean'
               ? 'boolean'
               : 'string'
+      // A list or object value has no value editor: the modal opens comment-only
+      // with Propose disabled (Edit Modal Value Type Safety, S3b P0-2).
+      var valueIsContainer = fieldVal !== null && typeof fieldVal === 'object'
       return {
         title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 ' + field,
         fieldName: field,
         type: fieldType,
         value: fieldVal,
+        valueCommentOnly: valueIsContainer,
         options: schemaField ? schemaField.options : undefined,
         target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
@@ -695,6 +699,7 @@
           history: target.history,
           isComment: !!target.isComment,
           commentOnly: !!target.commentOnly,
+          valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(elementsById[anchorData.elementId]),
           startTab: anchorData.info ? 'history' : 'edit',
         },
