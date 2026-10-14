@@ -19,7 +19,7 @@ continuing the "console unification (spine) + changeset/lineage" arc.
   |---|---|---|
   | `..\cogNNitive-s3-domain-console` | `session/s3-domain-console` @ `c5637dab` | 6 docs commits NOT on `dev` (see §2) |
   | `..\cogNNitive-s4-retire-legacy-migration` | `session/s4-retire-legacy-migration` @ `2233616d` | merged into `dev`; S4-2 still to do |
-  | `..\cogNNitive-s5-freeze-editor` | `session/s5-freeze-editor` | 10 commits, verified, NOT landed, NOT reviewed |
+  | `..\cogNNitive-s5-freeze-editor` | `session/s5-freeze-editor` @ `445a49aa` | LANDED on `dev` (fresh review + `verify.js` green); can be stopped with `nn-session.mjs stop` |
 - Pick one (or `node scripts/nn-session.mjs start --id <id>` from the primary) and work only there.
 - Gotcha: the hook checks the session cwd, not the target path. `mcp__ccd_directory__change_directory`
   moves the cwd only when the turn ends. Meanwhile Bash file writes inside the worktree work, and
@@ -50,19 +50,21 @@ continuing the "console unification (spine) + changeset/lineage" arc.
 
 ## 2. Where things stand
 
-**On `dev` (`2233616d`):** S3a (audit + D14 tests + D17 vocabulary), S4-1 (tasks 1.1–3.3 of 15:
+**On `dev` (`445a49aa`):** the editor FREEZE (reviewed by an independent agent, freeze guard strengthened, `verify.js` green on the merged tree), S3a (audit + D14 tests + D17 vocabulary), S4-1 (tasks 1.1–3.3 of 15:
 Flow A, Flow C and `--migrate-references` retired, quarantine migration half dropped, hint/preflight
 point to the new-domain recipe).
 
-**Maintainer said explicitly: do NOT push docs to `dev` yet and do NOT start S3b group 6.** Resume only
-when the maintainer says so. Ask once, in Spanish.
+**Maintainer (later on 2026-10-14): keep advancing step by step, and after EVERY finished piece of work
+rewrite this handoff prompt** so a fresh agent can continue if tokens run out. Pieces, in order:
+(1) editor freeze landed [DONE], (2) land the S3 docs commits on `dev`, (3) S3b groups 6→14,
+(4) S4-2, (5) S6.
 
 **`session/s3-domain-console` (docs only, local to origin session branch):**
 `40e812fd` S6 decision 8 · `fdac8ae4` audit revision + `widget-study.md` + `editor-freeze-study.md` ·
 `709e9e00` task 1.2 closed · `ef8e8d77` S3b plan (P0+P1) · `b6884670` audit bodies aligned ·
 `c5637dab` S3b questions resolved. `openspec validate --strict` passed on S3.
 
-**`session/s5-freeze-editor` (editor FREEZE, variant A3), 10 commits, `verify.js` green after a clean
+**EDITOR FREEZE (variant A3) — LANDED on `dev` 2026-10-14 (`445a49aa`); record of what it did (was 10 commits, `verify.js` green after a clean
 `npm ci`, typecheck/tests/lint/`build:docs` pass:** S5 re-scoped (freeze now, delete later; delete-phase
 spec deltas parked in `deferred-delete/specs/`, only `quality-gates` stays live); 81-file static snapshot of
 the hosted app committed; `jsdom`/`happy-dom` moved to root devDependencies; editor removed from
