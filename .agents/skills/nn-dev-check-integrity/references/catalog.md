@@ -269,7 +269,7 @@ npm --prefix iNNfo run check:spec-version -- --inventory   # informational
 **Local automation & residual nonequivalence.** `node scripts/check-integrity.js --pre-push`
 automates the core of this list: `lint`, `typecheck`, `innfo-core test`,
 `innfo-mcp test:coverage`, `check:spec-urls`, plus the full
-`verify.js` suite (Groups 3/4/7). Three steps are deliberately **not** mirrored
+`verify.js` suite (Groups 3/4/7). Two steps are deliberately **not** mirrored
 locally — they are documented gaps, not oversights, and the runner should not be
 widened to include them:
 - `innfo-core run build` — CI builds core before the tests to kill stale `dist/`
