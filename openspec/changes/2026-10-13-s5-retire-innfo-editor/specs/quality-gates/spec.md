@@ -1,11 +1,15 @@
 # Delta for quality-gates
 
+Scope: **S5-freeze only** (the editor is frozen, not deleted). Every spec removal that
+belongs to the deferred delete phase lives under `../deferred-delete/specs/` and MUST NOT
+be synced into `openspec/specs/` until S5-delete starts (see `tasks.md`).
+
 ## MODIFIED Requirements
 
 ### Requirement: Coverage and spec URLs in the local pre-push mirror
 
 The local pre-push CI mirror MUST preserve the two checks that previously
-surfaced only in CI. (Previously: Group 5 also ran the `innfo-editor` test suite, retired with S5.)
+surfaced only in CI. (Previously: Group 5 also ran the `innfo-editor` test suite, which is frozen with S5-freeze and no longer part of any gate.)
 
 #### Scenario: Coverage ratchet is visible locally
 
@@ -35,7 +39,7 @@ surfaced only in CI. (Previously: Group 5 also ran the `innfo-editor` test suite
 
 ### Requirement: MCP CDN bundle staging is independent of the editor build
 
-(Reason: the editor build no longer exists; the requirement is restated against the docs build under a new name.)
+(Reason: the docs build no longer builds the editor (S5-freeze); the requirement is restated against the docs build under a new name.)
 (Migration: Replaced by "MCP CDN bundle staging is independent of the docs build".)
 
 ## ADDED Requirements
@@ -53,3 +57,24 @@ The innfo-mcp CDN bundle MUST be staged by a dedicated script (`scripts/stage-mc
 - GIVEN `scripts/build-docs.mjs` runs
 - WHEN it completes
 - THEN it did not perform the CDN bundle staging
+
+### Requirement: A frozen app is outside every gate
+
+An app that is frozen (source kept in place, no longer maintained) MUST NOT be an npm workspace member and MUST NOT be built, typechecked, linted, tested or version-synced by any gate: root `package.json` scripts, the pre-push hook, CI jobs, `scripts/build-docs.mjs`, `scripts/sync-versions.mjs`, `scripts/check-integrity.js`, `scripts/verify.js` suite discovery and the repo-wide source guards. A frozen app MUST carry a `FROZEN.md` explaining the state and the thaw steps. Dependencies that gated suites import MUST be declared by a gated package, never only by the frozen app.
+
+A frozen app that is hosted MUST be published from a committed static build (`docs/innfo/app/`) so that the full-replace Pages publish keeps serving it.
+
+#### Scenario: Gated surfaces never reference the frozen editor
+- GIVEN the frozen `iNNfo/apps/innfo-editor`
+- WHEN `test/editor-freeze.test.mjs` scans the root workspaces, CI workflows, the pre-push hook, build scripts and `verify.js`
+- THEN none of them references `innfo-editor` or builds `iNNfo/apps`
+
+#### Scenario: Gated suites do not depend on the frozen app for test environments
+- GIVEN a gated test imports `jsdom` or `happy-dom`
+- WHEN the editor workspace is absent
+- THEN both packages resolve from root `devDependencies`
+
+#### Scenario: The hosted app survives a Pages publish
+- GIVEN the site is built without building the editor
+- WHEN `docs/innfo/app/` is staged into the Pages artifact
+- THEN `index.html` and `assets/` from the committed snapshot are present and `FROZEN.md` exists next to the editor source

@@ -1,58 +1,118 @@
-# Design: S5 — retire the Vue editor, the hosted app and the MCP live preview
+# Design: S5 — freeze the Vue editor now, delete it later
 
-## Preconditions
+Source analysis: `editor-freeze-study.md` in the S3 change (worktree `session/s3-domain-console`).
+Its claims were re-verified against this branch on 2026-10-14; deviations are listed at the end.
 
-1. S3 complete: `audit.md` reviewed, its *port* rows applied. Every S5 REMOVED delta for
-   an editor feature follows an audit decision; if the audit ported a feature (for example
-   a workspace lineage graph view), the console requirement lives in S3's deltas and the
-   editor requirement is still removed here.
-2. S6 complete: preview is a regenerated console file; the knowledge scaffold lives in
-   `innfo-core` (`scaffoldKnowledgeDocument`); `init_knowledge` is an `add_model` wrapper.
+## Phase A: S5-freeze (variant A3)
 
-## Coupling inventory (verified 2026-10-13)
+### Decision
+
+The source stays at `iNNfo/apps/innfo-editor`. It leaves npm workspaces and every gate.
+The hosted app is a committed static build. Rejected: A1 (stop building: `/innfo/app/` would
+404 on the next publish because `publish-web` replaces the whole tree), A2 (isolated install
+keeps a core-source coupling), B-prime (vendored core build: more generated output),
+C1/C2 (delete or relocate: not what the maintainer wants), D (keep workspace, exclude from
+gates: first core refactor that breaks `vue-tsc` reds the site).
+
+### Edits (all verified)
+
+| Area | Location | Freeze action |
+|------|----------|---------------|
+| Test deps | editor `package.json` declares `jsdom`, `happy-dom`; 17 gated files import them (`test/console-*.test.mjs`, `test/helpers/console-boot.mjs`, `innfo-core/tests/console-*.test.ts`, `tests/helpers/console-review-env.ts`) | add both to root `devDependencies` **before** dropping the workspace |
+| npm | `package.json` `workspaces`; `typecheck` / `test` / `test:coverage` | drop `iNNfo/apps/*`; strip the editor from the three scripts; regenerate `package-lock.json` with `npm install --package-lock-only` |
+| Pre-push | `.githooks/pre-push` runs `npm run typecheck` | no edit: it now stops paying `vue-tsc`; comments mentioning "3 workspaces" are reworded |
+| CI | `.github/workflows/ci.yml` `quality` job: editor typecheck, tests, build | remove the three steps (the `publish-web` `needs: quality` chain no longer includes the editor) |
+| Integrity | `scripts/check-integrity.js` Group 5 | remove the editor test run |
+| Versions | `scripts/sync-versions.mjs` (`samples.ts` target), `sync-versions.test.mjs`, `verify.js` step 7d | stop generating / checking `samples.ts`; the editor's `SHIPPED_BLUEPRINT_VERSIONS` goes stale by design (noted in `FROZEN.md`) |
+| Lint | `eslint.config.mjs` | ignore `iNNfo/apps/innfo-editor/**`; keep `eslint-plugin-vue` devDeps so a thaw only removes the ignore |
+| Source guards | `scripts/lib/legacy-write-guard.js` scope regex; `scripts/lib/nn-name-regex-guard.js` scope regex + 4 editor allowlist entries (and their tests) | remove the `iNNfo/apps/<app>/src` scope and the 4 entries: a future retired token must not force an edit in frozen code |
+| Docs build | `scripts/build-docs.mjs` editor build + `docs/innfo/app/` staging, including the `assets/` rmSync | delete; the committed snapshot is part of `docs/` already |
+| Snapshot | `.gitignore` ignores `docs/innfo/app/assets/` and `index.html`; `docs/innfo/app/` tracks only `404.html` and `starter/` | remove the two ignore lines; commit the build output (81 files, 5.6 MB) |
+| Encoding guard | `scripts/guard-text-encoding.js` skips only `*.bundle.js` | skip `docs/innfo/app/assets/` (two chunks contain U+FFFD in the built JS) |
+| Prettier | `.prettierignore` | add `docs/innfo/app/assets/` (CI format check is changed-files-only and would scan the minified chunks) |
+| Dev scripts | `run-dev.bat`, `iNNfo/run-dev.bat` | remove the editor block (its workspace no longer exists) |
+| Config | `openspec/config.yaml` | drop the `innfo-editor` workspace and per-package test line |
+| Doc | new `iNNfo/apps/innfo-editor/FROZEN.md` | state, why, thaw steps, what rots |
+| Guard | new `test/editor-freeze.test.mjs` (auto-discovered by `collectTestSuites`) | see Guard test |
+
+### Left untouched on purpose
+
+- `legacy-ledger.yaml` `editor-legacy-domain` entry and its two markers: they live in the
+  kept source, so the 1:1 ledger contract still holds. Removed together with the code in Phase B.
+- `scripts/check-spec-version.mjs:285`, `scripts/migrate-spec-urls*.mjs`: they skip editor
+  fixtures that still exist.
+- `test/no-workspace-hub-references.test.mjs`: its DELETED list names files that do not exist; independent of the freeze.
+- `scripts/guard-template-immutability.js:231` badge normalisation: KEEP in every phase.
+- `iNNfo/validation-baseline.json`, core comments: Phase B.
+
+### Guard test (`test/editor-freeze.test.mjs`)
+
+Asserts, from the repo root, that:
+1. root `package.json` `workspaces` do not match `iNNfo/apps/*` and no script mentions `innfo-editor`;
+2. `jsdom` and `happy-dom` are root `devDependencies`;
+3. `.github/workflows/*.yml`, `.githooks/*`, `scripts/build-docs.mjs`, `scripts/sync-versions.mjs`,
+   `scripts/check-integrity.js`, `scripts/verify.js` and both source-guard modules contain neither
+   `innfo-editor` nor `iNNfo/apps`;
+4. `iNNfo/apps/innfo-editor/FROZEN.md`, `docs/innfo/app/index.html` and `docs/innfo/app/assets/` (non-empty) exist.
+`FROZEN.md` and the snapshot are deliberately inside the allowlist. A fixture-based unit
+checks the scanner flags a planted reference, so the guard can go red.
+
+### Hosted-app facts
+
+The editor fetches specs from `raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/...`
+and the catalog from `cognnitive.com/innfo/blueprints/catalog.json`; published `_V_` specs are
+write-once, so a frozen build keeps loading but will not understand newer L3 shapes. Vite
+`base` is `/innfo/app/` (default), so the snapshot is built with no env override.
+The build embeds the commit date (`__COMMIT_DATE__`), so it is reproducible per commit, not byte-identical across commits.
+
+### Order of work
+
+1. Snapshot built from the still-gated editor (own real install in this worktree), committed.
+2. Guard test (red), then move `jsdom` / `happy-dom` to root (lock via `--package-lock-only`).
+3. Drop workspace and scripts, CI, hooks, sync-versions, guards, build-docs.
+4. `FROZEN.md`, `run-dev.bat`, config. Verify.
+
+## Phase B: S5-delete (deferred)
+
+### Preconditions
+1. S3 complete (`audit.md` reviewed, *port* rows applied) AND S6 complete (preview is a console file; scaffold in `innfo-core`; `init_knowledge` is an `add_model` wrapper).
+2. The maintainer has dogfooded the console and gives **explicit sign-off**.
+
+### Coupling inventory (verified 2026-10-13, revalidated 2026-10-14; rows done by the freeze are marked)
 
 | Area | Location | Action |
 |------|----------|--------|
 | App | `iNNfo/apps/innfo-editor/**` (~290 files) | delete |
-| npm | root `package.json` `typecheck` / `test` / `test:coverage` (hardcode the editor workspace), devDeps `eslint-plugin-vue`, `vue-eslint-parser`; `package-lock.json` | edit; regenerate the lockfile (build-only, no `npm ci` from the worktree: node_modules are junctions) |
-| Lint | `eslint.config.mjs` (Vue config) | edit |
-| CI | `.github/workflows/ci.yml:137,149,152`; `release.yml` if it names the editor | edit |
-| Config | `openspec/config.yaml` (module list, `per_package.innfo-editor`, coverage note) | edit |
-| Dev scripts | `run-dev.bat`, `iNNfo/run-dev.bat` | delete or edit |
-| Ignore | `.gitignore:14-15` (`docs/innfo/app/...`) | delete lines |
-| Ledger | `legacy-ledger.yaml:56-60` (`editor-legacy-domain`) | delete entry (its code is deleted) |
-| Scripts | `scripts/build-docs.mjs` (app build + deploy to `docs/innfo/app/`), `scripts/sync-versions.mjs` + `sync-versions.test.mjs:98`, `scripts/check-integrity.js`, `scripts/check-spec-version.mjs:285`, `scripts/migrate-spec-urls.mjs`, `scripts/migrate-spec-urls-web.mjs`, `scripts/lib/nn-name-regex-guard.js:50-53` + test | edit |
-| Guard kept | `scripts/guard-template-immutability.js:231` normalizes old badge URLs (`innfo/app/`, `innfo-doc`) found in published write-once `_V_` specs | KEEP; extend so the new badge line is equivalent too; comment why |
-| Tests | `scripts/generate-about-twin.test.mjs`, `test/no-workspace-hub-references.test.mjs:34-35`, `iNNfo/packages/innfo-core/tests/legacy/layout/retired-paths.test.ts:13`, `iNNfo/packages/innfo-core/tests/console-dom.test.ts`, `console-citations-dom.test.ts` (editor mentions) | edit |
-| Baseline | `iNNfo/validation-baseline.json` (editor paths) | regenerate |
-| Core comments | `innfo-core/src/{sourceRef.ts,types/graph.ts,validator/content.ts,workspace/integrity/report.ts,workspace/integrity/versionStatus.ts}` | reword |
-| MCP | `innfo-mcp/src/tools/preview-server.ts` (`PREVIEW_APP_URL` `:21`), `withPreview` (`server.ts:124`, `:884`, `:959`), `src/server-preview.test.ts` (asserts `?view=editor`) | delete |
-| Badge emitters | `innfo-core/src/parser/serializer.ts`, `src/changeset/serializer.ts`, `src/schema/canonical-registry.ts`, the shared scaffold (`src/scaffold/knowledge.ts`, from S6), console `innfo-runtime.js` `serializeChangesetMarkdown`, every maintained `iNNfo/specs/bluepriNNts/**/spec_NN.md` and procedure template | retarget |
-| Samples / fixtures | `_samples_nn/**`, `docs/cognitive_nn/use-cases/**`, `ecosystem_NN/**`, `docs/workspace_NN.md`, `test/fixtures/testlab/**` (regenerated), simulation fixtures | retarget (not write-once ones) |
-| Docs | delete `docs/innfo/documentation/innfo-editor.md`, `live-preview.md`; edit `usage.md`, `specifications.md`, `README.md`, `_sidebar.md`, `_navbar.md`, `ai-index.yaml`, `documentation_NN.md`, `index.html`, `llms.txt`, `tags-and-taxonomy.md`, `innfo-core.md`, `docs/innfo/llms.txt`, `docs/innfo/llms-full.txt`, `docs/innfo/about.{md,html}`, `docs/index.{md,html}`, `docs/innfo/index.html`, `docs/404.html`, `docs/skills/**`, `docs/use-cases.{md,html}`, `docs/contact.html`, `docs/legal.html`, `docs/privacy.html` | edit |
-| Tracked app files | `docs/innfo/app/404.html`, `docs/innfo/app/starter/*_NN.md` (4) | delete |
-| Root docs | `README.md:34`, `.agents/skills/nn-dev-check-integrity/SKILL.md` | edit |
+| npm | root `package.json` scripts / workspaces | **done by freeze**; remaining: drop `eslint-plugin-vue`, `vue-eslint-parser`, regenerate lock |
+| Lint | `eslint.config.mjs` (Vue config) | freeze ignores the dir; delete the Vue config and the ignore |
+| CI | `ci.yml` editor steps | **done by freeze**; `release.yml` has none |
+| Config | `openspec/config.yaml` | **done by freeze** |
+| Dev scripts | `run-dev.bat`, `iNNfo/run-dev.bat` | **done by freeze** (delete if now empty) |
+| Ignore | `.gitignore:14-15` | **done by freeze** |
+| Ledger | `legacy-ledger.yaml` `editor-legacy-domain` + 2 markers | delete entry and markers with the code |
+| Scripts | `build-docs.mjs`, `sync-versions.mjs` (+test), `check-integrity.js`, `nn-name-regex-guard.js` + `legacy-write-guard.js` | **done by freeze**; remaining: `check-spec-version.mjs:285`, `migrate-spec-urls*.mjs` fixture skips |
+| Guard kept | `guard-template-immutability.js:231` badge normalisation | KEEP; extend so the new badge is equivalent; comment why |
+| Tests | `generate-about-twin.test.mjs`, `no-workspace-hub-references.test.mjs`, `retired-paths.test.ts:13`, core `console-dom` tests | edit |
+| Baseline | `iNNfo/validation-baseline.json` | regenerate |
+| Core comments | `sourceRef.ts`, `types/graph.ts`, `validator/content.ts`, `integrity/report.ts`, `integrity/versionStatus.ts` | reword |
+| MCP | `preview-server.ts` (`PREVIEW_APP_URL`), `withPreview`, `server-preview.test.ts` | delete (S5a, coupled to S6) |
+| Badge emitters / templates / samples / docs | see tasks B | retarget (S5c) |
+| Tracked app files | `docs/innfo/app/**` including the A3 snapshot | delete |
+| Freeze artefacts | `FROZEN.md`, `test/editor-freeze.test.mjs`, prettier / encoding-guard exemptions for the snapshot | delete or fold into the S5d guard |
 
-## Decisions
+### Decisions (unchanged by the freeze)
 
-- **CTAs.** "Open App" (`docs/index.html:899`, `docs/innfo/index.html:338`) becomes
-  "Read the docs" linking `https://cognnitive.com/innfo/documentation/`. No redirect page is
-  left at `/innfo/app/` (no backwards-compat artifacts); the old URL 404s.
-- **Badge.** The canonical line becomes
-  `> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
-  Maintained templates bump `template_version`; write-once `_V_` specs keep the old line.
-- **Scaffold notice.** S6 kept the old bytes so `init_knowledge` output stayed identical;
-  S5 updates `scaffoldKnowledgeDocument`, the templates and `canonical-registry.ts`
-  together and refreshes the scaffold golden test.
-- **Guardrail.** `rg "innfo-editor|innfo/app/"` returns nothing outside: `iNNfo/specs/**/*_V_*`
-  (write-once), `openspec/changes/archive/**`, `scripts/guard-template-immutability.js`
-  (the normalization, commented), `legacy-ledger.yaml` history-free (entry deleted), and
-  this change directory. The match is on `innfo/app/` (not `docs/innfo/app`).
-- **Living specs.** Disposition per capability is the delta set of this change; specs
-  whose requirements are all removed stay as empty capability files after archive (repo
-  convention).
+- **CTAs.** "Open App" becomes "Read the docs" (`https://cognnitive.com/innfo/documentation/`); no redirect page; `/innfo/app/` 404s after deletion.
+- **Badge.** `> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.` Maintained templates bump `template_version`; write-once `_V_` specs keep the old line.
+- **Scaffold notice.** `scaffoldKnowledgeDocument`, templates and `canonical-registry.ts` change together with a refreshed golden.
+- **Guardrail (S5d).** `rg "innfo-editor|innfo/app/"` returns nothing outside `iNNfo/specs/**/*_V_*`, `openspec/changes/archive/**`, `guard-template-immutability.js` (commented), and this change directory. It must allow the editor directory only until it is deleted.
+- **Living specs.** Disposition per capability is the set under `deferred-delete/specs/`; moved back to `specs/` when Phase B starts.
+
+## Deviations from the study
+
+Recorded in `tasks.md` under "Verification notes" as they are confirmed during apply.
 
 ## Cross-cutting
 
-Releases after the `dev → main` batch: `innfo-mcp-v*`, `innfo-console-v*`,
-`blueprints-v*`, `skills-v*`, per `.agents/skills/nn-dev-release/SKILL.md`.
+Releases for Phase B after the `dev -> main` batch: `innfo-mcp-v*`, `innfo-console-v*`,
+`blueprints-v*`, `skills-v*`, per `.agents/skills/nn-dev-release/SKILL.md`. Phase A needs none.
