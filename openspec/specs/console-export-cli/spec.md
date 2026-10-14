@@ -141,22 +141,6 @@ The CLI MUST inject a filesystem-backed citation resolver into the builder, so e
 - WHEN exported
 - THEN `el.citations.sources` holds a resolved entry
 
-### Requirement: Root Ledger Input
-
-The CLI MUST read verdicts from `<domaiNN root>/feedback-ledger.jsonl` and embed them as `meta.feedbackState`. It MUST NOT read `sources/import/feedback/ledger.jsonl` or any other candidate path. An absent ledger yields empty `feedbackState`; a malformed line is reported with its line number and the remaining entries load.
-
-#### Scenario: Ledger read from root
-
-- GIVEN a domaiNN with `feedback-ledger.jsonl` at its root
-- WHEN exported
-- THEN `meta.feedbackState` reflects the effective statuses
-
-#### Scenario: Old location ignored
-
-- GIVEN a ledger only under `sources/import/feedback/`
-- WHEN exported
-- THEN `feedbackState` is empty
-
 ### Requirement: Scoped console mode
 
 `<ModelName>` positional arguments, `--filter <pattern>` and `--all` MUST NOT produce per-model console files. Each MUST select a set of models and produce one domain console scoped to that set (`meta.consoleScope.models`, see `console-scope`), built from the single shell. The scope label and the `<scope>` family key MUST be derived deterministically from the selected set. An explicit selection (`<ModelName>` or `--filter`) matching no model MUST exit non-zero and write nothing (`--stale` with nothing stale writes nothing and exits 0). Scope MUST be chosen only through these CLI options.

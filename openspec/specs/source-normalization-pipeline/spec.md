@@ -3,9 +3,7 @@
 ## Purpose
 
 Normalization is cognitivization in place: every active source subtree gets co-located sidecars, with no mirror tree. Promoting deliverables into a sources folder disappears because any file can be cognitivized where it lives.
-
 ## Requirements
-
 ### Requirement: Multi-Subtree Normalization Scanning
 
 The scanner (`nn-trannsform --scan` / `scanAndProcess`) MUST recursively scan `sources/import/` and `sources/conversations/` and MUST cognitivize every file in them that has no up-to-date sidecar, through the single `cognitivize` operation. Sidecars MUST be co-located with their raw file; no `sources/nn/` mirror and no `sources/export/` subtree exist. Sidecar files and `staging/` MUST be skipped.
@@ -47,7 +45,7 @@ Files promoted from `conversations/` into `sources/conversations/` by the standa
 
 The ad-hoc Slack and Microsoft Teams JSON conversion logic in `scanner-converters.js` (`convertChatJson`) MUST be removed.
 
-Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured data schemas or raw key-value payloads rather than heuristic message threads, EXCEPT `sources/import/feedback/*.json`, which MUST route to the feedback ingestion branch (see Requirement: Feedback JSON Ingestion). Ingestion of interactive discussion and meeting transcripts MUST be handled via the canonical conversation lifecycle (`conversations/` and `sources/conversations/`).
+Ingestion of `.json` files anywhere under `sources/import/` SHALL treat JSON as structured data schemas or raw key-value payloads rather than heuristic message threads, with no folder-specific exception. Ingestion of interactive discussion and meeting transcripts MUST be handled via the canonical conversation lifecycle (`conversations/` and `sources/conversations/`). (Previously: `sources/import/feedback/*.json` was routed to a feedback ingestion branch.)
 
 #### Scenario: JSON file processed without Slack heuristic
 - GIVEN a JSON configuration or data file `sources/import/config.json`
@@ -60,27 +58,10 @@ Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured d
 - WHEN captured and imported into the workspace
 - THEN it is routed through `conversations/` and cognitivized under `sources/conversations/` rather than relying on legacy Slack JSON parsers
 
-#### Scenario: Feedback JSON bypasses the generic branch
-- GIVEN `sources/import/feedback/x_feedback_20260909-120000.json`
+#### Scenario: The retired drop zone gets no special routing
+- GIVEN a JSON file in the retired `sources/import/feedback/` drop zone
 - WHEN `convertOkFormat` is invoked for `.json`
-- THEN the file routes to feedback ingestion, not the generic structured-data path
-
-### Requirement: Feedback JSON Ingestion
-
-The scanner MUST cognitivize `sources/import/feedback/*.json` files conforming to the `innfo-console-feedback` schema in place. The sidecar MUST record `source_type: feedback` and MUST NOT include `is_synthetic`. The raw JSON is the citation target, addressed by JSON Pointer per `citation-parser-resolver`. Invalid feedback MUST be skipped with a report without aborting the run.
-
-#### Scenario: Feedback scan produces a sidecar
-- GIVEN `sources/import/feedback/Client_round-2_feedback_20260909T120000Z.json`
-- WHEN `--scan` runs
-- THEN a co-located sidecar exists with `source_type: feedback`
-- AND an item is citable as `sources/import/feedback/Client_round-2_feedback_20260909T120000Z.json@/items/0`
-
-#### Scenario: Invalid feedback skipped with report
-- GIVEN a feedback JSON failing schema validation
-- WHEN the scan runs
-- THEN the file is skipped and reported without aborting the run
-
----
+- THEN the file takes the generic structured-data path
 
 ### Requirement: Scored Source-to-Element Matching
 
@@ -124,5 +105,4 @@ Every doubtful or unmatched pair MUST enter a review queue. Reviewers confirm or
 - WHEN the queue is inspected
 - THEN undecided pairs remain queued
 - AND none are treated as excluded
-
 

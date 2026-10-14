@@ -128,7 +128,7 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 - [x] 8.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
       `npm --prefix skills/nn-sources test`; `node scripts/verify.js`. [all requirements]
-- [ ] 8.2 After the `dev → main` batch, following `.agents/skills/nn-dev-release/SKILL.md`:
-      tag `innfo-mcp-v<next>` (tools removed), `innfo-console-v<next>` (bundle and shells),
-      `skills-v<next>` (`nn-innfo`, `nn-sources`), `blueprints-v<next>` (workspace template
-      without `reconcile_feedback`). [all requirements]
+- [x] 8.2 After the `dev → main` batch, following `.agents/skills/nn-dev-release/SKILL.md`:
+      tag `innfo-mcp-v0.19.0` (tools removed), `innfo-console-v0.12.0` (bundle and shells),
+      `skills-v2.20.0` (`nn-innfo` V_0-5-10, `nn-sources` V_3-5-1), `blueprints-v0.32.0`
+      (workspace template without `reconcile_feedback`). [all requirements]
