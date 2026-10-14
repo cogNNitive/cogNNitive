@@ -18,7 +18,7 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
       and write `audit.md` with one row each (design table), including the seven explicit
       decisions of the design. [console-architecture: Console covers the editor's used
       feature set]
-- [ ] 1.2 Maintainer review of `audit.md`; record the outcome and date at its top.
+- [x] 1.2 Maintainer review of `audit.md`; record the outcome and date at its top. (Closed 2026-10-14.)
       [console-architecture: Console covers the editor's used feature set]
 
 ## 2. D14 remainder (S3a)

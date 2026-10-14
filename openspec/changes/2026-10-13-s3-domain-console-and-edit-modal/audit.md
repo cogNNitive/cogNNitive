@@ -1,11 +1,11 @@
 # S3a — Parity audit: `innfo-editor` → domain console
 
-> **Maintainer review: IN PROGRESS** — Task 1.2 stays open until the S3b scope is confirmed.
+> **Maintainer review: CLOSED (2026-10-14)** — S3b scope confirmed as P0 + P1 (see Revision 2026-10-14).
 > Decisions recorded with the maintainer on 2026-10-14: workspace lineage graph → drop; file
 > preview → minimal port (open original file); validation report → drop (redundant with MCP);
 > submodel nesting → drop; D14 "source index" reading confirmed; tag filter → fix and make it
 > switchable AND/OR; a fresh widget study (`widget-study.md`) replaced the first widget verdicts.
-> Outcome: ____________________  Date: __/__/______  Reviewer: ____________
+> Outcome: approved with the revisions below; editor frozen (variant A3, `editor-freeze-study.md`) instead of deleted until dogfooding ends.  Date: 2026-10-14  Reviewer: maintainer
 >
 > This document is the S3a gate. It classifies **every `.vue` component and every
 > route** under `iNNfo/apps/innfo-editor/src/` as **in console** / **port** / **drop**,
@@ -36,7 +36,7 @@ re-derived every widget from code and real counts. Findings that change the plan
    video/audio/image rendering, and a matrix-cell editor constrained by marker `widget`/`values`
    (verify engine-side validation first).
 
-Proposed S3b scope = P0 + P1 (≈1 week, strict TDD, in batches). **Pending maintainer confirmation.**
+S3b scope = P0 + P1 (≈1 week, strict TDD, in batches). **Confirmed by the maintainer 2026-10-14.**
 
 ## Method
 
