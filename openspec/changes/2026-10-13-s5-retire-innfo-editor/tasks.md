@@ -38,61 +38,78 @@ Tag-driven; never hand-edit pins; this change does not tag.
 
 - [x] A1.1 Build the hosted app once in a session worktree with its own real install:
       `npm --workspace=@cognnitive/innfo-editor run build` (vue-tsc + vite, offline, `base=/innfo/app/`).
-- [ ] A1.2 TEST: extend `scripts/guard-text-encoding.test.js` so `docs/innfo/app/assets/**`
+- [x] A1.2 TEST: extend `scripts/guard-text-encoding.test.js` so `docs/innfo/app/assets/**`
       is skipped while other files still fail on U+FFFD; then implement the skip.
       [quality-gates: A frozen app is outside every gate]
-- [ ] A1.3 Copy `dist/` into `docs/innfo/app/` (keep `404.html` and `starter/`), remove
+- [x] A1.3 Copy `dist/` into `docs/innfo/app/` (keep `404.html` and `starter/`), remove
       `.gitignore:14-15`, add `docs/innfo/app/assets/` to `.prettierignore`. Commit the snapshot alone.
       [quality-gates: A frozen app is outside every gate]
 
 ### A2. Guard first, then dependencies
 
-- [ ] A2.1 TEST (red): `test/editor-freeze.test.mjs` per `design.md` Guard test, including a
+- [x] A2.1 TEST (red): `test/editor-freeze.test.mjs` per `design.md` Guard test, including a
       planted-reference fixture proving it can fail. It fails today.
       [quality-gates: A frozen app is outside every gate]
-- [ ] A2.2 Move `jsdom` and `happy-dom` to root `devDependencies` (same ranges as the
+- [x] A2.2 Move `jsdom` and `happy-dom` to root `devDependencies` (same ranges as the
       editor); regenerate `package-lock.json` with `npm install --package-lock-only`.
       [quality-gates: A frozen app is outside every gate]
 
 ### A3. Decouple (each edit leaves the guard greener)
 
-- [ ] A3.1 Root `package.json`: drop `iNNfo/apps/*` from `workspaces`; strip the editor from
+- [x] A3.1 Root `package.json`: drop `iNNfo/apps/*` from `workspaces`; strip the editor from
       `typecheck`, `test`, `test:coverage`; regenerate the lock; reword the pre-push header comment.
       [quality-gates: A frozen app is outside every gate]
-- [ ] A3.2 `.github/workflows/ci.yml` `quality` job: remove the editor typecheck, test and build steps.
+- [x] A3.2 `.github/workflows/ci.yml` `quality` job: remove the editor typecheck, test and build steps.
       [quality-gates: A frozen app is outside every gate]
-- [ ] A3.3 `scripts/check-integrity.js`: remove the editor test run (Group 5) and the
+- [x] A3.3 `scripts/check-integrity.js`: remove the editor test run (Group 5) and the
       `samples.ts` wording in Group 2b; `.agents/skills/nn-dev-check-integrity/**` mentions.
       [quality-gates: Coverage and spec URLs in the local pre-push mirror]
-- [ ] A3.4 TEST then edit `scripts/sync-versions.mjs` + `sync-versions.test.mjs`: no `samples.ts`
+- [x] A3.4 TEST then edit `scripts/sync-versions.mjs` + `sync-versions.test.mjs`: no `samples.ts`
       target; MCP/core version sync unchanged. [quality-gates: A frozen app is outside every gate]
-- [ ] A3.5 `scripts/build-docs.mjs`: remove the editor build, the `docs/innfo/app/` staging
+- [x] A3.5 `scripts/build-docs.mjs`: remove the editor build, the `docs/innfo/app/` staging
       and the `assets/` rmSync. [quality-gates: MCP CDN bundle staging is independent of the docs build]
-- [ ] A3.6 TEST then edit `legacy-write-guard.js` and `nn-name-regex-guard.js`: drop the
+- [x] A3.6 TEST then edit `legacy-write-guard.js` and `nn-name-regex-guard.js`: drop the
       `iNNfo/apps/<app>/src` scope and the 4 editor allowlist entries; update their tests.
       Leave the ledger entry and markers. [quality-gates: A frozen app is outside every gate]
-- [ ] A3.7 `eslint.config.mjs`: ignore `iNNfo/apps/innfo-editor/**` (replaces the
+- [x] A3.7 `eslint.config.mjs`: ignore `iNNfo/apps/innfo-editor/**` (replaces the
       `scratch_graph_test.mjs` entry). `run-dev.bat`, `iNNfo/run-dev.bat`: remove the editor block.
       `openspec/config.yaml`: remove the `innfo-editor` workspace and test line.
       [quality-gates: A frozen app is outside every gate]
 
 ### A4. Document and verify
 
-- [ ] A4.1 `iNNfo/apps/innfo-editor/FROZEN.md`: state, rationale, what is gone from the gates,
+- [x] A4.1 `iNNfo/apps/innfo-editor/FROZEN.md`: state, rationale, what is gone from the gates,
       thaw steps (re-add the workspace line, restore the three scripts and CI steps, `npm install`,
       `npm --workspace=@cognnitive/innfo-editor test`), what rots (`samples.ts`,
       `shipped-template-versions.test.ts` would fail, newer L3 and changeset shapes), deletion is the end state.
-- [ ] A4.2 Before `verify.js`: `npm --workspace=@cognnitive/innfo-core run build` and
+- [x] A4.2 Before `verify.js`: `npm --workspace=@cognnitive/innfo-core run build` and
       `npm --workspace=@cognnitive/innfo-mcp run build`. Then `node scripts/verify.js`,
       `npm run typecheck`, `npm test`, `npm run check:spec-urls`, `npm run check:versions`.
-- [ ] A4.3 Record deviations from the study under "Verification notes"; hand off to the maintainer.
-- [ ] A4.4 Spec bookkeeping when the freeze lands: sync `specs/quality-gates` into
+- [x] A4.3 Record deviations from the study under "Verification notes"; hand off to the maintainer.
+- [ ] A4.4 (maintainer, at integration; not done in the session) Spec bookkeeping when the freeze lands: sync `specs/quality-gates` into
       `openspec/specs/quality-gates` and move the delta to `applied/specs/quality-gates`.
       **Do not archive this change directory and do not sync `deferred-delete/`.**
 
 ### Verification notes
 
-(filled during apply)
+Verified on `session/s5-freeze-editor` after a clean `npm ci`: `node scripts/verify.js` green
+(includes `test/editor-freeze.test.mjs`), `npm run typecheck`, `npm test` (core + mcp), `npm run lint`
+(0 errors), `check:spec-urls`, `check:versions`, `build:docs`. Deviations from the study:
+
+- jsdom importers: 14 `test/` files (plus `test/helpers/console-boot.mjs`) and 3 core files, not 10 + 2.
+  `happy-dom` is used through `@vitest-environment` pragmas in core.
+- The lockfile on `dev` was already stale (workspace versions 0.14.2 vs 0.19.0, `peggy` / `fast-check`
+  entries no package declares). `npm install --package-lock-only` also kept the dropped editor as an
+  `extraneous` entry, so that one entry was deleted before the final regeneration (stable on re-run,
+  `npm ci --dry-run` and a real `npm ci` pass). The lock diff is therefore large; review it as a regeneration.
+- `scripts/sync-versions.test.mjs` called `syncVersions` without `samplesTsPath` in some cases, so it
+  rewrote the live editor `samples.ts`; removing the target fixed that.
+- The snapshot is 81 files, 5.6 MB; two chunks contain a literal U+FFFD, hence the encoding-guard
+  prefix exemption and the `.prettierignore` entry (CI format check is changed-files-only).
+- `check-spec-version.mjs:285` and `migrate-spec-urls*.mjs` fixture skips are kept: the fixtures still exist.
+- Not done: tagging `innfo-editor-frozen` (sessions never tag); a browser smoke test of the snapshot
+  (needs serving under `/innfo/app/`); A4.4 spec sync.
+- `docs/innfo/blueprints/catalog.json` drifts by 4 lines after `build:docs` on `dev` independent of this change (reverted).
 
 ---
 
