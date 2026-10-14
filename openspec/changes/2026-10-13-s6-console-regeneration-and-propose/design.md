@@ -324,8 +324,17 @@ notes:: Migrated from the old domain
    `SCHEMA_OPS` (`add_concept`, `add_field`, `set_marker` — Level-2 bluepriNNt authoring;
    trace = git + `template_version`). Anything else fails `UNKNOWN_OPERATION`. They are NOT
    turned into changesets (no citation to carry, no Level-2 changeset) and leave no
-   auto-changeset. Open check (task 7.8): the interaction of `bump_version` (renames the
-   file) with changeset sealing by version.
+   auto-changeset. Check (task 7.8, done): `bump_version` renames the file and changes the
+   model's `knowledge_version`, but `proposal_sha` seals only the change items
+   (`PROPOSAL_KEYS`), never a model version, so a bump cannot invalidate a seal. Its only
+   effect on changesets is on the idempotent replay of an already applied changeset: the
+   recorded `models.<id>.result_version` no longer matches the live version, so the replay
+   reports "already applied; no mutations performed" (still `success: true`, nothing
+   re-applied) instead of "matching model versions". Staleness (`checkStaleTarget`)
+   compares a pending change's base version with the versions recorded by applied
+   changesets; a bump only moves the live version forward, which can only make an old
+   deletion look older. No code change was needed; the closed dispatch ships as
+   `MAINTENANCE_OPS` / `SCHEMA_OPS` in `apply-change.ts`.
 5. **`mcp-live-preview` removal.** RESOLVED: S5 REMOVES the capability by exact requirement names and deletes `withPreview` (S5a). S5 lists only the four `editor-*` specs; it must also
    REMOVE `mcp-live-preview` and delete `withPreview` in `server.ts`.
 6. **Retired app link.** RESOLVED: S5c retargets the badge in the shared scaffold, templates and registry together. The scaffold notice links `https://cognnitive.com/innfo/app/`

@@ -105,135 +105,135 @@ independent of S6b/S6c.
 
 ## 4. `add_model` in the document model (S6b)
 
-- [ ] 4.1 TEST (`tests/changeset/parser.test.ts`): parse + serialize round-trip of an
+- [x] 4.1 TEST (`tests/changeset/parser.test.ts`): parse + serialize round-trip of an
       `add_model` change (`blueprint_name`, `blueprint_url`, `name`,
       `knowledge_version`, `sources`); `add_model` with `from`/`to`/`base_hash` is
       rejected. [changeset-document-model: Changeset Mutation and Comment Operations]
-- [ ] 4.2 TEST (`tests/changeset/hasher.test.ts`): editing `blueprint_url` or
+- [x] 4.2 TEST (`tests/changeset/hasher.test.ts`): editing `blueprint_url` or
       `knowledge_version` breaks the seal (`sources` and `base_hash` sealing is #1A's
       test). [changeset-document-model: Cryptographic Proposal Sealing
       (`proposal_sha`)]
-- [ ] 4.3 `types.ts`: `add_model` in `ChangeOp`/`isChangeOp`; `blueprint_name`,
+- [x] 4.3 `types.ts`: `add_model` in `ChangeOp`/`isChangeOp`; `blueprint_name`,
       `blueprint_url`, `knowledge_version` on
       `ChangeItem`; `ModelVersionTransition.base_version` optional. `parser.ts`,
       `serializer.ts`, `hasher.ts` `PROPOSAL_KEYS` updated. [changeset-document-model:
       Changeset Mutation and Comment Operations] [changeset-document-model:
       Cryptographic Proposal Sealing (`proposal_sha`)]
-- [ ] 4.4 `changes` bluepriNNt: `add_model` option + three Change field definitions +
+- [x] 4.4 `changes` bluepriNNt: `add_model` option + three Change field definitions +
       `template_version` bump (on top of #1A/#1C); mirror into `canonical-registry.ts`;
       catalog entry; `verify.js` drift green. [changeset-document-model: Changeset
       Mutation and Comment Operations]
 
 ## 5. Shared knowledge scaffold and `add_model` apply (S6b)
 
-- [ ] 5.1 TEST (`innfo-core` scaffold suite): `scaffoldKnowledgeDocument` output is
+- [x] 5.1 TEST (`innfo-core` scaffold suite): `scaffoldKnowledgeDocument` output is
       byte-identical to the previous `initKnowledge` output for golden inputs (business,
       blank, a reference-field and a lone-text-concept bluepriNNt); version inference:
       explicit wins, inferred otherwise, `V_0-1-0` last, differing explicit accepted.
       [model-scaffold-robustness: Version-Aware Frontmatter Inference]
       [changeset-apply-engine: Model creation via `add_model`]
-- [ ] 5.2 Move `scaffoldBodyFromSchema` + the frontmatter block from
+- [x] 5.2 Move `scaffoldBodyFromSchema` + the frontmatter block from
       `innfo-mcp/src/tools/init-knowledge.ts` into `innfo-core/src/scaffold/knowledge.ts`
       (`scaffoldKnowledgeDocument`); export it. [changeset-apply-engine: Model creation
       via `add_model`]
-- [ ] 5.3 TEST (`test/apply-change.test.ts`): `add_model` creates
+- [x] 5.3 TEST (`test/apply-change.test.ts`): `add_model` creates
       `kNNowledge/<id>_NN.md` that `validate_knowledge` accepts; `models.<id>` has only
       `result_version`; existing model → `MODEL_EXISTS` + dependants
       `DEPENDS_ON_CONFLICTED_CHANGE`, file untouched; `add_model` + `add_element` in one
       changeset; `ADD_MODEL_ORDER`; duplicate target rejected; unresolvable bluepriNNt →
       `BLUEPRINT_UNRESOLVED`, nothing written; missing `kNNowledge/` →
       `DOMAIN_LAYOUT_INVALID`. [changeset-apply-engine: Model creation via `add_model`]
-- [ ] 5.4 Implement in `apply-change.ts`: Phase 1 creation + in-memory registration,
+- [x] 5.4 Implement in `apply-change.ts`: Phase 1 creation + in-memory registration,
       partition codes, no bump for created models, tmp + rename persistence with an
       absence re-check inside the lock, no archive. [changeset-apply-engine: Model
       creation via `add_model`]
-- [ ] 5.5 TEST + impl: after a commit that created a model, the handler runs
+- [x] 5.5 TEST + impl: after a commit that created a model, the handler runs
       `syncDomainManifest(root, { dry_run: false })` post-commit and reports `manifest`;
       a failing sync leaves the apply outcome unchanged. [changeset-apply-engine: Model
       creation via `add_model`]
 
 ## 6. Concept check at mutation + `init_knowledge` wrapper (S6b)
 
-- [ ] 6.1 TEST (`test/apply-change-rejections.test.ts`): `add_element` with an undeclared
+- [x] 6.1 TEST (`test/apply-change-rejections.test.ts`): `add_element` with an undeclared
       concept fails with the unknown-concept error from the mutation (not from
       `coreValidate`), nothing written; declared concept (any case) applies.
       [changeset-apply-engine: Concept conformance at `add_element` mutation time]
-- [ ] 6.2 Pass the resolved schema to `add_element` (resolve once per model, shared with
+- [x] 6.2 Pass the resolved schema to `add_element` (resolve once per model, shared with
       `rename_element`); unresolvable bluepriNNt → `BLUEPRINT_UNRESOLVED`.
       [changeset-apply-engine: Concept conformance at `add_element` mutation time]
-- [ ] 6.3 TEST (`init-knowledge.spec.ts`): the wrapper leaves one applied `add_model`
+- [x] 6.3 TEST (`init-knowledge.spec.ts`): the wrapper leaves one applied `add_model`
       changeset; the created document equals the golden pre-change output; an existing id
       fails with `MODEL_EXISTS`, file untouched; failure responses have no
       `filePath`/`content`. [changeset-apply-engine: `init_knowledge` is an `add_model`
       wrapper] [model-scaffold-robustness: Failed Init Never Returns a Success-Shaped
       Payload]
-- [ ] 6.4 Rewrite `init-knowledge.ts` as the wrapper (uses `writeProposedChangeset`, tasks
+- [x] 6.4 Rewrite `init-knowledge.ts` as the wrapper (uses `writeProposedChangeset`, tasks
       7.3–7.4, which ship in S6b); drop `in_place`,
       `templateResolved`, `scaffolded`; regenerate the console and return `next_steps`.
       Update the `init_knowledge` description (create-only, no repair, no
       `VERSION_MISMATCH`). [changeset-apply-engine: `init_knowledge` is an `add_model`
       wrapper]
-- [ ] 6.5 Delete the repair tests (`test/mutate-repair.test.ts:42`,
+- [x] 6.5 Delete the repair tests (`test/mutate-repair.test.ts:42`,
       `init-knowledge.spec.ts:105,123`) and adapt `test/includes-and-scaffold.test.ts`,
       `server.spec.ts` to the wrapper (fixtures create `kNNowledge/`).
       [changeset-apply-engine: `init_knowledge` is an `add_model` wrapper]
 
 ## 7. `propose_changeset` and the single writer (S6c; 7.3–7.4 ship in S6b)
 
-- [ ] 7.1 TEST (`propose-changeset.spec.ts`): one `update_field` operation writes a
+- [x] 7.1 TEST (`propose-changeset.spec.ts`): one `update_field` operation writes a
       `status: proposed` L3 changeset under `changes/` that `verifyProposalSha` accepts;
       the model file is untouched; the result has `changeset`, `console.path`,
       `next_steps.approve.changeset === changeset`; applying the written file is never
       `PROPOSAL_TAMPERED`. [changeset-propose-tool: `propose_changeset` writes a sealed
       proposed changeset]
-- [ ] 7.2 TEST: unknown target model, `add_model` on an existing model, duplicate
+- [x] 7.2 TEST: unknown target model, `add_model` on an existing model, duplicate
       `add_model`, an op missing required keys → errors, nothing under `changes/`;
       `add_model` then `add_element` on the new id → written. [changeset-propose-tool:
       Proposal validation before write]
-- [ ] 7.3 TEST: the bare intent path (`apply_change` with `id`, `op`, `args`) writes its
+- [x] 7.3 TEST: the bare intent path (`apply_change` with `id`, `op`, `args`) writes its
       synthesized changeset through `writeProposedChangeset` with L3 frontmatter.
       [changeset-propose-tool: Single proposed-changeset writer]
-- [ ] 7.4 Implement `writeProposedChangeset` (ids, L3 frontmatter, seal, file name with
+- [x] 7.4 Implement `writeProposedChangeset` (ids, L3 frontmatter, seal, file name with
       `workspace_id` from the manifest or the domain folder slug) in
       `innfo-mcp/src/tools/propose-changeset.ts`; switch `synthesizeAndExecuteChangeset`
       to it. [changeset-propose-tool: Single proposed-changeset writer]
-- [ ] 7.5 Implement `propose_changeset` (validation, write, regenerate + open, result) and
+- [x] 7.5 Implement `propose_changeset` (validation, write, regenerate + open, result) and
       register it with a description that requires relaying `next_steps.notice`; add it
       to the tool-list test. [changeset-propose-tool: `propose_changeset` writes a sealed
       proposed changeset] [changeset-propose-tool: Proposal validation before write]
-- [ ] 7.6 TEST: the proposal `next_steps.notice` carries the four steps in order and the
+- [x] 7.6 TEST: the proposal `next_steps.notice` carries the four steps in order and the
       OK shortcut; with the console failed it points at the changeset file.
       [console-regeneration: Review-and-approve notice on tool results]
-- [ ] 7.7 TEST (`innfo-mcp`): the direct-operation partition is exhaustive and exclusive —
+- [x] 7.7 TEST (`innfo-mcp`): the direct-operation partition is exhaustive and exclusive —
       every operation the engine implements is in exactly one of `ChangeOp`,
       `MAINTENANCE_OPS`, `SCHEMA_OPS`; an unclassified operation fails `UNKNOWN_OPERATION`
       and writes nothing; the six direct operations write the model file and leave
       `changes/` untouched. [changeset-apply-engine: Direct `apply_change` operations are a
       closed, classified set]
-- [ ] 7.8 Implement the two named lists and the closed dispatch in `apply-change.ts`
+- [x] 7.8 Implement the two named lists and the closed dispatch in `apply-change.ts`
       (replace the implicit `!isChangeOp(op)` fall-through); check `bump_version` against
       changeset sealing by version and record the result in `design.md`.
       [changeset-apply-engine: Direct `apply_change` operations are a closed, classified set]
 
 ## 8. `init_domain` and migration reuse (S6c)
 
-- [ ] 8.1 TEST (`innfo-core` scaffold suite): `planDomainScaffold` lists the canonical
+- [x] 8.1 TEST (`innfo-core` scaffold suite): `planDomainScaffold` lists the canonical
       folders + `changes/`, `.gitattributes` with `* -text`, and a `domaiNN_NN.md` with L3
       frontmatter, `workspace_id` defaulting to `slugify(name)`, and no kNNowledge
       entries. [domain-initialization: `init_domain` scaffolds an empty conformant
       domaiNN]
-- [ ] 8.2 TEST (`init-domain.spec.ts`): on an empty dir, `check_domain` reports no errors
+- [x] 8.2 TEST (`init-domain.spec.ts`): on an empty dir, `check_domain` reports no errors
       and `validate_knowledge` on the manifest is valid; a non-empty dir is refused with
       nothing written; an `add_model` changeset then applies into it.
       [domain-initialization: `init_domain` scaffolds an empty conformant domaiNN]
-- [ ] 8.3 Implement `planDomainScaffold` in `innfo-core/src/scaffold/domain.ts` and the
+- [x] 8.3 Implement `planDomainScaffold` in `innfo-core/src/scaffold/domain.ts` and the
       `init_domain` tool (tmp + rename per file); register it; tool-list test.
       [domain-initialization: `init_domain` scaffolds an empty conformant domaiNN]
-- [ ] 8.4 TEST (`skills/nn-upgrade/scripts/*.test.js`): `--import-as-source` produces the
+- [x] 8.4 TEST (`skills/nn-upgrade/scripts/*.test.js`): `--import-as-source` produces the
       `init_domain` scaffold plus `sources/import/<old-domain-folder>/`; no
       `sources/legacy/`; a `sources::` citation into the import resolves.
       [domain-initialization: Import-as-source reuses the domain scaffold]
-- [ ] 8.5 `migrate-domain.js runImportAsSource`: write `planDomainScaffold` via
+- [x] 8.5 `migrate-domain.js runImportAsSource`: write `planDomainScaffold` via
       `loadInnfoCore`, copy into `sources/import/<old-domain-folder>/`, delete the inline
       manifest. Do not touch `lib/legacy-migrate.generated.cjs`.
       [domain-initialization: Import-as-source reuses the domain scaffold]
