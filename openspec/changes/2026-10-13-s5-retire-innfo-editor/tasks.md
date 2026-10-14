@@ -82,7 +82,8 @@ Pre-conditions: S3 complete (audit reviewed, ports applied) and S6 complete.
       writes the canonical badge; the scaffold golden is refreshed.
       [document-badge: Serializer and Generator Badge Emission]
 - [ ] 6.2 Retarget `src/parser/serializer.ts`, `src/changeset/serializer.ts`,
-      `src/scaffold/knowledge.ts`, `innfo-runtime.js` `serializeChangesetMarkdown`; rebuild
+      `src/scaffold/knowledge.ts`, `innfo-runtime.js` `serializeChangesetMarkdown`, and the `nn-sources` emitters
+      `skills/nn-sources/scripts/lib/bootstrap.js` and `provenance-knowledge.js`; rebuild
       the console and innfo-mcp bundles. [document-badge: Serializer and Generator Badge Emission]
 - [ ] 6.3 Retarget every maintained `iNNfo/specs/bluepriNNts/**/spec_NN.md` and procedure
       template (unversioned files), bump each touched template's `template_version`,

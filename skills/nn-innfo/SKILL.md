@@ -111,7 +111,7 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 > 1. The `iNNfo` repository is the **Single Source of Truth** for all apps and specs. Do NOT duplicate app files across repositories.
 > 2. When resolving apps/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
-> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
+> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards that point to the domaiNN console (see section 12) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
 
 ---
 
@@ -557,7 +557,7 @@ When the user picks option `[c]` (Audit & validate model), the agent executes de
 
 1. ⚠️ [Logical Coherence] Broken Reference
    - Finding: Element `Enterprise Customer` references `CommercialDirector`, which does not exist.
-   - Functional impact: It will break the navigation-tree links in iNNfo Modeler.
+   - Functional impact: It will break the navigation-tree links in the domaiNN console.
    - Suggested fix: Create the `CommercialDirector` element or correct the name.
 
 Would you like me to apply the recommended fix automatically?
@@ -670,18 +670,13 @@ When the project scales to multiple sub-models, present the **4 Architectural Al
 
 ---
 
-## 12. Visual Expectation Checklist (App Verification)
+## 12. Visual Expectation Checklist (Console Verification)
 
-Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist with dynamic deep links instead of the generic `https://cognnitive.com/innfo/app/`.
+Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist pointing to the domaiNN console, the single review surface. Never link to a hosted app.
 
-### Deep URL construction instruction:
-- **Base URL**: `https://cognnitive.com/innfo/app/?view=editor`
-- **Model Query Parameter**: `&model=<model_id>` (where `<model_id>` is the model identifier/filename without extension, e.g. `arenzano_V_1-2-0_business`).
-- **Workspace Query Parameter** (optional): `&ws=<workspace_folder_name>` — the root folder name of the workspace where the model lives (e.g. `rejas_rehabilitacion`). Include it whenever the workspace folder is known: it lets the editor reopen the correct workspace from the recent list instead of the most recently opened one. Links to models living in different workspaces MUST each carry their own `&ws=`. When the folder name is unknown, omit `&ws=` — the editor then resolves the model across the user's recently opened workspaces.
-- **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded if containing spaces, e.g. `#@Market%20trends`).
-- **Element Deep Link (Hash)**: `#<ConceptName>.<ElementName>` (e.g. `#Products.CogNNitive`).
-
-If there is an active model in context, use its `model_id` and show interactive links to its main sections.
+### Console location
+- Regenerate the console first (option `[d]`, `apply_change` regeneration) so it reflects the change. Print the path of the generated `domaiNN_console.html` (under `artifacts/<stem>_console/`) and tell the user to open it in a browser; it is self-contained and works offline.
+- Name the model to look for (`<model_id>`), not a URL: the console lists every model in the domaiNN.
 
 ### Live preview URL (when the MCP exposes it)
 
@@ -700,16 +695,12 @@ only.
 
 Example of dynamic checklist to generate:
 ```markdown
-📋 Visual Expectation Checklist in iNNfo Modeler (assuming workspace is already open):
+📋 Visual Expectation Checklist in the domaiNN console (open `<console path>` in a browser):
 
-- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>):
-      Hierarchical structure based on `# NN index` with fluid navigation across concepts and elements.
-- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>#@<Concept_url_encoded>):
-      Detailed view rendered for each `key:: value` (properties, types, and references).
-- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>#<Concept_url_encoded>.<Element_url_encoded>):
-      Interactive cards for each `## NN <Concept>: <Element>` block showing metadata and descriptions.
-- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/?view=matrices&model=<model_id>&ws=<workspace_folder_name>):
-      N-to-M relationship tables and `item-markers matrix` rendered with interactive cells (`X` / `-`).
+- [ ] 🌳 **Navigation tree** — `<model_id>`: hierarchical structure based on `# NN index`, with concepts and elements.
+- [ ] 📋 **Concept field panels** (e.g. <Concept>): each `key:: value` (properties, types and references) rendered per concept.
+- [ ] 🎴 **Element cards** (e.g. <Element>): one card per `## NN <Concept>: <Element>` block with its metadata and description.
+- [ ] 📊 **Comparative matrix tables**: N-to-M relationship tables and `item-markers matrix` rendered with interactive cells (`X` / `-`).
 ```
 
 ---
