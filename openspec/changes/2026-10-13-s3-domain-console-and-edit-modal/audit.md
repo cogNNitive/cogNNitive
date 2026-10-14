@@ -213,12 +213,8 @@ to the explicit-decisions section below.
 - **Console today:** the per-element **Lineage** tab (`ui-kit.js:1561-1672`) is History
   (changesets that touched the element) + Citations (Sources it derives from). It is **not** a
   workspace graph.
-- **Decision:** **port** a read-only `lineage` registered view (`kind: readonly`) composed of
-  `InnfoUI` primitives — upstream `source_file` → focal file → citing elements, Graph style
-  included. **S5 must not claim the console supersedes the workspace graph** unless this port
-  lands.
-- **Flag:** heaviest port; the console Model Map partly overlaps. Confirm in 1.2 whether to port
-  or to instead record an explicit **drop** of the workspace graph.
+- **Decision (closed 2026-10-14):** **drop** the workspace lineage graph. The per-element Lineage tab
+  and the Changes view cover "what happened"; S5 must not claim the console supersedes the graph.
 
 ### Decision 2 — File preview modal → **port, minimal** (open-original-file action only; maintainer 2026-10-14)
 
@@ -227,8 +223,8 @@ to the explicit-decisions section below.
   §File preview and lineage.
 - **Console today:** no preview modal; heavy sources are **linked**, not embedded (citation
   excerpt cap).
-- **Decision:** **port** a read-only file-preview view/modal composing `InnfoUI` (compose the
-  existing `KuBadge`/`CitationIcon`/`ElementCard` primitives; one shared modal for editing).
+- **Decision (closed 2026-10-14):** **port, minimal** — only the "open original file" action on the
+  citation/source affordance; no Preview/Code/Lineage modes.
 
 ### Decision 3 — Tag authoring and tag search
 
@@ -239,8 +235,8 @@ to the explicit-decisions section below.
 - **Tag search** (`Header.vue` search popup + `SearchResultsView.vue`) → **in console**.
   Evidence: `tests/component/SearchResultsView-concept-tags.test.ts`, `tests/unit/searchStore.test.ts`,
   `docs/.../tags-and-taxonomy.md` §5. Console full-text search + concept rail filter cover it.
-- **Flag:** the console has no tag **AND-filter** (multi-tag intersection). Confirm in 1.2 whether
-  full-text search is acceptable or the tag filter is upgraded to a **port**.
+- **Decision (closed 2026-10-14):** the tag filter is a **port**: tags enter the payload and `tag:` becomes
+  AND with a switchable OR form (S3b P0-4).
 
 ### Decision 4 — Dual-mode sidebar, breadcrumb ancestry, submodel nesting → **in console** (concept rail), editor chrome **drop**
 
@@ -252,8 +248,7 @@ to the explicit-decisions section below.
 - **Decision:** the navigation **function** is **in console** via the concept rail + Model
   Explorer. The editor-specific chrome — the dual-mode toggle, breadcrumb ancestry, and submodel
   nesting — is **drop**.
-- **Flag:** confirm in 1.2 that dropping submodel nesting (element-owned nested submodels) is
-  acceptable; the console lists models flat.
+- **Decision (closed 2026-10-14):** dropping submodel nesting is accepted; the console lists models flat.
 
 ### Decision 5 — Model and submodel creation → **drop** (resolved)
 
@@ -275,14 +270,12 @@ to the explicit-decisions section below.
 
 - **Validation report** (`ValidationReport.vue`) → **drop** (2026-10-14: strict subset of MCP `validate_knowledge`/`check_domain`; was a proposed port).
   Evidence: `tests/component/ValidationReport.test.ts`, `tests/unit/ValidationService.test.ts`,
-  `docs/.../innfo-editor.md` §Validation. Console lacks it → port a read-only `validation`
-  registered view.
+  `docs/.../innfo-editor.md` §Validation. Redundant with MCP, so no console view.
 - **Template-freshness warnings** (`useBlueprintVersionNotice.ts`, `KnowledgeInfoPanel` badge) →
   **drop**.
   Evidence: `tests/unit/useBlueprintVersionNotice.test.ts`, `tests/unit/shipped-template-versions.test.ts`.
   Freshness is authoritative in MCP/`verify.js`; the console is a frozen artifact.
-- **Flag:** confirm in 1.2 whether a read-only validation view is wanted, or whether validation is
-  fully delegated to the agent (`validate_model`) and recorded as **drop**.
+- **Decision (closed 2026-10-14):** validation is delegated to the agent; recorded as **drop**.
 
 ---
 
