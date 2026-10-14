@@ -500,7 +500,7 @@ function renderConsole(shell, bundleName, config, payload, outDirAbs, rootAbs) {
 
 /** Platform command that opens `file` in the default browser, or null when unsupported. */
 export function openCommandFor(platform, file) {
-  if (platform === 'win32') return { command: 'cmd', args: ['/c', 'start', '', file] }
+  if (platform === 'win32') return { command: 'rundll32', args: ['url.dll,FileProtocolHandler', file] }
   if (platform === 'darwin') return { command: 'open', args: [file] }
   if (platform === 'linux') return { command: 'xdg-open', args: [file] }
   return null
@@ -524,6 +524,10 @@ async function openConsole(file, { open, launcher, platform }) {
   const cmd = openCommandFor(platform, file)
   if (!cmd) {
     return { opened: false, openError: `Opening a browser is not supported on platform "${platform}".` }
+  }
+  // Defence in depth: refuse shell-significant characters instead of launching.
+  if (platform === 'win32' && /[&^%|<>"]/.test(file)) {
+    return { opened: false, openError: `Refusing to open a path with shell-significant characters: ${file}` }
   }
   try {
     await (launcher ?? defaultLauncher)(cmd.command, cmd.args)
@@ -556,7 +560,7 @@ async function loadModels(root) {
 /** Atomic replace: write `<file>.tmp`, then rename it over `file`. */
 async function writeFileAtomic(file, text) {
   await mkdir(dirname(file), { recursive: true })
-  const tmp = `${file}.tmp`
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`
   try {
     await writeFile(tmp, text, 'utf-8')
     await rename(tmp, file)

@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir, cp } from 'node:fs/promises'
 import { existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename, relative } from 'node:path'
@@ -837,12 +837,27 @@ notes:: "Please review the tagline"
       for (const [platform, command, lead] of [
         ['darwin', 'open', []],
         ['linux', 'xdg-open', []],
-        ['win32', 'cmd', ['/c', 'start', '']],
+        ['win32', 'rundll32', ['url.dll,FileProtocolHandler']],
       ]) {
         const calls = []
         const res = await writeConsole({ rootDir: tempDir, open: true, platform, launcher: (c, a) => calls.push([c, a]) })
         assert.equal(res.opened, true)
         assert.deepEqual(calls, [[command, [...lead, res.path]]])
+      }
+    })
+
+    it('refuses to open a win32 path containing shell-significant characters', async () => {
+      const { writeConsole } = await load()
+      const risky = await mkdtemp(join(tmpdir(), 'nn-export-amp&'))
+      try {
+        await cp(tempDir, risky, { recursive: true })
+        const calls = []
+        const res = await writeConsole({ rootDir: risky, open: true, platform: 'win32', launcher: (c, a) => calls.push([c, a]) })
+        assert.equal(res.opened, false)
+        assert.match(res.openError, /shell-significant/)
+        assert.deepEqual(calls, [])
+      } finally {
+        await rm(risky, { recursive: true, force: true })
       }
     })
 
