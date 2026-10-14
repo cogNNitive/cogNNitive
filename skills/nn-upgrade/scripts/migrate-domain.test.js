@@ -18,6 +18,11 @@ const SCRIPT_DIR = __dirname
 const MIGRATE_CLI = path.join(SCRIPT_DIR, 'migrate-domain.js')
 const { freezeDomainSlugs } = require('./migrate-domain.js')
 
+async function loadCore() {
+  const { pathToFileURL } = require('node:url')
+  return import(pathToFileURL(path.resolve(__dirname, '../../../iNNfo/packages/innfo-core/dist/index.js')).href)
+}
+
 function runCli(args) {
   return spawnSync(process.execPath, [MIGRATE_CLI, ...args], { encoding: 'utf-8' })
 }
@@ -113,13 +118,32 @@ async function runTests() {
       ])
       assert.strictEqual(res.status, 0, res.stderr)
       assert.ok(fs.existsSync(path.join(newDomainDir, 'domaiNN_NN.md')), 'new domaiNN created')
-      assert.ok(
-        fs.existsSync(path.join(newDomainDir, 'sources', 'legacy', 'workspace_NN.md')),
-        'legacy tree copied under sources/legacy',
-      )
-      const importedLegacySha = sha256File(path.join(newDomainDir, 'sources', 'legacy', 'workspace_NN.md'))
-      assert.strictEqual(initialLegacySha, importedLegacySha, 'imported legacy domain is byte-identical')
-      console.log('✔ --import-as-source scaffolds domaiNN and imports legacy tree byte-identically')
+      const importedFile = path.join(newDomainDir, 'sources', 'import', 'source-legacy-domain', 'workspace_NN.md')
+      assert.ok(fs.existsSync(importedFile), 'old tree copied under sources/import/<old-domain-folder>')
+      assert.strictEqual(initialLegacySha, sha256File(importedFile), 'imported legacy domain is byte-identical')
+      assert.ok(!fs.existsSync(path.join(newDomainDir, 'sources', 'legacy')), 'no sources/legacy directory')
+      console.log('✔ --import-as-source imports the old tree under sources/import/<old-domain-folder> byte-identically')
+
+      // The new domain is exactly the init_domain scaffold (same plan), plus the import.
+      const { planDomainScaffold, createFsSourceResolver, resolveCitation } = await loadCore()
+      const plan = planDomainScaffold({ name: 'imported-target-domain' })
+      for (const dir of plan.dirs) {
+        assert.ok(fs.statSync(path.join(newDomainDir, dir)).isDirectory(), `scaffold folder ${dir}`)
+      }
+      for (const file of plan.files) {
+        assert.strictEqual(fs.readFileSync(path.join(newDomainDir, file.path), 'utf-8'), file.content, `scaffold file ${file.path}`)
+      }
+      assert.ok(fs.statSync(path.join(newDomainDir, 'changes')).isDirectory(), 'changes/ exists')
+      assert.strictEqual(fs.readFileSync(path.join(newDomainDir, '.gitattributes'), 'utf-8'), '* -text\n')
+      assert.ok(!fs.readFileSync(path.join(newDomainDir, 'domaiNN_NN.md'), 'utf-8').includes('Legacy'), 'no inline legacy manifest')
+      const leftovers = fs.readdirSync(newDomainDir).filter((f) => f.endsWith('.tmp'))
+      assert.deepStrictEqual(leftovers, [], 'no staging files left behind')
+
+      // A sources:: citation into the import resolves like any citation.
+      const citation = 'sources/import/source-legacy-domain/workspace_NN.md'
+      const resolved = resolveCitation(citation, 'sources', createFsSourceResolver(newDomainDir), path.join(newDomainDir, 'changes', 'x_changes_NN.md'))
+      assert.strictEqual(resolved.exists, true, 'citation into the import resolves')
+      console.log('✔ --import-as-source reuses the init_domain scaffold and citations into the import resolve')
     }
 
     // 3. freezeDomainSlugs scans and freezes unfrozen Level-3 models

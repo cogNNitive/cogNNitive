@@ -9,7 +9,9 @@
  *
  * Modes:
  *   --freeze-slugs [--apply]                 freeze the element slugs of every Level 3 model
- *   --import-as-source --new-domain-dir <d>  scaffold a new domaiNN and import the old tree
+ *   --import-as-source --new-domain-dir <d>  scaffold a new domaiNN (planDomainScaffold, the same
+ *                                            plan as the MCP init_domain tool) and import the old
+ *                                            tree under sources/import/<old-domain-folder>/
  */
 
 const fs = require('node:fs')
@@ -30,7 +32,15 @@ function getArg(flag) {
   return idx !== -1 && idx + 1 < process.argv.length ? process.argv[idx + 1] : null
 }
 
-async function runImportAsSource(legacyDir, newDomainDir) {
+/**
+ * Creates the NEW domaiNN from the shared `planDomainScaffold` plan (the same plan the
+ * MCP `init_domain` tool writes) and imports the old domain tree into
+ * `sources/import/<old-domain-folder>/`, the canonical raw-import location. The old tree
+ * is never touched. Migrating its content is the agent's job: `add_model` /
+ * `add_element` changes whose `sources::` cite the imported files, proposed with
+ * `propose_changeset` and applied after review.
+ */
+async function runImportAsSource(legacyDir, newDomainDir, options = {}) {
   const srcDir = path.resolve(legacyDir)
   const targetDir = path.resolve(newDomainDir)
 
@@ -42,33 +52,22 @@ async function runImportAsSource(legacyDir, newDomainDir) {
     throw new Error(`Target directory is not empty: ${targetDir}`)
   }
 
+  const { planDomainScaffold } = await loadInnfoCore()
+  const plan = planDomainScaffold({
+    name: options.name || path.basename(targetDir),
+    ...(options.workspaceId ? { workspaceId: options.workspaceId } : {}),
+  })
+
   fs.mkdirSync(targetDir, { recursive: true })
-  fs.mkdirSync(path.join(targetDir, 'kNNowledge'), { recursive: true })
-  fs.mkdirSync(path.join(targetDir, 'sources', 'legacy'), { recursive: true })
+  for (const dir of plan.dirs) fs.mkdirSync(path.join(targetDir, dir), { recursive: true })
+  for (const file of plan.files) {
+    const target = path.join(targetDir, file.path)
+    fs.mkdirSync(path.dirname(target), { recursive: true })
+    fs.writeFileSync(`${target}.tmp`, file.content, 'utf-8')
+    fs.renameSync(`${target}.tmp`, target)
+  }
 
-  // Scaffold standard domaiNN_NN.md
-  const scaffold = `---
-blueprint_version: "0.1.0"
-blueprint_name: "domaiNN"
-knowledge_dir: "kNNowledge"
-blueprints_dir: "specs/bluepriNNts"
-parent_spec:
-  url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md"
----
-# domaiNN Definition
-
-- Domain Type:: domaiNN
-- Legacy Source:: sources/legacy
-
-## kNNowledge
-
-## Sources
-
-- Legacy Domain:: sources/legacy
-`
-  fs.writeFileSync(path.join(targetDir, 'domaiNN_NN.md'), scaffold, 'utf-8')
-
-  // Copy legacy domain tree under sources/legacy (excluding .git / node_modules)
+  // Copy the old domain tree under sources/import/<old-domain-folder> (excluding .git / node_modules)
   function copyTree(src, dest) {
     const entries = fs.readdirSync(src, { withFileTypes: true })
     for (const entry of entries) {
@@ -84,14 +83,18 @@ parent_spec:
     }
   }
 
-  copyTree(srcDir, path.join(targetDir, 'sources', 'legacy'))
+  const importDir = path.join(targetDir, 'sources', 'import', path.basename(srcDir))
+  fs.mkdirSync(importDir, { recursive: true })
+  copyTree(srcDir, importDir)
 
   console.log('════════════════════════════════════════════════════════════')
   console.log('           Import Legacy Domain as Read-Only Source         ')
   console.log('════════════════════════════════════════════════════════════')
   console.log(`New Canonical domaiNN created at: ${targetDir}`)
-  console.log(`Legacy domain imported into:      ${path.join(targetDir, 'sources', 'legacy')}\n`)
+  console.log(`Legacy domain imported into:      ${importDir}\n`)
   console.log('Your legacy files remain unchanged as an archival source.')
+  console.log('Next: derive add_model / add_element changes that cite the import through sources::,')
+  console.log('propose them with propose_changeset, review the console, then apply_change.')
 }
 
 /**
@@ -177,10 +180,10 @@ async function freezeDomainSlugs(domainDir, options = {}) {
 }
 
 const USAGE =
-  'Usage: node migrate-domain.js --domain-dir <dir> (--freeze-slugs [--apply] [--json] | --import-as-source --new-domain-dir <dir>)'
+  'Usage: node migrate-domain.js --domain-dir <dir> (--freeze-slugs [--apply] [--json] | --import-as-source --new-domain-dir <dir> [--name <title>] [--workspace-id <id>])'
 
 /** Every option the CLI accepts; anything else starting with "--" is rejected. */
-const OPTIONS_WITH_VALUE = new Set(['--domain-dir', '--workspace-dir', '--new-domain-dir'])
+const OPTIONS_WITH_VALUE = new Set(['--domain-dir', '--workspace-dir', '--new-domain-dir', '--name', '--workspace-id'])
 const OPTIONS_FLAG = new Set(['--freeze-slugs', '--import-as-source', '--json'])
 
 /**
@@ -257,7 +260,10 @@ async function main() {
       console.error('Error: --new-domain-dir <dir> is required when using --import-as-source.')
       process.exit(1)
     }
-    await runImportAsSource(ws, newDomainDirArg)
+    await runImportAsSource(ws, newDomainDirArg, {
+      name: getArg('--name') || undefined,
+      workspaceId: getArg('--workspace-id') || undefined,
+    })
     return
   }
 
