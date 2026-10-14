@@ -7,6 +7,8 @@ import {
   computeSha256,
   computeElementHash,
   canonicalJsonStringify,
+  parseKnowledge,
+  hashParsedElement,
 } from '../src/index.js'
 
 describe('Console Payload Builder', () => {
@@ -129,5 +131,44 @@ price:: 5000
       path: 'kNNowledge/biz/Ghostbusters_NN.md',
     })
     expect(payload.model.meta).not.toHaveProperty('feedbackState')
+  })
+})
+
+describe('Console Payload Builder: element tags', () => {
+  const doc = (tagLines: { concept?: string; element?: string }) => `---
+title: "Tags Lab"
+knowledge_version: "V_1-0-0"
+---
+
+# NN Service
+${tagLines.concept ? `tags:: ${tagLines.concept}
+` : ''}
+## NN Service: Ghost Capture
+slug:: ghost-capture
+${tagLines.element ? `tags:: ${tagLines.element}
+` : ''}price:: 5000
+`
+
+  it('carries the element tags, lowercased', () => {
+    const p = buildConsolePayload({ content: doc({ element: 'Pricing, AI' }) })
+    expect(p.model.elements[0].tags).toEqual(['pricing', 'ai'])
+  })
+
+  it('inherits concept-level tags as a union without duplicates', () => {
+    const p = buildConsolePayload({ content: doc({ concept: 'core', element: 'ai, core' }) })
+    expect(p.model.elements[0].tags).toEqual(['ai', 'core'])
+  })
+
+  it('emits an empty array when there are no tags', () => {
+    const p = buildConsolePayload({ content: doc({}) })
+    expect(p.model.elements[0].tags).toEqual([])
+  })
+
+  it('does not move the hash and keeps it equal to hashParsedElement', () => {
+    const bare = buildConsolePayload({ content: doc({}) }).model.elements[0]
+    const tagged = buildConsolePayload({ content: doc({ concept: 'core', element: 'ai' }) }).model.elements[0]
+    expect(tagged.hash).toBe(bare.hash)
+    const node = parseKnowledge(doc({ concept: 'core', element: 'ai' })).elements.get('Service')![0]
+    expect(tagged.hash).toBe(hashParsedElement('Service', node))
   })
 })

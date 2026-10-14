@@ -44,6 +44,8 @@ export interface ConsolePayloadElement {
   fields: Record<string, unknown>
   markers: Record<string, unknown>
   hash: string
+  /** Own `tags::` then the concept-level ones, lowercase, de-duplicated. Not hashed. */
+  tags: string[]
   relations?: ConsolePayloadElementRelation[]
   citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
   history?: ElementHistoryItem[]
@@ -189,6 +191,10 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         markers,
       })
 
+      // Tags are display metadata: kept out of computeElementHash so `hash` stays equal to
+      // hashParsedElement and every base_hash precondition holds.
+      const tags = [...new Set([...(node.tags ?? []), ...(parsed.conceptTags?.[concept] ?? [])])]
+
       const elem: ConsolePayloadElement = {
         id,
         slug: node.slug,
@@ -198,6 +204,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         fields,
         markers,
         hash,
+        tags,
       }
 
       rawElements.push({ elem, rawFields: { ...fields } })
