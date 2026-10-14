@@ -193,21 +193,23 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 13. P1-11 — Matrix-cell editor (S3b; SPIKE first, ~60 + ~280 lines)
 
-- [ ] 13.1 SPIKE (no production code; probe in the scratchpad): answer design D-S3b-11 questions
+- [x] 13.1 SPIKE (no production code; probe in the scratchpad): answer design D-S3b-11 questions
       1-4 against the shipped bluepriNNts and samples; append "D-S3b-11 result" to `design.md` with
       a go/no-go for 13.4 and get the maintainer's answer before 13.2.
       [console-review-mode: Constrained Matrix Cell Editor]
-- [ ] 13.2 TEST RED (`test/console-matrix-cells.test.mjs`, `test/console-export.test.mjs`): `set`
+      Result recorded in `design.md` ("D-S3b-11 result"): 13.4 is NO-GO. The maintainer
+      pre-authorised proceeding with 13.2-13.3 (the console constraint does not depend on it).
+- [x] 13.2 TEST RED (`test/console-matrix-cells.test.mjs`, `test/console-export.test.mjs`): `set`
       cell offers blank + values; boolean marker column proposes `true`; undeclared keeps text;
       the domain `innfo-schema` slot carries marker and matrix `widgetType`/`values`.
       [console-review-mode: Constrained Matrix Cell Editor]
-- [ ] 13.3 Implement: carry `markers`/`matrices` definitions in the domain schema slot
+- [x] 13.3 Implement: carry `markers`/`matrices` definitions in the domain schema slot
       (`export-console.mjs:822`); resolve the governing definition in `review.js` (RV:529-540) and
       reuse the select/boolean widgets. [console-review-mode: Constrained Matrix Cell Editor]
-- [ ] 13.4 (Only if 13.1 says go) TEST RED then implement engine/validator rejection of an
+- [x] 13.4 (SKIPPED: 13.1 said no-go; follow-up recorded in `design.md`.) (Only if 13.1 says go) TEST RED then implement engine/validator rejection of an
       out-of-`values` cell; otherwise record the follow-up in `design.md` and skip.
       [console-review-mode: Constrained Matrix Cell Editor]
-- [ ] 13.5 Rebuild the bundle (`build:` commit); `node scripts/verify.js` green. [console-review-mode: Constrained Matrix Cell Editor]
+- [x] 13.5 Rebuild the bundle (`build:` commit); `node scripts/verify.js` green. [console-review-mode: Constrained Matrix Cell Editor]
 
 ## 14. S3b verification and archive
 
