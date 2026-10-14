@@ -1,12 +1,42 @@
 # S3a — Parity audit: `innfo-editor` → domain console
 
-> **Maintainer review: PENDING** — Task 1.2 is intentionally left open.
+> **Maintainer review: IN PROGRESS** — Task 1.2 stays open until the S3b scope is confirmed.
+> Decisions recorded with the maintainer on 2026-10-14: workspace lineage graph → drop; file
+> preview → minimal port (open original file); validation report → drop (redundant with MCP);
+> submodel nesting → drop; D14 "source index" reading confirmed; tag filter → fix and make it
+> switchable AND/OR; a fresh widget study (`widget-study.md`) replaced the first widget verdicts.
 > Outcome: ____________________  Date: __/__/______  Reviewer: ____________
 >
 > This document is the S3a gate. It classifies **every `.vue` component and every
 > route** under `iNNfo/apps/innfo-editor/src/` as **in console** / **port** / **drop**,
 > records the seven explicit decisions from `design.md`, and states the D14 embed check.
 > No code is written by S3a (`strict_tdd: true`; `verify.js` gates).
+
+## Revision 2026-10-14 (supersedes the first widget verdicts)
+
+The first draft dropped most widgets because "the console is read-only". That premise is
+false: the console has an edit modal that produces draft changesets. `widget-study.md`
+re-derived every widget from code and real counts. Findings that change the plan:
+
+1. **Console-side defects (P0, worth fixing even if no widget is ported).**
+   - P0-1 Declared field types never reach the console: `schema.fields` is `{}` in exported
+     consoles, so select/markdown/media renderers and the modal's select/reference widgets are
+     dead (`slot.ts:55-59`, `export-console.mjs:688,795-822`, `innfo-runtime.js:1539-1545`).
+   - P0-2 The edit modal changes data types (number → `"5"`, array → `"a,b"`, object →
+     `"[object Object]"`, unknown select value → first option) (`ui-kit.js:1474-1510`).
+   - P0-3 Engine: `update_field` stores `to::` verbatim as a string, so numbers and booleans are
+     written quoted (`parser.ts:155-156`, `mutate.ts:470-507`). Affects agent changesets too.
+   - P0-4 Tags are absent from the payload (0/336 elements); the `tag:` facet is OR + substring and
+     has nothing to match (`payload-builder.ts:160-197`, `innfo-runtime.js:305-328`).
+2. **Most editor widgets serve types the spec does not have** (12 canonical types; `number`,
+   `date`, `color`, `rating`, `mermaid`, `tags`, … have 0 declared uses). They are dead in the
+   editor too → drop.
+3. **P1 ports**: select view/edit, safe markdown view + textarea edit, tags display + facet,
+   reference edit filtered by `target_concepts`, knowledge pill click-through, declared
+   video/audio/image rendering, and a matrix-cell editor constrained by marker `widget`/`values`
+   (verify engine-side validation first).
+
+Proposed S3b scope = P0 + P1 (≈1 week, strict TDD, in batches). **Pending maintainer confirmation.**
 
 ## Method
 
@@ -49,7 +79,7 @@ to the explicit-decisions section below.
 |---|---|---|---|---|
 | `App.vue` — root shell (router-view + global banners/toast/confirm) | `tests/progressive-smoke.test.ts` (app boots) | Console shell owns boot; no Vue router | **drop** | — |
 | `ToastMessage.vue` — transient notifications | `tests/unit/ValidationService.test.ts` (toasts on validation outcome) | Console surfaces status/badges; no toast primitive | **drop** | — |
-| `ValidationReport.vue` — full validation overlay (summary, copy log, copy AI prompt, prompt hints) | `tests/component/ValidationReport.test.ts`; `tests/unit/ValidationService.test.ts`; `docs/.../innfo-editor.md` §Validation | Console lacks a validation overlay; validation is authoritative in MCP `validate_model`/`check_workspace` (Decision 7) | **port** | Read-only `validation` registered view (`kind: readonly`) composing `InnfoUI` (flagged — see Decision 7) |
+| `ValidationReport.vue` — full validation overlay (summary, copy log, copy AI prompt, prompt hints) | `tests/component/ValidationReport.test.ts`; `tests/unit/ValidationService.test.ts`; `docs/.../innfo-editor.md` §Validation | Redundant with MCP `validate_knowledge`/`check_domain` (strict subset; the offline console has no validator) — widget-study §5 | **drop** | — |
 
 ## Editor — element cards, fields, widgets host (`src/components/editor/`)
 
@@ -72,9 +102,9 @@ to the explicit-decisions section below.
 | `FieldDetailModal.vue` — field detail dialog | `test/console-field-renderers.test.mjs` (field-detail dialog on cell double-click) | Field-detail dialog exists in console | **in console** | Field-detail dialog |
 | `FieldSchemaView.vue` — fields schema metadata | `tests/component/FieldSchemaView.test.ts` | Element card fields + Model Map (metamodel) | **in console** | Model Map |
 | `FieldViewer.vue` — field viewer (R-SC-06) | `tests/component/FieldViewer.test.ts` | `InnfoUI.FieldRow` / `FieldValue` (`test/console-field-renderers.test.mjs`) | **in console** | Field rendering |
-| `FilePreviewModal.vue` — original-file action; Preview/Code/Lineage modes; unit-pointed opens | `tests/component/FilePreviewModal.test.ts`; `docs/.../innfo-editor.md` §File preview and lineage | Console links heavy sources and caps citation excerpts; no preview modal (Decision 2) | **port** | Read-only file-preview view/modal composing `InnfoUI` (Decision 2) |
+| `FilePreviewModal.vue` — original-file action; Preview/Code/Lineage modes; unit-pointed opens | `tests/component/FilePreviewModal.test.ts`; `docs/.../innfo-editor.md` §File preview and lineage | No preview modal; heavy sources are linked, excerpts capped. Minimal port only: the "open original file" action (maintainer 2026-10-14) | **port** | Open-original-file action on the citation/source affordance; no Preview/Code/Lineage modes |
 | `FileRefPill.vue` — `sources::` pill + citation parsing | `tests/component/FileRefPill.test.ts`; `docs/.../sources-citations-lineage.md` | `InnfoUI.CitationIcon` / `KuBadge` + reference popup | **in console** | CitationIcon / KuBadge |
-| `GraphViewer.vue` — node/relationship graph | `tests/unit/useGraphData.test.ts` (origin legend); `docs/.../innfo-editor.md` §Visualization | No workspace graph; per-element Lineage is history+citations only (Decision 1) | **port** | Read-only `lineage` graph view (`kind: readonly`) — Decision 1 (flagged) |
+| `GraphViewer.vue` — node/relationship graph | `tests/unit/useGraphData.test.ts` (origin legend); `docs/.../innfo-editor.md` §Visualization | Per-element Lineage tab + Changes view cover "what happened" (maintainer 2026-10-14) | **drop** | — |
 | `IconRenderer.vue` — concept icon renderer | `tests/unit/useConceptVisuals-getConceptMeta.test.ts` | `InnfoUI.icon()` / concept icons from schema | **in console** | InnfoUI icon |
 | `KnowledgeInfoPanel.vue` — model information + template-version badge | `tests/component/KnowledgeInfoPanel-{explorer,templateBadge,version}.test.ts` | Model Map (metamodel) + model meta cover the info; the freshness badge half is **drop** (Decision 7) | **in console** | Model Map (badge half: Decision 7) |
 | `MarkerButton.vue` — unified marker interaction | `tests/component/MarkerButton.test.ts` | `InnfoUI.MarkerChip`; matrix cells (`test/console-matrix-cells.test.mjs`) | **in console** | MarkerChip / matrix cells |
@@ -116,38 +146,38 @@ to the explicit-decisions section below.
 | `ConfirmDialog.vue` — confirm modal | `tests/unit/confirmStore.test.ts` | Console uses its own confirm/export flow | **drop** | — |
 | `MinimalMarkdownEditor.vue` — inline markdown authoring | `tests/component/widgets8-14.test.ts` (MarkdownWidget edit mode); `tests/unit/markdown-sanitization.test.ts` | Console renders markdown read-only (`FieldValue`); authoring is agent-side | **drop** | — |
 | `StatusBadge.vue` — pass/warn/error status badge | `tests/component/Header.test.ts` (status badges) | Console changeset status badges (`InnfoUI.StatusBadge`) | **in console** | StatusBadge (changesets) |
-| `TagInput.vue` — tag authoring input (chips, suggestions) | `tests/component/TagInput.test.ts`; `docs/.../tags-and-taxonomy.md` §5 (Decision 3) | Console has no tag authoring; tags authored by agent changesets | **drop** | — |
-| `TagList.vue` — tag list display | `tests/component/BlockSheet.test.ts` §Tags viewing and authoring; `docs/.../tags-and-taxonomy.md` (Decision 3) | Console field renderers do not render tags | **drop** | — |
+| `TagInput.vue` — tag authoring input (chips, suggestions) | `tests/component/TagInput.test.ts`; `docs/.../tags-and-taxonomy.md` §5 (Decision 3) | Tag authoring stays a comment draft (`review.js:750-756`); widget-study §4 | **drop** | — |
+| `TagList.vue` — tag list display | `tests/component/BlockSheet.test.ts` §Tags viewing and authoring; `docs/.../tags-and-taxonomy.md` (Decision 3) | `TagRow` exists but is never fed: the payload carries no tags (0/336 elements) — widget-study §0.3 | **port** | Tags in the payload + `TagRow` (P0-4) |
 
 ## Widgets (`src/shared/widgets/`)
 
 | Editor feature | Evidence of real use | Console today | Decision | Port target |
 |---|---|---|---|---|
 | `CategoryWidget.vue` — category field | `tests/component/widgets.test.ts` (CategoryWidget) | `FieldValue` select pill (`test/console-field-renderers.test.mjs`) | **in console** | FieldValue |
-| `CodeWidget.vue` — code field | `tests/component/widgets8-14.test.ts` (C.10) | `FieldValue` code rendering | **in console** | FieldValue |
-| `ColorWidget.vue` — color field | `tests/component/widgets8-14.test.ts` (C.3) | No console renderer for color fields | **drop** | — |
-| `CycleWidget.vue` — cycle/marker field | `tests/component/widgets8-14.test.ts` (C.9) | Matrix/marker cell values (`test/console-matrix-cells.test.mjs`) | **in console** | Matrix cells |
-| `DateWidget.vue` — date field | `tests/component/widgets8-14.test.ts` (C.1) | No console renderer; value falls back to text | **drop** | — |
-| `DiagramWidget.vue` — DSL diagram field | `tests/component/widgets8-14.test.ts` (C.12) | No console renderer | **drop** | — |
+| `CodeWidget.vue` — code field | `tests/component/widgets8-14.test.ts` (C.10) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `ColorWidget.vue` — color field | `tests/component/widgets8-14.test.ts` (C.3) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `CycleWidget.vue` — cycle/marker field | `tests/component/widgets8-14.test.ts` (C.9) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `DateWidget.vue` — date field | `tests/component/widgets8-14.test.ts` (C.1) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `DiagramWidget.vue` — DSL diagram field | `tests/component/widgets8-14.test.ts` (C.12) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
 | `FallbackWidget.vue` — unported-type safety net | `tests/component/FallbackWidget.test.ts` | Console `FieldValue` returns null for unknown types | **drop** | — |
 | `FieldAsset.vue` — nested canonical asset paths | `tests/component/FieldAsset.test.ts` | `FieldValue` media renderers (image/video/audio) | **in console** | FieldValue media |
 | `FieldBoolean.vue` — boolean field | `tests/component/widgets.test.ts` (boolean); `test/console-field-renderers.test.mjs` (Yes/No) | `FieldValue` boolean | **in console** | FieldValue |
-| `FieldKnowledge.vue` — knowledge field + "Create & bind new model" / inline submodel creation | `tests/component/FieldKnowledge.test.ts` §inline submodel creation | Model creation is **drop** (agent changesets + "New element" draft); knowledge *rendering* exists as a document pill, but the row's distinctive feature is creation (Decision 5) | **drop** | Decision 5 |
+| `FieldKnowledge.vue` — knowledge field + "Create & bind new model" / inline submodel creation | `tests/component/FieldKnowledge.test.ts` §inline submodel creation | Renders as a file pill with no click-through; creation stays dropped (Decision 5) | **port** | Pill click sets the `model:` filter (P1-9); creation dropped |
 | `FieldNumber.vue` — number field | `tests/component/widgets.test.ts` (FieldNumber) | `FieldValue` plain/structured value | **in console** | FieldValue |
-| `FieldReference.vue` — reference field | `tests/component/widgets.test.ts` (FieldReference) | `ElementPill` / reference popup (`reference-popup` need) | **in console** | Reference popup |
-| `FieldSelect.vue` — select field | `tests/component/widgets.test.ts` (FieldSelect) | `FieldValue` select pill | **in console** | FieldValue |
+| `FieldReference.vue` — reference field | `tests/component/widgets.test.ts` (FieldReference) | View works (`ElementPill`); edit datalist ignores `target_concepts` (`review.js:548-559`) | **port** | Reference edit filtered by `target_concepts` (P1-8) |
+| `FieldSelect.vue` — select field | `tests/component/widgets.test.ts` (FieldSelect) | Renderer and modal select exist but never fire: declared types do not reach the console (widget-study §0.1) | **port** | Select view/edit after schema plumbing (P0-1, P1-5) |
 | `FieldString.vue` — string field | `tests/component/widgets.test.ts` (FieldString) | `FieldRow` / plain field badge | **in console** | FieldRow |
 | `InnovationVisual.vue` — animated innovation SVG | `none found` (no dedicated test) | No console equivalent | **drop** | — |
-| `MarkdownFieldEditor.vue` — markdown authoring surface | `tests/unit/markdown-sanitization.test.ts` | Console renders markdown read-only | **drop** | — |
-| `MarkdownWidget.vue` — markdown field | `tests/component/widgets8-14.test.ts` (C.14) | `FieldValue` markdown rendering | **in console** | FieldValue |
-| `MermaidWidget.vue` — mermaid field | `tests/component/widgets8-14.test.ts` (C.11) | No console field renderer for mermaid | **drop** | — |
-| `MultiSelectWidget.vue` — multi-select field | `tests/component/widgets8-14.test.ts` (C.4) | No console renderer; falls back to text/array | **drop** | — |
-| `RatingWidget.vue` — rating field | `tests/component/widgets8-14.test.ts` (C.6) | No console renderer | **drop** | — |
-| `ScaleWidget.vue` — scale/marker field | `tests/component/widgets8-14.test.ts` (C.7) | Matrix/marker cell values | **in console** | Matrix cells |
-| `TagsWidget.vue` — tags field | `tests/component/widgets8-14.test.ts` (C.5); `docs/.../tags-and-taxonomy.md` (Decision 3) | No tag authoring in console | **drop** | — |
+| `MarkdownFieldEditor.vue` — markdown authoring surface | `tests/unit/markdown-sanitization.test.ts` | No markdown renderer in the console; edit is a single-line input except `description` | **port** | Safe markdown subset view + textarea edit (P1-6); WYSIWYG dropped |
+| `MarkdownWidget.vue` — markdown field | `tests/component/widgets8-14.test.ts` (C.14) | As MarkdownFieldEditor (merged) | **port** | Safe markdown subset view + textarea edit (P1-6) |
+| `MermaidWidget.vue` — mermaid field | `tests/component/widgets8-14.test.ts` (C.11) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `MultiSelectWidget.vue` — multi-select field | `tests/component/widgets8-14.test.ts` (C.4) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `RatingWidget.vue` — rating field | `tests/component/widgets8-14.test.ts` (C.6) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `ScaleWidget.vue` — scale/marker field | `tests/component/widgets8-14.test.ts` (C.7) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `TagsWidget.vue` — tags field | `tests/component/widgets8-14.test.ts` (C.5); `docs/.../tags-and-taxonomy.md` (Decision 3) | Real tags are the reserved `tags::` property, absent from the payload — widget-study §0.3 | **port** | Tags payload + `TagRow` + `tag:` facet AND/OR (P0-4) |
 | `TextWidget.vue` — text field | `tests/component/widgets.test.ts` (TextWidget) | `FieldRow` plain value | **in console** | FieldRow |
-| `TimestampWidget.vue` — timestamp field | `tests/component/widgets8-14.test.ts` (C.13) | No console renderer | **drop** | — |
-| `ToggleGroupWidget.vue` — segmented toggle field | `tests/component/widgets8-14.test.ts` (C.8) | No console renderer | **drop** | — |
+| `TimestampWidget.vue` — timestamp field | `tests/component/widgets8-14.test.ts` (C.13) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
+| `ToggleGroupWidget.vue` — segmented toggle field | `tests/component/widgets8-14.test.ts` (C.8) | Field type not in the iNNfo spec (0 declared uses in shipped specs, fixtures and docs; widget-study §1) — dead in the editor too. | **drop** | — |
 | `UrlWidget.vue` — url field | `tests/component/widgets8-14.test.ts` (C.2) | `FieldValue` safe url link | **in console** | FieldValue |
 | `WeightWidget.vue` — weight/number field | `tests/component/widgets.test.ts` (WeightWidget) | `FieldValue` numeric | **in console** | FieldValue |
 | `WidgetField.vue` — widget dispatcher (`resolveWidgetComponent`) | `tests/component/WidgetField.test.ts`; `tests/component/widgets.test.ts` (registry) | Console `FieldRow`/`FieldValue` dispatch (`test/console-field-renderers.test.mjs`) | **in console** | FieldRow / FieldValue |
@@ -163,7 +193,7 @@ to the explicit-decisions section below.
 
 | Editor feature | Evidence of real use | Console today | Decision | Port target |
 |---|---|---|---|---|
-| `components/editor/lineageChain.ts` — lineage step model | `tests/unit/lineageChain.test.ts` | Not in console (Decision 1) | **port** | Read-only `lineage` view (Decision 1, flagged) |
+| `components/editor/lineageChain.ts` — lineage step model | `tests/unit/lineageChain.test.ts` | Dropped with the workspace graph (maintainer 2026-10-14) | **drop** | — |
 | `composables/useBlueprintVersionNotice.ts` — template freshness + migration prompt | `tests/unit/useBlueprintVersionNotice.test.ts`; `tests/unit/shipped-template-versions.test.ts` (Decision 7) | Freshness owned by MCP/`verify.js`; console is frozen | **drop** | Decision 7 |
 | `config/workspaces.ts` — workspace presets | (Decision 6) | Presets dropped with the hosted app | **drop** | Decision 6 |
 | `composables/useUrlDocLoader.ts` — deep-link URL document loader | (Decision 6) | Deep links dropped with the hosted app | **drop** | Decision 6 |
@@ -172,7 +202,7 @@ to the explicit-decisions section below.
 
 ## The seven explicit decisions (design.md)
 
-### Decision 1 — Workspace lineage graph → **port** (flagged for review)
+### Decision 1 — Workspace lineage graph → **drop** (maintainer, 2026-10-14; was a proposed port)
 
 `GraphViewer.vue` (Mermaid) + `lineageChain.ts` + the Timeline inside `FilePreviewModal.vue`
 (specs `lineage-graph-legibility`, `lineage-timeline-view`, `lineage-focus-resolution`).
@@ -190,7 +220,7 @@ to the explicit-decisions section below.
 - **Flag:** heaviest port; the console Model Map partly overlaps. Confirm in 1.2 whether to port
   or to instead record an explicit **drop** of the workspace graph.
 
-### Decision 2 — File preview modal → **port**
+### Decision 2 — File preview modal → **port, minimal** (open-original-file action only; maintainer 2026-10-14)
 
 - **Evidence of real use:** `tests/component/FilePreviewModal.test.ts` (original-file action,
   Preview/Code/Lineage, CSV row/cell + markdown field unit targeting), `docs/.../innfo-editor.md`
@@ -243,7 +273,7 @@ to the explicit-decisions section below.
 
 ### Decision 7 — Validation report and template-freshness warnings
 
-- **Validation report** (`ValidationReport.vue`) → **port** (flagged for review).
+- **Validation report** (`ValidationReport.vue`) → **drop** (2026-10-14: strict subset of MCP `validate_knowledge`/`check_domain`; was a proposed port).
   Evidence: `tests/component/ValidationReport.test.ts`, `tests/unit/ValidationService.test.ts`,
   `docs/.../innfo-editor.md` §Validation. Console lacks it → port a read-only `validation`
   registered view.
@@ -285,10 +315,10 @@ size-budget assertions live in `console-views-lib.test.mjs`, not in `console-exp
 ## Row accounting
 
 - **Total rows:** 93 — 86 `.vue` files + 3 routes + 4 feature-bearing `.ts` rows.
-- **in console:** 46
-- **port:** 4 — `ValidationReport.vue`, `FilePreviewModal.vue`, `GraphViewer.vue`,
-  `components/editor/lineageChain.ts`.
-- **drop:** 43
+- **in console:** 40
+- **port:** 8
+- **drop:** 45
+- Counts reflect the 2026-10-14 revision; console-side defects P0-1…P0-4 are not editor rows and are listed in the Revision section.
 
 ### Rows flagged for maintainer confirmation (task 1.2)
 
