@@ -17,7 +17,7 @@ continuing the "console unification (spine) + changeset/lineage" arc.
 - Live session worktrees (all pushed to `origin`):
   | Worktree | Branch | State |
   |---|---|---|
-  | `..\cogNNitive-s3-domain-console` | `session/s3-domain-console` @ `c5637dab` | 6 docs commits NOT on `dev` (see §2) |
+  | `..\cogNNitive-s3-domain-console` | `session/s3-domain-console` @ `6eab1d56` | all S3 docs LANDED on `dev`; use it (or a fresh session) for S3b |
   | `..\cogNNitive-s4-retire-legacy-migration` | `session/s4-retire-legacy-migration` @ `2233616d` | merged into `dev`; S4-2 still to do |
   | `..\cogNNitive-s5-freeze-editor` | `session/s5-freeze-editor` @ `445a49aa` | LANDED on `dev` (fresh review + `verify.js` green); can be stopped with `nn-session.mjs stop` |
 - Pick one (or `node scripts/nn-session.mjs start --id <id>` from the primary) and work only there.
@@ -56,10 +56,12 @@ point to the new-domain recipe).
 
 **Maintainer (later on 2026-10-14): keep advancing step by step, and after EVERY finished piece of work
 rewrite this handoff prompt** so a fresh agent can continue if tokens run out. Pieces, in order:
-(1) editor freeze landed [DONE], (2) land the S3 docs commits on `dev`, (3) S3b groups 6→14,
-(4) S4-2, (5) S6.
+(1) editor freeze landed [DONE], (2) S3 docs commits landed on `dev` [DONE, `6eab1d56`; S3 and S6
+now pass `openspec validate --strict`], (3) S3b groups 6→14 [NEXT], (4) S4-2, (5) S6.
+`dev` == `session/s3-domain-console` == `6eab1d56` at the time of writing (re-check with `git fetch`).
+Nothing is pending on the maintainer except the integration steps in §4.
 
-**`session/s3-domain-console` (docs only, local to origin session branch):**
+**S3 docs commits (LANDED on `dev` at `6eab1d56`; kept for the record):**
 `40e812fd` S6 decision 8 · `fdac8ae4` audit revision + `widget-study.md` + `editor-freeze-study.md` ·
 `709e9e00` task 1.2 closed · `ef8e8d77` S3b plan (P0+P1) · `b6884670` audit bodies aligned ·
 `c5637dab` S3b questions resolved. `openspec validate --strict` passed on S3.
