@@ -100,20 +100,20 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 8. P0-3 — Engine type preservation (S3b, own PR + `innfo-mcp` release note, ~230 lines)
 
-- [ ] 8.1 TEST RED (`iNNfo/packages/innfo-core/tests/mutate.test.ts`): number, boolean and array
+- [x] 8.1 TEST RED (`iNNfo/packages/innfo-core/tests/mutate.test.ts`): number, boolean and array
       preserved; numeric-looking string stays a string; non-numeric replacement stored as a string;
       new field stored as a string. [changeset-apply-engine: Field updates preserve the value type]
-- [ ] 8.2 TEST RED (`iNNfo/packages/innfo-core/tests/changeset/` apply round trip): a changeset
+- [x] 8.2 TEST RED (`iNNfo/packages/innfo-core/tests/changeset/` apply round trip): a changeset
       `to:: 7` on `price:: 5` serializes `price:: 7`; a multi-line value serializes and re-parses to
       the same string. [changeset-apply-engine: Field updates preserve the value type]
-- [ ] 8.3 TEST RED (`iNNfo/packages/innfo-mcp/test/apply-change.test.ts`): direct `apply_change`
+- [x] 8.3 TEST RED (`iNNfo/packages/innfo-mcp/test/apply-change.test.ts`): direct `apply_change`
       `update_field` with `value: 7` persists `price:: 7`. [changeset-apply-engine: Field updates preserve the value type]
-- [ ] 8.4 Implement the coercion in `packages/innfo-core/src/mutate.ts` `updateField` (design
+- [x] 8.4 Implement the coercion in `packages/innfo-core/src/mutate.ts` `updateField` (design
       D-S3b-3). [changeset-apply-engine: Field updates preserve the value type]
-- [ ] 8.5 Implement the double-quoted JSON-unescape rule in `parser/sections.ts`
+- [x] 8.5 Implement the double-quoted JSON-unescape rule in `parser/sections.ts`
       `parsePropertyValue`; `tests/roundtrip-fidelity.test.ts` and the serializer-fidelity suites
       stay byte-identical. [changeset-apply-engine: Field updates preserve the value type]
-- [ ] 8.6 Rebuild the `innfo-mcp` bundle (`build:` commit); `npm --workspace=@cognnitive/innfo-core test`,
+- [x] 8.6 Rebuild the `innfo-mcp` bundle (`build:` commit); `npm --workspace=@cognnitive/innfo-core test`,
       `npm --workspace=@cognnitive/innfo-mcp test`, typecheck, lint, `node scripts/verify.js` green;
       write the release note of D-S3b-4 into the PR description and the `innfo-mcp` release entry.
       [changeset-apply-engine: Field updates preserve the value type]
