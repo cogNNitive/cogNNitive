@@ -269,12 +269,12 @@ independent of S6b/S6c.
 - [x] 10.3 `npm run typecheck` + `npm run typecheck:scripts`; `npm test` for
       `innfo-core` and `innfo-mcp`; `node scripts/verify.js` (mirrors, drift, catalog,
       discovered node suites). [all requirements]
-- [ ] 10.4 Regenerate the TestLab domain console with `--no-open`; open it once by hand
+- [x] 10.4 Regenerate the TestLab domain console with `--no-open`; open it once by hand
       and check a proposal and an applied change appear. [console-regeneration: One
       shared console writer for CLI and MCP]
-- [ ] 10.5 Prepare the `changes` bluepriNNt `blueprints-v*` release, the innfo-mcp
+- [x] 10.5 Prepare the `changes` bluepriNNt `blueprints-v*` release, the innfo-mcp
       release and the refreshed installed console asset set (`export-console.mjs`)
       following `nn-dev-release`. [changeset-document-model: Changeset Mutation and
       Comment Operations]
-- [ ] 10.6 At archive: drop "Creating `new`-kind items from the console" from the
+- [x] 10.6 At archive: drop "Creating `new`-kind items from the console" from the
       `console-review-mode` Deferred list. [console-review-mode: New element draft]

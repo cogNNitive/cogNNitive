@@ -5,8 +5,7 @@ Console exports become write-once artifacts under `artifacts/`, targets come fro
 ## Requirements
 ### Requirement: Status Reporting and Staleness Detection
 
-The CLI MUST support `--status` reporting for every model chosen by the contract discovery predicate. Each model MUST be `fresh`, `stale`, `uncompiled`, or `version_mismatch`. The basis MUST be the per-model entry in `meta.models` of the most recently generated console (by `meta.generated`) that lists the model, among `domaiNN_console.html` and the members of every scoped console family under `artifacts/`. The model's current content hash is compared with that entry's `sha256` (`fresh` when equal, otherwise `stale`); a differing recorded `modelVersion` is `version_mismatch`; no console listing the model means `uncompiled`.
-(Previously: staleness compared the model's hash with `meta.sha256` of the latest member of that model's own `<stem>_console` family.)
+The CLI MUST support `--status` reporting for every model chosen by the contract discovery predicate, and for the domain console. Each model MUST be `fresh`, `stale`, `uncompiled`, or `version_mismatch`. Staleness MUST compare the model's content hash with `meta.sha256` embedded in the stable console file `artifacts/<stem>_console/<stem>_console.html`; a missing file means `uncompiled`. The domain console MUST be `fresh` when every embedded per-model `knowledge_version` and `sha256` matches the live models, `stale` otherwise, and `uncompiled` when `domaiNN_console.html` is absent. (Previously: compared against the latest member of a write-once console family.)
 
 #### Scenario: Inspecting compilation status
 - GIVEN compiled, modified, and new models
@@ -14,70 +13,39 @@ The CLI MUST support `--status` reporting for every model chosen by the contract
 - THEN each model prints a tag (`[fresh]`, `[stale]`, `[uncompiled]`, `[mismatch]`)
 - AND no file is written
 
-#### Scenario: Status read from a scoped console
-- GIVEN model A only ever exported inside a console scoped to A and B, then A edited
-- WHEN `--status` runs
-- THEN A is `[stale]` and B is `[fresh]`
-
-#### Scenario: Newest console wins
-- GIVEN A recorded with hash `H1` in an older console and `H2` in a newer one, and A's current hash is `H2`
-- WHEN `--status` runs
-- THEN A is `[fresh]`
-
 #### Scenario: Sidecars are not targets
 - GIVEN a workspace with sidecars
 - WHEN `--status` runs
 - THEN no sidecar appears in the output
 
----
+#### Scenario: Domain console status
+- GIVEN a domain console built before a model changed
+- WHEN `--status` runs
+- THEN the domain console prints `[stale]`
 
 ### Requirement: Tree Hierarchy Visualization
 
-`--tree` MUST render models and the console family members under `artifacts/` that list them in `meta.models`, and exit `0`.
-(Previously: rendered each model with its own `<stem>_console` family.)
+`--tree` MUST render models and their stable console file under `artifacts/` and exit `0`. (Previously: rendered the console family members.)
 
 #### Scenario: Visualizing hierarchy
-- **GIVEN** models in subdirectories and scoped consoles in `artifacts/`
+- **GIVEN** models in subdirectories and compiled consoles in `artifacts/`
 - **WHEN** running `node scripts/export-console.mjs <workspaceRoot> --tree`
-- **THEN** the CLI prints a structured tree representation showing models and the console HTML files that include them
+- **THEN** the CLI prints a structured tree representation showing models and their console HTML file
 - **AND** exits with status code 0
-
----
 
 ### Requirement: Selective Compilation and Filtering
 
-The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and positional substring arguments. `--stale` MUST select the models whose `--status` is not `fresh` and produce one scoped console for them; when none is stale it MUST write nothing. `--all` MUST select every discovered model. Every compile MUST write through `writeOnce` into `artifacts/`.
-(Previously: each selected model was compiled to its own console file.)
+The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and positional substring arguments. Every compile MUST write through the shared `writeConsole` to the stable console path. (Previously: every compile wrote through `writeOnce`.)
 
 #### Scenario: Compiling only stale models
 - **GIVEN** one modified and two unchanged models
-- **WHEN** `--stale` runs
-- **THEN** one new suffixed scoped console file listing only the modified model is written
-
-#### Scenario: Nothing stale
-- **GIVEN** every model `fresh`
-- **WHEN** `--stale` runs
-- **THEN** no file is written and a notice is printed
+- **WHEN** `--stale --no-open` runs
+- **THEN** the modified scoped console is rewritten in place and the others are skipped with a notice
 
 #### Scenario: Filtering by pattern
 - **GIVEN** several models
 - **WHEN** `--filter business` runs
-- **THEN** only matching models are in the scoped console
-
-### Requirement: Console exports are write-once
-
-The scoped console HTML family key MUST be `<scope>_console` and each export MUST be a new suffixed member under `artifacts/<scope>_console/`. Re-running with an unchanged scope and unchanged models MUST write nothing (dedup). A changed model MUST add a member and leave earlier consoles byte-identical.
-(Previously: the family key was `<stem>_console`, one family per model.)
-
-#### Scenario: Unchanged scope
-- GIVEN a compiled scope whose models are unchanged
-- WHEN `--all` runs again
-- THEN no file is written
-
-#### Scenario: Changed model
-- GIVEN a model in the scope changed
-- WHEN the same scope is exported again
-- THEN a new `<scope>_console_<UTC suffix>.html` exists and the previous console's SHA-256 is unchanged
+- **THEN** only matching models are compiled
 
 ### Requirement: Export uses the core payload builder
 
@@ -207,4 +175,26 @@ The domain payload MUST carry a `changes` collection built at export time from e
 - GIVEN a domain with no `changes/` directory
 - WHEN the domain console is exported
 - THEN `changes` is `[]` and nothing throws
+
+### Requirement: Console exports overwrite a stable file
+
+A console scoped to a single model MUST be written to the stable path
+`artifacts/<stem>_console/<stem>_console.html` with `innfo-console.bundle.js` and
+`innfo-ui.css` beside it under fixed names; the domain console stays
+`domaiNN_console.html`. Exports MUST go through the shared `writeConsole` (see
+`console-regeneration`), replacing the file via a temporary file and rename. Re-running
+on an unchanged model MUST write nothing. No UTC-stamped console or bundle file MUST be
+produced. `--no-open` MUST disable opening the written console; scripted callers (tests,
+`build-docs.mjs`, `verify.js`) MUST pass it.
+
+#### Scenario: Changed model overwrites the stable file
+- GIVEN a compiled model whose content changed
+- WHEN `--stale --no-open` runs
+- THEN `artifacts/<stem>_console/<stem>_console.html` holds the new console
+- AND no `<stem>_console_<UTC suffix>.html` file exists
+
+#### Scenario: Unchanged model
+- GIVEN a compiled model with unchanged content
+- WHEN `--all --no-open` runs
+- THEN no file is written
 

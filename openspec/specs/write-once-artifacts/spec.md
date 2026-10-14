@@ -3,9 +3,7 @@
 ## Purpose
 
 A citation must point at bytes that cannot change. Producers never overwrite; each output is a new member of a family, named with a UTC suffix. "Latest" is a query over names. Retention is proposed by a planner and executed only with user consent.
-
 ## Requirements
-
 ### Requirement: `writeOnce` is the only producer write path
 
 innfo-core MUST export `writeOnce(root, target, bytes, options)` (target is `{dir, key, ext}`; options carry `inputs` and a clock) that writes bytes to a new, unique, suffixed path (per `nn-naming-contract`) and never opens an existing file for writing: it opens with exclusive-create semantics and, when the name already exists, retries with the next tie-break number. It reports `written` or `deduplicated`, and throws `PATH_TOO_LONG` or `HASH_MISMATCH` before writing. The write step order is: path budget, input hash guard, dedup against the latest member, exclusive-create write. Producers named in "Producers adopt write-once" MUST write through it.
@@ -116,7 +114,7 @@ A file is an *artifact* for the lineage record only if it is a timestamped famil
 
 ### Requirement: Producers adopt write-once
 
-The following MUST write through `writeOnce`: console export (`export-console.mjs`), the impact report (`impact-checker.js`), transformer output (`transformer.js`), curated CSV (`curate-csv.js`), raw imports, conversation promotion, the compile and video procedures' outputs, and `workspace-index.js` and `scanner.js` outputs that previously used fixed names. Running any producer twice on unchanged input MUST write no new file; changed input MUST write a new suffixed file and leave earlier bytes identical. A curated CSV MUST be a write-once artifact distinct from its raw file.
+The following MUST write through `writeOnce`: the impact report (`impact-checker.js`), transformer output (`transformer.js`), curated CSV (`curate-csv.js`), raw imports, conversation promotion, the compile and video procedures' outputs, the `--view` console export, and `workspace-index.js` and `scanner.js` outputs that previously used fixed names. Model and domain consoles are NOT write-once: they are overwritten at a stable path by the shared console writer (`console-regeneration`). Running any write-once producer twice on unchanged input MUST write no new file; changed input MUST write a new suffixed file and leave earlier bytes identical. A curated CSV MUST be a write-once artifact distinct from its raw file. (Previously: the console export (`export-console.mjs`) was listed as a write-once producer.)
 
 #### Scenario: Second run is a no-op
 - GIVEN a producer that has run once
@@ -133,6 +131,11 @@ The following MUST write through `writeOnce`: console export (`export-console.mj
 - WHEN curation runs
 - THEN the curated CSV is a separate suffixed file in `artifacts/` and `sales.csv` is unchanged
 
+#### Scenario: Consoles are exempt
+- GIVEN a single-model scoped console exported twice with a model change in between
+- WHEN the console folder is listed
+- THEN it holds one `<stem>_console.html`, not a suffixed family
+
 ### Requirement: Order never comes from the clock
 
 Ordering, tie-breaks, and "latest" MUST derive only from the names. mtime and cross-machine clock skew MUST NOT affect them.
@@ -141,3 +144,4 @@ Ordering, tie-breaks, and "latest" MUST derive only from the names. mtime and cr
 - GIVEN a member written from a machine whose clock is behind, producing a lower suffix than an existing member
 - WHEN the latest is resolved
 - THEN the member with the higher name order is latest
+
