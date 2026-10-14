@@ -24,6 +24,7 @@ const GATED_FILES = [
   'scripts/sync-versions.mjs',
   'scripts/check-integrity.js',
   'scripts/verify.js',
+  'scripts/guard-text-encoding.js',
   'scripts/lib/legacy-write-guard.js',
   'scripts/lib/nn-name-regex-guard.js',
 ]
