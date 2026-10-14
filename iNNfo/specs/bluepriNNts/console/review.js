@@ -968,6 +968,10 @@
             return { name: c.name, fields: declaredFieldsOf(c.name) }
           }),
           candidates: elements,
+          // meta.models[].id is the model id a changeset target resolves; in a domain
+          // console meta.modelId is only the folder name.
+          models: Array.isArray(meta.models) ? meta.models : [],
+          defaultModel: meta.modelId,
         },
         {
           doc: doc,
@@ -975,7 +979,7 @@
             if (!store) return
             var draft = {
               kind: 'new',
-              model_id: meta.modelId,
+              model_id: res.modelId || meta.modelId,
               concept: res.concept,
               element: res.name,
             }

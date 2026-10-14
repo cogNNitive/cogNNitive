@@ -1894,6 +1894,29 @@
       op.value = String(c.name)
       picker.appendChild(op)
     })
+    // Model picker: only when the console holds several models. A model-scoped
+    // console has exactly one, so the draft targets it without asking.
+    var models = Array.isArray(data.models)
+      ? data.models.filter(function (m) {
+          return m && m.id
+        })
+      : []
+    var modelPicker = null
+    if (models.length > 1) {
+      modelPicker = makeEl(doc, 'select', 'innfo-edit-select')
+      modelPicker.setAttribute('data-innfo-role', 'model')
+      models.forEach(function (m) {
+        var mo = makeEl(doc, 'option', null, m.title || m.id)
+        mo.value = String(m.id)
+        modelPicker.appendChild(mo)
+      })
+      var preset = models.filter(function (m) {
+        return String(m.id) === String(data.defaultModel)
+      })[0]
+      if (preset) modelPicker.value = String(preset.id)
+      body.appendChild(makeEl(doc, 'label', 'innfo-edit-field-label', 'Model'))
+      body.appendChild(modelPicker)
+    }
     body.appendChild(conceptLabel)
     body.appendChild(picker)
 
@@ -1996,7 +2019,12 @@
         if (v !== undefined) fields[w.name] = v
       })
       if (opts && typeof opts.onSave === 'function') {
-        opts.onSave({ concept: picker.value, name: name, fields: fields })
+        opts.onSave({
+          concept: picker.value,
+          name: name,
+          fields: fields,
+          modelId: modelPicker ? modelPicker.value : models.length === 1 ? String(models[0].id) : undefined,
+        })
       }
       dismiss()
     })

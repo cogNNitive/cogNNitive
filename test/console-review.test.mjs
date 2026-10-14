@@ -506,6 +506,47 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /^fields:: [{]"owner":"CFO"[}]$/m)
     })
 
+    function mountDomainController(models) {
+      document.body.insertAdjacentHTML('beforeend', '<div id="innfo-banner"></div>')
+      const store = InnfoReview.createDraftStore(window.localStorage, 'domain-folder')
+      InnfoReview.createReviewController(document, {
+        // In a domain console meta.modelId is the folder basename, not a model id.
+        meta: { modelId: 'domain-folder', models },
+        elements: [{ id: 'g1', concept: 'Goal', name: 'Existing', fields: {}, hash: 'a'.repeat(16), slug: 'existing' }],
+        needs: ['feedback-export'],
+        store,
+        schema: SCHEMA,
+      }).openNew()
+      return { store, modal: document.querySelector('[data-innfo-component="new-element-modal"]') }
+    }
+
+    function saveNew(modal) {
+      const picker = modal.querySelector('select[data-innfo-role="concept"]')
+      picker.value = 'Goal'
+      change(picker)
+      modal.querySelector('input[data-innfo-role="name"]').value = 'Grow revenue'
+      click(modal.querySelector('.innfo-edit-btn-save'))
+    }
+
+    it('targets the picked model (not the folder name) in a multi-model domain console', () => {
+      const { store, modal } = mountDomainController([
+        { id: 'strategy', title: 'Strategy' },
+        { id: 'ops', title: 'Operations' },
+      ])
+      const modelPicker = modal.querySelector('select[data-innfo-role="model"]')
+      assert.deepEqual([...modelPicker.options].map((o) => o.value), ['strategy', 'ops'])
+      modelPicker.value = 'ops'
+      saveNew(modal)
+      assert.equal(store.drafts()[0].model_id, 'ops')
+    })
+
+    it('targets the single model of a model-scoped domain console without a picker', () => {
+      const { store, modal } = mountDomainController([{ id: 'strategy', title: 'Strategy' }])
+      assert.equal(modal.querySelector('select[data-innfo-role="model"]'), null)
+      saveNew(modal)
+      assert.equal(store.drafts()[0].model_id, 'strategy')
+    })
+
     it('rejects an empty name or an unpicked concept without storing a draft', () => {
       const { ctl, store } = mountController()
       ctl.openNew()

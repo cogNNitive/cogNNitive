@@ -2259,6 +2259,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       op.value = String(c.name)
       picker.appendChild(op)
     })
+    // Model picker: only when the console holds several models. A model-scoped
+    // console has exactly one, so the draft targets it without asking.
+    var models = Array.isArray(data.models)
+      ? data.models.filter(function (m) {
+          return m && m.id
+        })
+      : []
+    var modelPicker = null
+    if (models.length > 1) {
+      modelPicker = makeEl(doc, 'select', 'innfo-edit-select')
+      modelPicker.setAttribute('data-innfo-role', 'model')
+      models.forEach(function (m) {
+        var mo = makeEl(doc, 'option', null, m.title || m.id)
+        mo.value = String(m.id)
+        modelPicker.appendChild(mo)
+      })
+      var preset = models.filter(function (m) {
+        return String(m.id) === String(data.defaultModel)
+      })[0]
+      if (preset) modelPicker.value = String(preset.id)
+      body.appendChild(makeEl(doc, 'label', 'innfo-edit-field-label', 'Model'))
+      body.appendChild(modelPicker)
+    }
     body.appendChild(conceptLabel)
     body.appendChild(picker)
 
@@ -2361,7 +2384,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (v !== undefined) fields[w.name] = v
       })
       if (opts && typeof opts.onSave === 'function') {
-        opts.onSave({ concept: picker.value, name: name, fields: fields })
+        opts.onSave({
+          concept: picker.value,
+          name: name,
+          fields: fields,
+          modelId: modelPicker ? modelPicker.value : models.length === 1 ? String(models[0].id) : undefined,
+        })
       }
       dismiss()
     })
@@ -3756,6 +3784,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             return { name: c.name, fields: declaredFieldsOf(c.name) }
           }),
           candidates: elements,
+          // meta.models[].id is the model id a changeset target resolves; in a domain
+          // console meta.modelId is only the folder name.
+          models: Array.isArray(meta.models) ? meta.models : [],
+          defaultModel: meta.modelId,
         },
         {
           doc: doc,
@@ -3763,7 +3795,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             if (!store) return
             var draft = {
               kind: 'new',
-              model_id: meta.modelId,
+              model_id: res.modelId || meta.modelId,
               concept: res.concept,
               element: res.name,
             }
