@@ -168,9 +168,9 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
         (o) => o.value,
       )
     assert.equal(ctx.modal.edit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
-    assert.deepEqual(optionsOf(), ['active', 'retired'])
+    assert.deepEqual(optionsOf(), ['', 'active', 'retired'])
     assert.equal(ctx.modal.edit({ elementId: idOf('Slimer'), field: 'status' }), true)
-    assert.deepEqual(optionsOf(), ['free', 'trapped'])
+    assert.deepEqual(optionsOf(), ['', 'free', 'trapped'])
   })
 
   it('opens an undeclared numeric field as a number input', () => {
