@@ -84,8 +84,8 @@ try {
   console.log(`  ℹ️ Tag/pin freshness check skipped: ${e.message}`);
 }
 
-// Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> samples.ts + manifest/source.yaml)
-console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> samples.ts <-> manifest/source.yaml):');
+// Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> package versions + manifest/source.yaml)
+console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> package versions <-> manifest/source.yaml):');
 try {
   execSync('node scripts/sync-versions.mjs --check', { cwd: repoRoot, stdio: 'inherit' });
   console.log('  ✅ Versions are in sync with SSOT.');
@@ -172,7 +172,6 @@ if (isPrePush) {
     runCmd('npm run check:console-bundle', 'Check console bundle');
     runCmd('npm --workspace=@cognnitive/innfo-core test', 'Unit tests (core)');
     runCmd('npm --workspace=@cognnitive/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
-    runCmd('npm --workspace=@cognnitive/innfo-editor test', 'Unit tests (app)');
     runCmd('node scripts/check-spec-version.mjs --check-urls', 'Check spec URLs resolve');
     console.log('\n✅ [Group 5] CI mirror passed.');
   } catch (err) {

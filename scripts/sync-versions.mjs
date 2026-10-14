@@ -4,7 +4,7 @@
  * scripts/sync-versions.mjs
  *
  * Single Source of Truth synchronization and drift validation for:
- *   - Template versions in editor (spec_NN.md -> samples.ts)
+ *   - (the frozen Vue editor's samples.ts is no longer a target; see its FROZEN.md)
  *   - MCP package version (innfo-mcp/package.json -> innfo-core, dep range)
  *
  * (source.yaml synchronization is removed under tag-driven release AD-6).
@@ -23,17 +23,8 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 
 const DEFAULT_BLUEPRINTS_DIR = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 const DEFAULT_SKILLS_DIR = path.join(REPO_ROOT, 'skills');
-const DEFAULT_SAMPLES_TS_PATH = path.join(
-  REPO_ROOT, 'iNNfo', 'apps', 'innfo-editor', 'src', 'config', 'samples.ts'
-);
 const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'package.json');
 const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'package.json');
-
-const GENERATED_HEADER = [
-  '// GENERATED — DO NOT EDIT. Source: iNNfo/specs/bluepriNNts/*/spec_NN.md and',
-  '// iNNfo/specs/bluepriNNts/workspace_spec_NN.md.',
-  '// Regenerate with `npm run sync:versions` (scripts/sync-versions.mjs).',
-].join('\n');
 
 const FRONTMATTER_VERSION_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const BLUEPRINT_VERSION_RE = /^blueprint_version:\s*"?([^"\r\n]+?)"?\s*$/m;
@@ -134,50 +125,6 @@ export function readMcpPackageVersion(mcpPkgPath = DEFAULT_MCP_PKG_PATH) {
   return pkg.version ? String(pkg.version).trim() : undefined;
 }
 
-function renderSamplesObjectBody(versions) {
-  const slugs = Object.keys(versions)
-    .filter((slug) => slug !== 'workspace')
-    .sort();
-  return slugs.map((slug) => {
-    const key = /^[A-Za-z_$][A-Za-z0-9_$-]*$/.test(slug) && !slug.includes('-')
-      ? slug
-      : `'${slug}'`;
-    return `  ${key}: '${versions[slug]}',`;
-  }).join('\n');
-}
-
-const SAMPLES_BLOCK_RE = /export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = \{[\s\S]*?\n\}/;
-
-function syncSamplesTs({ versions, samplesTsPath, check }) {
-  if (!fs.existsSync(samplesTsPath)) {
-    return { ok: false, error: `Missing samples.ts file: ${samplesTsPath}` };
-  }
-
-  const current = fs.readFileSync(samplesTsPath, 'utf8');
-  if (!SAMPLES_BLOCK_RE.test(current)) {
-    return { ok: false, error: `Could not find SHIPPED_BLUEPRINT_VERSIONS block in ${samplesTsPath}` };
-  }
-
-  const body = renderSamplesObjectBody(versions);
-  const replacement = `${GENERATED_HEADER}\nexport const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {\n${body}\n}`;
-  const updated = current.replace(new RegExp(`(?:${GENERATED_HEADER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n)?${SAMPLES_BLOCK_RE.source}`), replacement);
-
-  if (check) {
-    if (updated !== current) {
-      return {
-        ok: false,
-        drift: true,
-      };
-    }
-    return { ok: true };
-  }
-
-  if (updated !== current) {
-    fs.writeFileSync(samplesTsPath, updated, 'utf8');
-  }
-  return { ok: true, changed: updated !== current };
-}
-
 function syncCorePkg({ mcpVersion, corePkgPath, check }) {
   if (!fs.existsSync(corePkgPath)) {
     return { ok: false, error: `Missing core package.json: ${corePkgPath}` };
@@ -245,7 +192,6 @@ export function syncVersions({
   check = false,
   blueprintsDir = DEFAULT_BLUEPRINTS_DIR,
   skillsDir = DEFAULT_SKILLS_DIR,
-  samplesTsPath = DEFAULT_SAMPLES_TS_PATH,
   mcpPkgPath = DEFAULT_MCP_PKG_PATH,
   corePkgPath = DEFAULT_CORE_PKG_PATH,
 } = {}) {
@@ -263,18 +209,6 @@ export function syncVersions({
   const mcpVersion = readMcpPackageVersion(mcpPkgPath);
   if (mcpVersion) {
     skillVersions['innfo-mcp'] = mcpVersion;
-  }
-
-  const samplesResult = syncSamplesTs({ versions, samplesTsPath, check });
-  if (!samplesResult.ok) {
-    if (samplesResult.drift) {
-      errors.push(
-        `SHIPPED_BLUEPRINT_VERSIONS in ${samplesTsPath} is stale. ` +
-        `Run \`npm run sync:versions\` to regenerate it.`
-      );
-    } else {
-      errors.push(samplesResult.error);
-    }
   }
 
   if (mcpVersion && fs.existsSync(corePkgPath)) {
@@ -318,7 +252,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking version parity (specs & mcp <-> samples.ts & packages)...');
+    console.log('🔍 Checking version parity (specs & mcp <-> packages)...');
     const res = syncVersions({ check: true });
     if (!res.ok) {
       console.error('❌ Version drift detected:');
@@ -329,7 +263,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     }
     console.log('✅ All versions are in sync.');
   } else {
-    console.log('📦 Syncing versions from specs & mcp into samples.ts and packages...');
+    console.log('📦 Syncing versions from mcp into packages...');
     const res = syncVersions({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync versions:');

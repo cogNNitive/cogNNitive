@@ -98,7 +98,7 @@ jobs:
           path: docs
           retention-days: 1
 
-  # ── iNNfo quality gate: lint, typecheck, unit tests, app build. Previously
+  # ── iNNfo quality gate: lint, typecheck, unit tests. Previously
   #    lived in iNNfo/.github/workflows/ci.yml, which GitHub Actions never ran
   #    (only the repo-root .github/workflows/ is executed).
   quality:
@@ -133,9 +133,6 @@ jobs:
             echo "No formattable files changed."
           fi
 
-      - name: Typecheck (app)
-        run: npm --workspace=@cognnitive/innfo-editor run typecheck
-
       - name: Typecheck (innfo-mcp)
         run: npm --workspace=@cognnitive/innfo-mcp run typecheck
 
@@ -144,12 +141,6 @@ jobs:
 
       - name: Unit tests + coverage (innfo-mcp)
         run: npm --workspace=@cognnitive/innfo-mcp run test:coverage
-
-      - name: Unit tests (app)
-        run: npm --workspace=@cognnitive/innfo-editor test
-
-      - name: Build app
-        run: npm --workspace=@cognnitive/innfo-editor run build
 
   # ── Every hardcoded raw.githubusercontent.com spec URL must resolve to a
   #    file that exists; specs/ is immutable and filename-encoded.
