@@ -31,6 +31,10 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 
 const GENERATED_RE = /\.bundle\.js$/;
 
+// Committed static build of the frozen Vue editor (S5-freeze). Minified third-party
+// chunks carry literal U+FFFD; the build is generated output, not authored text.
+const GENERATED_PREFIXES = ['docs/innfo/app/assets/'];
+
 const FALLBACK_SKIP_DIRS = new Set([
   '.git',
   'node_modules',
@@ -73,7 +77,7 @@ function scanForEncodingViolations(files, options = {}) {
   const violations = [];
   for (const file of files) {
     const rel = path.relative(repoRoot, file).replace(/\\/g, '/');
-    if (allowlist.has(rel) || GENERATED_RE.test(rel)) continue;
+    if (allowlist.has(rel) || GENERATED_RE.test(rel) || GENERATED_PREFIXES.some((p) => rel.startsWith(p))) continue;
     let buf;
     try {
       buf = fs.readFileSync(file);
