@@ -10246,8 +10246,8 @@ function addModelProblems(change) {
   if (!change.blueprint_name) problems.push(`change "${id}": add_model requires "blueprint_name"`);
   if (!change.blueprint_url) problems.push(`change "${id}": add_model requires "blueprint_url"`);
   const target = change.target;
-  if (!target || target.includes("@") || target.includes("&") || target.includes("..") || /^([a-zA-Z]:|[\\/])/.test(target)) {
-    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", or absolute path)`);
+  if (!target || target.includes("@") || target.includes("&") || target.includes("..") || /^[a-zA-Z]:/.test(target) || /[\\/]/.test(target)) {
+    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`);
   }
   return problems;
 }
