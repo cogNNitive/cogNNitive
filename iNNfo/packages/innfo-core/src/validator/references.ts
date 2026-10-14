@@ -123,7 +123,7 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
           diagnostics.push({
             path: `matrices.${matrix.name}.row`,
             message: `Ambiguous element reference "${cell.row}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-            severity: 'error',
+            severity: 'warning',
             code: 'AMBIGUOUS_ELEMENT_NAME',
           })
         }
@@ -140,7 +140,7 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
           diagnostics.push({
             path: `matrices.${matrix.name}.col`,
             message: `Ambiguous element reference "${cell.col}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-            severity: 'error',
+            severity: 'warning',
             code: 'AMBIGUOUS_ELEMENT_NAME',
           })
         }

@@ -154,7 +154,9 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     const matrixDiags = validateReferences(model)
     const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
     expect(ambiguousMatrix).toBeDefined()
-    expect(ambiguousMatrix!.severity).toBe('error')
+    // Matrix header ambiguity is advisory (never blocking): matrix labels may
+    // repeat across concepts and the matrix source/target disambiguate intent.
+    expect(ambiguousMatrix!.severity).toBe('warning')
   })
 
   it('5.1.3 Two elements in the same model with identical slugs emit DUPLICATE_SLUG error', () => {
@@ -387,6 +389,8 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     const matrixDiags = validateReferences(model)
     const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
     expect(ambiguousMatrix).toBeDefined()
-    expect(ambiguousMatrix!.severity).toBe('error')
+    // Matrix header ambiguity is advisory (never blocking): matrix labels may
+    // repeat across concepts and the matrix source/target disambiguate intent.
+    expect(ambiguousMatrix!.severity).toBe('warning')
   })
 })
