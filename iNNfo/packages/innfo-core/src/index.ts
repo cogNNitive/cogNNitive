@@ -164,6 +164,7 @@ export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
 export {
   applyMutation,
+  listMutationOperations,
   freeze_slugs,
   updateReferenceString,
   updateWikiLinks,
@@ -191,3 +192,4 @@ export * from './naming/index.js'
 export * from './writeOnce/index.js'
 export * from './cognitivize/index.js'
 export * from './changeset/index.js'
+export * from './scaffold/index.js'

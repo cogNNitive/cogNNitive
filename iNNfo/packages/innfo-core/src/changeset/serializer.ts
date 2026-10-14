@@ -59,6 +59,15 @@ function formatChangeItem(item: ChangeItem): string {
   if (item.slug !== undefined) {
     lines.push(`slug:: ${item.slug}`)
   }
+  if (item.blueprint_name !== undefined) {
+    lines.push(`blueprint_name:: ${formatPropertyValue(item.blueprint_name)}`)
+  }
+  if (item.blueprint_url !== undefined) {
+    lines.push(`blueprint_url:: ${formatPropertyValue(item.blueprint_url)}`)
+  }
+  if (item.knowledge_version !== undefined) {
+    lines.push(`knowledge_version:: ${formatPropertyValue(item.knowledge_version)}`)
+  }
   if (item.fields !== undefined) {
     lines.push(`fields:: ${JSON.stringify(item.fields)}`)
   }

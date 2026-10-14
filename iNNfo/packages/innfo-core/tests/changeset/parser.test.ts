@@ -258,3 +258,71 @@ notes:: Looks good, pending executive review
     expect(reparsed.changes[0].replaced_sources).toBe('sources/old.md@## Needs')
   })
 })
+
+describe('Changeset Parser & Serializer: add_model', () => {
+  const header = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-3-0"
+status: proposed
+---
+
+# NN Change
+
+`
+
+  const addModel = `## NN Change: c-01
+op:: add_model
+target:: acme_strategy
+blueprint_name:: business
+blueprint_url:: https://example.test/bluepriNNts/business/spec_NN.md
+name:: ACME Strategy
+knowledge_version:: V_0-1-0
+sources:: sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision
+author:: agent
+notes:: Migrated from the old domain
+`
+
+  it('parses an add_model change and round-trips it byte-for-byte', () => {
+    const raw = header + addModel
+    const doc = parseChangeset(raw)
+    expect(doc.changes).toHaveLength(1)
+    expect(doc.changes[0]).toMatchObject({
+      op: 'add_model',
+      target: 'acme_strategy',
+      blueprint_name: 'business',
+      blueprint_url: 'https://example.test/bluepriNNts/business/spec_NN.md',
+      name: 'ACME Strategy',
+      knowledge_version: 'V_0-1-0',
+      sources: 'sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision',
+    })
+    expect(serializeChangeset(doc)).toBe(raw)
+  })
+
+  it('the structural serializer renders the add_model keys and parses back to the same change', () => {
+    const parsed = parseChangeset(header + addModel)
+    const fresh: ChangesetDocument = { frontmatter: parsed.frontmatter, changes: parsed.changes }
+    const text = serializeChangeset(fresh)
+    expect(text).toContain('blueprint_name:: business')
+    expect(text).toContain('blueprint_url:: https://example.test/bluepriNNts/business/spec_NN.md')
+    expect(text).toContain('knowledge_version:: V_0-1-0')
+    expect(parseChangeset(text).changes).toEqual(parsed.changes)
+  })
+
+  it.each(['from:: x', 'to:: y', 'base_hash:: abc123'])(
+    'rejects an add_model change carrying "%s", naming the change id',
+    (line) => {
+      expect(() => parseChangeset(header + addModel + line + '\n')).toThrow(/c-01/)
+    },
+  )
+
+  it('rejects an add_model without blueprint_url and a target with "@"', () => {
+    const noUrl = header + addModel.replace(/^blueprint_url::.*\n/m, '')
+    expect(() => parseChangeset(noUrl)).toThrow(/blueprint_url/)
+    const badTarget = header + addModel.replace('target:: acme_strategy', 'target:: acme@strategy')
+    expect(() => parseChangeset(badTarget)).toThrow(/plain model id/)
+  })
+})

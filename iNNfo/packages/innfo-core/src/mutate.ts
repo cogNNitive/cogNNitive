@@ -181,6 +181,11 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   freeze_slugs: (model) => freeze_slugs(model),
 }
 
+/** Names of every operation the mutation engine implements. */
+export function listMutationOperations(): string[] {
+  return Object.keys(MUTATION_HANDLERS)
+}
+
 /**
  * Template-authoring primitives (`# NN Concept Definition`, `# NN Field
  * Definition` / `Marker Definition`) are only meaningful against a level-2

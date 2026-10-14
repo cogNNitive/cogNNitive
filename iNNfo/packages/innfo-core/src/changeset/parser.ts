@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import { isChangeOp, isChangeStatus } from './types.js'
+import { addModelProblems, isChangeOp, isChangeStatus } from './types.js'
 import type {
   ChangesetDocument,
   ChangesetFrontmatter,
@@ -183,6 +183,15 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
       case 'sources':
         currentChange.sources = stripQuotes(rawVal)
         break
+      case 'blueprint_name':
+        currentChange.blueprint_name = stripQuotes(rawVal)
+        break
+      case 'blueprint_url':
+        currentChange.blueprint_url = stripQuotes(rawVal)
+        break
+      case 'knowledge_version':
+        currentChange.knowledge_version = stripQuotes(rawVal)
+        break
       case 'replaced_sources':
         currentChange.replaced_sources = stripQuotes(rawVal)
         break
@@ -206,6 +215,11 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
 
   if (currentChange && currentChange.id && currentChange.op && currentChange.target) {
     changes.push(currentChange as ChangeItem)
+  }
+
+  const problems = changes.flatMap(addModelProblems)
+  if (problems.length > 0) {
+    throw new Error(`Invalid add_model change: ${problems.join('; ')}`)
   }
 
   return {

@@ -25,6 +25,11 @@ export async function partitionChangeset(
   changesDir?: string,
   modelBaseVersions?: Map<string, string>,
   referenceConflicts?: Map<string, string>,
+  /**
+   * Changes the caller already knows cannot apply (change id -> diagnostic), such as an
+   * `add_model` whose target exists and the changes that depend on it.
+   */
+  blockedChanges?: Map<string, { code: string; message: string }>,
 ): Promise<PartitionResult> {
   const cleanSubset: ChangeItem[] = []
   const conflictedSubset: ChangeItem[] = []
@@ -32,6 +37,22 @@ export async function partitionChangeset(
 
   for (const change of changes) {
     if (change.op === 'comment') {
+      cleanSubset.push(change)
+      continue
+    }
+
+    // 0. Changes the caller blocked up front (add_model conflicts and their dependants)
+    const blocked = blockedChanges?.get(change.id)
+    if (blocked) {
+      conflictDiagnostics.set(change.id, blocked)
+      change.status = 'conflict'
+      change.resolution = blocked.message
+      conflictedSubset.push(change)
+      continue
+    }
+
+    // add_model creates a model: no existing target, no precondition to evaluate
+    if (change.op === 'add_model') {
       cleanSubset.push(change)
       continue
     }

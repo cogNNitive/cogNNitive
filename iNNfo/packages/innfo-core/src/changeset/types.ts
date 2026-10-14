@@ -3,14 +3,19 @@
  * Normative document model for changesets conforming to blueprint 'changes'.
  */
 
-export type ChangeOp =
-  | 'update_field'
-  | 'add_element'
-  | 'remove_element'
-  | 'rename_element'
-  | 'rename_concept'
-  | 'update_matrix_cell'
-  | 'comment'
+/** Every operation a changeset change may carry. */
+export const CHANGE_OPS = [
+  'update_field',
+  'add_element',
+  'remove_element',
+  'rename_element',
+  'rename_concept',
+  'update_matrix_cell',
+  'comment',
+  'add_model',
+] as const
+
+export type ChangeOp = (typeof CHANGE_OPS)[number]
 
 export type ChangeStatus =
   | 'proposed'
@@ -44,6 +49,13 @@ export interface ChangeItem {
    * or a bare path). Sealed into `proposal_sha`; apply never writes it.
    */
   sources?: string
+  /**
+   * `add_model` only: the parent bluepriNNt of the model to create (name and immutable
+   * URL) and its optional initial `knowledge_version`. Sealed into `proposal_sha`.
+   */
+  blueprint_name?: string
+  blueprint_url?: string
+  knowledge_version?: string
   /** Execution / Resolution annotations (excluded from proposal_sha) */
   status?: ChangeStatus
   resolution?: string
@@ -53,7 +65,8 @@ export interface ChangeItem {
 }
 
 export interface ModelVersionTransition {
-  base_version: string
+  /** Absent for a model created by `add_model` in the same apply. */
+  base_version?: string
   result_version: string
 }
 
@@ -97,18 +110,40 @@ export function isChangeStatus(val: unknown): val is ChangeStatus {
 }
 
 export function isChangeOp(val: unknown): val is ChangeOp {
-  return (
-    typeof val === 'string' &&
-    [
-      'update_field',
-      'add_element',
-      'remove_element',
-      'rename_element',
-      'rename_concept',
-      'update_matrix_cell',
-      'comment',
-    ].includes(val)
-  )
+  return typeof val === 'string' && (CHANGE_OPS as readonly string[]).includes(val)
+}
+
+/**
+ * Structural problems of one `add_model` change, as human-readable messages naming the
+ * change id. An empty list means the change is well formed. `add_model` creates a model:
+ * it requires `target` (a plain model id), `blueprint_name` and `blueprint_url`, and it
+ * carries no precondition (`from`, `to`, `base_hash`) and no element payload.
+ */
+export function addModelProblems(change: ChangeItem): string[] {
+  if (change.op !== 'add_model') return []
+  const problems: string[] = []
+  const id = change.id
+  for (const key of ['from', 'to', 'base_hash'] as const) {
+    if (change[key] !== undefined) {
+      problems.push(`change "${id}": add_model must not carry "${key}"`)
+    }
+  }
+  if (change.concept !== undefined || change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": add_model must not carry element payload (concept, slug, fields)`)
+  }
+  if (!change.blueprint_name) problems.push(`change "${id}": add_model requires "blueprint_name"`)
+  if (!change.blueprint_url) problems.push(`change "${id}": add_model requires "blueprint_url"`)
+  const target = change.target
+  if (
+    !target ||
+    target.includes('@') ||
+    target.includes('&') ||
+    target.includes('..') ||
+    /^([a-zA-Z]:|[\\/])/.test(target)
+  ) {
+    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", or absolute path)`)
+  }
+  return problems
 }
 
 export interface LockPayload {

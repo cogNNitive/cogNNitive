@@ -20,6 +20,9 @@ export const PROPOSAL_KEYS = [
   'notes',
   'base_hash',
   'sources',
+  'blueprint_name',
+  'blueprint_url',
+  'knowledge_version',
 ] as const
 
 /**

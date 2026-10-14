@@ -16,6 +16,9 @@ const SEALED_KEY_SPEC = [
   'notes',
   'base_hash',
   'sources',
+  'blueprint_name',
+  'blueprint_url',
+  'knowledge_version',
 ] as const
 
 describe('Proposal Hasher', () => {
@@ -182,5 +185,45 @@ describe('Proposal Hasher', () => {
 
   it('the sealed key list equals the normative spec list (base_hash included)', () => {
     expect([...PROPOSAL_KEYS].sort()).toEqual([...SEALED_KEY_SPEC].sort())
+  })
+})
+
+describe('Proposal Hasher: add_model keys are sealed', () => {
+  const base: ChangeItem = {
+    id: 'c-01',
+    op: 'add_model',
+    target: 'acme',
+    blueprint_name: 'business',
+    blueprint_url: 'https://example.test/business/spec_NN.md',
+    name: 'ACME',
+    knowledge_version: 'V_0-1-0',
+  }
+
+  it('editing blueprint_url after sealing breaks the seal', () => {
+    const doc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: 'V_0-3-0',
+        status: 'proposed',
+        proposal_sha: computeProposalSha([base]),
+      },
+      changes: [base],
+    }
+    expect(verifyProposalSha(doc)).toBe(true)
+    doc.changes = [{ ...base, blueprint_url: 'https://evil.test/business/spec_NN.md' }]
+    expect(verifyProposalSha(doc)).toBe(false)
+  })
+
+  it('editing knowledge_version after sealing changes the hash', () => {
+    expect(computeProposalSha([base])).not.toBe(
+      computeProposalSha([{ ...base, knowledge_version: 'V_9-9-9' }]),
+    )
+  })
+
+  it('a change without the add_model keys hashes as before (keys appended, not reordered)', () => {
+    const plain: ChangeItem = { id: 'c-01', op: 'update_field', target: 'm@e&f', to: 'x' }
+    expect(computeProposalSha([plain])).toBe(computeProposalSha([{ ...plain }]))
   })
 })
