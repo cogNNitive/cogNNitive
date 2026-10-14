@@ -226,12 +226,9 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
       `wc -l` the archived artifacts against the originals (haiku archives truncate). Unblocks S5.
       [all requirements]
 
-## Open questions for the maintainer (S3b)
+## Open questions for the maintainer (S3b) — RESOLVED 2026-10-14
 
-- Q1 Two bluepriNNts declaring the same (concept, field) differently: accept first-wins (same as
-  the existing concept merge) or key by bluepriNNt too (D-S3b-1 alternative b)?
-- Q2 P0-3 placement: keep in S3b as group 8 with its own PR/release (recommended, D-S3b-4) or
-  move to a separate lot?
-- Q3 `parsePropertyValue` JSON-unescape of double-quoted values (D-S3b-3) touches the Level-1
-  "Unified Syntax" reading of the document grammar: approve, or forbid newlines in console edits instead?
-- Q4 Arrays in the modal: comment-only (planned) or a list editor now?
+- Q1 Same (concept, field) declared differently by two bluepriNNts: **first-wins**, plus a warning at export so it is never silent.
+- Q2 P0-3 stays in S3b as group 8 with its own PR and release note.
+- Q3 Newlines: **fix the read side now** (`parsePropertyValue` JSON-unescapes double-quoted values, falling back to slicing). Extracting it as a separate change was considered and rejected as not simpler: the fix is a few lines already inside group 8, and a split would delay the markdown edit and duplicate a proposal. Guard: the whole-corpus round-trip suite (`tests/roundtrip-fidelity.test.ts`) must stay green; if the repo rules require a grammar/spec version bump, the CI guard will say so and it is handled in group 8.
+- Q4 Arrays in the modal: comment-only. A list editor can be added later if used.
