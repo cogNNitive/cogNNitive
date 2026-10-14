@@ -2593,6 +2593,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
+  // Declared definition of a field, keyed by (concept, field) so two concepts that
+  // share a field name keep their own type/options. Case-insensitive on both parts.
+  function fieldDefOf(schema, concept, field) {
+    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    var c = String(concept == null ? '' : concept).toLowerCase()
+    var n = String(field == null ? '' : field).toLowerCase()
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i]
+      if (
+        f &&
+        String(f.concept == null ? '' : f.concept).toLowerCase() === c &&
+        String(f.name == null ? '' : f.name).toLowerCase() === n
+      ) {
+        return f
+      }
+    }
+    return null
+  }
+
   function deepCopy(value) {
     return JSON.parse(JSON.stringify(value))
   }
@@ -3096,6 +3115,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Resolve an anchor to a KU-modal target. Returns null when the anchor is
     // not modal-editable (card comments, tag/relation proposals use popovers
     // or immediate comment drafts instead).
+    function referenceCandidates(def) {
+      var allowed = def && Array.isArray(def.target_concepts) ? def.target_concepts : []
+      if (!allowed.length) return elements
+      var set = allowed.map(function (c) {
+        return String(c).toLowerCase()
+      })
+      return elements.filter(function (e) {
+        return e && set.indexOf(String(e.concept).toLowerCase()) !== -1
+      })
+    }
+
     function kuModalTarget(anchorData) {
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
@@ -3171,12 +3201,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       var fieldVal = el.fields ? el.fields[field] : undefined
-      var schemaField = null
-      if (options.schema && Array.isArray(options.schema.fields)) {
-        schemaField = options.schema.fields.filter(function (f) {
-          return f.name === field
-        })[0]
-      }
+      var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
         schemaField && schemaField.type
           ? schemaField.type
@@ -3191,9 +3216,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         type: fieldType,
         value: fieldVal,
         options: schemaField ? schemaField.options : undefined,
+        target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
           schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
-            ? elements
+            ? referenceCandidates(schemaField)
             : undefined,
         draftField: field,
         original: fieldVal,
@@ -4023,6 +4049,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     STORE_VERSION: STORE_VERSION,
     createDraftStore: createDraftStore,
     createReviewController: createReviewController,
+    fieldDefOf: fieldDefOf,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
     isAlreadyApplied: isAlreadyApplied,
@@ -5573,12 +5600,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Resolves a field's declared type from the schema, for type-aware read
   // rendering (FieldValue). Falls back to '' (plain text).
-  function fieldTypeOf(schema, name) {
-    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
-    for (var i = 0; i < fields.length; i++) {
-      if (fields[i] && fields[i].name === name) return fields[i].type || fields[i].widget || ''
-    }
-    return ''
+  var fieldDefOf = Review.fieldDefOf
+
+  function fieldTypeOf(schema, concept, name) {
+    var def = fieldDefOf(schema, concept, name)
+    return def ? def.type || def.widget || '' : ''
   }
 
   // Map of element id -> incoming relations (every other element that points at
@@ -5655,7 +5681,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           fields.push({
             name: k,
             value: val,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             ref: target
               ? {
                   id: target.id || String(val),
@@ -6022,7 +6048,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           renderFieldDetailDialog(doc, {
             name: k,
             value: rawVal,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             elementName: element.name || element.id || '',
           })
         })
@@ -9404,6 +9430,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
+        schema: schema,
         onDraftsChanged: refreshDraftCounts,
       })
     }
@@ -9582,6 +9609,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
     boot: boot,
+    fieldDefOf: fieldDefOf,
   }
 
   return PUBLIC_API

@@ -10833,11 +10833,21 @@ function createFsSourceResolver(rootDir) {
 function serializeConsoleSlot(value) {
   return JSON.stringify(value, null, 2).replace(/</g, "\\u003c");
 }
+function flattenConceptFields(concepts) {
+  const out = [];
+  for (const concept of concepts) {
+    if (!concept || !concept.name || !Array.isArray(concept.fields)) continue;
+    for (const field of concept.fields) {
+      if (field && field.name) out.push({ concept: concept.name, ...field });
+    }
+  }
+  return out;
+}
 function buildConsoleSchemaSlot(schema, elements, procedures) {
   const procList = Array.isArray(procedures) ? procedures : [];
   if (schema) {
     const concepts = Array.isArray(schema.concepts) ? schema.concepts : typeof schema.concepts === "object" && schema.concepts !== null ? Object.values(schema.concepts) : [];
-    const fields = Array.isArray(schema.fields) ? schema.fields : typeof schema.fields === "object" && schema.fields !== null ? Object.values(schema.fields) : [];
+    const fields = flattenConceptFields(concepts);
     const markers = Array.isArray(schema.markers) ? schema.markers : typeof schema.markers === "object" && schema.markers !== null ? Object.values(schema.markers) : [];
     const matrices = Array.isArray(schema.matrices) ? schema.matrices : typeof schema.matrices === "object" && schema.matrices !== null ? Object.values(schema.matrices) : [];
     return {
