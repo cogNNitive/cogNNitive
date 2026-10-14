@@ -11,8 +11,6 @@ build/
 # Root-anchored on purpose: `artifacts/` also names tracked domain/use-case
 # folders and test fixtures elsewhere.
 /artifacts/
-docs/innfo/app/assets/
-docs/innfo/app/index.html
 docs/innfo/cdn/
 docs/use/freshness.json
 docs/use/manifest.md

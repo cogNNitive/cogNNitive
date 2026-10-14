@@ -36,37 +36,13 @@ function run(cmd, desc) {
 // 1. Sequential topological build execution
 run('npm --workspace=@cognnitive/innfo-core run build', 'Build @cognnitive/innfo-core');
 run('npm --workspace=@cognnitive/innfo-mcp run build', 'Build @cognnitive/innfo-mcp');
-run('npm --workspace=@cognnitive/innfo-editor run build', 'Build @cognnitive/innfo-editor');
 
-// 2. Stage innfo-editor distribution into docs/innfo/app/
-console.log('\nâ–¶ Staging innfo-editor dist into docs/innfo/app/...');
-const editorDist = path.join(repoRoot, 'iNNfo', 'apps', 'innfo-editor', 'dist');
-const targetAppDir = path.join(docsRoot, 'innfo', 'app');
-
-if (!fs.existsSync(editorDist)) {
-  console.error(`âŒ Editor dist directory not found at: ${editorDist}`);
-  process.exit(1);
-}
-
-fs.mkdirSync(targetAppDir, { recursive: true });
-
-// Clean existing compiled assets directory in docs/innfo/app/ to prevent stale hashed chunks
-const targetAssetsDir = path.join(targetAppDir, 'assets');
-if (fs.existsSync(targetAssetsDir)) {
-  fs.rmSync(targetAssetsDir, { recursive: true, force: true });
-}
-
-// Copy editor dist contents (index.html, assets, etc.) while preserving starter/ and 404.html
-const distEntries = fs.readdirSync(editorDist);
-for (const entry of distEntries) {
-  const srcPath = path.join(editorDist, entry);
-  const destPath = path.join(targetAppDir, entry);
-  fs.cpSync(srcPath, destPath, { recursive: true });
-}
-console.log(`âœ… Staged ${distEntries.length} dist entries to docs/innfo/app/`);
+// 2. The hosted Vue app (`docs/innfo/app/`) is a committed static build of the
+// frozen editor (S5-freeze). It is not built here: the Pages publish replaces the
+// whole tree, so the tracked snapshot is what keeps /innfo/app/ alive.
 
 // 3. The MCP CDN bundle is NOT staged here: `scripts/stage-mcp-bundle.mjs` owns it
-// (it copies the committed bundle and needs no editor build). CI `site` and the
+// (it copies the committed bundle). CI `site` and the
 // release workflow run it.
 
 // 3b. Stage the Level-2 blueprint catalog so it is reachable at a canonical

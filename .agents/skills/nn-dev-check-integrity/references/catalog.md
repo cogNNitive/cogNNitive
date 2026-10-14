@@ -215,8 +215,8 @@ git diff --name-only origin/main...HEAD -- "iNNfo/specs/bluepriNNts/*/spec_NN.md
 - The bump **cascades** — it is not one edit. All of these move together, in the same
   batch: the sample pin at BOTH sites (`_samples_nn/` + `bluepriNNts/<bp>/samples/`, see
   Group 2b), `SAMPLE_MAPPINGS` in `scripts/sync-samples.mjs`, the regenerated
-  `samples.ts` + `catalog.json` (`npm run sync:versions`), and every test that asserts a
-  blueprint version (editor + core + mcp).
+  `catalog.json` (`npm run sync:versions`), and every test that asserts a
+  blueprint version (core + mcp; the frozen editor is not gated).
 - **Do NOT attempt a text-only fix in a canonical spec** (e.g. repointing a dead path)
   unless that blueprint is genuinely being released. The cascade cost is large and easy to
   underestimate. Prefer fixing the wording in a non-immutable surface (public docs,
@@ -260,8 +260,6 @@ npm --prefix iNNfo run lint
 npm --prefix iNNfo run typecheck
 npm --prefix iNNfo/packages/innfo-core test
 npm --prefix iNNfo/packages/innfo-mcp run test:coverage
-npm --prefix iNNfo/apps/innfo-editor test
-npm --prefix iNNfo/apps/innfo-editor run build
 node scripts/verify.js            # dev mode: skips the live stable-manifest check (release-only)
 npm run build:docs
 npm --prefix iNNfo run check:spec-urls
@@ -270,16 +268,14 @@ npm --prefix iNNfo run check:spec-version -- --inventory   # informational
 
 **Local automation & residual nonequivalence.** `node scripts/check-integrity.js --pre-push`
 automates the core of this list: `lint`, `typecheck`, `innfo-core test`,
-`innfo-mcp test:coverage`, `innfo-editor test`, `check:spec-urls`, plus the full
-`verify.js` suite (Groups 3/4/7). Three steps are deliberately **not** mirrored
+`innfo-mcp test:coverage`, `check:spec-urls`, plus the full
+`verify.js` suite (Groups 3/4/7). Two steps are deliberately **not** mirrored
 locally — they are documented gaps, not oversights, and the runner should not be
 widened to include them:
 - `innfo-core run build` — CI builds core before the tests to kill stale `dist/`
   (expediente `innfo-core-dist-staleness-breaks-mcp-tests.md`). The local runner
   expects a current build; if `innfo-mcp` tests throw `<fn> is not a function`,
   run the core build manually before blaming the change.
-- `innfo-editor run build` — CI owns the app build; locally the app test suite plus
-  typecheck catch the same regressions without the heavier bundle step.
 - `npm run build:docs` — excluded from the local gate on purpose: it is heavy and
   rewrites tracked generated docs, so running it would dirty the very tree the gate
   is inspecting. The release path owns it.
@@ -390,7 +386,7 @@ Ask for the scope before running:
 Alcance de la revisión de código:
   [1] Solo el diff vs origin/main
   [2] Módulos tocados + su blast radius (lo que importa lo que cambió)
-  [3] Repo completo (innfo-core · innfo-mcp · innfo-editor · scripts · skills/)   · el más caro
+  [3] Repo completo (innfo-core · innfo-mcp · scripts · skills/)   · el más caro
 ```
 
 **10a — Deterministic QA sweep** (any scope):

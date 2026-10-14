@@ -435,7 +435,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   describe('legacy domain interception across MCP tools', () => {
-    it('returns legacy notice with nn-upgrade pointer when called on a legacy domain', async () => {
+    it('returns a legacy notice naming the new-domain recipe when called on a legacy domain', async () => {
       // Create legacy entrypoint
       await writeFile(
         join(rootDir, 'domaiNN_NN.md'),
@@ -448,7 +448,11 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.isLegacy).toBe(true)
       expect(parsed.message).toContain('legacy layout')
-      expect(parsed.hint).toContain('nn-upgrade')
+      expect(parsed.hint).toContain('--import-as-source')
+      expect(parsed.hint).toMatch(/new domain/i)
+      expect(parsed.hint).not.toMatch(/to migrate this domain/i)
+      expect(parsed.message).toContain('--import-as-source')
+      expect(parsed.message).not.toMatch(/to migrate./)
     })
 
     it('lets reads through but refuses writes when the only legacy signal is the retired layout', async () => {

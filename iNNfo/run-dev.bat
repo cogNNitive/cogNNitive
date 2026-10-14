@@ -11,7 +11,6 @@ echo.
 
 REM ── Kill any previous dev windows (targeted, not all node.exe!) ──
 echo   Cleaning up previous dev servers...
-taskkill /fi "WINDOWTITLE eq innfo-editor*" /f >nul 2>&1
 taskkill /fi "WINDOWTITLE eq iNNfo - docs*" /f >nul 2>&1
 timeout /t 1 /nobreak >nul
 echo   Done.
@@ -29,7 +28,7 @@ if not exist "%ROOT%node_modules" (
     echo.
 )
 
-REM ── Pre-build innfo-core (required by innfo-editor) ──
+REM ── Pre-build innfo-core (required by innfo-mcp) ──
 echo   Building @cognnitive/innfo-core...
 cd /d "%ROOT%packages\innfo-core" && call npx tsc
 if %ERRORLEVEL% NEQ 0 (
@@ -42,8 +41,6 @@ echo.
 echo Starting development servers...
 echo.
 
-echo   [innfo-editor] http://localhost:5174
-start "innfo-editor" cmd /c "title innfo-editor && cd /d "%ROOT%" && npm run dev -w @cognnitive/innfo-editor -- --port 5174 --host"
 
 echo   [docs]          http://localhost:8080
 start "iNNfo - docs" cmd /c "title iNNfo - docs && cd /d "%ROOT%" && npx http-server docs/ -p 8080 -c-1 --silent"
@@ -51,7 +48,6 @@ start "iNNfo - docs" cmd /c "title iNNfo - docs && cd /d "%ROOT%" && npx http-se
 echo.
 echo +----------------------------------------------------+
 echo ^|  Server            Window Title               URL  ^|
-echo ^|  innfo-editor    - innfo-editor     - http://localhost:5174 ^|
 echo ^|  docs            - iNNfo - docs - http://localhost:8080 ^|
 echo +----------------------------------------------------+
 echo.
@@ -62,7 +58,6 @@ pause >nul
 
 echo.
 echo Stopping all servers...
-taskkill /fi "WINDOWTITLE eq innfo-editor" /f >nul 2>&1
 taskkill /fi "WINDOWTITLE eq iNNfo - docs" /f >nul 2>&1
 echo Done.
 echo.

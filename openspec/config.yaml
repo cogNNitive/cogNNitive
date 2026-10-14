@@ -5,7 +5,7 @@ context: |
   Project: cogNNitive
   Type: Multi-module ecosystem containing agent skills, documentation, and the iNNfo monorepo.
   Modules:
-    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
+    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp). The Vue 3 editor (apps/innfo-editor) is FROZEN: not a workspace, not gated; its hosted app is a committed static build. Stack: TypeScript, ESM.
     - actioNN: Agent skill ecosystem (Markdown + YAML frontmatter, Node.js scripts for nn-sources).
     - eNNvironment: Ecosystem setup, manifest governance, and validation scripts.
     - _NN: Artifacts and commercial web content store.
@@ -20,7 +20,6 @@ testing:
     per_package:
       innfo-core: 'npm --workspace=@cognnitive/innfo-core test'
       innfo-mcp: 'npm --workspace=@cognnitive/innfo-mcp test'
-      innfo-editor: 'npm --workspace=@cognnitive/innfo-editor test'
       scripts_and_skills: 'node scripts/verify.js (discovers every *.test.js/*.test.mjs under scripts/, skills/, test/ via collectTestSuites)'
       nn-sources: 'npm --prefix skills/nn-sources test (own package.json; CI needs npm ci --prefix)'
   layers:
@@ -32,11 +31,11 @@ testing:
       tool: 'Vitest (iNNfo) / PowerShell scripts in skills/nn-sources/test (pwsh)'
     e2e:
       available: false
-      note: 'Playwright suite removed 2026-09-24; editor XSS guarantee covered by jsdom-pragma unit test'
+      note: 'Playwright suite removed 2026-09-24; editor XSS guarantee covered by jsdom-pragma unit test (editor frozen 2026-10-14, no longer run)'
   coverage:
     available: true
     command: 'npm run test:coverage'
-    note: 'core, mcp, editor only'
+    note: 'core, mcp only'
   quality:
     linter:
       available: true

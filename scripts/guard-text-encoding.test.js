@@ -85,6 +85,20 @@ function main() {
     console.log('✔ allowlist skips an explicitly documented exception');
   });
 
+  // 4. The frozen editor's committed build (generated, minified) is skipped; a
+  //    hand-written file next to it is still checked.
+  withTempDir((dir) => {
+    const snapshot = writeFixture(
+      dir,
+      'docs/innfo/app/assets/chunk-abc.js',
+      Buffer.from('minified \uFFFD', 'utf8'),
+    );
+    const sibling = writeFixture(dir, 'docs/innfo/app/404.html', Buffer.from('bad \uFFFD', 'utf8'));
+    const violations = scanForEncodingViolations([snapshot, sibling], { repoRoot: dir, allowlist: new Set() });
+    assert.deepStrictEqual(violations.map((v) => v.file), ['docs/innfo/app/404.html']);
+    console.log('✔ frozen editor snapshot assets are skipped, siblings are not');
+  });
+
   console.log('All guard-text-encoding unit tests passed successfully!');
 }
 

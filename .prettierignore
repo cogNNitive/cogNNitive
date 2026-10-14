@@ -13,3 +13,6 @@ archive/**
 **/*.golden
 docs/app/**
 packages/innfo-mcp/bin/**
+
+# Committed static build of the frozen Vue editor (S5-freeze): minified output.
+docs/innfo/app/assets/

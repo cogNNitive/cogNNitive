@@ -1,11 +1,11 @@
 version: 1
 entries:
+
   - id: quarantine
     what: Legacy quarantine module interface and index
     paths:
       - iNNfo/packages/innfo-core/src/legacy/index.ts
-      - skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs
-    why: Core quarantine interface for legacy detection and migration planning
+    why: Core quarantine interface for legacy detection (the migration half was retired in S4)
     removal: all-known-domains-migrated + maintainer-sign-off
     owner: 2026-09-29-nn-level-nomenclature-rename
 
@@ -15,25 +15,6 @@ entries:
       - iNNfo/packages/innfo-core/src/legacy/detect.ts
       - skills/nn-preflight/scripts/lib/legacy-detect.generated.cjs
     why: MCP/editor/preflight must recognise legacy domains
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
-  - id: language-map
-    what: Legacy reader and language migration map
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/reader.ts
-      - iNNfo/packages/innfo-core/src/legacy/language-map.ts
-    why: Mechanical language and keyword migration from legacy to canonical layout
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
-  - id: schema-maps
-    what: Per-blueprint schema migration maps
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/schema-maps/index.ts
-      - iNNfo/packages/innfo-core/src/legacy/schema-maps/types.ts
-      - iNNfo/packages/innfo-core/src/legacy/schema-maps/workspace.ts
-    why: Blueprint concept and field schema migration maps
     removal: all-known-domains-migrated + maintainer-sign-off
     owner: 2026-09-29-nn-level-nomenclature-rename
 
@@ -85,26 +66,6 @@ entries:
       - iNNfo/packages/innfo-core/tests/legacy/layout/detect.test.ts
       - iNNfo/packages/innfo-core/src/legacy/detect.ts
     why: Preflight, MCP, and the editor must report domains still using the retired folders
-    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
-    owner: 2026-10-02-cognitivize-in-place
-
-  - id: layout-migrate
-    what: Layout migration planner and post-apply preserved-body step (export/, sources/export/ and sources/original/ moves, sources/nn mirror retirement and relocation with bodies staged for sidecars, duplicate deletes, old local-time stamps converted via the injected localToUtc, citation path map)
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/layout/plan.ts
-      - iNNfo/packages/innfo-core/src/legacy/layout/mirrors.ts
-      - iNNfo/packages/innfo-core/tests/legacy/layout/plan.test.ts
-      - iNNfo/packages/innfo-core/src/legacy/layout/finalize.ts
-    why: Existing domaiNNs must move to the artifacts/ and sources/import/ layout without runtime code resolving old folders
-    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
-    owner: 2026-10-02-cognitivize-in-place
-
-  - id: upgrade-flow
-    what: nn-upgrade second Flow A step (layout migration with backup, dry run, plan-hash consent, frozen skip) and its helpers
-    paths:
-      - skills/nn-upgrade/scripts/migrate-domain.js
-      - skills/nn-upgrade/scripts/migrate-layout.test.js
-    why: Delivers the layout migration to users through the existing consent-gated upgrade flow
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
     owner: 2026-10-02-cognitivize-in-place
 
