@@ -57,29 +57,29 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 6. P0-1 — Declared field types reach the console (S3b, ~260 lines)
 
-- [ ] 6.1 TEST RED (`iNNfo/packages/innfo-core/tests/console-slot.test.ts`): `buildConsoleSchemaSlot`
+- [x] 6.1 TEST RED (`iNNfo/packages/innfo-core/tests/console-slot.test.ts`): `buildConsoleSchemaSlot`
       on an `extractBlueprintSchema` result emits a flat `fields` array with `concept`, `name`,
       `type`, `options`, `target_concepts`; two concepts sharing a field name yield two entries.
       [console-payload-builder: Declared Field Definitions in the Schema Slot]
-- [ ] 6.2 TEST RED (`test/console-export.test.mjs`): exporting a real fixture domaiNN (a fixture
+- [x] 6.2 TEST RED (`test/console-export.test.mjs`): exporting a real fixture domaiNN (a fixture
       bluepriNNt `spec_NN.md` declaring `select`, `reference`, `markdown_inline` fields; two models
       sharing one (concept, field)) gives a non-empty `fields` array, one entry per (concept, name).
       [console-payload-builder: Declared Field Definitions in the Schema Slot]
-- [ ] 6.3 TEST RED (`test/console-field-renderers.test.mjs` + new end-to-end case booting the 6.2
+- [x] 6.3 TEST RED (`test/console-field-renderers.test.mjs` + new end-to-end case booting the 6.2
       export in jsdom via `test/helpers/console-boot.mjs`): `.innfo-field-select` exists for the
       declared field; same-named fields in two concepts render and open the modal by their own
       definition; an undeclared numeric field opens `input[type=number]`.
       [innfo-console-runtime: Declared Field Lookup by Concept and Field]
       [console-ui-kit: Type-Aware Field Value Rendering]
-- [ ] 6.4 Implement the flattening in `packages/innfo-core/src/console/slot.ts`; rebuild the CJS
+- [x] 6.4 Implement the flattening in `packages/innfo-core/src/console/slot.ts`; rebuild the CJS
       mirror (`console-payload.generated.cjs`). [console-payload-builder: Declared Field Definitions in the Schema Slot]
-- [ ] 6.5 Replace the name-keyed `allFields` aggregation in `scripts/export-console.mjs`
+- [x] 6.5 Replace the name-keyed `allFields` aggregation in `scripts/export-console.mjs`
       (L688, L795-797, L822) with an array de-duplicated by (concept, name).
       [console-payload-builder: Declared Field Definitions in the Schema Slot]
-- [ ] 6.6 Add `fieldDefOf(schema, concept, field)` in `innfo-runtime.js`; route `fieldTypeOf`
+- [x] 6.6 Add `fieldDefOf(schema, concept, field)` in `innfo-runtime.js`; route `fieldTypeOf`
       (RT:1539), `guideFieldsFor` (RT:1293) and `review.js` `kuModalTarget` (RV:601-615) through it,
       passing `options`/`target_concepts` to the modal. [innfo-console-runtime: Declared Field Lookup by Concept and Field]
-- [ ] 6.7 Rebuild the bundle (`scripts/build-console-bundle.mjs`) in a separate `build:` commit;
+- [x] 6.7 Rebuild the bundle (`scripts/build-console-bundle.mjs`) in a separate `build:` commit;
       `npm --workspace=@cognnitive/innfo-core test`, `npm run typecheck`, `npm run lint`,
       `node scripts/verify.js` green. [all P0-1 requirements]
 
