@@ -98,7 +98,7 @@ async function checkDomainLegacy(
           kind: legacy.kind,
           signals: legacy.signals,
           hint: legacy.hint,
-          message: `Domain at "${root}" is in legacy layout. Run nn-upgrade to migrate.`,
+          message: `Domain at "${root}" is in legacy layout. Create a new domain and import it as a Source (nn-upgrade --import-as-source).`,
         },
         null,
         2,

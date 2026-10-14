@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### Requirement: R-TPD-04: Embedded Skill Discovery from Disk
+### Requirement: Embedded Skill Discovery from Disk
 
 `list_blueprint_skills` (via `discoverTransitiveAssets`) MUST discover skills embedded
 in a bluepriNNt package by scanning `skills/<name>/SKILL.md` on disk, next to the

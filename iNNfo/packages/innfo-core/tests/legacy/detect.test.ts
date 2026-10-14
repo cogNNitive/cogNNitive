@@ -59,7 +59,9 @@ describe('detectLegacy (Task 5.1)', () => {
     expect(result.kind).toBe('legacy')
     if (result.kind === 'legacy') {
       expect(result.signals.length).toBeGreaterThan(0)
-      expect(result.hint).toContain('nn-upgrade')
+      expect(result.hint).toContain('--import-as-source')
+      expect(result.hint).toMatch(/new domain/i)
+      expect(result.hint).not.toMatch(/to migrate this domain/i)
       const types = result.signals.map((s) => s.type)
       expect(types).toContain('legacy-entrypoint')
       expect(types).toContain('legacy-folder')
@@ -193,7 +195,9 @@ describe('detectLegacy (Task 5.1)', () => {
     expect(result.kind).toBe('mixed')
     if (result.kind === 'mixed') {
       expect(result.signals.length).toBeGreaterThan(0)
-      expect(result.hint).toContain('nn-upgrade')
+      expect(result.hint).toContain('--import-as-source')
+      expect(result.hint).toMatch(/new domain/i)
+      expect(result.hint).not.toMatch(/to migrate this domain/i)
     }
   })
 

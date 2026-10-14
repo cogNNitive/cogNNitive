@@ -4,13 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- innfo-views (trusted code, full page access)
+changes bluepriNNt bluepriNNt:changes/assets/console-view-changes.js sha256:07bd1c524759
 procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha256:c0e0d6d63b0c
 -->
     <!-- Inline executable scripts are allowed only by sha256 hash: scripts/console-views.mjs
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-KM/z5YHcaky2/2Iky54PI6PNGip2bCynKbeeE9/24Q0=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-tFmhqAfxS9lEDFx0seNZCW8KjWlp79Xsm1gL5DQw6h0=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7371,7 +7372,7 @@ button.btn-primary:hover:not(:disabled) {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.9/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.12.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
   }
 }
@@ -7537,9 +7538,8 @@ button.btn-primary:hover:not(:disabled) {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-7d653277",
-    "modelVersion": "V_1-0-187773049",
-    "generated": "2026-10-13T15:33:59.977Z",
+    "domainId": "testlab-ca99c9f0",
+    "generated": "2026-10-14T04:51:24.551Z",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -7548,11 +7548,11 @@ button.btn-primary:hover:not(:disabled) {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-13T15:33:59.962Z",
+        "citationsResolvedAt": "2026-10-14T04:51:24.523Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
-        "changeCount": 0,
+        "changeCount": 2,
         "conceptNames": [
           "Concept 1",
           "Concept 2",
@@ -7566,7 +7566,7 @@ button.btn-primary:hover:not(:disabled) {
         "filePath": "TestLab_procedures_TestLab_procedures_NN.md",
         "blueprint": "procedures",
         "version": "V_0-1-0",
-        "sha256": "514759823f31ac709d33b37308d1e4512cff31729af6cf44a4131a3559c2b251",
+        "sha256": "f166ec61c3ee9f34b51f3c6f16edff9d2fcc99c64f90f79ff5088b7847292ddb",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
@@ -7582,7 +7582,8 @@ button.btn-primary:hover:not(:disabled) {
   },
   "elements": [
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1a",
+      "id": "kNNowledge/TestLab_coverage_TestLab@element-1a",
+      "slug": "element-1a",
       "concept": "Concept 1",
       "name": "Element 1A",
       "description": "Element 1A is the intake baseline. It is cited by the weekly report and referenced back from Concept 2.",
@@ -7598,11 +7599,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "2e167cda4bf3e770",
-      "slug": "element-1a",
       "relations": [
         {
           "field": "sibling",
-          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2a",
           "targetLabel": "Element 2A"
         }
       ],
@@ -7624,7 +7624,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1A"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1b",
+      "id": "kNNowledge/TestLab_coverage_TestLab@element-1b",
+      "slug": "element-1b",
       "concept": "Concept 1",
       "name": "Element 1B",
       "description": "Element 1B is the review target. See the console feedback item fb-001 in artifacts/testlab-review.json.",
@@ -7647,11 +7648,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "c9d63b0a7681953c",
-      "slug": "element-1b",
       "relations": [
         {
           "field": "sibling",
-          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2a",
           "targetLabel": "Element 2A"
         }
       ],
@@ -7673,16 +7673,6 @@ button.btn-primary:hover:not(:disabled) {
           }
         ]
       },
-      "history": [
-        {
-          "id": "fb-001",
-          "op": "comment",
-          "author": "reviewer",
-          "timestamp": "2026-10-10T12:00:00.000Z",
-          "notes": "Review note: verify the changeset lineage for Element 1B.",
-          "status": "applied"
-        }
-      ],
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -7690,7 +7680,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1B"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1c-test",
+      "id": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+      "slug": "element-1c",
       "concept": "Concept 1",
       "name": "Element 1C (test)",
       "description": "Element 1C closes the Concept 1 triangle.",
@@ -7705,11 +7696,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "4642b08b6e632a78",
-      "slug": "element-1c",
       "relations": [
         {
           "field": "sibling",
-          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2b",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2b",
           "targetLabel": "Element 2B"
         }
       ],
@@ -7724,6 +7714,15 @@ button.btn-primary:hover:not(:disabled) {
           }
         ]
       },
+      "history": [
+        {
+          "id": "fb-001",
+          "op": "rename_element",
+          "author": "lucas",
+          "timestamp": "2026-10-12T17:33:29.123Z",
+          "status": "applied"
+        }
+      ],
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -7731,7 +7730,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1C (test)"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
+      "id": "kNNowledge/TestLab_coverage_TestLab@element-2a",
+      "slug": "element-2a",
       "concept": "Concept 2",
       "name": "Element 2A",
       "description": "Element 2A owns the intake baseline and is the first crossing of the Concept 1-Concept 2 matrix.",
@@ -7745,11 +7745,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "a9bdd341055b3943",
-      "slug": "element-2a",
       "relations": [
         {
           "field": "owner",
-          "target": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1a",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1a",
           "targetLabel": "Element 1A"
         }
       ],
@@ -7771,7 +7770,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2A"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2b",
+      "id": "kNNowledge/TestLab_coverage_TestLab@element-2b",
+      "slug": "element-2b",
       "concept": "Concept 2",
       "name": "Element 2B",
       "description": "Element 2B owns the multi-node element and is the second crossing of the Concept 1-Concept 2 matrix.",
@@ -7785,11 +7785,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "939c99b073f737c0",
-      "slug": "element-2b",
       "relations": [
         {
           "field": "owner",
-          "target": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1c-test",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
           "targetLabel": "Element 1C (test)"
         }
       ],
@@ -7811,7 +7810,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2B"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-image-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@image-traceability-probe",
+      "slug": "image-traceability-probe",
       "concept": "Edge Cases",
       "name": "Image traceability probe",
       "description": "Image traceability passes only via the sidecar path.",
@@ -7831,7 +7831,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "35ccda5bf585eb0a",
-      "slug": "image-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7850,7 +7849,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Image traceability probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-multi-node-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@multi-node-traceability-probe",
+      "slug": "multi-node-traceability-probe",
       "concept": "Edge Cases",
       "name": "Multi-node traceability probe",
       "description": "Multi-node traceability converges here.",
@@ -7865,7 +7865,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "196715b29e15a475",
-      "slug": "multi-node-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7898,7 +7897,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Multi-node traceability probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-review-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@review-traceability-probe",
+      "slug": "review-traceability-probe",
       "concept": "Edge Cases",
       "name": "Review traceability probe",
       "description": "Review traceability closes the artifact loop.",
@@ -7911,7 +7911,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "caf44b0a83bb952c",
-      "slug": "review-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7930,7 +7929,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Review traceability probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-downloaded-video-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@downloaded-video-probe",
+      "slug": "downloaded-video-probe",
       "concept": "Edge Cases",
       "name": "Downloaded video probe",
       "description": "Video probe covers the video field path end to end.",
@@ -7943,7 +7943,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "bb9885cab9e9dd34",
-      "slug": "downloaded-video-probe",
       "citations": {
         "sources": [
           {
@@ -7962,7 +7961,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Downloaded video probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-transcribed-audio-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@transcribed-audio-probe",
+      "slug": "transcribed-audio-probe",
       "concept": "Edge Cases",
       "name": "Transcribed audio probe",
       "description": "Audio probe covers the audio field path end to end.",
@@ -7975,7 +7975,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "f13128ae2f2e30c9",
-      "slug": "transcribed-audio-probe",
       "citations": {
         "sources": [
           {
@@ -7994,7 +7993,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed audio probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-transcribed-pdf-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@transcribed-pdf-probe",
+      "slug": "transcribed-pdf-probe",
       "concept": "Edge Cases",
       "name": "Transcribed PDF probe",
       "description": "PDF probe covers the binary-to-sidecar rule.",
@@ -8007,7 +8007,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "3bfe1390dd33dd3d",
-      "slug": "transcribed-pdf-probe",
       "citations": {
         "sources": [
           {
@@ -8026,7 +8025,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed PDF probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-very-long-description-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@very-long-description-probe",
+      "slug": "very-long-description-probe",
       "concept": "Edge Cases",
       "name": "Very long description probe",
       "description": "Length is the feature being tested here.",
@@ -8041,7 +8041,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "bf368406030a5fd9",
-      "slug": "very-long-description-probe",
       "citations": {
         "sources": [
           {
@@ -8060,7 +8059,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Very long description probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-file-field-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@file-field-probe",
+      "slug": "file-field-probe",
       "concept": "Edge Cases",
       "name": "File field probe",
       "description": "File field probe stays deliberately plain.",
@@ -8074,7 +8074,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "d252f224724d06ce",
-      "slug": "file-field-probe",
       "citations": {
         "sources": [
           {
@@ -8093,7 +8092,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: File field probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-artifact-as-source-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@artifact-as-source-probe",
+      "slug": "artifact-as-source-probe",
       "concept": "Edge Cases",
       "name": "Artifact as source probe",
       "description": "The artifact is a source, not just an output.",
@@ -8106,7 +8106,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "4567d69813bb172a",
-      "slug": "artifact-as-source-probe",
       "citations": {
         "sources": [
           {
@@ -8125,7 +8124,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Artifact as source probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-broken-reference-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@broken-reference-probe",
+      "slug": "broken-reference-probe",
       "concept": "Edge Cases",
       "name": "Broken reference probe",
       "description": "Broken by design, quarantined by name.",
@@ -8138,7 +8138,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "16b452becf1e8e63",
-      "slug": "broken-reference-probe",
       "citations": {
         "sources": [
           {
@@ -8157,7 +8156,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Broken reference probe"
     },
     {
-      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-sourceless-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab@sourceless-probe",
+      "slug": "sourceless-probe",
       "concept": "Edge Cases",
       "name": "Sourceless probe",
       "description": "Absence of sources is valid.",
@@ -8167,7 +8167,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "81caf92482543aa5",
-      "slug": "sourceless-probe",
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -8175,7 +8174,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Sourceless probe"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/procedure-verify-changeset-lineage",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@verify-changeset-lineage",
+      "slug": "verify-changeset-lineage",
       "concept": "Procedure",
       "name": "Verify Changeset Lineage",
       "description": "",
@@ -8189,7 +8189,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "307bb9c421bd2fff",
-      "slug": "verify-changeset-lineage",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -8197,7 +8196,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Verify Changeset Lineage"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/procedure-propose-a-review-change",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@propose-a-review-change",
+      "slug": "propose-a-review-change",
       "concept": "Procedure",
       "name": "Propose a Review Change",
       "description": "",
@@ -8211,7 +8211,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "2f7c892f3524a79d",
-      "slug": "propose-a-review-change",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -8219,7 +8218,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Propose a Review Change"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
+      "slug": "testlab-guided-verification",
       "concept": "Work",
       "name": "TestLab Guided Verification",
       "description": "End-to-end walkthrough that proves the changeset lineage pipeline: open the generated domain console, enable Review mode, open Element 1B of the TestLab Coverage Model, and confirm that it shows the applied review change fb-001. It then shows how a reviewer proposes a new change.",
@@ -8229,7 +8229,6 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "2a601eb39adfbabe",
-      "slug": "testlab-guided-verification",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -8237,7 +8236,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: TestLab Guided Verification"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-the-domain-console",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@open-the-domain-console",
+      "slug": "open-the-domain-console",
       "concept": "Work",
       "name": "Open the Domain Console",
       "description": "Open domaiNN_console.html at the domain root. It is a single self-contained file: double-click it and it runs offline in any browser.",
@@ -8250,16 +8250,15 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "e286efa4894c31b5",
-      "slug": "open-the-domain-console",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-enable-review-mode",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@enable-review-mode",
           "targetLabel": "Enable Review Mode"
         }
       ],
@@ -8270,7 +8269,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open the Domain Console"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-enable-review-mode",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@enable-review-mode",
+      "slug": "enable-review-mode",
       "concept": "Work",
       "name": "Enable Review Mode",
       "description": "Click \"Review mode\" in the top banner. Until this is on, element field anchors are not clickable and the review modal cannot be opened.",
@@ -8283,16 +8283,15 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "d0cfa184a55a0111",
-      "slug": "enable-review-mode",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-element-1b",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@open-element-1b",
           "targetLabel": "Open Element 1B"
         }
       ],
@@ -8303,7 +8302,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Enable Review Mode"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-element-1b",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@open-element-1b",
+      "slug": "open-element-1b",
       "concept": "Work",
       "name": "Open Element 1B",
       "description": "Open the TestLab Coverage Model and click a field row of Element 1B (for example the \"photo\" row). The element modal opens with two tabs: Edit and History & Provenance.",
@@ -8316,16 +8316,15 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "9b63b1cb010b3029",
-      "slug": "open-element-1b",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-read-the-changeset-lineage",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@read-the-changeset-lineage",
           "targetLabel": "Read the Changeset Lineage"
         }
       ],
@@ -8336,7 +8335,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open Element 1B"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-read-the-changeset-lineage",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@read-the-changeset-lineage",
+      "slug": "read-the-changeset-lineage",
       "concept": "Work",
       "name": "Read the Changeset Lineage",
       "description": "Switch to the \"History & Provenance\" tab. Under \"Changeset Lineage & Revision History\" you must see the applied review change fb-001: author \"reviewer\", the UTC timestamp 2026-10-10T12:00:00.000Z, and its note. If the section reads \"No recorded prior changesets\", the change did not reach the console and the lineage pipeline is broken.",
@@ -8349,16 +8349,15 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "3979d02fa7205228",
-      "slug": "read-the-changeset-lineage",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-propose-a-change-in-the-console",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@propose-a-change-in-the-console",
           "targetLabel": "Propose a Change in the Console"
         }
       ],
@@ -8369,7 +8368,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Read the Changeset Lineage"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-propose-a-change-in-the-console",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@propose-a-change-in-the-console",
+      "slug": "propose-a-change-in-the-console",
       "concept": "Work",
       "name": "Propose a Change in the Console",
       "description": "Change a field value or leave a comment in the element modal to record a draft. This is how a reviewer proposes a change without editing the model by hand.",
@@ -8382,16 +8382,15 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "6961094558c435a7",
-      "slug": "propose-a-change-in-the-console",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-copy-the-changeset-prompt",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@copy-the-changeset-prompt",
           "targetLabel": "Copy the Changeset Prompt"
         }
       ],
@@ -8402,7 +8401,8 @@ button.btn-primary:hover:not(:disabled) {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Propose a Change in the Console"
     },
     {
-      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-copy-the-changeset-prompt",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures@copy-the-changeset-prompt",
+      "slug": "copy-the-changeset-prompt",
       "concept": "Work",
       "name": "Copy the Changeset Prompt",
       "description": "Click \"Export changes\", then \"Copy Changeset Prompt\", and paste the result to the agent. The agent writes the changeset into changes/ and applies it; the engine seals the proposal and rewrites the touched field's citation, so the lineage grows with the next regeneration.",
@@ -8414,11 +8414,10 @@ button.btn-primary:hover:not(:disabled) {
       },
       "markers": {},
       "hash": "e728a6209fcc93d2",
-      "slug": "copy-the-changeset-prompt",
       "relations": [
         {
           "field": "parent",
-          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures@testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         }
       ],
@@ -8492,6 +8491,38 @@ button.btn-primary:hover:not(:disabled) {
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md"
     }
+  ],
+  "changes": [
+    {
+      "path": "changes/testlab_reviewer_20261010T120000Z_changes_NN.md",
+      "title": "TestLab review",
+      "status": "applied",
+      "author": "reviewer",
+      "appliedAt": "2026-10-10T12:00:00.000Z",
+      "changes": [
+        {
+          "id": "fb-001",
+          "op": "comment",
+          "target": "TestLab Coverage Model@concept-1-element-1b&photo",
+          "notes": "Review note: verify the changeset lineage for Element 1B."
+        }
+      ]
+    },
+    {
+      "path": "changes/testlab_lucas_20261012T173127Z_changes_NN.md",
+      "title": "testlab Domain",
+      "status": "applied",
+      "author": "lucas",
+      "appliedAt": "2026-10-12T17:33:29.123Z",
+      "changes": [
+        {
+          "id": "fb-001",
+          "op": "rename_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+          "status": "applied"
+        }
+      ]
+    }
   ]
 }
 </script>
@@ -8500,8 +8531,8 @@ button.btn-primary:hover:not(:disabled) {
 /*!
  * innfo-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.9.9. Regenerate on every console release.
- * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-model-viewer.js, render-procedure-stepper.js.
+ * Version 0.12.0. Regenerate on every console release.
+ * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-procedure-stepper.js.
  */
 
 /* ===== innfo-slug.generated.js (defines InnfoSlug) ===== */
@@ -8970,6 +9001,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-status-badge[data-status=applied]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
     '.innfo-status-badge[data-status=rejected]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
     '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
+    '.innfo-status-badge[data-status=conflict]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
+    '.innfo-status-badge[data-status=proposed]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
     '.innfo-draft-list{list-style:none;margin:0;padding:0}',
     '.innfo-draft-row{display:flex;align-items:baseline;gap:.5em;padding:.3em 0;border-bottom:1px solid var(--innfo-border)}',
     '.innfo-draft-kind{font-weight:600;color:var(--innfo-muted)}',
@@ -9554,7 +9587,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return btn
   }
 
-  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
+  var STATUSES = ['applied', 'conflict', 'proposed']
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -9594,7 +9627,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     btn.setAttribute('type', 'button')
     btn.setAttribute('data-origin', String(variant))
     btn.setAttribute('data-field', String(data.field == null ? '' : data.field))
-    var label = (CITATION_ORIGIN_LABELS[variant] || variant) + ': ' + (data.field == null ? '' : data.field)
+    var label = 'Origin: ' + (data.field == null ? '' : data.field)
     btn.setAttribute('aria-label', label)
     btn.setAttribute('title', label)
     btn.innerHTML = icon('cite-' + variant, 14)
@@ -10448,11 +10481,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     head.appendChild(closeBtn)
     modal.appendChild(head)
 
-    // Unified Modal Navigation: Tabs (Edit vs History & Provenance)
+    // Unified Modal Navigation: Tabs (Edit vs Lineage)
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
-    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'History & Provenance')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Lineage')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
@@ -10535,14 +10568,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelEdit.appendChild(formComment)
     modal.appendChild(panelEdit)
 
-    // Panel 2: History & Provenance
+    // Panel 2: Lineage
     var panelHistory = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-history-modal-body')
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
     // History section
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
-    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changeset Lineage & Revision History'))
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'History'))
     var historyItems = Array.isArray(data.history) ? data.history : []
     if (historyItems.length) {
       historyItems.forEach(function (h) {
@@ -10557,9 +10590,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     panelHistory.appendChild(histSection)
 
-    // Provenance & Citations section
+    // Citations section
     var citeSection = makeEl(doc, 'div', 'innfo-history-section')
-    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Source Provenance & Citations'))
+    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Citations'))
     var citeItems = Array.isArray(data.citations) ? data.citations : []
     if (citeItems.length) {
       citeItems.forEach(function (c) {
@@ -11080,8 +11113,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // D5: the kit is a hard dependency; fail loudly rather than degrade silently.
   if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
 
-  var STORE_PREFIX = 'innfo-console:v2:'
-  var STORE_VERSION = 2
+  var STORE_PREFIX = 'innfo-console:v3:'
+  var STORE_VERSION = 3
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
@@ -11156,19 +11189,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Options: `onError(err)` is called when a write fails (the draft stays in memory
   // only); `onRemoteChange()` is called after another tab changed this store.
-  function createDraftStore(storage, modelId, modelVersion, options) {
+  // The store is keyed by the console's stable store key only (the domain id for a
+  // domain console, `::view:<id>` for a standalone view). It records no model or
+  // domain version: staleness is per draft (`base_hash`), never at the store level.
+  function createDraftStore(storage, modelId, options) {
     var opts = isObject(options) ? options : {}
     var resolved = resolveStorage(storage)
     var backing = resolved.storage
     var persistent = resolved.persistent
     var key = STORE_PREFIX + String(modelId == null ? '' : modelId)
-    var liveVersion = modelVersion == null ? '' : String(modelVersion)
 
     function emptyState() {
       return {
         v: STORE_VERSION,
         modelId: modelId,
-        modelVersion: liveVersion,
         drafts: [],
         reviewed: {},
       }
@@ -11205,14 +11239,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           reviewed[id] = String(parsed.reviewed[id])
         })
       }
-      // The version the drafts were authored against is sticky while drafts
-      // exist; a fully exported (empty) store rebases to the live version.
-      var recorded =
-        drafts.length > 0 && parsed.modelVersion != null ? String(parsed.modelVersion) : liveVersion
       return {
         v: STORE_VERSION,
         modelId: modelId,
-        modelVersion: recorded,
         drafts: drafts,
         reviewed: reviewed,
       }
@@ -11259,9 +11288,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return {
       persistent: persistent,
       key: key,
-      modelVersion: function () {
-        return state.modelVersion
-      },
       drafts: function () {
         return deepCopy(state.drafts)
       },
@@ -11384,18 +11410,73 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return out
   }
 
-  function verdictsByElement(feedbackState, elementsById) {
-    var entries = Array.isArray(feedbackState) ? feedbackState : []
-    var byId = isObject(elementsById) ? elementsById : {}
+  function normalizeAddressKey(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+  }
+
+  // Badges derive only from changesets: `applied` / `conflict` from each element's
+  // changeset `history`, `proposed` from the domain payload's proposed changesets.
+  // Local drafts and reviewer verdicts never produce a badge; entries whose element
+  // no longer exists are dropped.
+  function badgesByElement(elements, changes) {
+    var list = Array.isArray(elements) ? elements : []
+    var changesets = Array.isArray(changes) ? changes : []
     var out = {}
-    entries.forEach(function (entry) {
-      if (!isObject(entry)) return
-      var elId = entry.element_id
-      if (!elId || !byId[elId]) return
-      var status = entry.status
-      if (!status) return
+    function bump(elId, status) {
+      if (!elId || !status) return
       if (!out[elId]) out[elId] = {}
       out[elId][status] = (out[elId][status] || 0) + 1
+    }
+    list.forEach(function (el) {
+      if (!el || !el.id) return
+      var history = Array.isArray(el.history) ? el.history : []
+      history.forEach(function (h) {
+        if (!isObject(h)) return
+        if (h.status === 'applied' || h.status === 'conflict') bump(el.id, h.status)
+      })
+    })
+    function keysOf(el) {
+      var keys = {}
+      if (el && el.id) {
+        var id = String(el.id)
+        keys[normalizeAddressKey(id)] = true
+        var at = id.indexOf('@')
+        if (at !== -1) keys[normalizeAddressKey(id.slice(at + 1))] = true
+      }
+      if (el && el.name) keys[normalizeAddressKey(el.name)] = true
+      return keys
+    }
+    changesets.forEach(function (cs) {
+      if (!isObject(cs) || cs.status !== 'proposed') return
+      var items = Array.isArray(cs.changes) ? cs.changes : []
+      items.forEach(function (c) {
+        if (!isObject(c)) return
+        var target = String(c.target || '')
+        var at = target.indexOf('@')
+        if (at === -1) return
+        var modelPart = target.slice(0, at)
+        var elementPart = target.slice(at + 1).split('&')[0].trim()
+        if (!elementPart) return
+        var forms = [normalizeAddressKey(elementPart), normalizeAddressKey(modelPart + elementPart)]
+        for (var i = 0; i < list.length; i++) {
+          var el = list[i]
+          if (!el || !el.id) continue
+          var keys = keysOf(el)
+          var hit = false
+          for (var f = 0; f < forms.length; f++) {
+            if (forms[f] && keys[forms[f]]) {
+              hit = true
+              break
+            }
+          }
+          if (hit) {
+            bump(el.id, 'proposed')
+            break
+          }
+        }
+      })
     })
     return out
   }
@@ -11427,7 +11508,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // The payload groups resolved citations by field (`{ field: [citation] }`), but
   // UI.EditModal renders a flat list of `{ origin, source, quote }`. Flatten and
-  // map here so the modal's "Source Provenance & Citations" section renders.
+  // map here so the modal's "Citations" section renders.
   function flattenCitations(citations) {
     if (Array.isArray(citations)) return citations
     if (!isObject(citations)) return []
@@ -11450,34 +11531,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return out
   }
 
-  function draftToItem(draft) {
-    var d = isObject(draft) ? draft : {}
-    var isMatrix = d.matrix != null && d.matrix !== ''
-    var target = isMatrix
-      ? {
-          matrix: String(d.matrix),
-          row: String(d.row || ''),
-          col: String(d.col || ''),
-          element: String(d.element || ''),
-        }
-      : {
-          element_id: String(d.element_id || ''),
-          concept: String(d.concept || ''),
-          element: String(d.element || ''),
-        }
-    if (!isMatrix && d.field !== undefined && d.field !== null) target.field = String(d.field)
-    var item = {
-      id: typeof d.id === 'string' && d.id ? d.id : 'fb-001',
-      kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
-      target: target,
-    }
-    if (d.original !== undefined) item.original = d.original
-    if (d.proposed !== undefined) item.proposed = d.proposed
-    if (d.comment !== undefined && d.comment !== null) item.comment = String(d.comment)
-    if (!isMatrix) item.base_hash = String(d.base_hash || '')
-    return item
-  }
-
   // ---- Review controller (Slice 2) ----
 
   function makeEl(doc, tag, cls, text) {
@@ -11491,6 +11544,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var options = isObject(opts) ? opts : {}
     var meta = isObject(options.meta) ? options.meta : {}
     var elements = Array.isArray(options.elements) ? options.elements : []
+    var changes = Array.isArray(options.changes) ? options.changes : []
     var needs = Array.isArray(options.needs) ? options.needs : []
     var store = options.store
     var elementsById = {}
@@ -11784,7 +11838,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return true
     }
 
-    // Info entry point: the same single modal, opened on the History/Provenance
+    // Info entry point: the same single modal, opened on the Lineage
     // tab. Available in both review modes (it is not a review control).
     function openInfo(anchorData) {
       return openEdit(Object.assign({}, anchorData, { info: true }))
@@ -12257,14 +12311,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function decorateBadges() {
       if (!doc.querySelectorAll) return
-      var feedbackState = Array.isArray(meta.feedbackState) ? meta.feedbackState : []
-      if (!feedbackState.length) return
-      var verdicts = verdictsByElement(feedbackState, elementsById)
+      var badges = badgesByElement(elements, changes)
+      if (!Object.keys(badges).length) return
       Array.prototype.forEach.call(
         doc.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
         function (card) {
           var elId = card.getAttribute('data-element-id')
-          var statuses = verdicts[elId]
+          var statuses = badges[elId]
           if (!statuses) return
           var head = card.querySelector('.innfo-card-head') || card
           var host = head.querySelector('[data-innfo-review-badges]')
@@ -12473,10 +12526,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     toggleEl = buildToggle()
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
-    // One initial pass: covers a render that preceded the controller's creation
-    // (verdict badges show with review mode off).
-    decorateCounter()
-    decorateBadges()
+    // One initial pass: covers the render that preceded the controller's creation.
+    // With the model viewer retired (SCS) no second render follows boot, so the
+    // initial paint must be decorated completely (badges, info actions, pips),
+    // not just badges + counter.
+    onRendered({ detail: { root: doc.getElementById('innfo-content') || doc } })
 
     return {
       enable: enable,
@@ -12503,11 +12557,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     isTargetChanged: isTargetChanged,
     isAlreadyApplied: isAlreadyApplied,
     progressByConcept: progressByConcept,
-    verdictsByElement: verdictsByElement,
+    badgesByElement: badgesByElement,
     changedIds: changedIds,
     canReview: canReview,
     flattenCitations: flattenCitations,
-    draftToItem: draftToItem,
   }
 })
 
@@ -12534,13 +12587,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // by the export gate so the user must enter a real one before exporting.
   var DEFAULT_REVIEWER_NAME = 'reviewer'
   var MODEL_VERSION_PATTERN = /^V_\d+-\d+-\d+$/
-  var EXPORTED_AT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/
-  var ITEM_ID_PATTERN = /^fb-\d{3,}$/
-  var SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
-  var FILENAME_PATTERN =
-    /^([A-Za-z0-9-]+)_V_(\d+-\d+-\d+)_([a-z0-9-]+)_feedback_(\d{8}-\d{6})\.json$/
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
-  var ITEM_STATUSES = ['pending', 'applied', 'rejected']
 
   function isObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -12653,31 +12700,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       pad2(d.getUTCMinutes()) +
       pad2(d.getUTCSeconds())
     )
-  }
-
-  function buildFeedbackFilename(model, version, slug, when) {
-    if (!model || typeof model !== 'string' || !/^[A-Za-z0-9-]+$/.test(model)) {
-      throw new Error('innfo-console: model must be a non-empty alphanumeric identifier')
-    }
-    if (!/^\d+-\d+-\d+$/.test(String(version))) {
-      throw new Error('innfo-console: version must use hyphen separators (x-y-z)')
-    }
-    var cleanSlug = slugify(slug)
-    if (!SLUG_PATTERN.test(cleanSlug)) {
-      throw new Error('innfo-console: slug is not URL-safe after slugify')
-    }
-    var stamp = stampFromDate(when === undefined ? new Date() : when)
-    return model + '_V_' + version + '_' + cleanSlug + '_feedback_' + stamp + '.json'
-  }
-
-  function parseFeedbackFilename(filename) {
-    var m = FILENAME_PATTERN.exec(String(filename || ''))
-    if (!m) return null
-    return { model: m[1], version: m[2], slug: m[3], stamp: m[4] }
-  }
-
-  function isValidExportedAt(value) {
-    return typeof value === 'string' && EXPORTED_AT_PATTERN.test(value)
   }
 
   function parseConfig(raw) {
@@ -13056,21 +13078,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return out
   }
 
-  function checkStaleness(feedbackVersion, liveVersion) {
-    var fb = String(feedbackVersion || '')
-    var live = String(liveVersion || '')
-    if (fb === live) return { stale: false, report: 'feedback matches live model ' + live }
-    return {
-      stale: true,
-      report:
-        'stale feedback: pinned to ' +
-        (fb || '(unknown)') +
-        ' but live model is ' +
-        (live || '(unknown)') +
-        ' — confirm before applying',
-    }
-  }
-
   // ---- Charts (shared console capability) ----
   // The runtime renders charts from pure-data series only: `compileChartSeries`
   // maps innfo-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
@@ -13162,144 +13169,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return labels
   }
 
-  var FORBIDDEN_META_PROPERTIES = [
-    'knowledge',
-    'knowledge_version',
-    'session_label',
-    'source_model',
-    'source_model_version',
-  ]
-  var FORBIDDEN_ITEM_PROPERTIES = [
-    'status',
-    'layer',
-    'severity',
-    'target_hash',
-    'stale',
-    'field',
-  ]
-  var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
-  var SOURCE_SHA256_PATTERN = /^[0-9a-f]{64}$/
-
-  function draftToItem(draft) {
-    return Review.draftToItem(draft)
-  }
-
-  function buildExportDoc(args) {
-    var input = isObject(args) ? args : {}
-    var meta = isObject(input.meta) ? Object.assign({}, input.meta) : {}
-    var drafts = Array.isArray(input.drafts)
-      ? input.drafts
-      : Array.isArray(input.items)
-        ? input.items
-        : []
-    var items = drafts.map(function (d, index) {
-      var item = draftToItem(d)
-      var draftId = d && d.id ? d.id : 'fb-' + String(index + 1).padStart(3, '0')
-      if (!d.id) {
-        item.id = draftId
-      }
-      if (!item.base_hash && !(d && d.matrix)) {
-        throw new Error('innfo-console: draft "' + draftId + '" is missing required base_hash')
-      }
-      return item
-    })
-    return { meta: meta, items: items }
-  }
-
-  function serializeFeedback(doc) {
-    return JSON.stringify(doc, null, 2) + '\n'
-  }
-
-  function validateFeedback(doc) {
-    var errors = []
-    if (!isObject(doc)) return { ok: false, errors: ['document: must be an object'] }
-
-    var meta = doc.meta
-    if (!isObject(meta)) {
-      errors.push('meta: required object is missing')
-    } else {
-      FORBIDDEN_META_PROPERTIES.forEach(function (key) {
-        if (Object.prototype.hasOwnProperty.call(meta, key)) {
-          errors.push('meta.' + key + ': forbidden property is present')
-        }
-      })
-      Object.keys(meta).forEach(function (key) {
-        if (key.indexOf('source_model') === 0 && FORBIDDEN_META_PROPERTIES.indexOf(key) === -1) {
-          errors.push('meta.' + key + ': forbidden property is present')
-        }
-      })
-      if (!meta.source_knowledge || typeof meta.source_knowledge !== 'string') {
-        errors.push('meta.source_knowledge: required non-empty string is missing')
-      }
-      if (!MODEL_VERSION_PATTERN.test(String(meta.source_knowledge_version || ''))) {
-        errors.push(
-          'meta.source_knowledge_version: must match V_x-y-z (got ' + meta.source_knowledge_version + ')',
-        )
-      }
-      if (!meta.artifact || typeof meta.artifact !== 'string') {
-        errors.push('meta.artifact: required non-empty string is missing')
-      }
-      if (!meta.artifact_version || typeof meta.artifact_version !== 'string') {
-        errors.push('meta.artifact_version: required non-empty string is missing')
-      }
-      if (!isValidExportedAt(meta.exported_at)) {
-        errors.push(
-          'meta.exported_at: must be ISO-8601 with seconds (got ' + meta.exported_at + ')',
-        )
-      }
-      if (!meta.author || typeof meta.author !== 'string') {
-        errors.push('meta.author: required non-empty string is missing')
-      }
-      var slug = meta.feedback_slug
-      if (typeof slug !== 'string' || !SLUG_PATTERN.test(slugify(slug))) {
-        errors.push('meta.feedback_slug: required URL-safe slug is missing')
-      }
-      if (!meta.viewer || typeof meta.viewer !== 'string') {
-        errors.push('meta.viewer: required non-empty string is missing')
-      }
-      if (meta.source_sha256 !== undefined) {
-        if (typeof meta.source_sha256 !== 'string' || !SOURCE_SHA256_PATTERN.test(meta.source_sha256)) {
-          errors.push('meta.source_sha256: must be a 64-character hex string')
-        }
-      }
-    }
-
-    if (!Array.isArray(doc.items)) {
-      errors.push('items: required array is missing')
-    } else {
-      doc.items.forEach(function (item, index) {
-        var where = isObject(item) && typeof item.id === 'string' ? item.id : '#' + index
-        if (!isObject(item)) {
-          errors.push(where + ': must be an object')
-          return
-        }
-        FORBIDDEN_ITEM_PROPERTIES.forEach(function (key) {
-          if (Object.prototype.hasOwnProperty.call(item, key)) {
-            errors.push(where + '.' + key + ': forbidden property is present')
-          }
-        })
-        if (!ITEM_ID_PATTERN.test(String(item.id || ''))) {
-          errors.push(where + ': id must match fb-NNN (got ' + item.id + ')')
-        }
-        if (ITEM_KINDS.indexOf(item.kind) === -1) {
-          errors.push(
-            where + ': kind must be one of ' + ITEM_KINDS.join('|') + ' (got ' + item.kind + ')',
-          )
-        }
-        if (!isObject(item.target) || Object.keys(item.target).length === 0) {
-          errors.push(where + ': target must be a non-empty object')
-        }
-        if (item.base_hash !== undefined) {
-          if (typeof item.base_hash !== 'string' || !BASE_HASH_PATTERN.test(item.base_hash)) {
-            errors.push(where + '.base_hash: must match ^[0-9a-f]{16}$')
-          }
-        }
-      })
-    }
-
-    return { ok: errors.length === 0, errors: errors }
-  }
-
   /* Browser console: banner, rail, search, cards, matrices, drafts, export modal.
      Runs only where document/localStorage exist; pure helpers above stay DOM-free. */
 
@@ -13352,13 +13221,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Only http(s) and relative source URLs become links; any other scheme
   // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Verbatim port
-  // of the retired model viewer's predicate (render-model-viewer.js).
+  // of the retired model viewer's predicate.
   function safeSourceHref(url) {
     var raw = String(url == null ? '' : url).trim()
     if (!raw) return ''
     var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)
     var safe = hasScheme ? /^https?:/i.test(raw) : !/^[\s\\]|^\/\/\s*$/.test(raw)
     return safe ? raw : ''
+  }
+
+  // The version a console displays comes from the domain meta `models[]` (D4): the
+  // real per-model `knowledge_version`. There is no `meta.modelVersion` fallback — a
+  // domain with zero or several models has no single version to show. Staleness is
+  // per draft (`base_hash`), never a store-level version.
+  function domainModelVersion(meta) {
+    var models = Array.isArray(meta && meta.models) ? meta.models : []
+    return models.length === 1 && models[0] ? String(models[0].version || '') : ''
   }
 
   // The console header (`.innfo-navbar`) carries the model identity: the title in
@@ -13400,7 +13278,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var first = models[0] || null
       var parts = []
       var template = (first && first.blueprint) || meta.template
-      var version = (first && first.version) || meta.modelVersion
+      var version = first && first.version
       if (template) parts.push('Template ' + String(template))
       if (version) parts.push('Version ' + String(version))
       if (meta.generated) {
@@ -13471,11 +13349,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }),
       )
     }
-    var version = el(
-      'span',
-      'innfo-banner-version',
-      ' ' + String(meta.modelVersion || meta.knowledge_version || ''),
-    )
+    var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
 
@@ -13483,22 +13357,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     banner.appendChild(version)
     banner.appendChild(draftsBadge)
 
-    // Staleness signal: the reviewer's drafts were authored against a model
-    // version that has since moved on. Only meaningful while drafts exist.
-    var staleInfo =
-      state && state.store && typeof state.store.modelVersion === 'function'
-        ? checkStaleness(
-            state.store.modelVersion(),
-            String((state && state.modelVersion) || meta.modelVersion || meta.knowledge_version || ''),
-          )
-        : { stale: false }
-    if (staleInfo.stale && draftCount > 0) {
-      var staleBadge = el('span', 'innfo-banner-stale', '\u26a0 ' + staleInfo.report)
-      if (staleBadge) {
-        staleBadge.setAttribute('data-innfo', 'stale-feedback')
-        banner.appendChild(staleBadge)
-      }
-    }
+    // No store-level staleness: staleness is per draft (`base_hash`), surfaced by
+    // the review tab, never by the banner.
 
     // Reviewer identity: an inline editable field in the header (no emoji, no
     // separate modal — the input itself signals editability).
@@ -15066,7 +14926,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var lines = []
     lines.push('# Timeline & P&L Projection Export')
     lines.push('# Model: ' + (meta.model || ''))
-    lines.push('# Version: ' + (meta.knowledge_version || meta.modelVersion || ''))
+    lines.push('# Version: ' + domainModelVersion(meta))
     lines.push('# Generated: ' + (meta.generated_at || meta.generated || ''))
     lines.push('')
     var header = ['Group', 'Metric', 'Type', 'Unit', 'Growth Rule']
@@ -17232,7 +17092,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '<textarea data-innfo="changeset-preview" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
-      '<button data-innfo="copy-changeset-prompt" type="button">Copy Changeset Prompt</button>' +
+      '<button data-innfo="copy-changeset-prompt" type="button">Copy changeset</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<h3>Instructions</h3>' +
@@ -17283,7 +17143,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.model_id || fallbackModel || 'model')
-    var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
+    // The element part of a target is always the element slug: never the display
+    // name or the element id (the engine resolves slugs, and every payload element
+    // carries one).
+    var elementTarget = oneLine(d.element_slug || 'elem')
     var matrixName = d.matrix != null && d.matrix !== '' ? oneLine(d.matrix) : ''
     var isMatrix = !!matrixName
     var canUpdate = (!!d.field && d.proposed !== undefined) || (isMatrix && d.proposed !== undefined)
@@ -17346,8 +17209,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var lines = [
       '---',
       'spec_version: "V_0-4-0"',
-      'parent_spec: "changes"',
-      'blueprint_version: "0.1.0"',
+      'level: 3',
+      'parent_spec:',
+      '  name: changes',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      'blueprint_version: "V_0-2-0"',
       'status: proposed',
       'title: ' + JSON.stringify(title),
       'author: ' + JSON.stringify(author),
@@ -17376,7 +17242,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
-    var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
     var reviewerSlug = slugify(reviewer) || 'reviewer'
     var stamp = stampFromDate(new Date())
 
@@ -17437,16 +17302,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return { ok: false, errors: ['Reviewer identifier is required.'] }
     }
 
-    var payload
-    try {
-      payload = buildExportDoc({ meta: exportMeta, drafts: drafts })
-    } catch (err) {
-      return { ok: false, errors: [err.message] }
-    }
-
-    var check = validateFeedback(payload)
-    if (!check.ok) return { ok: false, errors: check.errors }
-
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
     var changesetMd = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var modelSlug = modelSlugOf(state)
@@ -17454,12 +17309,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     return {
       ok: true,
-      payload: payload,
-      text: serializeFeedback(payload),
-      filename: buildFeedbackFilename(modelSlug, String(version).replace(/^V_/, ''), reviewer),
       changesetText: changesetMd,
       changesetFilename: changesetFilename,
-      items: payload.items.length,
+      items: drafts.length,
     }
   }
 
@@ -17526,30 +17378,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       announce('Cannot copy: fix the validation errors first.')
       return composed
     }
-    var promptText =
-      'Please apply the following changeset to update ' +
-      (state ? state.modelTitle : 'the model') +
-      ':\n\n```markdown\n' +
-      composed.changesetText +
-      '```\n'
+    // The clipboard receives exactly the changeset bytes the download would
+    // contain — never a wrapper prompt.
+    var changesetText = composed.changesetText
     try {
       if (
         typeof navigator !== 'undefined' &&
         navigator.clipboard &&
         typeof navigator.clipboard.writeText === 'function'
       ) {
-        navigator.clipboard.writeText(promptText).then(
+        navigator.clipboard.writeText(changesetText).then(
           function () {
-            announce('Copied changeset prompt to clipboard.')
+            announce('Copied changeset to clipboard.')
             markDraftsExported(state)
           },
           function () {
-            announce(fallbackCopy(doc, textarea, promptText))
+            announce(fallbackCopy(doc, textarea, changesetText))
           },
         )
         return composed
       }
-      announce(fallbackCopy(doc, textarea, promptText))
+      announce(fallbackCopy(doc, textarea, changesetText))
     } catch {
       announce('Copy failed. Select the text and press Ctrl+C.')
     }
@@ -17779,7 +17628,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
-    var liveModelVersion = String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0')
+    // The displayed version comes from the domain meta `models[]` (D4), with no fallback.
+    var liveModelVersion = domainModelVersion(meta)
 
     var state = {
       modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
@@ -17802,7 +17652,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         typeof localStorage !== 'undefined' ? localStorage : null,
         // A domain console keys its drafts by the stable domain id, never by content.
         String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
-        liveModelVersion,
         {
           onError: function (err) {
             notifyStoreError(active, err)
@@ -18082,6 +17931,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       state.controller = Review.createReviewController(active, {
         meta: meta,
         elements: elements,
+        changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
         onDraftsChanged: refreshDraftCounts,
@@ -18209,19 +18059,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var PUBLIC_API = {
     version: CONSOLE_VERSION,
     CONSOLE_VERSION: CONSOLE_VERSION,
-    FILENAME_PATTERN: FILENAME_PATTERN,
     REVIEWER_STORAGE_KEY: REVIEWER_STORAGE_KEY,
     ITEM_KINDS: ITEM_KINDS,
-    ITEM_STATUSES: ITEM_STATUSES,
     slugify: slugify,
     slugifyReviewer: slugifyReviewer,
     stampFromDate: stampFromDate,
     getReviewerName: getReviewerName,
     setReviewerName: setReviewerName,
-    buildFeedbackFilename: buildFeedbackFilename,
-    parseFeedbackFilename: parseFeedbackFilename,
-    isValidExportedAt: isValidExportedAt,
-    validateFeedback: validateFeedback,
     parseConfig: parseConfig,
     hasNeed: hasNeed,
     parseSlots: parseSlots,
@@ -18251,7 +18095,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     firstChild: firstChild,
     nextStep: nextStep,
     chainOf: chainOf,
-    checkStaleness: checkStaleness,
     compileChartSeries: compileChartSeries,
     monthAxis: monthAxis,
     renderCharts: renderCharts,
@@ -18264,511 +18107,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderReviewTab: renderReviewTab,
     focusElementCard: focusElementCard,
     ensureFeedbackUi: ensureFeedbackUi,
-    draftToItem: draftToItem,
     composeExport: composeExport,
     composeChangesetExport: composeChangesetExport,
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
-    serializeFeedback: serializeFeedback,
-    buildExportDoc: buildExportDoc,
     boot: boot,
   }
 
   return PUBLIC_API
-})
-
-/* ===== render-model-viewer.js (defines InnfoModelViewer) ===== */
-/* global module: writable */
-;(function (root, factory) {
-  if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./ui-kit.js'), require('./innfo-runtime.js'))
-  } else {
-    root.InnfoModelViewer = factory(root.InnfoUI, root.InnfoConsole)
-  }
-})(typeof self !== 'undefined' ? self : this, function (UI, InnfoConsole) {
-  'use strict'
-
-  // D5: the kit is a hard dependency; fail loudly rather than degrade silently.
-  if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
-
-  var RENDERER_VERSION = '0.1.0'
-
-  function parseJSON(id) {
-    var node = document.getElementById(id)
-    if (!node) return null
-    try {
-      return JSON.parse(node.textContent.trim() || '{}')
-    } catch (e) {
-      console.error('Bad JSON in #' + id, e)
-      return null
-    }
-  }
-
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-  }
-
-  // ---- Citation icons (Console Citation Icons / Tanda C) ----
-  var SOURCES_FAMILY = { sources: true, source: true }
-
-  // One CitationIcon per distinct origin/error variant, in canonical order.
-  // Returns an array of nodes (empty when there is nothing to show).
-  function citationIcons(fieldName, entries) {
-    var list = Array.isArray(entries) ? entries : []
-    if (!list.length) return []
-    var present = {}
-    list.forEach(function (entry) {
-      present[UI.CITATION_ORIGIN_LABELS[entry && entry.error ? 'error' : entry && entry.origin] ? (entry && entry.error ? 'error' : entry.origin) : 'document'] = true
-    })
-    var wrap = document.createElement('span')
-    wrap.className = 'cite-icons'
-    UI.ORIGIN_VARIANTS.forEach(function (variant) {
-      if (!present[variant]) return
-      wrap.appendChild(
-        UI.CitationIcon(
-          { variant: variant, field: fieldName },
-          {
-            onOpen: function () {
-              var rt =
-                (typeof window !== 'undefined' && window.InnfoConsole) || InnfoConsole
-              if (rt && typeof rt.renderCitationDialog === 'function') {
-                rt.renderCitationDialog(document, fieldName, list)
-              }
-            },
-          },
-        ),
-      )
-    })
-    return wrap.children.length ? [wrap] : []
-  }
-
-  function boot() {
-    if (typeof document === 'undefined' || !document.getElementById) {
-      return { ok: false, reason: 'no-document' }
-    }
-    var schema = parseJSON('innfo-schema') || {}
-    var model = parseJSON('innfo-model') || {}
-    var concepts = Array.isArray(schema.concepts) ? schema.concepts.slice() : []
-    var elements = Array.isArray(model.elements) ? model.elements : []
-    var matrices = Array.isArray(model.matrices) ? model.matrices : []
-    var meta = model.meta || {}
-
-    concepts.sort(function (a, b) {
-      return (b.weight || 0) - (a.weight || 0)
-    })
-
-    var byId = {}
-    elements.forEach(function (el) {
-      if (el && el.id) byId[el.id] = el
-    })
-
-    var elementsByConcept = {}
-    elements.forEach(function (el) {
-      var k = el.concept || 'Uncategorized'
-      ;(elementsByConcept[k] = elementsByConcept[k] || []).push(el)
-    })
-
-    // ---- Header ----
-    var docTitleEl = document.getElementById('doc-title')
-    if (docTitleEl) {
-      docTitleEl.textContent = ''
-      docTitleEl.appendChild(
-        UI.KuBadge({
-          kind: 'document',
-          id: meta.modelId || 'model',
-          label: meta.title || 'Model Viewer',
-        }),
-      )
-    }
-    var metaBits = []
-    if (meta.template)
-      metaBits.push('<span><strong>Template</strong> ' + esc(meta.template) + '</span>')
-    if (meta.modelVersion)
-      metaBits.push('<span><strong>Model</strong> ' + esc(meta.modelVersion) + '</span>')
-    if (meta.generated)
-      metaBits.push(
-        '<span><strong>Generated</strong> ' +
-          esc(String(meta.generated).replace('T', ' ').replace(/\..*/, '')) +
-          '</span>',
-      )
-    if (meta.sourceUrl) {
-      var srcUrl = String(meta.sourceUrl).trim()
-      // Only http(s), same-document and relative hrefs become links; anything with
-      // another scheme (javascript:, data:, ...) is shown as plain text.
-      var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(srcUrl)
-      var safeHref = hasScheme ? /^https?:/i.test(srcUrl) : !/^[\s\\]|^\/\/\s*$/.test(srcUrl)
-      metaBits.push(
-        safeHref
-          ? '<span><a href="' + esc(srcUrl) + '" target="_blank" rel="noopener">source</a></span>'
-          : '<span>' + esc(srcUrl) + '</span>',
-      )
-    }
-    document.getElementById('doc-meta').innerHTML = metaBits.join('')
-
-    var content = document.getElementById('content')
-    var rail = document.getElementById('rail')
-
-    if (!concepts.length && !elements.length) {
-      content.innerHTML =
-        '<div class="empty-state">No data injected. This is the empty reference shell — run the <code>Compile Model Viewer</code> procedure to populate it.</div>'
-      return { ok: true, reason: 'empty-shell', elements: 0 }
-    }
-
-    // ---- Rail ----
-    var railButtons = []
-    addRailButton('__all', 'All concepts', elements.length)
-    concepts.forEach(function (c) {
-      addRailButton(c.name, c.name, (elementsByConcept[c.name] || []).length)
-    })
-    // concepts present in the model but absent from schema
-    Object.keys(elementsByConcept).forEach(function (name) {
-      if (
-        !concepts.some(function (c) {
-          return c.name === name
-        })
-      ) {
-        addRailButton(name, name, elementsByConcept[name].length)
-      }
-    })
-
-    function addRailButton(key, label, count) {
-      var b = document.createElement('button')
-      b.dataset.key = key
-      if (key !== '__all') {
-        b.appendChild(
-          UI.ConceptPill({
-            id: key,
-            label: label,
-            index: conceptIndex(key),
-            color: conceptColorName(key),
-            count: count,
-          }),
-        )
-      } else {
-        b.appendChild(document.createTextNode(String(label)))
-        b.appendChild(makeCountSpan(count))
-      }
-      b.addEventListener('click', function () {
-        selectConcept(key)
-      })
-      rail.appendChild(b)
-      railButtons.push(b)
-    }
-
-    function makeCountSpan(count) {
-      var span = document.createElement('span')
-      span.className = 'count'
-      span.textContent = String(count)
-      return span
-    }
-
-    var activeConcept = '__all'
-    function selectConcept(key) {
-      activeConcept = key
-      railButtons.forEach(function (b) {
-        b.classList.toggle('active', b.dataset.key === key)
-      })
-      render()
-    }
-
-    // ---- Content ----
-    var searchInput = document.getElementById('search')
-    searchInput.addEventListener('input', render)
-
-    function render() {
-      var q = searchInput.value.trim().toLowerCase()
-      content.innerHTML = ''
-
-      var order = concepts.map(function (c) {
-        return c.name
-      })
-      Object.keys(elementsByConcept).forEach(function (n) {
-        if (order.indexOf(n) < 0) order.push(n)
-      })
-
-      var shown = 0
-      order.forEach(function (name) {
-        if (activeConcept !== '__all' && activeConcept !== name) return
-        var list = (elementsByConcept[name] || []).filter(function (el) {
-          return matchesQuery(el, q)
-        })
-        if (!list.length) return
-        shown += list.length
-        content.appendChild(renderConceptSection(name, list))
-      })
-
-      if (!shown) {
-        var d = document.createElement('div')
-        d.className = 'empty-state'
-        d.textContent = q
-          ? 'No elements match "' + searchInput.value + '".'
-          : 'No elements for this concept.'
-        content.appendChild(d)
-      }
-
-      if (matrices.length && activeConcept === '__all') {
-        var gt = document.createElement('h2')
-        gt.className = 'group-title'
-        gt.textContent = 'Matrices'
-        content.appendChild(gt)
-        matrices.forEach(function (mx) {
-          content.appendChild(renderMatrix(mx))
-        })
-      }
-
-      applyHash()
-
-      // C2: one dispatch per card commit; the review controller (owned by
-      // InnfoConsole) decorates the freshly rendered cards.
-      document.dispatchEvent(new CustomEvent('innfo:rendered', { detail: { root: content } }))
-    }
-
-    function matchesQuery(el, q) {
-      if (!q) return true
-      if ((el.name || '').toLowerCase().indexOf(q) >= 0) return true
-      if ((el.description || '').toLowerCase().indexOf(q) >= 0) return true
-      var f = el.fields || {}
-      return Object.keys(f).some(function (k) {
-        return (k + ' ' + f[k]).toLowerCase().indexOf(q) >= 0
-      })
-    }
-
-    function conceptIndex(name) {
-      // Slot index follows schema.concepts as declared (before the weight sort).
-      var declared = Array.isArray(schema.concepts) ? schema.concepts : []
-      for (var i = 0; i < declared.length; i++) {
-        if (declared[i].name === name) return i
-      }
-      // Concepts absent from the schema continue in order of first appearance.
-      var seen = Object.keys(elementsByConcept)
-      var at = seen.indexOf(name)
-      return at < 0 ? 0 : declared.length + at
-    }
-
-    function conceptColorName(name) {
-      var c = concepts.filter(function (x) {
-        return x.name === name
-      })[0]
-      return c && c.color
-    }
-
-    function conceptIcon(name) {
-      var c = concepts.filter(function (x) {
-        return x.name === name
-      })[0]
-      return c && c.icon
-    }
-
-    // Header/cell badges for a matrix, driven by the additive payload `head`
-    // metadata; falls back to plain labels when it is absent.
-    function matrixHeaderBadge(entry, key) {
-      var e = entry || {}
-      if (e.kind === 'marker') {
-        return UI.KuBadge({ kind: 'marker', id: key, label: e.label || key, markerKind: 'field' })
-      }
-      return UI.KuBadge({
-        kind: 'element',
-        id: key,
-        label: e.label || key,
-        index: conceptIndex(e.concept),
-        color: conceptColorName(e.concept),
-        icon: conceptIcon(e.concept),
-      })
-    }
-
-    function renderConceptSection(name, list) {
-      var sec = document.createElement('section')
-      sec.className = 'concept'
-      sec.id = 'concept-' + UI.slug(name)
-      var h = document.createElement('h2')
-      h.appendChild(
-        UI.ConceptPill({
-          id: name,
-          label: name,
-          index: conceptIndex(name),
-          color: conceptColorName(name),
-        }),
-      )
-      sec.appendChild(h)
-      var sub = document.createElement('p')
-      sub.className = 'concept-sub'
-      sub.textContent = list.length + (list.length === 1 ? ' element' : ' elements')
-      sec.appendChild(sub)
-      list.forEach(function (el) {
-        sec.appendChild(renderElement(el))
-      })
-      return sec
-    }
-
-    function renderElement(el) {
-      var citations = el.citations || {}
-      var sourcesEntries = []
-      Object.keys(citations).forEach(function (k) {
-        if (SOURCES_FAMILY[k] && Array.isArray(citations[k])) {
-          sourcesEntries = sourcesEntries.concat(citations[k])
-        }
-      })
-      var headerCite = citationIcons('sources', sourcesEntries)
-
-      var markers = el.markers || {}
-      var markerData = Object.keys(markers).map(function (m) {
-        return { id: m, label: m, kind: 'marker', value: markers[m] }
-      })
-
-      var fields = el.fields || {}
-      var fieldData = Object.keys(fields).map(function (k) {
-        var cites = !SOURCES_FAMILY[k] && Array.isArray(citations[k]) ? citations[k] : undefined
-        return { name: k, value: String(fields[k]), citations: cites }
-      })
-
-      var rels = Array.isArray(el.relations) ? el.relations : []
-      var relData = rels.map(function (r) {
-        return {
-          field: r.field || 'related',
-          target: r.target,
-          targetLabel: r.targetLabel || (r.target && byId[r.target] && byId[r.target].name) || r.target,
-        }
-      })
-
-      var pathBits = []
-      if (meta.template) pathBits.push(meta.template)
-      if (el.concept) pathBits.push(el.concept)
-      if (el.id) pathBits.push(el.id)
-      var cardPath = pathBits.length ? pathBits.join(' / ') : null
-
-      return UI.ElementCard(
-        {
-          id: el.id,
-          name: el.name || '(unnamed)',
-          conceptId: el.concept,
-          description: el.description,
-          fields: fieldData,
-          markers: markerData,
-          qud: { id: el.id, concept: el.concept, hash: el.hash, path: cardPath },
-          path: cardPath,
-          tags: Array.isArray(el.tags) ? el.tags.map(String) : null,
-          relations: relData.length ? relData : null,
-        },
-        {
-          domId: 'el-' + (el.id || UI.slug(el.name || 'x')),
-          collapsible: true,
-          open: false,
-          head: headerCite,
-          byId: byId,
-          concept: {
-            index: conceptIndex(el.concept),
-            color: conceptColorName(el.concept),
-            icon: conceptIcon(el.concept),
-          },
-        },
-      )
-    }
-
-    function renderMatrix(mx) {
-      var block = document.createElement('div')
-      block.className = 'matrix-block'
-      var h = document.createElement('h3')
-      h.appendChild(
-        UI.KuBadge({ kind: 'element', id: UI.slug(mx.name || 'matrix'), label: mx.name || 'Matrix', icon: 'matrices' }),
-      )
-      block.appendChild(h)
-      var scroll = document.createElement('div')
-      scroll.className = 'matrix-scroll'
-      var rows = mx.rows || [],
-        cols = mx.cols || [],
-        cells = mx.cells || {}
-      var head = mx.head || {}
-      var headCols = head.cols || {}
-      var headRows = head.rows || {}
-      var table = document.createElement('table')
-      table.className = 'matrix'
-      var thead = document.createElement('thead')
-      var headRow = document.createElement('tr')
-      headRow.appendChild(document.createElement('th'))
-      cols.forEach(function (c) {
-        var th = document.createElement('th')
-        th.appendChild(matrixHeaderBadge(headCols[c], c))
-        headRow.appendChild(th)
-      })
-      thead.appendChild(headRow)
-      table.appendChild(thead)
-      var tbody = document.createElement('tbody')
-      rows.forEach(function (r) {
-        var tr = document.createElement('tr')
-        var th = document.createElement('th')
-        th.appendChild(matrixHeaderBadge(headRows[r], r))
-        tr.appendChild(th)
-        cols.forEach(function (c) {
-          var v = cells[r] && cells[r][c] != null ? cells[r][c] : ''
-          var td = document.createElement('td')
-          td.appendChild(UI.KuBadge({ kind: 'cell', value: String(v) }))
-          tr.appendChild(td)
-        })
-        tbody.appendChild(tr)
-      })
-      table.appendChild(tbody)
-      scroll.appendChild(table)
-      block.appendChild(scroll)
-      return block
-    }
-
-    function applyHash() {
-      var h = location.hash
-      if (!h || h.length < 2) return
-      var target = document.getElementById(h.slice(1))
-      if (target && target.getAttribute('data-innfo-component') === 'element-card') {
-        target.setAttribute('data-open', 'true')
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    }
-    window.addEventListener('hashchange', function () {
-      // ensure the concept holding the target is visible
-      var id = location.hash.slice(1)
-      var el = byId[id.replace(/^el-/, '')]
-      if (el && activeConcept !== '__all' && activeConcept !== el.concept) {
-        selectConcept('__all')
-      } else {
-        applyHash()
-      }
-    })
-
-    selectConcept('__all')
-    return { ok: true, elements: elements.length }
-  }
-
-  function autoBoot() {
-    try {
-      if (typeof document === 'undefined' || !document.getElementById) return
-      // Viewer-only gate: the model_viewer shell owns #doc-title + nav#rail + #search.
-      // #search is exclusive to the model_viewer shell, so this renderer never
-      // auto-boots inside other shells that share #doc-title/#rail (e.g. the
-      // procedures console) when loaded through the shared console bundle.
-      if (!document.getElementById('doc-title') || !document.getElementById('rail')) return
-      if (!document.getElementById('search')) return
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-          boot()
-        })
-      } else {
-        boot()
-      }
-    } catch (err) {
-      if (typeof console !== 'undefined' && console.warn)
-        console.warn('innfo-model-viewer boot failed', err)
-    }
-  }
-
-  autoBoot()
-
-  return {
-    version: RENDERER_VERSION,
-    RENDERER_VERSION: RENDERER_VERSION,
-    boot: boot,
-  }
 })
 
 /* ===== render-procedure-stepper.js (defines InnfoProcedureStepper) ===== */
@@ -19881,6 +19227,61 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 })
 
+</script>
+<script data-innfo-view="changes" data-innfo-view-source="bluepriNNt:changes/assets/console-view-changes.js">
+;(function (registerView) { 'use strict';
+// Built-in "Changes" view shipped by the `changes` bluepriNNt. Lists the domain's
+// changesets (proposed first) and their change blocks. Read-only: it never proposes
+// drafts, so it carries no draft store.
+registerView({
+  title: 'Changes',
+  icon: 'git-commit',
+  order: 90,
+  kind: 'readonly',
+  mount(ctx) {
+    const doc = ctx.doc
+    const model = ctx.payload && ctx.payload.model ? ctx.payload.model : {}
+    const changes = Array.isArray(model.changes) ? model.changes.slice() : []
+
+    // Proposed changesets first (the S6 review flow points the user at them), then
+    // newest first within each group.
+    const rank = (status) => (status === 'proposed' ? 0 : 1)
+    changes.sort(
+      (a, b) =>
+        rank(a && a.status) - rank(b && b.status) ||
+        String((b && b.path) || '').localeCompare(String((a && a.path) || '')),
+    )
+
+    if (changes.length === 0) {
+      const empty = doc.createElement('p')
+      empty.className = 'innfo-changes-empty'
+      empty.textContent = 'No changesets in this domain.'
+      ctx.container.appendChild(empty)
+      return
+    }
+
+    changes.forEach((cs) => {
+      const card = doc.createElement('div')
+      card.className = 'innfo-changes-changeset'
+      const heading = doc.createElement('h3')
+      heading.textContent = (cs.title || cs.path) + (cs.status ? ' — ' + cs.status : '')
+      card.appendChild(heading)
+      const list = doc.createElement('ul')
+      const items = Array.isArray(cs.changes) ? cs.changes : []
+      items.forEach((c) => {
+        const li = doc.createElement('li')
+        let text = (c.op || '') + ' ' + (c.target || '')
+        if (c.notes) text += ' — ' + c.notes
+        li.textContent = text
+        list.appendChild(li)
+      })
+      card.appendChild(list)
+      ctx.container.appendChild(card)
+    })
+  },
+})
+
+})(InnfoConsole.viewRegistrar("changes", "bluepriNNt:changes/assets/console-view-changes.js"));
 </script>
 <script data-innfo-view="procedure" data-innfo-view-source="bluepriNNt:procedures/assets/console-view-procedure.js">
 ;(function (registerView) { 'use strict';

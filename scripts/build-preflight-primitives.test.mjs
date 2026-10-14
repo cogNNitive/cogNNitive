@@ -23,8 +23,10 @@ const BUILDER = path.join(SCRIPT_DIR, 'build-preflight-primitives.mjs')
 const COMMITTED_TARGETS = [
   path.join(SCRIPT_DIR, '..', 'skills', 'nn-preflight', 'scripts', 'lib', 'version-status.generated.cjs'),
   path.join(SCRIPT_DIR, '..', 'skills', 'nn-preflight', 'scripts', 'lib', 'legacy-detect.generated.cjs'),
-  path.join(SCRIPT_DIR, '..', 'skills', 'nn-upgrade', 'scripts', 'lib', 'legacy-migrate.generated.cjs'),
 ]
+
+// The planner bundle was retired with the in-place migration flows (S4).
+const RETIRED_MIGRATE_BUNDLE = path.join(SCRIPT_DIR, '..', 'skills', 'nn-upgrade', 'scripts', 'lib', 'legacy-migrate.generated.cjs')
 
 function run(args) {
   return spawnSync(process.execPath, [BUILDER, ...args], { encoding: 'utf-8' })
@@ -48,12 +50,10 @@ async function runTests() {
           assert.strictEqual(typeof mod.compareVersions, 'function', 'exports compareVersions')
         } else if (target.endsWith('legacy-detect.generated.cjs')) {
           assert.strictEqual(typeof mod.detectLegacy, 'function', 'exports detectLegacy')
-        } else if (target.endsWith('legacy-migrate.generated.cjs')) {
-          assert.strictEqual(typeof mod.detectLegacy, 'function', 'exports detectLegacy')
-          assert.strictEqual(typeof mod.planMigration, 'function', 'exports planMigration')
         }
       }
-      console.log('✔ render mode emits all requireable CJS bundles (version-status, legacy-detect, legacy-migrate)')
+      assert.ok(!fs.existsSync(RETIRED_MIGRATE_BUNDLE), 'the legacy-migrate planner bundle is not rendered')
+      console.log('✔ render mode emits all requireable CJS bundles (version-status, legacy-detect)')
     }
 
     // Test 2: --check passes when all artifacts are in sync
