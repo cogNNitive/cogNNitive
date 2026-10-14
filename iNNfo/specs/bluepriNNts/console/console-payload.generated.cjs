@@ -11103,7 +11103,8 @@ function buildConsolePayload(options) {
     modelVersion,
     sha256: rawSha256,
     sources: [sourceFile],
-    generated: genTime
+    generated: genTime,
+    changesBlueprintVersion: findCanonicalBlueprint("changes")?.version ?? ""
   };
   if (template) {
     meta.template = template;

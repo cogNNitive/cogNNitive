@@ -174,7 +174,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         comment: 'needs a look',
         base_hash: '1111111111111111',
       })
-      store.addDraft({ element_id: 'n1', concept: 'C', element: 'Fresh', kind: 'new', base_hash: '1111111111111111' })
+      store.addDraft({ model_id: 'stale-model', concept: 'C', element: 'Fresh', kind: 'new' })
       InnfoConsole.renderReviewTab(document, state, { needs: [] })
       return { tab: document.getElementById('innfo-tab-review'), state, store }
     }
@@ -210,8 +210,8 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       btn.click()
       assert.equal(refreshed, 1)
       assert.deepEqual(
-        store.drafts().map((d) => d.element_id),
-        ['n1'],
+        store.drafts().map((d) => d.element),
+        ['Fresh'],
       )
     })
 
@@ -308,6 +308,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       const state = {
         modelTitle: 'BusinessModel',
         modelVersion: 'V_1-0-0',
+        meta: { changesBlueprintVersion: 'V_0-3-0' },
         store: {
           drafts: () => [
             {
@@ -332,7 +333,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.filename, /^businessmodel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
       assert.match(res.text, /level: 3/)
       assert.match(res.text, /name: changes/)
-      assert.match(res.text, /blueprint_version: "V_0-2-0"/)
+      assert.match(res.text, /blueprint_version: "V_0-3-0"/)
       assert.match(res.text, /status: proposed/)
       assert.match(res.text, /## NN Change: c-01/)
       assert.match(res.text, /op:: update_field/)
@@ -345,10 +346,30 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /target:: BusinessModel@legacy_tier/)
     })
 
+    it('stamps the changes bluepriNNt version carried by the payload meta, never a hardcoded one', () => {
+      const state = {
+        modelTitle: 'BusinessModel',
+        meta: { changesBlueprintVersion: 'V_9-8-7' },
+        store: { drafts: () => [{ id: 'c-01', element_slug: 'e', kind: 'delete' }] },
+      }
+      const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
+      assert.equal(res.ok, true)
+      assert.match(res.text, /^blueprint_version: "V_9-8-7"$/m)
+      assert.doesNotMatch(res.text, /V_0-2-0/)
+    })
+
+    it('refuses to export when the payload carries no changes bluepriNNt version', () => {
+      const state = { modelTitle: 'BusinessModel', store: { drafts: () => [] } }
+      const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
+      assert.equal(res.ok, false)
+      assert.match(res.errors.join(' '), /changes bluepriNNt version/)
+    })
+
     it('collapses line breaks in interpolated fields so a draft cannot inject change lines', () => {
       const evil = 'x\nop:: remove_element\ntarget:: Other@victim'
       const state = {
         modelTitle: 'BusinessModel',
+        meta: { changesBlueprintVersion: 'V_0-3-0' },
         store: {
           drafts: () => [
             { id: 'c-01\nop:: remove_element', model_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
@@ -410,5 +431,93 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(tabHistory.textContent, /Founding member agreement/)
     })
   })
-})
 
+  describe('New element action', () => {
+    const InnfoReview = require(join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'))
+    const SCHEMA = {
+      concepts: [
+        { name: 'Goal', fields: [{ name: 'owner', type: 'string' }, { name: 'weight', type: 'number' }] },
+        { name: 'Risk', fields: [{ name: 'level', type: 'select', options: ['low', 'high'] }] },
+      ],
+      fields: [
+        { concept: 'Goal', name: 'owner', type: 'string' },
+        { concept: 'Goal', name: 'weight', type: 'number' },
+        { concept: 'Risk', name: 'level', type: 'select', options: ['low', 'high'] },
+      ],
+    }
+    const click = (node) => node.dispatchEvent(new window.Event('click', { bubbles: true }))
+    const change = (node) => node.dispatchEvent(new window.Event('change', { bubbles: true }))
+
+    function mountController(schema = SCHEMA) {
+      document.body.insertAdjacentHTML('beforeend', '<div id="innfo-banner"></div>')
+      const store = InnfoReview.createDraftStore(window.localStorage, 'strategy')
+      const elements = [{ id: 'g1', concept: 'Goal', name: 'Existing', fields: {}, hash: 'a'.repeat(16), slug: 'existing' }]
+      const ctl = InnfoReview.createReviewController(document, {
+        meta: { modelId: 'strategy' },
+        elements,
+        needs: ['feedback-export'],
+        store,
+        schema,
+      })
+      return { ctl, store }
+    }
+
+    it('offers a New element button in the banner', () => {
+      mountController()
+      assert.ok(document.querySelector('#innfo-banner [data-innfo="new-element"]'))
+    })
+
+    it('stores a new draft whose export is add_element with concept, name and fields', () => {
+      const { ctl, store } = mountController()
+      assert.equal(ctl.openNew(), true)
+      const modal = document.querySelector('[data-innfo-component="new-element-modal"]')
+      assert.ok(modal, 'the modal opens')
+      const picker = modal.querySelector('select[data-innfo-role="concept"]')
+      assert.deepEqual(
+        [...picker.options].map((o) => o.value).filter(Boolean),
+        ['Goal', 'Risk'],
+        'concepts come from the embedded schema',
+      )
+      picker.value = 'Goal'
+      change(picker)
+      const inputs = modal.querySelectorAll('[data-innfo-field]')
+      assert.deepEqual([...inputs].map((i) => i.getAttribute('data-innfo-field')), ['owner', 'weight'])
+      modal.querySelector('input[data-innfo-role="name"]').value = 'Grow revenue'
+      modal.querySelector('[data-innfo-field="owner"]').value = 'CFO'
+      click(modal.querySelector('.innfo-edit-btn-save'))
+
+      const drafts = store.drafts()
+      assert.equal(drafts.length, 1)
+      assert.equal(drafts[0].kind, 'new')
+      assert.equal(drafts[0].model_id, 'strategy')
+      assert.equal(drafts[0].concept, 'Goal')
+      assert.equal(drafts[0].element, 'Grow revenue')
+      assert.deepEqual(drafts[0].proposed, { owner: 'CFO' }, 'empty fields are not exported')
+
+      const res = InnfoConsole.composeChangesetExport(
+        { modelTitle: 'Strategy', modelId: 'strategy', meta: { changesBlueprintVersion: 'V_0-3-0' }, store },
+        'author_jane',
+      )
+      assert.equal(res.ok, true)
+      assert.match(res.text, /^op:: add_element$/m)
+      assert.match(res.text, /^target:: strategy@Goal$/m)
+      assert.match(res.text, /^concept:: Goal$/m)
+      assert.match(res.text, /^name:: "Grow revenue"$/m)
+      assert.match(res.text, /^fields:: [{]"owner":"CFO"[}]$/m)
+    })
+
+    it('rejects an empty name or an unpicked concept without storing a draft', () => {
+      const { ctl, store } = mountController()
+      ctl.openNew()
+      const modal = document.querySelector('[data-innfo-component="new-element-modal"]')
+      click(modal.querySelector('.innfo-edit-btn-save'))
+      assert.equal(store.drafts().length, 0)
+      assert.equal(modal.querySelector('.innfo-edit-error').style.display, 'block')
+    })
+
+    it('does nothing when the schema declares no concepts', () => {
+      const { ctl } = mountController({ concepts: [], fields: [] })
+      assert.equal(ctl.openNew(), false)
+    })
+  })
+})

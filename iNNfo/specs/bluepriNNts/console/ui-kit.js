@@ -117,7 +117,7 @@
     '.innfo-popover-original{color:var(--innfo-muted)}',
     '.innfo-popover-proposed{display:block;width:100%;font:inherit}',
     '.innfo-rail-progress{color:var(--innfo-muted);font-size:.75rem}',
-    '.innfo-review-toggle,.innfo-changed-filter{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
+    '.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
     '.innfo-review-toggle[aria-pressed=true],.innfo-changed-filter[aria-pressed=true]{background:var(--innfo-accent);color:var(--innfo-surface)}',
     '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease}',
     '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
@@ -129,7 +129,7 @@
     '.innfo-review-badges{display:inline-flex;gap:.3em;align-items:center;margin-left:.4em}',
     'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
-    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter{width:100%}}',
+    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{width:100%}}',
     '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
     '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
@@ -1852,6 +1852,164 @@
     return modal
   }
 
+  // New element: concept picker, a name, and one widget per field the schema
+  // declares on the picked concept. Built on the same dialog shell and widgets as
+  // EditModal. onSave receives { concept, name, fields } where fields holds only
+  // the filled values (a blank input is not a value).
+  function NewElementModal(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.NewElementModal: data required')
+    var doc = resolveDoc(opts)
+    var concepts = Array.isArray(data.concepts) ? data.concepts : []
+    var modal = makeEl(doc, 'dialog', 'innfo-edit-modal')
+    modal.setAttribute('data-innfo-component', 'new-element-modal')
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+
+    function dismiss() {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+    }
+    function cancel() {
+      dismiss()
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    }
+
+    var head = makeEl(doc, 'div', 'innfo-edit-modal-head')
+    head.appendChild(makeEl(doc, 'h2', null, data.title || 'New element'))
+    var closeBtn = makeEl(doc, 'button', 'innfo-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.addEventListener('click', cancel)
+    head.appendChild(closeBtn)
+    modal.appendChild(head)
+
+    var body = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-edit-modal-body')
+
+    var conceptLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Concept')
+    var picker = makeEl(doc, 'select', 'innfo-edit-select')
+    picker.setAttribute('data-innfo-role', 'concept')
+    picker.appendChild(makeEl(doc, 'option', null, ''))
+    picker.firstChild.value = ''
+    concepts.forEach(function (c) {
+      var op = makeEl(doc, 'option', null, c.name)
+      op.value = String(c.name)
+      picker.appendChild(op)
+    })
+    body.appendChild(conceptLabel)
+    body.appendChild(picker)
+
+    var nameLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Name')
+    var nameInput = FieldInput('text', '', opts)
+    nameInput.setAttribute('data-innfo-role', 'name')
+    body.appendChild(nameLabel)
+    body.appendChild(nameInput)
+
+    var fieldsHost = makeEl(doc, 'div', 'innfo-edit-fields')
+    body.appendChild(fieldsHost)
+    modal.appendChild(body)
+
+    // [{ name, type, node }] for the currently picked concept.
+    var current = []
+
+    function widgetFor(def) {
+      var type = def.type || 'string'
+      var node
+      if (type === 'number') node = FieldNumberWidget('', opts)
+      else if (type === 'boolean') node = FieldBooleanWidget(false, opts)
+      else if (type === 'select') node = FieldSelectWidget('', def.options, opts)
+      else if (type === 'multiselect') node = FieldMultiSelectWidget([], def.options, opts)
+      else if (type === 'reference') node = FieldReferenceWidget('', data.candidates, opts)
+      else if (type === 'markdown' || type === 'markdown_inline') node = FieldMarkdownWidget('', opts)
+      else node = FieldStringWidget('', opts)
+      node.setAttribute('data-innfo-field', def.name)
+      return { name: def.name, type: type, node: node }
+    }
+
+    // The filled value of one widget, or undefined when it is blank.
+    function valueOf(w) {
+      var node = w.node
+      if (w.type === 'boolean') {
+        var cb = node.querySelector('input[type="checkbox"]')
+        return cb && cb.checked ? true : undefined
+      }
+      if (w.type === 'multiselect') {
+        var boxes = node.querySelectorAll('input[type="checkbox"]:checked')
+        var picked = Array.prototype.map.call(boxes, function (b) {
+          return b.value
+        })
+        return picked.length ? picked : undefined
+      }
+      if (w.type === 'reference') {
+        var ref = node.querySelector('input')
+        return ref && String(ref.value).trim() !== '' ? ref.value : undefined
+      }
+      var raw = String(node.value == null ? '' : node.value)
+      if (raw.trim() === '') return undefined
+      if (w.type === 'number') {
+        var num = Number(raw)
+        return isFinite(num) ? num : undefined
+      }
+      return raw
+    }
+
+    function renderFields() {
+      fieldsHost.innerHTML = ''
+      current = []
+      var chosen = concepts.filter(function (c) {
+        return c.name === picker.value
+      })[0]
+      if (!chosen) return
+      var defs = Array.isArray(chosen.fields) ? chosen.fields : []
+      defs.forEach(function (def) {
+        if (!def || !def.name) return
+        var w = widgetFor(def)
+        current.push(w)
+        fieldsHost.appendChild(makeEl(doc, 'label', 'innfo-edit-field-label', def.name))
+        fieldsHost.appendChild(w.node)
+      })
+    }
+    picker.addEventListener('change', renderFields)
+
+    var saveError = makeEl(doc, 'p', 'innfo-edit-error')
+    saveError.setAttribute('role', 'alert')
+    saveError.style.display = 'none'
+    modal.appendChild(saveError)
+
+    var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
+    var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
+    saveBtn.setAttribute('type', 'button')
+    saveBtn.addEventListener('click', function () {
+      var name = String(nameInput.value == null ? '' : nameInput.value).trim()
+      if (!picker.value) {
+        saveError.textContent = 'Pick a concept before saving.'
+        saveError.style.display = 'block'
+        return
+      }
+      if (!name) {
+        saveError.textContent = 'Enter a name before saving.'
+        saveError.style.display = 'block'
+        return
+      }
+      saveError.style.display = 'none'
+      var fields = {}
+      current.forEach(function (w) {
+        var v = valueOf(w)
+        if (v !== undefined) fields[w.name] = v
+      })
+      if (opts && typeof opts.onSave === 'function') {
+        opts.onSave({ concept: picker.value, name: name, fields: fields })
+      }
+      dismiss()
+    })
+    var cancelBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-cancel', 'Cancel')
+    cancelBtn.setAttribute('type', 'button')
+    cancelBtn.addEventListener('click', cancel)
+    actions.appendChild(saveBtn)
+    actions.appendChild(cancelBtn)
+    modal.appendChild(actions)
+
+    return modal
+  }
+
   function AnnotationPopover(data, opts) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.AnnotationPopover: data required')
@@ -2250,6 +2408,7 @@
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
     EditModal: EditModal,
+    NewElementModal: NewElementModal,
     SankeyFlow: SankeyFlow,
     FieldStringWidget: FieldStringWidget,
     FieldNumberWidget: FieldNumberWidget,

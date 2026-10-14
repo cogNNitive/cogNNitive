@@ -4554,6 +4554,9 @@
     return root
   }
 
+  var CHANGES_VERSION_MISSING =
+    'The console payload carries no changes bluepriNNt version; regenerate the console.'
+
   function formatChangesetValue(val) {
     if (val === undefined || val === null) return '""'
     var str = typeof val === 'object' ? JSON.stringify(val) : String(val)
@@ -4636,6 +4639,8 @@
   }
 
   function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
+    // The stamped version is the changes bluepriNNt version the payload was built
+    // against (core's canonical registry); composeExport refuses to export without it.
     var title = meta.title || meta.source_knowledge || 'Proposed Changes'
     var author = meta.author || 'reviewer'
     var lines = [
@@ -4645,7 +4650,7 @@
       'parent_spec:',
       '  name: changes',
       '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
-      'blueprint_version: "V_0-2-0"',
+      'blueprint_version: ' + JSON.stringify(String(meta.changesBlueprintVersion)),
       'status: proposed',
       'title: ' + JSON.stringify(title),
       'author: ' + JSON.stringify(author),
@@ -4681,6 +4686,10 @@
       source_knowledge: model,
       title: 'Review Changes: ' + model,
       author: reviewer,
+      changesBlueprintVersion: state && state.meta ? state.meta.changesBlueprintVersion : undefined,
+    }
+    if (!nonEmptyString(exportMeta.changesBlueprintVersion)) {
+      return { ok: false, errors: [CHANGES_VERSION_MISSING] }
     }
 
     if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
@@ -4726,6 +4735,9 @@
       feedback_slug: reviewerSlug,
       viewer: 'innfo-console@' + CONSOLE_VERSION,
     })
+    if (!nonEmptyString(exportMeta.changesBlueprintVersion)) {
+      return { ok: false, errors: [CHANGES_VERSION_MISSING] }
+    }
     if (state && (state.sourceSha256 || (state.meta && state.meta.sha256))) {
       exportMeta.source_sha256 = state.sourceSha256 || state.meta.sha256
     }

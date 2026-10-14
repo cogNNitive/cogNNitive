@@ -9,6 +9,7 @@ import {
   splitSourceFieldValue,
 } from '../index.js'
 import { computeSha256 } from '../validator/crypto.js'
+import { findCanonicalBlueprint } from '../schema/canonical-registry.js'
 import { displayStem } from '../naming/contract.js'
 import type { SourceResolver } from '../index.js'
 import {
@@ -79,6 +80,11 @@ export interface ConsolePayloadMeta {
   sources: string[]
   generated: string
   citationsResolvedAt?: string
+  /**
+   * Version of the `changes` bluepriNNt a console changeset export conforms to
+   * (its `blueprint_version`, from the canonical registry).
+   */
+  changesBlueprintVersion: string
 }
 
 export interface ConsolePayload {
@@ -323,6 +329,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     sha256: rawSha256,
     sources: [sourceFile],
     generated: genTime,
+    changesBlueprintVersion: findCanonicalBlueprint('changes')?.version ?? '',
   }
 
   if (template) {

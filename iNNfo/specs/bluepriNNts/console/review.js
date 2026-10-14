@@ -214,7 +214,16 @@
       addDraft: function (input) {
         var raw = isObject(input) ? input : {}
         var isMatrix = raw.matrix != null && raw.matrix !== '' && raw.row != null && raw.col != null
-        if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
+        if (raw.kind === 'new') {
+          // A new element has no target in the model yet: it is addressed by its
+          // model, concept and name instead of an element id and hash.
+          var missing = ['model_id', 'concept', 'element'].filter(function (key) {
+            return raw[key] == null || raw[key] === ''
+          })
+          if (missing.length) {
+            throw new TypeError('InnfoReview.createDraftStore: new draft requires ' + missing.join(', '))
+          }
+        } else if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
           throw new TypeError('InnfoReview.createDraftStore: element_id and base_hash required')
         }
         return deepCopy(
@@ -926,6 +935,83 @@
       return b
     }
 
+    // ---- New element (kind: 'new' draft) ----
+
+    function schemaConcepts() {
+      var list = options.schema && Array.isArray(options.schema.concepts) ? options.schema.concepts : []
+      return list
+        .map(function (c) {
+          return typeof c === 'string' ? { name: c } : c
+        })
+        .filter(function (c) {
+          return c && c.name
+        })
+    }
+
+    // Fields the schema declares on one concept, from the flattened list the
+    // payload carries (the same source the edit modal reads).
+    function declaredFieldsOf(concept) {
+      var all = options.schema && Array.isArray(options.schema.fields) ? options.schema.fields : []
+      var key = String(concept).toLowerCase()
+      return all.filter(function (f) {
+        return f && f.name && String(f.concept == null ? '' : f.concept).toLowerCase() === key
+      })
+    }
+
+    function openNew() {
+      var concepts = schemaConcepts()
+      if (!concepts.length || typeof UI.NewElementModal !== 'function') return false
+      closePopover()
+      var modal = UI.NewElementModal(
+        {
+          concepts: concepts.map(function (c) {
+            return { name: c.name, fields: declaredFieldsOf(c.name) }
+          }),
+          candidates: elements,
+        },
+        {
+          doc: doc,
+          onSave: function (res) {
+            if (!store) return
+            var draft = {
+              kind: 'new',
+              model_id: meta.modelId,
+              concept: res.concept,
+              element: res.name,
+            }
+            if (Object.keys(res.fields).length) draft.proposed = res.fields
+            store.addDraft(draft)
+            refreshCount()
+            closePopover()
+          },
+          onCancel: function () {
+            closePopover()
+          },
+        },
+      )
+      doc.body.appendChild(modal)
+      openPopover = modal
+      if (typeof modal.showModal === 'function') modal.showModal()
+      else modal.setAttribute('open', 'open')
+      return true
+    }
+
+    function buildNewElementButton() {
+      var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
+      if (!banner || !store || !canReview(meta, elements, needs)) return null
+      var existing = banner.querySelector('[data-innfo="new-element"]')
+      if (existing) return existing
+      if (!schemaConcepts().length) return null
+      var b = makeEl(doc, 'button', 'innfo-new-element', 'New element')
+      b.setAttribute('data-innfo', 'new-element')
+      b.setAttribute('type', 'button')
+      b.addEventListener('click', openNew)
+      var openBtn = banner.querySelector('#innfo-feedback-open')
+      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
+      else banner.appendChild(b)
+      return b
+    }
+
     function onKeydown(event) {
       if (!enabled) return
       if (!event) return
@@ -1364,6 +1450,7 @@
       // toggle and changed filter are re-inserted here (idempotent).
       if (canReview(meta, elements, needs)) {
         toggleEl = buildToggle()
+        buildNewElementButton()
         if (enabled && toggleEl) buildChangedFilter()
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
@@ -1466,6 +1553,7 @@
       disable: disable,
       decorate: decorate,
       openEdit: openEdit,
+      openNew: openNew,
       propose: saveDraft,
       // Re-renders the host's count surfaces and re-applies decorations after
       // the store changed outside saveDraft (e.g. a draft removed by a view).

@@ -350,4 +350,43 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.drafts()).toEqual([])
     expect(JSON.parse(storage.getItem('innfo-console:v3:m1') as string).drafts).toEqual([])
   })
+
+  describe('new element drafts', () => {
+    it('accepts kind "new" with model_id, concept and element and no element_id or base_hash', () => {
+      const Review = loadReview()
+      const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
+      const saved = store.addDraft({
+        kind: 'new',
+        model_id: 'strategy',
+        concept: 'Goal',
+        element: 'Grow revenue',
+        proposed: { owner: 'CFO' },
+      })
+      expect(saved).toMatchObject({
+        kind: 'new',
+        model_id: 'strategy',
+        concept: 'Goal',
+        element: 'Grow revenue',
+        proposed: { owner: 'CFO' },
+      })
+      expect(store.drafts()).toHaveLength(1)
+    })
+
+    it.each(['model_id', 'concept', 'element'])('rejects a new draft missing %s, naming the key', (key) => {
+      const Review = loadReview()
+      const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
+      const input: Record<string, unknown> = { kind: 'new', model_id: 'strategy', concept: 'Goal', element: 'X' }
+      delete input[key]
+      expect(() => store.addDraft(input)).toThrow(new RegExp(key))
+      expect(store.drafts()).toEqual([])
+    })
+
+    it('still requires base_hash for a correction', () => {
+      const Review = loadReview()
+      const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
+      expect(() =>
+        store.addDraft({ kind: 'correction', element_id: 'e1', concept: 'C', field: 'f', proposed: 'x' }),
+      ).toThrow(TypeError)
+    })
+  })
 })

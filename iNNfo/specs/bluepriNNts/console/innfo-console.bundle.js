@@ -482,7 +482,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-popover-original{color:var(--innfo-muted)}',
     '.innfo-popover-proposed{display:block;width:100%;font:inherit}',
     '.innfo-rail-progress{color:var(--innfo-muted);font-size:.75rem}',
-    '.innfo-review-toggle,.innfo-changed-filter{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
+    '.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
     '.innfo-review-toggle[aria-pressed=true],.innfo-changed-filter[aria-pressed=true]{background:var(--innfo-accent);color:var(--innfo-surface)}',
     '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease}',
     '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
@@ -494,7 +494,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-review-badges{display:inline-flex;gap:.3em;align-items:center;margin-left:.4em}',
     'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
-    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter{width:100%}}',
+    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{width:100%}}',
     '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
     '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
@@ -2217,6 +2217,164 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return modal
   }
 
+  // New element: concept picker, a name, and one widget per field the schema
+  // declares on the picked concept. Built on the same dialog shell and widgets as
+  // EditModal. onSave receives { concept, name, fields } where fields holds only
+  // the filled values (a blank input is not a value).
+  function NewElementModal(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.NewElementModal: data required')
+    var doc = resolveDoc(opts)
+    var concepts = Array.isArray(data.concepts) ? data.concepts : []
+    var modal = makeEl(doc, 'dialog', 'innfo-edit-modal')
+    modal.setAttribute('data-innfo-component', 'new-element-modal')
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+
+    function dismiss() {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+    }
+    function cancel() {
+      dismiss()
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    }
+
+    var head = makeEl(doc, 'div', 'innfo-edit-modal-head')
+    head.appendChild(makeEl(doc, 'h2', null, data.title || 'New element'))
+    var closeBtn = makeEl(doc, 'button', 'innfo-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.addEventListener('click', cancel)
+    head.appendChild(closeBtn)
+    modal.appendChild(head)
+
+    var body = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-edit-modal-body')
+
+    var conceptLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Concept')
+    var picker = makeEl(doc, 'select', 'innfo-edit-select')
+    picker.setAttribute('data-innfo-role', 'concept')
+    picker.appendChild(makeEl(doc, 'option', null, ''))
+    picker.firstChild.value = ''
+    concepts.forEach(function (c) {
+      var op = makeEl(doc, 'option', null, c.name)
+      op.value = String(c.name)
+      picker.appendChild(op)
+    })
+    body.appendChild(conceptLabel)
+    body.appendChild(picker)
+
+    var nameLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Name')
+    var nameInput = FieldInput('text', '', opts)
+    nameInput.setAttribute('data-innfo-role', 'name')
+    body.appendChild(nameLabel)
+    body.appendChild(nameInput)
+
+    var fieldsHost = makeEl(doc, 'div', 'innfo-edit-fields')
+    body.appendChild(fieldsHost)
+    modal.appendChild(body)
+
+    // [{ name, type, node }] for the currently picked concept.
+    var current = []
+
+    function widgetFor(def) {
+      var type = def.type || 'string'
+      var node
+      if (type === 'number') node = FieldNumberWidget('', opts)
+      else if (type === 'boolean') node = FieldBooleanWidget(false, opts)
+      else if (type === 'select') node = FieldSelectWidget('', def.options, opts)
+      else if (type === 'multiselect') node = FieldMultiSelectWidget([], def.options, opts)
+      else if (type === 'reference') node = FieldReferenceWidget('', data.candidates, opts)
+      else if (type === 'markdown' || type === 'markdown_inline') node = FieldMarkdownWidget('', opts)
+      else node = FieldStringWidget('', opts)
+      node.setAttribute('data-innfo-field', def.name)
+      return { name: def.name, type: type, node: node }
+    }
+
+    // The filled value of one widget, or undefined when it is blank.
+    function valueOf(w) {
+      var node = w.node
+      if (w.type === 'boolean') {
+        var cb = node.querySelector('input[type="checkbox"]')
+        return cb && cb.checked ? true : undefined
+      }
+      if (w.type === 'multiselect') {
+        var boxes = node.querySelectorAll('input[type="checkbox"]:checked')
+        var picked = Array.prototype.map.call(boxes, function (b) {
+          return b.value
+        })
+        return picked.length ? picked : undefined
+      }
+      if (w.type === 'reference') {
+        var ref = node.querySelector('input')
+        return ref && String(ref.value).trim() !== '' ? ref.value : undefined
+      }
+      var raw = String(node.value == null ? '' : node.value)
+      if (raw.trim() === '') return undefined
+      if (w.type === 'number') {
+        var num = Number(raw)
+        return isFinite(num) ? num : undefined
+      }
+      return raw
+    }
+
+    function renderFields() {
+      fieldsHost.innerHTML = ''
+      current = []
+      var chosen = concepts.filter(function (c) {
+        return c.name === picker.value
+      })[0]
+      if (!chosen) return
+      var defs = Array.isArray(chosen.fields) ? chosen.fields : []
+      defs.forEach(function (def) {
+        if (!def || !def.name) return
+        var w = widgetFor(def)
+        current.push(w)
+        fieldsHost.appendChild(makeEl(doc, 'label', 'innfo-edit-field-label', def.name))
+        fieldsHost.appendChild(w.node)
+      })
+    }
+    picker.addEventListener('change', renderFields)
+
+    var saveError = makeEl(doc, 'p', 'innfo-edit-error')
+    saveError.setAttribute('role', 'alert')
+    saveError.style.display = 'none'
+    modal.appendChild(saveError)
+
+    var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
+    var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
+    saveBtn.setAttribute('type', 'button')
+    saveBtn.addEventListener('click', function () {
+      var name = String(nameInput.value == null ? '' : nameInput.value).trim()
+      if (!picker.value) {
+        saveError.textContent = 'Pick a concept before saving.'
+        saveError.style.display = 'block'
+        return
+      }
+      if (!name) {
+        saveError.textContent = 'Enter a name before saving.'
+        saveError.style.display = 'block'
+        return
+      }
+      saveError.style.display = 'none'
+      var fields = {}
+      current.forEach(function (w) {
+        var v = valueOf(w)
+        if (v !== undefined) fields[w.name] = v
+      })
+      if (opts && typeof opts.onSave === 'function') {
+        opts.onSave({ concept: picker.value, name: name, fields: fields })
+      }
+      dismiss()
+    })
+    var cancelBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-cancel', 'Cancel')
+    cancelBtn.setAttribute('type', 'button')
+    cancelBtn.addEventListener('click', cancel)
+    actions.appendChild(saveBtn)
+    actions.appendChild(cancelBtn)
+    modal.appendChild(actions)
+
+    return modal
+  }
+
   function AnnotationPopover(data, opts) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.AnnotationPopover: data required')
@@ -2615,6 +2773,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
     EditModal: EditModal,
+    NewElementModal: NewElementModal,
     SankeyFlow: SankeyFlow,
     FieldStringWidget: FieldStringWidget,
     FieldNumberWidget: FieldNumberWidget,
@@ -2843,7 +3002,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       addDraft: function (input) {
         var raw = isObject(input) ? input : {}
         var isMatrix = raw.matrix != null && raw.matrix !== '' && raw.row != null && raw.col != null
-        if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
+        if (raw.kind === 'new') {
+          // A new element has no target in the model yet: it is addressed by its
+          // model, concept and name instead of an element id and hash.
+          var missing = ['model_id', 'concept', 'element'].filter(function (key) {
+            return raw[key] == null || raw[key] === ''
+          })
+          if (missing.length) {
+            throw new TypeError('InnfoReview.createDraftStore: new draft requires ' + missing.join(', '))
+          }
+        } else if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
           throw new TypeError('InnfoReview.createDraftStore: element_id and base_hash required')
         }
         return deepCopy(
@@ -3555,6 +3723,83 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return b
     }
 
+    // ---- New element (kind: 'new' draft) ----
+
+    function schemaConcepts() {
+      var list = options.schema && Array.isArray(options.schema.concepts) ? options.schema.concepts : []
+      return list
+        .map(function (c) {
+          return typeof c === 'string' ? { name: c } : c
+        })
+        .filter(function (c) {
+          return c && c.name
+        })
+    }
+
+    // Fields the schema declares on one concept, from the flattened list the
+    // payload carries (the same source the edit modal reads).
+    function declaredFieldsOf(concept) {
+      var all = options.schema && Array.isArray(options.schema.fields) ? options.schema.fields : []
+      var key = String(concept).toLowerCase()
+      return all.filter(function (f) {
+        return f && f.name && String(f.concept == null ? '' : f.concept).toLowerCase() === key
+      })
+    }
+
+    function openNew() {
+      var concepts = schemaConcepts()
+      if (!concepts.length || typeof UI.NewElementModal !== 'function') return false
+      closePopover()
+      var modal = UI.NewElementModal(
+        {
+          concepts: concepts.map(function (c) {
+            return { name: c.name, fields: declaredFieldsOf(c.name) }
+          }),
+          candidates: elements,
+        },
+        {
+          doc: doc,
+          onSave: function (res) {
+            if (!store) return
+            var draft = {
+              kind: 'new',
+              model_id: meta.modelId,
+              concept: res.concept,
+              element: res.name,
+            }
+            if (Object.keys(res.fields).length) draft.proposed = res.fields
+            store.addDraft(draft)
+            refreshCount()
+            closePopover()
+          },
+          onCancel: function () {
+            closePopover()
+          },
+        },
+      )
+      doc.body.appendChild(modal)
+      openPopover = modal
+      if (typeof modal.showModal === 'function') modal.showModal()
+      else modal.setAttribute('open', 'open')
+      return true
+    }
+
+    function buildNewElementButton() {
+      var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
+      if (!banner || !store || !canReview(meta, elements, needs)) return null
+      var existing = banner.querySelector('[data-innfo="new-element"]')
+      if (existing) return existing
+      if (!schemaConcepts().length) return null
+      var b = makeEl(doc, 'button', 'innfo-new-element', 'New element')
+      b.setAttribute('data-innfo', 'new-element')
+      b.setAttribute('type', 'button')
+      b.addEventListener('click', openNew)
+      var openBtn = banner.querySelector('#innfo-feedback-open')
+      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
+      else banner.appendChild(b)
+      return b
+    }
+
     function onKeydown(event) {
       if (!enabled) return
       if (!event) return
@@ -3993,6 +4238,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // toggle and changed filter are re-inserted here (idempotent).
       if (canReview(meta, elements, needs)) {
         toggleEl = buildToggle()
+        buildNewElementButton()
         if (enabled && toggleEl) buildChangedFilter()
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
@@ -4095,6 +4341,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       disable: disable,
       decorate: decorate,
       openEdit: openEdit,
+      openNew: openNew,
       propose: saveDraft,
       // Re-renders the host's count surfaces and re-applies decorations after
       // the store changed outside saveDraft (e.g. a draft removed by a view).
@@ -8680,6 +8927,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return root
   }
 
+  var CHANGES_VERSION_MISSING =
+    'The console payload carries no changes bluepriNNt version; regenerate the console.'
+
   function formatChangesetValue(val) {
     if (val === undefined || val === null) return '""'
     var str = typeof val === 'object' ? JSON.stringify(val) : String(val)
@@ -8762,6 +9012,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
+    // The stamped version is the changes bluepriNNt version the payload was built
+    // against (core's canonical registry); composeExport refuses to export without it.
     var title = meta.title || meta.source_knowledge || 'Proposed Changes'
     var author = meta.author || 'reviewer'
     var lines = [
@@ -8771,7 +9023,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       'parent_spec:',
       '  name: changes',
       '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
-      'blueprint_version: "V_0-2-0"',
+      'blueprint_version: ' + JSON.stringify(String(meta.changesBlueprintVersion)),
       'status: proposed',
       'title: ' + JSON.stringify(title),
       'author: ' + JSON.stringify(author),
@@ -8807,6 +9059,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       source_knowledge: model,
       title: 'Review Changes: ' + model,
       author: reviewer,
+      changesBlueprintVersion: state && state.meta ? state.meta.changesBlueprintVersion : undefined,
+    }
+    if (!nonEmptyString(exportMeta.changesBlueprintVersion)) {
+      return { ok: false, errors: [CHANGES_VERSION_MISSING] }
     }
 
     if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
@@ -8852,6 +9108,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       feedback_slug: reviewerSlug,
       viewer: 'innfo-console@' + CONSOLE_VERSION,
     })
+    if (!nonEmptyString(exportMeta.changesBlueprintVersion)) {
+      return { ok: false, errors: [CHANGES_VERSION_MISSING] }
+    }
     if (state && (state.sourceSha256 || (state.meta && state.meta.sha256))) {
       exportMeta.source_sha256 = state.sourceSha256 || state.meta.sha256
     }

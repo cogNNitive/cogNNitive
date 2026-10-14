@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   buildConsolePayload,
+  parseFrontmatter,
   computeSha256,
   computeElementHash,
   canonicalJsonStringify,
@@ -27,6 +30,20 @@ slug:: ghost-capture
 description:: Professional containment of spectral entities.
 price:: 5000
 `
+
+  it('carries the current changes bluepriNNt version in the payload meta', () => {
+    const payload = buildConsolePayload({
+      content: sampleMarkdown,
+      path: 'kNNowledge/biz/Ghostbusters_NN.md',
+    })
+    const spec = readFileSync(
+      join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'changes', 'spec_NN.md'),
+      'utf8',
+    )
+    const shipped = parseFrontmatter(spec)?.blueprint_version
+    expect(typeof shipped).toBe('string')
+    expect(payload.model.meta.changesBlueprintVersion).toBe(shipped)
+  })
 
   it('builds canonical console payload with schema and model slots', () => {
     const payload = buildConsolePayload({

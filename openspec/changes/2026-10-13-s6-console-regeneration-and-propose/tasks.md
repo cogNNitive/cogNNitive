@@ -240,17 +240,17 @@ independent of S6b/S6c.
 
 ## 9. Console "New element" (S6d — low-risk, droppable)
 
-- [ ] 9.1 TEST (`iNNfo/packages/innfo-core/tests/console-review-store.test.ts`):
+- [x] 9.1 TEST (`iNNfo/packages/innfo-core/tests/console-review-store.test.ts`):
       `addDraft` accepts `kind: "new"` with `model_id`/`concept`/`element` and no
       `element_id`/`base_hash`; rejects a new draft missing `concept`; a correction
       without `base_hash` still throws. [console-review-mode: New element draft]
-- [ ] 9.2 `review.js` `addDraft`: branch the required keys on `kind`.
+- [x] 9.2 `review.js` `addDraft`: branch the required keys on `kind`.
       [console-review-mode: New element draft]
-- [ ] 9.3 TEST (`test/console-review.test.mjs`): the New element action (concept picker
+- [x] 9.3 TEST (`test/console-review.test.mjs`): the New element action (concept picker
       from the schema, name, declared fields) stores a draft whose export is
       `op:: add_element` with `concept`, `name`, `fields`. [console-review-mode: New
       element draft]
-- [ ] 9.4 Add the action to the model view in `innfo-runtime.js` / `ui-kit.js` on the
+- [x] 9.4 Add the action to the model view in `innfo-runtime.js` / `ui-kit.js` on the
       shared modal; rebuild the console bundle. [console-review-mode: New element draft]
 
 ## 10. Docs, release and verification (S6e)
