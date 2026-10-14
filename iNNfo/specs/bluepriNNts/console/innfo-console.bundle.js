@@ -1836,14 +1836,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return input
   }
 
+  // A long or multi-line string has no single-line editor: it is edited in a
+  // textarea and proposed verbatim (Edit Modal Value Type Safety, S3b P0-2).
   function FieldStringWidget(value, opts) {
+    var str = value == null ? '' : String(value)
+    if (str.indexOf('\n') !== -1 || str.length > 70) {
+      var doc = resolveDoc(opts)
+      var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+      ta.setAttribute('data-innfo-widget', 'string')
+      ta.setAttribute('rows', '4')
+      ta.value = str
+      return ta
+    }
     var inp = FieldInput('text', value, opts)
     inp.setAttribute('data-innfo-widget', 'string')
     return inp
   }
 
   function FieldNumberWidget(value, opts) {
-    return FieldInput('number', value, opts)
+    var inp = FieldInput('number', value, opts)
+    inp.setAttribute('data-innfo-widget', 'number')
+    return inp
   }
 
   function FieldBooleanWidget(value, opts) {
@@ -1861,17 +1874,37 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return label
   }
 
+  // A select never loses the value it edits: it always carries a blank option,
+  // and when the current value is not among the declared options one extra
+  // option carrying it is added (marked) and selected, so an unchanged save
+  // proposes the original value (Edit Modal Value Type Safety, S3b P0-2).
   function FieldSelectWidget(value, options, opts) {
     var doc = resolveDoc(opts)
     var select = makeEl(doc, 'select', 'innfo-edit-select')
     select.setAttribute('data-innfo-widget', 'select')
     var list = Array.isArray(options) ? options : []
+    var current = value == null ? '' : String(value)
+    var blank = makeEl(doc, 'option', null, '')
+    blank.value = ''
+    if (current === '') blank.selected = true
+    select.appendChild(blank)
+    var found = false
     list.forEach(function (opt) {
       var op = makeEl(doc, 'option', null, opt)
-      op.value = opt
-      if (String(opt) === String(value)) op.selected = true
+      op.value = String(opt)
+      if (String(opt) === current) {
+        op.selected = true
+        found = true
+      }
       select.appendChild(op)
     })
+    if (!found && current !== '') {
+      var extra = makeEl(doc, 'option', null, current)
+      extra.value = current
+      extra.selected = true
+      extra.setAttribute('data-not-in-options', 'true')
+      select.appendChild(extra)
+    }
     return select
   }
 
@@ -1971,9 +2004,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Mode Selector: Propose Value vs Comment (D15)
     var modeWrap = makeEl(doc, 'div', 'innfo-edit-mode-selector')
     // commentOnly: there is no value to propose, so the mode is fixed and the
-    // toggle is not offered.
+    // toggle is not offered. A list/object value keeps the toggle visible but
+    // disables Propose: there is no list editor, only a comment (S3b P0-2).
     var commentOnly = Boolean(data.commentOnly)
-    var isComment = commentOnly || Boolean(data.isComment)
+    var valueIsContainer =
+      Boolean(data.valueCommentOnly) || (data.value !== null && typeof data.value === 'object')
+    var isComment = commentOnly || valueIsContainer || Boolean(data.isComment)
     var btnPropose = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (!isComment ? ' active' : ''), 'Propose value')
     var btnComment = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (isComment ? ' active' : ''), 'Comment')
     btnPropose.setAttribute('type', 'button')
@@ -1981,6 +2017,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     modeWrap.appendChild(btnPropose)
     modeWrap.appendChild(btnComment)
     if (!commentOnly) panelEdit.appendChild(modeWrap)
+    if (valueIsContainer) {
+      btnPropose.disabled = true
+      btnPropose.setAttribute('aria-disabled', 'true')
+      panelEdit.appendChild(
+        makeEl(doc, 'p', 'innfo-edit-note', 'List and object values are proposed as a comment.'),
+      )
+    }
 
     var formPropose = makeEl(doc, 'div', 'innfo-edit-form-propose')
     formPropose.style.display = isComment ? 'none' : 'block'
@@ -1995,6 +2038,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     formComment.appendChild(commentTa)
 
     btnPropose.addEventListener('click', function () {
+      if (valueIsContainer) return
       isComment = false
       btnPropose.className = 'innfo-edit-mode-btn active'
       btnComment.className = 'innfo-edit-mode-btn'
@@ -2016,7 +2060,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var fieldLabel = makeEl(doc, 'label', 'innfo-edit-field-label', data.fieldName ? data.fieldName : 'Value')
     fieldsContainer.appendChild(fieldLabel)
 
-    if (fieldType === 'number') {
+    if (valueIsContainer) {
+      // No value editor: a list or object is proposed as a comment only, never
+      // String()-coerced into a text control (S3b P0-2).
+      widgetRef = null
+    } else if (fieldType === 'number') {
       widgetRef = FieldNumberWidget(data.value, opts)
     } else if (fieldType === 'boolean') {
       widgetRef = FieldBooleanWidget(data.value, opts)
@@ -2031,7 +2079,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     } else {
       widgetRef = FieldStringWidget(data.value, opts)
     }
-    fieldsContainer.appendChild(widgetRef)
+    if (widgetRef) fieldsContainer.appendChild(widgetRef)
     formPropose.appendChild(fieldsContainer)
 
     panelEdit.appendChild(formPropose)
@@ -2128,7 +2176,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         comment: commentTa.value,
       }
       if (!isComment) {
-        if (fieldType === 'boolean') {
+        if (fieldType === 'number') {
+          var raw = widgetRef ? widgetRef.value : ''
+          var num = Number(raw)
+          if (String(raw).trim() === '' || !isFinite(num)) {
+            saveError.textContent = 'Enter a valid number.'
+            saveError.style.display = 'block'
+            return
+          }
+          result.proposed = num
+        } else if (fieldType === 'boolean') {
           var cb = widgetRef.querySelector('input[type="checkbox"]')
           result.proposed = cb ? cb.checked : false
         } else if (fieldType === 'multiselect') {
@@ -2591,6 +2648,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function isObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value)
+  }
+
+  // Declared definition of a field, keyed by (concept, field) so two concepts that
+  // share a field name keep their own type/options. Case-insensitive on both parts.
+  function fieldDefOf(schema, concept, field) {
+    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    var c = String(concept == null ? '' : concept).toLowerCase()
+    var n = String(field == null ? '' : field).toLowerCase()
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i]
+      if (
+        f &&
+        String(f.concept == null ? '' : f.concept).toLowerCase() === c &&
+        String(f.name == null ? '' : f.name).toLowerCase() === n
+      ) {
+        return f
+      }
+    }
+    return null
   }
 
   function deepCopy(value) {
@@ -3096,6 +3172,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Resolve an anchor to a KU-modal target. Returns null when the anchor is
     // not modal-editable (card comments, tag/relation proposals use popovers
     // or immediate comment drafts instead).
+    function referenceCandidates(def) {
+      var allowed = def && Array.isArray(def.target_concepts) ? def.target_concepts : []
+      if (!allowed.length) return elements
+      var set = allowed.map(function (c) {
+        return String(c).toLowerCase()
+      })
+      return elements.filter(function (e) {
+        return e && set.indexOf(String(e.concept).toLowerCase()) !== -1
+      })
+    }
+
     function kuModalTarget(anchorData) {
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
@@ -3171,12 +3258,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       var fieldVal = el.fields ? el.fields[field] : undefined
-      var schemaField = null
-      if (options.schema && Array.isArray(options.schema.fields)) {
-        schemaField = options.schema.fields.filter(function (f) {
-          return f.name === field
-        })[0]
-      }
+      var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
         schemaField && schemaField.type
           ? schemaField.type
@@ -3185,15 +3267,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             : typeof fieldVal === 'boolean'
               ? 'boolean'
               : 'string'
+      // A list or object value has no value editor: the modal opens comment-only
+      // with Propose disabled (Edit Modal Value Type Safety, S3b P0-2).
+      var valueIsContainer = fieldVal !== null && typeof fieldVal === 'object'
       return {
         title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 ' + field,
         fieldName: field,
         type: fieldType,
         value: fieldVal,
+        valueCommentOnly: valueIsContainer,
         options: schemaField ? schemaField.options : undefined,
+        target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
           schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
-            ? elements
+            ? referenceCandidates(schemaField)
             : undefined,
         draftField: field,
         original: fieldVal,
@@ -3241,6 +3328,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: target.history,
           isComment: !!target.isComment,
           commentOnly: !!target.commentOnly,
+          valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(elementsById[anchorData.elementId]),
           startTab: anchorData.info ? 'history' : 'edit',
         },
@@ -4023,6 +4111,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     STORE_VERSION: STORE_VERSION,
     createDraftStore: createDraftStore,
     createReviewController: createReviewController,
+    fieldDefOf: fieldDefOf,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
     isAlreadyApplied: isAlreadyApplied,
@@ -5573,12 +5662,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Resolves a field's declared type from the schema, for type-aware read
   // rendering (FieldValue). Falls back to '' (plain text).
-  function fieldTypeOf(schema, name) {
-    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
-    for (var i = 0; i < fields.length; i++) {
-      if (fields[i] && fields[i].name === name) return fields[i].type || fields[i].widget || ''
-    }
-    return ''
+  var fieldDefOf = Review.fieldDefOf
+
+  function fieldTypeOf(schema, concept, name) {
+    var def = fieldDefOf(schema, concept, name)
+    return def ? def.type || def.widget || '' : ''
   }
 
   // Map of element id -> incoming relations (every other element that points at
@@ -5655,7 +5743,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           fields.push({
             name: k,
             value: val,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             ref: target
               ? {
                   id: target.id || String(val),
@@ -6022,7 +6110,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           renderFieldDetailDialog(doc, {
             name: k,
             value: rawVal,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             elementName: element.name || element.id || '',
           })
         })
@@ -9404,6 +9492,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
+        schema: schema,
         onDraftsChanged: refreshDraftCounts,
       })
     }
@@ -9582,6 +9671,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
     boot: boot,
+    fieldDefOf: fieldDefOf,
   }
 
   return PUBLIC_API

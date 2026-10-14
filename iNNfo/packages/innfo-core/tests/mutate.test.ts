@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseKnowledge } from '../src/parser/index.js'
+import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
 import { applyMutation, rewriteFieldCitation } from '../src/mutate.js'
 import type { ElementNode } from '../src/types/index.js'
 
@@ -184,5 +184,98 @@ describe('Phase 4: Matrix Cell Mutation & Slug Target Resolution', () => {
 
     expect(element.fields.statement_source).toBe(citationRef)
     expect(element.fields.sources).toEqual([citationRef])
+  })
+})
+
+const MODEL_WITH_TYPED_FIELDS = `---
+spec_version: "V_0-3-0"
+level: 3
+title: "Typed Fields Model"
+---
+
+# NN Metrics
+## NN Metrics: Growth
+price:: 5
+active:: true
+sources:: [a.md, b.md]
+code:: "007"
+`
+
+describe('Field updates preserve the value type (S3b P0-3)', () => {
+  it('8.1.1 a number stays a number and serializes unquoted', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'price',
+      value: '7',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.price).toBe(7)
+    const serialized = serializeKnowledge(model)
+    expect(serialized).toContain('price:: 7')
+    expect(serialized).not.toContain('price:: "7"')
+  })
+
+  it('8.1.2 a boolean stays a boolean and serializes unquoted', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'active',
+      value: 'FALSE',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.active).toBe(false)
+    expect(serializeKnowledge(model)).toContain('active:: false')
+  })
+
+  it('8.1.3 an array stays an array', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'sources',
+      value: '[a.md, c.md]',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.sources).toEqual(['a.md', 'c.md'])
+  })
+
+  it('8.1.4 a numeric-looking string stays a string', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'code',
+      value: '008',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.code).toBe('008')
+    expect(serializeKnowledge(model)).toContain('code:: "008"')
+  })
+
+  it('8.1.5 a non-numeric replacement is stored as a string', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'price',
+      value: 'TBD',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.price).toBe('TBD')
+  })
+
+  it('8.1.6 a new field is stored as a string', () => {
+    const model = parseKnowledge(MODEL_WITH_TYPED_FIELDS)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Growth',
+      fieldName: 'budget',
+      value: '100',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Metrics')?.[0]
+    expect(el?.fields.budget).toBe('100')
   })
 })

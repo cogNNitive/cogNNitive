@@ -8,7 +8,6 @@
  *
  * Scan scope:
  *   - iNNfo/packages/<pkg>/src/**
- *   - iNNfo/apps/<app>/src/**
  *   - scripts/** (test files excluded)
  *   - skills/<name>/scripts/**
  *
@@ -48,8 +47,7 @@ const TOKENS = [
  * @type {Array<{ pattern: string, reason: string }>}
  */
 const ALLOWLIST = [
-  { pattern: 'iNNfo/packages/innfo-core/src/legacy/', reason: 'legacy quarantine module (ledger: quarantine/detector/language-map/schema-maps)' },
-  { pattern: 'skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs', reason: 'generated legacy-migrate bundle (ledger: migrate-bundle)' },
+  { pattern: 'iNNfo/packages/innfo-core/src/legacy/', reason: 'legacy quarantine module (ledger: quarantine/detector/layout-detect)' },
   { pattern: 'skills/nn-preflight/scripts/lib/legacy-detect.generated.cjs', reason: 'generated legacy-detect bundle (ledger: detect-bundle)' },
   { pattern: 'scripts/migrate-spec-urls.mjs', reason: 'historical one-time codemod (cogNNitive/iNNfo -> monorepo) that must match the pre-migration paths' },
   { pattern: 'iNNfo/packages/innfo-core/src/validator/content.ts', reason: 'V_0-3-0 gate: detects and rejects retired frontmatter keys / the retired `type:: model` keyword with an explicit migration message' },
@@ -65,7 +63,6 @@ const ALLOWLIST = [
 
 const SCOPE_RE = [
   /^iNNfo\/packages\/[^/]+\/src\//,
-  /^iNNfo\/apps\/[^/]+\/src\//,
   /^scripts\//,
   /^skills\/[^/]+\/scripts\//,
 ];

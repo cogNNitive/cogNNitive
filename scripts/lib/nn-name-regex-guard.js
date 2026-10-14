@@ -14,7 +14,7 @@
  *   - a local-time stamp builder (`getHours()`): stamps are UTC and come from the contract
  *
  * Scan scope: `.ts`, `.js`, `.vue`, `.mjs` runtime source under
- *   iNNfo/packages/<pkg>/src, iNNfo/apps/<app>/src, scripts, skills/<name>/scripts.
+ *   iNNfo/packages/<pkg>/src, scripts, skills/<name>/scripts.
  * Out of scope: generated files, tests, `legacy/**` quarantine, docs, openspec,
  * the CDN bundles, and frozen `_V_` files.
  *
@@ -47,16 +47,11 @@ const ALLOWLIST = [
   { pattern: 'scripts/lib/nn-name-regex-guard.js', reason: 'this guard carries the pattern table itself' },
   { pattern: 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },
   { pattern: 'iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts', reason: 'parses pinned published-spec URLs (spec identity, not workspace files)' },
-  { pattern: 'iNNfo/apps/innfo-editor/src/utils/version.ts', reason: 'reads the version out of a legacy `_V_` filename; replaced by frontmatter in slice S6 (task 6.3)' },
-  { pattern: 'iNNfo/apps/innfo-editor/src/composables/useBlueprintVersionNotice.ts', reason: 'reads the version out of a legacy `_V_` filename; replaced by frontmatter in slice S6 (task 6.3)' },
-  { pattern: 'iNNfo/apps/innfo-editor/src/shared/widgets/TimestampWidget.vue', reason: 'UI widget that displays a user-local date and time; not a file stamp' },
-  { pattern: 'iNNfo/apps/innfo-editor/src/services/WorkspacePersistenceService.ts', reason: 'local-time backup file prefix, not a write-once family stamp; revisited with the backup rework' },
   { pattern: 'skills/nn-upgrade/scripts/backup-workspace.js', reason: 'local-time backup folder name, not a write-once family stamp; revisited with the backup rework' },
 ];
 
 const SCOPE_RE = [
   /^iNNfo\/packages\/[^/]+\/src\//,
-  /^iNNfo\/apps\/[^/]+\/src\//,
   /^scripts\//,
   /^skills\/[^/]+\/scripts\//,
 ];

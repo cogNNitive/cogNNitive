@@ -1471,14 +1471,27 @@
     return input
   }
 
+  // A long or multi-line string has no single-line editor: it is edited in a
+  // textarea and proposed verbatim (Edit Modal Value Type Safety, S3b P0-2).
   function FieldStringWidget(value, opts) {
+    var str = value == null ? '' : String(value)
+    if (str.indexOf('\n') !== -1 || str.length > 70) {
+      var doc = resolveDoc(opts)
+      var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+      ta.setAttribute('data-innfo-widget', 'string')
+      ta.setAttribute('rows', '4')
+      ta.value = str
+      return ta
+    }
     var inp = FieldInput('text', value, opts)
     inp.setAttribute('data-innfo-widget', 'string')
     return inp
   }
 
   function FieldNumberWidget(value, opts) {
-    return FieldInput('number', value, opts)
+    var inp = FieldInput('number', value, opts)
+    inp.setAttribute('data-innfo-widget', 'number')
+    return inp
   }
 
   function FieldBooleanWidget(value, opts) {
@@ -1496,17 +1509,37 @@
     return label
   }
 
+  // A select never loses the value it edits: it always carries a blank option,
+  // and when the current value is not among the declared options one extra
+  // option carrying it is added (marked) and selected, so an unchanged save
+  // proposes the original value (Edit Modal Value Type Safety, S3b P0-2).
   function FieldSelectWidget(value, options, opts) {
     var doc = resolveDoc(opts)
     var select = makeEl(doc, 'select', 'innfo-edit-select')
     select.setAttribute('data-innfo-widget', 'select')
     var list = Array.isArray(options) ? options : []
+    var current = value == null ? '' : String(value)
+    var blank = makeEl(doc, 'option', null, '')
+    blank.value = ''
+    if (current === '') blank.selected = true
+    select.appendChild(blank)
+    var found = false
     list.forEach(function (opt) {
       var op = makeEl(doc, 'option', null, opt)
-      op.value = opt
-      if (String(opt) === String(value)) op.selected = true
+      op.value = String(opt)
+      if (String(opt) === current) {
+        op.selected = true
+        found = true
+      }
       select.appendChild(op)
     })
+    if (!found && current !== '') {
+      var extra = makeEl(doc, 'option', null, current)
+      extra.value = current
+      extra.selected = true
+      extra.setAttribute('data-not-in-options', 'true')
+      select.appendChild(extra)
+    }
     return select
   }
 
@@ -1606,9 +1639,12 @@
     // Mode Selector: Propose Value vs Comment (D15)
     var modeWrap = makeEl(doc, 'div', 'innfo-edit-mode-selector')
     // commentOnly: there is no value to propose, so the mode is fixed and the
-    // toggle is not offered.
+    // toggle is not offered. A list/object value keeps the toggle visible but
+    // disables Propose: there is no list editor, only a comment (S3b P0-2).
     var commentOnly = Boolean(data.commentOnly)
-    var isComment = commentOnly || Boolean(data.isComment)
+    var valueIsContainer =
+      Boolean(data.valueCommentOnly) || (data.value !== null && typeof data.value === 'object')
+    var isComment = commentOnly || valueIsContainer || Boolean(data.isComment)
     var btnPropose = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (!isComment ? ' active' : ''), 'Propose value')
     var btnComment = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (isComment ? ' active' : ''), 'Comment')
     btnPropose.setAttribute('type', 'button')
@@ -1616,6 +1652,13 @@
     modeWrap.appendChild(btnPropose)
     modeWrap.appendChild(btnComment)
     if (!commentOnly) panelEdit.appendChild(modeWrap)
+    if (valueIsContainer) {
+      btnPropose.disabled = true
+      btnPropose.setAttribute('aria-disabled', 'true')
+      panelEdit.appendChild(
+        makeEl(doc, 'p', 'innfo-edit-note', 'List and object values are proposed as a comment.'),
+      )
+    }
 
     var formPropose = makeEl(doc, 'div', 'innfo-edit-form-propose')
     formPropose.style.display = isComment ? 'none' : 'block'
@@ -1630,6 +1673,7 @@
     formComment.appendChild(commentTa)
 
     btnPropose.addEventListener('click', function () {
+      if (valueIsContainer) return
       isComment = false
       btnPropose.className = 'innfo-edit-mode-btn active'
       btnComment.className = 'innfo-edit-mode-btn'
@@ -1651,7 +1695,11 @@
     var fieldLabel = makeEl(doc, 'label', 'innfo-edit-field-label', data.fieldName ? data.fieldName : 'Value')
     fieldsContainer.appendChild(fieldLabel)
 
-    if (fieldType === 'number') {
+    if (valueIsContainer) {
+      // No value editor: a list or object is proposed as a comment only, never
+      // String()-coerced into a text control (S3b P0-2).
+      widgetRef = null
+    } else if (fieldType === 'number') {
       widgetRef = FieldNumberWidget(data.value, opts)
     } else if (fieldType === 'boolean') {
       widgetRef = FieldBooleanWidget(data.value, opts)
@@ -1666,7 +1714,7 @@
     } else {
       widgetRef = FieldStringWidget(data.value, opts)
     }
-    fieldsContainer.appendChild(widgetRef)
+    if (widgetRef) fieldsContainer.appendChild(widgetRef)
     formPropose.appendChild(fieldsContainer)
 
     panelEdit.appendChild(formPropose)
@@ -1763,7 +1811,16 @@
         comment: commentTa.value,
       }
       if (!isComment) {
-        if (fieldType === 'boolean') {
+        if (fieldType === 'number') {
+          var raw = widgetRef ? widgetRef.value : ''
+          var num = Number(raw)
+          if (String(raw).trim() === '' || !isFinite(num)) {
+            saveError.textContent = 'Enter a valid number.'
+            saveError.style.display = 'block'
+            return
+          }
+          result.proposed = num
+        } else if (fieldType === 'boolean') {
           var cb = widgetRef.querySelector('input[type="checkbox"]')
           result.proposed = cb ? cb.checked : false
         } else if (fieldType === 'multiselect') {

@@ -59,8 +59,8 @@ spawned. Tests MUST NOT open a browser.
 
 ### Requirement: Console regeneration after apply
 
-After `apply_change` returns with status `applied` or `partially_applied` (including an
-idempotent replay), the tool handler MUST regenerate the domain console after the apply
+The `apply_change` handler MUST regenerate the domain console when it returns status `applied`
+or `partially_applied` (including an idempotent replay), after the apply
 committed and outside the `changes/.lock`, and MUST report the outcome in a separate
 `console` field (`status` one of `written`, `unchanged`, `failed`; `path`; `opened`;
 `error` when failed). A regeneration failure MUST NOT revert, alter or fail the apply:

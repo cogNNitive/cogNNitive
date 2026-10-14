@@ -228,6 +228,7 @@ title: "Strategy"
 ## NN Work: Vision
 statement:: Accelerate green energy
 target_year:: 2030
+price:: 5
 statement_source:: sources/interview.md@## Vision
 target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
 sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## Timeline]
@@ -510,6 +511,19 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
 
     // Model version not re-bumped (still V_0-1-1)
     expect(modelAfterFirst).toContain('knowledge_version: "V_0-1-1"')
+  })
+
+  it('Direct apply_change update_field preserves a numeric field type (price:: 7, not "7")', async () => {
+    const res = await applyChange(csRoot, 'strategy', 'update_field', {
+      elementName: 'Vision',
+      fieldName: 'price',
+      value: 7,
+    })
+    expect(res.success).toBe(true)
+
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('price:: 7')
+    expect(live).not.toContain('price:: "7"')
   })
 
   it('Bare Operation Synthesis: calling apply_change with legacy bare args synthesizes, seals, and executes changeset', async () => {

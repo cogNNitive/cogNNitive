@@ -30,7 +30,19 @@ create models.
 - D14 remainder: the single `domaiNN_console.html` embeds every model, precomputed
   history and the source index; heavy sources are linked; the size budget gates.
 - D17: "console" is the recorded user-facing term.
-- S3b ports, after re-planning.
+- S3b ports, re-planned 2026-10-14 (maintainer-confirmed scope P0 + P1, `design.md` "S3b"):
+  - P0: declared field types/options/target_concepts reach the console, keyed by (concept,
+    field); edit-modal type safety; engine `update_field` type preservation (+ newline
+    round-trip); element tags in the payload with an AND (`tag:`) / OR (`tag-any:`) tag facet.
+  - P1: select view/edit; safe markdown view + textarea edit; tag row; reference edit filtered
+    by `target_concepts`; knowledge pill click-through; declared video/audio/image rendering;
+    "open original file" from citations; matrix-cell editor constrained by `widget`/`values`
+    (after a spike).
+
+### Out of Scope (S3b)
+- Every audit row classified *drop*: WYSIWYG markdown, `markdown_file` inline content, the
+  non-spec widget types (number, date, color, rating, mermaid, …), tag authoring UI, file
+  preview/code/lineage modes, model creation, the validation report, the workspace graph.
 
 ### Out of Scope
 - The draft store, `id = slug`, the Changes view, Lineage vocabulary (#1C); review state
@@ -42,10 +54,13 @@ create models.
 - `console-architecture`: new requirement — the console covers the editor's used feature
   set, decided by a committed audit; `Level 3 Model Custom Consoles` gains the D14 embeds.
 - `canonical-vocabulary`: new requirement — "console" is the user-facing term.
-- (S3b, after the audit) the capabilities the port rows touch. The original proposal
-  listed `console-ui-kit`, `console-tabbed-views` and `review-workflow` without deltas;
-  `console-tabbed-views` does not exist and the others get deltas only if the audit
-  requires them.
+- S3b (from the audit): `console-payload-builder` (declared fields in the schema slot, element
+  tags), `console-ui-kit` (MODIFIED type-aware rendering; modal type safety, select, markdown,
+  tag row, declared media), `innfo-console-runtime` ((concept, field) lookup, tag facet,
+  knowledge click-through, open original file), `console-review-mode` (reference candidates,
+  constrained matrix cells), `console-export-cli` (links relative to the console file),
+  `changeset-apply-engine` (field updates preserve the value type). `review-workflow` needs
+  no delta.
 
 ## Approach
 
@@ -67,7 +82,9 @@ on S3 being complete (audit + ports applied). S6 does not depend on S3.
 | `openspec/changes/2026-10-13-s3-domain-console-and-edit-modal/audit.md` | New | the gate artifact |
 | `scripts/export-console.mjs`, `scripts/lib/console-views.mjs` | Modified (if the D14 check fails) | embeds, size budget |
 | `iNNfo/specs/vocabulary.json`, `docs/innfo/documentation/vocabulary.md` | Modified | D17 |
-| `iNNfo/specs/bluepriNNts/console/*` | Modified (S3b) | ported widgets |
+| `iNNfo/specs/bluepriNNts/console/*` | Modified (S3b) | ported widgets, (concept, field) lookup, tag facet, bundle + mirror rebuilds |
+| `iNNfo/packages/innfo-core/src/console/{slot,payload-builder}.ts` | Modified (S3b) | flat declared fields, element tags |
+| `iNNfo/packages/innfo-core/src/mutate.ts`, `src/parser/sections.ts` | Modified (S3b) | type-preserving `update_field`, newline round-trip (`innfo-mcp` release) |
 
 ## Risks
 
@@ -85,7 +102,12 @@ S3a only adds a document. S3b ports are additive to the console; revert per comm
 
 - [ ] `audit.md` is committed, covers every editor route/component and records every
       decision listed in the design.
-- [ ] The S3b deltas and tasks are written from the audit before any port is applied.
+- [x] The S3b deltas and tasks are written from the audit before any port is applied (2026-10-14).
+- [ ] An exported real domaiNN renders declared select/markdown/media fields and carries element
+      tags; `tag:` filters with AND and exact match, `tag-any:` with OR.
+- [ ] A console edit never changes a value's type, and an applied `update_field` keeps
+      `price:: 7` unquoted and multi-line strings intact.
+- [ ] Every P1 port is reachable in `domaiNN_console.html`; markdown rendering passes the XSS tests.
 - [ ] `domaiNN_console.html` embeds every model, history and the source index within the size budget.
 - [ ] "console" is the recorded user-facing term.
 - [ ] `node scripts/verify.js` green.

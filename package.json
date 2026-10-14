@@ -4,8 +4,7 @@
   "private": true,
   "license": "MIT",
   "workspaces": [
-    "iNNfo/packages/*",
-    "iNNfo/apps/*"
+    "iNNfo/packages/*"
   ],
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
@@ -21,9 +20,9 @@
     "lint:fix": "eslint iNNfo/ scripts/ --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run typecheck && npm --workspace=@cognnitive/innfo-editor run typecheck",
-    "test": "npm --workspace=@cognnitive/innfo-core test && npm --workspace=@cognnitive/innfo-mcp test && npm --workspace=@cognnitive/innfo-editor test",
-    "test:coverage": "npm --workspace=@cognnitive/innfo-core run test:coverage && npm --workspace=@cognnitive/innfo-mcp run test:coverage && npm --workspace=@cognnitive/innfo-editor run test:coverage",
+    "typecheck": "npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run typecheck",
+    "test": "npm --workspace=@cognnitive/innfo-core test && npm --workspace=@cognnitive/innfo-mcp test",
+    "test:coverage": "npm --workspace=@cognnitive/innfo-core run test:coverage && npm --workspace=@cognnitive/innfo-mcp run test:coverage",
     "verify": "npm run typecheck && npm test",
     "test:ui": "python test/ui/testlab_smoke.py --lab-root test/fixtures/testlab --out-dir temp/ui-smoke",
     "check:integrity": "node scripts/check-integrity.js",
@@ -42,6 +41,8 @@
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-vue": "^9.33.0",
+    "happy-dom": "^20.8.9",
+    "jsdom": "^30.1.1",
     "prettier": "^3.9.4",
     "sharp": "^0.35.4",
     "typescript": "^5.9.3",

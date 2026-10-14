@@ -8,6 +8,7 @@ import {
   MATRIX_DEFINITION,
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
+import { parsePropertyValue } from './parser/sections.js'
 import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
 import { levenshteinDistance, slugifyHeading, splitSourceFieldValue } from './sourceRef.js'
 
@@ -436,6 +437,40 @@ function matchesElement(e: ElementNode, target: string): boolean {
   return false
 }
 
+/**
+ * S3b P0-3 (`changeset-apply-engine`: Field updates preserve the value type).
+ *
+ * `updateField` receives the incoming value as a string — a changeset `to::`
+ * (`changeset/parser.ts`) and the MCP `apply_change` caller both stringify it —
+ * while the field already holds a typed value. Re-apply that type so `to:: 7`
+ * on `price:: 5` stays the number 7 and serializes `price:: 7`, never
+ * `price:: "7"`. A field with no existing value, or an incoming string the
+ * existing shape cannot express, keeps the string received.
+ */
+function coerceFieldValue(existing: unknown, incoming: unknown): unknown {
+  if (typeof incoming !== 'string') return incoming
+  if (typeof existing === 'number') {
+    const trimmed = incoming.trim()
+    if (trimmed !== '') {
+      const asNumber = Number(trimmed)
+      if (Number.isFinite(asNumber)) return asNumber
+    }
+    return incoming
+  }
+  if (typeof existing === 'boolean') {
+    const lower = incoming.trim().toLowerCase()
+    if (lower === 'true') return true
+    if (lower === 'false') return false
+    return incoming
+  }
+  if (Array.isArray(existing)) {
+    const parsed = parsePropertyValue(incoming)
+    if (Array.isArray(parsed)) return parsed
+    return incoming
+  }
+  return incoming
+}
+
 /** Edits a single field on an already-existing element (overwrite semantics). */
 function updateField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   let elementName = (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
@@ -504,7 +539,7 @@ function updateField(model: ParsedKnowledge, args: Record<string, unknown>): Mut
     }
   }
 
-  foundElement.fields[fieldName] = val
+  foundElement.fields[fieldName] = coerceFieldValue(foundElement.fields[fieldName], val)
   if (foundElement.rawFields && fieldName in foundElement.rawFields) {
     delete foundElement.rawFields[fieldName]
   }

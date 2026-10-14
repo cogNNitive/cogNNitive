@@ -16,7 +16,7 @@ const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
 async function runCli(args, opts = {}) {
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
       cwd: opts.cwd || process.cwd(),
       env: { ...process.env, ...opts.env },
     })
@@ -677,6 +677,93 @@ scenarioMonths:: 12
       // Never written into a model.
       const modelFile = await readFile(join(tempDir, 'models', 'business_V_1-0-0_NN.md'), 'utf-8')
       assert.doesNotMatch(modelFile, /replaced_sources/)
+    })
+  })
+
+  describe('D14 remainder: every model, history, source index, embed threshold, size budget', () => {
+    const domainFile = () => join(tempDir, 'domaiNN_console.html')
+    const modelSlot = async () =>
+      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+
+    it('embeds every model of the domaiNN in the domain payload', async () => {
+      await writeFile(
+        join(tempDir, 'models', 'second_V_1-0-0_NN.md'),
+        `---\ntitle: "Second Model"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Widget\n## NN Widget: Gauge\n  slug:: gauge\n\n  A widget.\n`,
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const slot = await modelSlot()
+      assert.deepEqual(
+        slot.meta.models.map((m) => m.filePath).sort(),
+        ['business_V_1-0-0_NN.md', 'second_V_1-0-0_NN.md'],
+        'every model is listed in meta.models',
+      )
+      const concepts = new Set(slot.elements.map((el) => el.concept))
+      assert.ok(concepts.has('Stakeholders'), 'first model elements are embedded')
+      assert.ok(concepts.has('Widget'), 'second model elements are embedded')
+    })
+
+    it('embeds the precomputed per-element history from the domain changesets', async () => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'changes', 'c1_changes_NN.md'),
+        `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: applied\ntitle: "C"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: business@enterprise\nnotes:: "a note"\nauthor:: OpenCode\n`,
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const slot = await modelSlot()
+      const el = slot.elements.find((e) => e.slug === 'enterprise')
+      assert.ok(el, 'the enterprise element is embedded')
+      assert.ok(Array.isArray(el.history) && el.history.length >= 1, 'history is embedded on the element')
+      assert.equal(el.history[0].op, 'comment')
+      assert.equal(el.history[0].notes, 'a note')
+    })
+
+    it('embeds the per-element source index and the model file-level source', async () => {
+      await mkdir(join(tempDir, 'sources'), { recursive: true })
+      await writeFile(join(tempDir, 'sources', 'brief.md'), '# Brief\n\n## Overview\nEnterprise context\n', 'utf8')
+      await writeFile(
+        join(tempDir, 'models', 'cited_V_1-0-0_NN.md'),
+        `---\ntitle: "Cited"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Concept\n## NN Concept: Enterprise Plan\n  slug:: enterprise-plan\n  sources:: "sources/brief.md#overview"\n\n  Details.\n`,
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const slot = await modelSlot()
+      const el = slot.elements.find((e) => e.slug === 'enterprise-plan')
+      assert.ok(el && el.citations && Array.isArray(el.citations.sources), 'source index embedded on the element')
+      assert.equal(el.citations.sources[0].path, 'sources/brief.md')
+      assert.ok(el.citations.sources[0].excerpt.includes('Enterprise context'))
+      const cited = slot.meta.models.find((m) => m.filePath === 'cited_V_1-0-0_NN.md')
+      assert.deepEqual(cited.sources, ['kNNowledge/cited_V_1-0-0_NN.md'], 'the model file-level source is embedded')
+    })
+
+    it('links a source above the excerpt threshold instead of embedding its full body', async () => {
+      await mkdir(join(tempDir, 'sources'), { recursive: true })
+      const longBody = 'A'.repeat(1200)
+      await writeFile(join(tempDir, 'sources', 'long.md'), `# Long\n\n## Section\n${longBody}\n`, 'utf8')
+      await writeFile(
+        join(tempDir, 'models', 'longref_V_1-0-0_NN.md'),
+        `---\ntitle: "LongRef"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Concept\n## NN Concept: Big\n  slug:: big\n  sources:: "sources/long.md#section"\n`,
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const html = await readFile(domainFile(), 'utf-8')
+      const slot = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const cite = slot.elements.find((e) => e.slug === 'big').citations.sources[0]
+      assert.equal(cite.truncated, true, 'a heavy source is truncated')
+      assert.equal(cite.excerpt.length, 500, 'the excerpt is capped, not the whole body')
+      assert.equal(html.includes(longBody), false, 'the full source body is never embedded')
+      assert.ok(html.includes('A'.repeat(400)), 'only the capped excerpt is embedded')
+    })
+
+    it('fails an oversized export through the size budget and writes no artifact', async () => {
+      const viewsDir = join(tempDir, 'consoles', 'views')
+      await mkdir(viewsDir, { recursive: true })
+      await writeFile(join(viewsDir, 'huge.js'), `/* ${'x'.repeat(16_000_000)} */\n`, 'utf-8')
+      const res = await runCli([tempDir, '--domain'])
+      assert.notEqual(res.code, 0, 'an oversized export must fail')
+      assert.match(res.stderr, /larger than 15000000 B/)
+      assert.equal(existsSync(domainFile()), false, 'no artifact is written on budget failure')
     })
   })
 })

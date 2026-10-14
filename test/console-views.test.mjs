@@ -50,7 +50,7 @@ describe('Changes view (--domain)', () => {
     await mkdir(join(root, 'changes'), { recursive: true })
     await writeFile(join(root, 'models', 'm_V_1-0-0_NN.md'), MODEL, 'utf-8')
     await writeFile(join(root, 'changes', 'a_reviewer_1_changes_NN.md'), CHANGESET, 'utf-8')
-    await execFileAsync(process.execPath, [scriptPath, root, '--domain'], {
+    await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'], {
       maxBuffer: 64 * 1024 * 1024,
     })
   })

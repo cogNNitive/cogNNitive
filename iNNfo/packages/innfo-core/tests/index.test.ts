@@ -1004,7 +1004,7 @@ describe('validateReferences (R-IE-04)', () => {
     expect(result.length).toBe(0)
   })
 
-  it('resolves a matrix reference that differs only by dash character, as a WARNING not an ERROR (Fix 3)', () => {
+  it('treats a matrix reference that differs only by dash character as an unresolved dangling reference (R-IE-04)', () => {
     const parsed = parseKnowledge([
       '---',
       'spec_version: "V_0-2-0"',
@@ -1038,10 +1038,10 @@ describe('validateReferences (R-IE-04)', () => {
     ].join('\n'))
 
     const result = validateReferences(parsed)
-    expect(result.some((d) => d.severity === 'error')).toBe(false)
-    expect(result.some((d) => d.severity === 'warning' && d.message.includes('separator character differs'))).toBe(
-      true,
-    )
+    // The separator-normalized fallback is retired (S4): a reference that differs
+    // only by dash character no longer resolves and is a dangling error.
+    expect(result.some((d) => d.message.includes('separator character differs'))).toBe(false)
+    expect(result.some((d) => d.severity === 'error' && d.message.includes('Dangling reference'))).toBe(true)
   })
 })
 

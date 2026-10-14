@@ -15,7 +15,7 @@ const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
 async function runCli(args, env) {
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
       maxBuffer: 64 * 1024 * 1024,
       env: env ? { ...process.env, ...env } : process.env,
     })

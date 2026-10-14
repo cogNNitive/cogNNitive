@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import {
   parseKnowledge,
   validateReferences,
@@ -150,11 +148,14 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     const fieldDiags = validateElementFieldReferences(model, templateConcepts)
     const ambiguousField = fieldDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
     expect(ambiguousField).toBeDefined()
+    expect(ambiguousField!.severity).toBe('error')
     expect(ambiguousField!.message).toContain('Status')
 
+    // The matrix row is disambiguated by the matrix's declared source concept,
+    // so no ambiguity diagnostic is emitted for the header itself.
     const matrixDiags = validateReferences(model)
     const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
-    expect(ambiguousMatrix).toBeDefined()
+    expect(ambiguousMatrix).toBeUndefined()
   })
 
   it('5.1.3 Two elements in the same model with identical slugs emit DUPLICATE_SLUG error', () => {
@@ -239,11 +240,155 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(unfrozen!.severity).toBe('warning')
   })
 
-  it('5.1.5 Legacy fallback path contains comment marker legacy:lineage-reference-name-fallback', () => {
-    const refSource = readFileSync(
-      join(__dirname, '../src/validator/references.ts'),
-      'utf-8',
-    )
-    expect(refSource).toContain('legacy:' + 'stable-element-identity/lineage-reference-name-fallback')
+  it('5.1.5 References resolve by exact slug then exact display name; no separator-normalized fallback', () => {
+    const elements = new ElementsMap()
+    elements.set('Widgets', [
+      {
+        type: 'Widgets',
+        name: 'Element - 2A',
+        slug: 'element-2a',
+        slugExplicit: true,
+        description: '',
+        fields: {},
+        markers: {},
+      },
+      {
+        type: 'Widgets',
+        name: 'Holder',
+        slug: 'holder',
+        slugExplicit: true,
+        description: '',
+        fields: {
+          bySlug: '[[element-2a]]',
+          byName: '[[Element - 2A]]',
+          byUnderscore: '[[Element_2A]]',
+          byDashVariant: '[[Element – 2A]]',
+        },
+        markers: {},
+      },
+    ])
+
+    const model: ParsedKnowledge = {
+      frontmatter: {
+        spec_version: 'V_0-3-0',
+        spec_url: '',
+        level: 3,
+        knowledge_version: 'V_0-1-0',
+      } as ParsedKnowledge['frontmatter'],
+      taxonomy: [],
+      elements,
+      matrices: [
+        {
+          name: 'widget-matrix',
+          source: 'Widgets',
+          target: 'Widgets',
+          params: '',
+          cells: [{ row: 'Element – 2A', col: 'Element_2A', value: 'x' }],
+        },
+      ],
+      nodeMarkers: {},
+      rawContent: '',
+    }
+
+    const templateConcepts: Concept[] = [
+      {
+        name: 'Widgets',
+        type: 'list',
+        fields: [
+          { name: 'bySlug', type: 'reference' },
+          { name: 'byName', type: 'reference' },
+          { name: 'byUnderscore', type: 'reference' },
+          { name: 'byDashVariant', type: 'reference' },
+        ],
+      },
+    ]
+
+    const fieldDiags = validateElementFieldReferences(model, templateConcepts)
+    const fieldErrors = (name: string): boolean =>
+      fieldDiags.some((d) => d.severity === 'error' && d.path.endsWith(`.fields.${name}`))
+
+    // Exact slug and exact display name both resolve.
+    expect(fieldErrors('bySlug')).toBe(false)
+    expect(fieldErrors('byName')).toBe(false)
+    // Separator variants (underscore, typographic dash) do NOT resolve.
+    expect(fieldErrors('byUnderscore')).toBe(true)
+    expect(fieldErrors('byDashVariant')).toBe(true)
+
+    // Matrix headers follow the same rule: both cells dangle.
+    const matrixErrors = validateReferences(model).filter((d) => d.severity === 'error')
+    expect(matrixErrors).toHaveLength(2)
+  })
+
+  it('5.1.6 Two elements named Total Revenue make [[Total Revenue]] an AMBIGUOUS_ELEMENT_NAME error', () => {
+    const elements = new ElementsMap()
+    elements.set('Revenue', [
+      {
+        type: 'Revenue',
+        name: 'Total Revenue',
+        slug: 'revenue-total',
+        slugExplicit: true,
+        description: '',
+        fields: {},
+        markers: {},
+      },
+    ])
+    elements.set('Cost', [
+      {
+        type: 'Cost',
+        name: 'Total Revenue',
+        slug: 'cost-total',
+        slugExplicit: true,
+        description: '',
+        fields: {},
+        markers: {},
+      },
+      {
+        type: 'Cost',
+        name: 'Holder',
+        slug: 'cost-holder',
+        slugExplicit: true,
+        description: '',
+        fields: { link: '[[Total Revenue]]' },
+        markers: {},
+      },
+    ])
+
+    const model: ParsedKnowledge = {
+      frontmatter: {
+        spec_version: 'V_0-3-0',
+        spec_url: '',
+        level: 3,
+        knowledge_version: 'V_0-1-0',
+      } as ParsedKnowledge['frontmatter'],
+      taxonomy: [],
+      elements,
+      matrices: [
+        {
+          name: 'total-matrix',
+          source: 'Revenue',
+          target: 'Cost',
+          params: '',
+          cells: [{ row: 'Total Revenue', col: 'Holder', value: 'x' }],
+        },
+      ],
+      nodeMarkers: {},
+      rawContent: '',
+    }
+
+    const templateConcepts: Concept[] = [
+      { name: 'Revenue', type: 'list', fields: [] },
+      { name: 'Cost', type: 'list', fields: [{ name: 'link', type: 'reference' }] },
+    ]
+
+    const fieldDiags = validateElementFieldReferences(model, templateConcepts)
+    const ambiguousField = fieldDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
+    expect(ambiguousField).toBeDefined()
+    expect(ambiguousField!.severity).toBe('error')
+
+    // The matrix row is disambiguated by the matrix's declared source concept,
+    // so no ambiguity diagnostic is emitted for the header itself.
+    const matrixDiags = validateReferences(model)
+    const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
+    expect(ambiguousMatrix).toBeUndefined()
   })
 })

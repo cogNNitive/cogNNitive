@@ -195,7 +195,7 @@ export function validateFormatContent(
       category: 'frontmatter',
       severity: 'error',
       passed: false,
-      message: 'Legacy frontmatter key "model_version" detected. Expected "knowledge_version". Run nn-upgrade to migrate.',
+      message: 'Legacy frontmatter key "model_version" detected. Expected "knowledge_version". Create a new domain and import this one as a Source (nn-upgrade --import-as-source).',
     })
   } else if (fm.level === 3) {
     const versionDeclared = isV030 ? hasKnowledgeVersion : (hasKnowledgeVersion || hasModelVersion)

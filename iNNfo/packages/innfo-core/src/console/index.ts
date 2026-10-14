@@ -5,6 +5,7 @@
 export * from './citations.js'
 export * from './element-history.js'
 export * from './fs-source-resolver.js'
+export * from './output-path.js'
 export * from './payload-builder.js'
 export * from './schema-resolution.js'
 export * from './slot.js'
