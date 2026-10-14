@@ -13,9 +13,19 @@ export interface ConsoleSchemaConcept {
   [key: string]: any
 }
 
+export interface ConsoleFieldDef {
+  concept: string
+  name: string
+  type?: string
+  options?: string[]
+  target_concepts?: string[]
+  target_blueprint?: string
+  [key: string]: any
+}
+
 export interface ConsoleSchemaSlot {
   concepts: ConsoleSchemaConcept[]
-  fields: any[]
+  fields: ConsoleFieldDef[]
   markers: any[]
   matrices: any[]
   /** Blueprint procedure catalog (parent + includes); `usage` reads first. */
@@ -36,6 +46,18 @@ export function serializeConsoleSlot(value: unknown): string {
   return JSON.stringify(value, null, 2).replace(/</g, '\\u003c')
 }
 
+/** Flattens `concept.fields` into `{concept, name, type, options?, target_concepts?, ...}` entries. */
+function flattenConceptFields(concepts: ConsoleSchemaConcept[]): ConsoleFieldDef[] {
+  const out: ConsoleFieldDef[] = []
+  for (const concept of concepts) {
+    if (!concept || !concept.name || !Array.isArray(concept.fields)) continue
+    for (const field of concept.fields) {
+      if (field && field.name) out.push({ concept: concept.name, ...field })
+    }
+  }
+  return out
+}
+
 /**
  * Builds the canonical array-based schema slot for console payloads.
  */
@@ -52,11 +74,9 @@ export function buildConsoleSchemaSlot(
         ? Object.values(schema.concepts)
         : []
 
-    const fields = Array.isArray(schema.fields)
-      ? schema.fields
-      : typeof schema.fields === 'object' && schema.fields !== null
-        ? Object.values(schema.fields)
-        : []
+    // Field definitions live on `concept.fields` (extractBlueprintSchema has no
+    // top-level `fields`); flatten them into one entry per (concept, field).
+    const fields = flattenConceptFields(concepts as ConsoleSchemaConcept[])
 
     const markers = Array.isArray(schema.markers)
       ? schema.markers

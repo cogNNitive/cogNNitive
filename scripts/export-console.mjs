@@ -685,7 +685,8 @@ async function main() {
   const allMatrices = []
   const allConcepts = []
   const seenConcepts = new Set()
-  const allFields = {}
+  const allFields = []
+  const fieldIndex = new Map()
   const allProcedures = []
   const seenProcedureIds = new Set()
   const modelSummaries = []
@@ -792,9 +793,20 @@ async function main() {
           }
         }
       }
-      if (payload.schema.fields && typeof payload.schema.fields === 'object') {
-        for (const [k, v] of Object.entries(payload.schema.fields)) {
-          if (k && v && !allFields[k]) allFields[k] = v
+      // Declared field definitions: one entry per (concept, name), first wins like
+      // concepts; a conflicting redeclaration by a later blueprint is warned about.
+      for (const f of Array.isArray(payload.schema.fields) ? payload.schema.fields : []) {
+        if (!f || !f.concept || !f.name) continue
+        const key = `${String(f.concept).toLowerCase()} ${String(f.name).toLowerCase()}`
+        const kept = fieldIndex.get(key)
+        if (!kept) {
+          fieldIndex.set(key, f)
+          allFields.push(f)
+        } else if (JSON.stringify(kept) !== JSON.stringify(f)) {
+          process.stderr.write(
+            `WARNING: [export-console] Field ${f.concept}.${f.name} is declared differently by more than one bluepriNNt; keeping the first declaration
+`,
+          )
         }
       }
     }

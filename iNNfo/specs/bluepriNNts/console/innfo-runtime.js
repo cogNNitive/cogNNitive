@@ -1536,12 +1536,11 @@
 
   // Resolves a field's declared type from the schema, for type-aware read
   // rendering (FieldValue). Falls back to '' (plain text).
-  function fieldTypeOf(schema, name) {
-    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
-    for (var i = 0; i < fields.length; i++) {
-      if (fields[i] && fields[i].name === name) return fields[i].type || fields[i].widget || ''
-    }
-    return ''
+  var fieldDefOf = Review.fieldDefOf
+
+  function fieldTypeOf(schema, concept, name) {
+    var def = fieldDefOf(schema, concept, name)
+    return def ? def.type || def.widget || '' : ''
   }
 
   // Map of element id -> incoming relations (every other element that points at
@@ -1618,7 +1617,7 @@
           fields.push({
             name: k,
             value: val,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             ref: target
               ? {
                   id: target.id || String(val),
@@ -1985,7 +1984,7 @@
           renderFieldDetailDialog(doc, {
             name: k,
             value: rawVal,
-            type: fieldTypeOf(schema, k),
+            type: fieldTypeOf(schema, element.concept, k),
             elementName: element.name || element.id || '',
           })
         })
@@ -5367,6 +5366,7 @@
         changes: Array.isArray(model.changes) ? model.changes : [],
         needs: config.needs,
         store: state.store,
+        schema: schema,
         onDraftsChanged: refreshDraftCounts,
       })
     }
@@ -5545,6 +5545,7 @@
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
     boot: boot,
+    fieldDefOf: fieldDefOf,
   }
 
   return PUBLIC_API

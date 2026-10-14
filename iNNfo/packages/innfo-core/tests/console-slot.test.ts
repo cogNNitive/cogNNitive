@@ -69,4 +69,35 @@ describe('Console Slot Serializer & Schema Slot Builder', () => {
     expect(hash).toBe('04efb1f8df1e4e1cd9adab176563424fecda1db3723a8282220da9b31f811297')
     expect(hash).toHaveLength(64)
   })
+
+  it('buildConsoleSchemaSlot flattens concept field definitions into a flat fields array', () => {
+    const schema = {
+      concepts: [
+        {
+          name: 'Task',
+          fields: [
+            { name: 'status', type: 'select', options: ['todo', 'done'] },
+            { name: 'depends_on', type: 'reference', target_concepts: ['Task', 'Milestone'] },
+          ],
+        },
+        { name: 'Milestone', fields: [{ name: 'status', type: 'string' }] },
+        { name: 'Bare' },
+      ],
+      markers: [],
+      matrices: [],
+      taxonomy: [],
+    }
+
+    const slot = buildConsoleSchemaSlot(schema as any)
+    expect(slot.fields).toEqual([
+      { concept: 'Task', name: 'status', type: 'select', options: ['todo', 'done'] },
+      {
+        concept: 'Task',
+        name: 'depends_on',
+        type: 'reference',
+        target_concepts: ['Task', 'Milestone'],
+      },
+      { concept: 'Milestone', name: 'status', type: 'string' },
+    ])
+  })
 })

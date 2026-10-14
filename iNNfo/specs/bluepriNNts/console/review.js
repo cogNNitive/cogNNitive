@@ -21,6 +21,25 @@
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
+  // Declared definition of a field, keyed by (concept, field) so two concepts that
+  // share a field name keep their own type/options. Case-insensitive on both parts.
+  function fieldDefOf(schema, concept, field) {
+    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    var c = String(concept == null ? '' : concept).toLowerCase()
+    var n = String(field == null ? '' : field).toLowerCase()
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i]
+      if (
+        f &&
+        String(f.concept == null ? '' : f.concept).toLowerCase() === c &&
+        String(f.name == null ? '' : f.name).toLowerCase() === n
+      ) {
+        return f
+      }
+    }
+    return null
+  }
+
   function deepCopy(value) {
     return JSON.parse(JSON.stringify(value))
   }
@@ -524,6 +543,17 @@
     // Resolve an anchor to a KU-modal target. Returns null when the anchor is
     // not modal-editable (card comments, tag/relation proposals use popovers
     // or immediate comment drafts instead).
+    function referenceCandidates(def) {
+      var allowed = def && Array.isArray(def.target_concepts) ? def.target_concepts : []
+      if (!allowed.length) return elements
+      var set = allowed.map(function (c) {
+        return String(c).toLowerCase()
+      })
+      return elements.filter(function (e) {
+        return e && set.indexOf(String(e.concept).toLowerCase()) !== -1
+      })
+    }
+
     function kuModalTarget(anchorData) {
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
@@ -599,12 +629,7 @@
         }
       }
       var fieldVal = el.fields ? el.fields[field] : undefined
-      var schemaField = null
-      if (options.schema && Array.isArray(options.schema.fields)) {
-        schemaField = options.schema.fields.filter(function (f) {
-          return f.name === field
-        })[0]
-      }
+      var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
         schemaField && schemaField.type
           ? schemaField.type
@@ -619,9 +644,10 @@
         type: fieldType,
         value: fieldVal,
         options: schemaField ? schemaField.options : undefined,
+        target_concepts: schemaField ? schemaField.target_concepts : undefined,
         candidates:
           schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
-            ? elements
+            ? referenceCandidates(schemaField)
             : undefined,
         draftField: field,
         original: fieldVal,
@@ -1451,6 +1477,7 @@
     STORE_VERSION: STORE_VERSION,
     createDraftStore: createDraftStore,
     createReviewController: createReviewController,
+    fieldDefOf: fieldDefOf,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
     isAlreadyApplied: isAlreadyApplied,
