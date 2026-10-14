@@ -62,6 +62,7 @@ export function buildElementIndexes(model: ParsedKnowledge): ElementIndexes {
 export function resolveReferenceTarget(
   value: string,
   indexes: ElementIndexes,
+  context?: { concept?: string },
 ): ElementResolutionResult {
   const trimmed = value.trim()
   const lower = trimmed.toLowerCase()
@@ -83,6 +84,21 @@ export function resolveReferenceTarget(
   const nameMatches = indexes.byName.get(lower)
   if (nameMatches && nameMatches.length > 0) {
     if (nameMatches.length > 1) {
+      // 2a. Matrix axis context: a row/column header is ambiguous only when the
+      //     containing matrix's declared source/target concept cannot narrow the
+      //     name-match to a single element.
+      const concept = context?.concept?.trim().toLowerCase()
+      if (concept) {
+        const narrowed = nameMatches.filter((e) => e.type.toLowerCase() === concept)
+        if (narrowed.length === 1) {
+          return {
+            found: true,
+            elements: narrowed,
+            matchedName: narrowed[0].name,
+            matchedBy: 'name',
+          }
+        }
+      }
       return {
         found: true,
         ambiguous: true,
@@ -110,36 +126,33 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
   const indexes = buildElementIndexes(model)
 
   for (const matrix of model.matrices) {
+    const axes = [
+      { field: 'row', label: 'row', matrixAxis: 'source', context: matrix.source },
+      { field: 'col', label: 'column', matrixAxis: 'target', context: matrix.target },
+    ] as const
     for (const cell of matrix.cells) {
-      if (cell.row) {
-        const resolved = resolveReferenceTarget(cell.row, indexes)
+      for (const axis of axes) {
+        const value = cell[axis.field]
+        if (!value) continue
+        const contextConcept = axis.context.trim()
+        const resolved = resolveReferenceTarget(
+          value,
+          indexes,
+          contextConcept ? { concept: contextConcept } : undefined,
+        )
         if (!resolved.found) {
           diagnostics.push({
-            path: `matrices.${matrix.name}.row`,
-            message: `Dangling reference: matrix "${matrix.name}" row "${cell.row}" does not match any element name`,
+            path: `matrices.${matrix.name}.${axis.field}`,
+            message: `Dangling reference: matrix "${matrix.name}" ${axis.label} "${value}" does not match any element name`,
             severity: 'error',
           })
         } else if (resolved.ambiguous) {
+          const tried = contextConcept
+            ? ` The matrix ${axis.matrixAxis} concept "${contextConcept}" did not disambiguate.`
+            : ''
           diagnostics.push({
-            path: `matrices.${matrix.name}.row`,
-            message: `Ambiguous element reference "${cell.row}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
-            severity: 'warning',
-            code: 'AMBIGUOUS_ELEMENT_NAME',
-          })
-        }
-      }
-      if (cell.col) {
-        const resolved = resolveReferenceTarget(cell.col, indexes)
-        if (!resolved.found) {
-          diagnostics.push({
-            path: `matrices.${matrix.name}.col`,
-            message: `Dangling reference: matrix "${matrix.name}" column "${cell.col}" does not match any element name`,
-            severity: 'error',
-          })
-        } else if (resolved.ambiguous) {
-          diagnostics.push({
-            path: `matrices.${matrix.name}.col`,
-            message: `Ambiguous element reference "${cell.col}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+            path: `matrices.${matrix.name}.${axis.field}`,
+            message: `Ambiguous element reference "${value}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.${tried}`,
             severity: 'warning',
             code: 'AMBIGUOUS_ELEMENT_NAME',
           })

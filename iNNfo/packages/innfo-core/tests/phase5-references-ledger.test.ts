@@ -151,12 +151,11 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(ambiguousField!.severity).toBe('error')
     expect(ambiguousField!.message).toContain('Status')
 
+    // The matrix row is disambiguated by the matrix's declared source concept,
+    // so no ambiguity diagnostic is emitted for the header itself.
     const matrixDiags = validateReferences(model)
     const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
-    expect(ambiguousMatrix).toBeDefined()
-    // Matrix header ambiguity is advisory (never blocking): matrix labels may
-    // repeat across concepts and the matrix source/target disambiguate intent.
-    expect(ambiguousMatrix!.severity).toBe('warning')
+    expect(ambiguousMatrix).toBeUndefined()
   })
 
   it('5.1.3 Two elements in the same model with identical slugs emit DUPLICATE_SLUG error', () => {
@@ -386,11 +385,10 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(ambiguousField).toBeDefined()
     expect(ambiguousField!.severity).toBe('error')
 
+    // The matrix row is disambiguated by the matrix's declared source concept,
+    // so no ambiguity diagnostic is emitted for the header itself.
     const matrixDiags = validateReferences(model)
     const ambiguousMatrix = matrixDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
-    expect(ambiguousMatrix).toBeDefined()
-    // Matrix header ambiguity is advisory (never blocking): matrix labels may
-    // repeat across concepts and the matrix source/target disambiguate intent.
-    expect(ambiguousMatrix!.severity).toBe('warning')
+    expect(ambiguousMatrix).toBeUndefined()
   })
 })
