@@ -3,9 +3,7 @@
 ## Purpose
 
 Establish immutable, explicit slug identities for semantic model elements, concepts, and matrices across cogNNitive. By decoupling node identity from display names, rename mutations preserve citations and references, cross-concept duplicate element names are permitted without destructive dropping (reversing R-IE-02), models carry stable frontmatter identities (`model_slug`, `workspace_id`), and models are safely frozen on mutation or via workspace upgrade commands.
-
 ## Requirements
-
 ### Requirement: Explicit and Immutable Slug Declarations
 
 Elements, concepts, and matrices MAY declare an explicit `slug::` property. When declared, the slug MUST follow kebab-case lowercase alphanumeric and hyphen formatting (`^[a-z0-9]+(?:-[a-z0-9]+)*$`). The parser MUST set `element.slug` to the declared value and flag `element.slugExplicit = true`. Once assigned, an element's slug MUST be immutable; editing or renaming an element MUST NOT alter or clear its slug. The serializer MUST emit `slug:: <slug>` for any element where `slugExplicit` is true, or when the model is in a frozen state.
@@ -127,7 +125,9 @@ The mutation pipeline MUST provide a `freeze_slugs` mutation operation. When inv
 
 The validator MUST emit the following diagnostics:
 1. `UNFROZEN_MODEL`: Emitted with severity `warning` for any Level-3 model containing elements without explicit `slug::` declarations. Unfrozen models remain valid for reading and evaluation, but tools MUST warn that mutation requires freezing.
-2. `AMBIGUOUS_ELEMENT_NAME`: Emitted with severity `warning` (or `error` when unambiguous resolution is required) whenever a reference or wikilink references an element by display name and multiple elements within the model share that display name across different concepts.
+2. `AMBIGUOUS_ELEMENT_NAME`: Emitted whenever a reference or wikilink resolves to an element by display name and more than one element of the model has that exact display name. For a reference-typed element field or a `[[…]]` wikilink the severity is `error` (the author MUST qualify the reference or use the element's unique slug). For a matrix cell row or column header the severity is `warning` and it is never blocking: matrix labels may legitimately repeat across concepts and the matrix's own `source`/`target` concepts disambiguate the author's intent, so the matrix diagnostic stays advisory while field-level references remain the hard errors.
+
+A reference, wikilink or matrix header MUST resolve by exact slug first, then by exact display name (both are iNNfo grammar). No other matching — separator-normalized, case-folded beyond the existing case-insensitive comparison, or fuzzy — MAY be applied; a value matching neither is unresolved. The resolution rule above applies to all three paths; only the ambiguity severity is split between fields/wikilinks (`error`) and matrix headers (`warning`). (Previously: `AMBIGUOUS_ELEMENT_NAME` was a `warning` on every path, and a separator-normalized name match was applied as a ledgered legacy fallback.)
 
 #### Scenario: Unfrozen model emits UNFROZEN_MODEL warning
 - GIVEN a Level-3 model containing elements without `slug::` declarations
@@ -139,5 +139,19 @@ The validator MUST emit the following diagnostics:
 - GIVEN two elements in different concepts named `Total Revenue`
 - AND a reference or wikilink `[[Total Revenue]]`
 - WHEN references are resolved
-- THEN a diagnostic with code `AMBIGUOUS_ELEMENT_NAME` is emitted
+- THEN a diagnostic with code `AMBIGUOUS_ELEMENT_NAME` and severity `error` is emitted
 - AND the resolver does not arbitrarily select one element
+
+#### Scenario: An ambiguous matrix header is a non-blocking warning
+- GIVEN two elements in different concepts named `Public Relations`
+- AND a matrix whose row header is `Public Relations`
+- WHEN the model is validated
+- THEN a diagnostic with code `AMBIGUOUS_ELEMENT_NAME` and severity `warning` is emitted
+- AND the model still validates because the matrix diagnostic is advisory, never blocking
+
+#### Scenario: No separator-normalized match
+- GIVEN an element named `Element 2A` with slug `element-2a`
+- WHEN a reference `[[Element_2A]]` is resolved
+- THEN it is unresolved
+- AND `[[Element 2A]]` and `[[element-2a]]` both resolve to the element
+
