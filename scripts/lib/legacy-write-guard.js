@@ -8,7 +8,6 @@
  *
  * Scan scope:
  *   - iNNfo/packages/<pkg>/src/**
- *   - iNNfo/apps/<app>/src/**
  *   - scripts/** (test files excluded)
  *   - skills/<name>/scripts/**
  *
@@ -65,7 +64,6 @@ const ALLOWLIST = [
 
 const SCOPE_RE = [
   /^iNNfo\/packages\/[^/]+\/src\//,
-  /^iNNfo\/apps\/[^/]+\/src\//,
   /^scripts\//,
   /^skills\/[^/]+\/scripts\//,
 ];
