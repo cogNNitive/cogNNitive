@@ -32,6 +32,8 @@ external frontmatter skills were not described.)
 - THEN no folder for that skill exists under the package's `skills/`
 - AND the reference is the only source of truth
 
+## ADDED Requirements
+
 ### Requirement: Two-Tier Skill Model
 
 A bluepriNNt skill MUST be one of two tiers with distinct guarantees, and this

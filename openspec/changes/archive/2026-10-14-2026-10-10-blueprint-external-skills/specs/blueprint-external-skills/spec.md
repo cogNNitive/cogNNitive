@@ -4,11 +4,11 @@
 
 ### Requirement: External Skill Entry Declares A Pin And License
 
-A bluepriNNt MAY declare a referenced external skill in its frontmatter `skills:`
-array. Each external entry MUST carry `name`, `repo`, `path`, `commit` (a 40-char
-hex SHA) and `license` (an SPDX identifier), and MAY carry `ref`, `sha256` and
-`distribution`. The frontmatter parser MUST preserve these fields; they MUST NOT be
-dropped on parse or serialize. An entry with no `embedded: true` is external.
+A bluepriNNt MUST carry `name`, `repo`, `path`, `commit` (a 40-char hex SHA) and
+`license` (an SPDX identifier) for every external entry it declares in its frontmatter
+`skills:` array, and MAY also declare `ref`, `sha256` and `distribution`. The
+frontmatter parser MUST preserve these fields; they MUST NOT be dropped on parse or
+serialize. An entry with no `embedded: true` is external.
 
 #### Scenario: Fields round-trip
 - GIVEN a frontmatter `skills:` entry `{ name, repo, path, commit, ref, sha256, license, distribution }`

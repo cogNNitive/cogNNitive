@@ -14,7 +14,7 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 1. Parity audit (S3a — the gate)
 
-- [ ] 1.1 Enumerate every route, view and component under `iNNfo/apps/innfo-editor/src/`
+- [x] 1.1 Enumerate every route, view and component under `iNNfo/apps/innfo-editor/src/`
       and write `audit.md` with one row each (design table), including the seven explicit
       decisions of the design. [console-architecture: Console covers the editor's used
       feature set]
@@ -23,19 +23,21 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 2. D14 remainder (S3a)
 
-- [ ] 2.1 TEST (`test/console-export.test.mjs`): the domain console embeds every model, the
+- [x] 2.1 TEST (`test/console-export.test.mjs`): the domain console embeds every model, the
       per-element history and the source index; a source above the embed threshold is
       linked, not embedded; the size budget fails an oversized export.
       [console-architecture: Level 3 Model Custom Consoles]
-- [ ] 2.2 Fix any missing embed in `scripts/export-console.mjs`.
+- [x] 2.2 Fix any missing embed in `scripts/export-console.mjs`.
       [console-architecture: Level 3 Model Custom Consoles]
+      (No code change needed: the D14 embeds — every model in `meta.models`, `el.history`,
+      the `el.citations`/`meta.sources` source index — were already present; 2.1 proves them.)
 
 ## 3. D17 vocabulary (S3a)
 
-- [ ] 3.1 TEST (`test/vocabulary.test.mjs` or the existing dictionary suite): `vocabulary.json`
+- [x] 3.1 TEST (`test/vocabulary.test.mjs` or the existing dictionary suite): `vocabulary.json`
       defines "console" as user-facing and lists "editor" and "hosted app" as retired UI terms (the `app` alias of `bluepriNNt` is untouched).
       [canonical-vocabulary: Console is the user-facing UI term]
-- [ ] 3.2 Record the term in `iNNfo/specs/vocabulary.json` and
+- [x] 3.2 Record the term in `iNNfo/specs/vocabulary.json` and
       `docs/innfo/documentation/vocabulary.md`. [canonical-vocabulary: Console is the
       user-facing UI term]
 
@@ -47,4 +49,4 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 5. Verification (S3a)
 
-- [ ] 5.1 `node scripts/verify.js`; re-export the TestLab domain console. [all requirements]
+- [x] 5.1 `node scripts/verify.js`; re-export the TestLab domain console. [all requirements]
