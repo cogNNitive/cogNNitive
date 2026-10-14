@@ -70,10 +70,21 @@ export function parsePropertyLine(line: string): [string, string] | null {
 export function parsePropertyValue(raw: string): unknown {
   const value = raw.trim()
   if (value === '') return ''
-  if (
-    (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
-    (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
-  ) {
+  if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+    // A double-quoted value is a JSON string when it parses as one — the rule
+    // the changeset parser's `stripQuotes` already uses — so a multi-line value
+    // written by the serializer as `"line one\nline two"` reads back with a real
+    // newline instead of a literal backslash-n. Invalid JSON (e.g. a Windows
+    // path with backslashes) falls back to slicing the wrapping quotes.
+    try {
+      const parsed = JSON.parse(value)
+      if (typeof parsed === 'string') return parsed
+    } catch {
+      // not valid JSON; fall through to strip the wrapping quotes
+    }
+    return value.slice(1, -1)
+  }
+  if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
     return value.slice(1, -1)
   }
   // WikiLinks [[Name]] or [[Name1, Name2]] — return as-is (reference fields)
