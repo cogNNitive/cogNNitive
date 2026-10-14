@@ -23,6 +23,7 @@ import {
   isChangeOp,
   createFsSourceResolver,
   resolveCitation,
+  scaffoldKnowledgeDocument,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -33,7 +34,8 @@ import type {
   ModelVersionTransition,
   ChangeStatus,
 } from '@cognnitive/innfo-core'
-import { findKnowledgeFile } from './spec.js'
+import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId } from './spec.js'
+import { writeProposedChangeset } from './propose-changeset.js'
 import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 import { createSpecsBackupZip } from './spec-backup.js'
@@ -52,6 +54,8 @@ export interface ApplyChangeResult {
   newPath?: string
   errors?: Array<{ path: string; message: string; code?: string }>
   warnings?: Array<{ path: string; message: string }>
+  /** Ids of the models an `add_model` change created in this apply (fresh commits only). */
+  createdModels?: string[]
 }
 
 /** Matches the `_V_<major>-<minor>-<patch>_` segment in iNNfo filenames. */
@@ -830,13 +834,156 @@ export async function executeChangesetApply(
       baseVersion: string
       nextVersion: string
       mutated: boolean
+      /** Created by an `add_model` change in this apply (never bumped). */
+      created: boolean
+      /** Resolved bluepriNNt schema, cached per model (null = unresolvable). */
+      schema?: BlueprintSchema | null
     }
     const loadedModels = new Map<string, LoadedModelEntry>()
+
+    const rejectPhase1 = (code: string, path: string, message: string): ApplyChangeResult => ({
+      success: false,
+      changesetPath: relChangesetPath,
+      status: 'rejected',
+      models: {},
+      appliedCount: 0,
+      errors: [{ path, message: `${code}: ${message}`, code }],
+    })
+
+    // add_model pre-checks: ordering, duplicates, existing targets, domain layout.
+    const addModelIndex = new Map<string, number>()
+    const existingAddModelIds = new Set<string>()
+    const blockedChanges = new Map<string, { code: string; message: string }>()
+    for (const [index, change] of csDoc.changes.entries()) {
+      if (change.op !== 'add_model') continue
+      const key = change.target.toLowerCase()
+      if (!isSafeRelativeId(change.target)) {
+        return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`)
+      }
+      if (addModelIndex.has(key)) {
+        return rejectPhase1('ADD_MODEL_DUPLICATE', change.target, `more than one add_model change targets "${change.target}"`)
+      }
+      addModelIndex.set(key, index)
+    }
+    for (const [index, change] of csDoc.changes.entries()) {
+      if (change.op === 'comment' || change.op === 'add_model') continue
+      const targetModel = parseTargetAddress(change.target).modelSlug
+      const createdAt = addModelIndex.get(targetModel.toLowerCase())
+      if (createdAt !== undefined && createdAt > index) {
+        return rejectPhase1(
+          'ADD_MODEL_ORDER',
+          change.target,
+          `change "${change.id}" targets model "${targetModel}" before the add_model change that creates it`,
+        )
+      }
+    }
+    let needsKnowledgeDir = false
+    for (const change of csDoc.changes) {
+      if (change.op !== 'add_model') continue
+      const key = change.target.toLowerCase()
+      if (await findKnowledgeFile(rootDir, change.target)) {
+        existingAddModelIds.add(key)
+        blockedChanges.set(change.id, {
+          code: 'MODEL_EXISTS',
+          message: `MODEL_EXISTS: model "${change.target}" already exists; add_model never overwrites or repairs a model`,
+        })
+        for (const other of csDoc.changes) {
+          if (other.id === change.id || other.op === 'comment') continue
+          if (parseTargetAddress(other.target).modelSlug.toLowerCase() !== key) continue
+          blockedChanges.set(other.id, {
+            code: 'DEPENDS_ON_CONFLICTED_CHANGE',
+            message: `DEPENDS_ON_CONFLICTED_CHANGE: change "${other.id}" depends on add_model change "${change.id}", which conflicted`,
+          })
+        }
+      } else {
+        needsKnowledgeDir = true
+      }
+    }
+    if (needsKnowledgeDir) {
+      const kDir = await stat(join(rootDir, 'kNNowledge')).catch(() => null)
+      if (!kDir || !kDir.isDirectory()) {
+        return rejectPhase1('DOMAIN_LAYOUT_INVALID', 'kNNowledge', 'the domain has no kNNowledge/ directory to create models in')
+      }
+    }
+
+    /** Resolve (once per model) the bluepriNNt schema a model conforms to. */
+    const schemaFor = async (entry: LoadedModelEntry): Promise<BlueprintSchema | undefined> => {
+      if (entry.schema === undefined) {
+        try {
+          const { template: schemaBlueprint, resolveInclude: schemaInclude } =
+            await resolveBlueprintForKnowledge(rootDir, entry.model)
+          entry.schema = schemaBlueprint
+            ? resolveBlueprintSchema(schemaBlueprint.rawContent, schemaInclude).schema
+            : null
+        } catch {
+          entry.schema = null
+        }
+      }
+      return entry.schema ?? undefined
+    }
 
     for (const change of csDoc.changes) {
       if (change.op === 'comment') continue
       const { modelSlug } = parseTargetAddress(change.target)
       if (!modelSlug) continue
+      // A model whose add_model conflicted is never loaded: nothing may touch it.
+      if (existingAddModelIds.has(modelSlug.toLowerCase())) continue
+
+      if (change.op === 'add_model') {
+        const cleanId = normalizeId(change.target)
+        const blueprintName = change.blueprint_name as string
+        const blueprintUrl = change.blueprint_url as string
+        let resolvedBlueprint: Awaited<ReturnType<typeof resolveBlueprintWithCache>> | null = null
+        let resolveFailure = ''
+        try {
+          resolvedBlueprint = await resolveBlueprintWithCache(rootDir, blueprintUrl, blueprintName)
+        } catch (err) {
+          resolveFailure = err instanceof Error ? err.message : String(err)
+        }
+        if (!resolvedBlueprint?.template) {
+          const detail = resolveFailure ? ` (${resolveFailure})` : ''
+          return rejectPhase1(
+            'BLUEPRINT_UNRESOLVED',
+            change.target,
+            `change "${change.id}": bluepriNNt "${blueprintName}" could not be resolved from "${blueprintUrl}"${detail}`,
+          )
+        }
+        const composed = resolveBlueprintSchema(resolvedBlueprint.template.rawContent, resolvedBlueprint.resolveInclude)
+        if (composed.errors.length > 0) {
+          const detail = composed.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
+          return rejectPhase1(
+            'BLUEPRINT_INVALID',
+            change.target,
+            `change "${change.id}": bluepriNNt "${blueprintName}" does not compose: ${detail}`,
+          )
+        }
+        const content = scaffoldKnowledgeDocument({
+          id: cleanId,
+          blueprintName,
+          blueprintUrl,
+          title: change.name,
+          knowledgeVersion: change.knowledge_version,
+          schema: composed.schema,
+          blueprintFrontmatter: resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>,
+        })
+        const filePath = join(rootDir, 'kNNowledge', `${cleanId}_NN.md`)
+        if (!isInsideRoot(rootDir, filePath)) {
+          return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `model id "${change.target}" resolves outside the domain`)
+        }
+        const created = parseKnowledge(content)
+        const initialVersion = String(created.frontmatter.knowledge_version ?? 'V_0-1-0')
+        loadedModels.set(modelSlug.toLowerCase(), {
+          modelSlug,
+          filePath,
+          model: created,
+          baseVersion: initialVersion,
+          nextVersion: initialVersion,
+          mutated: true,
+          created: true,
+          schema: composed.schema,
+        })
+        continue
+      }
 
       if (!loadedModels.has(modelSlug.toLowerCase())) {
         const modelFile = await findKnowledgeFile(rootDir, modelSlug)
@@ -864,6 +1011,7 @@ export async function executeChangesetApply(
           baseVersion,
           nextVersion,
           mutated: false,
+          created: false,
         })
       }
     }
@@ -931,6 +1079,7 @@ export async function executeChangesetApply(
       changesDir,
       modelBaseVersions,
       referenceConflicts,
+      blockedChanges,
     )
 
     // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
@@ -996,16 +1145,25 @@ export async function executeChangesetApply(
 
       entry.mutated = true
 
+      if (change.op === 'add_model') {
+        // The document was created and registered in the load phase above.
+        change.status = 'applied'
+        change.resolution = `Created model "${change.target}"`
+        continue
+      }
+
+      // The resolved bluepriNNt schema is passed to the mutation so a concept the
+      // bluepriNNt does not declare is rejected when the mutation runs, not only by the
+      // post-mutation validation. An add_element cannot be checked without it.
       let renameSchema: BlueprintSchema | undefined
-      if (change.op === 'rename_element') {
-        try {
-          const { template: schemaBlueprint, resolveInclude: schemaInclude } =
-            await resolveBlueprintForKnowledge(rootDir, entry.model)
-          if (schemaBlueprint) {
-            renameSchema = resolveBlueprintSchema(schemaBlueprint.rawContent, schemaInclude).schema
-          }
-        } catch {
-          renameSchema = undefined
+      if (change.op === 'rename_element' || change.op === 'add_element') {
+        renameSchema = await schemaFor(entry)
+        if (!renameSchema && change.op === 'add_element') {
+          return rejectPhase1(
+            'BLUEPRINT_UNRESOLVED',
+            change.target,
+            `change "${change.id}": the bluepriNNt of model "${entry.modelSlug}" could not be resolved, so the concept cannot be checked`,
+          )
         }
       }
 
@@ -1032,6 +1190,11 @@ export async function executeChangesetApply(
         if (change.fields) {
           Object.assign(mutationArgs, change.fields)
         }
+        // Use the declared spelling of the concept (matching is case-insensitive).
+        const declaredConcept = renameSchema?.concepts.find(
+          (c) => c.name.toLowerCase() === String(conceptName).toLowerCase(),
+        )
+        if (declaredConcept) mutationArgs.conceptName = declaredConcept.name
       } else if (change.op === 'update_matrix_cell') {
         mutationArgs = {
           matrixSlug: parts[0],
@@ -1122,7 +1285,7 @@ export async function executeChangesetApply(
 
     // Bump knowledge_version in frontmatter of touched models ONLY
     for (const [, entry] of loadedModels) {
-      if (entry.mutated) {
+      if (entry.mutated && !entry.created) {
         entry.model.frontmatter.knowledge_version = entry.nextVersion
       }
     }
@@ -1185,13 +1348,20 @@ export async function executeChangesetApply(
     // Phase 2: Atomic Persistence (touched models ONLY). No snapshot is written.
     const modelsTransitionMap: Record<string, ModelVersionTransition> = {}
 
+    // A created model must still be absent: re-check inside the lock, before any write.
+    for (const [, entry] of loadedModels) {
+      if (!entry.created) continue
+      if (await stat(entry.filePath).then(() => true, () => false)) {
+        return rejectPhase1('MODEL_EXISTS', entry.modelSlug, `model "${entry.modelSlug}" appeared while the changeset was being applied`)
+      }
+    }
+
     for (const [, entry] of loadedModels) {
       if (!entry.mutated) continue
 
-      modelsTransitionMap[entry.modelSlug] = {
-        base_version: entry.baseVersion,
-        result_version: entry.nextVersion,
-      }
+      modelsTransitionMap[entry.modelSlug] = entry.created
+        ? { result_version: entry.nextVersion }
+        : { base_version: entry.baseVersion, result_version: entry.nextVersion }
 
       const modelFile = entry.filePath
       const modelStem = displayStem(basename(modelFile))
@@ -1228,6 +1398,10 @@ export async function executeChangesetApply(
       }
     }
 
+    const createdModelIds = Array.from(loadedModels.values())
+      .filter((entry) => entry.created)
+      .map((entry) => entry.modelSlug)
+
     // Annotate changeset document
     const totalActionable = csDoc.changes.filter((c) => c.op !== 'comment').length
     const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
@@ -1250,6 +1424,7 @@ export async function executeChangesetApply(
       conflictedCount: conflictedSubset.length,
       model: loadedModels.size === 1 ? loadedModels.values().next().value?.model : undefined,
       newPath: loadedModels.size === 1 ? loadedModels.values().next().value?.filePath : undefined,
+      ...(createdModelIds.length > 0 ? { createdModels: createdModelIds } : {}),
     }
   } finally {
     await lockHandle.release()
@@ -1270,13 +1445,6 @@ async function synthesizeAndExecuteChangeset(
       errors: [{ path: id, message: 'Invalid knowledge id: must be a safe workspace-relative path' }],
     }
   }
-    const stamp = formatUtcStamp(new Date())
-    const changesDir = join(rootDir, 'changes')
-  await mkdir(changesDir, { recursive: true })
-
-  const csFileName = `${id}_agent_${stamp}_changes_NN.md`
-  const csFilePath = join(changesDir, csFileName)
-
   let target = id
   if (op === 'update_field') {
     const el = (opArgs.elementName as string) || (opArgs.slug as string) || ''
@@ -1305,7 +1473,7 @@ async function synthesizeAndExecuteChangeset(
 
   const changeItem: ChangeItem = {
     id: 'c-01',
-    op: op as any,
+    op: op as ChangeItem['op'],
     target,
     from: opArgs.from !== undefined ? String(opArgs.from) : undefined,
     to: opArgs.value !== undefined ? String(opArgs.value) : (opArgs.to !== undefined ? String(opArgs.to) : (opArgs.newName as string | undefined)),
@@ -1317,27 +1485,26 @@ async function synthesizeAndExecuteChangeset(
     notes: (opArgs.rationale as string) || undefined,
   }
 
-  const sha = computeProposalSha([changeItem])
-  const doc: ChangesetDocument = {
-    frontmatter: {
-      spec_version: 'V_0-4-0',
-      level: 3,
-      parent_spec: {
-        name: 'changes',
-        url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md',
-      },
-      blueprint_version: '0.1.0',
-      status: 'proposed',
-      proposal_sha: sha,
-      title: `Synthesized change: ${op}`,
-      author: (opArgs.author as string) || 'agent',
-      workspace_id: 'workspace',
-    },
+  const written = await writeProposedChangeset(rootDir, {
     changes: [changeItem],
-  }
+    title: `Synthesized change: ${op}`,
+    author: (opArgs.author as string) || 'agent',
+  })
+  return executeChangesetApply(rootDir, written.path)
+}
 
-  await writeFile(csFilePath, serializeChangeset(doc), 'utf-8')
-  return executeChangesetApply(rootDir, join('changes', csFileName))
+/**
+ * Direct operations: mechanical, no Level-3 meaning, so they write the model file and
+ * leave no changeset. (`bump_version` renames the file; `generate_index` and
+ * `freeze_slugs` regenerate derived structure.)
+ */
+export const MAINTENANCE_OPS = ['bump_version', 'generate_index', 'freeze_slugs'] as const
+
+/** Direct operations: Level-2 bluepriNNt authoring (trace = git + `template_version`). */
+export const SCHEMA_OPS = ['add_concept', 'add_field', 'set_marker'] as const
+
+function isDirectOperation(op: string): boolean {
+  return (MAINTENANCE_OPS as readonly string[]).includes(op) || (SCHEMA_OPS as readonly string[]).includes(op)
 }
 
 /**
@@ -1391,13 +1558,37 @@ export async function applyChange(
     return { success: true, model, newPath: filePath }
   }
 
-  // Ops outside the changeset document schema (template-authoring primitives
-  // like add_concept/add_field/set_marker, freeze_slugs, or an unknown op) are
-  // not valid ChangeOp values, so the changeset parser would reject the
-  // synthesized draft before the engine ever sees it. Run them straight against
-  // the engine: unknown ops surface "Unknown operation", level-gated ops
-  // surface their level-2 error, and no junk changeset file is minted.
+  // add_model creates a model and needs a bluepriNNt: it exists only inside a changeset.
+  if (op === 'add_model') {
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'op',
+          code: 'ADD_MODEL_REQUIRES_CHANGESET',
+          message:
+            'ADD_MODEL_REQUIRES_CHANGESET: add_model is only valid inside a changeset; use propose_changeset or init_knowledge',
+        },
+      ],
+    }
+  }
+
+  // Direct operations are a closed, classified set. Maintenance and schema operations
+  // alter no Level-3 content, so they run straight against the engine and leave no
+  // changeset. Anything that is neither a ChangeOp nor in those lists is rejected.
   if (!isChangeOp(op)) {
+    if (!isDirectOperation(op)) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'op',
+            code: 'UNKNOWN_OPERATION',
+            message: `UNKNOWN_OPERATION: "${op}" is neither a changeset operation, a maintenance operation (${MAINTENANCE_OPS.join(', ')}) nor a schema operation (${SCHEMA_OPS.join(', ')})`,
+          },
+        ],
+      }
+    }
     const filePath = await findKnowledgeFile(rootDir, id)
     if (!filePath) {
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }

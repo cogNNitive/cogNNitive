@@ -5,6 +5,7 @@ import { isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseChangeset } from '@cognnitive/innfo-core'
 import { findRepoRoot } from './repo-root.js'
+import { syncDomainManifest } from './workspace-sync.js'
 
 /**
  * Console regeneration for the MCP.
@@ -70,6 +71,8 @@ export interface RegenerateOptions {
   home?: string
   /** Working directory used to find a repo checkout (tests). */
   cwd?: string
+  /** Injected manifest reconciler (tests). Defaults to `sync_domain_manifest` (non-dry). */
+  syncManifest?: (root: string, options: { dry_run: boolean }) => Promise<unknown>
 }
 
 const EXPORT_MODULE = 'export-console.mjs'
@@ -233,10 +236,13 @@ export interface ApplyOutcomeLike {
   status?: string
   changesetPath?: string
   changeset?: string
+  /** Ids of the models created by `add_model` changes in this apply. */
+  createdModels?: string[]
 }
 
 /**
- * Run an apply, then regenerate the console. Regeneration happens AFTER the apply
+ * Run an apply, then reconcile the manifest (if models were created) and regenerate
+ * the console. Both happen AFTER the apply
  * returned, so the apply has committed and `changes/.lock` is already released. It runs
  * for `applied` and `partially_applied` (including an idempotent replay) and never for
  * `conflict` or `rejected`. Its outcome is a separate `console` field: it can never change
@@ -251,6 +257,15 @@ export async function applyWithConsole<T extends ApplyOutcomeLike>(
   const payload: Record<string, unknown> = { ...(result as ApplyOutcomeLike) }
   if (!result.success || (result.status !== 'applied' && result.status !== 'partially_applied')) {
     return payload
+  }
+  // A commit that created models reconciles the domain manifest (a derived index) first,
+  // so the regenerated console lists them. A failure never alters the apply outcome.
+  if (result.createdModels && result.createdModels.length > 0) {
+    try {
+      payload.manifest = await (opts.syncManifest ?? syncDomainManifest)(root, { dry_run: false })
+    } catch (err) {
+      payload.manifest = { error: err instanceof Error ? err.message : String(err), written: false }
+    }
   }
   const outcome = await regenerateConsole(root, opts)
   const changeset = result.changeset ?? result.changesetPath

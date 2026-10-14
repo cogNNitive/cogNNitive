@@ -296,7 +296,8 @@ describe('mutate tools', () => {
       const result = await applyChange(rootDir, 'Mutable', 'not_a_real_op', {})
 
       expect(result.success).toBe(false)
-      expect(result.errors?.[0].message).toBe('Unknown operation: not_a_real_op')
+      expect(result.errors?.[0].code).toBe('UNKNOWN_OPERATION')
+      expect(result.errors?.[0].message).toContain('not_a_real_op')
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })

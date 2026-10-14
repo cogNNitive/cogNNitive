@@ -53,6 +53,8 @@ import { syncDomainManifest } from './tools/workspace-sync.js'
 import { checkLegacyDomain } from './tools/legacy-hint.js'
 import { getPreviewServer, modelIdForFile, modelUrl, appUrl } from './tools/preview-server.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
+import { proposeChangeset } from './tools/propose-changeset.js'
+import { initDomain } from './tools/init-domain.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
@@ -403,6 +405,59 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   },
   {
     definition: {
+      name: 'propose_changeset',
+      description:
+        'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
+        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, comment, add_model); the tool does not interpret conversations. ' +
+        'Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. ' +
+        'The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          operations: {
+            type: 'array',
+            description:
+              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, fields, notes, sources (evidence citation), base_hash, author. add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id.',
+            items: { type: 'object' },
+          },
+          title: { type: 'string', description: 'Title of the changeset.' },
+          author: { type: 'string', description: 'Author recorded on the changeset (default agent).' },
+          domain: { type: 'string', description: 'Optional domain root override (defaults to the server root).' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain).' },
+          open: {
+            type: 'boolean',
+            description: 'Open the regenerated domain console in a browser tab (default true).',
+          },
+        },
+        required: ['operations'],
+      },
+    },
+    handler: handleProposeChangeset,
+  },
+  {
+    definition: {
+      name: 'init_domain',
+      description:
+        'Create an empty, conformant domaiNN container in a new directory: the canonical folders (kNNowledge/, sources/import/, sources/conversations/, conversations/, artifacts/, procedures/, staging/, changes/), a .gitattributes with * -text and a domaiNN_NN.md manifest listing no models. ' +
+        'Refuses a directory that exists and is not empty. It is not a changeset; add models afterwards with an add_model changeset (propose_changeset) or init_knowledge. ' +
+        'Migration recipe: init_domain for a NEW domain, import the old domain as a source (migrate-domain.js --import-as-source), derive add_model/add_element changes that cite it through sources::, propose_changeset, review, apply_change.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          dir: { type: 'string', description: 'Directory of the new domain (must not exist or be empty).' },
+          name: { type: 'string', description: 'Display name of the domain (the manifest title).' },
+          workspace_id: {
+            type: 'string',
+            description: 'Optional workspace_id recorded in the manifest and used in changeset file names (defaults to the slug of name).',
+          },
+        },
+        required: ['dir', 'name'],
+      },
+    },
+    handler: handleInitDomain,
+  },
+  {
+    definition: {
       name: 'validate_knowledge_url',
       description:
         'Validate an iNNfo knowledge document fetched from a URL without writing to disk. Accepts a knowledge URL and optional blueprint_url. Returns validation results.',
@@ -446,7 +501,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'init_knowledge',
       description:
-        'Initialize or repair a level-3 knowledge document file: writes canonical YAML frontmatter and, when the file has no concept sections and the blueprint resolves, scaffolds a starter body (index block + one section per Concept) from the blueprint schema. Returns blueprintResolved / scaffolded / warnings.',
+        'Create a new level-3 knowledge document. Create-only: it is a wrapper over a one-change add_model changeset (written to changes/ and applied), so the creation is recorded as a change. ' +
+        'It scaffolds canonical YAML frontmatter and a starter body (index block + one section per Concept) from the resolved blueprint schema; an unresolvable blueprint fails and writes nothing. ' +
+        'An existing id fails with MODEL_EXISTS and the file is untouched (it never repairs or rewrites a document). ' +
+        'Returns filePath, content and changeset on success (none of them on failure), plus console and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -463,12 +521,11 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           knowledge_version: {
             type: 'string',
             description:
-              'Initial version of the knowledge document (e.g. V_0-1-0). When omitted it is inferred from the resolved parent blueprint spec_version. When provided and different from the parent spec_version, the call fails with VERSION_MISMATCH. The knowledge document is scaffolded against the adopted L1 spec iNNfo_V_0-3-0.',
+              'Initial version of the knowledge document (e.g. V_0-1-0). When omitted it is inferred from the resolved parent blueprint (blueprint_version, else spec_version, else V_0-1-0). An explicit value that differs from the parent version is accepted.',
           },
-          in_place: {
+          open: {
             type: 'boolean',
-            description:
-              'Write fetched blueprints inside the domain tree (default false = OS temp cache, tree stays clean)',
+            description: 'Open the regenerated domain console in a browser tab (default true).',
           },
           domain: { type: 'string', description: 'Optional domain root directory override' },
           root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
@@ -849,6 +906,31 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   return textResult(JSON.stringify(envelope('innfo-apply-change', payload), null, 2))
 }
 
+async function handleProposeChangeset(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const legacyErr = await checkDomainLegacy(root, 'write')
+  if (legacyErr) return legacyErr
+  const open = args.open === undefined ? true : Boolean(args.open)
+  const result = await proposeChangeset(root, {
+    operations: args.operations,
+    title: typeof args.title === 'string' ? args.title : undefined,
+    author: typeof args.author === 'string' ? args.author : undefined,
+    open,
+  })
+  const text = JSON.stringify(envelope('innfo-propose-changeset', result), null, 2)
+  return result.success ? textResult(text) : errorResult(text)
+}
+
+async function handleInitDomain(args: Record<string, unknown>): Promise<CallToolResult> {
+  const dir = typeof args.dir === 'string' ? args.dir : ''
+  const name = typeof args.name === 'string' ? args.name : ''
+  if (!dir || !name) return errorResult('Missing required arguments: dir, name')
+  const workspaceId = typeof args.workspace_id === 'string' ? args.workspace_id : undefined
+  const result = await initDomain(dir, name, workspaceId)
+  const text = JSON.stringify(envelope('innfo-init-domain', result), null, 2)
+  return result.success ? textResult(text) : errorResult(text)
+}
+
 async function handleRegenerateConsole(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const legacyErr = await checkDomainLegacy(root, 'write')
@@ -888,11 +970,12 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
   }
   const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
+  const open = args.open === undefined ? true : Boolean(args.open)
   const result = await initKnowledge(
     root,
     id,
     { blueprint_url: blueprintUrl, blueprint_name: blueprintName, title, knowledge_version: knowledgeVersion },
-    { inPlace: args.in_place as boolean | undefined },
+    { open },
   )
   return textResult(JSON.stringify(envelope('innfo-init-knowledge', result), null, 2))
 }

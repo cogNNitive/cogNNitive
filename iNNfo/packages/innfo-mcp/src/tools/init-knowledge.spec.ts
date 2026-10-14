@@ -1,74 +1,54 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
-import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { parseChangeset, parseKnowledge } from '@cognnitive/innfo-core'
 import { initKnowledge } from './init-knowledge'
+import type { ConsoleWriter } from './console-regeneration'
+import {
+  SPEC_L0,
+  SPEC_L1,
+  BUSINESS_STUB,
+  REFERENCE_STUB,
+  BLANK_SPEC,
+  BUSINESS_URL,
+  REFERENCE_URL,
+  BLANK_URL,
+  golden,
+} from '../../test/helpers/scaffold-fixtures'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-init-model')
 const specsDir = join(rootDir, 'specs')
+const knowledgeDir = join(rootDir, 'kNNowledge')
+const changesDir = join(rootDir, 'changes')
 
-const TEMPLATE_URL = 'https://example.com/business_V_0-2-0_NN.md'
-const blueprint_name = 'business_V_0-2-0'
+const BUSINESS = { blueprint_name: 'business_V_0-2-0', blueprint_url: BUSINESS_URL }
 
-/** Write the level-1 + level-0 spec chain locally so resolution never hits the network. */
-async function stubSpecChain() {
-  await writeFile(
-    join(specsDir, 'iNNfo_V_0-3-0_NN.md'),
-    [
-      '---',
-      'spec_version: "V_0-3-0"',
-      'level: 1',
-      'title: "Local iNNfo Spec"',
-      'parent_spec:',
-      '  name: "defiNNition_V_0-1-0"',
-      '  url: "https://example.com/defiNNition_V_0-1-0_NN.md"',
-      '---',
-    ].join('\n'),
-    'utf-8',
-  )
-  await writeFile(
-    join(specsDir, 'defiNNition_V_0-1-0_NN.md'),
-    ['---', 'spec_version: "V_0-1-0"', 'level: 0', 'title: "Local defiNNition Spec"', '---'].join('\n'),
-    'utf-8',
-  )
+const writer: ConsoleWriter = async () => ({
+  path: join(rootDir, 'domaiNN_console.html'),
+  status: 'written',
+  opened: false,
+})
+const run = (id: string, args: Parameters<typeof initKnowledge>[2]) =>
+  initKnowledge(rootDir, id, args, { open: false, regenerate: { writer, syncManifest: async () => ({}) } })
+
+async function stubSpec(name: string, content: string) {
+  await writeFile(join(specsDir, `${name}_NN.md`), content, 'utf-8')
 }
 
-/** Write a level-2 business template (declaring a "Work" list concept), resolvable
- * locally by `resolveBlueprintWithCache` without any network I/O. */
-async function stubBusinessTemplate() {
-  await writeFile(
-    join(specsDir, 'business_V_0-2-0_NN.md'),
-    [
-      '---',
-      'blueprint_version: "V_0-2-0"',
-      'level: 2',
-      'title: "Local Business Template"',
-      'parent_spec:',
-      '  name: "iNNfo_V_0-3-0"',
-      '  url: "https://example.com/iNNfo_V_0-3-0_NN.md"',
-      '---',
-      '',
-      '# NN Concept Definition',
-      '',
-      '## NN Concept Definition: Work',
-      'type:: list',
-      '',
-    ].join('\n'),
-    'utf-8',
-  )
-  await stubSpecChain()
-}
-
-describe('initKnowledge', () => {
+describe('initKnowledge (add_model wrapper)', () => {
   const origCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
-    // Hermetic temp cache: the OS temp dir is shared across test files/runs,
-    // so resolution here must never see entries fetched by other suites.
+    // Hermetic temp cache: the OS temp dir is shared across test files/runs.
     process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rm(rootDir, { recursive: true, force: true })
-    await mkdir(specsDir, { recursive: true })
+    for (const dir of [specsDir, knowledgeDir, changesDir]) await mkdir(dir, { recursive: true })
     vi.restoreAllMocks()
     vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await stubSpec('iNNfo_V_0-3-0', SPEC_L1)
+    await stubSpec('defiNNition_V_0-1-0', SPEC_L0)
+    await stubSpec('business_V_0-2-0', BUSINESS_STUB)
   })
 
   afterEach(async () => {
@@ -77,211 +57,61 @@ describe('initKnowledge', () => {
     await rm(rootDir, { recursive: true, force: true })
   })
 
-  it('creates a new model file with frontmatter and a body scaffolded from the resolved template', async () => {
-    await stubBusinessTemplate()
-
-    const result = await initKnowledge(rootDir, 'NewModel', {
-      template_url: TEMPLATE_URL,
-      blueprint_name: blueprint_name,
-      title: 'New Model',
-    })
+  it('leaves one applied add_model changeset and the same document as before the change', async () => {
+    const result = await run('NewModel', { ...BUSINESS, title: 'New Model' })
 
     expect(result.success).toBe(true)
-    expect(result.templateResolved).toBe(true)
-    expect(result.scaffolded).toBe(true)
-    expect(result.filePath).toBe(join(rootDir, 'NewModel_NN.md'))
+    expect(result.filePath).toBe(join(knowledgeDir, 'NewModel_NN.md'))
+    expect(result.content).toBe(golden('business'))
+    expect(await readFile(result.filePath!, 'utf-8')).toBe(result.content)
 
-    expect(result.content).toContain('parent_spec:')
-    expect(result.content).toContain(`name: "${blueprint_name}"`)
-    expect(result.content).toContain(`url: "${TEMPLATE_URL}"`)
-    expect(result.content).toContain('title: "New Model"')
-    expect(result.content).toContain('# NN Work')
-    expect(result.content).toContain('## NN Work: Example Work')
-
-    const onDisk = await readFile(result.filePath!, 'utf-8')
-    expect(onDisk).toBe(result.content)
+    const files = await readdir(changesDir)
+    expect(files).toHaveLength(1)
+    expect(result.changeset).toBe(`changes/${files[0]}`)
+    const cs = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
+    expect(cs.frontmatter.status).toBe('applied')
+    expect(cs.changes).toHaveLength(1)
+    expect(cs.changes[0]).toMatchObject({ op: 'add_model', target: 'NewModel', status: 'applied' })
+    expect(result.validation.valid).toBe(true)
   })
 
-  it('writes frontmatter without scaffolding a body when the template cannot be resolved', async () => {
-    const result = await initKnowledge(rootDir, 'Orphan', {
-      template_url: TEMPLATE_URL,
-      blueprint_name: blueprint_name,
-    })
-
-    expect(result.success).toBe(true)
-    expect(result.templateResolved).toBe(false)
-    expect(result.scaffolded).toBe(false)
-    expect(result.warnings.some((w) => /template resolution failed/i.test(w))).toBe(true)
-
-    expect(result.content).toContain(`name: "${blueprint_name}"`)
-    expect(result.content).not.toContain('# NN Work')
-
-    const onDisk = await readFile(result.filePath!, 'utf-8')
-    expect(onDisk).toBe(result.content)
+  it('regenerates the console and returns next_steps without a proposal approval', async () => {
+    const result = await run('NewModel', BUSINESS)
+    expect(result.console?.status).toBe('written')
+    expect(result.next_steps?.notice).toContain('The changeset was applied')
+    expect(result.next_steps?.approve).toBeUndefined()
   })
 
-  it('preserves an existing body that already has concept sections instead of re-scaffolding it', async () => {
-    await stubBusinessTemplate()
-    const filePath = join(rootDir, 'Existing_NN.md')
-    await writeFile(
-      filePath,
-      [
-        '---',
-        'title: "Old Title"',
-        '---',
-        '',
-        '# NN Work',
-        '## NN Work: PreExisting',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
+  it('an existing id fails with MODEL_EXISTS and the broken document is left untouched', async () => {
+    const broken = '# NN Person\n\n## NN Person: Alice\ncompensation:: Standard\n'
+    await writeFile(join(knowledgeDir, 'Existing_NN.md'), broken, 'utf-8')
 
-    const result = await initKnowledge(rootDir, 'Existing', {
-      template_url: TEMPLATE_URL,
-      blueprint_name: blueprint_name,
-    })
+    const result = await run('Existing', BUSINESS)
 
-    expect(result.success).toBe(true)
-    expect(result.templateResolved).toBe(true)
-    expect(result.scaffolded).toBe(false)
-    expect(result.filePath).toBe(filePath)
-    expect(result.content).toContain('PreExisting')
-    expect(result.content).not.toContain('Example Work')
-
-    const onDisk = await readFile(filePath, 'utf-8')
-    expect(onDisk).toBe(result.content)
+    expect(result.success).toBe(false)
+    expect(result.errors?.some((e) => e.code === 'MODEL_EXISTS')).toBe(true)
+    expect(result).not.toHaveProperty('filePath')
+    expect(result).not.toHaveProperty('content')
+    expect(await readFile(join(knowledgeDir, 'Existing_NN.md'), 'utf-8')).toBe(broken)
   })
 
-  it('escapes quotes and newlines in frontmatter title properly and roundtrips', async () => {
-    await stubBusinessTemplate()
-    const { parseKnowledge } = await import('@cognnitive/innfo-core')
-
-    // Test quotes in title
-    const resQuotes = await initKnowledge(rootDir, 'QuotesModel', {
-      template_url: TEMPLATE_URL,
-      blueprint_name: blueprint_name,
-      title: 'The "Real" Deal',
+  it('an unresolvable bluepriNNt fails, writes no document and leaves no proposal behind', async () => {
+    const result = await run('Orphan', {
+      blueprint_name: 'ghost_V_0-1-0',
+      blueprint_url: 'https://example.com/ghost_V_0-1-0_NN.md',
     })
-    expect(resQuotes.success).toBe(true)
-    const onDiskQuotes = await readFile(resQuotes.filePath!, 'utf-8')
-    const parsedQuotes = parseKnowledge(onDiskQuotes)
-    expect(parsedQuotes.frontmatter?.title).toBe('The "Real" Deal')
 
-    // Test newline in title
-    const resNewlines = await initKnowledge(rootDir, 'NewlineModel', {
-      template_url: TEMPLATE_URL,
-      blueprint_name: blueprint_name,
-      title: 'Line1\nLine2',
-    })
-    expect(resNewlines.success).toBe(true)
-    const onDiskNewlines = await readFile(resNewlines.filePath!, 'utf-8')
-    const parsedNewlines = parseKnowledge(onDiskNewlines)
-    expect(parsedNewlines.frontmatter.title).toBe('Line1\nLine2')
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0].code).toBe('BLUEPRINT_UNRESOLVED')
+    expect(result).not.toHaveProperty('filePath')
+    expect(result).not.toHaveProperty('content')
+    expect(existsSync(join(knowledgeDir, 'Orphan_NN.md'))).toBe(false)
+    expect(await readdir(changesDir)).toEqual([])
   })
 
-  /** Write a second level-2 template at a DIFFERENT spec_version so inference
-   * triangulation can prove the emitted version comes from the resolved parent
-   * (not a hardcoded constant). */
-  async function stubBusinessTemplateV010() {
-    await writeFile(
-      join(specsDir, 'business_V_0-1-0_NN.md'),
-      [
-        '---',
-        'blueprint_version: "V_0-1-0"',
-        'level: 2',
-        'title: "Local Business Template V010"',
-        'parent_spec:',
-        '  name: "iNNfo_V_0-3-0"',
-        '  url: "https://example.com/iNNfo_V_0-3-0_NN.md"',
-        '---',
-        '',
-        '# NN Concept Definition',
-        '',
-        '## NN Concept Definition: Work',
-        'type:: list',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
-    await stubSpecChain()
-  }
-
-  describe('version-aware frontmatter (validator-robustness 4.1)', () => {
-    it('Version inferred: frontmatter carries the resolved parent spec_version with no override', async () => {
-      await stubBusinessTemplate()
-
-      const result = await initKnowledge(rootDir, 'Inferred', {
-        template_url: TEMPLATE_URL,
-        blueprint_name: blueprint_name,
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.templateResolved).toBe(true)
-      expect(result.content).toContain('knowledge_version: "V_0-2-0"')
-    })
-
-    it('Version inferred (triangulation): a different parent version yields that version, not a constant', async () => {
-      await stubBusinessTemplateV010()
-
-      const result = await initKnowledge(rootDir, 'InferredOld', {
-        template_url: 'https://example.com/business_V_0-1-0_NN.md',
-        blueprint_name: 'business_V_0-1-0',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.templateResolved).toBe(true)
-      expect(result.content).toContain('knowledge_version: "V_0-1-0"')
-    })
-
-    it('Override wins: explicit knowledge_version is used when the parent cannot be resolved', async () => {
-      const result = await initKnowledge(rootDir, 'OverrideOnly', {
-        template_url: TEMPLATE_URL,
-        blueprint_name: blueprint_name,
-        knowledge_version: 'V_0-3-0',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.templateResolved).toBe(false)
-      expect(result.content).toContain('knowledge_version: "V_0-3-0"')
-    })
-
-    it('Override wins (triangulation): a matching explicit version is accepted and carried', async () => {
-      await stubBusinessTemplate()
-
-      const result = await initKnowledge(rootDir, 'OverrideMatch', {
-        template_url: TEMPLATE_URL,
-        blueprint_name: blueprint_name,
-        knowledge_version: 'V_0-2-0',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.content).toContain('knowledge_version: "V_0-2-0"')
-    })
-
-    it('Explicit differing version accepted: decoupled knowledge_version succeeds without VERSION_MISMATCH (D9)', async () => {
-      const { existsSync } = await import('node:fs')
-      await stubBusinessTemplate()
-
-      const result = await initKnowledge(rootDir, 'Mismatch', {
-        template_url: TEMPLATE_URL,
-        blueprint_name: blueprint_name,
-        knowledge_version: 'V_9-9-9',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.templateResolved).toBe(true)
-      expect(result.validation.valid).toBe(true)
-      expect(result.content).toContain('knowledge_version: "V_9-9-9"')
-      expect(existsSync(join(rootDir, 'Mismatch_NN.md'))).toBe(true)
-    })
-  })
-
-  it('does not write file to disk if document validation fails', async () => {
-    const { existsSync } = await import('node:fs')
-    // Stub an invalid template that produces fatal validation errors
-    await writeFile(
-      join(specsDir, 'broken_V_0-2-0_NN.md'),
+  it('a bluepriNNt that does not compose is refused without writing the document', async () => {
+    await stubSpec(
+      'broken_V_0-2-0',
       [
         '---',
         'blueprint_version: "V_0-2-0"',
@@ -300,117 +130,80 @@ describe('initKnowledge', () => {
         'type:: list',
         '',
       ].join('\n'),
-      'utf-8',
     )
-    await stubSpecChain()
-
-    const targetFile = join(rootDir, 'ShouldNotExist_NN.md')
-
-    // If validation fails prior to write, file should not exist on disk
-    const result = await initKnowledge(rootDir, 'ShouldNotExist', {
-      template_url: 'https://example.com/broken_V_0-2-0_NN.md',
+    const result = await run('ShouldNotExist', {
       blueprint_name: 'broken_V_0-2-0',
+      blueprint_url: 'https://example.com/broken_V_0-2-0_NN.md',
     })
 
-    expect(result.validation.valid).toBe(false)
-    expect(existsSync(targetFile)).toBe(false)
-    // model-scaffold-robustness (H1): a failed init must never return a
-    // success-shaped payload — filePath/content are omitted entirely, not
-    // just left pointing at a file that was never written.
     expect(result.success).toBe(false)
-    expect(result.filePath).toBeUndefined()
-    expect(result.content).toBeUndefined()
+    expect(result.validation.valid).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'ShouldNotExist_NN.md'))).toBe(false)
+    expect(result).not.toHaveProperty('filePath')
+    expect(result).not.toHaveProperty('content')
   })
 
-  describe('model-scaffold-robustness (H1)', () => {
-    /** A template with a `type:: reference` field carrying no concrete target
-     * resolvable at scaffold time, alongside an ordinary `string` field. */
-    async function stubReferenceFieldTemplate() {
-      await writeFile(
-        join(specsDir, 'reftpl_V_0-1-0_NN.md'),
-        [
-          '---',
-          'blueprint_version: "V_0-1-0"',
-          'level: 2',
-          'title: "Reference Field Template"',
-          'parent_spec:',
-          '  name: "iNNfo_V_0-3-0"',
-          '  url: "https://example.com/iNNfo_V_0-3-0_NN.md"',
-          '---',
-          '',
-          '# NN Concept Definition',
-          '',
-          '## NN Concept Definition: Item',
-          'type:: list',
-          '',
-          '# NN Field Definition',
-          '',
-          '## NN Field Definition: linkedItem',
-          'concept:: Item',
-          'type:: reference',
-          '',
-          '## NN Field Definition: label',
-          'concept:: Item',
-          'type:: string',
-          '',
-        ].join('\n'),
-        'utf-8',
-      )
-      await stubSpecChain()
-    }
+  it('a domain without kNNowledge/ fails and writes no document', async () => {
+    await rm(knowledgeDir, { recursive: true, force: true })
+    const result = await run('NoDir', BUSINESS)
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0].code).toBe('DOMAIN_LAYOUT_INVALID')
+    expect(existsSync(join(rootDir, 'NoDir_NN.md'))).toBe(false)
+  })
 
-    it('omits the placeholder for a reference field with no concrete target instead of a dangling wikilink', async () => {
-      await stubReferenceFieldTemplate()
+  it('rejects an id that escapes the domain', async () => {
+    const result = await run('../escape', BUSINESS)
+    expect(result.success).toBe(false)
+    expect(result).not.toHaveProperty('filePath')
+  })
 
-      const result = await initKnowledge(rootDir, 'RefModel', {
-        template_url: 'https://example.com/reftpl_V_0-1-0_NN.md',
-        blueprint_name: 'reftpl_V_0-1-0',
-      })
+  it('escapes quotes and newlines in the title and round-trips', async () => {
+    const quotes = await run('QuotesModel', { ...BUSINESS, title: 'The "Real" Deal' })
+    expect(quotes.success).toBe(true)
+    expect(parseKnowledge(await readFile(quotes.filePath!, 'utf-8')).frontmatter.title).toBe('The "Real" Deal')
 
-      expect(result.success).toBe(true)
-      expect(result.validation.valid).toBe(true)
-      expect(result.content).not.toContain('[[Target Element]]')
-      expect(result.content).not.toContain('linkedItem::')
-      expect(result.content).toContain('label:: <string>')
+    const newlines = await run('NewlineModel', { ...BUSINESS, title: 'Line1\nLine2' })
+    expect(newlines.success).toBe(true)
+    expect(parseKnowledge(await readFile(newlines.filePath!, 'utf-8')).frontmatter.title).toBe('Line1\nLine2')
+  })
+
+  describe('version-aware frontmatter', () => {
+    it('inferred from the resolved parent bluepriNNt', async () => {
+      const result = await run('Inferred', BUSINESS)
+      expect(result.content).toContain('knowledge_version: "V_0-2-0"')
     })
 
-    /** The REAL, shipped `blank` template (single `type:: text` concept, no
-     * `includes`) — read from disk so this test proves the production
-     * template scaffolds clean, not a synthetic stand-in. */
-    async function stubRealBlankTemplate() {
-      const blankRaw = await readFile(
-        join(
-          import.meta.dirname!,
-          '..',
-          '..',
-          '..',
-          '..',
-          'specs',
-          'bluepriNNts',
-          'blank',
-          'spec_NN.md',
-        ),
-        'utf-8',
-      )
-      await writeFile(join(specsDir, 'blank_V_0-2-0_NN.md'), blankRaw, 'utf-8')
-      await stubSpecChain()
-    }
-
-    it('scaffolds the real blank template clean on first attempt (a lone type:: text concept gets a real element marker)', async () => {
-      await stubRealBlankTemplate()
-
-      const result = await initKnowledge(rootDir, 'BlankModel', {
-        template_url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md',
-        blueprint_name: 'blank_V_0-2-0',
+    it('inferred (triangulation): a different parent version yields that version', async () => {
+      await stubSpec('business_V_0-1-0', BUSINESS_STUB.replace('V_0-2-0', 'V_0-1-0'))
+      const result = await run('InferredOld', {
+        blueprint_name: 'business_V_0-1-0',
+        blueprint_url: 'https://example.com/business_V_0-1-0_NN.md',
       })
-
       expect(result.success).toBe(true)
-      expect(result.templateResolved).toBe(true)
-      expect(result.scaffolded).toBe(true)
-      expect(result.validation.valid).toBe(true)
-      expect(
-        result.validation.errors.some((e) => e.message.includes('No NN element markers found')),
-      ).toBe(false)
+      expect(result.content).toContain('knowledge_version: "V_0-1-0"')
+    })
+
+    it('an explicit differing version is accepted (no VERSION_MISMATCH)', async () => {
+      const result = await run('Acme', { ...BUSINESS, knowledge_version: 'V_9-9-9' })
+      expect(result.success).toBe(true)
+      expect(result.content).toBe(golden('businessV999'))
+    })
+  })
+
+  describe('scaffold of the shipped and edge-case bluepriNNts', () => {
+    it('omits the placeholder of a reference field with no concrete target', async () => {
+      await stubSpec('reftpl_V_0-1-0', REFERENCE_STUB)
+      const result = await run('RefModel', { blueprint_name: 'reftpl_V_0-1-0', blueprint_url: REFERENCE_URL })
+      expect(result.success).toBe(true)
+      expect(result.content).toBe(golden('ref'))
+      expect(result.content).not.toContain('linkedItem::')
+    })
+
+    it('scaffolds the real blank bluepriNNt clean (a lone text concept gets an element marker)', async () => {
+      await stubSpec('blank_V_0-2-0', BLANK_SPEC)
+      const result = await run('BlankModel', { blueprint_name: 'blank_V_0-2-0', blueprint_url: BLANK_URL })
+      expect(result.success).toBe(true)
+      expect(result.content).toBe(golden('blank'))
       expect(result.content).toMatch(/##\s+NN\s+Content:\s+.+/)
     })
   })

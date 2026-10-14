@@ -20,6 +20,8 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     root = await mkdtemp(join(tmpdir(), 'innfo-mcp-inc-'))
     specsDir = join(root, 'specs')
     await mkdir(specsDir, { recursive: true })
+    // init_knowledge is an add_model wrapper: the domain must have kNNowledge/.
+    await mkdir(join(root, 'kNNowledge'), { recursive: true })
     await writeFile(join(specsDir, 'iNNfo_V_0-1-0_NN.md'), L1)
     // Hermetic temp cache: file:// template saves must never leak into the
     // shared OS temp cache seen by other suites.
@@ -125,16 +127,21 @@ describe('MCP — includes composition + init_model scaffolding', () => {
       ].join('\n'),
     )
 
-    const res = await initKnowledge(root, 'my_model_V_1-0-0_demo_tpl', {
-      template_url: tplUrl,
-      blueprint_name: 'demo_tpl',
-      title: 'My Model',
-    })
+    const res = await initKnowledge(
+      root,
+      'my_model_V_1-0-0_demo_tpl',
+      { template_url: tplUrl, blueprint_name: 'demo_tpl', title: 'My Model' },
+      {
+        open: false,
+        regenerate: {
+          writer: async () => ({ path: join(root, 'domaiNN_console.html'), status: 'written', opened: false }),
+          syncManifest: async () => ({}),
+        },
+      },
+    )
 
     expect(res.success).toBe(true)
-    expect(res.templateResolved).toBe(true)
-    expect(res.scaffolded).toBe(true)
-    const content = await readFile(res.filePath, 'utf-8')
+    const content = await readFile(res.filePath!, 'utf-8')
     // Version-aware scaffold (validator-robustness): frontmatter versions are
     // inferred from the resolved parent template (stamped V_0-1-0 above).
     expect(content).toContain('spec_version: "V_0-4-0"')

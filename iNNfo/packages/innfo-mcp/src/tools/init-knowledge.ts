@@ -1,91 +1,18 @@
-import { readFile, writeFile, stat } from 'node:fs/promises'
-import { basename, join } from 'node:path'
-import { resolveBlueprintSchema, validateDocument, slugify } from '@cognnitive/innfo-core'
-import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
-import { resolveBlueprintWithCache, findKnowledgeFile, normalizeId } from './spec.js'
-import { normalizeVersion } from './resolver-node.js'
-import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
+import { readFile, rm } from 'node:fs/promises'
+import { join } from 'node:path'
+import type { ChangeItem, ValidationError } from '@cognnitive/innfo-core'
+import { normalizeId } from './spec.js'
+import { isSafeRelativeId } from './path-guard.js'
+import { applyChange } from './apply-change.js'
+import { writeProposedChangeset } from './propose-changeset.js'
+import { applyWithConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 
 /**
- * Build a starter level-3 body from a resolved template schema: an index
- * block, one `# NN <Concept>` section per concept (a prose stub for `text`
- * concepts, one placeholder Element with its declared fields for the rest),
- * a seeded `# NN matrices:` block per declared Matrix (example row/column
- * from the source/target Concepts), and an `item-markers matrix` seeded with
- * the declared Marker columns when any Marker is declared.
+ * `init_knowledge` is a thin wrapper over the changeset path: it builds a one-change
+ * `add_model` proposal, writes it with the shared proposed-changeset writer and applies
+ * it through the normal apply path, so every model creation is recorded as a change.
+ * It is create-only: an existing id fails with `MODEL_EXISTS` and the file is untouched.
  */
-function scaffoldBodyFromSchema(schema: {
-  concepts: Array<{
-    name: string
-    type: string
-    fields?: Array<{ name: string; type: string; options?: string[] }>
-  }>
-  markers?: Array<{ name: string }>
-  matrices: Array<{ name: string; source?: string; target?: string }>
-}): string {
-  const lines: string[] = []
-  const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
-  const listConcepts = schema.concepts.filter((c) => c.type !== 'text')
-
-  lines.push(
-    '> [!NOTE]',
-    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
-    '',
-  )
-  if (schema.concepts.length > 0) {
-    lines.push('# NN index')
-    for (const c of schema.concepts) lines.push(`* [[${c.name}]]`)
-    lines.push('')
-  }
-  for (const c of schema.concepts) {
-    lines.push(`# NN ${c.name}`)
-    if (c.type === 'text') {
-      if (listConcepts.length === 0) {
-        const ex = exampleFor(c.name)
-        lines.push(`## NN ${c.name}: ${ex}`)
-        lines.push(`slug:: ${slugify(ex)}`)
-      }
-      lines.push(`_Describe ${c.name} here._`, '')
-      continue
-    }
-    const ex = exampleFor(c.name)
-    lines.push(`## NN ${c.name}: ${ex}`)
-    lines.push(`slug:: ${slugify(ex)}`)
-    for (const f of c.fields ?? []) {
-      if (f.type === 'reference') {
-        continue
-      }
-      const hint =
-        f.type === 'select' && f.options && f.options.length > 0
-          ? f.options[0]
-          : `<${f.type}>`
-      lines.push(`${f.name}:: ${hint}`)
-    }
-    lines.push('')
-  }
-  for (const m of schema.matrices) {
-    const row = exampleFor(m.source)
-    const col = exampleFor(m.target)
-    lines.push(
-      `# NN matrices: ${m.name}`,
-      `| ${m.source ?? 'Row'} \\ ${m.target ?? 'Col'} | ${col} |`,
-      '| :--- | :---: |',
-      `| ${row} | - |`,
-      '',
-    )
-  }
-  const markerNames = (schema.markers ?? []).map((mk) => mk.name)
-  if (markerNames.length > 0 && listConcepts.length > 0) {
-    lines.push(
-      '# NN matrices: item-markers matrix',
-      `| Item \\ Marker | ${markerNames.join(' | ')} |`,
-      `| :--- | ${markerNames.map(() => ':---:').join(' | ')} |`,
-      `| ${exampleFor(listConcepts[0].name)} | ${markerNames.map(() => '-').join(' | ')} |`,
-      '',
-    )
-  }
-  return lines.join('\n').trimEnd() + '\n'
-}
 
 export interface InitKnowledgeArgs {
   template_url?: string
@@ -93,182 +20,113 @@ export interface InitKnowledgeArgs {
   blueprint_name?: string
   title?: string
   knowledge_version?: string
-  model_slug?: string
+}
+
+export interface InitKnowledgeResult {
+  success: boolean
+  /** Present only when the document was written. */
+  filePath?: string
+  /** Present only when the document was written. */
+  content?: string
+  /** Workspace-relative path of the applied `add_model` changeset. */
+  changeset?: string
+  status?: string
+  warnings: string[]
+  validation: { valid: boolean; errors: ValidationError[]; warnings: ValidationError[] }
+  errors?: Array<{ path: string; message: string; code?: string }>
+  console?: ConsoleOutcome
+  next_steps?: NextSteps
+  manifest?: unknown
+}
+
+function failure(
+  errors: Array<{ path: string; message: string; code?: string }>,
+  extra: Partial<InitKnowledgeResult> = {},
+): InitKnowledgeResult {
+  return {
+    success: false,
+    warnings: [],
+    errors,
+    validation: {
+      valid: false,
+      errors: errors.map((e) => ({ path: e.path, message: e.message, severity: 'error' as const })),
+      warnings: [],
+    },
+    ...extra,
+  }
 }
 
 export async function initKnowledge(
   rootDir: string,
   id: string,
   args: InitKnowledgeArgs,
-  opts?: {
-    cacheDir?: string
-    inPlace?: boolean
-  },
-): Promise<{
-  success: boolean
-  filePath?: string
-  content?: string
-  templateResolved: boolean
-  scaffolded: boolean
-  warnings: string[]
-  validation: { valid: boolean; errors: ValidationError[]; warnings: ValidationError[] }
-}> {
-  const cleanId = normalizeId(id)
-  const warnings: string[] = []
-  const blueprintName = args.blueprint_name || ''
-  const blueprintUrl = args.blueprint_url || args.template_url || ''
-  const requestedVersion = args.knowledge_version
-
-  let filePath = await findKnowledgeFile(rootDir, id)
-
-  if (!filePath) {
-    const knowledgeDir = join(rootDir, 'kNNowledge')
-    let targetDir = rootDir
-    try {
-      const stK = await stat(knowledgeDir)
-      if (stK.isDirectory()) targetDir = knowledgeDir
-    } catch {
-      targetDir = rootDir
-    }
-    const target = join(targetDir, `${cleanId}_NN.md`)
-    // The scaffold branch creates a new file from an untrusted id — it must be
-    // confined to the workspace just like the lookup branch above.
-    if (!isSafeRelativeId(id) || !isInsideRoot(rootDir, target)) {
-      throw new Error(`Invalid model id "${id}": resolves outside the workspace root`)
-    }
-    filePath = target
-  }
-
-  let body = ''
-  try {
-    const currentContent = await readFile(filePath, 'utf-8')
-    body = currentContent.replace(/^---[\s\S]*?---\n?/, '').trim()
-  } catch (err) {
-    /* v8 ignore start */
-    // swallow deliberately: new file — no existing body to preserve.
-    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-      console.warn(`[init-model] Failed to read existing body from ${filePath}: ${err}`)
-    }
-    /* v8 ignore stop */
-  }
-
-  // Resolve the template so we can (a) confirm it exists and (b) scaffold a
-  // starter body when the file has none.
-  let templateResolved = false
-  let scaffolded = false
-  let template: SpecDocument | null = null
-  let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
-  const templateErrors: string[] = []
-  try {
-    const resolved = await resolveBlueprintWithCache(
-      rootDir,
-      blueprintUrl,
-      blueprintName,
-      opts,
-    )
-    template = resolved.template
-    resolveInclude = resolved.resolveInclude
-    if (resolved.template) {
-      templateResolved = true
-      const hasConceptSections = /^#\s+NN\s+(?!index\b)\S/im.test(body)
-      if (!hasConceptSections) {
-        const composed = resolveBlueprintSchema(
-          resolved.template.rawContent,
-          resolved.resolveInclude,
-        )
-        for (const e of composed.errors) {
-          templateErrors.push(`${e.path}: ${e.message}`)
-          warnings.push(`${e.path}: ${e.message}`)
-        }
-        const scaffold = scaffoldBodyFromSchema(composed.schema)
-        body = body ? `${scaffold}\n${body}` : scaffold
-        scaffolded = true
-      }
-    } else {
-      warnings.push(
-        `Template "${blueprintName}" could not be resolved from "${blueprintUrl}" — frontmatter written, body not scaffolded.`,
-      )
-    }
-  } catch (err) {
-    warnings.push(`Template resolution failed: ${err instanceof Error ? err.message : String(err)}`)
-  }
-
-  const notice = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).`
-
-  if (!body.includes('> [!NOTE]')) {
-    body = body ? notice + '\n\n' + body : notice
-  }
-
-  // Version-aware frontmatter: decoupled knowledge_version per D9.
-  // Explicit knowledge_version is used when provided, otherwise falls back to inferred
-  // blueprint version or default 'V_0-1-0'. No VERSION_MISMATCH rejection is enforced.
-  const inferredVersion =
-    template?.frontmatter && typeof (template.frontmatter.blueprint_version ?? template.frontmatter.spec_version) === 'string'
-      ? String(template.frontmatter.blueprint_version ?? template.frontmatter.spec_version)
-      : null
-
-  const knowledgeVersion = requestedVersion || inferredVersion || 'V_0-1-0'
-  const specVersion = 'V_0-4-0'
-  const title = args.title || cleanId
-  const modelSlug = args.model_slug || slugify(cleanId)
-
-  const esc = (s: string) => JSON.stringify(s)
-  const frontmatter = [
-    '---',
-    `spec_version: ${esc(specVersion)}`,
-    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"',
-    `model_slug: ${esc(modelSlug)}`,
-    'level: 3',
-    'parent_spec:',
-    `  name: ${esc(blueprintName)}`,
-    `  url: ${esc(blueprintUrl)}`,
-    `knowledge_version: ${esc(knowledgeVersion)}`,
-    `title: ${esc(title)}`,
-    '---',
-  ].join('\n')
-
-  const newContent = frontmatter + '\n\n' + body.trim() + '\n'
-
-  // Validate before write (hygiene + schema) so invalid models are never written to disk.
-  const doc = validateDocument(newContent, {
-    fileName: basename(filePath),
-    template,
-    resolveInclude,
-  })
-
-  // If template is invalid or document validation fails, abort without touching disk.
-  if (templateErrors.length > 0 || (templateResolved && !doc.valid)) {
-    return {
-      success: false,
-      templateResolved,
-      scaffolded: false,
-      warnings,
-      validation: {
-        valid: false,
-        errors: [
-          ...doc.errors,
-          ...templateErrors.map((m) => ({
-            path: 'template',
-            message: m,
-            severity: 'error' as const,
-          })),
-        ],
-        warnings: doc.warnings,
+  opts: { open?: boolean; regenerate?: RegenerateOptions } = {},
+): Promise<InitKnowledgeResult> {
+  if (!isSafeRelativeId(id)) {
+    return failure([
+      {
+        path: 'id',
+        code: 'ADD_MODEL_INVALID_TARGET',
+        message: `Invalid model id "${id}": resolves outside the workspace root`,
       },
-    }
+    ])
+  }
+  const cleanId = normalizeId(id)
+  const change: ChangeItem = {
+    id: 'c-01',
+    op: 'add_model',
+    target: cleanId,
+    blueprint_name: args.blueprint_name || '',
+    blueprint_url: args.blueprint_url || args.template_url || '',
+    ...(args.title ? { name: args.title } : {}),
+    ...(args.knowledge_version ? { knowledge_version: args.knowledge_version } : {}),
+  }
+  if (!change.blueprint_name || !change.blueprint_url) {
+    return failure([
+      { path: 'blueprint', code: 'INVALID_OPERATION', message: 'init_knowledge requires blueprint_name and blueprint_url' },
+    ])
   }
 
-  await writeFile(filePath, newContent, 'utf-8')
+  const written = await writeProposedChangeset(rootDir, {
+    changes: [change],
+    title: `Create model ${cleanId}`,
+    author: 'agent',
+  })
+  const payload = (await applyWithConsole(rootDir, () => applyChange(rootDir, written.path), {
+    open: opts.open ?? false,
+    ...opts.regenerate,
+  })) as {
+    success: boolean
+    status?: string
+    newPath?: string
+    errors?: Array<{ path: string; message: string; code?: string }>
+    warnings?: Array<{ path: string; message: string }>
+    console?: ConsoleOutcome
+    next_steps?: NextSteps
+    manifest?: unknown
+  }
 
+  if (!payload.success || payload.status !== 'applied') {
+    // A rejected proposal changed nothing and is not a record worth keeping.
+    if (payload.status === 'rejected') await rm(written.absolutePath, { force: true })
+    return failure(
+      payload.errors ?? [{ path: cleanId, message: 'The add_model change was not applied' }],
+      payload.status === 'rejected' ? { status: payload.status } : { status: payload.status, changeset: written.path },
+    )
+  }
+
+  const filePath = payload.newPath ?? join(rootDir, 'kNNowledge', `${cleanId}_NN.md`)
+  const content = await readFile(filePath, 'utf-8')
   return {
     success: true,
-    templateResolved,
-    scaffolded,
-    warnings,
     filePath,
-    content: newContent,
-    validation: { valid: doc.valid, errors: doc.errors, warnings: doc.warnings },
+    content,
+    changeset: written.path,
+    status: payload.status,
+    warnings: (payload.warnings ?? []).map((w) => w.message),
+    validation: { valid: true, errors: [], warnings: [] },
+    ...(payload.console ? { console: payload.console } : {}),
+    ...(payload.next_steps ? { next_steps: payload.next_steps } : {}),
+    ...(payload.manifest !== undefined ? { manifest: payload.manifest } : {}),
   }
 }
-

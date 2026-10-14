@@ -60,7 +60,7 @@ async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<strin
 }
 
 /** Finds the domain/workspace manifest (`domaiNN*.md`, `domain*.md`, `workspace*.md` at the domain root). */
-async function findManifestPath(root: string): Promise<string | null> {
+export async function findManifestPath(root: string): Promise<string | null> {
   let entries
   try {
     entries = await readdir(root, { withFileTypes: true })

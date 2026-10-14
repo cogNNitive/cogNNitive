@@ -125,11 +125,11 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists exactly the 19 canonical tools and no retired names', async () => {
+  it('lists exactly the 21 canonical tools and no retired names', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(19)
+    expect(tools).toHaveLength(21)
 
     const canonicalNames = [
       'list_knowledge',
@@ -139,6 +139,8 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       'validate_knowledge',
       'apply_change',
       'regenerate_console',
+      'propose_changeset',
+      'init_domain',
       'validate_knowledge_url',
       'validate_blueprint',
       'init_knowledge',
@@ -399,13 +401,16 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     })
 
     it('initializes a knowledge document file successfully with innfo-init-knowledge@1 envelope', async () => {
+      await stubBlueprintChain()
+      await mkdir(join(rootDir, 'kNNowledge'), { recursive: true })
       const result = await client.callTool({
         name: 'init_knowledge',
         arguments: {
           id: 'test_doc',
-          blueprint_name: 'test_blueprint',
-          blueprint_url: 'https://example.com/spec_NN.md',
+          blueprint_name: 'business_V_0-2-0',
+          blueprint_url: 'https://example.com/business_V_0-2-0_NN.md',
           domain: rootDir,
+          open: false,
         },
       })
       expect(result.isError).toBeFalsy()
@@ -413,6 +418,26 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       expect(parsed.version).toBe('innfo-init-knowledge@1')
       expect(parsed.success).toBe(true)
       expect(parsed.filePath).toContain('test_doc_NN.md')
+      expect(parsed.changeset).toMatch(/^changes\/.+_changes_NN\.md$/)
+      expect(parsed.next_steps.notice).toContain('The changeset was applied')
+    })
+
+    it('fails without filePath or content when the blueprint cannot be resolved', async () => {
+      await mkdir(join(rootDir, 'kNNowledge'), { recursive: true })
+      const result = await client.callTool({
+        name: 'init_knowledge',
+        arguments: {
+          id: 'test_doc',
+          blueprint_name: 'ghost_V_0-1-0',
+          blueprint_url: 'https://example.com/ghost_V_0-1-0_NN.md',
+          domain: rootDir,
+          open: false,
+        },
+      })
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.success).toBe(false)
+      expect(parsed).not.toHaveProperty('filePath')
+      expect(parsed).not.toHaveProperty('content')
     })
   })
 

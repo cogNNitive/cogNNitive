@@ -542,7 +542,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
 
     // A changeset file was synthesized in changes/
     const csFiles = await readdir(changesDir)
-    const synthesized = csFiles.filter((f) => f.includes('strategy_agent_') && f.endsWith('_changes_NN.md'))
+    const synthesized = csFiles.filter((f) => f.includes('_agent_') && f.endsWith('_changes_NN.md'))
     expect(synthesized.length).toBe(1)
 
     // Synthesized changeset is sealed and marked applied
