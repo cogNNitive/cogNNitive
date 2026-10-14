@@ -103,3 +103,26 @@ this change. It MUST regenerate the console and return `next_steps` like `apply_
 - GIVEN `kNNowledge/acme_NN.md` exists with a broken frontmatter
 - WHEN `init_knowledge` runs for `acme`
 - THEN it fails with `MODEL_EXISTS` and the file is byte-identical to before
+
+### Requirement: Direct `apply_change` operations are a closed, classified set
+The `apply_change` tool MUST accept an operation only if it is a changeset `ChangeOp`, a maintenance operation (`bump_version`, `generate_index`, `freeze_slugs`) or a schema operation (`add_concept`, `add_field`, `set_marker`); any other operation MUST fail with `UNKNOWN_OPERATION` and write nothing. Every change to Level-3 content MUST go through a changeset; maintenance and schema operations MAY write the model file directly because they alter no Level-3 content.
+
+#### Scenario: Maintenance operation writes directly
+- GIVEN a frozen model `acme`
+- WHEN `apply_change` runs `bump_version` on `acme`
+- THEN the model file is rewritten and no changeset is written under `changes/`
+
+#### Scenario: Content operation is synthesized as a changeset
+- GIVEN a model `acme` with an element `risk-1`
+- WHEN `apply_change` runs a content operation (for example `set_field`) with `id` and `args`
+- THEN one applied changeset is written under `changes/`
+
+#### Scenario: Unclassified operation is rejected
+- GIVEN an operation name that is neither a `ChangeOp` nor in the maintenance or schema lists
+- WHEN `apply_change` receives it
+- THEN it fails with `UNKNOWN_OPERATION` and no file is changed
+
+#### Scenario: Partition is exhaustive
+- GIVEN the set of operations the engine implements
+- WHEN the classification test compares it with `ChangeOp`, the maintenance list and the schema list
+- THEN every implemented operation belongs to exactly one list

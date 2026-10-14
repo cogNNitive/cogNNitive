@@ -316,10 +316,16 @@ notes:: Migrated from the old domain
 3. **Manifest governance.** The post-commit `sync_domain_manifest` treats the manifest
    model list as a derived index. If the manifest is authored data, it should instead be
    updated by a change in the same changeset.
-4. **Bare ops bypass changesets.** `apply_change` with `bump_version`, `generate_index`
-   or the level-2 primitives (`add_concept`, `add_field`, `set_marker`) still writes
-   directly via `saveKnowledge` (`apply-change.ts:1257-1308`), contradicting
-   "changesets are the only mechanism". Follow-up change.
+4. **Bare ops bypass changesets.** RESOLVED (maintainer, 2026-10-14): the principle is
+   "every change to Level-3 *content* goes through a changeset". The direct operations
+   become a closed, named set in `apply-change.ts` (today implicit: anything that is not a
+   `ChangeOp` falls through to the engine, `apply-change.ts:1395-1408`): `MAINTENANCE_OPS`
+   (`bump_version`, `generate_index`, `freeze_slugs` — mechanical, no Level-3 meaning) and
+   `SCHEMA_OPS` (`add_concept`, `add_field`, `set_marker` — Level-2 bluepriNNt authoring;
+   trace = git + `template_version`). Anything else fails `UNKNOWN_OPERATION`. They are NOT
+   turned into changesets (no citation to carry, no Level-2 changeset) and leave no
+   auto-changeset. Open check (task 7.8): the interaction of `bump_version` (renames the
+   file) with changeset sealing by version.
 5. **`mcp-live-preview` removal.** RESOLVED: S5 REMOVES the capability by exact requirement names and deletes `withPreview` (S5a). S5 lists only the four `editor-*` specs; it must also
    REMOVE `mcp-live-preview` and delete `withPreview` in `server.ts`.
 6. **Retired app link.** RESOLVED: S5c retargets the badge in the shared scaffold, templates and registry together. The scaffold notice links `https://cognnitive.com/innfo/app/`

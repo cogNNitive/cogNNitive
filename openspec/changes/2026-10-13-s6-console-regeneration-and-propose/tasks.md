@@ -204,6 +204,16 @@ independent of S6b/S6c.
 - [ ] 7.6 TEST: the proposal `next_steps.notice` carries the four steps in order and the
       OK shortcut; with the console failed it points at the changeset file.
       [console-regeneration: Review-and-approve notice on tool results]
+- [ ] 7.7 TEST (`innfo-mcp`): the direct-operation partition is exhaustive and exclusive —
+      every operation the engine implements is in exactly one of `ChangeOp`,
+      `MAINTENANCE_OPS`, `SCHEMA_OPS`; an unclassified operation fails `UNKNOWN_OPERATION`
+      and writes nothing; the six direct operations write the model file and leave
+      `changes/` untouched. [changeset-apply-engine: Direct `apply_change` operations are a
+      closed, classified set]
+- [ ] 7.8 Implement the two named lists and the closed dispatch in `apply-change.ts`
+      (replace the implicit `!isChangeOp(op)` fall-through); check `bump_version` against
+      changeset sealing by version and record the result in `design.md`.
+      [changeset-apply-engine: Direct `apply_change` operations are a closed, classified set]
 
 ## 8. `init_domain` and migration reuse (S6c)
 
