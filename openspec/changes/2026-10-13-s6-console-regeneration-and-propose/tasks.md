@@ -266,7 +266,7 @@ independent of S6b/S6c.
 - [x] 10.2 Grep guard: no S6 code or doc references `PREVIEW_APP_URL`, the hosted app or
       a live-preview URL as the place to review changes. [console-regeneration: Preview
       is a file]
-- [ ] 10.3 `npm run typecheck` + `npm run typecheck:scripts`; `npm test` for
+- [x] 10.3 `npm run typecheck` + `npm run typecheck:scripts`; `npm test` for
       `innfo-core` and `innfo-mcp`; `node scripts/verify.js` (mirrors, drift, catalog,
       discovered node suites). [all requirements]
 - [ ] 10.4 Regenerate the TestLab domain console with `--no-open`; open it once by hand

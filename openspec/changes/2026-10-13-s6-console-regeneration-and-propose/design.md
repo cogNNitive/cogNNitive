@@ -291,6 +291,13 @@ notes:: Migrated from the old domain
   `op:: add_element` with `concept`, `name` and `fields`; `projectElements` already
   projects new drafts. No new export path.
 - Composed of existing `InnfoUI` primitives and the shared modal; offline `file://`.
+- Implemented as `InnfoUI.NewElementModal` (same dialog shell and field widgets as
+  `EditModal`) opened by `controller.openNew()` from a banner button; the button is shown
+  only when the schema declares concepts.
+- The console export stamps `blueprint_version` from `meta.changesBlueprintVersion`, set by
+  `buildConsolePayload` from the canonical registry entry for `changes` (and copied into the
+  domain meta by `export-console.mjs`). The previous hardcoded `V_0-2-0` is gone; an export
+  without that field is refused with a "regenerate the console" error instead of guessing.
 - If the slice runs long, this group is dropped without affecting the rest.
 
 ## D10 — Delivery
