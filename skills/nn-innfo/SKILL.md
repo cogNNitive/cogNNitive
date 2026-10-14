@@ -456,10 +456,27 @@ Do NOT hardcode specification URLs or versions in this skill: spec file names an
 
 Every skill-driven `.md` write (new model, app, specialization, or full-file rewrite) MUST go through a single canonical path so files validate cleanly:
 
-1. **Preferred:** scaffold via `innfo-mcp_init_knowledge` (frontmatter version inferred from the resolved parent — never hand-written), then apply content with `innfo-mcp_apply_change` or a documented file-write tool.
+1. **Preferred:** create the model with `innfo-mcp_init_knowledge` (create-only; it records an applied `add_model` changeset and infers the frontmatter version from the resolved parent, never hand-written), or propose it with `innfo-mcp_propose_changeset` (`add_model`). Then change content through a changeset: `innfo-mcp_propose_changeset` for reviewed changes, `innfo-mcp_apply_change` for direct operations. There is no other file-write path.
 2. **Encoding:** UTF-8 without BOM, LF line endings, exactly one trailing newline.
 3. **FORBIDDEN:** shell `echo` / `printf` redirection for file writes — they mangle encodings, join lines, and drop trailing newlines.
 4. **Verify:** accented characters MUST round-trip byte-identical; re-validate with `innfo-mcp_validate_knowledge` — no encoding or line-joining diagnostics may appear.
+
+#### Review-and-approve flow (changesets)
+
+Every content change a user should review goes through a changeset, never a direct file edit:
+
+1. `innfo-mcp_propose_changeset({ operations })` writes a sealed changeset with `status: proposed` under `changes/`. You derive the operations (`update_field`, `add_element`, `remove_element`, `rename_element`, `rename_concept`, `update_matrix_cell`, `comment`, `add_model`); the tool does not interpret conversations. It validates before writing and never applies.
+2. The tool regenerates the domain console (`artifacts/<stem>_console/<stem>_console.html`, a stable file overwritten in place) and opens it in a browser tab. `innfo-mcp_regenerate_console` does the same on demand and is the retry path when a regeneration failed.
+3. The user reviews the proposal in the console, can add drafts there (edit a field, comment, or **New element**), and exports a changeset file from it.
+4. The user replies **OK** and you call `innfo-mcp_apply_change({ changeset })`. After an applied or partially applied changeset the console is regenerated again so it shows the result.
+
+The result of `propose_changeset`, `apply_change`, `regenerate_console` and `init_knowledge` carries `next_steps`. You MUST relay `next_steps.notice` to the user verbatim: it lists the numbered steps above, the console path when the browser could not be opened, and the OK shortcut ("simply reply OK to apply them"). The console is static HTML and cannot call the MCP, so approval always comes back through you.
+
+#### New domain and migration
+
+- `innfo-mcp_init_domain({ dir, name })` creates an empty, conformant domaiNN in a new directory (canonical folders, `changes/`, `.gitattributes` with `* -text`, a manifest listing no models). It refuses a non-empty directory and is not a changeset.
+- Add models afterwards with an `add_model` change (alone or together with `add_element` changes in the same changeset) via `propose_changeset`, or with `init_knowledge`.
+- Migration recipe: `init_domain` for a NEW domain, import the old domain as a source (`node skills/nn-upgrade/scripts/migrate-domain.js --import-as-source`), derive `add_model` / `add_element` changes that cite it through `sources::`, `propose_changeset`, review in the console, reply OK, `apply_change`.
 
 #### Atomic version bump
 
@@ -675,26 +692,15 @@ When the project scales to multiple sub-models, present the **4 Architectural Al
 
 ## 12. Visual Expectation Checklist (Console Verification)
 
-Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist pointing to the domaiNN console, the single review surface. Never link to a hosted app.
+Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist pointing to the domaiNN console, the single review surface. Print its file path, never a web link.
 
 ### Console location
 - Regenerate the console first (option `[d]`, `apply_change` regeneration) so it reflects the change. Print the path of the generated `domaiNN_console.html` (under `artifacts/<stem>_console/`) and tell the user to open it in a browser; it is self-contained and works offline.
 - Name the model to look for (`<model_id>`), not a URL: the console lists every model in the domaiNN.
 
-### Live preview URL (when the MCP exposes it)
+### Review is a file
 
-When the innfo-mcp process runs with `INNFO_PREVIEW=1`, every successful mutating
-tool call (`apply_change`, `sync_domain_manifest`) returns a `preview_app_url`
-field in its envelope. **Print `preview_app_url` verbatim** in addition to (not
-instead of) the static deep links above.
-
-That URL opens the editor tab as a **read-only live mirror** of the session: it
-subscribes to the MCP change stream and re-renders the affected model on every
-later mutation, preserving the current view and selected node. It is bound to
-the session — it stops working when the MCP process exits — and editing inside
-it is disabled by design, so the user changes the model by prompting the agent,
-never in the preview tab. When the field is absent, print the static deep links
-only.
+The console is a static file the MCP regenerates. Relay `next_steps.notice` (it carries the console path) and let the user open the file. To change the model the user prompts the agent, or drafts changes in the console and exports a changeset.
 
 Example of dynamic checklist to generate:
 ```markdown

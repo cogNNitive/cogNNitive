@@ -255,7 +255,7 @@ independent of S6b/S6c.
 
 ## 10. Docs, release and verification (S6e)
 
-- [ ] 10.1 `skills/nn-innfo/SKILL.md` + `iNNfo/packages/innfo-mcp/README.md`: document
+- [x] 10.1 `skills/nn-innfo/SKILL.md` + `iNNfo/packages/innfo-mcp/README.md`: document
       `propose_changeset`, `apply_change` regeneration, `regenerate_console`,
       `init_domain`, `add_model`, the create-only `init_knowledge`, the migration recipe,
       and the 4-step user flow (relay `next_steps.notice`; OK → `apply_change`); replace
@@ -263,7 +263,7 @@ independent of S6b/S6c.
       the tool table rows (`SKILL.md:352,360`). [console-regeneration: Review-and-approve
       notice on tool results] [changeset-propose-tool: `propose_changeset` writes a sealed
       proposed changeset]
-- [ ] 10.2 Grep guard: no S6 code or doc references `PREVIEW_APP_URL`, the hosted app or
+- [x] 10.2 Grep guard: no S6 code or doc references `PREVIEW_APP_URL`, the hosted app or
       a live-preview URL as the place to review changes. [console-regeneration: Preview
       is a file]
 - [ ] 10.3 `npm run typecheck` + `npm run typecheck:scripts`; `npm test` for

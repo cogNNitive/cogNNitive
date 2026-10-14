@@ -15,8 +15,10 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `c
 - **`validate_knowledge`**: Validates a Level-3 knowledge document against its blueprint schema, returning diagnostics.
 - **`validate_knowledge_url`**: Validates a knowledge document fetched directly from a URL without local disk writes.
 - **`validate_blueprint`**: Validates a Level-2 blueprint against its Level-1 spec.
-- **`init_knowledge`**: Initializes or scaffolds a Level-3 knowledge file with canonical frontmatter and section structure.
-- **`apply_change`**: Applies deterministic intent mutations (add field, rename concept/element, `bump_version`).
+- **`init_knowledge`**: Creates a new Level-3 knowledge file with canonical frontmatter and section structure. Create-only: a wrapper over a one-change `add_model` changeset that is written to `changes/` and applied; an existing id fails with `MODEL_EXISTS` and the file is never rewritten.
+- **`propose_changeset`**: Writes a sealed changeset with `status: proposed` under `changes/` from a list of operations (`update_field`, `add_element`, `remove_element`, `rename_element`, `rename_concept`, `update_matrix_cell`, `comment`, `add_model`), then regenerates and opens the domain console. Validates before writing and never applies.
+- **`apply_change`**: Applies a changeset (or a deterministic direct operation such as `bump_version`). After an applied or partially applied changeset it regenerates the domain console and opens it (`open: false` skips the browser).
+- **`regenerate_console`**: Regenerates the domain console (or one model-scoped console) as a stable file under `artifacts/<stem>_console/` and opens it. Idempotent; also the retry path after a failed regeneration.
 - **`query_units`**: Queries atomic knowledge units and citations across the domain.
 - **`cognitivize`**: Creates or refreshes the sidecar of one raw markdown, CSV, or JSON file in place; binaries return `requires-cli`.
 - **`resolve_sources`**: Resolves raw source provenance links and citations.
@@ -34,6 +36,22 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `c
 
 - **`sync_domain_manifest`**: Synchronizes domaiNN manifest entries with on-disk `kNNowledge/` documents.
 - **`check_domain`**: Validates domaiNN structure, entrypoint `domaiNN_NN.md`, and integrity.
+- **`init_domain`**: Creates an empty, conformant domaiNN in a new directory (canonical folders, `changes/`, `.gitattributes` with `* -text`, a manifest listing no models). Refuses a non-empty directory.
+
+---
+
+## Review-and-approve flow
+
+`propose_changeset`, `apply_change`, `regenerate_console` and `init_knowledge` return `next_steps`, and the calling agent MUST relay `next_steps.notice` to the user:
+
+1. `propose_changeset` writes the sealed proposed changeset under `changes/`.
+2. The domain console is regenerated and opened in a browser tab (the notice carries the file path when it could not be opened).
+3. The user reviews the proposed changes in the console. The console is a static file and cannot call the server.
+4. The user replies **OK** and the agent calls `apply_change` with `next_steps.approve.changeset`. The console is regenerated again to show the result.
+
+New models enter through an `add_model` change. Migration recipe: `init_domain` for a new domain, import the old domain as a source (`skills/nn-upgrade/scripts/migrate-domain.js --import-as-source`), derive `add_model` / `add_element` changes that cite it through `sources::`, `propose_changeset`, review, `apply_change`.
+
+The console directory is resolved from `INNFO_CONSOLE_DIR`, then the repository checkout, then `~/.agents/console`; when no asset set is found the result carries `console.status: failed` with `CONSOLE_ASSETS_NOT_FOUND` and the change itself is unaffected.
 
 ---
 
