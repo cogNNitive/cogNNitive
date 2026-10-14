@@ -58,11 +58,10 @@ The console shells carry an `<!-- nn:console-shell:start/end -->` marker; the pi
 them is generated from `console/package.json` and `node scripts/build-console-shells.mjs
 --check` (a `verify.js` step) fails a stale one. Never hand-edit the pin.
 
-> ⚠️ Do **not** commit a `skills/nn-sources/scripts/lib/innfo-core.generated.cjs`
-> regen authored from a worktree: esbuild resolves the `node_modules` junction's real
-> path and emits non-canonical `../cogNNitive/node_modules/...` comments. CI (`npm ci`)
-> resolves the canonical path. Leave that file alone unless you regenerate it from a
-> non-worktree checkout.
+> ⚠️ Session worktrees now use a real `npm ci` (no junctions), so generated files such as
+> `skills/nn-sources/scripts/lib/innfo-core.generated.cjs` regenerate canonically from a
+> worktree. If a diff shows non-canonical `../<repo>/node_modules/...` paths, the worktree
+> predates that change: re-create it with `nn-session.mjs start`.
 
 ---
 
@@ -82,8 +81,8 @@ There is no "undo release". Run **all** of these before `git tag`:
    - **A red `dev` blocks the whole pipeline, and not every red is yours.** The tag
      release runs `verify.js`; a red `dev` means no tag can be cut. Before stopping: is
      the red pre-existing? Run the failing step against the batch base (`origin/main`) in
-     a trustworthy checkout (primary with real deps — NOT a junctioned worktree, see
-     `nn-dev-development` §1a) or find a CI run of the base. If it reproduces on the base,
+      a checkout with real deps (a session worktree from `nn-session.mjs start` qualifies)
+      or find a CI run of the base. If it reproduces on the base,
      it is pre-existing: file it as its own issue (e.g. 2026-10-04 `console-golden-parity`,
      issue #122), record the exception, and do not fold an unrelated fix into the release
      batch. If it does not reproduce on the base, it is yours: fix-forward on `dev` first.

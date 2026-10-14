@@ -12,7 +12,7 @@
   ONE `node scripts/verify.js` at the end of each.
 - `skills/nn-skills-lifecycle/scripts/skills-manager.js` is GENERATED: edit
   `scripts/lib/skills-commands.js`, then `node scripts/build-skills-manager-bundle.mjs`.
-- NEVER `npm ci` / `npm install` from the worktree (`node_modules` junctions).
+- Worktrees get a real `npm ci` from `nn-session.mjs start`; no junctions.
 
 ### What we keep and why (the only 3 tests)
 
