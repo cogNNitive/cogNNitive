@@ -49,4 +49,4 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 5. Verification (S3a)
 
-- [ ] 5.1 `node scripts/verify.js`; re-export the TestLab domain console. [all requirements]
+- [x] 5.1 `node scripts/verify.js`; re-export the TestLab domain console. [all requirements]
