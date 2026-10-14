@@ -154,7 +154,7 @@ Marked **[done by freeze]** below means Section A already did it; Phase B only c
 ### B5. Badge emitters and templates (S5c-1) — off the freeze critical path
 
 - [ ] B5.1 TEST (`iNNfo/packages/innfo-core/tests/serializer*.test.ts`, the scaffold suite, `tests/changeset/serializer.test.ts`, `test/console-review.test.mjs`): every emitter writes the canonical badge; the scaffold golden is refreshed. [document-badge: Serializer and Generator Badge Emission]
-- [ ] B5.2 Retarget `src/parser/serializer.ts`, `src/changeset/serializer.ts`, `src/scaffold/knowledge.ts`, `innfo-runtime.js` `serializeChangesetMarkdown`; rebuild the console and innfo-mcp bundles. [document-badge: Serializer and Generator Badge Emission]
+- [ ] B5.2 Retarget `src/parser/serializer.ts`, `src/changeset/serializer.ts`, `src/scaffold/knowledge.ts`, `innfo-runtime.js` `serializeChangesetMarkdown`, and the `nn-sources` emitters `skills/nn-sources/scripts/lib/bootstrap.js` and `provenance-knowledge.js`; rebuild the console and innfo-mcp bundles. [document-badge: Serializer and Generator Badge Emission]
 - [ ] B5.3 Retarget every maintained `iNNfo/specs/bluepriNNts/**/spec_NN.md` and procedure template, bump `template_version`, regenerate `canonical-registry.ts` and the catalog. Never edit a `_V_x-y-z_` file. [document-badge: Canonical Markdown Header Badge Syntax and Target URL]
 
 ### B6. Samples, fixtures and docs (S5c-2)
