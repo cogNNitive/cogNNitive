@@ -1500,7 +1500,7 @@ async function synthesizeAndExecuteChangeset(
  */
 export const MAINTENANCE_OPS = ['bump_version', 'generate_index', 'freeze_slugs'] as const
 
-/** Direct operations: Level-2 bluepriNNt authoring (trace = git + `template_version`). */
+/** Direct operations: Level-2 bluepriNNt authoring (traced by git and the bluepriNNt version). */
 export const SCHEMA_OPS = ['add_concept', 'add_field', 'set_marker'] as const
 
 function isDirectOperation(op: string): boolean {
