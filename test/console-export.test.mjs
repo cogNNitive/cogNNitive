@@ -16,7 +16,7 @@ const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
 async function runCli(args, opts = {}) {
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
       cwd: opts.cwd || process.cwd(),
       env: { ...process.env, ...opts.env },
     })

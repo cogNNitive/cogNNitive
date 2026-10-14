@@ -109,7 +109,7 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
     await mkdir(join(root, 'models'), { recursive: true })
     await writeFile(join(root, 'models', 'a_fleet_V_1-0-0_NN.md'), FLEET_MODEL, 'utf-8')
     await writeFile(join(root, 'models', 'b_garage_V_1-0-0_NN.md'), GARAGE_MODEL, 'utf-8')
-    const res = await execFileAsync(process.execPath, [scriptPath, root, '--domain'])
+    const res = await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
     stderr = res.stderr
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
     schema = slotOf(html, 'innfo-schema')

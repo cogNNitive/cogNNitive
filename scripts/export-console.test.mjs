@@ -4,7 +4,7 @@ import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir } from 'node
 import { existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
@@ -20,7 +20,7 @@ function computeHash(str) {
 
 async function runCli(args, opts = {}) {
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
       cwd: opts.cwd || process.cwd(),
       env: { ...process.env, ...opts.env },
     })
@@ -433,7 +433,7 @@ notes:: "Please review the tagline"
 
       const { stdout } = await execFileAsync(
         process.execPath,
-        [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
+        [join(toolsDir, 'export-console.mjs'), tempDir, 'business', '--no-open'],
         { cwd: tempDir },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
@@ -460,7 +460,7 @@ notes:: "Please review the tagline"
 
       const { stdout } = await execFileAsync(
         process.execPath,
-        [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
+        [join(toolsDir, 'export-console.mjs'), tempDir, 'business', '--no-open'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
@@ -488,7 +488,7 @@ notes:: "Please review the tagline"
 
       await execFileAsync(
         process.execPath,
-        [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
+        [join(toolsDir, 'export-console.mjs'), tempDir, 'business', '--no-open'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       const out = await readFile(
@@ -520,7 +520,7 @@ notes:: "Please review the tagline"
 
       const { stdout } = await execFileAsync(
         process.execPath,
-        [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
+        [join(toolsDir, 'export-console.mjs'), tempDir, 'business', '--no-open'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
@@ -547,7 +547,7 @@ notes:: "Please review the tagline"
       }
     }
     const runInstalled = (dir, args, env = {}) =>
-      execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args], {
+      execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args, '--no-open'], {
         cwd: tempDir,
         env: { ...process.env, INNFO_CONSOLE_DIR: dir, ...env },
       })
@@ -711,27 +711,26 @@ notes:: "Please review the tagline"
       assert.equal((await readdir(join(tempDir, 'artifacts', families[0]))).length, 1)
     })
 
-    it('adds a suffixed member for a changed model and leaves the earlier console byte-identical', async () => {
+    it('overwrites the stable console for a changed model and writes no stamped file', async () => {
       await runCli([tempDir, 'business'])
       // Compile the rest so only the edited model is stale afterwards.
       await runCli([tempDir, '--all'])
-      const [original] = consoleMembers(tempDir, 'business_V_0-2-5')
-      const before = await sha(original)
+      const stable = join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')
+      assert.equal(existsSync(stable), true)
+      const before = await sha(stable)
 
       const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
       await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n', 'utf-8')
       const res = await runCli([tempDir, '--stale'])
       assert.equal(res.code, 0)
 
+      assert.notEqual(await sha(stable), before, 'the stable file now holds the new console')
       const members = consoleMembers(tempDir, 'business_V_0-2-5')
-      assert.equal(members.length, 2)
-      assert.match(basename(members[1]), /^business_V_0-2-5_console_\d{8}T\d{6}Z(-\d+)?\.html$/)
-      assert.equal(await sha(original), before)
-      assert.equal(members[0], original)
-      assert.equal(consoleHtml(tempDir, 'business_V_0-2-5'), members[1])
-      const meta = JSON.parse(
-        (await readFile(members[1], 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1],
-      ).meta
+      assert.deepEqual(members.map((m) => basename(m)), ['business_V_0-2-5_console.html'])
+      const dirFiles = await readdir(join(tempDir, 'artifacts', 'business_V_0-2-5_console'))
+      assert.deepEqual(dirFiles, ['business_V_0-2-5_console.html'], 'no stamped console, bundle or tmp file')
+      const html = await readFile(stable, 'utf-8')
+      const meta = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1]).meta
       assert.equal(meta.models[0].sha256, computeHash(await readFile(file, 'utf-8')))
     })
 
@@ -750,6 +749,125 @@ notes:: "Please review the tagline"
       assert.equal(existsSync(consoleBundle(tempDir, 'business_V_0-2-5')), false)
       assert.ok(html.includes('single-file console runtime'), 'bundle inlined into the HTML')
       assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'no external script tag')
+    })
+  })
+
+  describe('Phase 6b: shared writeConsole, opening and domain freshness', () => {
+    const load = async () => import(pathToFileURL(scriptPath).href)
+    const sha = async (file) => computeHash(await readFile(file, 'utf-8'))
+    const failingLauncher = () => {
+      throw new Error('a test must never open a browser')
+    }
+
+    it('importing the module has no side effect and exposes writeConsole', async () => {
+      const mod = await load()
+      assert.equal(typeof mod.writeConsole, 'function')
+      assert.equal(typeof mod.openCommandFor, 'function')
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false)
+    })
+
+    it('writes exactly the path consoleOutputPath reports, then reports unchanged', async () => {
+      const { writeConsole } = await load()
+      const scope = { model: 'business_V_0-2-5' }
+      const first = await writeConsole({ rootDir: tempDir, scope, open: false, launcher: failingLauncher })
+      assert.equal(first.status, 'written')
+      assert.equal(first.relativePath, 'artifacts/business_V_0-2-5_console/business_V_0-2-5_console.html')
+      assert.equal(existsSync(first.path), true)
+      assert.equal(first.opened, false)
+      const [versions] = Object.values(first.knowledgeVersions)
+      assert.equal(versions.knowledge_version, 'V_0-2-5')
+      assert.equal(versions.sha256.length, 64)
+
+      const before = await sha(first.path)
+      const second = await writeConsole({ rootDir: tempDir, scope, open: false })
+      assert.equal(second.status, 'unchanged')
+      assert.equal(await sha(second.path), before)
+    })
+
+    it('writes the domain console at the domain root', async () => {
+      const { writeConsole } = await load()
+      const res = await writeConsole({ rootDir: tempDir, open: false })
+      assert.equal(res.relativePath, 'domaiNN_console.html')
+      assert.equal(res.path, join(tempDir, 'domaiNN_console.html'))
+      assert.equal(existsSync(join(tempDir, 'domaiNN_console.html.tmp')), false)
+    })
+
+    it('rejects an unknown model scope with a stable code', async () => {
+      const { writeConsole } = await load()
+      await assert.rejects(
+        () => writeConsole({ rootDir: tempDir, scope: { model: 'nope' }, open: false }),
+        (err) => /** @type {{ code?: string }} */ (err).code === 'MODEL_NOT_FOUND',
+      )
+    })
+
+    it('open: false never calls the launcher', async () => {
+      const { writeConsole } = await load()
+      const calls = []
+      const res = await writeConsole({ rootDir: tempDir, open: false, launcher: (...a) => calls.push(a) })
+      assert.deepEqual(calls, [])
+      assert.equal(res.opened, false)
+      assert.equal(res.openError, undefined)
+    })
+
+    it('a throwing launcher yields opened: false + openError with the file written', async () => {
+      const { writeConsole } = await load()
+      const res = await writeConsole({
+        rootDir: tempDir,
+        open: true,
+        launcher: () => {
+          throw new Error('no browser here')
+        },
+      })
+      assert.equal(res.status, 'written')
+      assert.equal(existsSync(res.path), true)
+      assert.equal(res.opened, false)
+      assert.match(res.openError, /no browser here/)
+    })
+
+    it('hands the platform opener the absolute console path', async () => {
+      const { writeConsole } = await load()
+      for (const [platform, command, lead] of [
+        ['darwin', 'open', []],
+        ['linux', 'xdg-open', []],
+        ['win32', 'cmd', ['/c', 'start', '']],
+      ]) {
+        const calls = []
+        const res = await writeConsole({ rootDir: tempDir, open: true, platform, launcher: (c, a) => calls.push([c, a]) })
+        assert.equal(res.opened, true)
+        assert.deepEqual(calls, [[command, [...lead, res.path]]])
+      }
+    })
+
+    it('reports an unsupported platform as not opened without throwing', async () => {
+      const { writeConsole } = await load()
+      const res = await writeConsole({ rootDir: tempDir, open: true, platform: 'plan9', launcher: failingLauncher })
+      assert.equal(res.opened, false)
+      assert.match(res.openError, /not supported/)
+    })
+
+    it('--status reports the domain console fresh, then stale after a model change', async () => {
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const fresh = await runCli([tempDir, '--status'])
+      assert.match(fresh.stdout, /domaiNN_console[.]html \[fresh\]/)
+
+      const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
+      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n', 'utf-8')
+      const stale = await runCli([tempDir, '--status'])
+      assert.match(stale.stdout, /domaiNN_console[.]html \[stale\]/)
+    })
+
+    it('--status reports an absent domain console as uncompiled', async () => {
+      const res = await runCli([tempDir, '--status'])
+      assert.match(res.stdout, /domaiNN_console[.]html \[uncompiled\]/)
+    })
+
+    it('--status and --tree read the stable per-model console', async () => {
+      assert.equal((await runCli([tempDir, 'business'])).code, 0)
+      const status = await runCli([tempDir, '--status'])
+      assert.match(status.stdout, /business_V_0-2-5_NN[.]md \[fresh\]/)
+      const tree = await runCli([tempDir, '--tree'])
+      assert.equal(tree.code, 0)
+      assert.match(tree.stdout, /artifacts[/]business_V_0-2-5_console[/]business_V_0-2-5_console[.]html/)
     })
   })
 

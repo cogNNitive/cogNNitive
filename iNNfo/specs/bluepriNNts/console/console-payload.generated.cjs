@@ -7365,6 +7365,7 @@ var require_dist = __commonJS({
 var index_exports = {};
 __export(index_exports, {
   CHANGE_CONCEPT: () => CHANGE_CONCEPT,
+  DOMAIN_CONSOLE_FILENAME: () => DOMAIN_CONSOLE_FILENAME,
   EXCERPT_CHAR_CAP: () => EXCERPT_CHAR_CAP,
   KNOWN_AGENT_TOOL_IDS: () => KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS: () => NORMALIZED_KNOWN_AGENT_TOOL_IDS,
@@ -7378,6 +7379,7 @@ __export(index_exports, {
   classifyOrigin: () => classifyOrigin,
   computeElementHash: () => computeElementHash,
   computeSha256: () => computeSha256,
+  consoleOutputPath: () => consoleOutputPath,
   createFsSourceResolver: () => createFsSourceResolver,
   displayStem: () => displayStem,
   extractExcerpt: () => extractExcerpt,
@@ -10837,6 +10839,17 @@ function createFsSourceResolver(rootDir) {
   };
 }
 
+// iNNfo/packages/innfo-core/src/console/output-path.ts
+var DOMAIN_CONSOLE_FILENAME = "domaiNN_console.html";
+function consoleOutputPath(scope) {
+  if (scope === "domain") return DOMAIN_CONSOLE_FILENAME;
+  const key = scope.model;
+  if (typeof key !== "string" || key === "") {
+    throw new Error("consoleOutputPath: a model scope needs a non-empty model key");
+  }
+  return `artifacts/${key}_console/${key}_console.html`;
+}
+
 // iNNfo/packages/innfo-core/src/console/slot.ts
 function serializeConsoleSlot(value) {
   return JSON.stringify(value, null, 2).replace(/</g, "\\u003c");
@@ -11167,6 +11180,7 @@ async function resolveConsoleSchema(opts) {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   CHANGE_CONCEPT,
+  DOMAIN_CONSOLE_FILENAME,
   EXCERPT_CHAR_CAP,
   KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS,
@@ -11180,6 +11194,7 @@ async function resolveConsoleSchema(opts) {
   classifyOrigin,
   computeElementHash,
   computeSha256,
+  consoleOutputPath,
   createFsSourceResolver,
   displayStem,
   extractExcerpt,

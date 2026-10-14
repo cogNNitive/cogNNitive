@@ -22,12 +22,12 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
   before(async () => {
     tmp = await mkdtemp(join(tmpdir(), 'nn-sample-view-'))
     await cp(samples, tmp, { recursive: true })
-    const { stdout } = await execFileAsync(process.execPath, [scriptPath, tmp, '--domain'], {
+    const { stdout } = await execFileAsync(process.execPath, [scriptPath, tmp, '--domain', '--no-open'], {
       maxBuffer: 64 * 1024 * 1024,
     })
     assert.match(stdout, /size: total \d+ B/)
     html = await readFile(join(tmp, 'domaiNN_console.html'), 'utf-8')
-    await execFileAsync(process.execPath, [scriptPath, tmp, '--view', VIEW_ID], { maxBuffer: 64 * 1024 * 1024 })
+    await execFileAsync(process.execPath, [scriptPath, tmp, '--view', VIEW_ID, '--no-open'], { maxBuffer: 64 * 1024 * 1024 })
     const dir = join(tmp, 'artifacts', `${VIEW_ID}_view`)
     const [name] = await readdir(dir)
     scopedHtml = await readFile(join(dir, name), 'utf-8')
