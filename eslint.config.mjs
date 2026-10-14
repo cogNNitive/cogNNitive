@@ -7,7 +7,8 @@ import configPrettier from 'eslint-config-prettier'
 /**
  * Flat ESLint config for the cogNNitive monorepo.
  *
- * Scope: TypeScript across all workspaces + Vue SFCs in iNNfo/apps/innfo-editor.
+ * Scope: TypeScript across all workspaces. The Vue editor (iNNfo/apps/innfo-editor) is
+ * FROZEN and ignored below; the Vue config stays so a thaw only removes that ignore.
  * Formatting is delegated to Prettier (configPrettier disables stylistic rules),
  * so ESLint focuses on correctness and consistency only.
  */
@@ -37,7 +38,8 @@ export default tseslint.config(
       '**/*.min.js',
       '**/*.bundle.js',
       'iNNfo/packages/innfo-mcp/bin/**',
-      'iNNfo/apps/innfo-editor/scratch_graph_test.mjs',
+      // Frozen Vue editor (S5-freeze): source kept, not linted. See its FROZEN.md.
+      'iNNfo/apps/innfo-editor/**',
       // Generated artifacts and blueprints assets
       '**/*.generated.cjs',
       '**/*.generated.js',
