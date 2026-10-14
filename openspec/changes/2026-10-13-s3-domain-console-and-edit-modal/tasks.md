@@ -85,17 +85,17 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 7. P0-2 — Edit modal type safety (S3b, ~220 lines)
 
-- [ ] 7.1 TEST RED (`test/console-review.test.mjs` or a new `test/console-edit-modal-types.test.mjs`,
+- [x] 7.1 TEST RED (`test/console-review.test.mjs` or a new `test/console-edit-modal-types.test.mjs`,
       driving `UI.EditModal`): number proposed as a number; empty number blocks Save; unknown and
       blank select values preserved on an unchanged save; array value → comment mode with Propose
       disabled; object never yields `[object Object]`; multi-line or >70-char string → `textarea`
       proposing verbatim. [console-ui-kit: Edit Modal Value Type Safety]
-- [ ] 7.2 TEST RED (draft export): a number draft exports `to:: 7` (unquoted) through `draftToChange`.
+- [x] 7.2 TEST RED (draft export): a number draft exports `to:: 7` (unquoted) through `draftToChange`.
       [console-ui-kit: Edit Modal Value Type Safety]
-- [ ] 7.3 Implement in `ui-kit.js` (`FieldNumberWidget`, `FieldSelectWidget`, `FieldStringWidget`
+- [x] 7.3 Implement in `ui-kit.js` (`FieldNumberWidget`, `FieldSelectWidget`, `FieldStringWidget`
       → textarea branch, save handler at UK:1760-1778, comment-only mode for arrays/objects) and the
       value-shape inference in `review.js`. [console-ui-kit: Edit Modal Value Type Safety]
-- [ ] 7.4 Document the widget rules in `docs/innfo/documentation/console-ui-kit.md`; rebuild the
+- [x] 7.4 Document the widget rules in `docs/innfo/documentation/console-ui-kit.md`; rebuild the
       bundle (`build:` commit); `node scripts/verify.js` green. [console-ui-kit: Edit Modal Value Type Safety]
 
 ## 8. P0-3 — Engine type preservation (S3b, own PR + `innfo-mcp` release note, ~230 lines)
