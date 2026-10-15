@@ -71,6 +71,16 @@ export default tseslint.config(
   },
 
   {
+    // Web-platform globals that plain JS files rely on (Node 18+ provides fetch and
+    // performance; the console fixture runs in a browser). eslint-plugin-vue used
+    // to inject these through its base config.
+    files: ['**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: { document: 'readonly', fetch: 'readonly', performance: 'readonly' },
+    },
+  },
+
+  {
     // Node-context config and script files (including template-owned
     // Node scripts under specs/).
     files: ['**/*.config.{js,ts,mjs}', 'scripts/**/*.{js,mjs,ts}', 'iNNfo/specs/**/scripts/**/*.js', '**/*.mjs'],
