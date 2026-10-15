@@ -1548,6 +1548,18 @@
         icon: conceptOpts.icon,
       }),
     )
+    if (data.concept) {
+      head.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: data.concept,
+          label: data.concept,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon,
+        }),
+      )
+    }
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null
@@ -1773,14 +1785,19 @@
     // No tag row without tags (the review controller adds its own for "+ tag").
     var tags = Array.isArray(data.tags) ? data.tags : []
     if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
-    if (relations) {
-      body.appendChild(RelList({ relations: relations, byId: byId }))
+    if (relations && relations.length) {
+      var outWrap = makeEl(doc, 'div', 'innfo-card-outgoing')
+      outWrap.appendChild(
+        makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
+      )
+      outWrap.appendChild(RelList({ relations: relations, byId: byId }))
+      body.appendChild(outWrap)
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
     if (incoming && incoming.length) {
       var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
       incWrap.appendChild(
-        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
+        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
       )
       incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
       body.appendChild(incWrap)

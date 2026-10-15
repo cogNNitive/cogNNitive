@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-SvlizLxcngKmtKJwoODm1TeVhOaQWvyEbKb7vraYE6c=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-hOVBTyzC+Vvu+zJbdnBjHd8m7AzOhn3DGTqTxfvqrhs=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7069,26 +7069,51 @@ button.btn-primary:hover:not(:disabled) {
 .innfo-filter-zone {
   background: var(--surface, #ffffff) !important;
   border-bottom: 1px solid var(--border, #e2e8f0) !important;
-  padding: 14px 24px 10px 24px !important;
+  padding: 10px 24px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
   flex-shrink: 0 !important;
 }
-#innfo-search-wrap {
-  width: 100% !important;
-  max-width: 540px !important;
-}
-#innfo-filter-facets {
+.innfo-filter-main-row {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
   flex-wrap: wrap !important;
-  margin-top: 4px !important;
-  margin-bottom: 4px !important;
+  width: 100% !important;
+}
+#innfo-search-wrap {
+  min-width: 260px !important;
+  max-width: 440px !important;
+  flex: 0 1 380px !important;
+}
+#innfo-filter-facets {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
 }
 #innfo-filter-facets .innfo-facet-dropdown {
-  margin-right: 4px !important;
+  margin-right: 2px !important;
+}
+.innfo-facet-clear {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: 6px !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.innfo-facet-clear:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #dc2626 !important;
 }
 #innfo-active-filters {
   display: flex !important;
@@ -7550,6 +7575,23 @@ input[type="text"], input[type="search"], textarea, select {
   border-color: #0f172a !important;
 }
 
+/* 14. Relaciones salientes y entrantes limpias */
+.innfo-card-outgoing,
+.innfo-card-incoming {
+  margin-top: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+.innfo-card-outgoing-label,
+.innfo-card-incoming-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--innfo-muted, #64748b) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
 </style>
     <style>
       :root,
@@ -7852,13 +7894,15 @@ input[type="text"], input[type="search"], textarea, select {
 
       <main>
         <div class="innfo-filter-zone innfo-toolbar">
-          <div id="innfo-search-wrap">
-            <span class="search-icon" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </span>
-            <input id="innfo-search" type="search" placeholder="Search elements…" aria-label="Search elements" title="Filters: concept: and model: widen with OR; tag: narrows with AND (exact match); tag-any: widens with OR" />
+          <div class="innfo-filter-main-row">
+            <div id="innfo-search-wrap">
+              <span class="search-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span>
+              <input id="innfo-search" type="search" placeholder="Search elements…" aria-label="Search elements" title="Filters: concept: and model: widen with OR; tag: narrows with AND (exact match); tag-any: widens with OR" />
+            </div>
+            <div id="innfo-filter-facets"></div>
           </div>
-          <div id="innfo-filter-facets"></div>
           <div id="innfo-active-filters"></div>
         </div>
         <div id="innfo-tab-explorer" class="innfo-tab-panel active">
@@ -8199,7 +8243,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-bb94337f",
-    "generated": "2026-10-15T14:18:23.023Z",
+    "generated": "2026-10-15T14:37:03.641Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8209,7 +8253,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T14:18:22.944Z",
+        "citationsResolvedAt": "2026-10-15T14:37:03.555Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -11138,6 +11182,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         icon: conceptOpts.icon,
       }),
     )
+    if (data.concept) {
+      head.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: data.concept,
+          label: data.concept,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon,
+        }),
+      )
+    }
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null
@@ -11363,14 +11419,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // No tag row without tags (the review controller adds its own for "+ tag").
     var tags = Array.isArray(data.tags) ? data.tags : []
     if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
-    if (relations) {
-      body.appendChild(RelList({ relations: relations, byId: byId }))
+    if (relations && relations.length) {
+      var outWrap = makeEl(doc, 'div', 'innfo-card-outgoing')
+      outWrap.appendChild(
+        makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
+      )
+      outWrap.appendChild(RelList({ relations: relations, byId: byId }))
+      body.appendChild(outWrap)
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
     if (incoming && incoming.length) {
       var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
       incWrap.appendChild(
-        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
+        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
       )
       incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
       body.appendChild(incWrap)
@@ -15118,6 +15179,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!isOpen) mMenu.classList.add('open')
       })
 
+      if (activeModels.length > 0) {
+        var mClear = el('span', 'innfo-facet-clear', '×')
+        mClear.setAttribute('role', 'button')
+        mClear.setAttribute('title', 'Clear models filter')
+        mClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'model' && op['key'] !== 'file'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        mBtn.appendChild(mClear)
+      }
       mWrap.appendChild(mBtn)
       mWrap.appendChild(mMenu)
       host.appendChild(mWrap)
@@ -15181,6 +15265,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!isOpen) cMenu.classList.add('open')
       })
 
+      if (activeConcepts.length > 0) {
+        var cClear = el('span', 'innfo-facet-clear', '×')
+        cClear.setAttribute('role', 'button')
+        cClear.setAttribute('title', 'Clear concepts filter')
+        cClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'concept' && op['key'] !== '!concept'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        cBtn.appendChild(cClear)
+      }
       cWrap.appendChild(cBtn)
       cWrap.appendChild(cMenu)
       host.appendChild(cWrap)
@@ -17654,7 +17761,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     nav.style.display = 'flex'
     nav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
     tabs.forEach(function (t) {
-      if (t.id === 'review') return
+      if (t.id === 'review' || t.id === 'changes') return
       var btn = el('button', 'innfo-view-tab tab flex items-center gap-2')
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id

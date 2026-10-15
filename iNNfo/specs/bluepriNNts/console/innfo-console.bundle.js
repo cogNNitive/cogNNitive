@@ -1913,6 +1913,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         icon: conceptOpts.icon,
       }),
     )
+    if (data.concept) {
+      head.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: data.concept,
+          label: data.concept,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon,
+        }),
+      )
+    }
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null
@@ -2138,14 +2150,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // No tag row without tags (the review controller adds its own for "+ tag").
     var tags = Array.isArray(data.tags) ? data.tags : []
     if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
-    if (relations) {
-      body.appendChild(RelList({ relations: relations, byId: byId }))
+    if (relations && relations.length) {
+      var outWrap = makeEl(doc, 'div', 'innfo-card-outgoing')
+      outWrap.appendChild(
+        makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
+      )
+      outWrap.appendChild(RelList({ relations: relations, byId: byId }))
+      body.appendChild(outWrap)
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
     if (incoming && incoming.length) {
       var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
       incWrap.appendChild(
-        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
+        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
       )
       incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
       body.appendChild(incWrap)
@@ -5893,6 +5910,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!isOpen) mMenu.classList.add('open')
       })
 
+      if (activeModels.length > 0) {
+        var mClear = el('span', 'innfo-facet-clear', '×')
+        mClear.setAttribute('role', 'button')
+        mClear.setAttribute('title', 'Clear models filter')
+        mClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'model' && op['key'] !== 'file'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        mBtn.appendChild(mClear)
+      }
       mWrap.appendChild(mBtn)
       mWrap.appendChild(mMenu)
       host.appendChild(mWrap)
@@ -5956,6 +5996,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!isOpen) cMenu.classList.add('open')
       })
 
+      if (activeConcepts.length > 0) {
+        var cClear = el('span', 'innfo-facet-clear', '×')
+        cClear.setAttribute('role', 'button')
+        cClear.setAttribute('title', 'Clear concepts filter')
+        cClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'concept' && op['key'] !== '!concept'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        cBtn.appendChild(cClear)
+      }
       cWrap.appendChild(cBtn)
       cWrap.appendChild(cMenu)
       host.appendChild(cWrap)
@@ -8429,7 +8492,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     nav.style.display = 'flex'
     nav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
     tabs.forEach(function (t) {
-      if (t.id === 'review') return
+      if (t.id === 'review' || t.id === 'changes') return
       var btn = el('button', 'innfo-view-tab tab flex items-center gap-2')
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id

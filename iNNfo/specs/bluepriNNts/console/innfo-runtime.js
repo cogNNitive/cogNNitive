@@ -930,6 +930,29 @@
         if (!isOpen) mMenu.classList.add('open')
       })
 
+      if (activeModels.length > 0) {
+        var mClear = el('span', 'innfo-facet-clear', '×')
+        mClear.setAttribute('role', 'button')
+        mClear.setAttribute('title', 'Clear models filter')
+        mClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'model' && op['key'] !== 'file'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        mBtn.appendChild(mClear)
+      }
       mWrap.appendChild(mBtn)
       mWrap.appendChild(mMenu)
       host.appendChild(mWrap)
@@ -993,6 +1016,29 @@
         if (!isOpen) cMenu.classList.add('open')
       })
 
+      if (activeConcepts.length > 0) {
+        var cClear = el('span', 'innfo-facet-clear', '×')
+        cClear.setAttribute('role', 'button')
+        cClear.setAttribute('title', 'Clear concepts filter')
+        cClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            return op['key'] !== 'concept' && op['key'] !== '!concept'
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        cBtn.appendChild(cClear)
+      }
       cWrap.appendChild(cBtn)
       cWrap.appendChild(cMenu)
       host.appendChild(cWrap)
@@ -3466,7 +3512,7 @@
     nav.style.display = 'flex'
     nav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
     tabs.forEach(function (t) {
-      if (t.id === 'review') return
+      if (t.id === 'review' || t.id === 'changes') return
       var btn = el('button', 'innfo-view-tab tab flex items-center gap-2')
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
