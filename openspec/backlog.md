@@ -21,6 +21,9 @@ shipped / fixed / resolved — 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 21, 22,
 changes). Merged item 19 into item 1 (both are source ingestion) and item 25 into
 item 24 (both are de-duplication). The remaining numbered gaps are intentional.
 
+Updated 2026-10-16: retired item 33 (`fix/skills-scripts-typecheck`) — `tsconfig.scripts.json`
+now covers `skills/**/*` and `typecheck-scripts` is green (generated bundles carry `// @ts-nocheck`).
+
 ---
 
 ## 1. `feature/source-import-guards` — import-time guards, duplicate detection + in-app editor import
@@ -935,28 +938,6 @@ and the root already coexisted with nine such warnings before the change. The on
 interim effect is that consumers resolving the remote blueprint do not recognize
 the `# NN bluepriNNts` section.
 
-
----
-
-## 33. `fix/skills-scripts-typecheck` — restore typechecking of `skills/**` scripts (dead `actioNN` include)
-
-**Type:** fix / chore · **Size:** medium · **Added:** 2026-10-10
-
-**Why:** `tsconfig.scripts.json` (run by `verify.js` → `typecheck-scripts`) still
-included `actioNN/scripts/**` and `actioNN/skills/nn-trannsform/scripts/**` after the
-`actioNN` → `skills` rename, so those globs matched nothing and the skills JS stopped
-being typechecked silently. (The dead includes were removed on 2026-10-10 in PR #150;
-restoring the scope is the remaining work.) Repointing the include to `skills/**/*`
-surfaces **45** `tsc` errors: `skills/nn-sources/**` (e.g.
-`scripts/lib/watch-digest-store.js`, several `test/unit/*`) and `skills/nn-upgrade/**`
-(`scripts/batch-update.js`, plus the imported generated
-`scripts/lib/legacy-migrate.generated.cjs`).
-
-**Behaviour:** restore the include scope (`skills/**/*`) and drive the 45 errors to
-zero — fix the real ones and handle the generated bundle with `// @ts-nocheck` or a
-working exclude; confirm `verify` stays green. Keep `scripts/**/*` checked throughout.
-
-**Suggested trigger:** `/sdd-new skills-scripts-typecheck`.
 
 ---
 
