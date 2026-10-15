@@ -909,7 +909,9 @@ and the change-log half of `feature/kb-change-governance`.
 **Suggested trigger:** `/sdd-new stable-element-identity` (S1).
 ---
 
-## 32. `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
+## 32. [RETIRED 2026-10-16] `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
+
+> **Retired 2026-10-16: already resolved.** `103ee795` ships in `blueprints-v0.34.0` (domaiNN V_0-3-1, `bluepriNNts` concept defined); the published `cogNNitive-web` main carries the same concept, and `validate_knowledge` on `ecosystem_NN/` is valid with no `CONCEPT_DRIFT_WARNING`.
 
 **Type:** chore · **Size:** small · **Status:** open · **Refs:** `2026-10-10-domaiNN-root-canonicalization` (commit `103ee795`)
 
