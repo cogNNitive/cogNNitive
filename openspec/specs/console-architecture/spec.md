@@ -40,18 +40,6 @@ Template consoles MUST contribute domain-specific views (e.g., Timeline in `metr
 - THEN none declares a color custom property or a hex/`rgb(`/`hsl(` value in `:root`
 - AND `console-shell-guard` fails if one does
 
-### Requirement: Three-Pathway Authorship and Review
-
-The system MUST support three interaction pathways:
-1. **Pathway 1 (Conversational AI)**: Agentic assistant dialog for architects.
-2. **Pathway 2 (Direct App GUI)**: Visual modeling in the desktop/web app.
-3. **Pathway 3 (Asynchronous Console Review)**: Zero-install standalone browser review for stakeholders.
-
-#### Scenario: Stakeholder review via Pathway 3
-- GIVEN a standalone HTML console artifact
-- WHEN opened in a browser by a reviewer
-- THEN the reviewer can inspect elements and record annotations without authoring tools
-
 ### Requirement: One Console Shell, Scoped Domain Consoles
 
 The system MUST ship exactly one console shell, `iNNfo/specs/bluepriNNts/console/artifact_shell.html`, driven by the `InnfoConsole` runtime. There MUST be no console "types": no model console, no procedures console and no custom console shell. Every console MUST be the domain console, optionally narrowed by a scope (the whole domaiNN, one model, a subset of models, or one view; see `console-scope`). A reviewer-facing filtered console MUST be a scoped domain console, not a separate artifact kind. A domaiNN MUST still have exactly one self-contained `domaiNN_console.html` for the whole domaiNN, with one snapshot hash, one draft store, one shared edit modal and one changeset per export (D14). Specialized consoles MUST be views registered in the console runtime, not separate shells or iframes (editable views). The Workspace Hub MUST NOT exist.
@@ -108,4 +96,23 @@ Before the Vue `innfo-editor` is retired, a parity audit MUST be committed as `a
 - GIVEN two editable components in the console
 - WHEN each is edited
 - THEN the same modal instance opens for both
+
+### Requirement: Two-Pathway Authorship and Review
+
+The system MUST support exactly two interaction pathways, both ending in changesets:
+1. **Conversational agent**: the agent proposes changesets (including `add_model` and `add_element` to create models and elements) and applies them on the user's approval.
+2. **Console review**: a zero-install `domaiNN_console.html` opened in a browser, where reviewers inspect elements, record drafts (including a "New element" draft) and export them as a changeset for the agent to apply.
+
+No UI MAY write model or domain files directly.
+
+#### Scenario: Stakeholder review via the console
+- GIVEN a domain console file
+- WHEN opened in a browser by a reviewer
+- THEN the reviewer can inspect elements and record drafts without authoring tools
+- AND the drafts leave the console only as an exported changeset
+
+#### Scenario: Creation goes through a changeset
+- GIVEN a user who asks for a new model
+- WHEN the agent creates it
+- THEN it does so with an `add_model` changeset, not with a direct file write
 

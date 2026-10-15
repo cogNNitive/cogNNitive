@@ -33,7 +33,7 @@ The `documentation` template package is housed at `iNNfo/specs/templates/documen
 - One `DocSite` (`iNNfo Documentation`, `base_path:: docs/innfo/documentation/`) with a single top-level `Page` parented directly to the DocSite:
   - `Home`: `README.md`
 - Organizes the remaining technical documentation pages into three ordered sections:
-  - `Components` (`section_order:: 1`): `innfo-editor.md`, `innfo-core.md`, `innfo-mcp.md`, `opencode-innfo-agent.md`
+  - `Components` (`section_order:: 1`): `innfo-core.md`, `innfo-mcp.md`, `opencode-innfo-agent.md`
   - `Architecture` (`section_order:: 2`): `ecosystem.md`, `specifications.md`, and `ecosystem.md#open-knowledge-format-compatibility` (OKF Compatibility)
   - `Guides` (`section_order:: 3`): `usage.md` (Usage), `relationships.md` (Relationships & Connections)
 - Relationship and usage guidance lives under `Guides`, not under `Architecture`.

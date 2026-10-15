@@ -6,12 +6,12 @@ Pin a canonical term dictionary for the cogNNitive ecosystem, collapsing overlap
 ## Requirements
 ### Requirement: Canonical term dictionary is machine-readable and human-visible
 
-The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives editor labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match.
+The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives console labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match. (Previously: the dictionary drove `innfo-editor` labels.)
 
-#### Scenario: Dictionary consumed by editor labels
+#### Scenario: Dictionary consumed by console labels
 
 - GIVEN the canonical dictionary published as `vocabulary.json`
-- WHEN `innfo-editor` renders a label for a Level-2 schema
+- WHEN the console renders a label for a Level-2 schema
 - THEN the label MUST use the canonical term `bluepriNNt` for the schema sense
 
 #### Scenario: Dictionary rendered as docs page
@@ -38,7 +38,7 @@ The dictionary MUST declare **bluepriNNt** as the canonical noun for the Level-2
 
 ### Requirement: Excluded senses of "template"
 
-The rename MUST NOT apply to: nn-trannsform's transformation templates (`traNNsformations/` directory, CLI `--apply <name>`), Vue SFC `<template>` blocks, or generic English usage. The dictionary MUST record these exclusions explicitly.
+The rename MUST NOT apply to: nn-trannsform's transformation templates (`traNNsformations/` directory, CLI `--apply <name>`), HTML `<template>` elements, or generic English usage. The dictionary MUST record these exclusions explicitly. (Previously: the exclusion named Vue SFC `<template>` blocks in `innfo-editor`, which is retired.)
 
 #### Scenario: nn-trannsform vocabulary untouched
 
@@ -48,9 +48,9 @@ The rename MUST NOT apply to: nn-trannsform's transformation templates (`traNNsf
 
 #### Scenario: Source code syntax untouched
 
-- GIVEN `.vue` files in `innfo-editor`
+- GIVEN console sources using HTML `<template>` elements
 - WHEN inspected after this change
-- THEN `<template>` SFC blocks are byte-identical
+- THEN those elements are byte-identical
 
 ### Requirement: Identifiers remain stable
 

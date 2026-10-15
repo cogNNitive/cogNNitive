@@ -2,9 +2,7 @@
 
 ## Purpose
 Synchronize documentation pages, modal workspace explorers, catalog models, and web application presets with canonical Level 1-4 workspace structures, ensuring path accuracy and navigation consistency across static docs and the live web app.
-
 ## Requirements
-
 ### Requirement: Documentation Quick Actions and Resource Synchronization
 Documentation in `docs/use-cases.md` MUST reflect the canonical workspace paths for all use cases:
 1. Quick Action links pointing to deliverables MUST target `artifacts/` instead of legacy `export/`.
@@ -49,12 +47,3 @@ The master portfolio catalog model `workspace_NN/models/UseCases_Catalog_V_1-0-0
 
 ---
 
-### Requirement: Web Application Preset Deep-Links
-`iNNfo/apps/innfo-editor/src/config/workspaces.ts` MUST configure presets pointing to canonical model and procedure locations for each use case:
-1. Model URLs in `WORKSPACE_PRESETS` MUST resolve to active files in `models/` or `procedures/`.
-2. Preset slugs (`startup-founder`, `consulting-sales`, `freelance-designer`, `youtube-creator`) MUST accurately match workspace directory slugs.
-
-#### Scenario: Launching preconfigured workspace preset in editor
-- GIVEN a user accesses the web editor with `?workspace=youtube-creator`
-- WHEN the editor resolves the workspace preset configuration
-- THEN both the video script model and production procedure are fetched from their canonical paths without 404 errors.

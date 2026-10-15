@@ -3,9 +3,7 @@
 ## Purpose
 
 Eliminate mandatory `# NN index` taxonomy blocks in Level 3 models by automatically deriving concept display hierarchy and parent-child edges from the referenced Level 2 template specification (`parent_spec`).
-
 ## Requirements
-
 ### Requirement: Index-Free Level 3 Models
 
 Level 3 model files MUST NOT be required to contain a `# NN index` section. When `# NN index` is omitted in a Level 3 model, parser execution MUST NOT fail or report missing-index errors.
@@ -45,11 +43,3 @@ When a model's parsed taxonomy (`parsed.taxonomy`) is empty or absent, `normaliz
 
 ---
 
-### Requirement: Sidebar Taxonomy Rendering
-
-`LeftSidebar.vue` in `innfo-editor` MUST render concept tree groups and element display ordering for index-free Level 3 models by resolving taxonomy edges from the model's parent spec via `getConceptsForModel()`.
-
-#### Scenario: Displaying concept tree in LeftSidebar for index-free model
-- GIVEN an index-free Level 3 model active in `innfo-editor`
-- WHEN `LeftSidebar.vue` renders the sidebar concept tree
-- THEN concept headers and elements are structured according to the parent template taxonomy edges

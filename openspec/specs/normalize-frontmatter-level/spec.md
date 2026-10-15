@@ -1,12 +1,12 @@
 # Spec: normalize-frontmatter-level
 
+## Purpose
+
 This spec records the requirement to normalize `level` to a number at the
 frontmatter parse boundary and remove the three downstream defenses it makes
 redundant. It does not add runtime validation or rejection of out-of-range
 levels, and it does not normalize any frontmatter field other than `level`.
-
 ## Requirements
-
 ### Requirement: `level` is coerced to `number` at the parse boundary
 
 `iNNfo/packages/innfo-core/src/parser/yaml.ts` MUST include a
@@ -48,9 +48,8 @@ parsed frontmatter receives `level` already coerced to `number`.
 
 ### Requirement: Downstream `level` defenses are removed
 
-Once the boundary normalizer exists, the duplicated `level`-shape checks
-elsewhere in the codebase MUST be deleted rather than kept as redundant
-belt-and-suspenders logic.
+Once the boundary normalizer exists, the duplicated `level`-shape checks elsewhere in the codebase MUST be deleted
+rather than kept as redundant belt-and-suspenders logic. (Previously: the scenario also covered `innfo-editor`, retired with S5.)
 
 #### Scenario: Dead numeric comparisons in `preflight-check.js` are removed
 
@@ -71,7 +70,7 @@ belt-and-suspenders logic.
 - **AND** the module SHALL rely on `level` already being a `number` from the
   parse boundary.
 
-#### Scenario: No stray `level` type checks in innfo-core, innfo-mcp, or innfo-editor
+#### Scenario: No stray `level` type checks in innfo-core or innfo-mcp
 
 - **GIVEN** the applied change
 - **WHEN** the codebase is searched for `level === '1'`, `level === '2'`,
@@ -79,8 +78,7 @@ belt-and-suspenders logic.
 - **THEN** the only remaining matches SHALL be inside `normalizeLevel` itself
   and in `skills/nn-preflight/scripts/preflight-check.js` (which uses a
   separate parser and correctly carries the string comparisons)
-- **AND** no stray type checks SHALL remain inside innfo-core, innfo-mcp, or
-  innfo-editor.
+- **AND** no stray type checks SHALL remain inside innfo-core or innfo-mcp.
 
 ## Design decisions
 

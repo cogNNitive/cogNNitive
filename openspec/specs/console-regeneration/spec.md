@@ -122,9 +122,8 @@ The regeneration result MUST return as `knowledgeVersions` the per-model
 ### Requirement: Preview is a file
 
 The way a user sees a proposed or applied change MUST be a freshly regenerated domain
-console file opened in a browser tab. No new code MAY target the hosted editor or the
-loopback live preview (`PREVIEW_APP_URL`); their removal belongs to the editor
-retirement change (S5), which depends on this capability.
+console file opened in a browser tab. No code MAY target a hosted editor or a
+loopback live preview; both were removed with the editor retirement (S5).
 
 #### Scenario: No editor URL in the result
 - GIVEN `propose_changeset` or `apply_change` succeeded

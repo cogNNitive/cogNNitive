@@ -47,10 +47,10 @@ removed.
 - WHEN the lineage builder parses it
 - THEN the entries are read as `cited_works` with a deprecation note in the run log
 
-### Requirement: Per-field editor envelope is named edit attribution
+### Requirement: Per-field edit envelope is named edit attribution
 
-The `FieldValue` envelope that records who last changed a field value in the editor MUST be named `editAttribution` (type `EditAttribution`) in `innfo-core`
-and `innfo-editor`. The word "provenance" MUST NOT name this structure.
+The `FieldValue` envelope that records who last changed a field value MUST be
+named `editAttribution` (type `EditAttribution`) in `innfo-core`. The word "provenance" MUST NOT name this structure.
 
 #### Scenario: Parser stamps edit attribution
 
@@ -58,12 +58,6 @@ and `innfo-editor`. The word "provenance" MUST NOT name this structure.
 - WHEN a `FieldValue` is materialised
 - THEN it carries `editAttribution: { author: { kind: "system", id: "parser" }, timestamp }`
 - AND no property named `provenance` exists on `FieldValue`
-
-#### Scenario: Editor edit updates attribution
-
-- GIVEN a user edits a field in `innfo-editor`
-- WHEN `commitFieldValue` runs
-- THEN the field's `editAttribution.author` becomes the user identity
 
 ## Removed
 

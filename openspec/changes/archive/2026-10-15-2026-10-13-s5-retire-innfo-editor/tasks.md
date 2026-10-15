@@ -86,7 +86,7 @@ Tag-driven; never hand-edit pins; this change does not tag.
       `npm --workspace=@cognnitive/innfo-mcp run build`. Then `node scripts/verify.js`,
       `npm run typecheck`, `npm test`, `npm run check:spec-urls`, `npm run check:versions`.
 - [x] A4.3 Record deviations from the study under "Verification notes"; hand off to the maintainer.
-- [ ] A4.4 (maintainer, at integration; not done in the session) Spec bookkeeping when the freeze lands: sync `specs/quality-gates` into
+- [x] A4.4 (maintainer, at integration) Spec bookkeeping when the freeze lands: sync `specs/quality-gates` into
       `openspec/specs/quality-gates` and move the delta to `applied/specs/quality-gates`.
       **Do not archive this change directory and do not sync `deferred-delete/`.**
 
@@ -162,7 +162,7 @@ Marked **[done by freeze]** below means Section A already did it; Phase B only c
 - [x] B6.1 Retarget the badge in `_samples_nn/**`, `ecosystem_NN/**`, `docs/cognitive_nn/use-cases/**`, `docs/workspace_NN.md`, `docs/innfo/samples/**` (non-write-once), `simulation/**` fixtures; regenerate `test/fixtures/testlab`. [document-badge: Workspace Fixture and Sample Alignment]
 - [x] B6.2 Docs: delete `docs/innfo/documentation/innfo-editor.md`; edit `usage.md`, `specifications.md`, `README.md`, `_sidebar.md`, `_navbar.md`, `ai-index.yaml`, `documentation_NN.md`, `index.html`, `llms.txt`, `tags-and-taxonomy.md`, `innfo-core.md`, `docs/innfo/llms.txt`, `docs/innfo/llms-full.txt`, `docs/innfo/about.{md,html}`. [canonical-vocabulary: Canonical term dictionary is machine-readable and human-visible] [canonical-vocabulary: Excluded senses of "template"]
 - [x] B6.3 CTAs: "Open App" in `docs/index.html` and `docs/innfo/index.html` becomes "Read the docs"; remove app links in `docs/404.html`, `docs/skills/**`, `docs/use-cases.{md,html}`, `docs/contact.html`, `docs/legal.html`, `docs/privacy.html`. No redirect page, and `/innfo/app/` is NOT removed from navigation as a 404: it serves the notice page (override 2026-10-15), so the app CTAs may point to it where that is the better UX. [document-badge: Workspace Fixture and Sample Alignment]
-- [ ] B6.4 At archive: edit `openspec/specs/documentation-template/spec.md:36` to drop `innfo-editor.md`. [all requirements]
+- [x] B6.4 At archive: edit `openspec/specs/documentation-template/spec.md:36` to drop `innfo-editor.md`. [all requirements]
 
 ### B7. Guard and verification (S5d)
 
