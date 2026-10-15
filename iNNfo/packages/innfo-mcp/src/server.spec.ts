@@ -491,9 +491,8 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     })
   })
 
-  describe('legacy domain interception across MCP tools', () => {
-    it('returns a legacy notice naming the new-domain recipe when called on a legacy domain', async () => {
-      // Create legacy entrypoint
+  describe('no legacy domain interception across MCP tools', () => {
+    it('does not intercept a domain carrying retired-era frontmatter keys', async () => {
       await writeFile(
         join(rootDir, 'domaiNN_NN.md'),
         ['---', 'level: 2', 'model_version: "V_0-1-0"', '---'].join('\n'),
@@ -502,31 +501,22 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
 
       const result = await client.callTool({ name: 'list_knowledge', arguments: {} })
       expect(result.isError).toBeFalsy()
-      const parsed = JSON.parse(textOf(result as CallToolResult))
-      expect(parsed.isLegacy).toBe(true)
-      expect(parsed.message).toContain('legacy layout')
-      expect(parsed.hint).toContain('--import-as-source')
-      expect(parsed.hint).toMatch(/new domain/i)
-      expect(parsed.hint).not.toMatch(/to migrate this domain/i)
-      expect(parsed.message).toContain('--import-as-source')
-      expect(parsed.message).not.toMatch(/to migrate./)
+      const text = textOf(result as CallToolResult)
+      expect(text).not.toContain('isLegacy')
+      expect(text).not.toContain('legacy layout')
     })
 
-    it('lets reads through but refuses writes when the only legacy signal is the retired layout', async () => {
+    it('does not refuse writes on a domain carrying a retired layout folder', async () => {
       await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
       await writeFile(join(rootDir, 'sources', 'nn', 'raw_NN.md'), '# raw\n', 'utf-8')
-
-      const read = await client.callTool({ name: 'list_knowledge', arguments: {} })
-      expect(read.isError).toBeFalsy()
-      expect(JSON.parse(textOf(read as CallToolResult)).isLegacy).toBeUndefined()
 
       const write = await client.callTool({
         name: 'init_knowledge',
         arguments: { id: 'x', blueprint_url: 'u', blueprint_name: 'n', knowledge_version: '0.1.0' },
       })
-      const parsed = JSON.parse(textOf(write as CallToolResult))
-      expect(parsed.isLegacy).toBe(true)
-      expect(parsed.signals.every((s: { type: string }) => s.type === 'legacy-layout')).toBe(true)
+      const text = textOf(write as CallToolResult)
+      expect(text).not.toContain('isLegacy')
+      expect(text).not.toContain('legacy layout')
     })
   })
 })

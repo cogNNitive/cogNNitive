@@ -25,7 +25,6 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@cognnitive/innfo-core/legacy': resolve(__dirname, '../innfo-core/src/legacy/index.ts'),
       '@cognnitive/innfo-core': resolve(__dirname, '../innfo-core/src/index.ts'),
     },
   },

@@ -8,8 +8,7 @@
  *
  * Targets:
  *   1. skills/nn-preflight/scripts/lib/version-status.generated.cjs (versionStatus.ts)
- *   2. skills/nn-preflight/scripts/lib/legacy-detect.generated.cjs (legacy/detect.ts)
- *   3. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
+ *   2. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check]
@@ -55,36 +54,6 @@ const BUNDLE_TARGETS = [
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
       ' */',
-  },
-  {
-    name: 'legacy-detect',
-    entry: path.join(
-      REPO_ROOT,
-      'iNNfo',
-      'packages',
-      'innfo-core',
-      'src',
-      'legacy',
-      'detect.ts',
-    ),
-    out: path.join(
-      REPO_ROOT,
-      'skills',
-      'nn-preflight',
-      'scripts',
-      'lib',
-      'legacy-detect.generated.cjs',
-    ),
-    banner:
-      '/**\n' +
-      ' * GENERATED FILE — DO NOT EDIT.\n' +
-      ' * Source: iNNfo/packages/innfo-core/src/legacy/detect.ts\n' +
-      ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
-      ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
-      ' */\n' +
-      '// ' +
-      'legacy:' +
-      'nn-rename/detector',
   },
   {
     name: 'naming-contract',

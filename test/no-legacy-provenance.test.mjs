@@ -40,7 +40,6 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'temp', '.verify-logs
 const SKIP_PREFIXES = [
   'test/fixtures/',
   'iNNfo/packages/innfo-core/tests/fixtures/',
-  'iNNfo/packages/innfo-core/tests/legacy/',
 ]
 const WRITE_ONCE = /_V_\d+-\d+-\d+/
 const BINARY_EXT = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|eot|pdf|zip|mp4|webm|svg)$/i

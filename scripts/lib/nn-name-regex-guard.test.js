@@ -63,7 +63,7 @@ function main() {
   }
   console.log('✔ the contract module is exempt');
 
-  // 5. Tests, generated files, legacy quarantine, docs, and openspec are out of scope.
+  // 5. Tests, generated files, docs, and openspec are out of scope.
   {
     const body = `const re = ${NN_REGEX}\n`;
     const r = run({
@@ -71,13 +71,12 @@ function main() {
       'iNNfo/packages/innfo-core/tests/a.test.ts': body,
       'iNNfo/packages/innfo-mcp/src/tools/a.spec.ts': body,
       'skills/nn-sources/scripts/lib/innfo-core.generated.cjs': body,
-      'iNNfo/packages/innfo-core/src/legacy/layout/detect.ts': body,
       'docs/x.md': body,
       'openspec/x.md': body,
     });
     assert.strictEqual(r.ok, true, r.errors.join('; '));
   }
-  console.log('✔ tests, generated files, legacy/**, docs, and openspec are out of scope');
+  console.log('✔ tests, generated files, docs, and openspec are out of scope');
 
   // 6. Pure comment lines never count as a definition.
   {

@@ -71,7 +71,7 @@ Authoritative sources:
 ## Legacy Quarantine & Ledger Contract
 
 Temporary legacy migration debt is quarantined and tracked 1:1 via `legacy-ledger.yaml`:
-- Every piece of temporary legacy code MUST carry a marker formatted as `legacy:<namespace>/<id>` (e.g. `legacy:nn-rename/<id>`).
+- Every piece of temporary legacy code MUST carry a marker formatted as `legacy:<namespace>/<id>` (for example `legacy:lineage-single-edge/<id>`).
 - Every marker MUST correspond 1:1 to an entry in `legacy-ledger.yaml` declaring `id`, `what`, `paths`, `why`, `removal`, and `owner`.
 - Verified deterministically via `node scripts/lib/legacy-ledger-guard.js` on every run of `scripts/verify.js` and `scripts/check-integrity.js`.
 - Permanent history (`_V_` specs, frozen CDN bundles, git tags, archived changes) is NEVER ledgered.

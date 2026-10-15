@@ -212,30 +212,26 @@ describe('checkWorkspace (AD-5)', () => {
     await rmWithRetry(rootDir)
   })
 
-  it('self-heals a missing template package into hydrated and leaves specs untouched', async () => {
+  it('hydrates a missing template package through the temp cache and never writes into the tree', async () => {
     stubNetwork()
     await writeModels(2)
     const report = await checkWorkspace(rootDir)
     expect(report.models).toHaveLength(2)
-    // First model hydrates the missing package; the second reuses it.
-    expect(report.models.filter((m) => m.templateResolved === 'hydrated')).toHaveLength(1)
-    expect(report.models.filter((m) => m.templateResolved === 'resolved')).toHaveLength(1)
+    // No package exists in-tree, so both models report a hydration (temp cache).
+    expect(report.models.filter((m) => m.templateResolved === 'hydrated')).toHaveLength(2)
     expect(report.models.every((m) => m.versionStatus === 'current')).toBe(true)
     expect(report.catalogSource).toBe('remote')
     expect(report.offline).toBe(false)
 
-    // The hydration wrote a new package under specs/bluepriNNts/business/V_0-2-0/
-    const pkgDir = join(specsDir, 'bluepriNNts', 'business', 'V_0-2-0')
-    const files = await readdir(pkgDir)
-    expect(files).toContain('spec_NN.md')
+    // Nothing is written under specs/bluepriNNts/ in the domain tree.
+    const inTree = await readdir(join(specsDir, 'bluepriNNts')).catch(() => [])
+    expect(inTree).not.toContain('business')
   })
 
   it('does not re-pollute a current-layout domain with legacy packages (issue #109)', async () => {
     stubNetwork()
     // Build a clean canonical domain: `domaiNN_NN.md` entrypoint, models under
-    // `kNNowledge/` (NOT `models/`), and a canonical parent URL. Any legacy
-    // signal (`models/`, an L1 `iNNfo_V_0-2-1` parent, a legacy key) would flip
-    // the detector to mixed and defeat the point of this test.
+    // `kNNowledge/` (NOT `models/`), and a canonical parent URL.
     await writeFile(
       join(rootDir, 'domaiNN_NN.md'),
       [
@@ -255,8 +251,7 @@ describe('checkWorkspace (AD-5)', () => {
       'utf-8',
     )
     await mkdir(join(rootDir, 'kNNowledge'), { recursive: true })
-    // The shared beforeEach creates `models/`; remove it so the domain is not
-    // classified legacy (a `models/` folder is itself a legacy signal).
+    // The shared beforeEach creates `models/`; remove it so the domain is canonical.
     await rm(join(rootDir, 'models'), { recursive: true, force: true })
     await writeFile(
       join(rootDir, 'kNNowledge', 'model0_V_0-1-0_business_NN.md'),

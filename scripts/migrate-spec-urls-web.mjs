@@ -70,8 +70,6 @@ function shouldSkip(relPath, isDir) {
   if (normalized === 'iNNfo/specs/defiNNe_V_0-1-0_NN.md') return true;
   if (normalized === 'iNNfo/specs/defiNNition_V_0-1-0_NN.md') return true;
   if (normalized === 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts') return true;
-  // Quarantine fixture: the migrator's input keeps the pre-rename template URLs.
-  if (normalized.startsWith('iNNfo/packages/innfo-core/tests/legacy/fixtures/')) return true;
 
   if (!isDir) {
     if (normalized === SELF_PATH) return true;

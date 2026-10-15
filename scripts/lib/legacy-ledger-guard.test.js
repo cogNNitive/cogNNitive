@@ -400,6 +400,62 @@ entries:
   }
 }
 
+// 11. After the quarantine removal only the hash-slug entries remain and the guard passes
+function testQuarantineRemovedLedgerPasses() {
+  const repo = createTempRepo();
+  try {
+    const ledger = `version: 1
+entries:
+  - id: hash-slug-read
+    what: Read-only parser branch for legacy #slug citations
+    paths:
+      - src/sourceRef.ts
+    why: Backwards compatibility for write-once specs
+    removal: no-#slug-left-outside-frozen-paths + maintainer-sign-off
+    owner: 2026-10-01-lineage-single-edge
+  - id: hash-slug-migrate
+    what: One-shot migrator for legacy #slug citations
+    paths:
+      - scripts/migrate-hash-citations.mjs
+    why: Migrate files to the single-edge grammar
+    removal: no-#slug-left-outside-frozen-paths + maintainer-sign-off
+    owner: 2026-10-01-lineage-single-edge
+`;
+    repo.writeFile('legacy-ledger.yaml', ledger);
+    repo.writeFile('src/sourceRef.ts', `// ${makeMarker('lineage-single-edge', 'hash-slug-read')}
+`);
+    repo.writeFile('scripts/migrate-hash-citations.mjs', `// ${makeMarker('lineage-single-edge', 'hash-slug-migrate')}
+`);
+
+    const res = validateLegacyLedger({
+      repoRoot: repo.dir,
+      lsFiles: ['legacy-ledger.yaml', 'src/sourceRef.ts', 'scripts/migrate-hash-citations.mjs'],
+    });
+    assert.strictEqual(res.ok, true, `Expected ok=true, got errors: ${res.errors.join(', ')}`);
+    assert.strictEqual(res.entries.length, 2);
+    console.log('✔ Test 11: ledger holding only the hash-slug entries passes');
+  } finally {
+    repo.cleanup();
+  }
+}
+
+// 12. The real repo ledger carries no quarantine entry and the guard is green on it
+function testRealLedgerHasNoQuarantineEntries() {
+  const res = validateLegacyLedger({});
+  assert.strictEqual(res.ok, true, `Expected the repo ledger to pass, got: ${res.errors.join('; ')}`);
+  const ids = res.entries.map((e) => e.id).sort();
+  assert.deepStrictEqual(
+    ids,
+    ['hash-slug-migrate', 'hash-slug-read'],
+    `Expected only the hash-slug entries, got: ${ids.join(', ')}`,
+  );
+  assert.ok(
+    res.entries.every((e) => !String(e.owner).includes('nn-level-nomenclature-rename')),
+    'no entry may be owned by the retired nomenclature-rename quarantine',
+  );
+  console.log('✔ Test 12: the repo ledger holds no quarantine entries');
+}
+
 function runAll() {
   testEmptyLedgerPasses();
   testExclusionsIgnored();
@@ -411,6 +467,8 @@ function runAll() {
   testMissingFieldsAndVersionFails();
   testPermanentHistoryInPathsFails();
   testValidMatchingEntriesPass();
+  testQuarantineRemovedLedgerPasses();
+  testRealLedgerHasNoQuarantineEntries();
   console.log('\nAll legacy ledger guard tests passed successfully.');
 }
 

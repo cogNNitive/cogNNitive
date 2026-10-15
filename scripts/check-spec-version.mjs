@@ -283,9 +283,6 @@ function collectRepoFiles(dir, includeArchives) {
       if (st.isDirectory()) {
         if (!includeArchives && (entry === 'archive' || ARCHIVE_DIRS.has(entry))) continue
         if (rel.startsWith('openspec/changes/')) continue
-        // Quarantine: the frozen legacy-domain fixture intentionally keeps the
-        // pre-rename template URLs (it is the migrator's input).
-        if (rel.startsWith('iNNfo/packages/innfo-core/tests/legacy/fixtures/')) continue
         files.push(...collectRepoFiles(full, includeArchives))
       } else {
         if (full.endsWith('.bundle.js')) continue

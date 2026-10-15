@@ -270,7 +270,7 @@ function validateLegacyLedger(options = {}) {
       const covered = declaredPaths.some((p) => matchesPathPattern(file, p));
       if (!covered) {
         errors.push(
-          `Marked file "${file}" with marker "legacy:nn-rename/${id}" is not covered by entry "${id}" paths: [${declaredPaths.join(', ')}]`,
+          `Marked file "${file}" with marker "legacy:<namespace>/${id}" is not covered by entry "${id}" paths: [${declaredPaths.join(', ')}]`,
         );
       }
     }
@@ -280,7 +280,7 @@ function validateLegacyLedger(options = {}) {
       const hasMatchingMarkerFile = matchingFiles.some((f) => matchesPathPattern(f, p));
       if (!hasMatchingMarkerFile) {
         errors.push(
-          `Path "${p}" in ledger entry "${id}" does not match any file bearing marker "legacy:nn-rename/${id}"`,
+          `Path "${p}" in ledger entry "${id}" does not match any file bearing marker "legacy:<namespace>/${id}"`,
         );
       }
     }

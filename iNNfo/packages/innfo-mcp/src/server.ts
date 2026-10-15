@@ -48,7 +48,6 @@ import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
-import { checkLegacyDomain } from './tools/legacy-hint.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
@@ -75,38 +74,6 @@ export const server = new Server(
   { name: 'innfo-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.11.0' },
   { capabilities: { tools: {} } },
 )
-
-/* ── Legacy domain interceptor ───────────────────────────────── */
-
-/**
- * Refuses a tool call on a legacy domain. A domain whose only legacy signal is the
- * retired layout (frozen samples keep it) stays readable: reads pass,
- * writes are refused until nn-upgrade migrates it.
- */
-async function checkDomainLegacy(
-  root: string,
-  access: 'read' | 'write' = 'read',
-): Promise<CallToolResult | null> {
-  const legacy = await checkLegacyDomain(root)
-  const layoutOnly =
-    legacy.kind !== 'current' && legacy.signals.every((s) => s.type === 'legacy-layout')
-  if (legacy.kind !== 'current' && !(layoutOnly && access === 'read')) {
-    return textResult(
-      JSON.stringify(
-        {
-          isLegacy: true,
-          kind: legacy.kind,
-          signals: legacy.signals,
-          hint: legacy.hint,
-          message: `Domain at "${root}" is in legacy layout. Create a new domain and import it as a Source (nn-upgrade --import-as-source).`,
-        },
-        null,
-        2,
-      ),
-    )
-  }
-  return null
-}
 
 /* ── Tool registry ───────────────────────────────────────────── */
 
@@ -758,8 +725,6 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
 
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const knowledge = await listKnowledge(root)
   return textResult(JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2))
 }
@@ -768,8 +733,6 @@ async function handleReadKnowledge(args: Record<string, unknown>): Promise<CallT
   const id = (args.knowledge_id as string) || (args.id as string)
   if (!id) return errorResult('Missing required argument: id')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const doc = await readKnowledge(root, id, {
     concept: args.concept as string | undefined,
     element: args.element as string | undefined,
@@ -824,8 +787,6 @@ async function handleValidateKnowledge(args: Record<string, unknown>): Promise<C
   const domainScope = Boolean(args.scope_domain ?? args.workspace)
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await validateKnowledge(root, id, content, blueprintUrl, domainScope, {
     baselinePath: args.baseline_path as string | undefined,
     inPlace: args.in_place as boolean | undefined,
@@ -852,8 +813,6 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   }
 
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
 
   const open = args.open === undefined ? true : Boolean(args.open)
   const run = () => (changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs))
@@ -864,8 +823,6 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
 
 async function handleProposeChangeset(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const open = args.open === undefined ? true : Boolean(args.open)
   const result = await proposeChangeset(root, {
     operations: args.operations,
@@ -889,8 +846,6 @@ async function handleInitDomain(args: Record<string, unknown>): Promise<CallTool
 
 async function handleRegenerateConsole(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const model = typeof args.model === 'string' && args.model !== '' ? args.model : undefined
   const open = args.open === undefined ? true : Boolean(args.open)
   const outcome = await regenerateConsole(root, { scope: model ? { model } : 'domain', open })
@@ -908,8 +863,6 @@ async function handleValidateBlueprint(args: Record<string, unknown>): Promise<C
   const url = args.url as string | undefined
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await validateBlueprint(root, id, content, url)
   return textResult(JSON.stringify(envelope('innfo-validate-blueprint', result), null, 2))
 }
@@ -924,8 +877,6 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
   if (!id || !blueprintUrl || !blueprintName) {
     return errorResult('Missing required arguments: id, blueprint_url, blueprint_name')
   }
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const open = args.open === undefined ? true : Boolean(args.open)
   const result = await initKnowledge(
     root,
@@ -948,8 +899,6 @@ async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<Ca
   const blueprintName = args.blueprint_name as string
   if (!blueprintName) return errorResult('Missing required argument: blueprint_name')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const targetDir = args.target_dir as string | undefined
   const result = await hydrateBlueprint(root, blueprintName, { targetDir })
   return textResult(JSON.stringify(envelope('innfo-hydrate-blueprint', result), null, 2))
@@ -957,8 +906,6 @@ async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<Ca
 
 async function handleSyncDomainManifest(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const dryRun = args.dry_run !== undefined ? Boolean(args.dry_run) : true
   const result = await syncDomainManifest(root, { dry_run: dryRun })
   const payload: Record<string, unknown> = { ...result }
@@ -976,8 +923,6 @@ async function handleCheckDomain(args: Record<string, unknown>): Promise<CallToo
 
 async function handleQueryUnits(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await queryUnits(root, String(args.query ?? ''), {
     max_values_chars: args.max_values_chars as number | undefined,
   })
@@ -986,8 +931,6 @@ async function handleQueryUnits(args: Record<string, unknown>): Promise<CallTool
 
 async function handleCognitivize(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root, 'write')
-  if (legacyErr) return legacyErr
   const path = String(args.path ?? '')
   if (!path) return errorResult('Missing required argument: path')
   const result = await cognitivizeTool(root, path)
@@ -1000,8 +943,6 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
   const elementId = args.elementId as string
   if (!knowledgeId || !elementId) return errorResult('Missing required arguments: knowledge_id, elementId')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const results = await resolveSources(root, {
     model: knowledgeId,
     elementId,
@@ -1016,8 +957,6 @@ async function handleListBlueprintProcedures(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await listBlueprintProcedures(root, {
     model_path: (args.knowledge_path as string) || (args.model_path as string),
     model_id: (args.knowledge_id as string) || (args.model_id as string),
@@ -1030,8 +969,6 @@ async function handleListBlueprintProcedures(
 
 async function handleListBlueprintSkills(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await listBlueprintSkills(root, {
     model_path: (args.knowledge_path as string) || (args.model_path as string),
     model_id: (args.knowledge_id as string) || (args.model_id as string),

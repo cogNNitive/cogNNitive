@@ -57,12 +57,14 @@ function main() {
   }
   console.log('✔ docs/tests/openspec/cdn/frozen files are out of scope');
 
-  // 4. Allowlisted quarantine path is ignored, but the allowlist entry carries a reason
+  // 4. An allowlisted path is ignored; the removed quarantine module path is no longer allowlisted
   {
-    const r = run({ 'iNNfo/packages/innfo-core/src/legacy/detect.ts': `const s = '${ST}';\n` });
-    assert.strictEqual(r.ok, true, r.errors.join('; '));
+    const ok = run({ 'skills/nn-upgrade/scripts/migrate-domain.js': `const s = '${ST}';\n` });
+    assert.strictEqual(ok.ok, true, ok.errors.join('; '));
+    const bad = run({ 'iNNfo/packages/innfo-core/src/legacy/detect.ts': `const s = '${ST}';\n` });
+    assert.strictEqual(bad.ok, false, 'the retired quarantine path must no longer be allowlisted');
   }
-  console.log('✔ quarantine module is allowlisted');
+  console.log('✔ allowlisted paths pass; the retired quarantine module path is not allowlisted');
 
   // 5. Pages path allowance vs an unrelated lowercase blueprints/ literal
   {

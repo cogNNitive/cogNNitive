@@ -113,20 +113,6 @@ describe('frozen vendored console bundles (not migrated, not guarded)', () => {
       'samples',
       'Ghostbusters_V_0-1-0_console.html',
     ),
-    join(
-      repoRoot,
-      'iNNfo',
-      'packages',
-      'innfo-core',
-      'tests',
-      'legacy',
-      'fixtures',
-      'legacy-domain',
-      'templates',
-      'metrics',
-      'samples',
-      'Ghostbusters_V_0-1-0_console.html',
-    ),
   ]
 
   it('keeps their legacy inline :root colors (proves they were not migrated)', () => {

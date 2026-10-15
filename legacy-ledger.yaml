@@ -1,39 +1,6 @@
 version: 1
 entries:
 
-  - id: quarantine
-    what: Legacy quarantine module interface and index
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/index.ts
-    why: Core quarantine interface for legacy detection (the migration half was retired in S4)
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
-  - id: detector
-    what: Legacy layout detector
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/detect.ts
-      - skills/nn-preflight/scripts/lib/legacy-detect.generated.cjs
-    why: MCP/editor/preflight must recognise legacy domains
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
-  - id: legacy-fixture
-    what: Frozen legacy domain test fixture
-    paths:
-      - iNNfo/packages/innfo-core/tests/legacy/fixtures/legacy-domain/LEGACY.md
-    why: Frozen legacy domain for migrator and detector test suites
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
-  - id: legacy-hint
-    what: MCP legacy domain detection and hint helper
-    paths:
-      - iNNfo/packages/innfo-mcp/src/tools/legacy-hint.ts
-    why: MCP tools must intercept calls against legacy domains with an nn-upgrade hint
-    removal: all-known-domains-migrated + maintainer-sign-off
-    owner: 2026-09-29-nn-level-nomenclature-rename
-
   - id: hash-slug-read
     what: Read-only parser branch for legacy #slug citations in innfo-core
     paths:
@@ -49,13 +16,3 @@ entries:
     why: Migrate existing markdown/source files to the single-edge @ grammar
     removal: no-#slug-left-outside-frozen-paths + maintainer-sign-off
     owner: 2026-10-01-lineage-single-edge
-
-  - id: layout-detect
-    what: Detection of the retired export/, sources/original/, sources/nn/ and sources/export/ layout (legacy-layout signal; sources/archive/ is never a signal)
-    paths:
-      - iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
-      - iNNfo/packages/innfo-core/tests/legacy/layout/detect.test.ts
-      - iNNfo/packages/innfo-core/src/legacy/detect.ts
-    why: Preflight, MCP, and the editor must report domains still using the retired folders
-    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
-    owner: 2026-10-02-cognitivize-in-place

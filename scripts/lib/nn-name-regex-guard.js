@@ -15,7 +15,7 @@
  *
  * Scan scope: `.ts`, `.js`, `.vue`, `.mjs` runtime source under
  *   iNNfo/packages/<pkg>/src, scripts, skills/<name>/scripts.
- * Out of scope: generated files, tests, `legacy/**` quarantine, docs, openspec,
+ * Out of scope: generated files, tests, docs, openspec,
  * the CDN bundles, and frozen `_V_` files.
  *
  * Every allowlist entry carries a reason; an entry without one fails the guard.
@@ -72,7 +72,6 @@ function isExcluded(relPath) {
   if (/\.generated\./.test(relPath)) return true;
   if (/\.(test|spec)\.(js|mjs|ts|vue)$/.test(relPath)) return true;
   if (/(^|\/)(tests?|__tests__|fixtures|test-fixtures)\//.test(relPath)) return true;
-  if (relPath.includes('/src/legacy/')) return true;
   if (/_V_\d+-\d+-\d+/.test(relPath)) return true;
   return false;
 }

@@ -13,7 +13,6 @@ import { parseAndRegisterKnowledge } from './knowledge.js'
 import { attachSchemaTypedCitations } from './normalize.js'
 import { parseKnowledge, parseFrontmatter, stripFrontmatter } from '../parser/index.js'
 import { computeModelDagTopology } from './topology.js'
-import { detectLegacy, type DomainReader } from '../legacy/detect.js'
 import { CANONICAL_DOMAIN_ENTRYPOINT } from '../layout.js'
 import { IGNORED_DIRECTORIES, isExcludedPath } from '../naming/contract.js'
 
@@ -109,59 +108,6 @@ function isWorkspaceManifest(name: string): boolean {
     name.endsWith(INNFO_FILE_SUFFIX) &&
     !isIgnoredPath(name)
   )
-}
-
-/**
- * Chooses the primary entrypoint filename from a flat list of candidate names.
- * An overview root (A2) wins when one is present; otherwise falls back to
- * today's `workspace*.md` selection, unchanged.
- */
-function makeDomainReader(root: DirectoryHandleLike, driver?: KnowledgeDriver): DomainReader {
-  return {
-    async list(dir: string): Promise<string[]> {
-      if (driver) {
-        try {
-          const children = await driver.listChildren(dir)
-          return children.map((c) => c.name)
-        } catch {
-          return []
-        }
-      }
-      try {
-        let current: DirectoryHandleLike = root
-        if (dir) {
-          const segments = dir.split('/').filter(Boolean)
-          for (const s of segments) {
-            current = await current.getDirectoryHandle(s)
-          }
-        }
-        const entries: string[] = []
-        for await (const [name] of current.entries()) {
-          entries.push(name)
-        }
-        return entries
-      } catch {
-        return []
-      }
-    },
-    async read(path: string): Promise<string | null> {
-      if (driver) {
-        try {
-          const m = await driver.readKnowledge(path)
-          return m.rawContent
-        } catch {
-          return null
-        }
-      }
-      try {
-        const fileHandle = await resolveFileHandle(root, path)
-        const file = await fileHandle.getFile()
-        return await file.text()
-      } catch {
-        return null
-      }
-    },
-  }
 }
 
 async function findCanonicalDomainEntrypoint(
@@ -368,7 +314,7 @@ function schemaFor(
 
 /**
  * Parses a domaiNN by reading `domaiNN_NN.md` as the primary entry point,
- * detecting legacy layouts, or falling back to a root directory scan.
+ * or falling back to a root directory scan.
  */
 export async function recursiveParse(
   root: DirectoryHandleLike,
@@ -383,42 +329,6 @@ export async function recursiveParse(
     visitedPaths,
   }
   const elementNameToModel = new Map<string, string>()
-
-  // Step 0: Check for legacy signals using DomainReader and detectLegacy
-  const reader = makeDomainReader(root, driver)
-  const legacyCheck = await detectLegacy(reader)
-  // A domain whose ONLY legacy signals are retired layout folders still parses:
-  // the frozen samples and use cases keep the retired layout by design and must open
-  // with their content. The signal stays visible as a warning plus `legacyResult`
-  // so the editor banner and nn-upgrade can act on it. Any other signal blocks.
-  const layoutOnly =
-    legacyCheck.kind !== 'current' && legacyCheck.signals.every((s) => s.type === 'legacy-layout')
-  const legacyReport: Pick<RecursiveParseResult, 'legacyResult'> = layoutOnly
-    ? { legacyResult: legacyCheck }
-    : {}
-  if (layoutOnly) {
-    ctx.issues.push({
-      path: '<root>',
-      message: legacyCheck.hint,
-      code: 'LEGACY_DOMAIN',
-      severity: 'warning',
-    })
-  } else if (legacyCheck.kind === 'legacy' || legacyCheck.kind === 'mixed') {
-    return {
-      nodes: {},
-      rootIds: [],
-      issues: [
-        {
-          path: '<root>',
-          message: legacyCheck.hint,
-          code: 'LEGACY_DOMAIN',
-          severity: 'error',
-        },
-      ],
-      isLegacy: true,
-      legacyResult: legacyCheck,
-    }
-  }
 
   // Step 1: Search primary entrypoint domaiNN_NN.md
   const primary = await findCanonicalDomainEntrypoint(root, driver)
@@ -497,7 +407,7 @@ export async function recursiveParse(
       severity: 'warning',
     })
 
-    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology, ...legacyReport }
+    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology }
   }
 
   // Step 3: Iterative worklist traversal
@@ -645,6 +555,5 @@ export async function recursiveParse(
     issues: ctx.issues,
     entrypointPath,
     topology,
-    ...legacyReport,
   }
 }

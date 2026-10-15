@@ -9,7 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 
 // The Workspace Hub is retired (D14). Permanent history (archived changes, the
-// SDD canonical spec store synced at archive time, legacy/refactor fixtures) and
+// SDD canonical spec store synced at archive time, refactor fixtures) and
 // the maintainer logs are exempt; nothing else may name the hub.
 const ALLOWLIST = [
   'openspec/changes/archive/',
@@ -19,7 +19,6 @@ const ALLOWLIST = [
   'openspec/changes/2026-10-13-s5-retire-innfo-editor/',
   'openspec/changes/single-console-shell/',
   'openspec/specs/',
-  'iNNfo/packages/innfo-core/tests/legacy/',
   'iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/',
   'test/fixtures/testlab/',
   'simulation/FINDINGS.md',

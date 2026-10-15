@@ -2,14 +2,12 @@ import type { KnowledgeNode } from '../types/index.js'
 import type { IdentityRegistry } from '../identity.js'
 import type { BlueprintSchema } from '../schema/index.js'
 
-import type { DetectLegacyResult } from '../legacy/detect.js'
-
 export interface ParseIssue {
   path: string
   message: string
   severity?: 'info' | 'warning' | 'error'
   /** Stable machine-readable discriminator. Additive; existing issues keep it undefined. */
-  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND' | 'LEGACY_DOMAIN' | 'MISSING_ENTRYPOINT'
+  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND' | 'MISSING_ENTRYPOINT'
 }
 
 import type { ModelDagTopology } from './topology.js'
@@ -22,10 +20,6 @@ export interface RecursiveParseResult {
   entrypointPath?: string
   /** Computed DAG topology across models (in-degrees, out-degrees, edges, roots). */
   topology?: ModelDagTopology
-  /** True when the domain was identified as legacy. */
-  isLegacy?: boolean
-  /** Full legacy detection report when isLegacy is true. */
-  legacyResult?: DetectLegacyResult
 }
 
 export interface WorklistItem {

@@ -1,6 +1,6 @@
 {
   "name": "@cognnitive/innfo-core",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Core library for iNNfo parser, model, IO drivers, and validator",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,12 +11,6 @@
       "browser": "./dist/browser.js",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./legacy": {
-      "types": "./dist/legacy/index.d.ts",
-      "browser": "./dist/legacy/detect.js",
-      "import": "./dist/legacy/index.js",
-      "default": "./dist/legacy/index.js"
     }
   },
   "files": [

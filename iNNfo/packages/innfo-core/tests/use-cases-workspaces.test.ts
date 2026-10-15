@@ -103,14 +103,8 @@ describe('Canonical Use Case Workspaces', () => {
           },
         })
 
-        // The use cases are frozen content: they keep the retired `sources/nn` layout by design and
-        // are never migrated. The layout detector reports them (and nothing else) as legacy.
-        const frozenLayout =
-          parsed.legacyResult !== undefined &&
-          parsed.legacyResult.kind !== 'current' &&
-          parsed.legacyResult.signals.every((s) => s.type === 'legacy-layout')
         const errors = parsed.issues
-          .filter((i) => i.severity === 'error' && !(frozenLayout && i.code === 'LEGACY_DOMAIN'))
+          .filter((i) => i.severity === 'error')
           .map((i) => `${i.severity}: ${i.path} — ${i.message}`)
         expect(errors).toEqual([])
       })

@@ -36,7 +36,6 @@ import {
 import type { SpecCache } from '@cognnitive/innfo-core'
 import { listKnowledge } from './list-read.js'
 import { deriveNameFromUrl } from './spec.js'
-import { checkLegacyDomain } from './legacy-hint.js'
 import {
   collectWorkspaceDiagnostics,
   filterDiagnosticsForModel,
@@ -78,12 +77,6 @@ interface CheckContext {
   mergedCache: SpecCache
   /** Workspace-relative forward-slashed model path → absolute file path. */
   absByPath: Map<string, string>
-  /**
-   * Cached self-heal decision: write hydrated packages in-tree? `true` for a
-   * legacy/mixed domain, `false` for a `current` one (never re-pollute a
-   * migrated tree). Undefined until the first resolution computes it.
-   */
-  selfHealInPlace?: boolean
 }
 
 function errorMessage(err: unknown): string {
@@ -171,18 +164,14 @@ export async function resolveCatalog(
 
 /**
  * Self-healing resolve + hydrate for one model's parent template. Reads
- * through `resolveParentChainNode({ checkFreshness: false, inPlace })`:
+ * through `resolveParentChainNode({ checkFreshness: false })`:
  * a 4-tier local
  * hit is `resolved` (with tier), a network fetch + write-once hydration is
  * `hydrated`, and a `SpecResolutionError` is `unresolved` — never throws out
  * of the port. Merges the returned `SpecCache` into the shared context.
  *
- * `inPlace` is layout-aware: a domain in the canonical `current` layout MUST
- * NOT get legacy parent-chain packages written into its tree, because that
- * flips the layout detector to `mixed`/legacy on the next call and masks every
- * subsequent validation behind the layout gate. So `current` resolves through
- * the OS temp cache (`inPlace: false`); only a legacy/mixed domain — whose
- * in-tree specs are the point — self-heals in place.
+ * Hydration never writes parent-chain packages into the domain tree: resolution
+ * goes through the OS temp cache (the resolver's default, `inPlace` unset).
  */
 async function resolveBlueprintForKnowledge(
   ctx: CheckContext,
@@ -193,11 +182,9 @@ async function resolveBlueprintForKnowledge(
     return { outcome: 'not-checked', detail: 'No parent_spec.url to resolve' }
   }
   const existingPkg = await resolveBlueprintPackage(rootDir, model.parentName).catch(() => null)
-  const inPlace = await selfHealsInPlace(ctx)
   try {
     const cache = await resolveParentChainNode(rootDir, model.parentUrl, model.parentName, {
       checkFreshness: false,
-      inPlace,
     })
     mergeCache(ctx.mergedCache, cache)
     const depth0 = cache.specs.get(model.parentName)
@@ -217,26 +204,6 @@ async function resolveBlueprintForKnowledge(
     }
     return { outcome: 'unresolved', detail: errorMessage(err) }
   }
-}
-
-/**
- * Whether the self-heal should write hydrated packages into the workspace tree.
- * Cached per `CheckContext` so the layout is detected once per run. A `current`
- * domain returns `false` (never re-pollute a migrated tree); a legacy/mixed
- * domain — or one that cannot be inspected — returns `true`.
- */
-async function selfHealsInPlace(ctx: CheckContext): Promise<boolean> {
-  if (ctx.selfHealInPlace !== undefined) return ctx.selfHealInPlace
-  let inPlace = true
-  try {
-    const legacy = await checkLegacyDomain(ctx.rootDir)
-    inPlace = legacy.kind !== 'current'
-  } catch {
-    // Cannot classify the layout: keep the historical in-place behavior.
-    inPlace = true
-  }
-  ctx.selfHealInPlace = inPlace
-  return inPlace
 }
 
 export function toIntegrityDiagnostics(
