@@ -3,9 +3,7 @@
 ## Purpose
 
 Pin a canonical term dictionary for the cogNNitive ecosystem, collapsing overlapping vocabulary onto canonical nouns with explicit deprecated aliases. Establishes **bluepriNNt** as the canonical term for the Level-2 schema while keeping all resolution identifiers stable, and documents **template** and **app** as deprecated aliases.
-
 ## Requirements
-
 ### Requirement: Canonical term dictionary is machine-readable and human-visible
 
 The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives editor labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match.
@@ -95,6 +93,7 @@ The unified backlog MUST gain a new work item recording the future mechanical id
 - GIVEN `openspec/backlog.md`
 - WHEN read after this change
 - THEN it contains a new work item for the identifier migration with the dictionary's "planned migrations" section as its source
+
 ### Requirement: `sidecar` and `cognitivize` are canonical terms
 
 `iNNfo/specs/vocabulary.json` MUST define `sidecar` (the co-located `<file>.<ext>_sidecar_NN.md` document that carries a file's hash, size, metadata, and, for binary files, a normalized body) and `cognitivize` (the operation that creates or refreshes a sidecar in place). `docs/innfo/documentation/vocabulary.md` MUST render both. The terms MUST be noted as concepts, not as new levels: a `sidecar` is a kNNowledge-level document that is never a model. The root and `iNNfo` `AGENTS.md` vocabulary blocks MUST stay consistent with the dictionary.
@@ -122,3 +121,19 @@ The release notes for this change MUST list every renamed procedure file and the
 - GIVEN the release handoff notes
 - WHEN compared with the renamed procedure files
 - THEN every rename is listed
+
+### Requirement: Console is the user-facing UI term
+
+The canonical term dictionary (`iNNfo/specs/vocabulary.json`, `docs/innfo/documentation/vocabulary.md`) MUST define "console" as the user-facing term for the UI that shows and reviews a domaiNN: the domain console (`domaiNN_console.html`, one per domaiNN) whose specialized surfaces are views shown as tabs. "editor" and "hosted app" (the retired `cognnitive.com/innfo/app/` web application) MUST be listed as retired UI terms and MUST NOT be used in user-facing copy for that UI. This does not touch "app" as the deprecated alias of `bluepriNNt`, which keeps its existing entry.
+
+#### Scenario: The dictionary defines console
+- GIVEN `iNNfo/specs/vocabulary.json`
+- WHEN its UI terms are read
+- THEN "console" is defined as user-facing
+- AND "editor" and "hosted app" are marked retired UI terms
+
+#### Scenario: Docs use console
+- GIVEN `docs/innfo/documentation/vocabulary.md`
+- WHEN it is read
+- THEN it names the domain console and its views, and not an editor or a hosted app
+
