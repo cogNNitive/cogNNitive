@@ -1,13 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// S5-freeze (variant A3): `iNNfo/apps/innfo-editor` is kept in place but frozen.
-// It must stay out of npm workspaces and every gate, while FROZEN.md and the
-// committed static build of the hosted app exist. Replaced by the S5d
-// no-editor-references guard when the editor is deleted (S5-delete).
+// S5: `iNNfo/apps/innfo-editor` is deleted. The gates must not name it and
+// `docs/innfo/app/` holds only the static notice page. Replaced by the S5d
+// no-editor-references guard (B7.1).
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -77,25 +76,34 @@ describe('frozen editor stays out of every gate', () => {
   })
 })
 
-describe('the frozen editor is documented and its hosted app is committed', () => {
-  it('FROZEN.md exists next to the editor source and says how to thaw it', () => {
-    const file = join(repoRoot, EDITOR_DIR, 'FROZEN.md')
-    assert.ok(existsSync(file), 'FROZEN.md missing')
-    const text = readFileSync(file, 'utf8')
-    assert.match(text, /thaw/i)
-    assert.match(text, /workspaces/)
+describe('the editor is deleted and the hosted app address serves a notice page', () => {
+  it('the editor source is gone', () => {
+    assert.ok(!existsSync(join(repoRoot, EDITOR_DIR)), `${EDITOR_DIR} must be deleted`)
   })
 
-  it('docs/innfo/app carries the static snapshot the Pages publish will serve', () => {
+  it('docs/innfo/app holds exactly the static notice page', () => {
     const app = join(repoRoot, 'docs/innfo/app')
-    assert.ok(existsSync(join(app, 'index.html')), 'docs/innfo/app/index.html missing')
-    const assets = join(app, 'assets')
-    assert.ok(existsSync(assets) && statSync(assets).isDirectory(), 'docs/innfo/app/assets missing')
-    assert.ok(readdirSync(assets).some((f) => f.endsWith('.js')), 'no JS in docs/innfo/app/assets')
+    assert.deepEqual(readdirSync(app), ['index.html'])
+    const html = readFileSync(join(app, 'index.html'), 'utf8')
+    assert.ok(!/<script/i.test(html), 'the notice page must not ship JavaScript')
+    assert.ok(!/assets\//.test(html), 'the notice page must not load the retired bundle')
+    assert.match(html, /retired/i)
+    assert.match(html, /regenerate_console/)
   })
 
-  it('the editor source is still in place (frozen, not deleted)', () => {
-    assert.ok(existsSync(join(repoRoot, EDITOR_DIR, 'package.json')))
-    assert.ok(existsSync(join(repoRoot, EDITOR_DIR, 'src')))
+  it('every internal link of the notice page resolves to a docs file', () => {
+    const html = readFileSync(join(repoRoot, 'docs/innfo/app/index.html'), 'utf8')
+    const hrefs = [...html.matchAll(/href="(\/[^"#]*)(#\/([^"]+))?"/g)]
+    assert.ok(hrefs.length > 0)
+    for (const [, path, , route] of hrefs) {
+      if (route) {
+        const page = join(repoRoot, 'docs', path, `${route}.md`)
+        assert.ok(existsSync(page), `${path}#/${route} has no ${page}`)
+      } else if (path.endsWith('/')) {
+        assert.ok(existsSync(join(repoRoot, 'docs', path, 'index.html')) || existsSync(join(repoRoot, 'docs', path, 'index.md')), `${path} missing`)
+      } else {
+        assert.ok(existsSync(join(repoRoot, 'docs', path)), `${path} missing`)
+      }
+    }
   })
 })

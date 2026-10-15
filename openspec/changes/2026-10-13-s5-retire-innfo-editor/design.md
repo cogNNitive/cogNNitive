@@ -102,13 +102,34 @@ The build embeds the commit date (`__COMMIT_DATE__`), so it is reproducible per 
 
 ### Decisions (unchanged by the freeze)
 
-- **CTAs.** "Open App" becomes "Read the docs" (`https://cognnitive.com/innfo/documentation/`); no redirect page; `/innfo/app/` 404s after deletion.
+- **CTAs.** "Open App" becomes "Read the docs" (`https://cognnitive.com/innfo/documentation/`); no redirect page. **Amended 2026-10-15:** `/innfo/app/` serves one static notice page (see Deviations).
 - **Badge.** `> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.` Maintained templates bump `template_version`; write-once `_V_` specs keep the old line.
 - **Scaffold notice.** `scaffoldKnowledgeDocument`, templates and `canonical-registry.ts` change together with a refreshed golden.
 - **Guardrail (S5d).** `rg "innfo-editor|innfo/app/"` returns nothing outside `iNNfo/specs/**/*_V_*`, `openspec/changes/archive/**`, `guard-template-immutability.js` (commented), and this change directory. It must allow the editor directory only until it is deleted.
 - **Living specs.** Disposition per capability is the set under `deferred-delete/specs/`; moved back to `specs/` when Phase B starts.
 
 ## Deviations from the study
+
+### 2026-10-15: retired app address serves a notice page (maintainer decision)
+
+Reason: maintainer decision. The Phase B decision "no redirect page; `/innfo/app/` 404s after
+deletion" is replaced. After deletion, `https://cognnitive.com/innfo/app/` serves ONE static
+English page, `docs/innfo/app/index.html`, explaining that the hosted app was retired and that
+cogNNitive now uses the domain console (self-contained `domaiNN_console.html` generated locally by
+`export-console.mjs` or MCP `regenerate_console`, reviewed through changesets), with links to the
+usage, offline consoles, reviewer guide, innfo-mcp and installing-agents docs pages.
+
+Consequences:
+
+- `docs/innfo/app/index.html` is the ONLY file kept under `docs/innfo/app/`; the SPA snapshot,
+  `assets/`, `starter/` and `404.html` are deleted. The old `404.html` redirected into the SPA, so
+  it must not survive.
+- The `/innfo/app/` mention is allowlisted for the notice page and its spec in the S5d guard
+  (`test/no-editor-references.test.mjs`).
+- The Pages publish guard now asserts that `docs/innfo/app/index.html` exists and that
+  `docs/innfo/app/assets/` does not; it no longer requires `assets/`.
+- "Open App" CTAs become "Read the docs", or point to the notice page where that is the better UX.
+- New delta spec: `specs/hosted-app-retirement-notice/spec.md`.
 
 Recorded in `tasks.md` under "Verification notes" as they are confirmed during apply.
 
