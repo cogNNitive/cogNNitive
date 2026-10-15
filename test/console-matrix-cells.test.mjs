@@ -149,3 +149,14 @@ describe('constrained matrix cell editor', () => {
     assert.ok(editCell(env, 'Coverage', 'r1', 'c1').querySelector('.innfo-edit-input'))
   })
 })
+
+describe('item-markers detection matches the payload builder', () => {
+  it('treats a matrix targeting markers as item-markers even when it is not named so', () => {
+    const env = bootWith(
+      { name: 'Flags', source: 'Fleet', target: 'markers', rows: ['r1'], cols: ['active'], cells: { r1: { active: '' } } },
+      { markers: [{ name: 'Active', widgetType: 'boolean' }] },
+    )
+    const modal = editCell(env, 'Flags', 'r1', 'active')
+    assert.ok(modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]'), 'the marker column governs the cell')
+  })
+})

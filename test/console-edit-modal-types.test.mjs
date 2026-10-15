@@ -218,4 +218,23 @@ describe('Markdown and reference widgets (S3b groups 10-11)', () => {
     blank.save()
     assert.equal(blank.getSaved().proposed, '')
   })
+
+
+  it('a reference only accepts a name among the candidates, case-insensitively, and no brackets', () => {
+    const candidates = [{ id: 'ana', name: 'Ana', concept: 'Person' }, { id: 'ben', name: 'Ben', concept: 'Person' }]
+    const typed = (text) => {
+      const t = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+      t.modal.querySelector('.innfo-edit-reference input').value = text
+      t.save()
+      return t
+    }
+    const unknown = typed('Nobody')
+    assert.equal(unknown.saveCount(), 0, 'an unknown name is not saved')
+    assert.notEqual(unknown.errorBox().style.display, 'none', 'the error box is shown')
+    assert.equal(typed('Ana]] x [[Ben').saveCount(), 0, 'brackets in the name are rejected')
+    assert.equal(typed('[[Nobody]]').saveCount(), 0, 'a wrapped unknown name is rejected too')
+    const lower = typed('ben')
+    assert.equal(lower.saveCount(), 1)
+    assert.equal(lower.getSaved().proposed, '[[Ben]]', 'proposes the candidate display name')
+  })
 })

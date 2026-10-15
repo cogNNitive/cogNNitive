@@ -264,10 +264,11 @@
         modelOps.push(oper)
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
-      } else if (oper.key === 'tag') {
-        tagOps.push(oper)
-      } else if (oper.key === 'tag-any') {
-        tagAnyOps.push(oper)
+      } else if (oper.key === 'tag' || oper.key === 'tag-any') {
+        // A half-typed \`tag:\` has no value yet: it constrains nothing.
+        if (String(oper.val == null ? '' : oper.val).trim() === '') continue
+        if (oper.key === 'tag') tagOps.push(oper)
+        else tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -2148,6 +2149,7 @@
             td.setAttribute('data-matrix', String(matrix.name || 'matrix'))
             td.setAttribute('data-row', String(rowLabel))
             td.setAttribute('data-col', String(c))
+            if (matrix.target) td.setAttribute('data-matrix-target', String(matrix.target))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())

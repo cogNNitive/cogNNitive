@@ -2396,6 +2396,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return /^\[\[[^\]]*\]\]$/.test(v) ? v : '[[' + v + ']]'
   }
 
+  // The display name a typed reference resolves to among the candidates
+  // (case-insensitive), or null: an unknown name or one holding a bracket is not a
+  // valid reference target.
+  function refCandidateName(raw, candidates) {
+    var v = String(raw == null ? '' : raw).trim()
+    var m = /^\[\[([^\]]*)\]\]$/.exec(v)
+    var name = (m ? m[1] : v).trim()
+    if (!name || /[\[\]]/.test(name)) return null
+    var want = name.toLowerCase()
+    var list = Array.isArray(candidates) ? candidates : []
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i]
+      var label = typeof c === 'string' ? c : c && (c.name || c.id)
+      if (label && String(label).toLowerCase() === want) return String(label)
+    }
+    return null
+  }
+
   function FieldMarkdownWidget(value, opts) {
     var doc = resolveDoc(opts)
     var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
@@ -2637,7 +2655,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var refInp = widgetRef.querySelector('input')
           var refRaw = refInp ? refInp.value : ''
           // Unchanged input proposes the original value as is.
-          result.proposed = refRaw === String(data.value == null ? '' : data.value) ? refRaw : refProposal(refRaw)
+          if (refRaw === String(data.value == null ? '' : data.value) || String(refRaw).trim() === '') {
+            result.proposed = refRaw === String(data.value == null ? '' : data.value) ? refRaw : refProposal(refRaw)
+          } else {
+            var refName = refCandidateName(refRaw, data.candidates)
+            if (refName === null) {
+              saveError.textContent = 'Pick an existing element name; brackets are not allowed.'
+              saveError.style.display = 'block'
+              return
+            }
+            result.proposed = '[[' + refName + ']]'
+          }
         } else {
           result.proposed = widgetRef.value
         }
@@ -3287,7 +3315,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // The definition governing a matrix cell: the column Marker of the reserved
   // item-markers matrix, otherwise the matrix definition of the same name.
-  function matrixCellDef(schema, matrix, col) {
+  // The reserved matrix is recognised like payload-builder does: by name OR by a
+  // `markers` target.
+  function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
     function byName(list, name) {
       var want = String(name).toLowerCase()
@@ -3295,7 +3325,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return d && String(d.name).toLowerCase() === want
       })[0]
     }
-    if (String(matrix).toLowerCase() === 'item-markers matrix') return byName(schema.markers, col) || null
+    var isItemMarkers =
+      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
+    if (isItemMarkers) return byName(schema.markers, col) || null
     return byName(schema.matrices, matrix) || null
   }
 
@@ -3316,6 +3348,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
     return null
+  }
+
+  // The field value as written in the document: a console file rebases media paths
+  // for display and keeps the document text in el.rawFields.
+  function docFieldValue(el, key) {
+    if (el && isObject(el.rawFields) && Object.prototype.hasOwnProperty.call(el.rawFields, key)) {
+      return el.rawFields[key]
+    }
+    return el && el.fields ? el.fields[key] : undefined
   }
 
   function deepCopy(value) {
@@ -3572,7 +3613,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function currentFieldValue(el, field) {
     if (!isObject(el) || field === undefined || field === null) return undefined
     var key = String(field)
-    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return el.fields[key]
+    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return docFieldValue(el, key)
     if (key === 'name') return el.name
     if (key === 'description') return el.description
     return el[key]
@@ -3806,9 +3847,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         draft.original =
           payload.original !== undefined
             ? payload.original
-            : el.fields
-              ? el.fields[anchorData.field]
-              : undefined
+            : docFieldValue(el, anchorData.field)
         if (payload.proposed !== undefined) draft.proposed = payload.proposed
       }
       if (payload.comment !== undefined && payload.comment !== null) {
@@ -3851,7 +3890,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
         if (typeof UI.EditModal !== 'function') return null
-        var cellDef = matrixCellDef(options.schema, anchorData.matrix, anchorData.col)
+        var cellDef = matrixCellDef(options.schema, anchorData.matrix, anchorData.col, anchorData.target)
         var cellValues = cellDef && Array.isArray(cellDef.values) ? cellDef.values : null
         var cellWidget = cellDef ? String(cellDef.widgetType || cellDef.widget || '') : ''
         var cellType = 'string'
@@ -3939,7 +3978,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: base.history,
         }
       }
-      var fieldVal = el.fields ? el.fields[field] : undefined
+      var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
         schemaField && schemaField.type
@@ -4129,7 +4168,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       if (anchorData.field && elementsById[anchorData.elementId]) {
         var el = elementsById[anchorData.elementId]
-        data.original = el.fields ? el.fields[anchorData.field] : undefined
+        data.original = docFieldValue(el, anchorData.field)
       }
       var pop = UI.AnnotationPopover(data, {
         doc: doc,
@@ -4529,6 +4568,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var anchorData = {
         matrixCell: true,
         matrix: td.getAttribute('data-matrix'),
+        target: td.getAttribute('data-matrix-target') || '',
         row: td.getAttribute('data-row'),
         col: td.getAttribute('data-col'),
         original: td.getAttribute('data-cell-raw') || '',
@@ -5163,10 +5203,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         modelOps.push(oper)
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
-      } else if (oper.key === 'tag') {
-        tagOps.push(oper)
-      } else if (oper.key === 'tag-any') {
-        tagAnyOps.push(oper)
+      } else if (oper.key === 'tag' || oper.key === 'tag-any') {
+        // A half-typed \`tag:\` has no value yet: it constrains nothing.
+        if (String(oper.val == null ? '' : oper.val).trim() === '') continue
+        if (oper.key === 'tag') tagOps.push(oper)
+        else tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -7047,6 +7088,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             td.setAttribute('data-matrix', String(matrix.name || 'matrix'))
             td.setAttribute('data-row', String(rowLabel))
             td.setAttribute('data-col', String(c))
+            if (matrix.target) td.setAttribute('data-matrix-target', String(matrix.target))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())

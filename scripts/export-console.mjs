@@ -38,7 +38,7 @@
 
 import { readdir, readFile, writeFile, mkdir, rename, rm } from 'node:fs/promises'
 import { existsSync, realpathSync } from 'node:fs'
-import { join, relative, basename, resolve, dirname } from 'node:path'
+import { join, relative, basename, resolve, dirname, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
@@ -455,9 +455,27 @@ const IMAGE_ASSET_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)(?:[?#]|$)/i
 // Field types whose value is a local file the console opens or plays.
 const FILE_FIELD_TYPES = new Set(['image', 'video', 'audio', 'file'])
 
+// Each path segment is percent-encoded so spaces, '#' and '?' in a file name survive
+// as a URL; the '/' separators stay.
 function relativeToOutDir(abs, outDirAbs) {
-  const rel = relative(outDirAbs, abs).split('\\').join('/')
+  const rel = relative(outDirAbs, abs)
+    .split(/[\/\\]/)
+    .map((seg) => encodeURIComponent(seg))
+    .join('/')
   return rel.startsWith('.') ? rel : './' + rel
+}
+
+// True when abs is inside the domain root (false across drives on Windows).
+function isInsideRoot(abs, rootAbs) {
+  const rel = relative(rootAbs, abs)
+  return rel !== '' && !isAbsolute(rel) && !/^\.\.([\/\\]|$)/.test(rel)
+}
+
+// A declared file value that is not on disk is only rebased when it reads like a
+// path: a file extension or an explicit relative prefix. Free text such as TBD or
+// n/a stays untouched.
+function looksLikePath(s) {
+  return /\.[A-Za-z0-9]{1,8}$/.test(s) || /^\.{1,2}[\/\\]/.test(s)
 }
 
 // `declared` is true for a field declared image/video/audio/file: any local value is
@@ -471,9 +489,11 @@ function rebaseAssetValue(value, outDirAbs, rootAbs, declared = false) {
   if (!declared && !IMAGE_ASSET_RE.test(trimmed)) return value
   for (const base of [rootAbs, repoRoot, process.cwd()]) {
     const abs = resolve(base, trimmed)
-    if (existsSync(abs)) return relativeToOutDir(abs, outDirAbs)
+    if (existsSync(abs) && isInsideRoot(abs, rootAbs)) return relativeToOutDir(abs, outDirAbs)
   }
-  return declared ? relativeToOutDir(resolve(rootAbs, trimmed), outDirAbs) : value
+  if (!declared || !looksLikePath(trimmed)) return value
+  const fallback = resolve(rootAbs, trimmed)
+  return isInsideRoot(fallback, rootAbs) ? relativeToOutDir(fallback, outDirAbs) : value
 }
 
 // Citation entries keep their domain-relative `path`; a resolved one (a path and no
@@ -484,7 +504,11 @@ function withCitationHrefs(citations, outDirAbs, rootAbs) {
   for (const [field, list] of Object.entries(citations)) {
     next[field] = Array.isArray(list)
       ? list.map((c) =>
-          c && c.path && !c.error && !/^[a-z][a-z0-9+.-]*:/i.test(String(c.path))
+          c &&
+          c.path &&
+          !c.error &&
+          !/^[a-z][a-z0-9+.-]*:/i.test(String(c.path)) &&
+          isInsideRoot(resolve(rootAbs, String(c.path)), rootAbs)
             ? { ...c, href: relativeToOutDir(resolve(rootAbs, String(c.path)), outDirAbs) }
             : c,
         )
@@ -508,6 +532,9 @@ function rebaseModelAssets(model, outDirAbs, rootAbs, schema) {
       let out = el
       if (el.fields && typeof el.fields === 'object') {
         const fields = { ...el.fields }
+        // The document text of every rebased value, so a draft's original still
+        // matches the file (the rebased one is a display value only).
+        const rawFields = {}
         let changed = false
         for (const [k, v] of Object.entries(fields)) {
           const declared = declaredFile.has(
@@ -516,10 +543,11 @@ function rebaseModelAssets(model, outDirAbs, rootAbs, schema) {
           const next = rebaseAssetValue(v, outDirAbs, rootAbs, declared)
           if (next !== v) {
             fields[k] = next
+            rawFields[k] = v
             changed = true
           }
         }
-        if (changed) out = { ...out, fields }
+        if (changed) out = { ...out, fields, rawFields }
       }
       if (el.citations && typeof el.citations === 'object') {
         out = { ...out, citations: withCitationHrefs(el.citations, outDirAbs, rootAbs) }

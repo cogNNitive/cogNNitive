@@ -66,6 +66,14 @@ describe('tag facet: tag: is AND + exact, tag-any: is OR', () => {
     assert.deepEqual(ids(list, 'tag:core tag-any:ai tag-any:pricing'), ['A', 'B'])
   })
 
+  it('an operator with no value yet constrains nothing while typing', () => {
+    const list = [el('A', ['ai']), el('B', ['pricing'])]
+    assert.deepEqual(ids(list, 'tag:'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tag-any:'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tag:ai tag:'), ['A'], 'the empty operator is dropped, the typed one still applies')
+    assert.deepEqual(ids(list, 'tag-any:ai tag-any:'), ['A'])
+  })
+
   it('a field named tags is not a tag source', () => {
     const list = [{ id: 'F', concept: 'C', name: 'F', fields: { tags: 'ai' }, tags: [] }]
     assert.deepEqual(ids(list, 'tag:ai'), [])

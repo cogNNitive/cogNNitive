@@ -2031,6 +2031,24 @@
     return /^\[\[[^\]]*\]\]$/.test(v) ? v : '[[' + v + ']]'
   }
 
+  // The display name a typed reference resolves to among the candidates
+  // (case-insensitive), or null: an unknown name or one holding a bracket is not a
+  // valid reference target.
+  function refCandidateName(raw, candidates) {
+    var v = String(raw == null ? '' : raw).trim()
+    var m = /^\[\[([^\]]*)\]\]$/.exec(v)
+    var name = (m ? m[1] : v).trim()
+    if (!name || /[\[\]]/.test(name)) return null
+    var want = name.toLowerCase()
+    var list = Array.isArray(candidates) ? candidates : []
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i]
+      var label = typeof c === 'string' ? c : c && (c.name || c.id)
+      if (label && String(label).toLowerCase() === want) return String(label)
+    }
+    return null
+  }
+
   function FieldMarkdownWidget(value, opts) {
     var doc = resolveDoc(opts)
     var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
@@ -2272,7 +2290,17 @@
           var refInp = widgetRef.querySelector('input')
           var refRaw = refInp ? refInp.value : ''
           // Unchanged input proposes the original value as is.
-          result.proposed = refRaw === String(data.value == null ? '' : data.value) ? refRaw : refProposal(refRaw)
+          if (refRaw === String(data.value == null ? '' : data.value) || String(refRaw).trim() === '') {
+            result.proposed = refRaw === String(data.value == null ? '' : data.value) ? refRaw : refProposal(refRaw)
+          } else {
+            var refName = refCandidateName(refRaw, data.candidates)
+            if (refName === null) {
+              saveError.textContent = 'Pick an existing element name; brackets are not allowed.'
+              saveError.style.display = 'block'
+              return
+            }
+            result.proposed = '[[' + refName + ']]'
+          }
         } else {
           result.proposed = widgetRef.value
         }

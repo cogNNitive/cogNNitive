@@ -23,7 +23,9 @@
 
   // The definition governing a matrix cell: the column Marker of the reserved
   // item-markers matrix, otherwise the matrix definition of the same name.
-  function matrixCellDef(schema, matrix, col) {
+  // The reserved matrix is recognised like payload-builder does: by name OR by a
+  // `markers` target.
+  function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
     function byName(list, name) {
       var want = String(name).toLowerCase()
@@ -31,7 +33,9 @@
         return d && String(d.name).toLowerCase() === want
       })[0]
     }
-    if (String(matrix).toLowerCase() === 'item-markers matrix') return byName(schema.markers, col) || null
+    var isItemMarkers =
+      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
+    if (isItemMarkers) return byName(schema.markers, col) || null
     return byName(schema.matrices, matrix) || null
   }
 
@@ -52,6 +56,15 @@
       }
     }
     return null
+  }
+
+  // The field value as written in the document: a console file rebases media paths
+  // for display and keeps the document text in el.rawFields.
+  function docFieldValue(el, key) {
+    if (el && isObject(el.rawFields) && Object.prototype.hasOwnProperty.call(el.rawFields, key)) {
+      return el.rawFields[key]
+    }
+    return el && el.fields ? el.fields[key] : undefined
   }
 
   function deepCopy(value) {
@@ -308,7 +321,7 @@
   function currentFieldValue(el, field) {
     if (!isObject(el) || field === undefined || field === null) return undefined
     var key = String(field)
-    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return el.fields[key]
+    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return docFieldValue(el, key)
     if (key === 'name') return el.name
     if (key === 'description') return el.description
     return el[key]
@@ -542,9 +555,7 @@
         draft.original =
           payload.original !== undefined
             ? payload.original
-            : el.fields
-              ? el.fields[anchorData.field]
-              : undefined
+            : docFieldValue(el, anchorData.field)
         if (payload.proposed !== undefined) draft.proposed = payload.proposed
       }
       if (payload.comment !== undefined && payload.comment !== null) {
@@ -587,7 +598,7 @@
       // Matrix cells are edited through the same modal, addressed by coordinate.
       if (anchorData.matrixCell) {
         if (typeof UI.EditModal !== 'function') return null
-        var cellDef = matrixCellDef(options.schema, anchorData.matrix, anchorData.col)
+        var cellDef = matrixCellDef(options.schema, anchorData.matrix, anchorData.col, anchorData.target)
         var cellValues = cellDef && Array.isArray(cellDef.values) ? cellDef.values : null
         var cellWidget = cellDef ? String(cellDef.widgetType || cellDef.widget || '') : ''
         var cellType = 'string'
@@ -675,7 +686,7 @@
           history: base.history,
         }
       }
-      var fieldVal = el.fields ? el.fields[field] : undefined
+      var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
         schemaField && schemaField.type
@@ -865,7 +876,7 @@
       }
       if (anchorData.field && elementsById[anchorData.elementId]) {
         var el = elementsById[anchorData.elementId]
-        data.original = el.fields ? el.fields[anchorData.field] : undefined
+        data.original = docFieldValue(el, anchorData.field)
       }
       var pop = UI.AnnotationPopover(data, {
         doc: doc,
@@ -1265,6 +1276,7 @@
       var anchorData = {
         matrixCell: true,
         matrix: td.getAttribute('data-matrix'),
+        target: td.getAttribute('data-matrix-target') || '',
         row: td.getAttribute('data-row'),
         col: td.getAttribute('data-col'),
         original: td.getAttribute('data-cell-raw') || '',
