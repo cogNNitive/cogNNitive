@@ -66,7 +66,7 @@ A frozen app that is hosted MUST be published from a committed static build (`do
 
 #### Scenario: Gated surfaces never reference the frozen editor
 - GIVEN the frozen `iNNfo/apps/innfo-editor`
-- WHEN `test/editor-freeze.test.mjs` scans the root workspaces, CI workflows, the pre-push hook, build scripts and `verify.js`
+- WHEN `test/no-editor-references.test.mjs` scans the root workspaces, CI workflows, the pre-push hook, build scripts and `verify.js`
 - THEN none of them references `innfo-editor` or builds `iNNfo/apps`
 
 #### Scenario: Gated suites do not depend on the frozen app for test environments

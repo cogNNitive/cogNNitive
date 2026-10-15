@@ -33,7 +33,7 @@ gates: first core refactor that breaks `vue-tsc` reds the site).
 | Dev scripts | `run-dev.bat`, `iNNfo/run-dev.bat` | remove the editor block (its workspace no longer exists) |
 | Config | `openspec/config.yaml` | drop the `innfo-editor` workspace and per-package test line |
 | Doc | new `iNNfo/apps/innfo-editor/FROZEN.md` | state, why, thaw steps, what rots |
-| Guard | new `test/editor-freeze.test.mjs` (auto-discovered by `collectTestSuites`) | see Guard test |
+| Guard | freeze phase: `test/editor-freeze.test.mjs` (since deleted); now `test/no-editor-references.test.mjs` (auto-discovered by `collectTestSuites`) | see Guard test |
 
 ### Left untouched on purpose
 
@@ -45,7 +45,7 @@ gates: first core refactor that breaks `vue-tsc` reds the site).
 - `scripts/guard-template-immutability.js:231` badge normalisation: KEEP in every phase.
 - `iNNfo/validation-baseline.json`, core comments: Phase B.
 
-### Guard test (`test/editor-freeze.test.mjs`)
+### Guard test (`test/no-editor-references.test.mjs`; freeze phase: `test/editor-freeze.test.mjs`, since deleted)
 
 Asserts, from the repo root, that:
 1. root `package.json` `workspaces` do not match `iNNfo/apps/*` and no script mentions `innfo-editor`;
@@ -98,7 +98,7 @@ The build embeds the commit date (`__COMMIT_DATE__`), so it is reproducible per 
 | MCP | `preview-server.ts` (`PREVIEW_APP_URL`), `withPreview`, `server-preview.test.ts` | delete (S5a, coupled to S6) |
 | Badge emitters / templates / samples / docs | see tasks B | retarget (S5c) |
 | Tracked app files | `docs/innfo/app/**` including the A3 snapshot | delete |
-| Freeze artefacts | `FROZEN.md`, `test/editor-freeze.test.mjs`, prettier / encoding-guard exemptions for the snapshot | delete or fold into the S5d guard |
+| Freeze artefacts | `FROZEN.md`, `test/editor-freeze.test.mjs` (deleted; folded into `test/no-editor-references.test.mjs`), prettier / encoding-guard exemptions for the snapshot | delete or fold into the S5d guard |
 
 ### Decisions (unchanged by the freeze)
 

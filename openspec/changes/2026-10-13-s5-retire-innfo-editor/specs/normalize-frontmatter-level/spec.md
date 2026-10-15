@@ -4,9 +4,8 @@
 
 ### Requirement: Downstream `level` defenses are removed
 
-Once the boundary normalizer exists, the duplicated `level`-shape checks
-elsewhere in the codebase MUST be deleted rather than kept as redundant
-belt-and-suspenders logic. (Previously: the scenario also covered `innfo-editor`, retired with S5.)
+Once the boundary normalizer exists, the duplicated `level`-shape checks elsewhere in the codebase MUST be deleted
+rather than kept as redundant belt-and-suspenders logic. (Previously: the scenario also covered `innfo-editor`, retired with S5.)
 
 #### Scenario: Dead numeric comparisons in `preflight-check.js` are removed
 

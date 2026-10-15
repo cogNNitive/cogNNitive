@@ -5,7 +5,7 @@ context: |
   Project: cogNNitive
   Type: Multi-module ecosystem containing agent skills, documentation, and the iNNfo monorepo.
   Modules:
-    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp). The Vue 3 editor (apps/innfo-editor) is FROZEN: not a workspace, not gated; its hosted app is a committed static build. Stack: TypeScript, ESM.
+    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp). The Vue 3 editor and its hosted app were deleted (S5); docs/innfo/app/ keeps one static retirement notice page. Stack: TypeScript, ESM.
     - actioNN: Agent skill ecosystem (Markdown + YAML frontmatter, Node.js scripts for nn-sources).
     - eNNvironment: Ecosystem setup, manifest governance, and validation scripts.
     - _NN: Artifacts and commercial web content store.
@@ -31,7 +31,7 @@ testing:
       tool: 'Vitest (iNNfo) / PowerShell scripts in skills/nn-sources/test (pwsh)'
     e2e:
       available: false
-      note: 'Playwright suite removed 2026-09-24; editor XSS guarantee covered by jsdom-pragma unit test (editor frozen 2026-10-14, no longer run)'
+      note: 'Playwright suite removed 2026-09-24; editor XSS guarantee covered by jsdom-pragma unit test (editor deleted in S5)'
   coverage:
     available: true
     command: 'npm run test:coverage'

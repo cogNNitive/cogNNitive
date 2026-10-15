@@ -57,7 +57,7 @@ jobs:
           retention-days: 7
 
   # ── Site build: docs + the MCP CDN bundle, handed to publish-web. Separate
-  #    from `verify` so the offline gate never depends on the editor build.
+  #    from `verify` so the offline gate never depends on the docs build.
   site:
     runs-on: ubuntu-latest
     steps:

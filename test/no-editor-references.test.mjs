@@ -25,6 +25,9 @@ const ALLOWLIST = [
   ['openspec/', 'SDD specs, changes, archive and backlog are the permanent record'],
   // The one page that explains the retirement at the old address.
   ['docs/innfo/app/index.html', 'static retirement notice page'],
+  // 404 shims that send old hosted-app deep links to the notice page.
+  ['docs/404.html', '404 shim redirecting old app links to the notice page'],
+  ['docs/innfo/404.html', '404 shim redirecting old app links to the notice page'],
   // Dated research notes.
   ['docs/research/', 'historical research notes'],
   // The badge immutability guard keeps normalising the old badge URL because
@@ -42,8 +45,10 @@ const ALLOWLIST = [
   ['test/fixtures/testlab/artifacts/', 'stamped console exports of earlier runtimes'],
 ]
 
-// Published write-once specs and the versioned samples next to them.
-const WRITE_ONCE = /^iNNfo\/specs\/.*_V_/
+// Published write-once specs: root-level legacy-named `<name>_V_x-y-z_NN.md`
+// files (the notion scripts/guard-template-immutability.js uses). Versioned
+// samples under bluepriNNts/ are mutable and are NOT exempt.
+const WRITE_ONCE = /^iNNfo\/specs\/[^/]+_V_\d+-\d+-\d+_NN\.md$/
 
 export function isAllowed(rel) {
   if (WRITE_ONCE.test(rel)) return true

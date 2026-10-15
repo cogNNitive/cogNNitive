@@ -47,7 +47,7 @@ Tag-driven; never hand-edit pins; this change does not tag.
 
 ### A2. Guard first, then dependencies
 
-- [x] A2.1 TEST (red): `test/editor-freeze.test.mjs` per `design.md` Guard test, including a
+- [x] A2.1 TEST (red): `test/editor-freeze.test.mjs` (freeze phase; replaced by `test/no-editor-references.test.mjs` in B7.1) per `design.md` Guard test, including a
       planted-reference fixture proving it can fail. It fails today.
       [quality-gates: A frozen app is outside every gate]
 - [x] A2.2 Move `jsdom` and `happy-dom` to root `devDependencies` (same ranges as the
@@ -93,7 +93,7 @@ Tag-driven; never hand-edit pins; this change does not tag.
 ### Verification notes
 
 Verified on `session/s5-freeze-editor` after a clean `npm ci`: `node scripts/verify.js` green
-(includes `test/editor-freeze.test.mjs`), `npm run typecheck`, `npm test` (core + mcp), `npm run lint`
+(freeze phase; included `test/editor-freeze.test.mjs`, since replaced by `test/no-editor-references.test.mjs`), `npm run typecheck`, `npm test` (core + mcp), `npm run lint`
 (0 errors), `check:spec-urls`, `check:versions`, `build:docs`. Deviations from the study:
 
 - jsdom importers: 14 `test/` files (plus `test/helpers/console-boot.mjs`) and 3 core files, not 10 + 2.

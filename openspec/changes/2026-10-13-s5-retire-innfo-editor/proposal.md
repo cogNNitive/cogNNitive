@@ -33,7 +33,7 @@ audit (S3a) and the parity ports (S3b) still need: the editor stays readable and
   `scripts/build-docs.mjs` stops building the editor and stops cleaning `assets/`;
   `.gitignore` stops ignoring the snapshot; text-encoding guard and prettier skip the minified assets.
 - `iNNfo/apps/innfo-editor/FROZEN.md` (state, why, how to thaw, what rots).
-- A guard test (`test/editor-freeze.test.mjs`) that keeps the gated surfaces editor-free.
+- A guard test (freeze phase: `test/editor-freeze.test.mjs`, since replaced by `test/no-editor-references.test.mjs`) that keeps the gated surfaces editor-free.
 - A git tag `innfo-editor-frozen` is recommended at the freeze commit on `dev`, created
   by the maintainer at integration time (not by this session; sessions never tag).
 
@@ -106,7 +106,7 @@ Revert the freeze commits (workspace line, scripts, CI steps, snapshot). The tag
 
 ## Success Criteria
 
-- [ ] No gated surface references the editor; `test/editor-freeze.test.mjs` is green.
+- [ ] No gated surface references the editor; `test/no-editor-references.test.mjs` is green.
 - [ ] `docs/innfo/app/index.html` and `assets/` are committed; build-docs no longer needs the editor.
 - [ ] `jsdom` and `happy-dom` resolve from root devDependencies.
 - [ ] `FROZEN.md` exists with state, rationale, thaw steps.
