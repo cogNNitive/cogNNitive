@@ -1,5 +1,7 @@
 # Spec: untrack-skill-registry
 
+## Purpose
+
 This spec records the requirement to untrack a machine-generated file and
 document its regeneration. It does not patch, wrap, or post-process `gentle-ai`
 output, and it does not commit a sanitized or path-relativized copy.

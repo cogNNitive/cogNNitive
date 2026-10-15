@@ -1,8 +1,11 @@
 # Spec: Console Export JSON Slot Escaping and Standalone CDN Pinning
 
+## Purpose
+Defines how the console exporter emits embedded JSON slots verbatim, runs as a standalone script, and ships on its own release channels.
+
 ## Requirements
 
-### R-EXP-01: Verbatim Model JSON Slot Emission
+### Requirement: Verbatim Model JSON Slot Emission (R-EXP-01)
 `scripts/export-console.mjs` MUST emit all embedded JSON script slots (`innfo-config`, `innfo-schema`, `innfo-model`) verbatim without interpreting `$` character sequences (`$1`, `$2`, `$&`, `$$`) in model content as capture group replacement patterns.
 
 #### Scenario: Exporting model containing currency and dollar patterns
@@ -11,7 +14,7 @@
 - THEN the `innfo-model` script slot in the generated HTML MUST be valid JSON containing the literal `$1M` and `$250` strings
 - AND `JSON.parse()` of the slot content MUST succeed without error.
 
-### R-EXP-02: Standalone Exporter Single-File Execution Contract
+### Requirement: Standalone Exporter Single-File Execution Contract (R-EXP-02)
 `scripts/export-console.mjs` MUST be runnable as a standalone CLI script given access only to the model workspace and the vendored console assets (`blueprint.html`, `innfo-console.bundle.js`, `console-payload.generated.cjs`), without requiring `scripts/lib/*` or `manifest/source.yaml`. The payload mirror MUST be resolved from the same `consoleDir` as the shell and bundle and MUST ship as a `console_assets` entry.
 (Previously: listed only the shell and bundle next to the exporter.)
 

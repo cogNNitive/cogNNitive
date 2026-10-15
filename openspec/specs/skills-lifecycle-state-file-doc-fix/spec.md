@@ -1,5 +1,7 @@
 # Spec: skills-lifecycle-state-file-doc-fix
 
+## Purpose
+
 This spec defines the installed-state file path documentation contract in
 `skills/nn-skills-lifecycle/SKILL.md`. It documents `~/.agents/bootstrap-state.json`
 as the current state file, while retaining `skills-state.json`'s role solely

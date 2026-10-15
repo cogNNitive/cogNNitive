@@ -1,5 +1,7 @@
 # Spec: native-pre-push-hook
 
+## Purpose
+
 This spec records the requirement for a local `pre-push` git hook, wired
 through native `core.hooksPath`, with zero new runtime or dev dependencies.
 It does not add a `pre-commit` hook, does not attempt to detect or block
