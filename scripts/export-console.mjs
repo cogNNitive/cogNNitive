@@ -465,10 +465,22 @@ function relativeToOutDir(abs, outDirAbs) {
   return rel.startsWith('.') ? rel : './' + rel
 }
 
-// True when abs is inside the domain root (false across drives on Windows).
-function isInsideRoot(abs, rootAbs) {
+function lexicallyInside(abs, rootAbs) {
   const rel = relative(rootAbs, abs)
   return rel !== '' && !isAbsolute(rel) && !/^\.\.([\/\\]|$)/.test(rel)
+}
+
+// True when abs is inside the domain root (false across drives on Windows). An
+// existing path is also checked by real path, so a link inside the root that points
+// outside it does not count as inside.
+function isInsideRoot(abs, rootAbs) {
+  if (!lexicallyInside(abs, rootAbs)) return false
+  if (!existsSync(abs)) return true
+  try {
+    return lexicallyInside(realpathSync(abs), realpathSync(rootAbs))
+  } catch {
+    return false
+  }
 }
 
 // A declared file value that is not on disk is only rebased when it reads like a
@@ -478,16 +490,27 @@ function looksLikePath(s) {
   return /\.[A-Za-z0-9]{1,8}$/.test(s) || /^\.{1,2}[\/\\]/.test(s)
 }
 
+// Element-relative values (e.g. a visual-catalog `image`) live under
+// <modelDir>/assets/<element-slug>/; those bases are tried before the root ones.
+function elementAssetBases(el, rootAbs) {
+  const slug = el && (el.slug || (el.fields && el.fields.slug))
+  if (!slug) return []
+  const dirs = el.modelDir != null ? [String(el.modelDir)] : []
+  dirs.push('kNNowledge', 'models')
+  return dirs.map((d) => resolve(rootAbs, d, 'assets', String(slug)))
+}
+
 // `declared` is true for a field declared image/video/audio/file: any local value is
 // rebased (to the domain root when no candidate exists on disk); undeclared values
 // keep the image-shaped, must-exist rule.
-function rebaseAssetValue(value, outDirAbs, rootAbs, declared = false) {
+function rebaseAssetValue(value, outDirAbs, rootAbs, declared = false, el = null) {
   if (typeof value !== 'string') return value
   const trimmed = value.trim()
   if (!trimmed || /^(data:|blob:|https?:|file:)/i.test(trimmed)) return value
   if (declared && (trimmed.startsWith('[[') || /^[a-z][a-z0-9+.-]*:/i.test(trimmed))) return value
   if (!declared && !IMAGE_ASSET_RE.test(trimmed)) return value
-  for (const base of [rootAbs, repoRoot, process.cwd()]) {
+  const elementBases = declared ? elementAssetBases(el, rootAbs) : []
+  for (const base of [...elementBases, rootAbs, repoRoot, process.cwd()]) {
     const abs = resolve(base, trimmed)
     if (existsSync(abs) && isInsideRoot(abs, rootAbs)) return relativeToOutDir(abs, outDirAbs)
   }
@@ -540,7 +563,7 @@ function rebaseModelAssets(model, outDirAbs, rootAbs, schema) {
           const declared = declaredFile.has(
             `${String(el.concept).toLowerCase()}\u0000${k.toLowerCase()}`,
           )
-          const next = rebaseAssetValue(v, outDirAbs, rootAbs, declared)
+          const next = rebaseAssetValue(v, outDirAbs, rootAbs, declared, el)
           if (next !== v) {
             fields[k] = next
             rawFields[k] = v
@@ -889,6 +912,7 @@ export async function writeConsole(opts = {}) {
             el.modelId = mId
             el.modelTitle = mTitle
             el.modelFile = fileName
+            el.modelDir = dirname(relPath)
             const cName = el.concept || 'Element'
             const eName = el.name || el.id || ''
             const cSlug = cName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
