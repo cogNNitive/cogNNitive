@@ -1,14 +1,12 @@
 // @ts-check
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
-import pluginVue from 'eslint-plugin-vue'
 import configPrettier from 'eslint-config-prettier'
 
 /**
  * Flat ESLint config for the cogNNitive monorepo.
  *
- * Scope: TypeScript across all workspaces. The Vue editor (iNNfo/apps/innfo-editor) is
- * FROZEN and ignored below; the Vue config stays so a thaw only removes that ignore.
+ * Scope: TypeScript across all workspaces.
  * Formatting is delegated to Prettier (configPrettier disables stylistic rules),
  * so ESLint focuses on correctness and consistency only.
  */
@@ -38,8 +36,6 @@ export default tseslint.config(
       '**/*.min.js',
       '**/*.bundle.js',
       'iNNfo/packages/innfo-mcp/bin/**',
-      // Frozen Vue editor (S5-freeze): source kept, not linted. See its FROZEN.md.
-      'iNNfo/apps/innfo-editor/**',
       // Generated artifacts and blueprints assets
       '**/*.generated.cjs',
       '**/*.generated.js',
@@ -49,28 +45,13 @@ export default tseslint.config(
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  // 'essential' covers correctness only; Prettier owns formatting/style, so we
-  // deliberately avoid 'flat/recommended' to prevent overlapping style rules.
-  ...pluginVue.configs['flat/essential'],
 
   {
-    // Vue SFCs use the Vue parser with the TS parser for <script> blocks.
-    files: ['**/*.vue'],
-    languageOptions: {
-      parserOptions: {
-        parser: tseslint.parser,
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
-    },
-  },
-
-  {
-    files: ['**/*.{ts,mts,vue}'],
+    files: ['**/*.{ts,mts}'],
     rules: {
       // TypeScript already resolves globals (DOM lib types like
       // FileSystemDirectoryHandle); the core `no-undef` rule can't and produces
-      // false positives, so it must be off for TS/Vue.
+      // false positives, so it must be off for TS.
       'no-undef': 'off',
 
       // ── Ratchet backlog ─────────────────────────────────────────────
@@ -86,13 +67,6 @@ export default tseslint.config(
       '@typescript-eslint/no-this-alias': 'warn',
       '@typescript-eslint/prefer-as-const': 'warn',
       '@typescript-eslint/no-empty-object-type': 'warn',
-      // Direct prop mutation (BlockSheet.vue) — tracked for a data-flow fix
-      // that routes edits through the store; see the SDD change tasks.
-      'vue/no-mutating-props': 'warn',
-      'vue/no-unused-vars': 'warn',
-
-      // Component files here are intentionally single-word (Header, Badge, ...).
-      'vue/multi-word-component-names': 'off',
     },
   },
 

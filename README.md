@@ -27,11 +27,10 @@ Welcome to the **cogNNitive** monorepo. cogNNitive turns scattered ideas in huma
 ```text
 cogNNitive/
 ├── docs/             # Public website (https://cognnitive.com) & agent bootstrap (/use)
-│   ├── innfo/        # Documentation for iNNfo editor & core
+│   ├── innfo/        # Documentation for iNNfo core, MCP and the domain console
 │   ├── actionn/      # Documentation for skills catalog
 │   └── use/          # Universal AI Agent manifest & bootstrap
 ├── iNNfo/            # Semantic modeling layer
-│   ├── apps/         # innfo-editor (Vue/Vite web application)
 │   ├── packages/     # innfo-core (pure TS semantic engine) & innfo-mcp (MCP server)
 │   └── specs/        # Canonical iNNfo specifications, bluepriNNts, and samples
 ├── skills/           # Agent skills (nn-innfo, nn-sources, nn-preflight, etc.)
