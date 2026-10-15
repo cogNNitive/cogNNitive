@@ -561,4 +561,23 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.equal(ctl.openNew(), false)
     })
   })
+
+  describe('Changeset export document badge', () => {
+    it('writes the canonical domain-console badge, never the retired hosted app', () => {
+      const res = InnfoConsole.composeChangesetExport(
+        {
+          modelTitle: 'BusinessModel',
+          meta: { changesBlueprintVersion: 'V_0-3-0' },
+          store: { drafts: () => [] },
+        },
+        'author_jane',
+      )
+      assert.equal(res.ok, true)
+      assert.ok(
+        res.text.includes(
+          '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
+        ),
+      )
+    })
+  })
 })

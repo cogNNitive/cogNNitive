@@ -104,4 +104,10 @@ describe('Changeset Serializer — raw-text preservation', () => {
     expect(structural).toContain('level: 3')
     expect(structural).toContain('parent_spec:')
   })
+
+  it('emits the canonical document badge when rendering an in-memory document', () => {
+    const doc = parseChangeset(INPUT)
+    const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural).toContain('[cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.')
+  })
 })

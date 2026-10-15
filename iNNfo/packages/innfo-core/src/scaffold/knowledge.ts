@@ -26,7 +26,7 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
 
   lines.push(
     '> [!NOTE]',
-    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
+    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
     '',
   )
   if (schema.concepts.length > 0) {
@@ -88,7 +88,7 @@ export const DEFAULT_KNOWLEDGE_VERSION = 'V_0-1-0'
 const SCAFFOLD_SPEC_VERSION = 'V_0-4-0'
 
 const NOTICE = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).`
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
 
 export interface ScaffoldKnowledgeInput {
   /** Normalized model id (the file stem without `_NN.md`). */
