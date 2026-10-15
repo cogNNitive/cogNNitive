@@ -1046,3 +1046,14 @@ and sample media exists.
 
 **Suggested trigger:** `/sdd-explore video-script-review-console` — after B1 is resolved
 (the video-script model is on `dev`).
+## 35. `chore/sample-media-fields` — give the console sample a declared audio, video and file field
+
+S3b group 10 (declared media rendering) shipped with no sample able to exercise it: the exported `_samples_nn` console boots with 0 `.innfo-field-media` nodes because no bluepriNNt in the sample declares an `audio`, `video` or `file` field (images, urls, markdown, select and bool are covered). Add one declared audio/video/file field to a sample bluepriNNt (bump its version per the write-once rules) and extend `test/console-s3b-parity.test.mjs` to assert a rendered media node.
+
+**Suggested trigger:** `/sdd-new sample-media-fields` (light lane is enough if no public contract changes).
+
+## 36. `fix/validate-workspace-sources-tests` — two red tests in innfo-mcp, unexplained
+
+`iNNfo/packages/innfo-mcp/test/validate-workspace-sources.test.ts` fails 2 of 6 locally on every run since at least 2026-10-14: "reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only" (the dangling diagnostic is `undefined`) and "emits missing parent directory and fuzzy suggestions in diagnostics". Stderr shows `[resolver-node] Local tier missed for defiNNition_V_0-1-0 ... ENOENT .../temp-test-workspace-sources/specs/defiNNition_V_0-1-0_NN.md`. CI on `dev` and `main` is green, so the cause is probably environmental (the fixture workspace lacks the defiNNition spec locally, or the local tier is masked on CI by a network tier). Not caused by S6/S3b (verified: those diffs touch neither validator nor resolver). Find the cause, then fix the fixture or the resolver fallback; do not skip the tests.
+
+**Suggested trigger:** `/sdd-explore validate-workspace-sources-red` (light lane).
