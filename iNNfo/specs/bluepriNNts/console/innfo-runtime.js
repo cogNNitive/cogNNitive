@@ -2316,6 +2316,10 @@
             td.setAttribute('data-row', String(rowLabel))
             td.setAttribute('data-col', String(c))
             if (matrix.target) td.setAttribute('data-matrix-target', String(matrix.target))
+            // The owning model address: a matrix-cell draft must target the model
+            // that owns the matrix, never the domain id (apply_change resolves the
+            // model by file stem / title, and `meta.modelId` is the domain).
+            if (matrix.modelId) td.setAttribute('data-matrix-model', String(matrix.modelId))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())

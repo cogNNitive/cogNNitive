@@ -64,6 +64,49 @@ describe('console matrix cell review editing', () => {
     assert.match(changeset.value, /target:: matrix-lab@Coverage&r1&c1/)
     assert.match(changeset.value, /to:: "NEW VALUE"/)
   })
+
+  it('targets the model that owns the matrix, not the domain id', () => {
+    const env = bootConsole({
+      model: {
+        ...MATRIX_MODEL,
+        matrices: [
+          {
+            name: 'Coverage',
+            rows: ['r1'],
+            cols: ['c1'],
+            cells: { r1: { c1: 'old' } },
+            modelId: 'kNNowledge/Coverage',
+          },
+        ],
+      },
+      schema: { concepts: [{ name: 'Fleet' }] },
+      config: { needs: ['feedback-export', 'matrix-grids'] },
+    })
+    const { document, dom } = env
+    const Ev = dom.window.Event
+    const td = document.querySelector('td[data-matrix][data-row][data-col]')
+    assert.equal(
+      td.getAttribute('data-matrix-model'),
+      'kNNowledge/Coverage',
+      'the owning model address reaches the cell',
+    )
+    const toggle =
+      document.querySelector('.innfo-review-toggle') ||
+      document.querySelector('[data-innfo="review-toggle"]')
+    toggle.click()
+    td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]').click()
+    const modal = document.querySelector('[data-innfo-component="edit-modal"]')
+    modal.querySelector('.innfo-edit-input').value = 'relevant'
+    modal.querySelector('.innfo-edit-btn-save').click()
+
+    document.getElementById('innfo-feedback-open').click()
+    const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    identifier.value = 'tester'
+    identifier.dispatchEvent(new Ev('input', { bubbles: true }))
+    const changeset = document.querySelector('#innfo-feedback-modal [data-innfo="changeset-preview"]')
+    // Never `matrix-lab@...` (the domain id): apply_change resolves the model part.
+    assert.match(changeset.value, /target:: kNNowledge\/Coverage@Coverage&r1&c1/)
+  })
 })
 
 // Constrained matrix cell editor (S3b P1-11): the governing definition of a cell

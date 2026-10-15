@@ -3841,7 +3841,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           col: anchorData.col,
           element: anchorData.matrix,
           kind: payload.kind,
-          model_id: meta.modelId,
+          // The owning model, not the domain: the changeset target must resolve in
+          // apply_change. Falls back to the domain id only for legacy anchors.
+          model_id: anchorData.modelId || meta.modelId,
           original: anchorData.original,
         }
         if (payload.proposed !== undefined) matrixDraft.proposed = payload.proposed
@@ -4597,6 +4599,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         row: td.getAttribute('data-row'),
         col: td.getAttribute('data-col'),
         original: td.getAttribute('data-cell-raw') || '',
+        // The model that owns the matrix (the draft's D5 target model part).
+        modelId: td.getAttribute('data-matrix-model') || '',
         field: '__cell',
         ctl: 'matrix-cell-anchor',
       }
@@ -7282,6 +7286,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             td.setAttribute('data-row', String(rowLabel))
             td.setAttribute('data-col', String(c))
             if (matrix.target) td.setAttribute('data-matrix-target', String(matrix.target))
+            // The owning model address: a matrix-cell draft must target the model
+            // that owns the matrix, never the domain id (apply_change resolves the
+            // model by file stem / title, and `meta.modelId` is the domain).
+            if (matrix.modelId) td.setAttribute('data-matrix-model', String(matrix.modelId))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())

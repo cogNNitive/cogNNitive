@@ -528,7 +528,9 @@
           col: anchorData.col,
           element: anchorData.matrix,
           kind: payload.kind,
-          model_id: meta.modelId,
+          // The owning model, not the domain: the changeset target must resolve in
+          // apply_change. Falls back to the domain id only for legacy anchors.
+          model_id: anchorData.modelId || meta.modelId,
           original: anchorData.original,
         }
         if (payload.proposed !== undefined) matrixDraft.proposed = payload.proposed
@@ -1262,6 +1264,8 @@
         row: td.getAttribute('data-row'),
         col: td.getAttribute('data-col'),
         original: td.getAttribute('data-cell-raw') || '',
+        // The model that owns the matrix (the draft's D5 target model part).
+        modelId: td.getAttribute('data-matrix-model') || '',
         field: '__cell',
         ctl: 'matrix-cell-anchor',
       }
