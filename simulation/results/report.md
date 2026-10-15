@@ -857,5 +857,5 @@ _An integrator runs `npm i @cognnitive/innfo-core` and writes `import { parseKno
 - **Actual:**
 
 ```
-innfo-editor resolves through Vite, the test suites through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.
+the test suites resolve through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.
 ```

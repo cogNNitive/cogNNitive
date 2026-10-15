@@ -461,7 +461,7 @@
         {
           "label": "Why every existing consumer hides this",
           "expectation": null,
-          "actual": "innfo-editor resolves through Vite, the test suites through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.",
+          "actual": "the test suites resolve through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.",
           "outcome": "OBSERVED",
           "error": null
         }

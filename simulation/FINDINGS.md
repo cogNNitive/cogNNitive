@@ -47,9 +47,8 @@ them are serious enough to undermine the value proposition directly.
 `parseModel` followed by `serializeModel` is not the identity on any shipped
 sample. This is the path `innfo-mcp`'s `apply_change` takes on **every** agent
 write (`iNNfo/packages/innfo-mcp/src/tools/model-io.ts:37`), and the path the
-editor takes for any file the user has touched — its own serializer calls it the
-"canonical (lossy path)" at
-`iNNfo/apps/innfo-editor/src/model/recursiveSerializer.ts:163`.
+retired Vue editor took for any file the user had touched (its own serializer called it
+the "canonical (lossy path)").
 
 Four distinct losses, measured across all 11 samples (scenario S03):
 
@@ -133,8 +132,7 @@ highest on-disk template_version for "business": expected 'V_0-2-5' to be 'V_0-2
 ```
 
 `6e7481f` bumped `iNNfo/specs/bluepriNNts/business/spec_NN.md` to `V_0-2-5` but
-did not update `SHIPPED_TEMPLATE_VERSIONS` in
-`iNNfo/apps/innfo-editor/src/config/samples.ts:36`.
+did not update `SHIPPED_TEMPLATE_VERSIONS` in the retired Vue editor's sample table.
 
 **Fixed in this pass** (one-line bump); the suite is now 666 passing.
 

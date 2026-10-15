@@ -32,7 +32,7 @@ export default async function run() {
 
     s.observe(
       'Why every existing consumer hides this',
-      'innfo-editor resolves through Vite, the test suites through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.',
+      'the test suites resolve through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.',
     )
   } catch (err) {
     s.crash('scenario execution', err)
