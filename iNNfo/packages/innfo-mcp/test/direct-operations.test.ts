@@ -5,6 +5,8 @@ import { existsSync } from 'node:fs'
 import { CHANGE_OPS, listMutationOperations } from '@cognnitive/innfo-core'
 import { applyChange, MAINTENANCE_OPS, SCHEMA_OPS } from '../src/tools/apply-change.js'
 
+const SERVER_SRC = join(import.meta.dirname!, '..', 'src', 'server.ts')
+
 const root = join(import.meta.dirname!, '..', 'temp-test-direct-ops')
 const knowledgeDir = join(root, 'kNNowledge')
 const changesDir = join(root, 'changes')
@@ -111,7 +113,6 @@ describe('direct apply_change operations are a closed, classified set', () => {
   })
 
   it.each([
-    ['generate_index', 'strategy', {}],
     ['freeze_slugs', 'strategy', {}],
     ['bump_version', 'strategy', { bump: 'patch' }],
     ['add_concept', 'tpl', { conceptName: 'Risk' }],
@@ -127,7 +128,7 @@ describe('direct apply_change operations are a closed, classified set', () => {
     const files = await readdir(knowledgeDir)
     const written = files.filter((f) => f.startsWith(id))
     expect(written.length).toBeGreaterThan(0)
-    if (op !== 'freeze_slugs' && op !== 'generate_index') {
+    if (op !== 'freeze_slugs') {
       const after = await readFile(res.newPath ?? sourceFile, 'utf-8')
       expect(after).not.toBe(before)
     }
@@ -142,5 +143,42 @@ describe('direct apply_change operations are a closed, classified set', () => {
     })
     expect(res.success).toBe(true)
     expect(await readdir(changesDir)).toHaveLength(1)
+  })
+})
+
+describe('apply_change API gaps', () => {
+  it('the apply_change op enum lists every maintenance and schema operation', async () => {
+    const src = await readFile(SERVER_SRC, 'utf-8')
+    const start = src.indexOf('Operation to perform')
+    const enumBlock = src.slice(start, src.indexOf(']', start))
+    for (const op of [...MAINTENANCE_OPS, ...SCHEMA_OPS]) {
+      expect(enumBlock, `op enum is missing "${op}"`).toContain(`'${op}'`)
+    }
+  })
+
+  it('generate_index refuses a level-3 model: the blueprint owns the index', async () => {
+    const sourceFile = join(knowledgeDir, 'strategy_NN.md')
+    const before = await readFile(sourceFile, 'utf-8')
+    const res = await applyChange(root, 'strategy', 'generate_index', {})
+    expect(res.success).toBe(false)
+    expect(res.errors![0].message).toMatch(/level-3|level 3/i)
+    expect(await readFile(sourceFile, 'utf-8')).toBe(before)
+  })
+
+  it('bump_version rejects the unversioned lineage record with a clear message', async () => {
+    const record = `---
+specification_version: "V_0-3-0"
+level: 3
+parent_spec:
+  name: "cogNNitive"
+  url: "specs/cogNNitive_NN.md"
+title: "Strategy lineage"
+---
+`
+    await writeFile(join(knowledgeDir, 'strategy_cogNNitive_NN.md'), record, 'utf-8')
+    const res = await applyChange(root, 'strategy_cogNNitive', 'bump_version', { bump: 'patch' })
+    expect(res.success).toBe(false)
+    expect(res.errors![0].message).toMatch(/lineage record is unversioned/i)
+    expect(await readFile(join(knowledgeDir, 'strategy_cogNNitive_NN.md'), 'utf-8')).toBe(record)
   })
 })

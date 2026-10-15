@@ -11,6 +11,7 @@ import {
   listBlueprintProcedures,
   listBlueprintSkills,
   findKnowledgeFile,
+  deriveNameFromUrl,
 } from './spec'
 import { validateKnowledge, validateBlueprint } from './mutate'
 
@@ -621,5 +622,43 @@ describe('video-script blueprint embedded skill discovery (real package)', () =>
     expect(existsSync(join(skill.path, 'scripts', 'remotion-scene-compiler.mjs'))).toBe(true)
     expect(skill.version).toMatch(/^V_\d+-\d+-\d+$/)
     expect(skill.description).toBeTruthy()
+  })
+})
+
+describe('blueprint name derivation for spec_NN.md packages', () => {
+  it('names a spec_NN.md package by its folder, skipping a V_x version dir', () => {
+    const base = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts'
+    expect(deriveNameFromUrl(`${base}/business/spec_NN.md`)).toBe('business')
+    expect(deriveNameFromUrl(`${base}/business/V_0-4-1/spec_NN.md`)).toBe('business')
+    expect(deriveNameFromUrl('https://example.com/iNNfo_V_0-1-0_NN.md')).toBe('iNNfo_V_0-1-0')
+  })
+
+  it('keeps the stem name when a spec_NN.md url has no blueprint folder', () => {
+    expect(deriveNameFromUrl('spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('https://cognnitive.com/spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('./spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('https://example.com/x/spec.md')).toBe('spec')
+    expect(deriveNameFromUrl('https://example.com/business_V_0-2-0_NN.md')).toBe('business_V_0-2-0')
+  })
+
+  it('getBlueprintFromUrl returns the blueprint named by the url folder, not the first spec_NN.md', async () => {
+    const root = join(import.meta.dirname!, '..', '..', 'temp-test-spec-collision')
+    await rm(root, { recursive: true, force: true })
+    try {
+      for (const name of ['alpha', 'beta']) {
+        await mkdir(join(root, 'specs', 'bluepriNNts', name), { recursive: true })
+        await writeFile(
+          join(root, 'specs', 'bluepriNNts', name, 'spec_NN.md'),
+          `---\nspec_version: "V_0-1-0"\nlevel: 2\ntitle: "${name} blueprint"\nblueprint_name: "${name}"\n---\n`,
+          'utf-8',
+        )
+      }
+      vi.spyOn(global, 'fetch').mockRejectedValue(new Error('offline'))
+      const url = 'https://example.com/specs/bluepriNNts/beta/spec_NN.md'
+      const bp = await getBlueprintFromUrl(root, url, deriveNameFromUrl(url))
+      expect(bp?.frontmatter.title).toBe('beta blueprint')
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })

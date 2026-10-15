@@ -23,6 +23,7 @@ const BUILDER = path.join(SCRIPT_DIR, 'build-preflight-primitives.mjs')
 const COMMITTED_TARGETS = [
   path.join(SCRIPT_DIR, '..', 'skills', 'nn-preflight', 'scripts', 'lib', 'version-status.generated.cjs'),
   path.join(SCRIPT_DIR, '..', 'skills', 'nn-preflight', 'scripts', 'lib', 'naming-contract.generated.cjs'),
+  path.join(SCRIPT_DIR, '..', 'skills', 'nn-upgrade', 'scripts', 'lib', 'innfo-core.generated.cjs'),
 ]
 
 // The layout detector bundle was retired with the legacy quarantine.
@@ -51,6 +52,10 @@ async function runTests() {
           assert.strictEqual(typeof mod.parsePinnedUrl, 'function', 'exports parsePinnedUrl')
           assert.strictEqual(typeof mod.gapKind, 'function', 'exports gapKind')
           assert.strictEqual(typeof mod.compareVersions, 'function', 'exports compareVersions')
+        } else if (target.endsWith('innfo-core.generated.cjs')) {
+          for (const fn of ['planDomainScaffold', 'parseKnowledge', 'serializeKnowledge', 'freeze_slugs']) {
+            assert.strictEqual(typeof mod[fn], 'function', `exports ${fn}`)
+          }
         }
       }
       assert.ok(!fs.existsSync(RETIRED_MIGRATE_BUNDLE), 'the legacy-migrate planner bundle is not rendered')
