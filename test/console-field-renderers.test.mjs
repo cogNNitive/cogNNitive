@@ -208,7 +208,7 @@ describe('Console type-aware rendering + field detail + incoming + metamodel', (
     const card = document.querySelector('#innfo-content .innfo-card[data-element-id="a"]')
     const inc = card.querySelector('.innfo-card-incoming')
     assert.ok(inc, 'incoming section present')
-    assert.match(inc.querySelector('.innfo-card-incoming-label').textContent, /Referenced by \(1\)/)
+    assert.match(inc.querySelector('.innfo-card-incoming-label').textContent, /Incoming relations \(1\)/)
     assert.match(inc.textContent, /Slimer/)
   })
 

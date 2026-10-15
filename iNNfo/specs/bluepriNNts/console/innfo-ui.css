@@ -6244,7 +6244,7 @@ button.btn-primary:hover:not(:disabled) {
   outline: none;
 }
 #innfo-rail .menu li > a.active {
-  border-left: 3px solid var(--innfo-accent, #171717);
+  border-left: none !important;
   font-weight: 600;
   color: var(--innfo-accent, #171717) !important;
 }
@@ -6815,10 +6815,13 @@ button.btn-primary:hover:not(:disabled) {
   padding: 2px 9px;
   border-radius: 999px;
 }
-#innfo-rail .menu li > a[data-concept].active {
-  background: color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #171717)) 12%, #ffffff) !important;
-  border: 1px solid color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #171717)) 45%, #e5e5e5) !important;
-  border-left: 3px solid var(--rail-concept-color, var(--concept-slot-fg, #171717)) !important;
+#innfo-rail .menu li > a[data-concept].active,
+#innfo-rail .menu li > a.active {
+  background: #f1f5f9 !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-left: none !important;
+  color: #0f172a !important;
 }
 
 /* G2: Active Filter Chips & Facet Dropdowns */
@@ -7566,3 +7569,368 @@ input[type="text"], input[type="search"], textarea, select {
 .innfo-modal-details > summary { cursor: pointer; font-weight: 600; color: var(--muted, #64748b); user-select: none; }
 .innfo-modal-details h4 { margin: 8px 0 4px; font-size: 0.75rem; text-transform: uppercase; color: var(--muted, #64748b); }
 .innfo-review-dock .innfo-dock-drafts { font-size: 0.75rem; color: var(--muted, #64748b); white-space: nowrap; }
+
+/* Recovered from the reverted primary-tree WIP: light review dock, export modal polish, dock Changes button, card footer with address chip */
+.innfo-review-dock {
+  position: fixed !important;
+  bottom: 24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 100 !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 14px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.05) !important;
+  animation: innfo-dock-slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+@keyframes innfo-dock-slide-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.innfo-dock-status {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  color: #2563eb !important;
+  padding: 2px 8px !important;
+  background: #eff6ff !important;
+  border-radius: 999px !important;
+}
+.innfo-dock-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+}
+.innfo-dock-sep {
+  width: 1px !important;
+  height: 18px !important;
+  background: #e2e8f0 !important;
+}
+.innfo-review-dock .innfo-reviewer-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.78rem !important;
+  color: #64748b !important;
+}
+.innfo-review-dock .innfo-reviewer-name {
+  width: 7.5rem !important;
+  padding: 3px 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font: inherit !important;
+  font-size: 0.78rem !important;
+}
+.innfo-review-dock .innfo-new-element,
+.innfo-review-dock .innfo-changed-filter {
+  appearance: none !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font: inherit !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.innfo-review-dock .innfo-new-element:hover,
+.innfo-review-dock .innfo-changed-filter:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+.innfo-review-dock .innfo-changed-filter[aria-pressed="true"] {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+}
+.innfo-review-dock .innfo-feedback-open {
+  appearance: none !important;
+  border: 1px solid #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font: inherit !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  padding: 4px 14px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.innfo-review-dock .innfo-feedback-open:hover {
+  background: #1d4ed8 !important;
+}
+.innfo-dock-exit {
+  appearance: none !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #64748b !important;
+  font: inherit !important;
+  font-size: 0.75rem !important;
+  padding: 3px 8px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+}
+.innfo-dock-exit:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.innfo-review-dock, .innfo-review-dock * { white-space: nowrap; }
+/* Redesigned Export Changes Modal */
+#innfo-feedback-modal {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  max-width: 620px !important;
+  width: 92% !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.15), 0 8px 10px -6px rgba(15, 23, 42, 0.1) !important;
+}
+#innfo-feedback-modal::backdrop {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+}
+.innfo-feedback-head {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  margin-bottom: 8px !important;
+}
+.innfo-feedback-head h2 {
+  margin: 0 !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+#innfo-feedback-modal button[data-innfo="close"] {
+  appearance: none !important;
+  border: none !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 1.3rem !important;
+  line-height: 1 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+#innfo-feedback-modal button[data-innfo="close"]:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.innfo-feedback-seal {
+  font-size: 0.78rem !important;
+  color: #64748b !important;
+  margin: 2px 0 12px 0 !important;
+  line-height: 1.4 !important;
+}
+#innfo-feedback-modal input[data-innfo="identifier"] {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 6px !important;
+  font-size: 0.85rem !important;
+  margin: 4px 0 10px !important;
+}
+#innfo-feedback-modal button[data-innfo="download-changeset"] {
+  appearance: none !important;
+  border: none !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font: inherit !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  padding: 8px 18px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+#innfo-feedback-modal button[data-innfo="download-changeset"]:hover {
+  background: #1d4ed8 !important;
+}
+#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"] {
+  appearance: none !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font: inherit !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"]:hover {
+  background: #f1f5f9 !important;
+}
+#innfo-feedback-modal .innfo-feedback-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 16px 0 10px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+/* Dock Changes button */
+.innfo-dock-changes {
+  appearance: none;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+  color: #334155;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.innfo-dock-changes:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ElementCard footer, title group, relations and subtle qud chip */
+.innfo-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0.7em 0 0;
+  padding: 0.4em 0 0;
+  border-top: none !important;
+  font-family: var(--innfo-mono, monospace);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  overflow: hidden;
+  min-width: 0;
+}
+.innfo-card-path {
+  font-family: var(--innfo-mono, monospace);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  border-top: none !important;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.innfo-card-footer .innfo-qud {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  padding: 0 !important;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.innfo-card-footer .innfo-qud-id {
+  color: #94a3b8 !important;
+  max-width: 28ch;
+}
+.innfo-card-footer .innfo-qud-btn {
+  color: #94a3b8 !important;
+  padding: 0.1em 0.2em;
+}
+.innfo-card-footer .innfo-qud-btn:hover {
+  color: var(--innfo-text, #0f172a) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.innfo-card-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.innfo-card-title-group .innfo-card-thumb {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+}
+.innfo-card-title-group .innfo-card-concept-pill {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.innfo-card-title-group [data-ku-kind="element"] {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.innfo-card-outgoing,
+.innfo-card-incoming {
+  margin: 0.8em 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+.innfo-card-outgoing-label,
+.innfo-card-incoming-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--innfo-muted, #64748b);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+[data-innfo-component="element-card"][data-open="false"] .innfo-card-footer {
+  display: none;
+}
+[data-innfo-component="element-card"][data-open="false"] .innfo-card-path {
+  display: none;
+}
+
+/* Header Review mode toggle (recovered) */
+.innfo-review-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 14px !important;
+  border-radius: 9999px !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.innfo-review-toggle:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+.innfo-review-toggle[aria-pressed="true"],
+.innfo-review-toggle.active {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+.innfo-review-toggle[aria-pressed="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2563eb;
+}
