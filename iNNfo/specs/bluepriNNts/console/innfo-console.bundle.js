@@ -4342,18 +4342,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function buildNewElementButton() {
+      var dock = doc.getElementById('innfo-review-dock')
       var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
-      if (!banner || !store || !canReview(meta, elements, needs)) return null
-      var existing = banner.querySelector('[data-innfo="new-element"]')
+      var host = dock || banner
+      if (!host || !store || !canReview(meta, elements, needs)) return null
+      var existing = doc.querySelector('[data-innfo="new-element"]')
       if (existing) return existing
       if (!schemaConcepts().length) return null
-      var b = makeEl(doc, 'button', 'innfo-new-element', 'New element')
+      var b = makeEl(doc, 'button', 'innfo-new-element innfo-dock-changes', '+ New element')
       b.setAttribute('data-innfo', 'new-element')
       b.setAttribute('type', 'button')
       b.addEventListener('click', openNew)
-      var openBtn = banner.querySelector('#innfo-feedback-open')
-      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
-      else banner.appendChild(b)
+      var exportBtn = host.querySelector('#innfo-dock-export-btn') || host.querySelector('#innfo-feedback-open')
+      if (exportBtn && exportBtn.parentNode) exportBtn.parentNode.insertBefore(b, exportBtn)
+      else host.appendChild(b)
       return b
     }
 
@@ -4480,7 +4482,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!cardBody || typeof UI.TagRow !== 'function') return
         row = UI.TagRow({ tags: [] }, { doc: doc })
         row.setAttribute('data-innfo-review-ctl', '1')
-        cardBody.insertBefore(row, cardBody.querySelector('[data-innfo-component="rel-list"]'))
+        var relList = cardBody.querySelector('[data-innfo-component="rel-list"]')
+        var refChild = relList && relList.parentNode === cardBody ? relList : null
+        cardBody.insertBefore(row, refChild)
       }
       Array.prototype.forEach.call(row.querySelectorAll('.innfo-tag'), function (tag) {
         if (tag.querySelector('[data-innfo-ctl="tag-remove"]')) return
@@ -4821,12 +4825,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function buildToggle() {
       if (!canReview(meta, elements, needs)) return null
+      var extra = doc.getElementById('innfo-navbar-extra')
       var banner =
         doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
-      if (!banner) return null
-      if (banner.querySelector('[data-innfo="review-toggle"]')) {
-        return banner.querySelector('[data-innfo="review-toggle"]')
-      }
+      var host = extra || banner
+      if (!host) return null
+      var existing = doc.querySelector('[data-innfo="review-toggle"]')
+      if (existing) return existing
       var b = makeEl(doc, 'button', 'innfo-review-toggle', 'Review mode')
       b.setAttribute('data-innfo', 'review-toggle')
       b.setAttribute('type', 'button')
@@ -4835,9 +4840,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (enabled) disable()
         else enable()
       })
-      var openBtn = banner.querySelector('#innfo-feedback-open')
-      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
-      else banner.appendChild(b)
+      host.appendChild(b)
       return b
     }
 
@@ -8426,6 +8429,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     nav.style.display = 'flex'
     nav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
     tabs.forEach(function (t) {
+      if (t.id === 'review') return
       var btn = el('button', 'innfo-view-tab tab flex items-center gap-2')
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
@@ -8667,10 +8671,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       tabs.forEach(function (t) {
         var btn = nav.querySelector('.innfo-view-tab[data-tab="' + t.id + '"]')
         var panel = doc.getElementById(t.panelId)
-        btn.classList.toggle('active', t.id === tabId)
-        btn.classList.toggle('tab-active', t.id === tabId)
+        if (btn) {
+          btn.classList.toggle('active', t.id === tabId)
+          btn.classList.toggle('tab-active', t.id === tabId)
+        }
         if (panel) panel.classList.toggle('active', t.id === tabId)
       })
+      var dockChangesBtn = doc.querySelector('[data-innfo="dock-changes"]')
+      if (dockChangesBtn) dockChangesBtn.classList.toggle('active', tabId === 'review')
       if (!scopedView && doc.querySelector) {
         var railAside = doc.querySelector('aside.innfo-rail')
         if (railAside) {
@@ -8758,11 +8766,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function updateTabBadges(doc, state) {
     var btn = doc.querySelector('.innfo-view-tab[data-tab="review"]')
-    if (!btn) return
-    var old = btn.querySelector('.innfo-rail-badge')
-    if (old && old.parentNode) old.parentNode.removeChild(old)
+    var dockBtn = doc.querySelector('[data-innfo="dock-changes"]')
     var n = state && state.store ? state.store.drafts().length : 0
-    if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
+    if (btn) {
+      var old = btn.querySelector('.innfo-rail-badge')
+      if (old && old.parentNode) old.parentNode.removeChild(old)
+      if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
+    }
+    if (dockBtn) {
+      var oldDockBadge = dockBtn.querySelector('.innfo-dock-badge')
+      if (oldDockBadge && oldDockBadge.parentNode) oldDockBadge.parentNode.removeChild(oldDockBadge)
+      if (n > 0) dockBtn.appendChild(el('span', 'innfo-dock-badge badge badge-sm badge-neutral ml-1', String(n)))
+    }
   }
 
   function elementsByIdOf(state) {
@@ -10556,7 +10571,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       },
     })
 
-    if (tabs) cleanups.push(tabs.destroy)
+    if (tabs) {
+      state.tabs = tabs
+      cleanups.push(tabs.destroy)
+    }
     renderNavbarIdentity(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
@@ -10878,6 +10896,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     root.className = 'innfo-procedure-view'
     var header = doc.createElement('div')
     header.className = 'proc-view-header'
+    header.style.display = 'none'
     var titleEl = doc.createElement('h1')
     titleEl.className = 'proc-title'
     titleEl.textContent = meta.title || 'Procedures Console'
@@ -10892,17 +10911,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     root.appendChild(tabsHost)
     var subTabsNav = doc.createElement('nav')
     subTabsNav.className = 'subtabs'
-    var wizardTab = doc.createElement('button')
-    wizardTab.className = 'subtab active'
-    wizardTab.setAttribute('data-mode', 'wizard')
-    wizardTab.setAttribute('type', 'button')
-    wizardTab.textContent = 'Interactive Runner & DAG'
     var docTab = doc.createElement('button')
-    docTab.className = 'subtab'
-    docTab.setAttribute('data-mode', 'document')
+    docTab.className = 'subtab innfo-proc-toggle-btn'
     docTab.setAttribute('type', 'button')
-    docTab.textContent = 'Document'
-    subTabsNav.appendChild(wizardTab)
+    docTab.textContent = 'View Document'
     subTabsNav.appendChild(docTab)
     root.appendChild(subTabsNav)
     var docBody = doc.createElement('div')
@@ -10915,7 +10927,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     wizardBody.appendChild(stepBody)
     root.appendChild(wizardBody)
     container.appendChild(root)
-    var subTabs = subTabsNav.querySelectorAll('.subtab')
 
     var bits = []
     if (meta.template) bits.push('<span><strong>Template</strong> ' + esc(meta.template) + '</span>')
@@ -11129,23 +11140,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (proceduresMode === 'wizard') {
         if (docBody) docBody.classList.add('hidden')
         if (wizardBody) wizardBody.classList.remove('hidden')
+        if (docTab) docTab.textContent = 'View Document'
         renderExecutionWorkspace()
       } else {
         if (wizardBody) wizardBody.classList.add('hidden')
         if (docBody) docBody.classList.remove('hidden')
+        if (docTab) docTab.textContent = 'View Workflow'
         renderDocument()
       }
-      subTabs.forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-mode') === proceduresMode)
-      })
     }
 
-    subTabs.forEach(function (b) {
-      b.addEventListener('click', function () {
-        proceduresMode = b.getAttribute('data-mode') === 'wizard' ? 'wizard' : 'document'
+    if (docTab) {
+      docTab.addEventListener('click', function () {
+        proceduresMode = proceduresMode === 'wizard' ? 'document' : 'wizard'
         renderProcedures()
       })
-    })
+    }
 
     // Document view: full procedure as a readable document (presentational).
     function renderDocument() {

@@ -3466,6 +3466,7 @@
     nav.style.display = 'flex'
     nav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
     tabs.forEach(function (t) {
+      if (t.id === 'review') return
       var btn = el('button', 'innfo-view-tab tab flex items-center gap-2')
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
@@ -3707,10 +3708,14 @@
       tabs.forEach(function (t) {
         var btn = nav.querySelector('.innfo-view-tab[data-tab="' + t.id + '"]')
         var panel = doc.getElementById(t.panelId)
-        btn.classList.toggle('active', t.id === tabId)
-        btn.classList.toggle('tab-active', t.id === tabId)
+        if (btn) {
+          btn.classList.toggle('active', t.id === tabId)
+          btn.classList.toggle('tab-active', t.id === tabId)
+        }
         if (panel) panel.classList.toggle('active', t.id === tabId)
       })
+      var dockChangesBtn = doc.querySelector('[data-innfo="dock-changes"]')
+      if (dockChangesBtn) dockChangesBtn.classList.toggle('active', tabId === 'review')
       if (!scopedView && doc.querySelector) {
         var railAside = doc.querySelector('aside.innfo-rail')
         if (railAside) {
@@ -3798,11 +3803,18 @@
 
   function updateTabBadges(doc, state) {
     var btn = doc.querySelector('.innfo-view-tab[data-tab="review"]')
-    if (!btn) return
-    var old = btn.querySelector('.innfo-rail-badge')
-    if (old && old.parentNode) old.parentNode.removeChild(old)
+    var dockBtn = doc.querySelector('[data-innfo="dock-changes"]')
     var n = state && state.store ? state.store.drafts().length : 0
-    if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
+    if (btn) {
+      var old = btn.querySelector('.innfo-rail-badge')
+      if (old && old.parentNode) old.parentNode.removeChild(old)
+      if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
+    }
+    if (dockBtn) {
+      var oldDockBadge = dockBtn.querySelector('.innfo-dock-badge')
+      if (oldDockBadge && oldDockBadge.parentNode) oldDockBadge.parentNode.removeChild(oldDockBadge)
+      if (n > 0) dockBtn.appendChild(el('span', 'innfo-dock-badge badge badge-sm badge-neutral ml-1', String(n)))
+    }
   }
 
   function elementsByIdOf(state) {
@@ -5596,7 +5608,10 @@
       },
     })
 
-    if (tabs) cleanups.push(tabs.destroy)
+    if (tabs) {
+      state.tabs = tabs
+      cleanups.push(tabs.destroy)
+    }
     renderNavbarIdentity(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 

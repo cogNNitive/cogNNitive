@@ -118,6 +118,7 @@
     root.className = 'innfo-procedure-view'
     var header = doc.createElement('div')
     header.className = 'proc-view-header'
+    header.style.display = 'none'
     var titleEl = doc.createElement('h1')
     titleEl.className = 'proc-title'
     titleEl.textContent = meta.title || 'Procedures Console'
@@ -132,17 +133,10 @@
     root.appendChild(tabsHost)
     var subTabsNav = doc.createElement('nav')
     subTabsNav.className = 'subtabs'
-    var wizardTab = doc.createElement('button')
-    wizardTab.className = 'subtab active'
-    wizardTab.setAttribute('data-mode', 'wizard')
-    wizardTab.setAttribute('type', 'button')
-    wizardTab.textContent = 'Interactive Runner & DAG'
     var docTab = doc.createElement('button')
-    docTab.className = 'subtab'
-    docTab.setAttribute('data-mode', 'document')
+    docTab.className = 'subtab innfo-proc-toggle-btn'
     docTab.setAttribute('type', 'button')
-    docTab.textContent = 'Document'
-    subTabsNav.appendChild(wizardTab)
+    docTab.textContent = 'View Document'
     subTabsNav.appendChild(docTab)
     root.appendChild(subTabsNav)
     var docBody = doc.createElement('div')
@@ -155,7 +149,6 @@
     wizardBody.appendChild(stepBody)
     root.appendChild(wizardBody)
     container.appendChild(root)
-    var subTabs = subTabsNav.querySelectorAll('.subtab')
 
     var bits = []
     if (meta.template) bits.push('<span><strong>Template</strong> ' + esc(meta.template) + '</span>')
@@ -369,23 +362,22 @@
       if (proceduresMode === 'wizard') {
         if (docBody) docBody.classList.add('hidden')
         if (wizardBody) wizardBody.classList.remove('hidden')
+        if (docTab) docTab.textContent = 'View Document'
         renderExecutionWorkspace()
       } else {
         if (wizardBody) wizardBody.classList.add('hidden')
         if (docBody) docBody.classList.remove('hidden')
+        if (docTab) docTab.textContent = 'View Workflow'
         renderDocument()
       }
-      subTabs.forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-mode') === proceduresMode)
-      })
     }
 
-    subTabs.forEach(function (b) {
-      b.addEventListener('click', function () {
-        proceduresMode = b.getAttribute('data-mode') === 'wizard' ? 'wizard' : 'document'
+    if (docTab) {
+      docTab.addEventListener('click', function () {
+        proceduresMode = proceduresMode === 'wizard' ? 'document' : 'wizard'
         renderProcedures()
       })
-    })
+    }
 
     // Document view: full procedure as a readable document (presentational).
     function renderDocument() {
