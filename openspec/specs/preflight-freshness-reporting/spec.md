@@ -1,5 +1,7 @@
 # Spec: preflight-freshness-reporting
 
+## Purpose
+
 This spec defines the informational output line in
 `skills/nn-preflight/scripts/preflight-check.js` reporting pin identity, pin
 age, and whether `main` has diverged. The data is sourced from one additional
@@ -101,15 +103,7 @@ introduces a new blocking condition.
 
 ### Requirement: A failed, malformed, or field-incomplete freshness fetch is silently omitted, not warned about
 
-For the freshness fetch specifically — because it is optional enrichment
-issued only after the manifest fetch already succeeded — any failure mode
-(request throws or times out, response is not valid JSON, a subsystem's fields
-are absent, or the older-cache/older-script case) MUST produce **silent
-omission**: no freshness line, no item, no summary key, and no separate
-warning or "freshness unknown" notice of any kind. This is stricter than the
-existing `manifest.reachable=false` / `templateCatalogOffline` notices,
-which are untouched by this change and continue to fire as before for their
-own conditions (`preflight-check.js:920-934`, `:892-900`).
+For the freshness fetch specifically — because it is optional enrichment issued only after the manifest fetch already succeeded — any failure mode (request throws or times out, response is not valid JSON, a subsystem's fields are absent, or the older-cache/older-script case) MUST produce **silent omission**: no freshness line, no item, no summary key, and no separate warning or "freshness unknown" notice of any kind. This is stricter than the existing `manifest.reachable=false` / `templateCatalogOffline` notices, which are untouched by this change and continue to fire as before for their own conditions (`preflight-check.js:920-934`, `:892-900`).
 
 #### Scenario: The freshness fetch itself fails or times out
 

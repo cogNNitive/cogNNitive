@@ -1,6 +1,9 @@
 # Delta for Workspace Manifest Reconciliation
 
-## MODIFIED Requirements
+## Purpose
+Defines which Level-3 model files workspace manifest reconciliation discovers.
+
+## Requirements
 
 ### Requirement: Discovery Scope for Level-3 Model Files
 

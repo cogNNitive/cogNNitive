@@ -1,5 +1,7 @@
 # Spec: safe-ff-merge-technique
 
+## Purpose
+
 This spec records the requirement to document a server-side fast-forward push
 technique for shipping `dev` to `main`. The concurrent-session tree hazard is
 addressed by session isolation in `dev-skills` (one worktree per session), not by

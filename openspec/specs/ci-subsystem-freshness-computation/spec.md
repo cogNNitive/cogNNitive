@@ -1,5 +1,7 @@
 # Spec: ci-subsystem-freshness-computation
 
+## Purpose
+
 This spec defines the CI job that computes, per subsystem, how far `main`
 has drifted past that subsystem's own last matching stable tag, using local
 `git log` only. It does not call `api.github.com`, does not add

@@ -1,6 +1,9 @@
 # Delta for Template Cache Staleness Detection
 
-## MODIFIED Requirements
+## Purpose
+Defines how the preflight workspace scan detects stale template specs and treats unreachable remotes as non-blocking.
+
+## Requirements
 
 ### Requirement: Workspace scan reports stale specs as ACTION_REQUIRED
 
