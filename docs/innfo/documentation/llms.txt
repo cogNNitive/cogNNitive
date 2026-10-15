@@ -28,4 +28,3 @@
 - [Console Needs & Visuals](console-needs-and-visuals): Capability needs and app-driven concept color/icon in generated consoles.
 - [Console UI Kit](console-ui-kit): Design tokens and presentational components (InnfoUI) shared by generated consoles.
 - [Validator Behavior](validator-behavior): Deterministic validation, differential baseline_path output, version inference, and workspace-first resolution.
-- [Live Model Preview](live-preview): The opt-in MCP loopback server and SSE change stream that turns the editor tab into a read-only live mirror of the agent's mutations.

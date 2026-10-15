@@ -126,9 +126,9 @@ Marked **[done by freeze]** below means Section A already did it; Phase B only c
 
 ### B1. MCP live preview (S5a)
 
-- [ ] B1.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): no tool result carries a preview URL; tool list and descriptions never mention a live preview or the hosted app. [mcp-live-preview: Loopback Preview Server (REMOVED)] [mcp-live-preview: Preview URL Advertisement (REMOVED)] [mcp-live-preview: Change Event Stream (REMOVED)] [mcp-live-preview: Read-Only Editor Live Mode (REMOVED)] [mcp-live-preview: Endpoint Access Control (REMOVED)]
-- [ ] B1.2 Delete `innfo-mcp/src/tools/preview-server.ts` (`PREVIEW_APP_URL`), `withPreview` and call sites in `server.ts`, and `src/server-preview.test.ts`; rebuild the bundle. [mcp-live-preview: Loopback Preview Server (REMOVED)] [mcp-live-preview: Preview URL Advertisement (REMOVED)] [mcp-live-preview: Change Event Stream (REMOVED)]
-- [ ] B1.3 Delete `docs/innfo/documentation/live-preview.md` and its sidebar and llms entries. [mcp-live-preview: Read-Only Editor Live Mode (REMOVED)] [mcp-live-preview: Endpoint Access Control (REMOVED)]
+- [x] B1.1 TEST (`iNNfo/packages/innfo-mcp/src/server.spec.ts`): no tool result carries a preview URL; tool list and descriptions never mention a live preview or the hosted app. [mcp-live-preview: Loopback Preview Server (REMOVED)] [mcp-live-preview: Preview URL Advertisement (REMOVED)] [mcp-live-preview: Change Event Stream (REMOVED)] [mcp-live-preview: Read-Only Editor Live Mode (REMOVED)] [mcp-live-preview: Endpoint Access Control (REMOVED)]
+- [x] B1.2 Delete `innfo-mcp/src/tools/preview-server.ts` (`PREVIEW_APP_URL`), `withPreview` and call sites in `server.ts`, and `src/server-preview.test.ts` (and `src/tools/preview-server.test.ts`); rebuild the bundle. [mcp-live-preview: Loopback Preview Server (REMOVED)] [mcp-live-preview: Preview URL Advertisement (REMOVED)] [mcp-live-preview: Change Event Stream (REMOVED)]
+- [x] B1.3 Delete `docs/innfo/documentation/live-preview.md` and its sidebar and llms entries. [mcp-live-preview: Read-Only Editor Live Mode (REMOVED)] [mcp-live-preview: Endpoint Access Control (REMOVED)]
 
 ### B2. Delete the app and the workspace leftovers (S5b-1)
 

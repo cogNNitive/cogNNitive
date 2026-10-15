@@ -391,6 +391,37 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.success).toBe(true)
     })
+
+    it('never advertises a preview URL, even when the retired INNFO_PREVIEW flag is set', async () => {
+      await stubBlueprintChain()
+      await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_KNOWLEDGE_CONTENT, 'utf-8')
+      const orig = process.env.INNFO_PREVIEW
+      process.env.INNFO_PREVIEW = '1'
+      try {
+        const result = await client.callTool({
+          name: 'apply_change',
+          arguments: {
+            id: 'Mutable',
+            op: 'add_element',
+            args: { conceptName: 'Work', elementName: 'NoPreview', description: 'A step.' },
+          },
+        })
+        const text = textOf(result as CallToolResult)
+        const parsed = JSON.parse(text)
+        expect(parsed.success).toBe(true)
+        expect(Object.keys(parsed).filter((k) => /preview/i.test(k))).toEqual([])
+        expect(text).not.toMatch(/preview_url|preview_app_url|127\.0\.0\.1|cognnitive\.com\/innfo\/app/)
+      } finally {
+        if (orig === undefined) delete process.env.INNFO_PREVIEW
+        else process.env.INNFO_PREVIEW = orig
+      }
+    })
+  })
+
+  it('tool descriptions never mention a live preview or the hosted app', async () => {
+    const { tools } = await client.listTools()
+    const blob = JSON.stringify(tools)
+    expect(blob).not.toMatch(/live[- ]preview|preview_url|preview_app_url|INNFO_PREVIEW|hosted app|innfo\/app/i)
   })
 
   describe('init_knowledge', () => {

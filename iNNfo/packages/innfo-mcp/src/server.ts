@@ -19,7 +19,6 @@
  */
 
 import { pathToFileURL } from 'node:url'
-import { join } from 'node:path'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -28,7 +27,6 @@ import type { ListToolsResult, CallToolResult, Tool } from '@modelcontextprotoco
 import { listKnowledge, readKnowledge } from './tools/list-read.js'
 import {
   getSpec,
-  findKnowledgeFile,
   getBlueprintFromUrl,
   getBlueprintFromModel,
   deriveNameFromUrl,
@@ -51,7 +49,6 @@ import { resolveSources } from './tools/resolve-sources.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { checkLegacyDomain } from './tools/legacy-hint.js'
-import { getPreviewServer, modelIdForFile, modelUrl, appUrl } from './tools/preview-server.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
@@ -109,31 +106,6 @@ async function checkDomainLegacy(
     )
   }
   return null
-}
-
-/* ── Live preview attachment ─────────────────────────────────── */
-
-/**
- * When preview is enabled, lazily start the loopback preview server, register
- * the mutated model, push one `model-changed` event, and append the
- * `preview_url` / `preview_app_url` fields to a mutating tool's payload.
- * When preview is disabled this is a pure pass-through — no listener, no fields.
- */
-async function withPreview<T extends Record<string, unknown>>(
-  modelRootId: string,
-  filePath: string | null,
-  event: { op: string; concept?: string; element?: string },
-  payload: T,
-): Promise<T> {
-  const preview = await getPreviewServer()
-  if (!preview) return payload
-  if (filePath) preview.registerModel(modelRootId, filePath)
-  preview.emit({ model: modelRootId, ...event })
-  return {
-    ...payload,
-    preview_url: modelUrl(preview.base, modelRootId, preview.token),
-    preview_app_url: appUrl(preview.base, modelRootId, preview.token),
-  }
 }
 
 /* ── Tool registry ───────────────────────────────────────────── */
@@ -886,23 +858,7 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   const open = args.open === undefined ? true : Boolean(args.open)
   const run = () => (changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs))
   const applied = await applyWithConsole(root, run, { open })
-  const result = applied as unknown as Awaited<ReturnType<typeof run>>
-
-  let payload: Record<string, unknown> = { ...applied }
-  if (result.success && id && op) {
-    const filePath = result.newPath ?? (await findKnowledgeFile(root, id))
-    const modelRootId = filePath ? modelIdForFile(filePath) : id
-    payload = await withPreview(
-      modelRootId,
-      filePath,
-      {
-        op,
-        concept: (opArgs.conceptName as string) || undefined,
-        element: (opArgs.elementName as string) || (opArgs.newName as string) || undefined,
-      },
-      payload,
-    )
-  }
+  const payload: Record<string, unknown> = { ...applied }
   return textResult(JSON.stringify(envelope('innfo-apply-change', payload), null, 2))
 }
 
@@ -1005,11 +961,7 @@ async function handleSyncDomainManifest(args: Record<string, unknown>): Promise<
   if (legacyErr) return legacyErr
   const dryRun = args.dry_run !== undefined ? Boolean(args.dry_run) : true
   const result = await syncDomainManifest(root, { dry_run: dryRun })
-  let payload: Record<string, unknown> = { ...result }
-  if (result.written && result.manifest_path) {
-    const filePath = join(root, result.manifest_path)
-    payload = await withPreview(modelIdForFile(filePath), filePath, { op: 'sync_domain_manifest' }, payload)
-  }
+  const payload: Record<string, unknown> = { ...result }
   return textResult(JSON.stringify(envelope('innfo-sync-domain-manifest', payload), null, 2))
 }
 
