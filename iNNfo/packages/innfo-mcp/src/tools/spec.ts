@@ -53,7 +53,7 @@ export function deriveNameFromUrl(url: string): string {
   const stem = basename(url)
     .replace(/\.(md|markdown)$/i, '')
     .replace(/_(NN|FORMAT|F)$/i, '')
-  if (!/^spec_NN\.md$/i.test(basename(url))) return stem
+  if (basename(url).toLowerCase() !== 'spec_nn.md') return stem
   // Drop the scheme+host, then any empty/'.'/'..' segment: only real folders can name a blueprint.
   const parts = url
     .replace(/^[a-z][a-z0-9+.-]*:[/][/][^/]*/i, '')
