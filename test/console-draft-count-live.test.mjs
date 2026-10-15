@@ -33,13 +33,13 @@ describe('S1b: draft count stays live without reload', () => {
     res.controller.enable()
     const card = document.querySelector('#innfo-content [data-element-id="ecto-1"]')
     assert.ok(card, 'card mounted')
-    // Open the comment popover, then park focus on another control of the card;
-    // a card remount would drop that focus when the draft is saved.
+    // Open the tag-proposal popover, then park focus on another control of the
+    // card; a card remount would drop that focus when the draft is saved.
     const Ev = document.defaultView.Event
-    card.querySelector('[data-innfo-ctl="card-anchor"]').dispatchEvent(new Ev('click', { bubbles: true }))
+    card.querySelector('[data-innfo-ctl="tag-add"]').dispatchEvent(new Ev('click', { bubbles: true }))
     document.querySelector('.innfo-popover-comment').value = 'looks wrong'
-    const control = card.querySelector('[data-innfo-ctl="edit-toggle"]')
-    assert.ok(control, 'edit-toggle control decorated')
+    const control = card.querySelector('[data-innfo-ctl="name-anchor"]')
+    assert.ok(control, 'name pencil control decorated')
     control.focus()
     assert.equal(document.activeElement, control, 'control focused before saving')
 

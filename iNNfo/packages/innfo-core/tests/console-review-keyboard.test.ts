@@ -92,11 +92,14 @@ describe('console-review-keyboard (j/k/c + a11y)', () => {
     expect(env.document.activeElement).toBe(a)
   })
 
-  it('c opens the card popover for the focused element', () => {
+  it('c opens the KU modal in comment mode for the focused element', () => {
     enableReview()
     focusCard('a')
     pressKey('c')
-    expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).not.toBeNull()
+    // The card annotate popover was retired; `c` opens the one KU modal.
+    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')
+    expect(modal).not.toBeNull()
+    expect(modal!.querySelector('.innfo-edit-form-comment')).not.toBeNull()
   })
 
   it('keystrokes are ignored while typing in a textarea', () => {

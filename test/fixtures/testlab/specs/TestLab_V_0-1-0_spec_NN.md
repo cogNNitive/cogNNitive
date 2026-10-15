@@ -35,18 +35,21 @@ icon:: box
 type:: list
 color:: blue
 weight:: 100
+description:: Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.
 
 ## NN Concept Definition: Concept 2
 icon:: boxes
 type:: list
 color:: green
 weight:: 90
+description:: Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.
 
 ## NN Concept Definition: Edge Cases
 icon:: flask-conical
 type:: list
 color:: amber
 weight:: 80
+description:: Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.
 
 # NN Field Definition
 

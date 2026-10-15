@@ -98,6 +98,8 @@ export interface ConceptField {
   options?: string[]
   target_concepts?: string[]
   target_blueprint?: string
+  /** Optional human-readable explanation of what the field holds. */
+  description?: string
 }
 
 export interface Concept {
@@ -110,6 +112,8 @@ export interface Concept {
   weight?: number
   fields?: ConceptField[]
   tags?: string[]
+  /** Optional human-readable explanation of what the concept represents. */
+  description?: string
 }
 
 export interface Marker {

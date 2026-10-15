@@ -101,6 +101,8 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
       color: asString(el.fields['color']),
       weight: asNumber(el.fields['weight']),
     }
+    const conceptDescription = asString(el.fields['description'])
+    if (conceptDescription) concept.description = conceptDescription
     concepts.push(concept)
     fieldsByConcept.set(concept.name, [])
   }
@@ -116,6 +118,8 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
       target_concepts: asStringArray(el.fields['target_concepts']),
       target_blueprint: targetBlueprint,
     }
+    const fieldDescription = asString(el.fields['description'])
+    if (fieldDescription) field.description = fieldDescription
     const list = fieldsByConcept.get(owner)
     if (list) {
       list.push(field)

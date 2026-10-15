@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-VRo776YC4y61GnnN1hFq4HxFBSpo5tjq1OeEBqQDFr4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-tPxUX3ZX47O5MpwmIxWc1SrfQ8AG/L4O0og6+HRHBHQ=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -6391,18 +6391,12 @@ button.btn-primary:hover:not(:disabled) {
   gap: 8px;
 }
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle,
-[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"],
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-card-count,
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-card-toggle {
   margin-left: auto;
 }
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ [data-innfo-ctl="card-anchor"],
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-edit-toggle,
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-card-count,
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-card-toggle,
-[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-edit-toggle,
-[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-card-count,
-[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-card-toggle,
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-card-count ~ .innfo-card-toggle {
   margin-left: 4px;
 }
@@ -7007,6 +7001,50 @@ button.btn-primary:hover:not(:disabled) {
   font-weight: 700;
   color: #71717a;
   font-size: 0.8rem;
+}
+.innfo-guide-collapse {
+  margin-left: auto;
+  appearance: none;
+  border: 1px solid #e5e5e5;
+  background: #f4f4f5;
+  color: #52525b;
+  border-radius: 6px;
+  padding: 3px 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.innfo-guide-collapse:hover {
+  color: #0a0a0a;
+  border-color: #a1a1aa;
+}
+.innfo-guide-field-dd {
+  flex-wrap: wrap;
+}
+.innfo-guide-field-desc {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #71717a;
+}
+aside.innfo-guide.is-collapsed {
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
+  padding: 12px 6px;
+  overflow: hidden;
+}
+aside.innfo-guide.is-collapsed .innfo-guide-head {
+  justify-content: center;
+  margin-bottom: 0;
+}
+aside.innfo-guide.is-collapsed .innfo-guide-head > :not(.innfo-guide-collapse) {
+  display: none;
+}
+aside.innfo-guide.is-collapsed > :not(.innfo-guide-head) {
+  display: none;
 }
 
 /* G5: Matrices (0,0) Corner Dual-Concept Header & Semantic Cell Pills */
@@ -8189,6 +8227,14 @@ input[type="text"], input[type="search"], textarea, select {
       .innfo-guide-list dt { color: var(--muted); font-weight: 600; }
       .innfo-guide-list li { font-size: 0.8rem; }
       .innfo-guide-meta { font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
+      .innfo-guide-collapse { margin-left: auto; appearance: none; border: 1px solid var(--border); background: var(--surface-2, #f4f4f5); color: var(--muted); border-radius: 6px; padding: 3px 5px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+      .innfo-guide-collapse:hover { color: var(--text); border-color: var(--focus, #a1a1aa); }
+      .innfo-guide-field-dd { flex-wrap: wrap; }
+      .innfo-guide-field-desc { flex-basis: 100%; margin: 2px 0 0; font-size: 0.74rem; line-height: 1.4; color: var(--muted); }
+      aside.innfo-guide.is-collapsed { width: 46px; min-width: 46px; max-width: 46px; padding: 12px 6px; overflow: hidden; }
+      aside.innfo-guide.is-collapsed .innfo-guide-head { justify-content: center; margin-bottom: 0; }
+      aside.innfo-guide.is-collapsed .innfo-guide-head > :not(.innfo-guide-collapse) { display: none; }
+      aside.innfo-guide.is-collapsed > :not(.innfo-guide-head) { display: none; }
 
       /* Sankey relation flow (KU modal Connections tab) */
       .innfo-sankey { width: 100%; overflow-x: auto; }
@@ -8317,13 +8363,125 @@ input[type="text"], input[type="search"], textarea, select {
 {
   "concepts": [
     {
-      "name": "Concept 1"
+      "name": "Concept 1",
+      "type": "list",
+      "icon": "box",
+      "color": "blue",
+      "weight": 100,
+      "description": "Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.",
+      "fields": [
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "One-line summary of the element."
+        },
+        {
+          "name": "long_description",
+          "type": "markdown_inline",
+          "description": "Very long inline description used to stress-test rendering of large text fields."
+        },
+        {
+          "name": "manual",
+          "type": "markdown_file",
+          "description": "External markdown file attached to the element."
+        },
+        {
+          "name": "photo",
+          "type": "image",
+          "description": "Image attached to the element."
+        },
+        {
+          "name": "attachment",
+          "type": "file",
+          "description": "Generic file attached to the element."
+        },
+        {
+          "name": "demo_video",
+          "type": "video",
+          "description": "Downloaded video asset attached to the element."
+        },
+        {
+          "name": "voice_note",
+          "type": "audio",
+          "description": "Downloaded and transcribed audio asset attached to the element."
+        },
+        {
+          "name": "sibling",
+          "type": "reference",
+          "target_concepts": [
+            "Concept 2"
+          ],
+          "description": "Reference to an element of Concept 2."
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "options": [
+            "draft",
+            "reviewed",
+            "published"
+          ],
+          "description": "Lifecycle status of the element."
+        }
+      ]
     },
     {
-      "name": "Concept 2"
+      "name": "Concept 2",
+      "type": "list",
+      "icon": "boxes",
+      "color": "green",
+      "weight": 90,
+      "description": "Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.",
+      "fields": [
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "One-line summary of the element."
+        },
+        {
+          "name": "attachment",
+          "type": "file",
+          "description": "Generic file attached to the element."
+        },
+        {
+          "name": "owner",
+          "type": "reference",
+          "target_concepts": [
+            "Concept 1"
+          ],
+          "description": "Reference back to an element of Concept 1."
+        }
+      ]
     },
     {
-      "name": "Edge Cases"
+      "name": "Edge Cases",
+      "type": "list",
+      "icon": "flask-conical",
+      "color": "amber",
+      "weight": 80,
+      "description": "Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.",
+      "fields": [
+        {
+          "name": "summary",
+          "type": "string",
+          "description": "One-line summary of the edge-case element."
+        },
+        {
+          "name": "long_description",
+          "type": "markdown_inline",
+          "description": "Very long inline description used to stress-test rendering of large text fields."
+        },
+        {
+          "name": "photo",
+          "type": "image",
+          "description": "Image attached to the edge-case element."
+        },
+        {
+          "name": "attachment",
+          "type": "file",
+          "description": "Generic file attached to the edge-case element."
+        }
+      ]
     },
     {
       "name": "Procedure",
@@ -8341,27 +8499,33 @@ input[type="text"], input[type="search"], textarea, select {
             "audit",
             "reporting",
             "custom"
-          ]
+          ],
+          "description": "Functional classification of the procedure workflow."
         },
         {
           "name": "summary",
-          "type": "string"
+          "type": "string",
+          "description": "Mandatory concise summary of the workflow intent and transformation steps."
         },
         {
           "name": "inputs_required",
-          "type": "string"
+          "type": "string",
+          "description": "References to required Source or Model concepts consumed as inputs."
         },
         {
           "name": "outputs_expected",
-          "type": "string"
+          "type": "string",
+          "description": "References to expected Artifact concepts produced by the procedure."
         },
         {
           "name": "executed_by",
-          "type": "string"
+          "type": "string",
+          "description": "Reference to responsible agent or functional role executing the procedure."
         },
         {
           "name": "procedure_model",
-          "type": "knowledge"
+          "type": "knowledge",
+          "description": "Link to concrete procedure definition or executable stepper model _NN.md."
         }
       ]
     },
@@ -8460,6 +8624,113 @@ input[type="text"], input[type="search"], textarea, select {
   ],
   "fields": [
     {
+      "concept": "Concept 1",
+      "name": "summary",
+      "type": "string",
+      "description": "One-line summary of the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "long_description",
+      "type": "markdown_inline",
+      "description": "Very long inline description used to stress-test rendering of large text fields."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "manual",
+      "type": "markdown_file",
+      "description": "External markdown file attached to the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "photo",
+      "type": "image",
+      "description": "Image attached to the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "attachment",
+      "type": "file",
+      "description": "Generic file attached to the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "demo_video",
+      "type": "video",
+      "description": "Downloaded video asset attached to the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "voice_note",
+      "type": "audio",
+      "description": "Downloaded and transcribed audio asset attached to the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "sibling",
+      "type": "reference",
+      "target_concepts": [
+        "Concept 2"
+      ],
+      "description": "Reference to an element of Concept 2."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "status",
+      "type": "select",
+      "options": [
+        "draft",
+        "reviewed",
+        "published"
+      ],
+      "description": "Lifecycle status of the element."
+    },
+    {
+      "concept": "Concept 2",
+      "name": "summary",
+      "type": "string",
+      "description": "One-line summary of the element."
+    },
+    {
+      "concept": "Concept 2",
+      "name": "attachment",
+      "type": "file",
+      "description": "Generic file attached to the element."
+    },
+    {
+      "concept": "Concept 2",
+      "name": "owner",
+      "type": "reference",
+      "target_concepts": [
+        "Concept 1"
+      ],
+      "description": "Reference back to an element of Concept 1."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "summary",
+      "type": "string",
+      "description": "One-line summary of the edge-case element."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "long_description",
+      "type": "markdown_inline",
+      "description": "Very long inline description used to stress-test rendering of large text fields."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "photo",
+      "type": "image",
+      "description": "Image attached to the edge-case element."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "attachment",
+      "type": "file",
+      "description": "Generic file attached to the edge-case element."
+    },
+    {
       "concept": "Procedure",
       "name": "category",
       "type": "select",
@@ -8469,32 +8740,38 @@ input[type="text"], input[type="search"], textarea, select {
         "audit",
         "reporting",
         "custom"
-      ]
+      ],
+      "description": "Functional classification of the procedure workflow."
     },
     {
       "concept": "Procedure",
       "name": "summary",
-      "type": "string"
+      "type": "string",
+      "description": "Mandatory concise summary of the workflow intent and transformation steps."
     },
     {
       "concept": "Procedure",
       "name": "inputs_required",
-      "type": "string"
+      "type": "string",
+      "description": "References to required Source or Model concepts consumed as inputs."
     },
     {
       "concept": "Procedure",
       "name": "outputs_expected",
-      "type": "string"
+      "type": "string",
+      "description": "References to expected Artifact concepts produced by the procedure."
     },
     {
       "concept": "Procedure",
       "name": "executed_by",
-      "type": "string"
+      "type": "string",
+      "description": "Reference to responsible agent or functional role executing the procedure."
     },
     {
       "concept": "Procedure",
       "name": "procedure_model",
-      "type": "knowledge"
+      "type": "knowledge",
+      "description": "Link to concrete procedure definition or executable stepper model _NN.md."
     },
     {
       "concept": "Work",
@@ -8568,6 +8845,24 @@ input[type="text"], input[type="search"], textarea, select {
   ],
   "markers": [
     {
+      "name": "critical",
+      "symbol": "!",
+      "icon": "alert-triangle",
+      "color": "red",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "archived",
+      "symbol": "A",
+      "icon": "archive",
+      "color": "gray",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
       "name": "complexity",
       "icon": "gauge",
       "color": "green",
@@ -8579,6 +8874,18 @@ input[type="text"], input[type="search"], textarea, select {
     }
   ],
   "matrices": [
+    {
+      "name": "Concept 1-Concept 2 Matrix",
+      "source": "Concept 1",
+      "target": "Concept 2",
+      "params": "",
+      "values": [
+        "relevant",
+        "archived"
+      ],
+      "widgetType": "set",
+      "description": "Scores how relevant each Concept 1 element is to each Concept 2 element."
+    },
     {
       "name": "work-roles matrix",
       "source": "Work",
@@ -8622,8 +8929,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-ce3aa8b2",
-    "generated": "2026-10-15T17:12:42.059Z",
+    "domainId": "testlab-6b14fbb3",
+    "generated": "2026-10-15T19:14:59.996Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8632,12 +8939,12 @@ input[type="text"], input[type="search"], textarea, select {
         "filePath": "TestLab_coverage_TestLab_NN.md",
         "blueprint": "TestLab",
         "version": "V_0-1-1",
-        "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T17:12:41.965Z",
+        "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
+        "citationsResolvedAt": "2026-10-15T19:14:59.925Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
-        "changeCount": 2,
+        "changeCount": 3,
         "conceptNames": [
           "Concept 1",
           "Concept 2",
@@ -8728,7 +9035,7 @@ input[type="text"], input[type="search"], textarea, select {
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "sibling": "[[Element 2A]]",
         "status": "reviewed"
       },
@@ -8766,7 +9073,8 @@ input[type="text"], input[type="search"], textarea, select {
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-1--element-1b",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1B",
       "rawFields": {
-        "photo": "test/fixtures/testlab/sources/import/photo.png"
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
       }
     },
     {
@@ -8831,7 +9139,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
         ],
         "summary": "Shift owner element.",
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1A]]"
       },
       "markers": {},
@@ -8859,7 +9167,10 @@ input[type="text"], input[type="search"], textarea, select {
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-2--element-2a",
-      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2A"
+      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2A",
+      "rawFields": {
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      }
     },
     {
       "id": "kNNowledge/TestLab_coverage_TestLab@element-2b",
@@ -8872,7 +9183,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/dataset.csv@m-002"
         ],
         "summary": "Handover owner element.",
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1C (test)]]"
       },
       "markers": {},
@@ -8900,7 +9211,10 @@ input[type="text"], input[type="search"], textarea, select {
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-2--element-2b",
-      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2B"
+      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2B",
+      "rawFields": {
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      }
     },
     {
       "id": "kNNowledge/TestLab_coverage_TestLab@image-traceability-probe",
@@ -8920,7 +9234,7 @@ input[type="text"], input[type="search"], textarea, select {
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "35ccda5bf585eb0a",
@@ -8942,7 +9256,8 @@ input[type="text"], input[type="search"], textarea, select {
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--image-traceability-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Image traceability probe",
       "rawFields": {
-        "photo": "test/fixtures/testlab/sources/import/photo.png"
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
       }
     },
     {
@@ -9139,7 +9454,7 @@ input[type="text"], input[type="search"], textarea, select {
         "summary": "Probe with a very long inline description field.",
         "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
         "photo": "./sources/import/photo.png",
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "bf368406030a5fd9",
@@ -9161,7 +9476,8 @@ input[type="text"], input[type="search"], textarea, select {
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--very-long-description-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Very long description probe",
       "rawFields": {
-        "photo": "test/fixtures/testlab/sources/import/photo.png"
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
       }
     },
     {
@@ -9176,7 +9492,7 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe for the generic file field type.",
         "long_description": "The attachment field points at the plain-text manual stand-in. It exercises the file type path without involving image, video, or audio rendering.",
-        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "d252f224724d06ce",
@@ -9196,7 +9512,10 @@ input[type="text"], input[type="search"], textarea, select {
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--file-field-probe",
-      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: File field probe"
+      "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: File field probe",
+      "rawFields": {
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      }
     },
     {
       "id": "kNNowledge/TestLab_coverage_TestLab@artifact-as-source-probe",
@@ -9624,6 +9943,19 @@ input[type="text"], input[type="search"], textarea, select {
           "op": "comment",
           "target": "TestLab Coverage Model@concept-1-element-1b&photo",
           "notes": "Review note: verify the changeset lineage for Element 1B."
+        }
+      ]
+    },
+    {
+      "path": "changes/testlab_lucas_matrix_cell_changes_NN.md",
+      "title": "testlab Domain",
+      "status": "proposed",
+      "author": "lucas",
+      "changes": [
+        {
+          "id": "fb-001",
+          "op": "update_matrix_cell",
+          "target": "kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A"
         }
       ]
     },
@@ -10173,16 +10505,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-history-notes{font-weight:500;color:var(--innfo-text)}',
     '.innfo-history-empty{color:var(--innfo-muted);font-size:.82rem;font-style:italic}',
     // Element-card redesign: hover-reveal edit anchors (same pattern as
-    // .innfo-review-anchor), per-card edit toggle, QKUD chip, tags, relations.
+    // .innfo-review-anchor), QKUD chip, tags, relations.
     '.innfo-edit-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease;display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;min-height:1.6em}',
     '.innfo-edit-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
     '[data-innfo-component=element-card]:hover .innfo-edit-anchor,[data-innfo-component=field-row]:hover .innfo-edit-anchor{opacity:.85}',
     '.innfo-edit-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
-    '[data-innfo-component=element-card][data-editing] .innfo-edit-anchor,[data-innfo-component=element-card][data-editing] .innfo-review-anchor{opacity:.9}',
-    '.innfo-edit-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-muted);font:inherit;padding:.25em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:auto}',
-    '.innfo-edit-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-focus)}',
-    '[data-innfo-component=element-card][data-editing] .innfo-edit-toggle{color:var(--innfo-link);border-color:var(--innfo-link);background:var(--innfo-surface)}',
-    '.innfo-edit-toggle:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
     '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%;min-width:0}',
     // The KU-detail chip holds a long mono id; the wrapper must be able to
     // shrink below its content so a long id never widens the page on narrow
@@ -10209,7 +10536,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-rel-act.danger:hover{color:var(--innfo-status-rejected)}',
     '.innfo-rel-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer;align-self:flex-start}',
     '.innfo-rel-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
-    '@media (max-width:640px){.innfo-edit-anchor,.innfo-edit-toggle,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.75rem}}',
+    '@media (max-width:640px){.innfo-edit-anchor,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.75rem}}',
     // Knowledge-unit badge family (KuBadge) + action cluster + change pip.
     '.innfo-ku-unit{display:inline-flex;align-items:center;gap:.25em;max-width:100%}',
     '.innfo-card-fields>.innfo-ku-unit,.innfo-card-fields>.innfo-ku-badge{flex:1 1 16rem;min-width:0}',
@@ -10728,18 +11055,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ul.appendChild(li)
     })
     return ul
-  }
-
-  function EditToggle(data, opts) {
-    var doc = resolveDoc(opts)
-    var btn = makeEl(doc, 'button', 'innfo-edit-toggle')
-    btn.setAttribute('data-innfo-component', 'edit-toggle')
-    btn.setAttribute('type', 'button')
-    btn.setAttribute('aria-pressed', 'false')
-    btn.setAttribute('aria-label', 'Toggle edit controls on this card')
-    btn.setAttribute('title', 'Toggle edit controls on this card')
-    btn.innerHTML = icon('sliders', 14)
-    return btn
   }
 
   function EditAnchor(data, opts) {
@@ -12929,7 +13244,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     QudChip: QudChip,
     TagRow: TagRow,
     RelList: RelList,
-    EditToggle: EditToggle,
     EditAnchor: EditAnchor,
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
@@ -13490,7 +13804,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           col: anchorData.col,
           element: anchorData.matrix,
           kind: payload.kind,
-          model_id: meta.modelId,
+          // The owning model, not the domain: the changeset target must resolve in
+          // apply_change. Falls back to the domain id only for legacy anchors.
+          model_id: anchorData.modelId || meta.modelId,
           original: anchorData.original,
         }
         if (payload.proposed !== undefined) matrixDraft.proposed = payload.proposed
@@ -13906,28 +14222,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return b
     }
 
-    // Pencil toggle (card redesign): pins all hover-reveal edit anchors on one
-    // card via [data-editing]. Rendered top-right by decorateCard; review-owned,
-    // so disable() removes it with the other controls.
-    function editToggleControl(card) {
-      var t =
-        typeof UI.EditToggle === 'function'
-          ? UI.EditToggle()
-          : makeEl(doc, 'button', 'innfo-review-anchor', '\u270e')
-      t.setAttribute('data-innfo-review-ctl', '1')
-      t.setAttribute('data-innfo-ctl', 'edit-toggle')
-      t.setAttribute('type', 'button')
-      t.setAttribute('aria-pressed', 'false')
-      t.setAttribute('aria-label', 'Toggle edit controls on this card')
-      t.setAttribute('title', 'Toggle edit controls on this card')
-      t.addEventListener('click', function () {
-        var on = card.getAttribute('data-editing') === 'true'
-        card.setAttribute('data-editing', on ? 'false' : 'true')
-        t.setAttribute('aria-pressed', on ? 'false' : 'true')
-      })
-      return t
-    }
-
     // Pencils for name / description / marker KUs. They reuse openFor with a
     // virtual field so every editable KU funnels into the same KU modal.
     function kuEditControl(anchorData, label) {
@@ -14067,11 +14361,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (typeof event.preventDefault === 'function') event.preventDefault()
         var focused = idx >= 0 ? visible[idx] : visible[0]
         var fieldRow = focused.querySelector('[data-innfo-ctl="field-anchor"]')
-        var anchor = focused.querySelector('[data-innfo-ctl="card-anchor"]')
-        if (fieldRow && document.activeElement && document.activeElement.closest &&         document.activeElement.closest('[data-ku-kind="field"]')) {
+        if (
+          fieldRow &&
+          document.activeElement &&
+          document.activeElement.closest &&
+          document.activeElement.closest('[data-ku-kind="field"]')
+        ) {
           fieldRow.dispatchEvent(new Event('click', { bubbles: true }))
-        } else if (anchor) {
-          anchor.dispatchEvent(new Event('click', { bubbles: true }))
+        } else {
+          // The card-level annotate popover was retired: `c` opens the shared KU
+          // modal in comment mode for the focused element.
+          openEdit({ elementId: focused.getAttribute('data-element-id'), comment: true })
         }
       }
     }
@@ -14101,12 +14401,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           applyDecorations()
         })
         head.insertBefore(rt, headRightRef)
-      }
-      if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
-        head.insertBefore(annotateControl({ elementId: elId }, 'Annotate element'), headRightRef)
-      }
-      if (!card.querySelector('[data-innfo-ctl="edit-toggle"]')) {
-        head.insertBefore(editToggleControl(card), headRightRef)
       }
       var nameEl = card.querySelector('.innfo-card-head [data-ku-kind="element"]')
       if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
@@ -14232,7 +14526,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var card = row.closest('[data-innfo-component="element-card"]')
       var elId = card ? card.getAttribute('data-element-id') : ''
       var field = row.getAttribute('data-field')
-      row.appendChild(annotateControl({ elementId: elId, field: field }, 'Annotate field'))
+      row.appendChild(annotateControl({ elementId: elId, field: field }, 'Edit field'))
     }
 
     // Matrix cells are not element units: each editable cell carries an anchor
@@ -14246,6 +14540,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         row: td.getAttribute('data-row'),
         col: td.getAttribute('data-col'),
         original: td.getAttribute('data-cell-raw') || '',
+        // The model that owns the matrix (the draft's D5 target model part).
+        modelId: td.getAttribute('data-matrix-model') || '',
         field: '__cell',
         ctl: 'matrix-cell-anchor',
       }
@@ -14454,21 +14750,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
     }
 
+    // One malformed node must never abort the whole decoration pass: a throw
+    // here used to leave every later target (matrix cells in particular)
+    // undecorated. Each node is decorated in isolation; failures are logged.
+    function safeDecorate(fn) {
+      return function (node) {
+        try {
+          fn(node)
+        } catch (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('innfo review: skipped decorating a node', err)
+          }
+        }
+      }
+    }
+
     function decorate(root) {
       if (!enabled) return
       var host = root || doc
       if (!host.querySelectorAll) return
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        decorateCard,
+        safeDecorate(decorateCard),
       )
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-ku-kind="field"][data-field]'),
-        decorateFieldRow,
+        safeDecorate(decorateFieldRow),
       )
       Array.prototype.forEach.call(
         host.querySelectorAll('td[data-matrix][data-row][data-col]'),
-        decorateMatrixCell,
+        safeDecorate(decorateMatrixCell),
       )
     }
 
@@ -16061,6 +16372,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (count != null) {
       head.appendChild(el('span', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
     }
+    // Collapsible: the toggle lives in the head and survives re-renders because
+    // the collapsed state is a class on the aside, not on the rebuilt children.
+    var collapseBtn = el('button', 'innfo-guide-collapse')
+    collapseBtn.setAttribute('type', 'button')
+    var setCollapsed = function (collapsed) {
+      if (collapsed) host.classList.add('is-collapsed')
+      else host.classList.remove('is-collapsed')
+      collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+      collapseBtn.setAttribute('aria-label', collapsed ? 'Expand concept details' : 'Collapse concept details')
+      collapseBtn.setAttribute('title', collapsed ? 'Expand' : 'Collapse')
+      collapseBtn.innerHTML = UI.icon(collapsed ? 'chevron-left' : 'chevron-right', 15)
+    }
+    setCollapsed(host.classList.contains('is-collapsed'))
+    collapseBtn.addEventListener('click', function () {
+      setCollapsed(!host.classList.contains('is-collapsed'))
+    })
+    head.appendChild(collapseBtn)
     host.appendChild(head)
 
     var description = concept.description || concept.summary || ''
@@ -16089,6 +16417,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var tcPill = UI.ConceptPill({ id: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc })
           dd.appendChild(tcPill)
         }
+        if (f.description) dd.appendChild(el('p', 'innfo-guide-field-desc', String(f.description)))
         fdl.appendChild(dt)
         fdl.appendChild(dd)
       })
@@ -16931,6 +17260,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             td.setAttribute('data-row', String(rowLabel))
             td.setAttribute('data-col', String(c))
             if (matrix.target) td.setAttribute('data-matrix-target', String(matrix.target))
+            // The owning model address: a matrix-cell draft must target the model
+            // that owns the matrix, never the domain id (apply_change resolves the
+            // model by file stem / title, and `meta.modelId` is the domain).
+            if (matrix.modelId) td.setAttribute('data-matrix-model', String(matrix.modelId))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())

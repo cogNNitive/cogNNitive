@@ -88,10 +88,12 @@ export function bootConsoleFromShell() {
   return { dom, document: dom.window.document, res }
 }
 
+// Records a comment draft through the tag proposal popover (the card-level
+// annotate anchor was retired in favour of the KU modal).
 export function addCommentDraft(document) {
   const Ev = document.defaultView.Event
   document
-    .querySelector('[data-innfo-ctl="card-anchor"]')
+    .querySelector('[data-innfo-ctl="tag-add"]')
     .dispatchEvent(new Ev('click', { bubbles: true }))
   const pop = document.querySelector('.innfo-popover-comment')
   pop.value = 'looks wrong'
