@@ -7390,7 +7390,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function normalizeKey(str) {
-    return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    // NFD + combining-mark strip so 'Facturación' and 'facturacion' share one key.
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  }
+
+  var warnedUnresolvedOperands = {}
+  function warnUnresolvedOperand(token, formula) {
+    var key = formula + ' ' + token
+    if (warnedUnresolvedOperands[key]) return
+    warnedUnresolvedOperands[key] = true
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[innfo] Timeline formula "' + formula + '": unresolved operand "' + token + '"')
+    }
   }
 
   // Theme synchronization for embedded iframes now lives in ui-kit.js
@@ -7468,9 +7483,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var norm = normalizeKey(token)
       var targetRow = rowMap[norm]
       if (targetRow) {
-        return evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        var operandVal = evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        // A '%' variable is a rate: as an operand it is the fraction (35% -> 0.35),
+        // consistent with growValue, which divides the growth factor by 100.
+        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%') operandVal = operandVal / 100
+        return operandVal
       }
-      return 0
+      // Unresolved: surface as NaN (rendered '-') instead of a silent 0.
+      warnUnresolvedOperand(token, formula)
+      return NaN
     }
 
     var terms = []
@@ -7498,8 +7519,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!terms.length) return 0
     var res = terms[0]
     for (var j = 0; j < ops.length; j++) {
-      if (ops[j] === '+') res += terms[j + 1] || 0
-      else if (ops[j] === '-') res -= terms[j + 1] || 0
+      var term = terms[j + 1] == null ? 0 : terms[j + 1]
+      if (ops[j] === '+') res += term
+      else if (ops[j] === '-') res -= term
     }
     return res
   }
