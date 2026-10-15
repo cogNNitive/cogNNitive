@@ -311,3 +311,11 @@ group so review stays on the sources.
 | Markdown subset surprises authors (unsupported syntax shows as text) | Med | Documented subset in `console-ui-kit.md`; text is never lost |
 | Matrix spike finds conflicting definitions | Med | Console constraint still ships for unambiguous cases; engine half becomes a follow-up |
 | Bundle/mirror drift fails `verify.js` | Med | Each group ends with rebuild + `verify.js` |
+
+### S3b review follow-ups
+
+Findings of the fresh-context review of S3b (groups 9-13) that were deliberately not fixed on the parity branch. They stay open:
+
+- **Per-model markers/matrix schema.** The domain console merges `markers` and `matrices` declarations first-wins by name across blueprints. Two models whose blueprints declare the same marker or matrix name with different widgets share the first definition. A per-model schema is needed.
+- **Boolean matrix cell uncheck.** Unchecking a boolean matrix cell proposes `false` instead of the blank / `-` convention. Needs an engine serialisation check; ties to the open R-MM-08 question.
+- **Ambiguous knowledge lookups.** `resolveKnowledgeModel` falls back to a bare basename match that can pick the wrong model when two folders share a file name, and reference candidates with duplicate display names are indistinguishable.
