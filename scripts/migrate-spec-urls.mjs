@@ -57,8 +57,6 @@ function shouldSkip(relPath, isDir) {
   }
 
   if (normalized.startsWith('openspec/changes/migrate-spec-hosting-to-monorepo')) return true;
-  if (normalized.startsWith('iNNfo/apps/innfo-editor/tests/fixtures/models')) return true;
-  if (normalized.startsWith('docs/innfo/app/assets')) return true;
   if (normalized.startsWith('docs/innfo/cdn')) return true;
   if (normalized.startsWith('manifest/')) return true;
 

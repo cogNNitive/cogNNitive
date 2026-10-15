@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 
 /**
  * DOM-level contract of the generated console, previously asserted by the
- * Playwright suite `innfo-editor/e2e/16-innfo-console.spec.ts` (deleted).
+ * Playwright suite `16-innfo-console.spec.ts` (deleted).
  *
  * That suite drove a real Chromium, so nothing ran it: Playwright was never
  * wired into CI. Most of what it checked was pure logic reached through

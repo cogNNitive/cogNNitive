@@ -7,7 +7,7 @@ import { parseName, checkNameInvariant, blueprintNameOf } from '../naming/contra
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).
- * This is the full innfo-editor validator, moved to core for reuse by any client.
+ * This is the full document validator, shared by every client.
  *
  * @param content - Raw file content to validate
  * @param fileName - File name (used for naming convention checks)

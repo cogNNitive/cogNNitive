@@ -2,8 +2,7 @@
  * Platform-neutral workspace integrity report builder.
  *
  * `buildWorkspaceIntegrityReport(ports, options)` is the single interface both
- * `innfo-mcp` (`check_workspace`) and `innfo-editor` (`workspaceStore.open()`)
- * call. Everything that varies by platform — model discovery, diagnostics
+ * `innfo-mcp` (`check_workspace`) and any other client call. Everything that varies by platform — model discovery, diagnostics
  * collection, catalog fetch, template resolution/hydration, byte-hash freshness
  * — is a PORT injected by the caller. The builder is pure orchestration: no
  * `node:fs`, no `fetch`, no `node:path`.

@@ -228,6 +228,12 @@ function isCanonicalMigrationRename(status, oldPath, target) {
 function normalizeBadgeForComparison(content) {
   if (!content) return content;
   return content
+    // The document badge is not content. Templates still carry the original
+    // "edit it with [cogNNitive](.../innfo/app/)" line, while the retargeted
+    // badge points at the domain console; both must normalise to the same
+    // value so retargeting the badge alone never demands a bump. The old-URL
+    // normalisation below is kept for the same reason (published templates).
+    .replace(/^> This is an \*\*iNNfo document\*\*.*$/gm, '> BADGE')
     .replace(/https:\/\/(?:innfo\.)?cognnitive\.com\/innfo\/app\/(?:innfo-doc)?/g, 'https://cognnitive.com/innfo/app/')
     // Canonical spec/bundle hosting host is not content: a host migration (e.g.
     // the public-web-repository-split move off the private monorepo) must not

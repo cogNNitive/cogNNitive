@@ -93,6 +93,30 @@ async function runTests() {
       console.log('✔ a no-op M entry (identical content) passes');
     }
 
+    // 2c. A badge-only retarget (old "edit it with [cogNNitive](.../innfo/app/)" line to the
+    //     domain-console line) is not a content change: no bump required. A body change
+    //     next to it still is.
+    {
+      const OLD_BADGE = '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).';
+      const NEW_BADGE = '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.';
+      writeBase('badge/spec_NN.md', tpl('V_0-2-0', `${OLD_BADGE}
+
+Same body.`));
+      writeWork('badge/spec_NN.md', tpl('V_0-2-0', `${NEW_BADGE}
+
+Same body.`));
+      const fx = writeFixture(['M	iNNfo/specs/bluepriNNts/badge/spec_NN.md']);
+      const res = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(res.status, 0, `badge-only retarget must exit 0. stdout: ${res.stdout}`);
+
+      writeWork('badge/spec_NN.md', tpl('V_0-2-0', `${NEW_BADGE}
+
+Changed body.`));
+      const res2 = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(res2.status, 1, 'a badge retarget plus a body change still needs a bump');
+      console.log('✔ a badge-only retarget does not demand a blueprint_version bump');
+    }
+
     // 3. Added template with a valid semver blueprint_version -> exit 0
     {
       writeWork('newthing/spec_NN.md', tpl('V_0-1-0'));

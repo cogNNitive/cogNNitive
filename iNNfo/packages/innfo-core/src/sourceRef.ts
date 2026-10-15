@@ -1,9 +1,7 @@
 /**
  * Source-reference parsing and GitHub-compatible heading slugs.
  *
- * THE single implementation shared by `innfo-core`, `innfo-mcp`, and
- * `innfo-editor` (which re-exports this module). Previously duplicated in
- * `apps/innfo-editor/src/utils/sourceRef.ts`.
+ * THE single implementation shared by `innfo-core` and `innfo-mcp`.
  *
  * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
  * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).

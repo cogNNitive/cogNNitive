@@ -106,10 +106,10 @@ const TREE_DIAGRAM_FRAGMENT = `<div
   "
 >
   iNNfo/<br />
-  ├── apps/<br />
-  │&nbsp;&nbsp; └── innfo-editor/ &nbsp;<span
+  ├── packages/<br />
+  │&nbsp;&nbsp; └── innfo-core/ &nbsp;<span
     style="color: var(--ink-muted)"
-    >// Vue 3 workspace editor</span
+    >// Semantic engine</span
   ><br />
   └── docs/ &nbsp;&nbsp;<span style="color: var(--ink-muted)">// This website</span>
 </div>`;
@@ -132,13 +132,13 @@ function testHtmlFragmentToMarkdownPreservesTreeDiagramIndentation() {
     `expected the 4 <br>-separated lines to survive as one block, got:\n${JSON.stringify(lines)}`,
   );
   assert.strictEqual(lines[0], 'iNNfo/');
-  assert.strictEqual(lines[1], '├── apps/');
+  assert.strictEqual(lines[1], '├── packages/');
   assert.ok(
     lines[2].startsWith('│  '),
     `expected the nested line to keep its "│" indentation (decoded &nbsp; as spaces), got: ${JSON.stringify(lines[2])}`,
   );
   assert.ok(
-    lines[2].includes('└── innfo-editor/') && lines[2].includes('// Vue 3 workspace editor'),
+    lines[2].includes('└── innfo-core/') && lines[2].includes('// Semantic engine'),
     `expected the nested line's content and inline comment to survive, got: ${JSON.stringify(lines[2])}`,
   );
   assert.ok(

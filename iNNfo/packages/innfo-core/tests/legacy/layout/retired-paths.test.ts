@@ -10,7 +10,6 @@ const repoRoot = join(here, '..', '..', '..', '..', '..', '..')
 const LIVE_ROOTS = [
   'iNNfo/packages/innfo-core/src',
   'iNNfo/packages/innfo-mcp/src',
-  'iNNfo/apps/innfo-editor/src',
   'scripts',
   'skills/nn-sources/scripts',
   'skills/nn-preflight/scripts',

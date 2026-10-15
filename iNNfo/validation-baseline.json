@@ -13,66 +13,6 @@
       "fingerprint": "docs/skills/templates/workflow/V_0-1-0/samples/example_V_1-0-0_workflow_NN.md::elements.ArtifactType::::Slug collision: \"video-script\" is shared by elements: Video Script. Element names must be unique across the whole model"
     },
     {
-      "path": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
-    },
-    {
-      "path": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
-    },
-    {
-      "path": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
-    },
-    {
-      "path": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
-    },
-    {
-      "path": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
-    },
-    {
-      "path": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.fm-no-inline-schema::::Inline schema fields (matrices, concepts, markers, relationship_types) found in frontmatter. Move them to the template."
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.fm-parent::::Missing parent_spec field"
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::frontmatter.parent_spec::::Missing parent_spec"
-    },
-    {
-      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
-      "code": "",
-      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::frontmatter::::Level 3 models MUST NOT declare schema components (matrices, concepts, markers, relationship_types) in their frontmatter. Move them to the template."
-    },
-    {
       "path": "docs/workspace_NN.md",
       "code": "",
       "fingerprint": "docs/workspace_NN.md::elements.Models::::Concept \"Models\" is not defined in template"
@@ -81,16 +21,6 @@
       "path": "docs/workspace_NN.md",
       "code": "",
       "fingerprint": "docs/workspace_NN.md::elements.Tag::::Concept \"Tag\" is not defined in template"
-    },
-    {
-      "path": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
-    },
-    {
-      "path": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md::format.body-element-markers::::No NN element markers found"
     },
     {
       "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",

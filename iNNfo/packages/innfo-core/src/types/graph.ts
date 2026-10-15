@@ -3,7 +3,7 @@ import type { SourceRef } from '../sourceRef.js'
 import type { TaxonomyEdge } from './parser.js'
 import type { ValidationError } from './validation.js'
 
-/* ── Graph / App Model Types (moved from apps/innfo-editor/src/model/types.ts) ── */
+/* ── Graph / App Model Types ── */
 
 /** Who/what produced a value change. */
 export interface Author {
@@ -13,7 +13,7 @@ export interface Author {
 
 /**
  * Edit-attribution stamp attached to every field write: who last set this
- * value, and when. An editor-session concern — not serialised to the
+ * value, and when. A client-session concern — not serialised to the
  * `*_NN.md` file and unrelated to the workspace Lineage record.
  */
 export interface EditAttribution {

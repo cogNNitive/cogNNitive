@@ -41,8 +41,6 @@ function main() {
   {
     assert.strictEqual(run({ 'scripts/a.mjs': `const re = ${NN_REGEX_STRING}\n` }).ok, false);
     assert.strictEqual(run({ 'iNNfo/packages/innfo-core/src/a.ts': `if (n.endsWith(${NN_LITERAL})) {}\n` }).ok, false);
-    // The frozen Vue editor is out of scope (S5-freeze): a retired token there must not force an edit.
-    assert.strictEqual(run({ 'iNNfo/apps/innfo-editor/src/a.vue': `if (n.endsWith(${NN_LITERAL})) {}\n` }).ok, true);
     assert.strictEqual(run({ 'skills/nn-sources/scripts/a.js': `name.endsWith(${NN_LITERAL})\n` }).ok, false);
   }
   console.log('✔ RegExp strings and standalone _NN.md literals fail');

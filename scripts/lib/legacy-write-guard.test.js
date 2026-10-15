@@ -91,8 +91,6 @@ function main() {
   // Sanity: helpers
   assert.strictEqual(inScope('iNNfo/packages/innfo-core/src/layout.ts'), true);
   assert.strictEqual(inScope('docs/x.md'), false);
-  // The frozen Vue editor is out of scope (S5-freeze).
-  assert.strictEqual(inScope('iNNfo/apps/innfo-editor/src/a.ts'), false);
   assert.strictEqual(isExcluded('docs/innfo/cdn/x.js'), true);
   assert.deepStrictEqual(validateAllowlist(), []);
 

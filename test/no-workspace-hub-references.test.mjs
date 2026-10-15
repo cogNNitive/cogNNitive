@@ -34,8 +34,6 @@ const DELETED = [
   '_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
   'docs/innfo/documentation/workspace-console-hub.md',
   'iNNfo/packages/innfo-core/tests/workspace-hub.test.ts',
-  'iNNfo/apps/innfo-editor/src/components/editor/ConsoleHubView.vue',
-  'iNNfo/apps/innfo-editor/tests/component/ConsoleHubView-open-external.test.ts',
 ]
 
 const NEEDLES = ['workspacehub', 'workspaceconsoleshub', 'workspaceconsolehub', 'consolehubview', 'compileworkspacehub', 'compilehub']

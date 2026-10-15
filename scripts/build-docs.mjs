@@ -37,9 +37,8 @@ function run(cmd, desc) {
 run('npm --workspace=@cognnitive/innfo-core run build', 'Build @cognnitive/innfo-core');
 run('npm --workspace=@cognnitive/innfo-mcp run build', 'Build @cognnitive/innfo-mcp');
 
-// 2. The hosted Vue app (`docs/innfo/app/`) is a committed static build of the
-// frozen editor (S5-freeze). It is not built here: the Pages publish replaces the
-// whole tree, so the tracked snapshot is what keeps /innfo/app/ alive.
+// 2. `docs/innfo/app/` holds one hand-written static notice page (the hosted app
+// was retired). Nothing is built for it; the Pages publish serves it as committed.
 
 // 3. The MCP CDN bundle is NOT staged here: `scripts/stage-mcp-bundle.mjs` owns it
 // (it copies the committed bundle). CI `site` and the
