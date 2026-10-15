@@ -631,6 +631,13 @@ describe('blueprint name derivation for spec_NN.md packages', () => {
     expect(deriveNameFromUrl(`${base}/business/spec_NN.md`)).toBe('business')
     expect(deriveNameFromUrl(`${base}/business/V_0-4-1/spec_NN.md`)).toBe('business')
     expect(deriveNameFromUrl('https://example.com/iNNfo_V_0-1-0_NN.md')).toBe('iNNfo_V_0-1-0')
+  })
+
+  it('keeps the stem name when a spec_NN.md url has no blueprint folder', () => {
+    expect(deriveNameFromUrl('spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('https://cognnitive.com/spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('./spec_NN.md')).toBe('spec')
+    expect(deriveNameFromUrl('https://example.com/x/spec.md')).toBe('spec')
     expect(deriveNameFromUrl('https://example.com/business_V_0-2-0_NN.md')).toBe('business_V_0-2-0')
   })
 

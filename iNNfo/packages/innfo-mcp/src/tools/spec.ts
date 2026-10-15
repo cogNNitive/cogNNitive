@@ -53,10 +53,16 @@ export function deriveNameFromUrl(url: string): string {
   const stem = basename(url)
     .replace(/\.(md|markdown)$/i, '')
     .replace(/_(NN|FORMAT|F)$/i, '')
-  if (stem.toLowerCase() !== 'spec') return stem
-  const parts = url.split(/[/\x5c]/).slice(0, -1)
-  const leaf = parts.pop() ?? ''
-  return /^V_/i.test(leaf) ? (parts.pop() ?? leaf) : leaf
+  if (!/^spec_NN\.md$/i.test(basename(url))) return stem
+  // Drop the scheme+host, then any empty/'.'/'..' segment: only real folders can name a blueprint.
+  const parts = url
+    .replace(/^[a-z][a-z0-9+.-]*:[/][/][^/]*/i, '')
+    .split(/[/\x5c]/)
+    .slice(0, -1)
+    .filter((seg) => seg && seg !== '.' && seg !== '..')
+  const leaf = parts.pop()
+  if (leaf && !/^V_/i.test(leaf)) return leaf
+  return (leaf && parts.pop()) || stem
 }
 
 import { normalizeId } from './list-read.js'
