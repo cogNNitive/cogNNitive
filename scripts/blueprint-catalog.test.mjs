@@ -31,9 +31,9 @@ function fixtureTree() {
   fs.mkdirSync(path.join(t, 'cogNNitive'), { recursive: true });
   fs.mkdirSync(path.join(t, 'base'), { recursive: true });
 
-  const spec = (url, level, tv) =>
+  const spec = (url, level, tv, field = 'blueprint_version') =>
     `---\nspec_version: "V_0-2-1"\nlevel: ${level}\nspec_url: "${url}"\n` +
-    (tv == null ? '' : `blueprint_version: "${tv}"\n`) +
+    (tv == null ? '' : `${field}: "${tv}"\n`) +
     `title: "T"\n---\n`;
 
   // Canonical unversioned filenames; version is the authoritative frontmatter
@@ -46,12 +46,14 @@ function fixtureTree() {
   // flat canonical subdir template
   fs.writeFileSync(path.join(t, 'documentation', 'spec_NN.md'), spec('https://x/documentation/spec_NN.md', 2, 'V_0-2-0'));
   // root workspace spec — canonical bare filename, discovered as `workspace`
-  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0'));
+  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0', 'template_version'));
   // level-2 template with no frontmatter blueprint_version — skipped with a warning
   fs.writeFileSync(path.join(t, 'draft', 'spec_NN.md'), spec('https://x/draft/spec_NN.md', 2, null));
-  // frozen lineage templates — cogNNitive + base must land in `frozen`, not `templates`
-  fs.writeFileSync(path.join(t, 'cogNNitive', 'spec_NN.md'), spec('https://x/cogNNitive/spec_NN.md', 2, 'V_0-2-0'));
-  fs.writeFileSync(path.join(t, 'base', 'spec_NN.md'), spec('https://x/base/spec_NN.md', 2, 'V_0-1-0'));
+  // frozen lineage templates — cogNNitive + base must land in `frozen`, not `templates`.
+  // The real frozen files carry `template_version` (never `blueprint_version`) and are
+  // byte-frozen, so the generator must read the field they actually have.
+  fs.writeFileSync(path.join(t, 'cogNNitive', 'spec_NN.md'), spec('https://x/cogNNitive/spec_NN.md', 2, 'V_0-2-0', 'template_version'));
+  fs.writeFileSync(path.join(t, 'base', 'spec_NN.md'), spec('https://x/base/spec_NN.md', 2, 'V_0-1-0', 'template_version'));
   return root;
 }
 
