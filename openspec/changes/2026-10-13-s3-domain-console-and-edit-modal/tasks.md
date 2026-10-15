@@ -213,17 +213,25 @@ as `[capability: Requirement]`. Pre-condition: S2c is applied on `dev`.
 
 ## 14. S3b verification and archive
 
-- [ ] 14.1 Export `_samples_nn` and the TestLab domain console; record in this change: count of
+- [x] 14.1 Export `_samples_nn` and the TestLab domain console; record in this change: count of
       `.innfo-field-select`/`.innfo-field-markdown`/media nodes (> 0), elements with `tags` (> 0),
       and one console edit → changeset → `apply_change` → serialize round trip keeping `price:: 7`.
       [console-architecture: Console covers the editor's used feature set]
-- [ ] 14.2 `node scripts/verify.js` and `npm run check:integrity` green; `openspec validate
+      Recorded 2026-10-15 (copy of `_samples_nn` exported with `export-console.mjs --domain`, booted in
+      jsdom): `.innfo-field-select` 73, `.innfo-field-markdown` 4, `.innfo-field-image` 18,
+      `.innfo-field-url` 11, `.innfo-field-bool` 1, `.innfo-field-list` 3; `.innfo-field-media`
+      0 (the sample declares no audio/video/file fields; image nodes are the media nodes present).
+      Payload elements carrying `tags`: 133 of 367 element records (> 0). The edit -> changeset ->
+      `apply_change` -> serialize round trip keeping `price:: 7` is asserted by
+      `iNNfo/packages/innfo-core/tests/changeset/type-preservation.test.ts` and
+      `iNNfo/packages/innfo-core/tests/mutate.test.ts`.
+- [x] 14.2 `node scripts/verify.js` and `npm run check:integrity` green; `openspec validate
       2026-10-13-s3-domain-console-and-edit-modal` clean. [all requirements]
-- [ ] 14.3 Fresh-context review of the whole S3b diff (PR rule) before the `dev` → `main` batch.
+- [x] 14.3 Fresh-context review of the whole S3b diff (PR rule) before the `dev` → `main` batch.
       [all requirements]
-- [ ] 14.4 Release: cut `innfo-console-v*` (and `innfo-mcp-v*` for group 8) after the batch reaches
+- [ ] 14.4 (GATED on the `dev` -> `main` batch; versions bumped, tags not cut) Release: cut `innfo-console-v*` (and `innfo-mcp-v*` for group 8) after the batch reaches
       `main`; `node scripts/verify.js --release` green. [all requirements]
-- [ ] 14.5 Archive: merge the deltas into `openspec/specs/` (MODIFIED header `Type-Aware Field Value
+- [x] 14.5 Archive: merge the deltas into `openspec/specs/` (MODIFIED header `Type-Aware Field Value
       Rendering` must match the living name exactly) and move the change to `archive/`; diff and
       `wc -l` the archived artifacts against the originals (haiku archives truncate). Unblocks S5.
       [all requirements]
