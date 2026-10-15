@@ -122,9 +122,14 @@ async function renderTarget(target) {
     target: 'node20',
     write: false,
     legalComments: 'none',
+    absWorkingDir: REPO_ROOT,
     banner: { js: target.banner },
   })
-  return result.outputFiles[0].text.replace(/\r\n/g, '\n')
+  // esbuild prints third-party paths relative to the checkout (`../<checkout-dir>/node_modules/...`
+  // when node_modules is a junction into another tree); normalise so the output is checkout-independent.
+  return result.outputFiles[0].text
+    .replace(/\r\n/g, '\n')
+    .replace(/(?:\.\.\/[^/\s"]+\/)+node_modules\//g, 'node_modules/')
 }
 
 async function main() {
