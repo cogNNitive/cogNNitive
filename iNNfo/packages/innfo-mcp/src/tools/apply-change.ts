@@ -1197,6 +1197,11 @@ export async function executeChangesetApply(
         if (declaredConcept) mutationArgs.conceptName = declaredConcept.name
       } else if (change.op === 'update_matrix_cell') {
         mutationArgs = {
+          // The console emits the matrix display name (`Concept 1-Concept 2
+          // Matrix`), not a slug. Pass it as BOTH: `matchesMatrix` accepts an
+          // exact name or a slugified name/slug, so name and slug targets both
+          // resolve.
+          matrixName: parts[0],
           matrixSlug: parts[0],
           row: parts[1],
           col: parts[2],

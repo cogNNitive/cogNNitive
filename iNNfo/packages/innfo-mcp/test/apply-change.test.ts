@@ -799,6 +799,40 @@ type:: binary
       expect(annotated.changes[0].resolution).toContain('cascaded 1 matrix cell')
     })
 
+    it('update_matrix_cell resolves a matrix by its display name (with spaces)', async () => {
+      // The console emits the matrix display name, not a slug.
+      const modelWithMatrix =
+        LIVE_STRATEGY_MODEL +
+        `
+# NN matrices: Concept 1-Concept 2 Matrix
+| Work \\ Work | Col B |
+| :--- | :---: |
+| Vision | archived |
+`
+      await writeFile(join(knowledgeDir, 'strategy_NN.md'), modelWithMatrix, 'utf-8')
+
+      const csFile = join(changesDir, 'matrix_name_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'cell-1',
+            op: 'update_matrix_cell',
+            target: 'strategy@Concept 1-Concept 2 Matrix&Vision&Col B',
+            from: 'archived',
+            to: 'relevant',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/matrix_name_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.appliedCount).toBe(1)
+
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('| Vision | relevant |')
+    })
+
     it('remove_element blocked by active reference records conflict', async () => {
       // Create marketing model referencing Vision
       const MARKETING_MODEL = `---
