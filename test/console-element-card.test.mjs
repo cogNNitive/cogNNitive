@@ -176,14 +176,7 @@ describe('Element Card Redesign Contract', () => {
     })
   })
 
-  describe('EditToggle & EditAnchor', () => {
-    it('renders a pencil toggle with aria-pressed=false', () => {
-      const t = UI.EditToggle({ doc: document })
-      assert.equal(t.getAttribute('aria-pressed'), 'false')
-      assert.ok(t.querySelector('svg'), 'pencil icon')
-      assert.equal(t.getAttribute('aria-label'), 'Toggle edit controls on this card')
-    })
-
+  describe('EditAnchor', () => {
     it('renders a labeled pencil anchor', () => {
       const a = UI.EditAnchor({ label: 'Edit element name' }, { doc: document })
       assert.equal(a.getAttribute('aria-label'), 'Edit element name')
@@ -214,9 +207,13 @@ describe('Element Card Redesign Contract', () => {
       return { card, store, ctl }
     }
 
-    it('adds toggle, name/desc/marker pencils and tag/relation controls', () => {
+    it('adds name/desc/marker pencils and tag/relation controls', () => {
       const { card } = decorated()
-      assert.ok(card.querySelector('[data-innfo-ctl="edit-toggle"]'), 'edit toggle')
+      assert.equal(
+        card.querySelector('[data-innfo-ctl="edit-toggle"]'),
+        null,
+        'no per-card edit toggle',
+      )
       assert.ok(
         card.querySelector('.innfo-card-head [data-ku-kind="element"] [data-innfo-ctl="name-anchor"]'),
         'name pencil',
@@ -235,16 +232,6 @@ describe('Element Card Redesign Contract', () => {
       assert.ok(card.querySelector('[data-innfo-ctl="rel-retarget"]'), 'relation retarget')
       assert.ok(card.querySelector('[data-innfo-ctl="rel-unlink"]'), 'relation unlink')
       assert.ok(card.querySelector('[data-innfo-ctl="rel-add"]'), 'relation add')
-    })
-
-    it('edit toggle pins and unpins card editing state', () => {
-      const { card } = decorated()
-      const toggle = card.querySelector('[data-innfo-ctl="edit-toggle"]')
-      toggle.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-editing'), 'true')
-      assert.equal(toggle.getAttribute('aria-pressed'), 'true')
-      toggle.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-editing'), 'false')
     })
 
     it('tag remove records a comment draft without a modal', () => {

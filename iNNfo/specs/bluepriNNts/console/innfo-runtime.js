@@ -1428,6 +1428,23 @@
     if (count != null) {
       head.appendChild(el('span', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
     }
+    // Collapsible: the toggle lives in the head and survives re-renders because
+    // the collapsed state is a class on the aside, not on the rebuilt children.
+    var collapseBtn = el('button', 'innfo-guide-collapse')
+    collapseBtn.setAttribute('type', 'button')
+    var setCollapsed = function (collapsed) {
+      if (collapsed) host.classList.add('is-collapsed')
+      else host.classList.remove('is-collapsed')
+      collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+      collapseBtn.setAttribute('aria-label', collapsed ? 'Expand concept details' : 'Collapse concept details')
+      collapseBtn.setAttribute('title', collapsed ? 'Expand' : 'Collapse')
+      collapseBtn.innerHTML = UI.icon(collapsed ? 'chevron-left' : 'chevron-right', 15)
+    }
+    setCollapsed(host.classList.contains('is-collapsed'))
+    collapseBtn.addEventListener('click', function () {
+      setCollapsed(!host.classList.contains('is-collapsed'))
+    })
+    head.appendChild(collapseBtn)
     host.appendChild(head)
 
     var description = concept.description || concept.summary || ''
@@ -1456,6 +1473,7 @@
           var tcPill = UI.ConceptPill({ id: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc })
           dd.appendChild(tcPill)
         }
+        if (f.description) dd.appendChild(el('p', 'innfo-guide-field-desc', String(f.description)))
         fdl.appendChild(dt)
         fdl.appendChild(dd)
       })
