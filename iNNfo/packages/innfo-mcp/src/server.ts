@@ -301,12 +301,13 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
               'rename_element',
               'generate_index',
               'bump_version',
+              'freeze_slugs',
             ],
           },
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for legacy bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }.',
+              'Operation-specific arguments for legacy bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }. freeze_slugs takes no args.',
           },
           open: {
             type: 'boolean',

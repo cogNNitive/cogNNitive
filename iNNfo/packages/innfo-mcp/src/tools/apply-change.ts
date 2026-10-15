@@ -24,6 +24,7 @@ import {
   createFsSourceResolver,
   resolveCitation,
   scaffoldKnowledgeDocument,
+  RECORD_BLUEPRINT,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -1550,6 +1551,18 @@ export async function applyChange(
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }
     const model = await loadKnowledge(filePath)
+    const parent = model.frontmatter.parent_spec as { name?: string } | undefined
+    if (parent?.name === RECORD_BLUEPRINT) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter',
+            message: `The lineage record is unversioned by design and cannot be bumped: ${id}`,
+          },
+        ],
+      }
+    }
     return bumpVersion(rootDir, filePath, model, opArgs, id)
   }
 
@@ -1559,6 +1572,17 @@ export async function applyChange(
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }
     const model = await loadKnowledge(filePath)
+    if (model.frontmatter.level === 3) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter.level',
+            message: `generate_index does not apply to a level-3 model (${id}): the level-2 blueprint owns the index`,
+          },
+        ],
+      }
+    }
     try {
       const { template: idxBlueprint, resolveInclude: idxInclude } = await resolveBlueprintForKnowledge(
         rootDir,
