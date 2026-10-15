@@ -1,7 +1,7 @@
 ---
 level: 3
 parent_spec:
-  name: "TestLab_V_0-1-0"
+  name: "TestLab"
   url: "specs/TestLab_V_0-1-0_spec_NN.md"
 knowledge_version: "V_0-1-1"
 title: "TestLab Coverage Model"
