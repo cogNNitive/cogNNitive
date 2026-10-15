@@ -46,11 +46,17 @@ import type { FreshnessResult, ResolvedCache } from './resolver-node.js'
 /**
  * Derive a chain-start name from a spec/template URL.
  * `.../iNNfo_V_0-1-0_NN.md` → `iNNfo_V_0-1-0`.
+ * A `spec_NN.md` package is named by its folder (above any `V_x` dir):
+ * `.../business/V_0-4-1/spec_NN.md` → `business`.
  */
 export function deriveNameFromUrl(url: string): string {
-  return basename(url)
+  const stem = basename(url)
     .replace(/\.(md|markdown)$/i, '')
     .replace(/_(NN|FORMAT|F)$/i, '')
+  if (stem.toLowerCase() !== 'spec') return stem
+  const parts = url.split(/[/\x5c]/).slice(0, -1)
+  const leaf = parts.pop() ?? ''
+  return /^V_/i.test(leaf) ? (parts.pop() ?? leaf) : leaf
 }
 
 import { normalizeId } from './list-read.js'
