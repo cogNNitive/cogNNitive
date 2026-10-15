@@ -26,6 +26,8 @@
     "verify": "npm run typecheck && npm test",
     "test:ui": "python test/ui/testlab_smoke.py --lab-root test/fixtures/testlab --out-dir temp/ui-smoke",
     "check:integrity": "node scripts/check-integrity.js",
+    "check:licenses": "node scripts/check-licenses.mjs --check",
+    "licenses:write": "node scripts/check-licenses.mjs --write",
     "sync:samples": "node scripts/sync-samples.mjs",
     "check:samples": "node scripts/sync-samples.mjs --check",
     "sync:versions": "node scripts/sync-versions.mjs && node scripts/blueprint-catalog.mjs",

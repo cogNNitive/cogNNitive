@@ -391,6 +391,10 @@ function buildSteps(repoRoot, _options = {}) {
   // 4. Script static type checking.
   steps.push(node('typecheck-scripts', 'Typecheck Scripts', 'node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.scripts.json'));
 
+  // 4b. Third-party license gate (offline, reads installed node_modules): no denied/unknown
+  //     license, vendored assets unchanged, THIRD_PARTY.md fresh.
+  steps.push(node('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
+
   // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
   steps.push(node('preflight-primitives', 'Check Preflight Primitives Bundle Fresh', 'scripts/build-preflight-primitives.mjs', '--check'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
