@@ -319,7 +319,7 @@ node scripts/manifest/generate-manifest.js --channel preview
 git status --porcelain -- docs/
 ```
 - ❌ `git diff` is non-empty for any generated path after regeneration:
-  `docs/innfo/app/`, `docs/innfo/templates/catalog.json`, `docs/_sidebar.md`,
+  `docs/innfo/templates/catalog.json`, `docs/_sidebar.md`,
   `docs/_navbar.md`, `docs/llms.txt`, `docs/ai-index.yaml`, `docs/use/manifest.md`,
   `docs/use/manifest-next.md`.
 - ⚠️ the diff bumps a `version` / `spec_version` but `CHANGELOG.md` has no new entry.
@@ -364,7 +364,7 @@ rest of this group stays manual/opt-in judgement:
 
 - ❌ **(automated)** any installed dependency's own declared `engines.node`
   (checked for the repo root and every npm workspace under
-  `iNNfo/packages/*` and `iNNfo/apps/*`) excludes a Node version pinned via
+  `iNNfo/packages/*`) excludes a Node version pinned via
   `node-version:` in `.github/workflows/ci.yml`. Names the package, its
   declared range, and the failing CI version. A workspace with no installed
   `node_modules` is skipped with a note, not treated as a failure.

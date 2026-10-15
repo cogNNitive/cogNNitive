@@ -1,7 +1,6 @@
 - [Home](README)
 
 - **Components**
-  - [innfo-editor](innfo-editor)
   - [innfo-core](innfo-core)
   - [innfo-mcp](innfo-mcp)
   - [OpenCode Agent](opencode-innfo-agent)
