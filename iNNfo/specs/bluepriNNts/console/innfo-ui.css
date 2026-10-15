@@ -7039,7 +7039,7 @@ button.btn-primary:hover:not(:disabled) {
   background: var(--surface, #ffffff) !important;
   border-bottom: 1px solid var(--border, #e2e8f0) !important;
   padding: 10px 24px !important;
-  display: flex !important;
+  display: flex;
   flex-direction: column !important;
   gap: 8px !important;
   flex-shrink: 0 !important;

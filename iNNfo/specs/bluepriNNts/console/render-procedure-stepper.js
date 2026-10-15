@@ -268,7 +268,7 @@
     function appendWithKuPills(hostEl, rawText) {
       var text = String(rawText == null ? '' : rawText)
       var names = Object.keys(byName).filter(function (n) { return n && n.length >= 3 }).sort(function (a, b) { return b.length - a.length })
-      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\    function refButton(label, name) {') })
+      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') })
       var patternParts = ['\\bfb-\\d+\\b']
       if (escapedNames.length) patternParts.push(escapedNames.join('|'))
       var re = new RegExp('(' + patternParts.join('|') + ')', 'g')
@@ -304,6 +304,7 @@
         span.textContent = label
         return { node: span, ok: false }
       }
+      var UI = GLOBAL.InnfoUI
       if (UI && typeof UI.ElementPill === 'function' && target.id) {
         var cMeta = null
         concepts.forEach(function (x) {

@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-hOVBTyzC+Vvu+zJbdnBjHd8m7AzOhn3DGTqTxfvqrhs=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-33Y2mAViBZTXoDUXSQ9cpxoufwoOY8aJ5HrrjZkOnzY=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7070,7 +7070,7 @@ button.btn-primary:hover:not(:disabled) {
   background: var(--surface, #ffffff) !important;
   border-bottom: 1px solid var(--border, #e2e8f0) !important;
   padding: 10px 24px !important;
-  display: flex !important;
+  display: flex;
   flex-direction: column !important;
   gap: 8px !important;
   flex-shrink: 0 !important;
@@ -8242,8 +8242,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-bb94337f",
-    "generated": "2026-10-15T14:37:03.641Z",
+    "domainId": "testlab-ce3aa8b2",
+    "generated": "2026-10-15T14:51:41.431Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8253,7 +8253,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T14:37:03.555Z",
+        "citationsResolvedAt": "2026-10-15T14:51:41.334Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -20378,7 +20378,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function appendWithKuPills(hostEl, rawText) {
       var text = String(rawText == null ? '' : rawText)
       var names = Object.keys(byName).filter(function (n) { return n && n.length >= 3 }).sort(function (a, b) { return b.length - a.length })
-      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\    function refButton(label, name) {') })
+      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') })
       var patternParts = ['\\bfb-\\d+\\b']
       if (escapedNames.length) patternParts.push(escapedNames.join('|'))
       var re = new RegExp('(' + patternParts.join('|') + ')', 'g')
@@ -20414,6 +20414,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         span.textContent = label
         return { node: span, ok: false }
       }
+      var UI = GLOBAL.InnfoUI
       if (UI && typeof UI.ElementPill === 'function' && target.id) {
         var cMeta = null
         concepts.forEach(function (x) {
