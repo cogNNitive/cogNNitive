@@ -5499,6 +5499,8 @@
       var n = currentDrafts.length
       var bannerCount = active.querySelector('.innfo-banner-drafts')
       if (bannerCount) bannerCount.textContent = ' drafts: ' + n
+      var dockCount = active.querySelector('#innfo-review-dock .innfo-dock-drafts')
+      if (dockCount) dockCount.textContent = 'Drafts: ' + n
       updateTabBadges(active, state)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)

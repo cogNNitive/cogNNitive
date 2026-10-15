@@ -143,10 +143,7 @@ describe('S2b live draft count from a view', () => {
     res.controller.enable()
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
     assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.equal(
-      document.querySelector('.innfo-view-tab[data-tab="review"] .innfo-rail-badge').textContent,
-      '1',
-    )
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
   })
 })
@@ -534,16 +531,10 @@ describe('S2b review follow-up: remove refreshes decorations and counts', () => 
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'y' })
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
     assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.equal(
-      document.querySelector('.innfo-view-tab[data-tab="review"] .innfo-rail-badge').textContent,
-      '1',
-    )
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
     assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*0/)
-    assert.equal(
-      document.querySelector('.innfo-view-tab[data-tab="review"] .innfo-rail-badge'),
-      null,
-    )
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*0/)
   })
 })

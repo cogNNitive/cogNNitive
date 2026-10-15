@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-ZM8aXj7txLQp4jwH+0PrLpIdkLQ0AlElUMjUiXUaS8o=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-ZoemQu0mhfBK80T+Qt8OjFzcGfe5Jb4eCK+w+PCrcAA=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -8623,7 +8623,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-ce3aa8b2",
-    "generated": "2026-10-15T15:36:43.123Z",
+    "generated": "2026-10-15T16:41:27.827Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8633,7 +8633,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T15:36:42.929Z",
+        "citationsResolvedAt": "2026-10-15T16:41:27.741Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -20132,6 +20132,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var n = currentDrafts.length
       var bannerCount = active.querySelector('.innfo-banner-drafts')
       if (bannerCount) bannerCount.textContent = ' drafts: ' + n
+      var dockCount = active.querySelector('#innfo-review-dock .innfo-dock-drafts')
+      if (dockCount) dockCount.textContent = 'Drafts: ' + n
       updateTabBadges(active, state)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)

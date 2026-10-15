@@ -129,7 +129,7 @@ apply-order graph reflects reality.
 Active changes today:
 `nn-quarantine-removal`, `nn-domain-git-workflow`, `blueprint-external-skills`,
 `video-script-contract-additions`, `s3-domain-console-and-edit-modal`,
-`s4-retire-legacy-migration-flows`, `s5-retire-innfo-editor`,
+`s4-retire-legacy-migration-flows`, `s5` (the S5 editor retirement),
 `s6-console-regeneration-and-propose`.
 
 - **Lineage cluster S3/S4/S5/S6** (~2,400 lines of spec across 4 dirs) → collapse under

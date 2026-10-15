@@ -142,7 +142,7 @@ level: 3
     const tabsNav = doc.getElementById('innfo-view-tabs')
     assert.ok(tabsNav)
     const reviewTabBtn = tabsNav.querySelector('[data-tab="review"]')
-    assert.ok(reviewTabBtn, 'Review tab button rendered in view tabs navigation')
+    assert.equal(reviewTabBtn, null, 'Review is reached from the floating review dock, not the tab strip')
   })
 
   it('contains no fallbackBuildPayload symbol in export-console.mjs source', async () => {
@@ -519,7 +519,7 @@ scenarioMonths:: 12
       assert.ok(tabs.includes('timeline'), JSON.stringify(tabs))
       assert.equal(tabs.includes('canonical'), false)
       assert.equal(tabs.includes('studio'), false)
-      assert.ok(tabs.indexOf('timeline') < tabs.indexOf('review'), 'timeline precedes Changes')
+      assert.equal(tabs.includes('review'), false, 'Changes lives in the review dock, not the tab strip')
       doc.querySelector('#innfo-view-tabs [data-tab="timeline"]').click()
       const panel = doc.getElementById('innfo-tab-timeline')
       assert.ok(panel.querySelector('.innfo-timeline-table'), 'timeline grid rendered into its own panel')

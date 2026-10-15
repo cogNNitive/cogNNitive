@@ -240,7 +240,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       const scoped = await boot(await readFile((await viewOutputs('beta'))[0], 'utf-8'))
       const doc = scoped.window.document
       const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
-      assert.deepEqual(tabs, ['beta', 'review'], 'no built-in tab, only the scoped view')
+      assert.deepEqual(tabs, ['beta'], 'no built-in tab, only the scoped view')
       assert.equal(doc.getElementById('innfo-tab-explorer')?.classList.contains('active') ?? false, false)
       assert.match(doc.getElementById('innfo-tab-beta').textContent, /Beta mounted/)
       assert.equal(doc.getElementById('innfo-view-errors'), null)

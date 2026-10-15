@@ -99,14 +99,14 @@ describe('registerView contract', () => {
 })
 
 describe('tabs from the registry', () => {
-  it('orders tabs by (order, id) with Changes last', () => {
+  it('orders tabs by (order, id); Changes is not a tab', () => {
     const registry = InnfoConsole.createViewRegistry()
     registry.register(def({ id: 'zeta', title: 'Zeta', order: 20 }))
     registry.register(def({ id: 'alpha', title: 'Alpha', order: 20 }))
     registry.register(def({ id: 'first', title: 'First', order: 10 }))
     const { document } = bootConsole({ registry })
     const ids = [...document.querySelectorAll('.innfo-view-tab')].map((b) => b.dataset.tab)
-    assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'metamodel', 'explorer', 'matrices', 'review'])
+    assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'metamodel', 'explorer', 'matrices'])
   })
 
   it('opens on the model explorer by default, not the lowest-order view', () => {
