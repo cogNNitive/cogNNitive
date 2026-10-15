@@ -1058,6 +1058,11 @@ S3b group 10 (declared media rendering) shipped with no sample able to exercise 
 
 `iNNfo/packages/innfo-mcp/test/validate-workspace-sources.test.ts` fails 2 of 6 locally on every run since at least 2026-10-14: "reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only" (the dangling diagnostic is `undefined`) and "emits missing parent directory and fuzzy suggestions in diagnostics". Stderr shows `[resolver-node] Local tier missed for defiNNition_V_0-1-0 ... ENOENT .../temp-test-workspace-sources/specs/defiNNition_V_0-1-0_NN.md`. CI on `dev` and `main` is green, so the cause is probably environmental (the fixture workspace lacks the defiNNition spec locally, or the local tier is masked on CI by a network tier). Not caused by S6/S3b (verified: those diffs touch neither validator nor resolver). Find the cause, then fix the fixture or the resolver fallback; do not skip the tests.
 
+**Diagnosis 2026-10-16 (not reproducible; no fix applied):**
+- On `session/backlog-ab` (main at `6bd9e308`, includes #185-#187) `validate-workspace-sources.test.ts` passes 6/6, both in isolation and inside the full `innfo-mcp` vitest run (no ENOENT / resolver-node stderr).
+- The original failure was seen on the primary checkout, which sits on `session/console-ui-overhaul` (`804f8f59`), i.e. behind main. Attribution to that older tip could not be confirmed: a second tree needs its own `node_modules`, and installs are off limits here. If it still fails there, re-run after rebasing onto main before investigating further.
+- Unrelated but real and deterministic on current main: `src/tools/check-workspace.spec.ts > summary_only trims the model list but not the aggregate` fails (`report.models.length` is 0; the fixture's `scope:: not-an-option` model is not reported with errors) and floods stderr with `[resolver-node] Network fetch failed`. Needs its own entry or a fix; not touched here.
+
 **Suggested trigger:** `/sdd-explore validate-workspace-sources-red` (light lane).
 
 ## 37. `chore/markers-review` — review the concept of markers (possibly merge them with tags)
