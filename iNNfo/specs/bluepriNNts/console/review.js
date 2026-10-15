@@ -1556,6 +1556,17 @@
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
+      var dock = doc.getElementById('innfo-review-dock')
+      if (dock) {
+        dock.style.removeProperty('display')
+        dock.setAttribute('data-visible', 'true')
+        dock.classList.add('active', 'innfo-dock-blinking')
+        if (dock._blinkTimer) clearTimeout(dock._blinkTimer)
+        dock._blinkTimer = setTimeout(function () {
+          dock.classList.remove('innfo-dock-blinking')
+          dock._blinkTimer = null
+        }, 5000)
+      }
     }
 
     function disable() {
@@ -1567,6 +1578,16 @@
         html().removeAttribute('data-innfo-filter')
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
+      var dock = doc.getElementById('innfo-review-dock')
+      if (dock) {
+        dock.style.setProperty('display', 'none', 'important')
+        dock.removeAttribute('data-visible')
+        dock.classList.remove('active', 'innfo-dock-blinking')
+        if (dock._blinkTimer) {
+          clearTimeout(dock._blinkTimer)
+          dock._blinkTimer = null
+        }
+      }
       Array.prototype.forEach.call(doc.querySelectorAll('[data-innfo-review-ctl]'), function (n) {
         if (n.parentNode) n.parentNode.removeChild(n)
       })

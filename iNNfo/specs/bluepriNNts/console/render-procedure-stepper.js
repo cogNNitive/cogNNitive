@@ -311,6 +311,29 @@
         span.textContent = label
         return { node: span, ok: false }
       }
+      if (UI && typeof UI.ElementPill === 'function' && target.id) {
+        var cMeta = null
+        concepts.forEach(function (x) {
+          if (x && x.name === target.concept) cMeta = x
+        })
+        var pill = UI.ElementPill(
+          {
+            id: target.id,
+            label: target.name || label,
+            concept: target.concept,
+            color: cMeta && cMeta.color,
+            hexColor: cMeta && cMeta.hexColor,
+          },
+          {
+            doc: document,
+            onClick: function (ev) {
+              if (ev && ev.preventDefault) ev.preventDefault()
+              openRef(target)
+            },
+          }
+        )
+        return { node: pill, ok: true }
+      }
       var b = document.createElement('button')
       b.className = 'chip-ref'
       b.setAttribute('type', 'button')
@@ -583,7 +606,7 @@
       dagCol.className = 'exec-dag-col'
       var dagHeader = document.createElement('div')
       dagHeader.className = 'exec-col-header'
-      dagHeader.innerHTML = '<span>' + vIcon('workflow', 14) + ' Flow & Topology</span><span class="count-badge">' + chain.length + ' steps</span>'
+      dagHeader.innerHTML = '<span>' + vIcon('workflow', 14) + ' Workflow</span><span class="count-badge">' + chain.length + ' steps</span>'
       dagCol.appendChild(dagHeader)
 
       var dagView = document.createElement('div')
@@ -692,6 +715,10 @@
         g.addEventListener('click', function () {
           currentStepIndex = i
           renderExecutionWorkspace()
+          var activeCard = ws.querySelector('.exec-step-card')
+          if (activeCard && typeof activeCard.scrollIntoView === 'function') {
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
         })
 
         var rect = document.createElementNS(svgNS, 'rect')
@@ -739,7 +766,8 @@
       var cur = chain[currentStepIndex]
       var state = stepStates[cur.el.id] || 'active'
       var card = document.createElement('article')
-      card.className = 'exec-step-card'
+      card.className = 'exec-step-card innfo-card'
+      card.setAttribute('data-innfo-component', 'element-card')
 
       // Step Header
       var headerRow = document.createElement('div')

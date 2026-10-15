@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-nAEX0klqOLEEYlqil/da07RbU+b2Ib40oRUJXngMNvM=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-CJuUIYZVfDYeszXXVimxVFl/v1uNmfPVYhoEnLLRRz4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7038,6 +7038,478 @@ button.btn-primary:hover:not(:disabled) {
   border-radius: 999px;
   padding: 2px 10px;
 }
+
+
+/* ==========================================================================
+   Definitive Console Theme Overrides: User-Annotated Directives & Full UI Polish
+   ========================================================================== */
+
+/* 0. Top View Tabs: Full width, span above sidebar and main */
+.innfo-action-bar--top {
+  width: 100% !important;
+  border-bottom: 1px solid var(--border, #e2e8f0) !important;
+  background: var(--surface, #ffffff) !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 16px !important;
+  flex-shrink: 0 !important;
+  z-index: 10 !important;
+}
+.innfo-view-tabs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  padding: 6px 0 !important;
+}
+
+/* 1. Mover filtros y búsqueda al centro superior + margen limpio */
+.innfo-filter-zone {
+  background: var(--surface, #ffffff) !important;
+  border-bottom: 1px solid var(--border, #e2e8f0) !important;
+  padding: 14px 24px 10px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+#innfo-search-wrap {
+  width: 100% !important;
+  max-width: 540px !important;
+}
+#innfo-filter-facets {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+#innfo-filter-facets .innfo-facet-dropdown {
+  margin-right: 4px !important;
+}
+#innfo-active-filters {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+/* 2. Icono de Alerta ([!]) en la cabecera: SOLO icono en rojo, sin borde ni fondo */
+button.cite-icon,
+.cite-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.cite-icon[data-origin="error"],
+.cite-icon[data-origin="error"] svg,
+.cite-icon[data-origin="error"] .innfo-icon {
+  color: #dc2626 !important;
+  stroke: #dc2626 !important;
+}
+
+/* 3. Path del Knowledge Unit: QUITAR fondo gris y borde gris, caja sutil */
+.innfo-qud,
+.innfo-qud-wrap,
+.innfo-qud-chip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 2px 0 !important;
+}
+.innfo-qud-id {
+  color: var(--innfo-muted, #64748b) !important;
+  font-family: var(--innfo-mono), ui-monospace, monospace !important;
+  font-size: 0.82rem !important;
+}
+.innfo-qud-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--innfo-muted, #64748b) !important;
+  padding: 2px 4px !important;
+}
+.innfo-qud-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.innfo-meta-strip {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 0 6px 0 !important;
+}
+.innfo-card-path {
+  color: var(--innfo-muted, #64748b) !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-family: var(--innfo-mono), ui-monospace, monospace !important;
+  font-size: 11px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* 4. Relación inferior: QUITAR fondo gris y borde gris del contenedor */
+[data-innfo-component="element-card"] .innfo-card-body > .innfo-rel-list,
+[data-innfo-component="element-card"] .innfo-card-incoming,
+.innfo-rel-list {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 6px 0 !important;
+  margin-top: 6px !important;
+}
+.innfo-strip-rel-group,
+.innfo-rel-list li.innfo-rel-row {
+  display: inline-flex !important;
+  align-items: center !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.innfo-strip-rel-group .innfo-strip-rel-field,
+.innfo-rel-list li.innfo-rel-row .innfo-rel-field {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  font-family: var(--innfo-mono), ui-monospace, monospace !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  padding: 3px 8px !important;
+  border: none !important;
+  border-right: 1px solid #e2e8f0 !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.innfo-strip-rel-group .innfo-strip-rel,
+.innfo-rel-list li.innfo-rel-row > .innfo-element-pill {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 3px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 400 !important;
+  color: var(--pill-concept-color, var(--concept-slot-fg, #0284c7)) !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  line-height: 1.4 !important;
+}
+.innfo-strip-rel-group .innfo-strip-rel:hover,
+.innfo-rel-list li.innfo-rel-row > .innfo-element-pill:hover {
+  background: #f8fafc !important;
+}
+.innfo-strip-rel-group .innfo-strip-rel .innfo-strip-rel-icon,
+.innfo-rel-list li.innfo-rel-row > .innfo-element-pill .innfo-icon {
+  border: none !important;
+  color: var(--pill-concept-color, var(--concept-slot-fg, #64748b)) !important;
+}
+
+/* 5. Separación y margen en el árbol lateral */
+#innfo-rail {
+  padding: 12px 14px !important;
+}
+#innfo-rail details.collapse,
+#innfo-rail .innfo-bp-card {
+  margin-bottom: 14px !important;
+}
+#innfo-rail details.collapse > summary.collapse-title {
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  margin-bottom: 6px !important;
+}
+
+/* 6. Card Head */
+[data-innfo-component="element-card"] .innfo-card-thumb--concept {
+  display: none !important;
+}
+.innfo-card-concept-badge {
+  display: none !important;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"],
+[data-innfo-component="element-card"] .innfo-card-head .innfo-element-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-size: 1.05rem !important;
+  font-weight: 400 !important;
+  color: var(--card-concept-color, var(--pill-concept-color, var(--concept-slot-fg, #0284c7))) !important;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-value,
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] span {
+  font-weight: 400 !important;
+  font-size: 1.05rem !important;
+  color: inherit !important;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-icon {
+  color: inherit !important;
+  border: none !important;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke-width: 1.75px !important;
+}
+
+/* 7. Sin bordes no funcionales */
+.innfo-concept-pill,
+.innfo-rail-concept-pill,
+[data-innfo-component="concept-pill"],
+.innfo-element-pill,
+[data-innfo-component="element-pill"],
+.innfo-card-status-pill,
+.innfo-status-badge,
+.innfo-lineage-pill,
+.innfo-file-pill,
+.innfo-marker-chip,
+.innfo-active-filter-pill,
+.innfo-rail-count,
+.innfo-card-count,
+.innfo-card-toggle,
+.innfo-reviewed-toggle,
+.innfo-edit-toggle,
+#innfo-rail details.collapse > summary.collapse-title,
+#innfo-rail .menu li > a[data-concept],
+#innfo-rail .menu ul,
+.innfo-card-desc,
+.innfo-card-thumb,
+.innfo-field-image,
+.innfo-icon,
+.badge,
+.chip,
+.btn-outline,
+.badge-outline,
+[data-innfo-component="element-card"] .innfo-card-fields,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"],
+.innfo-field-code,
+.innfo-field-markdown,
+.innfo-field-bool,
+.innfo-field-select,
+.innfo-field-url,
+.innfo-obj-chip {
+  border: none !important;
+  border-width: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 8. Tabla de campos */
+[data-innfo-component="element-card"] .innfo-card-fields {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-label {
+  flex: 0 0 130px !important;
+  width: 130px !important;
+  font-family: var(--innfo-mono), ui-monospace, monospace !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  color: #64748b !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-value,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-bool,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-code,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-select,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-url,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-markdown {
+  flex: 1 1 auto !important;
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: #1e293b !important;
+  border: none !important;
+}
+
+/* 9. Elementos estrictamente justificados con borde */
+[data-innfo-component="element-card"].innfo-card {
+  border: 1px solid #e2e8f0 !important;
+  border-left: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+}
+.innfo-rail {
+  border-right: 1px solid #e2e8f0 !important;
+}
+.innfo-navbar {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+input[type="text"], input[type="search"], textarea, select {
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* 10. Floating Review Dock & 5s attention blink */
+.innfo-review-dock {
+  position: fixed !important;
+  bottom: 24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  padding: 8px 18px !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  transition: all 0.25s ease !important;
+}
+.innfo-review-dock:not([data-visible="true"]) {
+  display: none !important;
+}
+.innfo-dock-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+.innfo-dock-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #10b981 !important;
+  display: inline-block !important;
+  animation: innfo-dock-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+}
+@keyframes innfo-dock-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes innfo-dock-attention-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7), 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(59, 130, 246, 0), 0 12px 30px -4px rgba(0, 0, 0, 0.5);
+    transform: translateX(-50%) scale(1.04);
+  }
+}
+.innfo-dock-blinking {
+  animation: innfo-dock-attention-blink 0.8s ease-in-out infinite !important;
+}
+.innfo-dock-sep {
+  width: 1px !important;
+  height: 18px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+.innfo-dock-changes,
+.innfo-dock-export,
+.innfo-dock-exit {
+  background: transparent !important;
+  border: none !important;
+  color: #f1f5f9 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  transition: background 0.15s ease !important;
+}
+.innfo-dock-changes:hover,
+.innfo-dock-export:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+.innfo-dock-exit {
+  color: #fda4af !important;
+}
+.innfo-dock-exit:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fecdd3 !important;
+}
+
+/* 11. Domain Navbar Info Popover & Borderless Button */
+.innfo-navbar-info-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--innfo-muted, #64748b) !important;
+  cursor: pointer !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 12px !important;
+}
+.innfo-navbar-info-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.innfo-navbar-info-popover {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  margin-top: 6px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  padding: 12px 16px !important;
+  z-index: 1000 !important;
+  min-width: 260px !important;
+  font-size: 12px !important;
+  line-height: 1.6 !important;
+  color: #334155 !important;
+}
+.innfo-navbar-info-popover div {
+  margin-bottom: 4px !important;
+}
+
+/* 12. Badges View & Mini Cards View */
+.innfo-element-badges-wrap {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  padding: 24px !important;
+}
+.innfo-element-minicards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 16px !important;
+  padding: 24px !important;
+}
 </style>
     <style>
       :root,
@@ -7330,8 +7802,15 @@ button.btn-primary:hover:not(:disabled) {
       <div class="innfo-mode" id="innfo-navbar-extra"></div>
     </header>
 
+    <div class="innfo-action-bar innfo-action-bar--top">
+      <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
+    </div>
     <div id="innfo-layout">
       <aside class="innfo-rail" aria-label="Blueprint rail">
+        <nav id="innfo-rail"></nav>
+      </aside>
+
+      <main>
         <div class="innfo-filter-zone innfo-toolbar">
           <div id="innfo-search-wrap">
             <span class="search-icon" aria-hidden="true">
@@ -7341,13 +7820,6 @@ button.btn-primary:hover:not(:disabled) {
           </div>
           <div id="innfo-filter-facets"></div>
           <div id="innfo-active-filters"></div>
-        </div>
-        <nav id="innfo-rail"></nav>
-      </aside>
-
-      <main>
-        <div class="innfo-action-bar">
-          <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
         </div>
         <div id="innfo-tab-explorer" class="innfo-tab-panel active">
           <div id="innfo-doc"></div>
@@ -7372,7 +7844,7 @@ button.btn-primary:hover:not(:disabled) {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.14.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.15.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
   }
 }
@@ -7677,13 +8149,7 @@ button.btn-primary:hover:not(:disabled) {
       ]
     }
   ],
-  "procedures": [
-    {
-      "id": "usage",
-      "name": "Getting started",
-      "path": "procedures/usage_procedures_NN.md"
-    }
-  ]
+  "procedures": []
 }
 </script>
     <script type="application/json" id="innfo-model">
@@ -7692,8 +8158,8 @@ button.btn-primary:hover:not(:disabled) {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-657f72f0",
-    "generated": "2026-10-15T06:22:59.686Z",
+    "domainId": "testlab-bb94337f",
+    "generated": "2026-10-15T13:26:23.753Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -7703,7 +8169,7 @@ button.btn-primary:hover:not(:disabled) {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T06:22:59.651Z",
+        "citationsResolvedAt": "2026-10-15T13:26:23.663Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -8720,7 +9186,7 @@ button.btn-primary:hover:not(:disabled) {
 /*!
  * innfo-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.14.0. Regenerate on every console release.
+ * Version 0.15.0. Regenerate on every console release.
  * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-procedure-stepper.js.
  */
 
@@ -13567,6 +14033,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
+      var dock = doc.getElementById('innfo-review-dock')
+      if (dock) {
+        dock.style.removeProperty('display')
+        dock.setAttribute('data-visible', 'true')
+        dock.classList.add('active', 'innfo-dock-blinking')
+        if (dock._blinkTimer) clearTimeout(dock._blinkTimer)
+        dock._blinkTimer = setTimeout(function () {
+          dock.classList.remove('innfo-dock-blinking')
+          dock._blinkTimer = null
+        }, 5000)
+      }
     }
 
     function disable() {
@@ -13578,6 +14055,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         html().removeAttribute('data-innfo-filter')
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
+      var dock = doc.getElementById('innfo-review-dock')
+      if (dock) {
+        dock.style.setProperty('display', 'none', 'important')
+        dock.removeAttribute('data-visible')
+        dock.classList.remove('active', 'innfo-dock-blinking')
+        if (dock._blinkTimer) {
+          clearTimeout(dock._blinkTimer)
+          dock._blinkTimer = null
+        }
+      }
       Array.prototype.forEach.call(doc.querySelectorAll('[data-innfo-review-ctl]'), function (n) {
         if (n.parentNode) n.parentNode.removeChild(n)
       })
@@ -14361,7 +14848,45 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         parts.push('Generated ' + stamp + ' UTC')
       }
       host.textContent = ''
-      if (parts.length) host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
+      if (parts.length) {
+        host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
+        var infoBtn = doc.createElement('button')
+        infoBtn.className = 'innfo-navbar-info-btn'
+        infoBtn.type = 'button'
+        infoBtn.setAttribute('aria-label', 'Domain info')
+        infoBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+
+        var popover = doc.createElement('div')
+        popover.className = 'innfo-navbar-info-popover'
+        popover.style.display = 'none'
+
+        var popoverLines = []
+        if (template) popoverLines.push('<div><strong>Template:</strong> ' + String(template) + '</div>')
+        if (version) popoverLines.push('<div><strong>Version:</strong> ' + String(version) + '</div>')
+        if (meta.generated) {
+          var stamp = String(meta.generated).replace('T', ' ').replace(/\..*/, '').replace(/Z$/, '').trim()
+          popoverLines.push('<div><strong>Generated:</strong> ' + stamp + ' UTC</div>')
+        }
+        popover.innerHTML = popoverLines.join('')
+
+        infoBtn.addEventListener('click', function (ev) {
+          ev.stopPropagation()
+          popover.style.display = popover.style.display === 'none' ? 'block' : 'none'
+        })
+
+        doc.addEventListener('click', function (ev) {
+          if (!popover.contains(ev.target) && ev.target !== infoBtn) {
+            popover.style.display = 'none'
+          }
+        })
+
+        var brand = doc.querySelector('.innfo-brand')
+        if (brand && !brand.querySelector('.innfo-navbar-info-btn')) {
+          brand.style.position = 'relative'
+          brand.appendChild(infoBtn)
+          brand.appendChild(popover)
+        }
+      }
       if (meta.sourceUrl) {
         if (parts.length) host.appendChild(doc.createTextNode(' \u00b7 '))
         var href = safeSourceHref(meta.sourceUrl)
@@ -15458,6 +15983,68 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  function mountElementBadges(doc, elements, drafts, concepts, refs) {
+    var content = doc.getElementById('innfo-content')
+    if (!content) return
+    content.innerHTML = ''
+    var wrap = el('div', 'innfo-element-badges-wrap')
+    wrap.setAttribute('data-innfo-component', 'element-badges-view')
+    var projectedElements = projectElements(elements, drafts)
+    projectedElements.forEach(function (element) {
+      var cMeta = conceptMetaOf(concepts, element.concept)
+      var pill = UI.ElementPill(
+        {
+          id: element.id,
+          label: element.name || element.id || '',
+          concept: element.concept,
+          color: cMeta && cMeta.color,
+          hexColor: cMeta && cMeta.hexColor,
+        },
+        {
+          doc: doc,
+          href: '#el-' + encodeURIComponent(String(element.id || '')),
+          onClick: function (ev) {
+            if (ev && ev.preventDefault) ev.preventDefault()
+            renderRefDialog(doc, element)
+          },
+        }
+      )
+      wrap.appendChild(pill)
+    })
+    content.appendChild(wrap)
+  }
+
+  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions) {
+    var content = doc.getElementById('innfo-content')
+    if (!content) return
+    content.innerHTML = ''
+    var grid = el('div', 'innfo-element-minicards-grid')
+    grid.setAttribute('data-innfo-component', 'element-minicards-view')
+    var projectedElements = projectElements(elements, drafts)
+    projectedElements.forEach(function (element) {
+      var cMeta = conceptMetaOf(concepts, element.concept)
+      var mini = UI.ElementMini(
+        {
+          id: element.id,
+          name: element.name || element.id || '',
+          conceptId: element.concept,
+          description: element.description,
+          fields: element.fields,
+        },
+        {
+          doc: doc,
+          concept: cMeta,
+          preview: true,
+          onClick: function () {
+            renderRefDialog(doc, element)
+          },
+        }
+      )
+      grid.appendChild(mini)
+    })
+    content.appendChild(grid)
+  }
+
   // ---- Explorer element table (table view + header sort) -------------------
 
   // Union of field keys across the projected elements, alphabetical.
@@ -15694,7 +16281,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var group = el('div', 'innfo-viewmode')
     group.setAttribute('role', 'group')
     group.setAttribute('aria-label', 'Element view mode')
-    ;[['cards', 'Cards'], ['table', 'Table']].forEach(function (pair) {
+    ;[['sheets', 'Sheets'], ['cards', 'Cards'], ['badges', 'Badges'], ['table', 'Table']].forEach(function (pair) {
       var b = el('button', 'innfo-viewmode-btn', pair[1])
       b.setAttribute('type', 'button')
       b.setAttribute('data-mode', pair[0])
@@ -17274,6 +17861,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (railAside) {
           railAside.style.display = tabId === 'explorer' ? '' : 'none'
         }
+        var toolbar = doc.querySelector('.innfo-toolbar')
+        if (toolbar) {
+          toolbar.style.display = tabId === 'explorer' ? '' : 'none'
+        }
+        var filterZone = doc.querySelector('.innfo-filter-zone')
+        if (filterZone) {
+          filterZone.style.display = tabId === 'explorer' ? '' : 'none'
+        }
       }
       if (prev) hook(prev, 'onHide')
       if (tabId === 'review' && opts.state) renderReviewTab(doc, opts.state, opts.config, opts.onRefresh)
@@ -18180,17 +18775,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     draftsBadge.textContent = ' drafts: 0'
     banner.appendChild(draftsBadge)
 
-    // Reviewer identity: inline editable field.
-    banner.appendChild(buildReviewerChip(active))
-
-    // Open button
-    var openBtn = active.createElement('button')
-    openBtn.id = 'innfo-feedback-open'
-    openBtn.setAttribute('type', 'button')
-    openBtn.className = 'innfo-feedback-open'
-    openBtn.textContent = 'Export changes'
-    banner.appendChild(openBtn)
-
     root.appendChild(banner)
 
     // Modal
@@ -18219,6 +18803,85 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '<pre data-innfo="agent-prompt"></pre>'
 
     root.appendChild(modal)
+
+    // Contextual Floating Review Dock
+    var oldDock = active.getElementById('innfo-review-dock')
+    if (oldDock && oldDock.parentNode) oldDock.parentNode.removeChild(oldDock)
+    var dock = active.createElement('div')
+    dock.id = 'innfo-review-dock'
+    dock.className = 'innfo-review-dock'
+    dock.setAttribute('data-innfo-component', 'review-dock')
+    dock.setAttribute('aria-label', 'Review floating dock')
+    dock.style.display = 'none'
+
+    var dockStatus = active.createElement('div')
+    dockStatus.className = 'innfo-dock-status'
+    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Review Mode</span>'
+    dock.appendChild(dockStatus)
+
+    var sep1 = active.createElement('span')
+    sep1.className = 'innfo-dock-sep'
+    dock.appendChild(sep1)
+
+    // Reviewer identity inside floating dock
+    dock.appendChild(buildReviewerChip(active))
+
+    var sep2 = active.createElement('span')
+    sep2.className = 'innfo-dock-sep'
+    dock.appendChild(sep2)
+
+    // Changes view toggle button
+    var changesBtn = active.createElement('button')
+    changesBtn.type = 'button'
+    changesBtn.className = 'innfo-dock-changes'
+    changesBtn.setAttribute('data-innfo', 'dock-changes')
+    changesBtn.textContent = 'Changes'
+    changesBtn.addEventListener('click', function () {
+      if (state && state.tabs) {
+        if (state.tabs.current() === 'review') {
+          state.tabs.select('explorer')
+        } else {
+          state.tabs.select('review')
+        }
+      }
+    })
+    dock.appendChild(changesBtn)
+
+    // Open button (Export changes)
+    var openBtn = active.createElement('button')
+    openBtn.id = 'innfo-dock-export-btn'
+    openBtn.setAttribute('type', 'button')
+    openBtn.className = 'innfo-feedback-open innfo-dock-export'
+    openBtn.textContent = 'Export changes'
+    dock.appendChild(openBtn)
+
+    var exitBtn = active.createElement('button')
+    exitBtn.type = 'button'
+    exitBtn.className = 'innfo-dock-exit'
+    exitBtn.textContent = 'Exit'
+    exitBtn.setAttribute('aria-label', 'Exit review mode')
+    exitBtn.addEventListener('click', function () {
+      var toggle = active.querySelector('[data-innfo="review-toggle"]')
+      if (toggle && (toggle.getAttribute('aria-pressed') === 'true' || toggle.classList.contains('active'))) {
+        toggle.click()
+      } else if (state && state.controller && typeof state.controller.disable === 'function') {
+        state.controller.disable()
+      }
+      dock.style.setProperty('display', 'none', 'important')
+      dock.removeAttribute('data-visible')
+      dock.classList.remove('active', 'innfo-dock-blinking')
+      if (dock._blinkTimer) {
+        clearTimeout(dock._blinkTimer)
+        dock._blinkTimer = null
+      }
+    })
+    dock.appendChild(exitBtn)
+
+    if (active.body) {
+      active.body.appendChild(dock)
+    } else {
+      root.appendChild(dock)
+    }
 
     // Single-header layout: the feedback controls live inside the top navbar
     // (no second application header). Fall back to the body top for shells
@@ -18815,7 +19478,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // once by the next card render and then cleared.
     var focusId = null
     // Model Explorer view mode ('cards' | 'table') and the table sort state.
-    var explorerView = 'cards'
+    var explorerView = 'sheets'
     var sortState = { key: '', dir: 'asc' }
 
     function draftCountsOf(currentDrafts) {
@@ -18988,6 +19651,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           }
           refresh(activeSearchQuery)
         })
+      } else if (explorerView === 'badges') {
+        mountElementBadges(active, filteredElements, currentDrafts, concepts, refs)
+      } else if (explorerView === 'cards') {
+        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions)
       } else {
         mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions)
         focusId = null
@@ -19236,6 +19903,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderRail: renderRail,
     renderErrors: renderErrors,
     mountElementTable: mountElementTable,
+    mountElementBadges: mountElementBadges,
+    mountElementMiniCards: mountElementMiniCards,
     renderExplorerToolbar: renderExplorerToolbar,
     sortTableElements: sortTableElements,
     renderMediaDialog: renderMediaDialog,
@@ -19587,6 +20256,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         span.textContent = label
         return { node: span, ok: false }
       }
+      if (UI && typeof UI.ElementPill === 'function' && target.id) {
+        var cMeta = null
+        concepts.forEach(function (x) {
+          if (x && x.name === target.concept) cMeta = x
+        })
+        var pill = UI.ElementPill(
+          {
+            id: target.id,
+            label: target.name || label,
+            concept: target.concept,
+            color: cMeta && cMeta.color,
+            hexColor: cMeta && cMeta.hexColor,
+          },
+          {
+            doc: document,
+            onClick: function (ev) {
+              if (ev && ev.preventDefault) ev.preventDefault()
+              openRef(target)
+            },
+          }
+        )
+        return { node: pill, ok: true }
+      }
       var b = document.createElement('button')
       b.className = 'chip-ref'
       b.setAttribute('type', 'button')
@@ -19859,7 +20551,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       dagCol.className = 'exec-dag-col'
       var dagHeader = document.createElement('div')
       dagHeader.className = 'exec-col-header'
-      dagHeader.innerHTML = '<span>' + vIcon('workflow', 14) + ' Flow & Topology</span><span class="count-badge">' + chain.length + ' steps</span>'
+      dagHeader.innerHTML = '<span>' + vIcon('workflow', 14) + ' Workflow</span><span class="count-badge">' + chain.length + ' steps</span>'
       dagCol.appendChild(dagHeader)
 
       var dagView = document.createElement('div')
@@ -19968,6 +20660,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         g.addEventListener('click', function () {
           currentStepIndex = i
           renderExecutionWorkspace()
+          var activeCard = ws.querySelector('.exec-step-card')
+          if (activeCard && typeof activeCard.scrollIntoView === 'function') {
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
         })
 
         var rect = document.createElementNS(svgNS, 'rect')
@@ -20015,7 +20711,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var cur = chain[currentStepIndex]
       var state = stepStates[cur.el.id] || 'active'
       var card = document.createElement('article')
-      card.className = 'exec-step-card'
+      card.className = 'exec-step-card innfo-card'
+      card.setAttribute('data-innfo-component', 'element-card')
 
       // Step Header
       var headerRow = document.createElement('div')

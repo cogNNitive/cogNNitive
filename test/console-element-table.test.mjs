@@ -33,7 +33,7 @@ describe('Model Explorer element table view', () => {
     const group = document.getElementById('innfo-explorer-toolbar')
     assert.ok(group, 'toolbar rendered')
     const btns = group.querySelectorAll('.innfo-viewmode-btn')
-    assert.equal(btns.length, 2)
+    assert.equal(btns.length, 4)
     assert.ok(btns[0].classList.contains('active'), 'cards active by default')
     assert.ok(document.querySelector('#innfo-content .innfo-card'), 'cards rendered')
     assert.equal(document.querySelector('.innfo-element-table'), null)
