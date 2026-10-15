@@ -9,6 +9,7 @@
  * Targets:
  *   1. skills/nn-preflight/scripts/lib/version-status.generated.cjs (versionStatus.ts)
  *   2. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
+ *   3. skills/nn-upgrade/scripts/lib/innfo-core.generated.cjs (parser, scaffold, freeze_slugs)
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check]
@@ -74,6 +75,25 @@ const BUNDLE_TARGETS = [
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
       ' */',
   },
+  {
+    name: 'nn-upgrade-core',
+    // Several core modules behind one synthetic entry (the barrel would pull the whole package).
+    contents: [
+      "export { planDomainScaffold } from './src/scaffold/domain.ts'",
+      "export { parseKnowledge, serializeKnowledge } from './src/parser/index.ts'",
+      "export { freeze_slugs } from './src/mutate.ts'",
+    ].join('\n'),
+    resolveDir: path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core'),
+    platform: 'node',
+    out: path.join(REPO_ROOT, 'skills', 'nn-upgrade', 'scripts', 'lib', 'innfo-core.generated.cjs'),
+    banner:
+      '/**\n' +
+      ' * GENERATED FILE — DO NOT EDIT.\n' +
+      ' * Source: iNNfo/packages/innfo-core (planDomainScaffold, parseKnowledge, serializeKnowledge, freeze_slugs)\n' +
+      ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
+      ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
+      ' */',
+  },
 ]
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
@@ -93,7 +113,9 @@ function loadEsbuild() {
 async function renderTarget(target) {
   const esbuild = loadEsbuild()
   const result = await esbuild.build({
-    entryPoints: [target.entry],
+    ...(target.contents
+      ? { stdin: { contents: target.contents, resolveDir: target.resolveDir, loader: 'ts' } }
+      : { entryPoints: [target.entry] }),
     bundle: true,
     format: 'cjs',
     platform: target.platform ?? 'neutral',
