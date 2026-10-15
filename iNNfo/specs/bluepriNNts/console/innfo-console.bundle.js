@@ -5783,6 +5783,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
+    var dockDrafts = doc.querySelector('#innfo-review-dock .innfo-dock-drafts')
+    if (dockDrafts) dockDrafts.textContent = 'Drafts: ' + (draftCount || 0)
 
     banner.appendChild(title)
     banner.appendChild(version)
@@ -9683,17 +9685,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
       '</label>' +
       '<div data-innfo="errors" style="display: none;"></div>' +
-      '<h3>Proposed Changeset (_changes_NN.md)</h3>' +
-      '<textarea data-innfo="changeset-preview" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
       '<button data-innfo="copy-changeset-prompt" type="button">Copy changeset</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
-      '<h3>Instructions</h3>' +
+      '<details class="innfo-modal-details">' +
+      '<summary>View generated changeset &amp; prompt</summary>' +
+      '<h4>Changeset content (_changes_NN.md)</h4>' +
+      '<textarea data-innfo="changeset-preview" readonly></textarea>' +
+      '<h4>Instructions</h4>' +
       '<pre data-innfo="instructions"></pre>' +
-      '<h3>Agent prompt</h3>' +
-      '<pre data-innfo="agent-prompt"></pre>'
+      '<h4>Agent prompt</h4>' +
+      '<pre data-innfo="agent-prompt"></pre>' +
+      '</details>'
 
     root.appendChild(modal)
 
@@ -9739,6 +9744,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     })
     dock.appendChild(changesBtn)
+
+    var dockDraftsEl = active.createElement('span')
+    dockDraftsEl.className = 'innfo-dock-drafts'
+    dockDraftsEl.textContent = 'Drafts: 0'
+    dock.appendChild(dockDraftsEl)
 
     // Open button (Export changes)
     var openBtn = active.createElement('button')

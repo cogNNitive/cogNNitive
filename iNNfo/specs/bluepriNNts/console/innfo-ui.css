@@ -7561,3 +7561,8 @@ input[type="text"], input[type="search"], textarea, select {
   letter-spacing: 0.04em !important;
 }
 
+/* Export modal: generated changeset and prompt are secondary, collapsed by default. */
+.innfo-modal-details { margin-top: 14px; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; background: var(--surface-2, #f8fafc); }
+.innfo-modal-details > summary { cursor: pointer; font-weight: 600; color: var(--muted, #64748b); user-select: none; }
+.innfo-modal-details h4 { margin: 8px 0 4px; font-size: 0.75rem; text-transform: uppercase; color: var(--muted, #64748b); }
+.innfo-review-dock .innfo-dock-drafts { font-size: 0.75rem; color: var(--muted, #64748b); white-space: nowrap; }

@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-33Y2mAViBZTXoDUXSQ9cpxoufwoOY8aJ5HrrjZkOnzY=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-A1GFDGDv3bSTYAVqutZkH5vxXcrTieu+atA92dZUHBo=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7592,6 +7592,11 @@ input[type="text"], input[type="search"], textarea, select {
   letter-spacing: 0.04em !important;
 }
 
+/* Export modal: generated changeset and prompt are secondary, collapsed by default. */
+.innfo-modal-details { margin-top: 14px; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; background: var(--surface-2, #f8fafc); }
+.innfo-modal-details > summary { cursor: pointer; font-weight: 600; color: var(--muted, #64748b); user-select: none; }
+.innfo-modal-details h4 { margin: 8px 0 4px; font-size: 0.75rem; text-transform: uppercase; color: var(--muted, #64748b); }
+.innfo-review-dock .innfo-dock-drafts { font-size: 0.75rem; color: var(--muted, #64748b); white-space: nowrap; }
 </style>
     <style>
       :root,
@@ -7645,6 +7650,8 @@ input[type="text"], input[type="search"], textarea, select {
         z-index: 30;
       }
       .innfo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .innfo-brand-logo { display: inline-flex; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0; }
+      .innfo-brand-logo svg { display: block; }
       .innfo-badge-domain {
         font-size: 0.75rem;
         font-weight: 700;
@@ -7878,6 +7885,11 @@ input[type="text"], input[type="search"], textarea, select {
   <body>
     <header class="innfo-navbar">
       <div class="innfo-brand">
+        <span class="innfo-brand-logo" aria-label="iNNfo logo" title="iNNfo ecosystem">
+          <svg viewBox="0 0 800 600" width="28" height="21" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M 160 490 L 160 295 Q 160 270 180 285 L 330 475 Q 350 490 350 470 L 350 235 Q 350 210 370 225 L 530 415 Q 550 430 550 410 L 550 90 L 495 145 L 550 90 L 605 145" stroke="#4D0E4E" stroke-width="82" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
         <span class="innfo-badge-domain">DomaiNN</span>
         <h1 class="innfo-domain-title" id="innfo-domain-title">iNNfo Console</h1>
       </div>
@@ -8243,7 +8255,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-ce3aa8b2",
-    "generated": "2026-10-15T14:51:41.431Z",
+    "generated": "2026-10-15T15:22:27.702Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8253,7 +8265,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
-        "citationsResolvedAt": "2026-10-15T14:51:41.334Z",
+        "citationsResolvedAt": "2026-10-15T15:22:27.601Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -15052,6 +15064,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
+    var dockDrafts = doc.querySelector('#innfo-review-dock .innfo-dock-drafts')
+    if (dockDrafts) dockDrafts.textContent = 'Drafts: ' + (draftCount || 0)
 
     banner.appendChild(title)
     banner.appendChild(version)
@@ -18952,17 +18966,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
       '</label>' +
       '<div data-innfo="errors" style="display: none;"></div>' +
-      '<h3>Proposed Changeset (_changes_NN.md)</h3>' +
-      '<textarea data-innfo="changeset-preview" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
       '<button data-innfo="copy-changeset-prompt" type="button">Copy changeset</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
-      '<h3>Instructions</h3>' +
+      '<details class="innfo-modal-details">' +
+      '<summary>View generated changeset &amp; prompt</summary>' +
+      '<h4>Changeset content (_changes_NN.md)</h4>' +
+      '<textarea data-innfo="changeset-preview" readonly></textarea>' +
+      '<h4>Instructions</h4>' +
       '<pre data-innfo="instructions"></pre>' +
-      '<h3>Agent prompt</h3>' +
-      '<pre data-innfo="agent-prompt"></pre>'
+      '<h4>Agent prompt</h4>' +
+      '<pre data-innfo="agent-prompt"></pre>' +
+      '</details>'
 
     root.appendChild(modal)
 
@@ -19008,6 +19025,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     })
     dock.appendChild(changesBtn)
+
+    var dockDraftsEl = active.createElement('span')
+    dockDraftsEl.className = 'innfo-dock-drafts'
+    dockDraftsEl.textContent = 'Drafts: 0'
+    dock.appendChild(dockDraftsEl)
 
     // Open button (Export changes)
     var openBtn = active.createElement('button')
