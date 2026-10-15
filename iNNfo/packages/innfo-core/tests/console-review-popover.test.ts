@@ -71,10 +71,13 @@ describe('console-review-popover (annotation)', () => {
     vi.restoreAllMocks()
   })
 
-  it('card anchor opens a popover offering comment and delete (no target.field)', () => {
+  it('cards expose no annotate anchor; tag proposals open a comment-only popover', () => {
     enableReview()
     const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
-    const anchor = card.querySelector('[data-innfo-ctl="card-anchor"]') as HTMLElement
+    // The card-level annotate anchor was retired: element edits/comments go
+    // through the one KU modal.
+    expect(card.querySelector('[data-innfo-ctl="card-anchor"]')).toBeNull()
+    const anchor = card.querySelector('[data-innfo-ctl="tag-add"]') as HTMLElement
     expect(anchor).not.toBeNull()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
@@ -84,7 +87,7 @@ describe('console-review-popover (annotation)', () => {
       b.getAttribute('data-kind'),
     )
     expect(kinds).toContain('comment')
-    expect(kinds).toContain('delete')
+    expect(kinds).not.toContain('delete')
     expect(kinds).not.toContain('correction')
   })
 
@@ -141,19 +144,15 @@ describe('console-review-popover (annotation)', () => {
     expect(d.element_slug).toBe('slimer')
   })
 
-  it('card comment saves without a field', () => {
+  it('element comment saves through the KU modal with no field', () => {
     enableReview()
-    const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
-    ;(card.querySelector('[data-innfo-ctl="card-anchor"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
-    const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
-    ;(pop.querySelector('.innfo-popover-kind[data-kind="comment"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
-    const ta = pop.querySelector('textarea') as HTMLTextAreaElement
+    const ctl = controllers[controllers.length - 1]
+    expect(ctl.openEdit({ elementId: 'threat-slimer', comment: true })).toBe(true)
+    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    expect(modal).not.toBeNull()
+    const ta = modal.querySelector('.innfo-edit-form-comment textarea') as HTMLTextAreaElement
     ta.value = 'looks fine'
-    ;(pop.querySelector('.innfo-popover-save') as HTMLElement).dispatchEvent(
+    ;(modal.querySelector('.innfo-edit-btn-save') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
 
@@ -166,7 +165,12 @@ describe('console-review-popover (annotation)', () => {
   it('Escape closes the popover without saving and restores focus to the anchor', () => {
     enableReview()
     const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
-    const anchor = card.querySelector('[data-innfo-ctl="card-anchor"]') as HTMLElement
+    // The tag row lives in the card body, which starts collapsed; expand it so
+    // the anchor is focusable (focus restoration is what this test checks).
+    const toggle = card.querySelector('.innfo-card-toggle') as HTMLElement
+    if (toggle) toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+    const anchor = card.querySelector('[data-innfo-ctl="tag-add"]') as HTMLElement
+    anchor.focus()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
     const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
