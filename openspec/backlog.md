@@ -1063,3 +1063,257 @@ S3b group 10 (declared media rendering) shipped with no sample able to exercise 
 The maintainer is considering fusing markers with tags and wants a general review of the concept before touching individual defects, which are tolerated meanwhile. Known issues from the S3b review (recorded in the archived S3 design under "S3b review follow-ups"): the domain console merges marker and matrix declarations by name across bluepriNNts and the first one wins (a `Status` marker declared differently in two bluepriNNts offers the wrong values in the second model); the boolean matrix cell proposes `false` on uncheck instead of the blank or `-` convention; `resolveKnowledgeModel` picks the first match when two models share a basename. Open product questions: should R-MM-08 (a cell outside the declared values) become an apply-time rejection, and should a boolean cell propose `true` or the declared `Assumes`.
 
 **Suggested trigger:** `/sdd-explore markers-review`.
+
+---
+
+(the video-script model is on `dev`).
+
+---
+
+## `feature/console-element-reorder` — drag-and-drop element ordering in the Model Explorer (needs a `reorder` changeset op)
+
+**Type:** functional · **Size:** medium · **Status:** open · **Added:** 2026-10-14
+
+**Why:** the domain console renders each concept's elements as an ordered table (Model
+Explorer), and that order is the document order — the sequence of the
+`## NN <Concept>: <Name>` sections in the model body. Today the order can only change
+through the agent or a hand edit; there is no way to drag an element to a new position.
+The Vue editor's central panel already did exactly this: `ConceptTableView.vue` carries a
+grip-drag (`onDragStart`/`onDrop` → `knowledgeStore.moveChildToIndex`,
+`knowledgeStore.ts:545`), covered by a test that asserts the reorder
+(`ConceptTableView.test.ts:135`). The S3a audit classified that component **in console →
+Model Explorer** (`2026-10-13-s3-domain-console-and-edit-modal/audit.md:100`), so the
+affordance is expected to survive the editor's retirement (S5). But the console cannot yet
+express it: it is read-only (D13), every graph change must be a changeset (D8), and the op
+enum (`iNNfo/packages/innfo-core/src/changeset/types.ts:6-13`, mirrored by the `changes`
+bluepriNNt `op` select) is `[update_field, add_element, remove_element, rename_element,
+rename_concept, update_matrix_cell, comment]` — there is **no reorder op**. S6 lists
+"No reorder op" as an explicit non-goal (`2026-10-13-s6-console-regeneration-and-propose/
+proposal.md:60`).
+
+**Behaviour (as requested):** in the console's Model Explorer element table, a row (or its
+drag grip) can be dragged within its concept to a new index and the resulting order is
+proposed as a change and persisted — never written directly to the file. The list MUST NOT
+be draggable while a sort is active (the editor's `isSorted` guard): a sorted view has no
+meaningful drop target.
+
+**Approach (open):** two halves that must be designed together.
+
+1. **A `reorder` changeset op** — e.g. `move_element` (`concept` + `slug` + target index) or
+   an explicit ordered `slugs[]` list for the concept. Applied by the engine as a body-section
+   reorder; it must be sealed, partitioned, conflict-checked (a concurrent insert/remove of a
+   sibling invalidates a bare index) and reversible through the snapshot. The order
+   representation is the open decision: today document order is the *only* order (no stored
+   index field), so the op rewrites section order — confirm the serializer round-trip
+   preserves order and that no consumer sorts implicitly.
+2. **The Model Explorer affordance + payload** — the console payload must expose sibling order
+   for the table to render and drop against; a drop produces a `proposed` change through the
+   S6a propose path rather than a direct write.
+
+**Depends on:** S3b (the Model Explorer port) and S6a/S6b (the propose/apply path and the op
+declarator). Do **not** fold this into S6: S6 deliberately bounds its op set; give the op its
+own change so the enum, the blueprint and the console move together.
+
+**Suggested trigger:** `/sdd-new console-element-reorder` (after S6 lands).
+
+---
+
+(the video-script model is on `dev`).
+
+---
+
+## `refactor/legacy-terminology-sweep` — complete audit of retired vocabulary + the `innfo-` prefix, with every update site
+
+**Type:** refactor / analysis · **Size:** large (audit first, then release-bound slices) · **Status:** open · **Added:** 2026-10-15
+
+**Why:** the repo has renamed a lot of vocabulary and prefixes over time (`workspace` → `domaiNN`,
+`template`/`app` → `bluepriNNt`, `model` → `kNNowledge`, `template_version` → `blueprint_version`,
+`model_version` → `knowledge_version`, `actioNN` → `skills`/`ageNNt`,
+`specs/templates/` → `specs/bluepriNNts/`, `sources/original/` → `sources/import/`, and the
+`innfo-` distribution prefix) — but there is no single, complete inventory of where the old terms
+still live and what each one drags along. The maintainer wants that analysis: find **every** legacy
+term and **every** site that has to be updated, before any mechanical sweep.
+
+**What already exists (do NOT reinvent — build on it):**
+
+- `iNNfo/specs/vocabulary.json` — canonical dictionary with `terms.*.aliases` / `excludes`,
+  `terms.*.planned_migrations`, and a `retired_identifiers[]` table (23 entries: paths, keys,
+  keywords, env vars, tag namespaces, entrypoint, skill, MCP tool names).
+- `docs/innfo/documentation/vocabulary.md` — the rendered equivalent.
+- `scripts/lib/legacy-write-guard.js` — token table for retired vocabulary in **runtime source
+  only** (`iNNfo/packages/*/src`, `scripts/`, `skills/*/scripts`), with a reasoned allowlist.
+  Explicitly OUT of scope: docs, `openspec/**`, SKILL.md prose, tests, `docs/innfo/cdn/**`, frozen
+  `_V_` files, and vocabulary files.
+- `scripts/lib/nn-name-regex-guard.js` (the `_NN.md`/stamp naming contract) and
+  `legacy-ledger.yaml` (`legacy:` markers ↔ ledger entries).
+
+**The gap this item closes:** the guard covers runtime source alone; every other surface is
+un-inventoried, and the `innfo-` distribution prefix is in **no** token table at all. The audit
+MUST cover every surface and classify each hit as **live violation / frozen history / intentional
+legacy (ledgered) / prose-only**.
+
+**Term families to sweep (each with its update sites):**
+
+1. **`iNNfo` term** — the canonical Level-1 name (`vocabulary.json`). Settle explicitly whether the
+   L1 term is in scope, or only the distribution prefix; do not conflate them.
+2. **`innfo-` prefix** — `manifest/source.yaml` names + `ref_key`s (`innfo-mcp`, `innfo-console`,
+   `-shell`, `-export-cli`, `-export-views`, `-ui-css`, `-payload-mirror`); release tag families
+   `innfo-mcp-v*` / `innfo-console-v*` and the `release.yml` triggers; npm packages
+   `@cognnitive/innfo-{core,mcp,console,editor}` and the `@cognnitive/innfo-core` dep range synced
+   by `scripts/sync-versions.mjs`; CDN paths `docs/innfo/cdn/innfo-mcp-v*.bundle.js`;
+   `docs/use/freshness.json` pins and `docs/use/manifest*.md`; the `@innfo-console-v*` pin in the
+   generated console shells; repo dirs `iNNfo/packages/innfo-*`; docs under `docs/innfo/`.
+3. **L2 vocabulary** — `template` / `app` → `bluepriNNt` (`app` is still a documented alias;
+   `refactor/identifier-migration` tracks the mechanical migration).
+4. **L3 vocabulary** — `model` → `kNNowledge`, `model_version` → `knowledge_version`,
+   `workspace` → `domaiNN`, `workspace_NN.md` → `domaiNN_NN.md`, `models_dir` → `knowledge_dir`,
+   `templates_dir` → `blueprints_dir`, `target_template` → `target_blueprint`, `type:: model` →
+   `type:: knowledge`.
+5. **Paths / dirs (incl. lowercase legacy forms)** — `specs/templates/`, `models/`, `knowledge/`,
+   `blueprints/`, `export/`, `sources/original/`, `sources/nn/`, `sources/export/`,
+   `sources/archive/`, `~/.agents/templates`.
+6. **Tooling names** — `actioNN` → `ageNNt` / `skills`, `FORMAT` → `iNNfo` (verify), the 13 renamed
+   MCP tool names, env vars (`INNFO_MODELS_DIR` → `INNFO_DOMAIN_DIR`).
+
+**Required output (the analysis):** for each family, a table of **every** site — path, line or
+segment, surface (code / spec / SKILL.md / docs / sample / test / fixture / generated bundle /
+manifest / tag / package name / prose), classification, and the intended replacement or
+"frozen, do not touch". Plus a decision log for the sites that are permanent history (pinned CDN
+URLs, frozen `_V_` specs, archived `openspec/` changes, git tags) versus the ones that need an
+alias/redirect window.
+
+**Method:** drive the inventory from `vocabulary.json` (the machine list) plus a fresh repo-wide
+search per token *including the surfaces the guard excludes*, then diff against
+`legacy-write-guard`'s token table to surface what the guard does not catch. After the audit,
+decide whether to extend the guard's token table and scan scope (e.g. add the `innfo-` family).
+
+**Relationship to other items:** overlaps `refactor/identifier-migration` (mechanical L2 migration)
+and `chore/console-feedback-vocabulary-alignment` (`model_*` → `knowledge_*` sweep). On start,
+decide whether this item is the umbrella that folds them or the audit that feeds them.
+
+**Why not a blind find-and-replace:** identifiers are resolution-bearing —
+`template-release-tagging` and `tag-driven-release-workflow` pin the tag families; pinned CDN URLs
+are immutable by design and older tags keep resolving with no redirect; `validate-manifest.js`
+resolves tags over the GitHub API. Any rename needs an alias/repin strategy and a release of each
+renamed family. Sequence after `refactor/console-bundle-derived-on-release` (deriving the bundles at
+release removes most of the committed-filename churn).
+
+**Approach (open):** for the prefix, settle (a) a one-way fixed rename `innfo-` → `nn-` (the
+maintainer's stated direction) versus (b) a domaiNN-configurable prefix (not obviously coherent:
+`manifest/source.yaml` is global and published once). The audit itself is independent of this
+choice.
+
+**Suggested trigger:** `/sdd-explore legacy-terminology-sweep`.
+
+---
+
+(the video-script model is on `dev`).
+
+---
+
+## 35. `chore/skills-blueprints-hygiene-followups` — three items found while auditing distributed skills + Level-2 bluepriNNts
+
+**Type:** chore / decision · **Size:** small-medium · **Added:** 2026-10-13
+
+**Why:** a read-only audit of the distributed skills (`manifest/source.yaml`) and the
+Level-2 bluepriNNts surfaced three follow-ups. None blocks a release, none is urgent.
+Recorded here so they are not lost; deliberately deferred — do NOT start now.
+
+- **`sources` bluepriNNt still names retired folders (drift).** `iNNfo/specs/bluepriNNts/sources/spec_NN.md`
+  defines `raw_path` (lines 59, 116), `source_model` (80, 121) and `origin_uri` (115) with
+  `sources/original/` and `sources/nn/`, both retired. The bluepriNNt is the SSOT that agents
+  and `innfo-mcp` read, so dead paths can be written/validated against. Fix needs a
+  `template_version` bump + `sync:versions` + `canonical-registry.ts` + `catalog.json`
+  regeneration; also check `visual-catalog`, `video` and `_samples_nn/sources_NN.md` for the
+  same wording. *(Same debt already noted under item 28; kept here as the cross-reference.)*
+
+- **`frozen` partition of the bluepriNNt catalog is empty in practice (drift).**
+  `scripts/blueprint-catalog.mjs` only catalogs an entry that carries `blueprint_version`
+  (line 132) and `continue`s with a warning otherwise (133-136) — BEFORE the `FROZEN_NAMES`
+  branch (158-162). The frozen files `base`, `cogNNitive` and `workspace_spec_NN` carry
+  `template_version`, not `blueprint_version`, so the committed
+  `iNNfo/specs/bluepriNNts/catalog.json` ships `"frozen": {}` and the three appear only as
+  warnings — contradicting the `base-composite-template` spec, which requires them under a
+  populated `frozen` object. The unit test misses it because its fixtures set
+  `blueprint_version` on those names (`scripts/blueprint-catalog.test.mjs:49,53,54`). The fix
+  must live in the generator: the frozen files MUST stay byte-identical, so they cannot be
+  edited to add the missing field.
+
+- **`nn-domain-git` is absent from `manifest/source.yaml` (decision).** Deliberate, not an
+  oversight: it is maintained as an Alpha/internal capability
+  (`openspec/changes/2026-10-01-nn-domain-git-workflow/proposal.md:18-19` — "not distributed
+  … until formal test coverage and CLI orchestration scripts are implemented"), and
+  registering it would force a new Canonical Skills docs page and fail `checkSkillPageSet`
+  (`openspec/changes/archive/2026-10-09-nn-skills-hygiene/design.md:92-94`). Decide whether to
+  distribute it (manifest entry + docs page + version pin) or leave it internal. Note
+  `disable-model-invocation: true` is NOT the distinguisher — `nn-site-generator` and
+  `nn-skills-lifecycle` carry it too and ARE registered.
+
+**Suggested trigger:** `/sdd-new skills-blueprints-hygiene-followups`.
+
+---
+
+(the video-script model is on `dev`).
+
+---
+
+## 35. `feature/business-guided-completion` — a guided-completion procedure for the `business` blueprint (order + methodology + gates)
+
+**Type:** functional · **Size:** medium · **Added:** 2026-10-13
+
+**Why:** the `business` composite blueprint already ships a getting-started procedure
+(`iNNfo/specs/bluepriNNts/business/procedures/usage_procedures_NN.md`, surfaced in the
+MCP and in the domain console as "Getting started"), but it only sequences the parent
+concepts (Open model → Describe the Business → Organization & People → Projects →
+Metrics & Goals → Run included procedures). It gives no order *within* each concept, no
+completion gates, and no link from each step to the methodology that applies. Meanwhile
+the `business-model` blueprint already carries, per concept, a `# Concept Guidance
+Documentation` block with `### Summary` / `### Description` / `### Methodologies`
+(Business Model Canvas, Value Proposition Canvas, SWOT, Porter's Five Forces, Balanced
+Scorecard, PESTEL, Stakeholder Analysis/Mapping, JTBD, Empathy Map, STP, RFM, …) and
+`### Prompts` — so the best-practice content exists, but as passive documentation with no
+executable flow. A user opening a fresh business model has no guided path from an empty
+file to a coherent, methodology-backed model.
+
+**Behaviour (as requested):** a procedure that walks the user through completing a
+business model in a logical order, taking the best practices / methodologies into
+account. Two candidate orderings, to be decided explicitly (do NOT silently pick one):
+people/stakeholder-first (participants → their objectives → project objectives → canvas
+boxes) vs offer-first (BMC/Osterwalder: segments → value props → problems → … →
+activities/resources). The chosen order and its rationale MUST be stated in the procedure.
+
+**Key findings from the 2026-10-13 session (verified against the tree):**
+
+- **Discovery asymmetry.** Agents/MCP (`list_blueprint_procedures` →
+  `discoverTransitiveAssets`, `innfo-mcp/src/tools/spec.ts` L759-803) auto-discover any
+  `*.md` under `<blueprint>/procedures/`. The **domain console** does NOT scan the folder:
+  `resolveConsoleSchema` → `proceduresOf` (`innfo-core/src/console/schema-resolution.ts`
+  L84-98) reads only the frontmatter `procedures:` array plus a synthesized `usage` entry
+  when `procedures/usage_procedures_NN.md` exists. So console visibility needs an explicit
+  frontmatter entry; agent visibility does not.
+- **`business` is a composite** that `includes` business-model, analysis, organization,
+  projects, metrics and already inherits 7 procedures transitively (coherence-audit,
+  prioritize-experiments, skill-gaps, team-directory, critical-path, status-report, plus
+  analysis's `usage`). It declares no `procedures:` of its own.
+- **Template-immutability guard.** Adding a file under `procedures/` does NOT trip
+  `scripts/guard-template-immutability.js` (`isCanonicalBlueprint` excludes `/procedures/`,
+  `/samples/`, `/assets/` — test case 8). Editing `business/spec_NN.md` (frontmatter
+  `procedures:`), however, DOES require a `blueprint_version` bump (V_0-4-1 → V_0-4-2).
+- **Adjacent drift:** `metrics/spec_NN.md` prose promises a "Create Projections" procedure,
+  but the spec declares no `procedures:` block at all; `list_blueprint_procedures` returns
+  none for `metrics`. Reconcile while in this area (separate slice or note).
+
+**Approach (open) — decide before writing:**
+
+1. **Procedure vs skill boundary.** `nn-innfo` (Phase B co-creation) already owns the
+   conversational wizard. Keep the split: the procedure is the declarative spec of the
+   ORDER and the COMPLETION GATES; the skill drives interaction and MCP mutations. Put
+   interview logic in the procedure and the two will drift.
+2. **Single source of truth.** Do not copy methodology text into the procedure —
+   reference each concept's Guidance (methodology + prompt). Duplicating guarantees drift.
+3. **Shape.** Start from the existing `usage_procedures_NN.md` and enrich it, or add a
+   distinct `<name>_procedures_NN.md`; either way declare it in `business/spec_NN.md`
+   frontmatter and bump `blueprint_version`. Follow the existing granular Work style
+   (parent + child tasks with `next::`/`parent::`), not a monolithic 60-step doc.
+
+**Suggested trigger:** `/sdd-explore business-guided-completion`.
