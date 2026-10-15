@@ -36,8 +36,8 @@ Decision needed before apply: No - the maintainer sign-off in 1.1 was given on 2
 ## 3. Docs & release
 
 - [x] 3.1 Docs: remove legacy-detection mentions from `docs/innfo`, `docs/skills` and `docs/use`.
-- [ ] 3.2 [maintainer] Release core/MCP as a MINOR (not patch): merge, tag, pin.
-- [ ] 3.3 Rollback: revert the cleanup commit (restores the quarantine and entries).
+- [x] 3.2 Released 2026-10-15: innfo-mcp-v0.23.0 (core 0.23.0 ships in the same bundle) and skills-v2.22.1.
+- [x] 3.3 Rollback: revert the cleanup commit becc3059 (not needed).
 
 ---
 
