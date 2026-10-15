@@ -1,14 +1,14 @@
 ---
 level: 3
 parent_spec:
-  name: "organization_V_0-3-3"
+  name: "organization_V_0-3-4"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/organization/spec_NN.md"
-knowledge_version: "V_0-3-3"
+knowledge_version: "V_0-3-4"
 title: "Ghostbusters Inc. Organization Model"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
 
 # NN Organization
 

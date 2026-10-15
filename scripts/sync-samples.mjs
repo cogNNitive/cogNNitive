@@ -24,47 +24,47 @@ const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 export const SAMPLE_MAPPINGS = [
   {
     source: 'Ghostbusters_analysis_NN.md',
-    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-3-3_analysis_NN.md')
+    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-3-4_analysis_NN.md')
   },
   {
     source: 'Ghostbusters_business_NN.md',
-    target: path.join('business', 'samples', 'Ghostbusters_V_0-4-1_business_NN.md')
+    target: path.join('business', 'samples', 'Ghostbusters_V_0-4-2_business_NN.md')
   },
   {
     source: 'Ghostbusters_business-model_NN.md',
-    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-3-1_business-model_NN.md')
+    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-3-2_business-model_NN.md')
   },
   {
     source: 'Ghostbusters_documentation_NN.md',
-    target: path.join('documentation', 'samples', 'Ghostbusters_V_0-3-2_documentation_NN.md')
+    target: path.join('documentation', 'samples', 'Ghostbusters_V_0-3-3_documentation_NN.md')
   },
   {
     source: 'Ghostbusters_innovation_NN.md',
-    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-3-3_innovation_NN.md')
+    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-3-4_innovation_NN.md')
   },
   {
     source: 'Ghostbusters_metrics_NN.md',
-    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-4-3_metrics_NN.md')
+    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-4-4_metrics_NN.md')
   },
   {
     source: 'Ghostbusters_organization_NN.md',
-    target: path.join('organization', 'samples', 'Ghostbusters_V_0-3-3_organization_NN.md')
+    target: path.join('organization', 'samples', 'Ghostbusters_V_0-3-4_organization_NN.md')
   },
   {
     source: 'Ghostbusters_procedures_NN.md',
-    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-3-2_procedures_NN.md')
+    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-3-3_procedures_NN.md')
   },
   {
     source: 'Ghostbusters_projects_NN.md',
-    target: path.join('projects', 'samples', 'Ghostbusters_V_0-3-3_projects_NN.md')
+    target: path.join('projects', 'samples', 'Ghostbusters_V_0-3-4_projects_NN.md')
   },
   {
     source: 'Ghostbusters_repository_NN.md',
-    target: path.join('repository', 'samples', 'Ghostbusters_V_0-2-0_repository_NN.md')
+    target: path.join('repository', 'samples', 'Ghostbusters_V_0-2-1_repository_NN.md')
   },
   {
     source: 'Ghostbusters_design-presets_NN.md',
-    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-3-1_design-presets_NN.md')
+    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-3-2_design-presets_NN.md')
   }
 ];
 

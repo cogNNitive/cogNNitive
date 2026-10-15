@@ -229,9 +229,9 @@ Reviews the pull request.
   it('migrated samples use the unified syntax with no legacy markers', () => {
     for (const p of [
       'bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md',
-      'bluepriNNts/organization/samples/Ghostbusters_V_0-3-3_organization_NN.md',
-      'bluepriNNts/procedures/samples/Ghostbusters_V_0-3-2_procedures_NN.md',
-      'bluepriNNts/projects/samples/Ghostbusters_V_0-3-3_projects_NN.md',
+      'bluepriNNts/organization/samples/Ghostbusters_V_0-3-4_organization_NN.md',
+      'bluepriNNts/procedures/samples/Ghostbusters_V_0-3-3_procedures_NN.md',
+      'bluepriNNts/projects/samples/Ghostbusters_V_0-3-4_projects_NN.md',
     ]) {
       const content = readSpec(p)
       const body = content.replace(/^---[\s\S]*?---\n/, '')
@@ -254,7 +254,7 @@ Reviews the pull request.
   })
 
   it('parses the Ghostbusters procedures sample with key:: value properties', () => {
-    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-3-2_procedures_NN.md')
+    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-3-3_procedures_NN.md')
     const parsed = parseKnowledge(content)
     const work = parsed.elements.get('Work')!
     const triage = work.find((e) => e.name === 'Emergency Call Triage')!
@@ -267,7 +267,7 @@ Reviews the pull request.
   })
 
   it('parses the migrated Ghostbusters organization sample with scope properties', () => {
-    const content = readSpec('bluepriNNts/organization/samples/Ghostbusters_V_0-3-3_organization_NN.md')
+    const content = readSpec('bluepriNNts/organization/samples/Ghostbusters_V_0-3-4_organization_NN.md')
     const parsed = parseKnowledge(content)
     const roles = parsed.elements.get('Roles')!
     expect(roles).toHaveLength(5)
@@ -276,7 +276,7 @@ Reviews the pull request.
   })
 
   it('parses the Ghostbusters projects sample with dependencies and RACI matrix', () => {
-    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-3-3_projects_NN.md')
+    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-3-4_projects_NN.md')
     const parsed = parseKnowledge(content)
     const tasks = parsed.elements.get('Task')!
     expect(tasks).toHaveLength(4)

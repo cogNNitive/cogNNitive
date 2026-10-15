@@ -1,14 +1,14 @@
 ---
 level: 3
 parent_spec:
-  name: "design-presets_V_0-3-1"
+  name: "design-presets_V_0-3-2"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/design-presets/spec_NN.md"
-knowledge_version: "V_0-3-1"
+knowledge_version: "V_0-3-2"
 title: "Ghostbusters Inc. Visual Design Presets"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
 
 # NN index
 
