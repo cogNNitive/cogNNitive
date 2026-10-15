@@ -310,7 +310,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   changes: {
     name: 'changes',
-    version: 'V_0-3-0',
+    version: 'V_0-3-1',
     aliases: [
       'changes',
       'changes_spec_nn',

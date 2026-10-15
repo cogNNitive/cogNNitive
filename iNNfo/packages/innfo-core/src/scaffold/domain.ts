@@ -40,7 +40,7 @@ export interface DomainScaffoldPlan {
 }
 
 const NOTICE = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).`
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
 
 export function planDomainScaffold(input: DomainScaffoldInput): DomainScaffoldPlan {
   const name = input.name.trim()

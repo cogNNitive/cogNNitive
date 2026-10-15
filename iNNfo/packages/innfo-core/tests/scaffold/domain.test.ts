@@ -31,6 +31,9 @@ describe('planDomainScaffold', () => {
     expect((parsed.frontmatter as Record<string, unknown>).workspace_id).toBe(slugify('ACME Corp'))
     expect(plan.workspaceId).toBe(slugify('ACME Corp'))
     expect(manifest.content).toContain('> [!NOTE]')
+    expect(manifest.content).toContain(
+      '[cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
+    )
   })
 
   it('lists no kNNowledge or Tags entries', () => {
