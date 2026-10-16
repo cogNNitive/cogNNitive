@@ -195,3 +195,34 @@ describe('schema authoring on a Level-3 model is refused', () => {
     expect(existsSync(changesDir)).toBe(false)
   })
 })
+
+describe('freeze_slugs on an already frozen model', () => {
+  it('is an applied no-op: no model write and no version burned', async () => {
+    await applyChange(root, 'strategy', 'freeze_slugs', {})
+    expect(await versionOf('strategy')).toBe('V_0-1-1')
+    const frozen = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+
+    const res = await applyChange(root, 'strategy', 'freeze_slugs', {})
+    expect(res.success).toBe(true)
+    expect(res.status).toBe('applied')
+    expect(await versionOf('strategy')).toBe('V_0-1-1')
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(frozen)
+    const files = (await readdir(changesDir)).sort()
+    const doc = parseChangeset(await readFile(join(changesDir, files[files.length - 1]), 'utf-8'))
+    expect(doc.changes[0].resolution).toMatch(/already frozen/i)
+    expect(Object.keys(doc.frontmatter.models ?? {})).toEqual([])
+  })
+})
+
+describe('Level-2 bump_version validation', () => {
+  it('refuses to write a blueprint that does not validate', async () => {
+    // A blueprint whose parent cannot be resolved does not validate.
+    const file = join(knowledgeDir, 'tpl_NN.md')
+    await writeFile(file, BLUEPRINT.replace(/^parent_spec:[^]*?(?=^---$)/m, ''), 'utf-8')
+    const before = await readFile(file, 'utf-8')
+    const res = await applyChange(root, 'tpl', 'bump_version', { bump: 'patch' })
+    expect(res.success).toBe(false)
+    expect(res.errors!.length).toBeGreaterThan(0)
+    expect(await readFile(file, 'utf-8')).toBe(before)
+  })
+})

@@ -70,48 +70,67 @@ afterEach(async () => {
 })
 
 describe('a rejected changeset is persisted', () => {
-  it('an unresolved citation persists status rejected and a resolution', async () => {
-    const written = await writeProposedChangeset(root, {
-      changes: [
-        {
-          id: 'c-01',
-          op: 'update_field',
-          target: 'strategy@Vision&statement',
-          to: 'x',
-          sources: 'sources/import/missing.md',
-        },
-      ],
-    })
-    const res = await applyChange(root, written.path)
-    expect(res.success).toBe(false)
-    expect(res.status).toBe('rejected')
-
-    const doc = parseChangeset(await readFile(written.absolutePath, 'utf-8'))
-    expect(doc.frontmatter.status).toBe('rejected')
-    expect(String(doc.frontmatter.resolution)).toContain('CITATION_UNRESOLVED')
-    expect(doc.changes[0].status).toBe('rejected')
-    expect(doc.changes[0].resolution).toContain('CITATION_UNRESOLVED')
-  })
-
-  it('a rejected changeset is never re-applied and returns the recorded rejection', async () => {
+  it('an unresolved citation is returned as rejected but the file stays proposed and can be retried', async () => {
     const written = await writeProposedChangeset(root, {
       changes: [
         { id: 'c-01', op: 'update_field', target: 'strategy@Vision&statement', to: 'x', sources: 'sources/import/missing.md' },
       ],
     })
+    const before = await readFile(written.absolutePath, 'utf-8')
+    const res = await applyChange(root, written.path)
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors![0].code).toBe('CITATION_UNRESOLVED')
+    expect(await readFile(written.absolutePath, 'utf-8')).toBe(before)
+    expect(parseChangeset(before).frontmatter.status).toBe('proposed')
+
+    // The source arrives later: the same changeset now applies.
+    await mkdir(join(root, 'sources', 'import'), { recursive: true })
+    await writeFile(join(root, 'sources', 'import', 'missing.md'), '# Now here', 'utf-8')
+    const again = await applyChange(root, written.path)
+    expect(again.success).toBe(true)
+    expect(again.status).toBe('applied')
+  })
+
+  it('a validation failure is returned-only: the file stays proposed', async () => {
+    const written = await writeProposedChangeset(root, {
+      changes: [{ id: 'c-01', op: 'update_field', target: 'strategy@Vision&statement', to: 'x' }],
+    })
+    await writeFile(join(knowledgeDir, 'strategy_NN.md'), MODEL.replace('level: 3', 'level: 9'), 'utf-8')
+    const before = await readFile(written.absolutePath, 'utf-8')
+    const res = await applyChange(root, written.path)
+    expect(res.success).toBe(false)
+    expect(await readFile(written.absolutePath, 'utf-8')).toBe(before)
+  })
+
+  it('a rejected changeset with unchanged content returns the recorded rejection', async () => {
+    const written = await writeProposedChangeset(root, {
+      changes: [{ id: 'c-01', op: 'add_element', target: 'strategy@Nope', concept: 'Nope', name: 'Ghost' }],
+    })
     await applyChange(root, written.path)
     const before = await readFile(written.absolutePath, 'utf-8')
-    const modelBefore = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
-
-    // Even once the missing source appears, the rejection is final.
-    await mkdir(join(root, 'sources', 'import'), { recursive: true })
-    await writeFile(join(root, 'sources', 'import', 'missing.md'), '# Now here\n', 'utf-8')
+    expect(parseChangeset(before).frontmatter.status).toBe('rejected')
     const again = await applyChange(root, written.path)
     expect(again.success).toBe(false)
-    expect(again.status).toBe('rejected')
-    expect(again.errors![0].message).toContain('CITATION_UNRESOLVED')
+    expect(again.errors![0].code).toBe('CHANGESET_REJECTED')
     expect(await readFile(written.absolutePath, 'utf-8')).toBe(before)
-    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(modelBefore)
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(MODEL)
+  })
+
+  it('an edited rejected changeset is re-sealed and re-enters apply', async () => {
+    const written = await writeProposedChangeset(root, {
+      changes: [{ id: 'c-01', op: 'add_element', target: 'strategy@Nope', concept: 'Nope', name: 'Ghost' }],
+    })
+    await applyChange(root, written.path)
+    const edited = (await readFile(written.absolutePath, 'utf-8')).replaceAll('Nope', 'Work')
+    await writeFile(written.absolutePath, edited, 'utf-8')
+    const res = await applyChange(root, written.path)
+    expect(res.errors ?? []).toEqual([])
+    expect(res.status).toBe('applied')
+    const doc = parseChangeset(await readFile(written.absolutePath, 'utf-8'))
+    expect(doc.frontmatter.status).toBe('applied')
+    expect(doc.frontmatter.resolution).toBeUndefined()
+    expect(doc.changes[0].status).toBe('applied')
   })
 
   it('a mutation the bluepriNNt refuses persists the rejection and keeps earlier annotations out', async () => {

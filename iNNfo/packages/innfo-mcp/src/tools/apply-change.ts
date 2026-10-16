@@ -43,7 +43,7 @@ import { writeProposedChangeset } from './propose-changeset.js'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 import { loadKnowledge, saveKnowledge, resolveBlueprintForKnowledge } from './knowledge-io.js'
-import { DEFAULT_WORKSPACE_IGNORE } from './validate.js'
+import { DEFAULT_WORKSPACE_IGNORE, validateBlueprint } from './validate.js'
 
 export interface ApplyChangeResult {
   success: boolean
@@ -151,10 +151,12 @@ async function findAllWorkspaceModelFiles(
 /**
  * Apply the `bump_version` operation to a Level-2 bluepriNNt: set
  * `frontmatter.blueprint_version` in place (the live filename is invariant) and
- * reject-without-writing on invalid args. A Level-3 model is never bumped here:
- * its bump is a `bump_version` changeset operation.
+ * validate before writing, and reject-without-writing on invalid args or a failed
+ * validation. A Level-3 model is never bumped here: its bump is a `bump_version`
+ * changeset operation.
  */
 async function bumpBlueprintVersion(
+  rootDir: string,
   filePath: string,
   model: ParsedKnowledge,
   args: Record<string, unknown>,
@@ -180,12 +182,17 @@ async function bumpBlueprintVersion(
     model.frontmatter.blueprint_version = next.version
   }
 
+  const validationResult = await validateBlueprint(rootDir, undefined, serializeKnowledge(model))
+  if (!validationResult.valid) {
+    return { success: false, errors: validationResult.errors, warnings: validationResult.warnings }
+  }
+
   try {
     await saveKnowledge(filePath, model)
   } catch (err) {
     return { success: false, errors: [{ path: '', message: `Failed to write model: ${err}` }] }
   }
-  return { success: true, model, newPath: filePath }
+  return { success: true, model, newPath: filePath, warnings: validationResult.warnings }
 }
 
 /**
@@ -248,7 +255,14 @@ function altersNormativeLines(input: string, writeBack: string): boolean {
 function maintenanceChangeProblem(
   change: ChangeItem,
   model: ParsedKnowledge,
+  createdInThisApply = false,
 ): { code: string; message: string } | null {
+  if (change.op === 'bump_version' && createdInThisApply) {
+    return {
+      code: 'BUMP_ON_CREATED_MODEL',
+      message: 'a model created by add_model in the same changeset is not bumped; set its initial knowledge_version on add_model',
+    }
+  }
   if (model.frontmatter.level !== 3) {
     return { code: 'LEVEL3_ONLY', message: `${change.op} applies to a level-3 model only` }
   }
@@ -268,6 +282,13 @@ function maintenanceChangeProblem(
     }
   }
   return null
+}
+
+function hasUnfrozenElements(model: ParsedKnowledge): boolean {
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) if (!el.slugExplicit) return true
+  }
+  return false
 }
 
 function parseTargetAddress(target: string): {
@@ -379,20 +400,24 @@ export async function executeChangesetApply(
       }
     }
 
-    // Persist a rejection that is a property of the proposal (a failed validation, an
-    // unresolved citation, a malformed operation). The write-back starts from the raw
-    // text, so in-memory execution annotations of this run never leak into the file.
-    // Environment and integrity failures (tamper, lock, immutability, missing model or
-    // bluepriNNt) are NOT recorded: they say nothing about the proposal itself.
+    // Persist a rejection that is intrinsic to the proposal (a malformed operation or
+    // add_model, a mutation that can never apply as written). The write-back starts from
+    // the raw text, so in-memory execution annotations of this run never leak into the
+    // file. Causes that depend on workspace state (an unresolved citation, a failed
+    // validation) and environment or integrity failures (tamper, lock, immutability,
+    // missing model or bluepriNNt) are returned as `rejected` but NOT recorded: the file
+    // stays `proposed` and can be retried once the workspace changes.
     const recordRejection = async (
       errors: NonNullable<ApplyChangeResult['errors']>,
       changeId?: string,
       warnings?: ApplyChangeResult['warnings'],
+      persist = true,
     ): Promise<ApplyChangeResult> => {
       const reason = errors
         .map((e) => (e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message))
         .join('; ')
       try {
+        if (!persist) throw new Error('not persisted')
         const fresh = parseChangeset(rawChangeset)
         fresh.frontmatter.status = 'rejected'
         fresh.frontmatter.resolution = reason
@@ -407,7 +432,7 @@ export async function executeChangesetApply(
           await writeFile(resolvedChangesetPath, text, 'utf-8')
         }
       } catch (err) {
-        console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`)
+        if (persist) console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`)
       }
       return {
         success: false,
@@ -421,8 +446,11 @@ export async function executeChangesetApply(
       }
     }
 
-    // A rejected changeset is final: it is never re-applied, its recorded reason is returned.
-    if (csDoc.frontmatter.status === 'rejected') {
+    // A rejected changeset with unchanged content is final: its recorded reason is returned.
+    // An edited one (seal mismatch or removed) re-enters apply and is re-sealed below,
+    // like a `conflict` re-proposal.
+    const wasRejected = csDoc.frontmatter.status === 'rejected'
+    if (wasRejected && csDoc.frontmatter.proposal_sha && verifyProposalSha(csDoc)) {
       const recorded = csDoc.frontmatter.resolution ?? 'The changeset was rejected'
       return {
         success: false,
@@ -441,6 +469,17 @@ export async function executeChangesetApply(
     // EXCEPT when the doc is already in `conflict` status: that is the documented
     // fix-and-retry loop (a previous run annotated status/conflict + resolution
     // and the author then edited the ops), so the edit re-proposes and is re-sealed.
+    if (wasRejected) {
+      csDoc.frontmatter.status = 'proposed'
+      delete csDoc.frontmatter.resolution
+      for (const c of csDoc.changes) {
+        if (c.status === 'rejected') {
+          delete c.status
+          delete c.resolution
+        }
+      }
+      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+    }
     if (!csDoc.frontmatter.proposal_sha) {
       csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
     }
@@ -543,6 +582,8 @@ export async function executeChangesetApply(
             },
           ],
           change.id,
+          undefined,
+          false,
         )
       }
     }
@@ -870,6 +911,19 @@ export async function executeChangesetApply(
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (!entry) continue
 
+      if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
+        const problem = maintenanceChangeProblem(change, entry.model, entry.created)
+        if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
+      }
+
+      // Freezing a fully frozen model changes nothing: an applied no-op that must not
+      // mark the model touched (and so must not burn a version).
+      if (change.op === 'freeze_slugs' && !hasUnfrozenElements(entry.model)) {
+        change.status = 'applied'
+        change.resolution = 'Slugs already frozen; nothing to do'
+        continue
+      }
+
       entry.mutated = true
 
       if (change.op === 'add_model') {
@@ -877,11 +931,6 @@ export async function executeChangesetApply(
         change.status = 'applied'
         change.resolution = `Created model "${change.target}"`
         continue
-      }
-
-      if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
-        const problem = maintenanceChangeProblem(change, entry.model)
-        if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
       }
 
       if (change.op === 'bump_version') {
@@ -1039,7 +1088,18 @@ export async function executeChangesetApply(
         // asked for one, the default patch otherwise. Never both.
         if (entry.bumpLevel) {
           const requested = computeNewVersion(entry.baseVersion, { bump: entry.bumpLevel })
-          if (requested) entry.nextVersion = requested.version
+          if (!requested) {
+            return recordRejection(
+              [
+                {
+                  path: entry.modelSlug,
+                  code: 'INVALID_VERSION',
+                  message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`,
+                },
+              ],
+            )
+          }
+          entry.nextVersion = requested.version
         }
         entry.model.frontmatter.knowledge_version = entry.nextVersion
       }
@@ -1071,6 +1131,7 @@ export async function executeChangesetApply(
           valRes.errors.map((e) => ({ ...e, code: 'VALIDATION_FAILED' })),
           undefined,
           valRes.warnings,
+          false,
         )
       }
     }
@@ -1318,7 +1379,7 @@ export async function applyChange(
     const model = await loadKnowledge(filePath)
     const parent = model.frontmatter.parent_spec as { name?: string } | undefined
     if (model.frontmatter.level === 2) {
-      return bumpBlueprintVersion(filePath, model, opArgs)
+      return bumpBlueprintVersion(rootDir, filePath, model, opArgs)
     }
     if (parent?.name === RECORD_BLUEPRINT) {
       return {
