@@ -349,9 +349,9 @@ The `innfo-mcp` server exposes a deterministic tool set built on `@cognnitive/in
 | `get_spec` | Resolve the iNNfo specification (level-1) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — the URL is never taken from an internal constant |
 | `get_blueprint` | Resolve an iNNfo blueprint (level-2) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — blueprint names/URLs are never hardcoded |
 | `validate_knowledge` | Validate an iNNfo knowledge document against its blueprint. Provide id (file on disk) or content (raw text). The blueprint is resolved from the knowledge parent_spec.url, or from an optional blueprint_url |
-| `apply_change` | Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or legacy intent operations. After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user. |
+| `apply_change` | Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or bare intent operations. Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, set_marker, bump_version on a bluepriNNt) write directly. After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user. |
 | `regenerate_console` | Regenerate the domain console (or one model-scoped console) and open it in a browser tab. Idempotent: an up-to-date console is reported as unchanged. Also the retry path after an apply whose console regeneration failed. The result carries console and next_steps: you MUST relay next_steps.notice to the user. |
-| `propose_changeset` | Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, comment, add_model); the tool does not interpret conversations. Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset. |
+| `propose_changeset` | Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, comment, add_model, freeze_slugs, bump_version); the tool does not interpret conversations. Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset. |
 | `init_domain` | Create an empty, conformant domaiNN container in a new directory: the canonical folders (kNNowledge/, sources/import/, sources/conversations/, conversations/, artifacts/, procedures/, staging/, changes/), a .gitattributes with * -text and a domaiNN_NN.md manifest listing no models. Refuses a directory that exists and is not empty. It is not a changeset; add models afterwards with an add_model changeset (propose_changeset) or init_knowledge. Migration recipe: init_domain for a NEW domain, import the old domain as a source (migrate-domain.js --import-as-source), derive add_model/add_element changes that cite it through sources::, propose_changeset, review, apply_change. |
 | `validate_knowledge_url` | Validate an iNNfo knowledge document fetched from a URL without writing to disk. Accepts a knowledge URL and optional blueprint_url. Returns validation results. |
 | `validate_blueprint` | Validate a Level 2 blueprint against its Level 1 parent spec with frontmatter level-2 auto-detection and parent resolution failure diagnostics |
@@ -365,7 +365,7 @@ The `innfo-mcp` server exposes a deterministic tool set built on `@cognnitive/in
 | `resolve_sources` | Read-only: resolve an element's citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" \| "human" \| "document"), resolved from the `author::` of the `## NN Change:` block the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files. |
 | `list_blueprint_procedures` | List all procedures defined in a blueprint and its transitively included blueprints up to depth 10 |
 | `list_blueprint_skills` | List all agent skills defined in a blueprint and its transitively included blueprints up to depth 10. Skills shipped inside a package under skills/<name>/SKILL.md are returned with embedded: true and a resolved absolute path. |
-| `prune_changesets` | Scan all knowledge documents in the domain for cited changesets and safely remove unreferenced changesets from changes/, then refresh index.md and the domain manifest. |
+| `prune_changesets` | Scan all knowledge documents in the domain for cited changesets and remove the unreferenced, finished (applied or rejected) changesets from changes/, then refresh the domain manifest. Proposed, conflict, partially applied and unreadable changesets are never removed. It does not regenerate index.md or the console. |
 <!-- /generated:mcp-tools -->
 
 **Golden Rule:** The specification/app URL always comes from `parent_spec.url` or from the user. Never hardcode or invent URLs.
@@ -426,7 +426,7 @@ Do NOT hardcode specification URLs or versions in this skill: spec file names an
     sources:: [sources/import/notes.md@## Key Points]
    relationship_model:: Trial
    ```
-6. **Granularity: element-level, not individual-claim level.** `sources::` covers the set of sources backing the WHOLE element (all its fields together) — there is no per-field or per-sentence citation mechanism inside a domain model. If different fields of the same element come from different sources, list the union of them all in the element's single `sources::`. Claim-level citation (via standard `[^1]` footnotes or bibliographic formats) is a separate mechanism, used only inside artifacts generated from the model (see `nn-sources/SKILL.md` §4) — never inside a `*_NN.md`.
+6. **Granularity: element-level in `sources::`, per-field through `<field>_source`.** `sources::` covers the set of sources backing the WHOLE element (all its fields together). If different fields of the same element come from different sources, list the union of them all in the element's `sources::`. A single field can additionally carry its own citation in a companion `<field>_source` (or `<field>_sources`) field: `apply_change` writes it when an `update_field` touches the field (it cites the applied change and the previous citation moves to the change's `replaced_sources::`). There is no per-sentence citation mechanism inside a domain model. Claim-level citation (via standard `[^1]` footnotes or bibliographic formats) is a separate mechanism, used only inside artifacts generated from the model (see `nn-sources/SKILL.md` §4) — never inside a `*_NN.md`.
 7. **No duplicates or empty references.** Do not repeat the same `<ref>` twice in one list. If there is no real source to cite, omit the whole field — do not write `sources:: []` or a placeholder value.
 8. **Conversational instruction:** If the project has cognitivized sources (files under `sources/` with sidecars), the agent should suggest adding `sources::`. If it is a greenfield / creative model from scratch, the agent does NOT request or require citations. In both cases the skill's general rule applies: never invent a `<ref>` or content that is not verifiably present in the cited file.
 9. **Retrieval queries (`?`) are never a citation.** A `path?filter=value` expression (e.g. `metricas_q3.csv?segmento=Enterprise`) selects a SET of units for retrieval tools — it MUST NEVER appear inside `sources::` (the validator rejects it: run the query, then cite the resulting `@` pointers). `@` addresses one unit; `?` selects many; the two never mix in one string.
@@ -484,11 +484,11 @@ Every change is audited through an immutable changeset:
 [Element] ───sources::───► [Changeset] ───sources::───► [Primary Source]
 ```
 - `apply_change` automatically stamps the mutated element's `sources::` field with the changeset reference (`changes/<file>.md@## NN Change: <id>`).
-- To cite a primary source, declare the source inside the changeset operation: `sources: ["sources/import/<file>.md@## <Heading>"]`.
-- Never attempt to manually override an element's `sources::` field with a direct source path: the mutation engine enforces the audit trail and will overwrite it.
+- To cite a primary source, declare it on the changeset operation as `sources`, a single citation STRING (not an array): `sources: "sources/import/<file>.md@## <Heading>"`. The change's `sources` is the evidence; it is sealed with the proposal and is not copied onto the element.
+- Only `update_field` and `add_element` rewrite citations. Never attempt to manually override an element's `sources::` field with a direct source path: the mutation engine enforces the audit trail.
 
 #### Changeset Pruning & Hygiene
-Exploratory proposals that are abandoned or not cited by any active model can be pruned using `innfo-mcp_prune_changesets({ dryRun: false })`. This cleans unreferenced changesets from `changes/` and resyncs `index.md` without requiring manual filesystem deletions.
+Finished changesets (`applied` or `rejected`) that no model cites can be pruned with `innfo-mcp_prune_changesets({ dryRun: false })`. It never deletes a `proposed`, `conflict` or `partially_applied` changeset (they hold pending work) nor a file it cannot parse. After a deletion it only reconciles the domain manifest (`syncDomainManifest`); it does not regenerate `index.md` or the console.
 
 #### New domain and migration
 
@@ -496,27 +496,25 @@ Exploratory proposals that are abandoned or not cited by any active model can be
 - Add models afterwards with an `add_model` change (alone or together with `add_element` changes in the same changeset) via `propose_changeset`, or with `init_knowledge`.
 - Migration recipe: `init_domain` for a NEW domain, import the old domain as a source (`node skills/nn-upgrade/scripts/migrate-domain.js --import-as-source`), derive `add_model` / `add_element` changes that cite it through `sources::`, `propose_changeset`, review in the console, reply OK, `apply_change`.
 
-#### Atomic version bump
+#### Version bump
 
-To raise the version of a Level 3 model and its associated app (parent_spec), use the MCP's `bump_version` operation — do NOT edit the frontmatter by hand:
+To raise the version of a Level 3 model, use the MCP's `bump_version` operation — do NOT edit the frontmatter by hand. It is a changeset operation: a bare call is synthesized into a sealed, recorded, applied changeset (or put a `bump_version` change in a proposal, with the level in `to`):
 
 ```
 innfo-mcp_apply_change({
   id: "<model_id>",
   op: "bump_version",
-  args: {
-    version: "V_0-5-0",
-    parent_version: "V_0-5-0" // Optional: to re-version and rename the associated app
-  }
+  args: { bump: "minor" } // "patch" (default) | "minor" | "major"
 })
 ```
 
-- **Automated Behavior**:
-  1. Updates `knowledge_version` in the frontmatter and renames the model file atomically.
-  2. If `parent_version` is provided, physically renames the local app file, updates its `spec_version` (in frontmatter), updates `parent_spec.name`/`url` in the model frontmatter, and copies the renamed app to the `specs/` directory.
-  3. Consistently updates references in workspace `index.md`.
-  4. Everything is validated via pre-check before performing any write (if validation fails, aborts without writing).
-- **Remaining manual checklist**: If the app was remote, remember to push it to its corresponding server or repository.
+- **Behavior**:
+  1. Raises `knowledge_version` by the requested level. The model is bumped exactly once per changeset: a `bump_version` change replaces the default patch bump of `apply_change`, it never adds to it. A higher level resets the lower ones.
+  2. The model file is never renamed (`kNNowledge/<stem>_NN.md` is invariant) and no reference elsewhere is rewritten.
+  3. An explicit `version` is refused (`INVALID_BUMP_LEVEL`); so is the unversioned lineage record.
+  4. `freeze_slugs` follows the same rule: on a Level 3 model it is a changeset operation.
+- **Level 2 bluepriNNts**: `bump_version` on a bluepriNNt sets `blueprint_version` in place and writes directly (`{ bump }` or `{ version }`). `add_concept`, `add_field` and `set_marker` also stay direct on a bluepriNNt and are refused on a Level 3 model (`SCHEMA_OP_ON_LEVEL3`).
+- **Remaining manual checklist**: none; a bluepriNNt bump is traced by git, so commit it.
 
 ---
 
