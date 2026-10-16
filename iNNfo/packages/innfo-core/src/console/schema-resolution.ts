@@ -22,7 +22,7 @@ import { basename, dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { parseFrontmatter } from '../parser/index.js'
-import { resolveBlueprintPackage, parseSpecName } from '../resolver.js'
+import { resolveBlueprintPackage, parseSpecName, normalizeVersion } from '../resolver.js'
 import { findCanonicalBlueprint } from '../schema/canonical-registry.js'
 import { resolveBlueprintSchema } from '../schema/compose.js'
 import type { BlueprintSchema } from '../schema/extract.js'
@@ -59,22 +59,53 @@ interface ResolvedBlueprint {
   dir: string | null
 }
 
-/** Resolve one blueprint (or include) to raw content through the shared chain. */
+/**
+ * Resolve one blueprint (or include) to raw content through the shared chain.
+ *
+ * `parent_spec.name` may carry a version suffix (e.g. `procedures_V_0-3-2`). The
+ * exact reference is tried first; if it resolves nowhere we retry by blueprint
+ * FAMILY, treating the version as an advisory hint so a document keeps rendering
+ * after a blueprint bump. When the referenced version differs from the resolved
+ * blueprint's own `blueprint_version`, a warning is pushed (never a silent
+ * degrade to the derived schema).
+ */
 async function resolveBlueprintContent(
   rootDir: string,
   name: string,
   url: string | undefined,
   globalDir: string | undefined,
   skillsDir: string | undefined,
+  warnings: string[],
 ): Promise<ResolvedBlueprint | null> {
   const version = url ? parseSpecName(basename(url)).version : undefined
-  const pkg = await resolveBlueprintPackage(rootDir, name, version, { globalDir, skillsDir })
-  if (pkg) {
-    const content = await readFile(pkg.specFilePath, 'utf-8').catch(() => null)
-    if (content !== null) return { content, dir: dirname(pkg.specFilePath) }
+
+  const resolveOnce = async (refName: string): Promise<ResolvedBlueprint | null> => {
+    const pkg = await resolveBlueprintPackage(rootDir, refName, version, { globalDir, skillsDir })
+    if (pkg) {
+      const content = await readFile(pkg.specFilePath, 'utf-8').catch(() => null)
+      if (content !== null) return { content, dir: dirname(pkg.specFilePath) }
+    }
+    const canonical = findCanonicalBlueprint(refName) || (url ? findCanonicalBlueprint(url) : null)
+    return canonical ? { content: canonical.specContent, dir: null } : null
   }
-  const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null)
-  return canonical ? { content: canonical.specContent, dir: null } : null
+
+  const parsed = parseSpecName(name)
+  let resolved = await resolveOnce(name)
+  if (resolved === null && parsed.base && parsed.base !== name) {
+    resolved = await resolveOnce(parsed.base)
+  }
+  if (resolved === null) return null
+
+  const rawCurrent = parseFrontmatter(resolved.content)?.blueprint_version
+  const current = rawCurrent ? String(rawCurrent) : undefined
+  if (parsed.version && current && normalizeVersion(parsed.version) !== normalizeVersion(current)) {
+    warnings.push(
+      `parent_spec '${name}' references a stale version; the '${parsed.base}' ` +
+        `blueprint is now '${current}'. Resolved to the current blueprint — ` +
+        `update parent_spec.name to track it.`,
+    )
+  }
+  return resolved
 }
 
 /**
@@ -124,7 +155,7 @@ async function collectIncludes(
     if (seen.has(key)) continue
     seen.add(key)
 
-    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir)
+    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir, warnings)
     if (resolved === null) {
       warnings.push(`Included template '${ref.name}' could not be resolved.`)
       continue
@@ -157,6 +188,7 @@ export async function resolveConsoleSchema(
       opts.parentUrl,
       opts.globalDir,
       opts.skillsDir,
+      warnings,
     )
     if (parent === null) {
       warnings.push(
