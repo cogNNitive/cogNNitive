@@ -7613,8 +7613,12 @@ input[type="text"], input[type="search"], textarea, select {
   display: none !important;
 }
 
+[data-innfo-feedback-root] {
+  display: contents !important;
+}
+
 .innfo-navbar .innfo-brand {
-  margin-right: auto !important;
+  margin-right: 0 !important;
 }
 
 #innfo-navbar-extra {
@@ -7623,13 +7627,14 @@ input[type="text"], input[type="search"], textarea, select {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  margin-left: 0 !important;
-  margin-right: 16px !important;
+  margin-left: 16px !important;
+  margin-right: auto !important;
 }
 #innfo-navbar-actions {
   display: flex !important;
   align-items: center !important;
-  margin-left: 0 !important;
+  margin-left: auto !important;
+  order: 9999 !important;
   flex-shrink: 0 !important;
 }
 .innfo-review-toggle,
@@ -8113,6 +8118,8 @@ input[type="text"], input[type="search"], textarea, select {
     .innfo-scope-label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
       .innfo-mode { font-size: 0.8rem; color: var(--muted); }
       .innfo-mode strong { color: var(--text); }
+      .innfo-navbar-actions { display: flex; align-items: center; margin-left: auto; order: 9999; flex-shrink: 0; }
+      [data-innfo-feedback-root] { display: contents !important; }
 
       #innfo-layout { display: flex; flex: 1 1 auto; align-items: stretch; min-height: 0; }
 
@@ -8970,7 +8977,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-26c92be4",
-    "generated": "2026-10-16T12:16:34.014Z",
+    "generated": "2026-10-16T12:30:23.110Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8980,7 +8987,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T12:16:33.905Z",
+        "citationsResolvedAt": "2026-10-16T12:30:23.031Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],

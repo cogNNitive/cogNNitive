@@ -7582,8 +7582,12 @@ input[type="text"], input[type="search"], textarea, select {
   display: none !important;
 }
 
+[data-innfo-feedback-root] {
+  display: contents !important;
+}
+
 .innfo-navbar .innfo-brand {
-  margin-right: auto !important;
+  margin-right: 0 !important;
 }
 
 #innfo-navbar-extra {
@@ -7592,13 +7596,14 @@ input[type="text"], input[type="search"], textarea, select {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  margin-left: 0 !important;
-  margin-right: 16px !important;
+  margin-left: 16px !important;
+  margin-right: auto !important;
 }
 #innfo-navbar-actions {
   display: flex !important;
   align-items: center !important;
-  margin-left: 0 !important;
+  margin-left: auto !important;
+  order: 9999 !important;
   flex-shrink: 0 !important;
 }
 .innfo-review-toggle,
