@@ -2442,7 +2442,7 @@
 
   var warnedUnresolvedOperands = {}
   function warnUnresolvedOperand(token, formula) {
-    var key = formula + ' ' + token
+    var key = formula + '::' + token
     if (warnedUnresolvedOperands[key]) return
     warnedUnresolvedOperands[key] = true
     if (typeof console !== 'undefined' && console.warn) {

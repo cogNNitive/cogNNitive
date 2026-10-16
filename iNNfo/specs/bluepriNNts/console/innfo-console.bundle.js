@@ -7629,7 +7629,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   var warnedUnresolvedOperands = {}
   function warnUnresolvedOperand(token, formula) {
-    var key = formula + ' ' + token
+    var key = formula + '::' + token
     if (warnedUnresolvedOperands[key]) return
     warnedUnresolvedOperands[key] = true
     if (typeof console !== 'undefined' && console.warn) {
