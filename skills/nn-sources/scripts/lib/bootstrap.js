@@ -81,6 +81,7 @@ At the beginning of every interactive session in this workspace, AI coding agent
  * @param {string} projectName Project folder name.
  * @param {object} [options={}] Optional configuration options.
  * @param {boolean} [options.overwriteAgents=false] Whether to overwrite existing AGENTS.md.
+ * @param {boolean} [options.inPlace=false] Whether to initialize project in destParentDir directly.
  * @returns {{ projectDir: string, importDir: string, copiedCount: number, provModelPath: string, agentsMdPath: string }}
  */
 function bootstrapProject(srcDir, destParentDir, projectName, options = {}) {
