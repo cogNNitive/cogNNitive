@@ -4891,9 +4891,9 @@
   }
 
   // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
-  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
-  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
-  // those fields existed.
+  // `<file stem>@<element slug>[&field]`. The draft carries `knowledge_id` (the knowledge
+  // document's file stem) and `element_slug`; `fallbackModel` only covers drafts that
+  // lack them.
   function oneLine(v) {
     return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
   }
@@ -4901,7 +4901,7 @@
   function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
-    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var model = oneLine(d.knowledge_id || fallbackModel || 'model')
     // The element part of a target is always the element slug: never the display
     // name or the element id (the engine resolves slugs, and every payload element
     // carries one).

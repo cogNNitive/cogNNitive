@@ -352,19 +352,19 @@ describe('console-review-store (draft store v3)', () => {
   })
 
   describe('new element drafts', () => {
-    it('accepts kind "new" with model_id, concept and element and no element_id or base_hash', () => {
+    it('accepts kind "new" with knowledge_id, concept and element and no element_id or base_hash', () => {
       const Review = loadReview()
       const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
       const saved = store.addDraft({
         kind: 'new',
-        model_id: 'strategy',
+        knowledge_id: 'strategy',
         concept: 'Goal',
         element: 'Grow revenue',
         proposed: { owner: 'CFO' },
       })
       expect(saved).toMatchObject({
         kind: 'new',
-        model_id: 'strategy',
+        knowledge_id: 'strategy',
         concept: 'Goal',
         element: 'Grow revenue',
         proposed: { owner: 'CFO' },
@@ -372,13 +372,23 @@ describe('console-review-store (draft store v3)', () => {
       expect(store.drafts()).toHaveLength(1)
     })
 
-    it.each(['model_id', 'concept', 'element'])('rejects a new draft missing %s, naming the key', (key) => {
+    it.each(['knowledge_id', 'concept', 'element'])('rejects a new draft missing %s, naming the key', (key) => {
       const Review = loadReview()
       const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
-      const input: Record<string, unknown> = { kind: 'new', model_id: 'strategy', concept: 'Goal', element: 'X' }
+      const input: Record<string, unknown> = { kind: 'new', knowledge_id: 'strategy', concept: 'Goal', element: 'X' }
       delete input[key]
       expect(() => store.addDraft(input)).toThrow(new RegExp(key))
       expect(store.drafts()).toEqual([])
+    })
+
+    it('does not accept the retired model_id key as the target of a new draft', () => {
+      const Review = loadReview()
+      const store = Review.createDraftStore(memoryStorage(), 'm1') as DraftStore
+      expect(() =>
+        store.addDraft({ kind: 'new', model_id: 'strategy', concept: 'Goal', element: 'X' }),
+      ).toThrow(/knowledge_id/)
+      const saved = store.addDraft({ kind: 'new', knowledge_id: 'strategy', concept: 'Goal', element: 'X', model_id: 'stale' })
+      expect(saved).not.toHaveProperty('model_id')
     })
 
     it('still requires base_hash for a correction', () => {

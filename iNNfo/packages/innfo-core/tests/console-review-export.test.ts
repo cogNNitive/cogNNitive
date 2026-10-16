@@ -50,7 +50,7 @@ function seedDraft(overrides: any = {}) {
     element_id: 'threat-slimer',
     concept: 'ParanormalThreat',
     element: 'Slimer',
-    model_id: 'kNNowledge/ghostbusters',
+    knowledge_id: 'kNNowledge/ghostbusters',
     element_slug: 'slimer',
     base_hash: 'abcdef0123456789',
     kind: 'correction',

@@ -174,7 +174,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         comment: 'needs a look',
         base_hash: '1111111111111111',
       })
-      store.addDraft({ model_id: 'stale-model', concept: 'C', element: 'Fresh', kind: 'new' })
+      store.addDraft({ knowledge_id: 'stale-model', concept: 'C', element: 'Fresh', kind: 'new' })
       InnfoConsole.renderReviewTab(document, state, { needs: [] })
       return { tab: document.getElementById('innfo-tab-review'), state, store }
     }
@@ -372,8 +372,8 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         meta: { changesBlueprintVersion: 'V_0-3-0' },
         store: {
           drafts: () => [
-            { id: 'c-01\nop:: remove_element', model_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
-            { id: 'c-02', model_id: 'm', kind: 'new', concept: 'C\nop:: remove_element', element: 'Fresh' },
+            { id: 'c-01\nop:: remove_element', knowledge_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
+            { id: 'c-02', knowledge_id: 'm', kind: 'new', concept: 'C\nop:: remove_element', element: 'Fresh' },
           ],
         },
       }
@@ -489,7 +489,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       const drafts = store.drafts()
       assert.equal(drafts.length, 1)
       assert.equal(drafts[0].kind, 'new')
-      assert.equal(drafts[0].model_id, 'strategy')
+      assert.equal(drafts[0].knowledge_id, 'strategy')
       assert.equal(drafts[0].concept, 'Goal')
       assert.equal(drafts[0].element, 'Grow revenue')
       assert.deepEqual(drafts[0].proposed, { owner: 'CFO' }, 'empty fields are not exported')
@@ -537,14 +537,14 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.deepEqual([...modelPicker.options].map((o) => o.value), ['strategy', 'ops'])
       modelPicker.value = 'ops'
       saveNew(modal)
-      assert.equal(store.drafts()[0].model_id, 'ops')
+      assert.equal(store.drafts()[0].knowledge_id, 'ops')
     })
 
     it('targets the single model of a model-scoped domain console without a picker', () => {
       const { store, modal } = mountDomainController([{ id: 'strategy', title: 'Strategy' }])
       assert.equal(modal.querySelector('select[data-innfo-role="model"]'), null)
       saveNew(modal)
-      assert.equal(store.drafts()[0].model_id, 'strategy')
+      assert.equal(store.drafts()[0].knowledge_id, 'strategy')
     })
 
     it('rejects an empty name or an unpicked concept without storing a draft', () => {
