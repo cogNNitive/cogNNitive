@@ -57,14 +57,18 @@ export async function pruneChangesets(
   filesToScan.push(join(rootDir, 'domaiNN_NN.md'))
 
   const referenced = new Set<string>()
-  const refPattern = /changes\/([A-Za-z0-9_.-]+_changes_NN\.md)/gi
+  const refPattern = /changes\/([^\s\]"'`@:]+)/gi
 
   for (const file of filesToScan) {
     try {
       const content = await readFile(file, 'utf-8')
       let match: RegExpExecArray | null
       while ((match = refPattern.exec(content)) !== null) {
-        referenced.add(match[1])
+        const candidate = match[1]
+        const parsed = parseName(candidate)
+        if (parsed.kind === 'nn') {
+          referenced.add(candidate)
+        }
       }
     } catch {
       // file might not exist
