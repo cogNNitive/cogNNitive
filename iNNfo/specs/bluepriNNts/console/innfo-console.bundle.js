@@ -3495,7 +3495,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
 
   var STORE_PREFIX = 'innfo-console:v3:'
-  var STORE_VERSION = 3
+  var STORE_VERSION = 4
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
@@ -3576,7 +3576,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     // Engine address of the target (file stem + element slug), captured with the draft
     // so a changeset export does not have to guess it from display titles.
-    if (d.model_id != null && d.model_id !== '') draft.model_id = String(d.model_id)
+    if (d.knowledge_id != null && d.knowledge_id !== '') draft.knowledge_id = String(d.knowledge_id)
     if (d.element_slug != null && d.element_slug !== '') draft.element_slug = String(d.element_slug)
     // Matrix-cell drafts target a matrix coordinate, not an element unit.
     if (d.matrix != null && d.matrix !== '') draft.matrix = String(d.matrix)
@@ -3727,7 +3727,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (raw.kind === 'new') {
           // A new element has no target in the model yet: it is addressed by its
           // model, concept and name instead of an element id and hash.
-          var missing = ['model_id', 'concept', 'element'].filter(function (key) {
+          var missing = ['knowledge_id', 'concept', 'element'].filter(function (key) {
             return raw[key] == null || raw[key] === ''
           })
           if (missing.length) {
@@ -4013,7 +4013,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           kind: payload.kind,
           // The owning model, not the domain: the changeset target must resolve in
           // apply_change. Falls back to the domain id only for legacy anchors.
-          model_id: anchorData.modelId || meta.modelId,
+          knowledge_id: anchorData.modelId || meta.modelId,
           original: anchorData.original,
         }
         if (payload.proposed !== undefined) matrixDraft.proposed = payload.proposed
@@ -4032,7 +4032,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         element: el.name || el.id,
         base_hash: el.hash,
         kind: payload.kind,
-        model_id: el.modelId || meta.modelId,
+        knowledge_id: el.modelId || meta.modelId,
         element_slug: el.slug,
       }
       if (payload.field !== undefined || anchorData.field) {
@@ -4491,7 +4491,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             if (!store) return
             var draft = {
               kind: 'new',
-              model_id: res.modelId || meta.modelId,
+              knowledge_id: res.modelId || meta.modelId,
               concept: res.concept,
               element: res.name,
             }
@@ -10043,9 +10043,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
-  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
-  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
-  // those fields existed.
+  // `<file stem>@<element slug>[&field]`. The draft carries `knowledge_id` (the knowledge
+  // document's file stem) and `element_slug`; `fallbackModel` only covers drafts that
+  // lack them.
   function oneLine(v) {
     return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
   }
@@ -10053,7 +10053,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
-    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var model = oneLine(d.knowledge_id || fallbackModel || 'model')
     // The element part of a target is always the element slug: never the display
     // name or the element id (the engine resolves slugs, and every payload element
     // carries one).

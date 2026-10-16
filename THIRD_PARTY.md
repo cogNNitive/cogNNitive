@@ -14,8 +14,8 @@ Files copied into the repository (not installed from npm). The list is hand-main
 | Component | Version | License | File | Source |
 |---|---|---|---|---|
 | uPlot | 1.6.31 | MIT | `iNNfo/specs/bluepriNNts/console/uplot.iife.min.js` | https://github.com/leeoniya/uPlot |
-| Preact | unrecorded | MIT | `iNNfo/specs/bluepriNNts/console/vendor/preact.umd.js` | https://github.com/preactjs/preact |
-| htm | unrecorded | Apache-2.0 | `iNNfo/specs/bluepriNNts/console/vendor/htm.umd.js` | https://github.com/developit/htm |
+| Preact | 10.24.3 | MIT | `iNNfo/specs/bluepriNNts/console/vendor/preact.umd.js` | https://github.com/preactjs/preact |
+| htm | 3.0.1 - 3.1.1 | Apache-2.0 | `iNNfo/specs/bluepriNNts/console/vendor/htm.umd.js` | https://github.com/developit/htm |
 
 The console bundle (`innfo-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to
 each exported console) concatenates the vendored assets above with first-party code. The generated

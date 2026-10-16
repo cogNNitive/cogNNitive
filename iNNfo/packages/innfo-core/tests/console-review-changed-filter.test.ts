@@ -69,7 +69,7 @@ describe('console-review-changed-filter', () => {
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________', y: 'bbbbbbbbbbbbbbbb' },
@@ -86,7 +86,7 @@ describe('console-review-changed-filter', () => {
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________', y: 'bbbbbbbbbbbbbbbb' },
@@ -106,7 +106,7 @@ describe('console-review-changed-filter', () => {
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________' },

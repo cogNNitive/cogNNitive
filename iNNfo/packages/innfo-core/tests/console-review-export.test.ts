@@ -50,7 +50,7 @@ function seedDraft(overrides: any = {}) {
     element_id: 'threat-slimer',
     concept: 'ParanormalThreat',
     element: 'Slimer',
-    model_id: 'kNNowledge/ghostbusters',
+    knowledge_id: 'kNNowledge/ghostbusters',
     element_slug: 'slimer',
     base_hash: 'abcdef0123456789',
     kind: 'correction',
@@ -62,7 +62,7 @@ function seedDraft(overrides: any = {}) {
   }
   env.localStorage.setItem(
     'innfo-console:v3:ghostbusters-model',
-    JSON.stringify({ v: 3, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
+    JSON.stringify({ v: 4, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
   )
 }
 

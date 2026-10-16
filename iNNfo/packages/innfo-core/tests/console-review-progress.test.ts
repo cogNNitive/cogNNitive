@@ -113,7 +113,7 @@ describe('console-review-progress (reviewed marks + rail progress)', () => {
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { 'threat-slimer': 'stale____________' },
