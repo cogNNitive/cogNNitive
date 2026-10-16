@@ -338,7 +338,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.errors?.some((e) => /safe workspace-relative path/.test(e.message))).toBe(true)
   })
 
-  it('Citation Resolution: an unresolved sources:: rejects with CITATION_UNRESOLVED, writes nothing, releases the lock', async () => {
+  it('Citation Resolution: an unresolved sources:: rejects with CITATION_UNRESOLVED, records the rejection, writes no model, releases the lock', async () => {
     const csFile = join(changesDir, 'ws_agent_citation_bad_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -363,8 +363,11 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
       ),
     ).toBe(true)
 
-    // Nothing was written and the lock was released.
-    expect(await readFile(csFile, 'utf-8')).toBe(serialized)
+    // The rejection is recorded; no model was written and the lock was released.
+    const recorded = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(recorded.frontmatter.status).toBe('rejected')
+    expect(String(recorded.frontmatter.resolution)).toContain('CITATION_UNRESOLVED')
+    expect(recorded.changes[0].sources).toBe('sources/import/missing.md@## Needs')
     expect(existsSync(join(changesDir, '.lock'))).toBe(false)
     const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
     expect(live).toContain('Accelerate green energy')

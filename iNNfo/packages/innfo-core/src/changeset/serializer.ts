@@ -89,7 +89,7 @@ function formatChangeItem(item: ChangeItem): string {
 }
 
 /**
- * Rewrites the frontmatter execution keys (`status`, `applied_at`, `models`) in place,
+ * Rewrites the frontmatter execution keys (`status`, `resolution`, `applied_at`, `models`) in place,
  * leaving every other frontmatter line byte-identical.
  */
 function rewriteFrontmatter(
@@ -129,6 +129,10 @@ function rewriteFrontmatter(
       : null,
   )
   upsert('status', [`status: ${fm.status}`])
+  upsert(
+    'resolution',
+    fm.resolution !== undefined ? [`resolution: ${JSON.stringify(fm.resolution)}`] : null,
+  )
   upsert(
     'applied_at',
     fm.applied_at !== undefined ? [`applied_at: ${fm.applied_at}`] : null,
@@ -251,7 +255,7 @@ function serializeStructural(doc: ChangesetDocument): string {
  * Serializes a ChangesetDocument back into normative Markdown syntax.
  *
  * When the document carries the `rawContent` it was parsed from, every byte is copied
- * verbatim except the frontmatter execution keys (`status`, `applied_at`, `models`) and
+ * verbatim except the frontmatter execution keys (`status`, `resolution`, `applied_at`, `models`) and
  * the per-change execution annotation lines (`status::`, `resolution::`, `resolved_slug::`,
  * `replaced_sources::`). A document built in memory is rendered structurally.
  */

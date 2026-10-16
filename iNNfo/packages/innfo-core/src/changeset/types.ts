@@ -14,7 +14,17 @@ export const CHANGE_OPS = [
   'update_concept_text',
   'comment',
   'add_model',
+  'freeze_slugs',
+  'bump_version',
 ] as const
+
+/** Version levels a `bump_version` change may request (carried in `to`). */
+export const BUMP_LEVELS = ['patch', 'minor', 'major'] as const
+export type BumpLevel = (typeof BUMP_LEVELS)[number]
+
+export function isBumpLevel(val: unknown): val is BumpLevel {
+  return typeof val === 'string' && (BUMP_LEVELS as readonly string[]).includes(val)
+}
 
 export type ChangeOp = (typeof CHANGE_OPS)[number]
 
@@ -28,7 +38,10 @@ export type ChangeStatus =
 export interface ChangeItem {
   id: string
   op: ChangeOp
-  /** Canonical D5 target address: model@element&field or model@matrix&row&col or model@concept */
+  /**
+   * Canonical D5 target address: model@element&field or model@matrix&row&col or model@concept.
+   * `freeze_slugs` and `bump_version` target a bare model id; `bump_version` carries its level in `to`.
+   */
   target: string
   from?: string
   to?: string
@@ -89,6 +102,11 @@ export interface ChangesetFrontmatter {
    */
   proposal_sha?: string
   applied_at?: string
+  /**
+   * Why the changeset was `rejected` (a property of the proposal: failed validation or an
+   * unresolved citation). Execution annotation, excluded from `proposal_sha`.
+   */
+  resolution?: string
   /** Map of affected model slugs to base and result versions */
   models?: Record<string, ModelVersionTransition>
   title?: string

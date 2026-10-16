@@ -317,7 +317,7 @@ describe('mutate tools', () => {
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
 
-    it('rejects add_concept on a level-3 model with an explicit level-gate error (H5), not a downstream schema error (reject-without-writing)', async () => {
+    it('rejects add_concept on a level-3 model with SCHEMA_OP_ON_LEVEL3, not a downstream schema error (reject-without-writing)', async () => {
       // add_concept authors a level-2 template primitive ("Concept
       // Definition"). "Mutable" is a level-3 model, so the core enforcement
       // engine (runMutation's LEVEL2_ONLY_OPS gate) must reject this BEFORE
@@ -333,7 +333,7 @@ describe('mutate tools', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.errors?.some((e) => /level-2/.test(e.message))).toBe(true)
+      expect(result.errors?.[0].code).toBe('SCHEMA_OP_ON_LEVEL3')
       expect(result.errors?.some((e) => /not defined in template/.test(e.message))).toBe(false)
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
@@ -364,7 +364,7 @@ describe('mutate tools', () => {
         await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
 
         const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
-          version: 'V_0-5-0',
+          bump: 'minor',
         })
 
         expect(result.success).toBe(true)
@@ -396,118 +396,50 @@ describe('mutate tools', () => {
       })
     })
 
-    it('bump_version with an explicit version renames the file and updates frontmatter', async () => {
+    it('bump_version raises the version through a changeset and keeps the filename', async () => {
       await stubBusinessTemplate()
-      const oldPath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
-      await writeFile(oldPath, MUTABLE_MODEL_CONTENT, 'utf-8')
+      const filePath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
+      await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
 
-      const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
-        version: 'V_0-5-0',
-      })
+      const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', { bump: 'minor' })
 
+      expect(result.errors ?? []).toEqual([])
       expect(result.success).toBe(true)
-      expect(result.model?.frontmatter.knowledge_version ?? result.model?.frontmatter.knowledge_version).toBe('V_0-5-0')
-      expect(result.newPath).toBe(join(rootDir, 'Versioned_V_0-5-0_NN.md'))
-
-      // Old file removed, new file carries the bumped frontmatter.
-      await expect(readFile(oldPath, 'utf-8')).rejects.toThrow()
-      const newContent = await readFile(result.newPath!, 'utf-8')
-      expect(newContent).toContain('knowledge_version: "V_0-5-0"')
+      expect(result.status).toBe('applied')
+      expect(result.changesetPath).toBeDefined()
+      expect(result.newPath).toBe(filePath)
+      const onDisk = await readFile(filePath, 'utf-8')
+      expect(onDisk).toContain('knowledge_version: "V_0-1-0"')
     })
 
     it('bump_version increments patch by default when no bump level is given', async () => {
       await stubBusinessTemplate()
-      const oldPath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
-      await writeFile(oldPath, MUTABLE_MODEL_CONTENT, 'utf-8')
-
-      const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {})
-
-      expect(result.success).toBe(true)
-      expect(result.model?.frontmatter.knowledge_version ?? result.model?.frontmatter.knowledge_version).toBe('V_0-0-2')
-      expect(result.newPath).toBe(join(rootDir, 'Versioned_V_0-0-2_NN.md'))
-    })
-
-    it('bump_version with bump minor increments the minor part', async () => {
-      await stubBusinessTemplate()
-      const oldPath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
-      await writeFile(oldPath, MUTABLE_MODEL_CONTENT, 'utf-8')
-
-      const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
-        bump: 'minor',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.model?.frontmatter.knowledge_version ?? result.model?.frontmatter.knowledge_version).toBe('V_0-1-1')
-      expect(result.newPath).toBe(join(rootDir, 'Versioned_V_0-1-1_NN.md'))
-    })
-
-    it('bump_version rewrites in place when the filename has no version segment', async () => {
-      await stubBusinessTemplate()
       const filePath = join(rootDir, 'Mutable_NN.md')
       await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
 
-      const result = await applyChange(rootDir, 'Mutable', 'bump_version', { bump: 'minor' })
+      const result = await applyChange(rootDir, 'Mutable', 'bump_version', {})
 
       expect(result.success).toBe(true)
-      expect(result.model?.frontmatter.knowledge_version ?? result.model?.frontmatter.knowledge_version).toBe('V_0-1-1')
+      expect(result.model?.frontmatter.knowledge_version).toBe('V_0-0-2')
       expect(result.newPath).toBe(filePath)
-      const onDisk = await readFile(filePath, 'utf-8')
-      expect(onDisk).toContain('knowledge_version: "V_0-1-1"')
     })
 
-    it('bump_version rejects an invalid version without touching the file', async () => {
+    it('bump_version rejects an explicit version: a level-3 bump names a level', async () => {
       await stubBusinessTemplate()
       const filePath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
       await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
 
       const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
-        version: 'banana',
+        version: 'V_0-5-0',
       })
 
       expect(result.success).toBe(false)
-      expect(result.errors?.[0].message).toMatch(/Invalid version args/)
+      expect(result.errors?.[0].code).toBe('INVALID_BUMP_LEVEL')
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
 
-    it('bump_version updates index.md references (bare filename and kNNowledge/<filename> forms) to the new filename (Fix 5b)', async () => {
-      await stubBusinessTemplate()
-      const oldPath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
-      await writeFile(oldPath, MUTABLE_MODEL_CONTENT, 'utf-8')
-
-      const oldFilename = 'Versioned_V_0-0-1_NN.md'
-      const newFilename = 'Versioned_V_0-5-0_NN.md'
-      await writeFile(
-        join(rootDir, 'index.md'),
-        [
-          '---',
-          'spec_version: "V_0-1-2"',
-          'level: 0',
-          'title: "Workspace Index"',
-          '---',
-          '',
-          '# NN index',
-          `* [${oldFilename}](./${oldFilename})`,
-          `* [models version](kNNowledge/${oldFilename})`,
-          '',
-        ].join('\n'),
-        'utf-8',
-      )
-
-      const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
-        version: 'V_0-5-0',
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.newPath).toBe(join(rootDir, newFilename))
-
-      const indexContent = await readFile(join(rootDir, 'index.md'), 'utf-8')
-      expect(indexContent).toContain(newFilename)
-      expect(indexContent).toContain(`kNNowledge/${newFilename}`)
-      expect(indexContent).not.toContain(oldFilename)
-    })
-
-    it('bump_version rejects an unknown bump level without touching the file', async () => {
+    it('bump_version rejects an unknown bump level without touching the model', async () => {
       await stubBusinessTemplate()
       const filePath = join(rootDir, 'Versioned_V_0-0-1_NN.md')
       await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
@@ -517,7 +449,8 @@ describe('mutate tools', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.errors?.[0].message).toMatch(/Invalid version args/)
+      expect(result.status).toBe('rejected')
+      expect(result.errors?.[0].code).toBe('INVALID_BUMP_LEVEL')
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
@@ -832,84 +765,6 @@ describe('mutate tools', () => {
       expect(graph.orphanedCandidates).not.toContain(activePkgDir)
       expect(graph.orphanedCandidates).not.toContain(subPkgDir)
     })
-  })
-
-  // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named
-  // after a coverage metric rather than a behaviour.
-  it('applyChange: bump_version with parent_version renames local parent template', async () => {
-    // 1. Setup local parent template
-    const templatePath = join(specsDir, 'my_template_V_0-1-0_NN.md')
-    await writeFile(
-      templatePath,
-      [
-        '---',
-        'spec_version: "V_0-1-0"',
-        'level: 2',
-        'title: "My Template"',
-        'parent_spec:',
-        '  name: "iNNfo_V_0-1-0"',
-        '  url: "specs/iNNfo_V_0-1-0_NN.md"',
-        '---',
-        '',
-        '# NN Concept Definition',
-        '## NN Concept Definition: Task',
-        'type:: list',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
-
-    // Stub level 1 + 0 chain
-    await writeFile(
-      join(specsDir, 'iNNfo_V_0-1-0_NN.md'),
-      '---\nspec_version: "V_0-1-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
-      'utf-8',
-    )
-    await writeFile(
-      join(specsDir, 'defiNNe_V_0-1-0_NN.md'),
-      '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNe"\n---\n',
-      'utf-8',
-    )
-
-    // 2. Setup model pointing to local template
-    const modelPath = join(modelsDir, 'my_model_V_0-1-0_my_template_NN.md')
-    await writeFile(
-      modelPath,
-      [
-        '---',
-        'spec_version: "V_0-1-0"',
-        'level: 3',
-        'knowledge_version: "V_0-1-0"',
-        'title: "My Model"',
-        'parent_spec:',
-        '  name: "my_template_V_0-1-0"',
-        '  url: "specs/my_template_V_0-1-0_NN.md"',
-        '---',
-        '',
-        '# NN index',
-        '* [[Task]]',
-        '',
-        '# NN Task',
-        '## NN Task: Alpha',
-        '  Task Alpha',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
-
-    // Bump model to 0.2.0 and parent to 0.2.0
-    const res = await applyChange(rootDir, 'my_model_V_0-1-0_my_template', 'bump_version', {
-      version: '0.2.0',
-      parent_version: '0.2.0',
-    })
-
-    expect(res.success).toBe(true)
-    const newTemplatePath = join(specsDir, 'my_template_V_0-2-0_NN.md')
-    const tStat = await stat(newTemplatePath)
-    expect(tStat.isFile()).toBe(true)
-
-    const updatedParentContent = await readFile(newTemplatePath, 'utf-8')
-    expect(updatedParentContent).toContain('spec_version: "V_0-2-0"')
   })
 
   it('applyChange: rename_element renames associated asset directory if present', async () => {

@@ -12,6 +12,8 @@ import {
   getCanonicalSpecContent,
   addModelProblems,
   isChangeOp,
+  isBumpLevel,
+  BUMP_LEVELS,
   formatUtcStamp,
   slugify,
   createFsSourceResolver,
@@ -181,6 +183,19 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       break
     case 'comment':
       need('notes')
+      break
+    case 'freeze_slugs':
+      if (target.includes('@') || target.includes('&')) {
+        problems.push(`${label}: freeze_slugs target must be a bare model id`)
+      }
+      break
+    case 'bump_version':
+      if (target.includes('@') || target.includes('&')) {
+        problems.push(`${label}: bump_version target must be a bare model id`)
+      }
+      if (!isBumpLevel(change.to)) {
+        problems.push(`${label}: bump_version requires "to" to be one of ${BUMP_LEVELS.join(', ')}`)
+      }
       break
     default:
       break

@@ -262,7 +262,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'apply_change',
       description:
-        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or legacy intent operations. ' +
+        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or bare intent operations. ' +
+        'Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, set_marker, bump_version on a bluepriNNt) write directly. ' +
         'After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). ' +
         'The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
@@ -276,7 +277,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             description: 'Path to changeset document (alias for changeset)',
           },
-          id: { type: 'string', description: 'Knowledge id (for legacy bare mutation calls)' },
+          id: { type: 'string', description: 'Knowledge id (for bare mutation calls)' },
           knowledge_id: { type: 'string', description: 'Knowledge id (alias for id)' },
           domain: {
             type: 'string',
@@ -290,7 +291,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           },
           op: {
             type: 'string',
-            description: 'Operation to perform (for legacy bare mutation calls)',
+            description: 'Operation to perform (for bare mutation calls)',
             enum: [
               'add_concept',
               'add_field',
@@ -308,7 +309,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for legacy bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }. freeze_slugs takes no args.',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept, add_field and set_marker are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',
@@ -349,7 +350,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'propose_changeset',
       description:
         'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
-        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, comment, add_model); the tool does not interpret conversations. ' +
+        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, comment, add_model, freeze_slugs, bump_version); the tool does not interpret conversations. ' +
         'Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. ' +
         'The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset.',
       inputSchema: {
@@ -358,7 +359,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           operations: {
             type: 'array',
             description:
-              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, fields, notes, sources (evidence citation), base_hash, author. add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id.',
+              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, fields, notes, sources (evidence citation), base_hash, author. add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id. freeze_slugs and bump_version target a bare model id; bump_version carries its level (patch, minor or major) in to. sources is a single citation string, not an array.',
             items: { type: 'object' },
           },
           title: { type: 'string', description: 'Title of the changeset.' },
@@ -703,7 +704,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'prune_changesets',
       description:
-        'Scan all knowledge documents in the domain for cited changesets and safely remove unreferenced changesets from changes/, then refresh index.md and the domain manifest.',
+        'Scan all knowledge documents in the domain for cited changesets and remove the unreferenced, finished (applied or rejected) changesets from changes/, then refresh the domain manifest. Proposed, conflict, partially applied and unreadable changesets are never removed. It does not regenerate index.md or the console.',
       inputSchema: {
         type: 'object',
         properties: {
