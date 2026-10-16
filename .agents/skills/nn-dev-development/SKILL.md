@@ -1,7 +1,7 @@
 ---
 name: nn-dev-development
-version: "1.3.0"
-description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Enforces commit-early, picks the process lane by change size, and orchestrates the batched `dev -> main` merge through verify.js + CI + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation.
+version: "1.4.0"
+description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Enforces commit-early, picks the process lane by change size, manages UI console feedback cycles from annotated images, and orchestrates the batched `dev -> main` merge through verify.js + CI + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation, UI feedback loop.
 ---
 
 # nn-dev-development Skill (Session Isolation & Integration Guard)
@@ -144,6 +144,42 @@ instead of trusting a number written here:
 
 Prefer draining over proposing: fix in place, or fold a small finding into the change
 already open for that area.
+
+---
+
+## 2d. UI Console Feedback Protocol (Annotated Images & Fixture Export)
+
+When UI improvements or adjustments to the iNNfo console (`iNNfo/specs/bluepriNNts/console/...`)
+are driven by annotated screenshots or visual feedback from the maintainer, adhere to the following
+strict cycle:
+
+1. **Analyze & Summarize**: Inspect every attached image, deduce all visual/structural changes,
+   and present a clear summary of the changes to the user.
+2. **Confirm Before Coding**: Ask for explicit confirmation before touching any code. Never
+   assume or start implementing speculative UI changes.
+3. **Session Worktree Isolation**: All edits must happen inside a dedicated `nn-session` worktree.
+4. **Rebuild Bundle & Regenerate Fixture**:
+   - Whenever console styles (`innfo-ui.css`), components (`ui-kit.js`), runtime (`innfo-runtime.js`),
+     review tools (`review.js`), or shell (`artifact_shell.html`) are updated, compile the bundle:
+     ```powershell
+     node scripts/build-console-bundle.mjs
+     ```
+   - Regenerate the testlab domain console fixture:
+     ```powershell
+     node scripts/export-console.mjs test/fixtures/testlab --domain --no-open
+     ```
+   - `export-console.mjs` automatically updates inline script sha256 hashes via `allowInlineScripts`
+     in the `<meta http-equiv="Content-Security-Policy">` tag. Never edit generated inline script
+     hashes by hand.
+5. **Fixture Persistence in Git**:
+   - The generated fixture (`test/fixtures/testlab/domaiNN_console.html`) MUST be committed in the
+     session branch together with the source modifications. Never leave the fixture uncommitted or
+     stranded in an unmerged/deleted worktree.
+6. **Provide Working Link & Gate**:
+   - Verify that the regenerated file contains the expected changes.
+   - Provide a clickable `file:///...` link to the active worktree's fixture (or to the primary checkout
+     only after landing on `dev`).
+   - STOP and wait for the maintainer's confirmation before landing the changes or closing the session.
 
 ---
 

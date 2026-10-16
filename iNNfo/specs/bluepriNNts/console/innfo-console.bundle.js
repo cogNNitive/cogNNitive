@@ -1818,13 +1818,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
     var iconName = resolveConceptIconName(data.conceptId, conceptOpts)
-    var thumb = elementThumb(doc, data, iconName, 14)
+    var thumb = elementThumb(doc, data, iconName, 18)
     thumb.classList.add('innfo-mini-thumb')
     mini.appendChild(thumb)
-    var text = makeEl(doc, 'span', 'innfo-mini-text')
-    text.appendChild(makeEl(doc, 'span', 'innfo-mini-name', String(data.name || data.id || '')))
-    if (data.meta) text.appendChild(makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta)))
-    mini.appendChild(text)
+    var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
+      badgesWrap.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: conceptId,
+          label: conceptId,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon || iconName,
+        }),
+      )
+    }
+    badgesWrap.appendChild(
+      KuBadge({
+        kind: 'element',
+        id: data.id,
+        label: data.name || data.id,
+        index: conceptOpts.index,
+        color: conceptOpts.color,
+        icon: conceptOpts.icon,
+      }),
+    )
+    mini.appendChild(badgesWrap)
+    if (data.meta) {
+      var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
+      mini.appendChild(metaEl)
+    }
     if (Array.isArray(data.markers) && data.markers.length) {
       var mks = makeEl(doc, 'span', 'innfo-mini-markers')
       data.markers.forEach(function (m) {
@@ -1894,15 +1919,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     head.appendChild(elementThumb(doc, data, conceptIconName, 18))
     var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
-    if (data.concept) {
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
       badgesWrap.appendChild(
         KuBadge({
           kind: 'concept',
-          id: data.concept,
-          label: data.concept,
+          id: conceptId,
+          label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-          icon: conceptOpts.icon,
+          icon: conceptOpts.icon || conceptIconName,
         }),
       )
     }
@@ -5017,10 +5043,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function buildToggle() {
       if (!canReview(meta, elements, needs)) return null
+      var actions = doc.getElementById('innfo-navbar-actions')
       var extra = doc.getElementById('innfo-navbar-extra')
       var banner =
         doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
-      var host = extra || banner
+      var host = actions || extra || banner
       if (!host) return null
       var existing = doc.querySelector('[data-innfo="review-toggle"]')
       if (existing) return existing

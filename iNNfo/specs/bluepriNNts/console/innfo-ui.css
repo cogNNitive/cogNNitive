@@ -7270,13 +7270,13 @@ button.cite-icon,
 }
 
 /* 6. Card Head */
-[data-innfo-component="element-card"] .innfo-card-badges {
+.innfo-card-badges {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   zoom: 2 !important;
 }
-[data-innfo-component="element-card"] .innfo-card-badges .innfo-ku-badge {
+.innfo-card-badges .innfo-ku-badge {
   display: inline-flex !important;
 }
 
@@ -7527,16 +7527,21 @@ input[type="text"], input[type="search"], textarea, select {
 }
 
 #innfo-navbar-extra {
-  font-size: 0 !important;
+  font-size: 0.82rem !important;
+  color: var(--muted) !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
   margin-left: auto !important;
+  margin-right: 16px !important;
 }
-#innfo-navbar-extra > * {
-  font-size: 0.82rem !important;
+#innfo-navbar-actions {
+  display: flex !important;
+  align-items: center !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
 }
-
+.innfo-review-toggle,
 .innfo-navbar .innfo-review-toggle {
   background: var(--surface, #ffffff) !important;
   color: var(--text, #1e293b) !important;
