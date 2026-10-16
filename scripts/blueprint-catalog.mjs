@@ -129,7 +129,10 @@ function generate(rootDir) {
 
     const relPosix = rel.replace(/\\/g, '/');
     const name = nameFromPath(relPosix);
-    const version = normalizeBlueprintVersion(fm.blueprint_version);
+    // Frozen legacy files are byte-identical and predate `blueprint_version`: they carry
+    // `template_version`, which is the version they are catalogued under.
+    const rawVersion = fm.blueprint_version || (FROZEN_NAMES.includes(name) ? fm.template_version : undefined);
+    const version = normalizeBlueprintVersion(rawVersion);
     if (!version) {
       warnings.push(`skipped (no parseable blueprint_version): ${relPosix}`);
       continue;

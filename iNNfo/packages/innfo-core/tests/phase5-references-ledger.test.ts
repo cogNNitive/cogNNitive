@@ -202,6 +202,9 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(dupSlug).toBeDefined()
     expect(dupSlug!.severity).toBe('error')
     expect(dupSlug!.message).toContain('shared-slug')
+    // The diagnostic names the fix, not just the symptom.
+    expect(dupSlug!.message).toContain('add_element')
+    expect(dupSlug!.message).toContain('slug::')
   })
 
   it('5.1.4 A Level 3 model lacking slugExplicit flags emits UNFROZEN_MODEL warning', () => {

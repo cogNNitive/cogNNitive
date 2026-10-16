@@ -48,7 +48,7 @@ const BANNER =
   ' * Source: iNNfo/packages/innfo-core/src/trannsformPrimitives.ts\n' +
   ' * Regenerate: node scripts/build-trannsform-core-mirror.mjs\n' +
   ' * Drift-guarded by scripts/verify.js (build-trannsform-core-mirror --check).\n' +
-  ' */'
+  ' */\n// @ts-nocheck'
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
 function loadEsbuild() {

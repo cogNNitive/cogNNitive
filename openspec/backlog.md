@@ -21,6 +21,14 @@ shipped / fixed / resolved — 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 21, 22,
 changes). Merged item 19 into item 1 (both are source ingestion) and item 25 into
 item 24 (both are de-duplication). The remaining numbered gaps are intentional.
 
+Updated 2026-10-16: retired item 33 (`fix/skills-scripts-typecheck`) — `tsconfig.scripts.json`
+now covers `skills/**/*` and `typecheck-scripts` is green (generated bundles carry `// @ts-nocheck`).
+Retired `chore/third-party-license-compliance`: `npm run check:licenses` (`scripts/check-licenses.mjs`,
+policy in `scripts/license-policy.json`) gates denied/unknown licenses and keeps `THIRD_PARTY.md` fresh; wired
+into `verify.js`. The Syft/ScanCode alternative stays unneeded unless the vendored list drifts.
+Partly done `docs/manual-editing-risks`: the docs page and the actionable `DUPLICATE_SLUG` message shipped; only the
+non-deterministic "value changed without a changeset" fingerprint remains.
+
 Consolidated 2026-10-16 (verified against `dev` @ 804f8f59): retired the shipped /
 obsolete entries — 14 (the inline projections/master shells no longer exist),
 23 (regression test shipped), 29 (`lineageChain.ts` went with the editor),
@@ -352,50 +360,6 @@ question above is verified empirically).
 
 ---
 
-## `chore/third-party-license-compliance` — audit that every dependency and vendored component honours its license
-
-**Type:** chore / legal · **Size:** medium · **Status:** someday-maybe
-
-**Why:** nothing checks that the libraries and third-party code incorporated into the
-monorepo are used within the terms of their licenses. Two gaps make this impossible
-today: the root `package.json` declares no `license` field and the repo has no `LICENSE`
-file, so there is no project license to check dependencies against; and part of the
-third-party code is vendored (SHA-pinned CDN bundles, console assets) rather than
-installed, so no manifest-based scanner sees it.
-
-**Behaviour (as requested):** a repeatable check that lists every third-party component
-(npm workspaces under `iNNfo/packages/*` and `iNNfo/apps/*`, `skills/nn-trannsform`'s own
-`package.json`, and vendored files), classifies each license, flags anything outside an
-explicit allow/deny/review policy, and produces an attribution file that includes the
-copyright notice and license text MIT/BSD/Apache require (not just package names).
-
-**Prerequisite (blocks starting this):** the maintainer picks the project's own license
-and records it (root `package.json` `license` + `LICENSE` file). The allow/deny policy
-derives from it.
-
-**Evaluated and rejected (2026-09-29):** the `checking-license-compliance` agent skill
-(`jeremylongshore/claude-code-plugins-plus-skills`, penetration-tester plugin). Its
-script does not implement what its SKILL.md advertises (`INCOMPATIBLE_PAIRS` is defined
-but never used; no source-header or direct/transitive analysis); it classifies only the
-first term of an SPDX expression, so `MIT AND GPL-3.0` passes as permissive; with no venv
-it audits the machine's global Python site-packages; it skips nested `node_modules`
-(non-hoisted versions) and workspace-local `node_modules`; it does not separate dev from
-production dependencies; its NOTICE lists names only; and it depends on the plugin's
-`lib/` package. Other directory skills found (`license-compliance-auditor` by jorgealves,
-GPL-3.0, 2 commits; a5c-ai `license-compliance-checker`; a Snyk-based one needing an
-account) were not deeper-reviewed.
-
-**Approach (open):** prefer mature tooling wrapped in a small repo-local check over an
-LLM-driven skill — e.g. `license-checker-rseidelsohn --production` with `--onlyAllow` as
-a CI gate for npm, plus a hand-maintained `THIRD_PARTY.md` inventory for vendored code
-(a file scanner such as ScanCode or a Syft SBOM is the alternative if the inventory
-drifts). Mind the CI Node pin and `engine-strict=true` when adding any dev dependency.
-
-**Suggested trigger:** `/sdd-explore third-party-license-compliance` (after the project
-license is chosen).
-
----
-
 ## `docs/opencode-ecosystem-listing` — list cogNNitive in the OpenCode ecosystem Projects directory
 
 **Type:** docs / community · **Size:** small · **Status:** someday-maybe
@@ -659,31 +623,25 @@ the highest-value).
 
 ---
 
-## `docs/manual-editing-risks` — tell users that hand-editing `_NN.md` is unsafe, and have the validator say so
+## `docs/manual-editing-risks` — validator fingerprint for hand edits *(docs and duplicate-slug hint shipped 2026-10-16)*
 
-**Type:** docs + validator UX · **Size:** small
+**Type:** validator UX · **Size:** small · **Status:** partially done
 
-**Why:** the planned editing model routes every graph change through console changesets
-applied by the AI agent. Editing `_NN.md` by hand stays possible but bypasses provenance,
-and a copy-pasted `## NN` section duplicates the element's immutable `slug::`. Preventing
-hand edits is a non-goal; the user owns that risk, but must be told.
+**Shipped 2026-10-16:** the user-facing page `docs/innfo/documentation/manual-editing-risks.md` (linked from the
+Guides sidebar and from `usage.md`), and the `DUPLICATE_SLUG` diagnostic now names the fix (drop the copied `slug::`
+line and rename, or add elements with `apply_change` `add_element`).
 
-**Behaviour:**
-
-1. User-facing docs state that hand-editing models is unsupported for routine changes
-   and that changes should go through a console changeset or the agent.
-2. The validator reports a duplicated `slug::` (and other hand-edit fingerprints, such as a
-   changed value with no changeset behind it) as a clear, actionable diagnostic that names
-   the fix. It warns; it does not block or auto-repair.
-
-**Depends on:** the stable-identity / single-changeset redesign (immutable slugs).
-
-**Suggested trigger:** `/sdd-new manual-editing-risks` once immutable slugs land.
+**Remaining:** a diagnostic for the other hand-edit fingerprint, "a changed value with no changeset behind it". It is
+not deterministic from the model alone: it needs the changeset history of the domain (`changes/`) compared with the
+element hashes, which the single-model validator does not see. Design it together with the workspace-level integrity
+pass (`workspace-integrity-check`) or drop it; the docs page already carries the guidance.
 
 ---
 
 
-## 32. `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
+## 32. [RETIRED 2026-10-16] `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
+
+> **Retired 2026-10-16: already resolved.** `103ee795` ships in `blueprints-v0.34.0` (domaiNN V_0-3-1, `bluepriNNts` concept defined); the published `cogNNitive-web` main carries the same concept, and `validate_knowledge` on `ecosystem_NN/` is valid with no `CONCEPT_DRIFT_WARNING`.
 
 **Type:** chore · **Size:** small · **Status:** open · **Refs:** `2026-10-10-domaiNN-root-canonicalization` (commit `103ee795`)
 
@@ -707,28 +665,6 @@ and the root already coexisted with nine such warnings before the change. The on
 interim effect is that consumers resolving the remote blueprint do not recognize
 the `# NN bluepriNNts` section.
 
-
----
-
-## 33. `fix/skills-scripts-typecheck` — restore typechecking of `skills/**` scripts (dead `actioNN` include)
-
-**Type:** fix / chore · **Size:** medium · **Added:** 2026-10-10
-
-**Why:** `tsconfig.scripts.json` (run by `verify.js` → `typecheck-scripts`) still
-included `actioNN/scripts/**` and `actioNN/skills/nn-trannsform/scripts/**` after the
-`actioNN` → `skills` rename, so those globs matched nothing and the skills JS stopped
-being typechecked silently. (The dead includes were removed on 2026-10-10 in PR #150;
-restoring the scope is the remaining work.) Repointing the include to `skills/**/*`
-surfaces **45** `tsc` errors: `skills/nn-sources/**` (e.g.
-`scripts/lib/watch-digest-store.js`, several `test/unit/*`) and `skills/nn-upgrade/**`
-(`scripts/batch-update.js`, plus the imported generated
-`scripts/lib/legacy-migrate.generated.cjs`).
-
-**Behaviour:** restore the include scope (`skills/**/*`) and drive the 45 errors to
-zero — fix the real ones and handle the generated bundle with `// @ts-nocheck` or a
-working exclude; confirm `verify` stays green. Keep `scripts/**/*` checked throughout.
-
-**Suggested trigger:** `/sdd-new skills-scripts-typecheck`.
 
 ---
 
@@ -829,6 +765,11 @@ S3b group 10 (declared media rendering) shipped with no sample able to exercise 
 ## 36. `fix/validate-workspace-sources-tests` — two red tests in innfo-mcp, unexplained
 
 `iNNfo/packages/innfo-mcp/test/validate-workspace-sources.test.ts` fails 2 of 6 locally on every run since at least 2026-10-14: "reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only" (the dangling diagnostic is `undefined`) and "emits missing parent directory and fuzzy suggestions in diagnostics". Stderr shows `[resolver-node] Local tier missed for defiNNition_V_0-1-0 ... ENOENT .../temp-test-workspace-sources/specs/defiNNition_V_0-1-0_NN.md`. CI on `dev` and `main` is green, so the cause is probably environmental (the fixture workspace lacks the defiNNition spec locally, or the local tier is masked on CI by a network tier). Not caused by S6/S3b (verified: those diffs touch neither validator nor resolver). Find the cause, then fix the fixture or the resolver fallback; do not skip the tests.
+
+**Diagnosis 2026-10-16 (not reproducible; no fix applied):**
+- On `session/backlog-ab` (main at `6bd9e308`, includes #185-#187) `validate-workspace-sources.test.ts` passes 6/6, both in isolation and inside the full `innfo-mcp` vitest run (no ENOENT / resolver-node stderr).
+- The original failure was seen on the primary checkout, which sits on `session/console-ui-overhaul` (`804f8f59`), i.e. behind main. Attribution to that older tip could not be confirmed: a second tree needs its own `node_modules`, and installs are off limits here. If it still fails there, re-run after rebasing onto main before investigating further.
+- Unrelated but real and deterministic on current main: `src/tools/check-workspace.spec.ts > summary_only trims the model list but not the aggregate` fails (`report.models.length` is 0; the fixture's `scope:: not-an-option` model is not reported with errors) and floods stderr with `[resolver-node] Network fetch failed`. Needs its own entry or a fix; not touched here.
 
 **Suggested trigger:** `/sdd-explore validate-workspace-sources-red` (light lane).
 

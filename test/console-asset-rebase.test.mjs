@@ -150,3 +150,103 @@ describe('export-console asset rebasing (S3b review follow-ups)', () => {
     assert.ok(!stored.includes('../../sources/plain.mp4'), 'the rebased value never reaches the draft')
   })
 })
+
+const IMG_BLUEPRINT = `---
+level: 2
+spec_version: V_0-1-0
+title: "Gallery"
+---
+
+# NN Concept Definition
+## NN Concept Definition: Evidence
+type:: text
+
+# NN Field Definition
+## NN Field Definition: image
+concept:: Evidence
+type:: image
+`
+
+const IMG_MODEL = `---
+title: "x"
+model_version: "V_1-0-0"
+level: 3
+parent_spec:
+  name: "gallery_V_0-1-0"
+---
+
+# NN Evidence
+## NN Evidence: Foto Uno
+  slug:: foto-uno
+  image:: evidence/foo.jpg
+
+## NN Evidence: Missing Photo
+  slug:: missing-photo
+  image:: evidence/absent.jpg
+`
+
+describe('export-console element-relative image assets (#182)', () => {
+  let root
+  let model
+
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-elemasset-'))
+    const dir = join(root, 'specs', 'bluepriNNts', 'gallery')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'spec_NN.md'), IMG_BLUEPRINT, 'utf-8')
+    await mkdir(join(root, 'kNNowledge', 'assets', 'foto-uno', 'evidence'), { recursive: true })
+    await writeFile(join(root, 'kNNowledge', 'gallery_NN.md'), IMG_MODEL, 'utf-8')
+    await writeFile(join(root, 'kNNowledge', 'assets', 'foto-uno', 'evidence', 'foo.jpg'), 'x', 'utf-8')
+    await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
+    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'innfo-model')
+  })
+
+  after(() => rm(root, { recursive: true, force: true }))
+
+  it('rebases an element-relative image under <modelDir>/assets/<slug>/', () => {
+    const e = model.elements.find((x) => x.name === 'Foto Uno')
+    assert.equal(e.fields.image, './kNNowledge/assets/foto-uno/evidence/foo.jpg')
+    assert.equal(e.rawFields.image, 'evidence/foo.jpg')
+  })
+
+  it('keeps a missing element-relative image as authored', () => {
+    const e = model.elements.find((x) => x.name === 'Missing Photo')
+    assert.equal(e.fields.image.endsWith('evidence/absent.jpg'), true)
+  })
+})
+
+describe('export-console isInsideRoot follows symlinks (#171 item 6)', () => {
+  let root
+  let outside
+  let model
+
+  before(async () => {
+    const { symlink } = await import('node:fs/promises')
+    root = await mkdtemp(join(tmpdir(), 'nn-symroot-'))
+    outside = await mkdtemp(join(tmpdir(), 'nn-symout-'))
+    const dir = join(root, 'specs', 'bluepriNNts', 'gallery')
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, 'spec_NN.md'), IMG_BLUEPRINT, 'utf-8')
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(
+      join(root, 'models', 'gallery_NN.md'),
+      IMG_MODEL.replace('evidence/foo.jpg', 'linked/secret.jpg').replace('evidence/absent.jpg', 'linked/absent.jpg'),
+      'utf-8',
+    )
+    await writeFile(join(outside, 'secret.jpg'), 'x', 'utf-8')
+    await symlink(outside, join(root, 'linked'), 'junction')
+    await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
+    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'innfo-model')
+  })
+
+  after(async () => {
+    await rm(root, { recursive: true, force: true })
+    await rm(outside, { recursive: true, force: true })
+  })
+
+  it('does not rebase a value whose real path escapes the domain root through a link', () => {
+    const e = model.elements.find((x) => x.name === 'Foto Uno')
+    assert.equal(e.fields.image, 'linked/secret.jpg')
+    assert.equal(e.rawFields, undefined)
+  })
+})

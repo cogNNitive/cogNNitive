@@ -53,6 +53,8 @@ const ALLOWLIST = [
   { pattern: 'skills/nn-sources/scripts/provenance.js', reason: 'detects the legacy `_workspace_NN.md` lineage record by name for one-time in-place migration to `_cogNNitive_NN.md`' },
   { pattern: 'skills/nn-sources/scripts/lib/provenance-knowledge.js', reason: 'legacy `_workspace_NN.md` lineage-record suffix documented for one-time migration' },
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'this guard carries the token table itself' },
+  { pattern: 'scripts/blueprint-catalog.mjs', reason: 'reads the retired `template_version` key only as a fallback to catalog the frozen composition-root templates (base/cogNNitive/workspace), whose byte-frozen frontmatter never carried blueprint_version' },
+  { pattern: 'scripts/blueprint-catalog.test.mjs', reason: 'fixtures reproduce the frozen files, which carry `template_version` instead of blueprint_version' },
   { pattern: 'scripts/guard-template-immutability.js', reason: 'reads the retired `template_version` key only as a fallback to recognize the composition-root templates (base/cogNNitive/workspace) whose frontmatter still uses it' },
   { pattern: 'iNNfo/packages/innfo-core/src/console/payload-builder.ts', reason: 'reads the retired `target_template` key as a backward-compatible fallback for pre-rename domains' },
   { pattern: 'skills/nn-sources/scripts/lib/scanner-converters.js', reason: 'names the retired `source_model_version` key to REJECT it during feedback validation (same as validator/content.ts)' },

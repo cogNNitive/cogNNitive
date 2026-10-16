@@ -13,12 +13,16 @@
     "skipLibCheck": true
   },
   "include": [
-    "scripts/**/*"
+    "scripts/**/*",
+    "skills/**/*"
   ],
   "exclude": [
     "node_modules",
+    "**/node_modules/**",
     "**/*.test.js",
     "**/test-*.js",
+    "skills/**/test/**",
+    "skills/**/tests/**",
     "**/*.generated.cjs"
   ]
 }

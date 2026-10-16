@@ -1,0 +1,57 @@
+{
+  "$comment": "Third-party license policy read by scripts/check-licenses.mjs. Verdicts: allow passes; review FAILS unless the exact package@version is listed in the reviewed array with a reason (after reading its license text); deny and unknown fail. packageOverrides entries require an exact version. The license of every vendored entry is classified too. Entries are SPDX ids (case-insensitive) or PREFIX* patterns. Deny wins over allow, allow over review. A compound expression is judged per SPDX semantics (OR: best branch, AND: worst branch).",
+  "allow": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "0BSD",
+    "BlueOak-1.0.0",
+    "CC0-1.0",
+    "Unlicense",
+    "Zlib",
+    "Python-2.0"
+  ],
+  "review": ["LGPL-*", "MPL-*", "EPL-*", "CDDL-*", "CC-BY-*", "Artistic-*", "OFL-*"],
+  "deny": ["GPL-*", "AGPL-*", "SSPL-*", "BUSL-*", "CC-BY-NC*", "Commons-Clause", "UNLICENSED"],
+  "allowedExceptions": [],
+  "reviewed": [],
+  "packageOverrides": [
+    {
+      "package": "duck",
+      "version": "0.1.12",
+      "license": "BSD-2-Clause",
+      "reason": "package.json declares the ambiguous id \"BSD\"; the shipped LICENSE file is the two-clause BSD text."
+    }
+  ],
+  "vendored": [
+    {
+      "name": "uPlot",
+      "version": "1.6.31",
+      "license": "MIT",
+      "path": "iNNfo/specs/bluepriNNts/console/uplot.iife.min.js",
+      "source": "https://github.com/leeoniya/uPlot",
+      "sha256": "2d27e8ad3d228164525ce213f9dc716f39b4e3aee0cc773fb3491c96cf4921a2",
+      "note": "Charts in the console bundle."
+    },
+    {
+      "name": "Preact",
+      "version": "unrecorded",
+      "license": "MIT",
+      "path": "iNNfo/specs/bluepriNNts/console/vendor/preact.umd.js",
+      "source": "https://github.com/preactjs/preact",
+      "sha256": "690684b754dba8c5fa319e0961e4720a8b97157cc532ef8fee98dd1783391df5",
+      "note": "UMD build vendored for the console UI kit; the file carries no version banner."
+    },
+    {
+      "name": "htm",
+      "version": "unrecorded",
+      "license": "Apache-2.0",
+      "path": "iNNfo/specs/bluepriNNts/console/vendor/htm.umd.js",
+      "source": "https://github.com/developit/htm",
+      "sha256": "7a31776e04bd4afde0d4308177d26f377716fcf7e4bd70be590746d6aa594f08",
+      "note": "UMD build vendored for the console UI kit; the file carries no version banner."
+    }
+  ]
+}

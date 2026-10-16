@@ -54,7 +54,7 @@ const BUNDLE_TARGETS = [
       ' * Source: iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
-      ' */',
+      ' */\n// @ts-nocheck',
   },
   {
     name: 'naming-contract',
@@ -73,7 +73,7 @@ const BUNDLE_TARGETS = [
       ' * Source: iNNfo/packages/innfo-core/src/naming/index.ts\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
-      ' */',
+      ' */\n// @ts-nocheck',
   },
   {
     name: 'nn-upgrade-core',
@@ -92,7 +92,7 @@ const BUNDLE_TARGETS = [
       ' * Source: iNNfo/packages/innfo-core (planDomainScaffold, parseKnowledge, serializeKnowledge, freeze_slugs)\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
-      ' */',
+      ' */\n// @ts-nocheck',
   },
 ]
 

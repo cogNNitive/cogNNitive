@@ -1,5 +1,12 @@
 # Proposal: video-script contract additions (watermark, per-Layer model/fit, per-Scene music_volume) + b-roll/format ergonomics
 
+> **Re-scoped 2026-10-16.** The contract additions below (watermark, `model`, `fit`,
+> `music_volume`, b-roll fit/zoom, stable TTS cache key) are shipped and verified (commits
+> c43de73f, 3769d206, 50633fac, e4c35a67, 09554a18; tests in `test/contract-additions.test.mjs`).
+> **Remaining work: format variants (`render-formats.mjs`) only** - see `tasks.md` section 5.
+> The sections below are kept as the original rationale; their delta specs are retained so the
+> archive step merges them into the living specs.
+
 ## Intent
 
 Producing a real series on the native `video-script` model surfaced four missing
@@ -88,14 +95,14 @@ new fields are optional; a document that omits them behaves exactly as before).
 
 ## Success Criteria
 
-- [ ] A `type:: watermark` Layer validates (requires `text`) and renders a persistent
+- [x] A `type:: watermark` Layer validates (requires `text`) and renders a persistent
       text notice; `DEFAULT_CONDITIONAL_FIELDS` matches the blueprint.
-- [ ] A `presenter` Layer with `model:: <id>` is priced, billed and synthesized with
+- [x] A `presenter` Layer with `model:: <id>` is priced, billed and synthesized with
       that model; other presenters keep the default.
-- [ ] A b-roll Layer with `fit:: contain` shows the whole asset with margins and a
+- [x] A b-roll Layer with `fit:: contain` shows the whole asset with margins and a
       subtle zoom-in; `cover` is unchanged.
-- [ ] A Scene with `music_volume:: 0.06` emits its music track at 0.06.
-- [ ] Changing an avatar model does **not** re-bill TTS for an unchanged narration.
+- [x] A Scene with `music_volume:: 0.06` emits its music track at 0.06.
+- [x] Changing an avatar model does **not** re-bill TTS for an unchanged narration.
 - [ ] The format step emits `<slug>_1080x1080.mp4`, `<slug>_1080x1920.mp4`,
       `<slug>_1920x1080.mp4` with the square intact over a blurred fill.
 - [ ] `node scripts/verify.js` and the skill tests are green.

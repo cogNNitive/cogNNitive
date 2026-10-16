@@ -36,7 +36,7 @@ const BANNER =
   ' * Source: scripts/skills-manager.js (+ scripts/lib/*)\n' +
   ' * Regenerate: node scripts/build-skills-manager-bundle.mjs\n' +
   ' * Drift-guarded by scripts/verify.js (build-skills-manager-bundle --check).\n' +
-  ' */'
+  ' */\n// @ts-nocheck'
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
 function loadEsbuild() {

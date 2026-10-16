@@ -7390,7 +7390,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function normalizeKey(str) {
-    return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    // NFD + combining-mark strip so 'Facturación' and 'facturacion' share one key.
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  }
+
+  var warnedUnresolvedOperands = {}
+  function warnUnresolvedOperand(token, formula) {
+    var key = formula + ' ' + token
+    if (warnedUnresolvedOperands[key]) return
+    warnedUnresolvedOperands[key] = true
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[innfo] Timeline formula "' + formula + '": unresolved operand "' + token + '"')
+    }
   }
 
   // Theme synchronization for embedded iframes now lives in ui-kit.js
@@ -7468,9 +7483,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var norm = normalizeKey(token)
       var targetRow = rowMap[norm]
       if (targetRow) {
-        return evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        var operandVal = evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        // A '%' variable is a rate: as an operand it is the fraction (35% -> 0.35),
+        // consistent with growValue, which divides the growth factor by 100.
+        // Scope: only plain variable rows (no formula) with unit '%' are scaled.
+        // Formula rows already return a computed value (their operands were scaled
+        // on the way in), so dividing again would double-scale the result.
+        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%') operandVal = operandVal / 100
+        return operandVal
       }
-      return 0
+      // Unresolved: surface as NaN (rendered '-') instead of a silent 0.
+      warnUnresolvedOperand(token, formula)
+      return NaN
     }
 
     var terms = []
@@ -7498,8 +7522,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!terms.length) return 0
     var res = terms[0]
     for (var j = 0; j < ops.length; j++) {
-      if (ops[j] === '+') res += terms[j + 1] || 0
-      else if (ops[j] === '-') res -= terms[j + 1] || 0
+      var term = terms[j + 1] == null ? 0 : terms[j + 1]
+      if (ops[j] === '+') res += term
+      else if (ops[j] === '-') res -= term
     }
     return res
   }
@@ -7530,9 +7555,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         g.mode + (g.factor ? ' (' + g.factor + ')' : '')
       ]
       for (var i = 0; i < totalMonths; i++) {
-        rowLine.push(vals[i] != null ? Math.round(vals[i] * 100) / 100 : '')
+        // Unresolved operands yield NaN: write an empty cell, never a literal "NaN".
+        rowLine.push(vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '')
       }
-      rowLine.push(Math.round(sum * 100) / 100)
+      rowLine.push(Number.isFinite(sum) ? Math.round(sum * 100) / 100 : '')
       lines.push(rowLine.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
     })
 
@@ -8129,9 +8155,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
-          var maxAbs = Math.max.apply(null, vals.map(function (v) { return Math.abs(v) })) || 1
-          var minReal = Math.min.apply(null, vals)
-          var maxReal = Math.max.apply(null, vals)
+          // Unresolved operands yield NaN months: scale and range use finite values only.
+          var finiteVals = vals.filter(function (v) { return Number.isFinite(v) })
+          var maxAbs = Math.max.apply(null, finiteVals.map(function (v) { return Math.abs(v) })) || 1
+          var minReal = finiteVals.length ? Math.min.apply(null, finiteVals) : NaN
+          var maxReal = finiteVals.length ? Math.max.apply(null, finiteVals) : NaN
 
           var tdChartRule = el('td', 'td-rule')
           tdChartRule.appendChild(el('span', 'innfo-chart-range', 'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal)))
@@ -8146,10 +8174,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             var barWrap = el('div', 'innfo-mini-bar-wrap')
             barWrap.setAttribute('title', (labels[ci] || ('M' + (ci + 1))) + ': ' + formatGridNumber(cVal) + (r.metricUnit ? ' ' + r.metricUnit : ''))
 
-            var heightPct = Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100))
-            var bar = el('div', 'innfo-mini-bar' + (cVal < 0 ? ' negative' : ''))
+            var cResolved = Number.isFinite(cVal)
+            var heightPct = cResolved ? Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100)) : 4
+            var bar = el('div', 'innfo-mini-bar' + (cResolved && cVal < 0 ? ' negative' : ''))
             bar.style.height = heightPct + '%'
-            bar.style.backgroundColor = getSemanticBarColor(cVal, minReal, maxReal, r)
+            bar.style.backgroundColor = cResolved ? getSemanticBarColor(cVal, minReal, maxReal, r) : '#cbd5e1'
 
             var valLabel = el('span', 'innfo-mini-bar-val', formatGridNumber(cVal))
             barWrap.appendChild(bar)
@@ -8162,7 +8191,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var firstVal = vals[0] || 0
           var lastVal = vals[totalMonths - 1] || 0
           var deltaPct = firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
-          tdChartTotal.appendChild(el('div', 'innfo-mini-total', (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend'))
+          var trendLabel = Number.isFinite(deltaPct) ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend' : '- trend'
+          tdChartTotal.appendChild(el('div', 'innfo-mini-total', trendLabel))
           trChart.appendChild(tdChartTotal)
 
           tbody.appendChild(trChart)

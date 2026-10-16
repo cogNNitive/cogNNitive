@@ -72,7 +72,9 @@ export function checkFrontmatterInvariants(model: ParsedKnowledge, d: Diagnostic
     if (names.length > 1) {
       d.error(
         'elements',
-        `Duplicate slug "${slug}" shared by elements: ${names.join(', ')}`,
+        `Duplicate slug "${slug}" shared by elements: ${names.join(', ')}. Slugs are immutable and unique per model; ` +
+          `a copy-pasted element repeats its original's "slug::" line. On the copy, delete the "slug::" line and give it ` +
+          `a unique name, or add elements with the apply_change add_element operation instead of copy-pasting`,
         { code: 'DUPLICATE_SLUG' },
       )
     }
