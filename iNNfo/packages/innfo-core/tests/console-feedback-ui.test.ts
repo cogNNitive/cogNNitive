@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
+import { installDialogStub } from './helpers/dialog-stub'
 const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const modelConsolePath = join(consoleDir, 'artifact_shell.html')
@@ -94,17 +95,7 @@ function loadRuntime(): ConsoleApi {
 describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   beforeEach(() => {
     localStorage.clear()
-    // HTMLDialogElement.prototype.showModal stub for jsdom
-    if (!HTMLDialogElement.prototype.showModal) {
-      HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-        this.setAttribute('open', 'open')
-      }
-    }
-    if (!HTMLDialogElement.prototype.close) {
-      HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-        this.removeAttribute('open')
-      }
-    }
+    installDialogStub()
   })
 
   afterEach(() => {
