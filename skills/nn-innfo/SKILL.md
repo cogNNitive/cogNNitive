@@ -197,6 +197,9 @@ Creating **any** model — with a canonical app, custom app, or without an app �
 
 #### Phase A — App Design (Level 2)
 
+**A0. Domain Language Auto-Alignment (MANDATORY):**
+If the user's conversational prompt is in language $L$ (e.g. Spanish) or the primary sources to be ingested are in language $L$, the proposed Concepts, Field names, Matrix titles, and Marker names MUST be authored in language $L$ by default. Never propose an English schema to a non-English domain without explicit prior confirmation.
+
 **A1. Base Selection:**
 - **[a] (Recommended)** Business Model 🏢
 - **[b]** Procedures Model 📋
@@ -471,6 +474,20 @@ Every content change a user should review goes through a changeset, never a dire
 4. The user replies **OK** and you call `innfo-mcp_apply_change({ changeset })`. After an applied or partially applied changeset the console is regenerated again so it shows the result.
 
 The result of `propose_changeset`, `apply_change`, `regenerate_console` and `init_knowledge` carries `next_steps`. You MUST relay `next_steps.notice` to the user verbatim: it lists the numbered steps above, the console path when the browser could not be opened, and the OK shortcut ("simply reply OK to apply them"). The console is static HTML and cannot call the MCP, so approval always comes back through you.
+
+#### Canonical 2-Hop Traceability Contract (MANDATORY)
+
+In the cogNNitive architecture, Level-3 model elements do NOT cite raw source files directly.
+Every change is audited through an immutable changeset:
+```
+[Element] ───sources::───► [Changeset] ───sources::───► [Primary Source]
+```
+- `apply_change` automatically stamps the mutated element's `sources::` field with the changeset reference (`changes/<file>.md@## NN Change: <id>`).
+- To cite a primary source, declare the source inside the changeset operation: `sources: ["sources/import/<file>.md@## <Heading>"]`.
+- Never attempt to manually override an element's `sources::` field with a direct source path: the mutation engine enforces the audit trail and will overwrite it.
+
+#### Changeset Pruning & Hygiene
+Exploratory proposals that are abandoned or not cited by any active model can be pruned using `innfo-mcp_prune_changesets({ dryRun: false })`. This cleans unreferenced changesets from `changes/` and resyncs `index.md` without requiring manual filesystem deletions.
 
 #### New domain and migration
 
