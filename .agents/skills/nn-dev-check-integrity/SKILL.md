@@ -63,7 +63,7 @@ defaults to the diff vs `origin/main` without a secondary scope question.
 
 | Preset | Groups | Command |
 |--------|--------|---------|
-| `[d]` Post-change (default) | 1 2 2b 3 3b 4 6 7 | `node scripts/check-integrity.js` |
+| `[d]` Post-change (default) | 1 2 3 3b 4 6 7 | `node scripts/check-integrity.js` |
 | `[p]` Pre-push | `[d]` + 5 (CI mirror, slow) | `node scripts/check-integrity.js --pre-push` |
 | `[q]` Deep QA | `[p]` + 10 (code review, very slow) | `[p]`, then Group 10 |
 | `[a]` / `[r]` Everything / release | all | per catalog |
@@ -89,7 +89,7 @@ Summary (details, commands, verdict rules and expedientes in the catalog):
 |-------|-------|
 | 0 | Working tree & sessions (delegated to `nn-dev-development`) |
 | 1 / 1b / 1c / 1d | GitHub sync, merge gate, tag/pin freshness, release workflow auth |
-| 2 / 2b | Version SSOT & inventory, sample version coherence |
+| 2 | Version SSOT & inventory (sample version coherence is a `verify.js` step, see the catalog) |
 | 3 / 3b / 3c | Published `_V_x-y-z_` immutability, canonical blueprint versioning, blocked `checkout` read-through |
 | 4 | New blueprint folders registered in the manifest |
 | 5 | CI mirror (slow) |

@@ -6,7 +6,7 @@
  * Deterministic post-change & pre-push integrity runner.
  * Unifies:
  * - Group 0 & 1: Git working tree & concurrency status
- * - Group 2: Version SSOT alignment (the CDN bundle is staged by the release, not gated here)
+ * - Group 2: Checks verify.js does not run (tag/pin freshness, node engines, console bundle, external-skill policy)
  * - Group 3, 4, 7+: Full workspace verification suite (scripts/verify.js)
  * - Group 5 (optional): Complete CI mirror (lint, typecheck, core/app tests,
  *   innfo-mcp tests + coverage ratchet, spec-url resolution)
@@ -21,7 +21,6 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
-const { validateLegacyLedger } = require('./lib/legacy-ledger-guard.js');
 const { runVerification } = require('./verify.js');
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -84,16 +83,6 @@ try {
   console.log(`  ℹ️ Tag/pin freshness check skipped: ${e.message}`);
 }
 
-// Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> package versions + manifest/source.yaml)
-console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> package versions <-> manifest/source.yaml):');
-try {
-  execSync('node scripts/sync-versions.mjs --check', { cwd: repoRoot, stdio: 'inherit' });
-  console.log('  ✅ Versions are in sync with SSOT.');
-} catch (e) {
-  console.error('❌ Version drift detected. Run `npm run sync:versions` to regenerate the copies.');
-  process.exit(1);
-}
-
 // Step 2c: Node Engine Compatibility (Group 9 — automated bullets)
 console.log('\n[Group 9] Node Engine Compatibility (installed deps vs CI-pinned Node):');
 const nodeEngines = checkNodeEngines(repoRoot);
@@ -106,27 +95,6 @@ if (!nodeEngines.ok) {
   process.exit(1);
 }
 console.log('  ✅ All installed workspace dependencies are compatible with CI-pinned Node version(s).');
-
-// Step 2d: Legacy Ledger & Quarantine Marker Guard
-console.log('\n[Group 2d] Legacy Ledger & Quarantine Marker Guard:');
-const legacyLedgerResult = validateLegacyLedger({ repoRoot });
-if (!legacyLedgerResult.ok) {
-  console.error('❌ Legacy Ledger check failed:');
-  legacyLedgerResult.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-}
-console.log(`  ✅ Legacy ledger valid (${legacyLedgerResult.entries.length} entries, ${legacyLedgerResult.markers.length} code markers).`);
-
-// Step 2e: Console Shell Integrity Guard
-console.log('\n[Group 2e] Console Shell Integrity Guard:');
-const { checkConsoleShellIntegrity } = require('./lib/console-shell-guard.js');
-const consoleShellResult = checkConsoleShellIntegrity(repoRoot);
-if (!consoleShellResult.ok) {
-  console.error('❌ Console Shell Integrity check failed:');
-  consoleShellResult.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-}
-console.log(`  ✅ All ${consoleShellResult.shells.length} console shells adhere to the integrity contract.`);
 
 // Step 2f: Console Bundle Freshness Guard
 console.log('\n[Group 2f] Console Bundle Freshness Guard:');
@@ -169,7 +137,6 @@ if (isPrePush) {
   try {
     runCmd('npm run lint', 'Lint');
     runCmd('npm run typecheck', 'Typecheck');
-    runCmd('npm run check:console-bundle', 'Check console bundle');
     runCmd('npm --workspace=@cognnitive/innfo-core test', 'Unit tests (core)');
     runCmd('npm --workspace=@cognnitive/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
     runCmd('node scripts/check-spec-version.mjs --check-urls', 'Check spec URLs resolve');

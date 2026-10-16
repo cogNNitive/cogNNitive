@@ -4,7 +4,6 @@
  * scripts/sync-versions.mjs
  *
  * Single Source of Truth synchronization and drift validation for:
- *   - (the frozen Vue editor's samples.ts is no longer a target; see its FROZEN.md)
  *   - MCP package version (innfo-mcp/package.json -> innfo-core, dep range)
  *
  * (source.yaml synchronization is removed under tag-driven release AD-6).

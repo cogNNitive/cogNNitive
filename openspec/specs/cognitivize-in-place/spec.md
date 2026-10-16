@@ -156,12 +156,12 @@ External watch roots (`## NN External Watch Roots`) MUST only be read. The `stat
 
 ### Requirement: Retired source folders do not exist at runtime
 
-The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sources/export/`, or `sources/archive/`. Only code carrying a `legacy:cognitivize-in-place/<id>` marker (the migration detector and rewriter) MAY mention these paths. Sidecar field `staging_file` MUST be removed. Pre-existing `sources/archive/` snapshots in user domaiNNs are inert files: no ingest or projection code walks them, and a citation into one still resolves as a plain path (see `workspace-template-upgrade` for the migration warning).
+The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sources/export/`, or `sources/archive/`. Only the migration detector and rewriter MAY mention these paths. Sidecar field `staging_file` MUST be removed. Pre-existing `sources/archive/` snapshots in user domaiNNs are inert files: no ingest or projection code walks them, and a citation into one still resolves as a plain path (see `workspace-template-upgrade` for the migration warning).
 
 #### Scenario: Path gate
 - GIVEN the repository after this change
 - WHEN `rg -n "sources/(nn|original|export|archive)/"` runs over `iNNfo/packages`, `iNNfo/apps`, `skills`, and `scripts` (excluding generated files and fixtures)
-- THEN every match is on a line marked `legacy:cognitivize-in-place/*`
+- THEN every match belongs to the migration detector or rewriter, or to a refusal or warning about the retired layout
 
 ### Requirement: `staging/` is scratch
 

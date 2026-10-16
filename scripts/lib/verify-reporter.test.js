@@ -131,7 +131,22 @@ function testTailLines() {
   assert.strictEqual(tailLines('a\nb', 5), 'a\nb');
 }
 
+function testHungStepTimesOut() {
+  const previous = process.env.NN_VERIFY_STEP_TIMEOUT_MS;
+  process.env.NN_VERIFY_STEP_TIMEOUT_MS = '500';
+  try {
+    const out = capture();
+    const result = runStep(step('hang', 'setInterval(() => {}, 1000)'), { logDir: mkLogDir(), write: out.write });
+    assert.strictEqual(result.ok, false, 'a hung step fails instead of stalling the run');
+    assert.ok(out.lines.join(' ').includes('ETIMEDOUT'), 'the timeout is reported');
+  } finally {
+    if (previous === undefined) delete process.env.NN_VERIFY_STEP_TIMEOUT_MS;
+    else process.env.NN_VERIFY_STEP_TIMEOUT_MS = previous;
+  }
+}
+
 testQuietPass();
+testHungStepTimesOut();
 testFailureTail();
 testVerboseStreams();
 testVerboseReportsSpawnErrors();

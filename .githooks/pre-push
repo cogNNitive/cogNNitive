@@ -2,7 +2,7 @@
 # pre-push: block the push if the repo does not typecheck.
 #
 # Typecheck runs `npm run typecheck` (root, both workspaces, includes the
-# innfo-core build; the frozen Vue editor is not a workspace and is not checked)
+# innfo-core build)
 # — the cheapest command that catches the class of defect
 # that caused incident 2c11ecf (a vue-tsc TS2367 dead comparison).
 # Deliberately NOT `npm run verify` (typecheck + full test suite, several minutes): a hook that takes minutes trains people to reach for
