@@ -1,6 +1,6 @@
 ---
 name: nn-dev-development
-version: "1.1.0"
+version: "1.2.0"
 description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Enforces commit-early, picks the process lane by change size, and orchestrates the batched `dev -> main` merge through verify.js + CI + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation.
 ---
 
@@ -104,7 +104,9 @@ A worktree you did not create may be live; do not stop or revert it (§3).
   checkpoints only** — CI typechecks at integration.
 - **Landing on `dev`:** merge `origin/dev` into the session branch if it moved, push, then
   merge via PR (normal path) or a server-side fast-forward `git push origin session/<id>:dev`
-  for a single clean commit. Then `nn-session.mjs stop`.
+  for a single clean commit. Then `nn-session.mjs stop`. "Land my changes" means landing
+  **this session's own branch** — never "commit everything that is dirty". Another agent's
+  uncommitted or unpushed work is not yours to commit, push or land.
 - `git add -A` / `git add .` / `git commit -a` are **permitted** (the worktree only holds
   your own work). `reset --hard`, `clean`, `stash`, `branch -D`, and `checkout/restore .`
   stay **blocked** by `.claude/hooks/block-dangerous-git.mjs`.
@@ -153,6 +155,7 @@ already open for that area.
   save what matters, then revert the rest. A missing, empty, or locked leftover dir is
   tolerated and reported, never a crash.
 - `node scripts/nn-session.mjs list` shows each session worktree and its branch.
+- `node scripts/nn-session.mjs batch-status` is the read-only batch precheck (§4-pre).
 - A worktree that is clean **and** merged is safe to `stop` when the session ends; do not
   let them pile up. Never remove one whose branch has unique commits, and never delete
   other branches automatically (ghost branches are candidates for the maintainer).
@@ -165,6 +168,34 @@ already open for that area.
 ---
 
 ## 4. Batched Merge to `main`
+
+### 4-pre. Batch precheck (MANDATORY, read-only)
+
+Before any step below, run:
+
+```powershell
+node scripts/nn-session.mjs batch-status          # add --json for machine output
+```
+
+It fetches best-effort and reports, without writing anything: the `origin/main...origin/dev`
+ahead/behind and the commits that would land; open PRs; every non-primary worktree (dirty
+files, commits not in `origin/dev`, whether its branch exists on origin — `UNBACKED` means
+local commits with no remote branch); CI for both tips and any run in progress on another
+branch (an active agent); and, per release key, the latest remote tag, the files changed
+since it, and "bump needed" when files changed but the authored version equals the tag.
+
+The last line is the verdict:
+
+- `READY` — proceed with 4a onward.
+- `NOT READY` or `UNKNOWN` (e.g. `gh` unavailable) — **STOP.** Report the listed reasons to
+  the maintainer. Do not wait, retry in a loop, or work around it.
+
+Hard non-goals — the batch **never**:
+
+- commits or pushes another agent's uncommitted or unbacked work;
+- touches a worktree it did not create (read-only inspection only, §1c/§3);
+- cuts a tag without the maintainer's explicit confirmation in chat. It may **prepare and
+  propose** the tags and their order from the per-key output, following `nn-dev-release`.
 
 ### 4a. Did origin/main advance?
 
