@@ -69,7 +69,8 @@ describe('timeline formula operands', () => {
       { id: 'v2', label: 'Ingresos mensuales', variable: true, base: 6400, growth: { mode: 'fixed', factor: 0 } },
       { id: 'm1', label: 'Coste', formula: 'ingresos mensuales x ratio coste material', growth: { mode: 'fixed', factor: 0 } },
     ])
-    assert.equal(out['Coste'][0], '2,240')
+    // 6400 x 0.35 = 2240, formatted with the runtime's own (default) locale.
+    assert.equal(out['Coste'][0], (2240).toLocaleString())
   })
 
   it('leaves the % variable row itself displayed as authored (#178)', () => {
@@ -77,5 +78,92 @@ describe('timeline formula operands', () => {
       { id: 'v1', label: 'Ratio', variable: true, base: 35, metricUnit: '%', growth: { mode: 'fixed', factor: 0 } },
     ])
     assert.equal(out['Ratio'][0], '35')
+  })
+})
+
+// Renders the grid, optionally expands the inline chart of one row, and
+// captures the CSV text produced by the Download CSV button.
+function renderGrid(rows, { months = 4, chartLabel, meta = { slug: 'tl' } } = {}) {
+  const { document } = bootConsole()
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  InnfoConsole.renderTimelineGrid(container, { rows }, { months })
+  if (chartLabel) {
+    const tr = [...container.querySelectorAll('tbody tr')].find(
+      (t) => (t.querySelector('td')?.textContent || '').trim().startsWith(chartLabel),
+    )
+    tr.querySelector('.innfo-chart-btn').click()
+  }
+  return { container, document }
+}
+
+function captureCsv(container) {
+  const origBlob = globalThis.Blob
+  const origCreate = URL.createObjectURL
+  const origRevoke = URL.revokeObjectURL
+  let text = null
+  globalThis.Blob = class {
+    constructor(parts) {
+      text = parts.join('')
+    }
+  }
+  URL.createObjectURL = () => 'about:blank'
+  URL.revokeObjectURL = () => {}
+  try {
+    container.querySelector('.innfo-btn-csv').click()
+  } finally {
+    globalThis.Blob = origBlob
+    URL.createObjectURL = origCreate
+    URL.revokeObjectURL = origRevoke
+  }
+  return text
+}
+
+const MIXED_ROWS = [
+  { id: 'v1', label: 'Known', variable: true, base: 5, growth: { mode: 'fixed', factor: 0 } },
+  { id: 'm1', label: 'Resolved', formula: 'known x 2', growth: { mode: 'fixed', factor: 0 } },
+  // Months 0-1 come from history; months 2-3 hit the unresolved operand (NaN).
+  { id: 'm2', label: 'Mixed', formula: 'missing thing', history: [10, 20], growth: { mode: 'fixed', factor: 0 } },
+]
+
+describe('timeline NaN handling (unresolved operands)', () => {
+  it('writes empty CSV cells instead of a literal NaN for month and Total', () => {
+    const { warnings, result: csv } = captureWarnings(() => {
+      const { container } = renderGrid(MIXED_ROWS)
+      return captureCsv(container)
+    })
+    assert.ok(warnings.length > 0)
+    assert.ok(csv, 'CSV text captured')
+    assert.ok(!/NaN/.test(csv), 'no literal NaN anywhere in the CSV')
+    const mixed = csv.split('\r\n').find((l) => l.includes('"Mixed"'))
+    const cells = mixed.split(',').map((c) => c.replace(/^"|"$/g, ''))
+    // Group, Metric, Type, Unit, Rule, M1..M4, Total
+    assert.deepEqual(cells.slice(5), ['10', '20', '', '', ''])
+    const resolved = csv.split('\r\n').find((l) => l.includes('"Resolved"'))
+    assert.deepEqual(resolved.split(',').slice(5).map((c) => c.replace(/"/g, '')), ['10', '10', '10', '10', '40'])
+  })
+
+  it('keeps chart range, heights and colours sane for a row with some NaN months', () => {
+    const { result } = captureWarnings(() => renderGrid(MIXED_ROWS, { chartLabel: 'Mixed' }))
+    const chart = result.container.querySelector('tr.innfo-timeline-chart-row')
+    assert.ok(chart, 'chart row rendered')
+    const range = chart.querySelector('.innfo-chart-range').textContent
+    assert.equal(range, 'Range: 10 .. 20')
+    const bars = [...chart.querySelectorAll('.innfo-mini-bar')]
+    assert.equal(bars.length, 4)
+    const heights = bars.map((b) => b.style.height)
+    assert.deepEqual(heights, ['50%', '100%', '4%', '4%'])
+    assert.ok(!bars.some((b) => /NaN/.test(b.getAttribute('style') || '')), 'no NaN in bar styles')
+    assert.ok(!/NaN/.test(chart.textContent), 'no NaN text in the chart row')
+    assert.equal(bars[2].style.backgroundColor, bars[3].style.backgroundColor)
+    assert.notEqual(bars[1].style.backgroundColor, bars[2].style.backgroundColor, 'NaN bars are greyed out')
+  })
+
+  it('renders an all-NaN chart row without NaN leaking', () => {
+    const rows = [{ id: 'm1', label: 'Broken', formula: 'missing thing', growth: { mode: 'fixed', factor: 0 } }]
+    const { result } = captureWarnings(() => renderGrid(rows, { chartLabel: 'Broken' }))
+    const chart = result.container.querySelector('tr.innfo-timeline-chart-row')
+    assert.ok(!/NaN/.test(chart.textContent))
+    assert.ok(![...chart.querySelectorAll('.innfo-mini-bar')].some((b) => /NaN/.test(b.getAttribute('style') || '')))
   })
 })
