@@ -145,7 +145,7 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     // Version-aware scaffold (validator-robustness): frontmatter versions are
     // inferred from the resolved parent template (stamped V_0-1-0 above).
     expect(content).toContain('spec_version: "V_0-4-0"')
-    expect(content).toContain('model_slug: "my-model-v-1-0-0-demo-tpl"')
+    expect(content).toContain('knowledge_slug: "my-model-v-1-0-0-demo-tpl"')
     expect(content).toMatch(/(knowledge_version|knowledge_version): "V_0-1-0"/)
     expect(content).toContain('# NN index')
     expect(content).toContain('* [[Overview]]')

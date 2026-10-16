@@ -1,6 +1,6 @@
 import { readdir, readFile, rm } from 'node:fs/promises'
 import { join, basename } from 'node:path'
-import { envelope, parseName } from '@cognnitive/innfo-core'
+import { parseChangeset, parseName } from '@cognnitive/innfo-core'
 import { syncDomainManifest } from './workspace-sync.js'
 
 export interface PruneChangesetsOptions {
@@ -16,8 +16,27 @@ export interface PruneChangesetsResult {
   dryRun: boolean
 }
 
+/** Statuses after which a changeset carries no pending work. */
+const TERMINAL_STATUSES = new Set(['applied', 'rejected'])
+
 /**
- * Scans kNNowledge/ for all cited changesets and prunes unreferenced changesets from changes/.
+ * True only for a changeset that parses and is in a terminal status. A `proposed`,
+ * `conflict` or `partially_applied` changeset still holds pending work, and an
+ * unreadable file cannot be proven finished: both are never pruned.
+ */
+async function isTerminalChangeset(path: string): Promise<boolean> {
+  try {
+    const doc = parseChangeset(await readFile(path, 'utf-8'))
+    return TERMINAL_STATUSES.has(doc.frontmatter.status)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Scans kNNowledge/ for all cited changesets and prunes the unreferenced, terminal
+ * (`applied` or `rejected`) changesets from changes/. Changesets with pending work and
+ * unparseable files are always kept.
  */
 export async function pruneChangesets(
   domainDir: string,
@@ -79,7 +98,7 @@ export async function pruneChangesets(
   const kept: string[] = []
 
   for (const cf of changeFiles) {
-    if (referenced.has(cf)) {
+    if (referenced.has(cf) || !(await isTerminalChangeset(join(changesDir, cf)))) {
       kept.push(cf)
     } else {
       deleted.push(cf)

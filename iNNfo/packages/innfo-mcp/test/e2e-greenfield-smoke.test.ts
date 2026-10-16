@@ -114,8 +114,25 @@ status:: Draft
 
     const activeChangeset = 'domain_agent_20261016T120000Z_changes_NN.md';
     const deadChangeset = 'domain_agent_20261016T120100Z_changes_NN.md';
-    fs.writeFileSync(path.join(changesDir, activeChangeset), '# Active Change');
-    fs.writeFileSync(path.join(changesDir, deadChangeset), '# Dead Change');
+    const appliedChangeset = [
+      '---',
+      'spec_version: "V_0-4-0"',
+      'level: 3',
+      'parent_spec:',
+      '  name: "changes"',
+      '  url: "specs/changes_V_0-1-0_NN.md"',
+      'blueprint_version: "V_0-1-0"',
+      'status: applied',
+      '---',
+      '',
+      '## NN Change: c-01',
+      'op:: update_field',
+      'target:: marketing@item&name',
+      'to:: x',
+      '',
+    ].join('\n');
+    fs.writeFileSync(path.join(changesDir, activeChangeset), appliedChangeset);
+    fs.writeFileSync(path.join(changesDir, deadChangeset), appliedChangeset);
 
     // Save model referencing only activeChangeset
     const finalModelContent = serialized + `\nsources:: [changes/${activeChangeset}@## NN Change: c-01]\n`;
