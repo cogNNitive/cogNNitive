@@ -138,6 +138,9 @@ function parseConsoleCdnRef(bundleText) {
   return m ? `innfo-console-v${m[1]}` : null
 }
 
+/** @type {readonly ['table', 'kpi', 'dashboard', 'blank']} */
+const VIEW_TEMPLATES = ['table', 'kpi', 'dashboard', 'blank']
+
 function parseArgs(argv) {
   const args = {
     root: null,
@@ -1362,10 +1365,15 @@ async function main() {
   const root = resolve(args.root)
 
   if (args.newView) {
+    const template = VIEW_TEMPLATES.find((t) => t === args.template)
+    if (!template) {
+      console.error(`Error: unknown --template "${args.template}" (expected ${VIEW_TEMPLATES.join(' | ')}).`)
+      process.exit(2)
+    }
     const created = await scaffoldConsoleView({
       rootDir: root,
       slug: args.newView,
-      template: args.template,
+      template,
       blueprint: args.blueprint,
       title: args.title,
     })
