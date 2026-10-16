@@ -7623,6 +7623,62 @@ input[type="text"], input[type="search"], textarea, select {
   background: var(--surface-2, #f1f5f9) !important;
   border-color: #cbd5e1 !important;
 }
+
+/* 14. Element pill badges: non-bold, no border, light gray background */
+.innfo-element-pill,
+[data-innfo-component="element-pill"],
+.innfo-ku-badge[data-ku-kind="element"],
+[data-innfo-component="ku-badge"][data-ku-kind="element"],
+.innfo-strip-rel {
+  font-weight: 500 !important;
+  border: none !important;
+  border-width: 0 !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  color: var(--text, #1e293b) !important;
+  box-shadow: none !important;
+}
+.innfo-element-pill:hover,
+[data-innfo-component="element-pill"]:hover,
+.innfo-ku-badge[data-ku-kind="element"]:hover,
+[data-innfo-component="ku-badge"][data-ku-kind="element"]:hover,
+.innfo-strip-rel:hover {
+  background: #e2e8f0 !important;
+}
+
+/* 15. Rail concept pill: spacing between icon and name */
+.innfo-rail-concept-pill,
+#innfo-rail .menu li > a[data-concept] .innfo-rail-concept-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+/* 16. Eliminate action bar wrapper container & add top padding to view tabs */
+.innfo-action-bar,
+.innfo-action-bar--top {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding: 14px 20px 0 !important;
+  min-height: auto !important;
+}
+#innfo-view-tabs {
+  display: inline-flex !important;
+  width: fit-content !important;
+  margin-bottom: 8px !important;
+}
+
+/* 17. Field badge styling in element table header */
+.innfo-element-table-th .innfo-ku-badge[data-ku-kind="field"] {
+  font-size: 0.76rem !important;
+  padding: 2px 8px !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  color: var(--muted, #475569) !important;
+}
 .innfo-navbar .innfo-review-toggle[aria-pressed="true"],
 .innfo-navbar .innfo-review-toggle.active {
   background: #0f172a !important;

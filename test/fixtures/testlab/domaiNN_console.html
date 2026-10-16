@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-UWjhxuPen0cYEak+btmSOrklJlW7Geg387ckdC5agqI=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-H45o+JFiQG3LtSwfkOL03qXL3R7nveL2CbOielDfqPg=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7654,6 +7654,62 @@ input[type="text"], input[type="search"], textarea, select {
   background: var(--surface-2, #f1f5f9) !important;
   border-color: #cbd5e1 !important;
 }
+
+/* 14. Element pill badges: non-bold, no border, light gray background */
+.innfo-element-pill,
+[data-innfo-component="element-pill"],
+.innfo-ku-badge[data-ku-kind="element"],
+[data-innfo-component="ku-badge"][data-ku-kind="element"],
+.innfo-strip-rel {
+  font-weight: 500 !important;
+  border: none !important;
+  border-width: 0 !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  color: var(--text, #1e293b) !important;
+  box-shadow: none !important;
+}
+.innfo-element-pill:hover,
+[data-innfo-component="element-pill"]:hover,
+.innfo-ku-badge[data-ku-kind="element"]:hover,
+[data-innfo-component="ku-badge"][data-ku-kind="element"]:hover,
+.innfo-strip-rel:hover {
+  background: #e2e8f0 !important;
+}
+
+/* 15. Rail concept pill: spacing between icon and name */
+.innfo-rail-concept-pill,
+#innfo-rail .menu li > a[data-concept] .innfo-rail-concept-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+/* 16. Eliminate action bar wrapper container & add top padding to view tabs */
+.innfo-action-bar,
+.innfo-action-bar--top {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding: 14px 20px 0 !important;
+  min-height: auto !important;
+}
+#innfo-view-tabs {
+  display: inline-flex !important;
+  width: fit-content !important;
+  margin-bottom: 8px !important;
+}
+
+/* 17. Field badge styling in element table header */
+.innfo-element-table-th .innfo-ku-badge[data-ku-kind="field"] {
+  font-size: 0.76rem !important;
+  padding: 2px 8px !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  color: var(--muted, #475569) !important;
+}
 .innfo-navbar .innfo-review-toggle[aria-pressed="true"],
 .innfo-navbar .innfo-review-toggle.active {
   background: #0f172a !important;
@@ -8977,7 +9033,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-26c92be4",
-    "generated": "2026-10-16T15:11:41.397Z",
+    "generated": "2026-10-16T15:43:25.744Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8987,7 +9043,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T15:11:41.190Z",
+        "citationsResolvedAt": "2026-10-16T15:43:25.660Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -13246,9 +13302,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     if (kind === 'field') {
-      if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      if (data.valueNode) badge.appendChild(data.valueNode)
-      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      var fieldLabel = data.label != null ? data.label : data.name
+      if (data.value != null || data.valueNode) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        if (data.valueNode) badge.appendChild(data.valueNode)
+        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      } else if (fieldLabel != null) {
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
+      }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -17312,7 +17373,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+        th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      } else {
+        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        fieldBadge.classList.add('innfo-element-table-th-label')
+        th.appendChild(fieldBadge)
+      }
       if (sortState && sortState.key === col.key) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')

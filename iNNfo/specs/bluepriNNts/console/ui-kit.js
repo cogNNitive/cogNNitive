@@ -2828,9 +2828,14 @@
     }
 
     if (kind === 'field') {
-      if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      if (data.valueNode) badge.appendChild(data.valueNode)
-      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      var fieldLabel = data.label != null ? data.label : data.name
+      if (data.value != null || data.valueNode) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        if (data.valueNode) badge.appendChild(data.valueNode)
+        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      } else if (fieldLabel != null) {
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
+      }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {

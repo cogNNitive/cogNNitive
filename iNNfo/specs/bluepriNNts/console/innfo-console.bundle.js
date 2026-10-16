@@ -3193,9 +3193,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     if (kind === 'field') {
-      if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      if (data.valueNode) badge.appendChild(data.valueNode)
-      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      var fieldLabel = data.label != null ? data.label : data.name
+      if (data.value != null || data.valueNode) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        if (data.valueNode) badge.appendChild(data.valueNode)
+        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      } else if (fieldLabel != null) {
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
+      }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -7259,7 +7264,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+        th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      } else {
+        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        fieldBadge.classList.add('innfo-element-table-th-label')
+        th.appendChild(fieldBadge)
+      }
       if (sortState && sortState.key === col.key) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')
