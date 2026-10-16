@@ -29,7 +29,11 @@ function tryGit(args, cwd) {
   }
 }
 
-/** Default gh runner: returns stdout, throws when gh is missing or fails. */
+/**
+ * Default gh runner: returns stdout, throws when gh is missing or fails.
+ * @param {string[]} args
+ * @param {string} [cwd]
+ */
 export function defaultRunGh(args, cwd) {
   const bin = process.env.NN_GH_BIN || 'gh'
   return execFileSync(bin, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30000 })
@@ -201,8 +205,9 @@ export function computeVerdict(data) {
 /**
  * Gather every fact and the verdict. `runGh(args, cwd)` is injectable so tests
  * never touch the network; it must return stdout or throw.
+ * @param {{ root: string, runGh?: (args: string[], cwd?: string) => string, fetch?: boolean }} opts
  */
-export function collectBatchStatus({ root, runGh = defaultRunGh, fetch = true } = {}) {
+export function collectBatchStatus({ root, runGh = defaultRunGh, fetch = true }) {
   if (fetch) tryGit(['fetch', 'origin'], root) // best-effort; offline is fine
 
   const sha = (ref) => tryGit(['rev-parse', ref], root).out || null
