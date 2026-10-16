@@ -26,6 +26,8 @@ now covers `skills/**/*` and `typecheck-scripts` is green (generated bundles car
 Retired `chore/third-party-license-compliance`: `npm run check:licenses` (`scripts/check-licenses.mjs`,
 policy in `scripts/license-policy.json`) gates denied/unknown licenses and keeps `THIRD_PARTY.md` fresh; wired
 into `verify.js`. The Syft/ScanCode alternative stays unneeded unless the vendored list drifts.
+Partly done `docs/manual-editing-risks`: the docs page and the actionable `DUPLICATE_SLUG` message shipped; only the
+non-deterministic "value changed without a changeset" fingerprint remains.
 
 ---
 
@@ -750,26 +752,18 @@ the highest-value).
 
 ---
 
-## `docs/manual-editing-risks` — tell users that hand-editing `_NN.md` is unsafe, and have the validator say so
+## `docs/manual-editing-risks` — validator fingerprint for hand edits *(docs and duplicate-slug hint shipped 2026-10-16)*
 
-**Type:** docs + validator UX · **Size:** small
+**Type:** validator UX · **Size:** small · **Status:** partially done
 
-**Why:** the planned editing model routes every graph change through console changesets
-applied by the AI agent. Editing `_NN.md` by hand stays possible but bypasses provenance,
-and a copy-pasted `## NN` section duplicates the element's immutable `slug::`. Preventing
-hand edits is a non-goal; the user owns that risk, but must be told.
+**Shipped 2026-10-16:** the user-facing page `docs/innfo/documentation/manual-editing-risks.md` (linked from the
+Guides sidebar and from `usage.md`), and the `DUPLICATE_SLUG` diagnostic now names the fix (drop the copied `slug::`
+line and rename, or add elements with `apply_change` `add_element`).
 
-**Behaviour:**
-
-1. User-facing docs state that hand-editing models is unsupported for routine changes
-   and that changes should go through a console changeset or the agent.
-2. The validator reports a duplicated `slug::` (and other hand-edit fingerprints, such as a
-   changed value with no changeset behind it) as a clear, actionable diagnostic that names
-   the fix. It warns; it does not block or auto-repair.
-
-**Depends on:** the stable-identity / single-changeset redesign (immutable slugs).
-
-**Suggested trigger:** `/sdd-new manual-editing-risks` once immutable slugs land.
+**Remaining:** a diagnostic for the other hand-edit fingerprint, "a changed value with no changeset behind it". It is
+not deterministic from the model alone: it needs the changeset history of the domain (`changes/`) compared with the
+element hashes, which the single-model validator does not see. Design it together with the workspace-level integrity
+pass (`workspace-integrity-check`) or drop it; the docs page already carries the guidance.
 
 ---
 
