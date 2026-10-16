@@ -46,7 +46,7 @@ const CHANGES_SPEC_CONTENT = "---\nspec_version: \"V_0-4-0\"\nspec_url: \"https:
 export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   business: {
     name: 'business',
-    version: 'V_0-2-6',
+    version: 'V_0-4-2',
     aliases: [
       'business',
       'business_spec_nn',
@@ -77,7 +77,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   procedures: {
     name: 'procedures',
-    version: 'V_0-2-1',
+    version: 'V_0-3-3',
     aliases: [
       'procedures',
       'procedures_spec_nn',
@@ -96,7 +96,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   sources: {
     name: 'sources',
-    version: 'V_0-1-0',
+    version: 'V_0-2-1',
     aliases: [
       'sources',
       'sources_spec_nn',
@@ -110,7 +110,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   artifacts: {
     name: 'artifacts',
-    version: 'V_0-2-0',
+    version: 'V_0-4-1',
     aliases: [
       'artifacts',
       'artifacts_spec_nn',
@@ -125,7 +125,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   sidecar: {
     name: 'sidecar',
-    version: 'V_0-1-0',
+    version: 'V_0-1-1',
     aliases: [
       'sidecar',
       'sidecar_spec_nn',
@@ -139,7 +139,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   organization: {
     name: 'organization',
-    version: 'V_0-2-1',
+    version: 'V_0-3-4',
     aliases: [
       'organization',
       'organization_spec_nn',
@@ -157,7 +157,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   metrics: {
     name: 'metrics',
-    version: 'V_0-2-1',
+    version: 'V_0-4-4',
     aliases: [
       'metrics',
       'metrics_spec_nn',
@@ -212,7 +212,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   analysis: {
     name: 'analysis',
-    version: 'V_0-2-1',
+    version: 'V_0-3-4',
     aliases: [
       'analysis',
       'analysis_spec_nn',
@@ -226,7 +226,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   projects: {
     name: 'projects',
-    version: 'V_0-2-1',
+    version: 'V_0-3-4',
     aliases: [
       'projects',
       'projects_spec_nn',
@@ -240,7 +240,7 @@ export const CANONICAL_BLUEPRINTS: Record<string, CanonicalBlueprint> = {
   },
   'business-model': {
     name: 'business-model',
-    version: 'V_0-2-1',
+    version: 'V_0-3-2',
     aliases: [
       'business-model',
       'business_model',

@@ -35,7 +35,7 @@ const CHANGESET_SPEC_VERSION = 'V_0-4-0'
 
 /** The current `changes` bluepriNNt version, from the canonical registry. */
 function changesBlueprintVersion(): string {
-  return findCanonicalBlueprint('changes')?.version ?? 'V_0-3-0'
+  return findCanonicalBlueprint('changes')!.version
 }
 
 /** A file-name segment: letters, digits, dot, dash and underscore only. */
