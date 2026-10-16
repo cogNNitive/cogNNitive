@@ -7276,7 +7276,7 @@ button.cite-icon,
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  zoom: 1.8 !important;
+  zoom: 1 !important;
 }
 [data-innfo-component="element-card"] .innfo-card-badges .innfo-ku-badge,
 .innfo-card .innfo-card-badges .innfo-ku-badge {
