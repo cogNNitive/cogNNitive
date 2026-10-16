@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -19,7 +19,7 @@ import { createRequire } from 'node:module'
  * against the shell's slots actually paints a banner, rail and cards, that
  * the search box filters the rendered cards (not just `filterElements`), and
  * that the export button refuses to emit a file until an identifier is typed.
- * The runtime is UMD and guards its own auto-boot, so happy-dom is enough —
+ * The runtime is UMD and guards its own auto-boot, so jsdom is enough —
  * no browser needed.
  */
 
@@ -60,7 +60,7 @@ const modelFixture = {
 /**
  * Fills the shipped shell's JSON slots and drops its `<script src>` tags.
  * The runtime is loaded through `require` instead, so leaving the tags in only
- * makes happy-dom attempt (and fail) real network fetches.
+ * keeps the shell self-contained (jsdom would not run them anyway).
  */
 function renderShell(): void {
   const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')

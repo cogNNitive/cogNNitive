@@ -595,8 +595,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // markers, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
-    '[data-innfo-component=element-card] .innfo-card-badges{display:inline-flex;align-items:center;gap:.35em;font-size:1.64rem;min-width:0}',
-    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku-badge{font-size:1.64rem}',
+    '[data-innfo-component=element-card] .innfo-card-badges{display:inline-flex;align-items:center;gap:.35em;min-width:0}',
+    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku-badge{display:inline-flex;align-items:center}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty,[data-innfo-component=element-card] .innfo-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--innfo-accent));background:var(--card-concept-bg,var(--innfo-surface-2));border:1.5px solid var(--card-concept-color,var(--innfo-border))}',
@@ -1818,13 +1818,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
     var iconName = resolveConceptIconName(data.conceptId, conceptOpts)
-    var thumb = elementThumb(doc, data, iconName, 14)
+    var thumb = elementThumb(doc, data, iconName, 18)
     thumb.classList.add('innfo-mini-thumb')
     mini.appendChild(thumb)
-    var text = makeEl(doc, 'span', 'innfo-mini-text')
-    text.appendChild(makeEl(doc, 'span', 'innfo-mini-name', String(data.name || data.id || '')))
-    if (data.meta) text.appendChild(makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta)))
-    mini.appendChild(text)
+    var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
+      badgesWrap.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: conceptId,
+          label: conceptId,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon || iconName,
+        }),
+      )
+    }
+    badgesWrap.appendChild(
+      KuBadge({
+        kind: 'element',
+        id: data.id,
+        label: data.name || data.id,
+        index: conceptOpts.index,
+        color: conceptOpts.color,
+        icon: conceptOpts.icon,
+      }),
+    )
+    mini.appendChild(badgesWrap)
+    if (data.meta) {
+      var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
+      mini.appendChild(metaEl)
+    }
     if (Array.isArray(data.markers) && data.markers.length) {
       var mks = makeEl(doc, 'span', 'innfo-mini-markers')
       data.markers.forEach(function (m) {
@@ -1894,15 +1919,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     head.appendChild(elementThumb(doc, data, conceptIconName, 18))
     var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
-    if (data.concept) {
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
       badgesWrap.appendChild(
         KuBadge({
           kind: 'concept',
-          id: data.concept,
-          label: data.concept,
+          id: conceptId,
+          label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-          icon: conceptOpts.icon,
+          icon: conceptOpts.icon || conceptIconName,
         }),
       )
     }
@@ -3167,9 +3193,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     if (kind === 'field') {
-      if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      if (data.valueNode) badge.appendChild(data.valueNode)
-      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      var fieldLabel = data.label != null ? data.label : data.name
+      if (data.value != null || data.valueNode) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        if (data.valueNode) badge.appendChild(data.valueNode)
+        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      } else if (fieldLabel != null) {
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
+      }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -5017,10 +5048,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function buildToggle() {
       if (!canReview(meta, elements, needs)) return null
+      var actions = doc.getElementById('innfo-navbar-actions')
       var extra = doc.getElementById('innfo-navbar-extra')
       var banner =
         doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
-      var host = extra || banner
+      var host = actions || extra || banner
       if (!host) return null
       var existing = doc.querySelector('[data-innfo="review-toggle"]')
       if (existing) return existing
@@ -7303,7 +7335,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+        th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      } else {
+        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        fieldBadge.classList.add('innfo-element-table-th-label')
+        th.appendChild(fieldBadge)
+      }
       if (sortState && sortState.key === col.key) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')

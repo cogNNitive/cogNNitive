@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createConsoleEnv, shellPath } from './helpers/console-review-env'
+import { installDialogStub } from './helpers/dialog-stub'
 
 const env = createConsoleEnv()
 
@@ -82,17 +83,7 @@ describe('console-review-export (preview + clipboard)', () => {
   beforeEach(() => {
     renderModelConsole()
     env.localStorage.clear()
-    const g = globalThis as any
-    if (!g.HTMLDialogElement.prototype.showModal) {
-      g.HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-        this.setAttribute('open', 'open')
-      }
-    }
-    if (!g.HTMLDialogElement.prototype.close) {
-      g.HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
-        this.removeAttribute('open')
-      }
-    }
+    installDialogStub()
   })
 
   afterEach(() => {

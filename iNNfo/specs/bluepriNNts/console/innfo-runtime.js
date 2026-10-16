@@ -2148,7 +2148,13 @@
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+        th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      } else {
+        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        fieldBadge.classList.add('innfo-element-table-th-label')
+        th.appendChild(fieldBadge)
+      }
       if (sortState && sortState.key === col.key) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')

@@ -1,6 +1,6 @@
 /* global InnfoUI, module */
 // Offline kitchen sink: renders every implemented component under both themes.
-// No fetch, no module system — double-click / happy-dom friendly.
+// No fetch, no module system — double-click / jsdom friendly.
 ;(function () {
   'use strict'
 
@@ -34,6 +34,6 @@
     else boot()
   }
 
-  // Export for the happy-dom test harness.
+  // Export for the jsdom test harness.
   if (typeof module === 'object' && module.exports) module.exports = { build: build }
 })()

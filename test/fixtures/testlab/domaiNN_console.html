@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-tPxUX3ZX47O5MpwmIxWc1SrfQ8AG/L4O0og6+HRHBHQ=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-H45o+JFiQG3LtSwfkOL03qXL3R7nveL2CbOielDfqPg=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7301,41 +7301,72 @@ button.cite-icon,
 }
 
 /* 6. Card Head */
-[data-innfo-component="element-card"] .innfo-card-thumb--concept {
-  display: none !important;
-}
-.innfo-card-concept-badge {
-  display: none !important;
-}
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"],
-[data-innfo-component="element-card"] .innfo-card-head .innfo-element-pill {
+/* Sheets view: ElementCard header badges scaled 1.8x */
+[data-innfo-component="element-card"] .innfo-card-badges,
+.innfo-card .innfo-card-badges {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  background: transparent !important;
-  border: none !important;
-  border-width: 0 !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  font-size: 1.05rem !important;
-  font-weight: 400 !important;
-  color: var(--card-concept-color, var(--pill-concept-color, var(--concept-slot-fg, #0284c7))) !important;
+  zoom: 1 !important;
 }
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-value,
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] span {
-  font-weight: 400 !important;
-  font-size: 1.05rem !important;
-  color: inherit !important;
+[data-innfo-component="element-card"] .innfo-card-badges .innfo-ku-badge,
+.innfo-card .innfo-card-badges .innfo-ku-badge {
+  display: inline-flex !important;
 }
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-icon {
-  color: inherit !important;
-  border: none !important;
+
+/* Cards view: ElementMini badges at natural 1x scale without overflowing */
+.innfo-mini,
+[data-innfo-component="element-mini"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: var(--surface, #ffffff) !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
-[data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] .innfo-ku-icon svg {
-  width: 18px !important;
-  height: 18px !important;
-  stroke-width: 1.75px !important;
+
+[data-innfo-component="element-mini"] .innfo-card-badges,
+.innfo-mini .innfo-card-badges {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  zoom: 1 !important;
 }
+
+[data-innfo-component="element-mini"] .innfo-card-badges .innfo-ku-badge,
+.innfo-mini .innfo-card-badges .innfo-ku-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.innfo-mini .innfo-card-badges .innfo-ku-badge[data-ku-kind="concept"] {
+  flex-shrink: 0 !important;
+}
+
+.innfo-mini .innfo-card-badges .innfo-ku-badge[data-ku-kind="element"] {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.innfo-mini .innfo-card-badges .innfo-ku-badge .innfo-ku-label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.innfo-mini .innfo-mini-info {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
 
 /* 7. Sin bordes no funcionales */
 .innfo-concept-pill,
@@ -7432,7 +7463,7 @@ button.cite-icon,
   box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
 }
 .innfo-rail {
-  border-right: 1px solid #e2e8f0 !important;
+  border-right: none !important;
 }
 .innfo-navbar {
   border-bottom: 1px solid #e2e8f0 !important;
@@ -7572,7 +7603,7 @@ input[type="text"], input[type="search"], textarea, select {
 }
 .innfo-element-minicards-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
   gap: 16px !important;
   padding: 24px !important;
 }
@@ -7582,17 +7613,31 @@ input[type="text"], input[type="search"], textarea, select {
   display: none !important;
 }
 
+[data-innfo-feedback-root] {
+  display: contents !important;
+}
+
+.innfo-navbar .innfo-brand {
+  margin-right: 0 !important;
+}
+
 #innfo-navbar-extra {
-  font-size: 0 !important;
+  font-size: 0.82rem !important;
+  color: var(--muted) !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
+  margin-left: 16px !important;
+  margin-right: auto !important;
+}
+#innfo-navbar-actions {
+  display: flex !important;
+  align-items: center !important;
   margin-left: auto !important;
+  order: 9999 !important;
+  flex-shrink: 0 !important;
 }
-#innfo-navbar-extra > * {
-  font-size: 0.82rem !important;
-}
-
+.innfo-review-toggle,
 .innfo-navbar .innfo-review-toggle {
   background: var(--surface, #ffffff) !important;
   color: var(--text, #1e293b) !important;
@@ -7608,6 +7653,62 @@ input[type="text"], input[type="search"], textarea, select {
 .innfo-navbar .innfo-review-toggle:hover {
   background: var(--surface-2, #f1f5f9) !important;
   border-color: #cbd5e1 !important;
+}
+
+/* 14. Element pill badges: non-bold, no border, light gray background */
+.innfo-element-pill,
+[data-innfo-component="element-pill"],
+.innfo-ku-badge[data-ku-kind="element"],
+[data-innfo-component="ku-badge"][data-ku-kind="element"],
+.innfo-strip-rel {
+  font-weight: 500 !important;
+  border: none !important;
+  border-width: 0 !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  color: var(--text, #1e293b) !important;
+  box-shadow: none !important;
+}
+.innfo-element-pill:hover,
+[data-innfo-component="element-pill"]:hover,
+.innfo-ku-badge[data-ku-kind="element"]:hover,
+[data-innfo-component="ku-badge"][data-ku-kind="element"]:hover,
+.innfo-strip-rel:hover {
+  background: #e2e8f0 !important;
+}
+
+/* 15. Rail concept pill: spacing between icon and name */
+.innfo-rail-concept-pill,
+#innfo-rail .menu li > a[data-concept] .innfo-rail-concept-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+/* 16. Eliminate action bar wrapper container & add top padding to view tabs */
+.innfo-action-bar,
+.innfo-action-bar--top {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  padding: 14px 20px 0 !important;
+  min-height: auto !important;
+}
+#innfo-view-tabs {
+  display: inline-flex !important;
+  width: fit-content !important;
+  margin-bottom: 8px !important;
+}
+
+/* 17. Field badge styling in element table header */
+.innfo-element-table-th .innfo-ku-badge[data-ku-kind="field"] {
+  font-size: 0.76rem !important;
+  padding: 2px 8px !important;
+  background: var(--surface-2, #f1f5f9) !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  color: var(--muted, #475569) !important;
 }
 .innfo-navbar .innfo-review-toggle[aria-pressed="true"],
 .innfo-navbar .innfo-review-toggle.active {
@@ -8073,6 +8174,8 @@ input[type="text"], input[type="search"], textarea, select {
     .innfo-scope-label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
       .innfo-mode { font-size: 0.8rem; color: var(--muted); }
       .innfo-mode strong { color: var(--text); }
+      .innfo-navbar-actions { display: flex; align-items: center; margin-left: auto; order: 9999; flex-shrink: 0; }
+      [data-innfo-feedback-root] { display: contents !important; }
 
       #innfo-layout { display: flex; flex: 1 1 auto; align-items: stretch; min-height: 0; }
 
@@ -8081,7 +8184,7 @@ input[type="text"], input[type="search"], textarea, select {
         width: 340px;
         min-width: 320px;
         max-width: 360px;
-        border-right: 1px solid var(--border);
+        border-right: none;
         background: var(--surface);
         display: flex;
         flex-direction: column;
@@ -8304,10 +8407,10 @@ input[type="text"], input[type="search"], textarea, select {
             <path d="M 160 490 L 160 295 Q 160 270 180 285 L 330 475 Q 350 490 350 470 L 350 235 Q 350 210 370 225 L 530 415 Q 550 430 550 410 L 550 90 L 495 145 L 550 90 L 605 145" stroke="#4D0E4E" stroke-width="82" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
-        <span class="innfo-badge-domain">DomaiNN</span>
         <h1 class="innfo-domain-title" id="innfo-domain-title">iNNfo Console</h1>
       </div>
       <div class="innfo-mode" id="innfo-navbar-extra"></div>
+      <div class="innfo-navbar-actions" id="innfo-navbar-actions"></div>
     </header>
 
     <div class="innfo-action-bar innfo-action-bar--top">
@@ -8354,7 +8457,7 @@ input[type="text"], input[type="search"], textarea, select {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.15.1/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.17.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
   }
 }
@@ -8929,8 +9032,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-6b14fbb3",
-    "generated": "2026-10-15T19:14:59.996Z",
+    "domainId": "testlab-26c92be4",
+    "generated": "2026-10-16T15:43:25.744Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8940,7 +9043,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-15T19:14:59.925Z",
+        "citationsResolvedAt": "2026-10-16T15:43:25.660Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9013,6 +9116,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-1--element-1a",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1A"
     },
@@ -9070,6 +9174,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-1--element-1b",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1B",
       "rawFields": {
@@ -9125,6 +9230,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-1--element-1c-test",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1C (test)"
     },
@@ -9166,6 +9272,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-2--element-2a",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2A",
       "rawFields": {
@@ -9210,6 +9317,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@concept-2--element-2b",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2B",
       "rawFields": {
@@ -9253,6 +9361,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--image-traceability-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Image traceability probe",
       "rawFields": {
@@ -9306,6 +9415,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--multi-node-traceability-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Multi-node traceability probe"
     },
@@ -9339,6 +9449,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--review-traceability-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Review traceability probe"
     },
@@ -9372,6 +9483,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--downloaded-video-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Downloaded video probe"
     },
@@ -9405,6 +9517,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--transcribed-audio-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed audio probe"
     },
@@ -9438,6 +9551,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--transcribed-pdf-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed PDF probe"
     },
@@ -9473,6 +9587,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--very-long-description-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Very long description probe",
       "rawFields": {
@@ -9511,6 +9626,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--file-field-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: File field probe",
       "rawFields": {
@@ -9547,6 +9663,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--artifact-as-source-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Artifact as source probe"
     },
@@ -9580,6 +9697,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--broken-reference-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Broken reference probe"
     },
@@ -9599,6 +9717,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_coverage_TestLab_NN.md@edge-cases--sourceless-probe",
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Sourceless probe"
     },
@@ -9622,6 +9741,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@procedure--verify-changeset-lineage",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Verify Changeset Lineage"
     },
@@ -9645,6 +9765,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@procedure--propose-a-review-change",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Propose a Review Change"
     },
@@ -9664,6 +9785,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--testlab-guided-verification",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: TestLab Guided Verification"
     },
@@ -9698,6 +9820,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--open-the-domain-console",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open the Domain Console"
     },
@@ -9732,6 +9855,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--enable-review-mode",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Enable Review Mode"
     },
@@ -9766,6 +9890,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--open-element-1b",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open Element 1B"
     },
@@ -9800,6 +9925,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--read-the-changeset-lineage",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Read the Changeset Lineage"
     },
@@ -9834,6 +9960,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--propose-a-change-in-the-console",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Propose a Change in the Console"
     },
@@ -9862,6 +9989,7 @@ input[type="text"], input[type="search"], textarea, select {
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
+      "modelDir": "kNNowledge",
       "unitSlug": "TestLab_procedures_TestLab_procedures_NN.md@work--copy-the-changeset-prompt",
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Copy the Changeset Prompt"
     }
@@ -9982,7 +10110,7 @@ input[type="text"], input[type="search"], textarea, select {
 /*!
  * innfo-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.15.1. Regenerate on every console release.
+ * Version 0.17.0. Regenerate on every console release.
  * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-procedure-stepper.js.
  */
 
@@ -10550,14 +10678,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-badge .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku-badge .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.innfo-ku-badge .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
-    // Field badges carry free text, so they read as full-width rows: the value
-    // wraps and is never clipped, and the badge grows to fill the line while the
-    // action cluster stays pinned beside it.
-    '.innfo-ku-badge[data-ku-kind=field]{flex:1 1 16em;min-width:0;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
+    // Field badges carry free text: under card fields they grow to fill the row,
+    // while in tables/grids they remain compact inline-flex elements.
+    '.innfo-card-fields>.innfo-ku-unit>.innfo-ku-badge[data-ku-kind=field],.innfo-card-fields>.innfo-ku-badge[data-ku-kind=field]{flex:1 1 16em;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
+    '.innfo-ku-badge[data-ku-kind=field]{min-width:0;align-items:center;line-height:1.3}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
     '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
+    '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
+    '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
+    '.innfo-kpi-header{display:flex;align-items:center;justify-content:space-between;gap:8px}',
+    '.innfo-kpi-value{font-size:1.4rem;font-weight:700;color:var(--innfo-text);line-height:1.2}',
+    '.innfo-kpi-hint{font-size:.78rem;color:var(--innfo-muted)}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
     '.innfo-ku-actions{display:inline-flex;align-items:center;gap:.1em;flex:0 0 auto}',
     '.innfo-ku-action{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .3em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:1.6em;min-height:1.5em;opacity:.55;transition:opacity .15s ease,color .15s ease,border-color .15s ease}',
@@ -10571,6 +10704,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // markers, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
+    '[data-innfo-component=element-card] .innfo-card-badges{display:inline-flex;align-items:center;gap:.35em;min-width:0}',
+    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku-badge{display:inline-flex;align-items:center}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty,[data-innfo-component=element-card] .innfo-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--innfo-accent));background:var(--card-concept-bg,var(--innfo-surface-2));border:1.5px solid var(--card-concept-color,var(--innfo-border))}',
@@ -11792,13 +11927,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
     var iconName = resolveConceptIconName(data.conceptId, conceptOpts)
-    var thumb = elementThumb(doc, data, iconName, 14)
+    var thumb = elementThumb(doc, data, iconName, 18)
     thumb.classList.add('innfo-mini-thumb')
     mini.appendChild(thumb)
-    var text = makeEl(doc, 'span', 'innfo-mini-text')
-    text.appendChild(makeEl(doc, 'span', 'innfo-mini-name', String(data.name || data.id || '')))
-    if (data.meta) text.appendChild(makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta)))
-    mini.appendChild(text)
+    var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
+      badgesWrap.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: conceptId,
+          label: conceptId,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon || iconName,
+        }),
+      )
+    }
+    badgesWrap.appendChild(
+      KuBadge({
+        kind: 'element',
+        id: data.id,
+        label: data.name || data.id,
+        index: conceptOpts.index,
+        color: conceptOpts.color,
+        icon: conceptOpts.icon,
+      }),
+    )
+    mini.appendChild(badgesWrap)
+    if (data.meta) {
+      var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
+      mini.appendChild(metaEl)
+    }
     if (Array.isArray(data.markers) && data.markers.length) {
       var mks = makeEl(doc, 'span', 'innfo-mini-markers')
       data.markers.forEach(function (m) {
@@ -11867,7 +12027,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var conceptIconName = resolveConceptIconName(data.conceptId, conceptOpts)
 
     head.appendChild(elementThumb(doc, data, conceptIconName, 18))
-    head.appendChild(
+    var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var conceptId = data.concept || data.conceptId
+    if (conceptId) {
+      badgesWrap.appendChild(
+        KuBadge({
+          kind: 'concept',
+          id: conceptId,
+          label: conceptId,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+          icon: conceptOpts.icon || conceptIconName,
+        }),
+      )
+    }
+    badgesWrap.appendChild(
       KuBadge({
         kind: 'element',
         id: data.id,
@@ -11877,18 +12051,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         icon: conceptOpts.icon,
       }),
     )
-    if (data.concept) {
-      head.appendChild(
-        KuBadge({
-          kind: 'concept',
-          id: data.concept,
-          label: data.concept,
-          index: conceptOpts.index,
-          color: conceptOpts.color,
-          icon: conceptOpts.icon,
-        }),
-      )
-    }
+    head.appendChild(badgesWrap)
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null
@@ -13139,9 +13302,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     if (kind === 'field') {
-      if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      if (data.valueNode) badge.appendChild(data.valueNode)
-      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      var fieldLabel = data.label != null ? data.label : data.name
+      if (data.value != null || data.valueNode) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        if (data.valueNode) badge.appendChild(data.valueNode)
+        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      } else if (fieldLabel != null) {
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
+      }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -13202,6 +13370,186 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       cluster.appendChild(edit)
     }
     return cluster
+  }
+
+  /**
+   * Declarative Table builder for console views.
+   * Auto-formats cells with canonical KuBadges / ElementPills.
+   *
+   * @param {{
+   *   columns: Array<string | { key: string, label?: string, kind?: 'element'|'field'|'cell'|'text', align?: 'left'|'right'|'center', format?: Function }>,
+   *   rows: Array<any>,
+   *   emptyText?: string,
+   *   compact?: boolean,
+   * }} data
+   * @param {{
+   *   doc?: Document,
+   *   onEdit?: (elementId: string, fieldKey?: string) => void,
+   *   onSelect?: (elementId: string) => void,
+   * }} [opts]
+   * @returns {HTMLElement}
+   */
+  function Table(data, opts) {
+    if (!data || !Array.isArray(data.columns)) {
+      throw new TypeError('InnfoUI.Table: data.columns must be an array')
+    }
+    var doc = (opts && opts.doc) || (typeof document !== 'undefined' ? document : null)
+    if (!doc) throw new TypeError('InnfoUI.Table: doc is required')
+    var rows = Array.isArray(data.rows) ? data.rows : []
+    var wrap = makeEl(doc, 'div', 'innfo-element-table-wrap')
+    wrap.setAttribute('data-innfo-component', 'table')
+
+    var table = makeEl(doc, 'table', 'innfo-element-table')
+    var thead = makeEl(doc, 'thead')
+    var htr = makeEl(doc, 'tr')
+
+    var cols = data.columns.map(function (c) {
+      if (typeof c === 'string') return { key: c, label: c, kind: c === 'name' || c === 'id' ? 'element' : 'field' }
+      return {
+        key: c.key || '',
+        label: c.label != null ? c.label : c.key,
+        kind: c.kind || (c.key === 'name' || c.key === 'id' ? 'element' : 'field'),
+        align: c.align || 'left',
+        format: c.format,
+      }
+    })
+
+    cols.forEach(function (c) {
+      var th = makeEl(doc, 'th', null, c.label)
+      if (c.align) th.style.textAlign = c.align
+      htr.appendChild(th)
+    })
+    if (opts && typeof opts.onEdit === 'function') {
+      var thAct = makeEl(doc, 'th', null, '')
+      thAct.style.width = '40px'
+      htr.appendChild(thAct)
+    }
+    thead.appendChild(htr)
+    table.appendChild(thead)
+
+    var tbody = makeEl(doc, 'tbody')
+    if (rows.length === 0) {
+      var emptyTr = makeEl(doc, 'tr')
+      var emptyTd = makeEl(doc, 'td', 'innfo-element-table-empty', data.emptyText || 'No items to display.')
+      emptyTd.colSpan = cols.length + (opts && opts.onEdit ? 1 : 0)
+      emptyTr.appendChild(emptyTd)
+      tbody.appendChild(emptyTr)
+    } else {
+      rows.forEach(function (row) {
+        if (!row) return
+        var tr = makeEl(doc, 'tr')
+        if (row.id) tr.setAttribute('data-element-id', row.id)
+        cols.forEach(function (c) {
+          var td = makeEl(doc, 'td')
+          if (c.align) td.style.textAlign = c.align
+          var val = row.fields && c.key in row.fields ? row.fields[c.key] : row[c.key]
+          if (c.format && typeof c.format === 'function') {
+            var formatted = c.format(val, row)
+            if (formatted && formatted.nodeType) td.appendChild(formatted)
+            else td.textContent = formatted == null ? '' : String(formatted)
+          } else if (c.kind === 'element') {
+            td.appendChild(ElementPill({ id: row.id, label: val || row.name || row.id }, { doc: doc, onSelect: opts && opts.onSelect }))
+          } else if (c.kind === 'cell') {
+            td.appendChild(KuBadge({ kind: 'cell', value: val == null ? '—' : String(val) }, { doc: doc }))
+          } else if (c.kind === 'field') {
+            td.appendChild(KuBadge({ kind: 'field', name: c.label, value: val == null ? '—' : String(val) }, { doc: doc }))
+          } else {
+            td.textContent = val == null ? '—' : String(val)
+          }
+          tr.appendChild(td)
+        })
+        if (opts && typeof opts.onEdit === 'function') {
+          var tdAct = makeEl(doc, 'td')
+          tdAct.style.textAlign = 'right'
+          var editBtn = makeEl(doc, 'button', 'innfo-review-anchor')
+          editBtn.setAttribute('type', 'button')
+          editBtn.setAttribute('title', 'Edit ' + (row.name || row.id))
+          editBtn.innerHTML = icon('pencil', 12)
+          editBtn.addEventListener('click', function (ev) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+            opts.onEdit(row.id)
+          })
+          tdAct.appendChild(editBtn)
+          tr.appendChild(tdAct)
+        }
+        tbody.appendChild(tr)
+      })
+    }
+    table.appendChild(tbody)
+    wrap.appendChild(table)
+    return wrap
+  }
+
+  /**
+   * Declarative KPI summary grid for console views.
+   * @param {{
+   *   items: Array<{ label: string, value: string|number, concept?: string, icon?: string, hint?: string, color?: string, index?: number }>
+   * }} data
+   * @param {{ doc?: Document }} [opts]
+   * @returns {HTMLElement}
+   */
+  function KpiGrid(data, opts) {
+    if (!data || !Array.isArray(data.items)) {
+      throw new TypeError('InnfoUI.KpiGrid: data.items must be an array')
+    }
+    var doc = (opts && opts.doc) || (typeof document !== 'undefined' ? document : null)
+    if (!doc) throw new TypeError('InnfoUI.KpiGrid: doc is required')
+
+    var grid = makeEl(doc, 'div', 'innfo-kpi-grid')
+    grid.setAttribute('data-innfo-component', 'kpi-grid')
+
+    data.items.forEach(function (item) {
+      if (!item) return
+      var card = makeEl(doc, 'div', 'innfo-kpi-card')
+      var header = makeEl(doc, 'div', 'innfo-kpi-header')
+      if (item.concept) {
+        header.appendChild(ConceptPill({ id: item.concept, label: item.concept, icon: item.icon, color: item.color, index: item.index }, { doc: doc }))
+      } else {
+        header.appendChild(KuBadge({ kind: 'concept', label: item.label, icon: item.icon }, { doc: doc }))
+      }
+      card.appendChild(header)
+
+      var val = makeEl(doc, 'div', 'innfo-kpi-value', item.value != null ? String(item.value) : '0')
+      card.appendChild(val)
+
+      if (item.hint) {
+        var hint = makeEl(doc, 'div', 'innfo-kpi-hint', item.hint)
+        card.appendChild(hint)
+      }
+      grid.appendChild(card)
+    })
+    return grid
+  }
+
+  /**
+   * Registers <innfo-ku> custom element in window.customElements when available.
+   */
+  function defineCustomElements() {
+    if (typeof window === 'undefined' || !window.customElements || window.customElements.get('innfo-ku')) return
+    try {
+      function InnfoKu() {
+        return Reflect.construct(HTMLElement, [], InnfoKu)
+      }
+      Object.setPrototypeOf(InnfoKu.prototype, HTMLElement.prototype)
+      Object.setPrototypeOf(InnfoKu, HTMLElement)
+      InnfoKu.prototype.connectedCallback = function () {
+        var kind = this.getAttribute('kind') || 'field'
+        var name = this.getAttribute('name')
+        var value = this.getAttribute('value')
+        var label = this.getAttribute('label') || name
+        var id = this.getAttribute('id')
+        var badge = KuBadge({ kind: kind, id: id, name: name, value: value, label: label }, { doc: this.ownerDocument })
+        this.innerHTML = ''
+        this.appendChild(badge)
+      }
+      window.customElements.define('innfo-ku', InnfoKu)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.customElements) {
+    defineCustomElements()
   }
 
   // Token injection at load when a document exists. The bundle loads up to 3
@@ -13270,6 +13618,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     FieldMultiSelectWidget: FieldMultiSelectWidget,
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
+    Table: Table,
+    KpiGrid: KpiGrid,
+    defineCustomElements: defineCustomElements,
   }
 })
 
@@ -13288,7 +13639,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
 
   var STORE_PREFIX = 'innfo-console:v3:'
-  var STORE_VERSION = 3
+  var STORE_VERSION = 4
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
@@ -13369,7 +13720,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     // Engine address of the target (file stem + element slug), captured with the draft
     // so a changeset export does not have to guess it from display titles.
-    if (d.model_id != null && d.model_id !== '') draft.model_id = String(d.model_id)
+    if (d.knowledge_id != null && d.knowledge_id !== '') draft.knowledge_id = String(d.knowledge_id)
     if (d.element_slug != null && d.element_slug !== '') draft.element_slug = String(d.element_slug)
     // Matrix-cell drafts target a matrix coordinate, not an element unit.
     if (d.matrix != null && d.matrix !== '') draft.matrix = String(d.matrix)
@@ -13520,7 +13871,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (raw.kind === 'new') {
           // A new element has no target in the model yet: it is addressed by its
           // model, concept and name instead of an element id and hash.
-          var missing = ['model_id', 'concept', 'element'].filter(function (key) {
+          var missing = ['knowledge_id', 'concept', 'element'].filter(function (key) {
             return raw[key] == null || raw[key] === ''
           })
           if (missing.length) {
@@ -13806,7 +14157,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           kind: payload.kind,
           // The owning model, not the domain: the changeset target must resolve in
           // apply_change. Falls back to the domain id only for legacy anchors.
-          model_id: anchorData.modelId || meta.modelId,
+          knowledge_id: anchorData.modelId || meta.modelId,
           original: anchorData.original,
         }
         if (payload.proposed !== undefined) matrixDraft.proposed = payload.proposed
@@ -13825,7 +14176,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         element: el.name || el.id,
         base_hash: el.hash,
         kind: payload.kind,
-        model_id: el.modelId || meta.modelId,
+        knowledge_id: el.modelId || meta.modelId,
         element_slug: el.slug,
       }
       if (payload.field !== undefined || anchorData.field) {
@@ -14284,7 +14635,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             if (!store) return
             var draft = {
               kind: 'new',
-              model_id: res.modelId || meta.modelId,
+              knowledge_id: res.modelId || meta.modelId,
               concept: res.concept,
               element: res.name,
             }
@@ -14806,10 +15157,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function buildToggle() {
       if (!canReview(meta, elements, needs)) return null
+      var actions = doc.getElementById('innfo-navbar-actions')
       var extra = doc.getElementById('innfo-navbar-extra')
       var banner =
         doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
-      var host = extra || banner
+      var host = actions || extra || banner
       if (!host) return null
       var existing = doc.querySelector('[data-innfo="review-toggle"]')
       if (existing) return existing
@@ -15515,7 +15867,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function monthAxis(meta, count) {
     var startMonth = Number(meta && meta.startMonth) || 1
-    var startYear = Number(meta && meta.startYear) || 1970
+    var fallbackYear = typeof Date !== 'undefined' ? new Date().getFullYear() : 2026
+    var startYear = Number(meta && meta.startYear) || fallbackYear
     var n = Math.max(0, Number(count) || 0)
     var labels = []
     for (var i = 0; i < n; i++) {
@@ -16766,7 +17119,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       card.style.borderLeft = '4px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
-      if (head && element.concept) {
+      if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
         var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
         cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
         cBadge.style.borderColor = hexColor
@@ -16780,7 +17133,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         cBadge.appendChild(doc.createTextNode(element.concept))
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge) head.insertBefore(cBadge, elementBadge)
+        if (elementBadge) (elementBadge.parentNode || head).insertBefore(cBadge, elementBadge)
         else head.appendChild(cBadge)
       }
 
@@ -17020,7 +17373,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+        th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      } else {
+        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        fieldBadge.classList.add('innfo-element-table-th-label')
+        th.appendChild(fieldBadge)
+      }
       if (sortState && sortState.key === col.key) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')
@@ -17371,7 +17730,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function normalizeKey(str) {
-    return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    // NFD + combining-mark strip so 'Facturación' and 'facturacion' share one key.
+    return String(str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  }
+
+  var warnedUnresolvedOperands = {}
+  function warnUnresolvedOperand(token, formula) {
+    var key = formula + ' ' + token
+    if (warnedUnresolvedOperands[key]) return
+    warnedUnresolvedOperands[key] = true
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[innfo] Timeline formula "' + formula + '": unresolved operand "' + token + '"')
+    }
   }
 
   // Theme synchronization for embedded iframes now lives in ui-kit.js
@@ -17449,9 +17823,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var norm = normalizeKey(token)
       var targetRow = rowMap[norm]
       if (targetRow) {
-        return evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        var operandVal = evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+        // A '%' variable is a rate: as an operand it is the fraction (35% -> 0.35),
+        // consistent with growValue, which divides the growth factor by 100.
+        // Scope: only plain variable rows (no formula) with unit '%' are scaled.
+        // Formula rows already return a computed value (their operands were scaled
+        // on the way in), so dividing again would double-scale the result.
+        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%') operandVal = operandVal / 100
+        return operandVal
       }
-      return 0
+      // Unresolved: surface as NaN (rendered '-') instead of a silent 0.
+      warnUnresolvedOperand(token, formula)
+      return NaN
     }
 
     var terms = []
@@ -17479,8 +17862,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!terms.length) return 0
     var res = terms[0]
     for (var j = 0; j < ops.length; j++) {
-      if (ops[j] === '+') res += terms[j + 1] || 0
-      else if (ops[j] === '-') res -= terms[j + 1] || 0
+      var term = terms[j + 1] == null ? 0 : terms[j + 1]
+      if (ops[j] === '+') res += term
+      else if (ops[j] === '-') res -= term
     }
     return res
   }
@@ -17511,9 +17895,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         g.mode + (g.factor ? ' (' + g.factor + ')' : '')
       ]
       for (var i = 0; i < totalMonths; i++) {
-        rowLine.push(vals[i] != null ? Math.round(vals[i] * 100) / 100 : '')
+        // Unresolved operands yield NaN: write an empty cell, never a literal "NaN".
+        rowLine.push(vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '')
       }
-      rowLine.push(Math.round(sum * 100) / 100)
+      rowLine.push(Number.isFinite(sum) ? Math.round(sum * 100) / 100 : '')
       lines.push(rowLine.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
     })
 
@@ -18110,9 +18495,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
-          var maxAbs = Math.max.apply(null, vals.map(function (v) { return Math.abs(v) })) || 1
-          var minReal = Math.min.apply(null, vals)
-          var maxReal = Math.max.apply(null, vals)
+          // Unresolved operands yield NaN months: scale and range use finite values only.
+          var finiteVals = vals.filter(function (v) { return Number.isFinite(v) })
+          var maxAbs = Math.max.apply(null, finiteVals.map(function (v) { return Math.abs(v) })) || 1
+          var minReal = finiteVals.length ? Math.min.apply(null, finiteVals) : NaN
+          var maxReal = finiteVals.length ? Math.max.apply(null, finiteVals) : NaN
 
           var tdChartRule = el('td', 'td-rule')
           tdChartRule.appendChild(el('span', 'innfo-chart-range', 'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal)))
@@ -18127,10 +18514,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             var barWrap = el('div', 'innfo-mini-bar-wrap')
             barWrap.setAttribute('title', (labels[ci] || ('M' + (ci + 1))) + ': ' + formatGridNumber(cVal) + (r.metricUnit ? ' ' + r.metricUnit : ''))
 
-            var heightPct = Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100))
-            var bar = el('div', 'innfo-mini-bar' + (cVal < 0 ? ' negative' : ''))
+            var cResolved = Number.isFinite(cVal)
+            var heightPct = cResolved ? Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100)) : 4
+            var bar = el('div', 'innfo-mini-bar' + (cResolved && cVal < 0 ? ' negative' : ''))
             bar.style.height = heightPct + '%'
-            bar.style.backgroundColor = getSemanticBarColor(cVal, minReal, maxReal, r)
+            bar.style.backgroundColor = cResolved ? getSemanticBarColor(cVal, minReal, maxReal, r) : '#cbd5e1'
 
             var valLabel = el('span', 'innfo-mini-bar-val', formatGridNumber(cVal))
             barWrap.appendChild(bar)
@@ -18143,7 +18531,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var firstVal = vals[0] || 0
           var lastVal = vals[totalMonths - 1] || 0
           var deltaPct = firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
-          tdChartTotal.appendChild(el('div', 'innfo-mini-total', (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend'))
+          var trendLabel = Number.isFinite(deltaPct) ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend' : '- trend'
+          tdChartTotal.appendChild(el('div', 'innfo-mini-total', trendLabel))
           trChart.appendChild(tdChartTotal)
 
           tbody.appendChild(trChart)
@@ -19805,9 +20194,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
-  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
-  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
-  // those fields existed.
+  // `<file stem>@<element slug>[&field]`. The draft carries `knowledge_id` (the knowledge
+  // document's file stem) and `element_slug`; `fallbackModel` only covers drafts that
+  // lack them.
   function oneLine(v) {
     return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
   }
@@ -19815,7 +20204,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
-    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var model = oneLine(d.knowledge_id || fallbackModel || 'model')
     // The element part of a target is always the element slug: never the display
     // name or the element id (the engine resolves slugs, and every payload element
     // carries one).

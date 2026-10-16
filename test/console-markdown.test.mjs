@@ -1,4 +1,4 @@
-// @jsdom — the XSS guarantees run under jsdom, never happy-dom (happy-dom lets
+// @jsdom — the XSS guarantees run under jsdom (a lenient DOM would let
 // `javascript:` through).
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
