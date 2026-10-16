@@ -1,14 +1,13 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { installDialogStub } from './helpers/dialog-stub'
 
 /**
- * C4 — the `innfo-citation-dialog` in `innfo-runtime.js`. happy-dom, not
- * jsdom, because jsdom (vendored in this monorepo) does not implement
- * `HTMLDialogElement.showModal`; happy-dom does. Mirrors the existing
- * `console-dom.test.ts` pragma.
+ * C4 — the `innfo-citation-dialog` in `innfo-runtime.js`. jsdom does not
+ * implement `HTMLDialogElement.showModal`, so `installDialogStub` adds it.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -68,6 +67,7 @@ describe('InnfoUI.icon citation entries', () => {
 
 describe('innfo-runtime.js — renderCitationDialog', () => {
   beforeEach(() => {
+    installDialogStub()
     document.documentElement.innerHTML = '<body></body>'
   })
 

@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'

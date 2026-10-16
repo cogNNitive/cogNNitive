@@ -2,7 +2,7 @@
  * Per-test JSDOM harness for the console review suites.
  *
  * vitest runs innfo-core with `pool: 'forks'` + `singleFork: true`, so every
- * test file shares one process and happy-dom's document is a singleton. The
+ * test file shares one process and a shared jsdom document is a singleton. The
  * console UMD sources cache references to `document` at load, so a shared
  * document leaks state between suites. A fresh JSDOM per test removes the
  * singleton entirely (the same pattern `test/console-review.test.mjs` uses).
