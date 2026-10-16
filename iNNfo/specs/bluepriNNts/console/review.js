@@ -12,7 +12,7 @@
   if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
 
   var STORE_PREFIX = 'innfo-console:v3:'
-  var STORE_VERSION = 3
+  var STORE_VERSION = 4
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']

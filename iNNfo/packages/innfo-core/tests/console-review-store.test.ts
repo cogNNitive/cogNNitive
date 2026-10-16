@@ -59,7 +59,7 @@ describe('console-review-store (draft store v3)', () => {
 
     expect(storage._map.has('innfo-console:v3:ghostbusters-model')).toBe(true)
     const raw = JSON.parse(storage.getItem('innfo-console:v3:ghostbusters-model') as string)
-    expect(raw.v).toBe(3)
+    expect(raw.v).toBe(4)
     expect(raw.modelId).toBe('ghostbusters-model')
     expect(raw.drafts).toHaveLength(1)
   })
@@ -114,6 +114,22 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.reviewed()).toEqual({})
   })
 
+  it('discards a persisted v3 store whose drafts carry the old model_id key', () => {
+    const Review = loadReview()
+    const storage = memoryStorage({
+      'innfo-console:v3:m1': JSON.stringify({
+        v: 3,
+        modelId: 'm1',
+        drafts: [{ id: 'fb-001', element_id: 'e1', model_id: 'old-doc', base_hash: 'abcdef0123456789' }],
+        reviewed: { e1: 'reviewed' },
+      }),
+    })
+    const store = Review.createDraftStore(storage, 'm1') as DraftStore
+    expect(Review.STORE_VERSION).toBe(4)
+    expect(store.drafts()).toEqual([])
+    expect(store.reviewed()).toEqual({})
+  })
+
   it('never reads the previous-version key namespace innfo-console:v2:*', () => {
     const Review = loadReview()
     const old = JSON.stringify({
@@ -150,7 +166,7 @@ describe('console-review-store (draft store v3)', () => {
   it('returns empty when the stored modelId does not match', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({ v: 3, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
+      'innfo-console:v3:m1': JSON.stringify({ v: 4, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
     })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
@@ -160,7 +176,7 @@ describe('console-review-store (draft store v3)', () => {
     const Review = loadReview()
     const storage = memoryStorage({
       'innfo-console:v3:m1': JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'm1',
         drafts: [
           {
