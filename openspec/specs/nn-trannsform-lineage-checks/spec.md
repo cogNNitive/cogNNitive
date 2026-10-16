@@ -38,7 +38,7 @@ Lineage generation MUST NOT use the `model` / `knowledge_version` inference or t
 #### Scenario: No inference code remains
 - GIVEN the final state of `provenance-knowledge.js`
 - WHEN searched for `knowledge_version`, `export-meta`, and `sources/(nn|original|export|archive)/`
-- THEN none is present outside lines marked `legacy:cognitivize-in-place/*`
+- THEN none is present
 
 #### Scenario: `artifacts/` is read normally
 - GIVEN `artifacts/report_20261002T101500Z.md` with a `sources:` frontmatter

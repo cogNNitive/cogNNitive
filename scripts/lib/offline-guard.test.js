@@ -33,7 +33,7 @@ function parse(res) {
 }
 
 // 0. Loopback classifier.
-for (const host of ['localhost', '127.0.0.1', '127.1.2.3', '::1', '[::1]', 'LOCALHOST', undefined, '']) {
+for (const host of ['localhost', '127.0.0.1', '127.1.2.3', '::1', '[::1]', '::', '0.0.0.0', 'LOCALHOST', undefined, '']) {
   assert.strictEqual(isLoopbackHost(host), true, `${host} is loopback`);
 }
 for (const host of ['example.com', '192.0.2.1', '8.8.8.8', 'api.github.com', '127.0.0.1.evil.com']) {

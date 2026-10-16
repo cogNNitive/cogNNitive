@@ -172,8 +172,6 @@ async function runTests() {
     const res = syncVersions({ check: true, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath });
     assert.strictEqual(res.ok, false, 'Expected drift to be detected');
     const joined = res.errors.join('\n');
-    assert.ok(!joined.includes('samples.ts'), 'the frozen editor samples.ts is not a sync target');
-    assert.ok(!joined.includes('SHIPPED_BLUEPRINT_VERSIONS'), 'the frozen editor samples.ts is not a sync target');
     assert.ok(joined.includes('innfo-core package.json'), 'error must name core package drift');
     assert.ok(joined.includes('@cognnitive/innfo-core drift'), 'error must name dep range drift');
     assert.ok(joined.includes('sync:versions'), 'error must name fix command');

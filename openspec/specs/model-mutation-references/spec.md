@@ -75,14 +75,9 @@ When an exact slug match exists, the resolver MUST bind to that element immediat
 
 ### Requirement: Legacy Name-Based Reference Fallback Ledger
 
-Whenever a reference or wikilink resolves through display name fallback rather than an immutable slug, the reference resolver MUST record the legacy marker `legacy:lineage-reference-name-fallback`. Furthermore, the reference resolution tooling MUST register the occurrence in `legacy-ledger.yaml`, recording the referencing file, target name, and resolved element slug to facilitate future automated migrations to explicit slug addressing.
+Whenever a reference or wikilink resolves through display name fallback rather than an immutable slug, the reference resolver MUST record the legacy marker `legacy:lineage-reference-name-fallback`.
 
 #### Scenario: Name fallback records legacy marker
 - GIVEN a reference that resolves via display name fallback
 - WHEN reference resolution executes
 - THEN the evaluation metadata includes the marker `legacy:lineage-reference-name-fallback`
-
-#### Scenario: Name fallback registered in legacy-ledger.yaml
-- GIVEN a workspace validation or audit pass
-- WHEN references resolving via name fallback are detected
-- THEN entries are appended or updated in `legacy-ledger.yaml` specifying the file and resolved slug

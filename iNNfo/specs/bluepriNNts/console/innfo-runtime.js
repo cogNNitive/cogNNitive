@@ -571,7 +571,8 @@
 
   function monthAxis(meta, count) {
     var startMonth = Number(meta && meta.startMonth) || 1
-    var startYear = Number(meta && meta.startYear) || 1970
+    var fallbackYear = typeof Date !== 'undefined' ? new Date().getFullYear() : 2026
+    var startYear = Number(meta && meta.startYear) || fallbackYear
     var n = Math.max(0, Number(count) || 0)
     var labels = []
     for (var i = 0; i < n; i++) {

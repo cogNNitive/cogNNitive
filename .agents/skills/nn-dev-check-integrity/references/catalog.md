@@ -148,7 +148,7 @@ Group 2 verifies:
 - ❌ version drift or missing inventory paths.
 - Fix hints: run `npm run sync:versions` to synchronize version sites; fix path references in `manifest/source.yaml`.
 
-### Group 2b — Sample version coherence (blueprint bump ↔ sample refresh)
+### Sample version coherence (blueprint bump ↔ sample refresh) — a `verify.js` step
 **Expediente:** `samples-version-coherence-guard` (2026-10-04). `scripts/sync-samples.mjs`
 compared the SSOT (`_samples_nn/`) and shipped (`iNNfo/specs/bluepriNNts/*/samples/`)
 copies byte-for-byte **against each other** with a hardcoded target filename, so both
@@ -214,7 +214,7 @@ git diff --name-only origin/main...HEAD -- "iNNfo/specs/bluepriNNts/*/spec_NN.md
   `base: "V_X", current: "V_X"`.
 - The bump **cascades** — it is not one edit. All of these move together, in the same
   batch: the sample pin at BOTH sites (`_samples_nn/` + `bluepriNNts/<bp>/samples/`, see
-  Group 2b), `SAMPLE_MAPPINGS` in `scripts/sync-samples.mjs`, the regenerated
+  Sample version coherence), `SAMPLE_MAPPINGS` in `scripts/sync-samples.mjs`, the regenerated
   `catalog.json` (`npm run sync:versions`), and every test that asserts a
   blueprint version (core + mcp; the frozen editor is not gated).
 - **Do NOT attempt a text-only fix in a canonical spec** (e.g. repointing a dead path)
@@ -263,7 +263,6 @@ npm --prefix iNNfo/packages/innfo-mcp run test:coverage
 node scripts/verify.js            # dev mode: skips the live stable-manifest check (release-only)
 npm run build:docs
 npm --prefix iNNfo run check:spec-urls
-npm --prefix iNNfo run check:spec-version -- --inventory   # informational
 ```
 
 **Local automation & residual nonequivalence.** `node scripts/check-integrity.js --pre-push`
@@ -279,9 +278,6 @@ widened to include them:
 - `npm run build:docs` — excluded from the local gate on purpose: it is heavy and
   rewrites tracked generated docs, so running it would dirty the very tree the gate
   is inspecting. The release path owns it.
-
-`check:spec-version -- --inventory` is informational by design and never fails a
-gate, so it stays out of the runner.
 
 Format — **changed files only**, mirroring `.github/workflows/ci.yml`:
 ```powershell

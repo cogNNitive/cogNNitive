@@ -169,6 +169,17 @@ function status(argv) {
   console.log(`- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`)
 }
 
+/**
+ * Read-only precheck for the dev -> main batch (skill §4-pre). Informational:
+ * exits 0 unless `--strict` is given and the verdict is not READY.
+ */
+async function batchStatus(argv) {
+  const { collectBatchStatus, renderBatchStatus } = await import('./lib/batch-status.mjs')
+  const result = collectBatchStatus({ root: repoRoot(argv) })
+  console.log(argv.includes('--json') ? JSON.stringify(result, null, 2) : renderBatchStatus(result))
+  if (argv.includes('--strict') && result.verdict !== 'READY') process.exitCode = 1
+}
+
 function stop(argv) {
   const root = repoRoot(argv)
   const id = sessionId(argv)
@@ -230,8 +241,9 @@ const cmd = process.argv[2]
 if (cmd === 'start') start(process.argv.slice(2))
 else if (cmd === 'list') list(process.argv.slice(2))
 else if (cmd === 'status') status(process.argv.slice(2))
+else if (cmd === 'batch-status') await batchStatus(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|stop [--id <id>] [--no-install] [--root <path>]')
+  console.error('usage: nn-session.mjs start|list|status|batch-status|stop [--id <id>] [--no-install] [--root <path>] [--json] [--strict]')
   process.exit(2)
 }
