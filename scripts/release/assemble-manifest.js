@@ -237,6 +237,15 @@ function assembleManifest(params) {
     }
   };
 
+  // A retained entry with no previous pin would render as "undefined" and only fail later in validation.
+  const requirePin = (kind, name, ref, commit) => {
+    if (!ref || !commit) {
+      throw new AssembleManifestError(
+        `${kind} '${name}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Release its own key first (skills-v*, blueprints-v*, innfo-mcp-v*).`
+      );
+    }
+  };
+
   const model = {
     version: source.version || prev.version || '1.0.0',
     entrypoint: source.entrypoint || prev.entrypoint || 'nn-router',
@@ -259,9 +268,8 @@ function assembleManifest(params) {
       sRef = prevSkill.ref;
       sCommit = prevSkill.commit;
       sVersion = prevSkill.version;
-      if (sRef && sCommit) {
-        verifyRetainedPin(skill.name, sRef, sCommit);
-      }
+      requirePin('Skill', skill.name, sRef, sCommit);
+      verifyRetainedPin(skill.name, sRef, sCommit);
     }
 
     const mcp = [];
@@ -279,9 +287,8 @@ function assembleManifest(params) {
         mCommit = prevMcp.commit;
         mVersion = prevMcp.version;
         mUrl = prevMcp.url || (mRef && mCommit ? `https://raw.githubusercontent.com/${m.repo}/${mCommit}/${m.path}` : undefined);
-        if (mRef && mCommit) {
-          verifyRetainedPin(m.name, mRef, mCommit);
-        }
+        requirePin('MCP', m.name, mRef, mCommit);
+        verifyRetainedPin(m.name, mRef, mCommit);
       }
 
       mcp.push({
@@ -323,9 +330,8 @@ function assembleManifest(params) {
       bRef = prevBp.ref;
       bCommit = prevBp.commit;
       bVersion = prevBp.version;
-      if (bRef && bCommit) {
-        verifyRetainedPin(blueprint.name, bRef, bCommit);
-      }
+      requirePin('Blueprint', blueprint.name, bRef, bCommit);
+      verifyRetainedPin(blueprint.name, bRef, bCommit);
     }
 
     model.blueprints.push({

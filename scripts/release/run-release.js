@@ -47,7 +47,13 @@ function pushWithRetry(workDir, args, authEnv, secrets, maxAttempts = 5) {
     } catch (err) {
       if (attempt >= maxAttempts) throw err;
       runGit(['fetch', 'origin', 'main'], { cwd: workDir, env: authEnv, secrets });
-      try { runGit(['rebase', 'origin/main'], { cwd: workDir, env: authEnv, secrets }); } catch {}
+      try {
+        runGit(['rebase', 'origin/main'], { cwd: workDir, env: authEnv, secrets });
+      } catch (rebaseErr) {
+        // Never retry from a half-applied rebase: leave the clone clean and fail loudly.
+        try { runGit(['rebase', '--abort'], { cwd: workDir, env: authEnv, secrets }); } catch {}
+        throw rebaseErr;
+      }
     }
   }
 }

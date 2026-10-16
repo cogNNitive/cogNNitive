@@ -213,3 +213,25 @@ test('assembleManifest never emits an undefined pin for a console asset', () => 
   });
   assert.ok(!/undefined/.test(result.manifestText));
 });
+
+test('assembleManifest fails with a clear message when a new blueprint has no previous pin on a non-blueprints release', () => {
+  const source = {
+    ...SOURCE_YAML,
+    blueprints: [
+      ...SOURCE_YAML.blueprints,
+      { name: 'brand_new_NN', repo: 'cogNNitive/cogNNitive-web', path: 'iNNfo/specs/brand_new_NN.md', ref_key: 'blueprints' },
+    ],
+  };
+  assert.throws(
+    () =>
+      assembleManifest({
+        releaseTag: 'skills-v2.10.0',
+        contentSha: 'eeee5555eeee5555eeee5555eeee5555eeee5555',
+        source,
+        prevManifestText: PREV_MANIFEST,
+        readVersion: () => '2.10.0',
+        resolveGitRef: () => true,
+      }),
+    (err) => err instanceof AssembleManifestError && /brand_new_NN/.test(err.message) && /blueprints-v\*/.test(err.message)
+  );
+});

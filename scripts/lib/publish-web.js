@@ -125,7 +125,16 @@ async function runPublish(config, options = {}) {
       ['commit', '-m', `chore: publish from cogNNitive@${process.env.GITHUB_SHA || 'local'} (${stamp})`],
       { cwd: work, env: authEnv, secrets }
     );
-    runGit(['push', 'origin', 'HEAD:main'], { cwd: work, env: authEnv, secrets });
+    // release.yml pushes to the same main under a different concurrency group, so a push can lose the race.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        runGit(['push', 'origin', 'HEAD:main'], { cwd: work, env: authEnv, secrets });
+        break;
+      } catch (err) {
+        if (attempt >= 3) throw err;
+        runGit(['pull', '--rebase', 'origin', 'main'], { cwd: work, env: authEnv, secrets });
+      }
+    }
 
     logger.log('publish-web: pushed to', targetRepo);
     return { published: true, siteDiff };
