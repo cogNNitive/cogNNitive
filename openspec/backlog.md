@@ -28,6 +28,11 @@ policy in `scripts/license-policy.json`) gates denied/unknown licenses and keeps
 into `verify.js`. The Syft/ScanCode alternative stays unneeded unless the vendored list drifts.
 Partly done `docs/manual-editing-risks`: the docs page and the actionable `DUPLICATE_SLUG` message shipped; only the
 non-deterministic "value changed without a changeset" fingerprint remains.
+Retired item 26 (`chore/console-feedback-vocabulary-alignment`): the feedback ledger it targeted
+(`feedback-ledger.ts`, `reconcile_feedback_NN.md`, the verdict MCP tools) was already removed in `6e9ba4458`; the
+remaining console draft field `model_id` is now `knowledge_id` (hard rename, no reader for old `model_*` drafts or
+ledgers), the retired `target_template` fallback is gone from the console payload builder, and the stale Legacy Write
+Guard allowlist entries were dropped.
 
 Consolidated 2026-10-16 (verified against `dev` @ 804f8f59): retired the shipped /
 obsolete entries — 14 (the inline projections/master shells no longer exist),
@@ -237,21 +242,6 @@ single core implementation in `innfo-core`; the CLI/MCP/console become thin adap
 parity suites collapse. Needs `sdd-explore` first; land in small reversible slices.
 
 ---
-
-## 26. `chore/console-feedback-vocabulary-alignment` - finish the `knowledge_*` sweep
-
-**Type:** chore · **Size:** small-medium · **Status:** open, re-scoped (2026-10-03)
-
-**Re-scope:** the premise "must land before the format ships" no longer holds. Change A shipped (innfo-console-v0.8.0 / blueprints-v0.20.0) with `model_id`/`model_version` in the feedback ledger wire format (`iNNfo/packages/innfo-core/src/console/feedback-ledger.ts`). The sweep is now a wire-format change on a shipped format and needs an explicit format-version/compat decision from the maintainer. Note: the maintainer prefers no backwards-compat code and is the sole user today, so a hard rename without a compat reader is a viable option.
-
-**Why:** the Legacy Write Guard caught `model_version` in the new console feedback ledger.
-This session renamed the guarded field (commit `dd801c0a`) and allowlisted the legitimate
-fallback/reject/migration cases, but the full `model_*` → `knowledge_*` sweep (`model_id`
-→ `knowledge_id`, remaining `model_version`, the `reconcile_feedback_NN.md` procedure, and
-samples) is deferred. Originally scheduled to land before the format shipped (change A was then unreleased).
-
-**Behaviour:** sweep the ledger + procedure + samples to `knowledge_*`; drop the
-allowlist entries added in `dd801c0a` once clean.
 
 ## 28. `chore/cognitivize-in-place-followups` - residuals left when `2026-10-02-cognitivize-in-place` closed
 
@@ -903,7 +893,7 @@ search per token *including the surfaces the guard excludes*, then diff against
 decide whether to extend the guard's token table and scan scope (e.g. add the `innfo-` family).
 
 **Relationship to other items:** overlaps `refactor/identifier-migration` (mechanical L2 migration)
-and `chore/console-feedback-vocabulary-alignment` (`model_*` → `knowledge_*` sweep). On start,
+and the retired `chore/console-feedback-vocabulary-alignment` (`model_*` → `knowledge_*` sweep, done 2026-10-16). On start,
 decide whether this item is the umbrella that folds them or the audit that feeds them.
 
 **Why not a blind find-and-replace:** identifiers are resolution-bearing —
