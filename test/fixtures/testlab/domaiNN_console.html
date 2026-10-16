@@ -7301,13 +7301,29 @@ button.cite-icon,
 }
 
 /* 6. Card Head */
-.innfo-card-badges {
+/* Sheets view: ElementCard header badges scaled 1.8x */
+[data-innfo-component="element-card"] .innfo-card-badges,
+.innfo-card .innfo-card-badges {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  zoom: 1.4 !important;
+  zoom: 1.8 !important;
 }
-.innfo-card-badges .innfo-ku-badge {
+[data-innfo-component="element-card"] .innfo-card-badges .innfo-ku-badge,
+.innfo-card .innfo-card-badges .innfo-ku-badge {
+  display: inline-flex !important;
+}
+
+/* Cards view: ElementMini badges at natural 1x scale */
+[data-innfo-component="element-mini"] .innfo-card-badges,
+.innfo-mini .innfo-card-badges {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  zoom: 1 !important;
+}
+[data-innfo-component="element-mini"] .innfo-card-badges .innfo-ku-badge,
+.innfo-mini .innfo-card-badges .innfo-ku-badge {
   display: inline-flex !important;
 }
 
@@ -8914,7 +8930,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-26c92be4",
-    "generated": "2026-10-16T11:47:14.124Z",
+    "generated": "2026-10-16T11:50:44.188Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -8924,7 +8940,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T11:47:13.970Z",
+        "citationsResolvedAt": "2026-10-16T11:50:44.019Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],

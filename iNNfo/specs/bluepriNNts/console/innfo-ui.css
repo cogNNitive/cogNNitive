@@ -7270,13 +7270,29 @@ button.cite-icon,
 }
 
 /* 6. Card Head */
-.innfo-card-badges {
+/* Sheets view: ElementCard header badges scaled 1.8x */
+[data-innfo-component="element-card"] .innfo-card-badges,
+.innfo-card .innfo-card-badges {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  zoom: 1.4 !important;
+  zoom: 1.8 !important;
 }
-.innfo-card-badges .innfo-ku-badge {
+[data-innfo-component="element-card"] .innfo-card-badges .innfo-ku-badge,
+.innfo-card .innfo-card-badges .innfo-ku-badge {
+  display: inline-flex !important;
+}
+
+/* Cards view: ElementMini badges at natural 1x scale */
+[data-innfo-component="element-mini"] .innfo-card-badges,
+.innfo-mini .innfo-card-badges {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  zoom: 1 !important;
+}
+[data-innfo-component="element-mini"] .innfo-card-badges .innfo-ku-badge,
+.innfo-mini .innfo-card-badges .innfo-ku-badge {
   display: inline-flex !important;
 }
 
