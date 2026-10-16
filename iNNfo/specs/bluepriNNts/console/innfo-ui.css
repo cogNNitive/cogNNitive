@@ -6301,7 +6301,8 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid var(--card-concept-color, var(--innfo-accent, #171717));
+  border: none !important;
+  border-width: 0 !important;
   background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 10%, #ffffff);
   color: var(--card-concept-color, var(--innfo-accent, #171717));
   font-size: 0.73rem;
@@ -6477,7 +6478,7 @@ button.btn-primary:hover:not(:disabled) {
 }
 [data-innfo-component="element-card"] .innfo-card-incoming {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
@@ -7182,10 +7183,10 @@ button.cite-icon,
 }
 .innfo-card-path {
   color: var(--innfo-muted, #64748b) !important;
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 4px !important;
-  padding: 2px 6px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 2px 0 !important;
   font-family: var(--innfo-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   display: inline-flex !important;
@@ -7341,6 +7342,9 @@ button.cite-icon,
 .innfo-concept-pill,
 .innfo-rail-concept-pill,
 [data-innfo-component="concept-pill"],
+.innfo-card-concept-badge,
+.innfo-ku-badge[data-ku-kind="concept"],
+[data-innfo-component="ku-badge"][data-ku-kind="concept"],
 .innfo-element-pill,
 [data-innfo-component="element-pill"],
 .innfo-card-status-pill,
@@ -7686,13 +7690,16 @@ input[type="text"], input[type="search"], textarea, select {
   border-color: #0f172a !important;
 }
 
-/* 14. Relaciones salientes y entrantes limpias */
+/* 14. Relaciones salientes y entrantes limpias alineadas a la izquierda */
 .innfo-card-outgoing,
-.innfo-card-incoming {
+.innfo-card-incoming,
+[data-innfo-component="element-card"] .innfo-card-incoming {
   margin-top: 10px !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: flex-start !important;
   gap: 4px !important;
+  text-align: left !important;
 }
 .innfo-card-outgoing-label,
 .innfo-card-incoming-label {
@@ -7701,6 +7708,17 @@ input[type="text"], input[type="search"], textarea, select {
   color: var(--innfo-muted, #64748b) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
+  text-align: left !important;
+  align-self: flex-start !important;
+}
+.innfo-card-incoming .innfo-rel-list {
+  align-self: flex-start !important;
+}
+
+/* 18. Eliminar bandas inferiores en sheets comprimidos */
+.innfo-card-collapsed-strip,
+[data-innfo-component="element-card"] .innfo-card-collapsed-strip {
+  display: none !important;
 }
 
 /* Export modal: generated changeset and prompt are secondary, collapsed by default. */

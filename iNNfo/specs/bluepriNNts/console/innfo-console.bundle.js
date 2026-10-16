@@ -6597,10 +6597,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var name = concept.name || 'Concept'
     var gMeta = conceptMetaOf(schema && schema.concepts, name)
     var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm')
+    var badge = el('span', 'innfo-card-concept-badge badge badge-sm')
     if (gMeta && gMeta.hexColor) {
       badge.style.setProperty('--card-concept-color', gMeta.hexColor)
-      badge.style.borderColor = gMeta.hexColor
       badge.style.color = gMeta.hexColor
     }
     if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
@@ -7011,9 +7010,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var head = card.querySelector('.innfo-card-head, header')
       if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
-        var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
+        var cBadge = el('span', 'innfo-card-concept-badge badge badge-xs text-xs font-semibold')
         cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
-        cBadge.style.borderColor = hexColor
         cBadge.style.color = hexColor
         cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
         if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {

@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-H45o+JFiQG3LtSwfkOL03qXL3R7nveL2CbOielDfqPg=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-rK3LWP8YP2GxjEkOnrzr6xZOp5Q1hZ3KgRkXyPCrWlM=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -6332,7 +6332,8 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid var(--card-concept-color, var(--innfo-accent, #171717));
+  border: none !important;
+  border-width: 0 !important;
   background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 10%, #ffffff);
   color: var(--card-concept-color, var(--innfo-accent, #171717));
   font-size: 0.73rem;
@@ -6508,7 +6509,7 @@ button.btn-primary:hover:not(:disabled) {
 }
 [data-innfo-component="element-card"] .innfo-card-incoming {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
@@ -7213,10 +7214,10 @@ button.cite-icon,
 }
 .innfo-card-path {
   color: var(--innfo-muted, #64748b) !important;
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 4px !important;
-  padding: 2px 6px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 2px 0 !important;
   font-family: var(--innfo-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   display: inline-flex !important;
@@ -7372,6 +7373,9 @@ button.cite-icon,
 .innfo-concept-pill,
 .innfo-rail-concept-pill,
 [data-innfo-component="concept-pill"],
+.innfo-card-concept-badge,
+.innfo-ku-badge[data-ku-kind="concept"],
+[data-innfo-component="ku-badge"][data-ku-kind="concept"],
 .innfo-element-pill,
 [data-innfo-component="element-pill"],
 .innfo-card-status-pill,
@@ -7717,13 +7721,16 @@ input[type="text"], input[type="search"], textarea, select {
   border-color: #0f172a !important;
 }
 
-/* 14. Relaciones salientes y entrantes limpias */
+/* 14. Relaciones salientes y entrantes limpias alineadas a la izquierda */
 .innfo-card-outgoing,
-.innfo-card-incoming {
+.innfo-card-incoming,
+[data-innfo-component="element-card"] .innfo-card-incoming {
   margin-top: 10px !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: flex-start !important;
   gap: 4px !important;
+  text-align: left !important;
 }
 .innfo-card-outgoing-label,
 .innfo-card-incoming-label {
@@ -7732,6 +7739,17 @@ input[type="text"], input[type="search"], textarea, select {
   color: var(--innfo-muted, #64748b) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
+  text-align: left !important;
+  align-self: flex-start !important;
+}
+.innfo-card-incoming .innfo-rel-list {
+  align-self: flex-start !important;
+}
+
+/* 18. Eliminar bandas inferiores en sheets comprimidos */
+.innfo-card-collapsed-strip,
+[data-innfo-component="element-card"] .innfo-card-collapsed-strip {
+  display: none !important;
 }
 
 /* Export modal: generated changeset and prompt are secondary, collapsed by default. */
@@ -9033,7 +9051,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-26c92be4",
-    "generated": "2026-10-16T15:43:25.744Z",
+    "generated": "2026-10-16T16:13:07.518Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9043,7 +9061,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T15:43:25.660Z",
+        "citationsResolvedAt": "2026-10-16T16:13:07.425Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -16706,10 +16724,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var name = concept.name || 'Concept'
     var gMeta = conceptMetaOf(schema && schema.concepts, name)
     var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm')
+    var badge = el('span', 'innfo-card-concept-badge badge badge-sm')
     if (gMeta && gMeta.hexColor) {
       badge.style.setProperty('--card-concept-color', gMeta.hexColor)
-      badge.style.borderColor = gMeta.hexColor
       badge.style.color = gMeta.hexColor
     }
     if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
@@ -17120,9 +17137,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var head = card.querySelector('.innfo-card-head, header')
       if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
-        var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
+        var cBadge = el('span', 'innfo-card-concept-badge badge badge-xs text-xs font-semibold')
         cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
-        cBadge.style.borderColor = hexColor
         cBadge.style.color = hexColor
         cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
         if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
