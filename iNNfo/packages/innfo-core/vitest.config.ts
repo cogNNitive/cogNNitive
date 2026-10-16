@@ -18,7 +18,7 @@ export default defineConfig({
         '*.config.ts',
       ],
       // Ratchet thresholds: set a few points below the measured baseline
-      // (2026-08-07: lines 84.35%, branches 73.98%, funcs 79.77%, stmts 84.35%)
+      // (2026-10-16: lines 87.73%, branches 73.47%, funcs 89.77%, stmts 85.56%)
       // so CI fails on regression, not on first run.
       thresholds: {
         lines: 80,
