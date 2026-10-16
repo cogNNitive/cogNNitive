@@ -284,23 +284,36 @@ this change. It MUST regenerate the console and return `next_steps` like `apply_
 
 ### Requirement: Rejected changesets are persisted
 
-When the apply engine rejects a changeset because of a defect of the proposal itself, it MUST persist the rejection: frontmatter `status: rejected` and a frontmatter `resolution` stating why, plus `status:: rejected` and `resolution::` on the offending change when one is identifiable. The write-back MUST start from the raw text of the proposal, so execution annotations computed in memory during the failed run are never written, and it MUST keep every normative line byte-identical. Defects of the proposal are: an unresolved evidence citation (`CITATION_UNRESOLVED`), a mutation the engine refuses (`MUTATION_FAILED`), a failed schema validation of a touched model (`VALIDATION_FAILED`), a malformed `add_model` set (`ADD_MODEL_INVALID_TARGET`, `ADD_MODEL_DUPLICATE`, `ADD_MODEL_ORDER`) and an invalid maintenance change (`LEVEL3_ONLY`, `RECORD_UNVERSIONED`, `INVALID_BUMP_LEVEL`).
+When the apply engine rejects a changeset because of a defect of the proposal itself, it MUST persist the rejection: frontmatter `status: rejected` and a frontmatter `resolution` stating why, plus `status:: rejected` and `resolution::` on the offending change when one is identifiable. The write-back MUST start from the raw text of the proposal, so execution annotations computed in memory during the failed run are never written, and it MUST keep every normative line byte-identical. Only causes intrinsic to the proposal are persisted: a mutation that can never apply as written (`MUTATION_FAILED`), a malformed `add_model` set (`ADD_MODEL_INVALID_TARGET`, `ADD_MODEL_DUPLICATE`, `ADD_MODEL_ORDER`), an invalid maintenance change (`LEVEL3_ONLY`, `RECORD_UNVERSIONED`, `INVALID_BUMP_LEVEL`, `BUMP_ON_CREATED_MODEL`) and an unbumpable base version (`INVALID_VERSION`).
+
+Causes that depend on workspace state are returned with `status: rejected` but NOT recorded; the file stays `proposed` and can be retried once the workspace changes: an unresolved evidence citation (`CITATION_UNRESOLVED`, the source may not be imported yet) and a failed schema validation of a touched model (`VALIDATION_FAILED`, the model may already have been invalid).
 
 The engine MUST NOT write anything for failures that are not a property of the proposal: `PROPOSAL_TAMPERED`, `PROPOSAL_IMMUTABILITY_VIOLATION`, lock contention (`CONCURRENT_APPLY_ACTIVE`), an unreadable or unparseable changeset, a path outside the domain, a missing model, or an unresolvable bluepriNNt (`BLUEPRINT_UNRESOLVED`, `BLUEPRINT_INVALID`, `DOMAIN_LAYOUT_INVALID`).
 
-A changeset whose frontmatter status is `rejected` MUST NOT be re-applied: `apply_change` MUST return `success: false`, `status: rejected` and an error `CHANGESET_REJECTED` carrying the recorded `resolution`, and MUST write nothing. A rejected proposal is superseded by a new proposal, not retried in place. (`init_knowledge` deletes its own rejected proposal because a failed creation is not a record worth keeping.)
+A changeset recorded as `rejected` whose content is unchanged (its `proposal_sha` still matches) MUST NOT be re-applied: `apply_change` MUST return `success: false`, `status: rejected` and an error `CHANGESET_REJECTED` carrying the recorded `resolution`, and MUST write nothing. A rejected changeset whose content was edited (seal mismatch or removed) is re-sealed at intake and re-enters apply, like a `conflict` re-proposal; its stale `resolution` and per-change rejection annotations are cleared. (`init_knowledge` deletes its own rejected proposal because a failed creation is not a record worth keeping.)
 
 #### Scenario: A rejection is recorded
-- GIVEN a changeset whose change `c-01` cites a missing source
+- GIVEN a changeset whose change `c-01` is refused by the mutation engine
 - WHEN `apply_change` runs
-- THEN the result has `status: rejected` and an error `CITATION_UNRESOLVED`
-- AND the changeset file has `status: rejected`, a `resolution` containing `CITATION_UNRESOLVED`, and `status:: rejected` on `c-01`
+- THEN the result has `status: rejected` and an error `MUTATION_FAILED`
+- AND the changeset file has `status: rejected`, a `resolution` containing the reason, and `status:: rejected` on the offending change
 
-#### Scenario: A rejection is final
-- GIVEN a changeset recorded as `rejected`
-- WHEN the missing source is created and `apply_change` runs again
+#### Scenario: An unchanged rejection is final
+- GIVEN a changeset recorded as `rejected` because a mutation was refused
+- WHEN `apply_change` runs again without editing it
 - THEN the result is `CHANGESET_REJECTED` with the recorded reason
 - AND no model and no changeset byte changes
+
+#### Scenario: An edited rejection is retried
+- GIVEN a changeset recorded as `rejected`
+- WHEN its operations are corrected and `apply_change` runs again
+- THEN the changeset is re-sealed and applied, and no stale `resolution` remains
+
+#### Scenario: Workspace-dependent failures are not recorded
+- GIVEN a change citing a source that is not imported yet
+- WHEN `apply_change` runs, and again after the source exists
+- THEN the first call returns `CITATION_UNRESOLVED` with the file still `proposed`
+- AND the second call applies it
 
 #### Scenario: Earlier in-memory work does not leak
 - GIVEN a changeset whose `c-01` applies in memory and whose `c-02` is refused by the mutation engine
@@ -314,7 +327,7 @@ A changeset whose frontmatter status is `rejected` MUST NOT be re-applied: `appl
 
 ### Requirement: Error codes as returned
 
-`apply_change` reports failures through the result, not by throwing. The codes it returns are: `CONCURRENT_APPLY_ACTIVE` (lock held), `PROPOSAL_TAMPERED`, `PROPOSAL_IMMUTABILITY_VIOLATION`, `CHANGESET_REJECTED`, `CITATION_UNRESOLVED`, `MUTATION_FAILED`, `VALIDATION_FAILED`, `BLUEPRINT_UNRESOLVED`, `BLUEPRINT_INVALID`, `DOMAIN_LAYOUT_INVALID`, `MODEL_EXISTS`, `ADD_MODEL_INVALID_TARGET`, `ADD_MODEL_DUPLICATE`, `ADD_MODEL_ORDER`, `LEVEL3_ONLY`, `RECORD_UNVERSIONED`, `INVALID_BUMP_LEVEL`, `SCHEMA_OP_ON_LEVEL3`, `UNKNOWN_OPERATION` and `ADD_MODEL_REQUIRES_CHANGESET`. Per-change conflicts are annotations (`PRECONDITION_FAILED`, `STALE_TARGET_DELETED`, `STALE_BASE_HASH`, `REFERENCED_BY`, `EMPTY_SLUG`, `MODEL_EXISTS`, `DEPENDS_ON_CONFLICTED_CHANGE`) and surface as result errors only when every actionable change conflicted. The result `status` is one of `applied`, `partially_applied`, `conflict` or `rejected`.
+`apply_change` reports failures through the result, not by throwing. The codes it returns are: `CONCURRENT_APPLY_ACTIVE` (lock held), `PROPOSAL_TAMPERED`, `PROPOSAL_IMMUTABILITY_VIOLATION`, `CHANGESET_REJECTED`, `CITATION_UNRESOLVED`, `MUTATION_FAILED`, `VALIDATION_FAILED`, `BLUEPRINT_UNRESOLVED`, `BLUEPRINT_INVALID`, `DOMAIN_LAYOUT_INVALID`, `MODEL_EXISTS`, `ADD_MODEL_INVALID_TARGET`, `ADD_MODEL_DUPLICATE`, `ADD_MODEL_ORDER`, `LEVEL3_ONLY`, `RECORD_UNVERSIONED`, `INVALID_BUMP_LEVEL`, `BUMP_ON_CREATED_MODEL`, `INVALID_VERSION`, `SCHEMA_OP_ON_LEVEL3`, `UNKNOWN_OPERATION` and `ADD_MODEL_REQUIRES_CHANGESET`. Per-change conflicts are annotations (`PRECONDITION_FAILED`, `STALE_TARGET_DELETED`, `STALE_BASE_HASH`, `REFERENCED_BY`, `EMPTY_SLUG`, `MODEL_EXISTS`, `DEPENDS_ON_CONFLICTED_CHANGE`) and surface as result errors only when every actionable change conflicted. The result `status` is one of `applied`, `partially_applied`, `conflict` or `rejected`.
 
 #### Scenario: Validation failure is a result, not an exception
 - GIVEN a changeset that produces an invalid model
@@ -328,7 +341,9 @@ The `apply_change` tool MUST accept an operation only if it is a changeset `Chan
 Rule: anything that mutates a Level-3 kNNowledge model is a changeset operation, so that it is sealed, recorded, versioned and citable. A bare call of a changeset operation is synthesized into a one-change changeset and applied through the normal path. Only operations that cannot touch Level-3 content stay direct:
 - `generate_index` writes the derived index of a Level-2 bluepriNNt and refuses a Level-3 model.
 - `add_concept`, `add_field` and `set_marker` author Level-2 bluepriNNt primitives (traced by git and the bluepriNNt version). On a Level-3 model they have no meaning and MUST fail with `SCHEMA_OP_ON_LEVEL3`, writing nothing.
-- `bump_version` on a Level-2 bluepriNNt sets `blueprint_version` in place (`{ bump }` or `{ version }`); the live filename never changes.
+- `bump_version` on a Level-2 bluepriNNt sets `blueprint_version` in place (`{ bump }` or `{ version }`) after the bluepriNNt validates (`validate_blueprint`); a bluepriNNt that does not validate is refused and not written; the live filename never changes.
+- `freeze_slugs` on a model whose elements all carry explicit slugs is an applied no-op: the change is annotated `Slugs already frozen; nothing to do`, the model is not touched and its version is not bumped.
+- `bump_version` on a model created by `add_model` in the same changeset is refused with `BUMP_ON_CREATED_MODEL` (set the initial `knowledge_version` on `add_model`); a base version that cannot be bumped is refused with `INVALID_VERSION`. A bump is never reported applied and then skipped.
 - `freeze_slugs` and `bump_version` on a Level-3 model are changeset operations. `freeze_slugs` writes `slug::` lines into kNNowledge content. `bump_version` carries its level (`patch`, `minor` or `major`, default `patch`) in `to`; an explicit `version` is refused with `INVALID_BUMP_LEVEL`; the unversioned lineage record is refused with `RECORD_UNVERSIONED`; a non-Level-3 target of either op is refused with `LEVEL3_ONLY`.
 
 The apply engine MUST bump a touched model exactly once. A `bump_version` change replaces the default patch bump for its model (the highest requested level wins when several are present); it MUST NOT add a bump on top. A higher level resets the lower ones (`V_0-1-3` minor gives `V_0-2-0`). The legacy rename of the model file to a `_V_x-y-z_` name and the cascade of renamed references are removed: live filenames are invariant.

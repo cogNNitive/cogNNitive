@@ -181,8 +181,11 @@ proposal yields an empty one.
 
 Adding `--plan` turns the proposal into the exact ordered `apply_change`
 operations (one `add_element` per new key, one `update_field` per changed value
-for `replace-values`, and a single final `bump_version`); it requires the family
-to declare a target `concept::`. `upsert` never overwrites a changed value — those
+for `replace-values`, and a trailing `bump_version` that names the level); it
+requires the family to declare a target `concept::`. Submit the whole list as ONE
+`propose_changeset` (each bare `apply_change` call is its own changeset and its
+own version bump); inside one changeset the `bump_version` replaces the default
+patch bump, so the model is bumped once. `upsert` never overwrites a changed value — those
 values arrive under `review` for an explicit decision.
 
 Applying the plan is a normal reviewed mutation — a diff preview, a

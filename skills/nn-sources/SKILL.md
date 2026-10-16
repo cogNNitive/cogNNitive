@@ -335,7 +335,10 @@ node scripts/index.js --converge <family> [--json] [--src <project-dir>]
 Add `--plan` to emit the exact `innfo-mcp_apply_change` operation plan (requires
 `concept::`): one `add_element` per new key, one `update_field` per changed value
 **only for `replace-values`** (`upsert` returns changed values under `review`),
-and a single final `bump_version`. Removed keys are never an operation.
+and a trailing `bump_version` naming the level. Submit the list as ONE changeset
+(`propose_changeset`): inside one changeset the model is bumped once, whereas
+each bare `apply_change` call is its own changeset with its own bump. Removed
+keys are never an operation.
 
 Apply the proposal through the reviewed mutation path (run the plan's `ops` via
 `innfo-mcp_apply_change` + `validate_knowledge`), then mark it applied so re-running
