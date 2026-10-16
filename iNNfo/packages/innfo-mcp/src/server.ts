@@ -51,6 +51,7 @@ import { syncDomainManifest } from './tools/workspace-sync.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
+import { pruneChangesets } from './tools/prune-changesets.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
@@ -698,6 +699,22 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     },
     handler: handleListBlueprintSkills,
   },
+  {
+    definition: {
+      name: 'prune_changesets',
+      description:
+        'Scan all knowledge documents in the domain for cited changesets and safely remove unreferenced changesets from changes/, then refresh index.md and the domain manifest.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          domain: { type: 'string', description: 'Optional domain root directory override (default: server root)' },
+          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          dryRun: { type: 'boolean', description: 'If true, only report which changesets would be removed without deleting files (default false)' },
+        },
+      },
+    },
+    handler: handlePruneChangesets,
+  },
 ]
 
 /** Tool definitions advertised by ListTools — derived from the registry. */
@@ -842,6 +859,14 @@ async function handleInitDomain(args: Record<string, unknown>): Promise<CallTool
   const workspaceId = typeof args.workspace_id === 'string' ? args.workspace_id : undefined
   const result = await initDomain(dir, name, workspaceId)
   const text = JSON.stringify(envelope('innfo-init-domain', result), null, 2)
+  return result.success ? textResult(text) : errorResult(text)
+}
+
+async function handlePruneChangesets(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const dryRun = Boolean(args.dryRun)
+  const result = await pruneChangesets(root, { dryRun })
+  const text = JSON.stringify(envelope('innfo-prune-changesets', result), null, 2)
   return result.success ? textResult(text) : errorResult(text)
 }
 
