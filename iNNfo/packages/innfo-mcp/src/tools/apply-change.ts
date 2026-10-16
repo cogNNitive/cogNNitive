@@ -1232,6 +1232,12 @@ export async function executeChangesetApply(
       } else if (change.op === 'rename_concept') {
         const conceptName = change.concept || remainder
         mutationArgs = { conceptName, newName: change.name || change.to }
+      } else if (change.op === 'update_concept_text') {
+        const conceptName = change.concept || remainder
+        mutationArgs = {
+          conceptName,
+          text: change.to || (change as any).text || (change as any).content || '',
+        }
       } else {
         mutationArgs = { target: change.target, value: change.to, to: change.to }
       }
