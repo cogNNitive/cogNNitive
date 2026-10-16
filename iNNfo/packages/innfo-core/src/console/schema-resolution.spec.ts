@@ -139,4 +139,52 @@ type:: list
     expect(result.schema).toBeUndefined()
     expect(result.warnings.length).toBeGreaterThan(0)
   })
+
+  it('resolves a stale versioned parent_spec by family (canonical fallback) and warns', async () => {
+    const result = await resolveConsoleSchema({
+      rootDir,
+      parentName: 'business_V_0-1-0',
+      globalDir,
+      skillsDir,
+    })
+
+    expect(result.schemaSource).toBe('blueprint')
+    expect(result.schema?.concepts.length).toBeGreaterThan(0)
+    expect(result.warnings.some((w) => w.includes('business_V_0-1-0'))).toBe(true)
+  })
+
+  it('warns when the referenced version differs from the blueprint, silently otherwise', async () => {
+    writePackage(
+      'procedures',
+      `---
+level: 2
+spec_version: V_0-3-0
+blueprint_version: "V_0-3-3"
+title: "Procedures"
+---
+
+# NN Concept Definition
+## NN Concept Definition: Procedure
+type:: list
+`,
+    )
+
+    const stale = await resolveConsoleSchema({
+      rootDir,
+      parentName: 'procedures_V_0-3-2',
+      globalDir,
+      skillsDir,
+    })
+    expect(stale.schemaSource).toBe('blueprint')
+    expect(stale.warnings.some((w) => w.includes('procedures_V_0-3-2') && w.includes('V_0-3-3'))).toBe(true)
+
+    const current = await resolveConsoleSchema({
+      rootDir,
+      parentName: 'procedures_V_0-3-3',
+      globalDir,
+      skillsDir,
+    })
+    expect(current.schemaSource).toBe('blueprint')
+    expect(current.warnings).toEqual([])
+  })
 })

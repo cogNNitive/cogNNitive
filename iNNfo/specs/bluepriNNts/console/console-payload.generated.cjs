@@ -10787,15 +10787,31 @@ function buildConsolePayload(options) {
 var import_node_path3 = require("node:path");
 var import_node_fs3 = require("node:fs");
 var import_promises2 = require("node:fs/promises");
-async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir) {
+async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir, warnings) {
   const version = url ? parseSpecName((0, import_node_path3.basename)(url)).version : void 0;
-  const pkg = await resolveBlueprintPackage(rootDir, name, version, { globalDir, skillsDir });
-  if (pkg) {
-    const content = await (0, import_promises2.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
-    if (content !== null) return { content, dir: (0, import_node_path3.dirname)(pkg.specFilePath) };
+  const resolveOnce = async (refName) => {
+    const pkg = await resolveBlueprintPackage(rootDir, refName, version, { globalDir, skillsDir });
+    if (pkg) {
+      const content = await (0, import_promises2.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
+      if (content !== null) return { content, dir: (0, import_node_path3.dirname)(pkg.specFilePath) };
+    }
+    const canonical = findCanonicalBlueprint(refName) || (url ? findCanonicalBlueprint(url) : null);
+    return canonical ? { content: canonical.specContent, dir: null } : null;
+  };
+  const parsed = parseSpecName(name);
+  let resolved = await resolveOnce(name);
+  if (resolved === null && parsed.base && parsed.base !== name) {
+    resolved = await resolveOnce(parsed.base);
   }
-  const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null);
-  return canonical ? { content: canonical.specContent, dir: null } : null;
+  if (resolved === null) return null;
+  const rawCurrent = parseFrontmatter(resolved.content)?.blueprint_version;
+  const current = rawCurrent ? String(rawCurrent) : void 0;
+  if (parsed.version && current && normalizeVersion(parsed.version) !== normalizeVersion(current)) {
+    warnings.push(
+      `parent_spec '${name}' references a stale version; the '${parsed.base}' blueprint is now '${current}'. Resolved to the current blueprint \u2014 update parent_spec.name to track it.`
+    );
+  }
+  return resolved;
 }
 function proceduresOf(res) {
   const fm = parseFrontmatter(res.content);
@@ -10821,7 +10837,7 @@ async function collectIncludes(parent, rootDir, globalDir, skillsDir, warnings) 
     const key = ref.name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir);
+    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir, warnings);
     if (resolved === null) {
       warnings.push(`Included template '${ref.name}' could not be resolved.`);
       continue;
@@ -10844,7 +10860,8 @@ async function resolveConsoleSchema(opts) {
       opts.parentName,
       opts.parentUrl,
       opts.globalDir,
-      opts.skillsDir
+      opts.skillsDir,
+      warnings
     );
     if (parent === null) {
       warnings.push(

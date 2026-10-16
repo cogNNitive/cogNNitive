@@ -1,6 +1,6 @@
 ---
 name: nn-dev-development
-version: "1.4.0"
+version: "1.5.0"
 description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Enforces commit-early, picks the process lane by change size, manages UI console feedback cycles from annotated images, and orchestrates the batched `dev -> main` merge through verify.js + CI + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation, UI feedback loop.
 ---
 
@@ -104,15 +104,23 @@ A worktree you did not create may be live; do not stop or revert it (§3).
   checkpoints only** — CI typechecks at integration.
 - **Landing on `dev`:** merge `origin/dev` into the session branch if it moved, push, then
   merge via PR (normal path) or a server-side fast-forward `git push origin session/<id>:dev`
-  for a single clean commit. Cleanup of the worktree/branch is deferred to the §4c sweep. "Land my changes" means landing
-  **this session's own branch** — never "commit everything that is dirty". Another agent's
-  uncommitted or unpushed work is not yours to commit, push or land.
+  for a single clean commit. When landing via `gh pr merge`, prefer **`--merge` over
+  `--squash`**: a merge commit keeps the branch as an ancestor of `dev`, so `batch-status`
+  stays `READY` and the §4c sweep can `stop` it. A squash-merged branch is never an ancestor
+  — `stop` refuses it and the leftover keeps `batch-status` at `NOT READY` (2026-10-16).
+  Cleanup of the worktree/branch is deferred to the §4c sweep. "Land my changes" means
+  landing **this session's own branch** — never "commit everything that is dirty". Another
+  agent's uncommitted or unpushed work is not yours to commit, push or land.
 - `git add -A` / `git add .` / `git commit -a` are **permitted** (the worktree only holds
   your own work). `reset --hard`, `clean`, `stash`, `branch -D`, and `checkout/restore .`
   stay **blocked** by `.claude/hooks/block-dangerous-git.mjs`.
-- To revert one file to a ref without the blocked `checkout`:
-  `git show <ref>:<path> > <path>` (or the `node -e` read-through in
-  `nn-dev-check-integrity` §Group 3c).
+- To revert one file to a ref: `git checkout <ref> -- <path>` is **also blocked** by the
+  safety-net hook (rule `git.checkout-ref-path`, even for a single explicit path — contrary
+  to `AGENTS.md`'s suggested substitute). Use `git show <ref>:<path> > <path>` (or the
+  `node -e` read-through in `nn-dev-check-integrity` §Group 3c).
+- **Byte-exact redirects:** PowerShell `>` writes UTF-16 and corrupts a `.patch`. For a
+  faithful backup, redirect through `cmd`: `cmd /c "git diff HEAD -- <path> > out.patch"`,
+  then confirm with `git apply --check --reverse out.patch` (exit 0 = faithful).
 
 ### 2a. Maintainer requests a dedicated branch
 
@@ -286,6 +294,16 @@ When the maintainer says the accumulated `dev` work is ready:
    output after the video-script suite) and `verify.js` + CI cover the same batch. Run it
    only on request, with a bounded timeout, and file a hang as its own issue — never as a
    batch blocker. Also run `npm run check:versions`.
+   - **`verify.js` env drift is not a batch failure.** A fresh/primary checkout can fail
+     on missing setup, not code: run `npm ci --prefix skills/nn-sources` (its deps are
+     separate) and build the mcp artifact (`npm --workspace=@cognnitive/innfo-core run
+     build`, then `npm --workspace=@cognnitive/innfo-mcp run build` — **core first**, the
+     bundle will not resolve `dist/index.js` otherwise). A **stale root `node_modules`**
+     (e.g. a dep version that differs from the lockfile) also fails the license check and
+     silently inflates locally built tracked bundles. `CI` is authoritative: confirm the
+     failing step is green on CI before chasing it, and **restore any tracked build
+     artifact you dirtied** (`git show HEAD:<path> > <path>`) — never commit a local build
+     artifact (2026-10-16).
 2. **Server-side fast-forward (`dev -> main`)** — never checks out `main`:
    ```powershell
    git push origin dev
@@ -312,6 +330,17 @@ When the maintainer says the accumulated `dev` work is ready:
 4. **Release tagging** (only for a version bump): run `nn-dev-release`
    (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`, `innfo-console-v*`);
    a red `main` blocks tagging.
+   - **A release prep is the mechanical bump only.** `innfo-mcp`/core + `innfo-console`
+     `package.json` versions + regenerated derived artifacts are enough — skill/blueprint
+     version bumps are **not** required (`verify.js` "Check Version Parity", "Console
+     Bundle Fresh", "Console Shells Fresh" all pass without them, 2026-10-16).
+   - **The tag-push event can be dropped** (no `release.yml` run appears though the workflow
+     is active and the tag is on `origin`). Recover with the dispatch fallback in
+     `nn-dev-release` §2 Step 3b — do not re-tag.
+   - **Dispatch release runs one tag at a time.** Several concurrent `workflow_dispatch`
+     runs of `release.yml` get the middle ones **cancelled** even with
+     `cancel-in-progress: false` (2026-10-16): dispatch, `gh run watch --exit-status`, then
+     the next.
 5. **Persist the milestone** in Engram for sibling sessions.
 
 Handoff block:
