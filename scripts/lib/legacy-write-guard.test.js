@@ -59,7 +59,7 @@ function main() {
 
   // 4. An allowlisted path is ignored; the removed quarantine module path is no longer allowlisted
   {
-    const ok = run({ 'skills/nn-upgrade/scripts/migrate-domain.js': `const s = '${ST}';\n` });
+    const ok = run({ 'scripts/migrate-spec-urls.mjs': `const s = '${ST}';\n` });
     assert.strictEqual(ok.ok, true, ok.errors.join('; '));
     const bad = run({ 'iNNfo/packages/innfo-core/src/legacy/detect.ts': `const s = '${ST}';\n` });
     assert.strictEqual(bad.ok, false, 'the retired quarantine path must no longer be allowlisted');

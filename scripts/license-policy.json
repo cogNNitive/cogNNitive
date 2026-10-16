@@ -37,21 +37,21 @@
     },
     {
       "name": "Preact",
-      "version": "unrecorded",
+      "version": "10.24.3",
       "license": "MIT",
       "path": "iNNfo/specs/bluepriNNts/console/vendor/preact.umd.js",
       "source": "https://github.com/preactjs/preact",
       "sha256": "690684b754dba8c5fa319e0961e4720a8b97157cc532ef8fee98dd1783391df5",
-      "note": "UMD build vendored for the console UI kit; the file carries no version banner."
+      "note": "UMD build (dist/preact.umd.js) vendored for the console UI kit. Version derived by sha256 match against the published npm package (exact match: 10.24.3 only). Copyright (c) 2015-present Jason Miller."
     },
     {
       "name": "htm",
-      "version": "unrecorded",
+      "version": "3.0.1 - 3.1.1",
       "license": "Apache-2.0",
       "path": "iNNfo/specs/bluepriNNts/console/vendor/htm.umd.js",
       "source": "https://github.com/developit/htm",
       "sha256": "7a31776e04bd4afde0d4308177d26f377716fcf7e4bd70be590746d6aa594f08",
-      "note": "UMD build vendored for the console UI kit; the file carries no version banner."
+      "note": "UMD build (dist/htm.umd.js) vendored for the console UI kit. Version derived by sha256 match against the published npm package: dist/htm.umd.js is byte-identical across 3.0.1, 3.0.2, 3.0.3, 3.0.4, 3.1.0 and 3.1.1, so the exact release cannot be narrowed further. License is Apache-2.0 per the package manifest."
     }
   ]
 }

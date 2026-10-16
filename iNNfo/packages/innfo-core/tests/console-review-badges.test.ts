@@ -142,7 +142,7 @@ describe('console-review-badges (badges from changesets)', () => {
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [
           {

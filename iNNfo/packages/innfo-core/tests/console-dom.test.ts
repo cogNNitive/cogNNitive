@@ -177,7 +177,7 @@ describe('innfo-console — export gate', () => {
     localStorage.setItem(
       'innfo-console:v3:acme',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'acme',
         drafts: [
           {
@@ -211,7 +211,7 @@ describe('innfo-console — export gate', () => {
     localStorage.setItem(
       'innfo-console:v3:acme',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'acme',
         drafts: [
           { id: 'fb-001', element_id: 'goal-grow', concept: 'Goal', element: 'Grow', kind: 'comment', base_hash: '0123456789abcdef' },

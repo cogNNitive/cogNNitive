@@ -153,7 +153,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     api.boot(document)
 
     const storeKey = 'innfo-console:v3:ghostbusters-model'
-    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":3,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
+    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":4,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
     existing.drafts.push({
       id: 'fb-001',
       element_id: 'threat-slimer',
@@ -215,7 +215,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 3,
+        v: 4,
         modelId: 'ghostbusters-model',
         drafts: [
           {
