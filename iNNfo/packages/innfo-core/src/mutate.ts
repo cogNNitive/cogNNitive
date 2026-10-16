@@ -177,6 +177,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   rename_concept: (model, args) => renameConcept(model, args),
   rename_element: (model, args, schema) => renameElement(model, args, schema),
   update_matrix_cell: (model, args) => updateMatrixCell(model, args),
+  update_concept_text: (model, args, schema) => updateConceptText(model, args, schema),
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
 }
@@ -581,16 +582,30 @@ function updateMatrixCell(
     return { success: false, errors: [{ path: '', message: 'value is required' }] }
   }
 
+  const normalizeKey = (k: string): string =>
+    k
+      .replace(/[×xX]/g, 'x')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[\s_]+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
   const matchesMatrix = (name: string, candidateSlug?: string): boolean => {
     if (matrixName && name.toLowerCase() === matrixName.toLowerCase()) return true
     if (matrixSlug) {
       if (candidateSlug && candidateSlug.toLowerCase() === matrixSlug.toLowerCase()) return true
       if (slugify(name).toLowerCase() === matrixSlug.toLowerCase()) return true
       if (slugifyHeading(name).toLowerCase() === matrixSlug.toLowerCase()) return true
+      if (normalizeKey(name) === normalizeKey(matrixSlug)) return true
     }
     if (matrixName) {
       if (slugify(name).toLowerCase() === slugify(matrixName).toLowerCase()) return true
       if (slugifyHeading(name).toLowerCase() === slugifyHeading(matrixName).toLowerCase()) return true
+      if (normalizeKey(name) === normalizeKey(matrixName)) return true
     }
     return false
   }
@@ -614,7 +629,12 @@ function updateMatrixCell(
   const matchesCoord = (actual: string, requested: string): boolean => {
     const a = actual.toLowerCase()
     const r = requested.toLowerCase()
-    return a === r || slugify(a) === slugify(r) || slugifyHeading(a) === slugifyHeading(r)
+    return (
+      a === r ||
+      slugify(a) === slugify(r) ||
+      slugifyHeading(a) === slugifyHeading(r) ||
+      normalizeKey(a) === normalizeKey(r)
+    )
   }
 
   const cell = matrix.cells.find((c) => matchesCoord(c.row, row) && matchesCoord(c.col, col))
@@ -678,7 +698,72 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
     }
   }
 
+  // Cascade item-markers matrix row deletion
+  if (model.nodeMarkers) {
+    const targetIdent = elementName.toLowerCase()
+    const targetSlug = targetEl?.slug?.toLowerCase()
+    const targetHeading = targetEl ? slugifyHeading(targetEl.name).toLowerCase() : undefined
+
+    for (const key of Object.keys(model.nodeMarkers)) {
+      const cleanKey = key.replace(/^\[\[|\]\]$/g, '').trim().toLowerCase()
+      if (
+        cleanKey === targetIdent ||
+        (targetSlug !== undefined && cleanKey === targetSlug) ||
+        (targetHeading !== undefined && cleanKey === targetHeading)
+      ) {
+        delete model.nodeMarkers[key]
+      }
+    }
+  }
+
   return { success: true, cascadedMatrixCells: cascadedCells }
+}
+
+function updateConceptText(
+  model: ParsedKnowledge,
+  args: Record<string, unknown>,
+  schema?: BlueprintSchema,
+): MutationResult {
+  const req = requireArgs(args, ['conceptName'])
+  if (!req.ok) return req.result
+  const { conceptName } = req.values
+  const text =
+    typeof args.text === 'string'
+      ? args.text
+      : typeof args.content === 'string'
+        ? args.content
+        : typeof args.value === 'string'
+          ? args.value
+          : typeof args.to === 'string'
+            ? args.to
+            : ''
+
+  if (!model.rawSections) {
+    model.rawSections = {}
+  }
+
+  let targetKey = conceptName
+  if (schema) {
+    const declared = schema.concepts.find(
+      (c) => c.name.toLowerCase() === conceptName.toLowerCase(),
+    )
+    if (declared) targetKey = declared.name
+  }
+  for (const k of Object.keys(model.rawSections)) {
+    if (k.toLowerCase() === conceptName.toLowerCase()) {
+      targetKey = k
+      break
+    }
+  }
+
+  model.rawSections[targetKey] = text
+  if (
+    model.sectionOrder &&
+    !model.sectionOrder.map((s) => s.toLowerCase()).includes(targetKey.toLowerCase())
+  ) {
+    model.sectionOrder.push(targetKey)
+  }
+  return { success: true }
 }
 
 /** Renames a `Concept Definition` element, re-pointing its `Field Definition`
