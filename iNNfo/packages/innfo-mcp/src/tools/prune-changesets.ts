@@ -1,6 +1,6 @@
 import { readdir, readFile, rm } from 'node:fs/promises'
 import { join, basename } from 'node:path'
-import { envelope } from '@cognnitive/innfo-core'
+import { envelope, parseName } from '@cognnitive/innfo-core'
 import { syncDomainManifest } from './workspace-sync.js'
 
 export interface PruneChangesetsOptions {
