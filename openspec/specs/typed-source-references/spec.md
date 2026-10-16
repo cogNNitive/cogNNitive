@@ -6,12 +6,12 @@ Typed source references follow the base change's single `parseCitation` and add 
 ## Requirements
 ### Requirement: Single shared source-reference parser
 
-`@cognnitive/innfo-core` MUST expose `parseCitation(value)` and `slugifyHeading(text)`. `innfo-mcp` and the console runtime MUST consume them. The structured result MUST carry either a workspace-relative `path` or an extension-less `model_slug`, and an optional `unit`. The `unit.kind` MUST be one of:
+`@cognnitive/innfo-core` MUST expose `parseCitation(value)` and `slugifyHeading(text)`. `innfo-mcp` and the console runtime MUST consume them. The structured result MUST carry either a workspace-relative `path` or an extension-less `knowledge_slug`, and an optional `unit`. The `unit.kind` MUST be one of:
 - `header` (`{ kind: 'header', slug: string }`) for Markdown headings (`.md`).
 - `row` (`{ kind: 'row', row: number, column?: string }`) for CSV rows/cells (`.csv`).
 - `pointer` (`{ kind: 'pointer', pointer: string }`) for JSON Pointers (`.json`).
-- `element` (`{ kind: 'element', slug: string }`) for semantic model elements (`model_slug@slug`). Subunits MAY specify an element field (`model_slug@slug&field`).
-- `matrix` (`{ kind: 'matrix', matrixSlug: string, rowSlug?: string, colSlug?: string }`) for semantic model matrices and matrix cells (`model_slug@matrix&row&col`).
+- `element` (`{ kind: 'element', slug: string }`) for semantic model elements (`knowledge_slug@slug`). Subunits MAY specify an element field (`knowledge_slug@slug&field`).
+- `matrix` (`{ kind: 'matrix', matrixSlug: string, rowSlug?: string, colSlug?: string }`) for semantic model matrices and matrix cells (`knowledge_slug@matrix&row&col`).
 
 When a citation target lacks a file extension and conforms to the slug format `[a-z0-9]+(?:-[a-z0-9]+)*`, it MUST be parsed as a model slug reference rather than a file path. A value with no `@` MUST parse as a document-level citation with no `unit`. No default prefix MUST be added to paths or model slugs. Existing path-based citations (`.md`, `.csv`, `.json`) MUST continue to parse identically without breaking changes.
 
@@ -105,17 +105,17 @@ When `recursiveParse` normalizes an element declaring a field named `sources` (c
 
 ### Requirement: Semantic Model Citation Target Resolution
 
-When resolving citations that target a `model_slug`, `innfo-core` and workspace validators MUST resolve the target against workspace models declaring matching `model_slug` in frontmatter or matching the model stem name. If the target model cannot be resolved, an error diagnostic MUST be emitted. If the model is found but the referenced element slug or matrix slug does not exist, an anchor diagnostic MUST be emitted naming the unresolved slug.
+When resolving citations that target a `knowledge_slug`, `innfo-core` and workspace validators MUST resolve the target against workspace models declaring matching `knowledge_slug` in frontmatter or matching the model stem name. If the target model cannot be resolved, an error diagnostic MUST be emitted. If the model is found but the referenced element slug or matrix slug does not exist, an anchor diagnostic MUST be emitted naming the unresolved slug.
 
 #### Scenario: Citation to existing model element resolves cleanly
-- GIVEN a workspace containing a model with `model_slug: sales-plan` containing element slug `q4-target`
+- GIVEN a workspace containing a model with `knowledge_slug: sales-plan` containing element slug `q4-target`
 - AND an element citing `sales-plan@q4-target`
 - WHEN workspace source validation executes
 - THEN the citation resolves successfully without diagnostics
 
 #### Scenario: Citation to nonexistent model slug emits diagnostic
 - GIVEN an element citing `missing-model@some-element`
-- AND no model in the workspace declares `model_slug: missing-model`
+- AND no model in the workspace declares `knowledge_slug: missing-model`
 - WHEN workspace source validation executes
 - THEN a diagnostic reporting the missing model target is emitted
 

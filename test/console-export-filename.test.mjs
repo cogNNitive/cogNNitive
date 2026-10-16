@@ -29,7 +29,7 @@ describe('S1c: export filename uses the model slug', () => {
     assert.equal(res.filename, undefined, 'no feedback JSON filename exists')
   })
 
-  it('prefers an explicit model_slug over the title', () => {
+  it('prefers an explicit knowledge_slug over the title', () => {
     const state = {
       modelTitle: 'Ghost Busters Model',
       modelSlug: 'ghost-busters',
@@ -70,10 +70,10 @@ describe('S1c: export filename uses the model slug', () => {
   })
 })
 
-describe('S1c: boot maps meta.model_slug to state.modelSlug', () => {
-  it('names the downloaded feedback file after meta.model_slug', () => {
+describe('S1c: boot maps meta.knowledge_slug to state.modelSlug', () => {
+  it('names the downloaded feedback file after meta.knowledge_slug', () => {
     const saved = MODEL.meta
-    MODEL.meta = { ...saved, model_slug: 'ghost-busters-slug' }
+    MODEL.meta = { ...saved, knowledge_slug: 'ghost-busters-slug' }
     try {
       const { dom, document, res } = bootConsole()
       res.controller.enable()

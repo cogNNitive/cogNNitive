@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-lknvZQJm3+ihET3uyIfsq+FlH/mIsmrAlQC/ZcOY0PQ=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-ybs6rFyI5IV77MWVc0mC1jI+8+7Wf1xMk/ZDkZ3ZTys=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9056,8 +9056,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-bce3ed6e",
-    "generated": "2026-10-16T18:46:35.052Z",
+    "domainId": "testlab-846d8bcb",
+    "generated": "2026-10-16T19:23:04.185Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T18:46:35.016Z",
+        "citationsResolvedAt": "2026-10-16T19:23:04.153Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -15367,7 +15367,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return raw || 'feedback'
   }
 
-  // D4: exports are named after the immutable model_slug, never the human
+  // D4: exports are named after the immutable knowledge_slug, never the human
   // title. An explicit slug wins; otherwise the model id (then title) is slugified.
   function modelSlugOf(state) {
     var s = isObject(state) ? state : {}
@@ -20801,8 +20801,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scopedView
-        ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
-        : meta.model_slug || meta.modelSlug || undefined,
+        ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
+        : meta.knowledge_slug || meta.modelSlug || undefined,
       sourceSha256:
       (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
       meta.sha256 ||

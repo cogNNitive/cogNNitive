@@ -62,13 +62,13 @@ Changeset documents MUST be classified with role `'changeset'` by `roleOf` in `i
 ### Requirement: Changeset Mutation and Comment Operations
 
 Each change in a changeset document MUST be represented as an element heading `## NN Change: <id>` conforming to the `changes` blueprint concept `Change`. Each change MUST specify an `op` property conforming to one of the following operations:
-1. `update_field`: Mutates a field on an existing element, concept, or matrix. Requires `target` (canonical D5 address: `<model_slug>@<element_slug>&<field_name>`), optional `from` (precondition value), and `to` (new value).
-2. `add_element`: Adds a new element to a concept in a model. Requires `target` (`<model_slug>`), `concept`, `name`, optional `slug`, optional `fields`, and optional `sources`.
-3. `rename_element`: Renames an element's display name while preserving its slug. Requires `target` (`<model_slug>@<element_slug>`), `name` (new display name).
-4. `rename_concept`: Renames a concept's display name. Requires `target` (`<model_slug>@<concept_slug>`), `name` (new concept name).
-5. `update_matrix_cell`: Updates or inserts a cell in a matrix. Requires `target` (`<model_slug>@<matrix_slug>&<row_slug>&<col_slug>` or explicit matrix parameters), and `to` (cell value).
+1. `update_field`: Mutates a field on an existing element, concept, or matrix. Requires `target` (canonical D5 address: `<knowledge_slug>@<element_slug>&<field_name>`), optional `from` (precondition value), and `to` (new value).
+2. `add_element`: Adds a new element to a concept in a model. Requires `target` (`<knowledge_slug>`), `concept`, `name`, optional `slug`, optional `fields`, and optional `sources`.
+3. `rename_element`: Renames an element's display name while preserving its slug. Requires `target` (`<knowledge_slug>@<element_slug>`), `name` (new display name).
+4. `rename_concept`: Renames a concept's display name. Requires `target` (`<knowledge_slug>@<concept_slug>`), `name` (new concept name).
+5. `update_matrix_cell`: Updates or inserts a cell in a matrix. Requires `target` (`<knowledge_slug>@<matrix_slug>&<row_slug>&<col_slug>` or explicit matrix parameters), and `to` (cell value).
 6. `comment`: Represents review feedback or discussion annotations (per D15). Requires `target`, `author`, `notes`. MUST NOT require `to` or `from` value.
-7. `remove_element`: Removes an element and applies the delete impact and cascades of `delete-impact-and-lifecycle`. Requires `target` (`<model_slug>@<element_slug>`) and optional `base_hash`.
+7. `remove_element`: Removes an element and applies the delete impact and cascades of `delete-impact-and-lifecycle`. Requires `target` (`<knowledge_slug>@<element_slug>`) and optional `base_hash`.
 8. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
 
 The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare the `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields, with its `blueprint_version` bumped and the embedded canonical copy kept identical. Every op MAY carry the `sources` evidence citation (#1A). (Previously: six operations were listed, `remove_element` — already implemented and exported by the console — was missing, and there was no way to create a model.)

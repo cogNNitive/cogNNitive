@@ -5234,7 +5234,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return raw || 'feedback'
   }
 
-  // D4: exports are named after the immutable model_slug, never the human
+  // D4: exports are named after the immutable knowledge_slug, never the human
   // title. An explicit slug wins; otherwise the model id (then title) is slugified.
   function modelSlugOf(state) {
     var s = isObject(state) ? state : {}
@@ -10668,8 +10668,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scopedView
-        ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
-        : meta.model_slug || meta.modelSlug || undefined,
+        ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
+        : meta.knowledge_slug || meta.modelSlug || undefined,
       sourceSha256:
       (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
       meta.sha256 ||

@@ -137,7 +137,7 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
     '---',
     `spec_version: ${esc(SCAFFOLD_SPEC_VERSION)}`,
     'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"',
-    `model_slug: ${esc(modelSlug)}`,
+    `knowledge_slug: ${esc(modelSlug)}`,
     'level: 3',
     'parent_spec:',
     `  name: ${esc(input.blueprintName)}`,
