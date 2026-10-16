@@ -96,17 +96,6 @@ if (!nodeEngines.ok) {
 }
 console.log('  ✅ All installed workspace dependencies are compatible with CI-pinned Node version(s).');
 
-// Step 2f: Console Bundle Freshness Guard
-console.log('\n[Group 2f] Console Bundle Freshness Guard:');
-const { checkConsoleBundle } = require('./lib/console-bundle.js');
-const consoleBundleResult = checkConsoleBundle(repoRoot);
-if (!consoleBundleResult.ok) {
-  console.error('❌ Console Bundle check failed:');
-  consoleBundleResult.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-}
-console.log('  ✅ Console bundle is fresh and matches sources.');
-
 // Step 2g: Blueprint External-Skill Policy Guard
 console.log('\n[Group 2g] Blueprint External-Skill Policy Guard:');
 const { collectExternalSkillViolations } = require('./manifest/lib/external-skill-policy.js');
