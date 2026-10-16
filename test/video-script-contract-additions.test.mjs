@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * nn-video-script/test/contract-additions.test.mjs
+ * test/video-script-contract-additions.test.mjs
+ *
+ * Lives outside the embedded skill folder on purpose: files under video-script/skills are
+ * guarded by the Template Immutability Guard (any change demands a blueprint_version bump).
  *
  * Guards the video-script contract additions: the `watermark` Layer type, the Layer fields
  * `model` / `fit`, the Scene field `music_volume`, and the TTS cache key staying independent
@@ -16,10 +19,10 @@ import {
   RemotionSceneCompiler,
   DEFAULT_CONDITIONAL_FIELDS,
   DEFAULT_BG_MUSIC_VOLUME,
-} from '../scripts/remotion-scene-compiler.mjs';
-import { rendererForOverlay } from '../scripts/scene/overlay-registry.mjs';
-import { buildTtsVoiceOptions, resolveRegisteredVoice } from '../scripts/lib/tts-options.mjs';
-import { CacheManager } from '../scripts/cache-manager.mjs';
+} from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/remotion-scene-compiler.mjs';
+import { rendererForOverlay } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/scene/overlay-registry.mjs';
+import { buildTtsVoiceOptions, resolveRegisteredVoice } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/tts-options.mjs';
+import { CacheManager } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/cache-manager.mjs';
 
 function model({ scenes = [], layers = [] } = {}) {
   return {
@@ -121,9 +124,9 @@ async function runTests() {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tts-key-'));
     try {
       const cache = new CacheManager({ baseDir: tmp });
-      const keyFor = (avatarModel) => {
+      const keyFor = (avatarModel, narration = 'Same narration.') => {
         const lowered = compiler.lowerKnowledgeModel(model({
-          scenes: [scene('s1', 'Same narration.', { template: '[[Series :: Voice]]' })],
+          scenes: [scene('s1', narration, { template: '[[Series :: Voice]]' })],
           layers: [layer('p', 's1', { type: 'presenter', asset: 'p.png', ...(avatarModel ? { model: avatarModel } : {}) })],
         }), { templates: { Voice: { tool: 'elevenlabs', voice: 'Ana' } } });
         const sc = lowered.scenes[0];
@@ -133,7 +136,9 @@ async function runTests() {
       const base = keyFor(undefined);
       assert.strictEqual(keyFor('wavespeed-ai/infinitetalk'), base);
       assert.strictEqual(keyFor('wavespeed-ai/infinitetalk-fast'), base);
-      console.log('✔ TTS cache key is identical across avatar models');
+      // Positive control: the key is not constant, it does react to the narration.
+      assert.notStrictEqual(keyFor(undefined, 'Different narration.'), base);
+      console.log('✔ TTS cache key is identical across avatar models and changes with the narration');
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
