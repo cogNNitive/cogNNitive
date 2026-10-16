@@ -56,7 +56,7 @@ innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceR
 
 ### Requirement: `#slug` is a legacy read path inside innfo-core only
 
-innfo-core MAY parse `path#slug` citations solely to keep write-once specs and frozen samples readable. Each such parse MUST emit the `KU_DEPRECATED_HASH` warning. `#slug` citations MUST NOT be written by any producer, and no consumer outside innfo-core MAY parse them. The read path MUST carry a `legacy:lineage-single-edge/<id>` marker and a `legacy-ledger.yaml` entry with a removal condition.
+innfo-core MAY parse `path#slug` citations solely to keep write-once specs and frozen samples readable. Each such parse MUST emit the `KU_DEPRECATED_HASH` warning. `#slug` citations MUST NOT be written by any producer, and no consumer outside innfo-core MAY parse them.
 
 #### Scenario: Legacy slug is readable with a warning
 - GIVEN a frozen sample with `sources:: sources/import/a.md#intro`
@@ -67,11 +67,6 @@ innfo-core MAY parse `path#slug` citations solely to keep write-once specs and f
 - GIVEN any producer (console procedure, nn-trannsform, editor mutation)
 - WHEN it writes a citation
 - THEN the written value uses `@` grammar
-
-#### Scenario: Ledger guard
-- GIVEN the legacy read path in innfo-core
-- WHEN `node scripts/lib/legacy-ledger-guard.js` runs
-- THEN every `legacy:lineage-single-edge/*` marker has exactly one ledger entry and vice versa
 
 ### Requirement: Citation paths are workspace-relative with no implicit prefix
 

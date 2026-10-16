@@ -18,25 +18,25 @@ title: "cogNNitive Real-World Use Cases Catalog"
   industry:: "Tech / SaaS"
   core_focus:: "Product-Market Fit & Investor Due Diligence"
   model_ref:: "docs/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md"
-  sources:: ["docs/use-cases.md#1--the-startup-founder--early-stage-team"]
+  sources:: ["docs/use-cases.md@## 1. 🚀 The Startup Founder %26 Early-Stage Team"]
 
 ## NN Archetype: ARC-02: Consulting Sales Director
   industry:: "IT & Management Consulting"
   core_focus:: "RFP Response Velocity & Rate Card Governance"
   model_ref:: "docs/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md"
-  sources:: ["docs/use-cases.md#2--the-sales-director-mid-size-consulting-firm"]
+  sources:: ["docs/use-cases.md@## 2. 💼 The Sales Director (Mid-Size Consulting Firm)"]
 
 ## NN Archetype: ARC-03: Freelance Web Designer
   industry:: "Digital Design & Web Development"
   core_focus:: "Scope Boundary Protection & Client Sign-Off"
   model_ref:: "docs/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md"
-  sources:: ["docs/use-cases.md#3--the-freelance-web-designer--solopreneur"]
+  sources:: ["docs/use-cases.md@## 3. 🎨 The Freelance Web Designer %26 Solopreneur"]
 
 ## NN Archetype: ARC-04: YouTube Content Creator
   industry:: "Digital Media & Technical Video"
   core_focus:: "Fact-Checked Scripting & Automated B-Roll Lists"
   model_ref:: "docs/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md"
-  sources:: ["docs/use-cases.md#4--the-youtube-video--technical-content-creator"]
+  sources:: ["docs/use-cases.md@## 4. 🎬 The YouTube Video %26 Technical Content Creator"]
 
 # NN PainPoint
 
@@ -44,25 +44,25 @@ title: "cogNNitive Real-World Use Cases Catalog"
   target_archetype:: [[ARC-01: Startup Founder & Team]]
   severity:: "Critical"
   symptom:: "Strategy memo, pitch deck, and engineering sprint drift apart on market pivots."
-  sources:: ["docs/use-cases.md#the-reality--pain"]
+  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
 
 ## NN PainPoint: PAIN-02: Outdated Rate Cards & Disjointed RFPs
   target_archetype:: [[ARC-02: Consulting Sales Director]]
   severity:: "Critical"
   symptom:: "Account executives quote stale rates, taking 5 days per RFP response."
-  sources:: ["docs/use-cases.md#the-reality--pain-1"]
+  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
 
 ## NN PainPoint: PAIN-03: Unpaid Scope Creep
   target_archetype:: [[ARC-03: Freelance Web Designer]]
   severity:: "High"
   symptom:: "Clients contest design decisions and add requirements without budget."
-  sources:: ["docs/use-cases.md#the-reality--pain-2"]
+  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
 
 ## NN PainPoint: PAIN-04: Disconnected Research & Unverified Facts
   target_archetype:: [[ARC-04: YouTube Content Creator]]
   severity:: "High"
   symptom:: "Video scripts lack source anchors, risking factual errors and audience pushback."
-  sources:: ["docs/use-cases.md#the-reality--pain-3"]
+  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
 
 # NN Pipeline
 

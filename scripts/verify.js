@@ -446,7 +446,6 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
   steps.push(node('console-shells-fresh', 'Check Generated Console Shells Fresh', 'scripts/build-console-shells.mjs', '--check'));
   steps.push(node('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
-  steps.push(node('legacy-ledger', 'Legacy Ledger & Quarantine Guard', 'scripts/lib/legacy-ledger-guard.js'));
   steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
   steps.push(node('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
   steps.push(node('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));

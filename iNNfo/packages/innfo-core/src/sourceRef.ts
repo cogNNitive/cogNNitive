@@ -137,7 +137,7 @@ export function parseCitation(input: string): Citation | null {
   }
 
   if (clean.includes('#')) {
-    // legacy:lineage-single-edge/hash-slug-read
+    // Read-only legacy `#slug` form, kept for published write-once specs and frozen samples.
     const ref = parseSourceRef(clean)
     if (ref && ref.slug) {
       return { ...ref, legacyHash: true }

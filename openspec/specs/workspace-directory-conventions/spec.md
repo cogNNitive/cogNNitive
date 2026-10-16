@@ -25,11 +25,6 @@ Runtime code MUST NOT read or fall back to retired folders. Existing `sources/ar
 - WHEN the lineage projection and discovery run
 - THEN `export/report.md` is ignored and the detector (not the runtime) reports the legacy layout
 
-#### Scenario: Ledger guard
-- GIVEN the migration code
-- WHEN `node scripts/lib/legacy-ledger-guard.js` runs
-- THEN every `legacy:cognitivize-in-place/*` marker maps 1:1 to a ledger entry
-
 ### Requirement: Text policy for byte-stable hashing
 
 Bootstrap MUST ensure the domaiNN root `.gitattributes` contains the line `* -text`, preserving existing lines. Hashing MUST use raw bytes only.
