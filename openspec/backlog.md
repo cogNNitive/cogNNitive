@@ -849,13 +849,12 @@ term and **every** site that has to be updated, before any mechanical sweep.
   only** (`iNNfo/packages/*/src`, `scripts/`, `skills/*/scripts`), with a reasoned allowlist.
   Explicitly OUT of scope: docs, `openspec/**`, SKILL.md prose, tests, `docs/innfo/cdn/**`, frozen
   `_V_` files, and vocabulary files.
-- `scripts/lib/nn-name-regex-guard.js` (the `_NN.md`/stamp naming contract) and
-  `legacy-ledger.yaml` (`legacy:` markers ↔ ledger entries).
+- `scripts/lib/nn-name-regex-guard.js` (the `_NN.md`/stamp naming contract).
 
 **The gap this item closes:** the guard covers runtime source alone; every other surface is
 un-inventoried, and the `innfo-` distribution prefix is in **no** token table at all. The audit
 MUST cover every surface and classify each hit as **live violation / frozen history / intentional
-legacy (ledgered) / prose-only**.
+legacy / prose-only**.
 
 **Term families to sweep (each with its update sites):**
 
