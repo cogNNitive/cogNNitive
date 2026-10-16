@@ -294,7 +294,7 @@ The bundle including `ui-kit.js` MUST contain no `fetch(` and no `type=module`, 
 
 ### Requirement: Kitchen-Sink Fixture and Component Tests
 
-A kitchen-sink fixture MUST render every component, including the review components, in light and dark. Each component MUST have at least one DOM test, run under happy-dom or jsdom (Vitest pragma) where happy-dom diverges.
+A kitchen-sink fixture MUST render every component, including the review components, in light and dark. Each component MUST have at least one DOM test, run under jsdom (Vitest pragma).
 
 #### Scenario: Fixture covers all components
 - GIVEN the fixture
@@ -505,7 +505,7 @@ A field declared `select` MUST render its non-empty value as a pill (`.innfo-fie
 
 ### Requirement: Markdown Inline View and Edit
 
-The kit MUST provide `InnfoUI.Markdown(text, opts)`, a renderer for a safe markdown subset that builds DOM nodes only (`createElement`, `textContent`, `setAttribute`): paragraphs and line breaks, headings, `-`/`*`/`1.` lists, `**strong**`, `*em*`/`_em_`, inline code, block quotes (including `> [!NOTE]`-style callouts) and links. A link MUST render as an `a` only when its target is an `http:`/`https:` URL or a relative path (the scheme allowlist of `innfo-console-runtime` "Source URL link with a safe-scheme allowlist"), with `target="_blank"` and `rel="noopener noreferrer"`; any other target MUST render as plain text. Any other syntax, including raw HTML, MUST render as literal text. The renderer MUST NOT assign any part of its input through `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `document.write`. `FieldValue` MUST use it for `markdown` and `markdown_inline`; `markdown_file` stays a path pill. The edit modal for a declared `markdown`/`markdown_inline` field MUST use a `textarea` and propose its text verbatim. The XSS scenarios MUST run under jsdom (not happy-dom). (S3b P1-6.)
+The kit MUST provide `InnfoUI.Markdown(text, opts)`, a renderer for a safe markdown subset that builds DOM nodes only (`createElement`, `textContent`, `setAttribute`): paragraphs and line breaks, headings, `-`/`*`/`1.` lists, `**strong**`, `*em*`/`_em_`, inline code, block quotes (including `> [!NOTE]`-style callouts) and links. A link MUST render as an `a` only when its target is an `http:`/`https:` URL or a relative path (the scheme allowlist of `innfo-console-runtime` "Source URL link with a safe-scheme allowlist"), with `target="_blank"` and `rel="noopener noreferrer"`; any other target MUST render as plain text. Any other syntax, including raw HTML, MUST render as literal text. The renderer MUST NOT assign any part of its input through `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `document.write`. `FieldValue` MUST use it for `markdown` and `markdown_inline`; `markdown_file` stays a path pill. The edit modal for a declared `markdown`/`markdown_inline` field MUST use a `textarea` and propose its text verbatim. The XSS scenarios MUST run under jsdom. (S3b P1-6.)
 
 #### Scenario: Subset renders as structure
 - GIVEN `Markdown('## Goal\n\n- **fast**\n- *cheap*')`

@@ -259,9 +259,9 @@ A frozen app that is hosted MUST be published from a committed static build (`do
 - THEN none of them references `innfo-editor` or builds `iNNfo/apps`
 
 #### Scenario: Gated suites do not depend on the frozen app for test environments
-- GIVEN a gated test imports `jsdom` or `happy-dom`
+- GIVEN a gated test imports `jsdom`
 - WHEN the editor workspace is absent
-- THEN both packages resolve from root `devDependencies`
+- THEN the package resolves from root `devDependencies`
 
 #### Scenario: The hosted app survives a Pages publish
 - GIVEN the site is built without building the editor

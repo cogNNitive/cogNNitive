@@ -251,10 +251,10 @@ describe('the retired editor and hosted app', () => {
     assert.deepEqual(pkg.workspaces, ['iNNfo/packages/*'])
   })
 
-  it('jsdom and happy-dom are root devDependencies (gated suites import them)', () => {
+  it('jsdom is a root devDependency and happy-dom is gone (gated suites import jsdom)', () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
     assert.ok(pkg.devDependencies.jsdom, 'jsdom missing from root devDependencies')
-    assert.ok(pkg.devDependencies['happy-dom'], 'happy-dom missing from root devDependencies')
+    assert.ok(!pkg.devDependencies['happy-dom'], 'happy-dom must not return; DOM suites run under jsdom')
   })
 
   it('the editor source is gone', () => {
