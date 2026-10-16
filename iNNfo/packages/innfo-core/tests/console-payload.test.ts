@@ -36,6 +36,14 @@ lead:: [[NonExistentElement]]
 | Paranormal Infestation | High |
 `
 
+  it('does not read the retired target_template key', () => {
+    const payload = buildConsolePayload({
+      content: modelWithRelationsAndMatrices.replace('target_blueprint:', 'target_template:'),
+      path: 'kNNowledge/old_NN.md',
+    })
+    expect(payload.model.meta.template).toBeUndefined()
+  })
+
   it('builds canonical console payload with frozen slug element ids', () => {
     const payload = buildConsolePayload({
       content: modelWithRelationsAndMatrices,

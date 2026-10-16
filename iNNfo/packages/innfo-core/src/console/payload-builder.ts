@@ -149,7 +149,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
 
   const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? '') : 'Model') || 'Model'
-  const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || undefined
+  const template = fm.target_blueprint || fm.blueprint || fm.template || undefined
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
   const modelId = normalizeModelId(modelPath, title)
 
