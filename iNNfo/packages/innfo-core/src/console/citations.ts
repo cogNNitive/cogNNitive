@@ -27,8 +27,8 @@ export type CitationOrigin = 'agent' | 'human' | 'document'
 /** The `concept` half of a `## NN Change: <id>` heading of a changeset. */
 export const CHANGE_CONCEPT = 'NN Change'
 
-/** Known agent tool ids. */
-export const KNOWN_AGENT_TOOL_IDS: readonly string[] = ['ClaudeCode', 'OpenCode', 'Antigravity']
+/** Known agent author ids, including the generic `agent` default that changesets use. */
+export const KNOWN_AGENT_TOOL_IDS: readonly string[] = ['agent', 'ClaudeCode', 'OpenCode', 'Antigravity']
 
 export interface ResolvedCitation {
   path: string
