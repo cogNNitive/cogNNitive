@@ -225,6 +225,8 @@
     // markers, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
+    '[data-innfo-component=element-card] .innfo-card-badges{display:inline-flex;align-items:center;gap:.35em;font-size:1.64rem;min-width:0}',
+    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku-badge{font-size:1.64rem}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty,[data-innfo-component=element-card] .innfo-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--innfo-accent));background:var(--card-concept-bg,var(--innfo-surface-2));border:1.5px solid var(--card-concept-color,var(--innfo-border))}',
@@ -1521,18 +1523,9 @@
     var conceptIconName = resolveConceptIconName(data.conceptId, conceptOpts)
 
     head.appendChild(elementThumb(doc, data, conceptIconName, 18))
-    head.appendChild(
-      KuBadge({
-        kind: 'element',
-        id: data.id,
-        label: data.name || data.id,
-        index: conceptOpts.index,
-        color: conceptOpts.color,
-        icon: conceptOpts.icon,
-      }),
-    )
+    var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
     if (data.concept) {
-      head.appendChild(
+      badgesWrap.appendChild(
         KuBadge({
           kind: 'concept',
           id: data.concept,
@@ -1543,6 +1536,17 @@
         }),
       )
     }
+    badgesWrap.appendChild(
+      KuBadge({
+        kind: 'element',
+        id: data.id,
+        label: data.name || data.id,
+        index: conceptOpts.index,
+        color: conceptOpts.color,
+        icon: conceptOpts.icon,
+      }),
+    )
+    head.appendChild(badgesWrap)
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null

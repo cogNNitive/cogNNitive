@@ -1822,7 +1822,7 @@
       card.style.borderLeft = '4px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
-      if (head && element.concept) {
+      if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
         var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
         cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
         cBadge.style.borderColor = hexColor
