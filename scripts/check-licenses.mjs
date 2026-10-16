@@ -5,7 +5,7 @@
  * Offline third-party license gate.
  *
  *   node scripts/check-licenses.mjs           # same as --check
- *   node scripts/check-licenses.mjs --check   # fail on denied/unknown licenses, changed vendored
+ *   node scripts/check-licenses.mjs --check   # fail on denied/unknown licenses, unreviewed "review" licenses, changed vendored
  *                                             # assets, or a stale THIRD_PARTY.md
  *   node scripts/check-licenses.mjs --write   # regenerate THIRD_PARTY.md (policy still enforced)
  *
@@ -23,6 +23,8 @@ const {
   discoverProductionDependencies,
   classifyPackages,
   checkVendored,
+  validatePolicy,
+  policyProblems,
   renderThirdParty,
 } = require('./lib/license-inventory.js')
 
@@ -48,16 +50,9 @@ for (const m of missing)
     `dependency not installed: ${m} (run npm ci, and npm ci --prefix skills/nn-sources)`,
   )
 
+problems.push(...validatePolicy(policy))
 const classified = classifyPackages(packages, policy)
-for (const p of classified) {
-  if (p.verdict === 'deny') problems.push(`denied license: ${p.name}@${p.version} is ${p.license}`)
-  else if (p.verdict === 'unknown')
-    problems.push(
-      `unknown license: ${p.name}@${p.version} is ${p.license}${p.note ? ` (${p.note})` : ''}`,
-    )
-  else if (p.verdict === 'review')
-    console.warn(`license-check: review needed: ${p.name}@${p.version} is ${p.license}`)
-}
+problems.push(...policyProblems(classified, policy))
 problems.push(...checkVendored(REPO_ROOT, policy).problems)
 
 if (problems.length === 0) {

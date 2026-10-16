@@ -124,15 +124,78 @@ function discoverProductionDependencies(repoRoot, workspaceDirs = WORKSPACE_DIRS
 }
 
 /**
- * Policy override for a package (matched by name and, when given, version).
- * @param {{ packageOverrides?: Array<{ package: string, version?: string, license: string, reason: string }> }} policy
+ * Policy override for a package, matched by exact name AND version. An override
+ * without a version never matches (validatePolicy reports it), so a verdict
+ * granted for one release cannot silently cover a later one.
+ * @param {{ packageOverrides?: Array<{ package: string, version: string, license: string, reason: string }> }} policy
  * @param {string} name
  * @param {string} version
  */
 function findOverride(policy, name, version) {
-  return (policy.packageOverrides || []).find(
-    (o) => o.package === name && (!o.version || o.version === version),
-  )
+  return (policy.packageOverrides || []).find((o) => o.package === name && o.version === version)
+}
+
+/**
+ * Human-reviewed exception for a package@version whose license verdict is "review".
+ * @param {{ reviewed?: Array<{ package: string, version: string, reason: string }> }} policy
+ * @param {string} name
+ * @param {string} version
+ */
+function findReviewed(policy, name, version) {
+  return (policy.reviewed || []).find((r) => r.package === name && r.version === version)
+}
+
+/**
+ * Structural checks of the policy file itself (fail-closed on malformed entries).
+ * @param {any} policy
+ * @returns {string[]}
+ */
+function validatePolicy(policy) {
+  /** @type {string[]} */
+  const errors = []
+  const blank = (v) => typeof v !== 'string' || v.trim() === ''
+  ;(policy.packageOverrides || []).forEach((o, i) => {
+    const label = `packageOverrides[${i}] (${o && o.package})`
+    if (!o || blank(o.package)) errors.push(`${label}: "package" is required`)
+    if (!o || blank(o.version)) errors.push(`${label}: "version" is required (overrides are per exact release)`)
+    if (!o || blank(o.license)) errors.push(`${label}: "license" is required`)
+    if (!o || blank(o.reason)) errors.push(`${label}: "reason" is required`)
+  })
+  if (!Array.isArray(policy.reviewed)) {
+    errors.push('reviewed must be an array of { package, version, reason } (may be empty)')
+  } else {
+    policy.reviewed.forEach((r, i) => {
+      const label = `reviewed[${i}] (${r && r.package})`
+      if (!r || blank(r.package)) errors.push(`${label}: "package" is required`)
+      if (!r || blank(r.version)) errors.push(`${label}: "version" is required`)
+      if (!r || blank(r.reason)) errors.push(`${label}: "reason" is required`)
+    })
+  }
+  return errors
+}
+
+/**
+ * Turns classified packages into gate failures: deny and unknown always fail; a
+ * review verdict fails unless the exact package@version is in policy.reviewed.
+ * @param {Array<{ name: string, version: string, license: string, verdict: string, note?: string }>} classified
+ * @param {any} policy
+ * @returns {string[]}
+ */
+function policyProblems(classified, policy) {
+  /** @type {string[]} */
+  const problems = []
+  for (const p of classified) {
+    if (p.verdict === 'deny') problems.push(`denied license: ${p.name}@${p.version} is ${p.license}`)
+    else if (p.verdict === 'unknown')
+      problems.push(
+        `unknown license: ${p.name}@${p.version} is ${p.license}${p.note ? ` (${p.note})` : ''}`,
+      )
+    else if (p.verdict === 'review' && !findReviewed(policy, p.name, p.version))
+      problems.push(
+        `license needs review: ${p.name}@${p.version} is ${p.license}; read its license text, then list it under "reviewed" in scripts/license-policy.json`,
+      )
+  }
+  return problems
 }
 
 /**
@@ -204,15 +267,27 @@ function licenseBody(text) {
 }
 
 /**
- * Checks the hand-maintained vendored-asset list against the files on disk.
+ * Checks the hand-maintained vendored-asset list against the files on disk, and
+ * classifies each entry's declared license against the policy.
  * @param {string} repoRoot
- * @param {{ vendored?: Array<{ name: string, path: string, sha256: string }> }} policy
+ * @param {any} policy
  * @returns {{ problems: string[] }}
  */
 function checkVendored(repoRoot, policy) {
   /** @type {string[]} */
   const problems = []
   for (const v of policy.vendored || []) {
+    const result = classifyExpression(v.license || '', policy)
+    if (result.verdict === 'deny')
+      problems.push(`denied license: vendored asset ${v.name} is ${v.license}`)
+    else if (result.verdict === 'unknown')
+      problems.push(
+        `unknown license: vendored asset ${v.name} is ${v.license || '(none declared)'}${result.error ? ` (${result.error})` : ''}`,
+      )
+    else if (result.verdict === 'review' && !findReviewed(policy, v.name, v.version))
+      problems.push(
+        `license needs review: vendored asset ${v.name}@${v.version} is ${v.license}; list it under "reviewed" in scripts/license-policy.json`,
+      )
     const file = path.join(repoRoot, v.path)
     if (!fs.existsSync(file)) {
       problems.push(`vendored asset ${v.name}: ${v.path} does not exist`)
@@ -350,6 +425,9 @@ module.exports = {
   discoverProductionDependencies,
   classifyPackages,
   checkVendored,
+  validatePolicy,
+  policyProblems,
+  findReviewed,
   renderThirdParty,
   readLicenseFile,
   licenseBody,

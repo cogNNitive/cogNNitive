@@ -17,6 +17,8 @@ const {
   classifyPackages,
   checkVendored,
   renderThirdParty,
+  validatePolicy,
+  policyProblems,
 } = require('./license-inventory.js')
 
 const POLICY = JSON.parse(
@@ -184,12 +186,85 @@ test('vendored assets are pinned by content hash, ignoring line endings', () => 
   const root = makeTree()
   fs.writeFileSync(path.join(root, 'asset.js'), 'a\r\nb\n')
   const sha = crypto.createHash('sha256').update('a\nb\n').digest('hex')
-  const policy = { vendored: [{ name: 'Asset', path: 'asset.js', sha256: sha }] }
+  const policy = {
+    ...POLICY,
+    vendored: [{ name: 'Asset', version: '1', license: 'MIT', path: 'asset.js', sha256: sha }],
+  }
   assert.deepStrictEqual(checkVendored(root, policy).problems, [])
   fs.writeFileSync(path.join(root, 'asset.js'), 'changed')
   assert.strictEqual(checkVendored(root, policy).problems.length, 1)
   fs.rmSync(path.join(root, 'asset.js'))
   assert.match(checkVendored(root, policy).problems[0], /does not exist/)
+})
+
+test('a review verdict fails unless the exact package@version is in the reviewed allowlist', () => {
+  const root = makeTree()
+  fs.writeFileSync(
+    path.join(root, 'node_modules', 'odd', 'package.json'),
+    JSON.stringify({ name: 'odd', version: '1.0.0', license: 'MPL-2.0' }),
+  )
+  const { packages } = discoverProductionDependencies(root, ['app'])
+  const classifiedFor = (policy) => classifyPackages(packages, policy)
+  const oddVerdict = classifiedFor(POLICY).find((p) => p.name === 'odd').verdict
+  assert.strictEqual(oddVerdict, 'review')
+
+  const bare = policyProblems(classifiedFor(POLICY), { ...POLICY, reviewed: [] })
+  assert.ok(bare.some((m) => /review/.test(m) && m.includes('odd@1.0.0')), bare.join('|'))
+
+  const listed = { ...POLICY, reviewed: [{ package: 'odd', version: '1.0.0', reason: 'MPL file-level copyleft, unmodified' }] }
+  assert.ok(!policyProblems(classifiedFor(listed), listed).some((m) => m.includes('odd@1.0.0')))
+
+  const otherVersion = { ...POLICY, reviewed: [{ package: 'odd', version: '0.9.0', reason: 'older release' }] }
+  assert.ok(policyProblems(classifiedFor(otherVersion), otherVersion).some((m) => m.includes('odd@1.0.0')))
+})
+
+test('policyProblems keeps failing deny and unknown verdicts', () => {
+  const problems = policyProblems(
+    [
+      { name: 'a', version: '1.0.0', license: 'GPL-3.0', verdict: 'deny' },
+      { name: 'b', version: '1.0.0', license: 'BSD', verdict: 'unknown' },
+      { name: 'c', version: '1.0.0', license: 'MIT', verdict: 'allow' },
+    ],
+    POLICY,
+  )
+  assert.strictEqual(problems.length, 2)
+})
+
+test('a package override without a version is a policy error and is never applied', () => {
+  const root = makeTree()
+  const { packages } = discoverProductionDependencies(root, ['app'])
+  const policy = {
+    ...POLICY,
+    packageOverrides: [{ package: 'odd', license: 'BSD-2-Clause', reason: 'test' }],
+  }
+  assert.ok(validatePolicy(policy).some((m) => /packageOverrides/.test(m) && /version/.test(m)))
+  assert.strictEqual(
+    classifyPackages(packages, policy).find((p) => p.name === 'odd').verdict,
+    'unknown',
+  )
+})
+
+test('validatePolicy requires well-formed reviewed entries and accepts the shipped policy', () => {
+  assert.deepStrictEqual(validatePolicy(POLICY), [])
+  const bad = { ...POLICY, reviewed: [{ package: 'x', version: '1.0.0' }] }
+  assert.ok(validatePolicy(bad).some((m) => /reviewed/.test(m) && /reason/.test(m)))
+  assert.ok(validatePolicy({ ...POLICY, reviewed: undefined }).some((m) => /reviewed/.test(m)))
+})
+
+test('vendored license ids are classified against the policy', () => {
+  const root = makeTree()
+  fs.writeFileSync(path.join(root, 'asset.js'), 'x')
+  const sha = crypto.createHash('sha256').update('x').digest('hex')
+  const entry = { name: 'Asset', version: '1', path: 'asset.js', sha256: sha }
+  const run = (license, extra = {}) =>
+    checkVendored(root, { ...POLICY, reviewed: [], ...extra, vendored: [{ ...entry, license }] }).problems
+  assert.deepStrictEqual(run('MIT'), [])
+  assert.match(run('GPL-3.0')[0], /denied license/)
+  assert.match(run('Weird-1.0')[0], /unknown license/)
+  assert.match(run('MPL-2.0')[0], /review/)
+  assert.match(run(undefined)[0], /license/)
+  const listed = { reviewed: [{ package: 'Asset', version: '1', reason: 'checked' }] }
+  assert.deepStrictEqual(run('MPL-2.0', listed), [])
 })
 
 test('THIRD_PARTY.md carries copyright and license text, and rendering is deterministic', () => {

@@ -1,5 +1,5 @@
 {
-  "$comment": "Third-party license policy read by scripts/check-licenses.mjs. Verdicts: allow passes; review warns (needs a human decision before shipping); deny and unknown fail. Entries are SPDX ids (case-insensitive) or PREFIX* patterns. Deny wins over allow, allow over review. A compound expression is judged per SPDX semantics (OR: best branch, AND: worst branch).",
+  "$comment": "Third-party license policy read by scripts/check-licenses.mjs. Verdicts: allow passes; review FAILS unless the exact package@version is listed in the reviewed array with a reason (after reading its license text); deny and unknown fail. packageOverrides entries require an exact version. The license of every vendored entry is classified too. Entries are SPDX ids (case-insensitive) or PREFIX* patterns. Deny wins over allow, allow over review. A compound expression is judged per SPDX semantics (OR: best branch, AND: worst branch).",
   "allow": [
     "MIT",
     "ISC",
@@ -16,6 +16,7 @@
   "review": ["LGPL-*", "MPL-*", "EPL-*", "CDDL-*", "CC-BY-*", "Artistic-*", "OFL-*"],
   "deny": ["GPL-*", "AGPL-*", "SSPL-*", "BUSL-*", "CC-BY-NC*", "Commons-Clause", "UNLICENSED"],
   "allowedExceptions": [],
+  "reviewed": [],
   "packageOverrides": [
     {
       "package": "duck",
