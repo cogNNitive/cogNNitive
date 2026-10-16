@@ -6992,7 +6992,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         cBadge.appendChild(doc.createTextNode(element.concept))
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge) head.insertBefore(cBadge, elementBadge)
+        if (elementBadge) (elementBadge.parentNode || head).insertBefore(cBadge, elementBadge)
         else head.appendChild(cBadge)
       }
 
