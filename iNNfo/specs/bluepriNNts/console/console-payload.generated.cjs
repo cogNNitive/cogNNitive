@@ -8044,6 +8044,7 @@ function isSidecarName(nameOrPath) {
 
 // iNNfo/packages/innfo-core/src/sourceRef.ts
 var SLUG = "[a-z0-9]+(?:-[a-z0-9]+)*";
+var MODEL_ID = "[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*";
 var SOURCE_FIELD_NAMES = /* @__PURE__ */ new Set(["sources", "source"]);
 function parseSourceRef(input) {
   if (!input || typeof input !== "string") return null;
@@ -8264,7 +8265,7 @@ function resolveUnitPath(rawPath) {
   const isCsv = /\.csv$/i.test(forward);
   const isJson = /\.json$/i.test(forward);
   if (!isMd && !isCsv && !isJson) {
-    if (new RegExp(`^${SLUG}$`).test(trimmed)) {
+    if (new RegExp(`^${MODEL_ID}$`).test(trimmed)) {
       return { filePath: trimmed, kind: "model" };
     }
     return null;
@@ -8982,7 +8983,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-3-1", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-4-0", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/innfo-core/src/resolver.ts
@@ -9882,7 +9883,9 @@ var CHANGE_OPS = [
   "update_matrix_cell",
   "update_concept_text",
   "comment",
-  "add_model"
+  "add_model",
+  "freeze_slugs",
+  "bump_version"
 ];
 function isChangeStatus(val) {
   return typeof val === "string" && ["proposed", "applied", "partially_applied", "rejected", "conflict"].includes(val);
@@ -10150,7 +10153,7 @@ function hashParsedElement(concept, node) {
 // iNNfo/packages/innfo-core/src/console/citations.ts
 var EXCERPT_CHAR_CAP = 500;
 var CHANGE_CONCEPT = "NN Change";
-var KNOWN_AGENT_TOOL_IDS = ["ClaudeCode", "OpenCode", "Antigravity"];
+var KNOWN_AGENT_TOOL_IDS = ["agent", "ClaudeCode", "OpenCode", "Antigravity"];
 function normalizeToolId(value) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
