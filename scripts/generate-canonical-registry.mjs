@@ -102,6 +102,20 @@ function main() {
       changed.push(name);
       updated = updated.slice(0, litStart) + replacement + updated.slice(litEnd);
     }
+
+    // The entry's `version` is the embedded blueprint's own `blueprint_version` (level-2 specs only).
+    const frontmatter = /^---\n([\s\S]*?)\n---/.exec(content)?.[1] ?? '';
+    const declared = /^blueprint_version:\s*"?([^"\r\n]+)"?/m.exec(frontmatter)?.[1];
+    const entryAt = declared ? updated.indexOf(`specContent: ${name},`) : -1;
+    if (entryAt !== -1) {
+      const versionAt = updated.lastIndexOf("version: '", entryAt);
+      const valueAt = versionAt + "version: '".length;
+      const valueEnd = updated.indexOf("'", valueAt);
+      if (versionAt !== -1 && updated.slice(valueAt, valueEnd) !== declared) {
+        changed.push(`${name} (version)`);
+        updated = updated.slice(0, valueAt) + declared + updated.slice(valueEnd);
+      }
+    }
   }
 
   if (updated === src) {
