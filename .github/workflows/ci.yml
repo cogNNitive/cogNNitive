@@ -136,8 +136,8 @@ jobs:
       - name: Typecheck (innfo-mcp)
         run: npm --workspace=@cognnitive/innfo-mcp run typecheck
 
-      - name: Unit tests (core)
-        run: npm --workspace=@cognnitive/innfo-core test
+      - name: Unit tests + coverage (core)
+        run: npm --workspace=@cognnitive/innfo-core run test:coverage
 
       - name: Unit tests + coverage (innfo-mcp)
         run: npm --workspace=@cognnitive/innfo-mcp run test:coverage
