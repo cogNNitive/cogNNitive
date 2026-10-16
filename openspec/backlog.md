@@ -29,6 +29,15 @@ into `verify.js`. The Syft/ScanCode alternative stays unneeded unless the vendor
 Partly done `docs/manual-editing-risks`: the docs page and the actionable `DUPLICATE_SLUG` message shipped; only the
 non-deterministic "value changed without a changeset" fingerprint remains.
 
+Consolidated 2026-10-16 (verified against `dev` @ 804f8f59): retired the shipped /
+obsolete entries — 14 (the inline projections/master shells no longer exist),
+23 (regression test shipped), 29 (`lineageChain.ts` went with the editor),
+`intra-document-identity` (shipped: `stable-element-identity` spec),
+`identifier-migration` (nomenclature rename archived), `trannsform-xlsx-vulnerability`
+(resolved), and `stable-identity-and-changesets` (slices S1–S6 archived). Their text
+remains in git history and the matching archived changes. Open items that cite
+`innfo-editor`, `nn-trannsform` or the hosted web app need a re-scope before starting.
+
 ---
 
 ## 1. `feature/source-import-guards` — import-time guards, duplicate detection + in-app editor import
@@ -179,36 +188,6 @@ primitive.
 
 ---
 
-## 14. `refactor/console-domain-renderers` — migrate projections + strategic master to console renderers *(deferred)*
-
-**Type:** refactor · **Size:** large · **Status:** deferred
-
-**Why:** the model-viewer renderer was extracted (`console/render-model-viewer.js`), but
-`metrics/assets/projections.html` (~28KB inline engine) and `business/assets/master.html`
-(~94KB of static framework sections) were deliberately left inline as bespoke special
-cases. The generic console template must NOT be overloaded to fit them.
-
-**Approach (open):** `/sdd-explore` first; two independent slices — (a) projections
-packaging (vendor deps vs document-online; renderer stays metrics-specific under
-`console/` pins), (b) master data-driven redesign (slot contracts per framework +
-renderer + procedure rewrite) **vs** freeze it as a reference sample and exempt it from
-the thin-shell rule (document the deviation). The `console` CDN `<script src>` loading
-path is contract-compliant (offline only ever meant "no local server").
-
-**Guard:** any data-driven rewrite must keep DOM equivalence between the old and new
-shells. The Playwright spec that used to state this bar (`e2e/17-model-viewer-renderer.spec.ts`)
-was deleted on 2026-09-24 along with the rest of the ungated e2e suite, and it would not
-have held anyway: it read its "before" baseline from `git show HEAD:<the same file>`, so
-from the commit after it landed it compared the file against itself and could never fail.
-Rebuild the bar instead of restoring it — capture the baseline from a ref that is actually
-older than the change (a tag, or the merge-base), never from `HEAD` of the file under test.
-The working harness to build on is `innfo-core/tests/console-dom.test.ts` (boots the
-runtime under happy-dom, no browser). A real Chromium `file://` render could be added
-later with Windows-only Chrome discovery that skips on CI.
-
-**Suggested trigger:** `/sdd-explore console-domain-renderers`.
-
----
 
 ## 20. `refactor/generate-canonical-registry` — generate `canonical-registry.ts` from template specs
 
@@ -234,18 +213,6 @@ from AD-8 extends cleanly to full concept/field/matrix content, and how drift de
 **Suggested trigger:** `/sdd-explore generate-canonical-registry`.
 
 ---
-
-## 23. `fix/migrate-domain-esm-cjs` - run the migrator under a workspace with `"type": "module"`
-
-**Type:** fix · **Size:** small
-
-**Why:** `skills/nn-upgrade/scripts/migrate-domain.js` is CJS (`require(...)`); a user
-workspace whose `.agents/package.json` declares `"type": "module"` crashes `node
-migrate-domain.js`. Not reproducible in this repo (`.agents/` has no `package.json`), but
-real for users. Reported by a migrating user alongside the version-skew.
-
-**Behaviour:** ship the migrator as `.cjs` (or isolate the invocation directory); add a
-regression test for the `"type": "module"` case.
 
 ## 24. `refactor/derived-artifact-consolidation` — one core implementation, fewer committed derived outputs
 
@@ -322,72 +289,6 @@ need a maintainer decision or a template bump. None blocks a release.
   SKILL.md says no longer exists; simulation scenarios 01, 05, 07 and `FINDINGS.md` still
   assume `sources/nn`.
 
-## 29. `feature/lineage-recursive-upstream` — recursive upstream chaining in the preview Lineage Timeline
-
-**Type:** functional · **Size:** medium · **Added:** 2026-10-04
-
-**Why:** the Lineage view's new **Timeline** style (`2026-10-04-lineage-modal-simplify`) renders
-only one upstream hop — the focal file's own `source_file` — plus its downstream citations. The
-real provenance story the maintainer asked for is recursive: *this came from that, which came from
-that, which came from…*. That chaining is explicitly deferred from the simplify change
-(`openspec/changes/2026-10-04-lineage-modal-simplify/proposal.md`, "Deferred (iteration 2)").
-
-**Behaviour (as requested):** the Timeline walks `source_file` backwards through every upstream
-file and appends each hop as an upstream step, so the chain reads top-to-bottom from the oldest
-ancestor to the focal file and its citing elements. The graph style mirrors the same depth.
-
-**Approach (open):** `iNNfo/apps/innfo-editor/src/components/editor/lineageChain.ts`
-(`buildLineageChain`) is the seam — iteration 2 extends its input/loop with further upstream hops;
-the render contract does not change. Needs cycle protection (A→B→A) and a bounded depth. Reading
-each upstream file's frontmatter requires the workspace handle (async), so the chain builder likely
-becomes async or takes a pre-resolved upstream path list. Consider whether upstream files' own
-`sources`/citations should also surface.
-
-**Suggested trigger:** `/sdd-explore lineage-recursive-upstream`.
-
-## Intra-document element identity: key on the slug, not the display name
-
-**Status:** explicit NON-GOAL of `2026-09-13-document-fidelity-and-provenance-integrity`.
-Recorded 2026-09-16 while completing work unit 7.
-
-**The behaviour today.** An element whose display name already exists elsewhere in the
-same document fails model-wide name uniqueness (R-IE-02, `recursiveParser/normalize.ts`)
-— and is **silently dropped from the graph**, not merely reported. It never becomes a
-node, so it is invisible to the editor, to `[[wikilink]]` resolution, to matrices and to
-every validation pass. `Ghostbusters_business_NN.md` was losing 8 elements on every load
-this way before the rename below.
-
-**Why it bites.** Modelling the same real-world entity under several concepts is
-natural and correct: `Winston Zeddemore` is legitimately a Stakeholder, a Person **and**
-a Shareholder of the same company. AD-7 of that change already ruled the analogous
-CROSS-model case legal, and the format ships `[[Model Title :: Element Name]]` precisely
-to disambiguate. The intra-document rule is the odd one out — and the format already
-offers the right disambiguator for it: an explicit `slug::`.
-
-**Why it was not fixed there.** There are two independent gates, and they disagree by
-construction:
-
-1. `normalize.ts` keeps a model-wide `Set` of element NAMES.
-2. `IdentityRegistry` (`identity.ts`) enforces sibling-name uniqueness and builds each
-   node's `qualifiedId` **from the name** (`buildQualifiedId`).
-
-Keying only the first on the slug leaves the second still rejecting the element. Keying
-both means node ids stop deriving from names, which moves `[[wikilink]]` resolution,
-matrix endpoint lookup and qualified-reference addressing underneath every consumer
-(editor, MCP, workspace index). That is an identity-semantics change, not a sample
-repair, and it deserves its own change with its own migration story.
-
-**What was done instead.** The 8 collisions in `Ghostbusters_business_NN.md` were
-resolved by RENAMING in the sample (Shareholders entries now name the stake —
-`Venkman Equity Stake` — and the duplicated Stakeholders entries carry a role
-parenthetical). The duplicate-name issue also gained the `severity: 'error'` it was
-missing, so the drop is at least visible to hosts now.
-
-**What a future change should decide:** whether an explicit `slug::` legitimises a
-repeated display name within one document; and if so, whether `qualifiedId` derives from
-the slug, and what that means for every existing `[[wikilink]]`.
-
-**Suggested trigger:** `/sdd-new intra-document-identity-by-slug`.
 
 ---
 
@@ -498,23 +399,6 @@ and whether it best fits **Projects** (built on the SDK) vs **Agents**/**Plugins
 
 ---
 
-## `refactor/identifier-migration` — mechanical identifier migration (`template` → `app` identifiers) *(deferred)*
-
-**Type:** refactor · **Size:** large · **Status:** deferred
-
-**Why:** the user-facing vocabulary pass made `app` canonical and kept resolution-bearing identifiers stable as documented deprecated aliases; the actual identifier migration is intentionally deferred because paths, URLs, tool names, manifest keys and version tags all carry resolution semantics.
-
-**Behaviour (as requested):** mechanically migrate the identifiers recorded in `iNNfo/specs/vocabulary.json` under `terms.app.planned_migrations`: `specs/templates/ → specs/apps/`, MCP tool names (e.g. `get_template`), the manifest `templates:` key, and `templates-v*` tags — with a coordinated alias/version strategy so existing pins keep resolving.
-
-**Approach:** follow the deprecation lifecycle from the canonical-vocabulary dictionary; sequence after the user-facing rename; never a blind find-and-replace. Requires coordinated updates across the catalog, `manifest/source.yaml`, `_spec_NN.md` parent pointers, hydration paths, and the editor resolver constants.
-
-**Risks:** large; touches resolution across editor, MCP and skills. Do not attempt as one change; reuse the `planned_migrations` list as the checklist.
-
-**Note (2026-09-30):** the in-flight `2026-09-29-nn-level-nomenclature-rename` change (S7 path/manifest move, T internal identifiers) is already executing this migration — reconcile and close this item when that change archives. Verified 2026-09-30: the rename's R/T/S commits are largely merged on `dev` (`bluepriNNt`/`kNNowledge` identifiers across core, mcp, editor, scripts). Re-evaluate once the rename change is archived.
-
-**Suggested trigger:** `/sdd-explore identifier-migration`.
-
----
 
 ## `feature/innfo-uri-protocol` — `innfo://` custom URI scheme and deep-linking parser *(deferred)*
 
@@ -530,19 +414,6 @@ and whether it best fits **Projects** (built on the SDK) vs **Agents**/**Plugins
 
 ---
 
-## `chore/trannsform-xlsx-vulnerability` — `xlsx` (SheetJS) ships two highs with no patched version on npm
-
-**Type:** security / chore · **Size:** small-medium · **Status:** resolved (2026-10-10, option b)
-
-**Why:** `skills/nn-trannsform/package.json` depends on `xlsx@^0.18.5`, which carries two open **high** advisories with **no fixed version on the npm registry**: CVE-2023-30533 (prototype pollution) and CVE-2024-22363 (ReDoS). SheetJS distributes current releases from its own CDN, not npm, so `npm audit fix` and any version bump inside the registry **cannot** clear them. `nn-trannsform` reads user-supplied `.xlsx` sources, so untrusted input reaches this code — it is a **production** dependency, not dev tooling.
-
-**Audit context (2026-10-01):** Dependabot flagged 29 alerts on `main`; the other 27 were dev/test tooling (`vitest`, `happy-dom`, `vite`, `esbuild`, `dompurify`, `@xmldom/xmldom`) and were addressed that day (criticals 3→0; `@xmldom` override in `nn-trannsform`; `dompurify` floor raised). Two residuals remain, both **dev-only**: `@vitest/mocker` path traversal (GHSA-82fw-gwwq-j7x9) needs `vitest@5` (major); and the hoisted `vite`/`esbuild` highs/moderates are non-breaking-fixable via `npm audit fix`. `xlsx` is the only one that needs a **product decision**.
-
-**Resolved (2026-10-10, option b):** the migration landed together with the `nn-trannsform` -> `nn-sources` rename. `skills/nn-sources/package.json` now pins `"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` (official SheetJS tarball, 0.20.3) and the lockfile resolves the same URL. 0.20.3 is past both advisories (CVE-2023-30533 fixed in 0.19.3; CVE-2024-22363 fixed in 0.20.2), so neither applies. The stale `skills/nn-trannsform/` directory (0 tracked files, only *gitignored* `node_modules`) was removed.
-
-**Suggested trigger:** `/sdd-explore trannsform-xlsx-vulnerability`.
-
----
 
 ## `refactor/console-bundle-derived-on-release` — derive console & MCP bundles at release instead of committing them
 
@@ -767,103 +638,6 @@ pass (`workspace-integrity-check`) or drop it; the docs page already carries the
 
 ---
 
-## `refactor/stable-identity-and-changesets` — one identity, one change record, one editing UI *(in progress, 4 slices remaining)*
-
-**Type:** architecture · **Size:** large (7 independent SDD changes)
-
-**Status:** vision settled in a grilling session on 2026-10-07, fact-checked against the code
-by two fresh-context reviews. **S1, S2a and S2b are DONE and archived** (see the slice table).
-The remaining work is fully specified as eight live changes (2026-10-13), each sliced into
-batch-sized apply units; their apply order is `openspec/changes/2026-10-13-DEPENDENCIES.md`.
-**State lives in `openspec/`**: a slice that has a live change is shown as a pointer here, and
-its line is deleted on archive.
-
-**Superseding changes (2026-10-13):** #1A `changes/2026-10-13-changeset-first-class-and-lineage`,
-#1B `changes/2026-10-13-changeset-immutability-and-snapshot-removal` and
-#1C `changes/2026-10-13-console-changes-view-and-slug-ids` (one consolidated change, split for
-apply size) consolidate the coherence work found while auditing the domain console after the PoC — the
-changeset as a valid L3 doc + a first-class lineage node role, the removal of the dead
-`kNNowledge/archive/` snapshot, proposal immutability, the `changes` console view, the console
-element-identity/`domainId` draft-store decisions, and the Source/Citation/Lineage vocabulary
-alignment. It also **amends D9** (snapshot removed), **D14** (drafts keyed by a stable
-path-scoped id; staleness per element via `base_hash`, resolved at apply; `--view` isolated),
-and **D15** (retire the feedback JSON/ledger as specified) and **D20** (a change cites its
-evidence so `field → change → source` closes).
-
-**Why:** discovery-driven development left several writers to the graph (hand edits, the MCP
-`apply_change`, the Vue editor writing directly through the File System Access API,
-`nn-trannsform` scripts, review artifacts) and several provenance formats (pasted
-`## NN Agent Modification` blocks in promoted transcripts, `feedback-ledger.jsonl`, editor
-`editAttribution`, an orphan `.cogNNitive/change-log.jsonl` library, nothing at all for
-direct editor writes). Element identity is derived from display names (derived slugs,
-matrix cells keyed `matrix||row||col` by name, `[[Title :: Element]]` cross-model links), so a
-rename breaks citations, and `rename_element` even discards an authored `slug::`
-(`mutate.ts:578`). There are at least five slugifiers (core `parser/slug.ts`, editor
-`knowledgeStore.ts:668` with `_`, MCP asset dirs, console `payload-builder.ts`, heading slugs
-in `sourceRef.ts`).
-
-**Target model:** every graph change is a changeset proposed from a console (or a chat
-request) and applied by the agent; every graph component has one stable, human-readable
-address.
-
-### Decisions
-
-| # | Decision | Reason |
-|---|---|---|
-| D1 | Every element carries an explicit, immutable `slug::`; concepts and matrices get one in their bluepriNNt definition. Freezing is **per model** (D19). A rename changes the name only, never the slug. | Identity must survive renames. |
-| D2 | No history section is persisted inside models. Changesets are the single source of truth; the agent computes per-element history when it generates a console (cached in the console build, never stored as truth), and on demand via MCP. History horizon: from the adoption of changesets. | Single source of truth; an in-model index is derivable and would drift. |
-| D3 | Slugs are unique per model, and the slug (not the name) is the node identity. Two elements may share a display name inside one model. This reverses today's model-wide name-uniqueness rule (R-IE-02, `knowledge-checks.ts`). | Models are the unit that moves between domains; supersedes the intra-document identity item above. |
-| D4 | Each model carries an immutable `model_slug` in frontmatter, extension-less and path-free, unique per domaiNN. The serializer's frontmatter allow-list must keep it (and `workspace_id`) across rewrites. | Filenames are not identity. |
-| D5 | One address grammar for the whole domain, extending the citation grammar `<doc>@<unit>&<subunit>` with a NEW unit kind: when `doc` is a `model_slug` (no extension) the unit is an element or matrix slug. Sources keep today's path-based units unchanged. Element `m@el`, field `m@el&field`, matrix cell `m@matrix&row&col`. No concept segment, no domain segment (the changeset header carries `workspace_id`). Fields keep name identity, versioned by the bluepriNNt; a bluepriNNt field or concept rename ships an `nn-upgrade` mapping. | One resolver for citations, changeset targets and graph references; `::` would collide with `key:: value`. |
-| D6 | In the `.md` body, `reference` fields, matrix row/column headers and cross-model references are written with slugs; prose wikilinks accept a slug or a name (slug first; an ambiguous name is reported). | Structural links must not depend on names; prose stays human. |
-| D7 | Changesets live in `changes/` at the domain root as `_NN.md` documents of a `changes` bluepriNNt. Names follow the naming contract (`NN_NAME_INVARIANT`: stem ends with the bluepriNNt name; repo UTC stamp `YYYYMMDDTHHmmssZ`), e.g. `<workspace_id>_<author>_<stamp>_changes_NN.md`; `roleOf` must classify them so they are never discovered as models. The proposed content is immutable and sealed by a `proposal_sha` in the header; the agent writes `status::`, `resolution::` and, when it had to suffix a new slug, `resolved_slug::` per change. A changeset is a user-input source, not a primary one. | Sources under `sources/` are sha-audited and must stay immutable; one file tells what was asked and what happened; hand edits between export and import are detectable. |
-| D8 | Every graph mutation is a changeset: console, chat request, source import and `cognitivize` alike. `origin::` (`console`, `chat`, `source-import`, `agent-autonomous`) and `author::` / `requested_by::` tell them apart. `apply_change` always applies a changeset (creating one when called without). Large agent-generated changesets (import, cognitivize) are approved in bulk from a summary. The Agent Modification block, its verbatim-paste mandate and transcript promotion as provenance are retired, with no compatibility layer. | Provenance stops depending on two manual steps that fail silently. |
-| D9 | Live kNNowledge files are already version-free (`NN_NAME_INVARIANT`); the version lives in frontmatter. The gap is the snapshot: applying a changeset bumps each affected model once (patch by default, the agent asks for minor/major) and MOVES the previous content to `kNNowledge/archive/` (name per the naming contract, carrying version, stamp and changeset id) instead of losing it. `isExcludedPath` must exclude an `archive` segment at any depth (today it only checks the first segment). The changeset records `base_version` and `result_version` per model. Applies to kNNowledge only; bluepriNNt filenames keep `_V_`. Check the `knowledge_version` ↔ parent `spec_version` coupling in `init_knowledge` before changing bump semantics. | Snapshots without git; old content is lost today. |
-| D10 | Apply per change, decided in bulk with the agent. A change conflicts when the current value differs from its `from`, or when its slug was deleted after `base_version`. A conflict is resolved by a NEW changeset that cites the original. | One conflict must not block the clean changes; proposals stay immutable. |
-| D11 | A console proposes the slug of a new element (core `slugify`, already embedded in the console bundle), checked against the snapshot and the batch. The writer confirms it, or suffixes it, rewrites the references inside the same batch and records `resolved_slug::`. No temporary ids. Names whose slug would be empty (non-Latin) get an explicit slug input in the modal. | The record stays truthful when the writer has to adjust. |
-| D12 | Deleting shows the impact first. Matrix cells cascade; `reference` fields and cross-model references become conflicts decided in the batch. Slugs MAY be reused: history starts at the last `add_element`, and a pending batch whose `base_version` predates a delete of that slug conflicts. | Everything needed is already in the changesets. |
-| D13 | The vanilla console stack (`iNNfo/specs/bluepriNNts/console/`) is the only UI stack. The Vue `innfo-editor` is retired; only the widgets actually needed are ported to `ui-kit.js`. Consoles open by double-click, never write files, and edit every component through one shared modal. Console states: `draft`, `proposed`; import states: `approved`, `applied`, `rejected`, `conflict`. A "direct apply" state is rejected. | One modal, one widget set, one slugify; editing complexity moves to the single writer. |
-| D14 | One `domaiNN_console.html` at the domain root embeds every model, precomputed history and the source index (heavy sources are linked, not embedded; a size budget is specified). It carries a snapshot hash and `base_version` per model; drafts in localStorage are keyed by that hash and a mismatch warns and offers a rebase. The agent regenerates it after every changeset import and on demand. Specific consoles remain as views sharing the bundle and the modal. | The domain is the navigation root; the console is never older than the last apply. |
-| D15 | Review feedback becomes `op: comment` changes (target, author, notes, no `to`). The feedback JSON export (console and docx sources), `feedback-ledger.jsonl`, the `source_type: feedback` import and the MCP tools `evaluate_feedback_items` / `record_feedback_verdict` are retired into the changeset import. The modal offers "propose value" or "comment". | One provenance format. |
-| D16 | Existing domains migrate through `nn-upgrade`: the slug freeze ships with S1 (D19); the reference and citation rewrite, and removal of retired blocks and ledgers, ship later. Until rewritten, the core reads name-based references tolerantly; that tolerant read is legacy code with a `legacy:` marker and a `legacy-ledger.yaml` entry. | Domains converge even if the full migration is never run. |
-| D17 | **Superseded (2026-10-13, `single-console-shell`).** The terms "model console" and "procedures console" are retired. One shell: every console is the **domain console**, optionally scoped (a model, a subset of models, or a view). A reviewer-facing filtered console is a scoped domain console, not a separate kind. | `app` is a deprecated alias of bluepriNNt (`iNNfo/specs/vocabulary.json`); "editor" implies direct writes and names the component being retired. |
-| D18 | The Vue editor becomes read-only for kNNowledge from S1 until it is deleted. Editing in the meantime happens through the agent (chat), which emits changesets from S2a. | The editor writes with its own slugify and no knowledge of `slug::`; patching code that will be deleted is waste. The maintainer is the only user today. |
-| D19 | Slugs are frozen per MODEL, not per element. The first agent mutation of a model with unfrozen elements first freezes every element slug of that model (a `freeze_slugs` change inside the same changeset). The same operation over the whole domain is the `nn-upgrade` slug migration. An unfrozen model is still readable (validator warning); mutating it without freezing is not allowed. When applying a console changeset against an unfrozen model, the agent freezes first and verifies that each derived slug in the snapshot still names the same element; otherwise that change conflicts. | A derived slug is unstable: renaming or deleting a SIBLING shifts `uniqueSlugify` suffixes. Freezing one element at a time cannot prevent that. |
-| D20 | A field's `sources::` citation in the model names the origin of its CURRENT value. When a change is applied, the writer rewrites the citation of every touched field to point at that change (e.g. `changes/<changeset>_changes_NN.md@## NN Change: <id>`); untouched fields keep their citation. Earlier origins are not lost: they live in the archived snapshot (`base_version`) and the changeset chain. | Otherwise the model claims a user-entered value came from the original source. The model answers "where does today's value come from"; changesets answer "how did it get here". Nothing is duplicated, and lineage walks artifact → model → change → archived snapshot → source → sidecar. |
-
-### Non-goals (explicitly rejected)
-
-- A change log JSON under `.cognnitive/` (a fourth source of truth that is lost when the folder is copied). The orphan `nn-trannsform/scripts/lib/change-log.js` is deleted, and the change-log half of `feature/kb-change-governance` is absorbed by this item (its RACI review workflow stays there, rendered over changesets).
-- An opaque dual id (UUID/ULID plus slug): the immutable slug is both readable and stable.
-- Any console writing graph files directly, including through a local launcher.
-- Concept or domain segments inside addresses.
-- Preventing hand edits; they are the user's risk (see `docs/manual-editing-risks`).
-
-### Cross-cutting constraints (from the code review)
-
-- **Write-once specs.** D3/D5 need a new `iNNfo` spec version (`iNNfo_V_0-3-0` is hardcoded in `init-knowledge.ts`); concept/matrix slugs and the `changes` bluepriNNt need new bluepriNNt versions, manifest/catalog entries, a `templates-v*` tag and a repin. Plan the release explicitly inside each slice.
-- **Generated mirrors.** Core changes regenerate the `nn-trannsform` core mirror, preflight primitives, console `innfo-slug.generated.js` and `console-payload.generated.cjs`, the MCP bundle and every committed `innfo-console.bundle.js` copy.
-- **Single writer safety.** One lock per domaiNN (`changes/.lock`, stale timeout); two-phase apply (compute and validate every touched model in memory, write temp files, then rename); `status::` written last and idempotent per model keyed on `result_version`, so a resumed apply skips finished models.
-- **Every graph writer is routed or removed.** Known writers: `saveKnowledge` via `apply-change.ts`, `init-knowledge.ts`, `nn-trannsform` `provenance.js` and `workspace-index.js`, `nn-upgrade/migrate-domain.js`, `workspace-sync.ts` (manifest), the editor (frozen by D18), and procedures that say "apply_change or file tools" (e.g. `reconcile_artifact_feedback_NN.md`). The MCP live-preview server reacts to mutating tool calls and must follow the new tool contract.
-
-### Slices
-
-| # | Slice | Contents | Depends on |
-|---|---|---|---|
-| S1 | `stable-element-identity` ✅ archived · `changes/archive/2026-10-10-2026-10-07-stable-element-identity` | D1, D3, D4, D5, D6, D18, D19: explicit immutable `slug::` and `model_slug`; new address unit kind and resolver; validator diagnostics (duplicate slug, ambiguous name, unfrozen model); `rename_element` keeps the slug; frontmatter allow-list; `freeze_slugs` per model plus the domain-wide `nn-upgrade` freeze; editor read-only; new `iNNfo` spec version; samples and fixtures. | — |
-| S2a | `changeset-apply-and-versioning` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-apply-and-versioning` | D7, D8, D9, D15, D20: `changes` bluepriNNt and naming; `apply_change` applies changesets (`update_field`, `add_element`, `rename_*`, matrix-cell op, `comment`); lock and two-phase apply; snapshots in `kNNowledge/archive/` with the deep `archive` exclusion. | S1 |
-| S2b | `changeset-conflicts-and-deletes` ✅ archived · `changes/archive/2026-10-10-2026-10-07-changeset-conflicts-and-deletes` | D10, D11, D12: per-change conflicts, console-proposed slugs and `resolved_slug::`, delete impact and cascades, slug reuse. | S2a |
-| S2c | `retire-legacy-provenance` → `changes/2026-10-13-s2c-retire-legacy-provenance` | Retire the Agent Modification block (core, `console/citations.ts`, specs, `nn-innfo`/`nn-sources` SKILL.md), the feedback ledger, the two MCP tools, the console feedback JSON and its import, and the orphan change-log library. | #1C |
-| S3 | `domain-console-and-edit-modal` → `changes/2026-10-13-s3-domain-console-and-edit-modal` | D13, D14 (D17 superseded 2026-10-13 by `single-console-shell`: one domain console, optionally scoped): parity audit gate (S3a), then ports re-planned from the audit (S3b). | S2c |
-| S4 | `retire-legacy-migration-flows` → `changes/2026-10-13-s4-retire-legacy-migration-flows` | Rest of D16, re-scoped 2026-10-13 (no in-place migration): retire `nn-upgrade` Flow A and Flow C and `--migrate-references`; keep Flow B, `--freeze-slugs` and `--import-as-source`; delete the fuzzy reference step and its ledger entry. | — (before S6c) |
-| S5 | `retire-innfo-editor` → `changes/2026-10-13-s5-retire-innfo-editor` | Delete the Vue editor, the hosted app, the MCP live preview and every coupling once S3 covers what is actually used; retarget the document badge; remove the editor-bound living specs. | S3, S6 |
-| S6 | `console-regeneration-and-propose` → `changes/2026-10-13-s6-console-regeneration-and-propose` | Stable console files and regeneration after propose/apply, `propose_changeset`, `add_model`, `init_domain`, console New element. | #1C, S2c (S6c: S4) |
-
-**Closes:** "Intra-document element identity: key on the slug, not the display name" (above)
-and the change-log half of `feature/kb-change-governance`.
-
-**Suggested trigger:** `/sdd-new stable-element-identity` (S1).
----
 
 ## 32. [RETIRED 2026-10-16] `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
 
