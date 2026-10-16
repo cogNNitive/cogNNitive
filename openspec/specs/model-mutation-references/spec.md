@@ -2,39 +2,21 @@
 
 ## Purpose
 
-Maintain reference consistency across all workspace models when performing version bump mutations.
+Keep cross-model references valid across version bumps and resolve them slug-first. Versions live in frontmatter, never in filenames, so a bump needs no reference cascade.
 
 ## Requirements
 
-### Requirement: Cross-Model Reference Cascading on Version Bump
+### Requirement: A Version Bump Never Renames a Model, So References Stay Valid
 
-When `bump_version` renames and increments the version of a model, the mutation handler MUST scan all other models and workspace manifest/index files within the workspace for references to the bumped model. Any fields referencing the old versioned filename (such as `derived_from_inputs::`, `business_model::`, file-based paths in `sources::`, and `index.md`) MUST be updated to reference the new versioned filename. However, cross-model references that address the model via its immutable `model_slug` (e.g. `model_slug@element-slug`) MUST remain unchanged, as model slug identities are stable and invariant across version bumps.
+`bump_version` on a Level-3 model is a changeset operation that only raises the frontmatter `knowledge_version`. The live filename (`kNNowledge/<model_stem>_NN.md`) is invariant, so a version bump MUST NOT rename a file, MUST NOT rewrite any reference in another model, and MUST NOT touch `index.md`. There is no cross-model reference cascade and no pre-mutation validation of referencing models; the model touched by the bump is validated like any touched model (see `changeset-apply-engine`). `bump_version` on a Level-2 bluepriNNt likewise sets `blueprint_version` in place.
 
-(Previously: All cross-model references and source citations were bound to versioned filenames like `models/strategy_V_0-1-0_NN.md@## Vision`, requiring cascading edits across all dependent workspace models whenever any model version was bumped.)
-
-#### Scenario: Slug-based cross-model reference remains invariant on bump
-- GIVEN a model with `model_slug: strategy` and filename `models/strategy_V_0-1-0_NN.md`
-- AND another model `models/marketing_V_0-1-0_NN.md` containing `sources:: [strategy@vision]`
-- WHEN `bump_version` bumps `strategy` to `models/strategy_V_0-2-0_NN.md`
-- THEN `strategy` is renamed to `models/strategy_V_0-2-0_NN.md`
-- AND the reference `strategy@vision` in `marketing_V_0-1-0_NN.md` remains unchanged
-
-#### Scenario: File-based cross-model reference cascades on bump
-- GIVEN a model `models/marketing_V_0-1-0_NN.md` containing `sources:: [models/strategy_V_0-1-0_NN.md@## Vision]`
-- WHEN `bump_version` bumps `strategy` to `models/strategy_V_0-2-0_NN.md`
-- THEN the reference in `marketing_V_0-1-0_NN.md` is updated to `models/strategy_V_0-2-0_NN.md@## Vision`
+#### Scenario: Bump leaves every reference untouched
+- GIVEN a model `kNNowledge/strategy_NN.md` with `knowledge_slug: strategy` and another model citing `kNNowledge/strategy_NN.md@## Vision`
+- WHEN a `bump_version` change with `to:: minor` is applied to `strategy`
+- THEN `strategy_NN.md` keeps its name and its `knowledge_version` is raised
+- AND the citing model and `index.md` are byte-identical to before
 
 ---
-
-### Requirement: Pre-Mutation Workspace Reference Validation
-
-Before applying and persisting version bump changes across referencing models, `bump_version` MUST validate the modified content of all affected models against their respective template schemas. If any affected model fails validation after the cascade, the entire mutation operation MUST abort without modifying any files on disk.
-
-#### Scenario: Aborting bump when referencing model validation fails
-- GIVEN a referencing model that contains a syntax or schema violation
-- WHEN `bump_version` is executed on the target model
-- THEN the validation check detects the error prior to writing
-- AND the operation returns failure without altering files on disk
 
 ### Requirement: Slug-First Structural and Wikilink Reference Resolution
 

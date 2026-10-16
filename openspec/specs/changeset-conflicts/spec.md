@@ -14,7 +14,8 @@ When applying a changeset, the engine MUST evaluate preconditions for each chang
 - The engine MUST partition the changes into a clean subset and a conflicted subset.
 - The clean subset MUST be applied atomically to live models in Phase 1 and committed in Phase 2.
 - Conflicted changes MUST be skipped and excluded from in-memory mutations.
-- If all changes in a changeset are conflicted or rejected, the engine MUST NOT stage or write any model files to disk.
+- If all actionable changes in a changeset are conflicted, the engine MUST NOT stage or write any model files to disk.
+- A change that the engine refuses outright (an unresolved citation, a refused mutation, a failed validation) is not a conflict: it rejects the whole changeset (`rejected`, persisted; see `changeset-apply-engine`).
 
 #### Scenario: Mixed changeset applies clean subset and skips conflict
 - GIVEN a changeset with Change 1 (`update_field` matching live value) and Change 2 (`update_field` with mismatched `from`)
@@ -51,11 +52,12 @@ The engine MUST annotate each change item in the changeset file on disk upon com
 - AND Change 1 carries `status:: applied` with `resolution:: Applied successfully`
 - AND Change 2 carries `status:: conflict` with a diagnostic resolution
 
-#### Scenario: Untouched models retain version and emit no snapshot
+#### Scenario: Untouched models retain their version
 - GIVEN a changeset with changes targeting model A (clean) and model B (conflicted)
 - WHEN `apply_change` completes
-- THEN model A's `knowledge_version` bumps by patch and creates an archive snapshot
-- AND model B's `knowledge_version` remains unchanged with no archive snapshot
+- THEN model A's `knowledge_version` bumps by patch
+- AND model B's `knowledge_version` remains unchanged
+- AND no snapshot of either model is written anywhere
 
 ---
 
@@ -72,7 +74,7 @@ Applying a previously executed changeset MUST be an idempotent no-op:
 - AND `kNNowledge/strategy_NN.md` currently has `knowledge_version` equal to that `result_version`
 - WHEN `apply_change` is invoked again on that changeset file
 - THEN the engine returns status `partially_applied` with `appliedCount: 0`
-- AND no disk mutations, version bumps, or duplicate snapshots occur
+- AND no disk mutations or version bumps occur
 
 #### Scenario: Conflicted change cannot be re-applied in place
 - GIVEN a changeset with one change marked `status:: conflict`

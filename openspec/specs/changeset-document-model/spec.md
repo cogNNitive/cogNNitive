@@ -6,7 +6,7 @@ Establish a normative Level-2 blueprint and document model for changesets (`chan
 ## Requirements
 ### Requirement: Normative Level-2 `changes` BluepriNNt and Naming Contract
 
-The workspace MUST provide a normative Level-2 bluepriNNt definition for `changes` at `iNNfo/specs/bluepriNNts/changes/spec_NN.md`, registered in `CANONICAL_BLUEPRINTS` with embedded schema content. Changeset documents MUST reside in the `changes/` directory at the domain root and follow the file naming convention `<workspace_id>_<author>_<stamp>_changes_NN.md`, conforming to `NN_NAME_INVARIANT` and UTC timestamp formatting (`YYYYMMDDTHHMMSSZ`).
+The workspace MUST provide a normative Level-2 bluepriNNt definition for `changes` at `iNNfo/specs/bluepriNNts/changes/spec_NN.md`, registered in `CANONICAL_BLUEPRINTS` with embedded schema content. Changeset documents MUST reside in the `changes/` directory at the domain root and follow the file naming convention `<prefix>_<author>_<stamp>_changes_NN.md`, where `<prefix>` is the `workspace_id` for a changeset written by the MCP (`propose_changeset`, `init_knowledge`, `apply_change`) and the model slug for a changeset exported by the console review (decision D4), conforming to `NN_NAME_INVARIANT` and UTC timestamp formatting (`YYYYMMDDTHHMMSSZ`).
 
 A changeset document MUST be a valid iNNfo Level-3 document. Its frontmatter MUST conform to:
 - `spec_version`: semantic version string (e.g., `"V_0-4-0"`)
@@ -16,6 +16,7 @@ A changeset document MUST be a valid iNNfo Level-3 document. Its frontmatter MUS
 - `status`: one of `"proposed"`, `"applied"`, `"partially_applied"`, `"rejected"`, `"conflict"`
 - `proposal_sha`: 64-character lowercase hex SHA-256 hash sealing proposed content; absent only on an unsealed proposal, which the apply engine seals at intake
 - `applied_at`: optional ISO 8601 timestamp string populated upon application
+- `resolution`: optional string, present only on a `rejected` changeset, stating why it was rejected
 - `models`: map of affected model slugs to `{ base_version: string, result_version: string }` records
 
 The `changes` bluepriNNt's Level-3 template MUST emit this frontmatter, so a document created from it validates. `parseChangeset` MUST NOT substitute any default frontmatter: a file without a frontmatter block, or whose `level`, `parent_spec.name`, `parent_spec.url`, `spec_version`, `blueprint_version` or `status` is missing or wrong, MUST be rejected with `CHANGESET_FRONTMATTER_INVALID` naming the offending key. Every writer of a changeset file (the apply engine, `synthesizeAndExecuteChangeset`, the console export) MUST emit this frontmatter. (Previously: `parent_spec` was the scalar `"changes"`, `level` was absent, the validator rejected every changeset, and the parser silently defaulted a missing frontmatter.)
@@ -69,9 +70,12 @@ Each change in a changeset document MUST be represented as an element heading `#
 5. `update_matrix_cell`: Updates or inserts a cell in a matrix. Requires `target` (`<knowledge_slug>@<matrix_slug>&<row_slug>&<col_slug>` or explicit matrix parameters), and `to` (cell value).
 6. `comment`: Represents review feedback or discussion annotations (per D15). Requires `target`, `author`, `notes`. MUST NOT require `to` or `from` value.
 7. `remove_element`: Removes an element and applies the delete impact and cascades of `delete-impact-and-lifecycle`. Requires `target` (`<knowledge_slug>@<element_slug>`) and optional `base_hash`.
-8. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
+8. `update_concept_text`: Replaces the free text of a concept. Requires `target` (`<knowledge_slug>@<concept_slug>`) or `concept`, and `to` (the new text).
+9. `freeze_slugs`: Writes an explicit slug for every element of the model that lacks one. Requires `target` (a bare model id); carries no other payload.
+10. `bump_version`: Raises the model `knowledge_version`. Requires `target` (a bare model id) and `to` (`patch`, `minor` or `major`). The apply engine bumps each touched model exactly once, so this change replaces the default patch bump rather than adding to it. It is refused on the unversioned lineage record.
+11. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
 
-The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare the `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields, with its `blueprint_version` bumped and the embedded canonical copy kept identical. Every op MAY carry the `sources` evidence citation (#1A). (Previously: six operations were listed, `remove_element` — already implemented and exported by the console — was missing, and there was no way to create a model.)
+Every change MAY carry `base_hash`, the content hash of the target element when the change was written; a different current hash is a precondition failure (a conflict). The `changes` bluepriNNt MUST list every operation above in the `op` options, declare the `base_hash`, `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields and the statuses `proposed`, `applied`, `partially_applied`, `rejected`, `conflict`, with its `blueprint_version` bumped and the embedded canonical copy kept identical. Every op MAY carry the `sources` evidence citation (#1A). (Previously: six operations were listed, `remove_element` — already implemented and exported by the console — was missing, and there was no way to create a model.)
 
 #### Scenario: Parsing an update_field operation
 - GIVEN a change item with `op:: update_field`, `target:: strategy@vision&statement`, `from:: Old statement`, `to:: New statement`
@@ -105,7 +109,7 @@ The `changes` bluepriNNt MUST list `add_model` in the `op` options and declare t
 ### Requirement: Cryptographic Proposal Sealing (`proposal_sha`)
 
 Changeset proposals MUST be cryptographically sealed via a SHA-256 hash stored in the frontmatter `proposal_sha` property. The `computeProposalSha` function MUST compute the hash deterministically across canonical representations of all proposed change elements (`id`, `op`, `target`, `from`, `to`, `concept`, `name`, `slug`, `fields`, `author`, `notes`, `base_hash`, `sources`, `blueprint_name`, `blueprint_url`, `knowledge_version`).
-The computation MUST exclude execution and resolution annotations (`status`, `resolution`, `resolved_slug`, and frontmatter execution fields `applied_at`, `models`).
+The computation MUST exclude execution and resolution annotations (`status`, `resolution`, `resolved_slug`, and frontmatter execution fields `applied_at`, `models`, `resolution`).
 Before applying a changeset, the apply engine MUST call `verifyProposalSha`. If the computed hash does not match `proposal_sha`, the transaction MUST abort immediately with a `PROPOSAL_TAMPERED` error. The computation MUST also exclude `replaced_sources`. (Previously, after #1A: the sealed keys ended at `sources`; the `add_model` keys did not exist.)
 
 #### Scenario: Sealing a proposed changeset generates deterministic hash

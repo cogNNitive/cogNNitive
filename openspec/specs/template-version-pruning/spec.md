@@ -8,7 +8,7 @@
 
 ## Purpose
 
-Establish reference reachability analysis across workspace models, mandate interactive safety backup consent and git working tree integrity checks during template version migrations (`bump_version`), and provide a safe orphaned spec pruning mechanism (`prune_orphaned_specs` MCP tool).
+Establish reference reachability analysis across workspace models, mandate interactive safety backup consent and git working tree integrity checks before spec pruning, and provide a safe orphaned spec pruning mechanism (`prune_orphaned_specs` MCP tool).
 
 ## Requirements
 
@@ -35,20 +35,14 @@ The `innfo-mcp` engine MUST analyze workspace models (`models/`), root entrypoin
 
 ---
 
-### Requirement: Pre-Migration Safety Check and Backup Consent
+### Requirement: Pre-Prune Safety Check and Backup Consent
 
-Before executing `bump_version` or spec pruning operations, the system MUST verify working tree cleanliness or prompt the user for backup consent. If uncommitted changes exist or `--backup` is specified, the system MUST generate a backup archive snapshot (`.backup/specs_<timestamp>.zip`) or git commit checkpoint prior to mutating disk state.
+Before executing spec pruning operations, the system MUST verify working tree cleanliness or prompt the user for backup consent. If uncommitted changes exist or `--backup` is specified, the system MUST generate a backup archive snapshot (`.backup/specs_<timestamp>.zip`) or git commit checkpoint prior to mutating disk state.
 
 #### Scenario: Safety check triggers backup archive creation when uncommitted changes exist
 - GIVEN uncommitted changes exist in the workspace `specs/` directory
-- WHEN `bump_version` or `prune_orphaned_specs` is invoked
+- WHEN `prune_orphaned_specs` is invoked
 - THEN a timestamped backup zip archive is created in `.backup/` before any spec files are deleted or overwritten
-
-#### Scenario: User backup consent prompt during version migration
-- GIVEN an interactive execution of `bump_version`
-- WHEN migrating model parent references to a new spec version
-- THEN a prompt `needs decision: Create backup checkpoint of specs directory before migrating? [Y/n]` is displayed
-- AND migration proceeds only after user confirmation or automatic `--yes` flag approval
 
 ---
 

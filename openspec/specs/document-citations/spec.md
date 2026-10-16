@@ -82,21 +82,23 @@ A `sources::` value written by the mutation engine in the spec-correct citation-
 - WHEN the serializer runs
 - THEN its output is byte-identical to before this change
 
-### Requirement: add_element Accepts and Persists sources
+### Requirement: add_element cites its change; the change cites the evidence
 
-`apply_change add_element` MUST accept an optional `sources` argument and MUST persist it as the element's `sources::` field, in addition to `fields`. Omitting `sources` MUST NOT change existing `add_element` behavior for `fields`.
+An element created by an `add_element` change MUST carry a `sources::` field that cites the creating change (`changes/<changeset_file>@## NN Change: <id>`, decision D20). The evidence the element derives from is the change's own `sources::` line (a single citation string written by the proposer and sealed with the proposal), so the provenance chain is element, then change, then source. The change's `sources` MUST NOT be copied onto the element.
 
-#### Scenario: add_element with sources persists the citation
+#### Scenario: add_element element cites the change, the change cites the source
 
-- GIVEN an `apply_change add_element` call including `sources`
-- WHEN the mutation is applied
-- THEN the written element has a `sources::` field containing the given value(s)
+- GIVEN an `add_element` change `c-02` with `sources:: sources/import/interview.md@## Clients`
+- WHEN the changeset is applied
+- THEN the new element's `sources::` is `[changes/<changeset_file>@## NN Change: c-02]`
+- AND `c-02` keeps `sources:: sources/import/interview.md@## Clients` unchanged
+- AND the element's `sources::` does not contain `sources/import/interview.md`
 
-#### Scenario: add_element without sources behaves as before
+#### Scenario: add_element without evidence
 
-- GIVEN an `apply_change add_element` call with `fields` only, no `sources`
-- WHEN the mutation is applied
-- THEN the element is written exactly as it was before this change, with no `sources::` field
+- GIVEN an `add_element` change with no `sources::`
+- WHEN the changeset is applied
+- THEN the element still carries `sources::` citing the change
 
 ### Requirement: Malformed Citations Produce an Explicit Diagnostic
 
