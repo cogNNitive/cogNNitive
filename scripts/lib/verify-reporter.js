@@ -14,6 +14,15 @@ const { spawnSync } = require('node:child_process');
 
 const TAIL_LINES = 60;
 
+/** Default per-step wall-clock cap; override with NN_VERIFY_STEP_TIMEOUT_MS. */
+const DEFAULT_STEP_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** @returns {number} the per-step timeout in milliseconds. */
+function stepTimeoutMs() {
+  const raw = Number(process.env.NN_VERIFY_STEP_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_STEP_TIMEOUT_MS;
+}
+
 /**
  * @param {string} text
  * @param {number} count
@@ -45,7 +54,7 @@ function tailLines(text, count) {
  */
 function runStep(step, options) {
   const write = options.write || ((line) => console.log(line));
-  const spawnOptions = { cwd: options.cwd, env: options.env, shell: false };
+  const spawnOptions = { cwd: options.cwd, env: options.env, shell: false, timeout: stepTimeoutMs() };
   const started = Date.now();
 
   if (options.verbose) {
