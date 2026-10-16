@@ -81,3 +81,49 @@ describe('tag facet: tag: is AND + exact, tag-any: is OR', () => {
     assert.deepEqual(ids(list, 'ai'), ['F'], 'full-text search still finds the value')
   })
 })
+
+describe('element and dynamic field qualifiers', () => {
+  const el = (id, name, fields = {}, relations = []) => ({ id, name, concept: 'Device', fields, relations })
+  const ids = (list, q) => InnfoConsole.filterElements(list, q).map((e) => e.id)
+
+  const items = [
+    el('ecto-1', 'Ghost Mobile', { role: 'Interceptor', priority: 5, year: '1984' }),
+    el('trap-1', 'Muon Trap', { role: 'Containment', priority: 3, year: '1984' }),
+    el('pack-1', 'Proton Pack', { priority: 2, year: '1983' }, [{ field: 'assignedTo', targetLabel: 'Peter' }]),
+  ]
+
+  it('filters by element id or name', () => {
+    assert.deepEqual(ids(items, 'element:ecto'), ['ecto-1'])
+    assert.deepEqual(ids(items, 'element:"Ghost Mobile"'), ['ecto-1'])
+    assert.deepEqual(ids(items, 'id:trap-1'), ['trap-1'])
+    assert.deepEqual(ids(items, '-element:pack'), ['ecto-1', 'trap-1'])
+  })
+
+  it('filters by direct field name and value', () => {
+    assert.deepEqual(ids(items, 'role:Interceptor'), ['ecto-1'])
+    assert.deepEqual(ids(items, 'role:containment'), ['trap-1'])
+    assert.deepEqual(ids(items, '-role:Interceptor'), ['trap-1', 'pack-1'])
+  })
+
+  it('filters using field:name=value syntax', () => {
+    assert.deepEqual(ids(items, 'field:role=Interceptor'), ['ecto-1'])
+    assert.deepEqual(ids(items, 'field:role:Containment'), ['trap-1'])
+  })
+
+  it('filters numbers with comparison operators', () => {
+    assert.deepEqual(ids(items, 'priority:>3'), ['ecto-1'])
+    assert.deepEqual(ids(items, 'priority:>=3'), ['ecto-1', 'trap-1'])
+    assert.deepEqual(ids(items, 'priority:<3'), ['pack-1'])
+    assert.deepEqual(ids(items, 'priority:<=3'), ['trap-1', 'pack-1'])
+  })
+
+  it('resolves field values from relations if field is empty', () => {
+    assert.deepEqual(ids(items, 'assignedTo:Peter'), ['pack-1'])
+  })
+
+  it('supports negation with both - and ! prefixes', () => {
+    assert.deepEqual(ids(items, '!role:Interceptor'), ['trap-1', 'pack-1'])
+    assert.deepEqual(ids(items, '-priority:>3'), ['trap-1', 'pack-1'])
+  })
+})
+
