@@ -44,25 +44,25 @@ title: "cogNNitive Real-World Use Cases Catalog"
   target_archetype:: [[ARC-01: Startup Founder & Team]]
   severity:: "Critical"
   symptom:: "Strategy memo, pitch deck, and engineering sprint drift apart on market pivots."
-  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
+  sources:: ["docs/use-cases.md@## 1. 🚀 The Startup Founder %26 Early-Stage Team"]
 
 ## NN PainPoint: PAIN-02: Outdated Rate Cards & Disjointed RFPs
   target_archetype:: [[ARC-02: Consulting Sales Director]]
   severity:: "Critical"
   symptom:: "Account executives quote stale rates, taking 5 days per RFP response."
-  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
+  sources:: ["docs/use-cases.md@## 2. 💼 The Sales Director (Mid-Size Consulting Firm)"]
 
 ## NN PainPoint: PAIN-03: Unpaid Scope Creep
   target_archetype:: [[ARC-03: Freelance Web Designer]]
   severity:: "High"
   symptom:: "Clients contest design decisions and add requirements without budget."
-  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
+  sources:: ["docs/use-cases.md@## 3. 🎨 The Freelance Web Designer %26 Solopreneur"]
 
 ## NN PainPoint: PAIN-04: Disconnected Research & Unverified Facts
   target_archetype:: [[ARC-04: YouTube Content Creator]]
   severity:: "High"
   symptom:: "Video scripts lack source anchors, risking factual errors and audience pushback."
-  sources:: ["docs/use-cases.md@### The Reality %26 Pain"]
+  sources:: ["docs/use-cases.md@## 4. 🎬 The YouTube Video %26 Technical Content Creator"]
 
 # NN Pipeline
 
