@@ -160,9 +160,6 @@ jobs:
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
 
-      - name: Spec version inventory (informational)
-        run: npm run check:spec-version -- --inventory
-
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job
@@ -199,7 +196,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: node scripts/publish-web.mjs
 
-  # UI smoke: Playwright (Chromium) over the committed TestLab console + hub
+  # UI smoke: Playwright (Chromium) over the committed TestLab console
   # artifacts via file://. Standalone job — never blocks verify/quality/site,
   # never gates publishing. Run locally with `npm run test:ui`.
   ui-smoke:
@@ -217,7 +214,7 @@ jobs:
           pip install playwright
           python -m playwright install --with-deps chromium
 
-      - name: UI smoke (TestLab console + hub)
+      - name: UI smoke (TestLab console)
         run: npm run test:ui
 
       - name: Upload UI screenshots

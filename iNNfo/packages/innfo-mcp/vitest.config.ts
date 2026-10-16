@@ -15,7 +15,6 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 const WINDOWS_ONLY_SUITES = [
   'test/apply-change.test.ts',
   'test/concept-drift-and-gate.test.ts',
-  'test/console-golden-parity.test.ts',
 ]
 const skipNonWindows = process.platform === 'win32' ? [] : WINDOWS_ONLY_SUITES
 
