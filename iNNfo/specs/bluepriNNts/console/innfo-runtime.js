@@ -6471,6 +6471,25 @@
       })
     }
 
+    // Ku actions are delegated once per document, never per component.
+    if (UI && typeof UI.createKu === 'function' && !state.kuDelegation) {
+      state.kuDelegation = UI.createKu({
+        doc: active,
+        onAction: function (action, descriptor) {
+          var ctrl = state.controller
+          if (ctrl && typeof ctrl.handleKuAction === 'function') {
+            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
+            return
+          }
+          if (action === 'info' || action === 'changes') {
+            var panel = UI.KuInfoPanel(descriptor)
+            if (active.body) active.body.appendChild(panel)
+            if (panel && typeof panel.showModal === 'function') panel.showModal()
+          }
+        },
+      })
+    }
+
     // The first view mounts here, after the initial search had its say.
     if (tabs) tabs.activateInitial()
 

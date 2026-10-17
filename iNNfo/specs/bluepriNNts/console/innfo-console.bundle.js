@@ -4199,10 +4199,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     info.setAttribute('data-ku-action', 'info')
     info.setAttribute('aria-label', 'Unit info')
     info.innerHTML = icon('info', 13)
-    info.addEventListener('click', function (ev) {
-      if (ev && ev.stopPropagation) ev.stopPropagation()
-      if (opts.onInfo) opts.onInfo(desc)
-    })
+    if (typeof opts.onInfo === 'function') {
+      info.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        opts.onInfo(desc)
+      })
+    }
     actions.appendChild(info)
 
     if (desc.editability !== 'none') {
@@ -4212,10 +4214,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       edit.setAttribute('aria-label', 'Edit unit')
       if (desc.editability === 'structure') edit.setAttribute('data-ku-structure', 'true')
       edit.innerHTML = icon('pencil', 13)
-      edit.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
-        if (opts.onEdit) opts.onEdit(desc)
-      })
+      if (typeof opts.onEdit === 'function') {
+        edit.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onEdit(desc)
+        })
+      }
       actions.appendChild(edit)
     }
     wrap.appendChild(actions)
@@ -4227,13 +4231,59 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       pip.setAttribute('data-innfo-component', 'ku-change-pip')
       pip.setAttribute('data-ku-address', desc.address)
       pip.setAttribute('aria-label', changes + ' pending changes on ' + desc.label)
-      pip.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
-        if (opts.onChanges) opts.onChanges(desc)
-      })
+      if (typeof opts.onChanges === 'function') {
+        pip.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onChanges(desc)
+        })
+      }
       wrap.appendChild(pip)
     }
     return wrap
+  }
+
+  // One delegated listener per document. Ku never owns review behaviour: it
+  // only forwards (action, descriptor) to the host's onAction.
+  function createKu(opts) {
+    opts = opts || {}
+    var doc = opts.doc || (typeof document !== 'undefined' ? document : null)
+    if (!doc || typeof doc.addEventListener !== 'function') return { destroy: function () {} }
+    function descriptorOf(node) {
+      var wrap = node && node.closest ? node.closest('.innfo-ku-wrap') : null
+      var badge = wrap ? wrap.querySelector('[data-innfo-component="ku-unit"]') : null
+      if (!badge) return null
+      var kind = badge.getAttribute('data-ku-kind') || ''
+      var labelEl = badge.querySelector('.innfo-ku-label')
+      var ref = {
+        address: badge.getAttribute('data-ku-address') || '',
+        label: labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || '',
+      }
+      try {
+        return describeUnit(kind, ref)
+      } catch (e) {
+        return null
+      }
+    }
+    function onClick(ev) {
+      var t = ev && ev.target
+      if (!t || !t.closest) return
+      var actionEl = t.closest('[data-ku-action]')
+      var pipEl = t.closest('[data-innfo-component="ku-change-pip"]')
+      if (!actionEl && !pipEl) return
+      var desc = descriptorOf(actionEl || pipEl)
+      if (!desc) return
+      var action = actionEl ? actionEl.getAttribute('data-ku-action') : 'changes'
+      if (typeof opts.onAction === 'function') {
+        if (ev.preventDefault) ev.preventDefault()
+        opts.onAction(action, desc, ev)
+      }
+    }
+    doc.addEventListener('click', onClick)
+    return {
+      destroy: function () {
+        doc.removeEventListener('click', onClick)
+      },
+    }
   }
 
   function KuInfoPanel(descriptor) {
@@ -4286,6 +4336,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     conceptSlot: conceptSlot,
     tagSlot: tagSlot,
     describeUnit: describeUnit,
+    createKu: createKu,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
@@ -4831,6 +4882,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var enabled = false
     var toggleEl = null
+    var structureEl = null
     var openPopover = null
     var lastAnchor = null
 
@@ -5658,32 +5710,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var host = root || doc
       if (!host.querySelectorAll) return
       var drafts = store.drafts() || []
-      var byEl = {}
-      var byField = {}
+      var counts = {}
       drafts.forEach(function (d) {
-        if (!d || !d.element_id) return
-        var eid = String(d.element_id)
-        byEl[eid] = (byEl[eid] || 0) + 1
-        if (d.field) {
-          var k = eid + '#' + String(d.field)
-          byField[k] = (byField[k] || 0) + 1
-        }
+        if (!d) return
+        var key = d.address || (d.element_id ? '@' + String(d.element_id) + (d.field ? '&' + String(d.field) : '') : '')
+        if (!key) return
+        counts[key] = (counts[key] || 0) + 1
       })
-      function applyPip(badge, n, elementId, field) {
+      function countFor(address) {
+        if (counts[address] != null) return counts[address]
+        var found = 0
+        Object.keys(counts).forEach(function (key) {
+          if (address && address.slice(-key.length) === key) found += counts[key]
+        })
+        return found
+      }
+      function applyPip(badge, n, address) {
         if (!badge) return
-        var existing = badge.querySelector('[data-innfo-component="ku-change-pip"]')
+        var wrap = badge.parentNode || badge
+        var existing = wrap.querySelector
+          ? wrap.querySelector('[data-innfo-component="ku-change-pip"]')
+          : null
         if (n > 0) {
           badge.setAttribute('data-ku-changes', String(n))
           if (!existing) {
             var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(n))
             pip.setAttribute('data-innfo-component', 'ku-change-pip')
+            pip.setAttribute('data-ku-address', String(address || ''))
             pip.setAttribute('type', 'button')
-            pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's'))
+            pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + address)
             pip.addEventListener('click', function (ev) {
               if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-              openInfo({ elementId: elementId, field: field })
+              if (typeof openInfo === 'function') openInfo(anchorFromDescriptor({ address: address }))
             })
-            badge.appendChild(pip)
+            wrap.appendChild(pip)
           } else {
             existing.textContent = String(n)
           }
@@ -5692,20 +5752,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
         }
       }
-      Array.prototype.forEach.call(
-        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        function (card) {
-          var elId = card.getAttribute('data-element-id')
-          applyPip(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), byEl[elId] || 0, elId, '__name')
-          Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="value"][data-field]'),
-            function (b) {
-              var f = b.getAttribute('data-field')
-              applyPip(b, byField[elId + '#' + f] || 0, elId, f)
-            },
-          )
-        },
-      )
+      Array.prototype.forEach.call(host.querySelectorAll('[data-ku-address]'), function (badge) {
+        applyPip(badge, countFor(badge.getAttribute('data-ku-address') || ''), badge.getAttribute('data-ku-address'))
+      })
     }
 
     function decorateBadges() {
@@ -5886,10 +5935,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return b
     }
 
+    function buildStructureSwitch() {
+      var dock = doc.getElementById('innfo-review-dock')
+      if (!dock) return null
+      var existing = dock.querySelector('[data-innfo="structure-switch"]')
+      if (existing) return existing
+      var b = makeEl(doc, 'button', 'innfo-structure-switch', 'Edit structure')
+      b.setAttribute('data-innfo', 'structure-switch')
+      b.setAttribute('type', 'button')
+      b.setAttribute('role', 'switch')
+      b.setAttribute('aria-checked', 'false')
+      b.addEventListener('click', function () {
+        var on = b.getAttribute('aria-checked') === 'true'
+        b.setAttribute('aria-checked', on ? 'false' : 'true')
+        if (html()) {
+          if (on) html().removeAttribute('data-innfo-structure')
+          else html().setAttribute('data-innfo-structure', 'on')
+        }
+      })
+      dock.appendChild(b)
+      return b
+    }
+
     function enable() {
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
+      structureEl = buildStructureSwitch()
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
@@ -5912,9 +5984,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (doc.removeEventListener) doc.removeEventListener('keydown', onKeydown)
       if (html()) {
         html().removeAttribute('data-innfo-review')
+        html().removeAttribute('data-innfo-structure')
         html().removeAttribute('data-innfo-filter')
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
+      if (structureEl && structureEl.parentNode) structureEl.parentNode.removeChild(structureEl)
+      structureEl = null
       var dock = doc.getElementById('innfo-review-dock')
       if (dock) {
         dock.style.setProperty('display', 'none', 'important')
@@ -5960,6 +6035,46 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
+    function anchorFromDescriptor(descriptor) {
+      var address = String((descriptor && descriptor.address) || '')
+      var at = address.indexOf('@')
+      var model = at === -1 ? address : address.slice(0, at)
+      var rest = at === -1 ? '' : address.slice(at + 1)
+      var segs = rest.split('&')
+      var unit = segs[0] || ''
+      var subs = segs.slice(1)
+      if (!unit) return { elementId: '', modelId: model }
+      if (unit.indexOf('concept:') === 0) {
+        return { elementId: null, modelId: model, concept: unit.slice('concept:'.length), field: subs[0] }
+      }
+      if (subs.length === 2) {
+        return { elementId: unit, modelId: model, field: '__cell', row: subs[0], col: subs[1] }
+      }
+      if (subs.length === 1) {
+        return { elementId: unit, modelId: model, field: subs[0] }
+      }
+      return { elementId: unit, modelId: model, field: '__name' }
+    }
+
+    // One descriptor-driven entry point for every Ku action. `Ku` never knows
+    // about review mode; the delegated listener forwards here and this function
+    // decides whether the action is legal right now.
+    function handleKuAction(action, descriptor) {
+      if (!descriptor) return false
+      var anchorData = anchorFromDescriptor(descriptor)
+      if (action === 'info') {
+        return openInfo(anchorData)
+      }
+      if (action !== 'edit') return false
+      if (!enabled) return false
+      if (descriptor.editability === 'structure') {
+        if (!html() || html().getAttribute('data-innfo-structure') !== 'on') return false
+        return openEdit(Object.assign({}, anchorData, { comment: true }))
+      }
+      if (descriptor.editability === 'none') return false
+      return openEdit(anchorData)
+    }
+
     toggleEl = buildToggle()
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
     // One initial pass: covers the render that preceded the controller's creation.
@@ -5973,6 +6088,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       disable: disable,
       decorate: decorate,
       openEdit: openEdit,
+      handleKuAction: handleKuAction,
       openNew: openNew,
       propose: saveDraft,
       // Re-renders the host's count surfaces and re-applies decorations after
@@ -12473,6 +12589,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         store: state.store,
         schema: schema,
         onDraftsChanged: refreshDraftCounts,
+      })
+    }
+
+    // Ku actions are delegated once per document, never per component.
+    if (UI && typeof UI.createKu === 'function' && !state.kuDelegation) {
+      state.kuDelegation = UI.createKu({
+        doc: active,
+        onAction: function (action, descriptor) {
+          var ctrl = state.controller
+          if (ctrl && typeof ctrl.handleKuAction === 'function') {
+            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
+            return
+          }
+          if (action === 'info' || action === 'changes') {
+            var panel = UI.KuInfoPanel(descriptor)
+            if (active.body) active.body.appendChild(panel)
+            if (panel && typeof panel.showModal === 'function') panel.showModal()
+          }
+        },
       })
     }
 

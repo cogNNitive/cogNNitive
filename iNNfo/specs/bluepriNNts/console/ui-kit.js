@@ -3282,10 +3282,12 @@
     info.setAttribute('data-ku-action', 'info')
     info.setAttribute('aria-label', 'Unit info')
     info.innerHTML = icon('info', 13)
-    info.addEventListener('click', function (ev) {
-      if (ev && ev.stopPropagation) ev.stopPropagation()
-      if (opts.onInfo) opts.onInfo(desc)
-    })
+    if (typeof opts.onInfo === 'function') {
+      info.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        opts.onInfo(desc)
+      })
+    }
     actions.appendChild(info)
 
     if (desc.editability !== 'none') {
@@ -3295,10 +3297,12 @@
       edit.setAttribute('aria-label', 'Edit unit')
       if (desc.editability === 'structure') edit.setAttribute('data-ku-structure', 'true')
       edit.innerHTML = icon('pencil', 13)
-      edit.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
-        if (opts.onEdit) opts.onEdit(desc)
-      })
+      if (typeof opts.onEdit === 'function') {
+        edit.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onEdit(desc)
+        })
+      }
       actions.appendChild(edit)
     }
     wrap.appendChild(actions)
@@ -3310,13 +3314,59 @@
       pip.setAttribute('data-innfo-component', 'ku-change-pip')
       pip.setAttribute('data-ku-address', desc.address)
       pip.setAttribute('aria-label', changes + ' pending changes on ' + desc.label)
-      pip.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
-        if (opts.onChanges) opts.onChanges(desc)
-      })
+      if (typeof opts.onChanges === 'function') {
+        pip.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onChanges(desc)
+        })
+      }
       wrap.appendChild(pip)
     }
     return wrap
+  }
+
+  // One delegated listener per document. Ku never owns review behaviour: it
+  // only forwards (action, descriptor) to the host's onAction.
+  function createKu(opts) {
+    opts = opts || {}
+    var doc = opts.doc || (typeof document !== 'undefined' ? document : null)
+    if (!doc || typeof doc.addEventListener !== 'function') return { destroy: function () {} }
+    function descriptorOf(node) {
+      var wrap = node && node.closest ? node.closest('.innfo-ku-wrap') : null
+      var badge = wrap ? wrap.querySelector('[data-innfo-component="ku-unit"]') : null
+      if (!badge) return null
+      var kind = badge.getAttribute('data-ku-kind') || ''
+      var labelEl = badge.querySelector('.innfo-ku-label')
+      var ref = {
+        address: badge.getAttribute('data-ku-address') || '',
+        label: labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || '',
+      }
+      try {
+        return describeUnit(kind, ref)
+      } catch (e) {
+        return null
+      }
+    }
+    function onClick(ev) {
+      var t = ev && ev.target
+      if (!t || !t.closest) return
+      var actionEl = t.closest('[data-ku-action]')
+      var pipEl = t.closest('[data-innfo-component="ku-change-pip"]')
+      if (!actionEl && !pipEl) return
+      var desc = descriptorOf(actionEl || pipEl)
+      if (!desc) return
+      var action = actionEl ? actionEl.getAttribute('data-ku-action') : 'changes'
+      if (typeof opts.onAction === 'function') {
+        if (ev.preventDefault) ev.preventDefault()
+        opts.onAction(action, desc, ev)
+      }
+    }
+    doc.addEventListener('click', onClick)
+    return {
+      destroy: function () {
+        doc.removeEventListener('click', onClick)
+      },
+    }
   }
 
   function KuInfoPanel(descriptor) {
@@ -3369,6 +3419,7 @@
     conceptSlot: conceptSlot,
     tagSlot: tagSlot,
     describeUnit: describeUnit,
+    createKu: createKu,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,

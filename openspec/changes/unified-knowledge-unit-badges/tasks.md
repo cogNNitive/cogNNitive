@@ -148,16 +148,16 @@ Chain strategy: size-exception
 
 ## S5 Review Integration: Delegated Actions, Switch, Pips (U5)
 
-- [ ] 5.1 RED review action delegation tests: click on `[data-ku-action="edit"]` bubbles to single delegated listener; dispatches `onAction('edit', descriptor)`:
+- [x] 5.1 RED review action delegation tests: click on `[data-ku-action="edit"]` bubbles to single delegated listener; dispatches `onAction('edit', descriptor)`:
   - If review mode is OFF: action is inert (rejected).
   - If unit is content: opens `EditModal`.
   - If unit is inherited concept value on section badge: opens modal emitting `update_concept_field` with scope notice.
   Spec: console-review-mode "Review Mode Toggle", "Unit Info And Edit Entry Points".
-- [ ] 5.2 GREEN `console/review.js`: replace post-hoc DOM decorators (`decorateCard`, `decorateFieldRow`, etc.) with descriptor-driven action handlers in `onAction`.
-- [ ] 5.3 RED Edit structure switch tests: switch in `#innfo-review-dock` toggles `html[data-innfo-structure=on]`; structure pencils appear only when switch is ON; activating structure pencil opens modal in comment-only mode producing `op: "comment"` draft; switch resets to OFF on review mode exit. Spec: console-review-mode "Edit Structure Switch".
-- [ ] 5.4 GREEN `console/review.js`, `innfo-ui.css`: implement Edit structure switch, CSS rules, and comment draft creation.
-- [ ] 5.5 RED address-keyed pips test: `setUnitChanges(root, countsByAddress)` places pips on elements, fields, and matrix cells matching draft address; pips open Changes/History tab. Spec: console-review-mode "Pending-Change Indicator".
-- [ ] 5.6 GREEN `console/review.js`, `console/ui-kit.js`: wire address-keyed pips.
+- [x] 5.2 GREEN `console/review.js`: replace post-hoc DOM decorators (`decorateCard`, `decorateFieldRow`, etc.) with descriptor-driven action handlers in `onAction`.
+- [x] 5.3 RED Edit structure switch tests: switch in `#innfo-review-dock` toggles `html[data-innfo-structure=on]`; structure pencils appear only when switch is ON; activating structure pencil opens modal in comment-only mode producing `op: "comment"` draft; switch resets to OFF on review mode exit. Spec: console-review-mode "Edit Structure Switch".
+- [x] 5.4 GREEN `console/review.js`, `innfo-ui.css`: implement Edit structure switch, CSS rules, and comment draft creation.
+- [x] 5.5 RED address-keyed pips test: `setUnitChanges(root, countsByAddress)` places pips on elements, fields, and matrix cells matching draft address; pips open Changes/History tab. Spec: console-review-mode "Pending-Change Indicator".
+- [x] 5.6 GREEN `console/review.js`, `console/ui-kit.js`: wire address-keyed pips.
 - [ ] 5.7 Delete `ctx.modal.edit` and `ctx.modal.comment` from runtime context: assert neither is reachable.
 - [ ] 5.8 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U5.
 
