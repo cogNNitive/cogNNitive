@@ -1018,9 +1018,12 @@ export async function writeConsole(opts = {}) {
     if (payload && payload.schema) {
       if (Array.isArray(payload.schema.concepts)) {
         for (const c of payload.schema.concepts) {
-          if (c && c.name && !seenConcepts.has(c.name)) {
-            seenConcepts.add(c.name)
-            allConcepts.push(c)
+          if (c && c.name) {
+            const key = `${(c.declaredBy && c.declaredBy.family) || ''}\u0000${String(c.name).toLowerCase()}`
+            if (!seenConcepts.has(key)) {
+              seenConcepts.add(key)
+              allConcepts.push(c)
+            }
           }
         }
       }
@@ -1028,7 +1031,7 @@ export async function writeConsole(opts = {}) {
       // concepts; a conflicting redeclaration by a later blueprint is warned about.
       for (const f of Array.isArray(payload.schema.fields) ? payload.schema.fields : []) {
         if (!f || !f.concept || !f.name) continue
-        const key = `${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`
+        const key = `${(f.declaredBy && f.declaredBy.family) || ''}\u0000${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`
         const kept = fieldIndex.get(key)
         if (!kept) {
           fieldIndex.set(key, f)
@@ -1047,7 +1050,7 @@ export async function writeConsole(opts = {}) {
         [payload.schema.matrices, seenMatrixDecls, allMatrixDecls],
       ]) {
         for (const d of Array.isArray(list) ? list : []) {
-          const key = d && d.name ? String(d.name).toLowerCase() : ''
+          const key = d && d.name ? `${(d.declaredBy && d.declaredBy.family) || ''}\u0000${String(d.name).toLowerCase()}` : ''
           if (!key || seen.has(key)) continue
           seen.add(key)
           out.push(d)
