@@ -905,6 +905,8 @@ export async function writeConsole(opts = {}) {
   const seenProcedureIds = new Set()
   const modelSummaries = []
   const scopeModelIds = []
+  // Distinct sources cited across every model in the domain (for `meta.domain.sourceCount`).
+  const domainSources = new Set()
   // The changes bluepriNNt version every model payload was built against (identical across models).
   let changesBlueprintVersion = ''
 
@@ -923,6 +925,9 @@ export async function writeConsole(opts = {}) {
     })
     if (payload && payload.model) {
       changesBlueprintVersion = (payload.model.meta && payload.model.meta.changesBlueprintVersion) || changesBlueprintVersion
+      for (const s of (payload.model.meta && payload.model.meta.sources) || []) {
+        if (typeof s === 'string' && s) domainSources.add(s)
+      }
       const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
       const mId = (payload.model.meta && payload.model.meta.modelId) || modelStem
       const modelConcepts = new Set()
@@ -968,6 +973,13 @@ export async function writeConsole(opts = {}) {
         }
       }
       const blueprintName = payloadHelper.parentSpecNameOf(m.fm)
+      const blueprintParsed = blueprintName ? viewsLib.parseSpecName(blueprintName) : null
+      const blueprintFamily =
+        blueprintParsed && blueprintParsed.base
+          ? String(blueprintParsed.base)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+          : null
       // Per-model change count comes from the domain's changesets (the only change
       // record), matched by the model part of each change's D5 target.
       const modelKeys = [mTitle, mId, modelStem].map(function (v) {
@@ -990,7 +1002,8 @@ export async function writeConsole(opts = {}) {
         id: mId,
         title: mTitle,
         filePath: fileName,
-        blueprint: blueprintName ? viewsLib.parseSpecName(blueprintName).base : null,
+        blueprint: blueprintParsed ? blueprintParsed.base : null,
+        family: blueprintFamily,
         version: (m.fm && m.fm.knowledge_version) || null,
         sha256: (payload.model.meta && payload.model.meta.sha256) || computeSha256(m.content),
         citationsResolvedAt:
@@ -1078,6 +1091,12 @@ export async function writeConsole(opts = {}) {
         generated: undefined,
         changesBlueprintVersion,
         models: modelSummaries,
+        domain: {
+          title: basename(root) + ' Domain',
+          address: 'domaiNN_NN.md',
+          modelCount: modelSummaries.length,
+          sourceCount: domainSources.size,
+        },
       },
       elements: allElements,
       matrices: allMatrices,
