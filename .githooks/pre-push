@@ -51,8 +51,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         # re-running the generator lands a red dev tip and blocks the next
         # dev->main batch (2026-10-11 and 2026-10-17). Cheap (~5s) and the only
         # local trigger for it. The mcp dist is not produced by typecheck, so
-        # build it first; with the source unchanged the rebuild is byte-identical.
-        npm --workspace=@cognnitive/innfo-mcp run build >/dev/null 2>&1
+        # build it first with `build:dist` (dist only — a plain build would also
+        # rewrite the committed bin/ bundle); unchanged source rebuilds
+        # byte-identically, so the working tree stays clean.
+        npm --workspace=@cognnitive/innfo-mcp run build:dist >/dev/null 2>&1
         node scripts/generate-docs-facts.mjs --check
         status=$?
         if [ "$status" -ne 0 ]; then
