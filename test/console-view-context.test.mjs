@@ -31,7 +31,13 @@ function bootViews(defs, opts = {}) {
   defs.forEach((d) =>
     booted.document.querySelector(`.innfo-view-tab[data-tab="${d.id}"]`).click(),
   )
-  return { ...booted, ctxs, registry }
+  const controller = booted.res.controller
+  // Views no longer receive ctx.modal; the shared modal slot is the controller's.
+  const editSlot = {
+    edit: (a) => controller.openEdit(a),
+    comment: (a) => controller.openEdit(Object.assign({}, a, { comment: true })),
+  }
+  return { ...booted, ctxs, registry, controller, editSlot }
 }
 
 const noticeText = (document) => {
@@ -87,23 +93,29 @@ describe('S2b shared mount context', () => {
     )
   })
 
-  it('every view opens the controller single modal slot', () => {
-    const { document, ctxs } = bootViews([def('alpha'), def('beta')])
+  it('the view context exposes no modal slot', () => {
+    const { ctxs } = bootViews([def('alpha')])
+    assert.equal(ctxs.alpha.modal, undefined)
+    assert.equal(ctxs.alpha.modalEdit, undefined)
+  })
+
+  it('the controller opens a single modal slot', () => {
+    const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
     const modals = () => document.querySelectorAll('.innfo-edit-modal')
     assert.equal(modals().length, 0)
-    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     assert.equal(modals().length, 1)
     const first = modals()[0]
-    ctxs.beta.modal.edit({ elementId: 'ecto-1', field: '__name' })
+    editSlot.edit({ elementId: 'ecto-1', field: '__name' })
     assert.equal(modals().length, 1, 'the second view replaced the open modal')
     assert.notEqual(modals()[0], first)
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    editSlot.comment({ elementId: 'ecto-1' })
     assert.equal(modals().length, 1, 'a comment modal takes the same slot')
   })
 
   it('a comment modal save lands one comment draft in the shared store', () => {
-    const { document, ctxs } = bootViews([def('alpha'), def('beta')])
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
+    editSlot.comment({ elementId: 'ecto-1' })
     const modal = document.querySelector('.innfo-edit-modal')
     modal.querySelector('.innfo-edit-form-comment textarea').value = 'needs a source'
     modal.querySelector('.innfo-edit-btn-save').click()
@@ -115,8 +127,8 @@ describe('S2b shared mount context', () => {
   })
 
   it('an edit modal save lands a correction for the chosen field', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
+    editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     const modal = document.querySelector('.innfo-edit-modal')
     modal.querySelector('.innfo-edit-form-propose input, .innfo-edit-form-propose textarea').value = 'Hearse'
     modal.querySelector('.innfo-edit-btn-save').click()
@@ -223,7 +235,7 @@ describe('S2b editable views never hold an iframe', () => {
   const tick = () => new Promise((r) => setTimeout(r, 0))
 
   it('an iframe appended during mount is removed synchronously and reported with the id', () => {
-    const { document, ctxs } = bootViews([
+    const { document, ctxs, editSlot } = bootViews([
       def('sneaky', {
         mount(ctx) {
           ctx.container.appendChild(ctx.doc.createElement('iframe'))
@@ -237,7 +249,7 @@ describe('S2b editable views never hold an iframe', () => {
   })
 
   it('a nested iframe added later is removed after the observer runs', async () => {
-    const { document, ctxs } = bootViews([def('late')])
+    const { document, ctxs, editSlot } = bootViews([def('late')])
     ctxs.late.container.innerHTML = '<div><iframe></iframe></div>'
     await tick()
     assert.equal(ctxs.late.container.querySelectorAll('iframe').length, 0)
@@ -245,7 +257,7 @@ describe('S2b editable views never hold an iframe', () => {
   })
 
   it('calling mountHtml from an editable view throws and stays isolated', () => {
-    const { document, ctxs } = bootViews([
+    const { document, ctxs, editSlot } = bootViews([
       def('bad', { mount: (ctx) => ctx.mountHtml('<p>x</p>') }),
       def('good'),
     ])
@@ -256,7 +268,7 @@ describe('S2b editable views never hold an iframe', () => {
   })
 
   it('a readonly view keeps its iframe and raises no notice', async () => {
-    const { document, ctxs } = bootViews([
+    const { document, ctxs, editSlot } = bootViews([
       def('doc', { kind: 'readonly', mount: (ctx) => void ctx.mountHtml('<p>x</p>') }),
     ])
     await tick()
@@ -267,8 +279,8 @@ describe('S2b editable views never hold an iframe', () => {
 
 describe('S2b review follow-up: comment-only modal', () => {
   it('a comment-only target has no mode toggle to flip into Propose value', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
+    editSlot.comment({ elementId: 'ecto-1' })
     const modal = document.querySelector('.innfo-edit-modal')
     assert.ok(modal)
     assert.equal(modal.querySelector('.innfo-edit-mode-selector'), null)
@@ -276,8 +288,8 @@ describe('S2b review follow-up: comment-only modal', () => {
   })
 
   it('an empty comment is rejected with a visible message and no draft', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
+    editSlot.comment({ elementId: 'ecto-1' })
     const modal = document.querySelector('.innfo-edit-modal')
     modal.querySelector('.innfo-edit-form-comment textarea').value = '   '
     modal.querySelector('.innfo-edit-btn-save').click()
@@ -290,8 +302,8 @@ describe('S2b review follow-up: comment-only modal', () => {
   })
 
   it('a field comment modal also rejects an empty comment but keeps the toggle', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1', field: 'role' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
+    editSlot.comment({ elementId: 'ecto-1', field: 'role' })
     const modal = document.querySelector('.innfo-edit-modal')
     assert.ok(modal.querySelector('.innfo-edit-mode-selector'), 'field targets may still propose')
     modal.querySelector('.innfo-edit-btn-save').click()
@@ -341,7 +353,7 @@ describe('S2b review follow-up: store.propose validates its input', () => {
 
 describe('S2b review follow-up: draft change listeners', () => {
   it('a listener that proposes terminates and the final state is shown', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
     let calls = 0
     ctxs.alpha.store.onChange(() => {
       calls++
@@ -367,7 +379,7 @@ describe('S2b review follow-up: draft change listeners', () => {
   })
 
   it('a throwing listener is reported in the view error notice and does not block others', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
     let healthy = 0
     ctxs.alpha.store.onChange(() => {
       throw new Error('listener boom')
@@ -394,24 +406,24 @@ describe('S2b review follow-up: draft change listeners', () => {
 
 describe('S2b review follow-up: openEdit side effects and focus', () => {
   it('an invalid call leaves an open modal untouched', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
+    editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     const open = document.querySelector('.innfo-edit-modal')
-    assert.equal(ctxs.alpha.modal.edit({ elementId: 'nope', field: 'role' }), false)
-    assert.equal(ctxs.alpha.modal.edit({ elementId: 'ecto-1' }), false, 'no field and no comment mode')
-    assert.equal(ctxs.alpha.modal.comment({ elementId: 'nope' }), false)
+    assert.equal(editSlot.edit({ elementId: 'nope', field: 'role' }), false)
+    assert.equal(editSlot.edit({ elementId: 'ecto-1' }), false, 'no field and no comment mode')
+    assert.equal(editSlot.comment({ elementId: 'nope' }), false)
     assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 1)
     assert.equal(document.querySelector('.innfo-edit-modal'), open, 'same modal node survives')
   })
 
   it('cancel restores focus to the element focused when the view opened the modal', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
     const opener = document.createElement('button')
     opener.textContent = 'edit from view'
     ctxs.alpha.container.appendChild(opener)
     opener.focus()
     assert.equal(document.activeElement, opener)
-    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
     assert.notEqual(document.activeElement, opener)
     document.querySelector('.innfo-edit-btn-cancel').click()
@@ -420,13 +432,13 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
   })
 
   it('a second open does not capture the first modal as the focus anchor', () => {
-    const { document, ctxs } = bootViews([def('alpha')])
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
     const opener = document.createElement('button')
     ctxs.alpha.container.appendChild(opener)
     opener.focus()
-    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
-    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    editSlot.comment({ elementId: 'ecto-1' })
     document.querySelector('.innfo-edit-btn-cancel').click()
     assert.equal(document.activeElement, opener)
   })
@@ -437,7 +449,7 @@ describe('S2b review follow-up: embedding guard hardening', () => {
 
   for (const tag of ['object', 'embed', 'frame']) {
     it(`an editable view's <${tag}> is removed during mount and reported`, () => {
-      const { document, ctxs } = bootViews([
+      const { document, ctxs, editSlot } = bootViews([
         def('sneaky', {
           mount(ctx) {
             ctx.container.appendChild(ctx.doc.createElement(tag))
@@ -449,7 +461,7 @@ describe('S2b review follow-up: embedding guard hardening', () => {
     })
 
     it(`an editable view's <${tag}> added later is removed by the observer`, async () => {
-      const { document, ctxs } = bootViews([def('late')])
+      const { document, ctxs, editSlot } = bootViews([def('late')])
       ctxs.late.container.appendChild(document.createElement(tag))
       await tick()
       assert.equal(ctxs.late.container.querySelectorAll(tag).length, 0)
@@ -458,7 +470,7 @@ describe('S2b review follow-up: embedding guard hardening', () => {
   }
 
   it('an editable view cannot park an iframe outside its panel in the document body', async () => {
-    const { document, ctxs } = bootViews([def('alpha')])
+    const { document, ctxs, editSlot } = bootViews([def('alpha')])
     document.body.appendChild(document.createElement('iframe'))
     await tick()
     assert.equal(document.querySelectorAll('iframe').length, 0)
@@ -480,7 +492,7 @@ describe('S2b review follow-up: embedding guard hardening', () => {
   })
 
   it('a readonly view may only create frames through mountHtml', async () => {
-    const { document, ctxs } = bootViews([
+    const { document, ctxs, editSlot } = bootViews([
       def('doc', {
         kind: 'readonly',
         mount(ctx) {

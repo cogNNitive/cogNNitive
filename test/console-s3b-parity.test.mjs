@@ -189,26 +189,26 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     const booted = bootConsole({ registry, model: model_, schema, ...extra })
     booted.document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
     const idOf = (name) => model_.elements.find((e) => e.name === name).id
-    return { ...booted, ctx, idOf }
+    return { ...booted, ctx, idOf, controller: booted.res.controller }
   }
 
   describe('group 10: select, reference, media in the booted console', () => {
     it('a declared select renders a pill and edits through a select with no free-text input', () => {
-      const { document, ctx, idOf } = boot()
+      const { document, controller, idOf } = boot()
       assert.ok(
         [...document.querySelectorAll('.innfo-field-select')].some((n) => n.textContent === 'build'),
         'stage renders as a pill',
       )
-      assert.equal(ctx.modal.edit({ elementId: idOf('Alpha'), field: 'stage' }), true)
+      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'stage' }), true)
       const modal = document.querySelector('.innfo-edit-modal')
       assert.ok(modal.querySelector('select[data-innfo-widget="select"]'))
       assert.equal(modal.querySelector('input[type="text"]'), null, 'no free-text input for a select')
     })
 
     it('reference candidates are the target concepts of the same model, proposing [[Name]]', () => {
-      const { document, ctx, idOf } = boot()
+      const { document, controller, idOf } = boot()
       const window = document.defaultView
-      assert.equal(ctx.modal.edit({ elementId: idOf('Alpha'), field: 'owner' }), true)
+      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'owner' }), true)
       const modal = document.querySelector('.innfo-edit-modal')
       const names = [...modal.querySelectorAll('datalist option')].map((o) => o.value).sort()
       assert.deepEqual(names, ['Ana', 'Ben'], 'Person elements of the same model only')
@@ -220,8 +220,8 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     })
 
     it('a reference with no declared targets offers the same model and no other', () => {
-      const { document, ctx, idOf } = boot()
-      assert.equal(ctx.modal.edit({ elementId: idOf('Alpha'), field: 'peer' }), true)
+      const { document, controller, idOf } = boot()
+      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'peer' }), true)
       const names = [...document.querySelectorAll('.innfo-edit-modal datalist option')].map((o) => o.value)
       assert.ok(['Alpha', 'Beta', 'Ana', 'Ben'].every((n) => names.includes(n)))
       assert.ok(!names.includes('Zed') && !names.includes('Retail'), 'no element of the other model')

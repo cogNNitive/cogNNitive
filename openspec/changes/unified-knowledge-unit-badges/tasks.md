@@ -158,8 +158,8 @@ Chain strategy: size-exception
 - [x] 5.4 GREEN `console/review.js`, `innfo-ui.css`: implement Edit structure switch, CSS rules, and comment draft creation.
 - [x] 5.5 RED address-keyed pips test: `setUnitChanges(root, countsByAddress)` places pips on elements, fields, and matrix cells matching draft address; pips open Changes/History tab. Spec: console-review-mode "Pending-Change Indicator".
 - [x] 5.6 GREEN `console/review.js`, `console/ui-kit.js`: wire address-keyed pips.
-- [ ] 5.7 Delete `ctx.modal.edit` and `ctx.modal.comment` from runtime context: assert neither is reachable.
-- [ ] 5.8 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U5.
+- [x] 5.7 Delete `ctx.modal.edit` and `ctx.modal.comment` from runtime context: assert neither is reachable.
+- [x] 5.8 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U5.
 
 ---
 

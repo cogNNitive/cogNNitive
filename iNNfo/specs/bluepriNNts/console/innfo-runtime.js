@@ -4295,14 +4295,6 @@
             })
           },
         },
-        modal: {
-          edit: function (a) {
-            return controller().openEdit(anchor(a))
-          },
-          comment: function (a) {
-            return controller().openEdit(Object.assign(anchor(a), { comment: true }))
-          },
-        },
         changeset: {
           count: function () {
             return opts.state.store.drafts().length

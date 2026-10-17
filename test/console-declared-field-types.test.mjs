@@ -151,7 +151,7 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
     const booted = bootConsole({ registry, model: model_, schema })
     booted.document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
     const idOf = (name) => model_.elements.find((e) => e.name === name).id
-    return { ...booted, ctx, idOf }
+    return { ...booted, ctx, idOf, controller: booted.res.controller }
   }
 
   it('renders declared select values as pills in the cards', () => {
@@ -162,20 +162,20 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
   })
 
   it('opens the modal with each concept\'s own definition for a shared field name', () => {
-    const { document, ctx, idOf } = bootExport()
+    const { document, controller, idOf } = bootExport()
     const optionsOf = () =>
       [...document.querySelectorAll('.innfo-edit-modal select[data-innfo-widget="select"] option')].map(
         (o) => o.value,
       )
-    assert.equal(ctx.modal.edit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
+    assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
     assert.deepEqual(optionsOf(), ['', 'active', 'retired'])
-    assert.equal(ctx.modal.edit({ elementId: idOf('Slimer'), field: 'status' }), true)
+    assert.equal(controller.openEdit({ elementId: idOf('Slimer'), field: 'status' }), true)
     assert.deepEqual(optionsOf(), ['', 'free', 'trapped'])
   })
 
   it('opens an undeclared numeric field as a number input', () => {
-    const { document, ctx, idOf } = bootExport()
-    assert.equal(ctx.modal.edit({ elementId: idOf('Ecto-1'), field: 'mileage' }), true)
+    const { document, controller, idOf } = bootExport()
+    assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'mileage' }), true)
     assert.ok(document.querySelector('.innfo-edit-modal input[type="number"]'))
   })
 })

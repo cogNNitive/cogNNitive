@@ -136,11 +136,12 @@ describe('export-console asset rebasing (S3b review follow-ups)', () => {
     const registry = InnfoConsole.createViewRegistry()
     let ctx
     registry.register({ id: 'probe', title: 'probe', icon: 'chart', order: 20, kind: 'editable', mount: (c) => (ctx = c) })
-    const { document } = bootConsole({ registry, model: deep, schema })
+    const { document, res } = bootConsole({ registry, model: deep, schema })
     document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
     const window = document.defaultView
     const id = el(deep, 'Plain').id
-    assert.equal(ctx.modal.edit({ elementId: id, field: 'demo' }), true)
+    assert.equal(ctx.modal, undefined, 'views cannot reach the modal slot')
+    assert.equal(res.controller.openEdit({ elementId: id, field: 'demo' }), true)
     const modal = document.querySelector('.innfo-edit-modal')
     assert.equal(modal.querySelector('input').value, 'sources/plain.mp4', 'the editor shows the document text')
     modal.querySelector('input').value = 'sources/other.mp4'
