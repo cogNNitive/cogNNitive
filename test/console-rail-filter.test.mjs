@@ -153,4 +153,32 @@ describe('element and dynamic field qualifiers', () => {
   })
 })
 
+describe('filter help and field facet values (S4/U4)', () => {
+  it('lists select field values and states the AND/OR asymmetry', () => {
+    const MODEL = {
+      meta: { title: 'Rail Lab', modelId: 'rail-lab', modelVersion: 'V_1-0-0' },
+      elements: [
+        { id: 'a', concept: 'C', name: 'A', fields: { tags: ['ai', 'pricing'] }, hash: '0'.repeat(16) },
+      ],
+      matrices: [],
+    }
+    const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
+    const { document } = bootConsole({ model: MODEL, schema })
+    const toolbar = document.querySelector('.innfo-toolbar')
+    const host = document.createElement('div')
+    host.id = 'innfo-filter-facets'
+    toolbar.appendChild(host)
+
+    InnfoConsole.renderFilterBar(document, { meta: MODEL.meta, elements: MODEL.elements, schema }, () => {}, '')
+
+    const help = document.querySelector('[data-innfo-filter-help]')
+    assert.ok(help, 'filter help present')
+    assert.match(help.textContent, /AND/)
+    assert.match(help.textContent, /OR/)
+
+    assert.match(host.textContent, /ai/, 'the tags select value is listed')
+    assert.match(host.textContent, /pricing/, 'every value of the multi-valued field is listed')
+  })
+})
+
 

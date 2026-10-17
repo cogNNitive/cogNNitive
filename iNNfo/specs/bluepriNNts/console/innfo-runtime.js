@@ -1256,16 +1256,27 @@
     if (state && Array.isArray(state.elements)) {
       state.elements.forEach(function (e) {
         if (!e) return
-        var ef = e.fields
-        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
-          Object.keys(ef).forEach(function (fName) {
-            var rawVal = ef[fName]
-            if (rawVal === undefined || rawVal === null || rawVal === '') return
-            // Ignore bulky JSON/complex objects or array strings if inappropriate
-            var sVal = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal).trim()
+        var collect = function (fName, rawVal) {
+          if (rawVal === undefined || rawVal === null || rawVal === '') return
+          var vals = Array.isArray(rawVal) ? rawVal : [rawVal]
+          vals.forEach(function (v) {
+            if (v === undefined || v === null || v === '') return
+            var sVal = typeof v === 'object' ? JSON.stringify(v) : String(v).trim()
             if (!sVal || sVal.length > 60) return
             if (!fieldFacetMap[fName]) fieldFacetMap[fName] = {}
             fieldFacetMap[fName][sVal] = (fieldFacetMap[fName][sVal] || 0) + 1
+          })
+        }
+        var ef = e.fields
+        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
+          Object.keys(ef).forEach(function (fName) {
+            collect(fName, ef[fName])
+          })
+        }
+        if (e.inherited && typeof e.inherited === 'object') {
+          Object.keys(e.inherited).forEach(function (fName) {
+            var iv = e.inherited[fName]
+            collect(fName, iv && typeof iv === 'object' && 'value' in iv ? iv.value : iv)
           })
         }
       })
@@ -1361,6 +1372,19 @@
       fWrap.appendChild(fMenu)
       host.appendChild(fWrap)
     }
+
+    // Filter help: state the AND vs OR asymmetry (Fields/text AND, Model/Concept OR).
+    var filterHelp = el(
+      'span',
+      'innfo-filter-help text-xs text-slate-400',
+      'Fields and text combine with AND; within one token a|b is OR. Model and Concept combine with OR.',
+    )
+    filterHelp.setAttribute('data-innfo-filter-help', '1')
+    filterHelp.setAttribute(
+      'title',
+      'Fields and free text combine with AND. Model and Concept selections combine with OR. Inside one Field token, `a|b` matches any of the listed values.',
+    )
+    host.appendChild(filterHelp)
 
     // 4. Clear button if any filter is active
     if (activeQuery) {
