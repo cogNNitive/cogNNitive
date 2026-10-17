@@ -583,6 +583,8 @@
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
+      // Canonical unit address of the draft target (element, or element&field).
+      draft.address = draft.field ? `${draft.element_id}&${draft.field}` : draft.element_id
       var saved = store.addDraft(draft)
       refreshCount()
       return saved

@@ -953,10 +953,7 @@ export async function writeConsole(opts = {}) {
             el.modelDir = dirname(relPath)
             const cName = el.concept || 'Element'
             const eName = el.name || el.id || ''
-            const cSlug = cName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-            const eSlug = eName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-            el.unitSlug = `${fileName}@${cSlug}--${eSlug}`
-            el.canonicalUnit = `${fileName}@## ${cName}: ${eName}`
+            el.location = `${fileName}@## ${cName}: ${eName}`
             allElements.push(el)
             if (el.concept) modelConcepts.add(el.concept)
           }

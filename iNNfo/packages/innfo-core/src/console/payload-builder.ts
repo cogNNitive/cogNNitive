@@ -43,6 +43,8 @@ export interface ConsolePayloadElement {
   concept: string
   name: string
   description?: string
+  /** Human-readable header location, e.g. `file_NN.md@## NN Concept: Name`. */
+  location?: string
   fields: Record<string, unknown>
   markers: Record<string, unknown>
   hash: string
@@ -56,10 +58,12 @@ export interface ConsoleMatrixHeadEntry {
   label?: string
   concept?: string
   kind?: 'element' | 'marker'
+  slug?: string
 }
 
 export interface ConsolePayloadMatrix {
   name: string
+  slug?: string
   source: string
   target: string
   rows: string[]
@@ -304,17 +308,24 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       const headRows: Record<string, ConsoleMatrixHeadEntry> = {}
       const headCols: Record<string, ConsoleMatrixHeadEntry> = {}
       for (const r of rows) {
-        headRows[r] = { label: r, concept: mat.source || undefined, kind: 'element' }
+        headRows[r] = {
+          label: r,
+          concept: mat.source || undefined,
+          kind: 'element',
+          slug: elementsByName.get(r.toLowerCase())?.slug || slugify(r),
+        }
       }
       for (const c of cols) {
         headCols[c] = {
           label: c,
           concept: mat.target || undefined,
           kind: 'element',
+          slug: elementsByName.get(c.toLowerCase())?.slug || slugify(c),
         }
       }
       matrices.push({
         name: mat.name,
+        slug: slugify(mat.name),
         source: mat.source || '',
         target: mat.target || '',
         rows,

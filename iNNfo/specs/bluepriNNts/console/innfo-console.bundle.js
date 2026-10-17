@@ -4091,6 +4091,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
+      // Canonical unit address of the draft target (element, or element&field).
+      draft.address = draft.field ? `${draft.element_id}&${draft.field}` : draft.element_id
       var saved = store.addDraft(draft)
       refreshCount()
       return saved
@@ -5400,8 +5402,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       element.modelId,
       element.modelFile,
       element.modelTitle,
-      element.unitSlug,
-      element.canonicalUnit,
+      element.location,
     ]
     var effTags = getElementEffectiveTags(element)
     if (effTags.length) {
@@ -7365,7 +7366,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           fields: fields,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
-          path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
+          path: element.location || element.modelFile || element.modelTitle || null,
           tags: getElementEffectiveTags(element),
           relations:
             Array.isArray(element.relations) && element.relations.length ? element.relations : null,
