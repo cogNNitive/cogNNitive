@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-kO7cPd887xpbcn+7jCdkktv+4pyc8NdAffbzfcRmuo8=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-9HkswyUX4U82Zqo+FaGJ/Wnjbn5mceL7mYN8WLIkeeY=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9057,7 +9057,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-c992db83",
-    "generated": "2026-10-17T08:39:52.886Z",
+    "generated": "2026-10-17T08:56:25.182Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T08:39:52.849Z",
+        "citationsResolvedAt": "2026-10-17T08:56:25.134Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9157,13 +9157,13 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Photo log element with image and file fields.",
         "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
-        "photo": "./sources/import/photo.png",
+        "photo": "./test/fixtures/testlab/sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "./sources/import/manual.txt",
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
         "sibling": "[[Element 2A]]",
         "status": "reviewed"
       },
@@ -9269,7 +9269,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
         ],
         "summary": "Shift owner element.",
-        "attachment": "./sources/import/manual.txt",
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
         "owner": "[[Element 1A]]"
       },
       "markers": {},
@@ -9314,7 +9314,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/dataset.csv@m-002"
         ],
         "summary": "Handover owner element.",
-        "attachment": "./sources/import/manual.txt",
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
         "owner": "[[Element 1C (test)]]"
       },
       "markers": {},
@@ -9360,13 +9360,13 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe that image traceability resolves through the sidecar.",
         "long_description": "This probe cites the photo sidecar caption, never the binary. A resolver that accepts a direct photo.png citation without the sidecar is wrong.",
-        "photo": "./sources/import/photo.png",
+        "photo": "./test/fixtures/testlab/sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "./sources/import/manual.txt"
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
       },
       "markers": {},
       "hash": "35ccda5bf585eb0a",
@@ -9591,8 +9591,8 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe with a very long inline description field.",
         "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
-        "photo": "./sources/import/photo.png",
-        "attachment": "./sources/import/manual.txt"
+        "photo": "./test/fixtures/testlab/sources/import/photo.png",
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
       },
       "markers": {},
       "hash": "bf368406030a5fd9",
@@ -9631,7 +9631,7 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe for the generic file field type.",
         "long_description": "The attachment field points at the plain-text manual stand-in. It exercises the file type path without involving image, video, or audio rendering.",
-        "attachment": "./sources/import/manual.txt"
+        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
       },
       "markers": {},
       "hash": "d252f224724d06ce",
@@ -15544,18 +15544,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function parseFilterQuery(query) {
     var raw = String(query == null ? '' : query).trim()
     if (!raw) return { textTokens: [], operators: [] }
-    var parts = raw.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+    // Match tokens: key:"quoted val", key:'quoted val', standalone "quoted val", or unquoted non-whitespace
+    var parts = raw.match(/[^\s"':]+:(?:"[^"]*"|'[^']*'|[^\s]+)|"[^"]*"|'[^']*'|[^\s]+/g) || []
     var textTokens = []
     var operators = []
 
     parts.forEach(function (part) {
-      var unquoted = part.replace(/^"|"$/g, '')
-      var colonIdx = unquoted.indexOf(':')
+      var colonIdx = part.indexOf(':')
       if (colonIdx > 0) {
-        var key = unquoted.slice(0, colonIdx).toLowerCase()
-        var val = unquoted.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
-        operators.push({ key: key, val: val, raw: unquoted })
+        var key = part.slice(0, colonIdx).toLowerCase()
+        var val = part.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
+        operators.push({ key: key, val: val, raw: part })
       } else {
+        var unquoted = part.replace(/^["']|["']$/g, '')
         textTokens.push(unquoted.toLowerCase())
       }
     })
@@ -16438,7 +16439,118 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(cWrap)
     }
 
-    // 3. Clear button if any filter is active
+    // 3. Fields Dropdown (dynamic fields extracted from elements)
+    var fieldFacetMap = {}
+    if (state && Array.isArray(state.elements)) {
+      state.elements.forEach(function (e) {
+        if (!e) return
+        var ef = e.fields
+        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
+          Object.keys(ef).forEach(function (fName) {
+            var rawVal = ef[fName]
+            if (rawVal === undefined || rawVal === null || rawVal === '') return
+            // Ignore bulky JSON/complex objects or array strings if inappropriate
+            var sVal = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal).trim()
+            if (!sVal || sVal.length > 60) return
+            if (!fieldFacetMap[fName]) fieldFacetMap[fName] = {}
+            fieldFacetMap[fName][sVal] = (fieldFacetMap[fName][sVal] || 0) + 1
+          })
+        }
+      })
+    }
+    var fieldNames = Object.keys(fieldFacetMap).sort()
+    if (fieldNames.length > 0) {
+      // Find active field operators
+      var activeFieldCount = 0
+      parsed.operators.forEach(function (op) {
+        var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+        if (fieldFacetMap[normKey] || fieldNames.some(function (fn) { return fn.toLowerCase() === normKey })) {
+          activeFieldCount++
+        }
+      })
+
+      var fWrap = el('div', 'innfo-facet-dropdown')
+      var fBtn = el('button', 'innfo-facet-btn' + (activeFieldCount > 0 ? ' active' : ''))
+      fBtn.setAttribute('type', 'button')
+      var fIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('sliders', { size: 14 }) || InnfoIcons.getSvg('tag', { size: 14 }) : '🏷️'
+      var fLabel = activeFieldCount > 0 ? 'Fields (' + activeFieldCount + ')' : 'Fields'
+      fBtn.innerHTML = fIcon + ' <span>' + fLabel + '</span> <span style="font-size: 10px;">▼</span>'
+
+      var fMenu = el('div', 'innfo-facet-menu')
+      fMenu.style.minWidth = '240px'
+
+      fieldNames.forEach(function (fName) {
+        var fValsObj = fieldFacetMap[fName]
+        var valKeys = Object.keys(fValsObj).sort()
+        if (valKeys.length === 0) return
+
+        var header = el('div', 'text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-2 pb-1 border-b border-slate-100', fName)
+        fMenu.appendChild(header)
+
+        valKeys.forEach(function (valKey) {
+          var item = el('label', 'innfo-facet-item')
+          var cb = el('input', 'innfo-facet-checkbox')
+          cb.type = 'checkbox'
+
+          var isChecked = parsed.operators.some(function (op) {
+            var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+            return normKey === fName.toLowerCase() && String(op.val).toLowerCase() === valKey.toLowerCase()
+          })
+          cb.checked = isChecked
+
+          cb.addEventListener('change', function () {
+            toggleFacet(fName, valKey, cb.checked)
+          })
+
+          var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', valKey)
+          nameSpan.title = fName + ': ' + valKey
+          var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(fValsObj[valKey]))
+
+          item.appendChild(cb)
+          item.appendChild(nameSpan)
+          item.appendChild(cntBadge)
+          fMenu.appendChild(item)
+        })
+      })
+
+      fBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        var isOpen = fMenu.classList.contains('open')
+        doc.querySelectorAll('.innfo-facet-menu').forEach(function (menu) { menu.classList.remove('open') })
+        if (!isOpen) fMenu.classList.add('open')
+      })
+
+      if (activeFieldCount > 0) {
+        var fClear = el('span', 'innfo-facet-clear', '×')
+        fClear.setAttribute('role', 'button')
+        fClear.setAttribute('title', 'Clear fields filter')
+        fClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+            return !fieldFacetMap[normKey] && !fieldNames.some(function (fn) { return fn.toLowerCase() === normKey })
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        fBtn.appendChild(fClear)
+      }
+
+      fWrap.appendChild(fBtn)
+      fWrap.appendChild(fMenu)
+      host.appendChild(fWrap)
+    }
+
+    // 4. Clear button if any filter is active
     if (activeQuery) {
       var clearBtn = el('button', 'btn btn-ghost btn-xs text-xs text-slate-500 hover:text-error', 'Clear filters')
       clearBtn.setAttribute('type', 'button')

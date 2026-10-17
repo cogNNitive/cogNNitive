@@ -5411,18 +5411,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function parseFilterQuery(query) {
     var raw = String(query == null ? '' : query).trim()
     if (!raw) return { textTokens: [], operators: [] }
-    var parts = raw.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+    // Match tokens: key:"quoted val", key:'quoted val', standalone "quoted val", or unquoted non-whitespace
+    var parts = raw.match(/[^\s"':]+:(?:"[^"]*"|'[^']*'|[^\s]+)|"[^"]*"|'[^']*'|[^\s]+/g) || []
     var textTokens = []
     var operators = []
 
     parts.forEach(function (part) {
-      var unquoted = part.replace(/^"|"$/g, '')
-      var colonIdx = unquoted.indexOf(':')
+      var colonIdx = part.indexOf(':')
       if (colonIdx > 0) {
-        var key = unquoted.slice(0, colonIdx).toLowerCase()
-        var val = unquoted.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
-        operators.push({ key: key, val: val, raw: unquoted })
+        var key = part.slice(0, colonIdx).toLowerCase()
+        var val = part.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
+        operators.push({ key: key, val: val, raw: part })
       } else {
+        var unquoted = part.replace(/^["']|["']$/g, '')
         textTokens.push(unquoted.toLowerCase())
       }
     })
