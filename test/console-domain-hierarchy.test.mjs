@@ -11,7 +11,7 @@ const runtimePath = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console',
 const InnfoConsole = require(runtimePath)
 
 describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
-  test('filterElements matches by model:, file:, tag:, and text tokens', () => {
+  test('filterElements matches by model:, file:, tags:, and text tokens', () => {
     assert.ok(InnfoConsole, 'InnfoConsole module loaded')
 
     const elements = [
@@ -22,7 +22,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
         modelId: 'business-model',
         modelFile: 'business_model.md',
         modelTitle: 'Business Model',
-        tags: ['critical', 'executive'],
+        fields: { tags: ['critical', 'executive'] },
       },
       {
         id: 'el-2',
@@ -31,7 +31,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
         modelId: 'analysis',
         modelFile: 'analysis.md',
         modelTitle: 'Strategic Analysis',
-        tags: ['paranormal'],
+        fields: { tags: ['paranormal'] },
       },
     ]
 
@@ -45,13 +45,13 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(byFile.length, 1)
     assert.equal(byFile[0].id, 'el-2')
 
-    // Match by tag facet
-    const byTag = InnfoConsole.filterElements(elements, 'tag:paranormal')
+    // Match by tag facet (tags is an ordinary Field, exact membership)
+    const byTag = InnfoConsole.filterElements(elements, 'tags:paranormal')
     assert.equal(byTag.length, 1)
     assert.equal(byTag[0].id, 'el-2')
 
-    // Combined multi-facet query (AND between facets; tag: is AND, model: is OR)
-    const combined = InnfoConsole.filterElements(elements, 'model:business tag:executive')
+    // Combined multi-facet query (AND between facets; tags: is AND, model: is OR)
+    const combined = InnfoConsole.filterElements(elements, 'model:business tags:executive')
     assert.equal(combined.length, 1)
     assert.equal(combined[0].id, 'el-1')
 
@@ -60,7 +60,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(multiModel.length, 2)
 
     // Non-matching facet
-    const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tag:executive')
+    const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tags:executive')
     assert.equal(noMatch.length, 0)
 
     // Quoted facet value with spaces after colon (e.g. concept:"Concept 1" or model:"Business Model")
@@ -73,7 +73,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
         modelId: 'testlab',
         modelFile: 'TestLab_coverage_TestLab_NN.md',
         modelTitle: 'TestLab Coverage Model',
-        tags: [],
+        fields: { tags: [] },
       },
     ]
     const byQuotedConcept = InnfoConsole.filterElements(withSpaces, 'concept:"Concept 1"')
@@ -239,14 +239,13 @@ describe('Hostile text renders as text, never as markup', () => {
     const rail = document.getElementById('innfo-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('[onerror]'), null)
-    const icon = rail.querySelector('.innfo-rail-concept-icon')
-    assert.ok(icon, 'concept icon still rendered')
+    assert.ok(rail.querySelector('[data-ku-kind="section"]'), 'concept badge still rendered')
     assert.ok(!rail.innerHTML.includes('onerror'))
   })
 
   test('search token and operator value in the filter pills are inert', () => {
     const document = boot('<input id="innfo-search" /><div id="innfo-filter-facets"></div><div id="innfo-active-filters"></div>')
-    InnfoConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tag:<b>x</b>`)
+    InnfoConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tags:<b>x</b>`)
 
     const pills = document.getElementById('innfo-active-filters')
     assert.ok(pills.children.length > 0, 'pills rendered')

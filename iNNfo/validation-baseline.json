@@ -93,41 +93,6 @@
       "fingerprint": "iNNfo/specs/iNNfo_V_0-2-1_NN.md::format.fm-version::::Missing model_version"
     },
     {
-      "path": "iNNfo/specs/templates/base/samples/Ghostbusters_cogNNitive_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/samples/Ghostbusters_cogNNitive_NN.md::elements.ModelRecords::::Concept \"ModelRecords\" is not defined in template"
-    },
-    {
-      "path": "iNNfo/specs/templates/base/samples/workspace_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/samples/workspace_NN.md::elements.Models::::Concept \"Models\" is not defined in template"
-    },
-    {
-      "path": "iNNfo/specs/templates/base/spec_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Artifacts::::[COMPOSITION_COLLISION] Concept Definition \"Artifacts\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
-    },
-    {
-      "path": "iNNfo/specs/templates/base/spec_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Models::::[COMPOSITION_COLLISION] Concept Definition \"Models\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
-    },
-    {
-      "path": "iNNfo/specs/templates/base/spec_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Procedures::::[COMPOSITION_COLLISION] Concept Definition \"Procedures\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
-    },
-    {
-      "path": "iNNfo/specs/templates/base/spec_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Sources::::[COMPOSITION_COLLISION] Concept Definition \"Sources\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
-    },
-    {
-      "path": "iNNfo/specs/templates/base/spec_NN.md",
-      "code": "",
-      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Matrix.Artifact-Source Lineage::::[COMPOSITION_COLLISION] Matrix Definition \"Artifact-Source Lineage\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
-    },
-    {
       "path": "iNNfo/specs/templates/business-model/spec_NN.md",
       "code": "",
       "fingerprint": "iNNfo/specs/templates/business-model/spec_NN.md::includes.Concept.Compensations::::Concept Definition \"Compensations\" is declared with different bodies by both \"Organization Template\" and \"Business Model Template\" ΓÇö `includes` composition is additive and MUST NOT redeclare a Definition differently"

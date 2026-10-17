@@ -4,6 +4,7 @@ import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from '
 import { CONCEPT_DEFINITION } from '../schema/index.js'
 import { QUALIFIED_REF_RE } from './workspaceReferences.js'
 import { parseName, checkNameInvariant, blueprintNameOf } from '../naming/contract.js'
+import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).
@@ -535,6 +536,23 @@ export function validateFormatContent(
         elementsInIndex.length > 0
           ? `${elementsInIndex.length} Element(s) found in index block: ${elementsInIndex.slice(0, 5).join(', ')}${elementsInIndex.length > 5 ? '…' : ''}. Elements should NOT appear in the index — they are discovered within their Concept sections.`
           : undefined,
+    })
+  }
+
+  // 15. Removed marker constructs (Marker Definition and legacy marker matrix)
+  const removedConstructs = checkRemovedMarkerConstructs(parsed, fileName)
+  for (const rc of removedConstructs) {
+    checks.push({
+      id: rc.code || 'MARKERS_REMOVED',
+      label: 'Marker constructs removed in V_0-5-0',
+      description: 'Marker Definitions and legacy marker matrices are removed in iNNfo V_0-5-0',
+      category: 'body',
+      severity: rc.severity as 'error',
+      passed: false,
+      message: rc.message,
+      code: rc.code,
+      promptHint: rc.promptHint,
+      meta: rc.meta,
     })
   }
 

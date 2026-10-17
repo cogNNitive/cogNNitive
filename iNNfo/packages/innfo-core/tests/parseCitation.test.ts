@@ -238,6 +238,8 @@ describe('parseCitation', () => {
       expect(parseCitation(null as unknown as string)).toBeNull()
       expect(parseCitation('https://example.com/doc.md')).toBeNull()
       expect(parseCitation('http://example.com/doc.md@## Intro')).toBeNull()
+      expect(parseCitation('sources/import/notes')).toBeNull()
+      expect(parseCitation('specs/testlab@concept:concept-1')).toBeNull()
     })
   })
 })

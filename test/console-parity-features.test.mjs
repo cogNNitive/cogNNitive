@@ -107,7 +107,15 @@ describe('Concept guidance sidebar', () => {
   }
   const SCHEMA = {
     concepts: [
-      { name: 'Fleet', description: 'Vehicles in the fleet.', fields: [{ name: 'role', type: 'string' }] },
+      {
+        name: 'Fleet',
+        description: 'Vehicles in the fleet.',
+        fields: [
+          { name: 'role', type: 'string' },
+          { name: 'tags', type: 'select', multiple: true },
+        ],
+        conceptFields: { tags: ['core'] },
+      },
       { name: 'Ghost', description: '' },
     ],
   }
@@ -126,6 +134,9 @@ describe('Concept guidance sidebar', () => {
     assert.ok(guide, 'guide sidebar created')
     assert.match(guide.textContent, /Vehicles in the fleet\./)
     assert.match(guide.textContent, /role/)
+    assert.match(guide.textContent, /multi/)
+    assert.match(guide.textContent, /core/)
+    assert.doesNotMatch(guide.textContent, /Markers/)
     assert.match(guide.textContent, /Duty/)
     assert.match(guide.textContent, /1 element/)
   })

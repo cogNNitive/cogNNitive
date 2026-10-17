@@ -71,7 +71,7 @@ describe('console-review-popover (annotation)', () => {
     vi.restoreAllMocks()
   })
 
-  it('cards expose no annotate anchor; tag proposals open a comment-only popover', () => {
+  it('cards expose no annotate anchor; tag proposals open a correction-only popover', () => {
     enableReview()
     const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
     // The card-level annotate anchor was retired: element edits/comments go
@@ -86,15 +86,16 @@ describe('console-review-popover (annotation)', () => {
     const kinds = Array.from(pop.querySelectorAll('.innfo-popover-kind')).map((b) =>
       b.getAttribute('data-kind'),
     )
-    expect(kinds).toContain('comment')
+    // A tag proposal is a `correction` on the `tags` Field (applied as update_field).
+    expect(kinds).toContain('correction')
+    expect(kinds).not.toContain('comment')
     expect(kinds).not.toContain('delete')
-    expect(kinds).not.toContain('correction')
   })
 
   it('field row anchor opens the unified edit modal, prefilled with the payload value', () => {
     enableReview()
     const fieldRow = env.document.querySelector(
-      '[data-ku-kind="field"][data-field="owner"]',
+      '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
     const anchor = fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
@@ -116,7 +117,7 @@ describe('console-review-popover (annotation)', () => {
   it('saving a field correction writes target.field, original and current hash as base_hash', () => {
     enableReview()
     const fieldRow = env.document.querySelector(
-      '[data-ku-kind="field"][data-field="owner"]',
+      '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
     ;(fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),

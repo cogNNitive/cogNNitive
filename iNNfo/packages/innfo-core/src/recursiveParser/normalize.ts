@@ -78,12 +78,12 @@ export function nowIso(): string {
 }
 
 /** Extracts a node's own locally-declared metamodel from its body-level
- *  `Concept Definition` / `Marker Definition` elements (level-2 templates
- *  instantiate the root primitives of the Metaplantilla Nivel 1). Level-3
- *  models declare no local metamodel. */
+ *  `Concept Definition` / `Field Definition` / `Matrix Definition` elements
+ *  (level-2 templates instantiate the root primitives of the Metaplantilla
+ *  Nivel 1). Level-3 models declare no local metamodel. */
 export function toLocalMetamodel(parsed: ParsedKnowledge): LocalMetamodel {
   const schema = extractBlueprintSchema(parsed)
-  return { concepts: schema.concepts, markers: schema.markers, taxonomy: schema.taxonomy }
+  return { concepts: schema.concepts, taxonomy: schema.taxonomy }
 }
 
 export function toFieldValues(fields: Record<string, unknown>): Record<string, FieldValue> {
@@ -263,8 +263,6 @@ export function normalizeElementsIntoGraph(
         kind: 'element',
         slug: el.slug,
         fields: toFieldValues(el.fields),
-        markers: { ...(parsed.nodeMarkers[el.name] ?? {}) },
-        tags: el.tags,
         relationships: [],
         rawSections: el.description ? { description: el.description } : {},
         source: { path: sourcePath },
@@ -286,21 +284,6 @@ export function normalizeElementsIntoGraph(
         // hosts unable to triage it.
         severity: 'error',
       })
-    }
-  }
-
-  // Concept-scoped Marker scores (an `item-markers matrix` row whose subject
-  // is a Concept name, permitted when the Marker's `applies_to` includes
-  // `Concept`). There is no Concept node in the graph to hang these on, so
-  // they are preserved on the document root for a future consumer rather than
-  // dropped. Element-scoped rows are already attached to their element above.
-  const rootNode = ctx.nodes[rootId]
-  if (rootNode) {
-    for (const [subject, scores] of Object.entries(parsed.nodeMarkers)) {
-      if (!qualifiedIdByElementName.has(subject)) {
-        rootNode.conceptMarkers = rootNode.conceptMarkers ?? {}
-        rootNode.conceptMarkers[subject] = { ...scores }
-      }
     }
   }
 

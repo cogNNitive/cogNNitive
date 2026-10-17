@@ -20,9 +20,9 @@ const doc = (bp) => `---\nlevel: 3\nparent_spec:\n  name: "${bp}"\n  url: "https
 
 const MANIFEST = [
   'frozen_blueprints:',
-  '  - name: base',
+  '  - name: cogNNitive',
   '    repo: cogNNitive/cogNNitive-web',
-  '    path: iNNfo/specs/bluepriNNts/base/spec_NN.md',
+  '    path: iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md',
   '    ref_key: blueprints',
   '  - name: workspace_spec',
   '    repo: cogNNitive/cogNNitive-web',
@@ -82,7 +82,7 @@ function main() {
       'docs/cognitive_nn/use-cases/a/Client_NN.md': doc('business'),
       'iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-3_business_NN.md': doc('business'),
       'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures'),
-      'iNNfo/specs/bluepriNNts/base/samples/workspace_NN.md': doc('workspace_spec'),
+      'iNNfo/specs/bluepriNNts/cogNNitive/samples/workspace_NN.md': doc('workspace_spec'),
     };
     const r = run(files);
     assert.strictEqual(r.ok, true, r.errors.join('; '));
@@ -103,7 +103,7 @@ function main() {
   {
     // A folder spec carves out its folder; a flat entry carves out only that file (its folder holds live blueprints).
     assert.deepStrictEqual(frozenBlueprintDirs(MANIFEST), [
-      'iNNfo/specs/bluepriNNts/base/',
+      'iNNfo/specs/bluepriNNts/cogNNitive/',
       'iNNfo/specs/bluepriNNts/workspace_spec_NN.md',
     ]);
     assert.deepStrictEqual(frozenBlueprintDirs(''), []);

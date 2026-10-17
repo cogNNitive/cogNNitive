@@ -12,6 +12,8 @@ export const CHANGE_OPS = [
   'rename_concept',
   'update_matrix_cell',
   'update_concept_text',
+  'update_concept_field',
+  'remove_matrix',
   'comment',
   'add_model',
   'freeze_slugs',

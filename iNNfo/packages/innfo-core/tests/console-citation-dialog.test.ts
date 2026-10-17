@@ -132,7 +132,8 @@ describe('innfo-runtime.js — renderCitationDialog', () => {
       },
     ])
 
-    const tag = document.querySelector('.innfo-ref-tag')!
+    const tag = document.querySelector('[data-ku-kind="source"]')!
+    expect(tag.getAttribute('data-ku-home')).toBe('source')
     expect(tag.textContent).toContain('Reviewer feedback')
     expect(tag.textContent).not.toMatch(/·\s*\w/) // no "· <name>" suffix
     expect(document.body.textContent).not.toContain('Reviewer:')

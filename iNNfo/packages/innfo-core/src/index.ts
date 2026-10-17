@@ -18,7 +18,6 @@ export {
 export {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
-  MARKER_DEFINITION,
   MATRIX_DEFINITION,
   extractBlueprintSchema,
   extractBlueprintSchemaFromContent,
@@ -74,6 +73,7 @@ export {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   validateCitations,
+  checkRemovedMarkerConstructs,
 } from './validator/index.js'
 export type {
   ReferenceDiagnostic,

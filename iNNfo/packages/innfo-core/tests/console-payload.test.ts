@@ -103,6 +103,7 @@ lead:: [[NonExistentElement]]
       label: 'Paranormal Infestation',
       concept: mx.source || undefined,
       kind: 'element',
+      slug: 'paranormal-infestation',
     })
     expect(mx.head!.cols['Ghost Capture'].kind).toBe('element')
     expect(mx.cells).toEqual({
@@ -112,14 +113,6 @@ lead:: [[NonExistentElement]]
     })
   })
 
-  it('marks item-markers matrix column headers as marker units', () => {
-    const md = modelWithRelationsAndMatrices.replace('Problems \\ Services', 'Problems \\ Markers')
-    const payload = buildConsolePayload({ content: md })
-    const mx = payload.model.matrices[0]
-    expect(mx.target).toBe('Markers')
-    expect(mx.head!.cols['Ghost Capture'].kind).toBe('marker')
-    expect(mx.head!.rows['Paranormal Infestation'].kind).toBe('element')
-  })
 
   it('emits schema slot as array shape', () => {
     const payload = buildConsolePayload({
@@ -128,7 +121,6 @@ lead:: [[NonExistentElement]]
 
     expect(Array.isArray(payload.schema.concepts)).toBe(true)
     expect(Array.isArray(payload.schema.fields)).toBe(true)
-    expect(Array.isArray(payload.schema.markers)).toBe(true)
     expect(Array.isArray(payload.schema.matrices)).toBe(true)
   })
 

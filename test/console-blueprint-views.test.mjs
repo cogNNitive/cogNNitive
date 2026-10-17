@@ -4,9 +4,12 @@ import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { JSDOM } from 'jsdom'
+import { createRequire } from 'node:module'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
+const require = createRequire(import.meta.url)
+const UI = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/ui-kit.js'))
 
 function loadView(rel) {
   const code = readFileSync(join(repoRoot, rel), 'utf8')
@@ -38,11 +41,13 @@ describe('organization org-chart view (bluepriNNt)', () => {
     assert.equal(typeof def.mount, 'function')
   })
 
-  it('groups persons under their position via position_ref, with edit anchors', () => {
+  it('groups persons under their position via position_ref, with Ku badges and no view-mode edit', () => {
     const def = loadView(orgChart)
     const ctx = {
       container,
+      ui: UI,
       payload: {
+        meta: { modelId: 'org' },
         model: {
           elements: [
             { id: 'position-chief', concept: 'Position', name: 'Chief Scientist', fields: {} },
@@ -63,8 +68,8 @@ describe('organization org-chart view (bluepriNNt)', () => {
     assert.equal(cards.length, 1)
     assert.match(cards[0].textContent, /Chief Scientist/)
     assert.match(cards[0].textContent, /Dr\. Egon Spengler/)
-    container.querySelector('.innfo-org-person .innfo-edit-anchor').click()
-    assert.deepEqual(edits, [{ elementId: 'person-egon' }])
+    assert.ok(cards[0].querySelector('[data-ku-kind="element"]'), 'positions render as element Ku badges')
+    assert.equal(container.querySelector('.innfo-edit-anchor'), null, 'no un-gated view-mode edit anchor')
   })
 
   it('shows an empty state with no organization elements', () => {
@@ -100,7 +105,9 @@ describe('projects roadmap view (bluepriNNt)', () => {
     const def = loadView(roadmap)
     const ctx = {
       container,
+      ui: UI,
       payload: {
+        meta: { modelId: 'projects' },
         model: {
           elements: [
             { id: 'milestone-signoff', concept: 'Milestone', name: 'Full Grid Signoff', fields: { target_date: '2026-06' } },
@@ -122,8 +129,8 @@ describe('projects roadmap view (bluepriNNt)', () => {
     assert.match(columns[0].textContent, /Full Grid Signoff/)
     assert.match(columns[0].textContent, /backlog/)
     assert.match(columns[0].textContent, /critical/)
-    container.querySelector('.innfo-roadmap-task .innfo-edit-anchor').click()
-    assert.deepEqual(edits, [{ elementId: 'task-test' }])
+    assert.ok(columns[0].querySelector('[data-ku-kind="element"]'), 'milestones render as element Ku badges')
+    assert.equal(container.querySelector('.innfo-edit-anchor'), null, 'no un-gated view-mode edit anchor')
   })
 
   it('shows an empty state with no project elements', () => {

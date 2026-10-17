@@ -1,7 +1,7 @@
 import type {
   Concept,
   ConceptField,
-  Marker,
+  GlobalField,
   MatrixDecl,
   ParsedKnowledge,
   TaxonomyEdge,
@@ -9,45 +9,34 @@ import type {
 import { parseKnowledge } from '../parser/index.js'
 
 /**
- * Root primitives of the Metaplantilla Nivel 1 (V_0-1-0). A level-2 template
- * instantiates these four primitives as ordinary elements in its body, using
+ * Root primitives of the Metaplantilla Nivel 1 (V_0-5-0). A level-2 template
+ * instantiates these primitives as ordinary elements in its body, using
  * the unified syntax:
  *
  *   # NN Concept Definition
  *   ## NN Concept Definition: <Concept Name>
  *   type:: text
- *   weight:: 90
  *
  *   # NN Field Definition
  *   ## NN Field Definition: <Field Name>
  *   concept:: <Concept Name>
  *   type:: string
  *
- *   # NN Marker Definition
- *   ## NN Marker Definition: <Marker Name>
- *   symbol:: *
- *
  *   # NN Matrix Definition
  *   ## NN Matrix Definition: <Matrix Name>
- *   source:: A
- *   target:: B
- *   values:: [Max, High, Low]
- *
- * This module extracts a template's effective schema (concepts, markers,
- * matrices) from those elements. The legacy frontmatter blocks
- * (`concepts:` / `markers:` / `matrices:`) are still honoured when present.
+ *   source:: <Concept Name>
+ *   target:: <Concept Name>
  */
 
 export const CONCEPT_DEFINITION = 'Concept Definition'
 export const FIELD_DEFINITION = 'Field Definition'
-export const MARKER_DEFINITION = 'Marker Definition'
 export const MATRIX_DEFINITION = 'Matrix Definition'
 
 export interface BlueprintSchema {
   concepts: Concept[]
-  markers: Marker[]
   matrices: MatrixDecl[]
   taxonomy: TaxonomyEdge[]
+  globalFields?: GlobalField[]
 }
 
 export function asString(v: unknown): string | undefined {
@@ -90,6 +79,7 @@ function cleanWikilink(v: unknown): string | undefined {
 export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema {
   const concepts: Concept[] = []
   const fieldsByConcept = new Map<string, ConceptField[]>()
+  const globalFields: GlobalField[] = []
 
   for (const el of parsed.elements.get(CONCEPT_DEFINITION) ?? []) {
     const parent = cleanWikilink(el.fields['parent'])
@@ -108,23 +98,65 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
   }
 
   for (const el of parsed.elements.get(FIELD_DEFINITION) ?? []) {
-    const owner = asString(el.fields['concept'])
-    if (!owner) continue
+    const rawConcept = el.fields['concept']
+    let scope: 'concept' | 'list' | '*' = 'concept'
+    let targets: string[] | undefined
+    let owner: string | undefined
+
+    if (
+      rawConcept === '*' ||
+      (Array.isArray(rawConcept) && rawConcept.length === 1 && String(rawConcept[0]).trim() === '*')
+    ) {
+      scope = '*'
+    } else if (Array.isArray(rawConcept)) {
+      scope = 'list'
+      targets = rawConcept.map(String).map((s) => s.trim()).filter(Boolean)
+    } else if (typeof rawConcept === 'string') {
+      const trimmed = rawConcept.trim()
+      if (trimmed === '*') {
+        scope = '*'
+      } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        scope = 'list'
+        targets = trimmed.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean)
+      } else if (trimmed !== '') {
+        scope = 'concept'
+        owner = trimmed
+      }
+    }
+
+    if (!owner && !targets && scope !== '*') continue
+
     const targetBlueprint = asString(el.fields['target_blueprint'])
+    const multiple = el.fields['multiple'] === true || el.fields['multiple'] === 'true'
+    const widget = asString(el.fields['widget'])
+    const widgetConfig = asObject(el.fields['widget_config'])
     const field: ConceptField = {
       name: el.name,
       type: (asString(el.fields['type']) as ConceptField['type']) ?? 'string',
       options: asStringArray(el.fields['options']),
       target_concepts: asStringArray(el.fields['target_concepts']),
       target_blueprint: targetBlueprint,
+      scope,
     }
+    if (multiple) field.multiple = true
+    if (widget) field.widget = widget
+    if (widgetConfig) field.widgetConfig = widgetConfig
     const fieldDescription = asString(el.fields['description'])
     if (fieldDescription) field.description = fieldDescription
-    const list = fieldsByConcept.get(owner)
-    if (list) {
-      list.push(field)
+
+    if (scope === 'concept' && owner) {
+      const list = fieldsByConcept.get(owner)
+      if (list) {
+        list.push(field)
+      } else {
+        fieldsByConcept.set(owner, [field])
+      }
     } else {
-      fieldsByConcept.set(owner, [field])
+      globalFields.push({
+        field,
+        scope: scope === 'list' ? 'list' : '*',
+        targets,
+      })
     }
   }
 
@@ -133,35 +165,16 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     if (fields && fields.length > 0) concept.fields = fields
   }
 
-  const markers: Marker[] = (parsed.elements.get(MARKER_DEFINITION) ?? []).map((el) => {
-    const marker: Marker = {
-      name: el.name,
-      symbol: asString(el.fields['symbol']),
-      icon: asString(el.fields['icon']),
-      color: asString(el.fields['color']),
-      weight: asNumber(el.fields['weight']),
-    }
-    const appliesTo = asStringArray(el.fields['applies_to'])
-    if (appliesTo) marker.applies_to = appliesTo
-    const values = asStringArray(el.fields['values'])
-    if (values) marker.values = values
-    const widget = asString(el.fields['widget'])
-    if (widget) marker.widgetType = widget
-    const widgetConfig = asObject(el.fields['widget_config'])
-    if (widgetConfig) marker.widgetConfig = widgetConfig
-    return marker
-  })
-
   const matrices: MatrixDecl[] = (parsed.elements.get(MATRIX_DEFINITION) ?? []).map((el) => {
-    const values = asStringArray(el.fields['values'])
-    const widget = asString(el.fields['widget']) ?? asString(el.fields['widgetType'])
     const decl: MatrixDecl = {
       name: el.name,
       source: asString(el.fields['source']) ?? '',
       target: asString(el.fields['target']) ?? '',
-      params: '',
+      params: asString(el.fields['params']) ?? '',
     }
+    const values = asStringArray(el.fields['values'])
     if (values) decl.values = values
+    const widget = asString(el.fields['widget'])
     if (widget) decl.widgetType = widget as MatrixDecl['widgetType']
     const widgetConfig = asObject(el.fields['widget_config'])
     if (widgetConfig) decl.widgetConfig = widgetConfig
@@ -183,7 +196,16 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     taxonomy = parsed.taxonomy
   }
 
-  return { concepts, markers, matrices, taxonomy }
+  const result: BlueprintSchema = {
+    concepts,
+    matrices,
+    taxonomy,
+  }
+  if (globalFields.length > 0) {
+    result.globalFields = globalFields
+  }
+
+  return result
 }
 
 /**

@@ -48,13 +48,15 @@ Texto inicial de la marca.
     expect(serialized).not.toContain('Texto inicial de la marca.')
   })
 
-  it('remove_element cascades to model.nodeMarkers so item-markers matrix has no orphan rows', () => {
+  it('remove_element cascades to model.matrices so deleted elements leave no orphan cells', () => {
     const raw = `---
 spec_version: "V_0-1-0"
 spec_url: "https://example.com/spec.md"
 level: 3
 title: "Campaign Model"
 knowledge_version: "V_0-1-0"
+matrices:
+  - name: "Campaign × Audience"
 ---
 
 # NN Campaign
@@ -62,14 +64,14 @@ knowledge_version: "V_0-1-0"
 ## NN Campaign: Example Campaña
 status:: Draft
 
-# NN matrices: item-markers matrix
+# NN matrices: Campaign × Audience
 
-| Item \\ Marker | importancia |
+| Campaign \\ Audience | General |
 | :--- | :---: |
-| [[Example Campaña]] | 3 |
+| Example Campaña | High |
 `
     const model = parseKnowledge(raw)
-    expect(model.nodeMarkers['[[Example Campaña]]'] || model.nodeMarkers['Example Campaña']).toBeDefined()
+    expect(model.matrices[0].cells.length).toBe(1)
 
     const result = applyMutation(model, 'remove_element', {
       conceptName: 'Campaign',
@@ -77,9 +79,9 @@ status:: Draft
     })
 
     expect(result.success).toBe(true)
+    expect(result.cascadedMatrixCells).toBe(1)
+    expect(model.matrices[0].cells.length).toBe(0)
     const serialized = serializeKnowledge(model)
-    // The example campaign must NOT appear in the serialized item-markers matrix
-    expect(serialized).not.toContain('[[Example Campaña]]')
     expect(serialized).not.toContain('Example Campaña')
   })
 

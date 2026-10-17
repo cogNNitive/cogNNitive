@@ -292,6 +292,8 @@ function collectRepoFiles(dir, includeArchives) {
         // Frozen write-once predecessors (permanent history, never migrated).
         if (rel === 'iNNfo/specs/defiNNe_V_0-1-0_NN.md') continue
         if (rel === 'iNNfo/specs/defiNNition_V_0-1-0_NN.md') continue
+        if (rel === 'iNNfo/specs/iNNfo_V_0-3-0_NN.md') continue
+        if (rel === 'iNNfo/specs/iNNfo_V_0-4-0_NN.md') continue
         // Generated mirror of the frozen specs (by-design embedded history).
         if (rel === 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts') continue
         if (rel === 'iNNfo/scripts/check-spec-version.mjs') continue

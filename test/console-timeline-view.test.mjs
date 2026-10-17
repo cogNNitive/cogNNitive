@@ -32,10 +32,6 @@ describe('metrics timeline view (bluepriNNt)', () => {
     global.InnfoConsole = {
       renderTimelineGrid: (host, model, meta, hooks) => {
         gridCalls.push({ host, model, meta, hooks })
-        const btn = doc.createElement('button')
-        btn.className = 'innfo-edit-btn'
-        btn.addEventListener('click', () => hooks.onEditRow(model.rows[0].id))
-        host.appendChild(btn)
       },
     }
   })
@@ -53,7 +49,7 @@ describe('metrics timeline view (bluepriNNt)', () => {
     assert.equal(typeof def.mount, 'function')
   })
 
-  it('derives the timeline projection from the payload elements and opens the shared modal on a row edit', () => {
+  it('derives the timeline projection from the payload elements without a row-edit hook', () => {
     const def = loadView()
     const ctx = {
       container,
@@ -73,8 +69,8 @@ describe('metrics timeline view (bluepriNNt)', () => {
     assert.equal(gridCalls[0].model.rows.length, 1)
     assert.equal(gridCalls[0].model.rows[0].id, 'metrics-revenue')
     assert.deepEqual(gridCalls[0].meta, { months: 36 })
-    container.querySelector('.innfo-edit-btn').click()
-    assert.deepEqual(edits, [{ elementId: 'metrics-revenue' }])
+    assert.equal(gridCalls[0].hooks, undefined, 'onEditRow was deleted')
+    assert.equal(container.querySelector('.innfo-edit-btn'), null)
   })
 
   it('shows an empty state when no model carries a projection, without calling the renderer', () => {

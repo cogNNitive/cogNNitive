@@ -7,7 +7,9 @@ import {
   listCanonicalBlueprints,
   CANONICAL_BLUEPRINTS,
   resolveBlueprintSchema,
-} from '../src/schema'
+  extractMetaschema,
+  validateBlueprintAgainstMetaschema,
+} from '../src/index'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 
@@ -138,26 +140,26 @@ describe('Canonical Template Registry & Offline Fallback', () => {
     expect(findCanonicalBlueprint(defUrl)?.name).toBe('defiNNition')
 
     const innfoUrl =
-      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md'
-    const innfo3 = findCanonicalBlueprint('iNNfo_V_0-3-0_NN')
-    expect(innfo3).not.toBeNull()
-    expect(innfo3?.name).toBe('innfo')
-    expect(findCanonicalBlueprint('innfo_v_0-3-0')?.name).toBe('innfo')
-    expect(findCanonicalBlueprint('specs/iNNfo_V_0-3-0_NN.md')?.name).toBe('innfo')
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md'
+    const innfo5 = findCanonicalBlueprint('iNNfo_V_0-5-0_NN')
+    expect(innfo5).not.toBeNull()
+    expect(innfo5?.name).toBe('innfo')
+    expect(findCanonicalBlueprint('innfo_v_0-5-0')?.name).toBe('innfo')
+    expect(findCanonicalBlueprint('specs/iNNfo_V_0-5-0_NN.md')?.name).toBe('innfo')
     expect(findCanonicalBlueprint(innfoUrl)?.name).toBe('innfo')
   })
 
-  it('verifies iNNfo V_0-3-0 parent points to defiNNition on main', () => {
-    const content = getCanonicalSpecContent('iNNfo_V_0-3-0_NN')
+  it('verifies iNNfo V_0-5-0 parent points to defiNNition on main', () => {
+    const content = getCanonicalSpecContent('iNNfo_V_0-5-0_NN')
     expect(content).not.toBeNull()
-    expect(content).toContain('spec_version: "V_0-3-0"')
+    expect(content).toContain('spec_version: "V_0-5-0"')
     expect(content).toContain(
       'parent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"',
     )
   })
 
-  it('verifies iNNfo V_0-3-0 defines knowledge and blueprint keys and types', () => {
-    const content = getCanonicalSpecContent('iNNfo_V_0-3-0_NN')!
+  it('verifies iNNfo V_0-5-0 defines knowledge and blueprint keys and types', () => {
+    const content = getCanonicalSpecContent('iNNfo_V_0-5-0_NN')!
     expect(content).not.toBeNull()
     expect(content).toContain('knowledge_version')
     expect(content).toContain('blueprint_version')
@@ -179,12 +181,12 @@ describe('Canonical Template Registry & Offline Fallback', () => {
     expect(findCanonicalBlueprint('custom_template_V_8-8-8_NN.md')).toBeNull()
   })
 
-  it('mirrors on-disk defiNNition and iNNfo V_0-3-0 specs byte-for-byte in canonical registry', () => {
+  it('mirrors on-disk defiNNition and iNNfo V_0-5-0 specs byte-for-byte in canonical registry', () => {
     const defDisk = readFileSync(join(specsRoot, 'defiNNition_V_0-1-0_NN.md'), 'utf-8')
     const defMirror = getCanonicalSpecContent('defiNNition')!
     expect(defMirror).toBe(defDisk)
 
-    const innfoDisk = readFileSync(join(specsRoot, 'iNNfo_V_0-3-0_NN.md'), 'utf-8')
+    const innfoDisk = readFileSync(join(specsRoot, 'iNNfo_V_0-5-0_NN.md'), 'utf-8')
     const innfoMirror = getCanonicalSpecContent('innfo')!
     expect(innfoMirror).toBe(innfoDisk)
   })
@@ -244,6 +246,49 @@ describe('Canonical Template Registry & Offline Fallback', () => {
         'resolved_slug',
       ]),
     )
+  })
+
+  it('resolves iNNfo V_0-5-0 offline from canonical registry and validates against itself', () => {
+    const innfoUrl =
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md'
+    const innfo5 = findCanonicalBlueprint('iNNfo_V_0-5-0_NN')
+    expect(innfo5).not.toBeNull()
+    expect(innfo5?.name).toBe('innfo')
+    expect(findCanonicalBlueprint('innfo_v_0-5-0')?.name).toBe('innfo')
+    expect(findCanonicalBlueprint('specs/iNNfo_V_0-5-0_NN.md')?.name).toBe('innfo')
+    expect(findCanonicalBlueprint(innfoUrl)?.name).toBe('innfo')
+
+    const content = getCanonicalSpecContent('iNNfo_V_0-5-0_NN')
+    expect(content).not.toBeNull()
+    expect(content).toContain('spec_version: "V_0-5-0"')
+
+    // Offline L2 parent_spec resolution test: an L2 whose parent_spec is iNNfo_V_0-5-0 resolves offline
+    const l2Spec = [
+      '---',
+      'spec_version: "V_0-5-0"',
+      'level: 2',
+      'parent_spec:',
+      '  name: "iNNfo_V_0-5-0"',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"',
+      'title: "Sample L2"',
+      '---',
+      '',
+      '# NN Concept Definition',
+      '## NN Concept Definition: Task',
+      'type:: list',
+      '',
+    ].join('\n')
+
+    const resolvedParent = findCanonicalBlueprint('iNNfo_V_0-5-0')
+    expect(resolvedParent).not.toBeNull()
+    expect(resolvedParent?.specContent).toBe(content)
+
+    // Metaschema self-description (fixpoint)
+    const meta = extractMetaschema(content!)
+    expect(meta).not.toBeNull()
+    const asTemplate = ['---', 'level: 2', 'title: Metaschema', '---', '', meta!, ''].join('\n')
+    const diags = validateBlueprintAgainstMetaschema(asTemplate, content!)
+    expect(diags.filter((d) => d.severity === 'error')).toEqual([])
   })
 })
 

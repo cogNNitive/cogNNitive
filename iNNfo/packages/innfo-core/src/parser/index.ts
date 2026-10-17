@@ -21,7 +21,6 @@ export {
   parseConceptSection,
   parseMatrixSection,
   getSectionType,
-  parseTagList,
 } from './sections.js'
 export { serializeKnowledge } from './serializer.js'
 export { parseKnowledge, deriveElementSlugs } from './core.js'

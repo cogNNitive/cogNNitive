@@ -51,50 +51,6 @@ describe('Element Card Redesign Contract', () => {
     )
   }
 
-  describe('QKUD chip (read-only)', () => {
-    it('renders copy + info buttons and never a pencil', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const qud = card.querySelector('[data-innfo-component="qud-chip"]')
-      assert.ok(qud, 'QKUD chip renders')
-      assert.match(qud.textContent, /ecto-1/)
-      assert.ok(qud.querySelector('[aria-label="Copy knowledge unit ID"]'), 'copy button')
-      assert.ok(qud.querySelector('[aria-label="Knowledge unit ID details"]'), 'info button')
-      assert.equal(
-        qud.querySelectorAll('.innfo-edit-anchor').length,
-        0,
-        'no pencil inside the QKUD chip',
-      )
-      assert.equal(
-        qud.querySelectorAll('[data-innfo-ctl]').length,
-        0,
-        'QKUD buttons carry no review ctl (they work without review mode)',
-      )
-    })
-
-    it('toggles the detail line (id, concept, path, hash) on info click', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const info = card.querySelector('[aria-label="Knowledge unit ID details"]')
-      info.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-qud-open'), 'true')
-      const detail = card.querySelector('.innfo-qud-detail')
-      assert.match(detail.textContent, /0123456789abcdef/)
-      assert.match(detail.textContent, /fleet-vehicles/)
-      info.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-qud-open'), 'false')
-    })
-
-    it('copy click never throws without a clipboard', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const copy = card.querySelector('[aria-label="Copy knowledge unit ID"]')
-      assert.doesNotThrow(() => {
-        copy.dispatchEvent(new window.Event('click', { bubbles: true }))
-      })
-    })
-  })
-
   describe('Path, tags, relations', () => {
     it('a hostile tag is inert text and an empty tag list renders no row', () => {
       const hostile = '<img src=x onerror=alert(1)>'
@@ -140,7 +96,10 @@ describe('Element Card Redesign Contract', () => {
       const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
       assert.ok(rel)
       assert.equal(rel.getAttribute('data-rel-field'), 'parked-at')
-      assert.equal(rel.querySelector('a').getAttribute('href'), '#el-hq-garage')
+      assert.match(
+        rel.querySelector('[data-ku-kind="element"]').getAttribute('data-ku-address'),
+        /hq-garage$/,
+      )
     })
 
     it('omits qud, path, tags and relations when not provided (back-compat)', () => {
@@ -153,7 +112,9 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('.innfo-card-path'), null)
       assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null)
       assert.equal(card.querySelector('[data-innfo-component="rel-list"]'), null)
-      assert.equal(card.querySelector('[data-ku-kind="field"]').textContent, 'f:v')
+      const value = card.querySelector('[data-ku-kind="value"]')
+      assert.equal(value.getAttribute('data-field'), 'f')
+      assert.match(value.textContent, /f[\s\S]*v/)
     })
 
     it('renders a concept icon thumbnail fallback when no image field is present', () => {
@@ -207,7 +168,7 @@ describe('Element Card Redesign Contract', () => {
       return { card, store, ctl }
     }
 
-    it('adds name/desc/marker pencils and tag/relation controls', () => {
+    it('adds name/desc pencils and tag/relation controls', () => {
       const { card } = decorated()
       assert.equal(
         card.querySelector('[data-innfo-ctl="edit-toggle"]'),
@@ -222,7 +183,11 @@ describe('Element Card Redesign Contract', () => {
         card.querySelector('.innfo-card-desc [data-innfo-ctl="desc-anchor"]'),
         'description pencil',
       )
-      assert.ok(card.querySelector('[data-innfo-ctl="marker-anchor"]'), 'marker pencil')
+      assert.equal(
+        card.querySelector('[data-innfo-ctl="marker-anchor"]'),
+        null,
+        'no marker pencil (the Marker primitive is gone)',
+      )
       assert.equal(
         card.querySelectorAll('[data-innfo-ctl="tag-remove"]').length,
         2,
@@ -234,16 +199,16 @@ describe('Element Card Redesign Contract', () => {
       assert.ok(card.querySelector('[data-innfo-ctl="rel-add"]'), 'relation add')
     })
 
-    it('tag remove records a comment draft without a modal', () => {
+    it('tag remove records a correction on tags with the full new array', () => {
       const { store, card } = decorated()
       card
         .querySelector('[data-innfo-ctl="tag-remove"]')
         .dispatchEvent(new window.Event('click', { bubbles: true }))
       const drafts = store.drafts()
       assert.equal(drafts.length, 1)
-      assert.equal(drafts[0].kind, 'comment')
+      assert.equal(drafts[0].kind, 'correction')
       assert.equal(drafts[0].field, 'tags')
-      assert.match(drafts[0].comment, /removing tag/)
+      assert.deepEqual(drafts[0].proposed, ['nyc-fleet'])
     })
 
     it('name pencil opens the KU modal', () => {
@@ -312,15 +277,16 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     InnfoConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
-    assert.ok(card.querySelector('[data-innfo-component="qud-chip"]'), 'qud chip')
     assert.match(
       card.querySelector('.innfo-card-path').textContent,
       /ghostbusters_NN\.md/,
     )
     const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
     assert.ok(rel, 'structured relation list (no legacy .rel-list)')
-    assert.equal(rel.querySelector('a').getAttribute('href'), '#el-hq-garage')
-    assert.match(rel.textContent, /hq-garage/)
+    assert.match(
+      rel.querySelector('[data-ku-kind="element"]').getAttribute('data-ku-address'),
+      /hq-garage$/,
+    )
     assert.equal(card.querySelector('.rel-list'), null, 'legacy relation markup gone')
     assert.equal(
       card.querySelector('[data-innfo-component="tag-row"]'),

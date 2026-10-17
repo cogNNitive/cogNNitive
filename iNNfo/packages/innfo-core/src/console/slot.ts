@@ -9,6 +9,7 @@ export interface ConsoleSchemaConcept {
   label?: string
   description?: string
   fields?: any[]
+  conceptFields?: Record<string, unknown>
   markers?: any[]
   [key: string]: any
 }
@@ -65,14 +66,21 @@ export function buildConsoleSchemaSlot(
   schema?: BlueprintSchema | any,
   elements?: ConsolePayloadElement[],
   procedures?: ConsoleProcedureSlot[],
+  modelConceptFields?: Record<string, Record<string, unknown>>,
 ): ConsoleSchemaSlot {
   const procList = Array.isArray(procedures) ? procedures : []
   if (schema) {
-    const concepts = Array.isArray(schema.concepts)
+    const rawConcepts = Array.isArray(schema.concepts)
       ? schema.concepts
       : typeof schema.concepts === 'object' && schema.concepts !== null
         ? Object.values(schema.concepts)
         : []
+
+    const concepts = rawConcepts.map((c: any) => {
+      if (!c || !c.name) return c
+      const cf = modelConceptFields?.[c.name]
+      return cf ? { ...c, conceptFields: cf } : c
+    })
 
     // Field definitions live on `concept.fields` (extractBlueprintSchema has no
     // top-level `fields`); flatten them into one entry per (concept, field).
@@ -110,7 +118,10 @@ export function buildConsoleSchemaSlot(
   }
 
   return {
-    concepts: Array.from(conceptNames).map((name) => ({ name })),
+    concepts: Array.from(conceptNames).map((name) => {
+      const cf = modelConceptFields?.[name]
+      return cf ? { name, conceptFields: cf } : { name }
+    }),
     fields: [],
     markers: [],
     matrices: [],

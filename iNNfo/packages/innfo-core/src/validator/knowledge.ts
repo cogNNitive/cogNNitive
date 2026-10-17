@@ -18,9 +18,10 @@ import {
   checkBlueprintDocumentation,
   checkElementGroups,
   checkSchemaConformance,
+  checkConceptFields,
   checkMatrixCells,
-  checkNodeMarkers,
 } from './knowledge-checks.js'
+import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 export interface ValidateKnowledgeOptions {
   resolveInclude?: IncludeResolver
@@ -128,6 +129,9 @@ export function validateKnowledge(
   const d = new Diagnostics()
 
   checkFrontmatterInvariants(model, d)
+  for (const diag of checkRemovedMarkerConstructs(model, opts.referringPath)) {
+    d.add(diag)
+  }
 
   if (!template) {
     d.error(
@@ -148,7 +152,6 @@ export function validateKnowledge(
   }
   const {
     concepts: templateConcepts,
-    markers: templateMarkers,
     matrices: templateMatrices,
   } = composed.schema
 
@@ -156,9 +159,9 @@ export function validateKnowledge(
 
   const knownConceptGroups = checkElementGroups(model, templateConcepts, d)
   checkSchemaConformance(knownConceptGroups, templateConcepts, d)
+  checkConceptFields(model, templateConcepts, d)
 
   checkMatrixCells(model, templateMatrices, d)
-  checkNodeMarkers(model, templateConcepts, templateMarkers, d)
 
   // R-IE-04: reference-typed element fields must resolve to element names
   // model-wide, respecting each field's `target_concepts` when declared.

@@ -142,10 +142,12 @@ describe('single shell — citation icons (origin-typed)', () => {
     }
     boot()
 
-    const precioRow = env.document.querySelector('[data-ku-kind=field][data-field=precio]')
-    const precioSourceRow = env.document.querySelector(
-      '[data-ku-kind=field][data-field=precio_source]',
-    )
+    const precioRow = env.document
+      .querySelector('[data-ku-kind=value][data-field=precio]')!
+      .closest('.innfo-ku-wrap')
+    const precioSourceRow = env.document
+      .querySelector('[data-ku-kind=value][data-field=precio_source]')!
+      .closest('.innfo-ku-wrap')
 
     expect(precioRow!.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)
     expect(

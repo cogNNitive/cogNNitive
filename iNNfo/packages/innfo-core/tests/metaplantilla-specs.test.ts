@@ -89,7 +89,6 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
       'event',
     ])
     expect(work.fields!.find((f) => f.name === 'input')!.target_concepts).toEqual(['Artifact'])
-    expect(schema.markers.map((m) => m.name)).toEqual(['complexity'])
     expect(schema.matrices.map((m) => m.name)).toEqual([
       'work-roles matrix',
       'work-tools matrix',
@@ -140,7 +139,6 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
       'milestone',
       'deliverable',
     ])
-    expect(schema.markers.map((m) => m.name)).toEqual(['health'])
     expect(schema.matrices.map((m) => m.name)).toEqual([
       'task-roles matrix',
       'task-deliverables matrix',
@@ -212,7 +210,6 @@ Reviews the pull request.
       const parsed = parseKnowledge(readSpec(p))
       expect(parsed.elements.has('Concept Definition')).toBe(true)
       expect(parsed.elements.has('Field Definition')).toBe(true)
-      expect(parsed.elements.has('Marker Definition')).toBe(true)
       expect(parsed.elements.has('Matrix Definition')).toBe(true)
     }
   })
@@ -222,16 +219,15 @@ Reviews the pull request.
     const direct = extractBlueprintSchema(parseKnowledge(content))
     const fromContent = extractBlueprintSchemaFromContent(content)
     expect(direct.concepts.length).toBe(fromContent.concepts.length)
-    expect(direct.markers.length).toBe(fromContent.markers.length)
     expect(direct.matrices.length).toBe(fromContent.matrices.length)
   })
 
   it('migrated samples use the unified syntax with no legacy markers', () => {
     for (const p of [
       'bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md',
-      'bluepriNNts/organization/samples/Ghostbusters_V_0-3-4_organization_NN.md',
-      'bluepriNNts/procedures/samples/Ghostbusters_V_0-3-3_procedures_NN.md',
-      'bluepriNNts/projects/samples/Ghostbusters_V_0-3-4_projects_NN.md',
+      'bluepriNNts/organization/samples/Ghostbusters_V_0-4-0_organization_NN.md',
+      'bluepriNNts/procedures/samples/Ghostbusters_V_0-4-0_procedures_NN.md',
+      'bluepriNNts/projects/samples/Ghostbusters_V_0-4-0_projects_NN.md',
     ]) {
       const content = readSpec(p)
       const body = content.replace(/^---[\s\S]*?---\n/, '')
@@ -250,11 +246,10 @@ Reviews the pull request.
     expect(parsed.elements.get('Stakeholders')!.length).toBeGreaterThan(5)
     expect(parsed.rawSections!['Business summary']).toContain('Ghostbusters is a professional')
     expect(parsed.matrices.length).toBeGreaterThan(10)
-    expect(parsed.nodeMarkers['Paranormal Infestation']).toBeDefined()
   })
 
   it('parses the Ghostbusters procedures sample with key:: value properties', () => {
-    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-3-3_procedures_NN.md')
+    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-4-0_procedures_NN.md')
     const parsed = parseKnowledge(content)
     const work = parsed.elements.get('Work')!
     const triage = work.find((e) => e.name === 'Emergency Call Triage')!
@@ -267,7 +262,7 @@ Reviews the pull request.
   })
 
   it('parses the migrated Ghostbusters organization sample with scope properties', () => {
-    const content = readSpec('bluepriNNts/organization/samples/Ghostbusters_V_0-3-4_organization_NN.md')
+    const content = readSpec('bluepriNNts/organization/samples/Ghostbusters_V_0-4-0_organization_NN.md')
     const parsed = parseKnowledge(content)
     const roles = parsed.elements.get('Roles')!
     expect(roles).toHaveLength(5)
@@ -276,7 +271,7 @@ Reviews the pull request.
   })
 
   it('parses the Ghostbusters projects sample with dependencies and RACI matrix', () => {
-    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-3-4_projects_NN.md')
+    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-4-0_projects_NN.md')
     const parsed = parseKnowledge(content)
     const tasks = parsed.elements.get('Task')!
     expect(tasks).toHaveLength(4)

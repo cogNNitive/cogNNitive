@@ -2,7 +2,7 @@ import { ParsedKnowledge, ElementNode, MatrixData, SpecFrontmatter } from '../ty
 import { parseFrontmatter } from './yaml.js'
 import { stringify as yamlStringify } from 'yaml'
 import { printTaxonomyNode } from './taxonomy.js'
-import { parsePropertyValue, parseTagList } from './sections.js'
+import { parsePropertyValue } from './sections.js'
 import {
   SOURCE_FIELD_NAMES,
   parseCitation,
@@ -92,22 +92,6 @@ function serializeListValue(value: unknown[]): string | null {
   return `[${value.map(String).join(', ')}]`
 }
 
-/**
- * Emits a `tags::` value, preferring the author's exact source text when it
- * still parses to the tags currently held. `parseTagList` lowercases, so
- * without this the authored casing (`PR`) is destroyed on every save while
- * the tag's meaning never changed.
- */
-function serializeTagsValue(tags: string[], rawText?: string): string {
-  if (rawText !== undefined) {
-    try {
-      if (JSON.stringify(parseTagList(rawText)) === JSON.stringify(tags)) return rawText
-    } catch {
-      // fall through to the canonical bracket form
-    }
-  }
-  return `[${tags.join(', ')}]`
-}
 
 /**
  * Requirement 6: a citation list never carries the same pointer twice.
@@ -171,8 +155,8 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     lines.push('---')
     if (fm.level !== 3 || fm.spec_version) {
       // Fallback only reached for a non-level-3 doc that somehow lacks an
-      // explicit spec_version; track the adopted L1 (iNNfo_V_0-3-0), not superseded.
-      lines.push(`spec_version: "${fm.spec_version || 'V_0-3-0'}"`)
+      // explicit spec_version; track the adopted L1 (iNNfo_V_0-5-0), not superseded.
+      lines.push(`spec_version: "${fm.spec_version || 'V_0-5-0'}"`)
     }
     if (fm.spec_url) {
       lines.push(`spec_url: "${fm.spec_url}"`)
@@ -268,17 +252,6 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       }
     }
 
-    // Marker declarations (level-2 templates, legacy frontmatter form)
-    if (fm.markers && fm.markers.length > 0) {
-      lines.push('markers:')
-      for (const m of fm.markers) {
-        lines.push(`  - name: "${m.name}"`)
-        if (m.symbol) lines.push(`    symbol: "${m.symbol}"`)
-        if (m.icon) lines.push(`    icon: "${m.icon}"`)
-        if (m.color) lines.push(`    color: "${m.color}"`)
-      }
-    }
-
     lines.push('---')
   }
   lines.push('')
@@ -351,9 +324,6 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       const raw = value === v ? node.rawFields?.[k] : undefined
       lines.push(`${k}:: ${serializePropertyValue(value, raw)}`)
     }
-    if (node.tags && node.tags.length > 0) {
-      lines.push(`tags:: ${serializeTagsValue(node.tags, node.rawTags)}`)
-    }
     if (node.description) {
       if (node.descriptionBlankLine) lines.push('')
       for (const descLine of node.description.split('\n')) {
@@ -399,15 +369,24 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     const rawBody = model.rawSections?.[conceptName]
     const unEmitted = elementNodes?.filter((n) => !emittedElements.has(n)) ?? []
     const hasUnEmitted = unEmitted.length > 0
-    if (!hasUnEmitted && (!rawBody || !rawBody.trim())) return
+    const cFields = model.conceptFields?.[conceptName]
+    const hasConceptFields = cFields && Object.keys(cFields).length > 0
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields) return
 
     lines.push(`# NN ${conceptName}`)
-    if (model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0) {
-      lines.push(
-        `tags:: ${serializeTagsValue(model.conceptTags[conceptName], model.rawConceptTags?.[conceptName])}`,
-      )
+    const hasProperties = Boolean(hasConceptFields)
+    if (headingBlankLine(conceptName, true) && !hasProperties) {
+      lines.push('')
     }
-    if (headingBlankLine(conceptName, true)) lines.push('')
+    if (hasConceptFields) {
+      for (const [k, v] of Object.entries(cFields)) {
+        const raw = model.rawConceptFields?.[conceptName]?.[k]
+        lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
+      }
+    }
+    if (hasProperties && (hasUnEmitted || (rawBody && rawBody.trim()))) {
+      lines.push('')
+    }
     if (hasUnEmitted) {
       unEmitted.forEach((node, idx) => {
         const isLast = idx === unEmitted.length - 1
@@ -415,6 +394,8 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       })
     } else if (rawBody) {
       lines.push(rawBody)
+      lines.push('')
+    } else {
       lines.push('')
     }
   }
@@ -449,44 +430,11 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     lines.push('')
   }
 
-  let nodeMarkersEmitted = false
-  const emitNodeMarkers = () => {
-    if (nodeMarkersEmitted) return
-    nodeMarkersEmitted = true
-    const nodeMarkerEntries = Object.entries(model.nodeMarkers)
-    if (nodeMarkerEntries.length === 0) return
-    lines.push('# NN matrices: item-markers matrix')
-    if (matrixBlankLine('item-markers matrix')) lines.push('')
-    // Start from the columns the source table DECLARED, so a marker column
-    // whose every cell is `-` is not silently dropped; then add any marker
-    // set after parsing (by a mutation) that the declaration did not cover.
-    const markerKeys = new Set<string>(model.nodeMarkerColumns ?? [])
-    for (const [, markers] of nodeMarkerEntries) {
-      for (const key of Object.keys(markers)) {
-        markerKeys.add(key)
-      }
-    }
-    const keys = Array.from(markerKeys)
-    const headerLine = `| Item \\ Marker | ${keys.join(' | ')} |`
-    const sepLine = `| :--- | ${keys.map(() => ':---:').join(' | ')} |`
-    lines.push(headerLine)
-    lines.push(sepLine)
-    for (const [itemName, markers] of nodeMarkerEntries) {
-      const vals = keys.map((k) => (markers[k] !== undefined ? String(markers[k]) : '-'))
-      lines.push(`| ${itemName} | ${vals.join(' | ')} |`)
-    }
-    lines.push('')
-  }
-
   const emittedMatrices = new Set<string>()
   const emitMatrixSection = (matrixName: string) => {
     const key = matrixName.toLowerCase()
     if (emittedMatrices.has(key)) return
     emittedMatrices.add(key)
-    if (key === 'item-markers matrix') {
-      emitNodeMarkers()
-      return
-    }
     const matrix = model.matrices.find((m) => m.name.toLowerCase() === key)
     if (matrix) emitMatrixTable(matrix)
   }
@@ -502,11 +450,13 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
   // added it after parsing — is appended here, in current insertion order.
   emitIndex()
   for (const [conceptName] of model.elements.entries()) emitConceptSection(conceptName)
+  if (model.conceptFields) {
+    for (const conceptName of Object.keys(model.conceptFields)) emitConceptSection(conceptName)
+  }
   if (model.rawSections) {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName)
   }
   for (const matrix of model.matrices) emitMatrixSection(matrix.name)
-  emitNodeMarkers()
 
   return lines.join('\n')
 }

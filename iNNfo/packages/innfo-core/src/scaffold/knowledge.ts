@@ -7,7 +7,6 @@ export interface ScaffoldSchema {
     type: string
     fields?: Array<{ name: string; type: string; options?: string[] }>
   }>
-  markers?: Array<{ name: string }>
   matrices: Array<{ name: string; source?: string; target?: string }>
 }
 
@@ -16,8 +15,7 @@ export interface ScaffoldSchema {
  * block, one `# NN <Concept>` section per concept (a prose stub for `text`
  * concepts, one placeholder Element with its declared fields for the rest),
  * a seeded `# NN matrices:` block per declared Matrix (example row/column
- * from the source/target Concepts), and an `item-markers matrix` seeded with
- * the declared Marker columns when any Marker is declared.
+ * from the source/target Concepts).
  */
 export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   const lines: string[] = []
@@ -68,16 +66,6 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
       `| ${m.source ?? 'Row'} \\ ${m.target ?? 'Col'} | ${col} |`,
       '| :--- | :---: |',
       `| ${row} | - |`,
-      '',
-    )
-  }
-  const markerNames = (schema.markers ?? []).map((mk) => mk.name)
-  if (markerNames.length > 0 && listConcepts.length > 0) {
-    lines.push(
-      '# NN matrices: item-markers matrix',
-      `| Item \\ Marker | ${markerNames.join(' | ')} |`,
-      `| :--- | ${markerNames.map(() => ':---:').join(' | ')} |`,
-      `| ${exampleFor(listConcepts[0].name)} | ${markerNames.map(() => '-').join(' | ')} |`,
       '',
     )
   }

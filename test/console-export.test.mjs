@@ -832,6 +832,6 @@ parent_spec:
       schema.matrices.map((x) => [x.name, x.widgetType, x.values]),
       [['Journey map', 'set', ['Max', 'High', 'Low']]],
     )
-    assert.deepEqual(schema.markers.map((x) => [x.name, x.widgetType]), [['Active', 'boolean']])
+    assert.deepEqual(schema.markers?.map((x) => [x.name, x.widgetType]) ?? [], [])
   })
 })

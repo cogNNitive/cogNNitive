@@ -1,8 +1,9 @@
 import type {
   AliasMap,
   Concept,
+  ConceptField,
+  GlobalField,
   IncludedBlueprintRef,
-  Marker,
   MatrixDecl,
   ValidationError,
 } from '../types/index.js'
@@ -70,12 +71,12 @@ function canonicalValue(v: unknown, key?: string): unknown {
 }
 
 /**
- * A stable string form of a Concept / Marker / Matrix Definition, used to decide
+ * A stable string form of a Concept / Marker / Matrix / Field Definition, used to decide
  * whether two same-named Definitions coming from different `includes` sources are
  * "the same". Insensitive to property order, surrounding whitespace and the order
  * of set-like arrays; sensitive to every actual value.
  */
-export function canonicalizeDefinition(def: Concept | Marker | MatrixDecl): string {
+export function canonicalizeDefinition(def: Concept | MatrixDecl | ConceptField): string {
   return JSON.stringify(canonicalValue(def))
 }
 
@@ -134,17 +135,6 @@ export function applyAliasToSchema(schema: BlueprintSchema, alias?: AliasMap): B
     }
   })
 
-  const markers: Marker[] = schema.markers.map((m) => {
-    let applies_to = m.applies_to
-    if (applies_to) {
-      applies_to = applies_to.map((ac) => conceptRenameLookup.get(ac.toLowerCase()) ?? ac)
-    }
-    return {
-      ...m,
-      ...(applies_to ? { applies_to } : {}),
-    }
-  })
-
   const matrices: MatrixDecl[] = schema.matrices.map((mx) => {
     const source = conceptRenameLookup.get(mx.source.toLowerCase()) ?? mx.source
     const target = conceptRenameLookup.get(mx.target.toLowerCase()) ?? mx.target
@@ -161,7 +151,7 @@ export function applyAliasToSchema(schema: BlueprintSchema, alias?: AliasMap): B
     return { parent, child }
   })
 
-  return { concepts, markers, matrices, taxonomy }
+  return { concepts, matrices, taxonomy }
 }
 
 interface Provenanced<T> {
@@ -171,9 +161,127 @@ interface Provenanced<T> {
 
 interface Provenance {
   concept: Map<string, Provenanced<Concept>>
-  marker: Map<string, Provenanced<Marker>>
   matrix: Map<string, Provenanced<MatrixDecl>>
   field: Map<string, string>
+  starField: Map<string, Provenanced<ConceptField>>
+  /** Declaring-blueprint identity per source label (family/version/location). */
+  meta: Map<string, DeclMeta>
+}
+
+/** Identity of the bluepriNNt that declared a Definition. */
+export interface DeclMeta {
+  family: string
+  version?: string
+  location?: string
+}
+
+function familySlug(raw: unknown): string {
+  return String(raw ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+/** Derive the declaring-blueprint identity from a blueprint's frontmatter. */
+function declMetaOf(fm: Record<string, any> | undefined, label: string, location?: string): DeclMeta {
+  const family = familySlug(fm?.blueprint_name || fm?.title || label)
+  const version = fm?.blueprint_version ? String(fm.blueprint_version) : undefined
+  return { family, ...(version ? { version } : {}), ...(location ? { location } : {}) }
+}
+
+/**
+ * Attaches `declaredBy` to every concept, field and matrix from the composition
+ * provenance, so a definition keeps the identity of the bluepriNNt that declared it.
+ */
+function attachDeclaredBy(schema: BlueprintSchema, provenance: Provenance, fallback?: DeclMeta): void {
+  const metaFor = (source?: string): DeclMeta | undefined =>
+    (source ? provenance.meta.get(source) : undefined) ?? fallback
+
+  for (const c of schema.concepts) {
+    const cm = metaFor(provenance.concept.get(c.name.toLowerCase())?.source)
+    if (cm) (c as any).declaredBy = cm
+    for (const f of c.fields ?? []) {
+      const fk = `${c.name.toLowerCase()}.${f.name.toLowerCase()}`
+      const src = provenance.field.get(fk) ?? provenance.starField.get(f.name.toLowerCase())?.source
+      const fm = metaFor(src)
+      if (fm) (f as any).declaredBy = fm
+    }
+  }
+  for (const mx of schema.matrices) {
+    const mm = metaFor(provenance.matrix.get(mx.name.toLowerCase())?.source)
+    if (mm) (mx as any).declaredBy = mm
+  }
+}
+
+/**
+ * Expands `*` and list targets against the effective schema concepts.
+ * - `*` reaches all concepts except `type:: text`.
+ * - Concept-specific fields beat `*` fields of the same name silently.
+ * - Unknown list targets report an ERROR.
+ * - Same-name `*` fields with differing bodies report COMPOSITION_COLLISION.
+ */
+export function expandFieldTargets(
+  concepts: Concept[],
+  globalFields: GlobalField[],
+  sourceLabel: string,
+  errors: ValidationError[],
+  provenance?: Provenance,
+  isHost: boolean = true,
+): void {
+  if (!globalFields || globalFields.length === 0) return
+
+  for (const gf of globalFields) {
+    if (gf.scope === '*') {
+      if (provenance) {
+        const key = gf.field.name.toLowerCase()
+        const prior = provenance.starField.get(key)
+        if (prior) {
+          if (canonicalizeDefinition(prior.def) !== canonicalizeDefinition(gf.field)) {
+            errors.push({
+              path: `includes.Field.${gf.field.name}`,
+              message: `[COMPOSITION_COLLISION] Field Definition "${gf.field.name}" with concept:: * collision detected between included templates "${prior.source}" and "${sourceLabel}". Use frontmatter \`alias\` to resolve collisions.`,
+              severity: 'error',
+            })
+          }
+        } else {
+          provenance.starField.set(key, { source: sourceLabel, def: gf.field })
+        }
+      }
+
+      for (const c of concepts) {
+        if (c.type === 'text') continue
+        if (!c.fields) c.fields = []
+        const existingField = c.fields.find(
+          (f) => f.name.toLowerCase() === gf.field.name.toLowerCase(),
+        )
+        if (!existingField) {
+          c.fields.push({ ...gf.field })
+        }
+      }
+    } else if (gf.scope === 'list') {
+      const targets = gf.targets ?? []
+      for (const t of targets) {
+        const concept = concepts.find((c) => c.name.toLowerCase() === t.toLowerCase())
+        if (!concept) {
+          errors.push({
+            path: `Field Definition.${gf.field.name}.concept`,
+            message: `Unknown concept "${t}" in Field "${gf.field.name}" concept list`,
+            severity: 'error',
+          })
+          continue
+        }
+        if (!concept.fields) concept.fields = []
+        const existingIdx = concept.fields.findIndex(
+          (f) => f.name.toLowerCase() === gf.field.name.toLowerCase(),
+        )
+        if (existingIdx === -1) {
+          concept.fields.push({ ...gf.field })
+        } else if (concept.fields[existingIdx].scope !== 'concept') {
+          concept.fields[existingIdx] = { ...gf.field }
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -182,10 +290,10 @@ interface Provenance {
  * AST-identical to the one already merged, and is an ERROR (naming both
  * sources) when the bodies differ or un-aliased collisions occur.
  */
-function mergeDefinition<T extends Concept | Marker | MatrixDecl>(
+function mergeDefinition<T extends Concept | MatrixDecl>(
   incoming: T,
   incomingSource: string,
-  kindLabel: 'Concept' | 'Marker' | 'Matrix',
+  kindLabel: 'Concept' | 'Matrix',
   seen: Map<string, Provenanced<T>>,
   target: T[],
   errors: ValidationError[],
@@ -249,9 +357,6 @@ function mergeSchemaInto(
       }
     }
   }
-  for (const m of incoming.markers) {
-    mergeDefinition(m, incomingSource, 'Marker', provenance.marker, acc.markers, errors, isHost)
-  }
   for (const mx of incoming.matrices) {
     mergeDefinition(mx, incomingSource, 'Matrix', provenance.matrix, acc.matrices, errors, isHost)
   }
@@ -282,12 +387,31 @@ export function resolveBlueprintSchema(
   resolveInclude?: IncludeResolver,
   _seen: Set<string> = new Set(),
   _depth: number = 0,
+  _provenance?: Provenance,
 ): ResolvedBlueprintSchema {
   const parsed = parseKnowledge(templateContent)
   const local = extractBlueprintSchema(parsed)
   const includes = parsed.frontmatter?.includes ?? []
+  const selfLabel = String(parsed.frontmatter?.title ?? 'this template')
+  const errors: ValidationError[] = []
+
+  const provenance: Provenance = _provenance ?? {
+    concept: new Map(),
+    matrix: new Map(),
+    field: new Map(),
+    starField: new Map(),
+    meta: new Map(),
+  }
+
+  provenance.meta.set(selfLabel, declMetaOf(parsed.frontmatter, selfLabel))
+
   if (!resolveInclude || includes.length === 0) {
-    return { schema: local, errors: [] }
+    if (local.globalFields && local.globalFields.length > 0) {
+      expandFieldTargets(local.concepts, local.globalFields, selfLabel, errors, provenance, true)
+      delete local.globalFields
+    }
+    attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel))
+    return { schema: local, errors }
   }
 
   if (_depth >= 10) {
@@ -303,15 +427,7 @@ export function resolveBlueprintSchema(
     }
   }
 
-  const selfLabel = String(parsed.frontmatter?.title ?? 'this template')
-  const errors: ValidationError[] = []
-  const base: BlueprintSchema = { concepts: [], markers: [], matrices: [], taxonomy: [] }
-  const provenance: Provenance = {
-    concept: new Map(),
-    marker: new Map(),
-    matrix: new Map(),
-    field: new Map(),
-  }
+  const base: BlueprintSchema = { concepts: [], matrices: [], taxonomy: [] }
 
   for (const ref of includes) {
     const key = ref.name.toLowerCase()
@@ -337,20 +453,31 @@ export function resolveBlueprintSchema(
       resolveInclude,
       new Set([..._seen, key]),
       _depth + 1,
+      provenance,
     )
     errors.push(...nested.errors)
     const aliasedSchema = ref.alias ? applyAliasToSchema(nested.schema, ref.alias) : nested.schema
     const includedLabel = String(parseKnowledge(content).frontmatter?.title ?? ref.name)
+    provenance.meta.set(
+      includedLabel,
+      declMetaOf(parseKnowledge(content).frontmatter, includedLabel, ref.url || ref.name),
+    )
     mergeSchemaInto(base, aliasedSchema, includedLabel, provenance, errors, false)
   }
 
   // The composite template's own definitions apply on top of the union.
   mergeSchemaInto(base, local, selfLabel, provenance, errors, true)
 
+  // Expand the root template's local globalFields across base.concepts
+  if (local.globalFields && local.globalFields.length > 0) {
+    expandFieldTargets(base.concepts, local.globalFields, selfLabel, errors, provenance, true)
+    delete base.globalFields
+  }
+
   // Validate matrix endpoints at top-level resolution
   if (_depth === 0) {
     const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()))
-    const BUILTIN_TARGETS = new Set(['marker', 'element', 'item'])
+    const BUILTIN_TARGETS = new Set(['element', 'item'])
 
     for (const mx of base.matrices) {
       const srcKey = mx.source.toLowerCase()
@@ -370,6 +497,10 @@ export function resolveBlueprintSchema(
         })
       }
     }
+  }
+
+  if (_depth === 0) {
+    attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel))
   }
 
   return { schema: base, errors }

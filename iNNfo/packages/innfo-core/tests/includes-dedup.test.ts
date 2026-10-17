@@ -26,15 +26,14 @@ parent_spec:
 ## NN Concept Definition: Market
 type:: category
 
-# NN Marker Definition
-## NN Marker Definition: importance
-applies_to:: [Element]
-symbol:: *
-icon:: plus
-color:: blue
+# NN Field Definition
+## NN Field Definition: tags
+concept:: *
+type:: select
+multiple:: true
 `
 
-// Same 5-marker-style declaration, byte-identical to SLICE_ONE's.
+// Same declaration, byte-identical to SLICE_ONE's.
 const SLICE_TWO = `---
 level: 2
 title: "Slice Two"
@@ -47,16 +46,15 @@ parent_spec:
 ## NN Concept Definition: Analysis
 type:: category
 
-# NN Marker Definition
-## NN Marker Definition: importance
-applies_to:: [Element]
-symbol:: *
-icon:: plus
-color:: blue
+# NN Field Definition
+## NN Field Definition: tags
+concept:: *
+type:: select
+multiple:: true
 `
 
-// Same marker name, DIFFERENT body (symbol).
-const SLICE_TWO_DIVERGENT = SLICE_TWO.replace('symbol:: *', 'symbol:: !')
+// Same field name, DIFFERENT body (multiple).
+const SLICE_TWO_DIVERGENT = SLICE_TWO.replace('multiple:: true', 'multiple:: false')
 
 // Same body, different property order + whitespace (must still merge).
 const SLICE_TWO_REORDERED = `---
@@ -71,12 +69,11 @@ parent_spec:
 ## NN Concept Definition: Analysis
 type:: category
 
-# NN Marker Definition
-## NN Marker Definition: importance
-color::   blue
-symbol:: *
-applies_to:: [Element]
-icon:: plus
+# NN Field Definition
+## NN Field Definition: tags
+multiple::   true
+type:: select
+concept:: *
 `
 
 const UMBRELLA = `---
@@ -103,10 +100,10 @@ const mk = (two: string) => (ref: { name: string }) => {
 }
 
 describe('resolveBlueprintSchema — D1 AST-identical dedup across `includes`', () => {
-  it('merges an identical Marker declared by two included templates (no error, one entry)', () => {
+  it('merges an identical Field declared by two included templates (no error, one entry)', () => {
     const { schema, errors } = resolveBlueprintSchema(UMBRELLA, mk(SLICE_TWO))
     expect(errors).toEqual([])
-    expect(schema.markers.map((m) => m.name)).toEqual(['importance'])
+    expect(schema.concepts[0].fields?.some((f) => f.name === 'tags')).toBe(true)
     expect(schema.concepts.map((c) => c.name).sort()).toEqual([
       'Analysis',
       'Business summary',
@@ -117,12 +114,12 @@ describe('resolveBlueprintSchema — D1 AST-identical dedup across `includes`', 
   it('merges when the two declarations differ only in property order / whitespace', () => {
     const { schema, errors } = resolveBlueprintSchema(UMBRELLA, mk(SLICE_TWO_REORDERED))
     expect(errors).toEqual([])
-    expect(schema.markers.map((m) => m.name)).toEqual(['importance'])
+    expect(schema.concepts[0].fields?.some((f) => f.name === 'tags')).toBe(true)
   })
 
-  it('still ERRORs when the same Marker name is declared with a different body, naming both sources', () => {
+  it('still ERRORs when the same Field name is declared with a different body, naming both sources', () => {
     const { errors } = resolveBlueprintSchema(UMBRELLA, mk(SLICE_TWO_DIVERGENT))
-    const collision = errors.find((e) => e.message.includes('importance'))
+    const collision = errors.find((e) => e.message.includes('tags'))
     expect(collision?.severity).toBe('error')
     expect(collision?.message).toMatch(/Slice One/)
     expect(collision?.message).toMatch(/Slice Two/)
