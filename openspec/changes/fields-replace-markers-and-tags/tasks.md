@@ -122,13 +122,13 @@ Chain strategy: size-exception
 
 ## S5 Skills and docs (U5)
 
-- [ ] 5.1 RED skills test (node suite under `skills/`): `nn-innfo/SKILL.md` has section "Recipe: MARKERS_REMOVED" (steps 1-5, `propose_changeset`, drop-scores statement, `update_concept_field`, `remove_matrix`), no live Marker authoring (wizard question, section 8e, primitives table, line ~918). GREEN edit `skills/nn-innfo/**`. Spec: markers-removed-diagnostic "Agent Migration Recipe", innfo-skill-menu.
-- [ ] 5.2 GREEN `skills/nn-upgrade/SKILL.md`: Marker-bearing model reports `MARKERS_REMOVED` and links to the nn-innfo recipe, no mapping question. Spec: workspace-template-upgrade.
-- [ ] 5.3 RED/GREEN `skills/nn-preflight/scripts/preflight-check.js` drops reserved `markers` only (no new check); run tests with empty `USERPROFILE`/`HOME`.
-- [ ] 5.4 RED recipe acceptance test: run the frozen simulacro fixture through the recipe's changeset ops (`update_field`, `update_concept_field`, `remove_matrix`) and assert both the changeset document and the result validate clean. Spec: markers-removed-diagnostic "A full remediation is expressible as one changeset".
-- [ ] 5.5 GREEN `iNNfo/specs/vocabulary.json` (3 primitives, `tag` = value of `tags` Field, retired `Marker`), regenerate `docs/innfo/documentation/vocabulary.md` and docs pages (`npm run build:docs`); visual-catalog docs. Spec: canonical-vocabulary.
-- [ ] 5.6 Verify success-criteria grep: `rg -i "marker definition|item-markers|set_marker|conceptMarkers|conceptTags"` over live `src`/specs/skills returns only frozen files, the simulacro fixture and the diagnostic/recipe.
-- [ ] 5.7 OpenSpec: confirm the 18 delta specs (including `workspace-entrypoint`) are complete; archive step later syncs them into `openspec/specs/`. Verify archived artifacts with `diff` + `wc -l` (haiku archive truncation risk).
+- [x] 5.1 RED skills test (node suite under `skills/`): `nn-innfo/SKILL.md` has section "Recipe: MARKERS_REMOVED" (steps 1-5, `propose_changeset`, drop-scores statement, `update_concept_field`, `remove_matrix`), no live Marker authoring (wizard question, section 8e, primitives table, line ~918). GREEN edit `skills/nn-innfo/**`. Spec: markers-removed-diagnostic "Agent Migration Recipe", innfo-skill-menu.
+- [x] 5.2 GREEN `skills/nn-upgrade/SKILL.md`: Marker-bearing model reports `MARKERS_REMOVED` and links to the nn-innfo recipe, no mapping question. Spec: workspace-template-upgrade.
+- [x] 5.3 RED/GREEN `skills/nn-preflight/scripts/preflight-check.js` drops reserved `markers` only (no new check); run tests with empty `USERPROFILE`/`HOME`.
+- [x] 5.4 RED recipe acceptance test: run the frozen simulacro fixture through the recipe's changeset ops (`update_field`, `update_concept_field`, `remove_matrix`) and assert both the changeset document and the result validate clean. Spec: markers-removed-diagnostic "A full remediation is expressible as one changeset".
+- [x] 5.5 GREEN `iNNfo/specs/vocabulary.json` (3 primitives, `tag` = value of `tags` Field, retired `Marker`), regenerate `docs/innfo/documentation/vocabulary.md` and docs pages (`npm run build:docs`); visual-catalog docs. Spec: canonical-vocabulary.
+- [x] 5.6 Verify success-criteria grep: `rg -i "marker definition|item-markers|set_marker|conceptMarkers|conceptTags"` over live `src`/specs/skills returns only frozen files, the simulacro fixture and the diagnostic/recipe.
+- [x] 5.7 OpenSpec: confirm the 18 delta specs (including `workspace-entrypoint`) are complete; archive step later syncs them into `openspec/specs/`. Verify archived artifacts with `diff` + `wc -l` (haiku archive truncation risk).
 - [ ] 5.8 Gates: `node scripts/verify.js --release`, `npm run check:integrity check:specs check:versions`, `npm test`. COMMIT U5.
 
 ## Release (after merge to `main` with a merge commit; see nn-dev-release skill)
