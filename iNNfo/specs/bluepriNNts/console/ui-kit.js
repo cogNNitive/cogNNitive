@@ -401,6 +401,17 @@
     return (index % 12) + 1
   }
 
+  // Tag color derivation: FNV-1a 32-bit over valueKey(name), then slot = (h >>> 0) % 12 + 1
+  function tagSlot(name) {
+    var key = String(name == null ? '' : name).trim().toLowerCase()
+    var h = 0x811c9dc5
+    for (var i = 0; i < key.length; i++) {
+      h ^= key.charCodeAt(i)
+      h = Math.imul(h, 0x01000193) >>> 0
+    }
+    return ((h >>> 0) % 12) + 1
+  }
+
   function makeEl(doc, tag, cls, text) {
     var node = doc.createElement(tag)
     if (cls) node.className = cls
@@ -3108,6 +3119,7 @@
     icon: icon,
     slug: slug,
     conceptSlot: conceptSlot,
+    tagSlot: tagSlot,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
