@@ -82,13 +82,13 @@ Chain strategy: size-exception
 
 ## S3 Console Kit: describeUnit, Ku, CSS Grammar, KuInfoPanel (U3)
 
-- [ ] 3.1 RED `ui-kit.test.ts` descriptor suite: `describeUnit(kind, ref, index)` pure function:
+- [x] 3.1 RED `ui-kit.test.ts` descriptor suite: `describeUnit(kind, ref, index)` pure function:
   - Generates `{ kind, nature, home, address, label, slot, vtype?, editability, parentLabel?, location?, facts }`.
   - Throws `TypeError` on unknown kind or missing address.
   - Derived editability: source -> `none`, container -> `none`, structure -> `structure`, inherited value on element card -> `none`, concept value on section badge -> `review`, content -> `review`.
   Spec: console-ui-kit "Knowledge-Unit Badge Family", console-review-mode "Derived Unit Editability".
-- [ ] 3.2 GREEN `console/ui-kit.js`: implement `describeUnit` table and editability derivation. Verify: 3.1 passes.
-- [ ] 3.3 RED `ui-kit.test.ts` Ku builder suite:
+- [x] 3.2 GREEN `console/ui-kit.js`: implement `describeUnit` table and editability derivation. Verify: 3.1 passes.
+- [x] 3.3 RED `ui-kit.test.ts` Ku builder suite:
   - `Ku(kind, ref, opts)` returns `span.innfo-ku-wrap` with `data-innfo-component="ku-unit"`, `data-ku-kind`, `data-ku-nature`, `data-ku-home`, `data-ku-address`.
   - Border/fill grammar: container double border, structure dashed, content solid, source paper fill (`--innfo-source-paper`), concept slot tint.
   - `aria-label` spells out nature and home.
@@ -99,19 +99,19 @@ Chain strategy: size-exception
   - Edit button `[data-ku-action="edit"]` emitted when `editability !== 'none'`.
   - Targets >= 24x24 px (WCAG 2.5.8).
   Spec: console-ui-kit "Knowledge-Unit Badge Family", "Unit Action Cluster".
-- [ ] 3.4 GREEN `console/ui-kit.js`, `innfo-ui.css`: implement `createKu`, `Ku`, CSS rules, and reserved inline width for action cluster.
-- [ ] 3.5 RED accessibility & token contrast test (jsdom):
+- [x] 3.4 GREEN `console/ui-kit.js`, `innfo-ui.css`: implement `createKu`, `Ku`, CSS rules, and reserved inline width for action cluster.
+- [x] 3.5 RED accessibility & token contrast test (jsdom):
   - Paper tokens (`--innfo-source-paper`) meet contrast floor against text in light and dark themes.
   - Action cluster reveal layout test under desktop and under `@media (hover: none)`.
   - XSS assertions: script injection in labels/addresses rendered inert as text.
-- [ ] 3.6 GREEN `innfo-ui.css`: finalize paper tokens and responsive layout rules. Verify: 3.5 passes.
-- [ ] 3.7 RED `ui-kit.test.ts` KuInfoPanel suite:
+- [x] 3.6 GREEN `innfo-ui.css`: finalize paper tokens and responsive layout rules. Verify: 3.5 passes.
+- [x] 3.7 RED `ui-kit.test.ts` KuInfoPanel suite:
   - Accessible dialog (`role="dialog"`, focus moves to heading on open, Escape closes and restores focus to info button).
   - Displays kind, nature, Lives in, address (copy button), Location, editability + reason, and kind-specific facts.
   Spec: console-ui-kit "KuInfoPanel".
-- [ ] 3.8 GREEN `console/ui-kit.js`: implement `InnfoUI.KuInfoPanel`. Verify: 3.7 passes.
+- [x] 3.8 GREEN `console/ui-kit.js`: implement `InnfoUI.KuInfoPanel`. Verify: 3.7 passes.
 - [ ] 3.9 Record render budget: measure baseline testlab console render time and node count, document in `review.md`/design.
-- [ ] 3.10 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U3.
+- [x] 3.10 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U3.
 
 ---
 

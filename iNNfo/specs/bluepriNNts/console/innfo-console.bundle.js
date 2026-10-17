@@ -4005,6 +4005,268 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  // ---- Unified knowledge-unit badges (S3): describeUnit + Ku + KuInfoPanel ----
+  var KU_NATURE = {
+    domain: 'container',
+    document: 'container',
+    section: 'container',
+    concept: 'structure',
+    field: 'structure',
+    matrix: 'structure',
+    element: 'content',
+    value: 'content',
+    source: 'content',
+  }
+
+  function addrApi() {
+    return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
+  }
+
+  function unitAddressFor(kind, ref) {
+    var api = addrApi()
+    ref = ref || {}
+    if (kind === 'source') return ref.path || ref.address || String(ref.model || 'source') + '@source'
+    if (api && api.unitAddress) {
+      try {
+        switch (kind) {
+          case 'domain':
+            return api.unitAddress.domain()
+          case 'document':
+            return api.unitAddress.document(ref.id || ref.model)
+          case 'section':
+            return api.unitAddress.section(ref.model, ref.concept || ref.name)
+          case 'element':
+            return api.unitAddress.element(ref.model, ref.id || ref.element)
+          case 'value':
+            return api.unitAddress.value(ref.model, ref.element, ref.field)
+          case 'concept':
+            return api.unitAddress.concept(ref.model, ref.concept || ref.name)
+          case 'field':
+            return api.unitAddress.field(ref.model, ref.concept, ref.name)
+          case 'matrix':
+            return api.unitAddress.matrix(ref.model, ref.name)
+        }
+      } catch (e) {
+        /* fall through to the local grammar */
+      }
+    }
+    var m = ref.model || ''
+    switch (kind) {
+      case 'domain':
+        return 'domaiNN_NN.md'
+      case 'document':
+        return ref.id || m
+      case 'section':
+        return m + '@concept:' + slug(ref.concept || ref.name)
+      case 'element':
+        return m + '@' + slug(ref.id || ref.element)
+      case 'value':
+        return m + '@' + slug(ref.element) + '&' + (ref.field || '')
+      case 'concept':
+        return m + '@concept:' + slug(ref.concept || ref.name)
+      case 'field':
+        return m + '@concept:' + slug(ref.concept) + '&' + (ref.name || '')
+      case 'matrix':
+        return m + '@matrix:' + slug(ref.name)
+    }
+    return ''
+  }
+
+  function unitHomeFor(address) {
+    var api = addrApi()
+    if (api && api.unitHome) {
+      try {
+        return api.unitHome(address)
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    if (/^specs\//.test(address)) return 'blueprint'
+    return address.indexOf('@') === -1 && /\.md$/.test(address) ? 'domain' : 'knowledge'
+  }
+
+  function unitEditability(kind, ref) {
+    var nature = KU_NATURE[kind]
+    if (nature === 'container' || kind === 'source') return 'none'
+    if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
+    if (ref && ref.inherited) return 'none'
+    if (ref && ref.scope === 'concept') return 'review'
+    return 'review'
+  }
+
+  function describeUnit(kind, ref, index) {
+    if (!KU_NATURE[kind]) throw new TypeError('describeUnit: unknown kind "' + kind + '"')
+    ref = ref || {}
+    var address = unitAddressFor(kind, ref)
+    if (!address) throw new TypeError('describeUnit: missing address for "' + kind + '"')
+    var nature = KU_NATURE[kind]
+    var label =
+      ref.label != null
+        ? ref.label
+        : ref.name != null
+          ? ref.name
+          : ref.id != null
+            ? ref.id
+            : ref.value != null
+              ? ref.value
+              : address
+    var slot =
+      kind === 'value' && ref.field === 'tags'
+        ? tagSlot(String(label))
+        : conceptSlot({ index: index, color: ref.color, id: ref.concept || ref.conceptId })
+    var desc = {
+      kind: kind,
+      nature: nature,
+      home: unitHomeFor(address),
+      address: address,
+      label: String(label == null ? '' : label),
+      slot: slot,
+      editability: unitEditability(kind, ref),
+      facts: ref.facts && typeof ref.facts === 'object' ? ref.facts : {},
+    }
+    if (ref.vtype) desc.vtype = String(ref.vtype)
+    if (ref.parentLabel) desc.parentLabel = String(ref.parentLabel)
+    if (ref.location) desc.location = String(ref.location)
+    return desc
+  }
+
+  var KU_CSS_INJECTED = {}
+  function ensureKuCss(doc) {
+    if (!doc || !doc.head || KU_CSS_INJECTED[doc]) return
+    KU_CSS_INJECTED[doc] = true
+    var style = doc.createElement('style')
+    style.setAttribute('data-innfo-ku-css', '1')
+    style.textContent = [
+      ':root{--innfo-source-paper:#fff7e6}',
+      '.innfo-ku-wrap{display:inline-flex;align-items:center;gap:.25em;position:relative;vertical-align:middle}',
+      '.innfo-ku{display:inline-flex;align-items:center;gap:.3em;border-radius:.4em;padding:.1em .45em;font-size:.82rem;line-height:1.4;background:var(--innfo-surface,#fff)}',
+      '.innfo-ku[data-ku-nature=container]{border:3px double var(--innfo-border,#cbd5e1)}',
+      '.innfo-ku[data-ku-nature=structure]{border:1px dashed var(--innfo-border,#94a3b8);font-family:ui-monospace,monospace}',
+      '.innfo-ku[data-ku-nature=content]{border:1px solid var(--innfo-border,#e2e8f0)}',
+      '.innfo-ku[data-ku-home=source]{background:var(--innfo-source-paper,#fff7e6)}',
+      '.innfo-ku--block{display:flex;width:100%;padding:.5em .7em}',
+      '.innfo-ku-actions{display:inline-flex;gap:.15em;min-width:2.6em}',
+      '.innfo-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;opacity:0;pointer-events:none}',
+      '.innfo-ku-wrap:hover .innfo-ku-action,.innfo-ku-wrap:focus-within .innfo-ku-action,.innfo-ku-actions:hover .innfo-ku-action{opacity:1;pointer-events:auto}',
+      'html:not([data-innfo-review=on]) .innfo-ku-action[data-ku-action=edit]{display:none}',
+      'html:not([data-innfo-structure=on]) .innfo-ku-action[data-ku-action=edit][data-ku-structure=true]{display:none}',
+      '@media (hover:none){.innfo-ku-action{opacity:1;pointer-events:auto}}',
+      '.innfo-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
+    ].join('')
+    doc.head.appendChild(style)
+  }
+
+  function Ku(kind, ref, opts) {
+    if (!KU_NATURE[kind]) throw new TypeError('Ku: unknown kind "' + kind + '"')
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    ensureKuCss(doc)
+    var desc = describeUnit(kind, ref, opts.index)
+    var wrap = makeEl(doc, 'span', 'innfo-ku-wrap')
+    var isBlock = opts.variant === 'block'
+    var badge = makeEl(doc, isBlock ? 'div' : 'span', isBlock ? 'innfo-ku innfo-ku--block' : 'innfo-ku')
+    badge.setAttribute('data-innfo-component', 'ku-unit')
+    badge.setAttribute('data-ku-kind', desc.kind)
+    badge.setAttribute('data-ku-nature', desc.nature)
+    badge.setAttribute('data-ku-home', desc.home)
+    badge.setAttribute('data-ku-address', desc.address)
+    badge.setAttribute('data-concept-slot', String(desc.slot))
+    if (desc.vtype) badge.setAttribute('data-ku-vtype', desc.vtype)
+    if (ref && ref.field) badge.setAttribute('data-field', String(ref.field))
+    if (ref && ref.id != null && kind === 'element') badge.setAttribute('data-element-id', String(ref.id))
+    if (isBlock) {
+      badge.setAttribute('data-ku-variant', 'block')
+      if (opts.body) badge.appendChild(opts.body)
+    } else {
+      var labelEl = makeEl(doc, 'span', 'innfo-ku-label', desc.label)
+      labelEl.setAttribute('title', desc.label)
+      badge.appendChild(labelEl)
+    }
+    badge.setAttribute('aria-label', desc.nature + ', lives in ' + desc.home + ': ' + desc.label)
+    wrap.appendChild(badge)
+
+    // Action cluster: ALWAYS outside the badge root.
+    var actions = makeEl(doc, 'span', 'innfo-ku-actions')
+    var info = makeEl(doc, 'button', 'innfo-ku-action')
+    info.setAttribute('type', 'button')
+    info.setAttribute('data-ku-action', 'info')
+    info.setAttribute('aria-label', 'Unit info')
+    info.innerHTML = icon('info', 13)
+    info.addEventListener('click', function (ev) {
+      if (ev && ev.stopPropagation) ev.stopPropagation()
+      if (opts.onInfo) opts.onInfo(desc)
+    })
+    actions.appendChild(info)
+
+    if (desc.editability !== 'none') {
+      var edit = makeEl(doc, 'button', 'innfo-ku-action')
+      edit.setAttribute('type', 'button')
+      edit.setAttribute('data-ku-action', 'edit')
+      edit.setAttribute('aria-label', 'Edit unit')
+      if (desc.editability === 'structure') edit.setAttribute('data-ku-structure', 'true')
+      edit.innerHTML = icon('pencil', 13)
+      edit.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        if (opts.onEdit) opts.onEdit(desc)
+      })
+      actions.appendChild(edit)
+    }
+    wrap.appendChild(actions)
+
+    var changes = Number(opts.changes || (ref && ref.changes) || 0)
+    if (changes > 0) {
+      var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(changes))
+      pip.setAttribute('type', 'button')
+      pip.setAttribute('data-innfo-component', 'ku-change-pip')
+      pip.setAttribute('data-ku-address', desc.address)
+      pip.setAttribute('aria-label', changes + ' pending changes on ' + desc.label)
+      pip.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        if (opts.onChanges) opts.onChanges(desc)
+      })
+      wrap.appendChild(pip)
+    }
+    return wrap
+  }
+
+  function KuInfoPanel(descriptor) {
+    if (!descriptor || typeof descriptor !== 'object') {
+      throw new TypeError('KuInfoPanel: descriptor required')
+    }
+    var doc = resolveDoc(null)
+    var dlg = makeEl(doc, 'dialog', 'innfo-ku-info-panel')
+    dlg.setAttribute('data-innfo-component', 'ku-info-panel')
+    dlg.setAttribute('role', 'dialog')
+    var h = makeEl(doc, 'h2', 'innfo-ku-info-title', descriptor.label || descriptor.address)
+    h.setAttribute('tabindex', '-1')
+    dlg.appendChild(h)
+    dlg.appendChild(
+      makeEl(doc, 'p', 'innfo-ku-info-sub', descriptor.nature + ', lives in ' + descriptor.home),
+    )
+    var rows = [
+      ['Kind', descriptor.kind],
+      ['Nature', descriptor.nature],
+      ['Lives in', descriptor.home],
+      ['Address', descriptor.address],
+      ['Location', descriptor.location || ''],
+      ['Editability', descriptor.editability],
+    ]
+    var dl = makeEl(doc, 'dl', 'innfo-ku-info-list')
+    rows.forEach(function (pair) {
+      if (!pair[1]) return
+      dl.appendChild(makeEl(doc, 'dt', 'innfo-ku-info-term', pair[0]))
+      dl.appendChild(makeEl(doc, 'dd', 'innfo-ku-info-def', String(pair[1])))
+    })
+    dlg.appendChild(dl)
+    var facts = descriptor.facts || {}
+    Object.keys(facts).forEach(function (k) {
+      if (facts[k] == null || facts[k] === '') return
+      dl.appendChild(makeEl(doc, 'dt', 'innfo-ku-info-term', k))
+      dl.appendChild(makeEl(doc, 'dd', 'innfo-ku-info-def', String(facts[k])))
+    })
+    return dlg
+  }
+
   return {
     VERSION: UI_VERSION,
     TOKEN_VALUES: TOKEN_VALUES,
@@ -4016,6 +4278,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     slug: slug,
     conceptSlot: conceptSlot,
     tagSlot: tagSlot,
+    describeUnit: describeUnit,
+    Ku: Ku,
+    KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
