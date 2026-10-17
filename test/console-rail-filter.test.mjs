@@ -125,5 +125,15 @@ describe('element and dynamic field qualifiers', () => {
     assert.deepEqual(ids(items, '!role:Interceptor'), ['trap-1', 'pack-1'])
     assert.deepEqual(ids(items, '-priority:>3'), ['trap-1', 'pack-1'])
   })
+
+  it('supports explicit OR and parentheses grouping (x OR y) AND z', () => {
+    // (role:Interceptor OR role:Containment) AND priority:>3 -> only ecto-1 (priority 5, trap-1 is priority 3)
+    assert.deepEqual(ids(items, '(role:Interceptor OR role:Containment) AND priority:>3'), ['ecto-1'])
+    // role:Interceptor OR role:Containment without priority constraint -> ecto-1, trap-1
+    assert.deepEqual(ids(items, 'role:Interceptor OR role:Containment'), ['ecto-1', 'trap-1'])
+    // (year:1984 OR year:1983) AND priority:<=3 -> trap-1, pack-1
+    assert.deepEqual(ids(items, '(year:1984 OR year:1983) AND priority:<=3'), ['trap-1', 'pack-1'])
+  })
 })
+
 

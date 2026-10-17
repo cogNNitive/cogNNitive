@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-9HkswyUX4U82Zqo+FaGJ/Wnjbn5mceL7mYN8WLIkeeY=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-BZmTp73+ik5i66j3G8THsuO1mlgod9WyswdmoKIeEzw=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9057,7 +9057,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-c992db83",
-    "generated": "2026-10-17T08:56:25.182Z",
+    "generated": "2026-10-17T09:17:31.258Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T08:56:25.134Z",
+        "citationsResolvedAt": "2026-10-17T09:17:31.219Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -15543,24 +15543,98 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function parseFilterQuery(query) {
     var raw = String(query == null ? '' : query).trim()
-    if (!raw) return { textTokens: [], operators: [] }
-    // Match tokens: key:"quoted val", key:'quoted val', standalone "quoted val", or unquoted non-whitespace
-    var parts = raw.match(/[^\s"':]+:(?:"[^"]*"|'[^']*'|[^\s]+)|"[^"]*"|'[^']*'|[^\s]+/g) || []
+    if (!raw) return { textTokens: [], operators: [], groups: [] }
+
+    // Tokenize: recognize '(', ')', OR / AND keywords, key:"val", and standalone text
+    var tokenRegex = /\(|\)|[^\s"':]+:(?:"[^"]*"|'[^']*'|[^\s()]+)|"[^"]*"|'[^']*'|[^\s()]+/g
+    var rawTokens = raw.match(tokenRegex) || []
+
+    function parseAtom(t) {
+      var colonIdx = t.indexOf(':')
+      if (colonIdx > 0 && t.charAt(0) !== '(' && t.charAt(0) !== ')') {
+        var key = t.slice(0, colonIdx).toLowerCase()
+        var val = t.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
+        return { type: 'operator', key: key, val: val, raw: t }
+      }
+      var unquoted = t.replace(/^["']|["']$/g, '')
+      return { type: 'text', val: unquoted.toLowerCase(), raw: t }
+    }
+
+    // Convert tokens to CNF-like groups: top-level elements separated by AND (implicit or explicit)
+    // Parenthesized expressions '( ... )' or sequences joined by 'OR' form disjunctive clauses
+    var groups = [] // array of clauses; clause is array of atoms (atoms within a clause are OR'ed)
+    var currentOrClause = []
     var textTokens = []
     var operators = []
 
-    parts.forEach(function (part) {
-      var colonIdx = part.indexOf(':')
-      if (colonIdx > 0) {
-        var key = part.slice(0, colonIdx).toLowerCase()
-        var val = part.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
-        operators.push({ key: key, val: val, raw: part })
-      } else {
-        var unquoted = part.replace(/^["']|["']$/g, '')
-        textTokens.push(unquoted.toLowerCase())
+    var inParen = false
+    var parenClause = []
+
+    for (var i = 0; i < rawTokens.length; i++) {
+      var tok = rawTokens[i]
+      var upper = tok.toUpperCase()
+
+      if (tok === '(') {
+        inParen = true
+        parenClause = []
+        continue
       }
-    })
-    return { textTokens: textTokens, operators: operators }
+      if (tok === ')') {
+        inParen = false
+        if (parenClause.length > 0) {
+          groups.push(parenClause)
+          parenClause = []
+        }
+        continue
+      }
+
+      if (inParen) {
+        if (upper === 'OR') continue
+        if (upper === 'AND') continue
+        var atom = parseAtom(tok)
+        if (atom.type === 'operator') operators.push(atom)
+        else textTokens.push(atom.val)
+        parenClause.push(atom)
+        continue
+      }
+
+      if (upper === 'OR') {
+        // Next atom attaches to current OR clause
+        continue
+      }
+      if (upper === 'AND') {
+        if (currentOrClause.length > 0) {
+          groups.push(currentOrClause)
+          currentOrClause = []
+        }
+        continue
+      }
+
+      var atom = parseAtom(tok)
+      if (atom.type === 'operator') operators.push(atom)
+      else textTokens.push(atom.val)
+
+      // Look back: was previous token 'OR'?
+      var prev = i > 0 ? rawTokens[i - 1].toUpperCase() : ''
+      if (prev === 'OR') {
+        currentOrClause.push(atom)
+      } else {
+        if (currentOrClause.length > 0) {
+          groups.push(currentOrClause)
+          currentOrClause = []
+        }
+        currentOrClause.push(atom)
+      }
+    }
+
+    if (currentOrClause.length > 0) {
+      groups.push(currentOrClause)
+    }
+    if (parenClause.length > 0) {
+      groups.push(parenClause)
+    }
+
+    return { textTokens: textTokens, operators: operators, groups: groups }
   }
 
   function getElementFieldValue(el, key) {
@@ -15590,6 +15664,94 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return v
   }
 
+  function matchAtom(el, atom, draftsById, reviewedMap) {
+    if (!atom) return true
+    if (atom.type === 'text') {
+      return elementHaystack(el).indexOf(atom.val) !== -1
+    }
+    var op = atom
+    var opVal = String(op.val == null ? '' : op.val).trim()
+    var isNeg = op.key.charAt(0) === '!' || op.key.charAt(0) === '-'
+    var key = isNeg ? op.key.slice(1) : op.key
+
+    if (key === 'concept') {
+      var elConcept = String(el.concept || '').toLowerCase()
+      var mConcept = elConcept.indexOf(opVal) !== -1
+      return isNeg ? !mConcept : mConcept
+    }
+    if (key === 'model' || key === 'file') {
+      var modelHaystack = (
+        String(el.modelId || '') +
+        ' ' +
+        String(el.modelFile || '') +
+        ' ' +
+        String(el.modelTitle || '')
+      ).toLowerCase()
+      var mModel = modelHaystack.indexOf(opVal) !== -1
+      return isNeg ? !mModel : mModel
+    }
+    if (key === 'tag' || key === 'tag-any') {
+      if (!opVal) return true
+      var elTags = Array.isArray(el.tags)
+        ? el.tags.map(function (t) { return String(t).toLowerCase() })
+        : []
+      var mTag = elTags.indexOf(opVal) !== -1
+      return isNeg ? !mTag : mTag
+    }
+    if (key === 'element' || key === 'id' || key === 'name') {
+      var elHaystack = (String(el.id || '') + ' ' + String(el.name || '')).toLowerCase()
+      var mEl = elHaystack.indexOf(opVal) !== -1
+      return isNeg ? !mEl : mEl
+    }
+    if (key === 'is') {
+      var isMatch = false
+      if (opVal === 'draft') isMatch = !!draftsById[el.id]
+      else if (opVal === 'reviewed') isMatch = !!reviewedMap[el.id]
+      else if (opVal === 'changed') isMatch = !!(reviewedMap[el.id] && reviewedMap[el.id] !== el.hash)
+      return isNeg ? !isMatch : isMatch
+    }
+    if (key === 'has') {
+      var hasVal = getElementFieldValue(el, opVal)
+      var exists = hasVal !== null && hasVal !== undefined && hasVal !== ''
+      return isNeg ? !exists : exists
+    }
+    if (key === 'field') {
+      var eqIdx = opVal.indexOf('=')
+      if (eqIdx === -1) eqIdx = opVal.indexOf(':')
+      if (eqIdx > 0) {
+        var fName = opVal.slice(0, eqIdx).trim()
+        var fVal = opVal.slice(eqIdx + 1).trim()
+        var actual = getElementFieldValue(el, fName)
+        if (actual === null || actual === undefined) return isNeg
+        var actualStr = String(actual).toLowerCase()
+        var mField = actualStr.indexOf(fVal) !== -1
+        return isNeg ? !mField : mField
+      }
+      return true
+    }
+
+    var actual = getElementFieldValue(el, key)
+    if (actual === null || actual === undefined) return isNeg
+    var actualStr = String(actual).toLowerCase()
+    var matched = false
+    if (opVal.length > 1 && (opVal.charAt(0) === '>' || opVal.charAt(0) === '<')) {
+      var isGte = opVal.slice(0, 2) === '>='
+      var isLte = opVal.slice(0, 2) === '<='
+      var prefixLen = (isGte || isLte) ? 2 : 1
+      var numTarget = parseFloat(opVal.slice(prefixLen))
+      var numActual = parseFloat(actualStr)
+      if (!isNaN(numTarget) && !isNaN(numActual)) {
+        if (isGte) matched = numActual >= numTarget
+        else if (isLte) matched = numActual <= numTarget
+        else if (opVal.charAt(0) === '>') matched = numActual > numTarget
+        else if (opVal.charAt(0) === '<') matched = numActual < numTarget
+      }
+    } else {
+      matched = actualStr.indexOf(opVal) !== -1
+    }
+    return isNeg ? !matched : matched
+  }
+
   function filterElements(elements, query, context) {
     var list = Array.isArray(elements) ? elements : []
     var parsed = parseFilterQuery(query)
@@ -15599,7 +15761,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var draftsById = ctx.draftsById || {}
     var reviewedMap = ctx.reviewed || {}
 
-    // Group positive facets by key so multiple selections match using OR (e.g. model:A model:B matches A or B)
+    // Check if query used explicit boolean groups (e.g. parentheses or OR keyword)
+    var hasExplicitLogic = parsed.groups.some(function (g) { return g.length > 1 }) || query.indexOf('(') !== -1 || /\bOR\b/i.test(query)
+
+    if (hasExplicitLogic) {
+      return list.filter(function (el) {
+        if (!isObject(el)) return false
+        // Every group must match (AND across groups). Within each group, at least one atom must match (OR).
+        return parsed.groups.every(function (group) {
+          return group.some(function (atom) {
+            return matchAtom(el, atom, draftsById, reviewedMap)
+          })
+        })
+      })
+    }
+
+    // Default facet rules: OR within model/concept, AND across tags and other fields
     var modelOps = []
     var conceptOps = []
     var tagOps = []
@@ -15613,7 +15790,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
       } else if (oper.key === 'tag' || oper.key === 'tag-any') {
-        // A half-typed \`tag:\` has no value yet: it constrains nothing.
         if (String(oper.val == null ? '' : oper.val).trim() === '') continue
         if (oper.key === 'tag') tagOps.push(oper)
         else tagAnyOps.push(oper)
@@ -15632,130 +15808,39 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       // Check model facet (OR across multiple model selections)
       if (modelOps.length > 0) {
-        var modelHaystack = (
-          String(el.modelId || '') +
-          ' ' +
-          String(el.modelFile || '') +
-          ' ' +
-          String(el.modelTitle || '')
-        ).toLowerCase()
         var matchesAnyModel = modelOps.some(function (op) {
-          return modelHaystack.indexOf(op.val) !== -1
+          return matchAtom(el, op, draftsById, reviewedMap)
         })
         if (!matchesAnyModel) return false
       }
 
       // Check concept facet (OR across multiple concept selections)
       if (conceptOps.length > 0) {
-        var elConcept = String(el.concept || '').toLowerCase()
         var matchesAnyConcept = conceptOps.some(function (op) {
-          return elConcept.indexOf(op.val) !== -1
+          return matchAtom(el, op, draftsById, reviewedMap)
         })
         if (!matchesAnyConcept) return false
       }
 
-      // Tag facet: element.tags is the only tag source, matched exactly (case-insensitive).
-      // `tag:` tokens AND together; `tag-any:` tokens form one OR group.
+      // Tag facet
       if (tagOps.length > 0 || tagAnyOps.length > 0) {
-        var elTags = Array.isArray(el.tags)
-          ? el.tags.map(function (t) {
-              return String(t).toLowerCase()
-            })
-          : []
         var hasAllTags = tagOps.every(function (op) {
-          return elTags.indexOf(op.val) !== -1
+          return matchAtom(el, op, draftsById, reviewedMap)
         })
         if (!hasAllTags) return false
         if (tagAnyOps.length > 0) {
           var hasAnyTag = tagAnyOps.some(function (op) {
-            return elTags.indexOf(op.val) !== -1
+            return matchAtom(el, op, draftsById, reviewedMap)
           })
           if (!hasAnyTag) return false
         }
       }
 
+      // Other fields (AND by default)
       for (var j = 0; j < otherOps.length; j++) {
-        var op = otherOps[j]
-        var opVal = String(op.val == null ? '' : op.val).trim()
-        if (!opVal) continue
-        var isNeg = op.key.charAt(0) === '!' || op.key.charAt(0) === '-'
-        var key = isNeg ? op.key.slice(1) : op.key
-
-        if (key === 'concept') {
-          var elConcept = String(el.concept || '').toLowerCase()
-          var mConcept = elConcept.indexOf(opVal) !== -1
-          if (isNeg ? mConcept : !mConcept) return false
-        } else if (key === 'model' || key === 'file') {
-          var modelHaystack = (
-            String(el.modelId || '') +
-            ' ' +
-            String(el.modelFile || '') +
-            ' ' +
-            String(el.modelTitle || '')
-          ).toLowerCase()
-          var mModel = modelHaystack.indexOf(opVal) !== -1
-          if (isNeg ? mModel : !mModel) return false
-        } else if (key === 'tag') {
-          var elTags = Array.isArray(el.tags)
-            ? el.tags.map(function (t) { return String(t).toLowerCase() })
-            : []
-          var mTag = elTags.indexOf(opVal) !== -1
-          if (isNeg ? mTag : !mTag) return false
-        } else if (key === 'element' || key === 'id' || key === 'name') {
-          var elHaystack = (String(el.id || '') + ' ' + String(el.name || '')).toLowerCase()
-          var mEl = elHaystack.indexOf(opVal) !== -1
-          if (isNeg ? mEl : !mEl) return false
-        } else if (key === 'is') {
-          var isMatch = false
-          if (opVal === 'draft') isMatch = !!draftsById[el.id]
-          else if (opVal === 'reviewed') isMatch = !!reviewedMap[el.id]
-          else if (opVal === 'changed') isMatch = !!(reviewedMap[el.id] && reviewedMap[el.id] !== el.hash)
-          if (isNeg ? isMatch : !isMatch) return false
-        } else if (key === 'has') {
-          var hasVal = getElementFieldValue(el, opVal)
-          var exists = hasVal !== null && hasVal !== undefined && hasVal !== ''
-          if (isNeg ? exists : !exists) return false
-        } else if (key === 'field') {
-          var eqIdx = opVal.indexOf('=')
-          if (eqIdx === -1) eqIdx = opVal.indexOf(':')
-          if (eqIdx > 0) {
-            var fName = opVal.slice(0, eqIdx).trim()
-            var fVal = opVal.slice(eqIdx + 1).trim()
-            var actual = getElementFieldValue(el, fName)
-            if (actual === null || actual === undefined) {
-              if (!isNeg) return false
-            } else {
-              var actualStr = String(actual).toLowerCase()
-              var mField = actualStr.indexOf(fVal) !== -1
-              if (isNeg ? mField : !mField) return false
-            }
-          }
-        } else {
-          var actual = getElementFieldValue(el, key)
-          if (actual === null || actual === undefined) {
-            if (!isNeg) return false
-          } else {
-            var actualStr = String(actual).toLowerCase()
-            var matched = false
-            if (opVal.length > 1 && (opVal.charAt(0) === '>' || opVal.charAt(0) === '<')) {
-              var isGte = opVal.slice(0, 2) === '>='
-              var isLte = opVal.slice(0, 2) === '<='
-              var prefixLen = (isGte || isLte) ? 2 : 1
-              var numTarget = parseFloat(opVal.slice(prefixLen))
-              var numActual = parseFloat(actualStr)
-              if (!isNaN(numTarget) && !isNaN(numActual)) {
-                if (isGte) matched = numActual >= numTarget
-                else if (isLte) matched = numActual <= numTarget
-                else if (opVal.charAt(0) === '>') matched = numActual > numTarget
-                else if (opVal.charAt(0) === '<') matched = numActual < numTarget
-              }
-            } else {
-              matched = actualStr.indexOf(opVal) !== -1
-            }
-            if (isNeg ? matched : !matched) return false
-          }
-        }
+        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap)) return false
       }
+
       return true
     })
   }
@@ -16560,11 +16645,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(clearBtn)
     }
 
-    // 4. Render Active Filter Pills below the bar as Semantic KU Pills
+    // 4. Render Active Filter Pills grouped by Boolean Clause (with explicit AND / OR connectors)
     if (activeHost && (parsed.operators.length > 0 || parsed.textTokens.length > 0)) {
       var schemaConcepts = (state && state.concepts && state.concepts.length ? state.concepts : (state && state.schema && state.schema.concepts)) || allConcepts.map(function (c) { return c.name })
-      parsed.operators.forEach(function (op) {
+
+      function renderAtomPill(atom) {
         var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1.5 text-[11px] py-2 px-2.5 bg-base-100')
+        if (atom.type === 'text') {
+          pill.classList.add('font-mono')
+          pill.appendChild(el('span', null, '"' + atom.val + '"'))
+          var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
+          removeBtn.setAttribute('type', 'button')
+          removeBtn.addEventListener('click', function (e) {
+            e.stopPropagation()
+            var nextTokens = parsed.textTokens.filter(function (t) { return t !== atom.val })
+            var nextQuery = nextTokens.concat(parsed.operators.map(function (o) { return o.raw || formatFacetToken(o.key, o.val) })).join(' ')
+            if (typeof onQueryChange === 'function') onQueryChange(nextQuery)
+          })
+          pill.appendChild(removeBtn)
+          return pill
+        }
+
+        var op = atom
         pill.setAttribute('data-filter-key', String(op.key))
         if (op.key === 'concept' || op.key === '!concept') {
           var cMeta = conceptMetaOf(schemaConcepts, op.val)
@@ -16611,22 +16713,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           toggleFacet(op.key, op.val, false)
         })
         pill.appendChild(removeBtn)
-        activeHost.appendChild(pill)
-      })
+        return pill
+      }
 
-      parsed.textTokens.forEach(function (token) {
-        var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.appendChild(el('span', null, '"' + token + '"'))
-        var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
-        removeBtn.setAttribute('type', 'button')
-        removeBtn.addEventListener('click', function (e) {
-          e.stopPropagation()
-          var nextTokens = parsed.textTokens.filter(function (t) { return t !== token })
-          var nextQuery = nextTokens.concat(parsed.operators.map(function (o) { return o.raw || formatFacetToken(o.key, o.val) })).join(' ')
-          if (typeof onQueryChange === 'function') onQueryChange(nextQuery)
+      var displayGroups = parsed.groups.length > 0
+        ? parsed.groups
+        : [parsed.operators.concat(parsed.textTokens.map(function (t) { return { type: 'text', val: t } }))]
+
+      displayGroups.forEach(function (clause, cIdx) {
+        if (cIdx > 0) {
+          var andBadge = el('span', 'text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 select-none shadow-xs', 'AND')
+          activeHost.appendChild(andBadge)
+        }
+
+        var isMulti = clause.length > 1
+        var clauseContainer = isMulti
+          ? el('span', 'inline-flex items-center gap-1.5 p-1 bg-slate-50 border border-dashed border-slate-300 rounded-lg')
+          : null
+
+        clause.forEach(function (atom, aIdx) {
+          if (aIdx > 0) {
+            var orBadge = el('span', 'text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 select-none', 'OR')
+            if (clauseContainer) clauseContainer.appendChild(orBadge)
+            else activeHost.appendChild(orBadge)
+          }
+          var atomEl = renderAtomPill(atom)
+          if (clauseContainer) clauseContainer.appendChild(atomEl)
+          else activeHost.appendChild(atomEl)
         })
-        pill.appendChild(removeBtn)
-        activeHost.appendChild(pill)
+
+        if (clauseContainer) activeHost.appendChild(clauseContainer)
       })
     }
 
