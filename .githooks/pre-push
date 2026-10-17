@@ -1,5 +1,6 @@
 #!/bin/sh
-# pre-push: block the push if the repo does not typecheck.
+# pre-push: block the push if the repo does not typecheck, or if the generated
+# docs-derived facts are stale.
 #
 # Typecheck runs `npm run typecheck` (root, both workspaces, includes the
 # innfo-core build)
@@ -20,6 +21,7 @@
 #     when you knowingly skip the install.
 
 typechecked=0
+docs_checked=0
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Ref deletion: local sha is all zeros. Nothing to check.
@@ -40,6 +42,27 @@ while read -r local_ref local_sha remote_ref remote_sha; do
           exit "$status"
         fi
         typechecked=1
+      fi
+
+      if [ "$docs_checked" -eq 0 ]; then
+        # Docs-derived-facts drift guard. The generated `mcp-tools` region in
+        # docs/innfo/documentation/innfo-mcp.md and skills/nn-innfo/SKILL.md must
+        # match the innfo-mcp tool registry; editing a tool description without
+        # re-running the generator lands a red dev tip and blocks the next
+        # dev->main batch (2026-10-11 and 2026-10-17). Cheap (~5s) and the only
+        # local trigger for it. The mcp dist is not produced by typecheck, so
+        # build it first; with the source unchanged the rebuild is byte-identical.
+        npm --workspace=@cognnitive/innfo-mcp run build >/dev/null 2>&1
+        node scripts/generate-docs-facts.mjs --check
+        status=$?
+        if [ "$status" -ne 0 ]; then
+          echo ""
+          echo "pre-push: generated docs facts are stale (exit $status). Push blocked."
+          echo "pre-push: run 'node scripts/generate-docs-facts.mjs' and commit the result."
+          echo "pre-push: bypass with: git push --no-verify"
+          exit "$status"
+        fi
+        docs_checked=1
       fi
       ;;
     *)
