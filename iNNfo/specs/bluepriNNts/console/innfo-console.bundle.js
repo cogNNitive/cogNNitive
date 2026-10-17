@@ -6587,10 +6587,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ? parsed.groups
         : [parsed.operators.concat(parsed.textTokens.map(function (t) { return { type: 'text', val: t } }))]
 
+      function serializeGroups(groups) {
+        return groups.map(function (clause) {
+          var clauseStr = clause.map(function (atom) {
+            return atom.raw || (atom.type === 'operator' ? formatFacetToken(atom.key, atom.val) : '"' + atom.val + '"')
+          }).join(' OR ')
+          return clause.length > 1 ? '(' + clauseStr + ')' : clauseStr
+        }).join(' AND ')
+      }
+
+      function createConnectorSelect(currentVal, onChange) {
+        var sel = el('select', 'text-[10px] font-black uppercase tracking-wider py-0 px-1.5 h-5 min-h-0 bg-base-100 border border-slate-300 rounded cursor-pointer hover:border-primary focus:outline-none focus:border-primary shadow-xs')
+        var optAnd = el('option', null, 'AND')
+        optAnd.value = 'AND'
+        optAnd.selected = currentVal === 'AND'
+        var optOr = el('option', null, 'OR')
+        optOr.value = 'OR'
+        optOr.selected = currentVal === 'OR'
+        sel.appendChild(optAnd)
+        sel.appendChild(optOr)
+        sel.addEventListener('change', function (e) {
+          e.stopPropagation()
+          onChange(sel.value)
+        })
+        return sel
+      }
+
       displayGroups.forEach(function (clause, cIdx) {
         if (cIdx > 0) {
-          var andBadge = el('span', 'text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 select-none shadow-xs', 'AND')
-          activeHost.appendChild(andBadge)
+          var andSelect = createConnectorSelect('AND', function (newVal) {
+            if (newVal === 'OR') {
+              // Merge clause with previous clause into an OR group
+              var newGroups = []
+              for (var i = 0; i < displayGroups.length; i++) {
+                if (i === cIdx - 1) {
+                  newGroups.push(displayGroups[cIdx - 1].concat(displayGroups[cIdx]))
+                } else if (i === cIdx) {
+                  // already merged
+                } else {
+                  newGroups.push(displayGroups[i])
+                }
+              }
+              if (typeof onQueryChange === 'function') onQueryChange(serializeGroups(newGroups))
+            }
+          })
+          activeHost.appendChild(andSelect)
         }
 
         var isMulti = clause.length > 1
@@ -6600,9 +6641,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
         clause.forEach(function (atom, aIdx) {
           if (aIdx > 0) {
-            var orBadge = el('span', 'text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 select-none', 'OR')
-            if (clauseContainer) clauseContainer.appendChild(orBadge)
-            else activeHost.appendChild(orBadge)
+            var orSelect = createConnectorSelect('OR', function (newVal) {
+              if (newVal === 'AND') {
+                // Split clause into two separate AND clauses
+                var newGroups = []
+                for (var i = 0; i < displayGroups.length; i++) {
+                  if (i === cIdx) {
+                    newGroups.push(clause.slice(0, aIdx))
+                    newGroups.push(clause.slice(aIdx))
+                  } else {
+                    newGroups.push(displayGroups[i])
+                  }
+                }
+                if (typeof onQueryChange === 'function') onQueryChange(serializeGroups(newGroups))
+              }
+            })
+            if (clauseContainer) clauseContainer.appendChild(orSelect)
+            else activeHost.appendChild(orSelect)
           }
           var atomEl = renderAtomPill(atom)
           if (clauseContainer) clauseContainer.appendChild(atomEl)

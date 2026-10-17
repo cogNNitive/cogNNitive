@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-BZmTp73+ik5i66j3G8THsuO1mlgod9WyswdmoKIeEzw=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vcOGRBonNnbkOt5hWRput2SCGb1MkwH14mcmzj9cGu4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9057,7 +9057,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-c992db83",
-    "generated": "2026-10-17T09:17:31.258Z",
+    "generated": "2026-10-17T09:20:52.704Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T09:17:31.219Z",
+        "citationsResolvedAt": "2026-10-17T09:20:52.658Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -16720,10 +16720,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ? parsed.groups
         : [parsed.operators.concat(parsed.textTokens.map(function (t) { return { type: 'text', val: t } }))]
 
+      function serializeGroups(groups) {
+        return groups.map(function (clause) {
+          var clauseStr = clause.map(function (atom) {
+            return atom.raw || (atom.type === 'operator' ? formatFacetToken(atom.key, atom.val) : '"' + atom.val + '"')
+          }).join(' OR ')
+          return clause.length > 1 ? '(' + clauseStr + ')' : clauseStr
+        }).join(' AND ')
+      }
+
+      function createConnectorSelect(currentVal, onChange) {
+        var sel = el('select', 'text-[10px] font-black uppercase tracking-wider py-0 px-1.5 h-5 min-h-0 bg-base-100 border border-slate-300 rounded cursor-pointer hover:border-primary focus:outline-none focus:border-primary shadow-xs')
+        var optAnd = el('option', null, 'AND')
+        optAnd.value = 'AND'
+        optAnd.selected = currentVal === 'AND'
+        var optOr = el('option', null, 'OR')
+        optOr.value = 'OR'
+        optOr.selected = currentVal === 'OR'
+        sel.appendChild(optAnd)
+        sel.appendChild(optOr)
+        sel.addEventListener('change', function (e) {
+          e.stopPropagation()
+          onChange(sel.value)
+        })
+        return sel
+      }
+
       displayGroups.forEach(function (clause, cIdx) {
         if (cIdx > 0) {
-          var andBadge = el('span', 'text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 select-none shadow-xs', 'AND')
-          activeHost.appendChild(andBadge)
+          var andSelect = createConnectorSelect('AND', function (newVal) {
+            if (newVal === 'OR') {
+              // Merge clause with previous clause into an OR group
+              var newGroups = []
+              for (var i = 0; i < displayGroups.length; i++) {
+                if (i === cIdx - 1) {
+                  newGroups.push(displayGroups[cIdx - 1].concat(displayGroups[cIdx]))
+                } else if (i === cIdx) {
+                  // already merged
+                } else {
+                  newGroups.push(displayGroups[i])
+                }
+              }
+              if (typeof onQueryChange === 'function') onQueryChange(serializeGroups(newGroups))
+            }
+          })
+          activeHost.appendChild(andSelect)
         }
 
         var isMulti = clause.length > 1
@@ -16733,9 +16774,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
         clause.forEach(function (atom, aIdx) {
           if (aIdx > 0) {
-            var orBadge = el('span', 'text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 select-none', 'OR')
-            if (clauseContainer) clauseContainer.appendChild(orBadge)
-            else activeHost.appendChild(orBadge)
+            var orSelect = createConnectorSelect('OR', function (newVal) {
+              if (newVal === 'AND') {
+                // Split clause into two separate AND clauses
+                var newGroups = []
+                for (var i = 0; i < displayGroups.length; i++) {
+                  if (i === cIdx) {
+                    newGroups.push(clause.slice(0, aIdx))
+                    newGroups.push(clause.slice(aIdx))
+                  } else {
+                    newGroups.push(displayGroups[i])
+                  }
+                }
+                if (typeof onQueryChange === 'function') onQueryChange(serializeGroups(newGroups))
+              }
+            })
+            if (clauseContainer) clauseContainer.appendChild(orSelect)
+            else activeHost.appendChild(orSelect)
           }
           var atomEl = renderAtomPill(atom)
           if (clauseContainer) clauseContainer.appendChild(atomEl)
