@@ -93,7 +93,7 @@
   // never leaks into a shell. C appends the review components here.
   var COMPONENT_CSS = [
     '[data-innfo-component]{box-sizing:border-box}',
-    '.innfo-concept-pill,.innfo-element-pill,.innfo-marker-chip,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
+    '.innfo-concept-pill,.innfo-element-pill,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
     '.innfo-concept-dot{width:.6em;height:.6em;border-radius:50%;background:var(--innfo-muted);flex:0 0 auto}',
     '.innfo-concept-count{color:var(--innfo-muted)}',
     '.innfo-element-origin{display:inline-flex;align-items:center;color:var(--innfo-origin-document)}',
@@ -211,6 +211,8 @@
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
+    '.innfo-ku-badge .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
+    '.innfo-ku-badge .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
     '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
@@ -287,7 +289,6 @@
     '.innfo-mini-text{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}',
     '.innfo-mini-name{font-size:.8rem;font-weight:600;color:var(--innfo-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.innfo-mini-meta{font-size:.68rem;color:var(--innfo-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.innfo-mini-markers{display:flex;gap:.25em;flex:0 0 auto}',
     '.innfo-mini>.innfo-card-status-pill{flex:0 0 auto}',
     // ElementPreview (generic floating detail) + the mini's info affordance.
     '.innfo-preview{position:fixed;z-index:60;width:clamp(26rem,60vw,52rem);max-width:calc(100vw - 1.5rem);max-height:calc(100vh - 1.5rem);overflow:auto;overscroll-behavior:contain;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius,10px);box-shadow:0 12px 32px rgba(0,0,0,.16);padding:.6rem .8rem}',
@@ -552,18 +553,6 @@
     return pill
   }
 
-  function MarkerChip(data) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.MarkerChip: data required')
-    var doc = resolveDoc(null)
-    var chip = makeEl(doc, 'span', 'innfo-marker-chip')
-    chip.setAttribute('data-innfo-component', 'marker-chip')
-    chip.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-    chip.setAttribute('data-kind', String(data.kind == null ? '' : data.kind))
-    chip.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
-    if (data.value != null) chip.appendChild(makeEl(doc, 'b', null, data.value))
-    return chip
-  }
-
   // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
   //
   // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
@@ -667,6 +656,7 @@
     tags.forEach(function (t) {
       var tag = makeEl(doc, 'span', 'innfo-tag')
       tag.setAttribute('data-tag', String(t))
+      tag.setAttribute('data-concept-slot', String(tagSlot(t)))
       tag.appendChild(doc.createTextNode(String(t)))
       if (onTag) {
         tag.setAttribute('role', 'button')
@@ -1496,13 +1486,6 @@
       var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
       mini.appendChild(metaEl)
     }
-    if (Array.isArray(data.markers) && data.markers.length) {
-      var mks = makeEl(doc, 'span', 'innfo-mini-markers')
-      data.markers.forEach(function (m) {
-        if (m) mks.appendChild(MarkerChip(m))
-      })
-      mini.appendChild(mks)
-    }
     if (data.status) {
       var st = makeEl(doc, 'span', 'innfo-card-status-pill')
       st.setAttribute('data-status', String(data.status).toLowerCase())
@@ -1613,12 +1596,6 @@
       }
       stPill.appendChild(doc.createTextNode(statusField))
       head.appendChild(stPill)
-    }
-
-    if (Array.isArray(data.markers)) {
-      data.markers.forEach(function (m) {
-        if (m) head.appendChild(MarkerChip(m))
-      })
     }
 
     if (summaryField) {
@@ -2777,11 +2754,10 @@
   // / edit) live OUTSIDE the badge in KuActions, never nested, and the pending-
   // change pip is a count badge child. The kit holds no mode state: the edit action
   // exists only because the caller passed onEdit.
-  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'marker', 'reference']
+  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'reference']
   var KU_KIND_ICON = {
     document: 'cite-document',
     concept: 'explorer',
-    marker: 'star',
     field: 'derived',
     cell: 'calc',
   }
@@ -2825,10 +2801,6 @@
     } else if (kind === 'field') {
       badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
       if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-    } else if (kind === 'marker') {
-      badge.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-      badge.setAttribute('data-kind', String(data.markerKind == null ? '' : data.markerKind))
-      if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
     }
 
     var iconName = data.icon || KU_KIND_ICON[kind]
@@ -2840,18 +2812,25 @@
 
     if (kind === 'field') {
       var fieldLabel = data.label != null ? data.label : data.name
-      if (data.value != null || data.valueNode) {
+      if (data.valueNode) {
         if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        if (data.valueNode) badge.appendChild(data.valueNode)
-        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+        badge.appendChild(data.valueNode)
+      } else if (Array.isArray(data.value)) {
+        // A multi-valued Field renders one value chip per value.
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        var valuesWrap = makeEl(doc, 'span', 'innfo-ku-values')
+        data.value.forEach(function (v) {
+          valuesWrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-chip', v == null ? '' : String(v)))
+        })
+        badge.appendChild(valuesWrap)
+      } else if (data.value != null) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
       } else if (fieldLabel != null) {
         badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
       }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
-    } else if (kind === 'marker') {
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', String(data.label == null ? '' : data.label)))
-      if (data.value != null) badge.appendChild(makeEl(doc, 'b', null, data.value))
     } else {
       var labelText = String(data.label == null ? '' : data.label)
       var labelEl = makeEl(doc, 'span', 'innfo-ku-value', labelText)
@@ -3124,7 +3103,6 @@
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
-    MarkerChip: MarkerChip,
     KuBadge: KuBadge,
     KuActions: KuActions,
     QudChip: QudChip,

@@ -1767,15 +1767,6 @@
     })
   }
 
-  function guideMarkersFor(concept, schema) {
-    if (Array.isArray(concept.markers) && concept.markers.length) return concept.markers
-    var all = schema && Array.isArray(schema.markers) ? schema.markers : []
-    var cname = String(concept.name).toLowerCase()
-    return all.filter(function (m) {
-      return m && m.concept && String(m.concept).toLowerCase() === cname
-    })
-  }
-
   function guideMatricesFor(concept, matrices, schema) {
     var cname = String(concept.name).toLowerCase()
     var list =
@@ -1880,21 +1871,6 @@
       })
       fs.appendChild(fdl)
       host.appendChild(fs)
-    }
-
-    var markers = guideMarkersFor(concept, schema)
-    if (markers.length) {
-      var ms = el('section', 'innfo-guide-section')
-      ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
-      var mul = el('div', 'innfo-guide-marker-row')
-      markers.forEach(function (m) {
-        if (!m) return
-        var mLabel = String(m.label || m.name || '')
-        if (!mLabel) return
-        mul.appendChild(UI.MarkerChip({ id: mLabel, label: '! ' + mLabel, kind: 'marker' }))
-      })
-      ms.appendChild(mul)
-      host.appendChild(ms)
     }
 
     var matrixList = guideMatricesFor(concept, matrices, schema)
@@ -2152,21 +2128,6 @@
         })
       }
 
-      var markerList = []
-      if (isObject(element.markers)) {
-        Object.keys(element.markers).forEach(function (mkKey) {
-          var mkVal = element.markers[mkKey]
-          markerList.push({
-            id: mkKey,
-            label: mkKey,
-            kind: 'marker',
-            value: Array.isArray(mkVal) ? mkVal.join(', ') : mkVal,
-          })
-        })
-      } else if (Array.isArray(element.markers)) {
-        markerList = element.markers
-      }
-
       var card = UI.ElementCard(
         {
           id: element.id,
@@ -2174,7 +2135,6 @@
           conceptId: element.concept,
           description: element.description,
           fields: fields,
-          markers: markerList.length ? markerList : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,

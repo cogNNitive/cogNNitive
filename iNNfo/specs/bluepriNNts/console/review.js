@@ -674,20 +674,6 @@
           history: base.history,
         }
       }
-      if (field.indexOf('marker:') === 0) {
-        var markerId = field.slice('marker:'.length)
-        var markers = el.markers || {}
-        return {
-          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 marker ' + markerId,
-          fieldName: field,
-          type: 'string',
-          value: markers[markerId],
-          draftField: field,
-          original: markers[markerId],
-          citations: base.citations,
-          history: base.history,
-        }
-      }
       var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
@@ -1141,19 +1127,6 @@
           ),
         )
       }
-      Array.prototype.forEach.call(
-        card.querySelectorAll('[data-marker-id]'),
-        function (chip) {
-          if (chip.querySelector('[data-innfo-ctl="marker-anchor"]')) return
-          var markerId = chip.getAttribute('data-marker-id')
-          chip.appendChild(
-            kuEditControl(
-              { elementId: elId, field: 'marker:' + markerId, ctl: 'marker-anchor' },
-              'Edit marker ' + markerId,
-            ),
-          )
-        },
-      )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
 

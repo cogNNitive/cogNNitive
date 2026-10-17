@@ -207,7 +207,7 @@ describe('Element Card Redesign Contract', () => {
       return { card, store, ctl }
     }
 
-    it('adds name/desc/marker pencils and tag/relation controls', () => {
+    it('adds name/desc pencils and tag/relation controls', () => {
       const { card } = decorated()
       assert.equal(
         card.querySelector('[data-innfo-ctl="edit-toggle"]'),
@@ -222,7 +222,11 @@ describe('Element Card Redesign Contract', () => {
         card.querySelector('.innfo-card-desc [data-innfo-ctl="desc-anchor"]'),
         'description pencil',
       )
-      assert.ok(card.querySelector('[data-innfo-ctl="marker-anchor"]'), 'marker pencil')
+      assert.equal(
+        card.querySelector('[data-innfo-ctl="marker-anchor"]'),
+        null,
+        'no marker pencil (the Marker primitive is gone)',
+      )
       assert.equal(
         card.querySelectorAll('[data-innfo-ctl="tag-remove"]').length,
         2,
