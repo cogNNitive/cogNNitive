@@ -49,6 +49,7 @@ function main() {
   {
     const expectedSources = [
       'innfo-slug.generated.js',
+  'innfo-address.generated.js',
       'vendor/preact.umd.js',
       'vendor/htm.umd.js',
       'innfo-preact-init.js',

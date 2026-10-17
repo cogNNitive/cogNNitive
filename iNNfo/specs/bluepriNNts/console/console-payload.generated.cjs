@@ -8825,6 +8825,31 @@ function applyAliasToSchema(schema, alias) {
   });
   return { concepts, matrices, taxonomy };
 }
+function familySlug(raw) {
+  return String(raw ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+function declMetaOf(fm, label, location) {
+  const family = familySlug(fm?.blueprint_name || fm?.title || label);
+  const version = fm?.blueprint_version ? String(fm.blueprint_version) : void 0;
+  return { family, ...version ? { version } : {}, ...location ? { location } : {} };
+}
+function attachDeclaredBy(schema, provenance, fallback) {
+  const metaFor = (source) => (source ? provenance.meta.get(source) : void 0) ?? fallback;
+  for (const c of schema.concepts) {
+    const cm = metaFor(provenance.concept.get(c.name.toLowerCase())?.source);
+    if (cm) c.declaredBy = cm;
+    for (const f of c.fields ?? []) {
+      const fk = `${c.name.toLowerCase()}.${f.name.toLowerCase()}`;
+      const src = provenance.field.get(fk) ?? provenance.starField.get(f.name.toLowerCase())?.source;
+      const fm = metaFor(src);
+      if (fm) f.declaredBy = fm;
+    }
+  }
+  for (const mx of schema.matrices) {
+    const mm = metaFor(provenance.matrix.get(mx.name.toLowerCase())?.source);
+    if (mm) mx.declaredBy = mm;
+  }
+}
 function expandFieldTargets(concepts, globalFields, sourceLabel, errors, provenance, isHost = true) {
   if (!globalFields || globalFields.length === 0) return;
   for (const gf of globalFields) {
@@ -8955,13 +8980,16 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
     concept: /* @__PURE__ */ new Map(),
     matrix: /* @__PURE__ */ new Map(),
     field: /* @__PURE__ */ new Map(),
-    starField: /* @__PURE__ */ new Map()
+    starField: /* @__PURE__ */ new Map(),
+    meta: /* @__PURE__ */ new Map()
   };
+  provenance.meta.set(selfLabel, declMetaOf(parsed.frontmatter, selfLabel));
   if (!resolveInclude || includes.length === 0) {
     if (local.globalFields && local.globalFields.length > 0) {
       expandFieldTargets(local.concepts, local.globalFields, selfLabel, errors, provenance, true);
       delete local.globalFields;
     }
+    attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel));
     return { schema: local, errors };
   }
   if (_depth >= 10) {
@@ -9006,6 +9034,10 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
     errors.push(...nested.errors);
     const aliasedSchema = ref.alias ? applyAliasToSchema(nested.schema, ref.alias) : nested.schema;
     const includedLabel = String(parseKnowledge(content).frontmatter?.title ?? ref.name);
+    provenance.meta.set(
+      includedLabel,
+      declMetaOf(parseKnowledge(content).frontmatter, includedLabel, ref.url || ref.name)
+    );
     mergeSchemaInto(base, aliasedSchema, includedLabel, provenance, errors, false);
   }
   mergeSchemaInto(base, local, selfLabel, provenance, errors, true);
@@ -9034,6 +9066,9 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
         });
       }
     }
+  }
+  if (_depth === 0) {
+    attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel));
   }
   return { schema: base, errors };
 }
@@ -10840,17 +10875,24 @@ function buildConsolePayload(options) {
       const headRows = {};
       const headCols = {};
       for (const r of rows) {
-        headRows[r] = { label: r, concept: mat.source || void 0, kind: "element" };
+        headRows[r] = {
+          label: r,
+          concept: mat.source || void 0,
+          kind: "element",
+          slug: elementsByName.get(r.toLowerCase())?.slug || slugify(r)
+        };
       }
       for (const c of cols) {
         headCols[c] = {
           label: c,
           concept: mat.target || void 0,
-          kind: "element"
+          kind: "element",
+          slug: elementsByName.get(c.toLowerCase())?.slug || slugify(c)
         };
       }
       matrices.push({
         name: mat.name,
+        slug: slugify(mat.name),
         source: mat.source || "",
         target: mat.target || "",
         rows,

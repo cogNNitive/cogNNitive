@@ -1028,7 +1028,7 @@ export async function writeConsole(opts = {}) {
       // concepts; a conflicting redeclaration by a later blueprint is warned about.
       for (const f of Array.isArray(payload.schema.fields) ? payload.schema.fields : []) {
         if (!f || !f.concept || !f.name) continue
-        const key = `${(f.declaredBy && f.declaredBy.family) || ''}\u0000${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`
+        const key = `${String(f.concept).toLowerCase()}\u0000${String(f.name).toLowerCase()}`
         const kept = fieldIndex.get(key)
         if (!kept) {
           fieldIndex.set(key, f)
