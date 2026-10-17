@@ -3834,6 +3834,7 @@
       var scope = editable ? doc.body || panel : panel
       guardIframes(t, scope)
       try {
+        var filterListeners = []
         var ctx = {
           id: t.id,
           container: panel,
@@ -3846,12 +3847,34 @@
             models: Array.isArray(opts.meta && opts.meta.models) ? opts.meta.models : [],
           },
         }
-        if (editable) Object.assign(ctx, editableParts(t))
-        else
+        if (editable) {
+          Object.assign(ctx, editableParts(t))
+          ctx.filter = {
+            getQuery: function () {
+              return typeof opts.getQuery === 'function' ? opts.getQuery() : ''
+            },
+            getElements: function () {
+              return typeof opts.getFilteredElements === 'function'
+                ? opts.getFilteredElements()
+                : (opts.model && opts.model.elements ? opts.model.elements : [])
+            },
+            onChange: function (fn) {
+              if (typeof fn === 'function') {
+                filterListeners.push(fn)
+                return function () {
+                  var idx = filterListeners.indexOf(fn)
+                  if (idx >= 0) filterListeners.splice(idx, 1)
+                }
+              }
+              return function () {}
+            },
+          }
+        } else {
           ctx.mountHtml = function (html) {
             return mountHtml(panel, html)
           }
-        mounted[t.id] = { api: t.mount(ctx) || {} }
+        }
+        mounted[t.id] = { api: t.mount(ctx) || {}, filterListeners: filterListeners }
       } catch (err) {
         var msg = String(err && err.message ? err.message : err)
         mounted[t.id] = { api: {}, failed: true }
@@ -3862,16 +3885,42 @@
       stripIframes(t, scope)
     }
 
-    function hook(id, name) {
+    function hook(id, name, args) {
       var m = mounted[id]
       if (m && !m.failed && typeof m.api[name] === 'function') {
         try {
-          m.api[name]()
+          m.api[name].apply(m.api, args || [])
         } catch (err) {
           report(id, [], 'view "' + id + '": ' + name + ' failed: ' + String(err && err.message ? err.message : err))
           showErrors()
         }
       }
+    }
+
+    function notifyFilter(filteredElements, query) {
+      tabs.forEach(function (t) {
+        var m = mounted[t.id]
+        if (m && !m.failed) {
+          if (m.filterListeners && m.filterListeners.length) {
+            m.filterListeners.slice().forEach(function (fn) {
+              try {
+                fn(filteredElements, query)
+              } catch (err) {
+                report(t.id, [t.source], 'view "' + t.id + '": filter listener failed: ' + String(err && err.message ? err.message : err))
+                showErrors()
+              }
+            })
+          }
+          if (m.api && typeof m.api.onFilter === 'function') {
+            try {
+              m.api.onFilter(filteredElements, query)
+            } catch (err) {
+              report(t.id, [t.source], 'view "' + t.id + '": onFilter failed: ' + String(err && err.message ? err.message : err))
+              showErrors()
+            }
+          }
+        }
+      })
     }
 
     function select(tabId, fromHash) {
@@ -3896,14 +3945,6 @@
         var railAside = doc.querySelector('aside.innfo-rail')
         if (railAside) {
           railAside.style.display = tabId === 'explorer' ? '' : 'none'
-        }
-        var toolbar = doc.querySelector('.innfo-toolbar')
-        if (toolbar) {
-          toolbar.style.display = tabId === 'explorer' ? '' : 'none'
-        }
-        var filterZone = doc.querySelector('.innfo-filter-zone')
-        if (filterZone) {
-          filterZone.style.display = tabId === 'explorer' ? '' : 'none'
         }
       }
       if (prev) hook(prev, 'onHide')
@@ -3960,6 +4001,7 @@
         return current
       },
       select: select,
+      notifyFilter: notifyFilter,
       destroy: function () {
         if (doc.defaultView) doc.defaultView.removeEventListener('hashchange', onHashChange)
         observers.forEach(function (o) {
@@ -5687,6 +5729,10 @@
       }
 
       var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)
+      lastFilteredElements = filteredElements
+      if (tabs && typeof tabs.notifyFilter === 'function') {
+        tabs.notifyFilter(filteredElements, activeSearchQuery || '')
+      }
       if (!scopedView && elements.length) {
         renderExplorerToolbar(active, explorerView, function (mode) {
           if (mode === explorerView) return
@@ -5725,16 +5771,10 @@
         renderConceptGuide(active, activeGuideConcept(activeSearchQuery, concepts), schema, matrices, counts)
       }
 
-      // Hide documentation overview tree when filtering elements so filtered cards are immediately visible
+      // Document overview tree remains hidden while filtering elements so filtered cards are immediately visible
       var docHost = active.getElementById('innfo-doc')
       if (docHost) {
         docHost.style.display = activeSearchQuery ? 'none' : ''
-      }
-
-      // A new query moves to Explorer; the hash is rewritten below, so this
-      // switch does not push a history entry.
-      if (activeSearchQuery && queryChanged && !keepTab && tabs && !scopedView) {
-        tabs.select('explorer', true)
       }
 
       renderReviewTab(active, state, config, function () {
@@ -5774,9 +5814,13 @@
     }
 
     // Tabs are built once, before the first refresh, and never remounted.
+    var lastFilteredElements = []
     var tabs = mountTabs(active, {
       getQuery: function () {
         return activeSearchQuery
+      },
+      getFilteredElements: function () {
+        return lastFilteredElements
       },
       registry: registry,
       getController: function () {
