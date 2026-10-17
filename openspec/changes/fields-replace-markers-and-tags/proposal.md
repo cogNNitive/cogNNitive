@@ -79,7 +79,9 @@ Collapse three overlapping ways of attaching values to a knowledge unit (Marker 
 - `console-export-cli` (with `console-payload-builder`, `console-review-mode`, `innfo-console-runtime`, the specs that reference the element hash): hash no longer carries `markers`; own field values (incl. `tags`) enter it, inherited values do not.
 - `model-scaffold-robustness`, `mutation-level-gating`, `changeset-apply-engine`: no item-markers seeding, no `set_marker`, multi-concept `add_field`.
 - `template-includes-collision-resolution`, `base-composite-template`: composition of `*` Fields, no Marker dedupe.
-- `skill-shared-rules`, `innfo-skill-menu`, `workspace-template-upgrade`, `legacy-quarantine`, `citation-parser-resolver`, `canonical-vocabulary`: marker/tag references updated.
+- `innfo-skill-menu`, `workspace-template-upgrade`, `canonical-vocabulary`: marker/tag references updated.
+- `workspace-entrypoint`: the `*_base_NN.md` overview-root precedence is removed (D13).
+- Not modified (review W7): `skill-shared-rules`, `legacy-quarantine` and `citation-parser-resolver` only use "marker" in unrelated senses (a marker-delimited block, quarantine markers, the JSON array-end marker).
 
 ## Approach
 
@@ -119,7 +121,7 @@ Exploration recommendation A2 + B2 + C1 + D1: expand `*`/list targets AFTER comp
 | Concept-level parser swallows prose starting with `word:: x` | Low | Stop at first non-property line; corpus scan test |
 | Release skew blueprints vs MCP | Med | Ordered release + `min_version` raise |
 | Generated-file drift fails `verify.js` | High | Regenerate all mirrors/bundles per slice; `check:integrity` gate |
-| Merge conflicts with `ku-lifecycle-fixes` and greenfield change (`scaffold/knowledge.ts`, generated cjs, testlab) | Med | Rebase after those land; regenerate, never hand-merge generated files |
+| Merge conflicts with `ku-lifecycle-fixes`, `global-console-filter` and the greenfield change (`scaffold/knowledge.ts`, `changes/spec_NN.md`, `innfo-runtime.js` filter parser, binary `innfo-console.bundle.js`, generated cjs, testlab) | High | Both session branches land first. The `changeset-apply-engine` and `mutation-level-gating` deltas are written against the `ku-lifecycle-fixes` text, and S4 builds on the `global-console-filter` query parser. Regenerate, never hand-merge generated files |
 | Loss of evaluative signal (certainty numbers dropped) | Low | Accepted by D9; recorded in A1 |
 | Breadth (~105 files / ~510 occurrences) | High | Strict TDD per slice; slice order above |
 

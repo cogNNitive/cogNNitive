@@ -8,7 +8,7 @@ All design questions are resolved in `design.md`; this spec states the resolved 
 
 ### Requirement: Field Definition Concept Targets
 
-A Field Definition MUST be able to target one concept, a list of concepts, or every concept (`concept:: *`). `*` and list targets MUST be expanded after composition of the effective bluepriNNt schema (including `includes`), so `*` means every Concept Definition of the effective schema except those with `type:: text`. Expansion MUST happen once, at depth 0 of the schema resolution, on both the path with `includes` and the path without. A list target naming an unknown concept MUST be an ERROR. A Field declared for a specific concept (or a list) MUST win over a `*` Field of the same name for that concept, silently. Two different `*` Fields with the same name MUST raise `COMPOSITION_COLLISION`. Consumers of the resolved schema MUST see one Field entry per concept, never an unexpanded `*`.
+A Field Definition MUST be able to target one concept, a list of concepts, or every concept (`concept:: *`). `*` and list targets MUST be expanded after composition, at each composition level, against the effective schema of the bluepriNNt that declares the Field (its own concepts plus those of its own `includes`). `*` therefore means every Concept Definition of the declaring bluepriNNt's effective schema except those with `type:: text`, and only the root bluepriNNt's `*` reaches every concept of a composite. Expansion MUST happen on both the path with `includes` and the path without. A list target naming an unknown concept MUST be an ERROR. A Field declared for a specific concept (or a list) MUST win over a `*` Field of the same name for that concept, silently. Two different `*` Fields with the same name MUST raise `COMPOSITION_COLLISION`. Consumers of the resolved schema MUST see one Field entry per concept, never an unexpanded `*`.
 
 #### Scenario: Star Field reaches every concept
 - GIVEN a bluepriNNt with concepts `Goal` and `Risk` and a Field `complexity` with `concept:: *`
@@ -19,6 +19,12 @@ A Field Definition MUST be able to target one concept, a list of concepts, or ev
 - GIVEN bluepriNNt `business` including `organization`, and `business` declares `tags` with `concept:: *`
 - WHEN the schema is resolved
 - THEN concepts that come from `organization` carry the `tags` Field
+
+#### Scenario: An included star stays inside its bluepriNNt
+- GIVEN composite `business` including `projects` (Field `health`, `concept:: *`) and `metrics`
+- WHEN the schema is resolved
+- THEN concepts that come from `projects` carry `health`
+- AND concepts that come from `metrics` do not
 
 #### Scenario: Specific Field beats star
 - GIVEN a `*` Field `priority` and concept `Task` declaring its own `priority` (`select`, closed options)
@@ -174,7 +180,7 @@ The parser MUST NOT treat `tags::` specially. `tags` is an ordinary Field resolv
 
 ### Requirement: Concept-Level Field Values
 
-A concept section MAY carry Field values as property lines directly under its `# NN <Concept>` heading, before the first element heading. Parsing MUST stop at the first line that is not a property line, so later prose is never consumed. Serialization MUST reproduce the section byte-identically, including a concept section that holds only concept-level values and no elements.
+A concept section MAY carry Field values as property lines directly under its `# NN <Concept>` heading, before the first element heading. Parsing MUST stop at the first line that is not a property line, so later prose is never consumed. A `key:: value` line found later in the concept prologue (after prose, before the first element) MUST stay prose and MUST raise the WARNING `CONCEPT_FIELD_AFTER_PROSE` naming the concept and the key, so that a value is never lost silently. The concept text excludes the property block: `update_concept_text` MUST replace the text only and MUST preserve the property block byte-identically. Serialization MUST reproduce the section byte-identically, including a concept section that holds only concept-level values and no elements.
 
 #### Scenario: Concept-level values are parsed
 - GIVEN `# NN Goals` followed by `tags:: [core]` and then `## NN Goals: Grow`
@@ -186,6 +192,17 @@ A concept section MAY carry Field values as property lines directly under its `#
 - WHEN the model is parsed
 - THEN no concept-level value is created and the prose is preserved
 
+#### Scenario: A late property line warns
+- GIVEN `# NN Goals` followed by a prose paragraph and then `tags:: [core]`, before the first element
+- WHEN the model is validated
+- THEN concept `Goals` has no concept-level `tags`
+- AND the WARNING `CONCEPT_FIELD_AFTER_PROSE` names `Goals` and `tags`
+
+#### Scenario: Concept text update keeps the values
+- GIVEN `# NN Goals` with `tags:: [core]` and a prose paragraph
+- WHEN `update_concept_text` replaces the prose
+- THEN the `tags:: [core]` line is unchanged and the new prose follows it
+
 #### Scenario: Values-only section round-trips
 - GIVEN a concept section with concept-level values and no elements
 - WHEN the model is parsed and serialized
@@ -193,7 +210,7 @@ A concept section MAY carry Field values as property lines directly under its `#
 
 ### Requirement: Concept-Level Inheritance
 
-Every element MUST inherit the concept-level values of its concept. For a multi-valued Field the effective value MUST be the de-duplicated union of the concept-level and element values. For a single-valued Field the element value MUST override the concept-level value; when the element has none, the concept-level value applies. Inherited values MUST be computed on read, never written into the element, and MUST NOT be touched by element mutations (update, rename, delete cascades act on own values only). The core MUST compute an inheritance delta, `inherited[field] = {value, from: concept}`: for a multi-valued Field it holds only the concept-level values the element does not already have, and for a single-valued Field a value only when the element has none. Consumers compute the effective value without knowing the rule (concatenate arrays, or `own ?? inherited`). Concept-level values MUST be validated once against the concept's Field. This replaces `applies_to: Concept` marker scoring.
+Every element MUST inherit the concept-level values of its concept. For a multi-valued Field the effective value MUST be the de-duplicated union of the concept-level and element values. For a single-valued Field the element value MUST override the concept-level value; when the element has none, the concept-level value applies. Inherited values MUST be computed on read, never written into the element, and MUST NOT be touched by element mutations (update, rename, delete cascades act on own values only). The core MUST compute an inheritance delta, `inherited[field] = {value, from: concept}`: for a multi-valued Field it holds only the concept-level values the element does not already have, and for a single-valued Field a value only when the element has none. Consumers compute the effective value without knowing the rule (concatenate arrays, or `own ?? inherited`). Concept-level values MUST be validated once against the concept's Field. This replaces `applies_to: Concept` marker scoring. There is no exclusion syntax: an element MUST NOT be able to drop an inherited multi-valued value or to clear an inherited single value (it can only override it). A value that some elements of a concept must not carry belongs on those elements, not at concept level.
 
 #### Scenario: Union for multi-valued
 - GIVEN concept `Goals` with `tags:: [core]` and an element with `tags:: [ai, core]`
@@ -220,6 +237,11 @@ Every element MUST inherit the concept-level values of its concept. For a multi-
 - WHEN a field of that element is updated through a changeset
 - THEN the serialized element does not gain `tags`
 
+#### Scenario: An inherited value cannot be excluded
+- GIVEN concept `Goals` with `tags:: [core]` and an element with `tags:: [ai]`
+- WHEN the effective value is read
+- THEN it is `[ai, core]`, and no element-level syntax removes `core`
+
 #### Scenario: Invalid inherited value is reported
 - GIVEN a concept-level value outside the closed options of the concept's Field
 - WHEN the model is validated
@@ -227,7 +249,7 @@ Every element MUST inherit the concept-level values of its concept. For a multi-
 
 ### Requirement: Shipped Field Catalogue
 
-Shipped bluepriNNts MUST declare Fields instead of Marker Definitions, per this mapping. Every content bluepriNNt MUST declare one identical open-vocabulary `tags` Field (`type:: select`, `multiple:: true`, no `options`, `concept:: *`), except `sidecar`; bluepriNNts that declared a `tags` `type:: string` Field (`sources`, `artifacts`, `visual-catalog`, `documentation`) MUST use it instead.
+Shipped bluepriNNts MUST declare Fields instead of Marker Definitions, per this mapping. These L2s MUST each declare one identical open-vocabulary `tags` Field (`type:: select`, `multiple:: true`, no `options`, `concept:: *`): `analysis`, `artifacts`, `blank`, `business-model`, `changes`, `cogNNitive`, `design-presets`, `documentation`, `domaiNN`, `innovation`, `metrics`, `organization`, `procedures`, `projects`, `repository`, `sources`, `video-script`, `visual-catalog` and `workspace` (`workspace_spec_NN.md` and its `nn-innfo` template copy). `business` declares none and gets it by composition. `sidecar` MUST NOT declare it. BluepriNNts that declared a `tags` `type:: string` Field (`sources`, `artifacts`, `visual-catalog`, `documentation`) MUST use it instead.
 
 | bluepriNNt | Result |
 |---|---|
