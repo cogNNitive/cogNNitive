@@ -1763,7 +1763,9 @@
     var all = schema && Array.isArray(schema.fields) ? schema.fields : []
     var cname = String(concept.name).toLowerCase()
     return all.filter(function (f) {
-      return f && f.concept && String(f.concept).toLowerCase() === cname
+      if (!f || !f.concept) return false
+      var fc = String(f.concept).toLowerCase()
+      return fc === cname || fc === '*'
     })
   }
 
@@ -1859,6 +1861,7 @@
         var fTypeStr = String(f.type || f.widget || 'string')
         var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
         dd.appendChild(tBadge)
+        if (f.multiple) dd.appendChild(el('span', 'innfo-ku-field-multi', 'multi'))
         var targetC = f.target || f.targetConcept || null
         if (targetC) {
           var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
@@ -1871,6 +1874,27 @@
       })
       fs.appendChild(fdl)
       host.appendChild(fs)
+    }
+
+    var conceptVals = concept.conceptFields && typeof concept.conceptFields === 'object' ? concept.conceptFields : null
+    if (!conceptVals && schema && schema.concepts) {
+      var cMetaForVals = conceptMetaOf(schema.concepts, concept.name)
+      if (cMetaForVals && cMetaForVals.conceptFields) conceptVals = cMetaForVals.conceptFields
+    }
+    if (conceptVals) {
+      var cvKeys = Object.keys(conceptVals)
+      if (cvKeys.length) {
+        var cvs = el('section', 'innfo-guide-section')
+        cvs.appendChild(el('h4', 'innfo-guide-title', 'Concept values'))
+        var cvl = el('dl', 'innfo-guide-list innfo-guide-value-list')
+        cvKeys.forEach(function (k) {
+          var v = conceptVals[k]
+          cvl.appendChild(el('dt', 'innfo-guide-field-dt', String(k)))
+          cvl.appendChild(el('dd', 'innfo-guide-field-dd', Array.isArray(v) ? v.join(', ') : String(v)))
+        })
+        cvs.appendChild(cvl)
+        host.appendChild(cvs)
+      }
     }
 
     var matrixList = guideMatricesFor(concept, matrices, schema)
