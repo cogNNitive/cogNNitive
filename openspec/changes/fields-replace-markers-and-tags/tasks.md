@@ -129,7 +129,7 @@ Chain strategy: size-exception
 - [x] 5.5 GREEN `iNNfo/specs/vocabulary.json` (3 primitives, `tag` = value of `tags` Field, retired `Marker`), regenerate `docs/innfo/documentation/vocabulary.md` and docs pages (`npm run build:docs`); visual-catalog docs. Spec: canonical-vocabulary.
 - [x] 5.6 Verify success-criteria grep: `rg -i "marker definition|item-markers|set_marker|conceptMarkers|conceptTags"` over live `src`/specs/skills returns only frozen files, the simulacro fixture and the diagnostic/recipe.
 - [x] 5.7 OpenSpec: confirm the 18 delta specs (including `workspace-entrypoint`) are complete; archive step later syncs them into `openspec/specs/`. Verify archived artifacts with `diff` + `wc -l` (haiku archive truncation risk).
-- [ ] 5.8 Gates: `node scripts/verify.js --release`, `npm run check:integrity check:specs check:versions`, `npm test`. COMMIT U5.
+- [x] 5.8 Gates: `node scripts/verify.js --release`, `npm run check:integrity check:specs check:versions`, `npm test`. COMMIT U5.
 
 ## Release (after merge to `main` with a merge commit; see nn-dev-release skill)
 

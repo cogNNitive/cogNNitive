@@ -36,14 +36,15 @@ describe('InnfoUI.ElementCard', () => {
     expect(card.querySelectorAll('[data-ku-kind=field]').length).toBe(0)
   })
 
-  it('renders markers as marker-chip', () => {
+  it('renders no marker chip (the Marker primitive is retired)', () => {
     const card = UI.ElementCard({
       id: 'x',
       name: 'X',
       markers: [{ id: 'm', label: 'M', kind: 'field', value: 'v' }],
       fields: [],
-    })
-    expect(comp(card.querySelector('[data-marker-id]') as HTMLElement)).toBe('marker-chip')
+    } as any)
+    expect(card.querySelector('[data-marker-id]')).toBeNull()
+    expect(card.querySelector('[data-innfo-component="marker-chip"]')).toBeNull()
   })
 
   it('places opts.head in .innfo-card-head and opts.body in .innfo-card-body', () => {

@@ -15,7 +15,6 @@ const UI = req(uiKitPath) as any
 const IMPLEMENTED = [
   'concept-pill',
   'element-pill',
-  'marker-chip',
   'status-badge',
   'element-card',
   'ku-badge',
@@ -58,7 +57,6 @@ describe('console ui-kit kitchen sink', () => {
       // Mirror kitchen-sink.js build() without executing the DOMContentLoaded boot.
       root.appendChild(UI.ConceptPill({ id: 'c', label: 'C', index: 0, count: 1 }))
       root.appendChild(UI.ElementPill({ id: 'e', label: 'E', origin: 'agent' }))
-      root.appendChild(UI.MarkerChip({ id: 'm', label: 'M', kind: 'field', value: 'v' }))
       root.appendChild(UI.KuBadge({ kind: 'field', name: 'f', value: 'v', changes: 1 }))
       root.appendChild(UI.KuActions({}, { onInfo: () => {} }))
       root.appendChild(UI.StatusBadge({ status: 'applied', count: 2 }))

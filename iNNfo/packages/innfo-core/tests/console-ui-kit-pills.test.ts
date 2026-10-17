@@ -82,16 +82,6 @@ describe('InnfoUI.ElementPill', () => {
   })
 })
 
-describe('InnfoUI.MarkerChip', () => {
-  it('renders data-marker-id, data-kind and an optional value', () => {
-    const chip = UI.MarkerChip({ id: 'm1', label: 'Severity', kind: 'field', value: 'high' })
-    expect(comp(chip)).toBe('marker-chip')
-    expect(chip.getAttribute('data-marker-id')).toBe('m1')
-    expect(chip.getAttribute('data-kind')).toBe('field')
-    expect(chip.querySelector('b')!.textContent).toBe('high')
-  })
-})
-
 describe('InnfoUI.StatusBadge', () => {
   it('renders data-status and text/aria from count', () => {
     const b = UI.StatusBadge({ status: 'applied', count: 4 })
