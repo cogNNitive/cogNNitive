@@ -164,6 +164,53 @@ interface Provenance {
   matrix: Map<string, Provenanced<MatrixDecl>>
   field: Map<string, string>
   starField: Map<string, Provenanced<ConceptField>>
+  /** Declaring-blueprint identity per source label (family/version/location). */
+  meta: Map<string, DeclMeta>
+}
+
+/** Identity of the bluepriNNt that declared a Definition. */
+export interface DeclMeta {
+  family: string
+  version?: string
+  location?: string
+}
+
+function familySlug(raw: unknown): string {
+  return String(raw ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+/** Derive the declaring-blueprint identity from a blueprint's frontmatter. */
+function declMetaOf(fm: Record<string, any> | undefined, label: string, location?: string): DeclMeta {
+  const family = familySlug(fm?.blueprint_name || fm?.title || label)
+  const version = fm?.blueprint_version ? String(fm.blueprint_version) : undefined
+  return { family, ...(version ? { version } : {}), ...(location ? { location } : {}) }
+}
+
+/**
+ * Attaches `declaredBy` to every concept, field and matrix from the composition
+ * provenance, so a definition keeps the identity of the bluepriNNt that declared it.
+ */
+function attachDeclaredBy(schema: BlueprintSchema, provenance: Provenance, fallback?: DeclMeta): void {
+  const metaFor = (source?: string): DeclMeta | undefined =>
+    (source ? provenance.meta.get(source) : undefined) ?? fallback
+
+  for (const c of schema.concepts) {
+    const cm = metaFor(provenance.concept.get(c.name.toLowerCase())?.source)
+    if (cm) (c as any).declaredBy = cm
+    for (const f of c.fields ?? []) {
+      const fk = `${c.name.toLowerCase()}.${f.name.toLowerCase()}`
+      const src = provenance.field.get(fk) ?? provenance.starField.get(f.name.toLowerCase())?.source
+      const fm = metaFor(src)
+      if (fm) (f as any).declaredBy = fm
+    }
+  }
+  for (const mx of schema.matrices) {
+    const mm = metaFor(provenance.matrix.get(mx.name.toLowerCase())?.source)
+    if (mm) (mx as any).declaredBy = mm
+  }
 }
 
 /**
@@ -353,13 +400,17 @@ export function resolveBlueprintSchema(
     matrix: new Map(),
     field: new Map(),
     starField: new Map(),
+    meta: new Map(),
   }
+
+  provenance.meta.set(selfLabel, declMetaOf(parsed.frontmatter, selfLabel))
 
   if (!resolveInclude || includes.length === 0) {
     if (local.globalFields && local.globalFields.length > 0) {
       expandFieldTargets(local.concepts, local.globalFields, selfLabel, errors, provenance, true)
       delete local.globalFields
     }
+    attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel))
     return { schema: local, errors }
   }
 
@@ -407,6 +458,10 @@ export function resolveBlueprintSchema(
     errors.push(...nested.errors)
     const aliasedSchema = ref.alias ? applyAliasToSchema(nested.schema, ref.alias) : nested.schema
     const includedLabel = String(parseKnowledge(content).frontmatter?.title ?? ref.name)
+    provenance.meta.set(
+      includedLabel,
+      declMetaOf(parseKnowledge(content).frontmatter, includedLabel, ref.url || ref.name),
+    )
     mergeSchemaInto(base, aliasedSchema, includedLabel, provenance, errors, false)
   }
 
@@ -442,6 +497,10 @@ export function resolveBlueprintSchema(
         })
       }
     }
+  }
+
+  if (_depth === 0) {
+    attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel))
   }
 
   return { schema: base, errors }
