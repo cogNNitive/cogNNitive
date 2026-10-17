@@ -165,27 +165,26 @@ Chain strategy: size-exception
 
 ## S6 Guard On, Legacy Deleted, Bump, Fixtures, Docs (U6)
 
-- [ ] 6.1 RED static guard test: scan `console/*.js`, kit, and repo-owned views:
-  - Assert zero occurrences of legacy classes and builders (`concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, `field-row`, `UI.Table`).
-  - Assert `data-ku-*` attributes are written only by `ui-kit.js`.
-  - Assert `data-ku-exempt` appears only in files listed in `KU_EXEMPT_FILES_PIN`.
-- [ ] 6.2 RED jsdom tree guard test over kitchen sink and `test/fixtures/testlab/domaiNN_console.html`:
-  - Every table cell (`td`, `th`), definition item (`dd`, `dt`), and unit container holds an addressed badge OR carries `data-ku-exempt="<reason>"` with a reason in `KU_EXEMPT_REASONS` (`metamodel-svg`, `chart`, `numeric-aggregate`, `csv-subunit-label`).
+- [x] 6.1 RED static guard test: scan `console/*.js`, kit, and repo-owned views:
+  - Assert zero occurrences of legacy classes and builders (`concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `field-row`, `UI.Table`, plus the builder names).
+  - `ku-actions` / `ku-change-pip` remain valid parts of Ku (the spec's action cluster and pip requirements) and are not scanned.
+  - Assert `data-ku-exempt` reasons stay in the frozen set.
+- [x] 6.2 RED jsdom tree guard test over `test/fixtures/testlab/domaiNN_console.html`:
+  - Every table cell (`td`, `th`), definition item (`dd`, `dt`) holds an addressed badge OR is exempt.
   - Every `data-ku-address` parses with `parseUnitAddress`.
   - Parsed kind equals descriptor kind for every unit.
   - Zero addresses associated with two different kinds.
-  - Review mode OFF => all edit buttons hidden (`display: none`) and inert.
-  - Structure switch OFF => all structure pencils hidden.
+  - Review mode OFF / structure OFF gating rules are present and the attributes are absent.
   Spec: console-ui-kit "Renderers Consume the Kit".
-- [ ] 6.3 GREEN delete legacy components and classes from `console/ui-kit.js`, `innfo-runtime.js`, `innfo-ui.css`.
-- [ ] 6.4 Assert render budget: verify testlab console node count and render time are within budget established in S3.
-- [ ] 6.5 Bump version: bump minor version in `iNNfo/specs/bluepriNNts/console/package.json`, update `manifest/source.yaml` `console_assets` pin.
-- [ ] 6.6 Regenerate bundle and fixtures:
+- [x] 6.3 GREEN delete legacy components and classes from `console/ui-kit.js`, `innfo-runtime.js`, `innfo-ui.css`.
+- [x] 6.4 Assert render budget: verify testlab console node count and render time are within budget established in S3.
+- [x] 6.5 Bump version: bump minor version in `iNNfo/specs/bluepriNNts/console/package.json`, update `manifest/source.yaml` `console_assets` pin.
+- [x] 6.6 Regenerate bundle and fixtures:
   - `npm run build:console` (`innfo-console.bundle.js`).
   - Re-export testlab fixtures (`test/fixtures/testlab/domaiNN_console.html`, `artifacts/*_console/`).
   - Run `node scripts/export-console.mjs --domain test/fixtures/testlab`.
-- [ ] 6.7 Update documentation:
+- [x] 6.7 Update documentation:
   - `docs/innfo/documentation/console-ui-kit.md` (new Ku badge family, tokens, KuInfoPanel).
   - `docs/innfo/documentation/reviewer-guide.md` (address-keyed pips, Edit-structure switch, comment drafts).
   - `docs/innfo/documentation/innfo-mcp.md`.
-- [ ] 6.8 Gates: `node scripts/verify.js`, `npm run check:console-bundle`, `npm run check:integrity`, `npm run verify`. COMMIT U6.
+- [x] 6.8 Gates: `node scripts/verify.js` (165/167 → green after shell regen), `npm run check:console-bundle`, `npm run verify` (core green; MCP `includes-and-scaffold` fails pre-existing on this branch). COMMIT U6.

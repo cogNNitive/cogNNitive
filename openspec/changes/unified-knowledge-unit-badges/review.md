@@ -78,3 +78,19 @@ All CRITICAL and WARNING findings are applied to `proposal.md`, `design.md` and 
 - W7 is applied with a render budget and the static gating guard as the primary check.
 - W1 is applied to the D3 text and the mockup header (wording approved through the WARNING fix).
 - Capabilities: the new `knowledge-unit-address` replaces the modified `citation-parser-resolver`, `typed-source-references` and `nn-naming-contract`.
+
+## Render budget (2026-10-17, testlab domain console)
+
+Measured after S6 on `test/fixtures/testlab/domaiNN_console.html` (2 models, 25
+elements, jsdom, cold boot including HTML parse):
+
+| Metric | Measured | Budget |
+|---|---|---|
+| Cold boot (parse + render) | ~1,520 ms | ≤ 3,000 ms |
+| DOM nodes | 5,707 | ≤ 8,000 |
+| Addressed Ku units | 310 | — |
+| Edit buttons emitted (gated by CSS) | 268 | — |
+
+The guard `test/console-ku-tree-guard.test.mjs` pins the structural invariants
+(every cell badged/exempt, every address parses, one kind per address, gating rules
+present); the numbers above are the documented budget for future slices.

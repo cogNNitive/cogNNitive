@@ -175,16 +175,15 @@ describe('InnfoUI.FieldRow', () => {
     expect((icons[0] as HTMLElement).getAttribute('data-origin')).toBe('error')
   })
 
-  it('renders a ref as an ElementPill wired to onRef', () => {
+  it('renders a ref as a Ku element wired to onRef', () => {
     const onRef = vi.fn()
     const row = UI.FieldRow(
       { name: 'parent', value: 'Gozer', ref: { id: 'gozer', label: 'Gozer' } },
       { onRef },
     )
-    const pill = row.querySelector('[data-innfo-component=element-pill]') as HTMLButtonElement
-    expect(pill).toBeTruthy()
-    expect(pill.getAttribute('data-element-id')).toBe('gozer')
-    pill.click()
+    const unit = row.querySelector('[data-ku-kind=element]') as HTMLElement
+    expect(unit).toBeTruthy()
+    unit.click()
     expect(onRef).toHaveBeenCalledTimes(1)
   })
 

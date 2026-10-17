@@ -68,7 +68,7 @@ describe('console review info action + change pip', () => {
     boot(false)
     const badge = env.document.querySelector('.innfo-card-head [data-ku-kind="element"]') as HTMLElement
     expect(badge).not.toBeNull()
-    const actions = badge.parentElement!.querySelector('[data-innfo-component="ku-actions"]')
+    const actions = badge.parentElement!.querySelector('.innfo-ku-actions')
     expect(actions).not.toBeNull()
     expect(actions!.querySelector('[data-ku-action="info"]')).not.toBeNull()
     expect(env.document.querySelector('[data-innfo-review-ctl]')).toBeNull()
@@ -81,6 +81,8 @@ describe('console review info action + change pip', () => {
     c.refresh()
     const badge = env.document.querySelector('.innfo-card-head [data-ku-kind="element"]') as HTMLElement
     expect(badge.getAttribute('data-ku-changes')).toBe('1')
-    expect(badge.querySelector('[data-innfo-component="ku-change-pip"]')!.textContent).toBe('1')
+    expect(
+      badge.parentElement!.querySelector('[data-innfo-component="ku-change-pip"]')!.textContent,
+    ).toBe('1')
   })
 })

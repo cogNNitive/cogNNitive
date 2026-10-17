@@ -1610,19 +1610,16 @@
       btn.className = 'innfo-rail-item' + (isActive ? ' active' : '')
       btn.setAttribute('data-concept', String(name))
       var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
-      var pill =
-        UI && typeof UI.Ku === 'function'
-          ? UI.Ku(
-              'section',
-              {
-                model: railModel,
-                concept: name,
-                label: name,
-                index: index,
-              },
-              { doc: doc },
-            )
-          : UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
+      var pill = UI.Ku(
+        'section',
+        {
+          model: railModel,
+          concept: name,
+          label: name,
+          index: index,
+        },
+        { doc: doc },
+      )
       if (pill) btn.appendChild(pill)
       if (pill && count != null) btn.appendChild(el('span', 'innfo-rail-count', String(count)))
       if (draftCount > 0) {

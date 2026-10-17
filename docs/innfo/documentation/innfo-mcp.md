@@ -56,6 +56,22 @@
 
 Each call re-validates the model and returns either the updated model or the validation errors that blocked the change.
 
+### Canonical unit addresses
+
+Console badges, draft pips and review actions share one address grammar, built and
+parsed by `innfo-core`'s `unitAddress` / `parseUnitAddress`:
+
+- `<modelId>@<element-slug>` — element
+- `<modelId>@<element-slug>&<field>` — element value
+- `<modelId>@concept:<concept-slug>` — concept section (and `&<field>` for a value)
+- `<modelId>@<matrix-slug>&<row>&<col>` — matrix cell
+- `specs/<family>@concept:<slug>` / `specs/<family>@matrix:<slug>` — definitions
+- `domaiNN_NN.md` — domain; a bare model id — document; a path with extension — Source
+
+Element, value and matrix-cell addresses stay byte-equal to a changeset `target::`,
+so `update_matrix_cell` still resolves cells by row/column slug. Citation parsing
+(`parseCitation`, `resolveUnitPath`) is deliberately unchanged.
+
 ## Architecture
 
 ```

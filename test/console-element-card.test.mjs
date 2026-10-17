@@ -51,50 +51,6 @@ describe('Element Card Redesign Contract', () => {
     )
   }
 
-  describe('QKUD chip (read-only)', () => {
-    it('renders copy + info buttons and never a pencil', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const qud = card.querySelector('[data-innfo-component="qud-chip"]')
-      assert.ok(qud, 'QKUD chip renders')
-      assert.match(qud.textContent, /ecto-1/)
-      assert.ok(qud.querySelector('[aria-label="Copy knowledge unit ID"]'), 'copy button')
-      assert.ok(qud.querySelector('[aria-label="Knowledge unit ID details"]'), 'info button')
-      assert.equal(
-        qud.querySelectorAll('.innfo-edit-anchor').length,
-        0,
-        'no pencil inside the QKUD chip',
-      )
-      assert.equal(
-        qud.querySelectorAll('[data-innfo-ctl]').length,
-        0,
-        'QKUD buttons carry no review ctl (they work without review mode)',
-      )
-    })
-
-    it('toggles the detail line (id, concept, path, hash) on info click', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const info = card.querySelector('[aria-label="Knowledge unit ID details"]')
-      info.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-qud-open'), 'true')
-      const detail = card.querySelector('.innfo-qud-detail')
-      assert.match(detail.textContent, /0123456789abcdef/)
-      assert.match(detail.textContent, /fleet-vehicles/)
-      info.dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(card.getAttribute('data-qud-open'), 'false')
-    })
-
-    it('copy click never throws without a clipboard', () => {
-      const card = fullCard()
-      document.body.appendChild(card)
-      const copy = card.querySelector('[aria-label="Copy knowledge unit ID"]')
-      assert.doesNotThrow(() => {
-        copy.dispatchEvent(new window.Event('click', { bubbles: true }))
-      })
-    })
-  })
-
   describe('Path, tags, relations', () => {
     it('a hostile tag is inert text and an empty tag list renders no row', () => {
       const hostile = '<img src=x onerror=alert(1)>'
@@ -321,7 +277,6 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     InnfoConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
-    assert.ok(card.querySelector('[data-innfo-component="qud-chip"]'), 'qud chip')
     assert.match(
       card.querySelector('.innfo-card-path').textContent,
       /ghostbusters_NN\.md/,

@@ -1283,44 +1283,6 @@
       td.appendChild(b)
     }
 
-    // Every knowledge-unit badge gets an info action, ALWAYS (review on or off).
-    // Actions sit in a ku-actions cluster OUTSIDE the badge root, never nested.
-    function decorateInfoActions(root) {
-      var host = root || doc
-      if (!host.querySelectorAll || typeof UI.KuActions !== 'function') return
-      function attach(badge, elementId, field) {
-        if (!badge || badge.getAttribute('data-ku-actions') === 'true') return
-        badge.setAttribute('data-ku-actions', 'true')
-        var actions = UI.KuActions(
-          {},
-          {
-            onInfo: function () {
-              openInfo({ elementId: elementId, field: field })
-            },
-          },
-        )
-        actions.setAttribute('data-innfo-ctl', 'ku-info-actions')
-        if (badge.getAttribute('data-ku-kind') === 'value') {
-          badge.appendChild(actions)
-        } else if (badge.parentNode) {
-          badge.parentNode.insertBefore(actions, badge.nextSibling)
-        }
-      }
-      Array.prototype.forEach.call(
-        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        function (card) {
-          var elId = card.getAttribute('data-element-id')
-          attach(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), elId, '__name')
-          Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="value"][data-field]'),
-            function (b) {
-              attach(b, elId, b.getAttribute('data-field'))
-            },
-          )
-        },
-      )
-    }
-
     // Pending-change pip: a count badge on the unit it targets, visible in both
     // review modes (it reflects stored drafts). Clicking opens the modal.
     function decorateChangePips(root) {
@@ -1331,7 +1293,8 @@
       var counts = {}
       drafts.forEach(function (d) {
         if (!d) return
-        var key = d.address || (d.element_id ? '@' + String(d.element_id) + (d.field ? '&' + String(d.field) : '') : '')
+        var fieldPart = d.field && d.field !== '__name' ? '&' + String(d.field) : ''
+        var key = d.address || (d.element_id ? '@' + String(d.element_id) + fieldPart : '')
         if (!key) return
         counts[key] = (counts[key] || 0) + 1
       })
@@ -1469,7 +1432,6 @@
 
     function applyDecorations() {
       decorateBadges()
-      decorateInfoActions()
       decorateChangePips()
       if (!enabled) return
       decorate(doc)
@@ -1522,7 +1484,6 @@
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
       decorateCounter()
       decorateBadges()
-      decorateInfoActions(root || doc)
       decorateChangePips(root || doc)
       if (enabled) {
         decorate(root || doc)

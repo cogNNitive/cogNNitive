@@ -13,13 +13,9 @@ const UI = req(uiKitPath) as any
 
 // Components implemented in slices b + c1 + f (c2 extends this list).
 const IMPLEMENTED = [
-  'concept-pill',
-  'element-pill',
   'status-badge',
   'element-card',
-  'ku-badge',
-  'ku-actions',
-  'ku-change-pip',
+  'ku-unit',
   'citation-icon',
   'draft-list',
   'annotation-popover',
@@ -55,10 +51,7 @@ describe('console ui-kit kitchen sink', () => {
       root.setAttribute('data-theme', theme)
       document.body.appendChild(root)
       // Mirror kitchen-sink.js build() without executing the DOMContentLoaded boot.
-      root.appendChild(UI.ConceptPill({ id: 'c', label: 'C', index: 0, count: 1 }))
-      root.appendChild(UI.ElementPill({ id: 'e', label: 'E', origin: 'agent' }))
-      root.appendChild(UI.KuBadge({ kind: 'field', name: 'f', value: 'v', changes: 1 }))
-      root.appendChild(UI.KuActions({}, { onInfo: () => {} }))
+      root.appendChild(UI.Ku('element', { model: 'm', id: 'e', label: 'E' }))
       root.appendChild(UI.StatusBadge({ status: 'applied', count: 2 }))
       root.appendChild(
         UI.ElementCard({

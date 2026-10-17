@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-W6SoAcYBqVY+hYZmhlJKNxHyTqwBq17hs+A4dctZyl0=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-bmwO9RSfUvRoDWgBaaBvQPqaxdxsreUcDdmg0k1gfQk=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -8475,7 +8475,7 @@ input[type="text"], input[type="search"], textarea, select {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.18.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.19.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
   }
 }
@@ -8495,43 +8495,71 @@ input[type="text"], input[type="search"], textarea, select {
           "name": "summary",
           "type": "string",
           "scope": "concept",
-          "description": "One-line summary of the element."
+          "description": "One-line summary of the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
           "scope": "concept",
-          "description": "Very long inline description used to stress-test rendering of large text fields."
+          "description": "Very long inline description used to stress-test rendering of large text fields.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "manual",
           "type": "markdown_file",
           "scope": "concept",
-          "description": "External markdown file attached to the element."
+          "description": "External markdown file attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "photo",
           "type": "image",
           "scope": "concept",
-          "description": "Image attached to the element."
+          "description": "Image attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "attachment",
           "type": "file",
           "scope": "concept",
-          "description": "Generic file attached to the element."
+          "description": "Generic file attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "demo_video",
           "type": "video",
           "scope": "concept",
-          "description": "Downloaded video asset attached to the element."
+          "description": "Downloaded video asset attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "voice_note",
           "type": "audio",
           "scope": "concept",
-          "description": "Downloaded and transcribed audio asset attached to the element."
+          "description": "Downloaded and transcribed audio asset attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "sibling",
@@ -8540,7 +8568,11 @@ input[type="text"], input[type="search"], textarea, select {
             "Concept 2"
           ],
           "scope": "concept",
-          "description": "Reference to an element of Concept 2."
+          "description": "Reference to an element of Concept 2.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "status",
@@ -8551,16 +8583,28 @@ input[type="text"], input[type="search"], textarea, select {
             "published"
           ],
           "scope": "concept",
-          "description": "Lifecycle status of the element."
+          "description": "Lifecycle status of the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "tags",
           "type": "select",
           "scope": "*",
           "multiple": true,
-          "description": "Open vocabulary ad-hoc tags and classification labels."
+          "description": "Open vocabulary ad-hoc tags and classification labels.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "name": "Concept 2",
@@ -8574,13 +8618,21 @@ input[type="text"], input[type="search"], textarea, select {
           "name": "summary",
           "type": "string",
           "scope": "concept",
-          "description": "One-line summary of the element."
+          "description": "One-line summary of the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "attachment",
           "type": "file",
           "scope": "concept",
-          "description": "Generic file attached to the element."
+          "description": "Generic file attached to the element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "owner",
@@ -8589,16 +8641,28 @@ input[type="text"], input[type="search"], textarea, select {
             "Concept 1"
           ],
           "scope": "concept",
-          "description": "Reference back to an element of Concept 1."
+          "description": "Reference back to an element of Concept 1.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "tags",
           "type": "select",
           "scope": "*",
           "multiple": true,
-          "description": "Open vocabulary ad-hoc tags and classification labels."
+          "description": "Open vocabulary ad-hoc tags and classification labels.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "name": "Edge Cases",
@@ -8612,34 +8676,58 @@ input[type="text"], input[type="search"], textarea, select {
           "name": "summary",
           "type": "string",
           "scope": "concept",
-          "description": "One-line summary of the edge-case element."
+          "description": "One-line summary of the edge-case element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
           "scope": "concept",
-          "description": "Very long inline description used to stress-test rendering of large text fields."
+          "description": "Very long inline description used to stress-test rendering of large text fields.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "photo",
           "type": "image",
           "scope": "concept",
-          "description": "Image attached to the edge-case element."
+          "description": "Image attached to the edge-case element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "attachment",
           "type": "file",
           "scope": "concept",
-          "description": "Generic file attached to the edge-case element."
+          "description": "Generic file attached to the edge-case element.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         },
         {
           "name": "tags",
           "type": "select",
           "scope": "*",
           "multiple": true,
-          "description": "Open vocabulary ad-hoc tags and classification labels."
+          "description": "Open vocabulary ad-hoc tags and classification labels.",
+          "declaredBy": {
+            "family": "testlab-coverage-app",
+            "version": "V_0-1-0"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "name": "Procedure",
@@ -8659,39 +8747,67 @@ input[type="text"], input[type="search"], textarea, select {
             "custom"
           ],
           "scope": "concept",
-          "description": "Functional classification of the procedure workflow."
+          "description": "Functional classification of the procedure workflow.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "summary",
           "type": "string",
           "scope": "concept",
-          "description": "Mandatory concise summary of the workflow intent and transformation steps."
+          "description": "Mandatory concise summary of the workflow intent and transformation steps.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "inputs_required",
           "type": "string",
           "scope": "concept",
-          "description": "References to required Source or Model concepts consumed as inputs."
+          "description": "References to required Source or Model concepts consumed as inputs.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "outputs_expected",
           "type": "string",
           "scope": "concept",
-          "description": "References to expected Artifact concepts produced by the procedure."
+          "description": "References to expected Artifact concepts produced by the procedure.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "executed_by",
           "type": "string",
           "scope": "concept",
-          "description": "Reference to responsible agent or functional role executing the procedure."
+          "description": "Reference to responsible agent or functional role executing the procedure.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "procedure_model",
           "type": "knowledge",
           "scope": "concept",
-          "description": "Link to concrete procedure definition or executable stepper model _NN.md."
+          "description": "Link to concrete procedure definition or executable stepper model _NN.md.",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "Work",
@@ -8708,7 +8824,11 @@ input[type="text"], input[type="search"], textarea, select {
             "decision",
             "event"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "parent",
@@ -8716,7 +8836,11 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Work"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "next",
@@ -8724,12 +8848,20 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Work"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "condition",
           "type": "string",
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "input",
@@ -8737,7 +8869,11 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Artifact"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "output",
@@ -8745,12 +8881,20 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Artifact"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "output_status",
           "type": "string",
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         },
         {
           "name": "tool",
@@ -8758,23 +8902,39 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Tools"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "Artifact",
       "type": "list",
       "icon": "package",
       "color": "orange",
-      "weight": 80
+      "weight": 80,
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "Tools",
       "type": "list",
       "icon": "wrench",
       "color": "orange",
-      "weight": 70
+      "weight": 70,
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "Roles",
@@ -8790,9 +8950,17 @@ input[type="text"], input[type="search"], textarea, select {
             "internal",
             "external"
           ],
-          "scope": "concept"
+          "scope": "concept",
+          "declaredBy": {
+            "family": "procedures-app",
+            "version": "V_0-3-3"
+          }
         }
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     }
   ],
   "fields": [
@@ -8801,49 +8969,77 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "summary",
       "type": "string",
       "scope": "concept",
-      "description": "One-line summary of the element."
+      "description": "One-line summary of the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "long_description",
       "type": "markdown_inline",
       "scope": "concept",
-      "description": "Very long inline description used to stress-test rendering of large text fields."
+      "description": "Very long inline description used to stress-test rendering of large text fields.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "manual",
       "type": "markdown_file",
       "scope": "concept",
-      "description": "External markdown file attached to the element."
+      "description": "External markdown file attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "photo",
       "type": "image",
       "scope": "concept",
-      "description": "Image attached to the element."
+      "description": "Image attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "attachment",
       "type": "file",
       "scope": "concept",
-      "description": "Generic file attached to the element."
+      "description": "Generic file attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "demo_video",
       "type": "video",
       "scope": "concept",
-      "description": "Downloaded video asset attached to the element."
+      "description": "Downloaded video asset attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
       "name": "voice_note",
       "type": "audio",
       "scope": "concept",
-      "description": "Downloaded and transcribed audio asset attached to the element."
+      "description": "Downloaded and transcribed audio asset attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
@@ -8853,7 +9049,11 @@ input[type="text"], input[type="search"], textarea, select {
         "Concept 2"
       ],
       "scope": "concept",
-      "description": "Reference to an element of Concept 2."
+      "description": "Reference to an element of Concept 2.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
@@ -8865,7 +9065,11 @@ input[type="text"], input[type="search"], textarea, select {
         "published"
       ],
       "scope": "concept",
-      "description": "Lifecycle status of the element."
+      "description": "Lifecycle status of the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 1",
@@ -8873,21 +9077,33 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "select",
       "scope": "*",
       "multiple": true,
-      "description": "Open vocabulary ad-hoc tags and classification labels."
+      "description": "Open vocabulary ad-hoc tags and classification labels.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 2",
       "name": "summary",
       "type": "string",
       "scope": "concept",
-      "description": "One-line summary of the element."
+      "description": "One-line summary of the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 2",
       "name": "attachment",
       "type": "file",
       "scope": "concept",
-      "description": "Generic file attached to the element."
+      "description": "Generic file attached to the element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 2",
@@ -8897,7 +9113,11 @@ input[type="text"], input[type="search"], textarea, select {
         "Concept 1"
       ],
       "scope": "concept",
-      "description": "Reference back to an element of Concept 1."
+      "description": "Reference back to an element of Concept 1.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Concept 2",
@@ -8905,35 +9125,55 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "select",
       "scope": "*",
       "multiple": true,
-      "description": "Open vocabulary ad-hoc tags and classification labels."
+      "description": "Open vocabulary ad-hoc tags and classification labels.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Edge Cases",
       "name": "summary",
       "type": "string",
       "scope": "concept",
-      "description": "One-line summary of the edge-case element."
+      "description": "One-line summary of the edge-case element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Edge Cases",
       "name": "long_description",
       "type": "markdown_inline",
       "scope": "concept",
-      "description": "Very long inline description used to stress-test rendering of large text fields."
+      "description": "Very long inline description used to stress-test rendering of large text fields.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Edge Cases",
       "name": "photo",
       "type": "image",
       "scope": "concept",
-      "description": "Image attached to the edge-case element."
+      "description": "Image attached to the edge-case element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Edge Cases",
       "name": "attachment",
       "type": "file",
       "scope": "concept",
-      "description": "Generic file attached to the edge-case element."
+      "description": "Generic file attached to the edge-case element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Edge Cases",
@@ -8941,7 +9181,11 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "select",
       "scope": "*",
       "multiple": true,
-      "description": "Open vocabulary ad-hoc tags and classification labels."
+      "description": "Open vocabulary ad-hoc tags and classification labels.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "concept": "Procedure",
@@ -8955,42 +9199,66 @@ input[type="text"], input[type="search"], textarea, select {
         "custom"
       ],
       "scope": "concept",
-      "description": "Functional classification of the procedure workflow."
+      "description": "Functional classification of the procedure workflow.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Procedure",
       "name": "summary",
       "type": "string",
       "scope": "concept",
-      "description": "Mandatory concise summary of the workflow intent and transformation steps."
+      "description": "Mandatory concise summary of the workflow intent and transformation steps.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Procedure",
       "name": "inputs_required",
       "type": "string",
       "scope": "concept",
-      "description": "References to required Source or Model concepts consumed as inputs."
+      "description": "References to required Source or Model concepts consumed as inputs.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Procedure",
       "name": "outputs_expected",
       "type": "string",
       "scope": "concept",
-      "description": "References to expected Artifact concepts produced by the procedure."
+      "description": "References to expected Artifact concepts produced by the procedure.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Procedure",
       "name": "executed_by",
       "type": "string",
       "scope": "concept",
-      "description": "Reference to responsible agent or functional role executing the procedure."
+      "description": "Reference to responsible agent or functional role executing the procedure.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Procedure",
       "name": "procedure_model",
       "type": "knowledge",
       "scope": "concept",
-      "description": "Link to concrete procedure definition or executable stepper model _NN.md."
+      "description": "Link to concrete procedure definition or executable stepper model _NN.md.",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9001,7 +9269,11 @@ input[type="text"], input[type="search"], textarea, select {
         "decision",
         "event"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9010,7 +9282,11 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Work"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9019,13 +9295,21 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Work"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
       "name": "condition",
       "type": "string",
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9034,7 +9318,11 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Artifact"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9043,13 +9331,21 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Artifact"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
       "name": "output_status",
       "type": "string",
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Work",
@@ -9058,7 +9354,11 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Tools"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "concept": "Roles",
@@ -9068,7 +9368,11 @@ input[type="text"], input[type="search"], textarea, select {
         "internal",
         "external"
       ],
-      "scope": "concept"
+      "scope": "concept",
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     }
   ],
   "markers": [],
@@ -9083,7 +9387,11 @@ input[type="text"], input[type="search"], textarea, select {
         "archived"
       ],
       "widgetType": "set",
-      "description": "Scores how relevant each Concept 1 element is to each Concept 2 element."
+      "description": "Scores how relevant each Concept 1 element is to each Concept 2 element.",
+      "declaredBy": {
+        "family": "testlab-coverage-app",
+        "version": "V_0-1-0"
+      }
     },
     {
       "name": "work-roles matrix",
@@ -9095,7 +9403,11 @@ input[type="text"], input[type="search"], textarea, select {
         "Accountable",
         "Consulted",
         "Informed"
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "work-tools matrix",
@@ -9104,7 +9416,11 @@ input[type="text"], input[type="search"], textarea, select {
       "params": "",
       "values": [
         "Uses"
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     },
     {
       "name": "work-artifacts matrix",
@@ -9116,7 +9432,11 @@ input[type="text"], input[type="search"], textarea, select {
         "Modifies",
         "Validates",
         "Reviews"
-      ]
+      ],
+      "declaredBy": {
+        "family": "procedures-app",
+        "version": "V_0-3-3"
+      }
     }
   ],
   "procedures": [
@@ -9135,7 +9455,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-fc520327",
-    "generated": "2026-10-17T17:36:46.658Z",
+    "generated": "2026-10-17T19:22:26.141Z",
     "changesBlueprintVersion": "V_0-5-0",
     "models": [
       {
@@ -9146,7 +9466,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T17:36:46.573Z",
+        "citationsResolvedAt": "2026-10-17T19:22:26.028Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -10057,6 +10377,7 @@ input[type="text"], input[type="search"], textarea, select {
   "matrices": [
     {
       "name": "Concept 1-Concept 2 Matrix",
+      "slug": "concept-1-concept-2-matrix",
       "source": "Concept 1",
       "target": "Concept 2",
       "rows": [
@@ -10073,29 +10394,34 @@ input[type="text"], input[type="search"], textarea, select {
           "Element 1A": {
             "label": "Element 1A",
             "concept": "Concept 1",
-            "kind": "element"
+            "kind": "element",
+            "slug": "element-1a"
           },
           "Element 1B": {
             "label": "Element 1B",
             "concept": "Concept 1",
-            "kind": "element"
+            "kind": "element",
+            "slug": "element-1b"
           },
           "Element 1C (test)": {
             "label": "Element 1C (test)",
             "concept": "Concept 1",
-            "kind": "element"
+            "kind": "element",
+            "slug": "element-1c"
           }
         },
         "cols": {
           "Element 2A": {
             "label": "Element 2A",
             "concept": "Concept 2",
-            "kind": "element"
+            "kind": "element",
+            "slug": "element-2a"
           },
           "Element 2B": {
             "label": "Element 2B",
             "concept": "Concept 2",
-            "kind": "element"
+            "kind": "element",
+            "slug": "element-2b"
           }
         }
       },
@@ -10170,7 +10496,7 @@ input[type="text"], input[type="search"], textarea, select {
 /*!
  * innfo-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.18.0. Regenerate on every console release.
+ * Version 0.19.0. Regenerate on every console release.
  * Composed (in dependency order): innfo-slug.generated.js, innfo-address.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-procedure-stepper.js.
  */
 
@@ -11179,7 +11505,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // never leaks into a shell. C appends the review components here.
   var COMPONENT_CSS = [
     '[data-innfo-component]{box-sizing:border-box}',
-    '.innfo-concept-pill,.innfo-element-pill,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
+    '.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
     '.innfo-concept-dot{width:.6em;height:.6em;border-radius:50%;background:var(--innfo-muted);flex:0 0 auto}',
     '.innfo-concept-count{color:var(--innfo-muted)}',
     '.innfo-element-origin{display:inline-flex;align-items:center;color:var(--innfo-origin-document)}',
@@ -11207,7 +11533,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-review-toggle[aria-pressed=true],.innfo-changed-filter[aria-pressed=true]{background:var(--innfo-accent);color:var(--innfo-surface)}',
     '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease}',
     '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
-    '[data-innfo-component=element-card]:hover .innfo-review-anchor,[data-innfo-component=field-row]:hover .innfo-review-anchor{opacity:.85}',
+    '[data-innfo-component=element-card]:hover .innfo-review-anchor{opacity:.85}',
     '.innfo-review-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
     '.innfo-reviewed-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.75rem;padding:.1em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
     '.innfo-reviewed-toggle[data-state=reviewed]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
@@ -11248,7 +11574,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // .innfo-review-anchor), QKUD chip, tags, relations.
     '.innfo-edit-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease;display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;min-height:1.6em}',
     '.innfo-edit-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
-    '[data-innfo-component=element-card]:hover .innfo-edit-anchor,[data-innfo-component=field-row]:hover .innfo-edit-anchor{opacity:.85}',
+    '[data-innfo-component=element-card]:hover .innfo-edit-anchor{opacity:.85}',
     '.innfo-edit-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
     '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%;min-width:0}',
     // The KU-detail chip holds a long mono id; the wrapper must be able to
@@ -11277,29 +11603,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-rel-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer;align-self:flex-start}',
     '.innfo-rel-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
     '@media (max-width:640px){.innfo-edit-anchor,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.75rem}}',
-    // Knowledge-unit badge family (KuBadge) + action cluster + change pip.
+    // Knowledge-unit badge family (Ku) + action cluster + change pip.
     '.innfo-ku-unit{display:inline-flex;align-items:center;gap:.25em;max-width:100%}',
-    '.innfo-card-fields>.innfo-ku-unit,.innfo-card-fields>.innfo-ku-badge{flex:1 1 16rem;min-width:0}',
-    '.innfo-card-fields>.innfo-ku-badge[data-field-wide=true],.innfo-card-fields>.innfo-ku-unit:has([data-field-wide=true]){flex-basis:100%}',
-    '.innfo-ku-badge{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .5em;background:var(--innfo-surface);color:var(--innfo-text);max-width:100%}',
-    '.innfo-ku-badge[data-ku-kind=field],.innfo-ku-badge[data-ku-kind=cell]{background:var(--innfo-surface-2)}',
+    '.innfo-card-fields>.innfo-ku-unit,.innfo-card-fields>.innfo-ku{flex:1 1 16rem;min-width:0}',
+    '.innfo-card-fields>.innfo-ku[data-field-wide=true],.innfo-card-fields>.innfo-ku-unit:has([data-field-wide=true]){flex-basis:100%}',
+    '.innfo-ku{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .5em;background:var(--innfo-surface);color:var(--innfo-text);max-width:100%}',
+    '.innfo-ku[data-ku-kind=field],.innfo-ku[data-ku-kind=cell]{background:var(--innfo-surface-2)}',
     // Element + concept/document badges read as card titles: slightly larger and
     // semibold so they anchor the hierarchy above their muted field rows.
-    '.innfo-ku-badge[data-ku-kind=element],.innfo-ku-badge[data-ku-kind=concept],.innfo-ku-badge[data-ku-kind=document]{font-weight:600}',
-    '.innfo-ku-badge[data-ku-kind=element]{font-size:.9rem}',
-    '.innfo-ku-badge .innfo-ku-label{color:var(--innfo-muted)}',
-    '.innfo-ku-badge .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.innfo-ku-badge .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
+    '.innfo-ku[data-ku-kind=element],.innfo-ku[data-ku-kind=concept],.innfo-ku[data-ku-kind=document]{font-weight:600}',
+    '.innfo-ku[data-ku-kind=element]{font-size:.9rem}',
+    '.innfo-ku .innfo-ku-label{color:var(--innfo-muted)}',
+    '.innfo-ku .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-ku .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
     // Field badges carry free text: under card fields they grow to fill the row,
     // while in tables/grids they remain compact inline-flex elements.
-    '.innfo-card-fields>.innfo-ku-unit>.innfo-ku-badge[data-ku-kind=field],.innfo-card-fields>.innfo-ku-badge[data-ku-kind=field]{flex:1 1 16em;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
-    '.innfo-ku-badge[data-ku-kind=field]{min-width:0;align-items:center;line-height:1.3}',
-    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
-    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
-    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
-    '.innfo-ku-badge .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
-    '.innfo-ku-badge .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
-    '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
+    '.innfo-card-fields>.innfo-ku-unit>.innfo-ku[data-ku-kind=field],.innfo-card-fields>.innfo-ku[data-ku-kind=field]{flex:1 1 16em;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
+    '.innfo-ku[data-ku-kind=field]{min-width:0;align-items:center;line-height:1.3}',
+    '.innfo-ku[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
+    '.innfo-ku[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
+    '.innfo-ku[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
+    '.innfo-ku .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
+    '.innfo-ku .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
+    '.innfo-ku[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
     '.innfo-kpi-header{display:flex;align-items:center;justify-content:space-between;gap:8px}',
@@ -11319,7 +11645,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
     '[data-innfo-component=element-card] .innfo-card-badges{display:inline-flex;align-items:center;gap:.35em;min-width:0}',
-    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku-badge{display:inline-flex;align-items:center}',
+    '[data-innfo-component=element-card] .innfo-card-badges .innfo-ku{display:inline-flex;align-items:center}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty,[data-innfo-component=element-card] .innfo-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--innfo-accent));background:var(--card-concept-bg,var(--innfo-surface-2));border:1.5px solid var(--card-concept-color,var(--innfo-border))}',
@@ -11391,12 +11717,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   for (var kslot = 1; kslot <= 12; kslot++) {
     COMPONENT_CSS.push(
       '[data-innfo-component=element-card][data-concept-slot="' + kslot + '"]{--card-concept-color:var(--innfo-concept-' + kslot + ');--card-concept-bg:var(--innfo-concept-' + kslot + '-bg);border-left:4px solid var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element]{border-color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=reference]{border-color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=reference] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=concept],[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=document]{border-color:var(--innfo-concept-' + kslot + ');background:var(--innfo-concept-' + kslot + '-bg)}',
-      '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .innfo-ku-icon,[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=document] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=element]{border-color:var(--innfo-concept-' + kslot + ')}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=element] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=reference]{border-color:var(--innfo-concept-' + kslot + ')}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=reference] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept],[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document]{border-color:var(--innfo-concept-' + kslot + ');background:var(--innfo-concept-' + kslot + '-bg)}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .innfo-ku-icon,[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
     )
   }
   var COMPONENT_CSS_TEXT = COMPONENT_CSS.join('\n')
@@ -11580,65 +11906,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // ---- Components ----
 
-  function ConceptPill(data, opts) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ConceptPill: data required')
-    var doc = resolveDoc(opts)
-    var interactive = !!(opts && opts.onSelect)
-    var slot = conceptSlot(data)
-    var pill = makeEl(doc, interactive ? 'button' : 'span', 'innfo-concept-pill')
-    pill.setAttribute('data-innfo-component', 'concept-pill')
-    pill.setAttribute('data-concept-id', String(data.id == null ? '' : data.id))
-    pill.setAttribute('data-concept-slot', String(slot))
-    if (interactive) {
-      pill.setAttribute('type', 'button')
-      pill.addEventListener('click', function () {
-        opts.onSelect(data)
-      })
-    }
-    var cIcon = makeEl(doc, 'span', 'innfo-concept-pill-icon')
-    cIcon.setAttribute('aria-hidden', 'true')
-    cIcon.innerHTML = icon(resolveConceptIconName(data.label || data.id, { index: slot - 1, color: data.color, icon: data.icon }), 12)
-    pill.appendChild(cIcon)
-    pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
-    if (data.count != null) pill.appendChild(makeEl(doc, 'span', 'innfo-concept-count', ' (' + data.count + ')'))
-    return pill
-  }
-
-  function ElementPill(data, opts) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ElementPill: data required')
-    var doc = resolveDoc(opts)
-    var tag = opts && opts.href ? 'a' : opts && opts.onSelect ? 'button' : 'span'
-    var pill = makeEl(doc, tag, 'innfo-element-pill')
-    pill.setAttribute('data-innfo-component', 'element-pill')
-    pill.setAttribute('data-element-id', String(data.id == null ? '' : data.id))
-    if (opts && opts.href) pill.setAttribute('href', String(opts.href))
-    if (tag === 'button') {
-      pill.setAttribute('type', 'button')
-      pill.addEventListener('click', function () {
-        if (opts && opts.onSelect) opts.onSelect(data)
-      })
-    }
-    var hasConceptMeta = !!(data.concept || data.color || data.index != null || data.slot != null || data.hexColor)
-    if (hasConceptMeta) {
-      var eSlot = Number(data.slot) || conceptSlot({ index: data.index, color: data.color })
-      pill.setAttribute('data-concept-slot', String(eSlot))
-      pill.classList.add('innfo-element-pill--concept')
-      if (data.hexColor) pill.style.setProperty('--pill-concept-color', String(data.hexColor))
-      var eIcon = makeEl(doc, 'span', 'innfo-element-concept-icon')
-      eIcon.setAttribute('aria-hidden', 'true')
-      eIcon.innerHTML = icon(resolveConceptIconName(data.concept, { index: eSlot - 1, color: data.color, icon: data.icon }), 12)
-      pill.appendChild(eIcon)
-    }
-    if (data.origin) {
-      var wrap = makeEl(doc, 'span', 'innfo-element-origin')
-      wrap.setAttribute('data-origin', String(data.origin))
-      wrap.innerHTML = icon('cite-' + data.origin, 12)
-      pill.appendChild(wrap)
-    }
-    pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
-    return pill
-  }
-
   // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
   //
   // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
@@ -11675,61 +11942,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     } catch {
       /* copy is best-effort; never break the card */
     }
-  }
-
-  function QudChip(data, opts) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.QudChip: data required')
-    var doc = resolveDoc(opts)
-    var wrap = makeEl(doc, 'span', 'innfo-qud-wrap')
-    wrap.setAttribute('data-innfo-component', 'qud-chip')
-    wrap.setAttribute('data-qud', String(data.id == null ? '' : data.id))
-
-    var chip = makeEl(doc, 'span', 'innfo-qud')
-    var id = makeEl(doc, 'span', 'innfo-qud-id', data.id)
-    id.setAttribute('title', String(data.id == null ? '' : data.id))
-    chip.appendChild(id)
-
-    var copy = makeEl(doc, 'button', 'innfo-qud-btn')
-    copy.setAttribute('type', 'button')
-    copy.setAttribute('aria-label', 'Copy knowledge unit ID')
-    copy.setAttribute('title', 'Copy knowledge unit ID')
-    copy.innerHTML = icon('copy', 13)
-    copy.addEventListener('click', function (ev) {
-      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-      copyText(data.id)
-    })
-    chip.appendChild(copy)
-
-    var info = makeEl(doc, 'button', 'innfo-qud-btn')
-    info.setAttribute('type', 'button')
-    info.setAttribute('aria-label', 'Knowledge unit ID details')
-    info.setAttribute('title', 'Knowledge unit ID details')
-    info.setAttribute('aria-expanded', 'false')
-    info.innerHTML = icon('info', 13)
-    info.addEventListener('click', function (ev) {
-      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-      var host = wrap.closest
-        ? wrap.closest('[data-innfo-component="element-card"]') || wrap
-        : wrap
-      var open = host.getAttribute('data-qud-open') === 'true'
-      host.setAttribute('data-qud-open', open ? 'false' : 'true')
-      info.setAttribute('aria-expanded', open ? 'false' : 'true')
-    })
-    chip.appendChild(info)
-    wrap.appendChild(chip)
-
-    var detail = makeEl(doc, 'div', 'innfo-qud-detail')
-    var lines = []
-    if (data.id != null) lines.push(['id', String(data.id)])
-    if (data.concept != null) lines.push(['concept', String(data.concept)])
-    if (data.path != null) lines.push(['path', String(data.path)])
-    if (data.hash != null) lines.push(['hash', String(data.hash)])
-    lines.forEach(function (pair, i) {
-      if (i > 0) detail.appendChild(doc.createElement('br'))
-      detail.appendChild(doc.createTextNode(pair[0] + ': ' + pair[1]))
-    })
-    wrap.appendChild(detail)
-    return wrap
   }
 
   function TagRow(data, opts) {
@@ -11771,6 +11983,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var doc = resolveDoc(opts)
     var rels = Array.isArray(data.relations) ? data.relations : []
     var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
+    var relModel = data.model || (opts && (opts.modelId || opts.model)) || 'model'
     var ul = makeEl(doc, 'ul', 'innfo-rel-list')
     ul.setAttribute('data-innfo-component', 'rel-list')
     rels.forEach(function (r) {
@@ -11778,23 +11991,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var li = makeEl(doc, 'li', 'innfo-rel-row')
       if (r.field) li.setAttribute('data-rel-field', String(r.field))
       if (r.target) li.setAttribute('data-rel-target', String(r.target))
-      var relFieldChip = makeEl(doc, 'span', 'innfo-rel-field innfo-ku-field-chip', (r.field || 'related') + ' \u2192')
-      li.appendChild(relFieldChip)
+      li.appendChild(
+        Ku(
+          'field',
+          {
+            family: relModel,
+            model: relModel,
+            concept: r.sourceConcept || 'relations',
+            name: r.field || 'related',
+            label: r.field || 'related',
+          },
+          { doc: doc },
+        ),
+      )
       var targetRec = r.target && byId[r.target] ? byId[r.target] : null
       var label = r.targetLabel || (targetRec && targetRec.name) || r.target || '?'
       if (r.target) {
         li.appendChild(
-          ElementPill(
+          Ku(
+            'element',
             {
+              model: relModel,
               id: r.target,
               label: label,
               concept: r.targetConcept || (targetRec && targetRec.concept),
               color: r.targetColor || (targetRec && targetRec._conceptColor),
-              hexColor: r.targetHexColor || (targetRec && targetRec._conceptHexColor),
-              slot: r.targetSlot || (targetRec && targetRec._conceptSlot),
               index: targetRec && targetRec._conceptIndex,
             },
-            { href: '#el-' + r.target, doc: doc },
+            { doc: doc },
           ),
         )
       } else {
@@ -12062,14 +12286,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   // Type-aware read rendering for a field value. Returns a DOM node, or null
-  // when the value should fall back to the plain KuBadge text (string, empty
+  // when the value should fall back to the plain Ku text (string, empty
   // select, etc.), so existing output is unchanged for the common case.
   //
   // FIELD_RENDERERS is keyed by the declared field type — the L1 set
   // (iNNfo_V_0-4-0 §Field Definition: string, select, reference, markdown_inline,
   // markdown_file, image, file, video, audio, url, knowledge, citation) plus the
   // legacy aliases older payloads still emit. reference/citation have no entry:
-  // FieldRow resolves them to ElementPill / CitationIcon from data.ref and
+  // FieldRow resolves them to Ku / CitationIcon from data.ref and
   // data.citations. Value-shape renderers (boolean / list / object / url) and
   // shape heuristics (image / asset path) run regardless of the declared type,
   // matching the console's runtime-detected payloads.
@@ -12258,43 +12482,90 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return null
   }
 
+  function fieldValueText(value) {
+    if (value == null) return ''
+    if (Array.isArray(value)) return value.map(String).join(', ')
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value)
+      } catch (e) {
+        return ''
+      }
+    }
+    return String(value)
+  }
+
+  // A field VALUE on an element: one `value` knowledge unit. The field's
+  // definition unit lives in the table header / concept section, never here.
   function FieldRow(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
     var doc = resolveDoc(opts)
     var hasRef = !!(data.ref && data.ref.id)
+    var inherited = data.inherited && data.inherited.from ? data.inherited : null
+    var model = data.model || (opts && (opts.modelId || opts.model)) || 'model'
+    var element = data.element || (opts && opts.element) || data.elementId || 'unit'
     var valueNode = hasRef ? null : FieldValue(data, opts)
-    var badge = KuBadge({
-      kind: 'field',
-      name: data.name,
-      value: hasRef ? null : data.value,
-      valueNode: valueNode,
-    })
-    var ftype = String(data.type || '').toLowerCase()
-    if (
-      ftype === 'markdown' ||
-      ftype === 'markdown_inline' ||
-      (typeof data.value === 'string' && data.value.length > 70)
-    ) {
-      badge.setAttribute('data-field-wide', 'true')
+    if (!valueNode) {
+      valueNode = makeEl(doc, 'span', 'innfo-ku-value-text', fieldValueText(data.value))
     }
     if (hasRef) {
-      badge.appendChild(
-        ElementPill(
-          {
-            id: data.ref.id,
-            label: data.ref.label || data.ref.id,
-            concept: data.ref.concept,
-            color: data.ref.color,
-            hexColor: data.ref.hexColor,
-            slot: data.ref.slot,
-            index: data.ref.index,
-          },
-          {
-            doc: doc,
-            onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
-          },
-        ),
+      valueNode = makeEl(doc, 'span', 'innfo-ku-value-text')
+      var refUnit = Ku(
+        'element',
+        {
+          model: model,
+          id: data.ref.id,
+          label: data.ref.label || data.ref.id,
+          concept: data.ref.concept,
+          color: data.ref.color,
+          index: data.ref.index,
+        },
+        { doc: doc },
       )
+      if (opts && opts.onRef) {
+        var refBadge = refUnit.querySelector('[data-innfo-component="ku-unit"]')
+        if (refBadge) {
+          refBadge.setAttribute('role', 'button')
+          refBadge.setAttribute('tabindex', '0')
+          refBadge.addEventListener('click', function () {
+            opts.onRef(data.ref.id)
+          })
+        }
+      }
+      valueNode.appendChild(refUnit)
+    }
+    var label = inherited
+      ? 'inherited from ' + inherited.from
+      : String(data.name == null ? '' : data.name)
+    var wrap = Ku(
+      'value',
+      {
+        model: model,
+        element: element,
+        field: data.name,
+        label: label,
+        vtype: data.type,
+        inherited: !!inherited,
+        inheritedFrom: inherited ? inherited.from : undefined,
+        concept: inherited ? inherited.from : undefined,
+      },
+      { doc: doc, valueNode: valueNode },
+    )
+    var badge = wrap.querySelector('[data-innfo-component="ku-unit"]')
+    if (badge) {
+      badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
+      if (inherited) {
+        badge.setAttribute('data-ku-inherited', String(inherited.from))
+        badge.setAttribute('aria-label', 'content, inherited from ' + inherited.from + ': ' + label)
+      }
+      var ftype = String(data.type || '').toLowerCase()
+      if (
+        ftype === 'markdown' ||
+        ftype === 'markdown_inline' ||
+        (typeof data.value === 'string' && data.value.length > 70)
+      ) {
+        badge.setAttribute('data-field-wide', 'true')
+      }
     }
     if (Array.isArray(data.citations) && data.citations.length) {
       var seen = {}
@@ -12303,14 +12574,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (seen[v]) return
         seen[v] = true
         if (variants.indexOf(v) === -1) return
-        badge.appendChild(
+        wrap.appendChild(
           CitationIcon({ variant: v, field: data.name }, {
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
       })
     }
-    return badge
+    return wrap
   }
 
   // ---- Element-card Selected Hybrid (V1 + V4) ----
@@ -12512,7 +12783,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   /* ElementMini — the collection item: identity only (concept-color accent stripe
      + small thumb + name + one optional meta line), NEVER the field grid. This is
-     the middle representation between ElementPill (inline token) and ElementCard
+     the middle representation between Ku (inline token) and ElementCard
      (detail surface); it fits narrow board columns, related lists and search hits.
      With `opts.preview` it reveals the full ElementCard on hover/focus and, via a
      small info affordance, on click. */
@@ -12544,27 +12815,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     thumb.classList.add('innfo-mini-thumb')
     mini.appendChild(thumb)
     var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var miniModel = (opts && (opts.modelId || opts.model)) || data.modelId || data.model || 'model'
     var conceptId = data.concept || data.conceptId
     if (conceptId) {
       badgesWrap.appendChild(
-        KuBadge({
-          kind: 'concept',
-          id: conceptId,
+        Ku('section', {
+          model: miniModel,
+          concept: conceptId,
           label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-          icon: conceptOpts.icon || iconName,
         }),
       )
     }
     badgesWrap.appendChild(
-      KuBadge({
-        kind: 'element',
+      Ku('element', {
+        model: miniModel,
         id: data.id,
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
-        icon: conceptOpts.icon,
       }),
     )
     mini.appendChild(badgesWrap)
@@ -12634,27 +12904,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     head.appendChild(elementThumb(doc, data, conceptIconName, 18))
     var badgesWrap = makeEl(doc, 'div', 'innfo-card-badges')
+    var unitModel = (opts && (opts.modelId || opts.model)) || data.modelId || data.model || 'model'
     var conceptId = data.concept || data.conceptId
     if (conceptId) {
       badgesWrap.appendChild(
-        KuBadge({
-          kind: 'concept',
-          id: conceptId,
+        Ku('section', {
+          model: unitModel,
+          concept: conceptId,
           label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-          icon: conceptOpts.icon || conceptIconName,
         }),
       )
     }
     badgesWrap.appendChild(
-      KuBadge({
-        kind: 'element',
+      Ku('element', {
+        model: unitModel,
         id: data.id,
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
-        icon: conceptOpts.icon,
       }),
     )
     head.appendChild(badgesWrap)
@@ -12690,12 +12959,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       head.appendChild(sumPrev)
     }
 
-    var qudNode = null
-    if (data.qud && (data.qud.id || data.qud === true)) {
-      var qudData = data.qud === true ? { id: data.id } : data.qud
-      if (qudData && qudData.id == null) qudData.id = data.id
-      qudNode = QudChip(qudData || { id: data.id })
-    }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
         if (n) head.appendChild(n)
@@ -12856,14 +13119,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
     if (bodyFields.length) {
       var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
+      var inherited = data.inherited && typeof data.inherited === 'object' ? data.inherited : {}
       bodyFields.forEach(function (fr) {
+        var inheritedInfo = fr && fr.inherited ? fr.inherited : inherited[fr && fr.name]
         fieldRow.appendChild(
-          FieldRow(fr, {
-            onRef: opts && opts.onRef,
-            onCite: opts && opts.onCite,
-            onKnowledge: opts && opts.onKnowledge,
-            isKnowledgeBound: opts && opts.isKnowledgeBound,
-          }),
+          FieldRow(
+            {
+              name: fr.name,
+              value: fr.value,
+              type: fr.type,
+              ref: fr.ref,
+              citations: fr.citations,
+              model: unitModel,
+              element: data.id,
+              inherited: inheritedInfo,
+            },
+            {
+              onRef: opts && opts.onRef,
+              onCite: opts && opts.onCite,
+              onKnowledge: opts && opts.onKnowledge,
+              isKnowledgeBound: opts && opts.isKnowledgeBound,
+            },
+          ),
         )
       })
       body.appendChild(fieldRow)
@@ -12881,7 +13158,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       outWrap.appendChild(
         makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
       )
-      outWrap.appendChild(RelList({ relations: relations, byId: byId }))
+      outWrap.appendChild(RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }))
       body.appendChild(outWrap)
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
@@ -12890,14 +13167,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       incWrap.appendChild(
         makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
       )
-      incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
+      incWrap.appendChild(RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }))
       body.appendChild(incWrap)
     }
     card.appendChild(body)
-    if (data.path || qudNode) {
+    if (data.path) {
       var cardFooter = makeEl(doc, 'footer', 'innfo-card-footer')
       if (data.path) cardFooter.appendChild(makeEl(doc, 'span', 'innfo-card-path', data.path))
-      if (qudNode) cardFooter.appendChild(qudNode)
       card.appendChild(cardFooter)
     }
     return card
@@ -12938,39 +13214,58 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
       var targetConcept = d.concept || (el && el.concept) || null
+      var draftModel = (opts && (opts.modelId || opts.model)) || d.model || (el && el.modelId) || 'model'
       var targetSpan = makeEl(doc, 'span', 'innfo-draft-target inline-flex items-center gap-1.5 font-semibold text-sm')
       if (targetConcept) {
-        var cPill = ConceptPill(
+        targetSpan.appendChild(
+          Ku(
+            'section',
+            {
+              model: draftModel,
+              concept: targetConcept,
+              label: targetConcept,
+              index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+              color: el && el._conceptColor,
+            },
+            { doc: doc },
+          ),
+        )
+      }
+      var unitKind = d.field ? 'value' : 'element'
+      targetSpan.appendChild(
+        Ku(
+          unitKind,
           {
-            id: targetConcept,
-            label: targetConcept,
-            index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+            address: d.address || undefined,
+            model: draftModel,
+            element: d.element_id || targetLabel,
+            field: d.field || undefined,
+            id: d.element_id || targetLabel,
+            label: targetLabel,
+            concept: targetConcept,
             color: el && el._conceptColor,
+            index: el && el._conceptIndex,
           },
           { doc: doc },
-        )
-        targetSpan.appendChild(cPill)
-      }
-      var ePill = ElementPill(
-        {
-          id: d.element_id || targetLabel,
-          label: targetLabel,
-          concept: targetConcept,
-          color: el && el._conceptColor,
-          hexColor: el && el._conceptHexColor,
-          slot: el && el._conceptSlot,
-          index: el && el._conceptIndex,
-        },
-        { doc: doc, href: d.element_id ? '#el-' + d.element_id : undefined },
+        ),
       )
-      targetSpan.appendChild(ePill)
       if (d.field) {
         var arrowSpan = makeEl(doc, 'span', 'innfo-draft-arrow text-xs opacity-60', '→')
         arrowSpan.setAttribute('aria-hidden', 'true')
         targetSpan.appendChild(arrowSpan)
-        var fBadge = makeEl(doc, 'span', 'innfo-ku-field-chip', '~ ' + d.field)
-        fBadge.setAttribute('data-ku-kind', 'field')
-        targetSpan.appendChild(fBadge)
+        targetSpan.appendChild(
+          Ku(
+            'field',
+            {
+              family: draftModel,
+              model: draftModel,
+              concept: targetConcept || 'relations',
+              name: d.field,
+              label: '~ ' + d.field,
+            },
+            { doc: doc },
+          ),
+        )
       }
       left.appendChild(targetSpan)
 
@@ -13833,262 +14128,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return span
   }
 
-  // ---- Knowledge-unit badge family (KuBadge) ----
-  //
-  // One grammar for every knowledge unit: the badge shape encodes the unit kind,
-  // the concept color encodes the concept, the slug is the identity. Actions (info
-  // / edit) live OUTSIDE the badge in KuActions, never nested, and the pending-
-  // change pip is a count badge child. The kit holds no mode state: the edit action
-  // exists only because the caller passed onEdit.
-  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'reference']
-  var KU_KIND_ICON = {
-    document: 'cite-document',
-    concept: 'explorer',
-    field: 'derived',
-    cell: 'calc',
-  }
-
-  function isInfoOrEditAction(opts) {
-    return !!(
-      opts &&
-      (typeof opts.onInfo === 'function' ||
-        typeof opts.onEdit === 'function' ||
-        typeof opts.onChanges === 'function')
-    )
-  }
-
-  function KuBadge(data, opts) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.KuBadge: data required')
-    var doc = resolveDoc(opts)
-    var kind = KU_KINDS.indexOf(data.kind) !== -1 ? data.kind : 'element'
-    var hasAction = isInfoOrEditAction(opts)
-    var navigable = !!((opts && opts.href) || (opts && opts.onSelect))
-    var interactive = navigable && !hasAction
-    var tag = interactive ? (opts && opts.href ? 'a' : 'button') : 'span'
-    var badge = makeEl(doc, tag, 'innfo-ku-badge')
-    badge.setAttribute('data-innfo-component', 'ku-badge')
-    badge.setAttribute('data-ku-kind', kind)
-    if (interactive && opts.href) badge.setAttribute('href', String(opts.href))
-    if (tag === 'button') {
-      badge.setAttribute('type', 'button')
-      badge.addEventListener('click', function () {
-        if (opts && typeof opts.onSelect === 'function') opts.onSelect(data)
-      })
-    }
-
-    if (kind === 'document' || kind === 'concept') {
-      if (data.id != null) badge.setAttribute('data-concept-id', String(data.id))
-      if (kind === 'concept' || data.index != null || data.color) {
-        badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-      }
-    } else if (kind === 'element' || kind === 'reference') {
-      if (data.id != null) badge.setAttribute('data-element-id', String(data.id))
-      if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-    } else if (kind === 'field') {
-      badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
-      if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-    }
-
-    var iconName = data.icon || KU_KIND_ICON[kind]
-    if (iconName) {
-      var wrapIcon = makeEl(doc, 'span', 'innfo-ku-icon')
-      wrapIcon.innerHTML = icon(iconName, 13)
-      badge.appendChild(wrapIcon)
-    }
-
-    if (kind === 'field') {
-      var fieldLabel = data.label != null ? data.label : data.name
-      if (data.valueNode) {
-        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        badge.appendChild(data.valueNode)
-      } else if (Array.isArray(data.value)) {
-        // A multi-valued Field renders one value chip per value.
-        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        var valuesWrap = makeEl(doc, 'span', 'innfo-ku-values')
-        data.value.forEach(function (v) {
-          valuesWrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-chip', v == null ? '' : String(v)))
-        })
-        badge.appendChild(valuesWrap)
-      } else if (data.value != null) {
-        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
-      } else if (fieldLabel != null) {
-        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
-      }
-    } else if (kind === 'cell') {
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
-    } else {
-      var labelText = String(data.label == null ? '' : data.label)
-      var labelEl = makeEl(doc, 'span', 'innfo-ku-value', labelText)
-      if (labelText) labelEl.setAttribute('title', labelText)
-      badge.appendChild(labelEl)
-    }
-
-    var changes = Number(data.changes) || 0
-    if (changes > 0) {
-      badge.setAttribute('data-ku-changes', String(changes))
-      var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(changes))
-      pip.setAttribute('data-innfo-component', 'ku-change-pip')
-      pip.setAttribute('type', 'button')
-      pip.setAttribute('aria-label', changes + ' pending ' + (changes === 1 ? 'change' : 'changes'))
-      pip.setAttribute('title', changes + ' pending ' + (changes === 1 ? 'change' : 'changes'))
-      pip.addEventListener('click', function (ev) {
-        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-        if (opts && typeof opts.onChanges === 'function') opts.onChanges()
-      })
-      badge.appendChild(pip)
-    }
-    return badge
-  }
-
-  function KuActions(data, opts) {
-    var doc = resolveDoc(opts)
-    var cluster = makeEl(doc, 'span', 'innfo-ku-actions')
-    cluster.setAttribute('data-innfo-component', 'ku-actions')
-    if (opts && typeof opts.onInfo === 'function') {
-      var info = makeEl(doc, 'button', 'innfo-ku-action')
-      info.setAttribute('type', 'button')
-      info.setAttribute('data-ku-action', 'info')
-      info.setAttribute('aria-label', 'Knowledge unit info')
-      info.setAttribute('title', 'Info')
-      info.innerHTML = icon('info', 14)
-      info.addEventListener('click', function (ev) {
-        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-        opts.onInfo(data)
-      })
-      cluster.appendChild(info)
-    }
-    if (opts && typeof opts.onEdit === 'function') {
-      var edit = makeEl(doc, 'button', 'innfo-ku-action')
-      edit.setAttribute('type', 'button')
-      edit.setAttribute('data-ku-action', 'edit')
-      edit.setAttribute('aria-label', 'Edit knowledge unit')
-      edit.setAttribute('title', 'Edit')
-      edit.innerHTML = icon('pencil', 14)
-      edit.addEventListener('click', function (ev) {
-        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-        opts.onEdit(data)
-      })
-      cluster.appendChild(edit)
-    }
-    return cluster
-  }
-
   /**
-   * Declarative Table builder for console views.
-   * Auto-formats cells with canonical KuBadges / ElementPills.
-   *
-   * @param {{
-   *   columns: Array<string | { key: string, label?: string, kind?: 'element'|'field'|'cell'|'text', align?: 'left'|'right'|'center', format?: Function }>,
-   *   rows: Array<any>,
-   *   emptyText?: string,
-   *   compact?: boolean,
-   * }} data
-   * @param {{
-   *   doc?: Document,
-   *   onEdit?: (elementId: string, fieldKey?: string) => void,
-   *   onSelect?: (elementId: string) => void,
-   * }} [opts]
-   * @returns {HTMLElement}
-   */
-  function Table(data, opts) {
-    if (!data || !Array.isArray(data.columns)) {
-      throw new TypeError('InnfoUI.Table: data.columns must be an array')
-    }
-    var doc = (opts && opts.doc) || (typeof document !== 'undefined' ? document : null)
-    if (!doc) throw new TypeError('InnfoUI.Table: doc is required')
-    var rows = Array.isArray(data.rows) ? data.rows : []
-    var wrap = makeEl(doc, 'div', 'innfo-element-table-wrap')
-    wrap.setAttribute('data-innfo-component', 'table')
-
-    var table = makeEl(doc, 'table', 'innfo-element-table')
-    var thead = makeEl(doc, 'thead')
-    var htr = makeEl(doc, 'tr')
-
-    var cols = data.columns.map(function (c) {
-      if (typeof c === 'string') return { key: c, label: c, kind: c === 'name' || c === 'id' ? 'element' : 'field' }
-      return {
-        key: c.key || '',
-        label: c.label != null ? c.label : c.key,
-        kind: c.kind || (c.key === 'name' || c.key === 'id' ? 'element' : 'field'),
-        align: c.align || 'left',
-        format: c.format,
-      }
-    })
-
-    cols.forEach(function (c) {
-      var th = makeEl(doc, 'th', null, c.label)
-      if (c.align) th.style.textAlign = c.align
-      htr.appendChild(th)
-    })
-    if (opts && typeof opts.onEdit === 'function') {
-      var thAct = makeEl(doc, 'th', null, '')
-      thAct.style.width = '40px'
-      htr.appendChild(thAct)
-    }
-    thead.appendChild(htr)
-    table.appendChild(thead)
-
-    var tbody = makeEl(doc, 'tbody')
-    if (rows.length === 0) {
-      var emptyTr = makeEl(doc, 'tr')
-      var emptyTd = makeEl(doc, 'td', 'innfo-element-table-empty', data.emptyText || 'No items to display.')
-      emptyTd.colSpan = cols.length + (opts && opts.onEdit ? 1 : 0)
-      emptyTr.appendChild(emptyTd)
-      tbody.appendChild(emptyTr)
-    } else {
-      rows.forEach(function (row) {
-        if (!row) return
-        var tr = makeEl(doc, 'tr')
-        if (row.id) tr.setAttribute('data-element-id', row.id)
-        cols.forEach(function (c) {
-          var td = makeEl(doc, 'td')
-          if (c.align) td.style.textAlign = c.align
-          var val = row.fields && c.key in row.fields ? row.fields[c.key] : row[c.key]
-          if (c.format && typeof c.format === 'function') {
-            var formatted = c.format(val, row)
-            if (formatted && formatted.nodeType) td.appendChild(formatted)
-            else td.textContent = formatted == null ? '' : String(formatted)
-          } else if (c.kind === 'element') {
-            td.appendChild(ElementPill({ id: row.id, label: val || row.name || row.id }, { doc: doc, onSelect: opts && opts.onSelect }))
-          } else if (c.kind === 'cell') {
-            td.appendChild(KuBadge({ kind: 'cell', value: val == null ? '—' : String(val) }, { doc: doc }))
-          } else if (c.kind === 'field') {
-            td.appendChild(KuBadge({ kind: 'field', name: c.label, value: val == null ? '—' : String(val) }, { doc: doc }))
-          } else {
-            td.textContent = val == null ? '—' : String(val)
-          }
-          tr.appendChild(td)
-        })
-        if (opts && typeof opts.onEdit === 'function') {
-          var tdAct = makeEl(doc, 'td')
-          tdAct.style.textAlign = 'right'
-          var editBtn = makeEl(doc, 'button', 'innfo-review-anchor')
-          editBtn.setAttribute('type', 'button')
-          editBtn.setAttribute('title', 'Edit ' + (row.name || row.id))
-          editBtn.innerHTML = icon('pencil', 12)
-          editBtn.addEventListener('click', function (ev) {
-            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-            opts.onEdit(row.id)
-          })
-          tdAct.appendChild(editBtn)
-          tr.appendChild(tdAct)
-        }
-        tbody.appendChild(tr)
-      })
-    }
-    table.appendChild(tbody)
-    wrap.appendChild(table)
-    return wrap
-  }
-
-  /**
-   * Declarative KPI summary grid for console views.
-   * @param {{
-   *   items: Array<{ label: string, value: string|number, concept?: string, icon?: string, hint?: string, color?: string, index?: number }>
-   * }} data
-   * @param {{ doc?: Document }} [opts]
-   * @returns {HTMLElement}
+   * Registers <innfo-ku> custom element in window.customElements when available.
    */
   function KpiGrid(data, opts) {
     if (!data || !Array.isArray(data.items)) {
@@ -14096,36 +14137,35 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var doc = (opts && opts.doc) || (typeof document !== 'undefined' ? document : null)
     if (!doc) throw new TypeError('InnfoUI.KpiGrid: doc is required')
-
     var grid = makeEl(doc, 'div', 'innfo-kpi-grid')
     grid.setAttribute('data-innfo-component', 'kpi-grid')
-
     data.items.forEach(function (item) {
       if (!item) return
       var card = makeEl(doc, 'div', 'innfo-kpi-card')
       var header = makeEl(doc, 'div', 'innfo-kpi-header')
-      if (item.concept) {
-        header.appendChild(ConceptPill({ id: item.concept, label: item.concept, icon: item.icon, color: item.color, index: item.index }, { doc: doc }))
-      } else {
-        header.appendChild(KuBadge({ kind: 'concept', label: item.label, icon: item.icon }, { doc: doc }))
-      }
+      header.appendChild(
+        Ku(
+          'element',
+          {
+            model: item.modelId || (opts && opts.modelId) || 'model',
+            id: item.id || item.label || item.concept,
+            label: item.label || item.concept || '',
+            concept: item.concept,
+            index: item.index,
+            color: item.color,
+          },
+          { doc: doc },
+        ),
+      )
       card.appendChild(header)
-
       var val = makeEl(doc, 'div', 'innfo-kpi-value', item.value != null ? String(item.value) : '0')
       card.appendChild(val)
-
-      if (item.hint) {
-        var hint = makeEl(doc, 'div', 'innfo-kpi-hint', item.hint)
-        card.appendChild(hint)
-      }
+      if (item.hint) card.appendChild(makeEl(doc, 'div', 'innfo-kpi-hint', item.hint))
       grid.appendChild(card)
     })
     return grid
   }
 
-  /**
-   * Registers <innfo-ku> custom element in window.customElements when available.
-   */
   function defineCustomElements() {
     if (typeof window === 'undefined' || !window.customElements || window.customElements.get('innfo-ku')) return
     try {
@@ -14140,7 +14180,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var value = this.getAttribute('value')
         var label = this.getAttribute('label') || name
         var id = this.getAttribute('id')
-        var badge = KuBadge({ kind: kind, id: id, name: name, value: value, label: label }, { doc: this.ownerDocument })
+        var badge = Ku(
+          kind === 'field' ? 'value' : kind,
+          {
+            model: this.getAttribute('model') || 'model',
+            id: id,
+            element: id,
+            field: name,
+            label: label || value,
+          },
+          { doc: this.ownerDocument },
+        )
         this.innerHTML = ''
         this.appendChild(badge)
       }
@@ -14174,6 +14224,358 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  // ---- Unified knowledge-unit badges (S3): describeUnit + Ku + KuInfoPanel ----
+  var KU_NATURE = {
+    domain: 'container',
+    document: 'container',
+    section: 'container',
+    concept: 'structure',
+    field: 'structure',
+    matrix: 'structure',
+    element: 'content',
+    value: 'content',
+    source: 'content',
+  }
+
+  function addrApi() {
+    return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
+  }
+
+  function valueBaseAddress(ref) {
+    var api = addrApi()
+    var scope = ref.scope || (ref.inherited || ref.inheritedFrom ? 'concept' : 'element')
+    if (scope === 'concept') {
+      return api && api.unitAddress
+        ? api.unitAddress.section(ref.model, ref.concept || ref.inheritedFrom || ref.name)
+        : String(ref.model || '') + '@concept:' + slug(ref.concept || ref.inheritedFrom || ref.name)
+    }
+    return api && api.unitAddress
+      ? api.unitAddress.element(ref.model, ref.element || ref.id)
+      : String(ref.model || '') + '@' + slug(ref.element || ref.id)
+  }
+
+  function unitAddressFor(kind, ref) {
+    var api = addrApi()
+    ref = ref || {}
+    if (ref.address) return String(ref.address)
+    if (kind === 'source') return ref.path || String(ref.model || 'source') + '@source'
+    if (api && api.unitAddress) {
+      try {
+        switch (kind) {
+          case 'domain':
+            return api.unitAddress.domain()
+          case 'document':
+            return api.unitAddress.document(ref.id || ref.model)
+          case 'section':
+            return api.unitAddress.section(ref.model, ref.concept || ref.name)
+          case 'element':
+            return api.unitAddress.element(ref.model, ref.id || ref.element)
+          case 'value':
+            if (ref.row && ref.col) {
+              return api.unitAddress.cell(
+                ref.model,
+                ref.matrix || ref.element,
+                ref.row,
+                ref.col,
+              )
+            }
+            return api.unitAddress.value(valueBaseAddress(ref), ref.field)
+          case 'concept':
+            return api.unitAddress.concept(ref.family || ref.model, ref.concept || ref.name)
+          case 'field':
+            return api.unitAddress.field(ref.family || ref.model, ref.concept, ref.name)
+          case 'matrix':
+            return api.unitAddress.matrix(ref.family || ref.model, ref.name)
+        }
+      } catch (e) {
+        /* fall through to the local grammar */
+      }
+    }
+    var m = ref.model || ''
+    switch (kind) {
+      case 'domain':
+        return 'domaiNN_NN.md'
+      case 'document':
+        return ref.id || m
+      case 'section':
+        return m + '@concept:' + slug(ref.concept || ref.name)
+      case 'element':
+        return m + '@' + slug(ref.id || ref.element)
+      case 'value':
+        if (ref.row && ref.col) {
+          return (
+            String(m) +
+            '@' +
+            slug(ref.matrix || ref.element) +
+            '&' +
+            slug(ref.row) +
+            '&' +
+            slug(ref.col)
+          )
+        }
+        return valueBaseAddress(ref) + '&' + (ref.field || '')
+      case 'concept':
+        return 'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept || ref.name)
+      case 'field':
+        return 'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept) + '&' + (ref.name || '')
+      case 'matrix':
+        return 'specs/' + (ref.family || m) + '@matrix:' + slug(ref.name)
+    }
+    return ''
+  }
+
+  function unitHomeFor(address) {
+    var api = addrApi()
+    if (api && api.unitHome) {
+      try {
+        return api.unitHome(address)
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    if (/^specs\//.test(address)) return 'blueprint'
+    return address.indexOf('@') === -1 && /\.md$/.test(address) ? 'domain' : 'knowledge'
+  }
+
+  function unitEditability(kind, ref) {
+    var nature = KU_NATURE[kind]
+    if (nature === 'container' || kind === 'source') return 'none'
+    if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
+    if (ref && ref.scope === 'concept') return 'review'
+    if (ref && (ref.inherited || ref.inheritedFrom)) return 'none'
+    return 'review'
+  }
+
+  function describeUnit(kind, ref, index) {
+    if (!KU_NATURE[kind]) throw new TypeError('describeUnit: unknown kind "' + kind + '"')
+    ref = ref || {}
+    var address = unitAddressFor(kind, ref)
+    if (!address) throw new TypeError('describeUnit: missing address for "' + kind + '"')
+    var nature = KU_NATURE[kind]
+    var label =
+      ref.label != null
+        ? ref.label
+        : ref.name != null
+          ? ref.name
+          : ref.id != null
+            ? ref.id
+            : ref.value != null
+              ? ref.value
+              : address
+    var slot =
+      kind === 'value' && ref.field === 'tags'
+        ? tagSlot(String(label))
+        : conceptSlot({ index: index, color: ref.color, id: ref.concept || ref.conceptId })
+    var desc = {
+      kind: kind,
+      nature: nature,
+      home: kind === 'source' ? 'source' : unitHomeFor(address),
+      address: address,
+      label: String(label == null ? '' : label),
+      slot: slot,
+      editability: unitEditability(kind, ref),
+      facts: ref.facts && typeof ref.facts === 'object' ? ref.facts : {},
+    }
+    if (ref.vtype) desc.vtype = String(ref.vtype)
+    if (ref.parentLabel) desc.parentLabel = String(ref.parentLabel)
+    if (ref.location) desc.location = String(ref.location)
+    return desc
+  }
+
+  var KU_CSS_INJECTED = {}
+  function ensureKuCss(doc) {
+    if (!doc || !doc.head || KU_CSS_INJECTED[doc]) return
+    KU_CSS_INJECTED[doc] = true
+    var style = doc.createElement('style')
+    style.setAttribute('data-innfo-ku-css', '1')
+    style.textContent = [
+      ':root{--innfo-source-paper:#fff7e6}',
+      '.innfo-ku-wrap{display:inline-flex;align-items:center;gap:.25em;position:relative;vertical-align:middle}',
+      '.innfo-ku{display:inline-flex;align-items:center;gap:.3em;border-radius:.4em;padding:.1em .45em;font-size:.82rem;line-height:1.4;background:var(--innfo-surface,#fff)}',
+      '.innfo-ku[data-ku-nature=container]{border:3px double var(--innfo-border,#cbd5e1)}',
+      '.innfo-ku[data-ku-nature=structure]{border:1px dashed var(--innfo-border,#94a3b8);font-family:ui-monospace,monospace}',
+      '.innfo-ku[data-ku-nature=content]{border:1px solid var(--innfo-border,#e2e8f0)}',
+      '.innfo-ku[data-ku-home=source]{background:var(--innfo-source-paper,#fff7e6)}',
+      '.innfo-ku--block{display:flex;width:100%;padding:.5em .7em}',
+      '.innfo-ku-actions{display:inline-flex;gap:.15em;min-width:2.6em}',
+      '.innfo-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;opacity:0;pointer-events:none}',
+      '.innfo-ku-wrap:hover .innfo-ku-action,.innfo-ku-wrap:focus-within .innfo-ku-action,.innfo-ku-actions:hover .innfo-ku-action{opacity:1;pointer-events:auto}',
+      'html:not([data-innfo-review=on]) .innfo-ku-action[data-ku-action=edit]{display:none}',
+      'html:not([data-innfo-structure=on]) .innfo-ku-action[data-ku-action=edit][data-ku-structure=true]{display:none}',
+      '@media (hover:none){.innfo-ku-action{opacity:1;pointer-events:auto}}',
+      '.innfo-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
+    ].join('')
+    doc.head.appendChild(style)
+  }
+
+  function Ku(kind, ref, opts) {
+    if (!KU_NATURE[kind]) throw new TypeError('Ku: unknown kind "' + kind + '"')
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    ensureKuCss(doc)
+    var desc = describeUnit(kind, ref, opts.index)
+    var wrap = makeEl(doc, 'span', 'innfo-ku-wrap')
+    var isBlock = opts.variant === 'block'
+    var badge = makeEl(doc, isBlock ? 'div' : 'span', isBlock ? 'innfo-ku innfo-ku--block' : 'innfo-ku')
+    badge.setAttribute('data-innfo-component', 'ku-unit')
+    badge.setAttribute('data-ku-kind', desc.kind)
+    badge.setAttribute('data-ku-nature', desc.nature)
+    badge.setAttribute('data-ku-home', desc.home)
+    badge.setAttribute('data-ku-address', desc.address)
+    badge.setAttribute('data-concept-slot', String(desc.slot))
+    if (desc.vtype) badge.setAttribute('data-ku-vtype', desc.vtype)
+    if (ref && ref.field) badge.setAttribute('data-field', String(ref.field))
+    if (ref && ref.row != null) badge.setAttribute('data-row', String(ref.row))
+    if (ref && ref.col != null) badge.setAttribute('data-col', String(ref.col))
+    if (ref && ref.id != null && kind === 'element') badge.setAttribute('data-element-id', String(ref.id))
+    if (isBlock) {
+      badge.setAttribute('data-ku-variant', 'block')
+      if (opts.body) badge.appendChild(opts.body)
+    } else {
+      var labelEl = makeEl(doc, 'span', 'innfo-ku-label', desc.label)
+      labelEl.setAttribute('title', desc.label)
+      badge.appendChild(labelEl)
+      if (opts.valueNode) {
+        var valueEl = makeEl(doc, 'span', 'innfo-ku-value')
+        valueEl.appendChild(opts.valueNode)
+        badge.appendChild(valueEl)
+      }
+    }
+    badge.setAttribute('aria-label', desc.nature + ', lives in ' + desc.home + ': ' + desc.label)
+    wrap.appendChild(badge)
+
+    // Action cluster: ALWAYS outside the badge root.
+    var actions = makeEl(doc, 'span', 'innfo-ku-actions')
+    var info = makeEl(doc, 'button', 'innfo-ku-action')
+    info.setAttribute('type', 'button')
+    info.setAttribute('data-ku-action', 'info')
+    info.setAttribute('aria-label', 'Unit info')
+    info.innerHTML = icon('info', 13)
+    if (typeof opts.onInfo === 'function') {
+      info.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        opts.onInfo(desc)
+      })
+    }
+    actions.appendChild(info)
+
+    if (desc.editability !== 'none') {
+      var edit = makeEl(doc, 'button', 'innfo-ku-action')
+      edit.setAttribute('type', 'button')
+      edit.setAttribute('data-ku-action', 'edit')
+      edit.setAttribute('aria-label', 'Edit unit')
+      if (desc.editability === 'structure') edit.setAttribute('data-ku-structure', 'true')
+      edit.innerHTML = icon('pencil', 13)
+      if (typeof opts.onEdit === 'function') {
+        edit.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onEdit(desc)
+        })
+      }
+      actions.appendChild(edit)
+    }
+    wrap.appendChild(actions)
+
+    var changes = Number(opts.changes || (ref && ref.changes) || 0)
+    if (changes > 0) {
+      var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(changes))
+      pip.setAttribute('type', 'button')
+      pip.setAttribute('data-innfo-component', 'ku-change-pip')
+      pip.setAttribute('data-ku-address', desc.address)
+      pip.setAttribute('aria-label', changes + ' pending changes on ' + desc.label)
+      if (typeof opts.onChanges === 'function') {
+        pip.addEventListener('click', function (ev) {
+          if (ev && ev.stopPropagation) ev.stopPropagation()
+          opts.onChanges(desc)
+        })
+      }
+      wrap.appendChild(pip)
+    }
+    return wrap
+  }
+
+  // One delegated listener per document. Ku never owns review behaviour: it
+  // only forwards (action, descriptor) to the host's onAction.
+  function createKu(opts) {
+    opts = opts || {}
+    var doc = opts.doc || (typeof document !== 'undefined' ? document : null)
+    if (!doc || typeof doc.addEventListener !== 'function') return { destroy: function () {} }
+    function descriptorOf(node) {
+      var wrap = node && node.closest ? node.closest('.innfo-ku-wrap') : null
+      var badge = wrap ? wrap.querySelector('[data-innfo-component="ku-unit"]') : null
+      if (!badge) return null
+      var kind = badge.getAttribute('data-ku-kind') || ''
+      var labelEl = badge.querySelector('.innfo-ku-label')
+      var ref = {
+        address: badge.getAttribute('data-ku-address') || '',
+        label: labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || '',
+      }
+      try {
+        return describeUnit(kind, ref)
+      } catch (e) {
+        return null
+      }
+    }
+    function onClick(ev) {
+      var t = ev && ev.target
+      if (!t || !t.closest) return
+      var actionEl = t.closest('[data-ku-action]')
+      var pipEl = t.closest('[data-innfo-component="ku-change-pip"]')
+      if (!actionEl && !pipEl) return
+      var desc = descriptorOf(actionEl || pipEl)
+      if (!desc) return
+      var action = actionEl ? actionEl.getAttribute('data-ku-action') : 'changes'
+      if (typeof opts.onAction === 'function') {
+        if (ev.preventDefault) ev.preventDefault()
+        opts.onAction(action, desc, ev)
+      }
+    }
+    doc.addEventListener('click', onClick)
+    return {
+      destroy: function () {
+        doc.removeEventListener('click', onClick)
+      },
+    }
+  }
+
+  function KuInfoPanel(descriptor) {
+    if (!descriptor || typeof descriptor !== 'object') {
+      throw new TypeError('KuInfoPanel: descriptor required')
+    }
+    var doc = resolveDoc(null)
+    var dlg = makeEl(doc, 'dialog', 'innfo-ku-info-panel')
+    dlg.setAttribute('data-innfo-component', 'ku-info-panel')
+    dlg.setAttribute('role', 'dialog')
+    var h = makeEl(doc, 'h2', 'innfo-ku-info-title', descriptor.label || descriptor.address)
+    h.setAttribute('tabindex', '-1')
+    dlg.appendChild(h)
+    dlg.appendChild(
+      makeEl(doc, 'p', 'innfo-ku-info-sub', descriptor.nature + ', lives in ' + descriptor.home),
+    )
+    var rows = [
+      ['Kind', descriptor.kind],
+      ['Nature', descriptor.nature],
+      ['Lives in', descriptor.home],
+      ['Address', descriptor.address],
+      ['Location', descriptor.location || ''],
+      ['Editability', descriptor.editability],
+    ]
+    var dl = makeEl(doc, 'dl', 'innfo-ku-info-list')
+    rows.forEach(function (pair) {
+      if (!pair[1]) return
+      dl.appendChild(makeEl(doc, 'dt', 'innfo-ku-info-term', pair[0]))
+      dl.appendChild(makeEl(doc, 'dd', 'innfo-ku-info-def', String(pair[1])))
+    })
+    dlg.appendChild(dl)
+    var facts = descriptor.facts || {}
+    Object.keys(facts).forEach(function (k) {
+      if (facts[k] == null || facts[k] === '') return
+      dl.appendChild(makeEl(doc, 'dt', 'innfo-ku-info-term', k))
+      dl.appendChild(makeEl(doc, 'dd', 'innfo-ku-info-def', String(facts[k])))
+    })
+    return dlg
+  }
+
   return {
     VERSION: UI_VERSION,
     TOKEN_VALUES: TOKEN_VALUES,
@@ -14185,13 +14587,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     slug: slug,
     conceptSlot: conceptSlot,
     tagSlot: tagSlot,
+    describeUnit: describeUnit,
+    createKu: createKu,
+    Ku: Ku,
+    KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
-    ConceptPill: ConceptPill,
-    ElementPill: ElementPill,
-    KuBadge: KuBadge,
-    KuActions: KuActions,
-    QudChip: QudChip,
     TagRow: TagRow,
     RelList: RelList,
     EditAnchor: EditAnchor,
@@ -14220,7 +14621,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     FieldMultiSelectWidget: FieldMultiSelectWidget,
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
-    Table: Table,
     KpiGrid: KpiGrid,
     defineCustomElements: defineCustomElements,
   }
@@ -14729,6 +15129,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var enabled = false
     var toggleEl = null
+    var structureEl = null
     var openPopover = null
     var lastAnchor = null
 
@@ -15336,7 +15737,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           fieldRow &&
           document.activeElement &&
           document.activeElement.closest &&
-          document.activeElement.closest('[data-ku-kind="field"]')
+          document.activeElement.closest('[data-ku-kind="value"]')
         ) {
           fieldRow.dispatchEvent(new Event('click', { bubbles: true }))
         } else {
@@ -15511,44 +15912,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       td.appendChild(b)
     }
 
-    // Every knowledge-unit badge gets an info action, ALWAYS (review on or off).
-    // Actions sit in a ku-actions cluster OUTSIDE the badge root, never nested.
-    function decorateInfoActions(root) {
-      var host = root || doc
-      if (!host.querySelectorAll || typeof UI.KuActions !== 'function') return
-      function attach(badge, elementId, field) {
-        if (!badge || badge.getAttribute('data-ku-actions') === 'true') return
-        badge.setAttribute('data-ku-actions', 'true')
-        var actions = UI.KuActions(
-          {},
-          {
-            onInfo: function () {
-              openInfo({ elementId: elementId, field: field })
-            },
-          },
-        )
-        actions.setAttribute('data-innfo-ctl', 'ku-info-actions')
-        if (badge.getAttribute('data-ku-kind') === 'field') {
-          badge.appendChild(actions)
-        } else if (badge.parentNode) {
-          badge.parentNode.insertBefore(actions, badge.nextSibling)
-        }
-      }
-      Array.prototype.forEach.call(
-        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        function (card) {
-          var elId = card.getAttribute('data-element-id')
-          attach(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), elId, '__name')
-          Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="field"][data-field]'),
-            function (b) {
-              attach(b, elId, b.getAttribute('data-field'))
-            },
-          )
-        },
-      )
-    }
-
     // Pending-change pip: a count badge on the unit it targets, visible in both
     // review modes (it reflects stored drafts). Clicking opens the modal.
     function decorateChangePips(root) {
@@ -15556,32 +15919,41 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var host = root || doc
       if (!host.querySelectorAll) return
       var drafts = store.drafts() || []
-      var byEl = {}
-      var byField = {}
+      var counts = {}
       drafts.forEach(function (d) {
-        if (!d || !d.element_id) return
-        var eid = String(d.element_id)
-        byEl[eid] = (byEl[eid] || 0) + 1
-        if (d.field) {
-          var k = eid + '#' + String(d.field)
-          byField[k] = (byField[k] || 0) + 1
-        }
+        if (!d) return
+        var fieldPart = d.field && d.field !== '__name' ? '&' + String(d.field) : ''
+        var key = d.address || (d.element_id ? '@' + String(d.element_id) + fieldPart : '')
+        if (!key) return
+        counts[key] = (counts[key] || 0) + 1
       })
-      function applyPip(badge, n, elementId, field) {
+      function countFor(address) {
+        if (counts[address] != null) return counts[address]
+        var found = 0
+        Object.keys(counts).forEach(function (key) {
+          if (address && address.slice(-key.length) === key) found += counts[key]
+        })
+        return found
+      }
+      function applyPip(badge, n, address) {
         if (!badge) return
-        var existing = badge.querySelector('[data-innfo-component="ku-change-pip"]')
+        var wrap = badge.parentNode || badge
+        var existing = wrap.querySelector
+          ? wrap.querySelector('[data-innfo-component="ku-change-pip"]')
+          : null
         if (n > 0) {
           badge.setAttribute('data-ku-changes', String(n))
           if (!existing) {
             var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(n))
             pip.setAttribute('data-innfo-component', 'ku-change-pip')
+            pip.setAttribute('data-ku-address', String(address || ''))
             pip.setAttribute('type', 'button')
-            pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's'))
+            pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + address)
             pip.addEventListener('click', function (ev) {
               if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-              openInfo({ elementId: elementId, field: field })
+              if (typeof openInfo === 'function') openInfo(anchorFromDescriptor({ address: address }))
             })
-            badge.appendChild(pip)
+            wrap.appendChild(pip)
           } else {
             existing.textContent = String(n)
           }
@@ -15590,20 +15962,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
         }
       }
-      Array.prototype.forEach.call(
-        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        function (card) {
-          var elId = card.getAttribute('data-element-id')
-          applyPip(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), byEl[elId] || 0, elId, '__name')
-          Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="field"][data-field]'),
-            function (b) {
-              var f = b.getAttribute('data-field')
-              applyPip(b, byField[elId + '#' + f] || 0, elId, f)
-            },
-          )
-        },
-      )
+      Array.prototype.forEach.call(host.querySelectorAll('[data-ku-address]'), function (badge) {
+        applyPip(badge, countFor(badge.getAttribute('data-ku-address') || ''), badge.getAttribute('data-ku-address'))
+      })
     }
 
     function decorateBadges() {
@@ -15700,7 +16061,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function applyDecorations() {
       decorateBadges()
-      decorateInfoActions()
       decorateChangePips()
       if (!enabled) return
       decorate(doc)
@@ -15732,7 +16092,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         safeDecorate(decorateCard),
       )
       Array.prototype.forEach.call(
-        host.querySelectorAll('[data-ku-kind="field"][data-field]'),
+        host.querySelectorAll('[data-ku-kind="value"][data-field]'),
         safeDecorate(decorateFieldRow),
       )
       Array.prototype.forEach.call(
@@ -15753,7 +16113,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
       decorateCounter()
       decorateBadges()
-      decorateInfoActions(root || doc)
       decorateChangePips(root || doc)
       if (enabled) {
         decorate(root || doc)
@@ -15784,10 +16143,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return b
     }
 
+    function buildStructureSwitch() {
+      var dock = doc.getElementById('innfo-review-dock')
+      if (!dock) return null
+      var existing = dock.querySelector('[data-innfo="structure-switch"]')
+      if (existing) return existing
+      var b = makeEl(doc, 'button', 'innfo-structure-switch', 'Edit structure')
+      b.setAttribute('data-innfo', 'structure-switch')
+      b.setAttribute('type', 'button')
+      b.setAttribute('role', 'switch')
+      b.setAttribute('aria-checked', 'false')
+      b.addEventListener('click', function () {
+        var on = b.getAttribute('aria-checked') === 'true'
+        b.setAttribute('aria-checked', on ? 'false' : 'true')
+        if (html()) {
+          if (on) html().removeAttribute('data-innfo-structure')
+          else html().setAttribute('data-innfo-structure', 'on')
+        }
+      })
+      dock.appendChild(b)
+      return b
+    }
+
     function enable() {
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
+      structureEl = buildStructureSwitch()
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
@@ -15810,9 +16192,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (doc.removeEventListener) doc.removeEventListener('keydown', onKeydown)
       if (html()) {
         html().removeAttribute('data-innfo-review')
+        html().removeAttribute('data-innfo-structure')
         html().removeAttribute('data-innfo-filter')
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
+      if (structureEl && structureEl.parentNode) structureEl.parentNode.removeChild(structureEl)
+      structureEl = null
       var dock = doc.getElementById('innfo-review-dock')
       if (dock) {
         dock.style.setProperty('display', 'none', 'important')
@@ -15858,6 +16243,46 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
+    function anchorFromDescriptor(descriptor) {
+      var address = String((descriptor && descriptor.address) || '')
+      var at = address.indexOf('@')
+      var model = at === -1 ? address : address.slice(0, at)
+      var rest = at === -1 ? '' : address.slice(at + 1)
+      var segs = rest.split('&')
+      var unit = segs[0] || ''
+      var subs = segs.slice(1)
+      if (!unit) return { elementId: '', modelId: model }
+      if (unit.indexOf('concept:') === 0) {
+        return { elementId: null, modelId: model, concept: unit.slice('concept:'.length), field: subs[0] }
+      }
+      if (subs.length === 2) {
+        return { elementId: unit, modelId: model, field: '__cell', row: subs[0], col: subs[1] }
+      }
+      if (subs.length === 1) {
+        return { elementId: unit, modelId: model, field: subs[0] }
+      }
+      return { elementId: unit, modelId: model, field: '__name' }
+    }
+
+    // One descriptor-driven entry point for every Ku action. `Ku` never knows
+    // about review mode; the delegated listener forwards here and this function
+    // decides whether the action is legal right now.
+    function handleKuAction(action, descriptor) {
+      if (!descriptor) return false
+      var anchorData = anchorFromDescriptor(descriptor)
+      if (action === 'info') {
+        return openInfo(anchorData)
+      }
+      if (action !== 'edit') return false
+      if (!enabled) return false
+      if (descriptor.editability === 'structure') {
+        if (!html() || html().getAttribute('data-innfo-structure') !== 'on') return false
+        return openEdit(Object.assign({}, anchorData, { comment: true }))
+      }
+      if (descriptor.editability === 'none') return false
+      return openEdit(anchorData)
+    }
+
     toggleEl = buildToggle()
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
     // One initial pass: covers the render that preceded the controller's creation.
@@ -15871,6 +16296,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       disable: disable,
       decorate: decorate,
       openEdit: openEdit,
+      handleKuAction: handleKuAction,
       openNew: openNew,
       propose: saveDraft,
       // Re-renders the host's count surfaces and re-applies decorations after
@@ -16900,11 +17326,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var title = el('span', 'innfo-banner-title', null)
     if (title) {
       title.appendChild(
-        UI.KuBadge({
-          kind: 'document',
-          id: meta.modelId || meta.model || 'model',
-          label: String(meta.title || meta.model || 'iNNfo Console'),
-        }),
+        UI.Ku(
+          'document',
+          {
+            id: meta.modelId || meta.model || 'model',
+            label: String(meta.title || meta.model || 'iNNfo Console'),
+          },
+          { doc: doc },
+        ),
       )
     }
     var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
@@ -16950,6 +17379,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (activeHost) activeHost.innerHTML = ''
 
     var models = state && state.meta && Array.isArray(state.meta.models) ? state.meta.models : []
+    var filterModelId = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
     var parsed = parseFilterQuery(activeQuery || '')
 
     // Extract active values for model and concept
@@ -17019,15 +17449,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           toggleFacet('model', m.id || m.filePath, cb.checked)
         })
 
-        var mItemIco = el('span', 'innfo-facet-item-icon')
-        if (mItemIco) mItemIco.innerHTML = mIcon
-        var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', m.title || m.filePath)
-        nameSpan.title = m.filePath || m.title || ''
+        var mUnit =
+          UI && typeof UI.Ku === 'function'
+            ? UI.Ku(
+                'document',
+                { id: m.id || m.filePath || m.title, label: m.title || m.filePath || '' },
+                { doc: doc },
+              )
+            : el('span', 'flex-1 truncate font-medium text-slate-700', m.title || m.filePath)
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(m.elementCount || 0))
 
         item.appendChild(cb)
-        if (mItemIco) item.appendChild(mItemIco)
-        item.appendChild(nameSpan)
+        item.appendChild(mUnit)
         item.appendChild(cntBadge)
         mMenu.appendChild(item)
       })
@@ -17102,18 +17535,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
 
         var cMetaFacet = conceptMetaOf((state && state.schema && state.schema.concepts) || (state && state.concepts), c.name)
-        var cIcoFacet = el('span', 'innfo-facet-item-icon')
-        if (cIcoFacet && UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
-          cIcoFacet.style.color = cMetaFacet.hexColor
-          cIcoFacet.innerHTML = UI.icon(UI.resolveConceptIconName(c.name, cMetaFacet), 12)
-        }
-        var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', c.name)
-        if (cMetaFacet.hexColor) nameSpan.style.color = cMetaFacet.hexColor
+        var cUnit =
+          UI && typeof UI.Ku === 'function'
+            ? UI.Ku(
+                'section',
+                {
+                  model: filterModelId,
+                  concept: c.name,
+                  label: c.name,
+                  index: cMetaFacet.index,
+                  color: cMetaFacet.color,
+                },
+                { doc: doc },
+              )
+            : el('span', 'flex-1 truncate font-medium text-slate-700', c.name)
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(c.count))
 
         item.appendChild(cb)
-        if (cIcoFacet) item.appendChild(cIcoFacet)
-        item.appendChild(nameSpan)
+        item.appendChild(cUnit)
         item.appendChild(cntBadge)
         cMenu.appendChild(item)
       })
@@ -17331,29 +17770,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             pill.style.color = cMeta.hexColor
             pill.style.backgroundColor = 'color-mix(in srgb, ' + cMeta.hexColor + ' 10%, #ffffff)'
           }
-          if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
-            var cIco = el('span', 'innfo-filter-pill-icon')
-            cIco.setAttribute('aria-hidden', 'true')
-            cIco.innerHTML = UI.icon(UI.resolveConceptIconName(op.val, cMeta), 12)
-            pill.appendChild(cIco)
-          }
           var matchedConcept = conceptByName(schemaConcepts, op.val)
           var cDisplay = (matchedConcept && matchedConcept.name) || op.val
-          pill.appendChild(el('span', 'font-semibold', (op.key === '!concept' ? '!Concept: ' : 'Concept: ') + cDisplay))
+          pill.appendChild(
+            UI.Ku(
+              'section',
+              {
+                model: filterModelId,
+                concept: op.val,
+                label: (op.key === '!concept' ? '!Concept: ' : 'Concept: ') + cDisplay,
+                index: cMeta.index,
+                color: cMeta.color,
+              },
+              { doc: doc },
+            ),
+          )
         } else if (op.key === 'model' || op.key === 'file') {
           pill.classList.add('innfo-active-filter-pill--model')
-          if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
-            var mIco = el('span', 'innfo-filter-pill-icon')
-            mIco.setAttribute('aria-hidden', 'true')
-            mIco.innerHTML = InnfoIcons.getSvg('file-text', { size: 12 })
-            pill.appendChild(mIco)
-          }
           var matchedModel = models.filter(function (m) {
             var mid = String(m.id || m.filePath || '').toLowerCase()
             return mid === String(op.val).toLowerCase()
           })[0]
           var mDisplay = (matchedModel && (matchedModel.title || matchedModel.id)) || op.val
-          pill.appendChild(el('span', 'font-semibold', 'Model: ' + mDisplay))
+          pill.appendChild(
+            UI.Ku('document', { id: op.val, label: 'Model: ' + mDisplay }, { doc: doc }),
+          )
         } else {
           var labelText = op.key + ':' + op.val
           pill.appendChild(el('span', 'font-mono', labelText))
@@ -17497,8 +17938,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
       btn.className = 'innfo-rail-item' + (isActive ? ' active' : '')
       btn.setAttribute('data-concept', String(name))
-      var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
+      var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
+      var pill = UI.Ku(
+        'section',
+        {
+          model: railModel,
+          concept: name,
+          label: name,
+          index: index,
+        },
+        { doc: doc },
+      )
       if (pill) btn.appendChild(pill)
+      if (pill && count != null) btn.appendChild(el('span', 'innfo-rail-count', String(count)))
       if (draftCount > 0) {
         var badge = el('span', 'innfo-rail-badge', String(draftCount))
         if (badge) {
@@ -17564,11 +18016,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var isModelActive = activeModels.indexOf(mid.toLowerCase()) !== -1
         summary.className = 'collapse-title min-h-0 py-2 pr-8' + (isModelActive ? ' active' : '')
         summary.setAttribute('data-model', mid)
-        var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
-        summary.innerHTML =
-          '<span class="innfo-rail-model-pill flex items-center gap-2 min-w-0" data-ku-kind="document">' + fileIcon +
-          '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
+        summary.appendChild(
+          UI.Ku(
+            'document',
+            { id: m.id || m.filePath || m.title, label: m.title || m.filePath || 'Model' },
+            { doc: doc },
+          ),
+        )
+        summary.appendChild(
+          el('span', 'innfo-rail-count badge badge-ghost badge-xs', String(Number(m.elementCount) || 0)),
+        )
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -17614,12 +18071,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
             if (color) a.style.setProperty('--rail-concept-color', color)
-            var cSvg = UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function'
-              ? '<span class="innfo-rail-concept-icon" aria-hidden="true">' + UI.icon(UI.resolveConceptIconName(name, cMeta), 13) + '</span>'
-              : ''
-            a.innerHTML =
-              '<span class="innfo-rail-concept-pill flex items-center gap-1.5 min-w-0" data-ku-kind="concept">' + cSvg + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
-              '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
+            a.appendChild(
+              UI.Ku(
+                'section',
+                { model: mid, concept: name, label: name, index: cMeta.index, color: cMeta.color },
+                { doc: doc },
+              ),
+            )
+            a.appendChild(
+              el('span', 'innfo-rail-count badge badge-ghost badge-xs', String(Number(counts && counts[name]) || 0)),
+            )
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -17711,7 +18172,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
-  function renderConceptGuide(doc, concept, schema, matrices, counts) {
+  function renderConceptGuide(doc, concept, schema, matrices, counts, modelId) {
     var layout = doc.getElementById('innfo-layout')
     if (!layout) return
     var host = doc.getElementById('innfo-concept-guide')
@@ -17730,18 +18191,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var name = concept.name || 'Concept'
     var gMeta = conceptMetaOf(schema && schema.concepts, name)
     var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'innfo-card-concept-badge badge badge-sm')
-    if (gMeta && gMeta.hexColor) {
-      badge.style.setProperty('--card-concept-color', gMeta.hexColor)
-      badge.style.color = gMeta.hexColor
-    }
-    if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
-      var gIco = el('span', 'innfo-concept-pill-icon')
-      gIco.setAttribute('aria-hidden', 'true')
-      gIco.innerHTML = UI.icon(UI.resolveConceptIconName(name, gMeta), 13)
-      badge.appendChild(gIco)
-    }
-    badge.appendChild(doc.createTextNode(name))
+    var badge =
+      UI && typeof UI.Ku === 'function'
+        ? UI.Ku('section', { model: modelId || '', concept: name, label: name, index: gMeta.index, color: gMeta.color }, { doc: doc })
+        : el('span', 'innfo-card-concept-badge badge badge-sm', name)
     head.appendChild(badge)
 
     var count = counts && counts[name] != null ? counts[name] : null
@@ -17780,9 +18233,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var label = f.label || f.name
         if (label == null) return
         var dt = el('dt', 'innfo-guide-field-dt')
-        var fChip = el('span', 'innfo-ku-field-chip', '~ ' + String(label))
-        fChip.setAttribute('data-ku-kind', 'field')
-        dt.appendChild(fChip)
+        var declaredBy = f.declaredBy || {}
+        dt.appendChild(
+          UI.Ku(
+            'field',
+            {
+              family: declaredBy.family || modelId || '',
+              concept: f.concept || name,
+              name: f.name || label,
+              label: String(label),
+              vtype: f.type || f.widget,
+            },
+            { doc: doc },
+          ),
+        )
         var dd = el('dd', 'innfo-guide-field-dd')
         var fTypeStr = String(f.type || f.widget || 'string')
         var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
@@ -17791,8 +18255,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var targetC = f.target || f.targetConcept || null
         if (targetC) {
           var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
-          var tcPill = UI.ConceptPill({ id: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc })
-          dd.appendChild(tcPill)
+          dd.appendChild(
+            UI.Ku('section', { model: modelId || '', concept: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc }),
+          )
         }
         if (f.description) dd.appendChild(el('p', 'innfo-guide-field-desc', String(f.description)))
         fdl.appendChild(dt)
@@ -17815,8 +18280,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var cvl = el('dl', 'innfo-guide-list innfo-guide-value-list')
         cvKeys.forEach(function (k) {
           var v = conceptVals[k]
-          cvl.appendChild(el('dt', 'innfo-guide-field-dt', String(k)))
-          cvl.appendChild(el('dd', 'innfo-guide-field-dd', Array.isArray(v) ? v.join(', ') : String(v)))
+          var cvDt = el('dt', 'innfo-guide-field-dt')
+          cvDt.appendChild(
+            UI.Ku(
+              'field',
+              { family: modelId || '', concept: name, name: k, label: String(k) },
+              { doc: doc },
+            ),
+          )
+          var cvDd = el('dd', 'innfo-guide-field-dd')
+          cvDd.appendChild(
+            UI.Ku(
+              'value',
+              {
+                model: modelId || '',
+                concept: name,
+                scope: 'concept',
+                field: k,
+                label: Array.isArray(v) ? v.join(', ') : String(v),
+              },
+              { doc: doc },
+            ),
+          )
+          cvl.appendChild(cvDt)
+          cvl.appendChild(cvDd)
         })
         cvs.appendChild(cvl)
         host.appendChild(cvs)
@@ -17831,15 +18318,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       matrixList.forEach(function (m) {
         if (!m) return
         var mli = el('li', 'innfo-guide-matrix-item')
-        var mTitle = el('span', 'innfo-guide-matrix-name', String(m.name || (m.source + ' \u2192 ' + m.target)))
-        mli.appendChild(mTitle)
+        var mLabel = String(m.name || (m.source + ' \u2192 ' + m.target))
+        var mDeclaredBy = m.declaredBy || {}
+        mli.appendChild(
+          UI.Ku(
+            'matrix',
+            {
+              model: modelId || '',
+              family: mDeclaredBy.family || modelId || '',
+              name: m.slug || UI.slug(m.name || mLabel),
+              label: mLabel,
+            },
+            { doc: doc },
+          ),
+        )
         if (m.source && m.target) {
           var pairWrap = el('div', 'innfo-guide-matrix-pair')
           var sMeta = conceptMetaOf(schema && schema.concepts, m.source)
           var tMeta = conceptMetaOf(schema && schema.concepts, m.target)
-          pairWrap.appendChild(UI.ConceptPill({ id: m.source, label: m.source, index: sMeta.index, color: sMeta.color }, { doc: doc }))
+          pairWrap.appendChild(
+            UI.Ku('section', { model: modelId || '', concept: m.source, label: m.source, index: sMeta.index, color: sMeta.color }, { doc: doc }),
+          )
           pairWrap.appendChild(el('span', 'innfo-guide-matrix-arrow', '⇄'))
-          pairWrap.appendChild(UI.ConceptPill({ id: m.target, label: m.target, index: tMeta.index, color: tMeta.color }, { doc: doc }))
+          pairWrap.appendChild(
+            UI.Ku('section', { model: modelId || '', concept: m.target, label: m.target, index: tMeta.index, color: tMeta.color }, { doc: doc }),
+          )
           mli.appendChild(pairWrap)
         }
         mtl.appendChild(mli)
@@ -18005,7 +18508,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -18098,6 +18601,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           domId: 'el-' + String(element.id || ''),
+          modelId: modelId || element.modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           head:
@@ -18131,24 +18635,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       card.style.setProperty('--card-concept-color', hexColor)
       card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e5e5))'
       card.style.borderLeft = '4px solid ' + hexColor
-
-      var head = card.querySelector('.innfo-card-head, header')
-      if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
-        var cBadge = el('span', 'innfo-card-concept-badge badge badge-xs text-xs font-semibold')
-        cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
-        cBadge.style.color = hexColor
-        cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
-        if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
-          var cIcoSpan = el('span', 'innfo-concept-pill-icon')
-          cIcoSpan.setAttribute('aria-hidden', 'true')
-          cIcoSpan.innerHTML = UI.icon(UI.resolveConceptIconName(element.concept, cMeta), 12)
-          cBadge.appendChild(cIcoSpan)
-        }
-        cBadge.appendChild(doc.createTextNode(element.concept))
-        var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge) (elementBadge.parentNode || head).insertBefore(cBadge, elementBadge)
-        else head.appendChild(cBadge)
-      }
 
       if (element._draft) {
         var d = element._draft
@@ -18214,7 +18700,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
-  function mountElementBadges(doc, elements, drafts, concepts, refs) {
+  function mountElementBadges(doc, elements, drafts, concepts, refs, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -18223,29 +18709,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var projectedElements = projectElements(elements, drafts)
     projectedElements.forEach(function (element) {
       var cMeta = conceptMetaOf(concepts, element.concept)
-      var pill = UI.ElementPill(
+      var pill = UI.Ku(
+        'element',
         {
+          model: modelId || element.modelId || '',
           id: element.id,
           label: element.name || element.id || '',
           concept: element.concept,
           color: cMeta && cMeta.color,
-          hexColor: cMeta && cMeta.hexColor,
+          index: cMeta && cMeta.index,
         },
-        {
-          doc: doc,
-          href: '#el-' + encodeURIComponent(String(element.id || '')),
-          onClick: function (ev) {
-            if (ev && ev.preventDefault) ev.preventDefault()
-            renderRefDialog(doc, element)
-          },
-        }
+        { doc: doc },
       )
+      var pillBadge = pill.querySelector('[data-innfo-component="ku-unit"]')
+      if (pillBadge) {
+        pillBadge.setAttribute('role', 'button')
+        pillBadge.setAttribute('tabindex', '0')
+        pillBadge.addEventListener('click', function (ev) {
+          if (ev && ev.preventDefault) ev.preventDefault()
+          renderRefDialog(doc, element)
+        })
+      }
       wrap.appendChild(pill)
     })
     content.appendChild(wrap)
   }
 
-  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions) {
+  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -18264,6 +18754,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           doc: doc,
+          modelId: modelId || element.modelId || '',
           concept: cMeta,
           preview: true,
           onClick: function () {
@@ -18357,7 +18848,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // Read-only table of the filtered elements: one row per element, one column
   // per field key, sortable by clicking a header. Mirrors the editor's
   // ConceptTableView (table view + header sort) inside the domain console.
-  function mountElementTable(doc, elements, drafts, concepts, sortState, schema, onSort) {
+  function mountElementTable(doc, elements, drafts, concepts, sortState, schema, onSort, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -18378,6 +18869,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
     columns.push({ key: 'tags', label: 'Tags' })
 
+    var schemaFields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    function fieldDefOf(name) {
+      for (var i = 0; i < schemaFields.length; i++) {
+        if (schemaFields[i] && schemaFields[i].name === name && !schemaFields[i].inheritedFrom) {
+          return schemaFields[i]
+        }
+      }
+      return null
+    }
+
     var thead = el('thead')
     var headTr = el('tr')
     columns.forEach(function (col) {
@@ -18386,10 +18887,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+      var fieldDef = fieldDefOf(col.key)
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.Ku !== 'function') {
         th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
       } else {
-        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        var declaredBy = fieldDef && fieldDef.declaredBy ? fieldDef.declaredBy : {}
+        var fieldBadge = UI.Ku(
+          'field',
+          {
+            family: declaredBy.family || modelId || 'model',
+            concept: (fieldDef && fieldDef.concept) || col.key,
+            name: col.key,
+            label: col.label,
+            vtype: fieldDef && fieldDef.type,
+          },
+          { doc: doc },
+        )
         fieldBadge.classList.add('innfo-element-table-th-label')
         th.appendChild(fieldBadge)
       }
@@ -18428,20 +18941,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (element._draft) tr.classList.add('innfo-element-table-draft')
 
       var rowCMeta = conceptMetaOf(conceptList, element.concept)
+      var rowModel = modelId || element.modelId || ''
       var nameTd = el('td', 'innfo-element-table-name')
-      var elPill = UI.ElementPill(
-        {
-          id: element.id,
-          label: element.name || element.id || '',
-          concept: element.concept,
-          color: rowCMeta.color,
-          hexColor: rowCMeta.hexColor,
-          slot: rowCMeta.slot,
-          index: rowCMeta.index,
-        },
-        { doc: doc },
-      )
-      nameTd.appendChild(elPill)
+      var elBadge =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'element',
+              {
+                model: rowModel,
+                id: element.id,
+                label: element.name || element.id || '',
+                index: rowCMeta.index,
+                color: rowCMeta.color,
+              },
+              { doc: doc },
+            )
+          : el('span', null, element.name || element.id || '')
+      nameTd.appendChild(elBadge)
       if (element._draft) {
         nameTd.appendChild(
           el(
@@ -18454,15 +18970,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       tr.appendChild(nameTd)
 
       var conceptTd = el('td')
-      var cBadge = UI.ConceptPill(
-        {
-          id: element.concept || '',
-          label: element.concept || '',
-          index: rowCMeta.index,
-          color: rowCMeta.color,
-        },
-        { doc: doc },
-      )
+      var cBadge =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'section',
+              {
+                model: rowModel,
+                concept: element.concept || '',
+                label: element.concept || '',
+                index: rowCMeta.index,
+                color: rowCMeta.color,
+              },
+              { doc: doc },
+            )
+          : el('span', null, element.concept || '')
       conceptTd.appendChild(cBadge)
       tr.appendChild(conceptTd)
 
@@ -18476,7 +18997,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (relMatches.length) rawVal = relMatches.join(', ')
         }
         var val = displayCellText(rawVal)
-        var td = el('td', 'innfo-element-table-cell', val)
+        var td = el('td', 'innfo-element-table-cell')
+        if (val && UI && typeof UI.Ku === 'function') {
+          td.appendChild(
+            UI.Ku(
+              'value',
+              {
+                model: rowModel,
+                element: element.id,
+                field: k,
+                label: val,
+                vtype: fieldTypeOf(schema, element.concept, k),
+              },
+              { doc: doc },
+            ),
+          )
+        } else if (val) {
+          td.appendChild(doc.createTextNode(val))
+        }
         if (val) td.setAttribute('title', val)
         td.addEventListener('dblclick', function () {
           renderFieldDetailDialog(doc, {
@@ -18484,13 +19022,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             value: rawVal,
             type: fieldTypeOf(schema, element.concept, k),
             elementName: element.name || element.id || '',
+            element: element.id,
+            model: rowModel,
           })
         })
         tr.appendChild(td)
       })
 
       var tags = getElementEffectiveTags(element).join(', ')
-      var tagsTd = el('td', 'innfo-element-table-cell', tags)
+      var tagsTd = el('td', 'innfo-element-table-cell')
+      if (tags && UI && typeof UI.Ku === 'function') {
+        tagsTd.appendChild(
+          UI.Ku(
+            'value',
+            {
+              model: rowModel,
+              element: element.id,
+              field: 'tags',
+              label: tags,
+              vtype: 'select',
+            },
+            { doc: doc },
+          ),
+        )
+      } else if (tags) {
+        tagsTd.appendChild(doc.createTextNode(tags))
+      }
       if (tags) tagsTd.setAttribute('title', tags)
       tr.appendChild(tagsTd)
 
@@ -18532,7 +19089,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     host.appendChild(group)
   }
 
-  function renderMatrices(doc, matrices, concepts) {
+  function renderMatrices(doc, matrices, concepts, fallbackModelId) {
     var host = doc.getElementById('innfo-matrices')
     if (!host) return
     host.innerHTML = ''
@@ -18544,31 +19101,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       return { meta: null, index: 0 }
     }
-    function headerBadge(entry, key) {
+    function headerBadge(entry, key, modelId) {
       var e = entry || {}
-      if (e.kind === 'marker') {
-        return UI.KuBadge({ kind: 'marker', id: key, label: e.label || key, markerKind: 'field' })
-      }
-      var cm = conceptMeta(e.concept)
       var cMetaFull = conceptMetaOf(conceptList, e.concept)
-      var resolvedIcon = (cm.meta && cm.meta.icon) || (UI && typeof UI.resolveConceptIconName === 'function' ? UI.resolveConceptIconName(e.concept, cMetaFull) : undefined)
-      return UI.KuBadge({
-        kind: 'element',
-        id: key,
-        label: e.label || key,
-        index: cMetaFull.index,
-        color: cMetaFull.color,
-        icon: resolvedIcon,
-      })
+      return UI.Ku(
+        'element',
+        {
+          model: modelId,
+          id: e.slug || UI.slug(e.label || key || 'unit'),
+          label: e.label || key,
+          index: cMetaFull.index,
+          color: cMetaFull.color,
+        },
+        { doc: doc },
+      )
     }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (matrix) {
       if (!isObject(matrix)) return
       var section = el('section', 'innfo-matrix')
       if (!section) return
+      var matrixModel = matrix.modelId || fallbackModelId || ''
+      var matrixSlug = matrix.slug || UI.slug(matrix.name || 'matrix')
       var titleEl = el('h3', null, null)
       if (titleEl) {
         titleEl.appendChild(
-          UI.KuBadge({ kind: 'element', id: 'matrix-' + UI.slug(matrix.name || 'matrix'), label: matrix.name || 'Matrix', icon: 'matrices' }),
+          UI.Ku(
+            'matrix',
+            {
+              model: matrixModel,
+              family: matrixModel,
+              name: matrixSlug,
+              label: matrix.name || 'Matrix',
+            },
+            { doc: doc },
+          ),
         )
         section.appendChild(titleEl)
       }
@@ -18601,15 +19167,39 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var sMetaM = conceptMetaOf(conceptList, srcConcept)
           var tMetaM = conceptMetaOf(conceptList, tgtConcept)
           var cornerWrap = el('div', 'innfo-matrix-corner-pills')
-          cornerWrap.appendChild(UI.ConceptPill({ id: srcConcept, label: srcConcept + ' ↓', index: sMetaM.index, color: sMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(
+            UI.Ku(
+              'section',
+              {
+                model: matrixModel,
+                concept: srcConcept,
+                label: srcConcept + ' ↓',
+                index: sMetaM.index,
+                color: sMetaM.color,
+              },
+              { doc: doc },
+            ),
+          )
           cornerWrap.appendChild(el('span', 'innfo-matrix-corner-sep', '×'))
-          cornerWrap.appendChild(UI.ConceptPill({ id: tgtConcept, label: tgtConcept + ' →', index: tMetaM.index, color: tMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(
+            UI.Ku(
+              'section',
+              {
+                model: matrixModel,
+                concept: tgtConcept,
+                label: tgtConcept + ' →',
+                index: tMetaM.index,
+                color: tMetaM.color,
+              },
+              { doc: doc },
+            ),
+          )
           cornerTh.appendChild(cornerWrap)
         }
         headTr.appendChild(cornerTh)
         cols.forEach(function (c) {
           var th = el('th', null, null)
-          if (th) th.appendChild(headerBadge(headCols[c], String(c)))
+          if (th) th.appendChild(headerBadge(headCols[c], String(c), matrixModel))
           headTr.appendChild(th)
         })
         table.appendChild(headTr)
@@ -18621,7 +19211,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var rowLabel = isStructured ? (r.sourceLabel || r.sourceId || '') : String(r)
         var rowCells = isStructured ? (r.cells || {}) : (cells[r] || cells[String(r)] || {})
         var rowTh = el('th', null, null)
-        if (rowTh) rowTh.appendChild(headerBadge(headRows[rowKey] || headRows[rowLabel], rowLabel))
+        if (rowTh) rowTh.appendChild(headerBadge(headRows[rowKey] || headRows[rowLabel], rowLabel, matrixModel))
         tr.appendChild(rowTh)
         cols.forEach(function (c) {
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
@@ -18637,8 +19227,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             // model by file stem / title, and `meta.modelId` is the domain).
             if (matrix.modelId) td.setAttribute('data-matrix-model', String(matrix.modelId))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
-            var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
-            if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())
+            var rowEntry = headRows[rowKey] || headRows[rowLabel] || {}
+            var colEntry = headCols[c] || {}
+            var cellBadge = UI.Ku(
+              'value',
+              {
+                model: matrixModel,
+                matrix: matrixSlug,
+                row: rowEntry.slug || UI.slug(rowLabel || 'row'),
+                col: colEntry.slug || UI.slug(String(c) || 'col'),
+                label: isEmpty ? '—' : value,
+                vtype: matrix.widget,
+              },
+              { doc: doc },
+            )
+            var cellUnit = cellBadge.querySelector('[data-innfo-component="ku-unit"]')
+            if (!isEmpty && cellUnit) cellUnit.setAttribute('data-cell-value', value.toLowerCase())
             td.appendChild(cellBadge)
           }
           tr.appendChild(td)
@@ -19188,7 +19792,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function renderTimelineGrid(container, model, meta, hooks) {
     if (!container) return
-    var editRow = hooks && typeof hooks.onEditRow === 'function' ? hooks.onEditRow : null
     var host = el('div', 'innfo-timeline-grid-host')
     container.appendChild(host)
     var studioHost = el('div', 'innfo-studio-host')
@@ -19403,23 +20006,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           })
           actionsSpan.appendChild(filterBtn)
         }
-        if (editRow) {
-          var editBtn = el('button', 'innfo-row-btn innfo-edit-btn')
-          editBtn.setAttribute('type', 'button')
-          editBtn.setAttribute('title', 'Propose a change to ' + (r.label || r.id))
-          editBtn.innerHTML = UI.icon('edit', 12)
-          editBtn.addEventListener('click', function (e) {
-            e.stopPropagation()
-            editRow(r.id)
-          })
-          actionsSpan.appendChild(editBtn)
-        }
         tdMetric.appendChild(actionsSpan)
 
         var markerSvg = r.variable ? UI.icon('star', 11) : r.source === 'derived' ? UI.icon('derived', 11) : UI.icon('calc', 11)
         var markerSpan = el('span', 'innfo-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'))
         markerSpan.innerHTML = markerSvg
-        var nameSpan = el('span', 'innfo-row-name', r.label || r.id)
+        var nameSpan =
+          UI && typeof UI.Ku === 'function'
+            ? UI.Ku(
+                'element',
+                {
+                  model: r.modelId || '',
+                  id: r.id || r.label,
+                  label: r.label || r.id,
+                },
+                { doc: container.ownerDocument || document },
+              )
+            : el('span', 'innfo-row-name', r.label || r.id)
         if (r.formula) nameSpan.setAttribute('title', 'Formula: ' + r.formula)
         tdMetric.appendChild(markerSpan)
         tdMetric.appendChild(nameSpan)
@@ -20451,10 +21054,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (head && h) head.appendChild(h)
     if (head && close) head.appendChild(close)
     var body = el('div', 'innfo-ref-body')
-    var tag = UI && typeof UI.ConceptPill === 'function'
-      ? UI.ConceptPill({ id: element.concept || 'Element', label: String(element.concept || 'Element') }, { doc: doc })
-      : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
-    if (tag) tag.classList.add('innfo-ref-tag')
+    var refModel = element.modelId || ''
+    var tag =
+      UI && typeof UI.Ku === 'function'
+        ? UI.Ku(
+            'section',
+            { model: refModel, concept: element.concept || 'Element', label: String(element.concept || 'Element') },
+            { doc: doc },
+          )
+        : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
     if (body && tag) body.appendChild(tag)
     if (body && element.description) {
       var p = el('p', 'innfo-ref-desc', element.description)
@@ -20464,10 +21072,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var dl = el('dl', 'innfo-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
         if (!dl) return
-        var dt = el('dt', null, k)
-        var dd = el('dd', null, String(element.fields[k]))
-        if (dt) dl.appendChild(dt)
-        if (dd) dl.appendChild(dd)
+        var dt = el('dt', null, null)
+        if (UI && typeof UI.Ku === 'function') {
+          dt.appendChild(
+            UI.Ku(
+              'field',
+              { family: refModel, model: refModel, concept: element.concept, name: k, label: k },
+              { doc: doc },
+            ),
+          )
+        } else {
+          dt.textContent = k
+        }
+        var dd = el('dd', null, null)
+        if (UI && typeof UI.Ku === 'function') {
+          dd.appendChild(
+            UI.Ku(
+              'value',
+              { model: refModel, element: element.id, field: k, label: String(element.fields[k]) },
+              { doc: doc },
+            ),
+          )
+        } else {
+          dd.textContent = String(element.fields[k])
+        }
+        dl.appendChild(dt)
+        dl.appendChild(dd)
       })
       if (dl.children.length) body.appendChild(dl)
     }
@@ -20640,7 +21270,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       UI && typeof UI.FieldValue === 'function'
         ? UI.FieldValue({ value: field.value, type: field.type, name: field.name }, { doc: doc })
         : null
-    if (valueNode) {
+    if (UI && typeof UI.Ku === 'function' && field.model && field.element) {
+      var detailUnit = UI.Ku(
+        'value',
+        {
+          model: field.model,
+          element: field.element,
+          field: field.name,
+          label: displayCellText(field.value),
+          vtype: field.type,
+        },
+        { doc: doc, valueNode: valueNode || undefined },
+      )
+      body.appendChild(detailUnit)
+    } else if (valueNode) {
       body.appendChild(valueNode)
     } else {
       var textVal = displayCellText(field.value)
@@ -20909,7 +21552,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           : 'document'
       var labelText = CITATION_ORIGIN_LABELS[variantKey] || variantKey
       var tagText = labelText + (entry.author ? ' · ' + entry.author : '')
-      var tag = el('span', 'innfo-ref-tag', tagText)
+      var tag =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'source',
+              { path: entry.path || entry.href || 'citation', label: tagText },
+              { doc: doc },
+            )
+          : el('span', 'innfo-ref-tag', tagText)
       if (tag) body.appendChild(tag)
 
       var dl = el('dl', 'innfo-ref-fields')
@@ -20974,7 +21624,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var iconSpan = el('span', 'doc-icon', null)
       if (iconSpan) iconSpan.innerHTML = svg || (isRoot ? '◆' : '·')
       h.appendChild(iconSpan)
-      h.appendChild(document.createTextNode(' ' + String(step.el.name || (isRoot ? 'Root' : 'Step'))))
+      var docModel = (opts && opts.modelId) || step.el.modelId || ''
+      if (UI && typeof UI.Ku === 'function') {
+        var docUnit = UI.Ku(
+          'element',
+          {
+            model: docModel,
+            id: step.el.slug || step.el.id,
+            label: String(step.el.name || (isRoot ? 'Root' : 'Step')),
+          },
+          { doc: doc },
+        )
+        h.appendChild(docUnit)
+      } else {
+        h.appendChild(doc.createTextNode(' ' + String(step.el.name || (isRoot ? 'Root' : 'Step'))))
+      }
       block.appendChild(h)
       if (step.el.description) {
         var p = el('p', 'desc', step.el.description)
@@ -20984,10 +21648,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var dl = el('dl', 'doc-fields', null)
         Object.keys(step.fields).forEach(function (k) {
           if (k === 'parent' || k === 'next') return
-          var dt = el('dt', null, k)
-          var dd = el('dd', null, String(step.fields[k]))
-          if (dt) dl.appendChild(dt)
-          if (dd) dl.appendChild(dd)
+          var dt = el('dt', null, null)
+          var dd = el('dd', null, null)
+          if (UI && typeof UI.Ku === 'function') {
+            dt.appendChild(
+              UI.Ku(
+                'field',
+                { family: docModel, model: docModel, concept: step.el.concept, name: k, label: k },
+                { doc: doc },
+              ),
+            )
+            dd.appendChild(
+              UI.Ku(
+                'value',
+                {
+                  model: docModel,
+                  element: step.el.slug || step.el.id,
+                  field: k,
+                  label: String(step.fields[k]),
+                },
+                { doc: doc },
+              ),
+            )
+          } else {
+            dt.textContent = k
+            dd.textContent = String(step.fields[k])
+          }
+          dl.appendChild(dt)
+          dl.appendChild(dd)
         })
         if (dl && dl.children.length) block.appendChild(dl)
       }
@@ -20997,7 +21685,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Renders the generic document view: builds the tree from all elements,
   // picks roots that have children (procedures/trees), and renders each chain.
-  function renderDocumentView(doc, elements, concepts) {
+  function renderDocumentView(doc, elements, concepts, modelId) {
     var host = doc.getElementById('innfo-doc')
     if (!host) return
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
@@ -21031,6 +21719,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         colorOf: colorOf,
         iconOf: iconOf,
         append: true,
+        modelId: modelId || (elements[0] && elements[0].modelId) || '',
       })
     })
   }
@@ -21990,13 +22679,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             sortState.dir = 'asc'
           }
           refresh(activeSearchQuery)
-        })
+        }, (meta && (meta.modelId || meta.model)) || '')
       } else if (explorerView === 'badges') {
-        mountElementBadges(active, filteredElements, currentDrafts, concepts, refs)
+        mountElementBadges(active, filteredElements, currentDrafts, concepts, refs, (meta && (meta.modelId || meta.model)) || '')
       } else if (explorerView === 'cards') {
-        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions)
+        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions, (meta && (meta.modelId || meta.model)) || '')
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions, (meta && (meta.modelId || meta.model)) || '')
         focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {
@@ -22009,7 +22698,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }, state)
       renderRail(active, concepts, counts, draftCountsByConcept, selectRailToken, state)
       if (!scopedView) {
-        renderConceptGuide(active, activeGuideConcept(activeSearchQuery, concepts), schema, matrices, counts)
+        renderConceptGuide(
+          active,
+          activeGuideConcept(activeSearchQuery, concepts),
+          schema,
+          matrices,
+          counts,
+          (meta && (meta.modelId || meta.model)) || '',
+        )
       }
 
       // Document overview tree remains hidden while filtering elements so filtered cards are immediately visible
@@ -22101,6 +22797,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
 
+    // Ku actions are delegated once per document, never per component.
+    if (UI && typeof UI.createKu === 'function' && !state.kuDelegation) {
+      state.kuDelegation = UI.createKu({
+        doc: active,
+        onAction: function (action, descriptor) {
+          var ctrl = state.controller
+          if (ctrl && typeof ctrl.handleKuAction === 'function') {
+            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
+            return
+          }
+          if (action === 'info' || action === 'changes') {
+            var panel = UI.KuInfoPanel(descriptor)
+            if (active.body) active.body.appendChild(panel)
+            if (panel && typeof panel.showModal === 'function') panel.showModal()
+          }
+        },
+      })
+    }
+
     // The first view mounts here, after the initial search had its say.
     if (tabs) tabs.activateInitial()
 
@@ -22119,9 +22834,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               })
             : [])
         : elements
-      renderDocumentView(active, docElements, concepts)
+      renderDocumentView(active, docElements, concepts, (meta && (meta.modelId || meta.model)) || '')
     }
-    renderMatrices(active, matrices, concepts)
+    renderMatrices(active, matrices, concepts, (meta && (meta.modelId || meta.model)) || '')
     renderMetamodelView(active, schema, matrices, elements)
 
     var searchBox = active.getElementById('innfo-search')
@@ -22566,10 +23281,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         var token = match[0]
         if (/^fb-\d+$/.test(token)) {
-          var chg = document.createElement('span')
-          chg.className = 'innfo-ku-field-chip'
-          chg.textContent = token
-          hostEl.appendChild(chg)
+          var UIc = GLOBAL.InnfoUI
+          if (UIc && typeof UIc.Ku === 'function') {
+            hostEl.appendChild(UIc.Ku('element', { model: meta.modelId || '', id: token, label: token }, { doc: document }))
+          } else {
+            var chg = document.createElement('span')
+            chg.className = 'innfo-ku-field-chip'
+            chg.textContent = token
+            hostEl.appendChild(chg)
+          }
         } else if (byName[token]) {
           var rb = refButton(token, token)
           hostEl.appendChild(rb.node)
@@ -22591,27 +23311,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return { node: span, ok: false }
       }
       var UI = GLOBAL.InnfoUI
-      if (UI && typeof UI.ElementPill === 'function' && target.id) {
+      if (UI && typeof UI.Ku === 'function' && target.id) {
         var cMeta = null
         concepts.forEach(function (x) {
           if (x && x.name === target.concept) cMeta = x
         })
-        var pill = UI.ElementPill(
+        var pill = UI.Ku(
+          'element',
           {
+            model: meta.modelId || '',
             id: target.id,
             label: target.name || label,
             concept: target.concept,
             color: cMeta && cMeta.color,
-            hexColor: cMeta && cMeta.hexColor,
           },
-          {
-            doc: document,
-            onClick: function (ev) {
-              if (ev && ev.preventDefault) ev.preventDefault()
-              openRef(target)
-            },
-          }
+          { doc: document },
         )
+        var pillBadge = pill.querySelector('[data-innfo-component="ku-unit"]')
+        if (pillBadge) {
+          pillBadge.setAttribute('role', 'button')
+          pillBadge.setAttribute('tabindex', '0')
+          pillBadge.addEventListener('click', function (ev) {
+            if (ev && ev.preventDefault) ev.preventDefault()
+            openRef(target)
+          })
+        }
         return { node: pill, ok: true }
       }
       var b = document.createElement('button')
