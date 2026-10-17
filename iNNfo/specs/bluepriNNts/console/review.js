@@ -21,22 +21,15 @@
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
-  // The definition governing a matrix cell: the column Marker of the reserved
-  // item-markers matrix, otherwise the matrix definition of the same name.
-  // The reserved matrix is recognised like payload-builder does: by name OR by a
-  // `markers` target.
+  // The definition governing a matrix cell: the matrix definition of the same name.
   function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
-    function byName(list, name) {
-      var want = String(name).toLowerCase()
-      return (Array.isArray(list) ? list : []).filter(function (d) {
+    var want = String(matrix).toLowerCase()
+    return (
+      (Array.isArray(schema.matrices) ? schema.matrices : []).filter(function (d) {
         return d && String(d.name).toLowerCase() === want
-      })[0]
-    }
-    var isItemMarkers =
-      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
-    if (isItemMarkers) return byName(schema.markers, col) || null
-    return byName(schema.matrices, matrix) || null
+      })[0] || null
+    )
   }
 
   // Declared definition of a field, keyed by (concept, field) so two concepts that
@@ -519,6 +512,33 @@
       openPopover = null
     }
 
+    function valueKeyOf(v) {
+      return String(v == null ? '' : v).trim().toLowerCase()
+    }
+
+    // Effective tags = own `tags` Field values plus inherited concept-level
+    // values, de-duplicated case-insensitively (mirrors the console runtime).
+    function effectiveTagsOf(el) {
+      var out = []
+      if (el && Array.isArray(el.tags)) {
+        out = out.concat(el.tags)
+      } else if (el && el.fields && el.fields.tags != null) {
+        var own = el.fields.tags
+        out = out.concat(Array.isArray(own) ? own : [own])
+      }
+      if (el && el.inherited && el.inherited.tags) {
+        var iv = el.inherited.tags.value
+        if (iv != null) out = out.concat(Array.isArray(iv) ? iv : [iv])
+      }
+      var seen = {}
+      return out.filter(function (t) {
+        var k = valueKeyOf(t)
+        if (!k || seen[k]) return false
+        seen[k] = true
+        return true
+      })
+    }
+
     function saveDraft(anchorData, payload) {
       if (!store) return null
       if (anchorData.matrixCell) {
@@ -674,20 +694,6 @@
           history: base.history,
         }
       }
-      if (field.indexOf('marker:') === 0) {
-        var markerId = field.slice('marker:'.length)
-        var markers = el.markers || {}
-        return {
-          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 marker ' + markerId,
-          fieldName: field,
-          type: 'string',
-          value: markers[markerId],
-          draftField: field,
-          original: markers[markerId],
-          citations: base.citations,
-          history: base.history,
-        }
-      }
       var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
@@ -836,13 +842,19 @@
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
-      // Tag / relation membership has no core draft op yet: record proposals
-      // as comment drafts (never auto-applied corrections).
+      // Tag membership is a `correction` on the `tags` Field carrying the full
+      // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
+        var elTag = elementsById[anchorData.elementId]
+        var curTags = effectiveTagsOf(elTag)
+        var nextTags = curTags.filter(function (t) {
+          return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
+        })
         saveDraft(anchorData, {
-          kind: 'comment',
+          kind: 'correction',
           field: 'tags',
-          comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
+          original: curTags,
+          proposed: nextTags,
         })
         return
       }
@@ -863,7 +875,7 @@
       }
 
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
-      if (anchorData.tagAdd) kinds = ['comment']
+      if (anchorData.tagAdd) kinds = ['correction']
       if (anchorData.relAdd) kinds = ['comment']
       var activeKind = kinds[0]
       var data = {
@@ -886,10 +898,14 @@
           var ta = pop.querySelector('textarea')
           var text = ta ? ta.value : ''
           if (anchorData.tagAdd) {
+            var elTagAdd = elementsById[anchorData.elementId]
+            var curAdd = effectiveTagsOf(elTagAdd)
+            var nextAdd = curAdd.concat([text])
             saveDraft(anchorData, {
-              kind: 'comment',
+              kind: 'correction',
               field: 'tags',
-              comment: 'Propose tag: ' + text,
+              original: curAdd,
+              proposed: nextAdd,
             })
           } else if (anchorData.relAdd) {
             saveDraft(anchorData, {
@@ -1141,19 +1157,6 @@
           ),
         )
       }
-      Array.prototype.forEach.call(
-        card.querySelectorAll('[data-marker-id]'),
-        function (chip) {
-          if (chip.querySelector('[data-innfo-ctl="marker-anchor"]')) return
-          var markerId = chip.getAttribute('data-marker-id')
-          chip.appendChild(
-            kuEditControl(
-              { elementId: elId, field: 'marker:' + markerId, ctl: 'marker-anchor' },
-              'Edit marker ' + markerId,
-            ),
-          )
-        },
-      )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
 

@@ -51,27 +51,16 @@ export interface MetamodelConcept {
     target_concepts?: string[]
     target_blueprint?: string
   }[]
-  tags?: string[]
-}
-
-/** A single marker declaration, as declared in a document's frontmatter `markers:` list. */
-export interface MetamodelMarker {
-  name: string
-  icon?: string
-  symbol?: string
-  color?: string
-  weight?: number
 }
 
 /**
  * The metamodel declared locally by a root node's own frontmatter
- * (`concepts`/`markers`). Nodes without their own file (nested elements)
+ * (`concepts`). Nodes without their own file (nested elements)
  * declare no local metamodel (empty arrays); their effective metamodel is
  * resolved by walking up to their nearest ancestor (see `metamodel.ts`).
  */
 export interface LocalMetamodel {
   concepts: MetamodelConcept[]
-  markers: MetamodelMarker[]
   taxonomy: TaxonomyEdge[]
 }
 
@@ -85,15 +74,7 @@ export interface KnowledgeNode {
   childIds: string[]
   type: string // resolved concept type
   fields: Record<string, FieldValue>
-  markers: Record<string, number | string>
-  tags?: string[]
-  conceptTags?: Record<string, string[]>
-  /**
-   * Concept-scoped Marker scores (Markers whose `applies_to` includes
-   * `Concept`), keyed by Concept name. Present only on the document root;
-   * element-scoped scores live in `markers` on each element node.
-   */
-  conceptMarkers?: Record<string, Record<string, number | string>>
+  conceptFields?: Record<string, Record<string, unknown>>
   /**
    * Schema-conformance result for this model against its resolved Template
    * (including everything the Template `includes`). Populated by the host's

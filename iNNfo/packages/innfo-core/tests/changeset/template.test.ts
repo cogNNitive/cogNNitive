@@ -52,4 +52,40 @@ describe('changes blueprint — Level 3 template', () => {
     expect(sources).toBeDefined()
     expect(sources!.type).toBe('citation')
   })
+
+  it('validates a changeset holding update_concept_field and remove_matrix without invalid-op diagnostics', () => {
+    const changesetContent = `---
+spec_version: "V_0-4-0"
+level: 3
+knowledge_version: "V_0-1-0"
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-4-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Testing new ops"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: update_concept_field
+target:: strategy@concept:Goals&tags
+from:: [core]
+to:: [core, ai]
+
+## NN Change: c-02
+op:: remove_matrix
+target:: strategy@matrix:Access Matrix
+`
+    const model = parseKnowledge(changesetContent)
+    const res = validateKnowledge(model, specDoc, null)
+    const errors = res.checks.filter((c) => c.severity === 'error')
+    expect(errors).toEqual([])
+  })
 })

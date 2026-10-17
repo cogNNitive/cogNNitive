@@ -21,6 +21,8 @@ import type { ResolvedCitation } from './citations.js'
 import { canonicalJsonStringify, computeElementHash } from './element-hash.js'
 import { buildConsoleSchemaSlot } from './slot.js'
 import type { ConsoleSchemaSlot, ConsoleProcedureSlot } from './slot.js'
+import { inheritConceptValues } from '../schema/field-values.js'
+import { resolveBlueprintSchema } from '../schema/compose.js'
 import { attachChangesetHistory } from './element-history.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 
@@ -44,8 +46,7 @@ export interface ConsolePayloadElement {
   fields: Record<string, unknown>
   markers: Record<string, unknown>
   hash: string
-  /** Own `tags::` then the concept-level ones, lowercase, de-duplicated. Not hashed. */
-  tags: string[]
+  inherited?: Record<string, { value: unknown; from: string }>
   relations?: ConsolePayloadElementRelation[]
   citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
   history?: ElementHistoryItem[]
@@ -163,6 +164,10 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const elementsById = new Map<string, ConsolePayloadElement>()
   const unfrozen: string[] = []
 
+  const resolvedBlueprintSchema = typeof inputSchema === 'string'
+    ? resolveBlueprintSchema(inputSchema).schema
+    : (inputSchema as any)
+
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName
@@ -191,9 +196,13 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         markers,
       })
 
-      // Tags are display metadata: kept out of computeElementHash so `hash` stays equal to
-      // hashParsedElement and every base_hash precondition holds.
-      const tags = [...new Set([...(node.tags ?? []), ...(parsed.conceptTags?.[concept] ?? [])])]
+      // Compute inherited field values delta
+      const conceptDefs = resolvedBlueprintSchema?.concepts
+        ? (Array.isArray(resolvedBlueprintSchema.concepts) ? resolvedBlueprintSchema.concepts : Object.values(resolvedBlueprintSchema.concepts))
+            .find((c: any) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields
+        : undefined
+      const conceptVals = parsed.conceptFields?.[concept]
+      const inheritedDelta = inheritConceptValues(fields, conceptVals, conceptDefs, concept)
 
       const elem: ConsolePayloadElement = {
         id,
@@ -204,7 +213,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         fields,
         markers,
         hash,
-        tags,
+        ...(Object.keys(inheritedDelta).length > 0 ? { inherited: inheritedDelta } : {}),
       }
 
       rawElements.push({ elem, rawFields: { ...fields } })
@@ -292,8 +301,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
           cellsObj[cell.row][cell.col] = cell.value
         }
       }
-      const isItemMarkers =
-        mat.name === 'item-markers matrix' || (mat.target || '').toLowerCase() === 'markers'
       const headRows: Record<string, ConsoleMatrixHeadEntry> = {}
       const headCols: Record<string, ConsoleMatrixHeadEntry> = {}
       for (const r of rows) {
@@ -303,7 +310,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         headCols[c] = {
           label: c,
           concept: mat.target || undefined,
-          kind: isItemMarkers ? 'marker' : 'element',
+          kind: 'element',
         }
       }
       matrices.push({
@@ -318,7 +325,12 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     }
   }
 
-  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements, options.procedures)
+  const schemaSlot = buildConsoleSchemaSlot(
+    resolvedBlueprintSchema,
+    elements,
+    options.procedures,
+    parsed.conceptFields,
+  )
   // Attach changeset lineage AFTER the schema slot so the schema is unaffected by
   // history (only the model slot carries it).
   attachChangesetHistory(elements, changesets)

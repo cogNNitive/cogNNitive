@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseKnowledge, validateKnowledge, resolveBlueprintSchema } from '../src/index.js';
+import { parseKnowledge, validateKnowledge, resolveBlueprintSchema, checkRemovedMarkerConstructs } from '../src/index.js';
 
 describe('User Workspace Refactorization (fixtures/simulacro-refactorizacion)', () => {
   const fixtureRoot = path.join(__dirname, 'fixtures/simulacro-refactorizacion');
@@ -70,5 +70,28 @@ describe('User Workspace Refactorization (fixtures/simulacro-refactorizacion)', 
     const skillContent = fs.readFileSync(skillPath, 'utf8');
     expect(skillContent.startsWith('---')).toBe(true);
     expect(skillContent).toContain('name: nn-innfo');
+  });
+
+  it('5. asserts that legacy marker-bearing models in the fixture report MARKERS_REMOVED with marker names in meta', () => {
+    // Check organization sample which carries item-markers matrix with complexity
+    const orgSamplePath = path.join(
+      fixtureRoot,
+      'bluepriNNts/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md',
+    );
+    const orgSampleContent = fs.readFileSync(orgSamplePath, 'utf8');
+    const parsedOrg = parseKnowledge(orgSampleContent);
+    const orgDiags = checkRemovedMarkerConstructs(parsedOrg, 'Ghostbusters_V_0-2-0_organization_NN.md');
+    expect(orgDiags).toHaveLength(1);
+    expect(orgDiags[0].code).toBe('MARKERS_REMOVED');
+    expect(orgDiags[0].meta?.matrixColumns).toContain('complexity');
+
+    // Check organization spec which declares Marker Definition: complexity
+    const orgSpecPath = path.join(fixtureRoot, 'bluepriNNts/organization/spec_NN.md');
+    const orgSpecContent = fs.readFileSync(orgSpecPath, 'utf8');
+    const parsedSpec = parseKnowledge(orgSpecContent);
+    const specDiags = checkRemovedMarkerConstructs(parsedSpec, 'organization_spec_NN.md');
+    expect(specDiags).toHaveLength(1);
+    expect(specDiags[0].code).toBe('MARKERS_REMOVED');
+    expect(specDiags[0].meta?.markers).toContain('complexity');
   });
 });

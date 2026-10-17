@@ -11,9 +11,9 @@ const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 const readSpec = (p: string): string => readFileSync(join(specsRoot, p), 'utf-8')
 
 const ORG_V2 = readSpec('bluepriNNts/organization/spec_NN.md')
-const INNFO_V2 = readSpec('iNNfo_V_0-2-0_NN.md')
+const INNFO_SPEC = readSpec('iNNfo_V_0-5-0_NN.md')
 
-describe('organization_V_0-2-0 — standalone L2 template', () => {
+describe('organization — standalone L2 template', () => {
   it('resolves as a valid standalone L2 schema (no includes, no-op resolver)', () => {
     const { schema, errors } = resolveBlueprintSchema(ORG_V2, () => null)
     expect(errors).toEqual([])
@@ -43,8 +43,8 @@ describe('organization_V_0-2-0 — standalone L2 template', () => {
     )
   })
 
-  it('validates green against the iNNfo_V_0-2-0 metaschema', () => {
-    const diags = validateBlueprintAgainstMetaschema(ORG_V2, INNFO_V2)
+  it('validates green against the iNNfo_V_0-5-0 metaschema', () => {
+    const diags = validateBlueprintAgainstMetaschema(ORG_V2, INNFO_SPEC)
     const errors = diags.filter((d) => d.severity === 'error')
     expect(errors, JSON.stringify(errors)).toEqual([])
   })

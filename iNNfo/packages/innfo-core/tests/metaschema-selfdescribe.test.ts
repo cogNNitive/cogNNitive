@@ -67,6 +67,7 @@ describe('Metaschema (Self-Description)', () => {
   })
 
   it('every shipped template validates green against the metaschema', () => {
+    const iNNfoV5 = readSpec('iNNfo_V_0-5-0_NN.md')
     const templates = [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
@@ -78,7 +79,7 @@ describe('Metaschema (Self-Description)', () => {
       'bluepriNNts/repository/spec_NN.md',
     ]
     for (const rel of templates) {
-      const diags = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfo)
+      const diags = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV5)
       const errors = diags.filter((d) => d.severity === 'error')
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
@@ -125,10 +126,11 @@ describe('Metaschema (Self-Description)', () => {
       'title: Bad',
       '---',
       '',
-      '# NN Marker Definition',
+      '# NN Field Definition',
       '',
-      '## NN Marker Definition: priority',
-      'applies_to:: [Element]',
+      '## NN Field Definition: priority',
+      'concept:: *',
+      'type:: string',
       'bogus_prop:: 1',
       '',
     ].join('\n')
@@ -167,8 +169,6 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
     for (const rel of [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
-      'bluepriNNts/organization/spec_NN.md',
-      'bluepriNNts/projects/spec_NN.md',
     ]) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV2).filter(
         (d) => d.severity === 'error',
@@ -241,8 +241,6 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
     for (const rel of [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
-      'bluepriNNts/organization/spec_NN.md',
-      'bluepriNNts/projects/spec_NN.md',
       'bluepriNNts/video-script/spec_NN.md',
     ]) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
@@ -251,12 +249,48 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
   })
+})
 
-  it('base_V_0-1-0 (PR6, new composite template) validates green against it', () => {
-    const errors = validateBlueprintAgainstMetaschema(
-      readSpec('bluepriNNts/base/spec_NN.md'),
-      iNNfoV21,
-    ).filter((d) => d.severity === 'error')
-    expect(errors, JSON.stringify(errors)).toEqual([])
+describe('iNNfo_V_0-5-0 — metaschema self-consistent', () => {
+  const iNNfoV5 = readSpec('iNNfo_V_0-5-0_NN.md')
+
+  it('carries a resolvable metaschema block describing the three root primitives', () => {
+    const meta = extractMetaschema(iNNfoV5)
+    expect(meta).not.toBeNull()
+    const names = extractBlueprintSchemaFromContent(meta!)
+      .concepts.map((c) => c.name)
+      .sort()
+    expect(names).toEqual([
+      'Concept Definition',
+      'Field Definition',
+      'Matrix Definition',
+    ])
+  })
+
+  it('the metaschema validates against itself (bootstrap axiom)', () => {
+    const meta = extractMetaschema(iNNfoV5)!
+    const asTemplate = ['---', 'level: 2', 'title: Metaschema', '---', '', meta, ''].join('\n')
+    const diags = validateBlueprintAgainstMetaschema(asTemplate, iNNfoV5)
+    expect(diags.filter((d) => d.severity === 'error')).toEqual([])
+  })
+
+  it('declares concept list/*, multiple, widget, widget_config, number/boolean, model', () => {
+    const meta = extractMetaschema(iNNfoV5)!
+    const schema = extractBlueprintSchemaFromContent(meta)
+    const fieldDef = schema.concepts.find((c) => c.name === 'Field Definition')!
+    const fieldProps = fieldDef.fields.map((f) => f.name)
+    expect(fieldProps).toContain('multiple')
+    expect(fieldProps).toContain('widget')
+    expect(fieldProps).toContain('widget_config')
+    expect(fieldProps).toContain('target_blueprint')
+
+    const typeField = fieldDef.fields.find((f) => f.name === 'type')!
+    expect(typeField.options).toContain('number')
+    expect(typeField.options).toContain('boolean')
+    expect(typeField.options).toContain('model')
+
+    const conceptDef = schema.concepts.find((c) => c.name === 'Concept Definition')!
+    const conceptTypeField = conceptDef.fields.find((f) => f.name === 'type')!
+    expect(conceptTypeField.options).toContain('model')
   })
 })

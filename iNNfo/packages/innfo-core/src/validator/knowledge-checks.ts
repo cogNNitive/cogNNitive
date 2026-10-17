@@ -1,7 +1,9 @@
-import type { Concept, Marker, MatrixDecl, ParsedKnowledge } from '../types/index.js'
+import type { Concept, MatrixDecl, ParsedKnowledge } from '../types/index.js'
 import type { Diagnostics } from '../diagnostics.js'
 import { checkElementsAgainstSchema } from '../schema/index.js'
+import { validateFieldValue } from '../schema/field-values.js'
 import { RESERVED_CONCEPT_NAMES } from './constants.js'
+import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
 export type ElementGroup = [string, Array<{ name: string; fields: Record<string, unknown> }>]
@@ -217,6 +219,9 @@ export function checkElementGroups(
 ): ElementGroup[] {
   const known: ElementGroup[] = []
   for (const [conceptName, elements] of model.elements) {
+    if (conceptName.toLowerCase() === 'marker definition') {
+      continue
+    }
     const conceptDef = matchConcept(conceptName, templateConcepts)
     if (!conceptDef) {
       d.error(`elements.${conceptName}`, `Concept "${conceptName}" is not defined in template`)
@@ -251,6 +256,35 @@ export function checkSchemaConformance(
 }
 
 /**
+ * Validate concept-level field values once against the concept's declared Field (R-CF-01).
+ * Invalid values report ERROR with path naming the concept and Field.
+ */
+export function checkConceptFields(
+  model: ParsedKnowledge,
+  templateConcepts: Concept[],
+  d: Diagnostics,
+): void {
+  if (!model.conceptFields) return
+
+  for (const [conceptName, fields] of Object.entries(model.conceptFields)) {
+    const conceptDef = matchConcept(conceptName, templateConcepts)
+    if (!conceptDef) continue
+
+    const fieldByName = new Map((conceptDef.fields || []).map((f) => [f.name.toLowerCase(), f]))
+
+    for (const [key, rawVal] of Object.entries(fields)) {
+      const fieldDef = fieldByName.get(key.toLowerCase())
+      if (!fieldDef) continue
+
+      const fieldDiags = validateFieldValue(fieldDef, rawVal, `concepts.${conceptDef.name}.${key}`)
+      for (const diag of fieldDiags) {
+        d.add(diag)
+      }
+    }
+  }
+}
+
+/**
  * Matrix cell values must belong to the declared `values` set (R-MM-08). The
  * empty cell `-` and the boolean marker `X` are always accepted; an undeclared
  * matrix is a WARNING.
@@ -278,55 +312,6 @@ export function checkMatrixCells(
           `matrices.${matrix.name}.cells["${cell.row}"]["${cell.col}"]`,
           `Matrix "${matrix.name}" cell value "${raw}" is not in the declared value set: ${(decl.values as string[]).join(', ')}`,
         )
-      }
-    }
-  }
-}
-
-/**
- * Node-marker scores: an undeclared Marker is a WARNING; a score on an entity
- * outside the Marker's `applies_to` (default `[Element]`) is an ERROR; a score
- * outside the Marker's declared `values` set is a WARNING.
- */
-export function checkNodeMarkers(
-  model: ParsedKnowledge,
-  templateConcepts: Concept[],
-  templateMarkers: Marker[],
-  d: Diagnostics,
-): void {
-  for (const [itemName, markers] of Object.entries(model.nodeMarkers)) {
-    const rowScope: 'Concept' | 'Element' = matchConcept(itemName, templateConcepts)
-      ? 'Concept'
-      : 'Element'
-    for (const [markerName, score] of Object.entries(markers)) {
-      const decl = templateMarkers.find((m) => m.name.toLowerCase() === markerName.toLowerCase())
-      if (!decl) {
-        d.warn(
-          `nodeMarkers.${itemName}.${markerName}`,
-          `Marker "${markerName}" is not defined in template`,
-        )
-        continue
-      }
-
-      const appliesTo = (
-        decl.applies_to && decl.applies_to.length > 0 ? decl.applies_to : ['Element']
-      ).map((s) => s.toLowerCase())
-      if (!appliesTo.includes(rowScope.toLowerCase())) {
-        d.error(
-          `nodeMarkers.${itemName}.${markerName}`,
-          `Marker "${markerName}" is scored on ${rowScope} "${itemName}", but its applies_to is [${(decl.applies_to ?? ['Element']).join(', ')}]`,
-        )
-      }
-
-      if (decl.values && decl.values.length > 0) {
-        const raw = String(score)
-        const allowed = decl.values.map((v) => v.toLowerCase())
-        if (raw !== '-' && raw !== '' && !allowed.includes(raw.toLowerCase())) {
-          d.warn(
-            `nodeMarkers.${itemName}.${markerName}`,
-            `Marker "${markerName}" score "${raw}" on "${itemName}" is not in its declared value set: ${decl.values.join(', ')}`,
-          )
-        }
       }
     }
   }

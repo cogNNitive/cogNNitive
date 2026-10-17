@@ -40,45 +40,62 @@ describe('console rail concept filter is multi-select (OR)', () => {
   })
 })
 
-describe('tag facet: tag: is AND + exact, tag-any: is OR', () => {
-  const el = (id, tags, fields = {}) => ({ id, concept: 'C', name: id, fields, tags })
+describe('field facet: tags: is exact membership (AND), | is any-of', () => {
+  const el = (id, tags, fields = {}) => ({ id, concept: 'C', name: id, fields: { ...fields, tags } })
   const ids = (list, q) => InnfoConsole.filterElements(list, q).map((e) => e.id)
 
-  it('tag: tokens narrow with AND', () => {
+  it('repeated tags: tokens narrow with AND', () => {
     const list = [el('A', ['ai', 'pricing']), el('B', ['ai'])]
-    assert.deepEqual(ids(list, 'tag:ai tag:pricing'), ['A'])
-    assert.deepEqual(ids(list, 'tag:ai'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tags:ai tags:pricing'), ['A'])
+    assert.deepEqual(ids(list, 'tags:ai'), ['A', 'B'])
   })
 
-  it('tag: is exact, not a substring, and case-insensitive', () => {
+  it('tags: is exact membership, not substring, and case-insensitive', () => {
     const list = [el('R', ['retail']), el('A', ['ai'])]
-    assert.deepEqual(ids(list, 'tag:ai'), ['A'])
-    assert.deepEqual(ids(list, 'tag:AI'), ['A'])
+    assert.deepEqual(ids(list, 'tags:ai'), ['A'])
+    assert.deepEqual(ids(list, 'tags:AI'), ['A'])
   })
 
-  it('tag-any: widens with OR', () => {
+  it('tags:a|b widens with OR within one token', () => {
     const list = [el('A', ['ai']), el('B', ['pricing']), el('C', ['ops'])]
-    assert.deepEqual(ids(list, 'tag-any:ai tag-any:pricing'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tags:ai|pricing'), ['A', 'B'])
   })
 
-  it('mixes AND and OR groups', () => {
+  it('mixes AND and any-of', () => {
     const list = [el('A', ['core', 'ai']), el('B', ['core', 'pricing']), el('C', ['ai'])]
-    assert.deepEqual(ids(list, 'tag:core tag-any:ai tag-any:pricing'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tags:core tags:ai|pricing'), ['A', 'B'])
   })
 
-  it('an operator with no value yet constrains nothing while typing', () => {
+  it('works for any multi-valued field', () => {
+    const list = [
+      { id: 'A', concept: 'C', name: 'A', fields: { labels: ['x', 'y'] } },
+      { id: 'B', concept: 'C', name: 'B', fields: { labels: ['y'] } },
+    ]
+    assert.deepEqual(ids(list, 'labels:x'), ['A'])
+  })
+
+  it('matches inherited concept-level values', () => {
+    const list = [
+      { id: 'I', concept: 'C', name: 'I', fields: {}, inherited: { tags: { value: ['core'], from: 'C' } } },
+    ]
+    assert.deepEqual(ids(list, 'tags:core'), ['I'])
+  })
+
+  it('a Field named tags IS a facet source', () => {
+    const list = [el('F', ['ai'])]
+    assert.deepEqual(ids(list, 'tags:ai'), ['F'])
+  })
+
+  it('legacy tag: / tag-any: tokens are not special', () => {
+    const list = [el('A', ['ai'])]
+    assert.deepEqual(ids(list, 'tag:ai'), [], 'no Field named tag')
+    assert.deepEqual(ids(list, 'tag-any:ai'), [], 'no Field named tag-any')
+  })
+
+  it('an operator with no value constrains nothing while typing', () => {
     const list = [el('A', ['ai']), el('B', ['pricing'])]
-    assert.deepEqual(ids(list, 'tag:'), ['A', 'B'])
-    assert.deepEqual(ids(list, 'tag-any:'), ['A', 'B'])
-    assert.deepEqual(ids(list, 'tag:ai tag:'), ['A'], 'the empty operator is dropped, the typed one still applies')
-    assert.deepEqual(ids(list, 'tag-any:ai tag-any:'), ['A'])
-  })
-
-  it('a field named tags is not a tag source', () => {
-    const list = [{ id: 'F', concept: 'C', name: 'F', fields: { tags: 'ai' }, tags: [] }]
-    assert.deepEqual(ids(list, 'tag:ai'), [])
-    assert.deepEqual(ids(list, 'tag-any:ai'), [])
-    assert.deepEqual(ids(list, 'ai'), ['F'], 'full-text search still finds the value')
+    assert.deepEqual(ids(list, 'tags:'), ['A', 'B'])
+    assert.deepEqual(ids(list, 'tags:ai tags:'), ['A'])
   })
 })
 
@@ -133,6 +150,34 @@ describe('element and dynamic field qualifiers', () => {
     assert.deepEqual(ids(items, 'role:Interceptor OR role:Containment'), ['ecto-1', 'trap-1'])
     // (year:1984 OR year:1983) AND priority:<=3 -> trap-1, pack-1
     assert.deepEqual(ids(items, '(year:1984 OR year:1983) AND priority:<=3'), ['trap-1', 'pack-1'])
+  })
+})
+
+describe('filter help and field facet values (S4/U4)', () => {
+  it('lists select field values and states the AND/OR asymmetry', () => {
+    const MODEL = {
+      meta: { title: 'Rail Lab', modelId: 'rail-lab', modelVersion: 'V_1-0-0' },
+      elements: [
+        { id: 'a', concept: 'C', name: 'A', fields: { tags: ['ai', 'pricing'] }, hash: '0'.repeat(16) },
+      ],
+      matrices: [],
+    }
+    const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
+    const { document } = bootConsole({ model: MODEL, schema })
+    const toolbar = document.querySelector('.innfo-toolbar')
+    const host = document.createElement('div')
+    host.id = 'innfo-filter-facets'
+    toolbar.appendChild(host)
+
+    InnfoConsole.renderFilterBar(document, { meta: MODEL.meta, elements: MODEL.elements, schema }, () => {}, '')
+
+    const help = document.querySelector('[data-innfo-filter-help]')
+    assert.ok(help, 'filter help present')
+    assert.match(help.textContent, /AND/)
+    assert.match(help.textContent, /OR/)
+
+    assert.match(host.textContent, /ai/, 'the tags select value is listed')
+    assert.match(host.textContent, /pricing/, 'every value of the multi-valued field is listed')
   })
 })
 

@@ -1,4 +1,4 @@
-import type { LocalMetamodel, MetamodelConcept, MetamodelMarker, KnowledgeNode, TaxonomyEdge } from './types/index.js'
+import type { LocalMetamodel, MetamodelConcept, KnowledgeNode, TaxonomyEdge } from './types/index.js'
 
 /**
  * Builds the ancestor chain for `nodeId`, root-first (e.g. `[Root, Root/A,
@@ -24,18 +24,18 @@ function buildAncestorChain(nodeId: string, nodes: Record<string, KnowledgeNode>
 
 /**
  * Resolves a node's effective metamodel by walking root -> node and merging
- * each ancestor's locally-declared `concepts`/`markers` (R9): a name
+ * each ancestor's locally-declared `concepts` (R9): a name
  * declared closer to the target node overrides the same name declared by
  * an ancestor further up the chain — mirroring `getSpecForLevel`'s
  * closest-wins resolution over the spec chain. Nodes without a local
  * metamodel (nested elements) contribute nothing and are transparent to
  * the walk.
  *
- * `taxonomy` follows a different rule than `concepts`/`markers`: it is a
+ * `taxonomy` follows a different rule than `concepts`: it is a
  * coherent tree, not a bag of independently-keyed items, so it is resolved
  * by wholesale replacement rather than per-edge merge — the closest
  * ancestor with a non-empty taxonomy wins outright, same closest-wins
- * directionality as concepts/markers, just applied to the whole edge list
+ * directionality as concepts, just applied to the whole edge list
  * at once instead of per name.
  *
  * Template roots: if `allRootIds` is provided, every root-level node
@@ -52,7 +52,6 @@ export function resolveEffectiveMetamodel(
   const chain = buildAncestorChain(nodeId, nodes)
 
   const conceptsByName = new Map<string, MetamodelConcept>()
-  const markersByName = new Map<string, MetamodelMarker>()
   let taxonomy: TaxonomyEdge[] = []
 
   // Collect from ancestor chain (node-level inheritance)
@@ -61,9 +60,6 @@ export function resolveEffectiveMetamodel(
     if (!local) continue
     for (const concept of local.concepts) {
       conceptsByName.set(concept.name, concept)
-    }
-    for (const marker of local.markers) {
-      markersByName.set(marker.name, marker)
     }
     if (local.taxonomy && local.taxonomy.length > 0) {
       taxonomy = local.taxonomy
@@ -83,11 +79,6 @@ export function resolveEffectiveMetamodel(
           conceptsByName.set(concept.name, concept)
         }
       }
-      for (const marker of local.markers) {
-        if (!markersByName.has(marker.name)) {
-          markersByName.set(marker.name, marker)
-        }
-      }
       if (taxonomy.length === 0 && local.taxonomy && local.taxonomy.length > 0) {
         taxonomy = local.taxonomy
       }
@@ -96,7 +87,6 @@ export function resolveEffectiveMetamodel(
 
   return {
     concepts: [...conceptsByName.values()],
-    markers: [...markersByName.values()],
     taxonomy,
   }
 }

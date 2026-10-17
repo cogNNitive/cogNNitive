@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-tE2Yp5auDyH8M0aZV9Hx61tRQ1+dv3ZT/0E5+5seWOE=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-m11IYm91eXdBkoqJCVJM3NEsJdogMgEOV81ruxYFyDk=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -8494,36 +8494,43 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the element."
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
+          "scope": "concept",
           "description": "Very long inline description used to stress-test rendering of large text fields."
         },
         {
           "name": "manual",
           "type": "markdown_file",
+          "scope": "concept",
           "description": "External markdown file attached to the element."
         },
         {
           "name": "photo",
           "type": "image",
+          "scope": "concept",
           "description": "Image attached to the element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the element."
         },
         {
           "name": "demo_video",
           "type": "video",
+          "scope": "concept",
           "description": "Downloaded video asset attached to the element."
         },
         {
           "name": "voice_note",
           "type": "audio",
+          "scope": "concept",
           "description": "Downloaded and transcribed audio asset attached to the element."
         },
         {
@@ -8532,6 +8539,7 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Concept 2"
           ],
+          "scope": "concept",
           "description": "Reference to an element of Concept 2."
         },
         {
@@ -8542,7 +8550,15 @@ input[type="text"], input[type="search"], textarea, select {
             "reviewed",
             "published"
           ],
+          "scope": "concept",
           "description": "Lifecycle status of the element."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8557,11 +8573,13 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the element."
         },
         {
@@ -8570,7 +8588,15 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Concept 1"
           ],
+          "scope": "concept",
           "description": "Reference back to an element of Concept 1."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8585,22 +8611,33 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the edge-case element."
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
+          "scope": "concept",
           "description": "Very long inline description used to stress-test rendering of large text fields."
         },
         {
           "name": "photo",
           "type": "image",
+          "scope": "concept",
           "description": "Image attached to the edge-case element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the edge-case element."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8621,31 +8658,37 @@ input[type="text"], input[type="search"], textarea, select {
             "reporting",
             "custom"
           ],
+          "scope": "concept",
           "description": "Functional classification of the procedure workflow."
         },
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "Mandatory concise summary of the workflow intent and transformation steps."
         },
         {
           "name": "inputs_required",
           "type": "string",
+          "scope": "concept",
           "description": "References to required Source or Model concepts consumed as inputs."
         },
         {
           "name": "outputs_expected",
           "type": "string",
+          "scope": "concept",
           "description": "References to expected Artifact concepts produced by the procedure."
         },
         {
           "name": "executed_by",
           "type": "string",
+          "scope": "concept",
           "description": "Reference to responsible agent or functional role executing the procedure."
         },
         {
           "name": "procedure_model",
           "type": "knowledge",
+          "scope": "concept",
           "description": "Link to concrete procedure definition or executable stepper model _NN.md."
         }
       ]
@@ -8664,50 +8707,58 @@ input[type="text"], input[type="search"], textarea, select {
             "task",
             "decision",
             "event"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "parent",
           "type": "reference",
           "target_concepts": [
             "Work"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "next",
           "type": "reference",
           "target_concepts": [
             "Work"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "condition",
-          "type": "string"
+          "type": "string",
+          "scope": "concept"
         },
         {
           "name": "input",
           "type": "reference",
           "target_concepts": [
             "Artifact"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "output",
           "type": "reference",
           "target_concepts": [
             "Artifact"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "output_status",
-          "type": "string"
+          "type": "string",
+          "scope": "concept"
         },
         {
           "name": "tool",
           "type": "reference",
           "target_concepts": [
             "Tools"
-          ]
+          ],
+          "scope": "concept"
         }
       ]
     },
@@ -8738,7 +8789,8 @@ input[type="text"], input[type="search"], textarea, select {
           "options": [
             "internal",
             "external"
-          ]
+          ],
+          "scope": "concept"
         }
       ]
     }
@@ -8748,42 +8800,49 @@ input[type="text"], input[type="search"], textarea, select {
       "concept": "Concept 1",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the element."
     },
     {
       "concept": "Concept 1",
       "name": "long_description",
       "type": "markdown_inline",
+      "scope": "concept",
       "description": "Very long inline description used to stress-test rendering of large text fields."
     },
     {
       "concept": "Concept 1",
       "name": "manual",
       "type": "markdown_file",
+      "scope": "concept",
       "description": "External markdown file attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "photo",
       "type": "image",
+      "scope": "concept",
       "description": "Image attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "demo_video",
       "type": "video",
+      "scope": "concept",
       "description": "Downloaded video asset attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "voice_note",
       "type": "audio",
+      "scope": "concept",
       "description": "Downloaded and transcribed audio asset attached to the element."
     },
     {
@@ -8793,6 +8852,7 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Concept 2"
       ],
+      "scope": "concept",
       "description": "Reference to an element of Concept 2."
     },
     {
@@ -8804,18 +8864,29 @@ input[type="text"], input[type="search"], textarea, select {
         "reviewed",
         "published"
       ],
+      "scope": "concept",
       "description": "Lifecycle status of the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Concept 2",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the element."
     },
     {
       "concept": "Concept 2",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the element."
     },
     {
@@ -8825,31 +8896,52 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Concept 1"
       ],
+      "scope": "concept",
       "description": "Reference back to an element of Concept 1."
+    },
+    {
+      "concept": "Concept 2",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Edge Cases",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the edge-case element."
     },
     {
       "concept": "Edge Cases",
       "name": "long_description",
       "type": "markdown_inline",
+      "scope": "concept",
       "description": "Very long inline description used to stress-test rendering of large text fields."
     },
     {
       "concept": "Edge Cases",
       "name": "photo",
       "type": "image",
+      "scope": "concept",
       "description": "Image attached to the edge-case element."
     },
     {
       "concept": "Edge Cases",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the edge-case element."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Procedure",
@@ -8862,36 +8954,42 @@ input[type="text"], input[type="search"], textarea, select {
         "reporting",
         "custom"
       ],
+      "scope": "concept",
       "description": "Functional classification of the procedure workflow."
     },
     {
       "concept": "Procedure",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "Mandatory concise summary of the workflow intent and transformation steps."
     },
     {
       "concept": "Procedure",
       "name": "inputs_required",
       "type": "string",
+      "scope": "concept",
       "description": "References to required Source or Model concepts consumed as inputs."
     },
     {
       "concept": "Procedure",
       "name": "outputs_expected",
       "type": "string",
+      "scope": "concept",
       "description": "References to expected Artifact concepts produced by the procedure."
     },
     {
       "concept": "Procedure",
       "name": "executed_by",
       "type": "string",
+      "scope": "concept",
       "description": "Reference to responsible agent or functional role executing the procedure."
     },
     {
       "concept": "Procedure",
       "name": "procedure_model",
       "type": "knowledge",
+      "scope": "concept",
       "description": "Link to concrete procedure definition or executable stepper model _NN.md."
     },
     {
@@ -8902,7 +9000,8 @@ input[type="text"], input[type="search"], textarea, select {
         "task",
         "decision",
         "event"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8910,7 +9009,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Work"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8918,12 +9018,14 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Work"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
       "name": "condition",
-      "type": "string"
+      "type": "string",
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8931,7 +9033,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Artifact"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8939,12 +9042,14 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Artifact"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
       "name": "output_status",
-      "type": "string"
+      "type": "string",
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8952,7 +9057,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Tools"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Roles",
@@ -8961,39 +9067,11 @@ input[type="text"], input[type="search"], textarea, select {
       "options": [
         "internal",
         "external"
-      ]
+      ],
+      "scope": "concept"
     }
   ],
-  "markers": [
-    {
-      "name": "critical",
-      "symbol": "!",
-      "icon": "alert-triangle",
-      "color": "red",
-      "applies_to": [
-        "Element"
-      ]
-    },
-    {
-      "name": "archived",
-      "symbol": "A",
-      "icon": "archive",
-      "color": "gray",
-      "applies_to": [
-        "Element"
-      ]
-    },
-    {
-      "name": "complexity",
-      "icon": "gauge",
-      "color": "green",
-      "weight": 50,
-      "applies_to": [
-        "Element",
-        "Concept"
-      ]
-    }
-  ],
+  "markers": [],
   "matrices": [
     {
       "name": "Concept 1-Concept 2 Matrix",
@@ -9056,9 +9134,9 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-fd378507",
-    "generated": "2026-10-17T16:05:33.605Z",
-    "changesBlueprintVersion": "V_0-4-0",
+    "domainId": "testlab-fc520327",
+    "generated": "2026-10-17T17:09:43.508Z",
+    "changesBlueprintVersion": "V_0-5-0",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -9067,7 +9145,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T16:05:33.571Z",
+        "citationsResolvedAt": "2026-10-17T17:09:43.413Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9085,7 +9163,7 @@ input[type="text"], input[type="search"], textarea, select {
         "filePath": "TestLab_procedures_TestLab_procedures_NN.md",
         "blueprint": "procedures",
         "version": "V_0-1-0",
-        "sha256": "8958a48166d3d87a1f17c6ba8420f6e69aa0cac1ea6038a9c06ece96f475fdc9",
+        "sha256": "3afe1fd065960ad31b40173b2e98f331fbf7c2e7a164f57bf07eb95e860413e9",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
@@ -9117,8 +9195,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "draft"
       },
       "markers": {},
-      "hash": "2e167cda4bf3e770",
-      "tags": [],
+      "hash": "490b604b688590ad",
       "relations": [
         {
           "field": "sibling",
@@ -9168,8 +9245,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "reviewed"
       },
       "markers": {},
-      "hash": "c9d63b0a7681953c",
-      "tags": [],
+      "hash": "063854d37ba2c2e0",
       "relations": [
         {
           "field": "sibling",
@@ -9222,8 +9298,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "published"
       },
       "markers": {},
-      "hash": "4642b08b6e632a78",
-      "tags": [],
+      "hash": "548850acd333bb47",
       "relations": [
         {
           "field": "sibling",
@@ -9273,8 +9348,7 @@ input[type="text"], input[type="search"], textarea, select {
         "owner": "[[Element 1A]]"
       },
       "markers": {},
-      "hash": "a9bdd341055b3943",
-      "tags": [],
+      "hash": "d184aba09be2d1ba",
       "relations": [
         {
           "field": "owner",
@@ -9318,8 +9392,7 @@ input[type="text"], input[type="search"], textarea, select {
         "owner": "[[Element 1C (test)]]"
       },
       "markers": {},
-      "hash": "939c99b073f737c0",
-      "tags": [],
+      "hash": "30c37c1db93b49af",
       "relations": [
         {
           "field": "owner",
@@ -9369,8 +9442,7 @@ input[type="text"], input[type="search"], textarea, select {
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "35ccda5bf585eb0a",
-      "tags": [],
+      "hash": "c95581dd147c89f6",
       "citations": {
         "sources": [
           {
@@ -9409,8 +9481,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "Markdown plus CSV row plus JSON pointer on a single element. If any one of the three fails to resolve, the probe fails as a whole."
       },
       "markers": {},
-      "hash": "196715b29e15a475",
-      "tags": [],
+      "hash": "bce4c13de369a22e",
       "citations": {
         "sources": [
           {
@@ -9457,8 +9528,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "This probe cites the generated weekly report result section. The report itself derives from Concept 1 elements, so the lineage is artifact to model to source. Dropping the upstream section must break this probe loudly."
       },
       "markers": {},
-      "hash": "caf44b0a83bb952c",
-      "tags": [],
+      "hash": "34c0ef1cc1f496d4",
       "citations": {
         "sources": [
           {
@@ -9491,8 +9561,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "The video binary is never cited. The transcript section of the sidecar is the citable unit. Players render demo_video below while the citation points at the transcript."
       },
       "markers": {},
-      "hash": "bb9885cab9e9dd34",
-      "tags": [],
+      "hash": "276f6b04879ea87d",
       "citations": {
         "sources": [
           {
@@ -9525,8 +9594,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "The audio binary is never cited. The transcript section carries the operator quote about the manual being ignored and the photo log being trusted."
       },
       "markers": {},
-      "hash": "f13128ae2f2e30c9",
-      "tags": [],
+      "hash": "7027df474857f5d2",
       "citations": {
         "sources": [
           {
@@ -9559,8 +9627,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "The PDF binary is never cited because binaries are not citation targets. The sidecar findings section holds the normalized markdown and is the only valid pointer."
       },
       "markers": {},
-      "hash": "3bfe1390dd33dd3d",
-      "tags": [],
+      "hash": "51c23dc8af34da50",
       "citations": {
         "sources": [
           {
@@ -9595,8 +9662,7 @@ input[type="text"], input[type="search"], textarea, select {
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "bf368406030a5fd9",
-      "tags": [],
+      "hash": "340c95ea6a876c7f",
       "citations": {
         "sources": [
           {
@@ -9634,8 +9700,7 @@ input[type="text"], input[type="search"], textarea, select {
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "d252f224724d06ce",
-      "tags": [],
+      "hash": "820960c5dedb38b9",
       "citations": {
         "sources": [
           {
@@ -9671,8 +9736,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "Edit artifacts/testlab-report.md, keep the Result heading stable, and this probe keeps passing. Rename or delete that heading and this probe must fail, proving the artifact is a live source and not a dead copy."
       },
       "markers": {},
-      "hash": "4567d69813bb172a",
-      "tags": [],
+      "hash": "c26ff661b2c83646",
       "citations": {
         "sources": [
           {
@@ -9705,8 +9769,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "This probe points at an element that does not exist. Validators must flag it while every other element stays green, so tests can assert the broken case in isolation."
       },
       "markers": {},
-      "hash": "16b452becf1e8e63",
-      "tags": [],
+      "hash": "da6c48b45e7cd63c",
       "citations": {
         "sources": [
           {
@@ -9736,8 +9799,7 @@ input[type="text"], input[type="search"], textarea, select {
         "long_description": "No sources property here at all. Omission is legal: the element simply has no citation edges, and lineage queries must return empty instead of erroring."
       },
       "markers": {},
-      "hash": "81caf92482543aa5",
-      "tags": [],
+      "hash": "015f50ceaef563eb",
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -9760,8 +9822,7 @@ input[type="text"], input[type="search"], textarea, select {
         "procedure_model": "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
       },
       "markers": {},
-      "hash": "307bb9c421bd2fff",
-      "tags": [],
+      "hash": "c543366d544a5a7a",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -9784,8 +9845,7 @@ input[type="text"], input[type="search"], textarea, select {
         "procedure_model": "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
       },
       "markers": {},
-      "hash": "2f7c892f3524a79d",
-      "tags": [],
+      "hash": "6f59539e60601135",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -9804,8 +9864,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "2a601eb39adfbabe",
-      "tags": [],
+      "hash": "a600de8e62894fe4",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -9827,8 +9886,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "e286efa4894c31b5",
-      "tags": [],
+      "hash": "49a23f463e20bbbe",
       "relations": [
         {
           "field": "parent",
@@ -9862,8 +9920,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "d0cfa184a55a0111",
-      "tags": [],
+      "hash": "bcc564e05cdffcdd",
       "relations": [
         {
           "field": "parent",
@@ -9897,8 +9954,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "9b63b1cb010b3029",
-      "tags": [],
+      "hash": "26a5a416df00e22a",
       "relations": [
         {
           "field": "parent",
@@ -9932,8 +9988,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "3979d02fa7205228",
-      "tags": [],
+      "hash": "6112fd18b2485c28",
       "relations": [
         {
           "field": "parent",
@@ -9967,8 +10022,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "6961094558c435a7",
-      "tags": [],
+      "hash": "add031bf8d7e0296",
       "relations": [
         {
           "field": "parent",
@@ -10001,8 +10055,7 @@ input[type="text"], input[type="search"], textarea, select {
         "scope": "internal"
       },
       "markers": {},
-      "hash": "e728a6209fcc93d2",
-      "tags": [],
+      "hash": "59fe70929e767b2c",
       "relations": [
         {
           "field": "parent",
@@ -10591,7 +10644,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // never leaks into a shell. C appends the review components here.
   var COMPONENT_CSS = [
     '[data-innfo-component]{box-sizing:border-box}',
-    '.innfo-concept-pill,.innfo-element-pill,.innfo-marker-chip,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
+    '.innfo-concept-pill,.innfo-element-pill,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
     '.innfo-concept-dot{width:.6em;height:.6em;border-radius:50%;background:var(--innfo-muted);flex:0 0 auto}',
     '.innfo-concept-count{color:var(--innfo-muted)}',
     '.innfo-element-origin{display:inline-flex;align-items:center;color:var(--innfo-origin-document)}',
@@ -10709,6 +10762,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
+    '.innfo-ku-badge .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
+    '.innfo-ku-badge .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
     '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
@@ -10785,7 +10840,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-mini-text{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}',
     '.innfo-mini-name{font-size:.8rem;font-weight:600;color:var(--innfo-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.innfo-mini-meta{font-size:.68rem;color:var(--innfo-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.innfo-mini-markers{display:flex;gap:.25em;flex:0 0 auto}',
     '.innfo-mini>.innfo-card-status-pill{flex:0 0 auto}',
     // ElementPreview (generic floating detail) + the mini's info affordance.
     '.innfo-preview{position:fixed;z-index:60;width:clamp(26rem,60vw,52rem);max-width:calc(100vw - 1.5rem);max-height:calc(100vh - 1.5rem);overflow:auto;overscroll-behavior:contain;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius,10px);box-shadow:0 12px 32px rgba(0,0,0,.16);padding:.6rem .8rem}',
@@ -10897,6 +10951,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var index = Number(data && data.index) || 0
     return (index % 12) + 1
+  }
+
+  // Tag color derivation: FNV-1a 32-bit over valueKey(name), then slot = (h >>> 0) % 12 + 1
+  function tagSlot(name) {
+    var key = String(name == null ? '' : name).trim().toLowerCase()
+    var h = 0x811c9dc5
+    for (var i = 0; i < key.length; i++) {
+      h ^= key.charCodeAt(i)
+      h = Math.imul(h, 0x01000193) >>> 0
+    }
+    return ((h >>> 0) % 12) + 1
   }
 
   function makeEl(doc, tag, cls, text) {
@@ -11039,18 +11104,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return pill
   }
 
-  function MarkerChip(data) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.MarkerChip: data required')
-    var doc = resolveDoc(null)
-    var chip = makeEl(doc, 'span', 'innfo-marker-chip')
-    chip.setAttribute('data-innfo-component', 'marker-chip')
-    chip.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-    chip.setAttribute('data-kind', String(data.kind == null ? '' : data.kind))
-    chip.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
-    if (data.value != null) chip.appendChild(makeEl(doc, 'b', null, data.value))
-    return chip
-  }
-
   // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
   //
   // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
@@ -11154,6 +11207,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     tags.forEach(function (t) {
       var tag = makeEl(doc, 'span', 'innfo-tag')
       tag.setAttribute('data-tag', String(t))
+      tag.setAttribute('data-concept-slot', String(tagSlot(t)))
       tag.appendChild(doc.createTextNode(String(t)))
       if (onTag) {
         tag.setAttribute('role', 'button')
@@ -11983,13 +12037,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
       mini.appendChild(metaEl)
     }
-    if (Array.isArray(data.markers) && data.markers.length) {
-      var mks = makeEl(doc, 'span', 'innfo-mini-markers')
-      data.markers.forEach(function (m) {
-        if (m) mks.appendChild(MarkerChip(m))
-      })
-      mini.appendChild(mks)
-    }
     if (data.status) {
       var st = makeEl(doc, 'span', 'innfo-card-status-pill')
       st.setAttribute('data-status', String(data.status).toLowerCase())
@@ -12100,12 +12147,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       stPill.appendChild(doc.createTextNode(statusField))
       head.appendChild(stPill)
-    }
-
-    if (Array.isArray(data.markers)) {
-      data.markers.forEach(function (m) {
-        if (m) head.appendChild(MarkerChip(m))
-      })
     }
 
     if (summaryField) {
@@ -13264,11 +13305,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // / edit) live OUTSIDE the badge in KuActions, never nested, and the pending-
   // change pip is a count badge child. The kit holds no mode state: the edit action
   // exists only because the caller passed onEdit.
-  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'marker', 'reference']
+  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'reference']
   var KU_KIND_ICON = {
     document: 'cite-document',
     concept: 'explorer',
-    marker: 'star',
     field: 'derived',
     cell: 'calc',
   }
@@ -13312,10 +13352,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     } else if (kind === 'field') {
       badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
       if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-    } else if (kind === 'marker') {
-      badge.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-      badge.setAttribute('data-kind', String(data.markerKind == null ? '' : data.markerKind))
-      if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
     }
 
     var iconName = data.icon || KU_KIND_ICON[kind]
@@ -13327,18 +13363,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     if (kind === 'field') {
       var fieldLabel = data.label != null ? data.label : data.name
-      if (data.value != null || data.valueNode) {
+      if (data.valueNode) {
         if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        if (data.valueNode) badge.appendChild(data.valueNode)
-        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+        badge.appendChild(data.valueNode)
+      } else if (Array.isArray(data.value)) {
+        // A multi-valued Field renders one value chip per value.
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        var valuesWrap = makeEl(doc, 'span', 'innfo-ku-values')
+        data.value.forEach(function (v) {
+          valuesWrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-chip', v == null ? '' : String(v)))
+        })
+        badge.appendChild(valuesWrap)
+      } else if (data.value != null) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
       } else if (fieldLabel != null) {
         badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
       }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
-    } else if (kind === 'marker') {
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', String(data.label == null ? '' : data.label)))
-      if (data.value != null) badge.appendChild(makeEl(doc, 'b', null, data.value))
     } else {
       var labelText = String(data.label == null ? '' : data.label)
       var labelEl = makeEl(doc, 'span', 'innfo-ku-value', labelText)
@@ -13606,11 +13649,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     icon: icon,
     slug: slug,
     conceptSlot: conceptSlot,
+    tagSlot: tagSlot,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
-    MarkerChip: MarkerChip,
     KuBadge: KuBadge,
     KuActions: KuActions,
     QudChip: QudChip,
@@ -13672,22 +13715,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
-  // The definition governing a matrix cell: the column Marker of the reserved
-  // item-markers matrix, otherwise the matrix definition of the same name.
-  // The reserved matrix is recognised like payload-builder does: by name OR by a
-  // `markers` target.
+  // The definition governing a matrix cell: the matrix definition of the same name.
   function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
-    function byName(list, name) {
-      var want = String(name).toLowerCase()
-      return (Array.isArray(list) ? list : []).filter(function (d) {
+    var want = String(matrix).toLowerCase()
+    return (
+      (Array.isArray(schema.matrices) ? schema.matrices : []).filter(function (d) {
         return d && String(d.name).toLowerCase() === want
-      })[0]
-    }
-    var isItemMarkers =
-      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
-    if (isItemMarkers) return byName(schema.markers, col) || null
-    return byName(schema.matrices, matrix) || null
+      })[0] || null
+    )
   }
 
   // Declared definition of a field, keyed by (concept, field) so two concepts that
@@ -14170,6 +14206,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       openPopover = null
     }
 
+    function valueKeyOf(v) {
+      return String(v == null ? '' : v).trim().toLowerCase()
+    }
+
+    // Effective tags = own `tags` Field values plus inherited concept-level
+    // values, de-duplicated case-insensitively (mirrors the console runtime).
+    function effectiveTagsOf(el) {
+      var out = []
+      if (el && Array.isArray(el.tags)) {
+        out = out.concat(el.tags)
+      } else if (el && el.fields && el.fields.tags != null) {
+        var own = el.fields.tags
+        out = out.concat(Array.isArray(own) ? own : [own])
+      }
+      if (el && el.inherited && el.inherited.tags) {
+        var iv = el.inherited.tags.value
+        if (iv != null) out = out.concat(Array.isArray(iv) ? iv : [iv])
+      }
+      var seen = {}
+      return out.filter(function (t) {
+        var k = valueKeyOf(t)
+        if (!k || seen[k]) return false
+        seen[k] = true
+        return true
+      })
+    }
+
     function saveDraft(anchorData, payload) {
       if (!store) return null
       if (anchorData.matrixCell) {
@@ -14325,20 +14388,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: base.history,
         }
       }
-      if (field.indexOf('marker:') === 0) {
-        var markerId = field.slice('marker:'.length)
-        var markers = el.markers || {}
-        return {
-          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 marker ' + markerId,
-          fieldName: field,
-          type: 'string',
-          value: markers[markerId],
-          draftField: field,
-          original: markers[markerId],
-          citations: base.citations,
-          history: base.history,
-        }
-      }
       var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
@@ -14487,13 +14536,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
-      // Tag / relation membership has no core draft op yet: record proposals
-      // as comment drafts (never auto-applied corrections).
+      // Tag membership is a `correction` on the `tags` Field carrying the full
+      // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
+        var elTag = elementsById[anchorData.elementId]
+        var curTags = effectiveTagsOf(elTag)
+        var nextTags = curTags.filter(function (t) {
+          return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
+        })
         saveDraft(anchorData, {
-          kind: 'comment',
+          kind: 'correction',
           field: 'tags',
-          comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
+          original: curTags,
+          proposed: nextTags,
         })
         return
       }
@@ -14514,7 +14569,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
-      if (anchorData.tagAdd) kinds = ['comment']
+      if (anchorData.tagAdd) kinds = ['correction']
       if (anchorData.relAdd) kinds = ['comment']
       var activeKind = kinds[0]
       var data = {
@@ -14537,10 +14592,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var ta = pop.querySelector('textarea')
           var text = ta ? ta.value : ''
           if (anchorData.tagAdd) {
+            var elTagAdd = elementsById[anchorData.elementId]
+            var curAdd = effectiveTagsOf(elTagAdd)
+            var nextAdd = curAdd.concat([text])
             saveDraft(anchorData, {
-              kind: 'comment',
+              kind: 'correction',
               field: 'tags',
-              comment: 'Propose tag: ' + text,
+              original: curAdd,
+              proposed: nextAdd,
             })
           } else if (anchorData.relAdd) {
             saveDraft(anchorData, {
@@ -14792,19 +14851,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           ),
         )
       }
-      Array.prototype.forEach.call(
-        card.querySelectorAll('[data-marker-id]'),
-        function (chip) {
-          if (chip.querySelector('[data-innfo-ctl="marker-anchor"]')) return
-          var markerId = chip.getAttribute('data-marker-id')
-          chip.appendChild(
-            kuEditControl(
-              { elementId: elId, field: 'marker:' + markerId, ctl: 'marker-anchor' },
-              'Edit marker ' + markerId,
-            ),
-          )
-        },
-      )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
 
@@ -15509,6 +15555,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return slugify(String(concept || '') + ' ' + String(name || ''))
   }
 
+  function getElementEffectiveTags(element) {
+    if (!element) return []
+    if (Array.isArray(element.tags)) {
+      return element.tags.map(function (t) { return String(t).toLowerCase() })
+    }
+    var tags = []
+    if (element.fields && element.fields.tags) {
+      if (Array.isArray(element.fields.tags)) tags = tags.concat(element.fields.tags)
+      else if (typeof element.fields.tags === 'string') tags = tags.concat(element.fields.tags.split(',').map(function (s) { return s.trim() }))
+    }
+    if (element.inherited && element.inherited.tags && element.inherited.tags.value) {
+      var inh = element.inherited.tags.value
+      if (Array.isArray(inh)) tags = tags.concat(inh)
+      else if (typeof inh === 'string') tags = tags.concat(inh.split(',').map(function (s) { return s.trim() }))
+    }
+    var seen = {}
+    return tags.map(function (t) { return String(t).toLowerCase() }).filter(function (t) {
+      if (!t || seen[t]) return false
+      seen[t] = true
+      return true
+    })
+  }
+
   function elementHaystack(element) {
     var parts = [
       element.concept,
@@ -15520,8 +15589,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       element.unitSlug,
       element.canonicalUnit,
     ]
-    if (Array.isArray(element.tags)) {
-      parts.push(element.tags.join(' '))
+    var effTags = getElementEffectiveTags(element)
+    if (effTags.length) {
+      parts.push(effTags.join(' '))
     }
     if (isObject(element.fields)) {
       parts.push(Object.keys(element.fields).join(' '))
@@ -15637,6 +15707,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return { textTokens: textTokens, operators: operators, groups: groups }
   }
 
+  // valueKey: the single normalization used for multi-valued field membership
+  // (trim + lowercase), mirroring innfo-core schema/field-values.ts valueKey.
+  function valueKey(v) {
+    if (v === null || v === undefined) return ''
+    return String(v).trim().toLowerCase()
+  }
+
   function getElementFieldValue(el, key) {
     if (!el || !key) return null
     var lkey = String(key).toLowerCase()
@@ -15654,6 +15731,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
     }
+    // Inherited concept-level values are effective values: fall back to them
+    // when the element carries no own value for the field.
+    if ((v === null || v === '' || v === undefined) && el.inherited && typeof el.inherited === 'object') {
+      var iKeys = Object.keys(el.inherited)
+      for (var j = 0; j < iKeys.length; j++) {
+        if (iKeys[j].toLowerCase() === lkey) {
+          var iv = el.inherited[iKeys[j]]
+          if (iv && typeof iv === 'object' && 'value' in iv) iv = iv.value
+          if (iv !== null && iv !== undefined) v = iv
+          break
+        }
+      }
+    }
     if ((v === null || v === '' || v === undefined) && Array.isArray(el.relations)) {
       var relMatches = el.relations
         .filter(function (r) { return r && String(r.field || '').toLowerCase() === lkey })
@@ -15664,7 +15754,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return v
   }
 
-  function matchAtom(el, atom, draftsById, reviewedMap) {
+  function matchAtom(el, atom, draftsById, reviewedMap, selectFields) {
     if (!atom) return true
     if (atom.type === 'text') {
       return elementHaystack(el).indexOf(atom.val) !== -1
@@ -15689,14 +15779,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ).toLowerCase()
       var mModel = modelHaystack.indexOf(opVal) !== -1
       return isNeg ? !mModel : mModel
-    }
-    if (key === 'tag' || key === 'tag-any') {
-      if (!opVal) return true
-      var elTags = Array.isArray(el.tags)
-        ? el.tags.map(function (t) { return String(t).toLowerCase() })
-        : []
-      var mTag = elTags.indexOf(opVal) !== -1
-      return isNeg ? !mTag : mTag
     }
     if (key === 'element' || key === 'id' || key === 'name') {
       var elHaystack = (String(el.id || '') + ' ' + String(el.name || '')).toLowerCase()
@@ -15732,23 +15814,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var actual = getElementFieldValue(el, key)
     if (actual === null || actual === undefined) return isNeg
+    if (!opVal) return true
+    // Any-of: `<field>:a|b` matches an element carrying at least one of the listed
+    // values (one OR group). Repeated tokens stay AND (handled by filterElements).
+    var anyTokens = opVal
+      .split('|')
+      .map(function (s) { return s.trim() })
+      .filter(function (s) { return s !== '' })
+    if (anyTokens.length === 0) return true
+    var isArrayValue = Array.isArray(actual)
     var actualStr = String(actual).toLowerCase()
-    var matched = false
-    if (opVal.length > 1 && (opVal.charAt(0) === '>' || opVal.charAt(0) === '<')) {
-      var isGte = opVal.slice(0, 2) === '>='
-      var isLte = opVal.slice(0, 2) === '<='
-      var prefixLen = (isGte || isLte) ? 2 : 1
-      var numTarget = parseFloat(opVal.slice(prefixLen))
-      var numActual = parseFloat(actualStr)
-      if (!isNaN(numTarget) && !isNaN(numActual)) {
-        if (isGte) matched = numActual >= numTarget
-        else if (isLte) matched = numActual <= numTarget
-        else if (opVal.charAt(0) === '>') matched = numActual > numTarget
-        else if (opVal.charAt(0) === '<') matched = numActual < numTarget
+    var matched = anyTokens.some(function (tok) {
+      if (tok.length > 1 && (tok.charAt(0) === '>' || tok.charAt(0) === '<')) {
+        var isGte = tok.slice(0, 2) === '>='
+        var isLte = tok.slice(0, 2) === '<='
+        var prefixLen = (isGte || isLte) ? 2 : 1
+        var numTarget = parseFloat(tok.slice(prefixLen))
+        var numActual = parseFloat(actualStr)
+        if (isNaN(numTarget) || isNaN(numActual)) return false
+        if (isGte) return numActual >= numTarget
+        if (isLte) return numActual <= numTarget
+        if (tok.charAt(0) === '>') return numActual > numTarget
+        return numActual < numTarget
       }
-    } else {
-      matched = actualStr.indexOf(opVal) !== -1
-    }
+      if (isArrayValue) {
+        // Exact membership, case-insensitive (valueKey). Never substring.
+        var tv = valueKey(tok)
+        return actual.some(function (v) { return valueKey(v) === tv })
+      }
+      if (selectFields && selectFields[key]) {
+        // A scalar select matches by exact, case-insensitive equality.
+        return actualStr === tok.toLowerCase()
+      }
+      return actualStr.indexOf(tok.toLowerCase()) !== -1
+    })
     return isNeg ? !matched : matched
   }
 
@@ -15761,6 +15860,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var draftsById = ctx.draftsById || {}
     var reviewedMap = ctx.reviewed || {}
 
+    // Type-aware matching: a scalar `select` field matches by exact equality,
+    // other scalar types by substring (arrays are always exact membership).
+    var selectFields = {}
+    if (ctx.schema && Array.isArray(ctx.schema.fields)) {
+      ctx.schema.fields.forEach(function (f) {
+        if (f && f.name && String(f.type || '').toLowerCase() === 'select') {
+          selectFields[String(f.name).toLowerCase()] = true
+        }
+      })
+    }
+
     // Check if query used explicit boolean groups (e.g. parentheses or OR keyword)
     var hasExplicitLogic = parsed.groups.some(function (g) { return g.length > 1 }) || query.indexOf('(') !== -1 || /\bOR\b/i.test(query)
 
@@ -15770,17 +15880,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         // Every group must match (AND across groups). Within each group, at least one atom must match (OR).
         return parsed.groups.every(function (group) {
           return group.some(function (atom) {
-            return matchAtom(el, atom, draftsById, reviewedMap)
+            return matchAtom(el, atom, draftsById, reviewedMap, selectFields)
           })
         })
       })
     }
 
-    // Default facet rules: OR within model/concept, AND across tags and other fields
+    // Default facet rules: model/concept keep OR across selections; every other
+    // facet combines with AND. A Field named `tags` is an ordinary facet source
+    // (any-of is expressed with `|` inside one token, handled by matchAtom).
     var modelOps = []
     var conceptOps = []
-    var tagOps = []
-    var tagAnyOps = []
     var otherOps = []
 
     for (var k = 0; k < parsed.operators.length; k++) {
@@ -15789,10 +15899,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         modelOps.push(oper)
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
-      } else if (oper.key === 'tag' || oper.key === 'tag-any') {
-        if (String(oper.val == null ? '' : oper.val).trim() === '') continue
-        if (oper.key === 'tag') tagOps.push(oper)
-        else tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -15809,7 +15915,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Check model facet (OR across multiple model selections)
       if (modelOps.length > 0) {
         var matchesAnyModel = modelOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyModel) return false
       }
@@ -15817,28 +15923,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Check concept facet (OR across multiple concept selections)
       if (conceptOps.length > 0) {
         var matchesAnyConcept = conceptOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyConcept) return false
       }
 
-      // Tag facet
-      if (tagOps.length > 0 || tagAnyOps.length > 0) {
-        var hasAllTags = tagOps.every(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
-        })
-        if (!hasAllTags) return false
-        if (tagAnyOps.length > 0) {
-          var hasAnyTag = tagAnyOps.some(function (op) {
-            return matchAtom(el, op, draftsById, reviewedMap)
-          })
-          if (!hasAnyTag) return false
-        }
-      }
-
-      // Other fields (AND by default)
+      // Other fields (AND by default; a Field named `tags` is an ordinary facet,
+      // any-of lives inside one token as `tags:a|b`)
       for (var j = 0; j < otherOps.length; j++) {
-        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap)) return false
+        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap, selectFields)) return false
       }
 
       return true
@@ -16529,16 +16622,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (state && Array.isArray(state.elements)) {
       state.elements.forEach(function (e) {
         if (!e) return
-        var ef = e.fields
-        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
-          Object.keys(ef).forEach(function (fName) {
-            var rawVal = ef[fName]
-            if (rawVal === undefined || rawVal === null || rawVal === '') return
-            // Ignore bulky JSON/complex objects or array strings if inappropriate
-            var sVal = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal).trim()
+        var collect = function (fName, rawVal) {
+          if (rawVal === undefined || rawVal === null || rawVal === '') return
+          var vals = Array.isArray(rawVal) ? rawVal : [rawVal]
+          vals.forEach(function (v) {
+            if (v === undefined || v === null || v === '') return
+            var sVal = typeof v === 'object' ? JSON.stringify(v) : String(v).trim()
             if (!sVal || sVal.length > 60) return
             if (!fieldFacetMap[fName]) fieldFacetMap[fName] = {}
             fieldFacetMap[fName][sVal] = (fieldFacetMap[fName][sVal] || 0) + 1
+          })
+        }
+        var ef = e.fields
+        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
+          Object.keys(ef).forEach(function (fName) {
+            collect(fName, ef[fName])
+          })
+        }
+        if (e.inherited && typeof e.inherited === 'object') {
+          Object.keys(e.inherited).forEach(function (fName) {
+            var iv = e.inherited[fName]
+            collect(fName, iv && typeof iv === 'object' && 'value' in iv ? iv.value : iv)
           })
         }
       })
@@ -16634,6 +16738,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       fWrap.appendChild(fMenu)
       host.appendChild(fWrap)
     }
+
+    // Filter help: state the AND vs OR asymmetry (Fields/text AND, Model/Concept OR).
+    var filterHelp = el(
+      'span',
+      'innfo-filter-help text-xs text-slate-400',
+      'Fields and text combine with AND; within one token a|b is OR. Model and Concept combine with OR.',
+    )
+    filterHelp.setAttribute('data-innfo-filter-help', '1')
+    filterHelp.setAttribute(
+      'title',
+      'Fields and free text combine with AND. Model and Concept selections combine with OR. Inside one Field token, `a|b` matches any of the listed values.',
+    )
+    host.appendChild(filterHelp)
 
     // 4. Clear button if any filter is active
     if (activeQuery) {
@@ -17036,16 +17153,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var all = schema && Array.isArray(schema.fields) ? schema.fields : []
     var cname = String(concept.name).toLowerCase()
     return all.filter(function (f) {
-      return f && f.concept && String(f.concept).toLowerCase() === cname
-    })
-  }
-
-  function guideMarkersFor(concept, schema) {
-    if (Array.isArray(concept.markers) && concept.markers.length) return concept.markers
-    var all = schema && Array.isArray(schema.markers) ? schema.markers : []
-    var cname = String(concept.name).toLowerCase()
-    return all.filter(function (m) {
-      return m && m.concept && String(m.concept).toLowerCase() === cname
+      if (!f || !f.concept) return false
+      var fc = String(f.concept).toLowerCase()
+      return fc === cname || fc === '*'
     })
   }
 
@@ -17141,6 +17251,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var fTypeStr = String(f.type || f.widget || 'string')
         var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
         dd.appendChild(tBadge)
+        if (f.multiple) dd.appendChild(el('span', 'innfo-ku-field-multi', 'multi'))
         var targetC = f.target || f.targetConcept || null
         if (targetC) {
           var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
@@ -17155,19 +17266,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(fs)
     }
 
-    var markers = guideMarkersFor(concept, schema)
-    if (markers.length) {
-      var ms = el('section', 'innfo-guide-section')
-      ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
-      var mul = el('div', 'innfo-guide-marker-row')
-      markers.forEach(function (m) {
-        if (!m) return
-        var mLabel = String(m.label || m.name || '')
-        if (!mLabel) return
-        mul.appendChild(UI.MarkerChip({ id: mLabel, label: '! ' + mLabel, kind: 'marker' }))
-      })
-      ms.appendChild(mul)
-      host.appendChild(ms)
+    var conceptVals = concept.conceptFields && typeof concept.conceptFields === 'object' ? concept.conceptFields : null
+    if (!conceptVals && schema && schema.concepts) {
+      var cMetaForVals = conceptMetaOf(schema.concepts, concept.name)
+      if (cMetaForVals && cMetaForVals.conceptFields) conceptVals = cMetaForVals.conceptFields
+    }
+    if (conceptVals) {
+      var cvKeys = Object.keys(conceptVals)
+      if (cvKeys.length) {
+        var cvs = el('section', 'innfo-guide-section')
+        cvs.appendChild(el('h4', 'innfo-guide-title', 'Concept values'))
+        var cvl = el('dl', 'innfo-guide-list innfo-guide-value-list')
+        cvKeys.forEach(function (k) {
+          var v = conceptVals[k]
+          cvl.appendChild(el('dt', 'innfo-guide-field-dt', String(k)))
+          cvl.appendChild(el('dd', 'innfo-guide-field-dd', Array.isArray(v) ? v.join(', ') : String(v)))
+        })
+        cvs.appendChild(cvl)
+        host.appendChild(cvs)
+      }
     }
 
     var matrixList = guideMatricesFor(concept, matrices, schema)
@@ -17425,21 +17542,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       }
 
-      var markerList = []
-      if (isObject(element.markers)) {
-        Object.keys(element.markers).forEach(function (mkKey) {
-          var mkVal = element.markers[mkKey]
-          markerList.push({
-            id: mkKey,
-            label: mkKey,
-            kind: 'marker',
-            value: Array.isArray(mkVal) ? mkVal.join(', ') : mkVal,
-          })
-        })
-      } else if (Array.isArray(element.markers)) {
-        markerList = element.markers
-      }
-
       var card = UI.ElementCard(
         {
           id: element.id,
@@ -17447,11 +17549,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           conceptId: element.concept,
           description: element.description,
           fields: fields,
-          markers: markerList.length ? markerList : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
-          tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
+          tags: getElementEffectiveTags(element),
           relations:
             Array.isArray(element.relations) && element.relations.length ? element.relations : null,
           incomingRelations:
@@ -17669,7 +17770,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function tableValueOf(element, key) {
     if (key === 'name') return element.name
     if (key === 'concept') return element.concept
-    if (key === 'tags') return Array.isArray(element.tags) ? element.tags.join(', ') : ''
+    if (key === 'tags') return getElementEffectiveTags(element).join(', ')
     return element.fields ? element.fields[key] : ''
   }
 
@@ -17852,7 +17953,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         tr.appendChild(td)
       })
 
-      var tags = Array.isArray(element.tags) ? element.tags.join(', ') : ''
+      var tags = getElementEffectiveTags(element).join(', ')
       var tagsTd = el('td', 'innfo-element-table-cell', tags)
       if (tags) tagsTd.setAttribute('title', tags)
       tr.appendChild(tagsTd)
@@ -21239,7 +21340,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var cardActions = {
       onTag: function (tag) {
-        addFacetToken('tag', tag)
+        addFacetToken('tags', tag)
       },
       isKnowledgeBound: function (value) {
         return !!resolveKnowledgeModel(meta, value)
@@ -21329,6 +21430,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var filterCtx = {
         draftsById: draftsById,
         reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
+        schema: state.schema,
       }
 
       var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)

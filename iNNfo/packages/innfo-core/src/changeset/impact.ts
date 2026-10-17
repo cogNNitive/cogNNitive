@@ -236,7 +236,50 @@ export function evaluateBatchDeleteImpact(
   const matrixCascades = new Map<string, CascadedMatrixCell[]>()
   const referenceConflicts = new Map<string, string>()
 
+  // Intra-batch collision check for update_concept_field and remove_matrix / update_matrix_cell
+  const seenConceptFields = new Map<string, string>()
+  const seenMatrices = new Map<string, string>()
+
   for (const change of changes) {
+    if (change.op === 'update_concept_field') {
+      const atIdx = change.target.indexOf('@')
+      const mSlug = extractModelSlug(change.target).toLowerCase()
+      const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : ''
+      const ampIdx = remainder.indexOf('&')
+      let conceptIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx).trim() : remainder.trim()
+      if (conceptIdent.toLowerCase().startsWith('concept:')) {
+        conceptIdent = conceptIdent.slice('concept:'.length).trim()
+      }
+      const fieldIdent = ampIdx !== -1 ? remainder.slice(ampIdx + 1).trim() : ''
+      const key = `${mSlug}@${conceptIdent.toLowerCase()}&${fieldIdent.toLowerCase()}`
+
+      if (seenConceptFields.has(key)) {
+        referenceConflicts.set(
+          change.id,
+          `CONFLICT: Multiple changes in the same batch target concept field "${key}" (conflicts with change "${seenConceptFields.get(key)}")`,
+        )
+      } else {
+        seenConceptFields.set(key, change.id)
+      }
+    } else if (change.op === 'remove_matrix') {
+      const atIdx = change.target.indexOf('@')
+      const mSlug = extractModelSlug(change.target).toLowerCase()
+      let remainder = atIdx !== -1 ? change.target.slice(atIdx + 1).trim() : ''
+      if (remainder.toLowerCase().startsWith('matrix:')) {
+        remainder = remainder.slice('matrix:'.length).trim()
+      }
+      const key = `${mSlug}@${remainder.toLowerCase()}`
+
+      if (seenMatrices.has(key)) {
+        referenceConflicts.set(
+          change.id,
+          `CONFLICT: Multiple changes in the same batch target matrix "${key}" (conflicts with change "${seenMatrices.get(key)}")`,
+        )
+      } else {
+        seenMatrices.set(key, change.id)
+      }
+    }
+
     if (change.op !== 'remove_element') continue
 
     const targetModelSlug = extractModelSlug(change.target)

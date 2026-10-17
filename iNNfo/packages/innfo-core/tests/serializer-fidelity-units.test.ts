@@ -98,12 +98,12 @@ describe('property value form (AD-1)', () => {
     expect(serializeKnowledge(parseKnowledge(source))).toContain('\nrole:: lead')
   })
 
-  it('preserves authored tag casing while parsing tags case-insensitively', () => {
+  it('preserves authored tag casing while storing values verbatim', () => {
     const source = doc(
       ['# NN Stakeholders', '', '## NN Stakeholders: Alice', 'tags:: [founder, PR]', ''].join('\n'),
     )
     const parsed = parseKnowledge(source)
-    expect(parsed.elements.get('Stakeholders')![0].tags).toEqual(['founder', 'pr'])
+    expect(parsed.elements.get('Stakeholders')![0].fields.tags).toEqual(['founder', 'PR'])
     expect(serializeKnowledge(parsed)).toContain('tags:: [founder, PR]')
   })
 })

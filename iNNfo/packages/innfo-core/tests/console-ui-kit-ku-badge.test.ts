@@ -17,7 +17,6 @@ describe('InnfoUI.KuBadge', () => {
       ['element', { kind: 'element', id: 'slimer', label: 'Slimer', index: 1 }, 'data-element-id', 'slimer'],
       ['field', { kind: 'field', name: 'owner', value: 'Slimer' }, 'data-field', 'owner'],
       ['cell', { kind: 'cell', value: 'x' }, 'data-ku-kind', 'cell'],
-      ['marker', { kind: 'marker', id: 'm1', label: 'Risk', kind2: 'risk' }, 'data-marker-id', 'm1'],
       ['reference', { kind: 'reference', id: 'gozer', label: 'Gozer' }, 'data-element-id', 'gozer'],
     ]
     for (const [kind, data, attr, expected] of cases) {

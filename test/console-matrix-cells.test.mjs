@@ -156,12 +156,12 @@ describe('constrained matrix cell editor', () => {
     assert.equal(select.value, 'Odd')
   })
 
-  it('proposes true from a boolean marker column of the item-markers matrix', () => {
+  it('proposes true from a boolean matrix column', () => {
     const env = bootWith(
-      { name: 'item-markers matrix', source: 'Fleet', target: 'Markers', rows: ['r1'], cols: ['active'], cells: { r1: { active: '' } } },
-      { markers: [{ name: 'Active', widgetType: 'boolean' }] },
+      { name: 'Flags', source: 'Fleet', target: 'Status', rows: ['r1'], cols: ['active'], cells: { r1: { active: '' } } },
+      { matrices: [{ name: 'Flags', widgetType: 'boolean' }] },
     )
-    const modal = editCell(env, 'item-markers matrix', 'r1', 'active')
+    const modal = editCell(env, 'Flags', 'r1', 'active')
     const cb = modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]')
     assert.ok(cb, 'a checkbox is offered')
     cb.checked = true
@@ -193,13 +193,13 @@ describe('constrained matrix cell editor', () => {
   })
 })
 
-describe('item-markers detection matches the payload builder', () => {
-  it('treats a matrix targeting markers as item-markers even when it is not named so', () => {
+describe('a matrix targeting markers is not special', () => {
+  it('offers no marker-driven checkbox (the construct is retired)', () => {
     const env = bootWith(
       { name: 'Flags', source: 'Fleet', target: 'markers', rows: ['r1'], cols: ['active'], cells: { r1: { active: '' } } },
       { markers: [{ name: 'Active', widgetType: 'boolean' }] },
     )
     const modal = editCell(env, 'Flags', 'r1', 'active')
-    assert.ok(modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]'), 'the marker column governs the cell')
+    assert.equal(modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]'), null)
   })
 })

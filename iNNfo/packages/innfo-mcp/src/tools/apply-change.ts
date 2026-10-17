@@ -947,7 +947,12 @@ export async function executeChangesetApply(
       // bluepriNNt does not declare is rejected when the mutation runs, not only by the
       // post-mutation validation. An add_element cannot be checked without it.
       let renameSchema: BlueprintSchema | undefined
-      if (change.op === 'rename_element' || change.op === 'add_element') {
+      if (
+        change.op === 'rename_element' ||
+        change.op === 'add_element' ||
+        change.op === 'update_field' ||
+        change.op === 'update_concept_field'
+      ) {
         renameSchema = await schemaFor(entry)
         if (!renameSchema && change.op === 'add_element') {
           return rejectPhase1(
@@ -1028,6 +1033,30 @@ export async function executeChangesetApply(
           conceptName,
           text: change.to || (change as any).text || (change as any).content || '',
         }
+      } else if (change.op === 'update_concept_field') {
+        let conceptName = change.concept || remainder
+        let fieldName = ''
+        const ampIdx = remainder.indexOf('&')
+        if (ampIdx !== -1) {
+          conceptName = remainder.slice(0, ampIdx).trim()
+          fieldName = remainder.slice(ampIdx + 1).trim()
+        }
+        if (conceptName.toLowerCase().startsWith('concept:')) {
+          conceptName = conceptName.slice('concept:'.length).trim()
+        }
+        mutationArgs = {
+          conceptName,
+          fieldName,
+          value: change.to,
+          to: change.to,
+          target: change.target,
+        }
+      } else if (change.op === 'remove_matrix') {
+        let matrixName = remainder.trim()
+        if (matrixName.toLowerCase().startsWith('matrix:')) {
+          matrixName = matrixName.slice('matrix:'.length).trim()
+        }
+        mutationArgs = { matrixName, target: change.target }
       } else {
         mutationArgs = { target: change.target, value: change.to, to: change.to }
       }
@@ -1300,6 +1329,13 @@ async function synthesizeAndExecuteChangeset(
   } else if (op === 'rename_concept') {
     const c = (opArgs.conceptName as string) || ''
     target = `${id}@${c}`
+  } else if (op === 'update_concept_field') {
+    const c = (opArgs.conceptName as string) || ''
+    const field = (opArgs.fieldName as string) || ''
+    target = `${id}@concept:${c}&${field}`
+  } else if (op === 'remove_matrix') {
+    const m = (opArgs.matrixName as string) || ''
+    target = `${id}@matrix:${m}`
   } else if (op === 'bump_version' || op === 'freeze_slugs') {
     target = id
   } else if (opArgs.target && typeof opArgs.target === 'string') {
@@ -1349,7 +1385,7 @@ export const MAINTENANCE_OPS = ['generate_index'] as const
  * Direct operations: Level-2 bluepriNNt authoring (traced by git and the bluepriNNt version).
  * They have no meaning on a Level-3 model, where they fail `SCHEMA_OP_ON_LEVEL3`.
  */
-export const SCHEMA_OPS = ['add_concept', 'add_field', 'set_marker'] as const
+export const SCHEMA_OPS = ['add_concept', 'add_field'] as const
 
 function isDirectOperation(op: string): boolean {
   return (MAINTENANCE_OPS as readonly string[]).includes(op) || (SCHEMA_OPS as readonly string[]).includes(op)
@@ -1475,7 +1511,7 @@ export async function applyChange(
         ],
       }
     }
-    const filePath = await findKnowledgeFile(rootDir, id)
+    const filePath = await findKnowledgeFile(rootDir, id, { includeSpecs: true })
     if (!filePath) {
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }

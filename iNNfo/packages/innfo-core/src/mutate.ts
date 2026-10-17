@@ -4,13 +4,13 @@ import type { BlueprintSchema } from './schema/index.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
-  MARKER_DEFINITION,
   MATRIX_DEFINITION,
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
 import { parsePropertyValue } from './parser/sections.js'
-import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
+import { RESERVED_CONCEPT_NAMES, WIDGET_CONFIG_KEYS } from './validator/constants.js'
 import { levenshteinDistance, slugifyHeading, splitSourceFieldValue } from './sourceRef.js'
+import { validateFieldValue } from './schema/field-values.js'
 
 export interface MutationResult {
   success: boolean
@@ -170,14 +170,15 @@ function modelHasUnfrozenElements(model: ParsedKnowledge): boolean {
 const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   add_concept: (model, args) => addConcept(model, args),
   add_field: (model, args) => addField(model, args),
-  set_marker: (model, args) => setMarker(model, args),
   add_element: (model, args, schema) => addElement(model, args, schema),
-  update_field: (model, args) => updateField(model, args),
+  update_field: (model, args, schema) => updateField(model, args, schema),
   remove_element: (model, args) => removeElement(model, args),
   rename_concept: (model, args) => renameConcept(model, args),
   rename_element: (model, args, schema) => renameElement(model, args, schema),
   update_matrix_cell: (model, args) => updateMatrixCell(model, args),
   update_concept_text: (model, args, schema) => updateConceptText(model, args, schema),
+  update_concept_field: (model, args, schema) => updateConceptField(model, args, schema),
+  remove_matrix: (model, args) => removeMatrix(model, args),
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
 }
@@ -189,14 +190,14 @@ export function listMutationOperations(): string[] {
 
 /**
  * Template-authoring primitives (`# NN Concept Definition`, `# NN Field
- * Definition` / `Marker Definition`) are only meaningful against a level-2
+ * Definition`) are only meaningful against a level-2
  * template. Running them against any other level structurally "works" but
  * produces an incoherent document that a later validation pass rejects with
  * an unrelated schema error (`checkElementGroups()`). Gate here, in core —
  * the enforcement engine — so every consumer (MCP, editor via
  * `src/browser.ts`) shares one contract instead of two.
  */
-const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field', 'set_marker'])
+const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field'])
 
 function runMutation(
   model: ParsedKnowledge,
@@ -267,54 +268,159 @@ function addConcept(model: ParsedKnowledge, args: Record<string, unknown>): Muta
 function addField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   const req = requireArgs(args, ['conceptName', 'fieldName'])
   if (!req.ok) return req.result
-  const { conceptName, fieldName } = req.values
+  let { conceptName, fieldName } = req.values
+
+  let conceptVal: unknown = conceptName
+  if (typeof conceptName === 'string') {
+    const trimmed = conceptName.trim()
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      conceptVal = parsePropertyValue(trimmed)
+    } else {
+      conceptVal = trimmed
+    }
+  }
 
   const defs = model.elements.get(CONCEPT_DEFINITION) ?? []
-  if (!defs.some((c) => c.name.toLowerCase() === conceptName.toLowerCase())) {
-    return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+  const declaredConceptNames = new Set(defs.map((c) => c.name.toLowerCase()))
+
+  if (conceptVal === '*') {
+    // Valid target: '*' reaches all concepts
+  } else if (Array.isArray(conceptVal)) {
+    for (const c of conceptVal) {
+      if (!declaredConceptNames.has(String(c).toLowerCase())) {
+        return { success: false, errors: [{ path: 'concept', message: `Concept "${c}" not found` }] }
+      }
+    }
+  } else if (typeof conceptVal === 'string') {
+    if (!declaredConceptNames.has(conceptVal.toLowerCase())) {
+      return { success: false, errors: [{ path: '', message: `Concept "${conceptVal}" not found` }] }
+    }
   }
 
   const fds = model.elements.get(FIELD_DEFINITION) ?? []
-  if (
-    fds.some(
-      (f) =>
-        f.name.toLowerCase() === fieldName.toLowerCase() &&
-        f.fields['concept'] === conceptName,
-    )
-  ) {
-    return { success: false, errors: [{ path: '', message: `Field "${fieldName}" already exists on concept "${conceptName}"` }] }
+  const existingField = fds.find(
+    (f) =>
+      f.name.toLowerCase() === fieldName.toLowerCase() &&
+      JSON.stringify(f.fields['concept']) === JSON.stringify(conceptVal),
+  )
+  if (existingField) {
+    return {
+      success: false,
+      errors: [{ path: '', message: `Field "${fieldName}" already exists on concept "${String(conceptVal)}"` }],
+    }
   }
 
-  const fields: Record<string, unknown> = { concept: conceptName, type: (args.fieldType as string) ?? 'string' }
-  if (args.options !== undefined) fields['options'] = args.options
+  const fieldType = (args.fieldType as string) ?? (args.type as string) ?? 'string'
+  const fields: Record<string, unknown> = {
+    concept: conceptVal,
+    type: fieldType,
+  }
+
+  if (args.multiple !== undefined) {
+    const mult = args.multiple === true || args.multiple === 'true'
+    if (mult && fieldType !== 'select') {
+      return {
+        success: false,
+        errors: [{ path: 'multiple', message: `Field "${fieldName}" has multiple:: true, which requires type:: select (got "${fieldType}")` }],
+      }
+    }
+    fields['multiple'] = mult
+  }
+
+  if (args.widget !== undefined) {
+    const widget = String(args.widget).toLowerCase()
+    if (widget === 'scale' && fieldType !== 'number') {
+      return {
+        success: false,
+        errors: [{ path: 'widget', message: `widget "scale" requires type:: number (got "${fieldType}")` }],
+      }
+    }
+    if (widget === 'boolean' && fieldType !== 'boolean') {
+      return {
+        success: false,
+        errors: [{ path: 'widget', message: `widget "boolean" requires type:: boolean (got "${fieldType}")` }],
+      }
+    }
+    if (widget === 'cycle') {
+      const opts = args.options
+      const hasOptions = Array.isArray(opts) ? opts.length > 0 : Boolean(opts)
+      if (fieldType !== 'select' || fields['multiple'] === true || !hasOptions) {
+        return {
+          success: false,
+          errors: [{ path: 'widget', message: `widget "cycle" requires a single-valued select with options` }],
+        }
+      }
+    }
+    if (widget === 'set') {
+      if (fieldType !== 'select' || fields['multiple'] !== true) {
+        return {
+          success: false,
+          errors: [{ path: 'widget', message: `widget "set" requires type:: select with multiple:: true` }],
+        }
+      }
+    }
+    if (widget === 'text' && fieldType !== 'string') {
+      return {
+        success: false,
+        errors: [{ path: 'widget', message: `widget "text" requires type:: string (got "${fieldType}")` }],
+      }
+    }
+    fields['widget'] = widget
+  }
+
+  if (args.widget_config !== undefined || args.widgetConfig !== undefined) {
+    const cfg = args.widget_config ?? args.widgetConfig
+    const widget = fields['widget'] as string | undefined
+    if (!widget) {
+      return {
+        success: false,
+        errors: [{ path: 'widget_config', message: `"${fieldName}" declares widget_config but no widget` }],
+      }
+    }
+    const allowed = WIDGET_CONFIG_KEYS[widget] || []
+    if (typeof cfg === 'object' && cfg !== null) {
+      for (const k of Object.keys(cfg)) {
+        if (!allowed.includes(k)) {
+          return {
+            success: false,
+            errors: [{ path: `widget_config.${k}`, message: `"${k}" is not a widget_config key for widget "${widget}". Allowed: ${allowed.join(', ') || '(none)'}` }],
+          }
+        }
+      }
+      if (widget === 'scale') {
+        const scaleCfg = cfg as Record<string, unknown>
+        if (scaleCfg['min'] === undefined || scaleCfg['max'] === undefined) {
+          return {
+            success: false,
+            errors: [{ path: 'widget_config', message: `widget "scale" requires widget_config.min and max` }],
+          }
+        }
+        if (Number(scaleCfg['min']) >= Number(scaleCfg['max'])) {
+          return {
+            success: false,
+            errors: [{ path: 'widget_config', message: `widget "scale" min (${scaleCfg['min']}) must be less than max (${scaleCfg['max']})` }],
+          }
+        }
+      }
+    }
+    fields['widget_config'] = cfg
+  }
+
+  if (args.options !== undefined) {
+    if (typeof args.options === 'string' && args.options.trim().startsWith('[')) {
+      fields['options'] = parsePropertyValue(args.options)
+    } else {
+      fields['options'] = args.options
+    }
+  }
   if (args.target_concepts !== undefined) fields['target_concepts'] = args.target_concepts
-  fds.push({ type: FIELD_DEFINITION, name: fieldName, description: '', fields, markers: {} })
+  if (args.description !== undefined) fields['description'] = args.description
+
+  fds.push({ type: FIELD_DEFINITION, name: fieldName, description: (args.description as string) ?? '', fields, markers: {} })
   model.elements.set(FIELD_DEFINITION, fds)
   return { success: true }
 }
 
-/** A template declares markers as `# NN Marker Definition` body elements. */
-function setMarker(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
-  const req = requireArgs(args, ['markerName'])
-  if (!req.ok) return req.result
-  const { markerName } = req.values
-
-  const defs = model.elements.get(MARKER_DEFINITION) ?? []
-  const existing = defs.find((m) => m.name.toLowerCase() === markerName.toLowerCase())
-  if (existing) {
-    if (args.symbol !== undefined) existing.fields['symbol'] = args.symbol
-    if (args.icon !== undefined) existing.fields['icon'] = args.icon
-    if (args.color !== undefined) existing.fields['color'] = args.color
-  } else {
-    const fields: Record<string, unknown> = {}
-    if (args.symbol !== undefined) fields['symbol'] = args.symbol
-    if (args.icon !== undefined) fields['icon'] = args.icon
-    if (args.color !== undefined) fields['color'] = args.color
-    defs.push({ type: MARKER_DEFINITION, name: markerName, description: '', fields, markers: {} })
-  }
-  model.elements.set(MARKER_DEFINITION, defs)
-  return { success: true }
-}
 
 function addElement(
   model: ParsedKnowledge,
@@ -478,7 +584,11 @@ function coerceFieldValue(existing: unknown, incoming: unknown): unknown {
 }
 
 /** Edits a single field on an already-existing element (overwrite semantics). */
-function updateField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+function updateField(
+  model: ParsedKnowledge,
+  args: Record<string, unknown>,
+  schema?: BlueprintSchema,
+): MutationResult {
   let elementName = (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
   let fieldName = (args.fieldName as string) || ''
   const conceptName = (args.conceptName as string) || ''
@@ -545,7 +655,42 @@ function updateField(model: ParsedKnowledge, args: Record<string, unknown>): Mut
     }
   }
 
-  foundElement.fields[fieldName] = coerceFieldValue(foundElement.fields[fieldName], val)
+  let parsedVal: unknown = val
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      parsedVal = parsePropertyValue(trimmed)
+    }
+  }
+
+  // Schema-aware field value validation
+  if (schema && foundConcept) {
+    const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === foundConcept!.toLowerCase())
+    let fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
+    if (!fieldDef && Array.isArray((schema as any).fields)) {
+      fieldDef = (schema as any).fields.find(
+        (f: any) =>
+          f.name.toLowerCase() === fieldName.toLowerCase() &&
+          (!f.concept ||
+            f.concept === '*' ||
+            (Array.isArray(f.concept)
+              ? f.concept.some((c: string) => c.toLowerCase() === foundConcept!.toLowerCase())
+              : String(f.concept).toLowerCase() === foundConcept!.toLowerCase())),
+      )
+    }
+    if (fieldDef) {
+      const diags = validateFieldValue(fieldDef, parsedVal, `${foundConcept}.${fieldName}`)
+      const errors = diags.filter((d) => d.severity === 'error')
+      if (errors.length > 0) {
+        return {
+          success: false,
+          errors: errors.map((e) => ({ path: e.path, message: e.message })),
+        }
+      }
+    }
+  }
+
+  foundElement.fields[fieldName] = coerceFieldValue(foundElement.fields[fieldName], parsedVal)
   if (foundElement.rawFields && fieldName in foundElement.rawFields) {
     delete foundElement.rawFields[fieldName]
   }
@@ -684,35 +829,25 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
       matrix.cells = matrix.cells.filter((c) => {
         const rLower = c.row.toLowerCase()
         const colLower = c.col.toLowerCase()
+        const unbracket = (s: string) => {
+          const m = s.match(/^\[\[(.*)\]\]$/)
+          return m ? m[1].toLowerCase() : s
+        }
+        const rClean = unbracket(rLower)
+        const cClean = unbracket(colLower)
         const rowMatches =
           rLower === targetIdent ||
-          (targetSlug !== undefined && rLower === targetSlug) ||
-          (targetHeading !== undefined && rLower === targetHeading)
+          rClean === targetIdent ||
+          (targetSlug !== undefined && (rLower === targetSlug || rClean === targetSlug)) ||
+          (targetHeading !== undefined && (rLower === targetHeading || rClean === targetHeading))
         const colMatches =
           colLower === targetIdent ||
-          (targetSlug !== undefined && colLower === targetSlug) ||
-          (targetHeading !== undefined && colLower === targetHeading)
+          cClean === targetIdent ||
+          (targetSlug !== undefined && (colLower === targetSlug || cClean === targetSlug)) ||
+          (targetHeading !== undefined && (colLower === targetHeading || cClean === targetHeading))
         return !rowMatches && !colMatches
       })
       cascadedCells += (initialCount - matrix.cells.length)
-    }
-  }
-
-  // Cascade item-markers matrix row deletion
-  if (model.nodeMarkers) {
-    const targetIdent = elementName.toLowerCase()
-    const targetSlug = targetEl?.slug?.toLowerCase()
-    const targetHeading = targetEl ? slugifyHeading(targetEl.name).toLowerCase() : undefined
-
-    for (const key of Object.keys(model.nodeMarkers)) {
-      const cleanKey = key.replace(/^\[\[|\]\]$/g, '').trim().toLowerCase()
-      if (
-        cleanKey === targetIdent ||
-        (targetSlug !== undefined && cleanKey === targetSlug) ||
-        (targetHeading !== undefined && cleanKey === targetHeading)
-      ) {
-        delete model.nodeMarkers[key]
-      }
     }
   }
 
@@ -763,6 +898,196 @@ function updateConceptText(
   ) {
     model.sectionOrder.push(targetKey)
   }
+  return { success: true }
+}
+
+function updateConceptField(
+  model: ParsedKnowledge,
+  args: Record<string, unknown>,
+  schema?: BlueprintSchema,
+): MutationResult {
+  let conceptName = (args.conceptName as string) || ''
+  let fieldName = (args.fieldName as string) || ''
+  const val = args.value !== undefined ? args.value : args.to
+
+  if (args.target && typeof args.target === 'string') {
+    let clean = args.target.trim()
+    if (clean.includes('@')) {
+      clean = clean.slice(clean.indexOf('@') + 1)
+    }
+    const ampIdx = clean.indexOf('&')
+    if (ampIdx !== -1) {
+      conceptName = clean.slice(0, ampIdx).trim()
+      fieldName = clean.slice(ampIdx + 1).trim()
+    } else if (!conceptName) {
+      conceptName = clean
+    }
+  }
+
+  if (conceptName.toLowerCase().startsWith('concept:')) {
+    conceptName = conceptName.slice('concept:'.length).trim()
+  }
+
+  if (!conceptName || !fieldName) {
+    const missing: string[] = []
+    if (!conceptName) missing.push('conceptName')
+    if (!fieldName) missing.push('fieldName')
+    return {
+      success: false,
+      errors: [{ path: '', message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required` }],
+    }
+  }
+
+  if (val === undefined) {
+    return { success: false, errors: [{ path: '', message: 'value is required' }] }
+  }
+
+  let targetConceptKey = conceptName
+  if (schema) {
+    const declared = schema.concepts.find(
+      (c) => c.name.toLowerCase() === conceptName.toLowerCase(),
+    )
+    if (declared) targetConceptKey = declared.name
+  } else if (model.conceptFields) {
+    for (const k of Object.keys(model.conceptFields)) {
+      if (k.toLowerCase() === conceptName.toLowerCase()) {
+        targetConceptKey = k
+        break
+      }
+    }
+  }
+
+  let parsedVal: unknown = val
+  let rawValString: string | undefined
+  if (typeof val === 'string') {
+    rawValString = val
+    const trimmed = val.trim()
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      parsedVal = parsePropertyValue(trimmed)
+    }
+  } else if (Array.isArray(val)) {
+    rawValString = `[${val.join(', ')}]`
+  } else if (val !== null && val !== undefined) {
+    rawValString = String(val)
+  }
+
+  // Schema-aware field validation
+  if (schema) {
+    const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === targetConceptKey.toLowerCase())
+    let fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
+    if (!fieldDef && Array.isArray((schema as any).fields)) {
+      fieldDef = (schema as any).fields.find(
+        (f: any) =>
+          f.name.toLowerCase() === fieldName.toLowerCase() &&
+          (!f.concept ||
+            f.concept === '*' ||
+            (Array.isArray(f.concept)
+              ? f.concept.some((c: string) => c.toLowerCase() === targetConceptKey.toLowerCase())
+              : String(f.concept).toLowerCase() === targetConceptKey.toLowerCase())),
+      )
+    }
+    if (fieldDef) {
+      const diags = validateFieldValue(fieldDef, parsedVal, `${targetConceptKey}.${fieldName}`)
+      const errors = diags.filter((d) => d.severity === 'error')
+      if (errors.length > 0) {
+        return {
+          success: false,
+          errors: errors.map((e) => ({ path: e.path, message: e.message })),
+        }
+      }
+    }
+  }
+
+  if (!model.conceptFields) model.conceptFields = {}
+  if (!model.rawConceptFields) model.rawConceptFields = {}
+
+  if (!model.conceptFields[targetConceptKey]) {
+    model.conceptFields[targetConceptKey] = {}
+  }
+  if (!model.rawConceptFields[targetConceptKey]) {
+    model.rawConceptFields[targetConceptKey] = {}
+  }
+
+  model.conceptFields[targetConceptKey][fieldName] = parsedVal
+  if (rawValString !== undefined) {
+    model.rawConceptFields[targetConceptKey][fieldName] = rawValString
+  }
+
+  if (
+    model.sectionOrder &&
+    !model.sectionOrder.map((s) => s.toLowerCase()).includes(targetConceptKey.toLowerCase())
+  ) {
+    model.sectionOrder.push(targetConceptKey)
+  }
+
+  return { success: true }
+}
+
+function removeMatrix(
+  model: ParsedKnowledge,
+  args: Record<string, unknown>,
+): MutationResult {
+  let matrixName = (args.matrixName as string) || (args.matrixSlug as string) || ''
+  if (args.target && typeof args.target === 'string') {
+    let clean = args.target.trim()
+    if (clean.includes('@')) {
+      clean = clean.slice(clean.indexOf('@') + 1)
+    }
+    if (clean.toLowerCase().startsWith('matrix:')) {
+      clean = clean.slice('matrix:'.length).trim()
+    }
+    matrixName = clean
+  }
+
+  if (matrixName.toLowerCase().startsWith('matrix:')) {
+    matrixName = matrixName.slice('matrix:'.length).trim()
+  }
+
+  if (!matrixName) {
+    return { success: false, errors: [{ path: '', message: 'matrixName is required' }] }
+  }
+
+  const mLower = matrixName.toLowerCase()
+
+  const matchesMatrix = (name: string): boolean => {
+    return (
+      name.toLowerCase() === mLower ||
+      slugify(name).toLowerCase() === mLower ||
+      slugifyHeading(name).toLowerCase() === mLower
+    )
+  }
+
+  let found = false
+
+  if (model.matrices && model.matrices.length > 0) {
+    const beforeLen = model.matrices.length
+    model.matrices = model.matrices.filter((m) => !matchesMatrix(m.name))
+    if (model.matrices.length < beforeLen) {
+      found = true
+    }
+  }
+
+  if (model.sectionOrder) {
+    const beforeSecLen = model.sectionOrder.length
+    model.sectionOrder = model.sectionOrder.filter((s) => {
+      if (s.toLowerCase().startsWith('matrices: ')) {
+        const namePart = s.slice('matrices: '.length)
+        return !matchesMatrix(namePart)
+      }
+      return !matchesMatrix(s)
+    })
+    if (model.sectionOrder.length < beforeSecLen) {
+      found = true
+    }
+  }
+
+  if (!found) {
+    return {
+      success: false,
+      errors: [{ path: '', message: `Matrix "${matrixName}" not found` }],
+    }
+  }
+
   return { success: true }
 }
 
@@ -958,12 +1283,6 @@ function renameElement(
 
   element.name = newName
   // element.slug remains untouched and immutable (D1)
-
-  // Update nodeMarkers key
-  if (model.nodeMarkers[oldDisplayName] !== undefined) {
-    model.nodeMarkers[newName] = model.nodeMarkers[oldDisplayName]
-    delete model.nodeMarkers[oldDisplayName]
-  }
 
   // Update taxonomy entries (R-IE-03)
   for (const edge of model.taxonomy) {

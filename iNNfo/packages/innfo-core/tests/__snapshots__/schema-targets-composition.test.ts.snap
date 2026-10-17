@@ -1,0 +1,301 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > golden test: resolves business blueprint and snapshots each concept fields 1`] = `
+{
+  "Activities": [
+    "tags",
+  ],
+  "Analysis": [
+    "tags",
+  ],
+  "Assumptions": [
+    "tags",
+  ],
+  "Behaviors": [
+    "tags",
+  ],
+  "Branding": [
+    "brand_name",
+    "logo_asset",
+    "style_guide",
+  ],
+  "Business idea": [
+    "tags",
+  ],
+  "Business objectives": [
+    "tags",
+  ],
+  "Business summary": [
+    "inspiration",
+    "status",
+  ],
+  "Challenges": [
+    "tags",
+  ],
+  "Channels": [
+    "tags",
+  ],
+  "Coherence": [
+    "tags",
+  ],
+  "Communication": [
+    "tags",
+  ],
+  "Compensations": [
+    "tags",
+  ],
+  "Competition": [
+    "tags",
+  ],
+  "Components": [
+    "tags",
+  ],
+  "Contracts": [
+    "tags",
+  ],
+  "Contributions": [
+    "tags",
+  ],
+  "Costs": [
+    "tags",
+  ],
+  "Deliverable": [
+    "health",
+    "tags",
+  ],
+  "Emotions": [
+    "tags",
+  ],
+  "Evolution": [
+    "evolutionFactor",
+    "evolutionType",
+    "tags",
+  ],
+  "Experiments": [
+    "tags",
+  ],
+  "Features": [
+    "tags",
+  ],
+  "Finance": [
+    "tags",
+  ],
+  "Functions": [
+    "complexity",
+    "tags",
+  ],
+  "Funding sources": [
+    "tags",
+  ],
+  "Goals": [
+    "tags",
+  ],
+  "Inspiration": [
+    "tags",
+  ],
+  "Journey": [
+    "tags",
+  ],
+  "Keys": [
+    "tags",
+  ],
+  "Legal": [
+    "tags",
+  ],
+  "Legal issues": [
+    "tags",
+  ],
+  "Market": [
+    "tags",
+  ],
+  "Market size": [],
+  "Market trends": [
+    "tags",
+  ],
+  "Marketing": [
+    "tags",
+  ],
+  "Media plan": [],
+  "Messages": [
+    "tags",
+  ],
+  "Metrics": [
+    "dependsOn",
+    "evolution",
+    "metricFormula",
+    "metricType",
+    "metricUnit",
+    "metricValue",
+    "tags",
+  ],
+  "Milestone": [
+    "health",
+    "milestone_status",
+    "tags",
+    "target_date",
+  ],
+  "Misc": [],
+  "Mission": [],
+  "Offerings": [
+    "brochure_file",
+    "components_list",
+    "pricing_model",
+    "tags",
+  ],
+  "Operations": [
+    "tags",
+  ],
+  "Opportunity": [
+    "tags",
+  ],
+  "Organization": [],
+  "Organizational goals": [
+    "tags",
+  ],
+  "Organizational values": [
+    "tags",
+  ],
+  "Perceptions": [
+    "tags",
+  ],
+  "Person": [
+    "compensation",
+    "complexity",
+    "contributions",
+    "image",
+    "position_ref",
+    "tags",
+  ],
+  "Persona": [
+    "tags",
+  ],
+  "Phases": [
+    "end_date",
+    "health",
+    "phase_status",
+    "start_date",
+    "tags",
+  ],
+  "Pitch": [],
+  "Position": [
+    "complexity",
+    "tags",
+  ],
+  "Presentations": [],
+  "Problems": [
+    "tags",
+  ],
+  "Procedure": [
+    "instructions",
+    "target_artifact",
+    "trigger_command",
+  ],
+  "Products and services": [
+    "tags",
+  ],
+  "Profiles": [
+    "persona_notes",
+    "relationship_type",
+    "tags",
+  ],
+  "Project": [],
+  "Project roles": [
+    "health",
+    "scope",
+    "tags",
+  ],
+  "Projections": [
+    "tags",
+  ],
+  "Resources": [
+    "tags",
+  ],
+  "Revenue": [
+    "tags",
+  ],
+  "Risk": [
+    "health",
+    "impact",
+    "mitigation",
+    "probability",
+    "tags",
+  ],
+  "Risks": [
+    "tags",
+  ],
+  "Roadmap": [
+    "tags",
+  ],
+  "Roles": [
+    "complexity",
+    "scope",
+    "tags",
+  ],
+  "Scenario": [
+    "scenarioMonths",
+    "scenarioNotes",
+    "scenarioType",
+    "tags",
+  ],
+  "Segmentation": [
+    "tags",
+  ],
+  "Segments": [
+    "tags",
+  ],
+  "Shareholders": [
+    "tags",
+  ],
+  "Skills": [
+    "complexity",
+    "tags",
+  ],
+  "Solutions": [
+    "tags",
+  ],
+  "Stakeholder roles": [
+    "tags",
+  ],
+  "Stakeholders": [
+    "relationship_model",
+    "tags",
+  ],
+  "Storytelling": [],
+  "Suggestions": [
+    "tags",
+  ],
+  "Task": [
+    "deliverable",
+    "depends_on",
+    "due_date",
+    "duration",
+    "health",
+    "milestone",
+    "priority",
+    "start_date",
+    "status",
+    "tags",
+  ],
+  "Team": [],
+  "Unfair advantage": [],
+  "Unit economics": [
+    "cac",
+    "ltv",
+    "payback_months",
+  ],
+  "Validation": [
+    "tags",
+  ],
+  "Value propositions": [
+    "tags",
+  ],
+  "Variables": [
+    "tags",
+    "variableType",
+    "variableUnit",
+    "variableValue",
+  ],
+  "Vision": [],
+  "Web": [],
+}
+`;

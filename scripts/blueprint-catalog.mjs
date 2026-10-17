@@ -44,7 +44,7 @@ const SKIP_DIRS = new Set(['samples', 'node_modules', '.git', 'dist', '.spec-cac
  * `frozen` object and dropped from `blueprints` (so nn-preflight upgrade-check —
  * which reads only `catalog.blueprints` — gives them no upgrade notices).
  */
-const FROZEN_NAMES = ['cogNNitive', 'base', 'workspace'];
+const FROZEN_NAMES = ['cogNNitive', 'workspace'];
 
 function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);

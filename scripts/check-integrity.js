@@ -66,8 +66,13 @@ try {
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
+  const uncommitted = execSync('git diff --name-only', { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const allChanged = Array.from(new Set([...changed, ...uncommitted]));
   const nameStatus = execSync(`git diff --name-status -M ${range}`, { cwd: repoRoot, encoding: 'utf8' });
-  const pinResult = checkTagPinFreshness(changed, structuralChanges(nameStatus));
+  const pinResult = checkTagPinFreshness(allChanged, structuralChanges(nameStatus));
   if (!pinResult.ok) {
     console.error('❌ Tag/pin freshness check failed:');
     pinResult.errors.forEach((err) => console.error(`  - ${err}`));

@@ -170,7 +170,6 @@ describe('schema authoring on a Level-3 model is refused', () => {
   it.each([
     ['add_concept', { conceptName: 'Risk' }],
     ['add_field', { conceptName: 'Work', fieldName: 'owner' }],
-    ['set_marker', { markerName: 'priority' }],
   ])('%s fails SCHEMA_OP_ON_LEVEL3 and writes nothing', async (op, args) => {
     const before = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
     const res = await applyChange(root, 'strategy', op, args)

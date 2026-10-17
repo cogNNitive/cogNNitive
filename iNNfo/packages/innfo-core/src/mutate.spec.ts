@@ -84,7 +84,6 @@ describe('level gate for template-authoring mutations (H5)', () => {
   const gatedOps: Array<{ op: string; args: Record<string, unknown> }> = [
     { op: 'add_concept', args: { conceptName: 'Risk', type: 'list' } },
     { op: 'add_field', args: { conceptName: 'Phase', fieldName: 'owner' } },
-    { op: 'set_marker', args: { markerName: 'blocked', symbol: '!' } },
   ]
 
   for (const { op, args } of gatedOps) {

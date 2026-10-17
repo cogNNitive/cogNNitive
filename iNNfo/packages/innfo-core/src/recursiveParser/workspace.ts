@@ -88,19 +88,6 @@ async function resolveFileHandle(
   return current.getFileHandle(last)
 }
 
-/**
- * Matches the opt-in overview-root entrypoint pattern from the `base_V_0-1-0`
- * composite template (A2): any filename ending in `_base_<suffix>.md`, where
- * `<suffix>` is the literal `NN` placeholder used by this project's template
- * packages/samples (e.g. `Ghostbusters_V_0-1-0_base_NN.md`) or a real instance
- * number in a deployed workspace (e.g. `acme_base_01.md`). Case-insensitive,
- * `.md` suffix — same convention as `isWorkspaceManifest` below.
- */
-const OVERVIEW_ROOT_RE = /_base_[a-z0-9]+\.md$/i
-
-function isOverviewRoot(name: string): boolean {
-  return OVERVIEW_ROOT_RE.test(name) && !isIgnoredPath(name)
-}
 
 function isWorkspaceManifest(name: string): boolean {
   return (

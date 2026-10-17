@@ -1,10 +1,10 @@
 ---
-spec_version: "V_0-1-0"
+spec_version: "V_0-5-0"
 spec_url: "test/fixtures/testlab/specs/TestLab_V_0-1-0_spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-3-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
+  name: "iNNfo_V_0-5-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_version: "V_0-1-0"
 title: "TestLab Coverage App"
 relationship_types:
@@ -136,19 +136,11 @@ concept:: Edge Cases
 type:: file
 description:: Generic file attached to the edge-case element.
 
-# NN Marker Definition
-
-## NN Marker Definition: critical
-applies_to:: [Element]
-symbol:: !
-icon:: alert-triangle
-color:: red
-
-## NN Marker Definition: archived
-applies_to:: [Element]
-symbol:: A
-icon:: archive
-color:: gray
+## NN Field Definition: tags
+concept:: *
+type:: select
+multiple:: true
+description:: Open vocabulary ad-hoc tags and classification labels.
 
 # NN Matrix Definition
 

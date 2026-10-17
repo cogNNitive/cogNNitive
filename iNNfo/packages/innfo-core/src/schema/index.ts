@@ -9,7 +9,6 @@
 export {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
-  MARKER_DEFINITION,
   MATRIX_DEFINITION,
   extractBlueprintSchema,
   extractBlueprintSchemaFromContent,
