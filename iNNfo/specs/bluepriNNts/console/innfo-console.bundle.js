@@ -458,7 +458,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // never leaks into a shell. C appends the review components here.
   var COMPONENT_CSS = [
     '[data-innfo-component]{box-sizing:border-box}',
-    '.innfo-concept-pill,.innfo-element-pill,.innfo-marker-chip,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
+    '.innfo-concept-pill,.innfo-element-pill,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
     '.innfo-concept-dot{width:.6em;height:.6em;border-radius:50%;background:var(--innfo-muted);flex:0 0 auto}',
     '.innfo-concept-count{color:var(--innfo-muted)}',
     '.innfo-element-origin{display:inline-flex;align-items:center;color:var(--innfo-origin-document)}',
@@ -576,6 +576,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
+    '.innfo-ku-badge .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
+    '.innfo-ku-badge .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
     '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
@@ -652,7 +654,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-mini-text{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}',
     '.innfo-mini-name{font-size:.8rem;font-weight:600;color:var(--innfo-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.innfo-mini-meta{font-size:.68rem;color:var(--innfo-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.innfo-mini-markers{display:flex;gap:.25em;flex:0 0 auto}',
     '.innfo-mini>.innfo-card-status-pill{flex:0 0 auto}',
     // ElementPreview (generic floating detail) + the mini's info affordance.
     '.innfo-preview{position:fixed;z-index:60;width:clamp(26rem,60vw,52rem);max-width:calc(100vw - 1.5rem);max-height:calc(100vh - 1.5rem);overflow:auto;overscroll-behavior:contain;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius,10px);box-shadow:0 12px 32px rgba(0,0,0,.16);padding:.6rem .8rem}',
@@ -764,6 +765,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var index = Number(data && data.index) || 0
     return (index % 12) + 1
+  }
+
+  // Tag color derivation: FNV-1a 32-bit over valueKey(name), then slot = (h >>> 0) % 12 + 1
+  function tagSlot(name) {
+    var key = String(name == null ? '' : name).trim().toLowerCase()
+    var h = 0x811c9dc5
+    for (var i = 0; i < key.length; i++) {
+      h ^= key.charCodeAt(i)
+      h = Math.imul(h, 0x01000193) >>> 0
+    }
+    return ((h >>> 0) % 12) + 1
   }
 
   function makeEl(doc, tag, cls, text) {
@@ -906,18 +918,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return pill
   }
 
-  function MarkerChip(data) {
-    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.MarkerChip: data required')
-    var doc = resolveDoc(null)
-    var chip = makeEl(doc, 'span', 'innfo-marker-chip')
-    chip.setAttribute('data-innfo-component', 'marker-chip')
-    chip.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-    chip.setAttribute('data-kind', String(data.kind == null ? '' : data.kind))
-    chip.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
-    if (data.value != null) chip.appendChild(makeEl(doc, 'b', null, data.value))
-    return chip
-  }
-
   // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
   //
   // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
@@ -1021,6 +1021,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     tags.forEach(function (t) {
       var tag = makeEl(doc, 'span', 'innfo-tag')
       tag.setAttribute('data-tag', String(t))
+      tag.setAttribute('data-concept-slot', String(tagSlot(t)))
       tag.appendChild(doc.createTextNode(String(t)))
       if (onTag) {
         tag.setAttribute('role', 'button')
@@ -1850,13 +1851,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var metaEl = makeEl(doc, 'span', 'innfo-mini-meta', String(data.meta))
       mini.appendChild(metaEl)
     }
-    if (Array.isArray(data.markers) && data.markers.length) {
-      var mks = makeEl(doc, 'span', 'innfo-mini-markers')
-      data.markers.forEach(function (m) {
-        if (m) mks.appendChild(MarkerChip(m))
-      })
-      mini.appendChild(mks)
-    }
     if (data.status) {
       var st = makeEl(doc, 'span', 'innfo-card-status-pill')
       st.setAttribute('data-status', String(data.status).toLowerCase())
@@ -1967,12 +1961,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       stPill.appendChild(doc.createTextNode(statusField))
       head.appendChild(stPill)
-    }
-
-    if (Array.isArray(data.markers)) {
-      data.markers.forEach(function (m) {
-        if (m) head.appendChild(MarkerChip(m))
-      })
     }
 
     if (summaryField) {
@@ -3131,11 +3119,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // / edit) live OUTSIDE the badge in KuActions, never nested, and the pending-
   // change pip is a count badge child. The kit holds no mode state: the edit action
   // exists only because the caller passed onEdit.
-  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'marker', 'reference']
+  var KU_KINDS = ['document', 'element', 'concept', 'field', 'cell', 'reference']
   var KU_KIND_ICON = {
     document: 'cite-document',
     concept: 'explorer',
-    marker: 'star',
     field: 'derived',
     cell: 'calc',
   }
@@ -3179,10 +3166,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     } else if (kind === 'field') {
       badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
       if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
-    } else if (kind === 'marker') {
-      badge.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
-      badge.setAttribute('data-kind', String(data.markerKind == null ? '' : data.markerKind))
-      if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
     }
 
     var iconName = data.icon || KU_KIND_ICON[kind]
@@ -3194,18 +3177,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     if (kind === 'field') {
       var fieldLabel = data.label != null ? data.label : data.name
-      if (data.value != null || data.valueNode) {
+      if (data.valueNode) {
         if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
-        if (data.valueNode) badge.appendChild(data.valueNode)
-        else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+        badge.appendChild(data.valueNode)
+      } else if (Array.isArray(data.value)) {
+        // A multi-valued Field renders one value chip per value.
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        var valuesWrap = makeEl(doc, 'span', 'innfo-ku-values')
+        data.value.forEach(function (v) {
+          valuesWrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-chip', v == null ? '' : String(v)))
+        })
+        badge.appendChild(valuesWrap)
+      } else if (data.value != null) {
+        if (fieldLabel != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', fieldLabel + ':'))
+        badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
       } else if (fieldLabel != null) {
         badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', String(fieldLabel)))
       }
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
-    } else if (kind === 'marker') {
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', String(data.label == null ? '' : data.label)))
-      if (data.value != null) badge.appendChild(makeEl(doc, 'b', null, data.value))
     } else {
       var labelText = String(data.label == null ? '' : data.label)
       var labelEl = makeEl(doc, 'span', 'innfo-ku-value', labelText)
@@ -3473,11 +3463,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     icon: icon,
     slug: slug,
     conceptSlot: conceptSlot,
+    tagSlot: tagSlot,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
-    MarkerChip: MarkerChip,
     KuBadge: KuBadge,
     KuActions: KuActions,
     QudChip: QudChip,
@@ -4037,6 +4027,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       openPopover = null
     }
 
+    function valueKeyOf(v) {
+      return String(v == null ? '' : v).trim().toLowerCase()
+    }
+
+    // Effective tags = own `tags` Field values plus inherited concept-level
+    // values, de-duplicated case-insensitively (mirrors the console runtime).
+    function effectiveTagsOf(el) {
+      var out = []
+      if (el && Array.isArray(el.tags)) {
+        out = out.concat(el.tags)
+      } else if (el && el.fields && el.fields.tags != null) {
+        var own = el.fields.tags
+        out = out.concat(Array.isArray(own) ? own : [own])
+      }
+      if (el && el.inherited && el.inherited.tags) {
+        var iv = el.inherited.tags.value
+        if (iv != null) out = out.concat(Array.isArray(iv) ? iv : [iv])
+      }
+      var seen = {}
+      return out.filter(function (t) {
+        var k = valueKeyOf(t)
+        if (!k || seen[k]) return false
+        seen[k] = true
+        return true
+      })
+    }
+
     function saveDraft(anchorData, payload) {
       if (!store) return null
       if (anchorData.matrixCell) {
@@ -4192,20 +4209,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: base.history,
         }
       }
-      if (field.indexOf('marker:') === 0) {
-        var markerId = field.slice('marker:'.length)
-        var markers = el.markers || {}
-        return {
-          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 marker ' + markerId,
-          fieldName: field,
-          type: 'string',
-          value: markers[markerId],
-          draftField: field,
-          original: markers[markerId],
-          citations: base.citations,
-          history: base.history,
-        }
-      }
       var fieldVal = docFieldValue(el, field)
       var schemaField = fieldDefOf(options.schema, el.concept, field)
       var fieldType =
@@ -4354,13 +4357,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
-      // Tag / relation membership has no core draft op yet: record proposals
-      // as comment drafts (never auto-applied corrections).
+      // Tag membership is a `correction` on the `tags` Field carrying the full
+      // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
+        var elTag = elementsById[anchorData.elementId]
+        var curTags = effectiveTagsOf(elTag)
+        var nextTags = curTags.filter(function (t) {
+          return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
+        })
         saveDraft(anchorData, {
-          kind: 'comment',
+          kind: 'correction',
           field: 'tags',
-          comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
+          original: curTags,
+          proposed: nextTags,
         })
         return
       }
@@ -4381,7 +4390,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
-      if (anchorData.tagAdd) kinds = ['comment']
+      if (anchorData.tagAdd) kinds = ['correction']
       if (anchorData.relAdd) kinds = ['comment']
       var activeKind = kinds[0]
       var data = {
@@ -4404,10 +4413,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var ta = pop.querySelector('textarea')
           var text = ta ? ta.value : ''
           if (anchorData.tagAdd) {
+            var elTagAdd = elementsById[anchorData.elementId]
+            var curAdd = effectiveTagsOf(elTagAdd)
+            var nextAdd = curAdd.concat([text])
             saveDraft(anchorData, {
-              kind: 'comment',
+              kind: 'correction',
               field: 'tags',
-              comment: 'Propose tag: ' + text,
+              original: curAdd,
+              proposed: nextAdd,
             })
           } else if (anchorData.relAdd) {
             saveDraft(anchorData, {
@@ -4659,19 +4672,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           ),
         )
       }
-      Array.prototype.forEach.call(
-        card.querySelectorAll('[data-marker-id]'),
-        function (chip) {
-          if (chip.querySelector('[data-innfo-ctl="marker-anchor"]')) return
-          var markerId = chip.getAttribute('data-marker-id')
-          chip.appendChild(
-            kuEditControl(
-              { elementId: elId, field: 'marker:' + markerId, ctl: 'marker-anchor' },
-              'Edit marker ' + markerId,
-            ),
-          )
-        },
-      )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
 
@@ -5528,6 +5528,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return { textTokens: textTokens, operators: operators, groups: groups }
   }
 
+  // valueKey: the single normalization used for multi-valued field membership
+  // (trim + lowercase), mirroring innfo-core schema/field-values.ts valueKey.
+  function valueKey(v) {
+    if (v === null || v === undefined) return ''
+    return String(v).trim().toLowerCase()
+  }
+
   function getElementFieldValue(el, key) {
     if (!el || !key) return null
     var lkey = String(key).toLowerCase()
@@ -5545,6 +5552,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
     }
+    // Inherited concept-level values are effective values: fall back to them
+    // when the element carries no own value for the field.
+    if ((v === null || v === '' || v === undefined) && el.inherited && typeof el.inherited === 'object') {
+      var iKeys = Object.keys(el.inherited)
+      for (var j = 0; j < iKeys.length; j++) {
+        if (iKeys[j].toLowerCase() === lkey) {
+          var iv = el.inherited[iKeys[j]]
+          if (iv && typeof iv === 'object' && 'value' in iv) iv = iv.value
+          if (iv !== null && iv !== undefined) v = iv
+          break
+        }
+      }
+    }
     if ((v === null || v === '' || v === undefined) && Array.isArray(el.relations)) {
       var relMatches = el.relations
         .filter(function (r) { return r && String(r.field || '').toLowerCase() === lkey })
@@ -5555,7 +5575,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return v
   }
 
-  function matchAtom(el, atom, draftsById, reviewedMap) {
+  function matchAtom(el, atom, draftsById, reviewedMap, selectFields) {
     if (!atom) return true
     if (atom.type === 'text') {
       return elementHaystack(el).indexOf(atom.val) !== -1
@@ -5580,12 +5600,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ).toLowerCase()
       var mModel = modelHaystack.indexOf(opVal) !== -1
       return isNeg ? !mModel : mModel
-    }
-    if (key === 'tag' || key === 'tag-any') {
-      if (!opVal) return true
-      var elTags = getElementEffectiveTags(el)
-      var mTag = elTags.indexOf(opVal) !== -1
-      return isNeg ? !mTag : mTag
     }
     if (key === 'element' || key === 'id' || key === 'name') {
       var elHaystack = (String(el.id || '') + ' ' + String(el.name || '')).toLowerCase()
@@ -5621,23 +5635,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var actual = getElementFieldValue(el, key)
     if (actual === null || actual === undefined) return isNeg
+    if (!opVal) return true
+    // Any-of: `<field>:a|b` matches an element carrying at least one of the listed
+    // values (one OR group). Repeated tokens stay AND (handled by filterElements).
+    var anyTokens = opVal
+      .split('|')
+      .map(function (s) { return s.trim() })
+      .filter(function (s) { return s !== '' })
+    if (anyTokens.length === 0) return true
+    var isArrayValue = Array.isArray(actual)
     var actualStr = String(actual).toLowerCase()
-    var matched = false
-    if (opVal.length > 1 && (opVal.charAt(0) === '>' || opVal.charAt(0) === '<')) {
-      var isGte = opVal.slice(0, 2) === '>='
-      var isLte = opVal.slice(0, 2) === '<='
-      var prefixLen = (isGte || isLte) ? 2 : 1
-      var numTarget = parseFloat(opVal.slice(prefixLen))
-      var numActual = parseFloat(actualStr)
-      if (!isNaN(numTarget) && !isNaN(numActual)) {
-        if (isGte) matched = numActual >= numTarget
-        else if (isLte) matched = numActual <= numTarget
-        else if (opVal.charAt(0) === '>') matched = numActual > numTarget
-        else if (opVal.charAt(0) === '<') matched = numActual < numTarget
+    var matched = anyTokens.some(function (tok) {
+      if (tok.length > 1 && (tok.charAt(0) === '>' || tok.charAt(0) === '<')) {
+        var isGte = tok.slice(0, 2) === '>='
+        var isLte = tok.slice(0, 2) === '<='
+        var prefixLen = (isGte || isLte) ? 2 : 1
+        var numTarget = parseFloat(tok.slice(prefixLen))
+        var numActual = parseFloat(actualStr)
+        if (isNaN(numTarget) || isNaN(numActual)) return false
+        if (isGte) return numActual >= numTarget
+        if (isLte) return numActual <= numTarget
+        if (tok.charAt(0) === '>') return numActual > numTarget
+        return numActual < numTarget
       }
-    } else {
-      matched = actualStr.indexOf(opVal) !== -1
-    }
+      if (isArrayValue) {
+        // Exact membership, case-insensitive (valueKey). Never substring.
+        var tv = valueKey(tok)
+        return actual.some(function (v) { return valueKey(v) === tv })
+      }
+      if (selectFields && selectFields[key]) {
+        // A scalar select matches by exact, case-insensitive equality.
+        return actualStr === tok.toLowerCase()
+      }
+      return actualStr.indexOf(tok.toLowerCase()) !== -1
+    })
     return isNeg ? !matched : matched
   }
 
@@ -5650,6 +5681,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var draftsById = ctx.draftsById || {}
     var reviewedMap = ctx.reviewed || {}
 
+    // Type-aware matching: a scalar `select` field matches by exact equality,
+    // other scalar types by substring (arrays are always exact membership).
+    var selectFields = {}
+    if (ctx.schema && Array.isArray(ctx.schema.fields)) {
+      ctx.schema.fields.forEach(function (f) {
+        if (f && f.name && String(f.type || '').toLowerCase() === 'select') {
+          selectFields[String(f.name).toLowerCase()] = true
+        }
+      })
+    }
+
     // Check if query used explicit boolean groups (e.g. parentheses or OR keyword)
     var hasExplicitLogic = parsed.groups.some(function (g) { return g.length > 1 }) || query.indexOf('(') !== -1 || /\bOR\b/i.test(query)
 
@@ -5659,17 +5701,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         // Every group must match (AND across groups). Within each group, at least one atom must match (OR).
         return parsed.groups.every(function (group) {
           return group.some(function (atom) {
-            return matchAtom(el, atom, draftsById, reviewedMap)
+            return matchAtom(el, atom, draftsById, reviewedMap, selectFields)
           })
         })
       })
     }
 
-    // Default facet rules: OR within model/concept, AND across tags and other fields
+    // Default facet rules: model/concept keep OR across selections; every other
+    // facet combines with AND. A Field named `tags` is an ordinary facet source
+    // (any-of is expressed with `|` inside one token, handled by matchAtom).
     var modelOps = []
     var conceptOps = []
-    var tagOps = []
-    var tagAnyOps = []
     var otherOps = []
 
     for (var k = 0; k < parsed.operators.length; k++) {
@@ -5678,10 +5720,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         modelOps.push(oper)
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
-      } else if (oper.key === 'tag' || oper.key === 'tag-any') {
-        if (String(oper.val == null ? '' : oper.val).trim() === '') continue
-        if (oper.key === 'tag') tagOps.push(oper)
-        else tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -5698,7 +5736,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Check model facet (OR across multiple model selections)
       if (modelOps.length > 0) {
         var matchesAnyModel = modelOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyModel) return false
       }
@@ -5706,28 +5744,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Check concept facet (OR across multiple concept selections)
       if (conceptOps.length > 0) {
         var matchesAnyConcept = conceptOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyConcept) return false
       }
 
-      // Tag facet
-      if (tagOps.length > 0 || tagAnyOps.length > 0) {
-        var hasAllTags = tagOps.every(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
-        })
-        if (!hasAllTags) return false
-        if (tagAnyOps.length > 0) {
-          var hasAnyTag = tagAnyOps.some(function (op) {
-            return matchAtom(el, op, draftsById, reviewedMap)
-          })
-          if (!hasAnyTag) return false
-        }
-      }
-
-      // Other fields (AND by default)
+      // Other fields (AND by default; a Field named `tags` is an ordinary facet,
+      // any-of lives inside one token as `tags:a|b`)
       for (var j = 0; j < otherOps.length; j++) {
-        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap)) return false
+        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap, selectFields)) return false
       }
 
       return true
@@ -6418,16 +6443,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (state && Array.isArray(state.elements)) {
       state.elements.forEach(function (e) {
         if (!e) return
-        var ef = e.fields
-        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
-          Object.keys(ef).forEach(function (fName) {
-            var rawVal = ef[fName]
-            if (rawVal === undefined || rawVal === null || rawVal === '') return
-            // Ignore bulky JSON/complex objects or array strings if inappropriate
-            var sVal = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal).trim()
+        var collect = function (fName, rawVal) {
+          if (rawVal === undefined || rawVal === null || rawVal === '') return
+          var vals = Array.isArray(rawVal) ? rawVal : [rawVal]
+          vals.forEach(function (v) {
+            if (v === undefined || v === null || v === '') return
+            var sVal = typeof v === 'object' ? JSON.stringify(v) : String(v).trim()
             if (!sVal || sVal.length > 60) return
             if (!fieldFacetMap[fName]) fieldFacetMap[fName] = {}
             fieldFacetMap[fName][sVal] = (fieldFacetMap[fName][sVal] || 0) + 1
+          })
+        }
+        var ef = e.fields
+        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
+          Object.keys(ef).forEach(function (fName) {
+            collect(fName, ef[fName])
+          })
+        }
+        if (e.inherited && typeof e.inherited === 'object') {
+          Object.keys(e.inherited).forEach(function (fName) {
+            var iv = e.inherited[fName]
+            collect(fName, iv && typeof iv === 'object' && 'value' in iv ? iv.value : iv)
           })
         }
       })
@@ -6523,6 +6559,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       fWrap.appendChild(fMenu)
       host.appendChild(fWrap)
     }
+
+    // Filter help: state the AND vs OR asymmetry (Fields/text AND, Model/Concept OR).
+    var filterHelp = el(
+      'span',
+      'innfo-filter-help text-xs text-slate-400',
+      'Fields and text combine with AND; within one token a|b is OR. Model and Concept combine with OR.',
+    )
+    filterHelp.setAttribute('data-innfo-filter-help', '1')
+    filterHelp.setAttribute(
+      'title',
+      'Fields and free text combine with AND. Model and Concept selections combine with OR. Inside one Field token, `a|b` matches any of the listed values.',
+    )
+    host.appendChild(filterHelp)
 
     // 4. Clear button if any filter is active
     if (activeQuery) {
@@ -6925,16 +6974,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var all = schema && Array.isArray(schema.fields) ? schema.fields : []
     var cname = String(concept.name).toLowerCase()
     return all.filter(function (f) {
-      return f && f.concept && String(f.concept).toLowerCase() === cname
-    })
-  }
-
-  function guideMarkersFor(concept, schema) {
-    if (Array.isArray(concept.markers) && concept.markers.length) return concept.markers
-    var all = schema && Array.isArray(schema.markers) ? schema.markers : []
-    var cname = String(concept.name).toLowerCase()
-    return all.filter(function (m) {
-      return m && m.concept && String(m.concept).toLowerCase() === cname
+      if (!f || !f.concept) return false
+      var fc = String(f.concept).toLowerCase()
+      return fc === cname || fc === '*'
     })
   }
 
@@ -7030,6 +7072,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var fTypeStr = String(f.type || f.widget || 'string')
         var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
         dd.appendChild(tBadge)
+        if (f.multiple) dd.appendChild(el('span', 'innfo-ku-field-multi', 'multi'))
         var targetC = f.target || f.targetConcept || null
         if (targetC) {
           var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
@@ -7044,19 +7087,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(fs)
     }
 
-    var markers = guideMarkersFor(concept, schema)
-    if (markers.length) {
-      var ms = el('section', 'innfo-guide-section')
-      ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
-      var mul = el('div', 'innfo-guide-marker-row')
-      markers.forEach(function (m) {
-        if (!m) return
-        var mLabel = String(m.label || m.name || '')
-        if (!mLabel) return
-        mul.appendChild(UI.MarkerChip({ id: mLabel, label: '! ' + mLabel, kind: 'marker' }))
-      })
-      ms.appendChild(mul)
-      host.appendChild(ms)
+    var conceptVals = concept.conceptFields && typeof concept.conceptFields === 'object' ? concept.conceptFields : null
+    if (!conceptVals && schema && schema.concepts) {
+      var cMetaForVals = conceptMetaOf(schema.concepts, concept.name)
+      if (cMetaForVals && cMetaForVals.conceptFields) conceptVals = cMetaForVals.conceptFields
+    }
+    if (conceptVals) {
+      var cvKeys = Object.keys(conceptVals)
+      if (cvKeys.length) {
+        var cvs = el('section', 'innfo-guide-section')
+        cvs.appendChild(el('h4', 'innfo-guide-title', 'Concept values'))
+        var cvl = el('dl', 'innfo-guide-list innfo-guide-value-list')
+        cvKeys.forEach(function (k) {
+          var v = conceptVals[k]
+          cvl.appendChild(el('dt', 'innfo-guide-field-dt', String(k)))
+          cvl.appendChild(el('dd', 'innfo-guide-field-dd', Array.isArray(v) ? v.join(', ') : String(v)))
+        })
+        cvs.appendChild(cvl)
+        host.appendChild(cvs)
+      }
     }
 
     var matrixList = guideMatricesFor(concept, matrices, schema)
@@ -7314,21 +7363,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       }
 
-      var markerList = []
-      if (isObject(element.markers)) {
-        Object.keys(element.markers).forEach(function (mkKey) {
-          var mkVal = element.markers[mkKey]
-          markerList.push({
-            id: mkKey,
-            label: mkKey,
-            kind: 'marker',
-            value: Array.isArray(mkVal) ? mkVal.join(', ') : mkVal,
-          })
-        })
-      } else if (Array.isArray(element.markers)) {
-        markerList = element.markers
-      }
-
       var card = UI.ElementCard(
         {
           id: element.id,
@@ -7336,7 +7370,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           conceptId: element.concept,
           description: element.description,
           fields: fields,
-          markers: markerList.length ? markerList : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
@@ -11128,7 +11161,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var cardActions = {
       onTag: function (tag) {
-        addFacetToken('tag', tag)
+        addFacetToken('tags', tag)
       },
       isKnowledgeBound: function (value) {
         return !!resolveKnowledgeModel(meta, value)
@@ -11218,6 +11251,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var filterCtx = {
         draftsById: draftsById,
         reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
+        schema: state.schema,
       }
 
       var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)
