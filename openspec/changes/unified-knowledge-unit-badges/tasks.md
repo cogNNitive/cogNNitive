@@ -65,16 +65,16 @@ Chain strategy: size-exception
 
 ## S2 Payload Additions & Generated Modules (U2)
 
-- [ ] 2.1 RED `console-payload-builder.test.ts`: `meta.domain` carries `{ title, address: "domaiNN_NN.md", modelCount, sourceCount }`; `meta.models[].family` carries blueprint family slug; schema concepts, fields, matrices carry `declaredBy: { family, version, location }`. Spec: console-payload-builder "Single Payload Builder".
-- [ ] 2.2 GREEN `core/src/console/payload-builder.ts`: emit `meta.domain`, `family`, and `declaredBy`.
-- [ ] 2.3 RED domain schema dedup test: definitions de-duplicated by composite key `(family, name)` instead of bare name, preserving multi-blueprint definitions. Spec: console-payload-builder "Single Payload Builder".
-- [ ] 2.4 GREEN `core/src/console/slot.ts` / `scripts/export-console.mjs`: update domain aggregation dedup key to `(family, name)`.
-- [ ] 2.5 RED matrix metadata test: `matrices[].slug`, `head.rows[label].slug`, `head.cols[label].slug` emitted on free matrices. Spec: console-payload-builder "Matrix Header Metadata".
-- [ ] 2.6 GREEN `payload-builder.ts`: populate header element slugs.
-- [ ] 2.7 RED element location test: `element.location` carries human location, `element.canonicalUnit` is absent, `element.unitSlug` is absent; draft normalization assigns `draft.address`. Spec: console-payload-builder "Element Ids and Hashes".
-- [ ] 2.8 GREEN update element building and draft normalization in `core/src/console/payload-builder.ts`.
+- [x] 2.1 RED `console-payload-builder.test.ts`: `meta.domain` carries `{ title, address: "domaiNN_NN.md", modelCount, sourceCount }`; `meta.models[].family` carries blueprint family slug; schema concepts, fields, matrices carry `declaredBy: { family, version, location }`. Spec: console-payload-builder "Single Payload Builder".
+- [x] 2.2 GREEN `core/src/console/payload-builder.ts`: emit `meta.domain`, `family`, and `declaredBy`.
+- [x] 2.3 RED domain schema dedup test: definitions de-duplicated by composite key `(family, name)` instead of bare name, preserving multi-blueprint definitions. Spec: console-payload-builder "Single Payload Builder".
+- [x] 2.4 GREEN `core/src/console/slot.ts` / `scripts/export-console.mjs`: update domain aggregation dedup key to `(family, name)`.
+- [x] 2.5 RED matrix metadata test: `matrices[].slug`, `head.rows[label].slug`, `head.cols[label].slug` emitted on free matrices. Spec: console-payload-builder "Matrix Header Metadata".
+- [x] 2.6 GREEN `payload-builder.ts`: populate header element slugs.
+- [x] 2.7 RED element location test: `element.location` carries human location, `element.canonicalUnit` is absent, `element.unitSlug` is absent; draft normalization assigns `draft.address`. Spec: console-payload-builder "Element Ids and Hashes".
+- [x] 2.8 GREEN update element building and draft normalization in `core/src/console/payload-builder.ts`.
 - [ ] 2.9 Parity test: assert `unitHome(address) === describeUnit(...).home` over all testlab payload units.
-- [ ] 2.10 Build generator: create `scripts/export-address-module.mjs` to emit `innfo-address.generated.js` (`window.InnfoAddress`), wire into `scripts/lib/console-bundle.js` `SOURCES`.
+- [x] 2.10 Build generator: create `scripts/export-address-module.mjs` to emit `innfo-address.generated.js` (`window.InnfoAddress`), wire into `scripts/lib/console-bundle.js` `SOURCES`.
 - [ ] 2.11 Regenerate mirrors: `npm run build:payload-mirror` (`console-payload.generated.cjs`).
 - [ ] 2.12 Gates: `npm run verify`, `node scripts/verify.js`. COMMIT U2.
 
