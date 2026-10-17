@@ -55,6 +55,59 @@ expect(`git commit -m x`, run(claude(worktree, 'Bash', `${G} commit -m x`)), 0)
 console.log('\nOUTSIDE REPO (expect allow=0):')
 expect('Write tool', run(claude(base, 'Write')), 0)
 
+// --- Target resolution: tool_input.file_path wins over the session cwd ---
+mkdirSync(path.join(primary, 'src'), { recursive: true })
+mkdirSync(path.join(worktree, 'src'), { recursive: true })
+
+const claudeFile = (cwd, tool_name, file_path) => ({ cwd, tool_name, tool_input: { file_path } })
+
+console.log('\nCLAUDE CODE — absolute file_path (target, not cwd):')
+expect(
+  'primary cwd → write into WORKTREE (allow)',
+  run(claudeFile(primary, 'Write', path.join(worktree, 'src', 'a.ts'))),
+  0,
+)
+expect(
+  'worktree cwd → edit in PRIMARY (block)',
+  run(claudeFile(worktree, 'Edit', path.join(primary, 'src', 'a.ts'))),
+  2,
+)
+expect(
+  'primary cwd → write in PRIMARY (block)',
+  run(claudeFile(primary, 'Write', path.join(primary, 'x.md'))),
+  2,
+)
+
+console.log('\nCLAUDE CODE — relative file_path resolves against cwd:')
+expect(
+  'worktree cwd + relative path (allow)',
+  run(claudeFile(worktree, 'Write', path.join('src', 'a.ts'))),
+  0,
+)
+expect('primary cwd + relative path (block)', run(claudeFile(primary, 'Write', path.join('src', 'a.ts'))), 2)
+
+console.log('\nANTIGRAVITY — TargetFile resolves the target:')
+const antigravity = (cwd, name, args) => ({ toolCall: { name, args }, workspacePaths: [cwd] })
+expect(
+  'primary cwd → replace_file_content in WORKTREE (allow)',
+  run(antigravity(primary, 'replace_file_content', { TargetFile: path.join(worktree, 'src', 'a.ts') })),
+  0,
+)
+expect(
+  'worktree cwd → create_file in PRIMARY (block)',
+  run(antigravity(worktree, 'create_file', { AbsolutePath: path.join(primary, 'src', 'b.ts') })),
+  2,
+)
+
+// --- git -C <dir> wins over the session cwd ---
+const git = (cwd, args) => claude(cwd, 'Bash', `${G} ${args}`)
+
+console.log('\ngit -C target:')
+expect(`git -C worktree add (from primary) → allow`, run(git(primary, `-C "${worktree}" add -A`)), 0)
+expect(`git -C primary add (from worktree) → block`, run(git(worktree, `-C "${primary}" add -A`)), 2)
+expect(`git -C primary commit (from primary) → block`, run(git(primary, `-C "${primary}" commit -m x`)), 2)
+expect(`git -C worktree stash (from primary) → allow`, run(git(primary, `-C "${worktree}" stash push -u`)), 0)
+
 rmSync(base, { recursive: true, force: true })
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURES`)
 process.exit(failures === 0 ? 0 : 1)
