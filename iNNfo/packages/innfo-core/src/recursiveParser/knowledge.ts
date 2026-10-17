@@ -80,6 +80,7 @@ export function normalizeSingleKnowledge(
     markers: {},
     tags: [],
     conceptTags: parsed.conceptTags,
+    conceptFields: parsed.conceptFields,
     relationships: [],
     rawSections: parsed.rawSections ?? {},
     rawContent: content,

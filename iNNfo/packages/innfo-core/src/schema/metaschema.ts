@@ -9,6 +9,8 @@ import {
   asString,
   extractBlueprintSchema,
 } from './extract.js'
+import { validateFieldValue } from './field-values.js'
+import { WIDGET_CONFIG_KEYS } from '../validator/constants.js'
 
 /* ── Metaschema (Self-Description) ──────────────────────────────
  *
@@ -43,10 +45,10 @@ const REQUIRED_BY_PRIMITIVE: Record<string, string[]> = {
 export interface SchemaCheckOptions {
   /** How to report a property no Field Definition declares. Default `warning`. */
   unknownProperty?: 'error' | 'warning' | 'ignore'
-  /** `<concept name>` → field names that MUST be present on every element. */
-  requiredByConcept?: Record<string, string[]>
-  /** Also flag element groups whose Concept is absent from the schema. */
+  /** Report elements whose Concept name is not in the schema. Default `false`. */
   reportUnknownConcept?: boolean
+  /** Per-concept list of required field names. */
+  requiredByConcept?: Record<string, string[]>
 }
 
 /**
@@ -110,16 +112,8 @@ export function checkElementsAgainstSchema(
           }
           continue
         }
-        if (fieldDef.type === 'select' && fieldDef.options && fieldDef.options.length > 0) {
-          const val = String(rawVal)
-          if (!fieldDef.options.includes(val)) {
-            diagnostics.push({
-              path: `${def.name}.${el.name}.${key}`,
-              message: `Invalid value "${val}" for "${key}". Allowed: ${fieldDef.options.join(', ')}`,
-              severity: 'error',
-            })
-          }
-        }
+        const fieldDiags = validateFieldValue(fieldDef, rawVal, `${def.name}.${el.name}.${key}`)
+        diagnostics.push(...fieldDiags)
       }
     }
   }
@@ -127,19 +121,10 @@ export function checkElementsAgainstSchema(
   return diagnostics
 }
 
-/** Allowed `widget_config` keys per `widget` value (iNNfo "Widget Configuration"). */
-const WIDGET_CONFIG_KEYS: Record<string, string[]> = {
-  scale: ['min', 'max', 'step'],
-  cycle: ['order'],
-  set: ['max_selections'],
-  text: ['max_length'],
-  boolean: [],
-}
-
 /**
- * Validate the `widget` / `widget_config` pair on Marker/Matrix Definition
- * elements: unknown keys for the declared widget are WARNINGs, a `scale`
- * missing `min`/`max` is an ERROR, `widget_config` without `widget` is a
+ * Validate the `widget` / `widget_config` pair on Field/Marker/Matrix Definition
+ * elements: unknown keys for the declared widget are ERRORs, a `scale`
+ * missing `min`/`max` or with min >= max is an ERROR, `widget_config` without `widget` is a
  * WARNING.
  */
 export function checkWidgetConfig(
@@ -166,7 +151,7 @@ export function checkWidgetConfig(
           diagnostics.push({
             path: `${primitive}.${el.name}.widget_config.${key}`,
             message: `"${key}" is not a widget_config key for widget "${widget}". Allowed: ${allowed.join(', ') || '(none)'}`,
-            severity: 'warning',
+            severity: 'error',
           })
         }
       }
@@ -179,6 +164,26 @@ export function checkWidgetConfig(
               severity: 'error',
             })
           }
+        }
+        if (
+          cfg['min'] !== undefined &&
+          cfg['min'] !== null &&
+          cfg['max'] !== undefined &&
+          cfg['max'] !== null &&
+          Number(cfg['min']) >= Number(cfg['max'])
+        ) {
+          diagnostics.push({
+            path: `${primitive}.${el.name}.widget_config`,
+            message: `widget "scale" min (${cfg['min']}) must be less than max (${cfg['max']})`,
+            severity: 'error',
+          })
+        }
+        if (cfg['step'] !== undefined && cfg['step'] !== null && Number(cfg['step']) <= 0) {
+          diagnostics.push({
+            path: `${primitive}.${el.name}.widget_config.step`,
+            message: `widget "scale" step (${cfg['step']}) must be greater than 0`,
+            severity: 'error',
+          })
         }
       }
     }
@@ -218,14 +223,70 @@ export function validateBlueprintAgainstMetaschema(
     MATRIX_DEFINITION,
   ].map((primitive) => [primitive, template.elements.get(primitive) ?? []])
 
-  return [
+  const diagnostics: ValidationError[] = [
     ...checkElementsAgainstSchema(groups, metaConcepts, {
       unknownProperty: 'warning',
       requiredByConcept: REQUIRED_BY_PRIMITIVE,
     }),
     ...checkWidgetConfig([
+      [FIELD_DEFINITION, template.elements.get(FIELD_DEFINITION) ?? []],
       [MARKER_DEFINITION, template.elements.get(MARKER_DEFINITION) ?? []],
       [MATRIX_DEFINITION, template.elements.get(MATRIX_DEFINITION) ?? []],
     ]),
   ]
+
+  const fieldDefs = template.elements.get(FIELD_DEFINITION) ?? []
+  for (const el of fieldDefs) {
+    const multiple = el.fields['multiple'] === true || el.fields['multiple'] === 'true'
+    const type = asString(el.fields['type'])
+    if (multiple && type !== 'select') {
+      diagnostics.push({
+        path: `${FIELD_DEFINITION}.${el.name}.multiple`,
+        message: `Field "${el.name}" has multiple:: true, which requires type:: select (got "${type}")`,
+        severity: 'error',
+      })
+    }
+    const widget = asString(el.fields['widget'])?.toLowerCase()
+    if (widget) {
+      if (widget === 'scale' && type !== 'number') {
+        diagnostics.push({
+          path: `${FIELD_DEFINITION}.${el.name}.widget`,
+          message: `widget "scale" requires type:: number (got "${type}")`,
+          severity: 'error',
+        })
+      } else if (widget === 'boolean' && type !== 'boolean') {
+        diagnostics.push({
+          path: `${FIELD_DEFINITION}.${el.name}.widget`,
+          message: `widget "boolean" requires type:: boolean (got "${type}")`,
+          severity: 'error',
+        })
+      } else if (widget === 'cycle') {
+        const opts = el.fields['options']
+        const hasOptions = Array.isArray(opts) ? opts.length > 0 : Boolean(opts)
+        if (type !== 'select' || multiple || !hasOptions) {
+          diagnostics.push({
+            path: `${FIELD_DEFINITION}.${el.name}.widget`,
+            message: `widget "cycle" requires a single-valued select with options`,
+            severity: 'error',
+          })
+        }
+      } else if (widget === 'set') {
+        if (type !== 'select' || !multiple) {
+          diagnostics.push({
+            path: `${FIELD_DEFINITION}.${el.name}.widget`,
+            message: `widget "set" requires type:: select with multiple:: true`,
+            severity: 'error',
+          })
+        }
+      } else if (widget === 'text' && type !== 'string') {
+        diagnostics.push({
+          path: `${FIELD_DEFINITION}.${el.name}.widget`,
+          message: `widget "text" requires type:: string (got "${type}")`,
+          severity: 'error',
+        })
+      }
+    }
+  }
+
+  return diagnostics
 }

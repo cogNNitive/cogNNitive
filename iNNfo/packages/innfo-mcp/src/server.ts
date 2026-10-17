@@ -301,6 +301,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
               'remove_element',
               'rename_concept',
               'rename_element',
+              'update_concept_field',
+              'remove_matrix',
               'generate_index',
               'bump_version',
               'freeze_slugs',
@@ -309,7 +311,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept, add_field and set_marker are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept, add_field and set_marker are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',

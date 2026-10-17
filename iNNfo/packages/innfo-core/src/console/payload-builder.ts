@@ -21,6 +21,7 @@ import type { ResolvedCitation } from './citations.js'
 import { canonicalJsonStringify, computeElementHash } from './element-hash.js'
 import { buildConsoleSchemaSlot } from './slot.js'
 import type { ConsoleSchemaSlot, ConsoleProcedureSlot } from './slot.js'
+import { inheritConceptValues } from '../schema/field-values.js'
 import { attachChangesetHistory } from './element-history.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 
@@ -46,6 +47,7 @@ export interface ConsolePayloadElement {
   hash: string
   /** Own `tags::` then the concept-level ones, lowercase, de-duplicated. Not hashed. */
   tags: string[]
+  inherited?: Record<string, { value: unknown; from: string }>
   relations?: ConsolePayloadElementRelation[]
   citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
   history?: ElementHistoryItem[]
@@ -195,6 +197,19 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       // hashParsedElement and every base_hash precondition holds.
       const tags = [...new Set([...(node.tags ?? []), ...(parsed.conceptTags?.[concept] ?? [])])]
 
+      // In S1: if node has own tags, expose them on fields.tags as well
+      if (node.tags && node.tags.length > 0) {
+        fields.tags = [...node.tags]
+      }
+
+      // Compute inherited field values delta
+      const conceptDefs = inputSchema?.concepts
+        ? (Array.isArray(inputSchema.concepts) ? inputSchema.concepts : Object.values(inputSchema.concepts))
+            .find((c: any) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields
+        : undefined
+      const conceptVals = parsed.conceptFields?.[concept]
+      const inheritedDelta = inheritConceptValues(fields, conceptVals, conceptDefs, concept)
+
       const elem: ConsolePayloadElement = {
         id,
         slug: node.slug,
@@ -205,6 +220,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         markers,
         hash,
         tags,
+        ...(Object.keys(inheritedDelta).length > 0 ? { inherited: inheritedDelta } : {}),
       }
 
       rawElements.push({ elem, rawFields: { ...fields } })
@@ -318,7 +334,12 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     }
   }
 
-  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements, options.procedures)
+  const schemaSlot = buildConsoleSchemaSlot(
+    inputSchema,
+    elements,
+    options.procedures,
+    parsed.conceptFields,
+  )
   // Attach changeset lineage AFTER the schema slot so the schema is unaffected by
   // history (only the model slot carries it).
   attachChangesetHistory(elements, changesets)

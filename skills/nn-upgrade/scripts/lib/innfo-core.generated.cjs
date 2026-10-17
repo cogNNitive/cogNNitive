@@ -7777,6 +7777,10 @@ function parseConceptSection(conceptName, content) {
   };
   let conceptTags;
   let rawConceptTags;
+  const conceptFields = {};
+  const rawConceptFields = {};
+  let inConceptPrologueProperties = true;
+  const warnings = [];
   for (const line of lines) {
     const heading = parseElementHeadingFull(line);
     if (heading !== null) {
@@ -7803,11 +7807,30 @@ function parseConceptSection(conceptName, content) {
         continue;
       }
     } else {
-      const prop = parsePropertyLine(line);
-      if (prop !== null && prop[0] === "tags") {
-        conceptTags = parseTagList(String(prop[1]));
-        rawConceptTags = String(prop[1]);
-        continue;
+      if (inConceptPrologueProperties) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+          continue;
+        }
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          const [key, rawVal] = prop;
+          if (key === "tags") {
+            conceptTags = parseTagList(String(rawVal));
+            rawConceptTags = String(rawVal);
+          }
+          conceptFields[key] = parsePropertyValue(rawVal);
+          rawConceptFields[key] = String(rawVal);
+          continue;
+        } else {
+          inConceptPrologueProperties = false;
+        }
+      } else {
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          warnings.push(
+            `CONCEPT_FIELD_AFTER_PROSE: Concept "${conceptName}" contains property line "${prop[0]}::" after prose before first element`
+          );
+        }
       }
     }
     if (seenElement) {
@@ -7823,7 +7846,10 @@ function parseConceptSection(conceptName, content) {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
     tags: conceptTags,
-    rawTags: rawConceptTags
+    rawTags: rawConceptTags,
+    fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
+    warnings: warnings.length > 0 ? warnings : void 0
   };
 }
 function parseMatrixSection(content, _matrixName) {
@@ -8282,7 +8308,7 @@ function serializeKnowledge(model) {
   } else {
     lines.push("---");
     if (fm.level !== 3 || fm.spec_version) {
-      lines.push(`spec_version: "${fm.spec_version || "V_0-3-0"}"`);
+      lines.push(`spec_version: "${fm.spec_version || "V_0-5-0"}"`);
     }
     if (fm.spec_url) {
       lines.push(`spec_url: "${fm.spec_url}"`);
@@ -8450,14 +8476,37 @@ function serializeKnowledge(model) {
     const rawBody = model.rawSections?.[conceptName];
     const unEmitted = elementNodes?.filter((n) => !emittedElements.has(n)) ?? [];
     const hasUnEmitted = unEmitted.length > 0;
-    if (!hasUnEmitted && (!rawBody || !rawBody.trim())) return;
+    const cFields = model.conceptFields?.[conceptName];
+    const hasConceptFields = cFields && Object.keys(cFields).length > 0;
+    const hasConceptTags = model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0;
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields && !hasConceptTags) return;
     lines.push(`# NN ${conceptName}`);
-    if (model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0) {
+    const hasProperties = hasConceptFields || hasConceptTags;
+    if (headingBlankLine(conceptName, true) && !hasProperties) {
+      lines.push("");
+    }
+    if (hasConceptFields) {
+      for (const [k, v] of Object.entries(cFields)) {
+        if (k === "tags") {
+          if (Array.isArray(v)) {
+            lines.push(`tags:: ${serializeTagsValue(v, model.rawConceptFields?.[conceptName]?.[k] ?? model.rawConceptTags?.[conceptName])}`);
+          } else {
+            const raw = model.rawConceptFields?.[conceptName]?.[k];
+            lines.push(`${k}:: ${serializePropertyValue(v, raw)}`);
+          }
+        } else {
+          const raw = model.rawConceptFields?.[conceptName]?.[k];
+          lines.push(`${k}:: ${serializePropertyValue(v, raw)}`);
+        }
+      }
+    } else if (hasConceptTags) {
       lines.push(
         `tags:: ${serializeTagsValue(model.conceptTags[conceptName], model.rawConceptTags?.[conceptName])}`
       );
     }
-    if (headingBlankLine(conceptName, true)) lines.push("");
+    if (hasProperties && (hasUnEmitted || rawBody && rawBody.trim())) {
+      lines.push("");
+    }
     if (hasUnEmitted) {
       unEmitted.forEach((node, idx) => {
         const isLast = idx === unEmitted.length - 1;
@@ -8465,6 +8514,8 @@ function serializeKnowledge(model) {
       });
     } else if (rawBody) {
       lines.push(rawBody);
+      lines.push("");
+    } else {
       lines.push("");
     }
   };
@@ -8531,6 +8582,9 @@ function serializeKnowledge(model) {
   }
   emitIndex();
   for (const [conceptName] of model.elements.entries()) emitConceptSection(conceptName);
+  if (model.conceptFields) {
+    for (const conceptName of Object.keys(model.conceptFields)) emitConceptSection(conceptName);
+  }
   if (model.rawSections) {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName);
   }
@@ -8673,6 +8727,8 @@ function parseKnowledge(content) {
   let taxonomy = [];
   const conceptTags = {};
   const rawConceptTags = {};
+  const conceptFields = {};
+  const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
   const rawFrontmatter = frontmatterMatch ? frontmatterMatch[0] : void 0;
   let rawPreamble;
@@ -8728,8 +8784,15 @@ function parseKnowledge(content) {
         conceptTags[name] = parsed.tags;
         if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
       }
-      if (parsed.elements.length === 0 && bodyContent.trim()) {
-        rawSections[name] = bodyContent;
+      if (parsed.fields) {
+        conceptFields[name] = parsed.fields;
+        if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
+      }
+      if (parsed.warnings) {
+        parseWarnings.push(...parsed.warnings);
+      }
+      if (parsed.elements.length === 0 && (parsed.content || !parsed.fields && bodyContent.trim())) {
+        rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
       if (name.toLowerCase() === "item-markers matrix") {
@@ -8781,6 +8844,8 @@ function parseKnowledge(content) {
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
     rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
+    conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,

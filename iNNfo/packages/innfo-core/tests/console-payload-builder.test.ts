@@ -172,3 +172,175 @@ ${tagLines.element ? `tags:: ${tagLines.element}
     expect(tagged.hash).toBe(hashParsedElement('Service', node))
   })
 })
+
+describe('Task 1.14: Declared Field Definitions in the Schema Slot', () => {
+  it('schema.fields entries carry multiple, widget, widgetConfig, description, scope', () => {
+    const mockSchema = {
+      concepts: [
+        {
+          name: 'Initiative',
+          fields: [
+            {
+              name: 'stage',
+              type: 'select',
+              multiple: true,
+              options: ['idea', 'build'],
+              widget: 'pills',
+              widgetConfig: { color: 'blue' },
+              description: 'Current development stage',
+              scope: 'concept',
+            },
+          ],
+        },
+      ],
+    }
+
+    const { schema } = buildConsolePayload({
+      content: `---
+title: "Initiatives"
+knowledge_version: "V_1-0-0"
+---
+# NN Initiative
+## NN Initiative: Project X
+slug:: project-x
+`,
+      schema: mockSchema,
+    })
+
+    expect(schema.fields).toHaveLength(1)
+    const f = schema.fields[0]
+    expect(f.concept).toBe('Initiative')
+    expect(f.name).toBe('stage')
+    expect(f.type).toBe('select')
+    expect(f.multiple).toBe(true)
+    expect(f.options).toEqual(['idea', 'build'])
+    expect(f.widget).toBe('pills')
+    expect(f.widgetConfig).toEqual({ color: 'blue' })
+    expect(f.description).toBe('Current development stage')
+    expect(f.scope).toBe('concept')
+  })
+
+  it('star Field is flattened per concept in schema.fields', () => {
+    const mockSchema = {
+      concepts: [
+        {
+          name: 'Goal',
+          fields: [
+            {
+              name: 'tags',
+              type: 'select',
+              multiple: true,
+              scope: '*',
+            },
+          ],
+        },
+        {
+          name: 'Risk',
+          fields: [
+            {
+              name: 'tags',
+              type: 'select',
+              multiple: true,
+              scope: '*',
+            },
+          ],
+        },
+      ],
+    }
+
+    const { schema } = buildConsolePayload({
+      content: `---
+title: "Strategic Model"
+knowledge_version: "V_1-0-0"
+---
+# NN Goal
+## NN Goal: Win
+slug:: win
+`,
+      schema: mockSchema,
+    })
+
+    const tagFields = schema.fields.filter((f) => f.name === 'tags')
+    expect(tagFields).toHaveLength(2)
+    expect(tagFields.map((f) => f.concept)).toEqual(['Goal', 'Risk'])
+    expect(tagFields[0].multiple).toBe(true)
+    expect(tagFields[0].scope).toBe('*')
+  })
+})
+
+describe('Task 1.14: Element Field Values and Inheritance in the Payload', () => {
+  const schemaWithTagsAndHealth = {
+    concepts: [
+      {
+        name: 'Goals',
+        fields: [
+          { name: 'tags', type: 'select', multiple: true },
+          { name: 'health', type: 'select', multiple: false },
+        ],
+      },
+    ],
+  }
+
+  it('element fields carries own values; inherited carries delta with provenance', () => {
+    const doc = `---
+title: "Goals Doc"
+knowledge_version: "V_1-0-0"
+---
+
+# NN Goals
+tags:: [core]
+health:: warning
+
+## NN Goals: Expand
+slug:: expand
+tags:: [ai]
+
+## NN Goals: Maintain
+slug:: maintain
+health:: nominal
+`
+    const payload = buildConsolePayload({
+      content: doc,
+      schema: schemaWithTagsAndHealth,
+    })
+
+    const expand = payload.model.elements.find((e) => e.slug === 'expand')!
+    expect(expand.fields.tags).toEqual(['ai'])
+    expect(expand.fields.health).toBeUndefined()
+    expect(expand.inherited).toBeDefined()
+    expect(expand.inherited?.tags).toEqual({ value: ['core'], from: 'Goals' })
+    expect(expand.inherited?.health).toEqual({ value: 'warning', from: 'Goals' })
+
+    const maintain = payload.model.elements.find((e) => e.slug === 'maintain')!
+    expect(maintain.fields.health).toBe('nominal')
+    expect(maintain.inherited?.health).toBeUndefined()
+    expect(maintain.inherited?.tags).toEqual({ value: ['core'], from: 'Goals' })
+  })
+
+  it('concept entry in schema.concepts exposes its own concept-level fields', () => {
+    const doc = `---
+title: "Goals Doc"
+knowledge_version: "V_1-0-0"
+---
+
+# NN Goals
+tags:: [core]
+health:: warning
+
+## NN Goals: Expand
+slug:: expand
+`
+    const payload = buildConsolePayload({
+      content: doc,
+      schema: schemaWithTagsAndHealth,
+    })
+
+    const goalsConcept = payload.schema.concepts.find((c) => c.name === 'Goals')
+    expect(goalsConcept).toBeDefined()
+    expect(goalsConcept?.conceptFields).toEqual({
+      tags: ['core'],
+      health: 'warning',
+    })
+  })
+})
+

@@ -339,6 +339,89 @@ describe('mutate tools', () => {
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
 
+    it('rejects add_field on a level-3 model with SCHEMA_OP_ON_LEVEL3 (reject-without-writing)', async () => {
+      await stubBusinessTemplate()
+      const filePath = join(rootDir, 'Mutable_NN.md')
+      await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
+
+      const result = await applyChange(rootDir, 'Mutable', 'add_field', {
+        conceptName: 'Work',
+        fieldName: 'priority',
+        fieldType: 'string',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.errors?.[0].code).toBe('SCHEMA_OP_ON_LEVEL3')
+      const onDisk = await readFile(filePath, 'utf-8')
+      expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
+    })
+
+    it('accepts add_field on a level-2 template with multi-concept target, multiple, widget, and types', async () => {
+      await stubSpecChain()
+      const templatePath = join(rootDir, 'specs', 'bluepriNNts', 'custom', 'spec_NN.md')
+      await mkdir(join(rootDir, 'specs', 'bluepriNNts', 'custom'), { recursive: true })
+      await writeFile(
+        templatePath,
+        [
+          '---',
+          'spec_version: "V_0-4-0"',
+          'blueprint_version: "V_0-1-0"',
+          'level: 2',
+          'title: "Custom Template"',
+          'parent_spec:',
+          '  name: "iNNfo_V_0-4-0"',
+          '  url: "https://example.com/iNNfo_V_0-4-0_NN.md"',
+          '---',
+          '',
+          '# NN Concept Definition',
+          '',
+          '## NN Concept Definition: Task',
+          'type:: list',
+          '',
+          '## NN Concept Definition: Goal',
+          'type:: list',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+
+      // add_field with star target and multiple select
+      const resStar = await applyChange(rootDir, 'custom', 'add_field', {
+        conceptName: '*',
+        fieldName: 'tags',
+        fieldType: 'select',
+        multiple: true,
+      })
+      expect(resStar.success).toBe(true)
+
+      // add_field with number scale widget
+      const resScale = await applyChange(rootDir, 'custom', 'add_field', {
+        conceptName: 'Task',
+        fieldName: 'complexity',
+        fieldType: 'number',
+        widget: 'scale',
+        widget_config: { min: 0, max: 100, step: 5 },
+      })
+      expect(resScale.success).toBe(true)
+
+      // add_field with boolean
+      const resBool = await applyChange(rootDir, 'custom', 'add_field', {
+        conceptName: 'Task',
+        fieldName: 'active',
+        fieldType: 'boolean',
+      })
+      expect(resBool.success).toBe(true)
+
+      const onDisk = await readFile(templatePath, 'utf-8')
+      expect(onDisk).toContain('## NN Field Definition: tags')
+      expect(onDisk).toContain('concept:: *')
+      expect(onDisk).toContain('multiple:: true')
+      expect(onDisk).toContain('## NN Field Definition: complexity')
+      expect(onDisk).toContain('widget:: scale')
+      expect(onDisk).toContain('## NN Field Definition: active')
+      expect(onDisk).toContain('type:: boolean')
+    })
+
     describe('retirement of agent modification block (decision D8)', () => {
       it('returns structured outcome and does not emit modification block on mutation success', async () => {
         await stubBusinessTemplate()

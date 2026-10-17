@@ -128,6 +128,8 @@ export function parseKnowledge(content: string): ParsedKnowledge {
   let taxonomy: TaxonomyEdge[] = []
   const conceptTags: Record<string, string[]> = {}
   const rawConceptTags: Record<string, string> = {}
+  const conceptFields: Record<string, Record<string, unknown>> = {}
+  const rawConceptFields: Record<string, Record<string, string>> = {}
 
   // Raw frontmatter + preamble capture, for round-trip fidelity. The
   // constructed emit path in `serializeKnowledge` is an allow-list of known keys
@@ -202,14 +204,21 @@ export function parseKnowledge(content: string): ParsedKnowledge {
         conceptTags[name] = parsed.tags
         if (parsed.rawTags !== undefined) rawConceptTags[name] = parsed.rawTags
       }
+      if (parsed.fields) {
+        conceptFields[name] = parsed.fields
+        if (parsed.rawFields !== undefined) rawConceptFields[name] = parsed.rawFields
+      }
+      if (parsed.warnings) {
+        parseWarnings.push(...parsed.warnings)
+      }
       // Preserve the concept's raw body for round-trip fidelity AND as the
       // concept-level description/content of `text` concepts. Concepts with
       // element markers carry their content in `elements`; element-free
       // concepts (e.g. `text`) keep their free-form Markdown here. Empty
       // sections are skipped so ghost detection still flags no-content
       // concepts.
-      if (parsed.elements.length === 0 && bodyContent.trim()) {
-        rawSections[name] = bodyContent
+      if (parsed.elements.length === 0 && (parsed.content || (!parsed.fields && bodyContent.trim()))) {
+        rawSections[name] = parsed.content ? parsed.content : bodyContent
       }
     } else if (type === 'matrix') {
       if (name.toLowerCase() === 'item-markers matrix') {
@@ -282,6 +291,8 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : undefined,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : undefined,
     rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : undefined,
+    conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
+    rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : undefined,

@@ -1,5 +1,6 @@
 import { slugify } from '../parser/slug.js'
 import { slugifyHeading } from '../sourceRef.js'
+import { parsePropertyValue } from '../parser/sections.js'
 import { hashParsedElement } from '../console/element-hash.js'
 import { checkStaleTarget } from './history.js'
 import { extractModelSlug } from './utils.js'
@@ -246,6 +247,78 @@ export async function partitionChangeset(
           conflictedSubset.push(change)
           continue
         }
+      }
+    }
+
+    // 7. update_concept_field precondition check
+    if (change.op === 'update_concept_field') {
+      let conceptIdent = remainder
+      let fieldIdent = ''
+      if (ampIdx !== -1) {
+        conceptIdent = remainder.slice(0, ampIdx).trim()
+        fieldIdent = remainder.slice(ampIdx + 1).trim()
+      }
+      if (conceptIdent.toLowerCase().startsWith('concept:')) {
+        conceptIdent = conceptIdent.slice('concept:'.length).trim()
+      }
+
+      // Find concept in model
+      const cFields = model.conceptFields?.[conceptIdent] ||
+        (Object.keys(model.conceptFields || {}).find((k) => k.toLowerCase() === conceptIdent.toLowerCase())
+          ? model.conceptFields?.[Object.keys(model.conceptFields || {}).find((k) => k.toLowerCase() === conceptIdent.toLowerCase())!]
+          : undefined)
+
+      let currentRawVal = cFields?.[fieldIdent]
+      if (currentRawVal === undefined && fieldIdent.toLowerCase() === 'tags') {
+        currentRawVal = model.conceptTags?.[conceptIdent]
+      }
+
+      const formatCanonical = (val: unknown): string => {
+        if (val === undefined || val === null) return ''
+        if (Array.isArray(val)) return `[${val.join(', ')}]`
+        return String(val)
+      }
+
+      const currentCanonical = formatCanonical(currentRawVal)
+      const expectedFrom = formatCanonical(change.from !== undefined ? (change.from.trim().startsWith('[') ? parsePropertyValue(change.from) : change.from) : undefined)
+
+      if (change.from !== undefined && currentCanonical !== expectedFrom && currentCanonical !== change.from.trim()) {
+        const msg = `PRECONDITION_FAILED: Precondition failed: current value "${currentCanonical}" does not match from "${change.from}"`
+        conflictDiagnostics.set(change.id, { code: 'PRECONDITION_FAILED', message: msg })
+        change.status = 'conflict'
+        change.resolution = msg
+        conflictedSubset.push(change)
+        continue
+      }
+    }
+
+    // 8. remove_matrix existence check
+    if (change.op === 'remove_matrix') {
+      let matrixIdent = remainder.trim()
+      if (matrixIdent.toLowerCase().startsWith('matrix:')) {
+        matrixIdent = matrixIdent.slice('matrix:'.length).trim()
+      }
+      const mIdentLower = matrixIdent.toLowerCase()
+
+      const exists =
+        (model.matrices && model.matrices.some(
+          (m) =>
+            m.name.toLowerCase() === mIdentLower ||
+            slugify(m.name).toLowerCase() === mIdentLower ||
+            slugifyHeading(m.name).toLowerCase() === mIdentLower,
+        )) ||
+        (mIdentLower === 'item-markers matrix' && model.nodeMarkers && Object.keys(model.nodeMarkers).length > 0) ||
+        (model.sectionOrder && model.sectionOrder.some(
+          (s) => s.toLowerCase() === `matrices: ${mIdentLower}` || s.toLowerCase() === mIdentLower,
+        ))
+
+      if (!exists) {
+        const msg = `PRECONDITION_FAILED: Matrix "${matrixIdent}" not found in model "${targetModelSlug}"`
+        conflictDiagnostics.set(change.id, { code: 'PRECONDITION_FAILED', message: msg })
+        change.status = 'conflict'
+        change.resolution = msg
+        conflictedSubset.push(change)
+        continue
       }
     }
 

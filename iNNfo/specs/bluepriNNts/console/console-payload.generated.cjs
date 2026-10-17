@@ -7399,12 +7399,15 @@ __export(index_exports, {
   parseChangesetTarget: () => parseChangesetTarget,
   parseFrontmatter: () => parseFrontmatter,
   parseName: () => parseName,
+  parseUnitAddress: () => parseUnitAddress,
   parseYaml: () => parseYaml,
   readChangeAuthor: () => readChangeAuthor,
   resolveCitation: () => resolveCitation,
   resolveConsoleSchema: () => resolveConsoleSchema,
   roleOf: () => roleOf,
   serializeConsoleSlot: () => serializeConsoleSlot,
+  unitAddress: () => unitAddress,
+  unitHome: () => unitHome,
   writeOnce: () => writeOnce
 });
 module.exports = __toCommonJS(index_exports);
@@ -7785,6 +7788,10 @@ function parseConceptSection(conceptName, content) {
   };
   let conceptTags;
   let rawConceptTags;
+  const conceptFields = {};
+  const rawConceptFields = {};
+  let inConceptPrologueProperties = true;
+  const warnings = [];
   for (const line of lines) {
     const heading = parseElementHeadingFull(line);
     if (heading !== null) {
@@ -7811,11 +7818,30 @@ function parseConceptSection(conceptName, content) {
         continue;
       }
     } else {
-      const prop = parsePropertyLine(line);
-      if (prop !== null && prop[0] === "tags") {
-        conceptTags = parseTagList(String(prop[1]));
-        rawConceptTags = String(prop[1]);
-        continue;
+      if (inConceptPrologueProperties) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+          continue;
+        }
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          const [key, rawVal] = prop;
+          if (key === "tags") {
+            conceptTags = parseTagList(String(rawVal));
+            rawConceptTags = String(rawVal);
+          }
+          conceptFields[key] = parsePropertyValue(rawVal);
+          rawConceptFields[key] = String(rawVal);
+          continue;
+        } else {
+          inConceptPrologueProperties = false;
+        }
+      } else {
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          warnings.push(
+            `CONCEPT_FIELD_AFTER_PROSE: Concept "${conceptName}" contains property line "${prop[0]}::" after prose before first element`
+          );
+        }
       }
     }
     if (seenElement) {
@@ -7831,7 +7857,10 @@ function parseConceptSection(conceptName, content) {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
     tags: conceptTags,
-    rawTags: rawConceptTags
+    rawTags: rawConceptTags,
+    fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
+    warnings: warnings.length > 0 ? warnings : void 0
   };
 }
 function parseMatrixSection(content, _matrixName) {
@@ -8484,6 +8513,8 @@ function parseKnowledge(content) {
   let taxonomy = [];
   const conceptTags = {};
   const rawConceptTags = {};
+  const conceptFields = {};
+  const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
   const rawFrontmatter = frontmatterMatch ? frontmatterMatch[0] : void 0;
   let rawPreamble;
@@ -8539,8 +8570,15 @@ function parseKnowledge(content) {
         conceptTags[name] = parsed.tags;
         if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
       }
-      if (parsed.elements.length === 0 && bodyContent.trim()) {
-        rawSections[name] = bodyContent;
+      if (parsed.fields) {
+        conceptFields[name] = parsed.fields;
+        if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
+      }
+      if (parsed.warnings) {
+        parseWarnings.push(...parsed.warnings);
+      }
+      if (parsed.elements.length === 0 && (parsed.content || !parsed.fields && bodyContent.trim())) {
+        rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
       if (name.toLowerCase() === "item-markers matrix") {
@@ -8592,6 +8630,8 @@ function parseKnowledge(content) {
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
     rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
+    conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
@@ -8635,6 +8675,7 @@ function cleanWikilink(v) {
 function extractBlueprintSchema(parsed) {
   const concepts = [];
   const fieldsByConcept = /* @__PURE__ */ new Map();
+  const globalFields = [];
   for (const el of parsed.elements.get(CONCEPT_DEFINITION) ?? []) {
     const parent = cleanWikilink(el.fields["parent"]);
     const concept = {
@@ -8651,23 +8692,58 @@ function extractBlueprintSchema(parsed) {
     fieldsByConcept.set(concept.name, []);
   }
   for (const el of parsed.elements.get(FIELD_DEFINITION) ?? []) {
-    const owner = asString(el.fields["concept"]);
-    if (!owner) continue;
+    const rawConcept = el.fields["concept"];
+    let scope = "concept";
+    let targets;
+    let owner;
+    if (rawConcept === "*" || Array.isArray(rawConcept) && rawConcept.length === 1 && String(rawConcept[0]).trim() === "*") {
+      scope = "*";
+    } else if (Array.isArray(rawConcept)) {
+      scope = "list";
+      targets = rawConcept.map(String).map((s) => s.trim()).filter(Boolean);
+    } else if (typeof rawConcept === "string") {
+      const trimmed = rawConcept.trim();
+      if (trimmed === "*") {
+        scope = "*";
+      } else if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        scope = "list";
+        targets = trimmed.slice(1, -1).split(",").map((s) => s.trim()).filter(Boolean);
+      } else if (trimmed !== "") {
+        scope = "concept";
+        owner = trimmed;
+      }
+    }
+    if (!owner && !targets && scope !== "*") continue;
     const targetBlueprint = asString(el.fields["target_blueprint"]);
+    const multiple = el.fields["multiple"] === true || el.fields["multiple"] === "true";
+    const widget = asString(el.fields["widget"]);
+    const widgetConfig = asObject(el.fields["widget_config"]);
     const field = {
       name: el.name,
       type: asString(el.fields["type"]) ?? "string",
       options: asStringArray(el.fields["options"]),
       target_concepts: asStringArray(el.fields["target_concepts"]),
-      target_blueprint: targetBlueprint
+      target_blueprint: targetBlueprint,
+      scope
     };
+    if (multiple) field.multiple = true;
+    if (widget) field.widget = widget;
+    if (widgetConfig) field.widgetConfig = widgetConfig;
     const fieldDescription = asString(el.fields["description"]);
     if (fieldDescription) field.description = fieldDescription;
-    const list = fieldsByConcept.get(owner);
-    if (list) {
-      list.push(field);
+    if (scope === "concept" && owner) {
+      const list = fieldsByConcept.get(owner);
+      if (list) {
+        list.push(field);
+      } else {
+        fieldsByConcept.set(owner, [field]);
+      }
     } else {
-      fieldsByConcept.set(owner, [field]);
+      globalFields.push({
+        field,
+        scope: scope === "list" ? "list" : "*",
+        targets
+      });
     }
   }
   for (const concept of concepts) {
@@ -8693,15 +8769,15 @@ function extractBlueprintSchema(parsed) {
     return marker;
   });
   const matrices = (parsed.elements.get(MATRIX_DEFINITION) ?? []).map((el) => {
-    const values = asStringArray(el.fields["values"]);
-    const widget = asString(el.fields["widget"]) ?? asString(el.fields["widgetType"]);
     const decl = {
       name: el.name,
       source: asString(el.fields["source"]) ?? "",
       target: asString(el.fields["target"]) ?? "",
-      params: ""
+      params: asString(el.fields["params"]) ?? ""
     };
+    const values = asStringArray(el.fields["values"]);
     if (values) decl.values = values;
+    const widget = asString(el.fields["widget"]);
     if (widget) decl.widgetType = widget;
     const widgetConfig = asObject(el.fields["widget_config"]);
     if (widgetConfig) decl.widgetConfig = widgetConfig;
@@ -8721,7 +8797,16 @@ function extractBlueprintSchema(parsed) {
   } else {
     taxonomy = parsed.taxonomy;
   }
-  return { concepts, markers, matrices, taxonomy };
+  const result = {
+    concepts,
+    markers,
+    matrices,
+    taxonomy
+  };
+  if (globalFields.length > 0) {
+    result.globalFields = globalFields;
+  }
+  return result;
 }
 
 // iNNfo/packages/innfo-core/src/schema/compose.ts
@@ -8820,6 +8905,60 @@ function applyAliasToSchema(schema, alias) {
   });
   return { concepts, markers, matrices, taxonomy };
 }
+function expandFieldTargets(concepts, globalFields, sourceLabel, errors, provenance, isHost = true) {
+  if (!globalFields || globalFields.length === 0) return;
+  for (const gf of globalFields) {
+    if (gf.scope === "*") {
+      if (provenance) {
+        const key = gf.field.name.toLowerCase();
+        const prior = provenance.starField.get(key);
+        if (prior) {
+          if (canonicalizeDefinition(prior.def) !== canonicalizeDefinition(gf.field)) {
+            errors.push({
+              path: `includes.Field.${gf.field.name}`,
+              message: `[COMPOSITION_COLLISION] Field Definition "${gf.field.name}" with concept:: * collision detected between included templates "${prior.source}" and "${sourceLabel}". Use frontmatter \`alias\` to resolve collisions.`,
+              severity: "error"
+            });
+          }
+        } else {
+          provenance.starField.set(key, { source: sourceLabel, def: gf.field });
+        }
+      }
+      for (const c of concepts) {
+        if (c.type === "text") continue;
+        if (!c.fields) c.fields = [];
+        const existingField = c.fields.find(
+          (f) => f.name.toLowerCase() === gf.field.name.toLowerCase()
+        );
+        if (!existingField) {
+          c.fields.push({ ...gf.field });
+        }
+      }
+    } else if (gf.scope === "list") {
+      const targets = gf.targets ?? [];
+      for (const t of targets) {
+        const concept = concepts.find((c) => c.name.toLowerCase() === t.toLowerCase());
+        if (!concept) {
+          errors.push({
+            path: `Field Definition.${gf.field.name}.concept`,
+            message: `Unknown concept "${t}" in Field "${gf.field.name}" concept list`,
+            severity: "error"
+          });
+          continue;
+        }
+        if (!concept.fields) concept.fields = [];
+        const existingIdx = concept.fields.findIndex(
+          (f) => f.name.toLowerCase() === gf.field.name.toLowerCase()
+        );
+        if (existingIdx === -1) {
+          concept.fields.push({ ...gf.field });
+        } else if (concept.fields[existingIdx].scope !== "concept") {
+          concept.fields[existingIdx] = { ...gf.field };
+        }
+      }
+    }
+  }
+}
 function mergeDefinition(incoming, incomingSource, kindLabel, seen, target, errors, isHost = false) {
   const key = incoming.name.toLowerCase();
   const prior = seen.get(key);
@@ -8889,12 +9028,25 @@ function mergeSchemaInto(acc, incoming, incomingSource, provenance, errors, isHo
     }
   }
 }
-function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__PURE__ */ new Set(), _depth = 0) {
+function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__PURE__ */ new Set(), _depth = 0, _provenance) {
   const parsed = parseKnowledge(templateContent);
   const local = extractBlueprintSchema(parsed);
   const includes = parsed.frontmatter?.includes ?? [];
+  const selfLabel = String(parsed.frontmatter?.title ?? "this template");
+  const errors = [];
+  const provenance = _provenance ?? {
+    concept: /* @__PURE__ */ new Map(),
+    marker: /* @__PURE__ */ new Map(),
+    matrix: /* @__PURE__ */ new Map(),
+    field: /* @__PURE__ */ new Map(),
+    starField: /* @__PURE__ */ new Map()
+  };
   if (!resolveInclude || includes.length === 0) {
-    return { schema: local, errors: [] };
+    if (local.globalFields && local.globalFields.length > 0) {
+      expandFieldTargets(local.concepts, local.globalFields, selfLabel, errors, provenance, true);
+      delete local.globalFields;
+    }
+    return { schema: local, errors };
   }
   if (_depth >= 10) {
     return {
@@ -8908,15 +9060,7 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
       ]
     };
   }
-  const selfLabel = String(parsed.frontmatter?.title ?? "this template");
-  const errors = [];
   const base = { concepts: [], markers: [], matrices: [], taxonomy: [] };
-  const provenance = {
-    concept: /* @__PURE__ */ new Map(),
-    marker: /* @__PURE__ */ new Map(),
-    matrix: /* @__PURE__ */ new Map(),
-    field: /* @__PURE__ */ new Map()
-  };
   for (const ref of includes) {
     const key = ref.name.toLowerCase();
     if (_seen.has(key)) {
@@ -8940,7 +9084,8 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
       content,
       resolveInclude,
       /* @__PURE__ */ new Set([..._seen, key]),
-      _depth + 1
+      _depth + 1,
+      provenance
     );
     errors.push(...nested.errors);
     const aliasedSchema = ref.alias ? applyAliasToSchema(nested.schema, ref.alias) : nested.schema;
@@ -8948,6 +9093,10 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
     mergeSchemaInto(base, aliasedSchema, includedLabel, provenance, errors, false);
   }
   mergeSchemaInto(base, local, selfLabel, provenance, errors, true);
+  if (local.globalFields && local.globalFields.length > 0) {
+    expandFieldTargets(base.concepts, local.globalFields, selfLabel, errors, provenance, true);
+    delete base.globalFields;
+  }
   if (_depth === 0) {
     const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()));
     const BUILTIN_TARGETS = /* @__PURE__ */ new Set(["marker", "element", "item"]);
@@ -8973,6 +9122,36 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
   return { schema: base, errors };
 }
 
+// iNNfo/packages/innfo-core/src/schema/field-values.ts
+function valueKey(v) {
+  if (v === null || v === void 0) return "";
+  return String(v).trim().toLowerCase();
+}
+function inheritConceptValues(own, conceptValues, defs, concept) {
+  const result = {};
+  if (!conceptValues || !defs || defs.length === 0) return result;
+  const ownFields = own || {};
+  for (const def of defs) {
+    const cVal = conceptValues[def.name];
+    if (cVal === void 0 || cVal === null) continue;
+    if (def.multiple) {
+      const cArr = Array.isArray(cVal) ? cVal : [cVal];
+      const ownVal = ownFields[def.name];
+      const ownArr = Array.isArray(ownVal) ? ownVal : ownVal !== void 0 && ownVal !== null ? [ownVal] : [];
+      const ownKeys = new Set(ownArr.map(valueKey));
+      const delta = cArr.filter((v) => !ownKeys.has(valueKey(v)));
+      if (delta.length > 0) {
+        result[def.name] = { value: delta, from: concept };
+      }
+    } else {
+      if (ownFields[def.name] === void 0 || ownFields[def.name] === null) {
+        result[def.name] = { value: cVal, from: concept };
+      }
+    }
+  }
+  return result;
+}
+
 // iNNfo/packages/innfo-core/src/schema/metaschema.ts
 var REQUIRED_BY_PRIMITIVE = {
   [CONCEPT_DEFINITION]: ["type"],
@@ -8983,7 +9162,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-4-0", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-4-1", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/innfo-core/src/resolver.ts
@@ -9882,6 +10061,8 @@ var CHANGE_OPS = [
   "rename_concept",
   "update_matrix_cell",
   "update_concept_text",
+  "update_concept_field",
+  "remove_matrix",
   "comment",
   "add_model",
   "freeze_slugs",
@@ -10561,10 +10742,15 @@ function flattenConceptFields(concepts) {
   }
   return out;
 }
-function buildConsoleSchemaSlot(schema, elements, procedures) {
+function buildConsoleSchemaSlot(schema, elements, procedures, modelConceptFields) {
   const procList = Array.isArray(procedures) ? procedures : [];
   if (schema) {
-    const concepts = Array.isArray(schema.concepts) ? schema.concepts : typeof schema.concepts === "object" && schema.concepts !== null ? Object.values(schema.concepts) : [];
+    const rawConcepts = Array.isArray(schema.concepts) ? schema.concepts : typeof schema.concepts === "object" && schema.concepts !== null ? Object.values(schema.concepts) : [];
+    const concepts = rawConcepts.map((c) => {
+      if (!c || !c.name) return c;
+      const cf = modelConceptFields?.[c.name];
+      return cf ? { ...c, conceptFields: cf } : c;
+    });
     const fields = flattenConceptFields(concepts);
     const markers = Array.isArray(schema.markers) ? schema.markers : typeof schema.markers === "object" && schema.markers !== null ? Object.values(schema.markers) : [];
     const matrices = Array.isArray(schema.matrices) ? schema.matrices : typeof schema.matrices === "object" && schema.matrices !== null ? Object.values(schema.matrices) : [];
@@ -10585,7 +10771,10 @@ function buildConsoleSchemaSlot(schema, elements, procedures) {
     }
   }
   return {
-    concepts: Array.from(conceptNames).map((name) => ({ name })),
+    concepts: Array.from(conceptNames).map((name) => {
+      const cf = modelConceptFields?.[name];
+      return cf ? { name, conceptFields: cf } : { name };
+    }),
     fields: [],
     markers: [],
     matrices: [],
@@ -10654,6 +10843,12 @@ function buildConsolePayload(options) {
         markers
       });
       const tags = [.../* @__PURE__ */ new Set([...node.tags ?? [], ...parsed.conceptTags?.[concept] ?? []])];
+      if (node.tags && node.tags.length > 0) {
+        fields.tags = [...node.tags];
+      }
+      const conceptDefs = inputSchema?.concepts ? (Array.isArray(inputSchema.concepts) ? inputSchema.concepts : Object.values(inputSchema.concepts)).find((c) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields : void 0;
+      const conceptVals = parsed.conceptFields?.[concept];
+      const inheritedDelta = inheritConceptValues(fields, conceptVals, conceptDefs, concept);
       const elem = {
         id,
         slug: node.slug,
@@ -10663,7 +10858,8 @@ function buildConsolePayload(options) {
         fields,
         markers,
         hash,
-        tags
+        tags,
+        ...Object.keys(inheritedDelta).length > 0 ? { inherited: inheritedDelta } : {}
       };
       rawElements.push({ elem, rawFields: { ...fields } });
       if (!elementsByName.has(name.toLowerCase())) {
@@ -10756,7 +10952,12 @@ function buildConsolePayload(options) {
       });
     }
   }
-  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements, options.procedures);
+  const schemaSlot = buildConsoleSchemaSlot(
+    inputSchema,
+    elements,
+    options.procedures,
+    parsed.conceptFields
+  );
   attachChangesetHistory(elements, changesets);
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
   const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
@@ -10894,6 +11095,235 @@ async function resolveConsoleSchema(opts) {
     return { schema: void 0, procedures: [], schemaSource: "derived", warnings };
   }
 }
+
+// iNNfo/packages/innfo-core/src/console/unit-address.ts
+function assertIdentifier(value, name) {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) {
+    throw new TypeError(`unitAddress: ${name} cannot be empty`);
+  }
+  return trimmed;
+}
+var unitAddress = {
+  domain() {
+    return "domaiNN_NN.md";
+  },
+  document(modelId) {
+    return assertIdentifier(modelId, "modelId");
+  },
+  section(modelId, conceptName) {
+    const m = assertIdentifier(modelId, "modelId");
+    const c = assertIdentifier(conceptName, "conceptName");
+    return `${m}@concept:${slugifyHeading(c)}`;
+  },
+  element(modelId, elementSlug) {
+    const m = assertIdentifier(modelId, "modelId");
+    const s = assertIdentifier(elementSlug, "elementSlug");
+    return `${m}@${s}`;
+  },
+  value(baseAddress, fieldName) {
+    const b = assertIdentifier(baseAddress, "baseAddress");
+    const f = assertIdentifier(fieldName, "fieldName");
+    return `${b}&${f}`;
+  },
+  cell(modelId, matrixSlug, rowSlug, colSlug) {
+    const m = assertIdentifier(modelId, "modelId");
+    const mat = assertIdentifier(matrixSlug, "matrixSlug");
+    const r = assertIdentifier(rowSlug, "rowSlug");
+    const c = assertIdentifier(colSlug, "colSlug");
+    return `${m}@${mat}&${r}&${c}`;
+  },
+  concept(family, conceptName) {
+    const f = assertIdentifier(family, "family");
+    const c = assertIdentifier(conceptName, "conceptName");
+    return `specs/${f}@concept:${slugifyHeading(c)}`;
+  },
+  field(family, conceptName, fieldName) {
+    const f = assertIdentifier(family, "family");
+    const c = assertIdentifier(conceptName, "conceptName");
+    const fld = assertIdentifier(fieldName, "fieldName");
+    return `specs/${f}@concept:${slugifyHeading(c)}&${fld}`;
+  },
+  matrix(family, matrixSlug) {
+    const f = assertIdentifier(family, "family");
+    const mat = assertIdentifier(matrixSlug, "matrixSlug");
+    return `specs/${f}@matrix:${mat}`;
+  }
+};
+var MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+function isValidModelPath(rawPath) {
+  if (!rawPath || /^https?:\/\//i.test(rawPath) || /^[a-zA-Z]:[/\\]/.test(rawPath)) return false;
+  if (rawPath.startsWith("/") || rawPath.startsWith("\\")) return false;
+  const segments = rawPath.split(/[/\\]/);
+  if (segments.length === 0) return false;
+  for (const seg of segments) {
+    if (!seg || seg.includes(".") || !MODEL_SEGMENT_RE.test(seg)) {
+      return false;
+    }
+  }
+  return true;
+}
+function parseUnitAddress(address) {
+  if (!address || typeof address !== "string") return null;
+  const trimmed = address.trim();
+  if (!trimmed) return null;
+  if (trimmed === "domaiNN_NN.md") {
+    return { kind: "domain", modelId: trimmed, subunits: [] };
+  }
+  const atIndex = trimmed.indexOf("@");
+  if (atIndex !== -1) {
+    const modelPart = trimmed.slice(0, atIndex);
+    const rest = trimmed.slice(atIndex + 1);
+    if (!modelPart || !rest) return null;
+    if (modelPart.startsWith("specs/")) {
+      const family = modelPart.slice("specs/".length);
+      if (!isValidModelPath(family)) return null;
+      const parts = rest.split("&");
+      const unitPart = parts[0];
+      const subunits = parts.slice(1);
+      if (unitPart.startsWith("concept:")) {
+        const slug = unitPart.slice("concept:".length);
+        if (!slug) return null;
+        return {
+          kind: subunits.length > 0 ? "field" : "concept",
+          family,
+          slug,
+          subunits
+        };
+      }
+      if (unitPart.startsWith("matrix:")) {
+        const slug = unitPart.slice("matrix:".length);
+        if (!slug) return null;
+        return {
+          kind: "matrix",
+          family,
+          slug,
+          subunits
+        };
+      }
+      return null;
+    }
+    if (isValidModelPath(modelPart)) {
+      const parts = rest.split("&");
+      const unitPart = parts[0];
+      const subunits = parts.slice(1);
+      if (unitPart.startsWith("concept:")) {
+        const slug2 = unitPart.slice("concept:".length);
+        if (!slug2) return null;
+        return {
+          kind: subunits.length > 0 ? "value" : "section",
+          modelId: modelPart,
+          slug: slug2,
+          subunits
+        };
+      }
+      if (unitPart.startsWith("matrix:")) {
+        const slug2 = unitPart.slice("matrix:".length);
+        if (!slug2) return null;
+        return {
+          kind: "matrix",
+          modelId: modelPart,
+          slug: slug2,
+          subunits
+        };
+      }
+      const slug = unitPart;
+      if (!slug || slug.includes(":")) return null;
+      if (subunits.length === 2) {
+        return {
+          kind: "value",
+          modelId: modelPart,
+          slug,
+          subunits
+        };
+      }
+      if (subunits.length === 1) {
+        return {
+          kind: "value",
+          modelId: modelPart,
+          slug,
+          subunits
+        };
+      }
+      if (subunits.length === 0) {
+        return {
+          kind: "element",
+          modelId: modelPart,
+          slug,
+          subunits: []
+        };
+      }
+      return null;
+    }
+    const cit2 = parseCitation(trimmed);
+    if (cit2) {
+      return {
+        kind: "source",
+        filePath: cit2.filePath,
+        slug: cit2.slug,
+        subunits: cit2.subunits ?? [],
+        raw: trimmed
+      };
+    }
+    return null;
+  }
+  if (!trimmed.startsWith("sources/") && !trimmed.startsWith("specs/") && isValidModelPath(trimmed)) {
+    return {
+      kind: "document",
+      modelId: trimmed,
+      subunits: []
+    };
+  }
+  const cit = parseCitation(trimmed);
+  if (cit) {
+    return {
+      kind: "source",
+      filePath: cit.filePath,
+      slug: cit.slug,
+      subunits: cit.subunits ?? [],
+      raw: trimmed
+    };
+  }
+  return null;
+}
+function unitHome(address) {
+  if (!address || typeof address !== "string") return null;
+  const trimmed = address.trim();
+  if (!trimmed || /^https?:\/\//i.test(trimmed) || /^[a-zA-Z]:[/\\]/.test(trimmed)) return null;
+  if (trimmed.startsWith("/") || trimmed.startsWith("\\") || trimmed.includes("..")) return null;
+  if (trimmed === "domaiNN_NN.md" || trimmed.toLowerCase() === "domainn_nn.md") {
+    return "domain";
+  }
+  if (trimmed.startsWith("specs/")) {
+    return "blueprint";
+  }
+  const parsed = parseUnitAddress(trimmed);
+  if (parsed) {
+    switch (parsed.kind) {
+      case "domain":
+        return "domain";
+      case "concept":
+      case "field":
+        return "blueprint";
+      case "matrix":
+        return parsed.family ? "blueprint" : "knowledge";
+      case "document":
+      case "section":
+      case "element":
+      case "value":
+        return "knowledge";
+      case "source":
+        return "source";
+      default:
+        return null;
+    }
+  }
+  const pathPart = trimmed.split("@")[0];
+  if (trimmed.startsWith("sources/") || /\.[a-zA-Z0-9_-]+$/.test(pathPart)) {
+    return "source";
+  }
+  return null;
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   CHANGE_CONCEPT,
@@ -10931,11 +11361,14 @@ async function resolveConsoleSchema(opts) {
   parseChangesetTarget,
   parseFrontmatter,
   parseName,
+  parseUnitAddress,
   parseYaml,
   readChangeAuthor,
   resolveCitation,
   resolveConsoleSchema,
   roleOf,
   serializeConsoleSlot,
+  unitAddress,
+  unitHome,
   writeOnce
 });

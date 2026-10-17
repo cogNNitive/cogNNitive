@@ -1008,4 +1008,46 @@ metricValue:: 56
       assert.equal(scenario.cells['Base-Balance']['Base'], '1')
     })
   })
+
+  describe('Phase 8: Declared field definitions in schema slot and element inheritance', () => {
+    it('aggregates declared field definitions in innfo-schema slot and element fields in innfo-model slot', async () => {
+      const docWithTags = `---
+title: "Goals Model"
+knowledge_version: "V_1-0-0"
+level: 3
+parent_spec:
+  name: "projects_V_0-3-1"
+---
+
+# NN Projects
+tags:: [core]
+
+## NN Projects: Alpha
+slug:: alpha
+tags:: [ai]
+health:: critical
+`
+      await writeFile(join(tempDir, 'models', 'goals_V_1-0-0_NN.md'), docWithTags, 'utf-8')
+
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0)
+
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      const schemaMatch = html.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)
+      assert.ok(schemaMatch, 'innfo-schema script tag found')
+      const schemaJson = JSON.parse(schemaMatch[1])
+      assert.ok(Array.isArray(schemaJson.fields), 'schema.fields is an array')
+
+      const modelMatch = html.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)
+      assert.ok(modelMatch, 'innfo-model script tag found')
+      const modelJson = JSON.parse(modelMatch[1])
+      assert.ok(Array.isArray(modelJson.elements), 'model.elements is an array')
+
+      const alpha = modelJson.elements.find((e) => e.name === 'Alpha' || e.id?.endsWith('alpha'))
+      assert.ok(alpha, 'element Alpha found in model')
+      assert.deepEqual(alpha.fields.tags, ['ai'], 'own tags in fields.tags')
+      assert.equal(alpha.fields.health, 'critical', 'own health in fields.health')
+    })
+  })
 })
+

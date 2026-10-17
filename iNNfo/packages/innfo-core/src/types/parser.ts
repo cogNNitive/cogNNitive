@@ -15,6 +15,8 @@ export type ConceptType = (typeof CONCEPT_TYPES)[number]
 /** Field Definition `type::` values (single source of truth for `FieldType`). */
 export const FIELD_TYPES = [
   'string',
+  'number',
+  'boolean',
   'select',
   'reference',
   'image',
@@ -92,6 +94,12 @@ export interface ReachabilityGraph {
   orphanedCandidates: string[]
 }
 
+export interface GlobalField {
+  field: ConceptField
+  scope: '*' | 'list'
+  targets?: string[]
+}
+
 export interface ConceptField {
   name: string
   type: FieldType
@@ -100,6 +108,10 @@ export interface ConceptField {
   target_blueprint?: string
   /** Optional human-readable explanation of what the field holds. */
   description?: string
+  multiple?: boolean
+  widget?: string
+  widgetConfig?: Record<string, unknown>
+  scope?: 'concept' | 'list' | '*'
 }
 
 export interface Concept {
@@ -358,6 +370,10 @@ export interface ParsedKnowledge {
   /** Exact source text of each concept-level `tags::` RHS. See
    *  `ElementNode.rawTags` for why this is kept separately. */
   rawConceptTags?: Record<string, string>
+  /** Field values applied to Concept sections directly (not individual elements) */
+  conceptFields?: Record<string, Record<string, unknown>>
+  /** Exact source text of each concept-level field RHS */
+  rawConceptFields?: Record<string, Record<string, string>>
   /**
    * Document order of top-level `# NN` sections, as encountered by
    * `parseKnowledge`: `'index'` for `# NN index`, `<ConceptName>` for a concept

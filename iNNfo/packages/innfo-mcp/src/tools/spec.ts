@@ -82,10 +82,12 @@ export async function findKnowledgeFile(
   opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
   // `id` is an untrusted MCP tool argument: reject traversal, absolute and
-  // drive/UNC-qualified forms before it ever reaches a `join`.
   if (!isSafeRelativeId(id)) return null
   const cleanId = normalizeId(id)
   const searchDirs = [rootDir, join(rootDir, 'kNNowledge')]
+  if (opts?.includeSpecs) {
+    searchDirs.push(join(rootDir, 'specs'), join(rootDir, 'specs', 'bluepriNNts'))
+  }
   for (const dir of searchDirs) {
     const candidates = [
       join(dir, `${cleanId}_NN.md`),
@@ -94,11 +96,13 @@ export async function findKnowledgeFile(
       join(dir, id),
       join(dir, `${id}.md`),
       join(dir, `${id}_NN.md`),
+      join(dir, cleanId, 'spec_NN.md'),
+      join(dir, id, 'spec_NN.md'),
     ].filter((fp) => isInsideRoot(rootDir, fp))
     for (const fp of candidates) {
       try {
-        await stat(fp)
-        return fp
+        const st = await stat(fp)
+        if (st.isFile()) return fp
       } catch (err) {
         // swallow deliberately: a candidate path may legitimately not exist.
         if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
@@ -176,6 +180,15 @@ async function recursiveFindModel(
     const nameLower = entry.name.toLowerCase()
     if (entry.isFile() && candidatesNames.has(nameLower)) {
       return join(dir, entry.name)
+    }
+    if (opts?.includeSpecs && entry.isDirectory() && (nameLower === cleanId.toLowerCase() || nameLower === rawId.toLowerCase())) {
+      const specCandidate = join(dir, entry.name, 'spec_NN.md')
+      try {
+        await stat(specCandidate)
+        return specCandidate
+      } catch {
+        // not a spec_NN.md package
+      }
     }
     if (entry.isDirectory()) {
       const skip = opts?.includeSpecs

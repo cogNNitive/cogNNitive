@@ -141,6 +141,9 @@ export interface ParsedConceptSection {
    *  fidelity — `parseTagList` lowercases, so the authored casing lives
    *  only here. See `ElementNode.rawTags`. */
   rawTags?: string
+  fields?: Record<string, unknown>
+  rawFields?: Record<string, string>
+  warnings?: string[]
 }
 
 export function parseConceptSection(conceptName: string, content: string): ParsedConceptSection {
@@ -212,6 +215,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
 
   let conceptTags: string[] | undefined
   let rawConceptTags: string | undefined
+  const conceptFields: Record<string, unknown> = {}
+  const rawConceptFields: Record<string, string> = {}
+  let inConceptPrologueProperties = true
+  const warnings: string[] = []
 
   for (const line of lines) {
     // Unified element heading: `#{2,6} NN Concept: Element`
@@ -242,11 +249,31 @@ export function parseConceptSection(conceptName: string, content: string): Parse
         continue
       }
     } else {
-      const prop = parsePropertyLine(line)
-      if (prop !== null && prop[0] === 'tags') {
-        conceptTags = parseTagList(String(prop[1]))
-        rawConceptTags = String(prop[1])
-        continue
+      if (inConceptPrologueProperties) {
+        // Leading blank lines before any property are allowed
+        if (line.trim() === '' && Object.keys(conceptFields).length === 0 && !conceptTags) {
+          continue
+        }
+        const prop = parsePropertyLine(line)
+        if (prop !== null) {
+          const [key, rawVal] = prop
+          if (key === 'tags') {
+            conceptTags = parseTagList(String(rawVal))
+            rawConceptTags = String(rawVal)
+          }
+          conceptFields[key] = parsePropertyValue(rawVal)
+          rawConceptFields[key] = String(rawVal)
+          continue
+        } else {
+          inConceptPrologueProperties = false
+        }
+      } else {
+        const prop = parsePropertyLine(line)
+        if (prop !== null) {
+          warnings.push(
+            `CONCEPT_FIELD_AFTER_PROSE: Concept "${conceptName}" contains property line "${prop[0]}::" after prose before first element`,
+          )
+        }
       }
     }
 
@@ -275,6 +302,9 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     content: leadingLines.join('\n').trim(),
     tags: conceptTags,
     rawTags: rawConceptTags,
+    fields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
+    rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
+    warnings: warnings.length > 0 ? warnings : undefined,
   }
 }
 

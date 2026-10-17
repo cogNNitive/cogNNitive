@@ -211,7 +211,7 @@ parent_spec:
 })
 
 describe('checkWidgetConfig', () => {
-  it('errors when widget:: scale is missing min/max, warns on stray keys', () => {
+  it('errors when widget:: scale is missing min/max, errors on stray keys', () => {
     const parsed = parseKnowledge(`---
 level: 2
 title: "T"
@@ -233,7 +233,7 @@ widget_config:: {"step": 2, "bogus": 1}
     expect(
       diags.some((d) => d.severity === 'error' && d.message.includes('widget_config.max')),
     ).toBe(true)
-    expect(diags.some((d) => d.severity === 'warning' && d.message.includes('bogus'))).toBe(true)
+    expect(diags.some((d) => d.severity === 'error' && d.message.includes('bogus'))).toBe(true)
   })
 })
 

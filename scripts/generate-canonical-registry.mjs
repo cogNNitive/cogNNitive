@@ -37,6 +37,7 @@ const SPEC_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs');
 const MAP = {
   DEFINNITION_SPEC_CONTENT: 'defiNNition_V_0-1-0_NN.md',
   INNFO_SPEC_CONTENT: 'iNNfo_V_0-3-0_NN.md',
+  INNFO_V_0_5_0_SPEC_CONTENT: 'iNNfo_V_0-5-0_NN.md',
   PROCEDURES_SPEC_CONTENT: 'bluepriNNts/procedures/spec_NN.md',
   SOURCES_SPEC_CONTENT: 'bluepriNNts/sources/spec_NN.md',
   ARTIFACTS_SPEC_CONTENT: 'bluepriNNts/artifacts/spec_NN.md',

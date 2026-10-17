@@ -1,6 +1,7 @@
 import type { Concept, Marker, MatrixDecl, ParsedKnowledge } from '../types/index.js'
 import type { Diagnostics } from '../diagnostics.js'
 import { checkElementsAgainstSchema } from '../schema/index.js'
+import { validateFieldValue } from '../schema/field-values.js'
 import { RESERVED_CONCEPT_NAMES } from './constants.js'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
@@ -247,6 +248,35 @@ export function checkSchemaConformance(
     unknownProperty: 'ignore',
   })) {
     d.add({ ...diag, path: `elements.${diag.path}` })
+  }
+}
+
+/**
+ * Validate concept-level field values once against the concept's declared Field (R-CF-01).
+ * Invalid values report ERROR with path naming the concept and Field.
+ */
+export function checkConceptFields(
+  model: ParsedKnowledge,
+  templateConcepts: Concept[],
+  d: Diagnostics,
+): void {
+  if (!model.conceptFields) return
+
+  for (const [conceptName, fields] of Object.entries(model.conceptFields)) {
+    const conceptDef = matchConcept(conceptName, templateConcepts)
+    if (!conceptDef) continue
+
+    const fieldByName = new Map((conceptDef.fields || []).map((f) => [f.name.toLowerCase(), f]))
+
+    for (const [key, rawVal] of Object.entries(fields)) {
+      const fieldDef = fieldByName.get(key.toLowerCase())
+      if (!fieldDef) continue
+
+      const fieldDiags = validateFieldValue(fieldDef, rawVal, `concepts.${conceptDef.name}.${key}`)
+      for (const diag of fieldDiags) {
+        d.add(diag)
+      }
+    }
   }
 }
 

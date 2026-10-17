@@ -171,8 +171,8 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     lines.push('---')
     if (fm.level !== 3 || fm.spec_version) {
       // Fallback only reached for a non-level-3 doc that somehow lacks an
-      // explicit spec_version; track the adopted L1 (iNNfo_V_0-3-0), not superseded.
-      lines.push(`spec_version: "${fm.spec_version || 'V_0-3-0'}"`)
+      // explicit spec_version; track the adopted L1 (iNNfo_V_0-5-0), not superseded.
+      lines.push(`spec_version: "${fm.spec_version || 'V_0-5-0'}"`)
     }
     if (fm.spec_url) {
       lines.push(`spec_url: "${fm.spec_url}"`)
@@ -399,15 +399,39 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     const rawBody = model.rawSections?.[conceptName]
     const unEmitted = elementNodes?.filter((n) => !emittedElements.has(n)) ?? []
     const hasUnEmitted = unEmitted.length > 0
-    if (!hasUnEmitted && (!rawBody || !rawBody.trim())) return
+    const cFields = model.conceptFields?.[conceptName]
+    const hasConceptFields = cFields && Object.keys(cFields).length > 0
+    const hasConceptTags = model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields && !hasConceptTags) return
 
     lines.push(`# NN ${conceptName}`)
-    if (model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0) {
+    const hasProperties = hasConceptFields || hasConceptTags
+    if (headingBlankLine(conceptName, true) && !hasProperties) {
+      lines.push('')
+    }
+    if (hasConceptFields) {
+      for (const [k, v] of Object.entries(cFields)) {
+        if (k === 'tags') {
+          // If tags is in conceptFields, emit it via serializeTagsValue if array, or normal
+          if (Array.isArray(v)) {
+            lines.push(`tags:: ${serializeTagsValue(v, model.rawConceptFields?.[conceptName]?.[k] ?? model.rawConceptTags?.[conceptName])}`)
+          } else {
+            const raw = model.rawConceptFields?.[conceptName]?.[k]
+            lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
+          }
+        } else {
+          const raw = model.rawConceptFields?.[conceptName]?.[k]
+          lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
+        }
+      }
+    } else if (hasConceptTags) {
       lines.push(
-        `tags:: ${serializeTagsValue(model.conceptTags[conceptName], model.rawConceptTags?.[conceptName])}`,
+        `tags:: ${serializeTagsValue(model.conceptTags![conceptName], model.rawConceptTags?.[conceptName])}`,
       )
     }
-    if (headingBlankLine(conceptName, true)) lines.push('')
+    if (hasProperties && (hasUnEmitted || (rawBody && rawBody.trim()))) {
+      lines.push('')
+    }
     if (hasUnEmitted) {
       unEmitted.forEach((node, idx) => {
         const isLast = idx === unEmitted.length - 1
@@ -415,6 +439,8 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       })
     } else if (rawBody) {
       lines.push(rawBody)
+      lines.push('')
+    } else {
       lines.push('')
     }
   }
@@ -502,6 +528,9 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
   // added it after parsing — is appended here, in current insertion order.
   emitIndex()
   for (const [conceptName] of model.elements.entries()) emitConceptSection(conceptName)
+  if (model.conceptFields) {
+    for (const conceptName of Object.keys(model.conceptFields)) emitConceptSection(conceptName)
+  }
   if (model.rawSections) {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName)
   }

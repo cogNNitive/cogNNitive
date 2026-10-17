@@ -88,6 +88,7 @@ export interface KnowledgeNode {
   markers: Record<string, number | string>
   tags?: string[]
   conceptTags?: Record<string, string[]>
+  conceptFields?: Record<string, Record<string, unknown>>
   /**
    * Concept-scoped Marker scores (Markers whose `applies_to` includes
    * `Concept`), keyed by Concept name. Present only on the document root;

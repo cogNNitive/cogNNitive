@@ -179,6 +179,22 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     ...(memory.conceptTags ?? {}),
   }
 
+  const mergedConceptFields: Record<string, Record<string, unknown>> = {}
+  for (const [k, v] of Object.entries(disk.conceptFields ?? {})) {
+    mergedConceptFields[k] = { ...v }
+  }
+  for (const [k, v] of Object.entries(memory.conceptFields ?? {})) {
+    mergedConceptFields[k] = { ...(mergedConceptFields[k] ?? {}), ...v }
+  }
+
+  const mergedRawConceptFields: Record<string, Record<string, string>> = {}
+  for (const [k, v] of Object.entries(disk.rawConceptFields ?? {})) {
+    mergedRawConceptFields[k] = { ...v }
+  }
+  for (const [k, v] of Object.entries(memory.rawConceptFields ?? {})) {
+    mergedRawConceptFields[k] = { ...(mergedRawConceptFields[k] ?? {}), ...v }
+  }
+
   return {
     frontmatter,
     elements: mergedElements,
@@ -189,6 +205,8 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     sectionOrder,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : undefined,
+    conceptFields: Object.keys(mergedConceptFields).length > 0 ? mergedConceptFields : undefined,
+    rawConceptFields: Object.keys(mergedRawConceptFields).length > 0 ? mergedRawConceptFields : undefined,
     rawContent: disk.rawContent ?? memory.rawContent ?? '',
   }
 }

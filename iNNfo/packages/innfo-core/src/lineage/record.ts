@@ -16,7 +16,7 @@ export const RECORD_BLUEPRINT = 'cogNNitive'
 export const RECORD_TEMPLATE_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md'
 export const RECORD_INNFO_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md'
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md'
 
 /** The rendered text of the three managed sections. */
 export interface RenderedSections {

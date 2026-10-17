@@ -8746,6 +8746,10 @@ function parseConceptSection(conceptName, content) {
   };
   let conceptTags;
   let rawConceptTags;
+  const conceptFields = {};
+  const rawConceptFields = {};
+  let inConceptPrologueProperties = true;
+  const warnings = [];
   for (const line of lines) {
     const heading = parseElementHeadingFull(line);
     if (heading !== null) {
@@ -8772,11 +8776,30 @@ function parseConceptSection(conceptName, content) {
         continue;
       }
     } else {
-      const prop = parsePropertyLine(line);
-      if (prop !== null && prop[0] === "tags") {
-        conceptTags = parseTagList(String(prop[1]));
-        rawConceptTags = String(prop[1]);
-        continue;
+      if (inConceptPrologueProperties) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+          continue;
+        }
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          const [key, rawVal] = prop;
+          if (key === "tags") {
+            conceptTags = parseTagList(String(rawVal));
+            rawConceptTags = String(rawVal);
+          }
+          conceptFields[key] = parsePropertyValue(rawVal);
+          rawConceptFields[key] = String(rawVal);
+          continue;
+        } else {
+          inConceptPrologueProperties = false;
+        }
+      } else {
+        const prop = parsePropertyLine(line);
+        if (prop !== null) {
+          warnings.push(
+            `CONCEPT_FIELD_AFTER_PROSE: Concept "${conceptName}" contains property line "${prop[0]}::" after prose before first element`
+          );
+        }
       }
     }
     if (seenElement) {
@@ -8792,7 +8815,10 @@ function parseConceptSection(conceptName, content) {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
     tags: conceptTags,
-    rawTags: rawConceptTags
+    rawTags: rawConceptTags,
+    fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
+    warnings: warnings.length > 0 ? warnings : void 0
   };
 }
 function parseMatrixSection(content, _matrixName) {
@@ -8972,6 +8998,8 @@ function parseKnowledge(content) {
   let taxonomy = [];
   const conceptTags = {};
   const rawConceptTags = {};
+  const conceptFields = {};
+  const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
   const rawFrontmatter = frontmatterMatch ? frontmatterMatch[0] : void 0;
   let rawPreamble;
@@ -9027,8 +9055,15 @@ function parseKnowledge(content) {
         conceptTags[name] = parsed.tags;
         if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
       }
-      if (parsed.elements.length === 0 && bodyContent.trim()) {
-        rawSections[name] = bodyContent;
+      if (parsed.fields) {
+        conceptFields[name] = parsed.fields;
+        if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
+      }
+      if (parsed.warnings) {
+        parseWarnings.push(...parsed.warnings);
+      }
+      if (parsed.elements.length === 0 && (parsed.content || !parsed.fields && bodyContent.trim())) {
+        rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
       if (name.toLowerCase() === "item-markers matrix") {
@@ -9080,6 +9115,8 @@ function parseKnowledge(content) {
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
     rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
+    conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
+    rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
@@ -9836,7 +9873,7 @@ var path = __toESM(require("node:path"), 1);
 // iNNfo/packages/innfo-core/src/lineage/record.ts
 var RECORD_BLUEPRINT = "cogNNitive";
 var RECORD_TEMPLATE_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md";
-var RECORD_INNFO_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md";
+var RECORD_INNFO_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md";
 var FRONTMATTER_RE = /^(---\r?\n[\s\S]*?\r?\n---(?:\r?\n)?)/;
 function splitFrontmatter(text) {
   const match = FRONTMATTER_RE.exec(text);
