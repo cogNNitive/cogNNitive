@@ -40,7 +40,6 @@ export function computeElementHash(element: {
     concept: element.concept,
     description: element.description ?? '',
     fields: element.fields ?? {},
-    markers: element.markers ?? {},
     name: element.name,
   })
   return computeSha256(canonical).slice(0, 16)
@@ -69,6 +68,5 @@ export function hashParsedElement(
     name: node.name || 'Element',
     description,
     fields,
-    markers: { ...(node.markers || {}) },
   })
 }

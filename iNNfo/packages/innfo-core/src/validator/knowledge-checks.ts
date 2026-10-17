@@ -3,6 +3,7 @@ import type { Diagnostics } from '../diagnostics.js'
 import { checkElementsAgainstSchema } from '../schema/index.js'
 import { validateFieldValue } from '../schema/field-values.js'
 import { RESERVED_CONCEPT_NAMES } from './constants.js'
+import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
 export type ElementGroup = [string, Array<{ name: string; fields: Record<string, unknown> }>]
@@ -218,6 +219,9 @@ export function checkElementGroups(
 ): ElementGroup[] {
   const known: ElementGroup[] = []
   for (const [conceptName, elements] of model.elements) {
+    if (conceptName.toLowerCase() === 'marker definition') {
+      continue
+    }
     const conceptDef = matchConcept(conceptName, templateConcepts)
     if (!conceptDef) {
       d.error(`elements.${conceptName}`, `Concept "${conceptName}" is not defined in template`)
@@ -291,6 +295,9 @@ export function checkMatrixCells(
   d: Diagnostics,
 ): void {
   for (const matrix of model.matrices) {
+    if (matrix.name.toLowerCase() === 'item-markers matrix') {
+      continue
+    }
     const decl = templateMatrices.find((m) => m.name.toLowerCase() === matrix.name.toLowerCase())
     if (!decl) {
       d.warn(`matrices.${matrix.name}`, `Matrix "${matrix.name}" is not declared in template`)

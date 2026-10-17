@@ -74,6 +74,7 @@ export {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   validateCitations,
+  checkRemovedMarkerConstructs,
 } from './validator/index.js'
 export type {
   ReferenceDiagnostic,

@@ -22,6 +22,7 @@ import {
   normalizeBaselinePath,
   findCanonicalBlueprint,
   CANONICAL_BLUEPRINTS,
+  checkRemovedMarkerConstructs,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -985,10 +986,19 @@ export async function validateBlueprint(
     })
   }
 
+  const templatePath = id
+    ? ((await findKnowledgeFile(rootDir, id, { includeSpecs: true })) ?? id)
+    : 'inline'
+
   // Schema-driven: check the template's root-primitive elements
   // (Concept/Field/Marker/Matrix Definition) against the level-1 metaschema
   // resolved from the parent spec. Same code path as level-3-against-template.
   for (const diag of validateBlueprintAgainstMetaschema(templateContent, parentSpec.rawContent)) {
+    ;(diag.severity === 'error' ? errors : warnings).push(diag)
+  }
+
+  // Check for removed marker constructs (Marker Definition and item-markers matrix)
+  for (const diag of checkRemovedMarkerConstructs(parsed, templatePath)) {
     ;(diag.severity === 'error' ? errors : warnings).push(diag)
   }
 
@@ -1006,9 +1016,6 @@ export async function validateBlueprint(
     }
   }
 
-  const templatePath = id
-    ? ((await findKnowledgeFile(rootDir, id, { includeSpecs: true })) ?? id)
-    : 'inline'
   const decoratedErrors = errors.map((e) => ({ ...e, filePath: templatePath }))
   const decoratedWarnings = warnings.map((w) => ({ ...w, filePath: templatePath }))
 

@@ -22,6 +22,7 @@ import {
   checkMatrixCells,
   checkNodeMarkers,
 } from './knowledge-checks.js'
+import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 export interface ValidateKnowledgeOptions {
   resolveInclude?: IncludeResolver
@@ -129,6 +130,9 @@ export function validateKnowledge(
   const d = new Diagnostics()
 
   checkFrontmatterInvariants(model, d)
+  for (const diag of checkRemovedMarkerConstructs(model, opts.referringPath)) {
+    d.add(diag)
+  }
 
   if (!template) {
     d.error(
