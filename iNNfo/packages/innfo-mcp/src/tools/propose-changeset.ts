@@ -32,7 +32,7 @@ import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps,
  */
 
 const CHANGES_SPEC_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md'
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md'
 const CHANGESET_SPEC_VERSION = 'V_0-4-0'
 
 /** The current `changes` bluepriNNt version, from the canonical registry. */

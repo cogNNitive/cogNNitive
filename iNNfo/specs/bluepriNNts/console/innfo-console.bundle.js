@@ -10561,7 +10561,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       'level: 3',
       'parent_spec:',
       '  name: changes',
-      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
       'blueprint_version: ' + JSON.stringify(String(meta.changesBlueprintVersion)),
       'status: proposed',
       'title: ' + JSON.stringify(title),
