@@ -11,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const consoleDir = join(root, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-const { parseUnitAddress } = require(
+const { parseUnitAddress, unitHome } = require(
   join(root, 'iNNfo', 'packages', 'innfo-core', 'dist', 'index.js'),
 )
 
@@ -55,6 +55,16 @@ describe('Ku jsdom tree guard (testlab console)', () => {
       const prev = kindsByAddress.get(address)
       if (prev && prev !== kind) failures.push(`${address} has kinds ${prev} and ${kind}`)
       kindsByAddress.set(address, kind)
+    }
+    assert.deepEqual(failures, [])
+  })
+
+  it('parity: unitHome(address) equals the badge home', () => {
+    const failures = []
+    for (const unit of document.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]')) {
+      const address = unit.getAttribute('data-ku-address')
+      const home = unit.getAttribute('data-ku-home')
+      if (unitHome(address) !== home) failures.push(`${address}: unitHome=${unitHome(address)} badge=${home}`)
     }
     assert.deepEqual(failures, [])
   })

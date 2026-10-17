@@ -73,10 +73,10 @@ Chain strategy: size-exception
 - [x] 2.6 GREEN `payload-builder.ts`: populate header element slugs.
 - [x] 2.7 RED element location test: `element.location` carries human location, `element.canonicalUnit` is absent, `element.unitSlug` is absent; draft normalization assigns `draft.address`. Spec: console-payload-builder "Element Ids and Hashes".
 - [x] 2.8 GREEN update element building and draft normalization in `core/src/console/payload-builder.ts`.
-- [ ] 2.9 Parity test: assert `unitHome(address) === describeUnit(...).home` over all testlab payload units.
+- [x] 2.9 Parity test: assert `unitHome(address) === describeUnit(...).home` over all testlab payload units.
 - [x] 2.10 Build generator: create `scripts/export-address-module.mjs` to emit `innfo-address.generated.js` (`window.InnfoAddress`), wire into `scripts/lib/console-bundle.js` `SOURCES`.
-- [ ] 2.11 Regenerate mirrors: `npm run build:payload-mirror` (`console-payload.generated.cjs`).
-- [ ] 2.12 Gates: `npm run verify`, `node scripts/verify.js`. COMMIT U2.
+- [x] 2.11 Regenerate mirrors: `node scripts/build-console-payload.mjs` (`console-payload.generated.cjs`).
+- [x] 2.12 Gates: `npm run verify`, `node scripts/verify.js`. COMMIT U2.
 
 ---
 
@@ -110,7 +110,7 @@ Chain strategy: size-exception
   - Displays kind, nature, Lives in, address (copy button), Location, editability + reason, and kind-specific facts.
   Spec: console-ui-kit "KuInfoPanel".
 - [x] 3.8 GREEN `console/ui-kit.js`: implement `InnfoUI.KuInfoPanel`. Verify: 3.7 passes.
-- [ ] 3.9 Record render budget: measure baseline testlab console render time and node count, document in `review.md`/design.
+- [x] 3.9 Record render budget: measure baseline testlab console render time and node count, document in `review.md`/design.
 - [x] 3.10 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U3.
 
 ---
