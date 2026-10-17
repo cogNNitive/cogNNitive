@@ -12,13 +12,13 @@ Every knowledge unit the console shows (domaiNN, kNNowledge document, concept, e
 |---|---|
 | D1 | ONE pure descriptor (`describeUnit`) + ONE DOM builder (`Ku`) render every unit, address-first. `ElementPill`, `ConceptPill`, `MarkerChip`, `QudChip`, FAKE chips and bare unit cells are deleted. A two-layer guard (static scan + jsdom "every unit cell holds an addressed badge") fails on any new bypass; `Ku` throws on an unknown kind. |
 | D2 | Two orthogonal axes: **nature** (container / structure / content) and a second axis for where the unit lives (domaiNN / bluepriNNt / kNNowledge / Source), derived from core `roleOf()`. It is NOT called `origin`: that name already means citation provenance (`agent/human/document/error`, `data-origin`, `ORIGIN_VARIANTS`). Proposed name: **`home`** (`data-ku-home`; info panel label "Lives in"). Grammar: double border = container, dashed + mono = structure, solid = content, paper fill = Source, concept color = concept identity. |
-| D3 | `value` is ONE kind with a `vtype` taken from the declared L1 field type (`string, select, reference, markdown_inline, ...`) or the matrix `widget`, with documented inference; no invented `number`/`boolean`. The old `field` badge (`name: value`) splits into a field-definition unit (structure) and a value unit (content), each with its own address and actions. Matrix cells and CSV cells are `value` units. |
+| D3 | `value` is ONE kind with a `vtype` taken from the declared L1 0-5-0 Field type (`string, select, reference, markdown_inline, number, boolean, ...`), the Field `widget` or the matrix `widget`, with documented inference; nothing invented beyond the L1 types (`number`/`boolean` are L1 types once the companion lands; `text` is not). The old `field` badge (`name: value`) splits into a field-definition unit (structure) and a value unit (content), each with its own address and actions. Matrix cells and CSV cells are `value` units. |
 | D4 | Actions live OUTSIDE the badge, immediately beside it (`console-ui-kit` "Knowledge-Unit Badge Family", no action nested in the badge). View mode: info. Review mode: info + pencil. |
 | D5 | Action icons appear on hover or keyboard focus of the unit (~900 badges per page), stay reachable by keyboard, and meet WCAG 2.2 AA 2.5.8 (>= 24x24 px target; today 22 px). |
 | D6 | Source: never a pencil. Containers (kNNowledge document, domaiNN): info only, also in review mode. |
 | D7 | Structure units (concept definition, field definition, matrix definition) get a pencil only while an "Edit structure" switch in the floating review dock is ON (default off, reset on exit). In this change that pencil opens `EditModal` in COMMENT-ONLY mode (produces a `comment` draft). |
 | D8 | The info icon works for EVERY kind through a unit info panel (kind, nature, home, address, lives-in location, editability), not only for elements. |
-| D9 | Every badge carries a canonical address that the real innfo-core parser accepts ("one presentation per canonical address" = one visual form, not once per screen). The concrete form is a design question (DQ1). |
+| D9 | Every badge carries a canonical address that innfo-core's address parser (`parseUnitAddress`) accepts ("one presentation per canonical address" = one visual form, not once per screen). Citation parsing is unchanged. The concrete form is a design question (DQ1). (Reworded 2026-10-17 by the maintainer, review Q4: previously "the real innfo-core parser".) |
 | D10 | Tags render as `value` badges of an ordinary `select` field, colored by a stable hash of the tag name. No `marker` kind. The tag/marker model belongs to `fields-replace-markers-and-tags`, which lands first. |
 | D11 | Fix org-chart and roadmap custom views that render edit buttons outside review mode (`controller.openEdit` has no mode check). |
 | D12 | No backwards-compat aliases or delegating wrappers left at the end; migration cost is not a concern. |
@@ -26,15 +26,15 @@ Every knowledge unit the console shows (domaiNN, kNNowledge document, concept, e
 ### Corrections to the mockup (`temp/cau/mockups/knowledge-units.html`)
 
 Visual grammar approved; these mockup assumptions are wrong and MUST NOT reach specs:
-- Its `@` addresses do not parse (`kNNowledge/X_NN.md@slug` needs the header grammar; `X_V_0-1-0@slug` fails the model-stem rule; `&*&col` is a literal row id).
+- Its `@` addresses are not the canonical form (`kNNowledge/X_NN.md@slug` needs the header grammar; `X_V_0-1-0@slug` is not a model id; `&*&col` is a literal row id).
 - No `axis` kind: matrix headers are `element` badges; the structure part is the `concept` badge in the corner.
 - "Concept" is two units: the bluepriNNt concept definition (structure) and the kNNowledge concept section (content container of elements, already addressed `model@Concept` by changesets).
-- Value types `text/number/boolean` are not L1 types (see D3).
+- Value type `text` is not an L1 type; `number`/`boolean` are L1 0-5-0 types from the companion (see D3).
 
 ## Scope
 
 ### In scope
-- Core: canonical address builders, parser acceptance of real model stems, domaiNN and CSV-column handling, `home` derivation from `roleOf()`.
+- Core: canonical address builders and a separate address parser `parseUnitAddress` (citation parsing unchanged), domaiNN handling, `home` derivation (an explicit table that uses `roleOf()` only for the knowledge/source split).
 - Payload: `address` (+ declaring bluepriNNt) on elements, values, cells, schema concepts/fields/matrices, documents, domaiNN, citations; schema dedup keeps each definition's bluepriNNt.
 - Kit: `describeUnit`, `Ku`, CSS grammar, Source paper tokens (light + dark, contrast test), unit info panel, comment-only structure editing.
 - Every renderer: cards, mini cards, tables, matrices, rail, facets, guide, dialogs (ref, field, citation), document view, stepper, timeline, DraftList/RelList, repo-owned bluepriNNt views (`organization`, `projects`, `innovation`, `metrics`, `changes`, `procedures`).
@@ -53,15 +53,14 @@ Visual grammar approved; these mockup assumptions are wrong and MUST NOT reach s
 ## Capabilities
 
 ### New Capabilities
-None (all requirements extend existing console and addressing specs).
+- `knowledge-unit-address`: the canonical unit address grammar, `unitAddress` builders, `parseUnitAddress` and `unitHome`. Separate from the citation grammar, which is unchanged.
 
 ### Modified Capabilities
 - `console-ui-kit`: badge family rewrite (kinds, nature/home grammar, address attrs, unknown kind throws), field split, actions outside, hover/focus reveal + target size, legacy components removed, no-bypass guard, Source/structure presentation, tag row as select value.
 - `console-review-mode`: mode gating, per-nature editability, Edit-structure switch, info panel for all kinds, address-keyed pips, cell/value editors.
 - `console-payload-builder`: unit addresses, declaring bluepriNNt, domaiNN descriptor, matrix header element addresses.
-- `citation-parser-resolver`, `typed-source-references`: address grammar additions (model stem, domaiNN, CSV column).
-- `changeset-document-model`: canonical address vs D5 target relation.
-- `nn-naming-contract`: `home` derivation from `roleOf()`.
+- `changeset-document-model`: canonical address vs D5 target relation (element, element value and matrix cell addresses equal changeset `target::`).
+- Not modified: `citation-parser-resolver`, `typed-source-references` (citation grammar unchanged, Q4) and `nn-naming-contract` (`roleOf()` unchanged; `unitHome` maps its roles).
 - `console-field-citations`: citation dialog renders Source badges.
 - `innfo-console-runtime`, `console-view-registry`: renderers and custom views consume `ctx.ui.Ku`; view-mode edit buttons removed.
 
@@ -85,7 +84,10 @@ Must land first (at least through its console slice S4). This change consumes fr
 - per-element own field values plus separately labelled inherited concept-level values with provenance concept (value addresses and `home`);
 - one exported, tested `tag name -> color slot` hash (value badge styling);
 - removal of `kind:'marker'`, `MarkerChip`, the guide "Markers" section, `item-markers` header branch in `renderMatrices`, `decorateTagRow`;
-- the generic field + value facet model (badge click filters by it).
+- the generic field + value facet model (badge click filters by it);
+- `update_concept_field` in the `changes` bluepriNNt `op` options (the concept-level value pencil emits it).
+
+Also lands first: `session/global-console-filter` (filter bar, field dropdown and query parser the badge click feeds) and `session/ku-lifecycle-fixes` (touches `innfo-runtime.js`, `domaiNN_console.html` and the binary bundle).
 
 If the companion slips: this change does not migrate markers or tags; `MarkerChip`/`TagRow`/`[data-marker-id]` stay behind a guard allow-list with an explicit expiry, and slices 3-5 skip them.
 
@@ -93,7 +95,7 @@ If the companion slips: this change does not migrate markers or tags; `MarkerChi
 
 | Area | Impact | Description |
 |---|---|---|
-| `iNNfo/packages/innfo-core/src/sourceRef.ts`, `naming/contract.ts` | Modified | Address grammar, `home` derivation |
+| `iNNfo/packages/innfo-core/src/console/unit-address.ts` (new), `sourceRef.ts` | New / Modified | Address builders, `parseUnitAddress`, `unitHome`; `sourceRef.ts` only exports existing grammar pieces for reuse |
 | `iNNfo/packages/innfo-core/src/console/{payload-builder,slot}.ts`, `scripts/export-console.mjs` | Modified | Addresses, declaring bluepriNNt, domaiNN descriptor |
 | `iNNfo/specs/bluepriNNts/console/{ui-kit,innfo-runtime,review,render-procedure-stepper}.js`, `innfo-ui.css` | Modified / Removed | One builder, renderers, review actions, legacy DOM |
 | `iNNfo/specs/bluepriNNts/*/assets/console-view-*.js` | Modified | Views use `ctx.ui.Ku`; mode-gated edit |
@@ -110,7 +112,7 @@ If the companion slips: this change does not migrate markers or tags; `MarkerChi
 | ~20 suites + bundle + payload + fixtures break together | Certain | Additive core/payload first; regenerate all generated outputs in the final slice; `verify.js` + `check:integrity` |
 | Merge conflicts on generated files with sibling worktrees (`ku-lifecycle-fixes`, companion) | High | Never hand-resolve generated files; rebase then regenerate |
 | Third-party custom views (`consoles/views/<slug>.js`) bypass `Ku` | Med | Documented contract (`ctx.ui.Ku` only); guard covers repo-owned code only |
-| Grammar change affects published citations and `apply_change` targets | Med | Own slice, tests before UI depends on it |
+| Address grammar leaks into citations or `apply_change` targets | Low | Separate `parseUnitAddress` (Q4); slice-1 regression tests pin that `parseCitation` still rejects what it rejects today |
 | Comment-only structure pencil reads as a false affordance | Med | Modal states "proposal to the bluepriNNt maintainer"; real writes are the follow-up |
 
 ## Rollback Plan
@@ -129,7 +131,7 @@ Single PR: revert the merge commit on `dev`/`main` and republish the previous co
 ## Success Criteria
 
 - [ ] Every unit in the kitchen sink and the testlab domain console renders through `Ku`; the jsdom guard finds no unit cell without an addressed badge and no address with two kinds.
-- [ ] Every `data-ku-address` in the testlab console parses with innfo-core (test iterates all of them).
+- [ ] Every `data-ku-address` in the testlab console parses with innfo-core `parseUnitAddress`, and the parsed kind equals the descriptor kind (test iterates all of them).
 - [ ] Static guard: zero legacy class names / builders in `console/*.js` and repo-owned views; `Ku` throws on unknown kind.
 - [ ] No action control nested inside a badge; icons reveal on hover and focus; targets >= 24x24 px.
 - [ ] Info opens a panel for all kinds; Sources never show a pencil; containers info-only; structure pencils only with Edit structure ON and producing `comment` drafts.
