@@ -96,8 +96,8 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 .ku .ico svg { width: 13px; height: 13px; }
 
 /* Nature -> border style */
-.ku[data-nature="content"]   { border: 1px solid var(--innfo-border); }
-.ku[data-nature="structure"] { border: 1.5px dashed var(--innfo-muted); color: var(--innfo-muted); font-family: var(--innfo-mono); font-size: .78rem; }
+.ku[data-nature="content"]   { border: none !important; }
+.ku[data-nature="structure"] { border: 1.5px solid var(--c, var(--innfo-concept-1)); color: var(--c, var(--innfo-text)); font-family: var(--innfo-mono); font-size: .78rem; }
 .ku[data-nature="container"] { border: 3px double var(--innfo-accent); font-weight: 600; }
 
 /* Concept color -> tint / accent */
@@ -118,8 +118,8 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 
 /* Origin -> source paper (always read-only) */
 .ku[data-origin="source"] { background: var(--source-paper); color: var(--source-ink); }
-.ku[data-origin="source"][data-nature="content"] { border-color: var(--source-edge); }
-.ku[data-origin="source"][data-nature="structure"] { border-color: var(--source-ink); }
+.ku[data-origin="source"][data-nature="content"] { border: none !important; }
+.ku[data-origin="source"][data-nature="structure"] { border: 1.5px solid var(--source-ink); }
 
 /* Pending change pip (review) */
 .ku[data-changes] { box-shadow: 0 0 0 2px var(--innfo-status-pending-bg); border-color: var(--innfo-status-pending); }
