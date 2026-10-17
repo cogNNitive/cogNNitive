@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-rGID8BLuBRrYKyb6NqqCgoAAc6kBMvgwWm9bHfL7aAU=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-m11IYm91eXdBkoqJCVJM3NEsJdogMgEOV81ruxYFyDk=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9135,7 +9135,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-fc520327",
-    "generated": "2026-10-17T16:22:36.622Z",
+    "generated": "2026-10-17T17:09:43.508Z",
     "changesBlueprintVersion": "V_0-5-0",
     "models": [
       {
@@ -9145,7 +9145,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T16:22:36.465Z",
+        "citationsResolvedAt": "2026-10-17T17:09:43.413Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -13715,22 +13715,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
-  // The definition governing a matrix cell: the column Marker of the reserved
-  // item-markers matrix, otherwise the matrix definition of the same name.
-  // The reserved matrix is recognised like payload-builder does: by name OR by a
-  // `markers` target.
+  // The definition governing a matrix cell: the matrix definition of the same name.
   function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
-    function byName(list, name) {
-      var want = String(name).toLowerCase()
-      return (Array.isArray(list) ? list : []).filter(function (d) {
+    var want = String(matrix).toLowerCase()
+    return (
+      (Array.isArray(schema.matrices) ? schema.matrices : []).filter(function (d) {
         return d && String(d.name).toLowerCase() === want
-      })[0]
-    }
-    var isItemMarkers =
-      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
-    if (isItemMarkers) return byName(schema.markers, col) || null
-    return byName(schema.matrices, matrix) || null
+      })[0] || null
+    )
   }
 
   // Declared definition of a field, keyed by (concept, field) so two concepts that
@@ -20802,7 +20795,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       'level: 3',
       'parent_spec:',
       '  name: changes',
-      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
       'blueprint_version: ' + JSON.stringify(String(meta.changesBlueprintVersion)),
       'status: proposed',
       'title: ' + JSON.stringify(title),

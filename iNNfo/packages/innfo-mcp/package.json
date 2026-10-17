@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "build:dist": "tsup --config tsup.dist.config.ts",
     "build:bundle": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",

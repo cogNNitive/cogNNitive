@@ -1,10 +1,10 @@
 ---
 spec_version: "V_0-5-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-5-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "changes"
 blueprint_version: "V_0-5-0"
 title: "Changeset Blueprint"
@@ -170,7 +170,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "V_0-4-0"
 status: proposed
 proposal_sha: "<64-character-sha256-hex>"
