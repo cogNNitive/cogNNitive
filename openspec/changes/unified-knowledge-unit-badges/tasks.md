@@ -125,13 +125,13 @@ Chain strategy: size-exception
 - [x] 4.5 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4a.
 
 ### S4b Matrices, Dialogs, Sources, Document View (U4b)
-- [ ] 4.6 RED matrix tests: `renderMatrices` renders `matrix` definition badge in corner, element/section badges for row/column headers, and `value` badges for cells; fake `matrix-<slug>` element removed.
-- [ ] 4.7 GREEN `console/innfo-runtime.js`: migrate `renderMatrices` to `Ku`.
-- [ ] 4.8 RED dialog & source tests: citation dialog (`#innfo-citation-dialog`), ref dialog (`#innfo-ref-dialog`), and field-detail dialog render items through `Ku`; Sources render with paper styling and info button. Spec: console-field-citations "Native citation detail dialog".
-- [ ] 4.9 GREEN `console/innfo-runtime.js`: update dialogs to use `Ku`.
-- [ ] 4.10 RED document view tests: `renderDocument` renders document container badge, concept section badges, element cards, and value badges through `Ku`.
-- [ ] 4.11 GREEN `console/innfo-runtime.js`: migrate `renderDocument` to `Ku`.
-- [ ] 4.12 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4b.
+- [x] 4.6 RED matrix tests: `renderMatrices` renders `matrix` definition badge in corner, element/section badges for row/column headers, and `value` badges for cells; fake `matrix-<slug>` element removed.
+- [x] 4.7 GREEN `console/innfo-runtime.js`: migrate `renderMatrices` to `Ku`.
+- [x] 4.8 RED dialog & source tests: citation dialog (`#innfo-citation-dialog`), ref dialog (`#innfo-ref-dialog`), and field-detail dialog render items through `Ku`; Sources render with paper styling and info button. Spec: console-field-citations "Native citation detail dialog".
+- [x] 4.9 GREEN `console/innfo-runtime.js`: update dialogs to use `Ku`.
+- [x] 4.10 RED document view tests: `renderDocument` renders document container badge, concept section badges, element cards, and value badges through `Ku`.
+- [x] 4.11 GREEN `console/innfo-runtime.js`: migrate `renderDocument` to `Ku`.
+- [x] 4.12 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4b.
 
 ### S4c Rail, Facets, Guide, Stepper, Timeline, Views (U4c)
 - [ ] 4.13 RED navigation & rail tests: domaiNN badge in navbar, document badges in banner/tabs, concept badges in rail, facets, and filter pills rendered via `Ku`.

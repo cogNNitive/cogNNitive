@@ -2612,6 +2612,8 @@
             value: rawVal,
             type: fieldTypeOf(schema, element.concept, k),
             elementName: element.name || element.id || '',
+            element: element.id,
+            model: rowModel,
           })
         })
         tr.appendChild(td)
@@ -2677,7 +2679,7 @@
     host.appendChild(group)
   }
 
-  function renderMatrices(doc, matrices, concepts) {
+  function renderMatrices(doc, matrices, concepts, fallbackModelId) {
     var host = doc.getElementById('innfo-matrices')
     if (!host) return
     host.innerHTML = ''
@@ -2689,31 +2691,40 @@
       }
       return { meta: null, index: 0 }
     }
-    function headerBadge(entry, key) {
+    function headerBadge(entry, key, modelId) {
       var e = entry || {}
-      if (e.kind === 'marker') {
-        return UI.KuBadge({ kind: 'marker', id: key, label: e.label || key, markerKind: 'field' })
-      }
-      var cm = conceptMeta(e.concept)
       var cMetaFull = conceptMetaOf(conceptList, e.concept)
-      var resolvedIcon = (cm.meta && cm.meta.icon) || (UI && typeof UI.resolveConceptIconName === 'function' ? UI.resolveConceptIconName(e.concept, cMetaFull) : undefined)
-      return UI.KuBadge({
-        kind: 'element',
-        id: key,
-        label: e.label || key,
-        index: cMetaFull.index,
-        color: cMetaFull.color,
-        icon: resolvedIcon,
-      })
+      return UI.Ku(
+        'element',
+        {
+          model: modelId,
+          id: e.slug || UI.slug(e.label || key || 'unit'),
+          label: e.label || key,
+          index: cMetaFull.index,
+          color: cMetaFull.color,
+        },
+        { doc: doc },
+      )
     }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (matrix) {
       if (!isObject(matrix)) return
       var section = el('section', 'innfo-matrix')
       if (!section) return
+      var matrixModel = matrix.modelId || fallbackModelId || ''
+      var matrixSlug = matrix.slug || UI.slug(matrix.name || 'matrix')
       var titleEl = el('h3', null, null)
       if (titleEl) {
         titleEl.appendChild(
-          UI.KuBadge({ kind: 'element', id: 'matrix-' + UI.slug(matrix.name || 'matrix'), label: matrix.name || 'Matrix', icon: 'matrices' }),
+          UI.Ku(
+            'matrix',
+            {
+              model: matrixModel,
+              family: matrixModel,
+              name: matrixSlug,
+              label: matrix.name || 'Matrix',
+            },
+            { doc: doc },
+          ),
         )
         section.appendChild(titleEl)
       }
@@ -2746,15 +2757,39 @@
           var sMetaM = conceptMetaOf(conceptList, srcConcept)
           var tMetaM = conceptMetaOf(conceptList, tgtConcept)
           var cornerWrap = el('div', 'innfo-matrix-corner-pills')
-          cornerWrap.appendChild(UI.ConceptPill({ id: srcConcept, label: srcConcept + ' ↓', index: sMetaM.index, color: sMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(
+            UI.Ku(
+              'section',
+              {
+                model: matrixModel,
+                concept: srcConcept,
+                label: srcConcept + ' ↓',
+                index: sMetaM.index,
+                color: sMetaM.color,
+              },
+              { doc: doc },
+            ),
+          )
           cornerWrap.appendChild(el('span', 'innfo-matrix-corner-sep', '×'))
-          cornerWrap.appendChild(UI.ConceptPill({ id: tgtConcept, label: tgtConcept + ' →', index: tMetaM.index, color: tMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(
+            UI.Ku(
+              'section',
+              {
+                model: matrixModel,
+                concept: tgtConcept,
+                label: tgtConcept + ' →',
+                index: tMetaM.index,
+                color: tMetaM.color,
+              },
+              { doc: doc },
+            ),
+          )
           cornerTh.appendChild(cornerWrap)
         }
         headTr.appendChild(cornerTh)
         cols.forEach(function (c) {
           var th = el('th', null, null)
-          if (th) th.appendChild(headerBadge(headCols[c], String(c)))
+          if (th) th.appendChild(headerBadge(headCols[c], String(c), matrixModel))
           headTr.appendChild(th)
         })
         table.appendChild(headTr)
@@ -2766,7 +2801,7 @@
         var rowLabel = isStructured ? (r.sourceLabel || r.sourceId || '') : String(r)
         var rowCells = isStructured ? (r.cells || {}) : (cells[r] || cells[String(r)] || {})
         var rowTh = el('th', null, null)
-        if (rowTh) rowTh.appendChild(headerBadge(headRows[rowKey] || headRows[rowLabel], rowLabel))
+        if (rowTh) rowTh.appendChild(headerBadge(headRows[rowKey] || headRows[rowLabel], rowLabel, matrixModel))
         tr.appendChild(rowTh)
         cols.forEach(function (c) {
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
@@ -2782,8 +2817,22 @@
             // model by file stem / title, and `meta.modelId` is the domain).
             if (matrix.modelId) td.setAttribute('data-matrix-model', String(matrix.modelId))
             td.setAttribute('data-cell-raw', isEmpty ? '' : value)
-            var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
-            if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())
+            var rowEntry = headRows[rowKey] || headRows[rowLabel] || {}
+            var colEntry = headCols[c] || {}
+            var cellBadge = UI.Ku(
+              'value',
+              {
+                model: matrixModel,
+                matrix: matrixSlug,
+                row: rowEntry.slug || UI.slug(rowLabel || 'row'),
+                col: colEntry.slug || UI.slug(String(c) || 'col'),
+                label: isEmpty ? '—' : value,
+                vtype: matrix.widget,
+              },
+              { doc: doc },
+            )
+            var cellUnit = cellBadge.querySelector('[data-innfo-component="ku-unit"]')
+            if (!isEmpty && cellUnit) cellUnit.setAttribute('data-cell-value', value.toLowerCase())
             td.appendChild(cellBadge)
           }
           tr.appendChild(td)
@@ -4596,10 +4645,15 @@
     if (head && h) head.appendChild(h)
     if (head && close) head.appendChild(close)
     var body = el('div', 'innfo-ref-body')
-    var tag = UI && typeof UI.ConceptPill === 'function'
-      ? UI.ConceptPill({ id: element.concept || 'Element', label: String(element.concept || 'Element') }, { doc: doc })
-      : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
-    if (tag) tag.classList.add('innfo-ref-tag')
+    var refModel = element.modelId || ''
+    var tag =
+      UI && typeof UI.Ku === 'function'
+        ? UI.Ku(
+            'section',
+            { model: refModel, concept: element.concept || 'Element', label: String(element.concept || 'Element') },
+            { doc: doc },
+          )
+        : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
     if (body && tag) body.appendChild(tag)
     if (body && element.description) {
       var p = el('p', 'innfo-ref-desc', element.description)
@@ -4609,10 +4663,32 @@
       var dl = el('dl', 'innfo-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
         if (!dl) return
-        var dt = el('dt', null, k)
-        var dd = el('dd', null, String(element.fields[k]))
-        if (dt) dl.appendChild(dt)
-        if (dd) dl.appendChild(dd)
+        var dt = el('dt', null, null)
+        if (UI && typeof UI.Ku === 'function') {
+          dt.appendChild(
+            UI.Ku(
+              'field',
+              { family: refModel, model: refModel, concept: element.concept, name: k, label: k },
+              { doc: doc },
+            ),
+          )
+        } else {
+          dt.textContent = k
+        }
+        var dd = el('dd', null, null)
+        if (UI && typeof UI.Ku === 'function') {
+          dd.appendChild(
+            UI.Ku(
+              'value',
+              { model: refModel, element: element.id, field: k, label: String(element.fields[k]) },
+              { doc: doc },
+            ),
+          )
+        } else {
+          dd.textContent = String(element.fields[k])
+        }
+        dl.appendChild(dt)
+        dl.appendChild(dd)
       })
       if (dl.children.length) body.appendChild(dl)
     }
@@ -4785,7 +4861,20 @@
       UI && typeof UI.FieldValue === 'function'
         ? UI.FieldValue({ value: field.value, type: field.type, name: field.name }, { doc: doc })
         : null
-    if (valueNode) {
+    if (UI && typeof UI.Ku === 'function' && field.model && field.element) {
+      var detailUnit = UI.Ku(
+        'value',
+        {
+          model: field.model,
+          element: field.element,
+          field: field.name,
+          label: displayCellText(field.value),
+          vtype: field.type,
+        },
+        { doc: doc, valueNode: valueNode || undefined },
+      )
+      body.appendChild(detailUnit)
+    } else if (valueNode) {
       body.appendChild(valueNode)
     } else {
       var textVal = displayCellText(field.value)
@@ -5054,7 +5143,14 @@
           : 'document'
       var labelText = CITATION_ORIGIN_LABELS[variantKey] || variantKey
       var tagText = labelText + (entry.author ? ' · ' + entry.author : '')
-      var tag = el('span', 'innfo-ref-tag', tagText)
+      var tag =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'source',
+              { path: entry.path || entry.href || 'citation', label: tagText },
+              { doc: doc },
+            )
+          : el('span', 'innfo-ref-tag', tagText)
       if (tag) body.appendChild(tag)
 
       var dl = el('dl', 'innfo-ref-fields')
@@ -5119,7 +5215,21 @@
       var iconSpan = el('span', 'doc-icon', null)
       if (iconSpan) iconSpan.innerHTML = svg || (isRoot ? '◆' : '·')
       h.appendChild(iconSpan)
-      h.appendChild(document.createTextNode(' ' + String(step.el.name || (isRoot ? 'Root' : 'Step'))))
+      var docModel = (opts && opts.modelId) || step.el.modelId || ''
+      if (UI && typeof UI.Ku === 'function') {
+        var docUnit = UI.Ku(
+          'element',
+          {
+            model: docModel,
+            id: step.el.slug || step.el.id,
+            label: String(step.el.name || (isRoot ? 'Root' : 'Step')),
+          },
+          { doc: doc },
+        )
+        h.appendChild(docUnit)
+      } else {
+        h.appendChild(doc.createTextNode(' ' + String(step.el.name || (isRoot ? 'Root' : 'Step'))))
+      }
       block.appendChild(h)
       if (step.el.description) {
         var p = el('p', 'desc', step.el.description)
@@ -5129,10 +5239,34 @@
         var dl = el('dl', 'doc-fields', null)
         Object.keys(step.fields).forEach(function (k) {
           if (k === 'parent' || k === 'next') return
-          var dt = el('dt', null, k)
-          var dd = el('dd', null, String(step.fields[k]))
-          if (dt) dl.appendChild(dt)
-          if (dd) dl.appendChild(dd)
+          var dt = el('dt', null, null)
+          var dd = el('dd', null, null)
+          if (UI && typeof UI.Ku === 'function') {
+            dt.appendChild(
+              UI.Ku(
+                'field',
+                { family: docModel, model: docModel, concept: step.el.concept, name: k, label: k },
+                { doc: doc },
+              ),
+            )
+            dd.appendChild(
+              UI.Ku(
+                'value',
+                {
+                  model: docModel,
+                  element: step.el.slug || step.el.id,
+                  field: k,
+                  label: String(step.fields[k]),
+                },
+                { doc: doc },
+              ),
+            )
+          } else {
+            dt.textContent = k
+            dd.textContent = String(step.fields[k])
+          }
+          dl.appendChild(dt)
+          dl.appendChild(dd)
         })
         if (dl && dl.children.length) block.appendChild(dl)
       }
@@ -5142,7 +5276,7 @@
 
   // Renders the generic document view: builds the tree from all elements,
   // picks roots that have children (procedures/trees), and renders each chain.
-  function renderDocumentView(doc, elements, concepts) {
+  function renderDocumentView(doc, elements, concepts, modelId) {
     var host = doc.getElementById('innfo-doc')
     if (!host) return
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
@@ -5176,6 +5310,7 @@
         colorOf: colorOf,
         iconOf: iconOf,
         append: true,
+        modelId: modelId || (elements[0] && elements[0].modelId) || '',
       })
     })
   }
@@ -6264,9 +6399,9 @@
               })
             : [])
         : elements
-      renderDocumentView(active, docElements, concepts)
+      renderDocumentView(active, docElements, concepts, (meta && (meta.modelId || meta.model)) || '')
     }
-    renderMatrices(active, matrices, concepts)
+    renderMatrices(active, matrices, concepts, (meta && (meta.modelId || meta.model)) || '')
     renderMetamodelView(active, schema, matrices, elements)
 
     var searchBox = active.getElementById('innfo-search')

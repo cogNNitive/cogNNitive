@@ -3070,6 +3070,14 @@
           case 'element':
             return api.unitAddress.element(ref.model, ref.id || ref.element)
           case 'value':
+            if (ref.row && ref.col) {
+              return api.unitAddress.cell(
+                ref.model,
+                ref.matrix || ref.element,
+                ref.row,
+                ref.col,
+              )
+            }
             return api.unitAddress.value(valueBaseAddress(ref), ref.field)
           case 'concept':
             return api.unitAddress.concept(ref.family || ref.model, ref.concept || ref.name)
@@ -3093,6 +3101,17 @@
       case 'element':
         return m + '@' + slug(ref.id || ref.element)
       case 'value':
+        if (ref.row && ref.col) {
+          return (
+            String(m) +
+            '@' +
+            slug(ref.matrix || ref.element) +
+            '&' +
+            slug(ref.row) +
+            '&' +
+            slug(ref.col)
+          )
+        }
         return valueBaseAddress(ref) + '&' + (ref.field || '')
       case 'concept':
         return 'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept || ref.name)
@@ -3149,7 +3168,7 @@
     var desc = {
       kind: kind,
       nature: nature,
-      home: unitHomeFor(address),
+      home: kind === 'source' ? 'source' : unitHomeFor(address),
       address: address,
       label: String(label == null ? '' : label),
       slot: slot,
@@ -3205,6 +3224,8 @@
     badge.setAttribute('data-concept-slot', String(desc.slot))
     if (desc.vtype) badge.setAttribute('data-ku-vtype', desc.vtype)
     if (ref && ref.field) badge.setAttribute('data-field', String(ref.field))
+    if (ref && ref.row != null) badge.setAttribute('data-row', String(ref.row))
+    if (ref && ref.col != null) badge.setAttribute('data-col', String(ref.col))
     if (ref && ref.id != null && kind === 'element') badge.setAttribute('data-element-id', String(ref.id))
     if (isBlock) {
       badge.setAttribute('data-ku-variant', 'block')

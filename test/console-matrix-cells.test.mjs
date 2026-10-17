@@ -25,6 +25,17 @@ function boot() {
 }
 
 describe('console matrix cell review editing', () => {
+  it('renders the matrix definition, headers and cells as Ku units', () => {
+    const { document } = boot()
+    const section = document.querySelector('.innfo-matrix')
+    assert.ok(section, 'matrix section rendered')
+    assert.ok(section.querySelector('[data-ku-kind="matrix"]'), 'matrix definition badge')
+    assert.ok(section.querySelector('th [data-ku-kind="element"]'), 'header element badge')
+    const cell = section.querySelector('td[data-matrix] [data-ku-kind="value"]')
+    assert.ok(cell, 'cell value badge')
+    assert.match(cell.getAttribute('data-ku-address'), /matrix-lab@coverage&r1&c1/i)
+  })
+
   it('decorates matrix cells with an edit anchor and exports an update_matrix_cell change', () => {
     const { document, dom } = boot()
     const Ev = dom.window.Event
