@@ -1,4 +1,5 @@
 import { slugify } from '../parser/slug.js'
+import { slugifyHeading } from '../sourceRef.js'
 import { hashParsedElement } from '../console/element-hash.js'
 import { checkStaleTarget } from './history.js'
 import { extractModelSlug } from './utils.js'
@@ -216,13 +217,25 @@ export async function partitionChangeset(
       const parts = remainder.split('&')
       if (parts.length >= 3 && model.matrices) {
         const mName = parts[0].trim()
-        const row = parts[1].trim().toLowerCase()
-        const col = parts[2].trim().toLowerCase()
+        const row = parts[1].trim()
+        const col = parts[2].trim()
         const mat = model.matrices.find(
-          (m) => m.name.toLowerCase() === mName.toLowerCase() || slugify(m.name) === mName.toLowerCase(),
+          (m) =>
+            m.name.toLowerCase() === mName.toLowerCase() ||
+            slugify(m.name) === mName.toLowerCase() ||
+            slugifyHeading(m.name) === mName.toLowerCase(),
         )
+        const matchesCoord = (actual: string, requested: string): boolean => {
+          const a = actual.toLowerCase()
+          const r = requested.toLowerCase()
+          return (
+            a === r ||
+            slugify(a) === slugify(r) ||
+            slugifyHeading(a) === slugifyHeading(r)
+          )
+        }
         const cell = mat?.cells?.find(
-          (c) => c.row.toLowerCase() === row && c.col.toLowerCase() === col,
+          (c) => matchesCoord(c.row, row) && matchesCoord(c.col, col),
         )
         const currentVal = cell?.value !== undefined ? String(cell.value) : undefined
         if (currentVal !== change.from) {

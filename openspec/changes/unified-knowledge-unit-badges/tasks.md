@@ -49,17 +49,17 @@ Chain strategy: size-exception
 
 ## S1 Core Addressing (U1)
 
-- [ ] 1.1 RED `core/tests/unit-address.test.ts`: test all builders in `unitAddress` (`domain`, `document`, `section`, `element`, `value`, `cell`, `concept`, `field`, `matrix`). Verify builder outputs match expected address grammar. Spec: knowledge-unit-address "Canonical Unit Address Grammar and Builders".
-- [ ] 1.2 GREEN create `core/src/console/unit-address.ts`: implement `unitAddress` builders using `slugifyHeading` for concept slugs. Verify: 1.1 passes.
-- [ ] 1.3 RED `unit-address.test.ts` parser suite: `parseUnitAddress` round-trips for every builder output with matching kind; handles `concept:` and `matrix:` prefixes; parses two subunits as cell; delegates paths with extensions / `sources/` to `parseCitation`; rejects dotted, absolute, `..`, URL model parts; distinct addresses for shared slugs (`model@goals`, `model@concept:goals`, `model@matrix:goals`). Spec: knowledge-unit-address "Canonical Unit Address Parser".
-- [ ] 1.4 GREEN implement `parseUnitAddress` in `core/src/console/unit-address.ts`. Verify: 1.3 passes.
-- [ ] 1.5 RED citation regression suite (`core/tests/sourceRef.test.ts`): verify `parseCitation` and `resolveUnitPath` are completely unchanged: `parseCitation("sources/import/notes")` returns `null` (keeps `KU_MALFORMED`), `specs/testlab@concept:concept-1` is rejected in citation contexts.
-- [ ] 1.6 GREEN ensure `sourceRef.ts` exports grammar pieces without widening citation parsing. Verify: 1.5 and existing `sourceRef*.spec.ts` pass.
-- [ ] 1.7 RED `unit-address.test.ts` home suite: test `unitHome` explicit table (`specs/` -> `'blueprint'`, entrypoint / `roleOf === 'entrypoint'` -> `'domain'`, extensionless model id or `roleOf` in `knowledge`/`lineage-record`/`changeset`/`catalog`/`procedure` -> `'knowledge'`, else `'source'`). Spec: knowledge-unit-address "Unit Home Derivation".
-- [ ] 1.8 GREEN implement `unitHome` in `core/src/console/unit-address.ts`. `Role` in `naming/contract.ts` is untouched. Verify: 1.7 passes.
-- [ ] 1.9 RED MCP tool test: verify `apply_change` `update_matrix_cell` resolves row/col slugs correctly (`matchesCoord`). Spec: changeset-document-model "Changeset Mutation and Comment Operations".
-- [ ] 1.10 GREEN ensure `apply_change` matrix coordinate matching handles slugs. Verify: 1.9 passes.
-- [ ] 1.11 Gates: `npm --workspace=@cognnitive/innfo-core run build`, `npm run verify`. COMMIT U1.
+- [x] 1.1 RED `core/tests/unit-address.test.ts`: test all builders in `unitAddress` (`domain`, `document`, `section`, `element`, `value`, `cell`, `concept`, `field`, `matrix`). Verify builder outputs match expected address grammar. Spec: knowledge-unit-address "Canonical Unit Address Grammar and Builders".
+- [x] 1.2 GREEN create `core/src/console/unit-address.ts`: implement `unitAddress` builders using `slugifyHeading` for concept slugs. Verify: 1.1 passes.
+- [x] 1.3 RED `unit-address.test.ts` parser suite: `parseUnitAddress` round-trips for every builder output with matching kind; handles `concept:` and `matrix:` prefixes; parses two subunits as cell; delegates paths with extensions / `sources/` to `parseCitation`; rejects dotted, absolute, `..`, URL model parts; distinct addresses for shared slugs (`model@goals`, `model@concept:goals`, `model@matrix:goals`). Spec: knowledge-unit-address "Canonical Unit Address Parser".
+- [x] 1.4 GREEN implement `parseUnitAddress` in `core/src/console/unit-address.ts`. Verify: 1.3 passes.
+- [x] 1.5 RED citation regression suite (`core/tests/sourceRef.test.ts`): verify `parseCitation` and `resolveUnitPath` are completely unchanged: `parseCitation("sources/import/notes")` returns `null` (keeps `KU_MALFORMED`), `specs/testlab@concept:concept-1` is rejected in citation contexts.
+- [x] 1.6 GREEN ensure `sourceRef.ts` exports grammar pieces without widening citation parsing. Verify: 1.5 and existing `sourceRef*.spec.ts` pass.
+- [x] 1.7 RED `unit-address.test.ts` home suite: test `unitHome` explicit table (`specs/` -> `'blueprint'`, entrypoint / `roleOf === 'entrypoint'` -> `'domain'`, extensionless model id or `roleOf` in `knowledge`/`lineage-record`/`changeset`/`catalog`/`procedure` -> `'knowledge'`, else `'source'`). Spec: knowledge-unit-address "Unit Home Derivation".
+- [x] 1.8 GREEN implement `unitHome` in `core/src/console/unit-address.ts`. `Role` in `naming/contract.ts` is untouched. Verify: 1.7 passes.
+- [x] 1.9 RED MCP tool test: verify `apply_change` `update_matrix_cell` resolves row/col slugs correctly (`matchesCoord`). Spec: changeset-document-model "Changeset Mutation and Comment Operations".
+- [x] 1.10 GREEN ensure `apply_change` matrix coordinate matching handles slugs. Verify: 1.9 passes.
+- [x] 1.11 Gates: `npm --workspace=@cognnitive/innfo-core run build`, `npm run verify`. COMMIT U1.
 
 ---
 

@@ -664,6 +664,39 @@ type:: binary
       expect(live).toContain('| Vision | relevant |')
     })
 
+    it('update_matrix_cell resolves row/col slugs correctly (Task 1.9)', async () => {
+      const modelWithMatrix =
+        LIVE_STRATEGY_MODEL +
+        `
+# NN matrices: Concept 1-Concept 2 Matrix
+| Work \\ Work | Col B |
+| :--- | :---: |
+| Vision | archived |
+`
+      await writeFile(join(knowledgeDir, 'strategy_NN.md'), modelWithMatrix, 'utf-8')
+
+      const csFile = join(changesDir, 'matrix_slug_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'cell-1',
+            op: 'update_matrix_cell',
+            target: 'strategy@concept-1-concept-2-matrix&vision&col-b',
+            from: 'archived',
+            to: 'active',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/matrix_slug_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.appliedCount).toBe(1)
+
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('| Vision | active |')
+    })
+
     it('remove_element blocked by active reference records conflict', async () => {
       // Create marketing model referencing Vision
       const MARKETING_MODEL = `---
