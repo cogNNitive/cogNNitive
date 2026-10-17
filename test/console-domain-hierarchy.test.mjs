@@ -239,8 +239,7 @@ describe('Hostile text renders as text, never as markup', () => {
     const rail = document.getElementById('innfo-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('[onerror]'), null)
-    const icon = rail.querySelector('.innfo-rail-concept-icon')
-    assert.ok(icon, 'concept icon still rendered')
+    assert.ok(rail.querySelector('[data-ku-kind="section"]'), 'concept badge still rendered')
     assert.ok(!rail.innerHTML.includes('onerror'))
   })
 

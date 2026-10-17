@@ -134,15 +134,15 @@ Chain strategy: size-exception
 - [x] 4.12 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4b.
 
 ### S4c Rail, Facets, Guide, Stepper, Timeline, Views (U4c)
-- [ ] 4.13 RED navigation & rail tests: domaiNN badge in navbar, document badges in banner/tabs, concept badges in rail, facets, and filter pills rendered via `Ku`.
-- [ ] 4.14 GREEN `console/innfo-runtime.js`: update rail, facets, and omnibar to use `Ku`.
-- [ ] 4.15 RED stepper & timeline tests: `render-procedure-stepper.js` and timeline rows render units via `Ku`; `onEditRow` deleted.
-- [ ] 4.16 GREEN `console/render-procedure-stepper.js`, `metrics/assets/console-view-timeline.js`: migrate to `Ku`.
-- [ ] 4.17 RED blueprint custom views tests: views for `organization`, `projects`, `innovation`, `metrics`, `changes`, `procedures` consume `ctx.ui.Ku`; verify zero un-gated edit buttons in org-chart and roadmap in view mode. Spec: console-view-registry "Shared mount context".
-- [ ] 4.18 GREEN update all blueprint views under `iNNfo/specs/bluepriNNts/*/assets/console-view-*.js`: replace legacy chips with `ctx.ui.Ku`; delete `editButton` in org-chart and roadmap.
-- [ ] 4.19 RED DraftList/RelList tests: chips replaced by `Ku` badges.
-- [ ] 4.20 GREEN `console/ui-kit.js`: update `DraftList` and `RelList`.
-- [ ] 4.21 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4c.
+- [x] 4.13 RED navigation & rail tests: domaiNN badge in navbar, document badges in banner/tabs, concept badges in rail, facets, and filter pills rendered via `Ku`.
+- [x] 4.14 GREEN `console/innfo-runtime.js`: update rail, facets, and omnibar to use `Ku`.
+- [x] 4.15 RED stepper & timeline tests: `render-procedure-stepper.js` and timeline rows render units via `Ku`; `onEditRow` deleted.
+- [x] 4.16 GREEN `console/render-procedure-stepper.js`, `metrics/assets/console-view-timeline.js`: migrate to `Ku`.
+- [x] 4.17 RED blueprint custom views tests: views for `organization`, `projects`, `innovation`, `metrics`, `changes`, `procedures` consume `ctx.ui.Ku`; verify zero un-gated edit buttons in org-chart and roadmap in view mode. Spec: console-view-registry "Shared mount context".
+- [x] 4.18 GREEN update all blueprint views under `iNNfo/specs/bluepriNNts/*/assets/console-view-*.js`: replace legacy chips with `ctx.ui.Ku`; delete `editButton` in org-chart and roadmap.
+- [x] 4.19 RED DraftList/RelList tests: chips replaced by `Ku` badges.
+- [x] 4.20 GREEN `console/ui-kit.js`: update `DraftList` and `RelList`.
+- [x] 4.21 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4c.
 
 ---
 

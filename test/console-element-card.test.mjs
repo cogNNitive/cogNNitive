@@ -140,7 +140,10 @@ describe('Element Card Redesign Contract', () => {
       const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
       assert.ok(rel)
       assert.equal(rel.getAttribute('data-rel-field'), 'parked-at')
-      assert.equal(rel.querySelector('a').getAttribute('href'), '#el-hq-garage')
+      assert.match(
+        rel.querySelector('[data-ku-kind="element"]').getAttribute('data-ku-address'),
+        /hq-garage$/,
+      )
     })
 
     it('omits qud, path, tags and relations when not provided (back-compat)', () => {
@@ -325,8 +328,10 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     )
     const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
     assert.ok(rel, 'structured relation list (no legacy .rel-list)')
-    assert.equal(rel.querySelector('a').getAttribute('href'), '#el-hq-garage')
-    assert.match(rel.textContent, /hq-garage/)
+    assert.match(
+      rel.querySelector('[data-ku-kind="element"]').getAttribute('data-ku-address'),
+      /hq-garage$/,
+    )
     assert.equal(card.querySelector('.rel-list'), null, 'legacy relation markup gone')
     assert.equal(
       card.querySelector('[data-innfo-component="tag-row"]'),

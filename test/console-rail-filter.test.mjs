@@ -40,6 +40,19 @@ describe('console rail concept filter is multi-select (OR)', () => {
   })
 })
 
+describe('rail and facets render knowledge units', () => {
+  it('paints rail items and concept facet entries as addressed section badges', () => {
+    const { document } = bootConsole({
+      model: MODEL,
+      schema: { concepts: [{ name: 'Alpha' }, { name: 'Beta' }] },
+    })
+    const railBadge = document.querySelector('#innfo-rail [data-ku-kind="section"]')
+    assert.ok(railBadge, 'rail concept is a Ku section badge')
+    assert.match(railBadge.getAttribute('data-ku-address'), /rail-lab@concept:alpha/i)
+    assert.equal(railBadge.getAttribute('data-ku-home'), 'knowledge')
+  })
+})
+
 describe('field facet: tags: is exact membership (AND), | is any-of', () => {
   const el = (id, tags, fields = {}) => ({ id, concept: 'C', name: id, fields: { ...fields, tags } })
   const ids = (list, q) => InnfoConsole.filterElements(list, q).map((e) => e.id)

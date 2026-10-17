@@ -685,6 +685,7 @@
     var doc = resolveDoc(opts)
     var rels = Array.isArray(data.relations) ? data.relations : []
     var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
+    var relModel = data.model || (opts && (opts.modelId || opts.model)) || 'model'
     var ul = makeEl(doc, 'ul', 'innfo-rel-list')
     ul.setAttribute('data-innfo-component', 'rel-list')
     rels.forEach(function (r) {
@@ -692,23 +693,34 @@
       var li = makeEl(doc, 'li', 'innfo-rel-row')
       if (r.field) li.setAttribute('data-rel-field', String(r.field))
       if (r.target) li.setAttribute('data-rel-target', String(r.target))
-      var relFieldChip = makeEl(doc, 'span', 'innfo-rel-field innfo-ku-field-chip', (r.field || 'related') + ' \u2192')
-      li.appendChild(relFieldChip)
+      li.appendChild(
+        Ku(
+          'field',
+          {
+            family: relModel,
+            model: relModel,
+            concept: r.sourceConcept || 'relations',
+            name: r.field || 'related',
+            label: r.field || 'related',
+          },
+          { doc: doc },
+        ),
+      )
       var targetRec = r.target && byId[r.target] ? byId[r.target] : null
       var label = r.targetLabel || (targetRec && targetRec.name) || r.target || '?'
       if (r.target) {
         li.appendChild(
-          ElementPill(
+          Ku(
+            'element',
             {
+              model: relModel,
               id: r.target,
               label: label,
               concept: r.targetConcept || (targetRec && targetRec.concept),
               color: r.targetColor || (targetRec && targetRec._conceptColor),
-              hexColor: r.targetHexColor || (targetRec && targetRec._conceptHexColor),
-              slot: r.targetSlot || (targetRec && targetRec._conceptSlot),
               index: targetRec && targetRec._conceptIndex,
             },
-            { href: '#el-' + r.target, doc: doc },
+            { doc: doc },
           ),
         )
       } else {
@@ -1847,7 +1859,7 @@
       outWrap.appendChild(
         makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
       )
-      outWrap.appendChild(RelList({ relations: relations, byId: byId }))
+      outWrap.appendChild(RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }))
       body.appendChild(outWrap)
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
@@ -1856,7 +1868,7 @@
       incWrap.appendChild(
         makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
       )
-      incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
+      incWrap.appendChild(RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }))
       body.appendChild(incWrap)
     }
     card.appendChild(body)
@@ -1904,39 +1916,58 @@
 
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
       var targetConcept = d.concept || (el && el.concept) || null
+      var draftModel = (opts && (opts.modelId || opts.model)) || d.model || (el && el.modelId) || 'model'
       var targetSpan = makeEl(doc, 'span', 'innfo-draft-target inline-flex items-center gap-1.5 font-semibold text-sm')
       if (targetConcept) {
-        var cPill = ConceptPill(
+        targetSpan.appendChild(
+          Ku(
+            'section',
+            {
+              model: draftModel,
+              concept: targetConcept,
+              label: targetConcept,
+              index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+              color: el && el._conceptColor,
+            },
+            { doc: doc },
+          ),
+        )
+      }
+      var unitKind = d.field ? 'value' : 'element'
+      targetSpan.appendChild(
+        Ku(
+          unitKind,
           {
-            id: targetConcept,
-            label: targetConcept,
-            index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+            address: d.address || undefined,
+            model: draftModel,
+            element: d.element_id || targetLabel,
+            field: d.field || undefined,
+            id: d.element_id || targetLabel,
+            label: targetLabel,
+            concept: targetConcept,
             color: el && el._conceptColor,
+            index: el && el._conceptIndex,
           },
           { doc: doc },
-        )
-        targetSpan.appendChild(cPill)
-      }
-      var ePill = ElementPill(
-        {
-          id: d.element_id || targetLabel,
-          label: targetLabel,
-          concept: targetConcept,
-          color: el && el._conceptColor,
-          hexColor: el && el._conceptHexColor,
-          slot: el && el._conceptSlot,
-          index: el && el._conceptIndex,
-        },
-        { doc: doc, href: d.element_id ? '#el-' + d.element_id : undefined },
+        ),
       )
-      targetSpan.appendChild(ePill)
       if (d.field) {
         var arrowSpan = makeEl(doc, 'span', 'innfo-draft-arrow text-xs opacity-60', '→')
         arrowSpan.setAttribute('aria-hidden', 'true')
         targetSpan.appendChild(arrowSpan)
-        var fBadge = makeEl(doc, 'span', 'innfo-ku-field-chip', '~ ' + d.field)
-        fBadge.setAttribute('data-ku-kind', 'field')
-        targetSpan.appendChild(fBadge)
+        targetSpan.appendChild(
+          Ku(
+            'field',
+            {
+              family: draftModel,
+              model: draftModel,
+              concept: targetConcept || 'relations',
+              name: d.field,
+              label: '~ ' + d.field,
+            },
+            { doc: doc },
+          ),
+        )
       }
       left.appendChild(targetSpan)
 
@@ -3057,7 +3088,8 @@
   function unitAddressFor(kind, ref) {
     var api = addrApi()
     ref = ref || {}
-    if (kind === 'source') return ref.path || ref.address || String(ref.model || 'source') + '@source'
+    if (ref.address) return String(ref.address)
+    if (kind === 'source') return ref.path || String(ref.model || 'source') + '@source'
     if (api && api.unitAddress) {
       try {
         switch (kind) {

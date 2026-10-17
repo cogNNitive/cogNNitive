@@ -190,12 +190,15 @@ function labelFor(doc, ctx, element) {
   host.className = 'iv-tl-label'
   host.title = element.name || ''
   var ui = ctx.ui
-  if (ui && typeof ui.ElementPill === 'function') {
+  if (ui && typeof ui.Ku === 'function') {
     try {
       var meta = conceptMeta(ctx, element.concept)
+      var payloadMeta = (ctx.payload && ctx.payload.meta) || {}
       host.appendChild(
-        ui.ElementPill(
+        ui.Ku(
+          'element',
           {
+            model: element.modelId || payloadMeta.modelId || payloadMeta.model || '',
             id: element.id,
             label: element.name || element.id,
             concept: element.concept,
