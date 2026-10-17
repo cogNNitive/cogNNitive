@@ -238,16 +238,16 @@ describe('Element Card Redesign Contract', () => {
       assert.ok(card.querySelector('[data-innfo-ctl="rel-add"]'), 'relation add')
     })
 
-    it('tag remove records a comment draft without a modal', () => {
+    it('tag remove records a correction on tags with the full new array', () => {
       const { store, card } = decorated()
       card
         .querySelector('[data-innfo-ctl="tag-remove"]')
         .dispatchEvent(new window.Event('click', { bubbles: true }))
       const drafts = store.drafts()
       assert.equal(drafts.length, 1)
-      assert.equal(drafts[0].kind, 'comment')
+      assert.equal(drafts[0].kind, 'correction')
       assert.equal(drafts[0].field, 'tags')
-      assert.match(drafts[0].comment, /removing tag/)
+      assert.deepEqual(drafts[0].proposed, ['nyc-fleet'])
     })
 
     it('name pencil opens the KU modal', () => {

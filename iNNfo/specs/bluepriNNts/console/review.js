@@ -519,6 +519,33 @@
       openPopover = null
     }
 
+    function valueKeyOf(v) {
+      return String(v == null ? '' : v).trim().toLowerCase()
+    }
+
+    // Effective tags = own `tags` Field values plus inherited concept-level
+    // values, de-duplicated case-insensitively (mirrors the console runtime).
+    function effectiveTagsOf(el) {
+      var out = []
+      if (el && Array.isArray(el.tags)) {
+        out = out.concat(el.tags)
+      } else if (el && el.fields && el.fields.tags != null) {
+        var own = el.fields.tags
+        out = out.concat(Array.isArray(own) ? own : [own])
+      }
+      if (el && el.inherited && el.inherited.tags) {
+        var iv = el.inherited.tags.value
+        if (iv != null) out = out.concat(Array.isArray(iv) ? iv : [iv])
+      }
+      var seen = {}
+      return out.filter(function (t) {
+        var k = valueKeyOf(t)
+        if (!k || seen[k]) return false
+        seen[k] = true
+        return true
+      })
+    }
+
     function saveDraft(anchorData, payload) {
       if (!store) return null
       if (anchorData.matrixCell) {
@@ -822,13 +849,19 @@
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
-      // Tag / relation membership has no core draft op yet: record proposals
-      // as comment drafts (never auto-applied corrections).
+      // Tag membership is a `correction` on the `tags` Field carrying the full
+      // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
+        var elTag = elementsById[anchorData.elementId]
+        var curTags = effectiveTagsOf(elTag)
+        var nextTags = curTags.filter(function (t) {
+          return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
+        })
         saveDraft(anchorData, {
-          kind: 'comment',
+          kind: 'correction',
           field: 'tags',
-          comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
+          original: curTags,
+          proposed: nextTags,
         })
         return
       }
@@ -849,7 +882,7 @@
       }
 
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
-      if (anchorData.tagAdd) kinds = ['comment']
+      if (anchorData.tagAdd) kinds = ['correction']
       if (anchorData.relAdd) kinds = ['comment']
       var activeKind = kinds[0]
       var data = {
@@ -872,10 +905,14 @@
           var ta = pop.querySelector('textarea')
           var text = ta ? ta.value : ''
           if (anchorData.tagAdd) {
+            var elTagAdd = elementsById[anchorData.elementId]
+            var curAdd = effectiveTagsOf(elTagAdd)
+            var nextAdd = curAdd.concat([text])
             saveDraft(anchorData, {
-              kind: 'comment',
+              kind: 'correction',
               field: 'tags',
-              comment: 'Propose tag: ' + text,
+              original: curAdd,
+              proposed: nextAdd,
             })
           } else if (anchorData.relAdd) {
             saveDraft(anchorData, {
