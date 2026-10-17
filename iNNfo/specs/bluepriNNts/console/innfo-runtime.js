@@ -341,6 +341,13 @@
     return { textTokens: textTokens, operators: operators, groups: groups }
   }
 
+  // valueKey: the single normalization used for multi-valued field membership
+  // (trim + lowercase), mirroring innfo-core schema/field-values.ts valueKey.
+  function valueKey(v) {
+    if (v === null || v === undefined) return ''
+    return String(v).trim().toLowerCase()
+  }
+
   function getElementFieldValue(el, key) {
     if (!el || !key) return null
     var lkey = String(key).toLowerCase()
@@ -358,6 +365,19 @@
         }
       }
     }
+    // Inherited concept-level values are effective values: fall back to them
+    // when the element carries no own value for the field.
+    if ((v === null || v === '' || v === undefined) && el.inherited && typeof el.inherited === 'object') {
+      var iKeys = Object.keys(el.inherited)
+      for (var j = 0; j < iKeys.length; j++) {
+        if (iKeys[j].toLowerCase() === lkey) {
+          var iv = el.inherited[iKeys[j]]
+          if (iv && typeof iv === 'object' && 'value' in iv) iv = iv.value
+          if (iv !== null && iv !== undefined) v = iv
+          break
+        }
+      }
+    }
     if ((v === null || v === '' || v === undefined) && Array.isArray(el.relations)) {
       var relMatches = el.relations
         .filter(function (r) { return r && String(r.field || '').toLowerCase() === lkey })
@@ -368,7 +388,7 @@
     return v
   }
 
-  function matchAtom(el, atom, draftsById, reviewedMap) {
+  function matchAtom(el, atom, draftsById, reviewedMap, selectFields) {
     if (!atom) return true
     if (atom.type === 'text') {
       return elementHaystack(el).indexOf(atom.val) !== -1
@@ -393,12 +413,6 @@
       ).toLowerCase()
       var mModel = modelHaystack.indexOf(opVal) !== -1
       return isNeg ? !mModel : mModel
-    }
-    if (key === 'tag' || key === 'tag-any') {
-      if (!opVal) return true
-      var elTags = getElementEffectiveTags(el)
-      var mTag = elTags.indexOf(opVal) !== -1
-      return isNeg ? !mTag : mTag
     }
     if (key === 'element' || key === 'id' || key === 'name') {
       var elHaystack = (String(el.id || '') + ' ' + String(el.name || '')).toLowerCase()
@@ -434,23 +448,40 @@
 
     var actual = getElementFieldValue(el, key)
     if (actual === null || actual === undefined) return isNeg
+    if (!opVal) return true
+    // Any-of: `<field>:a|b` matches an element carrying at least one of the listed
+    // values (one OR group). Repeated tokens stay AND (handled by filterElements).
+    var anyTokens = opVal
+      .split('|')
+      .map(function (s) { return s.trim() })
+      .filter(function (s) { return s !== '' })
+    if (anyTokens.length === 0) return true
+    var isArrayValue = Array.isArray(actual)
     var actualStr = String(actual).toLowerCase()
-    var matched = false
-    if (opVal.length > 1 && (opVal.charAt(0) === '>' || opVal.charAt(0) === '<')) {
-      var isGte = opVal.slice(0, 2) === '>='
-      var isLte = opVal.slice(0, 2) === '<='
-      var prefixLen = (isGte || isLte) ? 2 : 1
-      var numTarget = parseFloat(opVal.slice(prefixLen))
-      var numActual = parseFloat(actualStr)
-      if (!isNaN(numTarget) && !isNaN(numActual)) {
-        if (isGte) matched = numActual >= numTarget
-        else if (isLte) matched = numActual <= numTarget
-        else if (opVal.charAt(0) === '>') matched = numActual > numTarget
-        else if (opVal.charAt(0) === '<') matched = numActual < numTarget
+    var matched = anyTokens.some(function (tok) {
+      if (tok.length > 1 && (tok.charAt(0) === '>' || tok.charAt(0) === '<')) {
+        var isGte = tok.slice(0, 2) === '>='
+        var isLte = tok.slice(0, 2) === '<='
+        var prefixLen = (isGte || isLte) ? 2 : 1
+        var numTarget = parseFloat(tok.slice(prefixLen))
+        var numActual = parseFloat(actualStr)
+        if (isNaN(numTarget) || isNaN(numActual)) return false
+        if (isGte) return numActual >= numTarget
+        if (isLte) return numActual <= numTarget
+        if (tok.charAt(0) === '>') return numActual > numTarget
+        return numActual < numTarget
       }
-    } else {
-      matched = actualStr.indexOf(opVal) !== -1
-    }
+      if (isArrayValue) {
+        // Exact membership, case-insensitive (valueKey). Never substring.
+        var tv = valueKey(tok)
+        return actual.some(function (v) { return valueKey(v) === tv })
+      }
+      if (selectFields && selectFields[key]) {
+        // A scalar select matches by exact, case-insensitive equality.
+        return actualStr === tok.toLowerCase()
+      }
+      return actualStr.indexOf(tok.toLowerCase()) !== -1
+    })
     return isNeg ? !matched : matched
   }
 
@@ -463,6 +494,17 @@
     var draftsById = ctx.draftsById || {}
     var reviewedMap = ctx.reviewed || {}
 
+    // Type-aware matching: a scalar `select` field matches by exact equality,
+    // other scalar types by substring (arrays are always exact membership).
+    var selectFields = {}
+    if (ctx.schema && Array.isArray(ctx.schema.fields)) {
+      ctx.schema.fields.forEach(function (f) {
+        if (f && f.name && String(f.type || '').toLowerCase() === 'select') {
+          selectFields[String(f.name).toLowerCase()] = true
+        }
+      })
+    }
+
     // Check if query used explicit boolean groups (e.g. parentheses or OR keyword)
     var hasExplicitLogic = parsed.groups.some(function (g) { return g.length > 1 }) || query.indexOf('(') !== -1 || /\bOR\b/i.test(query)
 
@@ -472,17 +514,17 @@
         // Every group must match (AND across groups). Within each group, at least one atom must match (OR).
         return parsed.groups.every(function (group) {
           return group.some(function (atom) {
-            return matchAtom(el, atom, draftsById, reviewedMap)
+            return matchAtom(el, atom, draftsById, reviewedMap, selectFields)
           })
         })
       })
     }
 
-    // Default facet rules: OR within model/concept, AND across tags and other fields
+    // Default facet rules: model/concept keep OR across selections; every other
+    // facet combines with AND. A Field named `tags` is an ordinary facet source
+    // (any-of is expressed with `|` inside one token, handled by matchAtom).
     var modelOps = []
     var conceptOps = []
-    var tagOps = []
-    var tagAnyOps = []
     var otherOps = []
 
     for (var k = 0; k < parsed.operators.length; k++) {
@@ -491,10 +533,6 @@
         modelOps.push(oper)
       } else if (oper.key === 'concept') {
         conceptOps.push(oper)
-      } else if (oper.key === 'tag' || oper.key === 'tag-any') {
-        if (String(oper.val == null ? '' : oper.val).trim() === '') continue
-        if (oper.key === 'tag') tagOps.push(oper)
-        else tagAnyOps.push(oper)
       } else {
         otherOps.push(oper)
       }
@@ -511,7 +549,7 @@
       // Check model facet (OR across multiple model selections)
       if (modelOps.length > 0) {
         var matchesAnyModel = modelOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyModel) return false
       }
@@ -519,28 +557,15 @@
       // Check concept facet (OR across multiple concept selections)
       if (conceptOps.length > 0) {
         var matchesAnyConcept = conceptOps.some(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
+          return matchAtom(el, op, draftsById, reviewedMap, selectFields)
         })
         if (!matchesAnyConcept) return false
       }
 
-      // Tag facet
-      if (tagOps.length > 0 || tagAnyOps.length > 0) {
-        var hasAllTags = tagOps.every(function (op) {
-          return matchAtom(el, op, draftsById, reviewedMap)
-        })
-        if (!hasAllTags) return false
-        if (tagAnyOps.length > 0) {
-          var hasAnyTag = tagAnyOps.some(function (op) {
-            return matchAtom(el, op, draftsById, reviewedMap)
-          })
-          if (!hasAnyTag) return false
-        }
-      }
-
-      // Other fields (AND by default)
+      // Other fields (AND by default; a Field named `tags` is an ordinary facet,
+      // any-of lives inside one token as `tags:a|b`)
       for (var j = 0; j < otherOps.length; j++) {
-        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap)) return false
+        if (!matchAtom(el, otherOps[j], draftsById, reviewedMap, selectFields)) return false
       }
 
       return true
@@ -5941,7 +5966,7 @@
 
     var cardActions = {
       onTag: function (tag) {
-        addFacetToken('tag', tag)
+        addFacetToken('tags', tag)
       },
       isKnowledgeBound: function (value) {
         return !!resolveKnowledgeModel(meta, value)
@@ -6031,6 +6056,7 @@
       var filterCtx = {
         draftsById: draftsById,
         reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
+        schema: state.schema,
       }
 
       var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)

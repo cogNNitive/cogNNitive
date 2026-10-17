@@ -252,21 +252,21 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       )
     const cardOf = (document, id) => document.querySelector(`#innfo-content article[data-element-id="${id}"]`)
 
-    it('shows the tag row from element.tags and none when empty', () => {
+    it('shows the tag row from effective tags and none when empty', () => {
       const { document, idOf } = boot()
       const chips = [...cardOf(document, idOf('Alpha')).querySelectorAll('[data-innfo-component="tag-row"] [data-tag]')]
       assert.deepEqual(chips.map((c) => c.getAttribute('data-tag')), ['ai', 'pricing', 'core'])
       assert.equal(cardOf(document, idOf('Ana')).querySelector('[data-innfo-component="tag-row"]'), null)
     })
 
-    it('clicking a chip adds tag:<t> to the filter and filters', () => {
+    it('clicking a chip adds tags:<t> to the filter and filters', () => {
       const { document, idOf } = boot()
       cardOf(document, idOf('Alpha')).querySelector('[data-tag="pricing"]').click()
-      assert.match(document.getElementById('innfo-search').value, /tag:pricing/)
+      assert.match(document.getElementById('innfo-search').value, /tags:pricing/)
       assert.deepEqual(cards(document), [idOf('Alpha')])
     })
 
-    it('tag: is exact, so tag:ai does not list the retail-tagged element', () => {
+    it('tags: is exact, so tags:ai does not list the retail-tagged element', () => {
       const { document, idOf } = boot()
       cardOf(document, idOf('Alpha')).querySelector('[data-tag="ai"]').click()
       assert.deepEqual(cards(document).sort(), [idOf('Alpha'), idOf('Beta')].sort())
