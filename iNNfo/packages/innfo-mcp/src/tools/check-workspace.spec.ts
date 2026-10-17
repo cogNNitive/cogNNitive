@@ -193,10 +193,12 @@ describe('resolveCatalog (AD-3)', () => {
 describe('checkWorkspace (AD-5)', () => {
   const origGlobal = process.env.INNFO_GLOBAL_DIR
   const origSkills = process.env.INNFO_SKILLS_DIR
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
     process.env.INNFO_GLOBAL_DIR = join(rootDir, 'isolated-global')
     process.env.INNFO_SKILLS_DIR = join(rootDir, 'isolated-skills')
+    process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rmWithRetry(rootDir)
     await mkdir(specsDir, { recursive: true })
     await mkdir(modelsDir, { recursive: true })
@@ -208,6 +210,8 @@ describe('checkWorkspace (AD-5)', () => {
     else delete process.env.INNFO_GLOBAL_DIR
     if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
     else delete process.env.INNFO_SKILLS_DIR
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     vi.restoreAllMocks()
     await rmWithRetry(rootDir)
   })

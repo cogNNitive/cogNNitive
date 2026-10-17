@@ -71,18 +71,18 @@ Chain strategy: size-exception
 
 ## S2 Content migration (U2a, U2b)
 
-- [ ] 2.1 Finalize `specs/iNNfo_V_0-5-0_NN.md`: exactly 3 primitives, reconciled widget table (design), metaschema rewrite, concept-level values and inheritance prose; omit `base` from the template list. Verify: `check:specs`, `check:spec-urls`.
-- [ ] 2.2 RED `core/tests/bluepriNNt-field-catalogue.test.ts` encoding the shipped catalogue table (A2): no live L2 has `Marker Definition`/`item-markers`; identical open `tags` Field (`select`, `multiple`, `*`) in exactly the L2s the spec lists (`business` by composition, none in `sidecar`); no `Tags` concept in domaiNN/workspace; Field table rows. Spec: field-value-model "Shipped Field Catalogue", "Tags Concept Deleted".
-- [ ] 2.3 GREEN organization, procedures: `complexity` (`number`, `*`, `scale` 0-100 step 5); re-parent to 0-5-0, `spec_version: V_0-5-0`, bump `blueprint_version`.
-- [ ] 2.4 GREEN projects: `health` (`*`, `select` `[nominal, warning, critical]`, `cycle`).
-- [ ] 2.5 GREEN repository: tag `shipped` (marker removed). GREEN visual-catalog: `confidence` on `Entry` (`number`, `scale` 0-10), tag `reviewed`, procedure step "Record Confidence and Review".
-- [ ] 2.6 GREEN domaiNN: tag `verified`; delete `Tags` concept and its Fields. GREEN frozen `cogNNitive` IN PLACE (maintainer Q1): tag `verified`, re-parent from `iNNfo_V_0-2-1` to 0-5-0, bump `template_version`, keep it in `frozen_blueprints`/`FROZEN_NAMES`; `cogNNitive_V_0-2-1_NN.md` stays byte-identical (assert it in 2.2).
-- [ ] 2.7 GREEN sources, artifacts, documentation: replace `tags` `type:: string` Field with the shared multi-valued `tags`.
-- [ ] 2.8 GREEN analysis, business-model, innovation, blank, metrics (drop `is_variable/is_formula/is_derived`), business (re-check composition under `includes`): delete the five generic evaluative markers, add shared `tags`.
-- [ ] 2.8b GREEN add the shared open `tags` Field to every remaining L2 of the spec's catalogue list not covered above (including `changes`, `video-script`, `design-presets`), with `blueprint_version` bumps.
-- [ ] 2.9 GREEN frozen `bp/workspace_spec_NN.md` IN PLACE (Q1) and `skills/nn-innfo/templates/workspace_spec_iNNfo_NN.md`: tag `verified`, delete `Tags` concept, re-parent from `iNNfo_V_0-2-2` to 0-5-0, bump `template_version`, keep it frozen; `workspace_V_0-2-2_NN.md` stays byte-identical.
-- [ ] 2.10 Register new `template_version`s in the editor's `SHIPPED_TEMPLATE_VERSIONS` (recurring gap; catch it now) and any `manifest/source.yaml` pins; `node scripts/generate-canonical-registry.mjs`; `npm run sync:versions`.
-- [ ] 2.11 Verify 2.2 green plus `npm run check:versions`, `check:integrity`. COMMIT U2a.
+- [x] 2.1 Finalize `specs/iNNfo_V_0-5-0_NN.md`: exactly 3 primitives, reconciled widget table (design), metaschema rewrite, concept-level values and inheritance prose; omit `base` from the template list. Verify: `check:specs`, `check:spec-urls`.
+- [x] 2.2 RED `core/tests/bluepriNNt-field-catalogue.test.ts` encoding the shipped catalogue table (A2): no live L2 has `Marker Definition`/`item-markers`; identical open `tags` Field (`select`, `multiple`, `*`) in exactly the L2s the spec lists (`business` by composition, none in `sidecar`); no `Tags` concept in domaiNN/workspace; Field table rows. Spec: field-value-model "Shipped Field Catalogue", "Tags Concept Deleted".
+- [x] 2.3 GREEN organization, procedures: `complexity` (`number`, `*`, `scale` 0-100 step 5); re-parent to 0-5-0, `spec_version: V_0-5-0`, bump `blueprint_version`.
+- [x] 2.4 GREEN projects: `health` (`*`, `select` `[nominal, warning, critical]`, `cycle`).
+- [x] 2.5 GREEN repository: tag `shipped` (marker removed). GREEN visual-catalog: `confidence` on `Entry` (`number`, `scale` 0-10), tag `reviewed`, procedure step "Record Confidence and Review".
+- [x] 2.6 GREEN domaiNN: tag `verified`; delete `Tags` concept and its Fields. GREEN frozen `cogNNitive` IN PLACE (maintainer Q1): tag `verified`, re-parent from `iNNfo_V_0-2-1` to 0-5-0, bump `template_version`, keep it in `frozen_blueprints`/`FROZEN_NAMES`; `cogNNitive_V_0-2-1_NN.md` stays byte-identical (assert it in 2.2).
+- [x] 2.7 GREEN sources, artifacts, documentation: replace `tags` `type:: string` Field with the shared multi-valued `tags`.
+- [x] 2.8 GREEN analysis, business-model, innovation, blank, metrics (drop `is_variable/is_formula/is_derived`), business (re-check composition under `includes`): delete the five generic evaluative markers, add shared `tags`.
+- [x] 2.8b GREEN add the shared open `tags` Field to every remaining L2 of the spec's catalogue list not covered above (including `changes`, `video-script`, `design-presets`), with `blueprint_version` bumps.
+- [x] 2.9 GREEN frozen `bp/workspace_spec_NN.md` IN PLACE (Q1) and `skills/nn-innfo/templates/workspace_spec_iNNfo_NN.md`: tag `verified`, delete `Tags` concept, re-parent from `iNNfo_V_0-2-2` to 0-5-0, bump `template_version`, keep it frozen; `workspace_V_0-2-2_NN.md` stays byte-identical.
+- [x] 2.10 Register new `template_version`s in the editor's `SHIPPED_TEMPLATE_VERSIONS` (recurring gap; catch it now) and any `manifest/source.yaml` pins; `node scripts/generate-canonical-registry.mjs`; `npm run sync:versions`.
+- [x] 2.11 Verify 2.2 green plus `npm run check:versions`, `check:integrity`. COMMIT U2a.
 - [ ] 2.12 RED sample tests (existing `check:samples` plus a new assertion per sample): 6 SSOT Ghostbusters samples hold no markers, flags are tags (`!` priority, `*` important, `>` complete, `?` uncertain, `+` starred), `-` rating unset -> no tag, numeric `certainty` and undeclared `weight` dropped. Spec: field-value-model "Evaluative markers are gone".
 - [ ] 2.13 GREEN convert 6 SSOT samples under `_samples_nn/**`, rename for `blueprint_version` bumps (`check-samples-version`), update `scripts/sync-samples.mjs` mappings, `npm run sync:samples`.
 - [ ] 2.14 GREEN delete `# NN Tags` from the 9 domain files: `ecosystem_NN/domaiNN_NN.md`, `docs/workspace_NN.md`, `docs/cognitive_nn/use-cases/*/domaiNN_NN.md`, testlab domain files. Verify: `rg "# NN Tags"` = 0 hits.
