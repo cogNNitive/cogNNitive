@@ -118,11 +118,11 @@ Chain strategy: size-exception
 ## S4 Renderer Migration (U4a, U4b, U4c)
 
 ### S4a Cards, Mini Cards, Tables, Field Split (U4a)
-- [ ] 4.1 RED card tests (`ui-kit.test.ts`, console suites): `ElementCard` renders element name via `Ku` (kind `element`), values via `Ku` (kind `value`); inherited values labelled `"inherited from <Concept>"` with no edit pencil; no `marker-chip` or legacy pills. Spec: console-ui-kit "ElementCard".
-- [ ] 4.2 GREEN update `ElementCard` in `console/ui-kit.js`.
-- [ ] 4.3 RED table tests: `mountElementTable` renders field definition badges in table headers once, and `value` badges in `td` cells; deletes legacy `UI.Table`.
-- [ ] 4.4 GREEN `console/innfo-runtime.js`: update `mountElementTable` to use `Ku` for all headers and cells; remove `UI.Table`.
-- [ ] 4.5 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4a.
+- [x] 4.1 RED card tests (`ui-kit.test.ts`, console suites): `ElementCard` renders element name via `Ku` (kind `element`), values via `Ku` (kind `value`); inherited values labelled `"inherited from <Concept>"` with no edit pencil; no `marker-chip` or legacy pills. Spec: console-ui-kit "ElementCard".
+- [x] 4.2 GREEN update `ElementCard` in `console/ui-kit.js`.
+- [x] 4.3 RED table tests: `mountElementTable` renders field definition badges in table headers once, and `value` badges in `td` cells; deletes legacy `UI.Table`.
+- [x] 4.4 GREEN `console/innfo-runtime.js`: update `mountElementTable` to use `Ku` for all headers and cells; remove `UI.Table`.
+- [x] 4.5 Gates: `npm run check-console-bundle`, `npm run verify`. COMMIT U4a.
 
 ### S4b Matrices, Dialogs, Sources, Document View (U4b)
 - [ ] 4.6 RED matrix tests: `renderMatrices` renders `matrix` definition badge in corner, element/section badges for row/column headers, and `value` badges for cells; fake `matrix-<slug>` element removed.

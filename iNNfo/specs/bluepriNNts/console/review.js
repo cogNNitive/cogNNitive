@@ -1107,7 +1107,7 @@
           fieldRow &&
           document.activeElement &&
           document.activeElement.closest &&
-          document.activeElement.closest('[data-ku-kind="field"]')
+          document.activeElement.closest('[data-ku-kind="value"]')
         ) {
           fieldRow.dispatchEvent(new Event('click', { bubbles: true }))
         } else {
@@ -1299,7 +1299,7 @@
           },
         )
         actions.setAttribute('data-innfo-ctl', 'ku-info-actions')
-        if (badge.getAttribute('data-ku-kind') === 'field') {
+        if (badge.getAttribute('data-ku-kind') === 'value') {
           badge.appendChild(actions)
         } else if (badge.parentNode) {
           badge.parentNode.insertBefore(actions, badge.nextSibling)
@@ -1311,7 +1311,7 @@
           var elId = card.getAttribute('data-element-id')
           attach(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), elId, '__name')
           Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="field"][data-field]'),
+            card.querySelectorAll('[data-ku-kind="value"][data-field]'),
             function (b) {
               attach(b, elId, b.getAttribute('data-field'))
             },
@@ -1367,7 +1367,7 @@
           var elId = card.getAttribute('data-element-id')
           applyPip(card.querySelector('.innfo-card-head [data-ku-kind="element"]'), byEl[elId] || 0, elId, '__name')
           Array.prototype.forEach.call(
-            card.querySelectorAll('[data-ku-kind="field"][data-field]'),
+            card.querySelectorAll('[data-ku-kind="value"][data-field]'),
             function (b) {
               var f = b.getAttribute('data-field')
               applyPip(b, byField[elId + '#' + f] || 0, elId, f)
@@ -1503,7 +1503,7 @@
         safeDecorate(decorateCard),
       )
       Array.prototype.forEach.call(
-        host.querySelectorAll('[data-ku-kind="field"][data-field]'),
+        host.querySelectorAll('[data-ku-kind="value"][data-field]'),
         safeDecorate(decorateFieldRow),
       )
       Array.prototype.forEach.call(

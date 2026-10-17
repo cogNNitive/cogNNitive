@@ -2102,7 +2102,7 @@
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -2195,6 +2195,7 @@
         },
         {
           domId: 'el-' + String(element.id || ''),
+          modelId: modelId || element.modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           head:
@@ -2228,24 +2229,6 @@
       card.style.setProperty('--card-concept-color', hexColor)
       card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e5e5))'
       card.style.borderLeft = '4px solid ' + hexColor
-
-      var head = card.querySelector('.innfo-card-head, header')
-      if (head && element.concept && !head.querySelector('[data-ku-kind="concept"]')) {
-        var cBadge = el('span', 'innfo-card-concept-badge badge badge-xs text-xs font-semibold')
-        cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
-        cBadge.style.color = hexColor
-        cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
-        if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
-          var cIcoSpan = el('span', 'innfo-concept-pill-icon')
-          cIcoSpan.setAttribute('aria-hidden', 'true')
-          cIcoSpan.innerHTML = UI.icon(UI.resolveConceptIconName(element.concept, cMeta), 12)
-          cBadge.appendChild(cIcoSpan)
-        }
-        cBadge.appendChild(doc.createTextNode(element.concept))
-        var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge) (elementBadge.parentNode || head).insertBefore(cBadge, elementBadge)
-        else head.appendChild(cBadge)
-      }
 
       if (element._draft) {
         var d = element._draft
@@ -2342,7 +2325,7 @@
     content.appendChild(wrap)
   }
 
-  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions) {
+  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -2361,6 +2344,7 @@
         },
         {
           doc: doc,
+          modelId: modelId || element.modelId || '',
           concept: cMeta,
           preview: true,
           onClick: function () {
@@ -2454,7 +2438,7 @@
   // Read-only table of the filtered elements: one row per element, one column
   // per field key, sortable by clicking a header. Mirrors the editor's
   // ConceptTableView (table view + header sort) inside the domain console.
-  function mountElementTable(doc, elements, drafts, concepts, sortState, schema, onSort) {
+  function mountElementTable(doc, elements, drafts, concepts, sortState, schema, onSort, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -2475,6 +2459,16 @@
     })
     columns.push({ key: 'tags', label: 'Tags' })
 
+    var schemaFields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    function fieldDefOf(name) {
+      for (var i = 0; i < schemaFields.length; i++) {
+        if (schemaFields[i] && schemaFields[i].name === name && !schemaFields[i].inheritedFrom) {
+          return schemaFields[i]
+        }
+      }
+      return null
+    }
+
     var thead = el('thead')
     var headTr = el('tr')
     columns.forEach(function (col) {
@@ -2483,10 +2477,22 @@
       th.setAttribute('scope', 'col')
       th.setAttribute('role', 'button')
       th.setAttribute('tabindex', '0')
-      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.KuBadge !== 'function') {
+      var fieldDef = fieldDefOf(col.key)
+      if (col.key === 'name' || col.key === 'concept' || col.key === 'tags' || !UI || typeof UI.Ku !== 'function') {
         th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
       } else {
-        var fieldBadge = UI.KuBadge({ kind: 'field', label: col.label }, { doc: doc })
+        var declaredBy = fieldDef && fieldDef.declaredBy ? fieldDef.declaredBy : {}
+        var fieldBadge = UI.Ku(
+          'field',
+          {
+            family: declaredBy.family || modelId || 'model',
+            concept: (fieldDef && fieldDef.concept) || col.key,
+            name: col.key,
+            label: col.label,
+            vtype: fieldDef && fieldDef.type,
+          },
+          { doc: doc },
+        )
         fieldBadge.classList.add('innfo-element-table-th-label')
         th.appendChild(fieldBadge)
       }
@@ -2525,20 +2531,23 @@
       if (element._draft) tr.classList.add('innfo-element-table-draft')
 
       var rowCMeta = conceptMetaOf(conceptList, element.concept)
+      var rowModel = modelId || element.modelId || ''
       var nameTd = el('td', 'innfo-element-table-name')
-      var elPill = UI.ElementPill(
-        {
-          id: element.id,
-          label: element.name || element.id || '',
-          concept: element.concept,
-          color: rowCMeta.color,
-          hexColor: rowCMeta.hexColor,
-          slot: rowCMeta.slot,
-          index: rowCMeta.index,
-        },
-        { doc: doc },
-      )
-      nameTd.appendChild(elPill)
+      var elBadge =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'element',
+              {
+                model: rowModel,
+                id: element.id,
+                label: element.name || element.id || '',
+                index: rowCMeta.index,
+                color: rowCMeta.color,
+              },
+              { doc: doc },
+            )
+          : el('span', null, element.name || element.id || '')
+      nameTd.appendChild(elBadge)
       if (element._draft) {
         nameTd.appendChild(
           el(
@@ -2551,15 +2560,20 @@
       tr.appendChild(nameTd)
 
       var conceptTd = el('td')
-      var cBadge = UI.ConceptPill(
-        {
-          id: element.concept || '',
-          label: element.concept || '',
-          index: rowCMeta.index,
-          color: rowCMeta.color,
-        },
-        { doc: doc },
-      )
+      var cBadge =
+        UI && typeof UI.Ku === 'function'
+          ? UI.Ku(
+              'section',
+              {
+                model: rowModel,
+                concept: element.concept || '',
+                label: element.concept || '',
+                index: rowCMeta.index,
+                color: rowCMeta.color,
+              },
+              { doc: doc },
+            )
+          : el('span', null, element.concept || '')
       conceptTd.appendChild(cBadge)
       tr.appendChild(conceptTd)
 
@@ -2573,7 +2587,24 @@
           if (relMatches.length) rawVal = relMatches.join(', ')
         }
         var val = displayCellText(rawVal)
-        var td = el('td', 'innfo-element-table-cell', val)
+        var td = el('td', 'innfo-element-table-cell')
+        if (val && UI && typeof UI.Ku === 'function') {
+          td.appendChild(
+            UI.Ku(
+              'value',
+              {
+                model: rowModel,
+                element: element.id,
+                field: k,
+                label: val,
+                vtype: fieldTypeOf(schema, element.concept, k),
+              },
+              { doc: doc },
+            ),
+          )
+        } else if (val) {
+          td.appendChild(doc.createTextNode(val))
+        }
         if (val) td.setAttribute('title', val)
         td.addEventListener('dblclick', function () {
           renderFieldDetailDialog(doc, {
@@ -2587,7 +2618,24 @@
       })
 
       var tags = getElementEffectiveTags(element).join(', ')
-      var tagsTd = el('td', 'innfo-element-table-cell', tags)
+      var tagsTd = el('td', 'innfo-element-table-cell')
+      if (tags && UI && typeof UI.Ku === 'function') {
+        tagsTd.appendChild(
+          UI.Ku(
+            'value',
+            {
+              model: rowModel,
+              element: element.id,
+              field: 'tags',
+              label: tags,
+              vtype: 'select',
+            },
+            { doc: doc },
+          ),
+        )
+      } else if (tags) {
+        tagsTd.appendChild(doc.createTextNode(tags))
+      }
       if (tags) tagsTd.setAttribute('title', tags)
       tr.appendChild(tagsTd)
 
@@ -6087,13 +6135,13 @@
             sortState.dir = 'asc'
           }
           refresh(activeSearchQuery)
-        })
+        }, (meta && (meta.modelId || meta.model)) || '')
       } else if (explorerView === 'badges') {
         mountElementBadges(active, filteredElements, currentDrafts, concepts, refs)
       } else if (explorerView === 'cards') {
-        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions)
+        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions, (meta && (meta.modelId || meta.model)) || '')
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions, (meta && (meta.modelId || meta.model)) || '')
         focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {

@@ -103,6 +103,7 @@ lead:: [[NonExistentElement]]
       label: 'Paranormal Infestation',
       concept: mx.source || undefined,
       kind: 'element',
+      slug: 'paranormal-infestation',
     })
     expect(mx.head!.cols['Ghost Capture'].kind).toBe('element')
     expect(mx.cells).toEqual({

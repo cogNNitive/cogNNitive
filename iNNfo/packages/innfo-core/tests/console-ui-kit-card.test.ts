@@ -27,13 +27,29 @@ describe('InnfoUI.ElementCard', () => {
     expect(card.getAttribute('data-element-id')).toBe('slimer')
     expect(card.getAttribute('data-concept-id')).toBe('paranormal-threat')
     expect(card.querySelector('.innfo-card-head [data-ku-kind=element]')!.textContent).toBe('Slimer')
-    expect(card.querySelectorAll('[data-ku-kind=field]').length).toBe(3)
+    expect(card.querySelectorAll('[data-ku-kind=value]').length).toBe(3)
     expect(card.querySelector('.innfo-card-desc')!.textContent).toBe('A gluttonous ghost')
   })
 
   it('renders an empty fields list without throwing', () => {
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [] })
-    expect(card.querySelectorAll('[data-ku-kind=field]').length).toBe(0)
+    expect(card.querySelectorAll('[data-ku-kind=value]').length).toBe(0)
+  })
+
+  it('renders an inherited concept value as info-only on the element card', () => {
+    const card = UI.ElementCard({
+      id: 'slimer',
+      name: 'Slimer',
+      conceptId: 'Threat',
+      inherited: { tags: { value: 'core', from: 'Threat' } },
+      fields: [field('tags', 'core')],
+    })
+    const value = card.querySelector('[data-ku-kind=value][data-field=tags]') as HTMLElement
+    expect(value).toBeTruthy()
+    expect(value.getAttribute('data-ku-address')).toMatch(/@concept:/)
+    expect(card.textContent).toMatch(/inherited from Threat/)
+    const valueWrap = value.closest('.innfo-ku-wrap') as HTMLElement
+    expect(valueWrap.querySelector('[data-ku-action=edit]')).toBeNull()
   })
 
   it('renders no marker chip (the Marker primitive is retired)', () => {
@@ -84,7 +100,7 @@ describe('InnfoUI.ElementCard', () => {
     expect(img.getAttribute('src')).toBe('sources/ecto-1.png')
     expect(card.querySelector('.innfo-card-facts')).toBeNull()
     expect(card.querySelector('.innfo-card-count')!.textContent).toBe('5 fields')
-    const bodyFieldNames = [...card.querySelectorAll('.innfo-card-body [data-ku-kind="field"]')].map((n) =>
+    const bodyFieldNames = [...card.querySelectorAll('.innfo-card-body [data-ku-kind="value"]')].map((n) =>
       n.getAttribute('data-field'),
     )
     expect(bodyFieldNames).toEqual(['photo', 'status', 'owner', 'notes'])
@@ -141,9 +157,9 @@ describe('InnfoUI.FieldRow', () => {
         { origin: 'human', field: 'owner' },
       ],
     })
-    expect(comp(row)).toBe('ku-badge')
-    expect(row.getAttribute('data-ku-kind')).toBe('field')
-    expect(row.getAttribute('data-field')).toBe('owner')
+    const badge = row.querySelector('[data-innfo-component=ku-unit]')!
+    expect(badge.getAttribute('data-ku-kind')).toBe('value')
+    expect(badge.getAttribute('data-field')).toBe('owner')
     expect(row.querySelector('.innfo-ku-label')!.textContent).toContain('owner')
     const icons = [...row.querySelectorAll('[data-innfo-component=citation-icon]')]
     expect(icons.map((i) => (i as HTMLElement).getAttribute('data-origin'))).toEqual(['agent', 'human'])

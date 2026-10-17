@@ -153,7 +153,9 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('.innfo-card-path'), null)
       assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null)
       assert.equal(card.querySelector('[data-innfo-component="rel-list"]'), null)
-      assert.equal(card.querySelector('[data-ku-kind="field"]').textContent, 'f:v')
+      const value = card.querySelector('[data-ku-kind="value"]')
+      assert.equal(value.getAttribute('data-field'), 'f')
+      assert.match(value.textContent, /f[\s\S]*v/)
     })
 
     it('renders a concept icon thumbnail fallback when no image field is present', () => {

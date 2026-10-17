@@ -23,7 +23,7 @@ function headKeys(document) {
 
 function nameCells(document) {
   return [...document.querySelectorAll('.innfo-element-table tbody tr .innfo-element-table-name')].map(
-    (c) => c.textContent,
+    (c) => c.textContent.trim(),
   )
 }
 
@@ -53,6 +53,20 @@ describe('Model Explorer element table view', () => {
     assert.equal(document.querySelector('.innfo-card'), null, 'cards replaced by the table')
   })
 
+  it('renders field definition badges in headers and value badges in cells', () => {
+    const { document } = bootConsole({ model: MODEL })
+    click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
+    const rankHead = document.querySelector('.innfo-element-table th[data-sort-key="rank"]')
+    assert.ok(rankHead.querySelector('[data-ku-kind="field"]'), 'header field badge')
+    const names = document.querySelectorAll('.innfo-element-table tbody td.innfo-element-table-name [data-ku-kind="element"]')
+    assert.equal(names.length, 3, 'name cells are element badges')
+    const cells = document.querySelectorAll(
+      '.innfo-element-table tbody td.innfo-element-table-cell [data-ku-kind="value"][data-field="rank"]',
+    )
+    assert.equal(cells.length, 3, 'field cells are value badges')
+    assert.ok(cells[0].getAttribute('data-ku-address'))
+  })
+
   it('sorts by name ascending then descending', () => {
     const { document } = bootConsole({ model: MODEL })
     click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
@@ -76,7 +90,7 @@ describe('Model Explorer element table view', () => {
     click(document.querySelector('.innfo-element-table th[data-sort-key="rank"]'))
     const rankIdx = headKeys(document).indexOf('rank')
     const ranks = [...document.querySelectorAll('.innfo-element-table tbody tr')].map(
-      (tr) => tr.children[rankIdx].textContent,
+      (tr) => tr.children[rankIdx].textContent.trim(),
     )
     assert.deepEqual(ranks, ['1', '2', '3'])
   })

@@ -95,7 +95,7 @@ describe('console-review-popover (annotation)', () => {
   it('field row anchor opens the unified edit modal, prefilled with the payload value', () => {
     enableReview()
     const fieldRow = env.document.querySelector(
-      '[data-ku-kind="field"][data-field="owner"]',
+      '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
     const anchor = fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
@@ -117,7 +117,7 @@ describe('console-review-popover (annotation)', () => {
   it('saving a field correction writes target.field, original and current hash as base_hash', () => {
     enableReview()
     const fieldRow = env.document.querySelector(
-      '[data-ku-kind="field"][data-field="owner"]',
+      '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
     ;(fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
