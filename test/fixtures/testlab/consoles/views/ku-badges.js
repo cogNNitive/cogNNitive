@@ -297,7 +297,7 @@ registerView({
     sideCol.appendChild(infoCard);
 
     function inspect(spec) {
-      var body = doc.getElementById('ku-inspect-body');
+      var body = infoCard.querySelector('#ku-inspect-body');
       if (!body) return;
       body.innerHTML = [
         '<dl>',
@@ -319,9 +319,12 @@ registerView({
         showcase.setAttribute('data-mode', mode);
       });
     });
-    doc.getElementById('ku-toggle-structure').addEventListener('change', function (e) {
-      showcase.setAttribute('data-structure', e.target.checked ? 'on' : 'off');
-    });
+    var structToggle = toolbar.querySelector('#ku-toggle-structure');
+    if (structToggle) {
+      structToggle.addEventListener('change', function (e) {
+        showcase.setAttribute('data-structure', e.target.checked ? 'on' : 'off');
+      });
+    }
 
     showcase.appendChild(mainCol);
     showcase.appendChild(sideCol);

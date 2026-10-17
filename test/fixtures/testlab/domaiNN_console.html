@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <!-- innfo-views (trusted code, full page access)
 changes bluepriNNt bluepriNNt:changes/assets/console-view-changes.js sha256:07bd1c524759
-ku-badges domaiNN domaiNN:consoles/views/ku-badges.js sha256:dfe89d679f8b
+ku-badges domaiNN domaiNN:consoles/views/ku-badges.js sha256:d7d8032da94e
 procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha256:c0e0d6d63b0c
 -->
     <!-- Inline executable scripts are allowed only by sha256 hash: scripts/console-views.mjs
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-7HXr7LDN+7EifjKQbyo8Ye1l6uqR/OqkrS+2zEBg/1k=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-miDdHT4weEJnon6Q24LYL+4W6Xq7DSYGfVY/rIP/CB4=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-7HXr7LDN+7EifjKQbyo8Ye1l6uqR/OqkrS+2zEBg/1k=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-djHS/oCIqti8AtXvvZmKEY07n+E1HT7AAAAGEbtZX+Y=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9058,7 +9058,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-b0d566d2",
-    "generated": "2026-10-17T11:46:14.317Z",
+    "generated": "2026-10-17T12:02:26.781Z",
     "changesBlueprintVersion": "V_0-4-0",
     "models": [
       {
@@ -9068,7 +9068,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T11:46:14.293Z",
+        "citationsResolvedAt": "2026-10-17T12:02:26.755Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -23134,7 +23134,7 @@ registerView({
     sideCol.appendChild(infoCard);
 
     function inspect(spec) {
-      var body = doc.getElementById('ku-inspect-body');
+      var body = infoCard.querySelector('#ku-inspect-body');
       if (!body) return;
       body.innerHTML = [
         '<dl>',
@@ -23156,9 +23156,12 @@ registerView({
         showcase.setAttribute('data-mode', mode);
       });
     });
-    doc.getElementById('ku-toggle-structure').addEventListener('change', function (e) {
-      showcase.setAttribute('data-structure', e.target.checked ? 'on' : 'off');
-    });
+    var structToggle = toolbar.querySelector('#ku-toggle-structure');
+    if (structToggle) {
+      structToggle.addEventListener('change', function (e) {
+        showcase.setAttribute('data-structure', e.target.checked ? 'on' : 'off');
+      });
+    }
 
     showcase.appendChild(mainCol);
     showcase.appendChild(sideCol);
