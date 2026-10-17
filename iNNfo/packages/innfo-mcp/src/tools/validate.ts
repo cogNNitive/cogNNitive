@@ -342,7 +342,6 @@ async function loadBaselineFile(baselinePath: string): Promise<ValidationBaselin
 const RESERVED_STRUCTURAL_HEADINGS = new Set([
   'index',
   'matrices',
-  'item-markers matrix',
   'external watch roots',
   'external watch roots:',
   'agent modification',
@@ -350,7 +349,6 @@ const RESERVED_STRUCTURAL_HEADINGS = new Set([
   'agent modifications',
   'concept definition',
   'field definition',
-  'marker definition',
   'matrix definition',
   'concepts',
   'elements',
@@ -997,7 +995,7 @@ export async function validateBlueprint(
     ;(diag.severity === 'error' ? errors : warnings).push(diag)
   }
 
-  // Check for removed marker constructs (Marker Definition and item-markers matrix)
+  // Check for removed marker constructs (Marker Definition and legacy marker matrices)
   for (const diag of checkRemovedMarkerConstructs(parsed, templatePath)) {
     ;(diag.severity === 'error' ? errors : warnings).push(diag)
   }

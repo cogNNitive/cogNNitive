@@ -263,7 +263,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'apply_change',
       description:
         'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or bare intent operations. ' +
-        'Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, set_marker, bump_version on a bluepriNNt) write directly. ' +
+        'Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, bump_version on a bluepriNNt) write directly. ' +
         'After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). ' +
         'The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
@@ -295,7 +295,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             enum: [
               'add_concept',
               'add_field',
-              'set_marker',
               'add_element',
               'update_field',
               'remove_element',
@@ -311,7 +310,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept, add_field and set_marker are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',

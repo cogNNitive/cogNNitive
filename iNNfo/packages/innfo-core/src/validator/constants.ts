@@ -13,11 +13,6 @@ export const SECTION_NN_RE = /^#\s+NN\s+(?:(matrices):\s*(.*)|(.*))$/gm
  */
 export const RESERVED_CONCEPT_NAMES = new Set(['Concepts', 'Elements', 'Markers'])
 
-export const REMOVED_MARKER_CONSTRUCTS = {
-  MARKER_DEFINITION: 'Marker Definition',
-  ITEM_MARKERS_MATRIX: 'item-markers matrix',
-} as const
-
 /** Allowed `widget_config` keys per `widget` value (iNNfo "Widget Configuration"). */
 export const WIDGET_CONFIG_KEYS: Record<string, string[]> = {
   scale: ['min', 'max', 'step', 'unit'],

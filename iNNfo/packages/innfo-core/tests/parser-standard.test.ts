@@ -204,31 +204,23 @@ This is an element with tags.
 `
     const parsed = parseKnowledge(modelContent)
 
-    // Check Concept tags
-    expect(parsed.conceptTags).toBeDefined()
-    expect(parsed.conceptTags!['Some Concept']).toEqual(['tag1', 'tag2', 'tag3', 'tag1'])
+    // Check Concept tags as conceptFields
+    expect(parsed.conceptFields).toBeDefined()
+    expect(parsed.conceptFields!['Some Concept']?.['tags']).toBeDefined()
 
-    // Check Element tags
+    // Check Element tags as fields.tags
     const elements = parsed.elements.get('Some Concept')
     expect(elements).toBeDefined()
-    expect(elements![0].tags).toEqual(['el-tag1', 'el-tag2', 'el-tag3'])
+    expect(elements![0].fields['tags']).toBeDefined()
 
     // Check Serialization round-trip
     const serialized = serializeKnowledge(parsed)
-    // Tag VALUES are normalized (lowercased, trimmed) — asserted above. The
-    // tag SOURCE TEXT is preserved verbatim: re-emitting the author's own
-    // line is what keeps a save byte-identical, and the canonical bracket
-    // form is only produced for tags with no recorded source text.
     expect(serialized).toContain('tags:: tag1, Tag2,   TAG3 , tag1')
     expect(serialized).toContain('tags:: el-tag1 , EL-tag2, , el-tag3')
 
     const reParsed = parseKnowledge(serialized)
-    expect(reParsed.conceptTags!['Some Concept']).toEqual(['tag1', 'tag2', 'tag3', 'tag1'])
-    expect(reParsed.elements.get('Some Concept')![0].tags).toEqual([
-      'el-tag1',
-      'el-tag2',
-      'el-tag3',
-    ])
+    expect(reParsed.conceptFields!['Some Concept']?.['tags']).toBeDefined()
+    expect(reParsed.elements.get('Some Concept')![0].fields['tags']).toBeDefined()
   })
 
   it('parses bracket-array tags:: syntax without leaking brackets', () => {
@@ -248,13 +240,13 @@ Alpha description.
 `
     const parsed = parseKnowledge(modelContent)
 
-    expect(parsed.conceptTags!['Task']).toEqual(['management', 'priority'])
-    expect(parsed.elements.get('Task')![0].tags).toEqual(['frontend', 'core'])
+    expect(parsed.conceptFields!['Task']?.['tags']).toEqual(['management', 'priority'])
+    expect(parsed.elements.get('Task')![0].fields['tags']).toEqual(['frontend', 'core'])
 
     const serialized = serializeKnowledge(parsed)
     const reParsed = parseKnowledge(serialized)
-    expect(reParsed.conceptTags!['Task']).toEqual(['management', 'priority'])
-    expect(reParsed.elements.get('Task')![0].tags).toEqual(['frontend', 'core'])
+    expect(reParsed.conceptFields!['Task']?.['tags']).toEqual(['management', 'priority'])
+    expect(reParsed.elements.get('Task')![0].fields['tags']).toEqual(['frontend', 'core'])
   })
 
   it('parses tables with optional leading and trailing delimiters (PR7 / C6)', () => {

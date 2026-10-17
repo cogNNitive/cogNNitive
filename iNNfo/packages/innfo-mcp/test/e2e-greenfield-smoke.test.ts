@@ -57,12 +57,6 @@ Texto inicial provisional.
 ## NN Campaña: Example Campaña
 status:: Draft
 
-# NN matrices: item-markers matrix
-
-| Item \\ Marker | importancia |
-| :--- | :---: |
-| [[Example Campaña]] | 3 |
-
 # NN matrices: Mensajes × Públicos
 
 | Mensajes \\ Públicos | Colectivos |
@@ -92,8 +86,8 @@ status:: Draft
     assert.strictEqual(matrixRes.success, true);
     console.log('  ✅ Accented matrix cell update passed');
 
-    // Step 6: Remove example element and assert item-markers table is clean
-    console.log('Step 6: Remove scaffold element & verify zero orphan matrix rows');
+    // Step 6: Remove example element
+    console.log('Step 6: Remove scaffold element');
     const removeRes = applyMutation(model, 'remove_element', {
       conceptName: 'Campaña',
       elementName: 'Example Campaña',
@@ -102,8 +96,7 @@ status:: Draft
 
     const serialized = serializeKnowledge(model);
     assert(!serialized.includes('Example Campaña'), 'Example Campaña removed from body');
-    assert(!serialized.includes('[[Example Campaña]]'), 'Example Campaña removed from item-markers matrix');
-    console.log('  ✅ Matrix row cascade clean');
+    console.log('  ✅ Element removal clean');
 
     // Step 7: Changeset pruning
     console.log('Step 7: Prune changesets');

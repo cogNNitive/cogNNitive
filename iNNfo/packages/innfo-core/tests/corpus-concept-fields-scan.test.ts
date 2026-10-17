@@ -103,7 +103,7 @@ describe('Corpus Scan: Concept-Level Fields and Prose Boundary (Task 1.12)', () 
         }
         if (inPrologue && currentConcept && /^\s*tags::/.test(line)) {
           const parsed = parseKnowledge(content)
-          const hasTags = parsed.conceptTags?.[currentConcept] ?? parsed.conceptFields?.[currentConcept]?.['tags']
+          const hasTags = parsed.conceptFields?.[currentConcept]?.['tags']
           if (!hasTags) {
             lostTags.push({
               file: relative(REPO_ROOT, file),

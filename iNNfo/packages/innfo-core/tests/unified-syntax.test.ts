@@ -196,20 +196,17 @@ describe('metaplantilla schema extraction', () => {
     expect(status.options).toEqual(['Ideation', 'MVP', 'Validation'])
   })
 
-  it('extracts markers and matrices from their definition elements', () => {
+  it('extracts matrices from their definition elements', () => {
     const schema = extractBlueprintSchema(parseKnowledge(miniTemplate))
-    expect(schema.markers.map((m) => m.name)).toEqual(['weight'])
-    expect(schema.markers[0].symbol).toBe('*')
     expect(schema.matrices).toHaveLength(1)
     expect(schema.matrices[0].source).toBe('Market')
     expect(schema.matrices[0].target).toBe('Stakeholders')
     expect(schema.matrices[0].values).toEqual(['Max', 'High', 'Low'])
   })
 
-  it('exposes the four root primitive section names', () => {
+  it('exposes the three root primitive section names', () => {
     expect(CONCEPT_DEFINITION).toBe('Concept Definition')
     expect(FIELD_DEFINITION).toBe('Field Definition')
-    expect(MARKER_DEFINITION).toBe('Marker Definition')
     expect(MATRIX_DEFINITION).toBe('Matrix Definition')
   })
 })
@@ -414,12 +411,10 @@ describe('applyMutation on a metaplantilla document', () => {
     expect(field.fields['type']).toBe('string')
   })
 
-  it('sets a Marker Definition element', () => {
+  it('rejects set_marker as an unsupported operation', () => {
     const model = parseKnowledge(miniTemplate)
-    const result = applyMutation(model, 'set_marker', { markerName: 'priority', symbol: '!' })
-    expect(result.success).toBe(true)
-    const defs = model.elements.get(MARKER_DEFINITION)!
-    expect(defs.some((m) => m.name === 'priority')).toBe(true)
+    const result = applyMutation(model, 'set_marker' as any, { markerName: 'priority', symbol: '!' })
+    expect(result.success).toBe(false)
   })
 
   it('renames a Concept Definition and re-points its fields', () => {

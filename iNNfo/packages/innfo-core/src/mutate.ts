@@ -4,7 +4,6 @@ import type { BlueprintSchema } from './schema/index.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
-  MARKER_DEFINITION,
   MATRIX_DEFINITION,
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
@@ -171,7 +170,6 @@ function modelHasUnfrozenElements(model: ParsedKnowledge): boolean {
 const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   add_concept: (model, args) => addConcept(model, args),
   add_field: (model, args) => addField(model, args),
-  set_marker: (model, args) => setMarker(model, args),
   add_element: (model, args, schema) => addElement(model, args, schema),
   update_field: (model, args, schema) => updateField(model, args, schema),
   remove_element: (model, args) => removeElement(model, args),
@@ -192,14 +190,14 @@ export function listMutationOperations(): string[] {
 
 /**
  * Template-authoring primitives (`# NN Concept Definition`, `# NN Field
- * Definition` / `Marker Definition`) are only meaningful against a level-2
+ * Definition`) are only meaningful against a level-2
  * template. Running them against any other level structurally "works" but
  * produces an incoherent document that a later validation pass rejects with
  * an unrelated schema error (`checkElementGroups()`). Gate here, in core —
  * the enforcement engine — so every consumer (MCP, editor via
  * `src/browser.ts`) shares one contract instead of two.
  */
-const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field', 'set_marker'])
+const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field'])
 
 function runMutation(
   model: ParsedKnowledge,
@@ -423,28 +421,6 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
   return { success: true }
 }
 
-/** A template declares markers as `# NN Marker Definition` body elements. */
-function setMarker(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
-  const req = requireArgs(args, ['markerName'])
-  if (!req.ok) return req.result
-  const { markerName } = req.values
-
-  const defs = model.elements.get(MARKER_DEFINITION) ?? []
-  const existing = defs.find((m) => m.name.toLowerCase() === markerName.toLowerCase())
-  if (existing) {
-    if (args.symbol !== undefined) existing.fields['symbol'] = args.symbol
-    if (args.icon !== undefined) existing.fields['icon'] = args.icon
-    if (args.color !== undefined) existing.fields['color'] = args.color
-  } else {
-    const fields: Record<string, unknown> = {}
-    if (args.symbol !== undefined) fields['symbol'] = args.symbol
-    if (args.icon !== undefined) fields['icon'] = args.icon
-    if (args.color !== undefined) fields['color'] = args.color
-    defs.push({ type: MARKER_DEFINITION, name: markerName, description: '', fields, markers: {} })
-  }
-  model.elements.set(MARKER_DEFINITION, defs)
-  return { success: true }
-}
 
 function addElement(
   model: ParsedKnowledge,
@@ -853,35 +829,25 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
       matrix.cells = matrix.cells.filter((c) => {
         const rLower = c.row.toLowerCase()
         const colLower = c.col.toLowerCase()
+        const unbracket = (s: string) => {
+          const m = s.match(/^\[\[(.*)\]\]$/)
+          return m ? m[1].toLowerCase() : s
+        }
+        const rClean = unbracket(rLower)
+        const cClean = unbracket(colLower)
         const rowMatches =
           rLower === targetIdent ||
-          (targetSlug !== undefined && rLower === targetSlug) ||
-          (targetHeading !== undefined && rLower === targetHeading)
+          rClean === targetIdent ||
+          (targetSlug !== undefined && (rLower === targetSlug || rClean === targetSlug)) ||
+          (targetHeading !== undefined && (rLower === targetHeading || rClean === targetHeading))
         const colMatches =
           colLower === targetIdent ||
-          (targetSlug !== undefined && colLower === targetSlug) ||
-          (targetHeading !== undefined && colLower === targetHeading)
+          cClean === targetIdent ||
+          (targetSlug !== undefined && (colLower === targetSlug || cClean === targetSlug)) ||
+          (targetHeading !== undefined && (colLower === targetHeading || cClean === targetHeading))
         return !rowMatches && !colMatches
       })
       cascadedCells += (initialCount - matrix.cells.length)
-    }
-  }
-
-  // Cascade item-markers matrix row deletion
-  if (model.nodeMarkers) {
-    const targetIdent = elementName.toLowerCase()
-    const targetSlug = targetEl?.slug?.toLowerCase()
-    const targetHeading = targetEl ? slugifyHeading(targetEl.name).toLowerCase() : undefined
-
-    for (const key of Object.keys(model.nodeMarkers)) {
-      const cleanKey = key.replace(/^\[\[|\]\]$/g, '').trim().toLowerCase()
-      if (
-        cleanKey === targetIdent ||
-        (targetSlug !== undefined && cleanKey === targetSlug) ||
-        (targetHeading !== undefined && cleanKey === targetHeading)
-      ) {
-        delete model.nodeMarkers[key]
-      }
     }
   }
 
@@ -1047,17 +1013,6 @@ function updateConceptField(
     model.rawConceptFields[targetConceptKey][fieldName] = rawValString
   }
 
-  if (fieldName.toLowerCase() === 'tags') {
-    if (Array.isArray(parsedVal)) {
-      if (!model.conceptTags) model.conceptTags = {}
-      model.conceptTags[targetConceptKey] = parsedVal.map(String)
-      if (rawValString !== undefined) {
-        if (!model.rawConceptTags) model.rawConceptTags = {}
-        model.rawConceptTags[targetConceptKey] = rawValString
-      }
-    }
-  }
-
   if (
     model.sectionOrder &&
     !model.sectionOrder.map((s) => s.toLowerCase()).includes(targetConceptKey.toLowerCase())
@@ -1103,14 +1058,6 @@ function removeMatrix(
   }
 
   let found = false
-
-  if (mLower === 'item-markers matrix') {
-    if (model.nodeMarkers && Object.keys(model.nodeMarkers).length > 0) {
-      model.nodeMarkers = {}
-      model.nodeMarkerColumns = []
-      found = true
-    }
-  }
 
   if (model.matrices && model.matrices.length > 0) {
     const beforeLen = model.matrices.length
@@ -1336,12 +1283,6 @@ function renameElement(
 
   element.name = newName
   // element.slug remains untouched and immutable (D1)
-
-  // Update nodeMarkers key
-  if (model.nodeMarkers[oldDisplayName] !== undefined) {
-    model.nodeMarkers[newName] = model.nodeMarkers[oldDisplayName]
-    delete model.nodeMarkers[oldDisplayName]
-  }
 
   // Update taxonomy entries (R-IE-03)
   for (const edge of model.taxonomy) {

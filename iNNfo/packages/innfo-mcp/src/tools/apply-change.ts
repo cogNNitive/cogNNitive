@@ -1385,7 +1385,7 @@ export const MAINTENANCE_OPS = ['generate_index'] as const
  * Direct operations: Level-2 bluepriNNt authoring (traced by git and the bluepriNNt version).
  * They have no meaning on a Level-3 model, where they fail `SCHEMA_OP_ON_LEVEL3`.
  */
-export const SCHEMA_OPS = ['add_concept', 'add_field', 'set_marker'] as const
+export const SCHEMA_OPS = ['add_concept', 'add_field'] as const
 
 function isDirectOperation(op: string): boolean {
   return (MAINTENANCE_OPS as readonly string[]).includes(op) || (SCHEMA_OPS as readonly string[]).includes(op)

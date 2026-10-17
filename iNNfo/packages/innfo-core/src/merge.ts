@@ -49,15 +49,12 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
         const mergedFields = { ...diskEl.fields, ...memEl.fields }
         const mergedRawFields = { ...(diskEl.rawFields ?? {}), ...(memEl.rawFields ?? {}) }
         const mergedMarkers = { ...diskEl.markers, ...memEl.markers }
-        const tags = Array.from(new Set([...(diskEl.tags ?? []), ...(memEl.tags ?? [])]))
-
         mergedList.push({
           type: memEl.type || diskEl.type,
           name: memEl.name || diskEl.name,
           description: memEl.description?.trim() ? memEl.description : diskEl.description,
           fields: mergedFields,
           markers: mergedMarkers,
-          tags: tags.length > 0 ? tags : undefined,
           slug: memEl.slug ?? diskEl.slug,
           slugExplicit: memEl.slugExplicit ?? diskEl.slugExplicit,
           rawFields: Object.keys(mergedRawFields).length > 0 ? mergedRawFields : undefined,
@@ -134,23 +131,6 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     }
   }
 
-  // 4. Node markers (item-markers matrix)
-  const mergedNodeMarkers: Record<string, Record<string, number | string>> = {}
-  const allItemKeys = new Set<string>([
-    ...Object.keys(disk.nodeMarkers ?? {}),
-    ...Object.keys(memory.nodeMarkers ?? {}),
-  ])
-  for (const item of allItemKeys) {
-    mergedNodeMarkers[item] = {
-      ...(disk.nodeMarkers?.[item] ?? {}),
-      ...(memory.nodeMarkers?.[item] ?? {}),
-    }
-  }
-
-  const mergedMarkerColumns = Array.from(
-    new Set([...(disk.nodeMarkerColumns ?? []), ...(memory.nodeMarkerColumns ?? [])]),
-  )
-
   // 5. Taxonomy (only for non-Level 3)
   const isLevel3 = frontmatter.level === 3
   const taxonomy = isLevel3
@@ -174,11 +154,6 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     ...(memory.rawSections ?? {}),
   }
 
-  const conceptTags = {
-    ...(disk.conceptTags ?? {}),
-    ...(memory.conceptTags ?? {}),
-  }
-
   const mergedConceptFields: Record<string, Record<string, unknown>> = {}
   for (const [k, v] of Object.entries(disk.conceptFields ?? {})) {
     mergedConceptFields[k] = { ...v }
@@ -199,12 +174,9 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     frontmatter,
     elements: mergedElements,
     matrices: mergedMatrices,
-    nodeMarkers: mergedNodeMarkers,
-    nodeMarkerColumns: mergedMarkerColumns,
     taxonomy,
     sectionOrder,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
-    conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : undefined,
     conceptFields: Object.keys(mergedConceptFields).length > 0 ? mergedConceptFields : undefined,
     rawConceptFields: Object.keys(mergedRawConceptFields).length > 0 ? mergedRawConceptFields : undefined,
     rawContent: disk.rawContent ?? memory.rawContent ?? '',

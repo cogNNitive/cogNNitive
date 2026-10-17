@@ -20,7 +20,6 @@ import {
   checkSchemaConformance,
   checkConceptFields,
   checkMatrixCells,
-  checkNodeMarkers,
 } from './knowledge-checks.js'
 import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
@@ -153,7 +152,6 @@ export function validateKnowledge(
   }
   const {
     concepts: templateConcepts,
-    markers: templateMarkers,
     matrices: templateMatrices,
   } = composed.schema
 
@@ -164,7 +162,6 @@ export function validateKnowledge(
   checkConceptFields(model, templateConcepts, d)
 
   checkMatrixCells(model, templateMatrices, d)
-  checkNodeMarkers(model, templateConcepts, templateMarkers, d)
 
   // R-IE-04: reference-typed element fields must resolve to element names
   // model-wide, respecting each field's `target_concepts` when declared.

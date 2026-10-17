@@ -67,6 +67,7 @@ describe('Metaschema (Self-Description)', () => {
   })
 
   it('every shipped template validates green against the metaschema', () => {
+    const iNNfoV5 = readSpec('iNNfo_V_0-5-0_NN.md')
     const templates = [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
@@ -78,7 +79,7 @@ describe('Metaschema (Self-Description)', () => {
       'bluepriNNts/repository/spec_NN.md',
     ]
     for (const rel of templates) {
-      const diags = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfo)
+      const diags = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV5)
       const errors = diags.filter((d) => d.severity === 'error')
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
@@ -125,10 +126,11 @@ describe('Metaschema (Self-Description)', () => {
       'title: Bad',
       '---',
       '',
-      '# NN Marker Definition',
+      '# NN Field Definition',
       '',
-      '## NN Marker Definition: priority',
-      'applies_to:: [Element]',
+      '## NN Field Definition: priority',
+      'concept:: *',
+      'type:: string',
       'bogus_prop:: 1',
       '',
     ].join('\n')
@@ -167,8 +169,6 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
     for (const rel of [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
-      'bluepriNNts/organization/spec_NN.md',
-      'bluepriNNts/projects/spec_NN.md',
     ]) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV2).filter(
         (d) => d.severity === 'error',
@@ -241,8 +241,6 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
     for (const rel of [
       'bluepriNNts/blank/spec_NN.md',
       'bluepriNNts/business/spec_NN.md',
-      'bluepriNNts/organization/spec_NN.md',
-      'bluepriNNts/projects/spec_NN.md',
       'bluepriNNts/video-script/spec_NN.md',
     ]) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV21).filter(

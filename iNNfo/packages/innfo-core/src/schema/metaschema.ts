@@ -3,7 +3,6 @@ import { parseKnowledge } from '../parser/index.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
-  MARKER_DEFINITION,
   MATRIX_DEFINITION,
   asObject,
   asString,
@@ -38,7 +37,6 @@ export function extractMetaschema(specContent: string): string | null {
 const REQUIRED_BY_PRIMITIVE: Record<string, string[]> = {
   [CONCEPT_DEFINITION]: ['type'],
   [FIELD_DEFINITION]: ['concept', 'type'],
-  [MARKER_DEFINITION]: [],
   [MATRIX_DEFINITION]: ['source', 'target'],
 }
 
@@ -216,12 +214,14 @@ export function validateBlueprintAgainstMetaschema(
 
   const metaConcepts = extractBlueprintSchema(parseKnowledge(metaMarkdown)).concepts
   const template = parseKnowledge(templateContent)
-  const groups: Array<[string, Array<{ name: string; fields: Record<string, unknown> }>]> = [
+  const primitiveNames = Array.from(new Set([
     CONCEPT_DEFINITION,
     FIELD_DEFINITION,
-    MARKER_DEFINITION,
     MATRIX_DEFINITION,
-  ].map((primitive) => [primitive, template.elements.get(primitive) ?? []])
+    ...metaConcepts.map((c) => c.name),
+  ]))
+  const groups: Array<[string, Array<{ name: string; fields: Record<string, unknown> }>]> =
+    primitiveNames.map((primitive) => [primitive, template.elements.get(primitive) ?? []])
 
   const diagnostics: ValidationError[] = [
     ...checkElementsAgainstSchema(groups, metaConcepts, {
@@ -230,7 +230,6 @@ export function validateBlueprintAgainstMetaschema(
     }),
     ...checkWidgetConfig([
       [FIELD_DEFINITION, template.elements.get(FIELD_DEFINITION) ?? []],
-      [MARKER_DEFINITION, template.elements.get(MARKER_DEFINITION) ?? []],
       [MATRIX_DEFINITION, template.elements.get(MATRIX_DEFINITION) ?? []],
     ]),
   ]

@@ -118,29 +118,12 @@ export function parsePropertyValue(raw: string): unknown {
  * lists (`[a, b, c]`, as used by hand-authored samples). Empty values and
  * empty array entries are dropped.
  */
-export function parseTagList(raw: string): string[] {
-  let value = raw.trim()
-  if (value.startsWith('[') && value.endsWith(']')) {
-    value = value.slice(1, -1).trim()
-  }
-  if (value === '') return []
-  return value
-    .split(',')
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean)
-}
-
 export interface ParsedConceptSection {
   /** Element instances parsed from `## NN` headings (empty for `text` concepts). */
   elements: ElementNode[]
   /** Free-form Markdown content that precedes/falls outside any element
    *  (the full section body for `text` concepts; leading prose for others). */
   content: string
-  tags?: string[]
-  /** Exact source text of the concept-level `tags::` RHS, for round-trip
-   *  fidelity — `parseTagList` lowercases, so the authored casing lives
-   *  only here. See `ElementNode.rawTags`. */
-  rawTags?: string
   fields?: Record<string, unknown>
   rawFields?: Record<string, string>
   warnings?: string[]
@@ -213,8 +196,6 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     return node
   }
 
-  let conceptTags: string[] | undefined
-  let rawConceptTags: string | undefined
   const conceptFields: Record<string, unknown> = {}
   const rawConceptFields: Record<string, string> = {}
   let inConceptPrologueProperties = true
@@ -238,9 +219,6 @@ export function parseConceptSection(conceptName: string, content: string): Parse
           if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
             headingStack[headingStack.length - 1].slug = current.slug
           }
-        } else if (prop[0] === 'tags') {
-          current.tags = parseTagList(String(prop[1]))
-          current.rawTags = String(prop[1])
         } else {
           current.fields[prop[0]] = parsePropertyValue(prop[1])
           current.rawFields = current.rawFields ?? {}
@@ -251,16 +229,12 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     } else {
       if (inConceptPrologueProperties) {
         // Leading blank lines before any property are allowed
-        if (line.trim() === '' && Object.keys(conceptFields).length === 0 && !conceptTags) {
+        if (line.trim() === '' && Object.keys(conceptFields).length === 0) {
           continue
         }
         const prop = parsePropertyLine(line)
         if (prop !== null) {
           const [key, rawVal] = prop
-          if (key === 'tags') {
-            conceptTags = parseTagList(String(rawVal))
-            rawConceptTags = String(rawVal)
-          }
           conceptFields[key] = parsePropertyValue(rawVal)
           rawConceptFields[key] = String(rawVal)
           continue
@@ -300,8 +274,6 @@ export function parseConceptSection(conceptName: string, content: string): Parse
   return {
     elements: nodes,
     content: leadingLines.join('\n').trim(),
-    tags: conceptTags,
-    rawTags: rawConceptTags,
     fields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
     rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     warnings: warnings.length > 0 ? warnings : undefined,

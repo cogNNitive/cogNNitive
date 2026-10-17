@@ -123,11 +123,7 @@ export function parseKnowledge(content: string): ParsedKnowledge {
   const frontmatter = parseFrontmatter(normalizedContent, (msg) => parseWarnings.push(msg))
   const elements = new ElementsMap()
   const matrices: MatrixData[] = []
-  const nodeMarkers: Record<string, Record<string, number | string>> = {}
-  const nodeMarkerColumns: string[] = []
   let taxonomy: TaxonomyEdge[] = []
-  const conceptTags: Record<string, string[]> = {}
-  const rawConceptTags: Record<string, string> = {}
   const conceptFields: Record<string, Record<string, unknown>> = {}
   const rawConceptFields: Record<string, Record<string, string>> = {}
 
@@ -200,10 +196,6 @@ export function parseKnowledge(content: string): ParsedKnowledge {
           }
         }
       }
-      if (parsed.tags) {
-        conceptTags[name] = parsed.tags
-        if (parsed.rawTags !== undefined) rawConceptTags[name] = parsed.rawTags
-      }
       if (parsed.fields) {
         conceptFields[name] = parsed.fields
         if (parsed.rawFields !== undefined) rawConceptFields[name] = parsed.rawFields
@@ -221,48 +213,21 @@ export function parseKnowledge(content: string): ParsedKnowledge {
         rawSections[name] = parsed.content ? parsed.content : bodyContent
       }
     } else if (type === 'matrix') {
-      if (name.toLowerCase() === 'item-markers matrix') {
-        const rows = parseMarkdownTable(bodyContent)
-        for (const row of rows) {
-          const keys = Object.keys(row)
-          if (keys.length > 0) {
-            const itemName = row[keys[0]]
-            if (itemName) {
-              nodeMarkers[itemName] = {}
-              for (let i = 1; i < keys.length; i++) {
-                // A column whose every cell is `-` (marker not set) would
-                // otherwise leave no trace in `nodeMarkers` at all, and the
-                // serializer — which derives its columns from the recorded
-                // keys — would silently drop that marker from the table.
-                // Record the declared column set separately so an all-empty
-                // marker column survives the round-trip.
-                if (!nodeMarkerColumns.includes(keys[i])) nodeMarkerColumns.push(keys[i])
-                if (row[keys[i]] && row[keys[i]] !== '-') {
-                  nodeMarkers[itemName][keys[i]] = isNaN(Number(row[keys[i]]))
-                    ? row[keys[i]]
-                    : Number(row[keys[i]])
-                }
-              }
-            }
-          }
-        }
-      } else {
-        const matrixDecl = frontmatter?.matrices?.find(
-          (m) => m.name.toLowerCase() === name.toLowerCase(),
-        )
-        const cells = parseMatrixSection(bodyContent, name)
-        // Requirement 3 / AD-4: the table header itself is the source of
-        // truth for axis labels (`| Metrics \ Variables | ... |`); the
-        // frontmatter `matrices:` declaration (level-2 template metadata) is
-        // only a fallback for a matrix whose header carries no labels.
-        const axis = parseMatrixHeaderAxis(bodyContent)
-        matrices.push({
-          name,
-          source: axis?.source || matrixDecl?.source || '',
-          target: axis?.target || matrixDecl?.target || '',
-          cells,
-        })
-      }
+      const matrixDecl = frontmatter?.matrices?.find(
+        (m) => m.name.toLowerCase() === name.toLowerCase(),
+      )
+      const cells = parseMatrixSection(bodyContent, name)
+      // Requirement 3 / AD-4: the table header itself is the source of
+      // truth for axis labels (`| Metrics \ Variables | ... |`); the
+      // frontmatter `matrices:` declaration (level-2 template metadata) is
+      // only a fallback for a matrix whose header carries no labels.
+      const axis = parseMatrixHeaderAxis(bodyContent)
+      matrices.push({
+        name,
+        source: axis?.source || matrixDecl?.source || '',
+        target: axis?.target || matrixDecl?.target || '',
+        cells,
+      })
     }
   }
 
@@ -286,18 +251,14 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     taxonomy,
     elements,
     matrices,
-    nodeMarkers,
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : undefined,
-    conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : undefined,
-    rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : undefined,
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : undefined,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : undefined,
-    nodeMarkerColumns: nodeMarkerColumns.length > 0 ? nodeMarkerColumns : undefined,
     rawFrontmatter,
     rawPreamble,
   }

@@ -8687,14 +8687,6 @@ function parsePropertyValue(raw) {
   if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
   return value;
 }
-function parseTagList(raw) {
-  let value = raw.trim();
-  if (value.startsWith("[") && value.endsWith("]")) {
-    value = value.slice(1, -1).trim();
-  }
-  if (value === "") return [];
-  return value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-}
 function parseConceptSection(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
@@ -8744,8 +8736,6 @@ function parseConceptSection(conceptName, content) {
     seenElement = true;
     return node;
   };
-  let conceptTags;
-  let rawConceptTags;
   const conceptFields = {};
   const rawConceptFields = {};
   let inConceptPrologueProperties = true;
@@ -8765,9 +8755,6 @@ function parseConceptSection(conceptName, content) {
           if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
             headingStack[headingStack.length - 1].slug = current.slug;
           }
-        } else if (prop[0] === "tags") {
-          current.tags = parseTagList(String(prop[1]));
-          current.rawTags = String(prop[1]);
         } else {
           current.fields[prop[0]] = parsePropertyValue(prop[1]);
           current.rawFields = current.rawFields ?? {};
@@ -8777,16 +8764,12 @@ function parseConceptSection(conceptName, content) {
       }
     } else {
       if (inConceptPrologueProperties) {
-        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0) {
           continue;
         }
         const prop = parsePropertyLine(line);
         if (prop !== null) {
           const [key, rawVal] = prop;
-          if (key === "tags") {
-            conceptTags = parseTagList(String(rawVal));
-            rawConceptTags = String(rawVal);
-          }
           conceptFields[key] = parsePropertyValue(rawVal);
           rawConceptFields[key] = String(rawVal);
           continue;
@@ -8814,8 +8797,6 @@ function parseConceptSection(conceptName, content) {
   return {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
-    tags: conceptTags,
-    rawTags: rawConceptTags,
     fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     warnings: warnings.length > 0 ? warnings : void 0
@@ -8993,11 +8974,7 @@ function parseKnowledge(content) {
   const frontmatter = parseFrontmatter(normalizedContent, (msg) => parseWarnings.push(msg));
   const elements = new ElementsMap();
   const matrices = [];
-  const nodeMarkers = {};
-  const nodeMarkerColumns = [];
   let taxonomy = [];
-  const conceptTags = {};
-  const rawConceptTags = {};
   const conceptFields = {};
   const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
@@ -9051,10 +9028,6 @@ function parseKnowledge(content) {
           }
         }
       }
-      if (parsed.tags) {
-        conceptTags[name] = parsed.tags;
-        if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
-      }
       if (parsed.fields) {
         conceptFields[name] = parsed.fields;
         if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
@@ -9066,36 +9039,17 @@ function parseKnowledge(content) {
         rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
-      if (name.toLowerCase() === "item-markers matrix") {
-        const rows = parseMarkdownTable2(bodyContent);
-        for (const row of rows) {
-          const keys = Object.keys(row);
-          if (keys.length > 0) {
-            const itemName = row[keys[0]];
-            if (itemName) {
-              nodeMarkers[itemName] = {};
-              for (let i = 1; i < keys.length; i++) {
-                if (!nodeMarkerColumns.includes(keys[i])) nodeMarkerColumns.push(keys[i]);
-                if (row[keys[i]] && row[keys[i]] !== "-") {
-                  nodeMarkers[itemName][keys[i]] = isNaN(Number(row[keys[i]])) ? row[keys[i]] : Number(row[keys[i]]);
-                }
-              }
-            }
-          }
-        }
-      } else {
-        const matrixDecl = frontmatter?.matrices?.find(
-          (m) => m.name.toLowerCase() === name.toLowerCase()
-        );
-        const cells = parseMatrixSection(bodyContent, name);
-        const axis = parseMatrixHeaderAxis(bodyContent);
-        matrices.push({
-          name,
-          source: axis?.source || matrixDecl?.source || "",
-          target: axis?.target || matrixDecl?.target || "",
-          cells
-        });
-      }
+      const matrixDecl = frontmatter?.matrices?.find(
+        (m) => m.name.toLowerCase() === name.toLowerCase()
+      );
+      const cells = parseMatrixSection(bodyContent, name);
+      const axis = parseMatrixHeaderAxis(bodyContent);
+      matrices.push({
+        name,
+        source: axis?.source || matrixDecl?.source || "",
+        target: axis?.target || matrixDecl?.target || "",
+        cells
+      });
     }
   }
   const collisions = deriveElementSlugs(elements);
@@ -9110,18 +9064,14 @@ function parseKnowledge(content) {
     taxonomy,
     elements,
     matrices,
-    nodeMarkers,
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
-    conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
-    rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : void 0,
-    nodeMarkerColumns: nodeMarkerColumns.length > 0 ? nodeMarkerColumns : void 0,
     rawFrontmatter,
     rawPreamble
   };
@@ -9130,14 +9080,12 @@ function parseKnowledge(content) {
 // iNNfo/packages/innfo-core/src/schema/extract.ts
 var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
-var MARKER_DEFINITION = "Marker Definition";
 var MATRIX_DEFINITION = "Matrix Definition";
 
 // iNNfo/packages/innfo-core/src/schema/metaschema.ts
 var REQUIRED_BY_PRIMITIVE = {
   [CONCEPT_DEFINITION]: ["type"],
   [FIELD_DEFINITION]: ["concept", "type"],
-  [MARKER_DEFINITION]: [],
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 

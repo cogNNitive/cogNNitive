@@ -7729,14 +7729,6 @@ function parsePropertyValue(raw) {
   if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
   return value;
 }
-function parseTagList(raw) {
-  let value = raw.trim();
-  if (value.startsWith("[") && value.endsWith("]")) {
-    value = value.slice(1, -1).trim();
-  }
-  if (value === "") return [];
-  return value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-}
 function parseConceptSection(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
@@ -7786,8 +7778,6 @@ function parseConceptSection(conceptName, content) {
     seenElement = true;
     return node;
   };
-  let conceptTags;
-  let rawConceptTags;
   const conceptFields = {};
   const rawConceptFields = {};
   let inConceptPrologueProperties = true;
@@ -7807,9 +7797,6 @@ function parseConceptSection(conceptName, content) {
           if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
             headingStack[headingStack.length - 1].slug = current.slug;
           }
-        } else if (prop[0] === "tags") {
-          current.tags = parseTagList(String(prop[1]));
-          current.rawTags = String(prop[1]);
         } else {
           current.fields[prop[0]] = parsePropertyValue(prop[1]);
           current.rawFields = current.rawFields ?? {};
@@ -7819,16 +7806,12 @@ function parseConceptSection(conceptName, content) {
       }
     } else {
       if (inConceptPrologueProperties) {
-        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0) {
           continue;
         }
         const prop = parsePropertyLine(line);
         if (prop !== null) {
           const [key, rawVal] = prop;
-          if (key === "tags") {
-            conceptTags = parseTagList(String(rawVal));
-            rawConceptTags = String(rawVal);
-          }
           conceptFields[key] = parsePropertyValue(rawVal);
           rawConceptFields[key] = String(rawVal);
           continue;
@@ -7856,8 +7839,6 @@ function parseConceptSection(conceptName, content) {
   return {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
-    tags: conceptTags,
-    rawTags: rawConceptTags,
     fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     warnings: warnings.length > 0 ? warnings : void 0
@@ -8508,11 +8489,7 @@ function parseKnowledge(content) {
   const frontmatter = parseFrontmatter(normalizedContent, (msg) => parseWarnings.push(msg));
   const elements = new ElementsMap();
   const matrices = [];
-  const nodeMarkers = {};
-  const nodeMarkerColumns = [];
   let taxonomy = [];
-  const conceptTags = {};
-  const rawConceptTags = {};
   const conceptFields = {};
   const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
@@ -8566,10 +8543,6 @@ function parseKnowledge(content) {
           }
         }
       }
-      if (parsed.tags) {
-        conceptTags[name] = parsed.tags;
-        if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
-      }
       if (parsed.fields) {
         conceptFields[name] = parsed.fields;
         if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
@@ -8581,36 +8554,17 @@ function parseKnowledge(content) {
         rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
-      if (name.toLowerCase() === "item-markers matrix") {
-        const rows = parseMarkdownTable(bodyContent);
-        for (const row of rows) {
-          const keys = Object.keys(row);
-          if (keys.length > 0) {
-            const itemName = row[keys[0]];
-            if (itemName) {
-              nodeMarkers[itemName] = {};
-              for (let i = 1; i < keys.length; i++) {
-                if (!nodeMarkerColumns.includes(keys[i])) nodeMarkerColumns.push(keys[i]);
-                if (row[keys[i]] && row[keys[i]] !== "-") {
-                  nodeMarkers[itemName][keys[i]] = isNaN(Number(row[keys[i]])) ? row[keys[i]] : Number(row[keys[i]]);
-                }
-              }
-            }
-          }
-        }
-      } else {
-        const matrixDecl = frontmatter?.matrices?.find(
-          (m) => m.name.toLowerCase() === name.toLowerCase()
-        );
-        const cells = parseMatrixSection(bodyContent, name);
-        const axis = parseMatrixHeaderAxis(bodyContent);
-        matrices.push({
-          name,
-          source: axis?.source || matrixDecl?.source || "",
-          target: axis?.target || matrixDecl?.target || "",
-          cells
-        });
-      }
+      const matrixDecl = frontmatter?.matrices?.find(
+        (m) => m.name.toLowerCase() === name.toLowerCase()
+      );
+      const cells = parseMatrixSection(bodyContent, name);
+      const axis = parseMatrixHeaderAxis(bodyContent);
+      matrices.push({
+        name,
+        source: axis?.source || matrixDecl?.source || "",
+        target: axis?.target || matrixDecl?.target || "",
+        cells
+      });
     }
   }
   const collisions = deriveElementSlugs(elements);
@@ -8625,18 +8579,14 @@ function parseKnowledge(content) {
     taxonomy,
     elements,
     matrices,
-    nodeMarkers,
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
-    conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
-    rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : void 0,
-    nodeMarkerColumns: nodeMarkerColumns.length > 0 ? nodeMarkerColumns : void 0,
     rawFrontmatter,
     rawPreamble
   };
@@ -8645,7 +8595,6 @@ function parseKnowledge(content) {
 // iNNfo/packages/innfo-core/src/schema/extract.ts
 var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
-var MARKER_DEFINITION = "Marker Definition";
 var MATRIX_DEFINITION = "Matrix Definition";
 function asString(v) {
   return typeof v === "string" && v.trim() !== "" ? v : void 0;
@@ -8750,24 +8699,6 @@ function extractBlueprintSchema(parsed) {
     const fields = fieldsByConcept.get(concept.name);
     if (fields && fields.length > 0) concept.fields = fields;
   }
-  const markers = (parsed.elements.get(MARKER_DEFINITION) ?? []).map((el) => {
-    const marker = {
-      name: el.name,
-      symbol: asString(el.fields["symbol"]),
-      icon: asString(el.fields["icon"]),
-      color: asString(el.fields["color"]),
-      weight: asNumber(el.fields["weight"])
-    };
-    const appliesTo = asStringArray(el.fields["applies_to"]);
-    if (appliesTo) marker.applies_to = appliesTo;
-    const values = asStringArray(el.fields["values"]);
-    if (values) marker.values = values;
-    const widget = asString(el.fields["widget"]);
-    if (widget) marker.widgetType = widget;
-    const widgetConfig = asObject(el.fields["widget_config"]);
-    if (widgetConfig) marker.widgetConfig = widgetConfig;
-    return marker;
-  });
   const matrices = (parsed.elements.get(MATRIX_DEFINITION) ?? []).map((el) => {
     const decl = {
       name: el.name,
@@ -8799,7 +8730,6 @@ function extractBlueprintSchema(parsed) {
   }
   const result = {
     concepts,
-    markers,
     matrices,
     taxonomy
   };
@@ -8879,16 +8809,6 @@ function applyAliasToSchema(schema, alias) {
       ...fields ? { fields } : {}
     };
   });
-  const markers = schema.markers.map((m) => {
-    let applies_to = m.applies_to;
-    if (applies_to) {
-      applies_to = applies_to.map((ac) => conceptRenameLookup.get(ac.toLowerCase()) ?? ac);
-    }
-    return {
-      ...m,
-      ...applies_to ? { applies_to } : {}
-    };
-  });
   const matrices = schema.matrices.map((mx) => {
     const source = conceptRenameLookup.get(mx.source.toLowerCase()) ?? mx.source;
     const target = conceptRenameLookup.get(mx.target.toLowerCase()) ?? mx.target;
@@ -8903,7 +8823,7 @@ function applyAliasToSchema(schema, alias) {
     const child = conceptRenameLookup.get(edge.child.toLowerCase()) ?? edge.child;
     return { parent, child };
   });
-  return { concepts, markers, matrices, taxonomy };
+  return { concepts, matrices, taxonomy };
 }
 function expandFieldTargets(concepts, globalFields, sourceLabel, errors, provenance, isHost = true) {
   if (!globalFields || globalFields.length === 0) return;
@@ -9009,9 +8929,6 @@ function mergeSchemaInto(acc, incoming, incomingSource, provenance, errors, isHo
       }
     }
   }
-  for (const m of incoming.markers) {
-    mergeDefinition(m, incomingSource, "Marker", provenance.marker, acc.markers, errors, isHost);
-  }
   for (const mx of incoming.matrices) {
     mergeDefinition(mx, incomingSource, "Matrix", provenance.matrix, acc.matrices, errors, isHost);
   }
@@ -9036,7 +8953,6 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
   const errors = [];
   const provenance = _provenance ?? {
     concept: /* @__PURE__ */ new Map(),
-    marker: /* @__PURE__ */ new Map(),
     matrix: /* @__PURE__ */ new Map(),
     field: /* @__PURE__ */ new Map(),
     starField: /* @__PURE__ */ new Map()
@@ -9060,7 +8976,7 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
       ]
     };
   }
-  const base = { concepts: [], markers: [], matrices: [], taxonomy: [] };
+  const base = { concepts: [], matrices: [], taxonomy: [] };
   for (const ref of includes) {
     const key = ref.name.toLowerCase();
     if (_seen.has(key)) {
@@ -9099,7 +9015,7 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
   }
   if (_depth === 0) {
     const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()));
-    const BUILTIN_TARGETS = /* @__PURE__ */ new Set(["marker", "element", "item"]);
+    const BUILTIN_TARGETS = /* @__PURE__ */ new Set(["element", "item"]);
     for (const mx of base.matrices) {
       const srcKey = mx.source.toLowerCase();
       const tgtKey = mx.target.toLowerCase();
@@ -9156,7 +9072,6 @@ function inheritConceptValues(own, conceptValues, defs, concept) {
 var REQUIRED_BY_PRIMITIVE = {
   [CONCEPT_DEFINITION]: ["type"],
   [FIELD_DEFINITION]: ["concept", "type"],
-  [MARKER_DEFINITION]: [],
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 
@@ -9781,7 +9696,7 @@ function resolveMatrixUnit(content, unit, subunits) {
   const row = unit.rowSlug ?? subunits[0];
   const col = unit.colSlug ?? subunits[1];
   if (row && col) {
-    const table = parseMarkdownTable2(lines.slice(section.startLine, section.endLine));
+    const table = parseMarkdownTable3(lines.slice(section.startLine, section.endLine));
     if (!table) return null;
     const wantedRow = normalizeName(row);
     const wantedCol = normalizeName(col);
@@ -9819,7 +9734,7 @@ function resolveHeaderUnit(content, unit, subunits) {
     return found.length > 0 ? { kind: "field", lines: found } : null;
   }
   if (subunits.length === 2) {
-    const table = parseMarkdownTable2(lines.slice(section.startLine, section.endLine));
+    const table = parseMarkdownTable3(lines.slice(section.startLine, section.endLine));
     if (!table) return null;
     const wantedRow = normalizeName(subunits[0]);
     const wantedCol = normalizeName(subunits[1]);
@@ -9836,7 +9751,7 @@ function resolveHeaderUnit(content, unit, subunits) {
 function splitTableCells(line) {
   return line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
 }
-function parseMarkdownTable2(lines) {
+function parseMarkdownTable3(lines) {
   const tableLines = lines.filter((l) => l.trim().startsWith("|"));
   if (tableLines.length < 2) return null;
   const headers = splitTableCells(tableLines[0]);
@@ -10311,7 +10226,6 @@ function computeElementHash(element) {
     concept: element.concept,
     description: element.description ?? "",
     fields: element.fields ?? {},
-    markers: element.markers ?? {},
     name: element.name
   });
   return computeSha256(canonical).slice(0, 16);
@@ -10326,8 +10240,7 @@ function hashParsedElement(concept, node) {
     concept,
     name: node.name || "Element",
     description,
-    fields,
-    markers: { ...node.markers || {} }
+    fields
   });
 }
 
@@ -10820,6 +10733,7 @@ function buildConsolePayload(options) {
   const elementsByName = /* @__PURE__ */ new Map();
   const elementsById = /* @__PURE__ */ new Map();
   const unfrozen = [];
+  const resolvedBlueprintSchema = typeof inputSchema === "string" ? resolveBlueprintSchema(inputSchema).schema : inputSchema;
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName;
@@ -10842,11 +10756,7 @@ function buildConsolePayload(options) {
         fields,
         markers
       });
-      const tags = [.../* @__PURE__ */ new Set([...node.tags ?? [], ...parsed.conceptTags?.[concept] ?? []])];
-      if (node.tags && node.tags.length > 0) {
-        fields.tags = [...node.tags];
-      }
-      const conceptDefs = inputSchema?.concepts ? (Array.isArray(inputSchema.concepts) ? inputSchema.concepts : Object.values(inputSchema.concepts)).find((c) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields : void 0;
+      const conceptDefs = resolvedBlueprintSchema?.concepts ? (Array.isArray(resolvedBlueprintSchema.concepts) ? resolvedBlueprintSchema.concepts : Object.values(resolvedBlueprintSchema.concepts)).find((c) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields : void 0;
       const conceptVals = parsed.conceptFields?.[concept];
       const inheritedDelta = inheritConceptValues(fields, conceptVals, conceptDefs, concept);
       const elem = {
@@ -10858,7 +10768,6 @@ function buildConsolePayload(options) {
         fields,
         markers,
         hash,
-        tags,
         ...Object.keys(inheritedDelta).length > 0 ? { inherited: inheritedDelta } : {}
       };
       rawElements.push({ elem, rawFields: { ...fields } });
@@ -10928,7 +10837,6 @@ function buildConsolePayload(options) {
           cellsObj[cell.row][cell.col] = cell.value;
         }
       }
-      const isItemMarkers = mat.name === "item-markers matrix" || (mat.target || "").toLowerCase() === "markers";
       const headRows = {};
       const headCols = {};
       for (const r of rows) {
@@ -10938,7 +10846,7 @@ function buildConsolePayload(options) {
         headCols[c] = {
           label: c,
           concept: mat.target || void 0,
-          kind: isItemMarkers ? "marker" : "element"
+          kind: "element"
         };
       }
       matrices.push({
@@ -10953,7 +10861,7 @@ function buildConsolePayload(options) {
     }
   }
   const schemaSlot = buildConsoleSchemaSlot(
-    inputSchema,
+    resolvedBlueprintSchema,
     elements,
     options.procedures,
     parsed.conceptFields

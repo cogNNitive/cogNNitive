@@ -7718,14 +7718,6 @@ function parsePropertyValue(raw) {
   if (/^-?\d+\.\d+$/.test(value)) return parseFloat(value);
   return value;
 }
-function parseTagList(raw) {
-  let value = raw.trim();
-  if (value.startsWith("[") && value.endsWith("]")) {
-    value = value.slice(1, -1).trim();
-  }
-  if (value === "") return [];
-  return value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
-}
 function parseConceptSection(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
@@ -7775,8 +7767,6 @@ function parseConceptSection(conceptName, content) {
     seenElement = true;
     return node;
   };
-  let conceptTags;
-  let rawConceptTags;
   const conceptFields = {};
   const rawConceptFields = {};
   let inConceptPrologueProperties = true;
@@ -7796,9 +7786,6 @@ function parseConceptSection(conceptName, content) {
           if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
             headingStack[headingStack.length - 1].slug = current.slug;
           }
-        } else if (prop[0] === "tags") {
-          current.tags = parseTagList(String(prop[1]));
-          current.rawTags = String(prop[1]);
         } else {
           current.fields[prop[0]] = parsePropertyValue(prop[1]);
           current.rawFields = current.rawFields ?? {};
@@ -7808,16 +7795,12 @@ function parseConceptSection(conceptName, content) {
       }
     } else {
       if (inConceptPrologueProperties) {
-        if (line.trim() === "" && Object.keys(conceptFields).length === 0 && !conceptTags) {
+        if (line.trim() === "" && Object.keys(conceptFields).length === 0) {
           continue;
         }
         const prop = parsePropertyLine(line);
         if (prop !== null) {
           const [key, rawVal] = prop;
-          if (key === "tags") {
-            conceptTags = parseTagList(String(rawVal));
-            rawConceptTags = String(rawVal);
-          }
           conceptFields[key] = parsePropertyValue(rawVal);
           rawConceptFields[key] = String(rawVal);
           continue;
@@ -7845,8 +7828,6 @@ function parseConceptSection(conceptName, content) {
   return {
     elements: nodes,
     content: leadingLines.join("\n").trim(),
-    tags: conceptTags,
-    rawTags: rawConceptTags,
     fields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     warnings: warnings.length > 0 ? warnings : void 0
@@ -8263,15 +8244,6 @@ function serializeListValue(value) {
   if (!value.every(isSafeListItem)) return null;
   return `[${value.map(String).join(", ")}]`;
 }
-function serializeTagsValue(tags, rawText) {
-  if (rawText !== void 0) {
-    try {
-      if (JSON.stringify(parseTagList(rawText)) === JSON.stringify(tags)) return rawText;
-    } catch {
-    }
-  }
-  return `[${tags.join(", ")}]`;
-}
 function dedupeCitationList(value) {
   if (!Array.isArray(value)) return value;
   const seen = /* @__PURE__ */ new Set();
@@ -8382,15 +8354,6 @@ function serializeKnowledge(model) {
         if (c.weight !== void 0) lines.push(`    weight: ${c.weight}`);
       }
     }
-    if (fm.markers && fm.markers.length > 0) {
-      lines.push("markers:");
-      for (const m of fm.markers) {
-        lines.push(`  - name: "${m.name}"`);
-        if (m.symbol) lines.push(`    symbol: "${m.symbol}"`);
-        if (m.icon) lines.push(`    icon: "${m.icon}"`);
-        if (m.color) lines.push(`    color: "${m.color}"`);
-      }
-    }
     lines.push("---");
   }
   lines.push("");
@@ -8441,9 +8404,6 @@ function serializeKnowledge(model) {
       const raw = value === v ? node.rawFields?.[k] : void 0;
       lines.push(`${k}:: ${serializePropertyValue(value, raw)}`);
     }
-    if (node.tags && node.tags.length > 0) {
-      lines.push(`tags:: ${serializeTagsValue(node.tags, node.rawTags)}`);
-    }
     if (node.description) {
       if (node.descriptionBlankLine) lines.push("");
       for (const descLine of node.description.split("\n")) {
@@ -8478,31 +8438,17 @@ function serializeKnowledge(model) {
     const hasUnEmitted = unEmitted.length > 0;
     const cFields = model.conceptFields?.[conceptName];
     const hasConceptFields = cFields && Object.keys(cFields).length > 0;
-    const hasConceptTags = model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0;
-    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields && !hasConceptTags) return;
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields) return;
     lines.push(`# NN ${conceptName}`);
-    const hasProperties = hasConceptFields || hasConceptTags;
+    const hasProperties = Boolean(hasConceptFields);
     if (headingBlankLine(conceptName, true) && !hasProperties) {
       lines.push("");
     }
     if (hasConceptFields) {
       for (const [k, v] of Object.entries(cFields)) {
-        if (k === "tags") {
-          if (Array.isArray(v)) {
-            lines.push(`tags:: ${serializeTagsValue(v, model.rawConceptFields?.[conceptName]?.[k] ?? model.rawConceptTags?.[conceptName])}`);
-          } else {
-            const raw = model.rawConceptFields?.[conceptName]?.[k];
-            lines.push(`${k}:: ${serializePropertyValue(v, raw)}`);
-          }
-        } else {
-          const raw = model.rawConceptFields?.[conceptName]?.[k];
-          lines.push(`${k}:: ${serializePropertyValue(v, raw)}`);
-        }
+        const raw = model.rawConceptFields?.[conceptName]?.[k];
+        lines.push(`${k}:: ${serializePropertyValue(v, raw)}`);
       }
-    } else if (hasConceptTags) {
-      lines.push(
-        `tags:: ${serializeTagsValue(model.conceptTags[conceptName], model.rawConceptTags?.[conceptName])}`
-      );
     }
     if (hasProperties && (hasUnEmitted || rawBody && rawBody.trim())) {
       lines.push("");
@@ -8538,40 +8484,11 @@ function serializeKnowledge(model) {
     }
     lines.push("");
   };
-  let nodeMarkersEmitted = false;
-  const emitNodeMarkers = () => {
-    if (nodeMarkersEmitted) return;
-    nodeMarkersEmitted = true;
-    const nodeMarkerEntries = Object.entries(model.nodeMarkers);
-    if (nodeMarkerEntries.length === 0) return;
-    lines.push("# NN matrices: item-markers matrix");
-    if (matrixBlankLine("item-markers matrix")) lines.push("");
-    const markerKeys = new Set(model.nodeMarkerColumns ?? []);
-    for (const [, markers] of nodeMarkerEntries) {
-      for (const key of Object.keys(markers)) {
-        markerKeys.add(key);
-      }
-    }
-    const keys = Array.from(markerKeys);
-    const headerLine = `| Item \\ Marker | ${keys.join(" | ")} |`;
-    const sepLine = `| :--- | ${keys.map(() => ":---:").join(" | ")} |`;
-    lines.push(headerLine);
-    lines.push(sepLine);
-    for (const [itemName, markers] of nodeMarkerEntries) {
-      const vals = keys.map((k) => markers[k] !== void 0 ? String(markers[k]) : "-");
-      lines.push(`| ${itemName} | ${vals.join(" | ")} |`);
-    }
-    lines.push("");
-  };
   const emittedMatrices = /* @__PURE__ */ new Set();
   const emitMatrixSection = (matrixName) => {
     const key = matrixName.toLowerCase();
     if (emittedMatrices.has(key)) return;
     emittedMatrices.add(key);
-    if (key === "item-markers matrix") {
-      emitNodeMarkers();
-      return;
-    }
     const matrix = model.matrices.find((m) => m.name.toLowerCase() === key);
     if (matrix) emitMatrixTable(matrix);
   };
@@ -8589,7 +8506,6 @@ function serializeKnowledge(model) {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName);
   }
   for (const matrix of model.matrices) emitMatrixSection(matrix.name);
-  emitNodeMarkers();
   return lines.join("\n");
 }
 
@@ -8722,11 +8638,7 @@ function parseKnowledge(content) {
   const frontmatter = parseFrontmatter(normalizedContent, (msg) => parseWarnings.push(msg));
   const elements = new ElementsMap();
   const matrices = [];
-  const nodeMarkers = {};
-  const nodeMarkerColumns = [];
   let taxonomy = [];
-  const conceptTags = {};
-  const rawConceptTags = {};
   const conceptFields = {};
   const rawConceptFields = {};
   const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE);
@@ -8780,10 +8692,6 @@ function parseKnowledge(content) {
           }
         }
       }
-      if (parsed.tags) {
-        conceptTags[name] = parsed.tags;
-        if (parsed.rawTags !== void 0) rawConceptTags[name] = parsed.rawTags;
-      }
       if (parsed.fields) {
         conceptFields[name] = parsed.fields;
         if (parsed.rawFields !== void 0) rawConceptFields[name] = parsed.rawFields;
@@ -8795,36 +8703,17 @@ function parseKnowledge(content) {
         rawSections[name] = parsed.content ? parsed.content : bodyContent;
       }
     } else if (type === "matrix") {
-      if (name.toLowerCase() === "item-markers matrix") {
-        const rows = parseMarkdownTable(bodyContent);
-        for (const row of rows) {
-          const keys = Object.keys(row);
-          if (keys.length > 0) {
-            const itemName = row[keys[0]];
-            if (itemName) {
-              nodeMarkers[itemName] = {};
-              for (let i = 1; i < keys.length; i++) {
-                if (!nodeMarkerColumns.includes(keys[i])) nodeMarkerColumns.push(keys[i]);
-                if (row[keys[i]] && row[keys[i]] !== "-") {
-                  nodeMarkers[itemName][keys[i]] = isNaN(Number(row[keys[i]])) ? row[keys[i]] : Number(row[keys[i]]);
-                }
-              }
-            }
-          }
-        }
-      } else {
-        const matrixDecl = frontmatter?.matrices?.find(
-          (m) => m.name.toLowerCase() === name.toLowerCase()
-        );
-        const cells = parseMatrixSection(bodyContent, name);
-        const axis = parseMatrixHeaderAxis(bodyContent);
-        matrices.push({
-          name,
-          source: axis?.source || matrixDecl?.source || "",
-          target: axis?.target || matrixDecl?.target || "",
-          cells
-        });
-      }
+      const matrixDecl = frontmatter?.matrices?.find(
+        (m) => m.name.toLowerCase() === name.toLowerCase()
+      );
+      const cells = parseMatrixSection(bodyContent, name);
+      const axis = parseMatrixHeaderAxis(bodyContent);
+      matrices.push({
+        name,
+        source: axis?.source || matrixDecl?.source || "",
+        target: axis?.target || matrixDecl?.target || "",
+        cells
+      });
     }
   }
   const collisions = deriveElementSlugs(elements);
@@ -8839,18 +8728,14 @@ function parseKnowledge(content) {
     taxonomy,
     elements,
     matrices,
-    nodeMarkers,
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : void 0,
-    conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : void 0,
-    rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : void 0,
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : void 0,
-    nodeMarkerColumns: nodeMarkerColumns.length > 0 ? nodeMarkerColumns : void 0,
     rawFrontmatter,
     rawPreamble
   };
@@ -8859,14 +8744,12 @@ function parseKnowledge(content) {
 // iNNfo/packages/innfo-core/src/schema/extract.ts
 var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
-var MARKER_DEFINITION = "Marker Definition";
 var MATRIX_DEFINITION = "Matrix Definition";
 
 // iNNfo/packages/innfo-core/src/schema/metaschema.ts
 var REQUIRED_BY_PRIMITIVE = {
   [CONCEPT_DEFINITION]: ["type"],
   [FIELD_DEFINITION]: ["concept", "type"],
-  [MARKER_DEFINITION]: [],
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 

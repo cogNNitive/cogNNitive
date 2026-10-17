@@ -1,4 +1,4 @@
-import type { Concept, Marker, MatrixDecl, ParsedKnowledge } from '../types/index.js'
+import type { Concept, MatrixDecl, ParsedKnowledge } from '../types/index.js'
 import type { Diagnostics } from '../diagnostics.js'
 import { checkElementsAgainstSchema } from '../schema/index.js'
 import { validateFieldValue } from '../schema/field-values.js'
@@ -295,9 +295,6 @@ export function checkMatrixCells(
   d: Diagnostics,
 ): void {
   for (const matrix of model.matrices) {
-    if (matrix.name.toLowerCase() === 'item-markers matrix') {
-      continue
-    }
     const decl = templateMatrices.find((m) => m.name.toLowerCase() === matrix.name.toLowerCase())
     if (!decl) {
       d.warn(`matrices.${matrix.name}`, `Matrix "${matrix.name}" is not declared in template`)
@@ -315,55 +312,6 @@ export function checkMatrixCells(
           `matrices.${matrix.name}.cells["${cell.row}"]["${cell.col}"]`,
           `Matrix "${matrix.name}" cell value "${raw}" is not in the declared value set: ${(decl.values as string[]).join(', ')}`,
         )
-      }
-    }
-  }
-}
-
-/**
- * Node-marker scores: an undeclared Marker is a WARNING; a score on an entity
- * outside the Marker's `applies_to` (default `[Element]`) is an ERROR; a score
- * outside the Marker's declared `values` set is a WARNING.
- */
-export function checkNodeMarkers(
-  model: ParsedKnowledge,
-  templateConcepts: Concept[],
-  templateMarkers: Marker[],
-  d: Diagnostics,
-): void {
-  for (const [itemName, markers] of Object.entries(model.nodeMarkers)) {
-    const rowScope: 'Concept' | 'Element' = matchConcept(itemName, templateConcepts)
-      ? 'Concept'
-      : 'Element'
-    for (const [markerName, score] of Object.entries(markers)) {
-      const decl = templateMarkers.find((m) => m.name.toLowerCase() === markerName.toLowerCase())
-      if (!decl) {
-        d.warn(
-          `nodeMarkers.${itemName}.${markerName}`,
-          `Marker "${markerName}" is not defined in template`,
-        )
-        continue
-      }
-
-      const appliesTo = (
-        decl.applies_to && decl.applies_to.length > 0 ? decl.applies_to : ['Element']
-      ).map((s) => s.toLowerCase())
-      if (!appliesTo.includes(rowScope.toLowerCase())) {
-        d.error(
-          `nodeMarkers.${itemName}.${markerName}`,
-          `Marker "${markerName}" is scored on ${rowScope} "${itemName}", but its applies_to is [${(decl.applies_to ?? ['Element']).join(', ')}]`,
-        )
-      }
-
-      if (decl.values && decl.values.length > 0) {
-        const raw = String(score)
-        const allowed = decl.values.map((v) => v.toLowerCase())
-        if (raw !== '-' && raw !== '' && !allowed.includes(raw.toLowerCase())) {
-          d.warn(
-            `nodeMarkers.${itemName}.${markerName}`,
-            `Marker "${markerName}" score "${raw}" on "${itemName}" is not in its declared value set: ${decl.values.join(', ')}`,
-          )
-        }
       }
     }
   }

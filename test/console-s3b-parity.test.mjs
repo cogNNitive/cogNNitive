@@ -23,12 +23,18 @@ title: "Roadmap"
 
 # NN Concept Definition
 ## NN Concept Definition: Initiative
-type:: text
+type:: list
 
 ## NN Concept Definition: Person
-type:: text
+type:: list
 
 # NN Field Definition
+## NN Field Definition: tags
+concept:: *
+type:: select
+options:: []
+multiple:: true
+
 ## NN Field Definition: stage
 concept:: Initiative
 type:: select
@@ -64,11 +70,11 @@ const model = (body) =>
   `---\ntitle: "x"\nmodel_version: "V_1-0-0"\nlevel: 3\nparent_spec:\n  name: "roadmap_V_0-1-0"\n---\n\n${body}\n`
 
 const ROADMAP = model(`# NN Initiative
-tags:: core
+tags:: [core]
 
 ## NN Initiative: Alpha
   slug:: alpha
-  tags:: AI, Pricing
+  tags:: [AI, Pricing]
   stage:: build
   owner:: [[Ana]]
   peer:: [[Beta]]
@@ -138,10 +144,12 @@ describe('S3b parity (groups 9-12) on a real export', () => {
   const el = (m, name) => m.elements.find((e) => e.name === name)
 
   describe('group 9: tags in the payload', () => {
-    it('carries own tags, then inherited concept tags, without duplicates', () => {
-      assert.deepEqual(el(model_, 'Alpha').tags, ['ai', 'pricing', 'core'])
-      assert.deepEqual(el(model_, 'Beta').tags, ['ai', 'core'])
-      assert.deepEqual(el(model_, 'Ana').tags, [])
+    it('carries own tags in fields.tags and inherited in inherited.tags', () => {
+      assert.deepEqual(el(model_, 'Alpha').fields.tags, ['AI', 'Pricing'])
+      assert.deepEqual(el(model_, 'Alpha').inherited.tags.value, ['core'])
+      assert.equal(el(model_, 'Beta').fields.tags, 'ai')
+      assert.deepEqual(el(model_, 'Beta').inherited.tags.value, ['core'])
+      assert.equal(el(model_, 'Ana').fields.tags, undefined)
     })
   })
 

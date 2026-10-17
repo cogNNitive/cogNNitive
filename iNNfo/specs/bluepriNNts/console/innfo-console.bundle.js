@@ -5376,6 +5376,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return slugify(String(concept || '') + ' ' + String(name || ''))
   }
 
+  function getElementEffectiveTags(element) {
+    if (!element) return []
+    if (Array.isArray(element.tags)) {
+      return element.tags.map(function (t) { return String(t).toLowerCase() })
+    }
+    var tags = []
+    if (element.fields && element.fields.tags) {
+      if (Array.isArray(element.fields.tags)) tags = tags.concat(element.fields.tags)
+      else if (typeof element.fields.tags === 'string') tags = tags.concat(element.fields.tags.split(',').map(function (s) { return s.trim() }))
+    }
+    if (element.inherited && element.inherited.tags && element.inherited.tags.value) {
+      var inh = element.inherited.tags.value
+      if (Array.isArray(inh)) tags = tags.concat(inh)
+      else if (typeof inh === 'string') tags = tags.concat(inh.split(',').map(function (s) { return s.trim() }))
+    }
+    var seen = {}
+    return tags.map(function (t) { return String(t).toLowerCase() }).filter(function (t) {
+      if (!t || seen[t]) return false
+      seen[t] = true
+      return true
+    })
+  }
+
   function elementHaystack(element) {
     var parts = [
       element.concept,
@@ -5387,8 +5410,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       element.unitSlug,
       element.canonicalUnit,
     ]
-    if (Array.isArray(element.tags)) {
-      parts.push(element.tags.join(' '))
+    var effTags = getElementEffectiveTags(element)
+    if (effTags.length) {
+      parts.push(effTags.join(' '))
     }
     if (isObject(element.fields)) {
       parts.push(Object.keys(element.fields).join(' '))
@@ -5559,9 +5583,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     if (key === 'tag' || key === 'tag-any') {
       if (!opVal) return true
-      var elTags = Array.isArray(el.tags)
-        ? el.tags.map(function (t) { return String(t).toLowerCase() })
-        : []
+      var elTags = getElementEffectiveTags(el)
       var mTag = elTags.indexOf(opVal) !== -1
       return isNeg ? !mTag : mTag
     }
@@ -7318,7 +7340,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
-          tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
+          tags: getElementEffectiveTags(element),
           relations:
             Array.isArray(element.relations) && element.relations.length ? element.relations : null,
           incomingRelations:
@@ -7536,7 +7558,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function tableValueOf(element, key) {
     if (key === 'name') return element.name
     if (key === 'concept') return element.concept
-    if (key === 'tags') return Array.isArray(element.tags) ? element.tags.join(', ') : ''
+    if (key === 'tags') return getElementEffectiveTags(element).join(', ')
     return element.fields ? element.fields[key] : ''
   }
 
@@ -7719,7 +7741,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         tr.appendChild(td)
       })
 
-      var tags = Array.isArray(element.tags) ? element.tags.join(', ') : ''
+      var tags = getElementEffectiveTags(element).join(', ')
       var tagsTd = el('td', 'innfo-element-table-cell', tags)
       if (tags) tagsTd.setAttribute('title', tags)
       tr.appendChild(tagsTd)

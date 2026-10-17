@@ -29,9 +29,10 @@ concept:: Alpha
 type:: select
 options:: [open, closed]
 
-# NN Marker Definition
-## NN Marker Definition: priority
-applies_to:: [Element]
+## NN Field Definition: tags
+concept:: *
+type:: select
+multiple:: true
 `
 
 const BASE_B = `---
@@ -76,8 +77,7 @@ describe('resolveBlueprintSchema — additive `includes` composition', () => {
     expect(errors).toEqual([])
     expect(schema.concepts.map((c) => c.name).sort()).toEqual(['Alpha', 'Beta', 'Gamma'])
     const alpha = schema.concepts.find((c) => c.name === 'Alpha')!
-    expect(alpha.fields?.map((f) => f.name)).toEqual(['status'])
-    expect(schema.markers.map((m) => m.name)).toEqual(['priority'])
+    expect(alpha.fields?.map((f) => f.name)).toEqual(['status', 'tags'])
   })
 
   it('no resolver → just the template’s own schema, no errors', () => {
@@ -135,80 +135,6 @@ values:: [X]
   })
 })
 
-describe('validateKnowledge — applies_to and marker value enforcement', () => {
-  const template: SpecDocument = {
-    name: 'markers_tpl',
-    level: 2,
-    frontmatter: { spec_version: 'V_0-1-0', level: 2, title: 'Markers Tpl' },
-    rawContent: `---
-level: 2
-title: "Markers Tpl"
----
-
-# NN Concept Definition
-## NN Concept Definition: Task
-type:: list
-
-# NN Marker Definition
-## NN Marker Definition: priority
-applies_to:: [Element]
-values:: [low, high]
-`,
-  }
-
-  it('rejects a marker scored on a Concept when applies_to is [Element]', () => {
-    const model = parseKnowledge(`---
-level: 3
-knowledge_version: "V_1-0-0"
-title: "M"
-parent_spec:
-  name: "markers_tpl"
-  url: "https://example.test/markers_tpl_NN.md"
----
-
-# NN index
-* [[Task]]
-
-# NN Task
-## NN Task: T1
-
-# NN matrices: item-markers matrix
-| Item \\ Marker | priority |
-| :--- | :---: |
-| Task | high |
-| T1 | low |
-`)
-    const res = validateKnowledge(model, template, null)
-    const err = res.errors.find((e) => e.message.includes('scored on Concept'))
-    expect(err).toBeDefined()
-    expect(res.valid).toBe(false)
-  })
-
-  it('warns on a marker score outside its declared value set', () => {
-    const model = parseKnowledge(`---
-level: 3
-knowledge_version: "V_1-0-0"
-title: "M"
-parent_spec:
-  name: "markers_tpl"
-  url: "https://example.test/markers_tpl_NN.md"
----
-
-# NN index
-* [[Task]]
-
-# NN Task
-## NN Task: T1
-
-# NN matrices: item-markers matrix
-| Item \\ Marker | priority |
-| :--- | :---: |
-| T1 | urgent |
-`)
-    const res = validateKnowledge(model, template, null)
-    expect(res.warnings.some((w) => w.message.includes('not in its declared value set'))).toBe(true)
-  })
-})
 
 describe('checkWidgetConfig', () => {
   it('errors when widget:: scale is missing min/max, errors on stray keys', () => {
@@ -268,39 +194,6 @@ parent_spec:
     const res = validateDocument(content, { fileName: 'empty_NN.md' })
     expect(res.valid).toBe(false)
     expect(res.errors.some((e) => e.path.startsWith('format.'))).toBe(true)
-  })
-})
-
-describe('recursiveParser — concept-scoped Marker scores', () => {
-  it('preserves an item-markers row keyed by a Concept name on the document root', () => {
-    const content = `---
-level: 3
-knowledge_version: "V_1-0-0"
-title: "M"
-parent_spec:
-  name: "t"
-  url: "https://example.test/t_NN.md"
----
-
-# NN index
-* [[Task]]
-
-# NN Task
-## NN Task: T1
-
-# NN matrices: item-markers matrix
-| Item \\ Marker | complexity |
-| :--- | :---: |
-| Task | high |
-| T1 | low |
-`
-    const { nodes } = normalizeSingleKnowledge(content, 'm_NN.md', 'm')
-    const root = Object.values(nodes).find((n) => n.parentId === null)!
-    expect(root.conceptMarkers).toBeDefined()
-    expect(root.conceptMarkers!['Task']).toEqual({ complexity: 'high' })
-    // the element-scoped row still lands on the element
-    const t1 = Object.values(nodes).find((n) => n.name === 'T1')!
-    expect(t1.markers).toEqual({ complexity: 'low' })
   })
 })
 

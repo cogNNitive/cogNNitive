@@ -4,7 +4,6 @@ import type {
   ConceptField,
   GlobalField,
   IncludedBlueprintRef,
-  Marker,
   MatrixDecl,
   ValidationError,
 } from '../types/index.js'
@@ -77,7 +76,7 @@ function canonicalValue(v: unknown, key?: string): unknown {
  * "the same". Insensitive to property order, surrounding whitespace and the order
  * of set-like arrays; sensitive to every actual value.
  */
-export function canonicalizeDefinition(def: Concept | Marker | MatrixDecl | ConceptField): string {
+export function canonicalizeDefinition(def: Concept | MatrixDecl | ConceptField): string {
   return JSON.stringify(canonicalValue(def))
 }
 
@@ -136,17 +135,6 @@ export function applyAliasToSchema(schema: BlueprintSchema, alias?: AliasMap): B
     }
   })
 
-  const markers: Marker[] = schema.markers.map((m) => {
-    let applies_to = m.applies_to
-    if (applies_to) {
-      applies_to = applies_to.map((ac) => conceptRenameLookup.get(ac.toLowerCase()) ?? ac)
-    }
-    return {
-      ...m,
-      ...(applies_to ? { applies_to } : {}),
-    }
-  })
-
   const matrices: MatrixDecl[] = schema.matrices.map((mx) => {
     const source = conceptRenameLookup.get(mx.source.toLowerCase()) ?? mx.source
     const target = conceptRenameLookup.get(mx.target.toLowerCase()) ?? mx.target
@@ -163,7 +151,7 @@ export function applyAliasToSchema(schema: BlueprintSchema, alias?: AliasMap): B
     return { parent, child }
   })
 
-  return { concepts, markers, matrices, taxonomy }
+  return { concepts, matrices, taxonomy }
 }
 
 interface Provenanced<T> {
@@ -173,7 +161,6 @@ interface Provenanced<T> {
 
 interface Provenance {
   concept: Map<string, Provenanced<Concept>>
-  marker: Map<string, Provenanced<Marker>>
   matrix: Map<string, Provenanced<MatrixDecl>>
   field: Map<string, string>
   starField: Map<string, Provenanced<ConceptField>>
@@ -256,10 +243,10 @@ export function expandFieldTargets(
  * AST-identical to the one already merged, and is an ERROR (naming both
  * sources) when the bodies differ or un-aliased collisions occur.
  */
-function mergeDefinition<T extends Concept | Marker | MatrixDecl>(
+function mergeDefinition<T extends Concept | MatrixDecl>(
   incoming: T,
   incomingSource: string,
-  kindLabel: 'Concept' | 'Marker' | 'Matrix',
+  kindLabel: 'Concept' | 'Matrix',
   seen: Map<string, Provenanced<T>>,
   target: T[],
   errors: ValidationError[],
@@ -323,9 +310,6 @@ function mergeSchemaInto(
       }
     }
   }
-  for (const m of incoming.markers) {
-    mergeDefinition(m, incomingSource, 'Marker', provenance.marker, acc.markers, errors, isHost)
-  }
   for (const mx of incoming.matrices) {
     mergeDefinition(mx, incomingSource, 'Matrix', provenance.matrix, acc.matrices, errors, isHost)
   }
@@ -366,7 +350,6 @@ export function resolveBlueprintSchema(
 
   const provenance: Provenance = _provenance ?? {
     concept: new Map(),
-    marker: new Map(),
     matrix: new Map(),
     field: new Map(),
     starField: new Map(),
@@ -393,7 +376,7 @@ export function resolveBlueprintSchema(
     }
   }
 
-  const base: BlueprintSchema = { concepts: [], markers: [], matrices: [], taxonomy: [] }
+  const base: BlueprintSchema = { concepts: [], matrices: [], taxonomy: [] }
 
   for (const ref of includes) {
     const key = ref.name.toLowerCase()
@@ -439,7 +422,7 @@ export function resolveBlueprintSchema(
   // Validate matrix endpoints at top-level resolution
   if (_depth === 0) {
     const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()))
-    const BUILTIN_TARGETS = new Set(['marker', 'element', 'item'])
+    const BUILTIN_TARGETS = new Set(['element', 'item'])
 
     for (const mx of base.matrices) {
       const srcKey = mx.source.toLowerCase()

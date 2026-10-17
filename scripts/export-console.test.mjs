@@ -973,11 +973,6 @@ metricValue:: 56
 | :--- | :---: | :---: |
 | Base-Balance | 1 | - |
 | Stress-Balance | - | 1 |
-
-# NN matrices: item-markers matrix
-| Item \\ Marker | is_formula |
-| :--- | :---: |
-| Payback capex | X |
 `
 
     beforeEach(async () => {

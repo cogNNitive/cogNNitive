@@ -2,7 +2,7 @@ import { ParsedKnowledge, ElementNode, MatrixData, SpecFrontmatter } from '../ty
 import { parseFrontmatter } from './yaml.js'
 import { stringify as yamlStringify } from 'yaml'
 import { printTaxonomyNode } from './taxonomy.js'
-import { parsePropertyValue, parseTagList } from './sections.js'
+import { parsePropertyValue } from './sections.js'
 import {
   SOURCE_FIELD_NAMES,
   parseCitation,
@@ -92,22 +92,6 @@ function serializeListValue(value: unknown[]): string | null {
   return `[${value.map(String).join(', ')}]`
 }
 
-/**
- * Emits a `tags::` value, preferring the author's exact source text when it
- * still parses to the tags currently held. `parseTagList` lowercases, so
- * without this the authored casing (`PR`) is destroyed on every save while
- * the tag's meaning never changed.
- */
-function serializeTagsValue(tags: string[], rawText?: string): string {
-  if (rawText !== undefined) {
-    try {
-      if (JSON.stringify(parseTagList(rawText)) === JSON.stringify(tags)) return rawText
-    } catch {
-      // fall through to the canonical bracket form
-    }
-  }
-  return `[${tags.join(', ')}]`
-}
 
 /**
  * Requirement 6: a citation list never carries the same pointer twice.
@@ -268,17 +252,6 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       }
     }
 
-    // Marker declarations (level-2 templates, legacy frontmatter form)
-    if (fm.markers && fm.markers.length > 0) {
-      lines.push('markers:')
-      for (const m of fm.markers) {
-        lines.push(`  - name: "${m.name}"`)
-        if (m.symbol) lines.push(`    symbol: "${m.symbol}"`)
-        if (m.icon) lines.push(`    icon: "${m.icon}"`)
-        if (m.color) lines.push(`    color: "${m.color}"`)
-      }
-    }
-
     lines.push('---')
   }
   lines.push('')
@@ -351,9 +324,6 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       const raw = value === v ? node.rawFields?.[k] : undefined
       lines.push(`${k}:: ${serializePropertyValue(value, raw)}`)
     }
-    if (node.tags && node.tags.length > 0) {
-      lines.push(`tags:: ${serializeTagsValue(node.tags, node.rawTags)}`)
-    }
     if (node.description) {
       if (node.descriptionBlankLine) lines.push('')
       for (const descLine of node.description.split('\n')) {
@@ -401,33 +371,18 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     const hasUnEmitted = unEmitted.length > 0
     const cFields = model.conceptFields?.[conceptName]
     const hasConceptFields = cFields && Object.keys(cFields).length > 0
-    const hasConceptTags = model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0
-    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields && !hasConceptTags) return
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim()) && !hasConceptFields) return
 
     lines.push(`# NN ${conceptName}`)
-    const hasProperties = hasConceptFields || hasConceptTags
+    const hasProperties = Boolean(hasConceptFields)
     if (headingBlankLine(conceptName, true) && !hasProperties) {
       lines.push('')
     }
     if (hasConceptFields) {
       for (const [k, v] of Object.entries(cFields)) {
-        if (k === 'tags') {
-          // If tags is in conceptFields, emit it via serializeTagsValue if array, or normal
-          if (Array.isArray(v)) {
-            lines.push(`tags:: ${serializeTagsValue(v, model.rawConceptFields?.[conceptName]?.[k] ?? model.rawConceptTags?.[conceptName])}`)
-          } else {
-            const raw = model.rawConceptFields?.[conceptName]?.[k]
-            lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
-          }
-        } else {
-          const raw = model.rawConceptFields?.[conceptName]?.[k]
-          lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
-        }
+        const raw = model.rawConceptFields?.[conceptName]?.[k]
+        lines.push(`${k}:: ${serializePropertyValue(v, raw)}`)
       }
-    } else if (hasConceptTags) {
-      lines.push(
-        `tags:: ${serializeTagsValue(model.conceptTags![conceptName], model.rawConceptTags?.[conceptName])}`,
-      )
     }
     if (hasProperties && (hasUnEmitted || (rawBody && rawBody.trim()))) {
       lines.push('')
@@ -475,44 +430,11 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     lines.push('')
   }
 
-  let nodeMarkersEmitted = false
-  const emitNodeMarkers = () => {
-    if (nodeMarkersEmitted) return
-    nodeMarkersEmitted = true
-    const nodeMarkerEntries = Object.entries(model.nodeMarkers)
-    if (nodeMarkerEntries.length === 0) return
-    lines.push('# NN matrices: item-markers matrix')
-    if (matrixBlankLine('item-markers matrix')) lines.push('')
-    // Start from the columns the source table DECLARED, so a marker column
-    // whose every cell is `-` is not silently dropped; then add any marker
-    // set after parsing (by a mutation) that the declaration did not cover.
-    const markerKeys = new Set<string>(model.nodeMarkerColumns ?? [])
-    for (const [, markers] of nodeMarkerEntries) {
-      for (const key of Object.keys(markers)) {
-        markerKeys.add(key)
-      }
-    }
-    const keys = Array.from(markerKeys)
-    const headerLine = `| Item \\ Marker | ${keys.join(' | ')} |`
-    const sepLine = `| :--- | ${keys.map(() => ':---:').join(' | ')} |`
-    lines.push(headerLine)
-    lines.push(sepLine)
-    for (const [itemName, markers] of nodeMarkerEntries) {
-      const vals = keys.map((k) => (markers[k] !== undefined ? String(markers[k]) : '-'))
-      lines.push(`| ${itemName} | ${vals.join(' | ')} |`)
-    }
-    lines.push('')
-  }
-
   const emittedMatrices = new Set<string>()
   const emitMatrixSection = (matrixName: string) => {
     const key = matrixName.toLowerCase()
     if (emittedMatrices.has(key)) return
     emittedMatrices.add(key)
-    if (key === 'item-markers matrix') {
-      emitNodeMarkers()
-      return
-    }
     const matrix = model.matrices.find((m) => m.name.toLowerCase() === key)
     if (matrix) emitMatrixTable(matrix)
   }
@@ -535,7 +457,6 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName)
   }
   for (const matrix of model.matrices) emitMatrixSection(matrix.name)
-  emitNodeMarkers()
 
   return lines.join('\n')
 }

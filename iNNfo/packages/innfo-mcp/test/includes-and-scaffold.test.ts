@@ -154,7 +154,7 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     expect(content).toContain('## NN Item: Example Item')
     expect(content).toContain('slug:: example-item')
     expect(content).toContain('status:: todo')
-    expect(content).toContain('# NN matrices: item-markers matrix')
+    expect(content).not.toContain('# NN matrices: item-markers matrix')
     // the freshly scaffolded model passes validation (hygiene + schema)
     expect(res.validation.valid).toBe(true)
   })

@@ -104,29 +104,24 @@ describe('analysis_V_0-1-0 â€” standalone strategic-review template', () =>
     )
   })
 
-  it('declares all five business markers', () => {
+  it('declares the shared tags field', () => {
     const { schema } = resolveBlueprintSchema(ANALYSIS, () => null)
-    expect(schema.markers.map((m) => m.name).sort()).toEqual([
-      'certainty',
-      'completion',
-      'importance',
-      'priority',
-      'rating',
-    ])
+    expect(schema.concepts[0].fields?.some((f) => f.name === 'tags')).toBe(true)
   })
 
-  it('validates green against the iNNfo_V_0-2-0 metaschema', () => {
-    const errors = validateBlueprintAgainstMetaschema(ANALYSIS, INNFO_V2).filter(
+  it('validates green against the iNNfo_V_0-5-0 metaschema', () => {
+    const iNNfoV5 = readSpec('iNNfo_V_0-5-0_NN.md')
+    const errors = validateBlueprintAgainstMetaschema(ANALYSIS, iNNfoV5).filter(
       (d) => d.severity === 'error',
     )
     expect(errors, JSON.stringify(errors)).toEqual([])
   })
 })
 
-describe('analysis_V_0-2-0 â€” sample model validates', () => {
+describe('analysis_V_0-2-0 — sample model validates', () => {
   it('the Ghostbusters analysis sample has no "not defined in template" errors', () => {
     const modelContent = readSpec(
-      'bluepriNNts/analysis/samples/Ghostbusters_V_0-3-4_analysis_NN.md',
+      'bluepriNNts/analysis/samples/Ghostbusters_V_0-4-0_analysis_NN.md',
     )
     const model = parseKnowledge(modelContent)
     const template = {
@@ -141,22 +136,18 @@ describe('analysis_V_0-2-0 â€” sample model validates', () => {
   })
 })
 
-describe('business_V_0-2-0 â€” umbrella composite (D1 marker dedup)', () => {
-  it('resolves with ZERO errors â€” the 5 shared markers merge, no collision', () => {
+describe('business_V_0-2-0 — umbrella composite (D1 tags dedup)', () => {
+  it('resolves with ZERO errors — shared tags field merges, no collision', () => {
     const { errors } = resolveBlueprintSchema(BUSINESS_V2, resolver)
     expect(errors, JSON.stringify(errors)).toEqual([])
   })
 
-  it('keeps exactly one entry per shared marker', () => {
+  it('keeps exactly one entry for shared tags field', () => {
     const { schema } = resolveBlueprintSchema(BUSINESS_V2, resolver)
-    for (const shared of ['importance', 'completion', 'certainty', 'priority', 'rating']) {
-      const hits = schema.markers.filter((m) => m.name === shared)
-      expect(hits.length, `${shared} should appear once, got ${hits.length}`).toBe(1)
-    }
-    // and the per-template markers survive
-    expect(schema.markers.map((m) => m.name)).toEqual(
-      expect.arrayContaining(['complexity', 'health']),
-    )
+    const conceptWithTags = schema.concepts.find((c) => c.fields?.some((f) => f.name === 'tags'))
+    expect(conceptWithTags).toBeDefined()
+    const tagFields = conceptWithTags!.fields!.filter((f) => f.name === 'tags')
+    expect(tagFields.length).toBe(1)
   })
 
   it('unions concepts from all five templates', () => {
@@ -209,15 +200,15 @@ describe('business_V_0-2-0 â€” umbrella composite (D1 marker dedup)', () =>
 
 describe('business_V_0-2-0 â€” collision is still an ERROR (REQ-B4)', () => {
   it('a divergent same-named Definition across sources fails composition, naming both', () => {
-    const divergentAnalysis = ANALYSIS.replace('symbol:: *', 'symbol:: @')
+    const divergentAnalysis = ANALYSIS.replace('multiple:: true', 'multiple:: false')
     const clashResolver = (ref: { name: string }): string | null => {
       if (ref.name.toLowerCase() === 'analysis') return divergentAnalysis
       return resolver(ref)
     }
     const { errors } = resolveBlueprintSchema(BUSINESS_V2, clashResolver)
-    const collision = errors.find((e) => e.message.includes('importance'))
+    const collision = errors.find((e) => e.message.includes('tags'))
     expect(collision?.severity).toBe('error')
-    expect(collision?.message).toMatch(/Business Model (Template|App)|Analysis (Template|App)/)
+    expect(collision?.message).toMatch(/Analysis/i)
   })
 })
 

@@ -99,11 +99,6 @@ describe('iNNfo model with _NN markers (level 3)', () => {
     '| Problem Alpha | X |',
     '| Problem Beta | - |',
     '',
-    '# NN matrices: item-markers matrix',
-    '| Item \\ Marker | weight |',
-    '| :--- | :---: |',
-    '| Problem Alpha | 9 |',
-    '',
   ].join('\n')
 
   const model = parseKnowledge(modelContent)
@@ -142,12 +137,6 @@ describe('iNNfo model with _NN markers (level 3)', () => {
     expect(vpMatrix!.cells[0].value).toBeTruthy()
   })
 
-  it('parses item-markers matrix into nodeMarkers', () => {
-    expect(Object.keys(model.nodeMarkers).length).toBeGreaterThan(0)
-    expect(model.nodeMarkers['Problem Alpha']).toBeDefined()
-    expect(model.nodeMarkers['Problem Alpha'].weight).toBe(9)
-  })
-
   it('serializes and re-parses correctly', async () => {
     const { serializeKnowledge } = await import('../src/index')
     const serialized = serializeKnowledge(model)
@@ -175,9 +164,6 @@ describe('iNNfo model with _NN markers (level 3)', () => {
       expect(reparsed.matrices[0].source).toBe(model.matrices[0].source)
       expect(reparsed.matrices[0].cells.length).toBe(model.matrices[0].cells.length)
     }
-
-    // Node markers
-    expect(Object.keys(reparsed.nodeMarkers).length).toBe(Object.keys(model.nodeMarkers).length)
 
     // Elements preserved
     expect(reparsed.elements.size).toBe(model.elements.size)
@@ -626,16 +612,6 @@ describe('applyMutation (R-IE-01)', () => {
     expect(result.success).toBe(true)
     const fds = model.elements.get('Field Definition')!
     expect(fds.some((f) => f.name === 'assignee' && f.fields['concept'] === 'Work')).toBe(true)
-  })
-
-  it('sets a marker', () => {
-    const model = makeModel()
-    const result = applyMutation(model, 'set_marker', {
-      markerName: 'urgency',
-      symbol: '!!',
-    })
-    expect(result.success).toBe(true)
-    expect(model.elements.get('Marker Definition')!.some((m) => m.name === 'urgency')).toBe(true)
   })
 
   it('rename_concept updates matrix declaration source/target', () => {

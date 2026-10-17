@@ -32,7 +32,7 @@ Goal description.
     const goals = parsed.elements.get('Goals')!
     expect(goals).toBeDefined()
     expect(goals[0].name).toBe('Grow')
-    expect(goals[0].tags).toEqual(['ai'])
+    expect(goals[0].fields.tags).toEqual(['ai'])
   })
 
   it('stops at the first non-property line so prose is never swallowed as a field', () => {

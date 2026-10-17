@@ -1,5 +1,5 @@
 import type { ParsedKnowledge, ValidationError } from '../types/index.js'
-import { MARKER_DEFINITION } from '../schema/index.js'
+const MARKER_DEFINITION = 'Marker Definition'
 import { parseMarkdownTable, normalizeSource } from '../parser/markdown.js'
 
 /**

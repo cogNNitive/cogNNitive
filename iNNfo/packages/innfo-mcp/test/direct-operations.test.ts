@@ -116,7 +116,6 @@ describe('direct apply_change operations are a closed, classified set', () => {
     ['bump_version', 'tpl', { bump: 'patch' }],
     ['add_concept', 'tpl', { conceptName: 'Risk' }],
     ['add_field', 'tpl', { conceptName: 'Work', fieldName: 'owner' }],
-    ['set_marker', 'tpl', { markerName: 'priority' }],
   ])('%s writes the model file and leaves changes/ untouched', async (op, id, args) => {
     const sourceFile = join(knowledgeDir, `${id}_NN.md`)
     const before = await readFile(sourceFile, 'utf-8')

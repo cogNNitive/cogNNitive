@@ -82,7 +82,7 @@ author:: agent-writer
   })
 
   describe('conflicts & preconditions (partitionChangeset)', () => {
-    const mockModel = (options?: { conceptTags?: string[]; conceptFields?: Record<string, unknown>; matrices?: Array<{ name: string; cells: any[] }> }) => {
+    const mockModel = (options?: { conceptFields?: Record<string, unknown>; matrices?: Array<{ name: string; cells: any[] }> }) => {
       const m = parseKnowledge(`---
 spec_version: "V_0-4-0"
 level: 3
@@ -300,12 +300,12 @@ title: "Strategy"
 | :--- | :---: |
 | Vision | ! |
 `)
-      expect(Object.keys(model.nodeMarkers).length).toBeGreaterThan(0)
+      expect(model.matrices.some((m) => m.name === 'item-markers matrix')).toBe(true)
       const res = applyMutation(model, 'remove_matrix', {
         matrixName: 'item-markers matrix',
       })
       expect(res.success).toBe(true)
-      expect(Object.keys(model.nodeMarkers)).toHaveLength(0)
+      expect(model.matrices.some((m) => m.name === 'item-markers matrix')).toBe(false)
 
       const serialized = serializeKnowledge(model)
       expect(serialized).not.toContain('item-markers matrix')

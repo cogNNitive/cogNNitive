@@ -2,54 +2,123 @@
 
 exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > golden test: resolves business blueprint and snapshots each concept fields 1`] = `
 {
-  "Activities": [],
-  "Analysis": [],
-  "Assumptions": [],
-  "Behaviors": [],
+  "Activities": [
+    "tags",
+  ],
+  "Analysis": [
+    "tags",
+  ],
+  "Assumptions": [
+    "tags",
+  ],
+  "Behaviors": [
+    "tags",
+  ],
   "Branding": [
     "brand_name",
     "logo_asset",
     "style_guide",
   ],
-  "Business idea": [],
-  "Business objectives": [],
+  "Business idea": [
+    "tags",
+  ],
+  "Business objectives": [
+    "tags",
+  ],
   "Business summary": [
     "inspiration",
     "status",
   ],
-  "Challenges": [],
-  "Channels": [],
-  "Coherence": [],
-  "Communication": [],
-  "Compensations": [],
-  "Competition": [],
-  "Components": [],
-  "Contracts": [],
-  "Contributions": [],
-  "Costs": [],
-  "Deliverable": [],
-  "Emotions": [],
+  "Challenges": [
+    "tags",
+  ],
+  "Channels": [
+    "tags",
+  ],
+  "Coherence": [
+    "tags",
+  ],
+  "Communication": [
+    "tags",
+  ],
+  "Compensations": [
+    "tags",
+  ],
+  "Competition": [
+    "tags",
+  ],
+  "Components": [
+    "tags",
+  ],
+  "Contracts": [
+    "tags",
+  ],
+  "Contributions": [
+    "tags",
+  ],
+  "Costs": [
+    "tags",
+  ],
+  "Deliverable": [
+    "health",
+    "tags",
+  ],
+  "Emotions": [
+    "tags",
+  ],
   "Evolution": [
     "evolutionFactor",
     "evolutionType",
+    "tags",
   ],
-  "Experiments": [],
-  "Features": [],
-  "Finance": [],
-  "Functions": [],
-  "Funding sources": [],
-  "Goals": [],
-  "Inspiration": [],
-  "Journey": [],
-  "Keys": [],
-  "Legal": [],
-  "Legal issues": [],
-  "Market": [],
+  "Experiments": [
+    "tags",
+  ],
+  "Features": [
+    "tags",
+  ],
+  "Finance": [
+    "tags",
+  ],
+  "Functions": [
+    "complexity",
+    "tags",
+  ],
+  "Funding sources": [
+    "tags",
+  ],
+  "Goals": [
+    "tags",
+  ],
+  "Inspiration": [
+    "tags",
+  ],
+  "Journey": [
+    "tags",
+  ],
+  "Keys": [
+    "tags",
+  ],
+  "Legal": [
+    "tags",
+  ],
+  "Legal issues": [
+    "tags",
+  ],
+  "Market": [
+    "tags",
+  ],
   "Market size": [],
-  "Market trends": [],
-  "Marketing": [],
+  "Market trends": [
+    "tags",
+  ],
+  "Marketing": [
+    "tags",
+  ],
   "Media plan": [],
-  "Messages": [],
+  "Messages": [
+    "tags",
+  ],
   "Metrics": [
     "dependsOn",
     "evolution",
@@ -57,9 +126,12 @@ exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > 
     "metricType",
     "metricUnit",
     "metricValue",
+    "tags",
   ],
   "Milestone": [
+    "health",
     "milestone_status",
+    "tags",
     "target_date",
   ],
   "Misc": [],
@@ -68,81 +140,141 @@ exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > 
     "brochure_file",
     "components_list",
     "pricing_model",
+    "tags",
   ],
-  "Operations": [],
-  "Opportunity": [],
+  "Operations": [
+    "tags",
+  ],
+  "Opportunity": [
+    "tags",
+  ],
   "Organization": [],
-  "Organizational goals": [],
-  "Organizational values": [],
-  "Perceptions": [],
+  "Organizational goals": [
+    "tags",
+  ],
+  "Organizational values": [
+    "tags",
+  ],
+  "Perceptions": [
+    "tags",
+  ],
   "Person": [
     "compensation",
+    "complexity",
     "contributions",
     "image",
     "position_ref",
+    "tags",
   ],
-  "Persona": [],
+  "Persona": [
+    "tags",
+  ],
   "Phases": [
     "end_date",
+    "health",
     "phase_status",
     "start_date",
+    "tags",
   ],
   "Pitch": [],
-  "Position": [],
+  "Position": [
+    "complexity",
+    "tags",
+  ],
   "Presentations": [],
-  "Problems": [],
+  "Problems": [
+    "tags",
+  ],
   "Procedure": [
     "instructions",
     "target_artifact",
     "trigger_command",
   ],
-  "Products and services": [],
+  "Products and services": [
+    "tags",
+  ],
   "Profiles": [
     "persona_notes",
     "relationship_type",
+    "tags",
   ],
   "Project": [],
   "Project roles": [
+    "health",
     "scope",
+    "tags",
   ],
-  "Projections": [],
-  "Resources": [],
-  "Revenue": [],
+  "Projections": [
+    "tags",
+  ],
+  "Resources": [
+    "tags",
+  ],
+  "Revenue": [
+    "tags",
+  ],
   "Risk": [
+    "health",
     "impact",
     "mitigation",
     "probability",
+    "tags",
   ],
-  "Risks": [],
-  "Roadmap": [],
+  "Risks": [
+    "tags",
+  ],
+  "Roadmap": [
+    "tags",
+  ],
   "Roles": [
+    "complexity",
     "scope",
+    "tags",
   ],
   "Scenario": [
     "scenarioMonths",
     "scenarioNotes",
     "scenarioType",
+    "tags",
   ],
-  "Segmentation": [],
-  "Segments": [],
-  "Shareholders": [],
-  "Skills": [],
-  "Solutions": [],
-  "Stakeholder roles": [],
+  "Segmentation": [
+    "tags",
+  ],
+  "Segments": [
+    "tags",
+  ],
+  "Shareholders": [
+    "tags",
+  ],
+  "Skills": [
+    "complexity",
+    "tags",
+  ],
+  "Solutions": [
+    "tags",
+  ],
+  "Stakeholder roles": [
+    "tags",
+  ],
   "Stakeholders": [
     "relationship_model",
+    "tags",
   ],
   "Storytelling": [],
-  "Suggestions": [],
+  "Suggestions": [
+    "tags",
+  ],
   "Task": [
     "deliverable",
     "depends_on",
     "due_date",
     "duration",
+    "health",
     "milestone",
     "priority",
     "start_date",
     "status",
+    "tags",
   ],
   "Team": [],
   "Unfair advantage": [],
@@ -151,9 +283,14 @@ exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > 
     "ltv",
     "payback_months",
   ],
-  "Validation": [],
-  "Value propositions": [],
+  "Validation": [
+    "tags",
+  ],
+  "Value propositions": [
+    "tags",
+  ],
   "Variables": [
+    "tags",
     "variableType",
     "variableUnit",
     "variableValue",

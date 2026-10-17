@@ -51,7 +51,7 @@ describe('Task 2.2: Shipped Field Catalogue and Blueprint Conventions', () => {
       const parsed = parseKnowledge(content)
       const schema = extractBlueprintSchema(parsed)
 
-      expect(schema.markers, `${entry.name} should have no Marker Definitions`).toHaveLength(0)
+      expect(schema.markers ?? [], `${entry.name} should have no Marker Definitions`).toHaveLength(0)
       expect(
         content.toLowerCase().includes('item-markers matrix'),
         `${entry.name} should have no item-markers matrix`,

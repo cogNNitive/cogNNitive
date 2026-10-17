@@ -149,26 +149,15 @@ ${tagLines.element ? `tags:: ${tagLines.element}
 ` : ''}price:: 5000
 `
 
-  it('carries the element tags, lowercased', () => {
-    const p = buildConsolePayload({ content: doc({ element: 'Pricing, AI' }) })
-    expect(p.model.elements[0].tags).toEqual(['pricing', 'ai'])
+  it('carries the element tags in fields', () => {
+    const p = buildConsolePayload({ content: doc({ element: '[pricing, ai]' }) })
+    expect(p.model.elements[0].fields.tags).toEqual(['pricing', 'ai'])
+    expect((p.model.elements[0] as any).tags).toBeUndefined()
   })
 
-  it('inherits concept-level tags as a union without duplicates', () => {
-    const p = buildConsolePayload({ content: doc({ concept: 'core', element: 'ai, core' }) })
-    expect(p.model.elements[0].tags).toEqual(['ai', 'core'])
-  })
-
-  it('emits an empty array when there are no tags', () => {
-    const p = buildConsolePayload({ content: doc({}) })
-    expect(p.model.elements[0].tags).toEqual([])
-  })
-
-  it('does not move the hash and keeps it equal to hashParsedElement', () => {
-    const bare = buildConsolePayload({ content: doc({}) }).model.elements[0]
-    const tagged = buildConsolePayload({ content: doc({ concept: 'core', element: 'ai' }) }).model.elements[0]
-    expect(tagged.hash).toBe(bare.hash)
-    const node = parseKnowledge(doc({ concept: 'core', element: 'ai' })).elements.get('Service')![0]
+  it('keeps hash equal to hashParsedElement', () => {
+    const tagged = buildConsolePayload({ content: doc({ concept: '[core]', element: '[ai]' }) }).model.elements[0]
+    const node = parseKnowledge(doc({ concept: '[core]', element: '[ai]' })).elements.get('Service')![0]
     expect(tagged.hash).toBe(hashParsedElement('Service', node))
   })
 })

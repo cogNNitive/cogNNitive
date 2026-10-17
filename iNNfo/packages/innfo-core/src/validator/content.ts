@@ -539,13 +539,13 @@ export function validateFormatContent(
     })
   }
 
-  // 15. Removed marker constructs (Marker Definition and item-markers matrix)
+  // 15. Removed marker constructs (Marker Definition and legacy marker matrix)
   const removedConstructs = checkRemovedMarkerConstructs(parsed, fileName)
   for (const rc of removedConstructs) {
     checks.push({
       id: rc.code || 'MARKERS_REMOVED',
       label: 'Marker constructs removed in V_0-5-0',
-      description: 'Marker Definitions and the item-markers matrix are removed in iNNfo V_0-5-0',
+      description: 'Marker Definitions and legacy marker matrices are removed in iNNfo V_0-5-0',
       category: 'body',
       severity: rc.severity as 'error',
       passed: false,

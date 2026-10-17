@@ -268,10 +268,7 @@ export async function partitionChangeset(
           ? model.conceptFields?.[Object.keys(model.conceptFields || {}).find((k) => k.toLowerCase() === conceptIdent.toLowerCase())!]
           : undefined)
 
-      let currentRawVal = cFields?.[fieldIdent]
-      if (currentRawVal === undefined && fieldIdent.toLowerCase() === 'tags') {
-        currentRawVal = model.conceptTags?.[conceptIdent]
-      }
+      const currentRawVal = cFields?.[fieldIdent]
 
       const formatCanonical = (val: unknown): string => {
         if (val === undefined || val === null) return ''
@@ -307,7 +304,6 @@ export async function partitionChangeset(
             slugify(m.name).toLowerCase() === mIdentLower ||
             slugifyHeading(m.name).toLowerCase() === mIdentLower,
         )) ||
-        (mIdentLower === 'item-markers matrix' && model.nodeMarkers && Object.keys(model.nodeMarkers).length > 0) ||
         (model.sectionOrder && model.sectionOrder.some(
           (s) => s.toLowerCase() === `matrices: ${mIdentLower}` || s.toLowerCase() === mIdentLower,
         ))

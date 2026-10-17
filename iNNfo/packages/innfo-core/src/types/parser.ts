@@ -128,21 +128,6 @@ export interface Concept {
   description?: string
 }
 
-export interface Marker {
-  name: string
-  icon?: string
-  symbol?: string
-  color?: string
-  weight?: number
-  /** Which entities may be scored on this Marker. Defaults to ['Element']. */
-  applies_to?: string[]
-  /** Allowed scores (inline array). Omitted for a free numeric scale. */
-  values?: string[]
-  /** Cell interaction widget for the item-markers matrix column. */
-  widgetType?: string
-  /** Widget-specific configuration (inline JSON object). See iNNfo "Widget Configuration". */
-  widgetConfig?: Record<string, unknown>
-}
 
 export interface MatrixDecl {
   name: string
@@ -206,7 +191,6 @@ export interface SpecFrontmatter {
   author?: string
   status?: string
   concepts?: Concept[]
-  markers?: Marker[]
   matrices?: MatrixDecl[]
   relationship_types?: RelationshipTypeDef[]
   relationship_declarations?: Partial<Record<RelationshipType, RelationshipDecl>>
@@ -230,7 +214,6 @@ export interface ElementNode {
   markers: Record<string, number | string>
   /** Optional slug derived from YAML `slug` field or auto-derived from name. */
   slug?: string
-  tags?: string[]
   /**
    * Whether a blank line separated this element from the next one in the
    * source (undefined for a programmatically constructed element, which
@@ -248,13 +231,6 @@ export interface ElementNode {
    * so `serializeKnowledge` replays what was there rather than assuming a rule.
    */
   descriptionBlankLine?: boolean
-  /**
-   * Exact source text of this element's `tags::` RHS. `parseTagList`
-   * lowercases and trims, so the authored casing (`PR`, not `pr`) survives
-   * only here. `serializeKnowledge` re-emits it verbatim when the current `tags`
-   * still match what it parses to; tag semantics stay case-insensitive.
-   */
-  rawTags?: string
   /**
    * Whether `slug` was AUTHORED as a `slug::` line, rather than derived by
    * `deriveElementSlugs`. Only an authored slug is written back: every element
@@ -357,7 +333,6 @@ export interface ParsedKnowledge {
   taxonomy: TaxonomyEdge[]
   elements: ElementsMap
   matrices: MatrixData[]
-  nodeMarkers: Record<string, Record<string, number | string>>
   rawContent: string
   /** Optional: raw body text per concept for round-trip fidelity */
   rawSections?: Record<string, string>
@@ -365,11 +340,6 @@ export interface ParsedKnowledge {
   slugCollisions?: Array<{ slug: string; elements: string[]; concept: string }>
   /** Non-fatal parse warnings (e.g. deprecated features). */
   parseWarnings?: string[]
-  /** Tags applied to Concept sections directly (not individual elements) */
-  conceptTags?: Record<string, string[]>
-  /** Exact source text of each concept-level `tags::` RHS. See
-   *  `ElementNode.rawTags` for why this is kept separately. */
-  rawConceptTags?: Record<string, string>
   /** Field values applied to Concept sections directly (not individual elements) */
   conceptFields?: Record<string, Record<string, unknown>>
   /** Exact source text of each concept-level field RHS */
@@ -407,13 +377,6 @@ export interface ParsedKnowledge {
    * while the allow-list stays as the fallback for a mutated or
    * programmatically constructed model.
    */
-  /**
-   * Marker column names declared by the `# NN matrices: item-markers matrix`
-   * table header, in source order. `nodeMarkers` only records markers that
-   * are actually SET, so a column whose every cell is `-` leaves no trace
-   * there and would be dropped on save. This is the declared column set.
-   */
-  nodeMarkerColumns?: string[]
   rawFrontmatter?: string
   /**
    * The exact text between the frontmatter block and the first `# NN`
