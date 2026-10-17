@@ -1,0 +1,508 @@
+<!doctype html>
+<!--
+  Throwaway mockup for change `unified-knowledge-unit-badges` (2026-10-17).
+  Approved: the visual grammar (border = nature, paper fill = Source, concept color),
+  actions outside the badge, view/review modes and the "Edit structure" toggle.
+  NOT valid: the `@` addresses, the "axis" unit and the `text` value type shown
+  here (`number`/`boolean` are L1 0-5-0 types from the companion change).
+  See ../exploration.md and ../design.md for the real ones.
+  Superseded by design.md: actions reveal on hover/focus (24px targets), and the
+  structure pencil is comment-only.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Unit Badges</title>
+<style>
+:root {
+  --innfo-bg: #fafafa; --innfo-surface: #ffffff; --innfo-surface-2: #f4f4f5;
+  --innfo-text: #0a0a0a; --innfo-muted: #666666; --innfo-border: #e5e5e5;
+  --innfo-accent: #171717; --innfo-focus: #52525b;
+  --innfo-concept-1: #3b82f6; --innfo-concept-1-bg: #eff6ff;
+  --innfo-concept-2: #8b5cf6; --innfo-concept-2-bg: #f5f3ff;
+  --innfo-concept-3: #14b8a6; --innfo-concept-3-bg: #f0fdfa;
+  --innfo-concept-4: #f59e0b; --innfo-concept-4-bg: #fffbeb;
+  --innfo-status-pending: #92400e; --innfo-status-pending-bg: #fef3c7;
+  --source-paper: #f5f2ec; --source-ink: #57534e; --source-edge: #d6d3d1;
+  --innfo-radius-sm: 6px; --innfo-radius: 8px; --innfo-radius-lg: 10px;
+  --innfo-font: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --innfo-mono: "Geist Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --innfo-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --innfo-bg: #0a0a0a; --innfo-surface: #171717; --innfo-surface-2: #222224;
+    --innfo-text: #fafafa; --innfo-muted: #a1a1aa; --innfo-border: #2e2e32;
+    --innfo-accent: #fafafa; --innfo-focus: #a1a1aa;
+    --innfo-concept-1-bg: #172554; --innfo-concept-2-bg: #2e1065;
+    --innfo-concept-3-bg: #042f2e; --innfo-concept-4-bg: #451a03;
+    --innfo-status-pending: #fcd34d; --innfo-status-pending-bg: #451a03;
+    --source-paper: #262320; --source-ink: #d6d3d1; --source-edge: #44403c;
+  }
+}
+:root[data-theme="dark"] {
+  --innfo-bg: #0a0a0a; --innfo-surface: #171717; --innfo-surface-2: #222224;
+  --innfo-text: #fafafa; --innfo-muted: #a1a1aa; --innfo-border: #2e2e32;
+  --innfo-accent: #fafafa; --innfo-focus: #a1a1aa;
+  --innfo-concept-1-bg: #172554; --innfo-concept-2-bg: #2e1065;
+  --innfo-concept-3-bg: #042f2e; --innfo-concept-4-bg: #451a03;
+  --innfo-status-pending: #fcd34d; --innfo-status-pending-bg: #451a03;
+  --source-paper: #262320; --source-ink: #d6d3d1; --source-edge: #44403c;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--innfo-bg); color: var(--innfo-text);
+  font: 15px/1.5 var(--innfo-font); padding-bottom: 96px;
+}
+header.top {
+  position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; justify-content: space-between; padding: 12px 24px;
+  background: var(--innfo-surface); border-bottom: 1px solid var(--innfo-border);
+}
+header.top h1 { font-size: 1.05rem; margin: 0; }
+header.top p { margin: 0; color: var(--innfo-muted); font-size: .8125rem; }
+.seg { display: inline-flex; border: 1px solid var(--innfo-border); border-radius: var(--innfo-radius); padding: 2px; background: var(--innfo-surface-2); }
+.seg button {
+  font: inherit; font-size: .82rem; border: 0; background: transparent; color: var(--innfo-muted);
+  padding: 4px 14px; border-radius: var(--innfo-radius-sm); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--innfo-surface); color: var(--innfo-text); box-shadow: var(--innfo-shadow); font-weight: 600; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; grid-template-columns: minmax(0,1fr) 300px; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } }
+.col { display: grid; gap: 20px; align-content: start; min-width: 0; }
+
+section.card { background: var(--innfo-surface); border: 1px solid var(--innfo-border); border-radius: var(--innfo-radius-lg); padding: 16px 18px; }
+section.card h2 { font-size: .95rem; margin: 0 0 2px; }
+section.card .sub { color: var(--innfo-muted); font-size: .8125rem; margin: 0 0 14px; }
+section.card code { font-family: var(--innfo-mono); font-size: .76rem; background: var(--innfo-surface-2); padding: 1px 4px; border-radius: 4px; }
+.grid { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 10px 14px; align-items: center; }
+@media (max-width: 520px) { .grid { grid-template-columns: 1fr; gap: 4px; } .grid .lbl { margin-top: 8px; } }
+.lbl { font-size: .78rem; color: var(--innfo-muted); }
+.lbl b { color: var(--innfo-text); font-weight: 600; }
+
+/* ---------- Knowledge-unit badge: ONE builder, ONE grammar ---------- */
+.ku-wrap { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; max-width: 100%; }
+.ku {
+  display: inline-flex; align-items: center; gap: .4em; min-width: 0; max-width: 100%;
+  font-size: .82rem; line-height: 1.25; padding: 3px 9px;
+  border-radius: var(--innfo-radius-sm); background: var(--innfo-surface);
+  color: var(--innfo-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ku .t { overflow: hidden; text-overflow: ellipsis; }
+.ku .ico { flex: 0 0 auto; display: inline-flex; }
+.ku .ico svg { width: 13px; height: 13px; }
+
+/* Nature -> border style */
+.ku[data-nature="content"]   { border: 1px solid var(--innfo-border); }
+.ku[data-nature="structure"] { border: 1.5px dashed var(--innfo-muted); color: var(--innfo-muted); font-family: var(--innfo-mono); font-size: .78rem; }
+.ku[data-nature="container"] { border: 3px double var(--innfo-accent); font-weight: 600; }
+
+/* Concept color -> tint / accent */
+.ku[data-slot] { --c: var(--innfo-concept-1); --cb: var(--innfo-concept-1-bg); }
+.ku[data-slot="2"] { --c: var(--innfo-concept-2); --cb: var(--innfo-concept-2-bg); }
+.ku[data-slot="3"] { --c: var(--innfo-concept-3); --cb: var(--innfo-concept-3-bg); }
+.ku[data-slot="4"] { --c: var(--innfo-concept-4); --cb: var(--innfo-concept-4-bg); }
+.ku[data-kind="concept"]  { background: var(--cb); border-color: var(--c); color: var(--innfo-text); }
+.ku[data-kind="document"] { background: var(--cb); border-color: var(--c); }
+.ku[data-kind="element"]  { border-left: 4px solid var(--c); }
+.ku[data-kind="concept"] .ico, .ku[data-kind="element"] .ico, .ku[data-kind="document"] .ico { color: var(--c); }
+
+/* Value types */
+.ku[data-kind="value"] .ty { font-family: var(--innfo-mono); font-size: .68rem; color: var(--innfo-muted); border-right: 1px solid var(--innfo-border); padding-right: .45em; }
+.ku[data-kind="value"][data-vtype="reference"] { border-left: 4px solid var(--c, var(--innfo-muted)); }
+.ku[data-kind="value"][data-vtype="reference"] .ico { color: var(--c); }
+.ku[data-kind="value"][data-vtype="number"] .t { font-variant-numeric: tabular-nums; }
+
+/* Origin -> source paper (always read-only) */
+.ku[data-origin="source"] { background: var(--source-paper); color: var(--source-ink); }
+.ku[data-origin="source"][data-nature="content"] { border-color: var(--source-edge); }
+.ku[data-origin="source"][data-nature="structure"] { border-color: var(--source-ink); }
+
+/* Pending change pip (review) */
+.ku[data-changes] { box-shadow: 0 0 0 2px var(--innfo-status-pending-bg); border-color: var(--innfo-status-pending); }
+.pip { font-size: .66rem; font-weight: 700; color: var(--innfo-status-pending); background: var(--innfo-status-pending-bg); border-radius: 999px; padding: 0 5px; }
+
+/* Actions: OUTSIDE the badge, immediately next to it */
+.ku-actions { display: inline-flex; gap: 1px; }
+.ku-act {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  border: 1px solid transparent; border-radius: 5px; background: transparent;
+  color: var(--innfo-muted); cursor: pointer;
+}
+.ku-act svg { width: 14px; height: 14px; }
+.ku-act:hover { background: var(--innfo-surface-2); color: var(--innfo-text); border-color: var(--innfo-border); }
+.ku-act:focus-visible { outline: 2px solid var(--innfo-focus); outline-offset: 1px; }
+.ku-act[data-act="edit"] { color: var(--innfo-text); }
+
+/* Mode rules: the only place editability is decided */
+body[data-mode="view"] .ku-act[data-act="edit"] { display: none; }
+body[data-mode="review"][data-structure="off"] .ku-act[data-act="edit"][data-nature="structure"] { display: none; }
+
+/* Composite rows: two units side by side, never one merged badge */
+.pair { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pair .sep { color: var(--innfo-muted); font-size: .8rem; }
+
+/* Element card */
+.el-card { border: 1px solid var(--innfo-border); border-left: 4px solid var(--innfo-concept-1); border-radius: var(--innfo-radius); padding: 12px 14px; display: grid; gap: 10px; }
+.el-card .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.el-card dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0,1fr); gap: 8px 12px; align-items: center; }
+.el-card dt, .el-card dd { margin: 0; min-width: 0; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: .82rem; }
+th, td { border: 1px solid var(--innfo-border); padding: 6px 8px; text-align: left; white-space: nowrap; }
+th { background: var(--innfo-surface-2); font-weight: 500; }
+
+/* Info panel */
+aside.info { position: sticky; top: 72px; align-self: start; background: var(--innfo-surface); border: 1px solid var(--innfo-border); border-radius: var(--innfo-radius-lg); padding: 16px; font-size: .82rem; }
+aside.info h3 { margin: 0 0 10px; font-size: .9rem; }
+aside.info dl { margin: 0; display: grid; grid-template-columns: max-content minmax(0,1fr); gap: 6px 10px; }
+aside.info dt { color: var(--innfo-muted); }
+aside.info dd { margin: 0; overflow-wrap: anywhere; }
+aside.info code { font-family: var(--innfo-mono); font-size: .76rem; background: var(--innfo-surface-2); padding: 1px 4px; border-radius: 4px; }
+aside.info .empty { color: var(--innfo-muted); margin: 0; }
+.legend { display: grid; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--innfo-border); }
+.legend h4 { margin: 0; font-size: .78rem; color: var(--innfo-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.legend div { display: flex; align-items: center; gap: 8px; }
+.legend span.note { color: var(--innfo-muted); }
+@media (max-width: 860px) { aside.info { position: static; } }
+
+/* Floating edit bar (review mode only) */
+.edit-bar {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  background: var(--innfo-surface); border: 1px solid var(--innfo-border); border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.14); padding: 8px 10px 8px 18px; font-size: .82rem;
+  max-width: calc(100vw - 32px);
+}
+body[data-mode="view"] .edit-bar { display: none; }
+.edit-bar .count { font-weight: 600; }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; position: relative; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .track { width: 32px; height: 18px; border-radius: 999px; background: var(--innfo-border); position: relative; transition: background .15s; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--innfo-surface); box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .15s; }
+.switch input:checked + .track { background: var(--innfo-accent); }
+.switch input:checked + .track::after { transform: translateX(14px); }
+.switch input:focus-visible + .track { outline: 2px solid var(--innfo-focus); outline-offset: 2px; }
+.edit-bar .btn { font: inherit; border: 1px solid var(--innfo-accent); background: var(--innfo-accent); color: var(--innfo-surface); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-weight: 600; }
+
+.toast {
+  position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 20;
+  background: var(--innfo-accent); color: var(--innfo-surface); padding: 8px 14px; border-radius: var(--innfo-radius);
+  font-size: .82rem; opacity: 0; pointer-events: none; transition: opacity .15s; max-width: calc(100vw - 32px);
+}
+.toast.on { opacity: 1; }
+</style>
+</head>
+<body data-mode="view" data-structure="off">
+
+<header class="top">
+  <div>
+    <h1>Knowledge-unit badges</h1>
+    <p>Mockup: every unit is drawn by one builder. The actions sit outside the badge.</p>
+  </div>
+  <div class="seg" role="group" aria-label="Console mode">
+    <button type="button" data-mode-btn="view" aria-pressed="true">View</button>
+    <button type="button" data-mode-btn="review" aria-pressed="false">Review</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+
+    <section class="card">
+      <h2>Containers</h2>
+      <p class="sub">They hold other units. Info only for now (open decision: can a document's metadata be edited here?).</p>
+      <div class="grid" id="sec-container"></div>
+    </section>
+
+    <section class="card">
+      <h2>Structure (from the bluepriNNt)</h2>
+      <p class="sub">Dashed border and mono font. In review mode the pencil appears only when "Edit structure" is on.</p>
+      <div class="grid" id="sec-structure"></div>
+    </section>
+
+    <section class="card">
+      <h2>Content (from the kNNowledge document)</h2>
+      <p class="sub">Solid border. Always editable in review mode. Field values, marker values, references and matrix cells are all one kind: <b>value</b>, with a type.</p>
+      <div class="grid" id="sec-content"></div>
+    </section>
+
+    <section class="card">
+      <h2>Sources</h2>
+      <p class="sub">Paper fill. Same dashed/solid rule for structure and content, but never editable: they are cited evidence.</p>
+      <div class="grid" id="sec-source"></div>
+    </section>
+
+    <section class="card">
+      <h2>In context: an element card</h2>
+      <p class="sub">The old <code>name: value</code> badge becomes two units side by side, each with its own address and actions.</p>
+      <div class="el-card" id="ctx-card"></div>
+    </section>
+
+    <section class="card">
+      <h2>In context: a matrix</h2>
+      <p class="sub">The axes are structure, the cells are content.</p>
+      <div class="tbl-wrap"><table id="ctx-matrix"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>In context: a CSV source</h2>
+      <p class="sub">Same grid, but read-only: info only, in both modes.</p>
+      <div class="tbl-wrap"><table id="ctx-csv"></table></div>
+    </section>
+  </div>
+
+  <aside class="info" aria-live="polite">
+    <h3>Unit info</h3>
+    <div id="info-body"><p class="empty">Click an <b>(i)</b> icon to inspect a unit.</p></div>
+    <div class="legend">
+      <h4>Visual grammar</h4>
+      <div><span class="ku" data-nature="container"><span class="t">Container</span></span><span class="note">double border</span></div>
+      <div><span class="ku" data-nature="structure"><span class="t">structure</span></span><span class="note">dashed + mono</span></div>
+      <div><span class="ku" data-nature="content"><span class="t">Content</span></span><span class="note">solid</span></div>
+      <div><span class="ku" data-nature="content" data-origin="source"><span class="t">Source</span></span><span class="note">paper fill, read-only</span></div>
+      <div><span class="ku" data-kind="element" data-nature="content" data-slot="2"><span class="t">Concept color</span></span><span class="note">identity of the concept</span></div>
+    </div>
+  </aside>
+</main>
+
+<div class="edit-bar" role="toolbar" aria-label="Review edit bar">
+  <span><span class="count">2</span> pending changes</span>
+  <label class="switch">
+    <input type="checkbox" id="structure-toggle">
+    <span class="track" aria-hidden="true"></span>
+    <span>Edit structure</span>
+  </label>
+  <button type="button" class="btn">Review changes</button>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  var ICON = {
+    info: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.25"/><path d="M8 7.2v3.8M8 5.1v.1" stroke-linecap="round"/></svg>',
+    edit: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M10.6 2.9l2.5 2.5L6 12.5l-3.1.6.6-3.1z"/><path d="M9.3 4.2l2.5 2.5"/></svg>',
+    domain: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12M6 6v8"/></svg>',
+    doc: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.8h5l3 3v9.4H4z"/><path d="M9 1.8v3h3"/></svg>',
+    dot: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="currentColor"/></svg>',
+    field: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M3 8h7M3 11h9" stroke-linecap="round"/></svg>',
+    marker: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v6.5M8 12.3v.2" stroke-linecap="round"/></svg>',
+    grid: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6.7h12M2 11.3h12M6.7 2v12M11.3 2v12"/></svg>',
+    axis: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M10 5l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    arrow: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h9M9 5l3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    hash: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2.5L5 13.5M11 2.5l-1 11M2.8 6h11M2.2 10h11" stroke-linecap="round"/></svg>',
+    row: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5.5" width="12" height="5" rx="1"/></svg>',
+    col: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="2" width="5" height="12" rx="1"/></svg>',
+    braces: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5c-1.5 0-2 .6-2 1.8v1.6c0 .9-.5 1.6-1.5 2.1 1 .5 1.5 1.2 1.5 2.1v1.6c0 1.2.5 1.8 2 1.8M10 2.5c1.5 0 2 .6 2 1.8v1.6c0 .9.5 1.6 1.5 2.1-1 .5-1.5 1.2-1.5 2.1v1.6c0 1.2-.5 1.8-2 1.8"/></svg>'
+  }
+
+  // nature: container | structure | content
+  // origin: domain | blueprint | knowledge | source
+  // Editability is derived, never passed: source/container -> never,
+  // structure -> review + toggle, content -> review.
+  var DOC = 'kNNowledge/GhostOps_NN.md'
+  var BP = 'bluepriNNts/operations/spec_NN.md'
+  var U = {
+    domain:    { kind: 'domain',   nature: 'container', origin: 'domain',    label: 'GhostOps', icon: 'domain', address: null, note: 'No @ address exists yet for a domaiNN.' },
+    document:  { kind: 'document', nature: 'container', origin: 'knowledge', label: 'GhostOps_NN', icon: 'doc', slot: 1, address: DOC },
+
+    concept:   { kind: 'concept', nature: 'structure', origin: 'blueprint', label: 'Incident', icon: 'dot', slot: 1, address: BP + '@incident', note: 'Concepts have no @ address in innfo-core today.' },
+    field:     { kind: 'field',   nature: 'structure', origin: 'blueprint', label: 'owner', icon: 'field', address: BP + '@incident&owner', meta: 'type: reference -> Agent' },
+    fieldNum:  { kind: 'field',   nature: 'structure', origin: 'blueprint', label: 'severity', icon: 'field', address: BP + '@incident&severity', meta: 'type: number (1-5)' },
+    markerDef: { kind: 'marker',  nature: 'structure', origin: 'blueprint', label: 'needs_review', icon: 'marker', address: BP + '@incident&needs_review', meta: 'type: boolean' },
+    matrix:    { kind: 'matrix',  nature: 'structure', origin: 'blueprint', label: 'risk-matrix', icon: 'grid', address: DOC + '@risk-matrix' },
+    axisRow:   { kind: 'axis',    nature: 'structure', origin: 'blueprint', label: 'row: likelihood', icon: 'axis', address: DOC + '@risk-matrix&likelihood' },
+    axisCol:   { kind: 'axis',    nature: 'structure', origin: 'blueprint', label: 'col: impact', icon: 'axis', address: DOC + '@risk-matrix&*&impact' },
+
+    element:   { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Library haunting', icon: 'dot', slot: 1, address: DOC + '@library-haunting' },
+    agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 2, address: DOC + '@slimer' },
+    vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', address: DOC + '@library-haunting&location', meta: 'field value' },
+    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1 },
+    vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.' },
+    vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'arrow', slot: 2, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer' },
+    vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell' },
+
+    sHeading:  { kind: 'header',  nature: 'content',   origin: 'source', label: '## Witness statements', icon: 'hash', address: 'sources/import/report-1984.md@## Witness statements' },
+    sColumn:   { kind: 'column',  nature: 'structure', origin: 'source', label: 'borough', icon: 'col', address: 'sources/import/sightings.csv@*&borough', note: 'A column-only address is not defined in the grammar today.' },
+    sRow:      { kind: 'row',     nature: 'content',   origin: 'source', label: 'S-0042', icon: 'row', address: 'sources/import/sightings.csv@S-0042' },
+    sCell:     { kind: 'value',   vtype: 'text', nature: 'content', origin: 'source', label: 'Manhattan', address: 'sources/import/sightings.csv@S-0042&borough', meta: 'CSV cell' },
+    sJson:     { kind: 'pointer', nature: 'content',   origin: 'source', label: '/items/0/name', icon: 'braces', address: 'sources/import/catalog.json@/items/0/name' }
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
+
+  function canEdit(u) {
+    return !(u.origin === 'source' || u.nature === 'container')
+  }
+
+  // THE single builder: every unit on the page goes through here.
+  function ku(key) {
+    var u = U[key]
+    var wrap = document.createElement('span')
+    wrap.className = 'ku-wrap'
+    var attrs = ' data-kind="' + u.kind + '" data-nature="' + u.nature + '" data-origin="' + u.origin + '"'
+    if (u.slot) attrs += ' data-slot="' + u.slot + '"'
+    if (u.vtype) attrs += ' data-vtype="' + u.vtype + '"'
+    if (u.changes) attrs += ' data-changes="' + u.changes + '"'
+    var inner = ''
+    if (u.icon) inner += '<span class="ico" aria-hidden="true">' + ICON[u.icon] + '</span>'
+    if (u.kind === 'value' && u.vtype) inner += '<span class="ty">' + u.vtype + '</span>'
+    inner += '<span class="t">' + esc(u.label) + '</span>'
+    if (u.changes) inner += '<span class="pip" title="Pending changes">' + u.changes + '</span>'
+    var html = '<span class="ku"' + attrs + ' title="' + esc(u.label) + '">' + inner + '</span>'
+    html += '<span class="ku-actions">'
+    html += '<button type="button" class="ku-act" data-act="info" data-key="' + key + '" aria-label="Info: ' + esc(u.label) + '">' + ICON.info + '</button>'
+    if (canEdit(u)) html += '<button type="button" class="ku-act" data-act="edit" data-nature="' + u.nature + '" data-key="' + key + '" aria-label="Edit: ' + esc(u.label) + '">' + ICON.edit + '</button>'
+    html += '</span>'
+    wrap.innerHTML = html
+    return wrap
+  }
+
+  function row(container, label, keys) {
+    var l = document.createElement('div')
+    l.className = 'lbl'
+    l.innerHTML = label
+    var v = document.createElement('div')
+    v.className = 'pair'
+    keys.forEach(function (k) { v.appendChild(ku(k)) })
+    container.appendChild(l)
+    container.appendChild(v)
+  }
+
+  var $ = function (id) { return document.getElementById(id) }
+
+  row($('sec-container'), '<b>Domain</b>', ['domain'])
+  row($('sec-container'), '<b>Document</b> (kNNowledge)', ['document'])
+
+  row($('sec-structure'), '<b>Concept</b>', ['concept'])
+  row($('sec-structure'), '<b>Field</b> (definition)', ['field', 'fieldNum'])
+  row($('sec-structure'), '<b>Marker</b> (definition)', ['markerDef'])
+  row($('sec-structure'), '<b>Matrix</b>', ['matrix'])
+  row($('sec-structure'), '<b>Matrix axes</b>', ['axisRow', 'axisCol'])
+
+  row($('sec-content'), '<b>Element</b>', ['element', 'agent'])
+  row($('sec-content'), '<b>Value</b> · field value', ['vText', 'vNum'])
+  row($('sec-content'), '<b>Value</b> · marker value', ['vMarker'])
+  row($('sec-content'), '<b>Value</b> · reference', ['vRef'])
+  row($('sec-content'), '<b>Value</b> · matrix cell', ['vCell'])
+
+  row($('sec-source'), '<b>Heading</b> (.md)', ['sHeading'])
+  row($('sec-source'), '<b>Column</b> (.csv)', ['sColumn'])
+  row($('sec-source'), '<b>Row</b> (.csv)', ['sRow'])
+  row($('sec-source'), '<b>Cell</b> (.csv)', ['sCell'])
+  row($('sec-source'), '<b>Node</b> (.json)', ['sJson'])
+
+  // Element card: field + value pairs, never a merged badge.
+  var card = $('ctx-card')
+  var head = document.createElement('div')
+  head.className = 'head'
+  head.appendChild(ku('concept'))
+  head.appendChild(ku('element'))
+  card.appendChild(head)
+  var dl = document.createElement('dl')
+  ;[['field', 'vRef'], ['fieldNum', 'vNum'], ['markerDef', 'vMarker']].forEach(function (p) {
+    var dt = document.createElement('dt'); dt.appendChild(ku(p[0]))
+    var dd = document.createElement('dd'); dd.appendChild(ku(p[1]))
+    dl.appendChild(dt); dl.appendChild(dd)
+  })
+  card.appendChild(dl)
+
+  // Matrix
+  var m = $('ctx-matrix')
+  var cols = ['minor', 'severe']
+  var rows = [['low', '2', '6'], ['high', '4', '12']]
+  var tr = document.createElement('tr')
+  var corner = document.createElement('th'); corner.appendChild(ku('matrix')); tr.appendChild(corner)
+  cols.forEach(function (c) {
+    U['mc-' + c] = { kind: 'axis', nature: 'structure', origin: 'blueprint', label: 'impact: ' + c, icon: 'axis', address: DOC + '@risk-matrix&*&' + c }
+    var th = document.createElement('th'); th.appendChild(ku('mc-' + c)); tr.appendChild(th)
+  })
+  m.appendChild(tr)
+  rows.forEach(function (r) {
+    var tr2 = document.createElement('tr')
+    U['mr-' + r[0]] = { kind: 'axis', nature: 'structure', origin: 'blueprint', label: 'likelihood: ' + r[0], icon: 'axis', address: DOC + '@risk-matrix&' + r[0] }
+    var th = document.createElement('th'); th.appendChild(ku('mr-' + r[0])); tr2.appendChild(th)
+    cols.forEach(function (c, i) {
+      var k = 'm-' + r[0] + '-' + c
+      U[k] = { kind: 'value', vtype: 'number', nature: 'content', origin: 'knowledge', label: r[i + 1], address: DOC + '@risk-matrix&' + r[0] + '&' + c, meta: 'matrix cell' }
+      var td = document.createElement('td'); td.appendChild(ku(k)); tr2.appendChild(td)
+    })
+    m.appendChild(tr2)
+  })
+
+  // CSV source
+  var csv = $('ctx-csv')
+  var csvCols = ['id', 'borough', 'entity']
+  var csvRows = [['S-0042', 'Manhattan', 'Class IV'], ['S-0043', 'Queens', 'Class II']]
+  var h = document.createElement('tr')
+  csvCols.forEach(function (c) {
+    U['cc-' + c] = { kind: 'column', nature: 'structure', origin: 'source', label: c, icon: 'col', address: 'sources/import/sightings.csv@*&' + c, note: 'A column-only address is not defined in the grammar today.' }
+    var th = document.createElement('th'); th.appendChild(ku('cc-' + c)); h.appendChild(th)
+  })
+  csv.appendChild(h)
+  csvRows.forEach(function (r) {
+    var tr3 = document.createElement('tr')
+    r.forEach(function (val, i) {
+      var k = 'cv-' + r[0] + '-' + i
+      U[k] = i === 0
+        ? { kind: 'row', nature: 'content', origin: 'source', label: val, icon: 'row', address: 'sources/import/sightings.csv@' + val }
+        : { kind: 'value', vtype: 'text', nature: 'content', origin: 'source', label: val, address: 'sources/import/sightings.csv@' + r[0] + '&' + csvCols[i], meta: 'CSV cell' }
+      var td = document.createElement('td'); td.appendChild(ku(k)); tr3.appendChild(td)
+    })
+    csv.appendChild(tr3)
+  })
+
+  // Info panel
+  function editabilityText(u) {
+    if (u.origin === 'source') return 'Never (cited evidence)'
+    if (u.nature === 'container') return 'No (open decision)'
+    if (u.nature === 'structure') return 'Review mode + "Edit structure" on'
+    return 'Review mode'
+  }
+  function showInfo(key) {
+    var u = U[key]
+    var lines = [
+      ['Kind', u.kind + (u.vtype ? ' (' + u.vtype + ')' : '')],
+      ['Nature', u.nature],
+      ['Lives in', { domain: 'domaiNN', blueprint: 'bluepriNNt', knowledge: 'kNNowledge', source: 'Source' }[u.origin]],
+      ['Address', u.address ? '<code>' + esc(u.address) + '</code>' : '<i>none</i>'],
+      ['Editable', editabilityText(u)]
+    ]
+    if (u.meta) lines.splice(1, 0, ['Detail', esc(u.meta)])
+    var html = '<dl>' + lines.map(function (r) { return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>' }).join('') + '</dl>'
+    if (u.note) html += '<p class="empty" style="margin-top:10px">Gap: ' + esc(u.note) + '</p>'
+    $('info-body').innerHTML = html
+  }
+
+  var toastTimer
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('on')
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('on') }, 1800)
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.ku-act')
+    if (b) {
+      if (b.dataset.act === 'info') showInfo(b.dataset.key)
+      else toast('EditModal would open for: ' + U[b.dataset.key].label)
+      return
+    }
+    var mb = e.target.closest('[data-mode-btn]')
+    if (mb) {
+      document.body.dataset.mode = mb.dataset.modeBtn
+      document.querySelectorAll('[data-mode-btn]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === mb)) })
+    }
+  })
+  $('structure-toggle').addEventListener('change', function (e) {
+    document.body.dataset.structure = e.target.checked ? 'on' : 'off'
+  })
+})()
+</script>
+</body>
+</html>

@@ -538,3 +538,84 @@ describe('S2b review follow-up: remove refreshes decorations and counts', () => 
     assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*0/)
   })
 })
+
+describe('global filter and view reactivity', () => {
+  it('exposes ctx.filter with getQuery, getElements, and onChange', () => {
+    const { ctxs } = bootViews([def('alpha')])
+    assert.ok(ctxs.alpha.filter, 'ctx.filter is defined')
+    assert.equal(typeof ctxs.alpha.filter.getQuery, 'function')
+    assert.equal(typeof ctxs.alpha.filter.getElements, 'function')
+    assert.equal(typeof ctxs.alpha.filter.onChange, 'function')
+    assert.equal(ctxs.alpha.filter.getQuery(), '')
+    assert.equal(ctxs.alpha.filter.getElements().length, 1)
+  })
+
+  it('notifies ctx.filter.onChange when omnibar search changes', () => {
+    const { dom, document, ctxs } = bootViews([def('alpha')])
+    const events = []
+    const off = ctxs.alpha.filter.onChange((els, q) => {
+      events.push({ count: els.length, q })
+    })
+
+    const search = document.getElementById('innfo-search')
+    search.value = 'ecto'
+    search.dispatchEvent(new dom.window.Event('input'))
+
+    assert.equal(events.length, 1)
+    assert.equal(events[0].count, 1)
+    assert.equal(events[0].q, 'ecto')
+
+    search.value = 'role:nonexistent'
+    search.dispatchEvent(new dom.window.Event('input'))
+
+    assert.equal(events.length, 2)
+    assert.equal(events[0].count, 1)
+    assert.equal(events[1].count, 0)
+    assert.equal(events[1].q, 'role:nonexistent')
+
+    off()
+    search.value = ''
+    search.dispatchEvent(new dom.window.Event('input'))
+    assert.equal(events.length, 2, 'unsubscribed listener is not called')
+  })
+
+  it('invokes view.onFilter hook when returned from mount', () => {
+    let hookCalls = []
+    const { dom, document } = bootViews([
+      def('alpha', {
+        mount() {
+          return {
+            onFilter(els, q) {
+              hookCalls.push({ count: els.length, q })
+            },
+          }
+        },
+      }),
+    ])
+
+    const search = document.getElementById('innfo-search')
+    search.value = 'ecto'
+    search.dispatchEvent(new dom.window.Event('input'))
+
+    assert.equal(hookCalls.length, 1)
+    assert.equal(hookCalls[0].count, 1)
+    assert.equal(hookCalls[0].q, 'ecto')
+  })
+
+  it('keeps toolbar visible on tab switch and typing does not switch away from active tab', () => {
+    const { dom, document } = bootViews([def('alpha'), def('beta')])
+    const betaTab = document.querySelector('.innfo-view-tab[data-tab="beta"]')
+    betaTab.click()
+
+    const toolbar = document.querySelector('.innfo-toolbar')
+    assert.notEqual(toolbar.style.display, 'none', 'toolbar is visible in beta tab')
+
+    const search = document.getElementById('innfo-search')
+    search.value = 'role:Interceptor'
+    search.dispatchEvent(new dom.window.Event('input'))
+
+    const activeTab = document.querySelector('.innfo-view-tab.active')
+    assert.equal(activeTab.dataset.tab, 'beta', 'typing in omnibar preserves the active tab')
+  })
+})
+
