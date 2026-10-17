@@ -49,11 +49,10 @@ function fixtureTree() {
   fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0', 'template_version'));
   // level-2 template with no frontmatter blueprint_version — skipped with a warning
   fs.writeFileSync(path.join(t, 'draft', 'spec_NN.md'), spec('https://x/draft/spec_NN.md', 2, null));
-  // frozen lineage templates — cogNNitive + base must land in `frozen`, not `templates`.
+  // frozen lineage templates — cogNNitive must land in `frozen`, not `blueprints`.
   // The real frozen files carry `template_version` (never `blueprint_version`) and are
   // byte-frozen, so the generator must read the field they actually have.
   fs.writeFileSync(path.join(t, 'cogNNitive', 'spec_NN.md'), spec('https://x/cogNNitive/spec_NN.md', 2, 'V_0-2-0', 'template_version'));
-  fs.writeFileSync(path.join(t, 'base', 'spec_NN.md'), spec('https://x/base/spec_NN.md', 2, 'V_0-1-0', 'template_version'));
   return root;
 }
 
@@ -95,19 +94,16 @@ async function runTests() {
       console.log('✔ generator emits correct catalog (frontmatter versions, adopted, level-3 excluded, canonical names)');
     }
 
-    // Test 1a: frozen partition — cogNNitive + base under `frozen`, absent from `templates`
+    // Test 1a: frozen partition — cogNNitive + workspace under `frozen`, absent from `blueprints`
     {
       const catalog = JSON.parse(fs.readFileSync(out, 'utf-8'));
       assert.ok('frozen' in catalog, 'catalog carries a top-level frozen partition');
       assert.ok('cogNNitive' in catalog.frozen, 'cogNNitive recorded under frozen');
-      assert.ok('base' in catalog.frozen, 'base recorded under frozen');
       assert.ok('workspace' in catalog.frozen, 'workspace recorded under frozen');
       assert.ok(!('cogNNitive' in catalog.blueprints), 'cogNNitive dropped from blueprints');
-      assert.ok(!('base' in catalog.blueprints), 'base dropped from blueprints');
       assert.ok(!('workspace' in catalog.blueprints), 'workspace dropped from blueprints');
       assert.strictEqual(catalog.frozen.cogNNitive.adopted, 'V_0-2-0', 'frozen cogNNitive adopted version preserved');
-      assert.strictEqual(catalog.frozen.base.adopted, 'V_0-1-0', 'frozen base adopted version preserved');
-      console.log('✔ frozen partition emits cogNNitive + base and drops them from templates');
+      console.log('✔ frozen partition emits cogNNitive and drops it from blueprints');
     }
 
     // Test 2: --check passes on a fresh catalog

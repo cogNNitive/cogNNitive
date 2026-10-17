@@ -17,7 +17,6 @@ title: "Ghostbusters Inc. Operations Workspace"
 * [[Sources]]
 * [[Procedures]]
 * [[Artifacts]]
-* [[Tags]]
 
 # NN Workspace
 
@@ -25,32 +24,6 @@ title: "Ghostbusters Inc. Operations Workspace"
 knowledge_dir:: kNNowledge/
 sources_dir:: sources/
 Primary operational workspace for Ghostbusters Inc. paranormal investigation, containment engineering, and elimination services across the New York metropolitan area.
-
-# NN Tags
-
-## NN Tags: Strategic
-color:: #3b82f6
-icon:: target
-description:: High-level business models, market positioning, and executive strategy.
-Strategic and commercial definitions governing enterprise direction and market expansion.
-
-## NN Tags: Operational
-color:: #10b981
-icon:: activity
-description:: Daily tactical execution, field procedures, and team deployment.
-Operational workflows, field standard operating procedures, and containment operations.
-
-## NN Tags: Engineering
-color:: #8b5cf6
-icon:: cpu
-description:: Hardware research, containment tech, and technical specs.
-Proton pack specifications, muon trap calibration, and containment grid architecture.
-
-## NN Tags: Governance
-color:: #f59e0b
-icon:: shield-check
-description:: City compliance, safety protocols, and organizational hierarchy.
-Regulatory compliance with NYC environmental agencies and corporate governance structure.
 
 # NN Models
 

@@ -103,25 +103,3 @@ path:: artifacts/artifacts_NN.md
 blueprint:: artifacts
 status:: active
 author:: Lead Maintainer
-
-# NN Tags
-
-## NN Tags: architecture
-color:: #3b82f6
-icon:: layers
-description:: Core semantic architecture, specs, and metamodels.
-
-## NN Tags: engineering
-color:: #10b981
-icon:: git-branch
-description:: Engineering workflows, CI pipelines, and lifecycle tooling.
-
-## NN Tags: strategy
-color:: #8b5cf6
-icon:: lightbulb
-description:: High-level strategy, market positioning, and planning.
-
-## NN Tags: operations
-color:: #f59e0b
-icon:: workflow
-description:: Standard operating procedures and daily execution.

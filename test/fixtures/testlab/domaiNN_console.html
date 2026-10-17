@@ -8494,36 +8494,43 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the element."
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
+          "scope": "concept",
           "description": "Very long inline description used to stress-test rendering of large text fields."
         },
         {
           "name": "manual",
           "type": "markdown_file",
+          "scope": "concept",
           "description": "External markdown file attached to the element."
         },
         {
           "name": "photo",
           "type": "image",
+          "scope": "concept",
           "description": "Image attached to the element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the element."
         },
         {
           "name": "demo_video",
           "type": "video",
+          "scope": "concept",
           "description": "Downloaded video asset attached to the element."
         },
         {
           "name": "voice_note",
           "type": "audio",
+          "scope": "concept",
           "description": "Downloaded and transcribed audio asset attached to the element."
         },
         {
@@ -8532,6 +8539,7 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Concept 2"
           ],
+          "scope": "concept",
           "description": "Reference to an element of Concept 2."
         },
         {
@@ -8542,7 +8550,15 @@ input[type="text"], input[type="search"], textarea, select {
             "reviewed",
             "published"
           ],
+          "scope": "concept",
           "description": "Lifecycle status of the element."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8557,11 +8573,13 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the element."
         },
         {
@@ -8570,7 +8588,15 @@ input[type="text"], input[type="search"], textarea, select {
           "target_concepts": [
             "Concept 1"
           ],
+          "scope": "concept",
           "description": "Reference back to an element of Concept 1."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8585,22 +8611,33 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "One-line summary of the edge-case element."
         },
         {
           "name": "long_description",
           "type": "markdown_inline",
+          "scope": "concept",
           "description": "Very long inline description used to stress-test rendering of large text fields."
         },
         {
           "name": "photo",
           "type": "image",
+          "scope": "concept",
           "description": "Image attached to the edge-case element."
         },
         {
           "name": "attachment",
           "type": "file",
+          "scope": "concept",
           "description": "Generic file attached to the edge-case element."
+        },
+        {
+          "name": "tags",
+          "type": "select",
+          "scope": "*",
+          "multiple": true,
+          "description": "Open vocabulary ad-hoc tags and classification labels."
         }
       ]
     },
@@ -8621,31 +8658,37 @@ input[type="text"], input[type="search"], textarea, select {
             "reporting",
             "custom"
           ],
+          "scope": "concept",
           "description": "Functional classification of the procedure workflow."
         },
         {
           "name": "summary",
           "type": "string",
+          "scope": "concept",
           "description": "Mandatory concise summary of the workflow intent and transformation steps."
         },
         {
           "name": "inputs_required",
           "type": "string",
+          "scope": "concept",
           "description": "References to required Source or Model concepts consumed as inputs."
         },
         {
           "name": "outputs_expected",
           "type": "string",
+          "scope": "concept",
           "description": "References to expected Artifact concepts produced by the procedure."
         },
         {
           "name": "executed_by",
           "type": "string",
+          "scope": "concept",
           "description": "Reference to responsible agent or functional role executing the procedure."
         },
         {
           "name": "procedure_model",
           "type": "knowledge",
+          "scope": "concept",
           "description": "Link to concrete procedure definition or executable stepper model _NN.md."
         }
       ]
@@ -8664,50 +8707,58 @@ input[type="text"], input[type="search"], textarea, select {
             "task",
             "decision",
             "event"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "parent",
           "type": "reference",
           "target_concepts": [
             "Work"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "next",
           "type": "reference",
           "target_concepts": [
             "Work"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "condition",
-          "type": "string"
+          "type": "string",
+          "scope": "concept"
         },
         {
           "name": "input",
           "type": "reference",
           "target_concepts": [
             "Artifact"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "output",
           "type": "reference",
           "target_concepts": [
             "Artifact"
-          ]
+          ],
+          "scope": "concept"
         },
         {
           "name": "output_status",
-          "type": "string"
+          "type": "string",
+          "scope": "concept"
         },
         {
           "name": "tool",
           "type": "reference",
           "target_concepts": [
             "Tools"
-          ]
+          ],
+          "scope": "concept"
         }
       ]
     },
@@ -8738,7 +8789,8 @@ input[type="text"], input[type="search"], textarea, select {
           "options": [
             "internal",
             "external"
-          ]
+          ],
+          "scope": "concept"
         }
       ]
     }
@@ -8748,42 +8800,49 @@ input[type="text"], input[type="search"], textarea, select {
       "concept": "Concept 1",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the element."
     },
     {
       "concept": "Concept 1",
       "name": "long_description",
       "type": "markdown_inline",
+      "scope": "concept",
       "description": "Very long inline description used to stress-test rendering of large text fields."
     },
     {
       "concept": "Concept 1",
       "name": "manual",
       "type": "markdown_file",
+      "scope": "concept",
       "description": "External markdown file attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "photo",
       "type": "image",
+      "scope": "concept",
       "description": "Image attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "demo_video",
       "type": "video",
+      "scope": "concept",
       "description": "Downloaded video asset attached to the element."
     },
     {
       "concept": "Concept 1",
       "name": "voice_note",
       "type": "audio",
+      "scope": "concept",
       "description": "Downloaded and transcribed audio asset attached to the element."
     },
     {
@@ -8793,6 +8852,7 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Concept 2"
       ],
+      "scope": "concept",
       "description": "Reference to an element of Concept 2."
     },
     {
@@ -8804,18 +8864,29 @@ input[type="text"], input[type="search"], textarea, select {
         "reviewed",
         "published"
       ],
+      "scope": "concept",
       "description": "Lifecycle status of the element."
+    },
+    {
+      "concept": "Concept 1",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Concept 2",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the element."
     },
     {
       "concept": "Concept 2",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the element."
     },
     {
@@ -8825,31 +8896,52 @@ input[type="text"], input[type="search"], textarea, select {
       "target_concepts": [
         "Concept 1"
       ],
+      "scope": "concept",
       "description": "Reference back to an element of Concept 1."
+    },
+    {
+      "concept": "Concept 2",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Edge Cases",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "One-line summary of the edge-case element."
     },
     {
       "concept": "Edge Cases",
       "name": "long_description",
       "type": "markdown_inline",
+      "scope": "concept",
       "description": "Very long inline description used to stress-test rendering of large text fields."
     },
     {
       "concept": "Edge Cases",
       "name": "photo",
       "type": "image",
+      "scope": "concept",
       "description": "Image attached to the edge-case element."
     },
     {
       "concept": "Edge Cases",
       "name": "attachment",
       "type": "file",
+      "scope": "concept",
       "description": "Generic file attached to the edge-case element."
+    },
+    {
+      "concept": "Edge Cases",
+      "name": "tags",
+      "type": "select",
+      "scope": "*",
+      "multiple": true,
+      "description": "Open vocabulary ad-hoc tags and classification labels."
     },
     {
       "concept": "Procedure",
@@ -8862,36 +8954,42 @@ input[type="text"], input[type="search"], textarea, select {
         "reporting",
         "custom"
       ],
+      "scope": "concept",
       "description": "Functional classification of the procedure workflow."
     },
     {
       "concept": "Procedure",
       "name": "summary",
       "type": "string",
+      "scope": "concept",
       "description": "Mandatory concise summary of the workflow intent and transformation steps."
     },
     {
       "concept": "Procedure",
       "name": "inputs_required",
       "type": "string",
+      "scope": "concept",
       "description": "References to required Source or Model concepts consumed as inputs."
     },
     {
       "concept": "Procedure",
       "name": "outputs_expected",
       "type": "string",
+      "scope": "concept",
       "description": "References to expected Artifact concepts produced by the procedure."
     },
     {
       "concept": "Procedure",
       "name": "executed_by",
       "type": "string",
+      "scope": "concept",
       "description": "Reference to responsible agent or functional role executing the procedure."
     },
     {
       "concept": "Procedure",
       "name": "procedure_model",
       "type": "knowledge",
+      "scope": "concept",
       "description": "Link to concrete procedure definition or executable stepper model _NN.md."
     },
     {
@@ -8902,7 +9000,8 @@ input[type="text"], input[type="search"], textarea, select {
         "task",
         "decision",
         "event"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8910,7 +9009,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Work"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8918,12 +9018,14 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Work"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
       "name": "condition",
-      "type": "string"
+      "type": "string",
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8931,7 +9033,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Artifact"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8939,12 +9042,14 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Artifact"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Work",
       "name": "output_status",
-      "type": "string"
+      "type": "string",
+      "scope": "concept"
     },
     {
       "concept": "Work",
@@ -8952,7 +9057,8 @@ input[type="text"], input[type="search"], textarea, select {
       "type": "reference",
       "target_concepts": [
         "Tools"
-      ]
+      ],
+      "scope": "concept"
     },
     {
       "concept": "Roles",
@@ -8961,28 +9067,11 @@ input[type="text"], input[type="search"], textarea, select {
       "options": [
         "internal",
         "external"
-      ]
+      ],
+      "scope": "concept"
     }
   ],
   "markers": [
-    {
-      "name": "critical",
-      "symbol": "!",
-      "icon": "alert-triangle",
-      "color": "red",
-      "applies_to": [
-        "Element"
-      ]
-    },
-    {
-      "name": "archived",
-      "symbol": "A",
-      "icon": "archive",
-      "color": "gray",
-      "applies_to": [
-        "Element"
-      ]
-    },
     {
       "name": "complexity",
       "icon": "gauge",
@@ -9056,9 +9145,9 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-846d8bcb",
-    "generated": "2026-10-17T10:21:05.550Z",
-    "changesBlueprintVersion": "V_0-4-0",
+    "domainId": "testlab-fc520327",
+    "generated": "2026-10-17T13:12:48.336Z",
+    "changesBlueprintVersion": "V_0-5-0",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -9067,7 +9156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T10:21:05.523Z",
+        "citationsResolvedAt": "2026-10-17T13:12:48.257Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9085,7 +9174,7 @@ input[type="text"], input[type="search"], textarea, select {
         "filePath": "TestLab_procedures_TestLab_procedures_NN.md",
         "blueprint": "procedures",
         "version": "V_0-1-0",
-        "sha256": "8958a48166d3d87a1f17c6ba8420f6e69aa0cac1ea6038a9c06ece96f475fdc9",
+        "sha256": "3afe1fd065960ad31b40173b2e98f331fbf7c2e7a164f57bf07eb95e860413e9",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"

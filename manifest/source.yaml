@@ -140,10 +140,6 @@ frozen_blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md
     ref_key: blueprints
-  - name: base
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/base/spec_NN.md
-    ref_key: blueprints
   - name: workspace
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/workspace_spec_NN.md
