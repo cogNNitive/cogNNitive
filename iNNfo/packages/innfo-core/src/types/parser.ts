@@ -171,7 +171,6 @@ export interface SpecFrontmatter {
   spec_version: string
   spec_url: string
   level: SpecLevel
-  model_slug?: string
   knowledge_slug?: string
   workspace_id?: string
   parent?: string | ParentRef

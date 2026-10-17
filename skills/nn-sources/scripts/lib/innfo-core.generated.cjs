@@ -7668,6 +7668,7 @@ function ensureNNFilename(name) {
 
 // iNNfo/packages/innfo-core/src/sourceRef.ts
 var SLUG = "[a-z0-9]+(?:-[a-z0-9]+)*";
+var MODEL_ID = "[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*";
 var SOURCE_FIELD_NAMES = /* @__PURE__ */ new Set(["sources", "source"]);
 function parseSourceRef(input) {
   if (!input || typeof input !== "string") return null;
@@ -7888,7 +7889,7 @@ function resolveUnitPath(rawPath) {
   const isCsv = /\.csv$/i.test(forward);
   const isJson = /\.json$/i.test(forward);
   if (!isMd && !isCsv && !isJson) {
-    if (new RegExp(`^${SLUG}$`).test(trimmed)) {
+    if (new RegExp(`^${MODEL_ID}$`).test(trimmed)) {
       return { filePath: trimmed, kind: "model" };
     }
     return null;

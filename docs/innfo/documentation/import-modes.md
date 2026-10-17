@@ -184,7 +184,9 @@ Adding `--plan` turns the proposal into ONE `propose_changeset` payload
 (`operations`: one `add_element` per new key, one `update_field` per changed value
 for `replace-values`, each citing the target snapshot through `sources`, and at
 most one trailing `bump_version` whose `to` names the level); it requires the
-family to declare a target `concept::` and the `model::` slug. `upsert` never overwrites a changed value — those
+family to declare a target `concept::` and the `model::` slug. Inside one
+changeset the `bump_version` replaces the default patch bump, so the model is
+bumped once. `upsert` never overwrites a changed value — those
 values arrive under `review` for an explicit decision.
 
 Applying the plan is a normal reviewed mutation — a diff preview, a

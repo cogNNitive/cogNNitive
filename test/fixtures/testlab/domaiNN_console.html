@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vcOGRBonNnbkOt5hWRput2SCGb1MkwH14mcmzj9cGu4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-7HXr7LDN+7EifjKQbyo8Ye1l6uqR/OqkrS+2zEBg/1k=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9056,9 +9056,9 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-c992db83",
-    "generated": "2026-10-17T09:20:52.704Z",
-    "changesBlueprintVersion": "V_0-3-1",
+    "domainId": "testlab-846d8bcb",
+    "generated": "2026-10-17T10:21:05.550Z",
+    "changesBlueprintVersion": "V_0-4-0",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-17T09:20:52.658Z",
+        "citationsResolvedAt": "2026-10-17T10:21:05.523Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9157,13 +9157,13 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Photo log element with image and file fields.",
         "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
-        "photo": "./test/fixtures/testlab/sources/import/photo.png",
+        "photo": "./sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "sibling": "[[Element 2A]]",
         "status": "reviewed"
       },
@@ -9269,7 +9269,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
         ],
         "summary": "Shift owner element.",
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1A]]"
       },
       "markers": {},
@@ -9314,7 +9314,7 @@ input[type="text"], input[type="search"], textarea, select {
           "test/fixtures/testlab/sources/import/dataset.csv@m-002"
         ],
         "summary": "Handover owner element.",
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt",
+        "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1C (test)]]"
       },
       "markers": {},
@@ -9360,13 +9360,13 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe that image traceability resolves through the sidecar.",
         "long_description": "This probe cites the photo sidecar caption, never the binary. A resolver that accepts a direct photo.png citation without the sidecar is wrong.",
-        "photo": "./test/fixtures/testlab/sources/import/photo.png",
+        "photo": "./sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
           "source": "field photo 2026-10-07"
         },
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "35ccda5bf585eb0a",
@@ -9591,8 +9591,8 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe with a very long inline description field.",
         "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
-        "photo": "./test/fixtures/testlab/sources/import/photo.png",
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
+        "photo": "./sources/import/photo.png",
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "bf368406030a5fd9",
@@ -9631,7 +9631,7 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Probe for the generic file field type.",
         "long_description": "The attachment field points at the plain-text manual stand-in. It exercises the file type path without involving image, video, or audio rendering.",
-        "attachment": "./test/fixtures/testlab/sources/import/manual.txt"
+        "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
       "hash": "d252f224724d06ce",
@@ -15367,7 +15367,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return raw || 'feedback'
   }
 
-  // D4: exports are named after the immutable model_slug, never the human
+  // D4: exports are named after the immutable knowledge_slug, never the human
   // title. An explicit slug wins; otherwise the model id (then title) is slugified.
   function modelSlugOf(state) {
     var s = isObject(state) ? state : {}
@@ -21126,8 +21126,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scopedView
-        ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
-        : meta.model_slug || meta.modelSlug || undefined,
+        ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
+        : meta.knowledge_slug || meta.modelSlug || undefined,
       sourceSha256:
       (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
       meta.sha256 ||

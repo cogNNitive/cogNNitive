@@ -1,7 +1,7 @@
 ---
 spec_version: "V_0-4-0"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"
-model_slug: "blankmodel"
+knowledge_slug: "blankmodel"
 level: 3
 parent_spec:
   name: "blank_V_0-2-0"

@@ -177,8 +177,8 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     if (fm.spec_url) {
       lines.push(`spec_url: "${fm.spec_url}"`)
     }
-    if (fm.model_slug) {
-      lines.push(`model_slug: "${fm.model_slug}"`)
+    if (fm.knowledge_slug) {
+      lines.push(`knowledge_slug: "${fm.knowledge_slug}"`)
     }
     if (fm.workspace_id) {
       lines.push(`workspace_id: "${fm.workspace_id}"`)

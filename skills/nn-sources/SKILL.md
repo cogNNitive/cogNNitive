@@ -339,7 +339,9 @@ Add `--plan` to emit ONE `innfo-mcp_propose_changeset` payload (requires
 `update_field` per changed value **only for `replace-values`** (`upsert` returns
 changed values under `review`), each citing the target snapshot through
 `sources`, plus at most one trailing `bump_version` whose `to` names the level
-(a changeset bumps each model once). Removed keys are never an operation.
+(inside one changeset the `bump_version` replaces the default patch bump, so the
+model is bumped once, whereas each bare `apply_change` call is its own changeset).
+Removed keys are never an operation.
 
 Apply the proposal through the reviewed mutation path (pass the plan's `operations` to a
 single `innfo-mcp_propose_changeset`, then `apply_change` on the user's OK and

@@ -125,8 +125,23 @@ matrices:
     const citedChangeName = 'acme_agent_20261016T120000Z_changes_NN.md'
     const unreferencedChangeName = 'test_exploratory_20261016T120500Z_changes_NN.md'
 
-    await writeFile(join(changesDir, citedChangeName), '# Changeset 1')
-    await writeFile(join(changesDir, unreferencedChangeName), '# Changeset 2')
+    const appliedChangeset = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: "changes"
+  url: "specs/changes_V_0-1-0_NN.md"
+blueprint_version: "V_0-1-0"
+status: applied
+---
+
+## NN Change: c-01
+op:: update_field
+target:: model@item&name
+to:: x
+`
+    await writeFile(join(changesDir, citedChangeName), appliedChangeset)
+    await writeFile(join(changesDir, unreferencedChangeName), appliedChangeset)
 
     // Knowledge model citing citedChangeName
     const modelContent = `---

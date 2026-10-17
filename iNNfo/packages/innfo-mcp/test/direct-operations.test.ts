@@ -113,8 +113,7 @@ describe('direct apply_change operations are a closed, classified set', () => {
   })
 
   it.each([
-    ['freeze_slugs', 'strategy', {}],
-    ['bump_version', 'strategy', { bump: 'patch' }],
+    ['bump_version', 'tpl', { bump: 'patch' }],
     ['add_concept', 'tpl', { conceptName: 'Risk' }],
     ['add_field', 'tpl', { conceptName: 'Work', fieldName: 'owner' }],
     ['set_marker', 'tpl', { markerName: 'priority' }],
@@ -128,10 +127,8 @@ describe('direct apply_change operations are a closed, classified set', () => {
     const files = await readdir(knowledgeDir)
     const written = files.filter((f) => f.startsWith(id))
     expect(written.length).toBeGreaterThan(0)
-    if (op !== 'freeze_slugs') {
-      const after = await readFile(res.newPath ?? sourceFile, 'utf-8')
-      expect(after).not.toBe(before)
-    }
+    const after = await readFile(res.newPath ?? sourceFile, 'utf-8')
+    expect(after).not.toBe(before)
     expect(existsSync(changesDir)).toBe(false)
   })
 
@@ -179,6 +176,7 @@ title: "Strategy lineage"
     const res = await applyChange(root, 'strategy_cogNNitive', 'bump_version', { bump: 'patch' })
     expect(res.success).toBe(false)
     expect(res.errors![0].message).toMatch(/lineage record is unversioned/i)
+    expect(existsSync(changesDir)).toBe(false)
     expect(await readFile(join(knowledgeDir, 'strategy_cogNNitive_NN.md'), 'utf-8')).toBe(record)
   })
 })

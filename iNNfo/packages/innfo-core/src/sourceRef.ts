@@ -75,6 +75,13 @@ export type Citation = SourceRef & { legacyHash?: true }
 const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
 /**
+ * A model id: the `<stem>` of `kNNowledge/<stem>_NN.md`. Stems keep their case
+ * and may contain underscores and hyphens (`cognnitive_repository`,
+ * `Client_business`); they never contain dots, spaces or separators.
+ */
+const MODEL_ID = '[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*'
+
+/**
  * Field names (case-insensitive, caller lowercases before checking) that hold
  * source Citations. THE single definition, shared by the writer
  * (`parser/serializer.ts`, citation-list serialization) and both readers
@@ -462,7 +469,7 @@ export function resolveUnitPath(
   const isCsv = /\.csv$/i.test(forward)
   const isJson = /\.json$/i.test(forward)
   if (!isMd && !isCsv && !isJson) {
-    if (new RegExp(`^${SLUG}$`).test(trimmed)) {
+    if (new RegExp(`^${MODEL_ID}$`).test(trimmed)) {
       return { filePath: trimmed, kind: 'model' }
     }
     return null

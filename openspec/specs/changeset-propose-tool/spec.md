@@ -75,3 +75,16 @@ MUST be the Level-3 changeset frontmatter in every case.
 - THEN its frontmatter has `level: 3` and `parent_spec.name: changes`
 - AND it is sealed by the same writer used by `propose_changeset`
 
+### Requirement: Model-level maintenance operations in a proposal
+
+`propose_changeset` MUST accept `freeze_slugs` and `bump_version` operations. Both target a bare model id (no `@` or `&`). `bump_version` MUST carry `to` set to `patch`, `minor` or `major`; any other value MUST be reported as an `INVALID_OPERATION` error and nothing is written. The `sources` key of an operation is a single citation string, never an array.
+
+#### Scenario: Valid maintenance proposal
+- GIVEN operations `bump_version` (`to:: minor`) and `freeze_slugs` targeting an existing model
+- WHEN `propose_changeset` runs
+- THEN a sealed changeset is written
+
+#### Scenario: Bad bump level
+- GIVEN a `bump_version` operation with `to:: huge`
+- WHEN `propose_changeset` runs
+- THEN it returns an error and writes nothing

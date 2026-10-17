@@ -1,5 +1,5 @@
 import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
-import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
+import { basename, dirname, join, relative, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
   serializeKnowledge,
@@ -19,8 +19,9 @@ import {
   evaluateBatchDeleteImpact,
   partitionChangeset,
   formatUtcStamp,
-  escapeRegex,
   isChangeOp,
+  isBumpLevel,
+  BUMP_LEVELS,
   createFsSourceResolver,
   resolveCitation,
   scaffoldKnowledgeDocument,
@@ -34,14 +35,15 @@ import type {
   ChangeItem,
   ModelVersionTransition,
   ChangeStatus,
+  BumpLevel,
 } from '@cognnitive/innfo-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId } from './spec.js'
 import { writeProposedChangeset } from './propose-changeset.js'
-import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
+
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
-import { createSpecsBackupZip } from './spec-backup.js'
+
 import { loadKnowledge, saveKnowledge, resolveBlueprintForKnowledge } from './knowledge-io.js'
-import { DEFAULT_WORKSPACE_IGNORE } from './validate.js'
+import { DEFAULT_WORKSPACE_IGNORE, validateBlueprint } from './validate.js'
 
 export interface ApplyChangeResult {
   success: boolean
@@ -59,8 +61,6 @@ export interface ApplyChangeResult {
   createdModels?: string[]
 }
 
-/** Matches the `_V_<major>-<minor>-<patch>_` segment in iNNfo filenames. */
-const VERSION_FILENAME_RE = /_V_\d+-\d+-\d+_/
 
 interface VersionParts {
   major: number
@@ -100,9 +100,17 @@ function computeNewVersion(
   if (!current) return null
   const parts = parseVersion(current)
   if (!parts) return null
-  if (bump === 'major') parts.major += 1
-  else if (bump === 'minor') parts.minor += 1
-  else parts.patch += 1
+  // Semantic versioning: a higher level resets every lower one.
+  if (bump === 'major') {
+    parts.major += 1
+    parts.minor = 0
+    parts.patch = 0
+  } else if (bump === 'minor') {
+    parts.minor += 1
+    parts.patch = 0
+  } else {
+    parts.patch += 1
+  }
   return { version: formatVersion(parts) }
 }
 
@@ -140,127 +148,27 @@ async function findAllWorkspaceModelFiles(
   return results
 }
 
-function cascadeModelReferences(
-  model: ParsedKnowledge,
-  oldBase: string,
-  newBase: string,
-): boolean {
-  const oldStem = oldBase.replace(/\.md$/i, '')
-  const newStem = newBase.replace(/\.md$/i, '')
-  const wikiLinkRe = new RegExp(`\\[\\[${escapeRegex(oldStem)}(\\s*(?:::|\\]\\]))`, 'g')
-
-  let changed = false
-
-  const updateStr = (val: string): string => {
-    let next = val
-    if (next.includes(oldBase)) {
-      next = next.replaceAll(oldBase, newBase)
-      changed = true
-    }
-    if (wikiLinkRe.test(next)) {
-      next = next.replaceAll(wikiLinkRe, `[[${newStem}$1`)
-      changed = true
-    }
-    if (next.trim() === oldStem) {
-      next = newStem
-      changed = true
-    }
-    return next
-  }
-
-  const updateValue = (v: unknown): unknown => {
-    if (typeof v === 'string') return updateStr(v)
-    if (Array.isArray(v)) return v.map(updateValue)
-    if (v && typeof v === 'object') {
-      const obj = { ...(v as Record<string, unknown>) }
-      for (const [k, val] of Object.entries(obj)) {
-        obj[k] = updateValue(val)
-      }
-      return obj
-    }
-    return v
-  }
-
-  // 1. Frontmatter
-  if (model.frontmatter) {
-    for (const [k, v] of Object.entries(model.frontmatter)) {
-      const updated = updateValue(v)
-      if (updated !== v) {
-        ;(model.frontmatter as Record<string, unknown>)[k] = updated
-        changed = true
-      }
-    }
-  }
-
-  // 2. Elements
-  for (const [, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      if (el.fields) {
-        for (const [fKey, fVal] of Object.entries(el.fields)) {
-          const updated = updateValue(fVal)
-          if (updated !== fVal) {
-            el.fields[fKey] = updated as any
-            changed = true
-          }
-        }
-      }
-      if (el.description && typeof el.description === 'string') {
-        const next = updateStr(el.description)
-        if (next !== el.description) {
-          el.description = next
-          changed = true
-        }
-      }
-      if (Array.isArray((el as any).relationships)) {
-        for (const rel of (el as any).relationships) {
-          if (rel && typeof rel.target === 'string') {
-            const next = updateStr(rel.target)
-            if (next !== rel.target) {
-              rel.target = next
-              changed = true
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // 3. Raw sections
-  if (model.rawSections) {
-    for (const [sKey, sVal] of Object.entries(model.rawSections)) {
-      if (typeof sVal === 'string') {
-        const next = updateStr(sVal)
-        if (next !== sVal) {
-          model.rawSections[sKey] = next
-          changed = true
-        }
-      }
-    }
-  }
-
-  return changed
-}
-
 /**
- * Apply the `bump_version` operation: set `frontmatter.knowledge_version`, rename
- * the file to the canonical `_V_<version>_` filename, validate BEFORE writing,
- * and reject-without-writing on any failure.
+ * Apply the `bump_version` operation to a Level-2 bluepriNNt: set
+ * `frontmatter.blueprint_version` in place (the live filename is invariant) and
+ * validate before writing, and reject-without-writing on invalid args or a failed
+ * validation. A Level-3 model is never bumped here: its bump is a `bump_version`
+ * changeset operation.
  */
-async function bumpVersion(
+async function bumpBlueprintVersion(
   rootDir: string,
   filePath: string,
   model: ParsedKnowledge,
   args: Record<string, unknown>,
-  id: string,
 ): Promise<ApplyChangeResult> {
-  const prevVersion = String(model.frontmatter.knowledge_version ?? model.frontmatter.blueprint_version ?? '')
+  const prevVersion = String(model.frontmatter.blueprint_version ?? model.frontmatter.knowledge_version ?? '')
   const next = computeNewVersion(prevVersion, args)
   if (!next) {
     return {
       success: false,
       errors: [
         {
-          path: 'frontmatter.knowledge_version',
+          path: 'frontmatter.blueprint_version',
           message:
             'Invalid version args for bump_version: provide { version: "V_x-y-z" } or { bump: "major" | "minor" | "patch" } against a valid version frontmatter',
         },
@@ -268,286 +176,23 @@ async function bumpVersion(
     }
   }
 
-  if (model.frontmatter.knowledge_version === undefined && model.frontmatter.blueprint_version !== undefined) {
-    model.frontmatter.blueprint_version = next.version
-  } else {
+  if (model.frontmatter.blueprint_version === undefined && model.frontmatter.knowledge_version !== undefined) {
     model.frontmatter.knowledge_version = next.version
+  } else {
+    model.frontmatter.blueprint_version = next.version
   }
 
-  // A pre-write backup is taken when the caller asked for one, or when the
-  // `specs/` tree has uncommitted changes. If a backup was judged necessary
-  // and then fails, abort the bump — do NOT rename/delete spec files without
-  // the safety net that was deemed required.
-  let backupNeeded = args.backup === true || args.prompt_backup === true
-  if (!backupNeeded) {
-    try {
-      const { execSync } = await import('node:child_process')
-      const gitStatus = execSync('git status --porcelain specs', {
-        cwd: rootDir,
-        encoding: 'utf-8',
-      })
-      backupNeeded = gitStatus.trim() !== ''
-    } catch (err) {
-      // log + continue: git unavailable — no dirty-tree signal, so no auto-backup.
-      console.warn(`[apply-change] git status probe failed; skipping dirty-tree backup: ${err}`)
-    }
-  }
-  if (backupNeeded) {
-    try {
-      await createSpecsBackupZip(rootDir)
-    } catch (err) {
-      return {
-        success: false,
-        errors: [
-          {
-            path: '',
-            message: `Pre-write specs backup failed — bump_version aborted before any file was changed: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          },
-        ],
-      }
-    }
-  }
-
-  const dir = dirname(filePath)
-  const base = basename(filePath)
-  const versionSegment = next.version.replace(/^V_/i, '')
-  const newBase = base.replace(VERSION_FILENAME_RE, `_V_${versionSegment}_`)
-  const newPath = join(dir, newBase)
-
-  // If parent_version is provided, rename/bump the parent spec (template) as well!
-  let oldParentPath: string | null = null
-  let newParentPath: string | null = null
-  let parentContent: string | null = null
-  let newParentName: string | null = null
-  // SpecDocument view of the just-bumped local parent, built once the new
-  // frontmatter is serialized below. Used as the validation `template` when
-  // resolveBlueprintForKnowledge can't yet see the bump (the new file hasn't been
-  // written to disk at this point in the flow).
-  let localParentBlueprint: SpecDocument | null = null
-
-  if (model.frontmatter.parent_spec && typeof args.parent_version === 'string') {
-    const parentVer = args.parent_version.trim()
-    const parentVerSegment = parentVer.replace(/^V_/i, '').replace(/\./g, '-')
-    const parentVerString = `V_${parentVerSegment}`
-
-    const currentParentUrl = model.frontmatter.parent_spec.url
-    const localParentPath =
-      currentParentUrl && isLocalPath(currentParentUrl)
-        ? toLocalFilePath(currentParentUrl, rootDir)
-        : null
-    if (localParentPath) {
-      try {
-        await stat(localParentPath)
-        oldParentPath = localParentPath
-
-        // Compute new parent file name and path
-        const parentDir = dirname(localParentPath)
-        const parentBase = basename(localParentPath)
-        const newParentBase = parentBase.replace(VERSION_FILENAME_RE, `_V_${parentVerSegment}_`)
-        newParentPath = join(parentDir, newParentBase)
-
-        // Compute new parent spec name
-        const currentParentName = model.frontmatter.parent_spec.name
-        newParentName = currentParentName.replace(/_V_\d+-\d+-\d+$/, `_V_${parentVerSegment}`)
-
-        // Read and update the template file's frontmatter
-        const rawParentContent = await readFile(localParentPath, 'utf-8')
-        const parentModel = parseKnowledge(rawParentContent)
-        if (parentModel.frontmatter.level === 2) {
-          parentModel.frontmatter.spec_version = parentVerString
-        }
-        parentContent = serializeKnowledge(parentModel)
-        localParentBlueprint = {
-          name: newParentName,
-          level: parentModel.frontmatter.level ?? 0,
-          parentName: parentModel.frontmatter.parent_spec?.name,
-          parentUrl: parentModel.frontmatter.parent_spec?.url,
-          frontmatter: parentModel.frontmatter,
-          rawContent: parentContent,
-        }
-      } catch (err) {
-        // log + continue: parent spec not found locally — skip template
-        // renaming but still update references.
-        console.warn(`[apply-change] Local parent spec not found; template rename skipped: ${err}`)
-      }
-    }
-
-    // Update parent_spec in model frontmatter
-    if (model.frontmatter.parent_spec.name && newParentName) {
-      model.frontmatter.parent_spec.name = newParentName
-    }
-    if (model.frontmatter.parent_spec.url) {
-      model.frontmatter.parent_spec.url = model.frontmatter.parent_spec.url.replace(
-        VERSION_FILENAME_RE,
-        `_V_${parentVerSegment}_`,
-      )
-    }
-  }
-
-  // Validate BEFORE writing/deleting anything.
-  let template: SpecDocument | null
-  let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
-  try {
-    if (parentContent && newParentName) {
-      template = localParentBlueprint
-      const r = await resolveBlueprintForKnowledge(rootDir, model).catch(() => ({
-        template: localParentBlueprint,
-        resolveInclude: () => null,
-      }))
-      template = r.template ?? localParentBlueprint
-      resolveInclude = r.resolveInclude
-    } else {
-      const r = await resolveBlueprintForKnowledge(rootDir, model)
-      template = r.template
-      resolveInclude = r.resolveInclude
-    }
-  } catch (err) {
-    return {
-      success: false,
-      errors: [{ path: 'parent_spec', message: err instanceof Error ? err.message : String(err) }],
-    }
-  }
-  const validationResult = coreValidate(model, template, null, resolveInclude)
+  const validationResult = await validateBlueprint(rootDir, undefined, serializeKnowledge(model))
   if (!validationResult.valid) {
-    return {
-      success: false,
-      errors: validationResult.errors,
-      warnings: validationResult.warnings,
-    }
+    return { success: false, errors: validationResult.errors, warnings: validationResult.warnings }
   }
 
-  // 4. Pre-mutation validation of referencing workspace models
-  const affectedModels: Array<{ filePath: string; model: ParsedKnowledge }> = []
-  const oldBaseResolved = resolve(filePath)
-  const oldStem = base.replace(/\.md$/i, '')
-  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
-
-  for (const mFile of allModelFiles) {
-    if (resolve(mFile) === oldBaseResolved) continue
-    try {
-      const raw = await readFile(mFile, 'utf-8')
-      if (!raw.includes(base) && !raw.includes(oldStem)) continue
-      const parsed = parseKnowledge(raw)
-      const changed = cascadeModelReferences(parsed, base, newBase)
-      if (changed) {
-        let depBlueprint: SpecDocument | null = null
-        let depResolveInclude: (ref: { name: string; url: string }) => string | null = () => null
-        try {
-          const r = await resolveBlueprintForKnowledge(rootDir, parsed)
-          depBlueprint = r.template
-          depResolveInclude = r.resolveInclude
-        } catch (err) {
-          return {
-            success: false,
-            errors: [
-              {
-                path: relative(rootDir, mFile).replace(/\\/g, '/'),
-                message: `Failed to resolve template for referencing model ${basename(mFile)}: ${
-                  err instanceof Error ? err.message : String(err)
-                }`,
-              },
-            ],
-          }
-        }
-        const check = coreValidate(parsed, depBlueprint, null, depResolveInclude)
-        if (!check.valid) {
-          return {
-            success: false,
-            errors: check.errors.map((e) => ({
-              ...e,
-              path: `${relative(rootDir, mFile).replace(/\\/g, '/')}${e.path ? '#' + e.path : ''}`,
-            })),
-            warnings: check.warnings,
-          }
-        }
-        affectedModels.push({ filePath: mFile, model: parsed })
-      }
-    } catch (err) {
-      return {
-        success: false,
-        errors: [
-          {
-            path: relative(rootDir, mFile).replace(/\\/g, '/'),
-            message: `Failed to process referencing model ${basename(mFile)}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          },
-        ],
-      }
-    }
-  }
-
-  // Write the new versioned files (or rewrite in place), then remove the old.
   try {
-    // 1. If parent template was bumped:
-    if (oldParentPath && newParentPath && parentContent && newParentName) {
-      if (newParentPath === oldParentPath) {
-        await writeFile(oldParentPath, parentContent, 'utf-8')
-      } else {
-        await writeFile(newParentPath, parentContent, 'utf-8')
-        await rm(oldParentPath, { force: true })
-      }
-
-      // Mirror into specs/ too (write-once, atomic — see resolver-node.ts),
-      // so later resolutions find the bumped template without a re-fetch.
-      const specsDir = join(rootDir, 'specs')
-      await saveSpecOnce(specsDir, `${newParentName}_NN.md`, parentContent)
-    }
-
-    // 2. Write target model file
-    if (newPath === filePath) {
-      await saveKnowledge(filePath, model)
-    } else {
-      await saveKnowledge(newPath, model)
-      await rm(filePath, { force: true })
-    }
-
-    // 3. Write all affected referencing models
-    for (const affected of affectedModels) {
-      await saveKnowledge(affected.filePath, affected.model)
-    }
-
-    // 4. Update references in workspace index.md
-    const indexPath = join(rootDir, 'index.md')
-    try {
-      let indexContent = await readFile(indexPath, 'utf-8')
-      const oldRelPath = basename(filePath)
-      const newRelPath = basename(newPath)
-
-      const oldModelRel = join('kNNowledge', oldRelPath).replace(/\\/g, '/')
-      const newModelRel = join('kNNowledge', newRelPath).replace(/\\/g, '/')
-
-      let replaced = false
-      if (indexContent.includes(oldRelPath)) {
-        indexContent = indexContent.replaceAll(oldRelPath, newRelPath)
-        replaced = true
-      }
-      if (indexContent.includes(oldModelRel)) {
-        indexContent = indexContent.replaceAll(oldModelRel, newModelRel)
-        replaced = true
-      }
-
-      if (replaced) {
-        await writeFile(indexPath, indexContent, 'utf-8')
-      }
-    } catch (err) {
-      // swallow deliberately: index.md might not exist or be readable.
-      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        console.warn(`[apply-change] Failed to update index.md: ${err}`)
-      }
-    }
+    await saveKnowledge(filePath, model)
   } catch (err) {
     return { success: false, errors: [{ path: '', message: `Failed to write model: ${err}` }] }
   }
-
-  return {
-    success: true,
-    model,
-    newPath,
-    warnings: validationResult.warnings,
-  }
+  return { success: true, model, newPath: filePath, warnings: validationResult.warnings }
 }
 
 /**
@@ -602,6 +247,50 @@ function altersNormativeLines(input: string, writeBack: string): boolean {
   return before.some((line, i) => line !== after[i])
 }
 
+/**
+ * Preconditions of the model-level maintenance changes (`bump_version`, `freeze_slugs`):
+ * they target a Level-3 kNNowledge model, never the unversioned lineage record, and a
+ * bump names a valid level.
+ */
+function maintenanceChangeProblem(
+  change: ChangeItem,
+  model: ParsedKnowledge,
+  createdInThisApply = false,
+): { code: string; message: string } | null {
+  if (change.op === 'bump_version' && createdInThisApply) {
+    return {
+      code: 'BUMP_ON_CREATED_MODEL',
+      message: 'a model created by add_model in the same changeset is not bumped; set its initial knowledge_version on add_model',
+    }
+  }
+  if (model.frontmatter.level !== 3) {
+    return { code: 'LEVEL3_ONLY', message: `${change.op} applies to a level-3 model only` }
+  }
+  if (change.op === 'bump_version') {
+    const parent = model.frontmatter.parent_spec as { name?: string } | undefined
+    if (parent?.name === RECORD_BLUEPRINT) {
+      return {
+        code: 'RECORD_UNVERSIONED',
+        message: 'The lineage record is unversioned by design and cannot be bumped',
+      }
+    }
+    if (!isBumpLevel(change.to)) {
+      return {
+        code: 'INVALID_BUMP_LEVEL',
+        message: `bump_version needs "to" to be one of ${BUMP_LEVELS.join(', ')}; got "${change.to ?? ''}"`,
+      }
+    }
+  }
+  return null
+}
+
+function hasUnfrozenElements(model: ParsedKnowledge): boolean {
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) if (!el.slugExplicit) return true
+  }
+  return false
+}
+
 function parseTargetAddress(target: string): {
   modelSlug: string
   remainder: string
@@ -646,11 +335,12 @@ function findElementInModel(
 
 /**
  * Execute a two-phase apply of a changeset file: an in-memory compute/validate
- * phase (no writes) followed by a persist phase that archives each model's prior
- * snapshot before rewriting it. Mutual exclusion is guaranteed via changes/.lock.
- * Persistence is not atomic across models — a mid-phase failure leaves earlier
- * models updated and later ones untouched; the archive snapshots make that
- * recoverable but not auto-rolled-back.
+ * phase (no writes) followed by a persist phase that rewrites each touched model
+ * through an atomic rename. No snapshot of the prior model is kept: history is the
+ * changeset chain plus each change's `replaced_sources`. Mutual exclusion is
+ * guaranteed via changes/.lock. Persistence is not atomic across models — a
+ * mid-phase failure leaves earlier models updated and later ones untouched, and
+ * the changeset is not annotated, so it is not recorded as applied.
  */
 export async function executeChangesetApply(
   rootDir: string,
@@ -710,6 +400,68 @@ export async function executeChangesetApply(
       }
     }
 
+    // Persist a rejection that is intrinsic to the proposal (a malformed operation or
+    // add_model, a mutation that can never apply as written). The write-back starts from
+    // the raw text, so in-memory execution annotations of this run never leak into the
+    // file. Causes that depend on workspace state (an unresolved citation, a failed
+    // validation) and environment or integrity failures (tamper, lock, immutability,
+    // missing model or bluepriNNt) are returned as `rejected` but NOT recorded: the file
+    // stays `proposed` and can be retried once the workspace changes.
+    const recordRejection = async (
+      errors: NonNullable<ApplyChangeResult['errors']>,
+      changeId?: string,
+      warnings?: ApplyChangeResult['warnings'],
+      persist = true,
+    ): Promise<ApplyChangeResult> => {
+      const reason = errors
+        .map((e) => (e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message))
+        .join('; ')
+      try {
+        if (!persist) throw new Error('not persisted')
+        const fresh = parseChangeset(rawChangeset)
+        fresh.frontmatter.status = 'rejected'
+        fresh.frontmatter.resolution = reason
+        fresh.frontmatter.proposal_sha = csDoc.frontmatter.proposal_sha
+        const target = changeId ? fresh.changes.find((c) => c.id === changeId) : undefined
+        if (target) {
+          target.status = 'rejected'
+          target.resolution = reason
+        }
+        const text = serializeChangeset(fresh)
+        if (!altersNormativeLines(rawChangeset, text)) {
+          await writeFile(resolvedChangesetPath, text, 'utf-8')
+        }
+      } catch (err) {
+        if (persist) console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`)
+      }
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        changeset: relChangesetPath,
+        status: 'rejected',
+        models: {},
+        appliedCount: 0,
+        errors,
+        ...(warnings ? { warnings } : {}),
+      }
+    }
+
+    // A rejected changeset with unchanged content is final: its recorded reason is returned.
+    // An edited one (seal mismatch or removed) re-enters apply and is re-sealed below,
+    // like a `conflict` re-proposal.
+    const wasRejected = csDoc.frontmatter.status === 'rejected'
+    if (wasRejected && csDoc.frontmatter.proposal_sha && verifyProposalSha(csDoc)) {
+      const recorded = csDoc.frontmatter.resolution ?? 'The changeset was rejected'
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        status: 'rejected',
+        models: {},
+        appliedCount: 0,
+        errors: [{ path: relChangesetPath, message: `CHANGESET_REJECTED: ${recorded}`, code: 'CHANGESET_REJECTED' }],
+      }
+    }
+
     // 3. Verify proposal_sha (tamper detection). A draft that arrives WITHOUT a
     // seal (e.g. the console review export) is stamped at intake: the engine
     // owns the canonical hash, so producers never duplicate it. A seal that IS
@@ -717,6 +469,17 @@ export async function executeChangesetApply(
     // EXCEPT when the doc is already in `conflict` status: that is the documented
     // fix-and-retry loop (a previous run annotated status/conflict + resolution
     // and the author then edited the ops), so the edit re-proposes and is re-sealed.
+    if (wasRejected) {
+      csDoc.frontmatter.status = 'proposed'
+      delete csDoc.frontmatter.resolution
+      for (const c of csDoc.changes) {
+        if (c.status === 'rejected') {
+          delete c.status
+          delete c.resolution
+        }
+      }
+      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+    }
     if (!csDoc.frontmatter.proposal_sha) {
       csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
     }
@@ -808,13 +571,8 @@ export async function executeChangesetApply(
         resolvedChangesetPath,
       )
       if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
-        return {
-          success: false,
-          changesetPath: relChangesetPath,
-          status: 'rejected',
-          models: {},
-          appliedCount: 0,
-          errors: [
+        return recordRejection(
+          [
             {
               path: `changes.${change.id}.sources`,
               message:
@@ -823,7 +581,10 @@ export async function executeChangesetApply(
               code: 'CITATION_UNRESOLVED',
             },
           ],
-        }
+          change.id,
+          undefined,
+          false,
+        )
       }
     }
 
@@ -837,6 +598,8 @@ export async function executeChangesetApply(
       mutated: boolean
       /** Created by an `add_model` change in this apply (never bumped). */
       created: boolean
+      /** Highest level requested by a `bump_version` change; absent means the default patch bump. */
+      bumpLevel?: BumpLevel
       /** Resolved bluepriNNt schema, cached per model (null = unresolvable). */
       schema?: BlueprintSchema | null
     }
@@ -850,6 +613,9 @@ export async function executeChangesetApply(
       appliedCount: 0,
       errors: [{ path, message: `${code}: ${message}`, code }],
     })
+    /** Like rejectPhase1, for a defect of the proposal itself: the rejection is persisted. */
+    const rejectProposal = (code: string, path: string, message: string, changeId?: string) =>
+      recordRejection([{ path, message: `${code}: ${message}`, code }], changeId)
 
     // add_model pre-checks: ordering, duplicates, existing targets, domain layout.
     const addModelIndex = new Map<string, number>()
@@ -859,10 +625,10 @@ export async function executeChangesetApply(
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
       if (!isSafeRelativeId(change.target) || /[\\/]/.test(change.target)) {
-        return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`)
+        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`, change.id)
       }
       if (addModelIndex.has(key)) {
-        return rejectPhase1('ADD_MODEL_DUPLICATE', change.target, `more than one add_model change targets "${change.target}"`)
+        return rejectProposal('ADD_MODEL_DUPLICATE', change.target, `more than one add_model change targets "${change.target}"`, change.id)
       }
       addModelIndex.set(key, index)
     }
@@ -871,10 +637,11 @@ export async function executeChangesetApply(
       const targetModel = parseTargetAddress(change.target).modelSlug
       const createdAt = addModelIndex.get(targetModel.toLowerCase())
       if (createdAt !== undefined && createdAt > index) {
-        return rejectPhase1(
+        return rejectProposal(
           'ADD_MODEL_ORDER',
           change.target,
           `change "${change.id}" targets model "${targetModel}" before the add_model change that creates it`,
+          change.id,
         )
       }
     }
@@ -1144,12 +911,35 @@ export async function executeChangesetApply(
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (!entry) continue
 
+      if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
+        const problem = maintenanceChangeProblem(change, entry.model, entry.created)
+        if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
+      }
+
+      // Freezing a fully frozen model changes nothing: an applied no-op that must not
+      // mark the model touched (and so must not burn a version).
+      if (change.op === 'freeze_slugs' && !hasUnfrozenElements(entry.model)) {
+        change.status = 'applied'
+        change.resolution = 'Slugs already frozen; nothing to do'
+        continue
+      }
+
       entry.mutated = true
 
       if (change.op === 'add_model') {
         // The document was created and registered in the load phase above.
         change.status = 'applied'
         change.resolution = `Created model "${change.target}"`
+        continue
+      }
+
+      if (change.op === 'bump_version') {
+        // The bump is applied once per model below, to the highest requested level.
+        const level = change.to as BumpLevel
+        const rank = (l: BumpLevel | undefined): number => (l ? BUMP_LEVELS.indexOf(l) + 1 : 0)
+        if (rank(level) > rank(entry.bumpLevel)) entry.bumpLevel = level
+        change.status = 'applied'
+        change.resolution = `Bumped knowledge_version (${level})`
         continue
       }
 
@@ -1244,15 +1034,11 @@ export async function executeChangesetApply(
 
       const mutRes = coreApplyMutation(entry.model, change.op, mutationArgs, renameSchema)
       if (!mutRes.success) {
-        return {
-          success: false,
-          changesetPath: relChangesetPath,
-          status: 'rejected',
-          models: {},
-          appliedCount: 0,
-          errors: mutRes.errors,
-          warnings: mutRes.warnings,
-        }
+        return recordRejection(
+          (mutRes.errors ?? []).map((e) => ({ ...e, code: 'MUTATION_FAILED' })),
+          change.id,
+          mutRes.warnings,
+        )
       }
 
       // Record successful resolution annotation
@@ -1298,6 +1084,23 @@ export async function executeChangesetApply(
     // Bump knowledge_version in frontmatter of touched models ONLY
     for (const [, entry] of loadedModels) {
       if (entry.mutated && !entry.created) {
+        // One bump per touched model: the requested level when a bump_version change
+        // asked for one, the default patch otherwise. Never both.
+        if (entry.bumpLevel) {
+          const requested = computeNewVersion(entry.baseVersion, { bump: entry.bumpLevel })
+          if (!requested) {
+            return recordRejection(
+              [
+                {
+                  path: entry.modelSlug,
+                  code: 'INVALID_VERSION',
+                  message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`,
+                },
+              ],
+            )
+          }
+          entry.nextVersion = requested.version
+        }
         entry.model.frontmatter.knowledge_version = entry.nextVersion
       }
     }
@@ -1324,15 +1127,12 @@ export async function executeChangesetApply(
 
       const valRes = coreValidate(entry.model, template, null, resolveInclude)
       if (!valRes.valid) {
-        return {
-          success: false,
-          changesetPath: relChangesetPath,
-          status: 'rejected',
-          models: {},
-          appliedCount: 0,
-          errors: valRes.errors,
-          warnings: valRes.warnings,
-        }
+        return recordRejection(
+          valRes.errors.map((e) => ({ ...e, code: 'VALIDATION_FAILED' })),
+          undefined,
+          valRes.warnings,
+          false,
+        )
       }
     }
 
@@ -1500,6 +1300,8 @@ async function synthesizeAndExecuteChangeset(
   } else if (op === 'rename_concept') {
     const c = (opArgs.conceptName as string) || ''
     target = `${id}@${c}`
+  } else if (op === 'bump_version' || op === 'freeze_slugs') {
+    target = id
   } else if (opArgs.target && typeof opArgs.target === 'string') {
     target = opArgs.target.includes('@') ? opArgs.target : `${id}@${opArgs.target}`
   }
@@ -1509,7 +1311,14 @@ async function synthesizeAndExecuteChangeset(
     op: op as ChangeItem['op'],
     target,
     from: opArgs.from !== undefined ? String(opArgs.from) : undefined,
-    to: opArgs.value !== undefined ? String(opArgs.value) : (opArgs.to !== undefined ? String(opArgs.to) : (opArgs.newName as string | undefined)),
+    to:
+      op === 'bump_version'
+        ? String(opArgs.bump ?? 'patch')
+        : opArgs.value !== undefined
+          ? String(opArgs.value)
+          : opArgs.to !== undefined
+            ? String(opArgs.to)
+            : (opArgs.newName as string | undefined),
     concept: (opArgs.conceptName as string) || undefined,
     name: (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
     slug: (opArgs.slug as string) || undefined,
@@ -1527,13 +1336,19 @@ async function synthesizeAndExecuteChangeset(
 }
 
 /**
- * Direct operations: mechanical, no Level-3 meaning, so they write the model file and
- * leave no changeset. (`bump_version` renames the file; `generate_index` and
- * `freeze_slugs` regenerate derived structure.)
+ * Direct operations that never touch Level-3 content: `generate_index` regenerates the
+ * index of a Level-2 bluepriNNt (a Level-3 model is refused). Every operation that
+ * mutates a Level-3 kNNowledge model, `freeze_slugs` and `bump_version` included, is a
+ * changeset operation, so it is sealed, recorded, versioned and citable.
+ * (`bump_version` on a Level-2 bluepriNNt is the one direct exception: bluepriNNts are
+ * traced by git and their own `blueprint_version`.)
  */
-export const MAINTENANCE_OPS = ['bump_version', 'generate_index', 'freeze_slugs'] as const
+export const MAINTENANCE_OPS = ['generate_index'] as const
 
-/** Direct operations: Level-2 bluepriNNt authoring (traced by git and the bluepriNNt version). */
+/**
+ * Direct operations: Level-2 bluepriNNt authoring (traced by git and the bluepriNNt version).
+ * They have no meaning on a Level-3 model, where they fail `SCHEMA_OP_ON_LEVEL3`.
+ */
 export const SCHEMA_OPS = ['add_concept', 'add_field', 'set_marker'] as const
 
 function isDirectOperation(op: string): boolean {
@@ -1563,6 +1378,9 @@ export async function applyChange(
     }
     const model = await loadKnowledge(filePath)
     const parent = model.frontmatter.parent_spec as { name?: string } | undefined
+    if (model.frontmatter.level === 2) {
+      return bumpBlueprintVersion(rootDir, filePath, model, opArgs)
+    }
     if (parent?.name === RECORD_BLUEPRINT) {
       return {
         success: false,
@@ -1574,7 +1392,19 @@ export async function applyChange(
         ],
       }
     }
-    return bumpVersion(rootDir, filePath, model, opArgs, id)
+    if (opArgs.version !== undefined) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'version',
+            code: 'INVALID_BUMP_LEVEL',
+            message: 'INVALID_BUMP_LEVEL: a level-3 bump_version takes a level ({ bump: "patch" | "minor" | "major" }), not an explicit version',
+          },
+        ],
+      }
+    }
+    return synthesizeAndExecuteChangeset(rootDir, id, op, opArgs)
   }
 
   if (op === 'generate_index') {
@@ -1650,6 +1480,18 @@ export async function applyChange(
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }
     const model = await loadKnowledge(filePath)
+    if (model.frontmatter.level === 3) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter.level',
+            code: 'SCHEMA_OP_ON_LEVEL3',
+            message: `SCHEMA_OP_ON_LEVEL3: ${op} authors bluepriNNt primitives and has no meaning on the level-3 model "${id}"; target the parent bluepriNNt, or use add_element/update_field on the model`,
+          },
+        ],
+      }
+    }
     const mutRes = coreApplyMutation(model, op, opArgs)
     if (!mutRes.success) return mutRes
     await saveKnowledge(filePath, model)

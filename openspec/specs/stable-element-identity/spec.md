@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Establish immutable, explicit slug identities for semantic model elements, concepts, and matrices across cogNNitive. By decoupling node identity from display names, rename mutations preserve citations and references, cross-concept duplicate element names are permitted without destructive dropping (reversing R-IE-02), models carry stable frontmatter identities (`model_slug`, `workspace_id`), and models are safely frozen on mutation or via workspace upgrade commands.
+Establish immutable, explicit slug identities for semantic model elements, concepts, and matrices across cogNNitive. By decoupling node identity from display names, rename mutations preserve citations and references, cross-concept duplicate element names are permitted without destructive dropping (reversing R-IE-02), models carry stable frontmatter identities (`knowledge_slug`, `workspace_id`), and models are safely frozen on mutation or via workspace upgrade commands.
 ## Requirements
 ### Requirement: Explicit and Immutable Slug Declarations
 
@@ -28,16 +28,16 @@ Elements, concepts, and matrices MAY declare an explicit `slug::` property. When
 
 ### Requirement: Model Frontmatter Identity Allow-List
 
-The model frontmatter schema (`SpecFrontmatter`) MUST include optional `model_slug: string` and `workspace_id: string`. The `model_slug` MUST be an extension-less, path-free unique identifier within the workspace domain. When serializing a model (`serializeKnowledge`), the reconstructed frontmatter block MUST preserve `model_slug` and `workspace_id` without omission, regardless of whether `useRawFrontmatter` is true or false.
+The model frontmatter schema (`SpecFrontmatter`) MUST include optional `knowledge_slug: string` and `workspace_id: string`. The `knowledge_slug` MUST be an extension-less, path-free unique identifier within the workspace domain. When serializing a model (`serializeKnowledge`), the reconstructed frontmatter block MUST preserve `knowledge_slug` and `workspace_id` without omission, regardless of whether `useRawFrontmatter` is true or false.
 
-#### Scenario: Model frontmatter preserves model_slug and workspace_id
-- GIVEN a model with frontmatter declaring `model_slug: domain-core` and `workspace_id: ws-primary-01`
+#### Scenario: Model frontmatter preserves knowledge_slug and workspace_id
+- GIVEN a model with frontmatter declaring `knowledge_slug: domain-core` and `workspace_id: ws-primary-01`
 - WHEN the model is parsed and re-serialized with `useRawFrontmatter: false`
-- THEN the resulting frontmatter contains `model_slug: domain-core`
+- THEN the resulting frontmatter contains `knowledge_slug: domain-core`
 - AND the resulting frontmatter contains `workspace_id: ws-primary-01`
 
 #### Scenario: Model slug conforms to format
-- GIVEN a model frontmatter declaring `model_slug: financial-model-v1`
+- GIVEN a model frontmatter declaring `knowledge_slug: financial-model-v1`
 - WHEN the frontmatter is validated
 - THEN the slug is accepted as a valid extension-less model slug
 

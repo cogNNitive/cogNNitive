@@ -331,3 +331,16 @@ describe('add_model: manifest reconciliation after commit', () => {
     expect((payload.manifest as { written: boolean }).written).toBe(false)
   })
 })
+
+describe('bump_version on a model created in the same changeset', () => {
+  it('is rejected with a code instead of reporting a skipped bump as applied', async () => {
+    const path = await writeCs([
+      ADD_ACME,
+      { id: 'c-02', op: 'bump_version', target: 'acme', to: 'minor' },
+    ])
+    const res = await applyChange(root, path)
+    expect(res.success).toBe(false)
+    expect(res.errors![0].code).toBe('BUMP_ON_CREATED_MODEL')
+    expect(existsSync(join(knowledgeDir, 'acme_NN.md'))).toBe(false)
+  })
+})

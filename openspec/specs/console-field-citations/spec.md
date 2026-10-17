@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Bake resolved citations into the console at export time, and let a reviewer holding an offline HTML console tell whether a value came from a document, a human, an AI agent, or reviewer feedback — without an MCP session.
+Bake resolved citations into the console at export time, and let a reviewer holding an offline HTML console tell whether a value came from a document, a human or an AI agent — without an MCP session.
 ## Requirements
 ### Requirement: Compile-time citation payload
 
@@ -43,7 +43,7 @@ The runtime card renderer (`InnfoUI.ElementCard`, driven by `InnfoConsole`) MUST
 
 - For `sources`-family fields, the icon MUST be placed on the element header.
 - For any other citation-typed field, the icon MUST be placed on that field's row.
-- The icon MUST have one visually distinct variant per `origin` (`agent`, `human`, `reviewer`, `document`), plus a distinct warning variant used when any entry for that field has `error` set. The `human` variant MUST be visually distinct from both the `agent` variant and the `document` variant.
+- The icon MUST have one visually distinct variant per `origin` (`agent`, `human`, `document`; the resolver never emits a `reviewer` origin), plus a distinct warning variant used when any entry for that field has `error` set. The `human` variant MUST be visually distinct from both the `agent` variant and the `document` variant.
 - Icons MUST be inline SVG/CSS with no new runtime dependency.
 - A plain field (e.g. `precio`) MUST NOT receive an icon derived from a citation-typed sibling field (e.g. `precio_source`); only the citation-typed field itself is icon-eligible.
 
@@ -92,9 +92,9 @@ Clicking a citation icon MUST open a native `<dialog id="innfo-citation-dialog">
 
 #### Scenario: Missing author is omitted, not placeholdered
 
-- GIVEN a resolved entry with `origin: "reviewer"` and no `author` field
+- GIVEN a resolved entry with `origin: "human"` and no `author` field
 - WHEN the dialog renders that entry
-- THEN no author line is shown, and no generic label (e.g. "Reviewer") is substituted
+- THEN no author line is shown, and no generic label (e.g. "Human") is substituted
 
 #### Scenario: Error entry shown in dialog
 

@@ -1,8 +1,8 @@
-# Knowledge Version and Snapshot Specification
+# Knowledge Version Specification
 
 ## Purpose
 
-Establish model versioning and snapshot archival for live knowledge models in cogNNitive. Live model filenames remain invariant (`kNNowledge/<model_stem>_NN.md`), tracking semantic versions in frontmatter (`knowledge_version`). Applying a changeset bumps the version (patch default) and archives the prior snapshot to `kNNowledge/archive/`. Deep archive exclusion guarantees snapshots are invisible to discovery and validators, while decoupling `knowledge_version` from blueprint `spec_version`.
+Establish model versioning for live knowledge models in cogNNitive. Live model filenames remain invariant (`kNNowledge/<model_stem>_NN.md`), tracking semantic versions in frontmatter (`knowledge_version`). Applying a changeset bumps the version (patch default; minor or major only through a `bump_version` change). No snapshot of a prior model is archived: the history of a model is the chain of changesets that touched it, each recording its `base_version` and `result_version`, and every replaced citation (`replaced_sources`). Deep `archive` exclusion keeps hand-kept historical folders invisible to discovery and validators, and `knowledge_version` is decoupled from blueprint `spec_version`.
 ## Requirements
 ### Requirement: Invariant Live Model Naming with Frontmatter Versioning
 
@@ -20,9 +20,10 @@ Live knowledge model files under `kNNowledge/` MUST maintain invariant filenames
 ### Requirement: Model Version Bumping on Changeset Apply
 
 Applying a changeset MUST increment the `knowledge_version` of every touched model exactly once per changeset transaction.
-- The default bump increment MUST be `patch` (e.g. `V_0-1-0` $\to$ `V_0-1-1`).
-- The changeset or apply options MAY request a `minor` (e.g. `V_0-1-0` $\to$ `V_0-2-0`) or `major` bump.
-- Models unaffected by the changeset MUST NOT have their version bumped.
+- The default bump increment MUST be `patch` (e.g. `V_0-1-0` to `V_0-1-1`).
+- A `minor` (e.g. `V_0-1-0` to `V_0-2-0`) or `major` bump MUST be requested only by a `bump_version` change in the changeset (`to:: minor` or `to:: major`). A `bump_version` change replaces the default patch bump of its model; the model is never bumped twice by one changeset. A higher level resets the lower ones.
+- The unversioned lineage record cannot be bumped.
+- Models unaffected by the changeset (or whose changes all conflicted) MUST NOT have their version bumped.
 - Both the `base_version` (version before mutation) and `result_version` (version after mutation) MUST be recorded in the changeset frontmatter `models` map.
 
 #### Scenario: Changeset increments patch version once for affected models
@@ -43,11 +44,11 @@ The path exclusion checker `isExcludedPath` in `innfo-core/src/naming/contract.t
 - Active knowledge validation
 - Document catalogs
 
-No tool writes into an `archive` directory; the exclusion keeps hand-kept or historical folders such as `sources/archive/` invisible. (Previously: the exclusion was justified by the apply engine's `kNNowledge/archive/` snapshots.)
+No tool writes into an `archive` directory; the exclusion keeps hand-kept or historical folders such as `sources/archive/` invisible.
 
 #### Scenario: Deep archive paths excluded at any depth
 - GIVEN paths:
-  - `kNNowledge/archive/sales_V_0-1-0_20261007T120005Z_changes_NN.md`
+  - `kNNowledge/archive/sales_NN.md`
   - `sources/archive/legacy_data.csv`
   - `workspace/subfolder/archive/notes_NN.md`
 - WHEN `isExcludedPath` evaluates each path
@@ -61,17 +62,23 @@ No tool writes into an `archive` directory; the exclusion keeps hand-kept or his
 ### Requirement: Decoupling Model Version from Blueprint Spec Version
 
 The model creation tool (`init_knowledge`) and model validators MUST decouple the model's `knowledge_version` from its parent blueprint's `spec_version`.
-- `init_knowledge` MUST initialize new models with `knowledge_version: "V_0-1-0"` (or template default) independently of whether the parent blueprint has `spec_version: "V_0-4-0"`.
+- `init_knowledge` (an `add_model` wrapper) MUST initialize a new model's `knowledge_version` from the explicit value when given, else from the parent bluepriNNt's `blueprint_version` (then its `spec_version`), else `V_0-1-0`. The scaffold writes `knowledge_version` and no `blueprint_version` key.
 - Knowledge validation MUST NOT fail or emit a `VERSION_MISMATCH` diagnostic when `knowledge_version` diverges from `parent_spec` version.
 
-#### Scenario: Initializing model with decoupled knowledge_version
-- GIVEN blueprint `strategy` with `spec_version: "V_0-4-0"`
-- WHEN `init_knowledge` creates a new model instance
-- THEN the model frontmatter contains `parent_spec: "strategy"`, `blueprint_version: "0.4.0"`, and `knowledge_version: "V_0-1-0"`
+#### Scenario: Initializing model takes the blueprint version
+- GIVEN blueprint `strategy` with `blueprint_version: "V_0-2-0"`
+- WHEN `init_knowledge` creates a new model instance without an explicit version
+- THEN the model frontmatter contains `parent_spec` naming `strategy` and `knowledge_version: "V_0-2-0"`
+- AND the model frontmatter contains no `blueprint_version` key
+
+#### Scenario: Explicit version wins, V_0-1-0 is the last resort
+- GIVEN `init_knowledge` is called with `knowledge_version: "V_0-5-0"`
+- THEN the new model has `knowledge_version: "V_0-5-0"`
+- AND, for a blueprint that declares neither `blueprint_version` nor `spec_version`, the new model has `V_0-1-0`
 
 #### Scenario: Model version increments freely without blueprint mismatch
 - GIVEN a model whose `knowledge_version` has bumped to `V_0-3-5`
-- AND whose `parent_spec` is `strategy` with blueprint version `0.4.0`
+- AND whose `parent_spec` is `strategy` with blueprint version `V_0-4-0`
 - WHEN knowledge validation is executed
 - THEN no `VERSION_MISMATCH` diagnostic is emitted
 
