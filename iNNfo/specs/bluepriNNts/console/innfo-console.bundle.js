@@ -3529,22 +3529,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return value !== null && typeof value === 'object' && !Array.isArray(value)
   }
 
-  // The definition governing a matrix cell: the column Marker of the reserved
-  // item-markers matrix, otherwise the matrix definition of the same name.
-  // The reserved matrix is recognised like payload-builder does: by name OR by a
-  // `markers` target.
+  // The definition governing a matrix cell: the matrix definition of the same name.
   function matrixCellDef(schema, matrix, col, target) {
     if (!schema) return null
-    function byName(list, name) {
-      var want = String(name).toLowerCase()
-      return (Array.isArray(list) ? list : []).filter(function (d) {
+    var want = String(matrix).toLowerCase()
+    return (
+      (Array.isArray(schema.matrices) ? schema.matrices : []).filter(function (d) {
         return d && String(d.name).toLowerCase() === want
-      })[0]
-    }
-    var isItemMarkers =
-      String(matrix).toLowerCase() === 'item-markers matrix' || String(target || '').toLowerCase() === 'markers'
-    if (isItemMarkers) return byName(schema.markers, col) || null
-    return byName(schema.matrices, matrix) || null
+      })[0] || null
+    )
   }
 
   // Declared definition of a field, keyed by (concept, field) so two concepts that

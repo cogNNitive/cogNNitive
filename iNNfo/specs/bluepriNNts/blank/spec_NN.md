@@ -55,9 +55,9 @@ description:: Free-form one-line summary or label for the content block.
 
 ## Philosophy
 
-The Blank Template is the empty canvas of the iNNfo ecosystem. Where the Business, Organization, Procedures, and Projects templates ship pre-built domain concepts, the Blank Template declares a single minimal `Content` concept and leaves every other Concept, Field, Marker, and Matrix Definition to the model author. Use it to model a domain that has no dedicated template yet, or to bootstrap a custom specialization without inheriting unrelated structure.
+The Blank Template is the empty canvas of the iNNfo ecosystem. Where the Business, Organization, Procedures, and Projects templates ship pre-built domain concepts, the Blank Template declares a single minimal `Content` concept and leaves every other Concept, Field, and Matrix Definition to the model author. Use it to model a domain that has no dedicated template yet, or to bootstrap a custom specialization without inheriting unrelated structure.
 
-By design it keeps model creation unopinionated: you add `# NN Concept Definition`, `# NN Field Definition`, `# NN Marker Definition`, and `# NN Matrix Definition` elements to this page to shape your own schema, then author Level 3 models against them.
+By design it keeps model creation unopinionated: you add `# NN Concept Definition`, `# NN Field Definition`, and `# NN Matrix Definition` elements to this page to shape your own schema, then author Level 3 models against them.
 
 ## Objectives
 

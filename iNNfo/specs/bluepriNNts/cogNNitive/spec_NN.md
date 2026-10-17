@@ -288,4 +288,4 @@ artifact_format:: document
 derived_from:: [kNNowledge/Acme_Business_Plan_V_0-1-0_business_NN.md@## Strategy]
 ```
 
-The application resolves `parent_spec` to this template and uses its Concept, Field, and Marker Definitions to validate and render the provenance model.
+The application resolves `parent_spec` to this template and uses its Concept, Field, and Matrix Definitions to validate and render the provenance model.

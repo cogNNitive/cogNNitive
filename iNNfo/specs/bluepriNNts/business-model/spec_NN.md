@@ -639,8 +639,8 @@ The composite `business` umbrella template `includes` this template alongside
 
 ## Specification
 
-The template instantiates three of the four root primitives of the iNNfo metaschema
-directly — **Concept Definition**, **Field Definition**, **Marker Definition**, and
+The template instantiates the three root primitives of the iNNfo metaschema
+directly — **Concept Definition**, **Field Definition**, and
 **Matrix Definition**.
 
 ### Concepts
@@ -764,7 +764,7 @@ Description and details.
 | Problem 1 | Max | High |
 ```
 
-The application will resolve the `parent` URL, download this template, and use its Concept Definitions, Field Definitions, Marker Definitions, and Matrix Definitions to validate and render your model.
+The application will resolve the `parent` URL, download this template, and use its Concept Definitions, Field Definitions, and Matrix Definitions to validate and render your model.
 
 ## Examples
 

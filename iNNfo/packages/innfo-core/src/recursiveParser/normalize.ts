@@ -78,9 +78,9 @@ export function nowIso(): string {
 }
 
 /** Extracts a node's own locally-declared metamodel from its body-level
- *  `Concept Definition` / `Marker Definition` elements (level-2 templates
- *  instantiate the root primitives of the Metaplantilla Nivel 1). Level-3
- *  models declare no local metamodel. */
+ *  `Concept Definition` / `Field Definition` / `Matrix Definition` elements
+ *  (level-2 templates instantiate the root primitives of the Metaplantilla
+ *  Nivel 1). Level-3 models declare no local metamodel. */
 export function toLocalMetamodel(parsed: ParsedKnowledge): LocalMetamodel {
   const schema = extractBlueprintSchema(parsed)
   return { concepts: schema.concepts, taxonomy: schema.taxonomy }
