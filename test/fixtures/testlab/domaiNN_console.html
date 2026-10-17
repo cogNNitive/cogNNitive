@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-lknvZQJm3+ihET3uyIfsq+FlH/mIsmrAlQC/ZcOY0PQ=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-kO7cPd887xpbcn+7jCdkktv+4pyc8NdAffbzfcRmuo8=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9056,8 +9056,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-bce3ed6e",
-    "generated": "2026-10-16T18:46:35.052Z",
+    "domainId": "testlab-c992db83",
+    "generated": "2026-10-17T08:39:52.886Z",
     "changesBlueprintVersion": "V_0-3-1",
     "models": [
       {
@@ -9067,7 +9067,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-16T18:46:35.016Z",
+        "citationsResolvedAt": "2026-10-17T08:39:52.849Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -19154,6 +19154,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var scope = editable ? doc.body || panel : panel
       guardIframes(t, scope)
       try {
+        var filterListeners = []
         var ctx = {
           id: t.id,
           container: panel,
@@ -19166,12 +19167,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             models: Array.isArray(opts.meta && opts.meta.models) ? opts.meta.models : [],
           },
         }
-        if (editable) Object.assign(ctx, editableParts(t))
-        else
+        if (editable) {
+          Object.assign(ctx, editableParts(t))
+          ctx.filter = {
+            getQuery: function () {
+              return typeof opts.getQuery === 'function' ? opts.getQuery() : ''
+            },
+            getElements: function () {
+              return typeof opts.getFilteredElements === 'function'
+                ? opts.getFilteredElements()
+                : (opts.model && opts.model.elements ? opts.model.elements : [])
+            },
+            onChange: function (fn) {
+              if (typeof fn === 'function') {
+                filterListeners.push(fn)
+                return function () {
+                  var idx = filterListeners.indexOf(fn)
+                  if (idx >= 0) filterListeners.splice(idx, 1)
+                }
+              }
+              return function () {}
+            },
+          }
+        } else {
           ctx.mountHtml = function (html) {
             return mountHtml(panel, html)
           }
-        mounted[t.id] = { api: t.mount(ctx) || {} }
+        }
+        mounted[t.id] = { api: t.mount(ctx) || {}, filterListeners: filterListeners }
       } catch (err) {
         var msg = String(err && err.message ? err.message : err)
         mounted[t.id] = { api: {}, failed: true }
@@ -19182,16 +19205,42 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       stripIframes(t, scope)
     }
 
-    function hook(id, name) {
+    function hook(id, name, args) {
       var m = mounted[id]
       if (m && !m.failed && typeof m.api[name] === 'function') {
         try {
-          m.api[name]()
+          m.api[name].apply(m.api, args || [])
         } catch (err) {
           report(id, [], 'view "' + id + '": ' + name + ' failed: ' + String(err && err.message ? err.message : err))
           showErrors()
         }
       }
+    }
+
+    function notifyFilter(filteredElements, query) {
+      tabs.forEach(function (t) {
+        var m = mounted[t.id]
+        if (m && !m.failed) {
+          if (m.filterListeners && m.filterListeners.length) {
+            m.filterListeners.slice().forEach(function (fn) {
+              try {
+                fn(filteredElements, query)
+              } catch (err) {
+                report(t.id, [t.source], 'view "' + t.id + '": filter listener failed: ' + String(err && err.message ? err.message : err))
+                showErrors()
+              }
+            })
+          }
+          if (m.api && typeof m.api.onFilter === 'function') {
+            try {
+              m.api.onFilter(filteredElements, query)
+            } catch (err) {
+              report(t.id, [t.source], 'view "' + t.id + '": onFilter failed: ' + String(err && err.message ? err.message : err))
+              showErrors()
+            }
+          }
+        }
+      })
     }
 
     function select(tabId, fromHash) {
@@ -19216,14 +19265,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var railAside = doc.querySelector('aside.innfo-rail')
         if (railAside) {
           railAside.style.display = tabId === 'explorer' ? '' : 'none'
-        }
-        var toolbar = doc.querySelector('.innfo-toolbar')
-        if (toolbar) {
-          toolbar.style.display = tabId === 'explorer' ? '' : 'none'
-        }
-        var filterZone = doc.querySelector('.innfo-filter-zone')
-        if (filterZone) {
-          filterZone.style.display = tabId === 'explorer' ? '' : 'none'
         }
       }
       if (prev) hook(prev, 'onHide')
@@ -19280,6 +19321,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return current
       },
       select: select,
+      notifyFilter: notifyFilter,
       destroy: function () {
         if (doc.defaultView) doc.defaultView.removeEventListener('hashchange', onHashChange)
         observers.forEach(function (o) {
@@ -21007,6 +21049,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)
+      lastFilteredElements = filteredElements
+      if (tabs && typeof tabs.notifyFilter === 'function') {
+        tabs.notifyFilter(filteredElements, activeSearchQuery || '')
+      }
       if (!scopedView && elements.length) {
         renderExplorerToolbar(active, explorerView, function (mode) {
           if (mode === explorerView) return
@@ -21045,16 +21091,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         renderConceptGuide(active, activeGuideConcept(activeSearchQuery, concepts), schema, matrices, counts)
       }
 
-      // Hide documentation overview tree when filtering elements so filtered cards are immediately visible
+      // Document overview tree remains hidden while filtering elements so filtered cards are immediately visible
       var docHost = active.getElementById('innfo-doc')
       if (docHost) {
         docHost.style.display = activeSearchQuery ? 'none' : ''
-      }
-
-      // A new query moves to Explorer; the hash is rewritten below, so this
-      // switch does not push a history entry.
-      if (activeSearchQuery && queryChanged && !keepTab && tabs && !scopedView) {
-        tabs.select('explorer', true)
       }
 
       renderReviewTab(active, state, config, function () {
@@ -21094,9 +21134,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     // Tabs are built once, before the first refresh, and never remounted.
+    var lastFilteredElements = []
     var tabs = mountTabs(active, {
       getQuery: function () {
         return activeSearchQuery
+      },
+      getFilteredElements: function () {
+        return lastFilteredElements
       },
       registry: registry,
       getController: function () {

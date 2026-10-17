@@ -6305,7 +6305,118 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(cWrap)
     }
 
-    // 3. Clear button if any filter is active
+    // 3. Fields Dropdown (dynamic fields extracted from elements)
+    var fieldFacetMap = {}
+    if (state && Array.isArray(state.elements)) {
+      state.elements.forEach(function (e) {
+        if (!e) return
+        var ef = e.fields
+        if (ef && typeof ef === 'object' && !Array.isArray(ef)) {
+          Object.keys(ef).forEach(function (fName) {
+            var rawVal = ef[fName]
+            if (rawVal === undefined || rawVal === null || rawVal === '') return
+            // Ignore bulky JSON/complex objects or array strings if inappropriate
+            var sVal = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal).trim()
+            if (!sVal || sVal.length > 60) return
+            if (!fieldFacetMap[fName]) fieldFacetMap[fName] = {}
+            fieldFacetMap[fName][sVal] = (fieldFacetMap[fName][sVal] || 0) + 1
+          })
+        }
+      })
+    }
+    var fieldNames = Object.keys(fieldFacetMap).sort()
+    if (fieldNames.length > 0) {
+      // Find active field operators
+      var activeFieldCount = 0
+      parsed.operators.forEach(function (op) {
+        var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+        if (fieldFacetMap[normKey] || fieldNames.some(function (fn) { return fn.toLowerCase() === normKey })) {
+          activeFieldCount++
+        }
+      })
+
+      var fWrap = el('div', 'innfo-facet-dropdown')
+      var fBtn = el('button', 'innfo-facet-btn' + (activeFieldCount > 0 ? ' active' : ''))
+      fBtn.setAttribute('type', 'button')
+      var fIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('sliders', { size: 14 }) || InnfoIcons.getSvg('tag', { size: 14 }) : '🏷️'
+      var fLabel = activeFieldCount > 0 ? 'Fields (' + activeFieldCount + ')' : 'Fields'
+      fBtn.innerHTML = fIcon + ' <span>' + fLabel + '</span> <span style="font-size: 10px;">▼</span>'
+
+      var fMenu = el('div', 'innfo-facet-menu')
+      fMenu.style.minWidth = '240px'
+
+      fieldNames.forEach(function (fName) {
+        var fValsObj = fieldFacetMap[fName]
+        var valKeys = Object.keys(fValsObj).sort()
+        if (valKeys.length === 0) return
+
+        var header = el('div', 'text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-2 pb-1 border-b border-slate-100', fName)
+        fMenu.appendChild(header)
+
+        valKeys.forEach(function (valKey) {
+          var item = el('label', 'innfo-facet-item')
+          var cb = el('input', 'innfo-facet-checkbox')
+          cb.type = 'checkbox'
+
+          var isChecked = parsed.operators.some(function (op) {
+            var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+            return normKey === fName.toLowerCase() && String(op.val).toLowerCase() === valKey.toLowerCase()
+          })
+          cb.checked = isChecked
+
+          cb.addEventListener('change', function () {
+            toggleFacet(fName, valKey, cb.checked)
+          })
+
+          var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', valKey)
+          nameSpan.title = fName + ': ' + valKey
+          var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(fValsObj[valKey]))
+
+          item.appendChild(cb)
+          item.appendChild(nameSpan)
+          item.appendChild(cntBadge)
+          fMenu.appendChild(item)
+        })
+      })
+
+      fBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        var isOpen = fMenu.classList.contains('open')
+        doc.querySelectorAll('.innfo-facet-menu').forEach(function (menu) { menu.classList.remove('open') })
+        if (!isOpen) fMenu.classList.add('open')
+      })
+
+      if (activeFieldCount > 0) {
+        var fClear = el('span', 'innfo-facet-clear', '×')
+        fClear.setAttribute('role', 'button')
+        fClear.setAttribute('title', 'Clear fields filter')
+        fClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          var newOps = parsed.operators.filter(function (op) {
+            var normKey = op.key.replace(/^[!-]/, '').toLowerCase()
+            return !fieldFacetMap[normKey] && !fieldNames.some(function (fn) { return fn.toLowerCase() === normKey })
+          })
+          var queryParts = parsed.textTokens.map(function (t) {
+            return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+          })
+          newOps.forEach(function (op) {
+            if (op.raw) queryParts.push(op.raw)
+            else {
+              var nq = String(op.val).indexOf(' ') !== -1
+              queryParts.push(op['key'] + ':' + (nq ? '"' + op.val + '"' : op.val))
+            }
+          })
+          if (typeof onQueryChange === 'function') onQueryChange(queryParts.join(' '))
+        })
+        fBtn.appendChild(fClear)
+      }
+
+      fWrap.appendChild(fBtn)
+      fWrap.appendChild(fMenu)
+      host.appendChild(fWrap)
+    }
+
+    // 4. Clear button if any filter is active
     if (activeQuery) {
       var clearBtn = el('button', 'btn btn-ghost btn-xs text-xs text-slate-500 hover:text-error', 'Clear filters')
       clearBtn.setAttribute('type', 'button')
