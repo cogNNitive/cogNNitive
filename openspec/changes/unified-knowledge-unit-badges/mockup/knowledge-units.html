@@ -8,6 +8,13 @@
   See ../exploration.md and ../design.md for the real ones.
   Superseded by design.md: actions reveal on hover/focus (24px targets), and the
   structure pencil is comment-only.
+
+  Border/colour rules updated 2026-10-18 (maintainer), NOT yet in design.md:
+  - content   : NO border. The concept's colour rides on the text AND the concept
+                icon (the icon of the concept the unit belongs to, tinted).
+  - structure : SOLID concept-coloured border (was dashed).
+  - container : ONE border at 2x the base line width (was a 3px double border).
+  - source    : unchanged paper fill; a Source is never concept-coloured (ink text).
 -->
 <html lang="en">
 <head>
@@ -90,36 +97,40 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
   font-size: .82rem; line-height: 1.25; padding: 3px 9px;
   border-radius: var(--innfo-radius-sm); background: var(--innfo-surface);
   color: var(--innfo-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  --c: var(--innfo-concept-1); --cb: var(--innfo-concept-1-bg);
 }
 .ku .t { overflow: hidden; text-overflow: ellipsis; }
 .ku .ico { flex: 0 0 auto; display: inline-flex; }
 .ku .ico svg { width: 13px; height: 13px; }
 
-/* Nature -> border style */
-.ku[data-nature="content"]   { border: 1px solid var(--innfo-border); }
-.ku[data-nature="structure"] { border: 1.5px dashed var(--innfo-muted); color: var(--innfo-muted); font-family: var(--innfo-mono); font-size: .78rem; }
-.ku[data-nature="container"] { border: 3px double var(--innfo-accent); font-weight: 600; }
+/* Nature -> border + colour
+   content   : NO border; the concept colour rides on the text and the concept icon
+   structure : SOLID concept-coloured border (was dashed)
+   container : ONE border at 2x the base line width (was a 3px double border) */
+.ku[data-nature="content"]   { border: none; background: var(--innfo-surface-2); }
+.ku[data-nature="structure"] { border: 1.5px solid var(--c, var(--innfo-muted)); color: var(--innfo-muted); font-family: var(--innfo-mono); font-size: .78rem; }
+.ku[data-nature="container"] { border: 2px solid var(--innfo-accent); font-weight: 600; }
+.ku[data-nature="content"] .t   { color: var(--c, var(--innfo-text)); }
+.ku[data-nature="content"] .ico { color: var(--c, var(--innfo-muted)); }
 
-/* Concept color -> tint / accent */
-.ku[data-slot] { --c: var(--innfo-concept-1); --cb: var(--innfo-concept-1-bg); }
+/* Concept colour -> tint / accent (slot 1 defaults live on .ku) */
 .ku[data-slot="2"] { --c: var(--innfo-concept-2); --cb: var(--innfo-concept-2-bg); }
 .ku[data-slot="3"] { --c: var(--innfo-concept-3); --cb: var(--innfo-concept-3-bg); }
 .ku[data-slot="4"] { --c: var(--innfo-concept-4); --cb: var(--innfo-concept-4-bg); }
 .ku[data-kind="concept"]  { background: var(--cb); border-color: var(--c); color: var(--innfo-text); }
 .ku[data-kind="document"] { background: var(--cb); border-color: var(--c); }
-.ku[data-kind="element"]  { border-left: 4px solid var(--c); }
-.ku[data-kind="concept"] .ico, .ku[data-kind="element"] .ico, .ku[data-kind="document"] .ico { color: var(--c); }
+.ku[data-kind="concept"] .ico, .ku[data-kind="document"] .ico { color: var(--c); }
 
 /* Value types */
 .ku[data-kind="value"] .ty { font-family: var(--innfo-mono); font-size: .68rem; color: var(--innfo-muted); border-right: 1px solid var(--innfo-border); padding-right: .45em; }
-.ku[data-kind="value"][data-vtype="reference"] { border-left: 4px solid var(--c, var(--innfo-muted)); }
-.ku[data-kind="value"][data-vtype="reference"] .ico { color: var(--c); }
 .ku[data-kind="value"][data-vtype="number"] .t { font-variant-numeric: tabular-nums; }
 
-/* Origin -> source paper (always read-only) */
+/* Origin -> source paper (always read-only). Cited evidence keeps neutral ink:
+   the concept colour never applies to a Source. */
 .ku[data-origin="source"] { background: var(--source-paper); color: var(--source-ink); }
-.ku[data-origin="source"][data-nature="content"] { border-color: var(--source-edge); }
+.ku[data-origin="source"][data-nature="content"] { border: none; }
 .ku[data-origin="source"][data-nature="structure"] { border-color: var(--source-ink); }
+.ku[data-origin="source"] .t, .ku[data-origin="source"] .ico { color: var(--source-ink); }
 
 /* Pending change pip (review) */
 .ku[data-changes] { box-shadow: 0 0 0 2px var(--innfo-status-pending-bg); border-color: var(--innfo-status-pending); }
@@ -216,25 +227,25 @@ body[data-mode="view"] .edit-bar { display: none; }
 
     <section class="card">
       <h2>Containers</h2>
-      <p class="sub">They hold other units. Info only for now (open decision: can a document's metadata be edited here?).</p>
+      <p class="sub">One border at twice the line width — no double border. They hold other units; info only for now.</p>
       <div class="grid" id="sec-container"></div>
     </section>
 
     <section class="card">
       <h2>Structure (from the bluepriNNt)</h2>
-      <p class="sub">Dashed border and mono font. In review mode the pencil appears only when "Edit structure" is on.</p>
+      <p class="sub">Solid border in the concept colour, mono font. In review mode the pencil appears only when "Edit structure" is on.</p>
       <div class="grid" id="sec-structure"></div>
     </section>
 
     <section class="card">
       <h2>Content (from the kNNowledge document)</h2>
-      <p class="sub">Solid border. Always editable in review mode. Field values, marker values, references and matrix cells are all one kind: <b>value</b>, with a type.</p>
+      <p class="sub">No border: the text and the concept icon take the colour of the concept the unit belongs to. Field values, marker values, references and matrix cells are all one kind: <b>value</b>, with a type.</p>
       <div class="grid" id="sec-content"></div>
     </section>
 
     <section class="card">
       <h2>Sources</h2>
-      <p class="sub">Paper fill. Same dashed/solid rule for structure and content, but never editable: they are cited evidence.</p>
+      <p class="sub">Paper fill, never tinted. Same solid rule for structure and no border for content, but never editable: they are cited evidence.</p>
       <div class="grid" id="sec-source"></div>
     </section>
 
@@ -262,11 +273,11 @@ body[data-mode="view"] .edit-bar { display: none; }
     <div id="info-body"><p class="empty">Click an <b>(i)</b> icon to inspect a unit.</p></div>
     <div class="legend">
       <h4>Visual grammar</h4>
-      <div><span class="ku" data-nature="container"><span class="t">Container</span></span><span class="note">double border</span></div>
-      <div><span class="ku" data-nature="structure"><span class="t">structure</span></span><span class="note">dashed + mono</span></div>
-      <div><span class="ku" data-nature="content"><span class="t">Content</span></span><span class="note">solid</span></div>
-      <div><span class="ku" data-nature="content" data-origin="source"><span class="t">Source</span></span><span class="note">paper fill, read-only</span></div>
-      <div><span class="ku" data-kind="element" data-nature="content" data-slot="2"><span class="t">Concept color</span></span><span class="note">identity of the concept</span></div>
+      <div><span class="ku" data-nature="container" data-slot="1"><span class="t">Container</span></span><span class="note">one border, 2x line width</span></div>
+      <div><span class="ku" data-nature="structure" data-slot="1"><span class="t">structure</span></span><span class="note">solid, concept colour</span></div>
+      <div><span class="ku" data-nature="content" data-slot="1"><span class="ico"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="currentColor"/></svg></span><span class="t">Content</span></span><span class="note">no border, concept colour on text + icon</span></div>
+      <div><span class="ku" data-nature="content" data-origin="source"><span class="t">Source</span></span><span class="note">paper fill, read-only, never tinted</span></div>
+      <div><span class="ku" data-nature="content" data-slot="2"><span class="ico"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.5" fill="currentColor"/></svg></span><span class="t">Another concept</span></span><span class="note">colour + icon of its concept</span></div>
     </div>
   </aside>
 </main>
@@ -312,7 +323,10 @@ body[data-mode="view"] .edit-bar { display: none; }
     domain:    { kind: 'domain',   nature: 'container', origin: 'domain',    label: 'GhostOps', icon: 'domain', address: null, note: 'No @ address exists yet for a domaiNN.' },
     document:  { kind: 'document', nature: 'container', origin: 'knowledge', label: 'GhostOps_NN', icon: 'doc', slot: 1, address: DOC },
 
-    concept:   { kind: 'concept', nature: 'structure', origin: 'blueprint', label: 'Incident', icon: 'dot', slot: 1, address: BP + '@incident', note: 'Concepts have no @ address in innfo-core today.' },
+    // Concepts carry their own icon; every content unit shows the icon of the
+    // concept it belongs to, tinted with that concept's colour (slot).
+    concept:      { kind: 'concept', nature: 'structure', origin: 'blueprint', label: 'Incident', icon: 'dot', slot: 1, address: BP + '@incident', note: 'Concepts have no @ address in innfo-core today.' },
+    conceptAgent: { kind: 'concept', nature: 'structure', origin: 'blueprint', label: 'Agent', icon: 'row', slot: 2, address: BP + '@agent', note: 'Concepts have no @ address in innfo-core today.' },
     field:     { kind: 'field',   nature: 'structure', origin: 'blueprint', label: 'owner', icon: 'field', address: BP + '@incident&owner', meta: 'type: reference -> Agent' },
     fieldNum:  { kind: 'field',   nature: 'structure', origin: 'blueprint', label: 'severity', icon: 'field', address: BP + '@incident&severity', meta: 'type: number (1-5)' },
     markerDef: { kind: 'marker',  nature: 'structure', origin: 'blueprint', label: 'needs_review', icon: 'marker', address: BP + '@incident&needs_review', meta: 'type: boolean' },
@@ -321,12 +335,12 @@ body[data-mode="view"] .edit-bar { display: none; }
     axisCol:   { kind: 'axis',    nature: 'structure', origin: 'blueprint', label: 'col: impact', icon: 'axis', address: DOC + '@risk-matrix&*&impact' },
 
     element:   { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Library haunting', icon: 'dot', slot: 1, address: DOC + '@library-haunting' },
-    agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 2, address: DOC + '@slimer' },
-    vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', address: DOC + '@library-haunting&location', meta: 'field value' },
-    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1 },
-    vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.' },
-    vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'arrow', slot: 2, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer' },
-    vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell' },
+    agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'row', slot: 2, address: DOC + '@slimer' },
+    vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', icon: 'dot', slot: 1, address: DOC + '@library-haunting&location', meta: 'field value' },
+    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', icon: 'dot', slot: 1, address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1 },
+    vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', icon: 'dot', slot: 1, address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.' },
+    vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 1, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer' },
+    vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', icon: 'dot', slot: 1, address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell' },
 
     sHeading:  { kind: 'header',  nature: 'content',   origin: 'source', label: '## Witness statements', icon: 'hash', address: 'sources/import/report-1984.md@## Witness statements' },
     sColumn:   { kind: 'column',  nature: 'structure', origin: 'source', label: 'borough', icon: 'col', address: 'sources/import/sightings.csv@*&borough', note: 'A column-only address is not defined in the grammar today.' },
@@ -380,7 +394,7 @@ body[data-mode="view"] .edit-bar { display: none; }
   row($('sec-container'), '<b>Domain</b>', ['domain'])
   row($('sec-container'), '<b>Document</b> (kNNowledge)', ['document'])
 
-  row($('sec-structure'), '<b>Concept</b>', ['concept'])
+  row($('sec-structure'), '<b>Concept</b>', ['concept', 'conceptAgent'])
   row($('sec-structure'), '<b>Field</b> (definition)', ['field', 'fieldNum'])
   row($('sec-structure'), '<b>Marker</b> (definition)', ['markerDef'])
   row($('sec-structure'), '<b>Matrix</b>', ['matrix'])
