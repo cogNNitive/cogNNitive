@@ -1188,6 +1188,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-edit-warn{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--innfo-status-pending);background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);font-size:.82rem;line-height:1.45}',
     '.innfo-edit-warn-icon{flex:0 0 auto;display:inline-flex;margin-top:.1rem}',
     '.innfo-edit-warn strong{display:block;margin-bottom:.15rem}',
+    // "Proposing as ..." inside the edit modal (just-in-time identity).
+    '.innfo-propose-as{padding:.45rem 1.25rem;border-bottom:1px solid var(--innfo-border);font-size:.78rem;color:var(--innfo-muted)}',
+    '.innfo-propose-as[data-default=true]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
     '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
@@ -3056,6 +3059,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       modal.appendChild(structureWarn)
     }
 
+    // (C) banner: a proposal that cannot be APPLIED (no base_hash precondition) warns
+    // here instead of the affordance being hidden.
+    if (!data.structure && data.warning) {
+      var cannotApply = makeEl(doc, 'div', 'innfo-edit-warn')
+      cannotApply.setAttribute('role', 'alert')
+      var caIcon = makeEl(doc, 'span', 'innfo-edit-warn-icon')
+      caIcon.setAttribute('aria-hidden', 'true')
+      caIcon.innerHTML = icon('cite-error', 16)
+      cannotApply.appendChild(caIcon)
+      cannotApply.appendChild(makeEl(doc, 'span', data.warning))
+      modal.appendChild(cannotApply)
+    }
+
+    // Who is proposing. The identity is remembered (localStorage) and required at
+    // export; showing it here is the just-in-time half, so several reviewers do not
+    // silently collapse into the default pseudonym.
+    if (data.reviewer && String(data.reviewer).trim()) {
+      var proposeAs = makeEl(doc, 'div', 'innfo-propose-as')
+      proposeAs.textContent = 'Proposing as ' + String(data.reviewer)
+      if (data.reviewer === 'reviewer') {
+        proposeAs.textContent = 'Proposing as "reviewer" (default) - set your identifier'
+        proposeAs.setAttribute('data-default', 'true')
+      }
+      modal.appendChild(proposeAs)
+    }
+
     // Unified Modal Navigation: Tabs (Edit vs Lineage)
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
@@ -4756,6 +4785,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return allHashed
   }
 
+  /**
+   * (C) The predicate is SPLIT by what each condition protects:
+   *  - `canPropose`: a draft can be RECORDED and later applied (the model is
+   *    addressable and every element carries a `base_hash` precondition). It does
+   *    NOT depend on the export surface: drafts are local, and applying them lives
+   *    outside the console (the MCP owns `propose_changeset` / `apply_change`).
+   *  - `canReview` (= canExport): additionally needs the `feedback-export` surface
+   *    that produces the `_changes_NN.md` artifact.
+   */
+  function canPropose(meta, elements) {
+    var m = isObject(meta) ? meta : {}
+    var list = Array.isArray(elements) ? elements : []
+    if (typeof m.modelId !== 'string' || !m.modelId.trim()) return false
+    if (list.length === 0) return false
+    return list.every(function (el) {
+      return el && typeof el.hash === 'string' && BASE_HASH_PATTERN.test(el.hash)
+    })
+  }
+
   // The payload groups resolved citations by field (`{ field: [citation] }`), but
   // UI.EditModal renders a flat list of `{ origin, source, quote }`. Flatten and
   // map here so the modal's "Citations" section renders.
@@ -5075,6 +5123,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: target.history,
           isComment: !!target.isComment,
           structure: !!target.structure,
+          reviewer: typeof options.getReviewer === 'function' ? String(options.getReviewer() || '') : '',
+          warning: (function () {
+            var targetEl = elementsById[anchorData.elementId]
+            var hasHash = !!(targetEl && typeof targetEl.hash === 'string' && BASE_HASH_PATTERN.test(targetEl.hash))
+            if (targetEl && !hasHash) {
+              return (
+                'This element has no hash, so a proposal against it cannot be applied: ' +
+                'the apply engine cannot verify the base_hash precondition.'
+              )
+            }
+            return ''
+          })(),
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(elementsById[anchorData.elementId]),
@@ -5400,7 +5460,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (!visible.length) return
 
       var current = doc.activeElement
-      var idx = visible.indexOf(current)
+      // Focus may sit on a control INSIDE a card (a tag anchor, a pencil, the "+"),
+      // so resolve the card by containment, not by identity.
+      var idx = -1
+      for (var vi = 0; vi < visible.length; vi++) {
+        if (visible[vi] === current || (current && visible[vi].contains && visible[vi].contains(current))) {
+          idx = vi
+          break
+        }
+      }
       if (event.key === 'j') {
         if (typeof event.preventDefault === 'function') event.preventDefault()
         var next = visible[idx < 0 ? 0 : Math.min(idx + 1, visible.length - 1)]
@@ -5745,7 +5813,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       decorateBadges()
       decorateChangePips()
       syncChangesetBar()
-      if (!enabled) return
+      // (C): the edit anchors need a PROPOSABLE domain (modelId + every element has a
+      // base_hash). The export surface is gated separately, by canReview.
+      if (!enabled || !canPropose(meta, elements)) return
       decorate(doc)
       decorateRailProgress()
       if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
@@ -5801,7 +5871,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // to the edit anchors (`decorate`), which is where a proposal starts.
       decorateBadges()
       decorateChangePips(root || doc)
-      if (enabled) {
+      if (enabled && canPropose(meta, elements)) {
         decorate(root || doc)
         decorateRailProgress()
         if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
@@ -6994,6 +7064,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     input.type = 'text'
     input.setAttribute('aria-label', 'Reviewer name')
     var current = getReviewerName()
+      // Nudge: the default is a SHARED pseudonym, so several reviewers would collapse
+      // into one author. Flag it until it is set.
+      if (current === DEFAULT_REVIEWER_NAME) {
+        chip.setAttribute('data-default', 'true')
+        chip.setAttribute('title', 'Set your identifier so your proposals are attributed to you')
+      }
     input.value = current === DEFAULT_REVIEWER_NAME ? '' : current
     input.placeholder = DEFAULT_REVIEWER_NAME
     input.addEventListener('change', function () {
@@ -12475,7 +12551,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // C3: the controller builds the toggle into the (now rendered) banner and
     // listens for innfo:rendered; created after the first paint so the banner
     // rebuild does not drop the toggle.
-    if (hasNeed(config, 'feedback-export')) {
+    // (C): create the controller whenever the domain is proposable OR exportable; it
+    // gates its own decorations. Without this, a proposable domain without an export
+    // surface would get no edit anchors at all.
+    if (
+      hasNeed(config, 'feedback-export') ||
+      !!(meta && typeof meta.modelId === 'string' && meta.modelId.trim() && elements.length > 0)
+    ) {
       state.controller = Review.createReviewController(active, {
         meta: meta,
         elements: elements,
@@ -12483,6 +12565,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         needs: config.needs,
         store: state.store,
         schema: schema,
+        getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
       })
     }

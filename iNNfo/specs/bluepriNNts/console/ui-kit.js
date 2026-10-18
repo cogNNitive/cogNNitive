@@ -271,6 +271,9 @@
     '.innfo-edit-warn{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--innfo-status-pending);background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);font-size:.82rem;line-height:1.45}',
     '.innfo-edit-warn-icon{flex:0 0 auto;display:inline-flex;margin-top:.1rem}',
     '.innfo-edit-warn strong{display:block;margin-bottom:.15rem}',
+    // "Proposing as ..." inside the edit modal (just-in-time identity).
+    '.innfo-propose-as{padding:.45rem 1.25rem;border-bottom:1px solid var(--innfo-border);font-size:.78rem;color:var(--innfo-muted)}',
+    '.innfo-propose-as[data-default=true]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
     '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
@@ -2137,6 +2140,32 @@
         'maintainer: it will not be applied automatically.'
       structureWarn.appendChild(warnText)
       modal.appendChild(structureWarn)
+    }
+
+    // (C) banner: a proposal that cannot be APPLIED (no base_hash precondition) warns
+    // here instead of the affordance being hidden.
+    if (!data.structure && data.warning) {
+      var cannotApply = makeEl(doc, 'div', 'innfo-edit-warn')
+      cannotApply.setAttribute('role', 'alert')
+      var caIcon = makeEl(doc, 'span', 'innfo-edit-warn-icon')
+      caIcon.setAttribute('aria-hidden', 'true')
+      caIcon.innerHTML = icon('cite-error', 16)
+      cannotApply.appendChild(caIcon)
+      cannotApply.appendChild(makeEl(doc, 'span', data.warning))
+      modal.appendChild(cannotApply)
+    }
+
+    // Who is proposing. The identity is remembered (localStorage) and required at
+    // export; showing it here is the just-in-time half, so several reviewers do not
+    // silently collapse into the default pseudonym.
+    if (data.reviewer && String(data.reviewer).trim()) {
+      var proposeAs = makeEl(doc, 'div', 'innfo-propose-as')
+      proposeAs.textContent = 'Proposing as ' + String(data.reviewer)
+      if (data.reviewer === 'reviewer') {
+        proposeAs.textContent = 'Proposing as "reviewer" (default) - set your identifier'
+        proposeAs.setAttribute('data-default', 'true')
+      }
+      modal.appendChild(proposeAs)
     }
 
     // Unified Modal Navigation: Tabs (Edit vs Lineage)

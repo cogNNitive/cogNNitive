@@ -452,6 +452,25 @@
     return allHashed
   }
 
+  /**
+   * (C) The predicate is SPLIT by what each condition protects:
+   *  - `canPropose`: a draft can be RECORDED and later applied (the model is
+   *    addressable and every element carries a `base_hash` precondition). It does
+   *    NOT depend on the export surface: drafts are local, and applying them lives
+   *    outside the console (the MCP owns `propose_changeset` / `apply_change`).
+   *  - `canReview` (= canExport): additionally needs the `feedback-export` surface
+   *    that produces the `_changes_NN.md` artifact.
+   */
+  function canPropose(meta, elements) {
+    var m = isObject(meta) ? meta : {}
+    var list = Array.isArray(elements) ? elements : []
+    if (typeof m.modelId !== 'string' || !m.modelId.trim()) return false
+    if (list.length === 0) return false
+    return list.every(function (el) {
+      return el && typeof el.hash === 'string' && BASE_HASH_PATTERN.test(el.hash)
+    })
+  }
+
   // The payload groups resolved citations by field (`{ field: [citation] }`), but
   // UI.EditModal renders a flat list of `{ origin, source, quote }`. Flatten and
   // map here so the modal's "Citations" section renders.
@@ -771,6 +790,18 @@
           history: target.history,
           isComment: !!target.isComment,
           structure: !!target.structure,
+          reviewer: typeof options.getReviewer === 'function' ? String(options.getReviewer() || '') : '',
+          warning: (function () {
+            var targetEl = elementsById[anchorData.elementId]
+            var hasHash = !!(targetEl && typeof targetEl.hash === 'string' && BASE_HASH_PATTERN.test(targetEl.hash))
+            if (targetEl && !hasHash) {
+              return (
+                'This element has no hash, so a proposal against it cannot be applied: ' +
+                'the apply engine cannot verify the base_hash precondition.'
+              )
+            }
+            return ''
+          })(),
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(elementsById[anchorData.elementId]),
@@ -1096,7 +1127,15 @@
       if (!visible.length) return
 
       var current = doc.activeElement
-      var idx = visible.indexOf(current)
+      // Focus may sit on a control INSIDE a card (a tag anchor, a pencil, the "+"),
+      // so resolve the card by containment, not by identity.
+      var idx = -1
+      for (var vi = 0; vi < visible.length; vi++) {
+        if (visible[vi] === current || (current && visible[vi].contains && visible[vi].contains(current))) {
+          idx = vi
+          break
+        }
+      }
       if (event.key === 'j') {
         if (typeof event.preventDefault === 'function') event.preventDefault()
         var next = visible[idx < 0 ? 0 : Math.min(idx + 1, visible.length - 1)]
@@ -1441,7 +1480,9 @@
       decorateBadges()
       decorateChangePips()
       syncChangesetBar()
-      if (!enabled) return
+      // (C): the edit anchors need a PROPOSABLE domain (modelId + every element has a
+      // base_hash). The export surface is gated separately, by canReview.
+      if (!enabled || !canPropose(meta, elements)) return
       decorate(doc)
       decorateRailProgress()
       if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
@@ -1497,7 +1538,7 @@
       // to the edit anchors (`decorate`), which is where a proposal starts.
       decorateBadges()
       decorateChangePips(root || doc)
-      if (enabled) {
+      if (enabled && canPropose(meta, elements)) {
         decorate(root || doc)
         decorateRailProgress()
         if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()

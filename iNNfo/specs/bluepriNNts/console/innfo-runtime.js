@@ -978,6 +978,12 @@
     input.type = 'text'
     input.setAttribute('aria-label', 'Reviewer name')
     var current = getReviewerName()
+      // Nudge: the default is a SHARED pseudonym, so several reviewers would collapse
+      // into one author. Flag it until it is set.
+      if (current === DEFAULT_REVIEWER_NAME) {
+        chip.setAttribute('data-default', 'true')
+        chip.setAttribute('title', 'Set your identifier so your proposals are attributed to you')
+      }
     input.value = current === DEFAULT_REVIEWER_NAME ? '' : current
     input.placeholder = DEFAULT_REVIEWER_NAME
     input.addEventListener('change', function () {
@@ -6459,7 +6465,13 @@
     // C3: the controller builds the toggle into the (now rendered) banner and
     // listens for innfo:rendered; created after the first paint so the banner
     // rebuild does not drop the toggle.
-    if (hasNeed(config, 'feedback-export')) {
+    // (C): create the controller whenever the domain is proposable OR exportable; it
+    // gates its own decorations. Without this, a proposable domain without an export
+    // surface would get no edit anchors at all.
+    if (
+      hasNeed(config, 'feedback-export') ||
+      !!(meta && typeof meta.modelId === 'string' && meta.modelId.trim() && elements.length > 0)
+    ) {
       state.controller = Review.createReviewController(active, {
         meta: meta,
         elements: elements,
@@ -6467,6 +6479,7 @@
         needs: config.needs,
         store: state.store,
         schema: schema,
+        getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
       })
     }
