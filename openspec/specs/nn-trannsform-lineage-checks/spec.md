@@ -57,3 +57,8 @@ Lineage generation MUST NOT use the `model` / `knowledge_version` inference or t
 ### Requirement: Automatic Impact Detection on Scan
 
 The scan-time impact check is defined in `dynamic-sources-impact-check` ("Automatic Impact Detection on Scan"); `nn-trannsform` delegates heading-drift, CSV-row, and subunit checks to innfo-core and MUST NOT contain its own drift logic.
+
+#### Scenario: Drift checks delegated to innfo-core
+- GIVEN `nn-trannsform` scan-time impact detection
+- WHEN heading-drift, CSV-row, or subunit checks are needed
+- THEN they are delegated to innfo-core and `nn-trannsform` holds no drift logic of its own

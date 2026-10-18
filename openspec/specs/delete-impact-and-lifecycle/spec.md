@@ -52,7 +52,7 @@ The engine MUST scan for active incoming references to the element targeted for 
 
 ### Requirement: Slug Reuse Lifecycle and Staleness History Guard
 
-Element identity lifecycle restarts upon new creation:
+Element identity lifecycle MUST restart upon new creation:
 - A deleted slug MAY be reused by a subsequent `add_element` operation. The element's lifecycle and history restart at the newly applied `add_element`.
 - When evaluating any mutation targeting an element slug (`update_field`, `remove_element`, `rename_element`), the engine MUST check for staleness via a reverse scan of `changes/`:
   - The scan SHALL inspect applied changesets in reverse chronological order up to a maximum cap of 50 changesets.
