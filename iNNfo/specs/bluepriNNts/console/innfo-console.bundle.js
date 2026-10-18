@@ -1112,7 +1112,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-unit{display:inline-flex;align-items:center;gap:.25em;max-width:100%}',
     '.innfo-card-fields>.innfo-ku-unit,.innfo-card-fields>.innfo-ku{flex:1 1 16rem;min-width:0}',
     '.innfo-card-fields>.innfo-ku[data-field-wide=true],.innfo-card-fields>.innfo-ku-unit:has([data-field-wide=true]){flex-basis:100%}',
-    '.innfo-ku{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .5em;background:var(--innfo-surface);color:var(--innfo-text);max-width:100%}',
+    '.innfo-ku{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:0;border-radius:var(--innfo-radius-sm);padding:.12em .5em;background:var(--innfo-surface-2);color:var(--innfo-text);max-width:100%;--c:var(--innfo-concept-1);--cb:var(--innfo-concept-1-bg)}',
+    // Nature grammar (approved 2026-10-18): container = ONE border at 2x the line
+    // width (no double border); structure = SOLID concept-coloured border + mono
+    // (no dashed); content = NO border, the concept colour rides on the label and
+    // the concept icon.
+    '.innfo-ku[data-ku-nature=container]{border:2px solid var(--innfo-accent);background:var(--innfo-surface)}',
+    '.innfo-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--innfo-muted);background:var(--innfo-surface)}',
+    '.innfo-ku[data-ku-nature=content]{border:0;background:var(--innfo-surface-2)}',
+    '.innfo-ku-wrap{display:inline-flex;align-items:center;gap:.2em;position:relative;vertical-align:middle;max-width:100%}',
     '.innfo-ku[data-ku-kind=field],.innfo-ku[data-ku-kind=cell]{background:var(--innfo-surface-2)}',
     // Element + concept/document badges read as card titles: slightly larger and
     // semibold so they anchor the hierarchy above their muted field rows.
@@ -1121,6 +1129,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.innfo-ku .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
+    // Content badges: NO border; the concept colour rides on the label/value and on
+    // the concept icon (the icon of the concept the unit belongs to).
+    '.innfo-ku[data-ku-nature=content]>.innfo-ku-label,.innfo-ku[data-ku-nature=content]>.innfo-ku-value{color:var(--c)}',
+    '.innfo-ku[data-ku-nature=content]>.innfo-ku-icon{color:var(--c)}',
+    // A Source is cited evidence: paper fill and neutral ink. It is never tinted by
+    // the concept colour, even though it is a content unit.
+    '.innfo-ku[data-ku-home=source]>.innfo-ku-label{color:var(--innfo-muted)}',
+    '.innfo-ku[data-ku-home=source]>.innfo-ku-value{color:var(--innfo-text)}',
+    '.innfo-ku[data-ku-home=source] .innfo-ku-icon{color:var(--innfo-muted)}',
     // Field badges carry free text: under card fields they grow to fill the row,
     // while in tables/grids they remain compact inline-flex elements.
     '.innfo-card-fields>.innfo-ku-unit>.innfo-ku[data-ku-kind=field],.innfo-card-fields>.innfo-ku[data-ku-kind=field]{flex:1 1 16em;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
@@ -1137,10 +1154,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-kpi-value{font-size:1.4rem;font-weight:700;color:var(--innfo-text);line-height:1.2}',
     '.innfo-kpi-hint{font-size:.78rem;color:var(--innfo-muted)}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
-    '.innfo-ku-actions{display:inline-flex;align-items:center;gap:.1em;flex:0 0 auto}',
-    '.innfo-ku-action{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .3em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:1.6em;min-height:1.5em;opacity:.55;transition:opacity .15s ease,color .15s ease,border-color .15s ease}',
-    '.innfo-ku-unit:hover .innfo-ku-action,.innfo-ku-action:focus-visible{opacity:1}',
-    '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
+    // ONE affordance sits beside the badge: a borderless "+". The actions float
+    // BELOW it on demand, so they take no inline space and never push a neighbour.
+    '.innfo-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--innfo-muted);cursor:pointer;flex:0 0 auto}',
+    '.innfo-ku-more:hover,.innfo-ku-more[aria-expanded=true]{color:var(--innfo-text);background:var(--innfo-surface-2)}',
+    '.innfo-ku-more:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
+    '.innfo-ku-actions{position:absolute;top:calc(100% + 5px);left:0;z-index:40;display:none;align-items:center;gap:.1em;padding:.2em;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap}',
+    '.innfo-ku-wrap[data-ku-open=true]>.innfo-ku-actions{display:inline-flex}',
+    '.innfo-ku-action{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .3em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px}',
+    '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface-2)}',
     '.innfo-ku-action[data-ku-action=edit]:hover{color:var(--innfo-link)}',
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
     '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
@@ -1222,11 +1244,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   for (var kslot = 1; kslot <= 12; kslot++) {
     COMPONENT_CSS.push(
       '[data-innfo-component=element-card][data-concept-slot="' + kslot + '"]{--card-concept-color:var(--innfo-concept-' + kslot + ');--card-concept-bg:var(--innfo-concept-' + kslot + '-bg);border-left:4px solid var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=element]{border-color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=element] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=reference]{border-color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=reference] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
-      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept],[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document]{border-color:var(--innfo-concept-' + kslot + ');background:var(--innfo-concept-' + kslot + '-bg)}',
+      // The concept slot drives --c/--cb on the badge: content text + icon, the
+      // structure border, and the concept/document tint all read from it.
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"]{--c:var(--innfo-concept-' + kslot + ');--cb:var(--innfo-concept-' + kslot + '-bg)}',
+      '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept],[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document]{background:var(--innfo-concept-' + kslot + '-bg);border-color:var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .innfo-ku-icon,[data-innfo-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
     )
   }
@@ -3884,6 +3905,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (ref.vtype) desc.vtype = String(ref.vtype)
     if (ref.parentLabel) desc.parentLabel = String(ref.parentLabel)
     if (ref.location) desc.location = String(ref.location)
+    // Content badges carry the ICON of the concept the unit belongs to (tinted by
+    // that concept's colour through --c in CSS).
+    if (nature === 'content') {
+      desc.icon = resolveConceptIconName(ref.concept || ref.conceptId, {
+        index: index,
+        color: ref.color,
+        id: ref.concept || ref.conceptId,
+      })
+    }
     return desc
   }
 
@@ -3937,6 +3967,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       badge.setAttribute('data-ku-variant', 'block')
       if (opts.body) badge.appendChild(opts.body)
     } else {
+      if (desc.icon) {
+        var conceptIconEl = makeEl(doc, 'span', 'innfo-ku-icon')
+        conceptIconEl.setAttribute('aria-hidden', 'true')
+        conceptIconEl.innerHTML = icon(desc.icon, 13)
+        badge.appendChild(conceptIconEl)
+      }
       var labelEl = makeEl(doc, 'span', 'innfo-ku-label', desc.label)
       labelEl.setAttribute('title', desc.label)
       badge.appendChild(labelEl)
@@ -3949,35 +3985,46 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     badge.setAttribute('aria-label', desc.nature + ', lives in ' + desc.home + ': ' + desc.label)
     wrap.appendChild(badge)
 
-    // Action cluster: ALWAYS outside the badge root.
-    var actions = makeEl(doc, 'span', 'innfo-ku-actions')
-    var info = makeEl(doc, 'button', 'innfo-ku-action')
-    info.setAttribute('type', 'button')
-    info.setAttribute('data-ku-action', 'info')
-    info.setAttribute('aria-label', 'Unit info')
-    info.innerHTML = icon('info', 13)
-    if (typeof opts.onInfo === 'function') {
-      info.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
-        opts.onInfo(desc)
-      })
-    }
-    actions.appendChild(info)
+    // ONE affordance sits beside the badge; everything else floats below on demand.
+    var more = makeEl(doc, 'button', 'innfo-ku-more')
+    more.setAttribute('type', 'button')
+    more.setAttribute('data-ku-more', 'true')
+    more.setAttribute('aria-expanded', 'false')
+    more.setAttribute('aria-label', 'Actions for ' + desc.label)
+    more.innerHTML =
+      '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>'
+    wrap.setAttribute('data-ku-open', 'false')
+    wrap.appendChild(more)
 
-    if (desc.editability !== 'none') {
-      var edit = makeEl(doc, 'button', 'innfo-ku-action')
-      edit.setAttribute('type', 'button')
-      edit.setAttribute('data-ku-action', 'edit')
-      edit.setAttribute('aria-label', 'Edit unit')
-      if (desc.editability === 'structure') edit.setAttribute('data-ku-structure', 'true')
-      edit.innerHTML = icon('pencil', 13)
-      if (typeof opts.onEdit === 'function') {
-        edit.addEventListener('click', function (ev) {
+    // Action flyout (no inline space): info, reveal, citations (when there are any),
+    // edit (only when the unit is editable).
+    var actions = makeEl(doc, 'span', 'innfo-ku-actions')
+    function actionButton(name, iconName, label, handler) {
+      var b = makeEl(doc, 'button', 'innfo-ku-action')
+      b.setAttribute('type', 'button')
+      b.setAttribute('data-ku-action', name)
+      b.setAttribute('aria-label', label)
+      b.innerHTML = icon(iconName, 14)
+      if (typeof handler === 'function') {
+        b.addEventListener('click', function (ev) {
           if (ev && ev.stopPropagation) ev.stopPropagation()
-          opts.onEdit(desc)
+          handler(desc)
         })
       }
-      actions.appendChild(edit)
+      return b
+    }
+    actions.appendChild(actionButton('info', 'info', 'Unit info', opts.onInfo))
+    actions.appendChild(actionButton('reveal', 'arrow-up-right', 'Reveal in context', opts.onReveal))
+    var citations = ref && ref.citations && Array.isArray(ref.citations.sources) ? ref.citations.sources : null
+    if (citations && citations.length) {
+      actions.appendChild(
+        actionButton('citations', 'cite-document', citations.length + ' citations', opts.onCitations),
+      )
+    }
+    if (desc.editability !== 'none') {
+      var editBtn = actionButton('edit', 'pencil', 'Edit unit', opts.onEdit)
+      if (desc.editability === 'structure') editBtn.setAttribute('data-ku-structure', 'true')
+      actions.appendChild(editBtn)
     }
     wrap.appendChild(actions)
 
@@ -4021,12 +4068,37 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return null
       }
     }
+    function closeFlyouts() {
+      var open = doc.querySelectorAll('.innfo-ku-wrap[data-ku-open=true]')
+      for (var i = 0; i < open.length; i++) {
+        open[i].setAttribute('data-ku-open', 'false')
+        var moreBtn = open[i].querySelector('[data-ku-more]')
+        if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false')
+      }
+    }
     function onClick(ev) {
       var t = ev && ev.target
       if (!t || !t.closest) return
+      // The "+" toggles the flyout; only one is open at a time.
+      var moreEl = t.closest('[data-ku-more]')
+      if (moreEl) {
+        var owner = moreEl.closest('.innfo-ku-wrap')
+        var wasOpen = !!(owner && owner.getAttribute('data-ku-open') === 'true')
+        closeFlyouts()
+        if (owner && !wasOpen) {
+          owner.setAttribute('data-ku-open', 'true')
+          moreEl.setAttribute('aria-expanded', 'true')
+        }
+        if (ev.preventDefault) ev.preventDefault()
+        return
+      }
       var actionEl = t.closest('[data-ku-action]')
       var pipEl = t.closest('[data-innfo-component="ku-change-pip"]')
-      if (!actionEl && !pipEl) return
+      if (!actionEl && !pipEl) {
+        closeFlyouts()
+        return
+      }
+      closeFlyouts()
       var desc = descriptorOf(actionEl || pipEl)
       if (!desc) return
       var action = actionEl ? actionEl.getAttribute('data-ku-action') : 'changes'
