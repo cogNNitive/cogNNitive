@@ -332,7 +332,9 @@ describe('file lock hardening', () => {
         peak = Math.max(peak, active);
         await sleep(30);
         active--;
-      }, { staleMs: 100, timeoutMs: 2000, retryMs: 5 });
+      // The ghost owner's PID is dead, so the lock is stale at once. A large staleMs keeps the mtime rule
+      // from also robbing a LIVE holder whose event loop stalls under CPU load (heartbeat is 30s here).
+      }, { staleMs: 60000, timeoutMs: 5000, retryMs: 5 });
     await Promise.all([job(), job(), job()]);
     assert.equal(peak, 1);
   });
