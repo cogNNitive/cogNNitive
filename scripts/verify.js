@@ -352,7 +352,7 @@ function inline(check) {
  * @param {string} repoRoot
  * @param {{ release?: boolean, fast?: boolean }} [options] - `release` is accepted for CLI
  *   compatibility and changes nothing; `fast` omits SLOW_SUITES.
- * @returns {Array<{ id: string, desc: string, cmd?: string, args?: string[], run?: () => { ok: boolean, output?: string } }>}
+ * @returns {Array<{ id: string, desc: string, parallel?: boolean, cmd?: string, args?: string[], run?: () => { ok: boolean, output?: string } }>}
  */
 function buildSteps(repoRoot, options = {}) {
   const node = (id, desc, ...args) => ({ id, desc, cmd: process.execPath, args });

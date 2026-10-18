@@ -97,17 +97,24 @@ async function testRunner() {
   // 5c. The pool is bounded, actually concurrent, and each log holds only its own output.
   {
     const dir = tmp('verify-conc-');
-    const code = `
+    // The first `jobs` children wait for a sibling; later ones (which may run alone) do not.
+    const code = (needSibling) => `
       const fs = require('fs'), path = require('path');
       const dir = ${JSON.stringify(dir)};
       const me = path.join(dir, 'run-' + process.pid);
       fs.writeFileSync(me, '');
-      const live = fs.readdirSync(dir).filter((f) => f.startsWith('run-')).length;
-      fs.appendFileSync(path.join(dir, 'peak'), live + '\\n');
-      console.log('L1');
-      setTimeout(() => { console.log('L2'); console.log('L3'); fs.unlinkSync(me); }, 400);
+      const live = () => fs.readdirSync(dir).filter((f) => f.startsWith('run-')).length;
+      // Barrier: stay alive until a sibling is running too (or 8s), so overlap does not depend on node start-up speed.
+      const until = Date.now() + 8000;
+      const wait = () => {
+        if (${needSibling} && live() < 2 && Date.now() < until) return setTimeout(wait, 20);
+        fs.appendFileSync(path.join(dir, 'peak'), live() + '\\n');
+        console.log('L1'); console.log('L2'); console.log('L3');
+        setTimeout(() => fs.unlinkSync(me), 150);
+      };
+      wait();
     `;
-    const steps = Array.from({ length: 6 }, (_, i) => nodeStep('c' + i, code));
+    const steps = Array.from({ length: 6 }, (_, i) => nodeStep('c' + i, code(i < 3)));
     const lines = [];
     const res = await runSteps(steps, { jobs: 3, logDir: path.join(dir, 'logs'), write: (l) => lines.push(l) });
     assert.strictEqual(res.ok, true);
