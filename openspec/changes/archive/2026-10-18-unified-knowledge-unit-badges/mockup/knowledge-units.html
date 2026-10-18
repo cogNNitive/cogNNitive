@@ -173,8 +173,10 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 .ku-act[data-act="edit"] { color: var(--innfo-text); }
 
 /* Mode rules: the only place editability is decided */
-body[data-mode="view"] .ku-act[data-act="edit"] { display: none; }
-body[data-mode="review"][data-structure="off"] .ku-act[data-act="edit"][data-nature="structure"] { display: none; }
+/* NO review mode. The pencil is always emitted for editable units: an edit only
+   ever creates a DRAFT, never a write, so there is nothing to "arm". The only
+   surviving gate is the structure SCOPE switch (blueprint writes are unsupported). */
+body[data-structure="off"] .ku-act[data-act="edit"][data-nature="structure"] { display: none; }
 
 /* Citations: one icon per distinct provenance, coloured by WHO produced the
    claim (human vs agent). Canonical order: error, agent, human, reviewer, document. */
@@ -285,16 +287,22 @@ aside.info .empty { color: var(--innfo-muted); margin: 0; }
 .legend span.note { color: var(--innfo-muted); }
 @media (max-width: 860px) { aside.info { position: static; } }
 
-/* Floating edit bar (review mode only) */
+/* Changeset bar: STATE-driven, not mode-driven. It appears only when there is at
+   least one draft — "Drafts: 0 / Export changes" is noise in every view. */
 .edit-bar {
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 10;
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  display: none; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
   background: var(--innfo-surface); border: 1px solid var(--innfo-border); border-radius: 999px;
   box-shadow: 0 8px 28px rgba(0,0,0,.14); padding: 8px 10px 8px 18px; font-size: .82rem;
   max-width: calc(100vw - 32px);
 }
-body[data-mode="view"] .edit-bar { display: none; }
+body[data-drafts="on"] .edit-bar { display: flex; }
 .edit-bar .count { font-weight: 600; }
+.edit-bar .chip { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--innfo-muted); }
+.edit-bar .chip b { color: var(--innfo-text); font-weight: 600; }
+.edit-bar .sep { width: 1px; height: 18px; background: var(--innfo-border); }
+.edit-bar .btn-ghost { font: inherit; border: 1px solid var(--innfo-border); background: transparent; color: var(--innfo-muted); border-radius: 999px; padding: 5px 14px; cursor: pointer; font-weight: 600; }
+.edit-bar .btn-ghost:hover { color: var(--innfo-text); background: var(--innfo-surface-2); }
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; position: relative; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .switch .track { width: 32px; height: 18px; border-radius: 999px; background: var(--innfo-border); position: relative; transition: background .15s; }
@@ -312,17 +320,18 @@ body[data-mode="view"] .edit-bar { display: none; }
 .toast.on { opacity: 1; }
 </style>
 </head>
-<body data-mode="view" data-structure="off">
+<body data-structure="off" data-drafts="off">
 
 <header class="top">
   <div>
     <h1>Knowledge-unit badges</h1>
-    <p>Mockup: every unit is drawn by one builder. A single borderless "+" beside the badge opens a floating flyout <b>below</b> it — info · sheet · citations · edit. The sheet opens a <b>modal</b> with the unit's full data.</p>
+    <p>Mockup: every unit is drawn by one builder. A borderless "+" beside the badge opens a floating flyout <b>below</b> it — info · sheet · citations · edit. <b>No review mode</b>: the pencil is always there, because an edit only ever creates a <b>draft</b>. The changeset bar appears <b>only when drafts exist</b>.</p>
   </div>
-  <div class="seg" role="group" aria-label="Console mode">
-    <button type="button" data-mode-btn="view" aria-pressed="true">View</button>
-    <button type="button" data-mode-btn="review" aria-pressed="false">Review</button>
-  </div>
+  <label class="switch" style="font-size:.82rem">
+    <input type="checkbox" id="structure-toggle">
+    <span class="track" aria-hidden="true"></span>
+    <span>Edit structure</span>
+  </label>
 </header>
 
 <main>
@@ -336,7 +345,7 @@ body[data-mode="view"] .edit-bar { display: none; }
 
     <section class="card">
       <h2>Structure (from the bluepriNNt)</h2>
-      <p class="sub">Solid border in the concept colour, mono font. In review mode the pencil appears only when "Edit structure" is on.</p>
+      <p class="sub">Solid border in the concept colour, mono font. The pencil appears only when the top-bar "Edit structure" switch is on (a structure edit is comment-only: blueprint writes are not supported yet).</p>
       <div class="grid" id="sec-structure"></div>
     </section>
 
@@ -393,14 +402,13 @@ body[data-mode="view"] .edit-bar { display: none; }
   </aside>
 </main>
 
-<div class="edit-bar" role="toolbar" aria-label="Review edit bar">
-  <span><span class="count">2</span> pending changes</span>
-  <label class="switch">
-    <input type="checkbox" id="structure-toggle">
-    <span class="track" aria-hidden="true"></span>
-    <span>Edit structure</span>
-  </label>
-  <button type="button" class="btn">Review changes</button>
+<div class="edit-bar" role="toolbar" aria-label="Changeset bar">
+  <span class="chip">Reviewer: <b>lucas</b></span>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" class="btn-ghost" id="dock-changes">Changes</button>
+  <span class="count"><span id="dock-drafts">0</span> drafts</span>
+  <button type="button" class="btn" id="dock-export">Export changes</button>
+  <button type="button" class="btn-ghost" id="dock-discard">Discard</button>
 </div>
 
 <div class="ku-modal-backdrop" id="ku-modal" data-open="false" role="dialog" aria-modal="true" aria-labelledby="ku-modal-title">
@@ -482,7 +490,7 @@ body[data-mode="view"] .edit-bar { display: none; }
     element:   { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Library haunting', icon: 'dot', slot: 1, address: DOC + '@library-haunting', cites: ['agent', 'human'] },
     agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'row', slot: 2, address: DOC + '@slimer', cites: ['agent'] },
     vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', icon: 'dot', slot: 1, address: DOC + '@library-haunting&location', meta: 'field value', cites: ['human'] },
-    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', icon: 'dot', slot: 1, address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1, cites: ['agent'] },
+    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', icon: 'dot', slot: 1, address: DOC + '@library-haunting&severity', meta: 'field value', cites: ['agent'] },
     vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', icon: 'dot', slot: 1, address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.', cites: ['reviewer'] },
     vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 1, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer', cites: ['document'] },
     vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', icon: 'dot', slot: 1, address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell', cites: ['agent', 'human'] },
@@ -623,6 +631,7 @@ body[data-mode="view"] .edit-bar { display: none; }
     var wrap = document.createElement('span')
     wrap.className = 'ku-wrap'
     wrap.setAttribute('data-open', 'false')
+    wrap.setAttribute('data-ku-key', key)
     var attrs = ' data-kind="' + u.kind + '" data-nature="' + u.nature + '" data-origin="' + u.origin + '"'
     if (u.slot) attrs += ' data-slot="' + u.slot + '"'
     if (u.vtype) attrs += ' data-vtype="' + u.vtype + '"'
@@ -863,13 +872,7 @@ body[data-mode="view"] .edit-bar { display: none; }
       var key = b.dataset.key
       if (b.dataset.act === 'info') showInfo(key)
       else if (b.dataset.act === 'sheet') openSheet(key)
-      else toast('EditModal would open for: ' + U[key].label)
-      return
-    }
-    var mb = e.target.closest('[data-mode-btn]')
-    if (mb) {
-      document.body.dataset.mode = mb.dataset.modeBtn
-      document.querySelectorAll('[data-mode-btn]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === mb)) })
+      else if (b.dataset.act === 'edit') { closeFlyouts(); addDraft(key) }
       return
     }
     closeFlyouts()
@@ -878,6 +881,59 @@ body[data-mode="view"] .edit-bar { display: none; }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { closeSheet(); closeCitations(); closeFlyouts() }
   })
+
+  // ---- Drafts: the ONLY thing that reveals the changeset bar. There is no mode. ----
+  var draftTotal = 0
+  var draftsByKey = {}
+
+  function wrapOf(key) {
+    return document.querySelector('.ku-wrap[data-ku-key="' + key + '"]')
+  }
+
+  function paintPip(key) {
+    var w = wrapOf(key)
+    if (!w) return
+    var badge = w.querySelector('.ku')
+    if (!badge) return
+    var n = draftsByKey[key] || 0
+    var pip = badge.querySelector('.pip')
+    if (!n) {
+      if (pip) pip.parentNode.removeChild(pip)
+      badge.removeAttribute('data-changes')
+      return
+    }
+    if (!pip) {
+      pip = document.createElement('span')
+      pip.className = 'pip'
+      pip.setAttribute('title', 'Pending changes')
+      badge.appendChild(pip)
+    }
+    pip.textContent = String(n)
+    badge.setAttribute('data-changes', String(n))
+  }
+
+  function renderDock() {
+    var el = $('dock-drafts')
+    if (el) el.textContent = String(draftTotal)
+    document.body.setAttribute('data-drafts', draftTotal > 0 ? 'on' : 'off')
+  }
+
+  function addDraft(key) {
+    draftsByKey[key] = (draftsByKey[key] || 0) + 1
+    draftTotal += 1
+    paintPip(key)
+    renderDock()
+    toast('Draft created - nothing is written. The changeset is applied on export.')
+  }
+
+  function discardDrafts() {
+    Object.keys(draftsByKey).forEach(function (k) { draftsByKey[k] = 0; paintPip(k) })
+    draftsByKey = {}
+    draftTotal = 0
+    renderDock()
+    toast('All drafts discarded.')
+  }
+
   $('structure-toggle').addEventListener('change', function (e) {
     document.body.dataset.structure = e.target.checked ? 'on' : 'off'
   })
@@ -886,6 +942,14 @@ body[data-mode="view"] .edit-bar { display: none; }
   if (citeDemo) {
     citeDemo.addEventListener('click', function () { openCitations('element') })
   }
+  var dockChanges = $('dock-changes')
+  if (dockChanges) dockChanges.addEventListener('click', function () { toast('Would switch to the Changes tab.') })
+  var dockExport = $('dock-export')
+  if (dockExport) dockExport.addEventListener('click', function () { toast('Changeset exported - ' + draftTotal + ' change(s) proposed.') })
+  var dockDiscard = $('dock-discard')
+  if (dockDiscard) dockDiscard.addEventListener('click', discardDrafts)
+
+  renderDock()
 })()
 </script>
 </body>
