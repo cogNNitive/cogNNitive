@@ -866,11 +866,16 @@
     var models = Array.isArray(meta.models) ? meta.models : []
     var titleEl = doc.getElementById('innfo-domain-title')
     if (titleEl) {
-      var title =
-        models.length === 1 && models[0] && models[0].title
-          ? models[0].title
-          : meta.title || meta.model || 'iNNfo Console'
-      titleEl.textContent = String(title)
+      var singleTitle = models.length === 1 && models[0] && models[0].title ? String(models[0].title) : ''
+      var title = singleTitle || String(meta.title || meta.model || 'iNNfo Console')
+      // A whole-domaiNN console titles itself "<model> Domain" (export-console).
+      // The header reads better as just "<model>"; the domain record and the
+      // changeset title keep the full "<model> Domain" elsewhere.
+      var domainModel = meta.model != null ? String(meta.model) : ''
+      if (!singleTitle && domainModel && title.toLowerCase() === (domainModel + ' domain').toLowerCase()) {
+        title = domainModel
+      }
+      titleEl.textContent = title
     }
 
     var label = meta.consoleScope && meta.consoleScope.label
@@ -4128,13 +4133,13 @@
     // A standalone --view artifact mounts that view alone.
     if (consoleScopeOf(meta)) return views
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
-      views.push({ id: 'metamodel', title: 'domaiNN', icon: 'metamodel', order: 90, tone: 'core', panelId: 'innfo-tab-metamodel' })
+      views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'innfo-tab-metamodel' })
     }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
-      views.push({ id: 'explorer', title: 'kNNowledge', icon: 'explorer', order: 100, tone: 'core', panelId: 'innfo-tab-explorer' })
+      views.push({ id: 'explorer', title: 'Knowledge', icon: 'explorer', order: 20, tone: 'core', panelId: 'innfo-tab-explorer' })
     }
     if (Array.isArray(model && model.matrices) && model.matrices.length > 0) {
-      views.push({ id: 'matrices', title: 'Matrices', icon: 'matrices', order: 110, tone: 'core', panelId: 'innfo-tab-matrices' })
+      views.push({ id: 'matrices', title: 'Matrices', icon: 'matrices', order: 30, tone: 'core', panelId: 'innfo-tab-matrices' })
     }
     return views
   }
@@ -4216,11 +4221,26 @@
         // The panel belongs to the shell or a built-in tab; never mount into it.
         report(v.id, [v.source], 'view "' + v.id + '": panel #' + panelId + ' already exists and is not owned by this view')
       } else {
-        tabs.push(Object.assign({}, v, { panelId: 'innfo-tab-' + v.id, external: true, tone: /bluepriNN?ts[\\/]/.test(String(v.source || '')) ? 'blueprint' : 'custom' }))
+        var isBlueprint = /bluepriNN?ts[\\/]/.test(String(v.source || ''))
+        // The procedures blueprint view is promoted into the core band, right
+        // after Matrices, and reads "Procedures" in the header.
+        var isProcedure = v.id === 'procedure'
+        tabs.push(Object.assign({}, v, {
+          panelId: 'innfo-tab-' + v.id,
+          external: true,
+          tone: isProcedure ? 'core' : isBlueprint ? 'blueprint' : 'custom',
+          order: isProcedure ? 40 : v.order,
+          title: isProcedure ? 'Procedures' : v.title,
+        }))
       }
     })
+    // Band order is fixed: core (Domain · Knowledge · Matrices · Procedures) →
+    // blueprint views → domain custom views; `order` only breaks ties in a band.
+    var TONE_RANK = { core: 0, blueprint: 1, custom: 2 }
     tabs.sort(function (a, b) {
-      return a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+      var ra = TONE_RANK[a.tone] == null ? 2 : TONE_RANK[a.tone]
+      var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
+      return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
     tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
 

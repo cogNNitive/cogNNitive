@@ -106,7 +106,8 @@ describe('tabs from the registry', () => {
     registry.register(def({ id: 'first', title: 'First', order: 10 }))
     const { document } = bootConsole({ registry })
     const ids = [...document.querySelectorAll('.innfo-view-tab')].map((b) => b.dataset.tab)
-    assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'metamodel', 'explorer', 'matrices'])
+    // Band order: the built-in core tabs first, then domain custom views by (order, id).
+    assert.deepEqual(ids, ['metamodel', 'explorer', 'matrices', 'first', 'alpha', 'zeta'])
   })
 
   it('opens on the model explorer by default, not the lowest-order view', () => {

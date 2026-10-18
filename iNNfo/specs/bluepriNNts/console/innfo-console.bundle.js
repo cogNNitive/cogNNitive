@@ -1173,6 +1173,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-grid-scroll[data-pin-first=true] .innfo-grid-rowhead{position:sticky;left:0;z-index:1;background:var(--innfo-surface)}',
     '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:nth-child(even)>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
     '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:hover>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    // FilterSelect: the shared multi-select facet (state, months, tags).
+    '.innfo-filter{position:relative;display:inline-block}',
+    '.innfo-filter-summary{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font:inherit;font-size:.8rem;font-weight:600;color:var(--innfo-text);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);cursor:pointer;list-style:none}',
+    '.innfo-filter[open] .innfo-filter-summary{border-color:var(--innfo-link)}',
+    '.innfo-filter-summary::-webkit-details-marker{display:none}',
+    '.innfo-filter-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:50;min-width:220px;max-height:340px;overflow-y:auto;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);box-shadow:0 10px 25px -5px rgba(0,0,0,.15);padding:6px}',
+    '.innfo-filter-quick{display:flex;flex-wrap:wrap;gap:4px;padding:2px 4px 6px;margin-bottom:4px;border-bottom:1px solid var(--innfo-border)}',
+    '.innfo-filter-quick button{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.72rem;padding:2px 8px;border-radius:999px;cursor:pointer}',
+    '.innfo-filter-quick button:hover{border-color:var(--innfo-link);color:var(--innfo-link)}',
+    '.innfo-filter-option{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--innfo-radius-sm);font-size:.82rem;cursor:pointer}',
+    '.innfo-filter-option:hover{background:var(--innfo-surface-2)}',
+    '.innfo-filter-option input{flex:0 0 auto}',
+    '.innfo-filter-option-label{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-filter-option-count{font-family:var(--innfo-mono);font-size:.72rem;color:var(--innfo-muted)}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
     // ONE affordance sits beside the badge: a borderless "+". The actions float
     // BELOW it on demand, so they take no inline space and never push a neighbour.
@@ -4013,6 +4027,122 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  // ---- FilterSelect: the shared multi-select facet ----
+  //
+  // A token-styled dropdown of checkboxes with an optional quick-action row — the
+  // same control the console filter bar uses for Models / Concepts / Fields, now
+  // reusable from any view (state, months, tags). It owns its open + selected
+  // state; the caller subscribes with opts.onChange(values, option).
+  function normalizeFilterOptions(options) {
+    if (!Array.isArray(options)) return []
+    return options.map(function (o) {
+      if (o && typeof o === 'object') {
+        return {
+          value: o.value != null ? o.value : o.label,
+          label: o.label != null ? String(o.label) : String(o.value),
+          count: o.count,
+          selected: !!o.selected,
+        }
+      }
+      return { value: o, label: String(o) }
+    })
+  }
+
+  function filterSummary(label, options, selected) {
+    var total = options.length
+    var chosen = options.filter(function (o) { return selected[o.value] })
+    if (!total) return label
+    if (chosen.length === total) return label + ': todos (' + total + ')'
+    if (!chosen.length) return label + ': ninguno'
+    if (chosen.length === 1) return label + ': ' + chosen[0].label
+    return label + ': ' + chosen.length + '/' + total
+  }
+
+  function FilterSelect(data, opts) {
+    if (!data || !Array.isArray(data.options)) {
+      throw new TypeError('InnfoUI.FilterSelect: data.options must be an array')
+    }
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.FilterSelect: doc is required')
+    var options = normalizeFilterOptions(data.options)
+    var selected = {}
+    if (data.selected && !Array.isArray(data.selected) && typeof data.selected === 'object') {
+      Object.keys(data.selected).forEach(function (k) { if (data.selected[k]) selected[k] = true })
+    } else if (Array.isArray(data.selected)) {
+      data.selected.forEach(function (v) { selected[v] = true })
+    }
+    options.forEach(function (o) { if (o.selected) selected[o.value] = true })
+    var label = data.label != null ? String(data.label) : ''
+
+    var root = makeEl(doc, 'details', 'innfo-filter')
+    root.setAttribute('data-innfo-component', 'filter-select')
+    var summary = makeEl(doc, 'summary', 'innfo-filter-summary')
+    summary.setAttribute('aria-label', label || 'Filter')
+    root.appendChild(summary)
+    var menu = makeEl(doc, 'div', 'innfo-filter-menu')
+    root.appendChild(menu)
+
+    var cbByValue = {}
+    function selectedValues() {
+      return options.filter(function (o) { return selected[o.value] }).map(function (o) { return o.value })
+    }
+    function syncSummary() { summary.textContent = filterSummary(label, options, selected) }
+    function notify() {
+      if (typeof opts.onChange === 'function') opts.onChange(selectedValues())
+    }
+    function setSelection(values, silent) {
+      var allow = null
+      if (values !== 'all') {
+        allow = {}
+        ;(Array.isArray(values) ? values : [values]).forEach(function (v) { allow[v] = true })
+      }
+      options.forEach(function (o) {
+        var on = values === 'all' ? true : !!(allow && allow[o.value])
+        selected[o.value] = on
+        if (cbByValue[o.value]) cbByValue[o.value].checked = on
+      })
+      syncSummary()
+      if (!silent) notify()
+    }
+
+    if (Array.isArray(data.quick) && data.quick.length) {
+      var quick = makeEl(doc, 'div', 'innfo-filter-quick')
+      data.quick.forEach(function (q) {
+        if (!q) return
+        var b = makeEl(doc, 'button', null, q.label != null ? String(q.label) : '')
+        b.type = 'button'
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault()
+          setSelection(q.values == null ? 'all' : q.values)
+        })
+        quick.appendChild(b)
+      })
+      menu.appendChild(quick)
+    }
+
+    options.forEach(function (o) {
+      var row = makeEl(doc, 'label', 'innfo-filter-option')
+      var cb = doc.createElement('input')
+      cb.type = 'checkbox'
+      cb.checked = !!selected[o.value]
+      cb.addEventListener('change', function () {
+        selected[o.value] = cb.checked
+        syncSummary()
+        notify()
+      })
+      cbByValue[o.value] = cb
+      row.appendChild(cb)
+      row.appendChild(makeEl(doc, 'span', 'innfo-filter-option-label', o.label))
+      if (o.count != null) row.appendChild(makeEl(doc, 'span', 'innfo-filter-option-count', String(o.count)))
+      menu.appendChild(row)
+    })
+
+    syncSummary()
+    root.getSelection = selectedValues
+    root.setSelection = setSelection
+    return root
+  }
+
   function defineCustomElements() {
     if (typeof window === 'undefined' || !window.customElements || window.customElements.get('innfo-ku')) return
     try {
@@ -4591,6 +4721,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     DataTable: DataTable,
     MatrixGrid: MatrixGrid,
     Timeline: Timeline,
+    FilterSelect: FilterSelect,
     defineCustomElements: defineCustomElements,
   }
 })
@@ -7238,11 +7369,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var models = Array.isArray(meta.models) ? meta.models : []
     var titleEl = doc.getElementById('innfo-domain-title')
     if (titleEl) {
-      var title =
-        models.length === 1 && models[0] && models[0].title
-          ? models[0].title
-          : meta.title || meta.model || 'iNNfo Console'
-      titleEl.textContent = String(title)
+      var singleTitle = models.length === 1 && models[0] && models[0].title ? String(models[0].title) : ''
+      var title = singleTitle || String(meta.title || meta.model || 'iNNfo Console')
+      // A whole-domaiNN console titles itself "<model> Domain" (export-console).
+      // The header reads better as just "<model>"; the domain record and the
+      // changeset title keep the full "<model> Domain" elsewhere.
+      var domainModel = meta.model != null ? String(meta.model) : ''
+      if (!singleTitle && domainModel && title.toLowerCase() === (domainModel + ' domain').toLowerCase()) {
+        title = domainModel
+      }
+      titleEl.textContent = title
     }
 
     var label = meta.consoleScope && meta.consoleScope.label
@@ -10500,13 +10636,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // A standalone --view artifact mounts that view alone.
     if (consoleScopeOf(meta)) return views
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
-      views.push({ id: 'metamodel', title: 'domaiNN', icon: 'metamodel', order: 90, tone: 'core', panelId: 'innfo-tab-metamodel' })
+      views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'innfo-tab-metamodel' })
     }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
-      views.push({ id: 'explorer', title: 'kNNowledge', icon: 'explorer', order: 100, tone: 'core', panelId: 'innfo-tab-explorer' })
+      views.push({ id: 'explorer', title: 'Knowledge', icon: 'explorer', order: 20, tone: 'core', panelId: 'innfo-tab-explorer' })
     }
     if (Array.isArray(model && model.matrices) && model.matrices.length > 0) {
-      views.push({ id: 'matrices', title: 'Matrices', icon: 'matrices', order: 110, tone: 'core', panelId: 'innfo-tab-matrices' })
+      views.push({ id: 'matrices', title: 'Matrices', icon: 'matrices', order: 30, tone: 'core', panelId: 'innfo-tab-matrices' })
     }
     return views
   }
@@ -10588,11 +10724,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         // The panel belongs to the shell or a built-in tab; never mount into it.
         report(v.id, [v.source], 'view "' + v.id + '": panel #' + panelId + ' already exists and is not owned by this view')
       } else {
-        tabs.push(Object.assign({}, v, { panelId: 'innfo-tab-' + v.id, external: true, tone: /bluepriNN?ts[\\/]/.test(String(v.source || '')) ? 'blueprint' : 'custom' }))
+        var isBlueprint = /bluepriNN?ts[\\/]/.test(String(v.source || ''))
+        // The procedures blueprint view is promoted into the core band, right
+        // after Matrices, and reads "Procedures" in the header.
+        var isProcedure = v.id === 'procedure'
+        tabs.push(Object.assign({}, v, {
+          panelId: 'innfo-tab-' + v.id,
+          external: true,
+          tone: isProcedure ? 'core' : isBlueprint ? 'blueprint' : 'custom',
+          order: isProcedure ? 40 : v.order,
+          title: isProcedure ? 'Procedures' : v.title,
+        }))
       }
     })
+    // Band order is fixed: core (Domain · Knowledge · Matrices · Procedures) →
+    // blueprint views → domain custom views; `order` only breaks ties in a band.
+    var TONE_RANK = { core: 0, blueprint: 1, custom: 2 }
     tabs.sort(function (a, b) {
-      return a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+      var ra = TONE_RANK[a.tone] == null ? 2 : TONE_RANK[a.tone]
+      var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
+      return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
     tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
 

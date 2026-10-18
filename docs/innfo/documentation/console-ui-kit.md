@@ -35,6 +35,7 @@ InnfoUI = {
   DraftList(data, opts?), RelList(data, opts?),
   KpiGrid(data, opts?), defineCustomElements(doc?),
   DataTable(data, opts?), MatrixGrid(data, opts?), Timeline(data, opts?),
+  FilterSelect(data, opts?),
 }
 ```
 
@@ -57,6 +58,26 @@ Every component root carries `data-innfo-component="<kebab-name>"`. Invalid
 | `DataTable({ columns, rows, emptyText? }, { doc, modelId?, onEdit?, onSelect? })` | `div.innfo-grid-scroll` | `data-innfo-component="data-table"`; element-oriented columns (`kind: 'element' \| 'field' \| 'text'`) |
 | `MatrixGrid({ rowHeader?, columns, rows, pinFirstColumn?, emptyText? }, { doc })` | `div.innfo-grid-scroll` | `data-innfo-component="matrix-grid"`, `data-pin-first`; rows × columns of arbitrary cells |
 | `Timeline({ rowHeader?, periods, lanes, pinFirstColumn?, emptyText? }, { doc })` | `div.innfo-grid-scroll` | `data-innfo-component="timeline"`, `data-pin-first`; a matrix whose columns are periods |
+| `FilterSelect({ label, options, selected?, quick? }, { doc, onChange? })` | `details.innfo-filter` | `data-innfo-component="filter-select"`; multi-select checkbox facet with quick actions |
+
+### FilterSelect: the reusable facet
+
+`FilterSelect` is the same control the console filter bar uses for
+Models / Concepts / Fields, packaged so any view can drop it in (state, months,
+tags) instead of hand-rolling a menu. It is a token-styled `<details>` facet:
+
+- `options`: `[{ value, label, count?, selected? }]` (a bare string is allowed
+  and becomes both value and label).
+- initial `selected` is a `{ value: true }` map or a `[value]` array; per-option
+  `selected: true` also counts.
+- the summary reads `label: todos (n)`, `label: ninguno`, `label: <one>` or
+  `label: k/n` as the selection changes.
+- `quick`: `[{ label, values }]` buttons; `values` is an array, or `'all'` /
+  omitted for "select everything".
+- `onChange(values)` fires with the next selection (an array of values) on every
+  user toggle and quick action. The element also exposes `getSelection()` and
+  `setSelection(values, silent?)` for programmatic control.
+
 
 ### Data surfaces: one grid, three façades
 
