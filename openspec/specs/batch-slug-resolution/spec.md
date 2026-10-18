@@ -27,7 +27,7 @@ The engine MUST resolve element slugs for `add_element` operations in strict cha
 
 ### Requirement: Deterministic Auto-Suffixing and Annotation (`resolved_slug::`)
 
-On detecting a slug collision against live model elements or earlier in-batch additions:
+On detecting a slug collision against live model elements or earlier in-batch additions, the engine MUST apply the following:
 - The engine MUST automatically suffix the base slug with `-1`, `-2`, ..., `-N` using an incrementing counter until an unused slug is found.
 - Suffixing MUST be automatic during apply and MUST NOT abort or reject the change item.
 - The engine MUST record the final assigned slug in the change item's `resolved_slug::` annotation.
@@ -44,7 +44,7 @@ On detecting a slug collision against live model elements or earlier in-batch ad
 
 ### Requirement: Intra-Batch Reference Rewriting
 
-When an `add_element` operation receives an auto-suffixed slug:
+When an `add_element` operation receives an auto-suffixed slug, the engine MUST rewrite the references below:
 - The engine MUST rewrite all subsequent change items in the same changeset batch that target or reference the original proposed slug.
 - Rewritten targets MUST include canonical `target::` addresses (e.g., `model@proposed_slug&field` becomes `model@resolved_slug&field`).
 - Rewritten values MUST include intra-batch field references and prose wikilinks (`[[proposed_slug]]` becomes `[[resolved_slug]]`).
@@ -61,7 +61,7 @@ When an `add_element` operation receives an auto-suffixed slug:
 
 ### Requirement: Empty-Slug Handling for Non-Latin Names
 
-When an `add_element` operation specifies a name whose characters produce an empty slug under `slugifyHeading(name)` (e.g., non-Latin script names):
+When an `add_element` operation specifies a name whose characters produce an empty slug under `slugifyHeading(name)` (e.g., non-Latin script names), the engine MUST apply the following:
 - If the change item provides an explicit non-empty `slug::`, the engine MUST accept the explicit slug (applying auto-suffixing if collision occurs).
 - If NO explicit `slug::` is provided (or if `slug::` is empty or whitespace), the engine MUST NOT assign a blank or fallback slug.
 - The engine MUST mark the change item with `status:: conflict` and diagnostic resolution: `EMPTY_SLUG: Element name produces an empty slug; explicit slug:: required`.

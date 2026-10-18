@@ -88,8 +88,8 @@ The skill `nn-upgrade` MUST own exactly one migration flow: the consent-gated bl
    MUST be shown when the automated backup is unavailable.
 4. **Impact analysis** — for each model to migrate, compare the pinned template against
    the adopted template. Mapping questions MUST be asked **only** when the schema diff
-   removes, renames, or re-types a Concept/Field/Matrix/Marker that the model actually
-   uses. No mapping question MAY be asked for additive or unchanged definitions.
+   removes, renames, or re-types a Concept/Field/Matrix that the model actually
+   uses. No mapping question MAY be asked for additive or unchanged definitions. A pinned template that declares Marker Definitions, or a model that holds an `item-markers matrix`, is not mapped by this flow: the skill MUST report `MARKERS_REMOVED` and direct the user to the `nn-innfo` migration recipe, which proposes a reviewable changeset.
 5. **Migrate** — hydrate the adopted template package into the workspace (write-once,
    leaving the pinned frozen template intact), repoint the model's `parent_spec` to the
    adopted version, apply the agreed mappings, and re-validate every migrated model
@@ -98,7 +98,7 @@ The skill `nn-upgrade` MUST own exactly one migration flow: the consent-gated bl
    validation outcome) on the console output and close the flow.
 
 The skill MUST NOT touch local specialization templates as migration targets; it MUST
-report them `unlisted` and direct them to the documented backlog guidance. (Previously: the skill also owned an in-place domain layout migration (Flow A) and a batch layout migration over sibling domains (Flow C).)
+report them `unlisted` and direct them to the documented backlog guidance. (Previously: the skill also owned an in-place domain layout migration (Flow A) and a batch layout migration over sibling domains (Flow C); the impact analysis named Marker among the mappable definitions.)
 
 #### Scenario: Consent before any mutation
 - GIVEN a model classified `upgrade-available`
@@ -118,6 +118,12 @@ report them `unlisted` and direct them to the documented backlog guidance. (Prev
 - WHEN the migration runs for a model using no removed/renamed/re-typed definition
 - THEN no mapping question is asked
 - AND the model is repointed and re-validated
+
+#### Scenario: Marker-bearing model is routed to the recipe
+- GIVEN a model holding an `item-markers matrix`
+- WHEN the impact analysis runs
+- THEN no mapping question is asked about markers
+- AND the report shows `MARKERS_REMOVED` with a pointer to the `nn-innfo` migration recipe
 
 #### Scenario: An old-layout domain is not migrated in place
 - GIVEN a domain whose layout the legacy detector flags

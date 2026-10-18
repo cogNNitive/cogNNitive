@@ -25,3 +25,8 @@ The documentation MUST explicitly emphasize the core product invariants:
 - **Local-First & Zero Lock-in**: All knowledge lives in standard Markdown files on the local filesystem. Usable with Obsidian, VS Code, Notepad, web UI, or any AI tool.
 - **Radical Fine-Grained Traceability**: Claims and elements point to explicit heading slugs in normalized sources (`sources:: [file.md#heading-slug]`), not whole documents or arbitrary page numbers.
 - **Workflow Freedom**: Contributors don't change how they capture knowledge; cogNNitive ingests existing files transparently.
+
+#### Scenario: Value pillars are stated in the docs
+- GIVEN a reader on the public landing page or the ecosystem overview
+- WHEN the value proposition is read
+- THEN local-first with zero vendor lock-in, fine-grained provenance, and workflow freedom are stated explicitly

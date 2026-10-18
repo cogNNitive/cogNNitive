@@ -62,49 +62,38 @@ Changeset documents MUST be classified with role `'changeset'` by `roleOf` in `i
 
 ### Requirement: Changeset Mutation and Comment Operations
 
-Each change in a changeset document MUST be represented as an element heading `## NN Change: <id>` conforming to the `changes` blueprint concept `Change`. Each change MUST specify an `op` property conforming to one of the following operations:
-1. `update_field`: Mutates a field on an existing element, concept, or matrix. Requires `target` (canonical D5 address: `<knowledge_slug>@<element_slug>&<field_name>`), optional `from` (precondition value), and `to` (new value).
-2. `add_element`: Adds a new element to a concept in a model. Requires `target` (`<knowledge_slug>`), `concept`, `name`, optional `slug`, optional `fields`, and optional `sources`.
-3. `rename_element`: Renames an element's display name while preserving its slug. Requires `target` (`<knowledge_slug>@<element_slug>`), `name` (new display name).
-4. `rename_concept`: Renames a concept's display name. Requires `target` (`<knowledge_slug>@<concept_slug>`), `name` (new concept name).
-5. `update_matrix_cell`: Updates or inserts a cell in a matrix. Requires `target` (`<knowledge_slug>@<matrix_slug>&<row_slug>&<col_slug>` or explicit matrix parameters), and `to` (cell value).
-6. `comment`: Represents review feedback or discussion annotations (per D15). Requires `target`, `author`, `notes`. MUST NOT require `to` or `from` value.
-7. `remove_element`: Removes an element and applies the delete impact and cascades of `delete-impact-and-lifecycle`. Requires `target` (`<knowledge_slug>@<element_slug>`) and optional `base_hash`.
-8. `update_concept_text`: Replaces the free text of a concept. Requires `target` (`<knowledge_slug>@<concept_slug>`) or `concept`, and `to` (the new text).
-9. `freeze_slugs`: Writes an explicit slug for every element of the model that lacks one. Requires `target` (a bare model id); carries no other payload.
-10. `bump_version`: Raises the model `knowledge_version`. Requires `target` (a bare model id) and `to` (`patch`, `minor` or `major`). The apply engine bumps each touched model exactly once, so this change replaces the default patch bump rather than adding to it. It is refused on the unversioned lineage record.
-11. `add_model`: Creates a new Level-3 kNNowledge document. Requires `target` (the new model id, a safe relative id without `@`), `blueprint_name` and `blueprint_url`; optional `name` (title, defaults to the id), optional `knowledge_version`, optional `sources` (e.g. citing an imported old domain), `author` and `notes`. It MUST NOT carry `from`, `to`, `base_hash` or element payload; initial elements are expressed as subsequent `add_element` changes targeting the new id in the same changeset.
+Each change in a changeset document MUST be represented as an element heading `## NN Change: <id>` conforming to the `changes` blueprint concept `Change`. Each change MUST specify an `op` property.
 
-Every change MAY carry `base_hash`, the content hash of the target element when the change was written; a different current hash is a precondition failure (a conflict). The `changes` bluepriNNt MUST list every operation above in the `op` options, declare the `base_hash`, `blueprint_name`, `blueprint_url` and `knowledge_version` Change fields and the statuses `proposed`, `applied`, `partially_applied`, `rejected`, `conflict`, with its `blueprint_version` bumped and the embedded canonical copy kept identical. Every op MAY carry the `sources` evidence citation (#1A). (Previously: six operations were listed, `remove_element` — already implemented and exported by the console — was missing, and there was no way to create a model.)
+The target format (`target::`) for content operations MUST equal the canonical unit address defined by `knowledge-unit-address`:
+1. `update_field`: Mutates a field on an existing element. `target` is `<model_slug>@<element_slug>&<field_name>`, matching the canonical own value address.
+2. `update_concept_field`: Mutates a concept-level field. `target` is `<model_slug>@concept:<concept_slug>&<field_name>`, matching the canonical concept value address.
+3. `add_element`: Adds a new element to a concept in a model. `target` is `<model_slug>`.
+4. `remove_element`: Removes an element. `target` is `<model_slug>@<element_slug>`.
+5. `rename_element`: Renames an element's display name. `target` is `<model_slug>@<element_slug>`.
+6. `rename_concept`: Renames a concept's display name. `target` is `<model_slug>@concept:<concept_slug>`.
+7. `update_matrix_cell`: Updates or inserts a cell in a matrix. `target` is `<model_slug>@<matrix_slug>&<row_slug>&<col_slug>`, matching the canonical matrix cell address.
+8. `comment`: Represents review feedback or discussion annotations. `target` MAY be any valid canonical unit address (including structure definitions, sections, elements, values, cells, or Sources).
+9. `add_model`: Creates a new Level-3 kNNowledge document. `target` is `<model_slug>`.
 
-#### Scenario: Parsing an update_field operation
-- GIVEN a change item with `op:: update_field`, `target:: strategy@vision&statement`, `from:: Old statement`, `to:: New statement`
-- WHEN parsed into a `ChangeItem`
-- THEN `op` is `'update_field'`
-- AND `target` is parsed into model `'strategy'`, element `'vision'`, and field `'statement'`
-- AND `from` and `to` values are preserved
+(Previously: target addresses used informal descriptions, and matrix cells permitted legacy parameter syntax.)
 
-#### Scenario: Parsing a comment operation per D15
-- GIVEN a change item with `op:: comment`, `target:: strategy@vision`, `author:: reviewer-1`, `notes:: Vision statement needs customer focus`
-- WHEN parsed into a `ChangeItem`
-- THEN `op` is `'comment'`
-- AND `author` and `notes` are captured without requiring `to` or `from`
+#### Scenario: Element and value targets equal canonical addresses
+- GIVEN a changeset with `op:: update_field`
+- WHEN targeted at field `"vision"` of element `"statement"` in model `"strategy"`
+- THEN `target` is `"strategy@statement&vision"`
+- AND this string equals `unitAddress.value("strategy@statement", "vision")`
 
-#### Scenario: Parsing an update_matrix_cell operation
-- GIVEN a change item with `op:: update_matrix_cell`, `target:: strategy@swot-matrix&strength-1&opportunity-1`, `to:: High synergy`
-- WHEN parsed into a `ChangeItem`
-- THEN `op` is `'update_matrix_cell'`
-- AND target matrix slug, row slug, column slug, and `to` value are captured
+#### Scenario: Matrix cell target equals canonical cell address
+- GIVEN a changeset with `op:: update_matrix_cell`
+- WHEN targeted at matrix `"swot"`, row `"r1"`, column `"c1"` in model `"strategy"`
+- THEN `target` is `"strategy@swot&r1&c1"`
+- AND this string equals `unitAddress.cell("strategy", "swot", "r1", "c1")`
 
-#### Scenario: Parsing an add_model operation
-- GIVEN a change item with `op:: add_model`, `target:: acme_strategy`, `blueprint_name:: business`, `blueprint_url:: <url>`, `name:: ACME Strategy`
-- WHEN parsed into a `ChangeItem` and serialized again
-- THEN `op` is `add_model` and `blueprint_name`, `blueprint_url` and `name` are preserved byte-for-byte
-
-#### Scenario: add_model with a from value is invalid
-- GIVEN an `add_model` change carrying `from:: x`
-- WHEN the changeset is validated
-- THEN it is rejected naming the change id
+#### Scenario: Comment target accepts structure definition
+- GIVEN a review comment on field definition `"owner"` of concept `"Goal"` in blueprint `"business"`
+- WHEN the comment draft is serialized
+- THEN `target` is `"specs/business@concept:goal&owner"`
+- AND `op` is `"comment"`
 
 ### Requirement: Cryptographic Proposal Sealing (`proposal_sha`)
 

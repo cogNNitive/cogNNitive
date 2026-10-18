@@ -3,12 +3,11 @@
 ## Purpose
 
 Establish first-class support for formal workspace entrypoint models (`workspace_NN.md`) conforming to the Level 2 workspace template (`workspace_V_0-3-0_spec_NN.md`), while maintaining full backward compatibility with legacy `index.md` files and fallback directory scans.
-
 ## Requirements
-
 ### Requirement: Primary Entrypoint Discovery and Parsing
 
-The `*_base_NN.md` overview-root precedence is retained **solely for legacy workspaces**: when such a file is present at the root, `recursiveParse()` MUST still parse it as the primary Level-3 workspace entrypoint, taking precedence over `workspace*.md`. New workspaces MUST NOT adopt `base`, which is frozen. For all workspaces, the canonical primary entrypoint is a workspace model named `workspace_NN.md` (or matching `workspace_*_NN.md`) conforming to the versioned template `workspace_V_0-3-0_spec_NN.md`; the unversioned alias `workspace_spec_NN.md` MUST NOT be referenced as the conformance target.
+The canonical primary entrypoint is a workspace model named `workspace_NN.md` (or matching `workspace_*_NN.md`) conforming to the versioned template `workspace_V_0-3-0_spec_NN.md` or later; the unversioned alias `workspace_spec_NN.md` MUST NOT be referenced as the conformance target. The `*_base_NN.md` overview-root pattern no longer exists: `recursiveParse()` MUST NOT give any file named `*_base_*.md` precedence over `workspace*.md`.
+(Previously: the `*_base_NN.md` overview-root precedence was retained for legacy workspaces.)
 
 #### Scenario: Workspace root contains workspace_NN.md (canonical)
 - GIVEN a workspace root directory containing `workspace_01.md` conforming to `workspace_V_0-3-0_spec_NN.md`
@@ -21,19 +20,11 @@ The `*_base_NN.md` overview-root precedence is retained **solely for legacy work
 - WHEN `recursiveParse()` scans the workspace root
 - THEN `workspace_system_01.md` is identified and loaded as the primary workspace model
 
-#### Scenario: Legacy overview-root entrypoint takes precedence when present
-- GIVEN a legacy workspace root containing both `acme_base_01.md` (conforming to `base_V_0-1-0`) and `workspace_01.md`
+#### Scenario: A base-named file gets no precedence
+- GIVEN a workspace root containing both `acme_base_01.md` and `workspace_01.md`
 - WHEN `recursiveParse()` initializes the workspace
-- THEN `acme_base_01.md` is loaded as the primary entrypoint
-- AND `workspace_01.md` is discovered as its child via the `manifest` `type:: model` field, not as a separate root
-
-#### Scenario: workspace_NN.md remains entrypoint when no legacy overview root exists
-- GIVEN a workspace root containing only `workspace_01.md` and no `*_base_NN.md` file
-- WHEN `recursiveParse()` initializes the workspace
-- THEN `workspace_01.md` is loaded as the primary entrypoint exactly as before
-- AND behavior is byte-for-byte unchanged from workspaces that never adopt `base`
-
----
+- THEN `workspace_01.md` is loaded as the primary entrypoint
+- AND `acme_base_01.md` receives no entrypoint treatment
 
 ### Requirement: Legacy Index and Directory Fallback
 
@@ -83,3 +74,4 @@ The canonical Level 2 workspace template MUST be the versioned `workspace_V_0-3-
 - WHEN the template directories are inspected
 - THEN `workspace_spec_NN.md` exists in neither `iNNfo/specs/bluepriNNts/` nor `actioNN/skills/nn-innfo/templates/`
 - AND the canonical versioned copy is present in the nn-innfo skill bundle
+
