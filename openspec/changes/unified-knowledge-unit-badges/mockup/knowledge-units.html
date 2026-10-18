@@ -32,6 +32,9 @@
   --innfo-concept-4: #f59e0b; --innfo-concept-4-bg: #fffbeb;
   --innfo-status-pending: #92400e; --innfo-status-pending-bg: #fef3c7;
   --source-paper: #f5f2ec; --source-ink: #57534e; --source-edge: #d6d3d1;
+  /* Citation provenance (same tokens as the real kit: who produced the claim) */
+  --innfo-origin-error: #dc2626; --innfo-origin-agent: #7c3aed; --innfo-origin-human: #2563eb;
+  --innfo-origin-reviewer: #b45309; --innfo-origin-document: #4b5563;
   --innfo-radius-sm: 6px; --innfo-radius: 8px; --innfo-radius-lg: 10px;
   --innfo-font: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --innfo-mono: "Geist Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -91,7 +94,7 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 .lbl b { color: var(--innfo-text); font-weight: 600; }
 
 /* ---------- Knowledge-unit badge: ONE builder, ONE grammar ---------- */
-.ku-wrap { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; max-width: 100%; }
+.ku-wrap { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; max-width: 100%; position: relative; }
 .ku {
   display: inline-flex; align-items: center; gap: .4em; min-width: 0; max-width: 100%;
   font-size: .82rem; line-height: 1.25; padding: 3px 9px;
@@ -136,10 +139,31 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 .ku[data-changes] { box-shadow: 0 0 0 2px var(--innfo-status-pending-bg); border-color: var(--innfo-status-pending); }
 .pip { font-size: .66rem; font-weight: 700; color: var(--innfo-status-pending); background: var(--innfo-status-pending-bg); border-radius: 999px; padding: 0 5px; }
 
-/* Actions: OUTSIDE the badge, immediately next to it */
-.ku-actions { display: inline-flex; gap: 1px; }
+/* ONE affordance sits beside the badge: a "+" toggle. The actions themselves
+   never sit beside the badge and never reserve inline space — they float BELOW
+   it, on demand, and are anchored to the wrap (no layout shift). */
+.ku-more {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--innfo-border); border-radius: 999px; background: var(--innfo-surface);
+  color: var(--innfo-muted); cursor: pointer; font: inherit; font-size: .8rem; line-height: 1;
+}
+.ku-more svg { width: 11px; height: 11px; }
+.ku-more:hover, .ku-more:focus-visible { color: var(--innfo-text); background: var(--innfo-surface-2); }
+.ku-more:focus-visible { outline: 2px solid var(--innfo-focus); outline-offset: 1px; }
+.ku-wrap[data-open="true"] > .ku-more { color: var(--innfo-text); background: var(--innfo-surface-2); border-color: var(--innfo-focus); }
+
+/* The floating flyout: absolutely positioned, so it takes NO layout space.
+   Action order: info, citations, edit. */
+.ku-actions {
+  position: absolute; top: calc(100% + 5px); left: 0; z-index: 30;
+  display: none; align-items: center; gap: 2px; padding: 3px;
+  background: var(--innfo-surface); border: 1px solid var(--innfo-border);
+  border-radius: var(--innfo-radius); box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  white-space: nowrap;
+}
+.ku-wrap[data-open="true"] > .ku-actions { display: inline-flex; }
 .ku-act {
-  display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0;
   border: 1px solid transparent; border-radius: 5px; background: transparent;
   color: var(--innfo-muted); cursor: pointer;
 }
@@ -151,6 +175,23 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 /* Mode rules: the only place editability is decided */
 body[data-mode="view"] .ku-act[data-act="edit"] { display: none; }
 body[data-mode="review"][data-structure="off"] .ku-act[data-act="edit"][data-nature="structure"] { display: none; }
+
+/* Citations: one icon per distinct provenance, coloured by WHO produced the
+   claim (human vs agent). Canonical order: error, agent, human, reviewer, document. */
+.cite-icons { display: inline-flex; align-items: center; gap: 1px; }
+.cite-icon {
+  display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0;
+  border: 1px solid transparent; border-radius: 5px; background: transparent; cursor: pointer;
+  color: var(--innfo-origin-document);
+}
+.cite-icon svg { width: 14px; height: 14px; }
+.cite-icon:hover { background: var(--innfo-surface-2); border-color: var(--innfo-border); }
+.cite-icon:focus-visible { outline: 2px solid var(--innfo-focus); outline-offset: 1px; }
+.cite-icon[data-origin="error"]    { color: var(--innfo-origin-error); }
+.cite-icon[data-origin="agent"]    { color: var(--innfo-origin-agent); }
+.cite-icon[data-origin="human"]    { color: var(--innfo-origin-human); }
+.cite-icon[data-origin="reviewer"] { color: var(--innfo-origin-reviewer); }
+.cite-icon[data-origin="document"] { color: var(--innfo-origin-document); }
 
 /* Composite rows: two units side by side, never one merged badge */
 .pair { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -214,7 +255,7 @@ body[data-mode="view"] .edit-bar { display: none; }
 <header class="top">
   <div>
     <h1>Knowledge-unit badges</h1>
-    <p>Mockup: every unit is drawn by one builder. The actions sit outside the badge.</p>
+    <p>Mockup: every unit is drawn by one builder. A single "+" beside the badge opens a floating flyout <b>below</b> it — info · citations · edit.</p>
   </div>
   <div class="seg" role="group" aria-label="Console mode">
     <button type="button" data-mode-btn="view" aria-pressed="true">View</button>
@@ -247,6 +288,12 @@ body[data-mode="view"] .edit-bar { display: none; }
       <h2>Sources</h2>
       <p class="sub">Paper fill, never tinted. Same solid rule for structure and no border for content, but never editable: they are cited evidence.</p>
       <div class="grid" id="sec-source"></div>
+    </section>
+
+    <section class="card">
+      <h2>Citations (provenance)</h2>
+      <p class="sub">Missing from the old mockup. One icon per distinct provenance, in canonical order — the icon and its colour say whether the claim came from a <b>human</b> or an <b>agent</b>. Same tokens and same icons as the real console.</p>
+      <div class="grid" id="sec-cite"></div>
     </section>
 
     <section class="card">
@@ -310,7 +357,14 @@ body[data-mode="view"] .edit-bar { display: none; }
     hash: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2.5L5 13.5M11 2.5l-1 11M2.8 6h11M2.2 10h11" stroke-linecap="round"/></svg>',
     row: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="5.5" width="12" height="5" rx="1"/></svg>',
     col: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5.5" y="2" width="5" height="12" rx="1"/></svg>',
-    braces: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5c-1.5 0-2 .6-2 1.8v1.6c0 .9-.5 1.6-1.5 2.1 1 .5 1.5 1.2 1.5 2.1v1.6c0 1.2.5 1.8 2 1.8M10 2.5c1.5 0 2 .6 2 1.8v1.6c0 .9.5 1.6 1.5 2.1-1 .5-1.5 1.2-1.5 2.1v1.6c0 1.2-.5 1.8-2 1.8"/></svg>'
+    braces: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5c-1.5 0-2 .6-2 1.8v1.6c0 .9-.5 1.6-1.5 2.1 1 .5 1.5 1.2 1.5 2.1v1.6c0 1.2.5 1.8 2 1.8M10 2.5c1.5 0 2 .6 2 1.8v1.6c0 .9.5 1.6 1.5 2.1-1 .5-1.5 1.2-1.5 2.1v1.6c0 1.2-.5 1.8-2 1.8"/></svg>',
+    plus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>',
+    // Citation provenance icons — same glyphs as the real console's `cite-<variant>`.
+    'cite-agent': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="9"/><line x1="8" y1="14" x2="8" y2="15"/><line x1="16" y1="14" x2="16" y2="15"/></svg>',
+    'cite-human': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>',
+    'cite-reviewer': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="m9 10 2 2 4-4"/></svg>',
+    'cite-document': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+    'cite-error': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
   }
 
   // nature: container | structure | content
@@ -334,18 +388,18 @@ body[data-mode="view"] .edit-bar { display: none; }
     axisRow:   { kind: 'axis',    nature: 'structure', origin: 'blueprint', label: 'row: likelihood', icon: 'axis', address: DOC + '@risk-matrix&likelihood' },
     axisCol:   { kind: 'axis',    nature: 'structure', origin: 'blueprint', label: 'col: impact', icon: 'axis', address: DOC + '@risk-matrix&*&impact' },
 
-    element:   { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Library haunting', icon: 'dot', slot: 1, address: DOC + '@library-haunting' },
-    agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'row', slot: 2, address: DOC + '@slimer' },
-    vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', icon: 'dot', slot: 1, address: DOC + '@library-haunting&location', meta: 'field value' },
-    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', icon: 'dot', slot: 1, address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1 },
-    vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', icon: 'dot', slot: 1, address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.' },
-    vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 1, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer' },
-    vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', icon: 'dot', slot: 1, address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell' },
+    element:   { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Library haunting', icon: 'dot', slot: 1, address: DOC + '@library-haunting', cites: ['agent', 'human'] },
+    agent:     { kind: 'element', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'row', slot: 2, address: DOC + '@slimer', cites: ['agent'] },
+    vText:     { kind: 'value', vtype: 'text',      nature: 'content', origin: 'knowledge', label: 'Floor 3, reading room', icon: 'dot', slot: 1, address: DOC + '@library-haunting&location', meta: 'field value', cites: ['human'] },
+    vNum:      { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '4', icon: 'dot', slot: 1, address: DOC + '@library-haunting&severity', meta: 'field value', changes: 1, cites: ['agent'] },
+    vMarker:   { kind: 'value', vtype: 'boolean',   nature: 'content', origin: 'knowledge', label: 'true', icon: 'dot', slot: 1, address: DOC + '@library-haunting&needs_review', meta: 'marker value', note: 'Marker values have no @ address in innfo-core today.', cites: ['reviewer'] },
+    vRef:      { kind: 'value', vtype: 'reference', nature: 'content', origin: 'knowledge', label: 'Slimer', icon: 'dot', slot: 1, address: DOC + '@library-haunting&owner', meta: 'field value -> @slimer', cites: ['document'] },
+    vCell:     { kind: 'value', vtype: 'number',    nature: 'content', origin: 'knowledge', label: '12', icon: 'dot', slot: 1, address: DOC + '@risk-matrix&high&severe', meta: 'matrix cell', cites: ['agent', 'human'] },
 
-    sHeading:  { kind: 'header',  nature: 'content',   origin: 'source', label: '## Witness statements', icon: 'hash', address: 'sources/import/report-1984.md@## Witness statements' },
+    sHeading:  { kind: 'header',  nature: 'content',   origin: 'source', label: '## Witness statements', icon: 'hash', address: 'sources/import/report-1984.md@## Witness statements', cites: ['document'] },
     sColumn:   { kind: 'column',  nature: 'structure', origin: 'source', label: 'borough', icon: 'col', address: 'sources/import/sightings.csv@*&borough', note: 'A column-only address is not defined in the grammar today.' },
-    sRow:      { kind: 'row',     nature: 'content',   origin: 'source', label: 'S-0042', icon: 'row', address: 'sources/import/sightings.csv@S-0042' },
-    sCell:     { kind: 'value',   vtype: 'text', nature: 'content', origin: 'source', label: 'Manhattan', address: 'sources/import/sightings.csv@S-0042&borough', meta: 'CSV cell' },
+    sRow:      { kind: 'row',     nature: 'content',   origin: 'source', label: 'S-0042', icon: 'row', address: 'sources/import/sightings.csv@S-0042', cites: ['document'] },
+    sCell:     { kind: 'value',   vtype: 'text', nature: 'content', origin: 'source', label: 'Manhattan', address: 'sources/import/sightings.csv@S-0042&borough', meta: 'CSV cell', cites: ['document'] },
     sJson:     { kind: 'pointer', nature: 'content',   origin: 'source', label: '/items/0/name', icon: 'braces', address: 'sources/import/catalog.json@/items/0/name' }
   }
 
@@ -355,11 +409,19 @@ body[data-mode="view"] .edit-bar { display: none; }
     return !(u.origin === 'source' || u.nature === 'container')
   }
 
+  // Citation provenance: canonical order, and the label for each variant.
+  var CITE_ORDER = ['error', 'agent', 'human', 'reviewer', 'document']
+  var CITE_LABEL = {
+    error: 'Unresolved citation', agent: 'AI agent', human: 'Human author',
+    reviewer: 'Reviewer feedback', document: 'Document'
+  }
+
   // THE single builder: every unit on the page goes through here.
   function ku(key) {
     var u = U[key]
     var wrap = document.createElement('span')
     wrap.className = 'ku-wrap'
+    wrap.setAttribute('data-open', 'false')
     var attrs = ' data-kind="' + u.kind + '" data-nature="' + u.nature + '" data-origin="' + u.origin + '"'
     if (u.slot) attrs += ' data-slot="' + u.slot + '"'
     if (u.vtype) attrs += ' data-vtype="' + u.vtype + '"'
@@ -370,10 +432,26 @@ body[data-mode="view"] .edit-bar { display: none; }
     inner += '<span class="t">' + esc(u.label) + '</span>'
     if (u.changes) inner += '<span class="pip" title="Pending changes">' + u.changes + '</span>'
     var html = '<span class="ku"' + attrs + ' title="' + esc(u.label) + '">' + inner + '</span>'
-    html += '<span class="ku-actions">'
+
+    // The ONLY thing that ever sits beside the badge.
+    html += '<button type="button" class="ku-more" data-more="' + key + '" aria-expanded="false" aria-label="Actions for ' + esc(u.label) + '">' + ICON.plus + '</button>'
+
+    // Floating flyout, anchored below. Takes no layout space. Order: info, citations, edit.
+    html += '<span class="ku-actions" role="toolbar" aria-label="Actions for ' + esc(u.label) + '">'
     html += '<button type="button" class="ku-act" data-act="info" data-key="' + key + '" aria-label="Info: ' + esc(u.label) + '">' + ICON.info + '</button>'
-    if (canEdit(u)) html += '<button type="button" class="ku-act" data-act="edit" data-nature="' + u.nature + '" data-key="' + key + '" aria-label="Edit: ' + esc(u.label) + '">' + ICON.edit + '</button>'
+    var cites = (u.cites || []).slice().sort(function (a, b) { return CITE_ORDER.indexOf(a) - CITE_ORDER.indexOf(b) })
+    if (cites.length) {
+      html += '<span class="cite-icons">'
+      cites.forEach(function (o) {
+        html += '<button type="button" class="cite-icon" data-origin="' + o + '" data-key="' + key + '" title="' + CITE_LABEL[o] + '" aria-label="Citation origin: ' + CITE_LABEL[o] + '">' + ICON['cite-' + o] + '</button>'
+      })
+      html += '</span>'
+    }
+    if (canEdit(u)) {
+      html += '<button type="button" class="ku-act" data-act="edit" data-nature="' + u.nature + '" data-key="' + key + '" aria-label="Edit: ' + esc(u.label) + '">' + ICON.edit + '</button>'
+    }
     html += '</span>'
+
     wrap.innerHTML = html
     return wrap
   }
@@ -411,6 +489,18 @@ body[data-mode="view"] .edit-bar { display: none; }
   row($('sec-source'), '<b>Row</b> (.csv)', ['sRow'])
   row($('sec-source'), '<b>Cell</b> (.csv)', ['sCell'])
   row($('sec-source'), '<b>Node</b> (.json)', ['sJson'])
+
+  // Citation provenance: every variant, with its own icon and colour.
+  CITE_ORDER.forEach(function (o) {
+    var l = document.createElement('div')
+    l.className = 'lbl'
+    l.innerHTML = '<b>' + CITE_LABEL[o] + '</b>'
+    var v = document.createElement('div')
+    v.className = 'pair'
+    v.innerHTML = '<span class="cite-icons"><button type="button" class="cite-icon" data-origin="' + o + '" title="' + CITE_LABEL[o] + '" aria-label="Citation origin: ' + CITE_LABEL[o] + '">' + ICON['cite-' + o] + '</button></span>'
+    $('sec-cite').appendChild(l)
+    $('sec-cite').appendChild(v)
+  })
 
   // Element card: field + value pairs, never a merged badge.
   var card = $('ctx-card')
@@ -500,7 +590,32 @@ body[data-mode="view"] .edit-bar { display: none; }
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('on') }, 1800)
   }
 
+  // Only one flyout open at a time; clicking elsewhere dismisses it.
+  function closeFlyouts() {
+    document.querySelectorAll('.ku-wrap[data-open="true"]').forEach(function (w) {
+      w.setAttribute('data-open', 'false')
+      var m = w.querySelector('.ku-more')
+      if (m) m.setAttribute('aria-expanded', 'false')
+    })
+  }
+
   document.addEventListener('click', function (e) {
+    var more = e.target.closest('.ku-more')
+    if (more) {
+      var wrap = more.closest('.ku-wrap')
+      var wasOpen = wrap.getAttribute('data-open') === 'true'
+      closeFlyouts()
+      if (!wasOpen) {
+        wrap.setAttribute('data-open', 'true')
+        more.setAttribute('aria-expanded', 'true')
+      }
+      return
+    }
+    var cite = e.target.closest('.cite-icon')
+    if (cite) {
+      toast('Citation origin: ' + cite.getAttribute('title') + ' - the citation dialog would open')
+      return
+    }
     var b = e.target.closest('.ku-act')
     if (b) {
       if (b.dataset.act === 'info') showInfo(b.dataset.key)
@@ -511,7 +626,9 @@ body[data-mode="view"] .edit-bar { display: none; }
     if (mb) {
       document.body.dataset.mode = mb.dataset.modeBtn
       document.querySelectorAll('[data-mode-btn]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === mb)) })
+      return
     }
+    closeFlyouts()
   })
   $('structure-toggle').addEventListener('change', function (e) {
     document.body.dataset.structure = e.target.checked ? 'on' : 'off'
