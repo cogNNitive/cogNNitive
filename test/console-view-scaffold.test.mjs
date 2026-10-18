@@ -59,7 +59,7 @@ describe('scaffoldConsoleView (--new-view)', () => {
     assert.equal(existsSync(targetFile), true)
     const code = await readFile(targetFile, 'utf8')
     assert.match(code, /title: 'Resumen de Programas'/)
-    assert.match(code, /InnfoUI\.Table/)
+    assert.match(code, /InnfoUI\.DataTable/)
 
     // Export domain console and verify new view is recognized and inlined
     const exportRes = await execFileAsync(process.execPath, [scriptPath, tmp, '--domain', '--no-open'], {

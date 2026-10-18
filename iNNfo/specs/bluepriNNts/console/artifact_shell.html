@@ -67,7 +67,7 @@
       .innfo-navbar {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 16px;
         flex-wrap: wrap;
         padding: 10px 20px;
@@ -206,6 +206,7 @@
       .innfo-facet-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); font-size: 0.82rem; cursor: pointer; }
       .innfo-facet-item:hover { background: var(--surface-2); }
       .innfo-view-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+      .innfo-navbar .innfo-view-tabs { flex: 1 1 auto; min-width: 0; margin-left: 6px; align-items: center; }
       .innfo-view-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 0.83rem; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
       .innfo-view-tab:hover { color: var(--text); background: var(--surface-2); }
       .innfo-view-tab.active { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
@@ -334,14 +335,12 @@
           </svg>
         </span>
         <h1 class="innfo-domain-title" id="innfo-domain-title">iNNfo Console</h1>
+        <div class="innfo-mode" id="innfo-navbar-extra"></div>
       </div>
-      <div class="innfo-mode" id="innfo-navbar-extra"></div>
+      <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;" aria-label="Console views"></nav>
       <div class="innfo-navbar-actions" id="innfo-navbar-actions"></div>
     </header>
 
-    <div class="innfo-action-bar innfo-action-bar--top">
-      <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
-    </div>
     <div id="innfo-layout">
       <aside class="innfo-rail" aria-label="Blueprint rail">
         <nav id="innfo-rail"></nav>

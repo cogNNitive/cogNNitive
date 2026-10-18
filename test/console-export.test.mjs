@@ -547,7 +547,8 @@ scenarioMonths:: 12
       await new Promise((ok) => dom.window.addEventListener('load', ok))
       const doc = dom.window.document
       const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
-      assert.deepEqual(tabs.slice(0, 2), ['pipeline', 'other'], 'tabs come from the registry, ordered')
+      assert.ok(tabs.indexOf('pipeline') >= 0 && tabs.indexOf('other') > tabs.indexOf('pipeline'), 'tabs come from the registry, ordered')
+      assert.ok(tabs.indexOf('explorer') < tabs.indexOf('pipeline'), 'core tabs precede domain custom tabs')
       assert.equal(doc.getElementById('innfo-view-errors'), null, 'no registration errors')
       assert.equal(doc.querySelector('#innfo-view-tabs .innfo-view-tab.active').dataset.tab, 'explorer')
       doc.querySelector('#innfo-view-tabs [data-tab="pipeline"]').click()

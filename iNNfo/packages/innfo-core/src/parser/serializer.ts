@@ -144,6 +144,36 @@ function rawFrontmatterStillMatches(rawFrontmatter: string, fm: SpecFrontmatter)
   }
 }
 
+/**
+ * Frontmatter keys that the constructed emit path handles explicitly. Any other key
+ * present in the parsed frontmatter is unrecognised by that path, so it is
+ * re-emitted verbatim at the end of the block (see `serializeKnowledge`). That
+ * keeps a managed mutation of one known key — a `bump_version`, for instance —
+ * from silently dropping the rest, such as a blueprint's `procedures` or
+ * `relationship_types`.
+ */
+const CONSTRUCTED_FRONTMATTER_KEYS = new Set([
+  'spec_version',
+  'spec_url',
+  'knowledge_slug',
+  'workspace_id',
+  'level',
+  'parent_spec',
+  'parent',
+  'knowledge_version',
+  'blueprint_version',
+  'blueprint_name',
+  'knowledge_dir',
+  'blueprints_dir',
+  'title',
+  'mode',
+  'template',
+  'last_saved',
+  'last_updated',
+  'matrices',
+  'concepts',
+])
+
 export function serializeKnowledge(model: ParsedKnowledge): string {
   const lines: string[] = []
   const fm = model.frontmatter
@@ -250,6 +280,16 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
         if (c.color) lines.push(`    color: "${c.color}"`)
         if (c.weight !== undefined) lines.push(`    weight: ${c.weight}`)
       }
+    }
+
+    // Re-emit any frontmatter key the constructed path does not recognise
+    // (blueprint-specific keys such as `procedures` and `relationship_types`,
+    // or arbitrary custom keys). Without this, mutating one known key switches
+    // `serializeKnowledge` off the raw-frontmatter path and silently drops the
+    // rest — the exact data loss a `bump_version` used to cause.
+    for (const [key, value] of Object.entries(fm)) {
+      if (CONSTRUCTED_FRONTMATTER_KEYS.has(key) || value === undefined) continue
+      lines.push(yamlStringify({ [key]: value }).trim())
     }
 
     lines.push('---')

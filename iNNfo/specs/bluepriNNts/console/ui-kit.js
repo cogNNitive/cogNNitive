@@ -252,6 +252,40 @@
     '.innfo-kpi-header{display:flex;align-items:center;justify-content:space-between;gap:8px}',
     '.innfo-kpi-value{font-size:1.4rem;font-weight:700;color:var(--innfo-text);line-height:1.2}',
     '.innfo-kpi-hint{font-size:.78rem;color:var(--innfo-muted)}',
+    // Data surfaces (Table / MatrixGrid / Timeline): one token-driven grid. The
+    // scroll wrapper is the ONLY horizontal scroll port, so a wide matrix never
+    // widens the page (the old bug: a missing Tailwind `overflow-x-auto`).
+    '.innfo-grid-scroll{max-width:100%;min-width:0;overflow:auto;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);background:var(--innfo-surface)}',
+    '.innfo-grid-scroll+.innfo-grid-scroll{margin-top:.6rem}',
+    '.innfo-grid{border-collapse:separate;border-spacing:0;width:100%;font-size:.82rem;color:var(--innfo-text)}',
+    '.innfo-grid th,.innfo-grid td{padding:.4em .65em;border-bottom:1px solid var(--innfo-border);text-align:left;vertical-align:middle}',
+    '.innfo-grid thead th{position:sticky;top:0;z-index:2;background:var(--innfo-surface-2);color:var(--innfo-muted);font-weight:600;font-size:.75rem;white-space:nowrap}',
+    '.innfo-grid tbody tr:last-child>th,.innfo-grid tbody tr:last-child>td{border-bottom:0}',
+    '.innfo-grid tbody tr:hover>td,.innfo-grid tbody tr:hover>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    '.innfo-grid-cell--center{text-align:center}',
+    '.innfo-grid-cell--end{text-align:right}',
+    '.innfo-grid-corner,.innfo-grid-rowhead{text-align:left;font-weight:600;color:var(--innfo-text)}',
+    '.innfo-grid-empty{padding:1em .8em;color:var(--innfo-muted);text-align:center}',
+    // Pinned first column: the corner + every row header stick to the left edge
+    // and rise above the horizontally scrolled cells.
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid-corner{position:sticky;left:0;z-index:3;background:var(--innfo-surface-2)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid-rowhead{position:sticky;left:0;z-index:1;background:var(--innfo-surface)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:nth-child(even)>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:hover>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    // FilterSelect: the shared multi-select facet (state, months, tags).
+    '.innfo-filter{position:relative;display:inline-block}',
+    '.innfo-filter-summary{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font:inherit;font-size:.8rem;font-weight:600;color:var(--innfo-text);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);cursor:pointer;list-style:none}',
+    '.innfo-filter[open] .innfo-filter-summary{border-color:var(--innfo-link)}',
+    '.innfo-filter-summary::-webkit-details-marker{display:none}',
+    '.innfo-filter-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:50;min-width:220px;max-height:340px;overflow-y:auto;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);box-shadow:0 10px 25px -5px rgba(0,0,0,.15);padding:6px}',
+    '.innfo-filter-quick{display:flex;flex-wrap:wrap;gap:4px;padding:2px 4px 6px;margin-bottom:4px;border-bottom:1px solid var(--innfo-border)}',
+    '.innfo-filter-quick button{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.72rem;padding:2px 8px;border-radius:999px;cursor:pointer}',
+    '.innfo-filter-quick button:hover{border-color:var(--innfo-link);color:var(--innfo-link)}',
+    '.innfo-filter-option{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--innfo-radius-sm);font-size:.82rem;cursor:pointer}',
+    '.innfo-filter-option:hover{background:var(--innfo-surface-2)}',
+    '.innfo-filter-option input{flex:0 0 auto}',
+    '.innfo-filter-option-label{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-filter-option-count{font-family:var(--innfo-mono);font-size:.72rem;color:var(--innfo-muted)}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
     // ONE affordance sits beside the badge: a borderless "+". The actions float
     // BELOW it on demand, so they take no inline space and never push a neighbour.
@@ -2939,6 +2973,338 @@
     return grid
   }
 
+  // ---- Data surfaces: Table / MatrixGrid / Timeline ----
+  //
+  // The three are the SAME object seen at three zoom levels: a grid of cells
+  // addressed by (row, column), with a sticky header row and an optional sticky
+  // first column. ONE builder paints them; the three exports only adapt their
+  // input shape, so there is a single place to fix layout, sticky behaviour,
+  // empty state or cell coercion.
+  //
+  // Why they exist: custom views used to hand-roll `<table>` markup and lean on
+  // Tailwind utility classes (`overflow-x-auto`, `flex`, ...) that the console
+  // bundle does NOT ship, so the page scrolled horizontally forever. These
+  // components own their CSS (token-driven, in COMPONENT_CSS) and never depend
+  // on a utility class being present.
+
+  function gridCellClass(align) {
+    if (align === 'center') return 'innfo-grid-cell innfo-grid-cell--center'
+    if (align === 'end' || align === 'right') return 'innfo-grid-cell innfo-grid-cell--end'
+    return 'innfo-grid-cell'
+  }
+
+  // A cell value may already be a DOM node (a renderer returned one) or a
+  // primitive. Never innerHTML: every string is text.
+  function coerceCellNode(doc, value) {
+    if (value == null) return doc.createTextNode('')
+    if (value && value.nodeType) return value
+    return doc.createTextNode(String(value))
+  }
+
+  function resolveRowHeader(row, ri) {
+    var h = row && row.header
+    return typeof h === 'function' ? h(row, ri) : h
+  }
+
+  function resolveRowCell(row, col, ri, ci) {
+    if (typeof row.cell === 'function') return row.cell(col, ri, ci)
+    if (row.cells && row.cells[col.key] != null) return row.cells[col.key]
+    return null
+  }
+
+  function buildGrid(spec) {
+    var doc = spec.doc
+    var columns = Array.isArray(spec.columns) ? spec.columns : []
+    var rows = Array.isArray(spec.rows) ? spec.rows : []
+    var hasRowHeader = spec.rowHeader != null
+
+    var scroll = makeEl(doc, 'div', 'innfo-grid-scroll')
+    scroll.setAttribute('data-innfo-component', spec.component)
+    if (spec.pinFirstColumn) scroll.setAttribute('data-pin-first', 'true')
+
+    var table = makeEl(doc, 'table', 'innfo-grid')
+    if (hasRowHeader) table.setAttribute('data-has-row-header', 'true')
+
+    var thead = doc.createElement('thead')
+    var htr = doc.createElement('tr')
+    if (hasRowHeader) {
+      var corner = makeEl(doc, 'th', 'innfo-grid-corner')
+      corner.setAttribute('scope', 'col')
+      corner.textContent = spec.rowHeader.label != null ? String(spec.rowHeader.label) : ''
+      htr.appendChild(corner)
+    }
+    columns.forEach(function (col) {
+      var th = doc.createElement('th')
+      th.setAttribute('scope', 'col')
+      if (col.key != null) th.setAttribute('data-col', String(col.key))
+      if (col.align) th.className = gridCellClass(col.align)
+      th.textContent = col.label != null ? String(col.label) : String(col.key == null ? '' : col.key)
+      htr.appendChild(th)
+    })
+    thead.appendChild(htr)
+    table.appendChild(thead)
+
+    var tbody = doc.createElement('tbody')
+    if (!rows.length) {
+      var er = doc.createElement('tr')
+      var ec = makeEl(doc, 'td', 'innfo-grid-empty')
+      ec.colSpan = Math.max(1, columns.length + (hasRowHeader ? 1 : 0))
+      ec.textContent = spec.emptyText != null ? String(spec.emptyText) : ''
+      er.appendChild(ec)
+      tbody.appendChild(er)
+    } else {
+      rows.forEach(function (row, ri) {
+        if (!row) row = {}
+        var tr = doc.createElement('tr')
+        if (row.key != null) tr.setAttribute('data-row', String(row.key))
+        var headerValue = resolveRowHeader(row, ri)
+        if (headerValue != null) {
+          var rth = makeEl(doc, 'th', 'innfo-grid-rowhead')
+          rth.setAttribute('scope', 'row')
+          rth.appendChild(coerceCellNode(doc, headerValue))
+          tr.appendChild(rth)
+        }
+        columns.forEach(function (col, ci) {
+          var td = doc.createElement('td')
+          td.className = gridCellClass(col.align)
+          if (col.key != null) td.setAttribute('data-col', String(col.key))
+          td.appendChild(coerceCellNode(doc, resolveRowCell(row, col, ri, ci)))
+          tr.appendChild(td)
+        })
+        tbody.appendChild(tr)
+      })
+    }
+    table.appendChild(tbody)
+    scroll.appendChild(table)
+    return scroll
+  }
+
+  // DataTable columns describe an element: `kind` picks the cell renderer.
+  //   'element' -> an element knowledge-unit badge (canonical KU)
+  //   'field' / 'value' -> the declared field value via FieldValue, else its text
+  //   anything else (default) -> plain text
+  function tableCellNode(doc, el, col, modelId, opts) {
+    var kind = col.kind || 'text'
+    if (kind === 'element') {
+      var badge = Ku(
+        'element',
+        {
+          model: modelId,
+          id: el && el.id,
+          label: (el && (el.name || el.id)) || '',
+          concept: el && el.concept,
+          color: el && el.color,
+          index: el && el.index,
+        },
+        { doc: doc },
+      )
+      var activate = opts && (opts.onEdit || opts.onSelect)
+      if (activate && el && el.id) {
+        badge.setAttribute('role', 'button')
+        badge.setAttribute('tabindex', '0')
+        badge.setAttribute('aria-label', 'Open ' + ((el && (el.name || el.id)) || el.id))
+        badge.addEventListener('click', function () {
+          if (opts.onEdit) opts.onEdit(el.id, el)
+          else if (opts.onSelect) opts.onSelect(el.id, el)
+        })
+      }
+      return badge
+    }
+    var value = typeof col.value === 'function' ? col.value(el, col) : fieldLookup(el, col.key)
+    if (typeof col.render === 'function') return coerceCellNode(doc, col.render(value, el, col))
+    if (kind === 'field' || kind === 'value') {
+      var typed = FieldValue(
+        { name: col.key, value: value, type: col.type },
+        { doc: doc, modelId: modelId, elementId: el && el.id },
+      )
+      if (typed) return typed
+    }
+    return coerceCellNode(doc, value)
+  }
+
+  function fieldLookup(el, key) {
+    if (!el || key == null) return null
+    var fields = el.fields
+    if (fields && typeof fields === 'object' && fields[key] != null) return fields[key]
+    return el[key]
+  }
+
+  function DataTable(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.DataTable: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.DataTable: data.rows must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.DataTable: doc is required')
+    var modelId = (opts && (opts.modelId || opts.model)) || data.modelId || 'model'
+    var columns = data.columns.map(function (c) {
+      return { key: c.key, label: c.label, align: c.align, kind: c.kind || 'text', type: c.type, value: c.value, render: c.render }
+    })
+    var rows = data.rows.map(function (el) {
+      return {
+        key: el && el.id,
+        cell: function (col) {
+          return tableCellNode(doc, el, col, modelId, opts)
+        },
+      }
+    })
+    return buildGrid({
+      doc: doc,
+      component: 'data-table',
+      columns: columns,
+      rows: rows,
+      emptyText: data.emptyText,
+    })
+  }
+
+  function MatrixGrid(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.MatrixGrid: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.MatrixGrid: data.rows must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.MatrixGrid: doc is required')
+    return buildGrid({
+      doc: doc,
+      component: 'matrix-grid',
+      columns: data.columns.map(function (c) { return { key: c.key, label: c.label, align: c.align } }),
+      rows: data.rows,
+      rowHeader: data.rowHeader || { label: '' },
+      pinFirstColumn: data.pinFirstColumn !== false,
+      emptyText: data.emptyText,
+    })
+  }
+
+  // A timeline is a matrix whose columns ARE periods; identical to MatrixGrid
+  // apart from the component name (styling) and a centre-aligned axis default.
+  function Timeline(data, opts) {
+    if (!data || !Array.isArray(data.periods)) throw new TypeError('InnfoUI.Timeline: data.periods must be an array')
+    if (!Array.isArray(data.lanes)) throw new TypeError('InnfoUI.Timeline: data.lanes must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.Timeline: doc is required')
+    return buildGrid({
+      doc: doc,
+      component: 'timeline',
+      columns: data.periods.map(function (p) { return { key: p.key, label: p.label, align: p.align || 'center' } }),
+      rows: data.lanes,
+      rowHeader: data.rowHeader || { label: data.laneLabel || '' },
+      pinFirstColumn: data.pinFirstColumn !== false,
+      emptyText: data.emptyText,
+    })
+  }
+
+  // ---- FilterSelect: the shared multi-select facet ----
+  //
+  // A token-styled dropdown of checkboxes with an optional quick-action row — the
+  // same control the console filter bar uses for Models / Concepts / Fields, now
+  // reusable from any view (state, months, tags). It owns its open + selected
+  // state; the caller subscribes with opts.onChange(values, option).
+  function normalizeFilterOptions(options) {
+    if (!Array.isArray(options)) return []
+    return options.map(function (o) {
+      if (o && typeof o === 'object') {
+        return {
+          value: o.value != null ? o.value : o.label,
+          label: o.label != null ? String(o.label) : String(o.value),
+          count: o.count,
+          selected: !!o.selected,
+        }
+      }
+      return { value: o, label: String(o) }
+    })
+  }
+
+  function filterSummary(label, options, selected) {
+    var total = options.length
+    var chosen = options.filter(function (o) { return selected[o.value] })
+    if (!total) return label
+    if (chosen.length === total) return label + ': todos (' + total + ')'
+    if (!chosen.length) return label + ': ninguno'
+    if (chosen.length === 1) return label + ': ' + chosen[0].label
+    return label + ': ' + chosen.length + '/' + total
+  }
+
+  function FilterSelect(data, opts) {
+    if (!data || !Array.isArray(data.options)) {
+      throw new TypeError('InnfoUI.FilterSelect: data.options must be an array')
+    }
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.FilterSelect: doc is required')
+    var options = normalizeFilterOptions(data.options)
+    var selected = {}
+    if (data.selected && !Array.isArray(data.selected) && typeof data.selected === 'object') {
+      Object.keys(data.selected).forEach(function (k) { if (data.selected[k]) selected[k] = true })
+    } else if (Array.isArray(data.selected)) {
+      data.selected.forEach(function (v) { selected[v] = true })
+    }
+    options.forEach(function (o) { if (o.selected) selected[o.value] = true })
+    var label = data.label != null ? String(data.label) : ''
+
+    var root = makeEl(doc, 'details', 'innfo-filter')
+    root.setAttribute('data-innfo-component', 'filter-select')
+    var summary = makeEl(doc, 'summary', 'innfo-filter-summary')
+    summary.setAttribute('aria-label', label || 'Filter')
+    root.appendChild(summary)
+    var menu = makeEl(doc, 'div', 'innfo-filter-menu')
+    root.appendChild(menu)
+
+    var cbByValue = {}
+    function selectedValues() {
+      return options.filter(function (o) { return selected[o.value] }).map(function (o) { return o.value })
+    }
+    function syncSummary() { summary.textContent = filterSummary(label, options, selected) }
+    function notify() {
+      if (typeof opts.onChange === 'function') opts.onChange(selectedValues())
+    }
+    function setSelection(values, silent) {
+      var allow = null
+      if (values !== 'all') {
+        allow = {}
+        ;(Array.isArray(values) ? values : [values]).forEach(function (v) { allow[v] = true })
+      }
+      options.forEach(function (o) {
+        var on = values === 'all' ? true : !!(allow && allow[o.value])
+        selected[o.value] = on
+        if (cbByValue[o.value]) cbByValue[o.value].checked = on
+      })
+      syncSummary()
+      if (!silent) notify()
+    }
+
+    if (Array.isArray(data.quick) && data.quick.length) {
+      var quick = makeEl(doc, 'div', 'innfo-filter-quick')
+      data.quick.forEach(function (q) {
+        if (!q) return
+        var b = makeEl(doc, 'button', null, q.label != null ? String(q.label) : '')
+        b.type = 'button'
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault()
+          setSelection(q.values == null ? 'all' : q.values)
+        })
+        quick.appendChild(b)
+      })
+      menu.appendChild(quick)
+    }
+
+    options.forEach(function (o) {
+      var row = makeEl(doc, 'label', 'innfo-filter-option')
+      var cb = doc.createElement('input')
+      cb.type = 'checkbox'
+      cb.checked = !!selected[o.value]
+      cb.addEventListener('change', function () {
+        selected[o.value] = cb.checked
+        syncSummary()
+        notify()
+      })
+      cbByValue[o.value] = cb
+      row.appendChild(cb)
+      row.appendChild(makeEl(doc, 'span', 'innfo-filter-option-label', o.label))
+      if (o.count != null) row.appendChild(makeEl(doc, 'span', 'innfo-filter-option-count', String(o.count)))
+      menu.appendChild(row)
+    })
+
+    syncSummary()
+    root.getSelection = selectedValues
+    root.setSelection = setSelection
+    return root
+  }
+
   function defineCustomElements() {
     if (typeof window === 'undefined' || !window.customElements || window.customElements.get('innfo-ku')) return
     try {
@@ -3516,6 +3882,10 @@
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
     KpiGrid: KpiGrid,
+    DataTable: DataTable,
+    MatrixGrid: MatrixGrid,
+    Timeline: Timeline,
+    FilterSelect: FilterSelect,
     defineCustomElements: defineCustomElements,
   }
 })
