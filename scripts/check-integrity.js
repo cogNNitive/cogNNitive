@@ -17,11 +17,10 @@
  *   node scripts/check-integrity.js --release  # Same as --pre-push (verification is offline in every mode)
  */
 
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
-const { runVerification } = require('./verify.js');
 
 const repoRoot = path.resolve(__dirname, '..');
 const args = process.argv.slice(2);
@@ -115,7 +114,9 @@ console.log(`  ✅ Referenced external skills satisfy the pin/license policy (${
 
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
-if (!runVerification({ release: isRelease })) {
+// verify.js is async (worker pool); run it as a child so this script stays synchronous.
+const verifyArgs = [path.join(__dirname, 'verify.js'), ...(isRelease ? ['--release'] : [])];
+if (spawnSync(process.execPath, verifyArgs, { stdio: 'inherit' }).status !== 0) {
   console.error('❌ Workspace verification failed (see the step summary above).');
   process.exit(1);
 }

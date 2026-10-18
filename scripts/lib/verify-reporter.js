@@ -10,7 +10,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const TAIL_LINES = 60;
 
@@ -92,6 +92,15 @@ function runStep(step, options) {
     status = res.status === null ? 1 : res.status;
     spawnError = res.error || null;
   }
+  return report(step, options, { logPath, status, spawnError, started });
+}
+
+/**
+ * Prints the outcome of a finished (non-verbose) step. All lines are written in one
+ * synchronous burst, so concurrent steps never interleave their output.
+ */
+function report(step, options, { logPath, status, spawnError, started }) {
+  const write = options.write || ((line) => console.log(line));
   const durationMs = Date.now() - started;
   const seconds = (durationMs / 1000).toFixed(1);
 
@@ -109,6 +118,42 @@ function runStep(step, options) {
 }
 
 /**
+ * Asynchronous twin of {@link runStep} for the worker pool: the child's output goes to
+ * its own log file and is reported only once the child exits. In-process steps and
+ * verbose mode are not concurrency-safe, so they fall back to the synchronous path.
+ * @param {Step} step
+ * @param {RunOptions} options
+ * @returns {Promise<ReturnType<typeof runStep>>}
+ */
+function runStepAsync(step, options) {
+  if (step.run || options.verbose) return Promise.resolve(runStep(step, options));
+  fs.mkdirSync(options.logDir, { recursive: true });
+  const logPath = path.join(options.logDir, `${step.id}.log`);
+  const started = Date.now();
+  const fd = fs.openSync(logPath, 'w');
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (status, spawnError) => {
+      if (settled) return;
+      settled = true;
+      fs.closeSync(fd);
+      resolve(report(step, options, { logPath, status, spawnError, started }));
+    };
+    const child = spawn(step.cmd, step.args || [], {
+      cwd: options.cwd,
+      env: options.env,
+      shell: false,
+      stdio: ['ignore', fd, fd],
+      timeout: stepTimeoutMs(),
+    });
+    child.on('error', (err) => finish(1, err));
+    child.on('close', (code, signal) => {
+      finish(code === null ? 1 : code, signal ? new Error(`terminated by ${signal} (timeout ${stepTimeoutMs()}ms?)`) : null);
+    });
+  });
+}
+
+/**
  * Runs an in-process step; a throw is a failure (logged), never a crash.
  * @param {() => { ok: boolean, output?: string }} fn
  * @returns {{ ok: boolean, output: string }}
@@ -123,4 +168,4 @@ function safeRun(fn) {
   }
 }
 
-module.exports = { runStep, tailLines, TAIL_LINES };
+module.exports = { runStep, runStepAsync, tailLines, TAIL_LINES };

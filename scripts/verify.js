@@ -17,6 +17,11 @@
  * `--fast` runs every guard and drift check but skips the SLOW_SUITES below
  * (~two thirds of the wall time) for branch pushes that feed back to the author.
  *
+ * Test suites run through a bounded worker pool (`--jobs=N` / `VERIFY_JOBS`, default
+ * min(4, cpus-1); `--jobs=1` is fully serial). Guards, drift checks and the SERIAL_SUITES
+ * keep their order and run one at a time after the pool. Each step's output is buffered
+ * in its log and printed in one piece when it finishes, so lines never interleave.
+ *
  * Output is quiet: each step writes to `.verify-logs/<id>.log`; passing steps
  * print one line, failing steps print the last 60 lines. `--verbose` streams.
  * Every step runs; the run ends with a summary and exits 1 if any step failed.
@@ -28,7 +33,7 @@ const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { freshnessGuard } = require('./lib/freshness-guards.js');
-const { runStep } = require('./lib/verify-reporter.js');
+const { runStep, runStepAsync } = require('./lib/verify-reporter.js');
 
 // Ensure local node_modules/.bin is accessible on PATH for standalone node invocations
 const binDir = path.join(__dirname, '..', 'node_modules', '.bin');
@@ -285,6 +290,30 @@ const SLOW_SUITES = new Set([
   'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/video-engine-cli.test.mjs',
 ]);
 
+/**
+ * Suites that must not share the machine with another suite. Run one at a time after the
+ * parallel pool (and before the guards). Add an entry only with the reason.
+ */
+const SERIAL_SUITES = new Set([]);
+
+/**
+ * Resolves the pool size: `--jobs=N` beats `VERIFY_JOBS`, which beats min(4, cpus-1).
+ * @param {string[]} [argv]
+ * @param {NodeJS.ProcessEnv} [env]
+ * @param {number} [cpuCount]
+ * @returns {number} an integer >= 1
+ */
+function resolveJobs(argv = process.argv, env = process.env, cpuCount = os.cpus().length) {
+  const flag = argv.find((a) => a.startsWith('--jobs='));
+  const raw = flag ? flag.slice('--jobs='.length) : env.VERIFY_JOBS;
+  if (raw !== undefined && raw !== '') {
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1) throw new Error(`invalid job count: ${raw} (expected an integer >= 1)`);
+    return n;
+  }
+  return Math.max(1, Math.min(4, cpuCount - 1));
+}
+
 const OFFLINE_GUARD = path.join(__dirname, 'lib', 'offline-guard.js').split(path.sep).join('/');
 
 /**
@@ -348,7 +377,10 @@ function buildSteps(repoRoot, options = {}) {
   for (const suite of suites) {
     const rel = path.relative(repoRoot, suite).split(path.sep).join('/');
     if (options.fast && SLOW_SUITES.has(rel)) continue;
-    steps.push(node('test-' + rel.replace(/[^A-Za-z0-9]+/g, '-'), 'Test ' + rel, rel));
+    const step = node('test-' + rel.replace(/[^A-Za-z0-9]+/g, '-'), 'Test ' + rel, rel);
+    // Child-process suites are pool-eligible; SERIAL_SUITES opt out.
+    step.parallel = !SERIAL_SUITES.has(rel);
+    steps.push(step);
   }
 
   // 0c. Suites whose filenames do not match the `*.test.*` shape. Keep explicit.
@@ -494,26 +526,46 @@ function buildSteps(repoRoot, options = {}) {
 
 /**
  * Runs every step (never stops at the first failure), then prints a summary.
+ * Steps flagged `parallel` go through a pool of `options.jobs` workers; everything else
+ * runs afterwards, one at a time, in list order. Results come back in list order.
  * @param {ReturnType<typeof buildSteps>} steps
- * @param {{ logDir: string, verbose?: boolean, ci?: boolean, cwd?: string, env?: NodeJS.ProcessEnv, write?: (l: string) => void }} options
- * @returns {{ ok: boolean, results: any[], failed: any[] }}
+ * @param {{ logDir: string, jobs?: number, verbose?: boolean, ci?: boolean, cwd?: string, env?: NodeJS.ProcessEnv, write?: (l: string) => void }} options
+ * @returns {Promise<{ ok: boolean, results: any[], failed: any[] }>}
  */
-function runSteps(steps, options) {
+async function runSteps(steps, options) {
   const write = options.write || ((line) => console.log(line));
-  const results = steps.map((step) => runStep(step, { ...options, write }));
+  const stepOptions = { ...options, write };
+  // Verbose streams straight to the terminal, which only makes sense one step at a time.
+  const jobs = options.verbose ? 1 : Math.max(1, options.jobs || 1);
+  const results = new Array(steps.length);
+
+  const pooled = jobs > 1 ? steps.map((s, i) => i).filter((i) => steps[i].parallel && !steps[i].run) : [];
+  let next = 0;
+  const worker = async () => {
+    while (next < pooled.length) {
+      const i = pooled[next++];
+      results[i] = await runStepAsync(steps[i], stepOptions);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(jobs, pooled.length) }, worker));
+
+  steps.forEach((step, i) => {
+    if (!results[i]) results[i] = runStep(step, stepOptions);
+  });
   const failed = results.filter((r) => !r.ok);
   if (failed.length > 0) {
-    write(`\n❌ ${failed.length} of ${results.length} step(s) failed:`);
+    write(`
+❌ ${failed.length} of ${results.length} step(s) failed:`);
     failed.forEach((f) => write(`  - ${f.desc}${f.logPath ? ` → ${f.logPath}` : ''}`));
   }
   return { ok: failed.length === 0, results, failed };
 }
 
 /**
- * @param {{ release?: boolean, fast?: boolean, verbose?: boolean }} [options]
- * @returns {boolean} true when every step passed
+ * @param {{ release?: boolean, fast?: boolean, verbose?: boolean, jobs?: number }} [options]
+ * @returns {Promise<boolean>} true when every step passed
  */
-function runVerification(options = {}) {
+async function runVerification(options = {}) {
   const repoRoot = path.join(__dirname, '..');
   // In-process checks (and the children they spawn) must be offline too.
   const previousOffline = process.env.NN_OFFLINE;
@@ -521,10 +573,12 @@ function runVerification(options = {}) {
   console.log('🔍 [cogNNitive Verify] Running workspace verification (offline)...');
 
   const steps = buildSteps(repoRoot, options);
-  console.log(`▶ ${steps.length} steps.`);
+  const jobs = options.jobs || resolveJobs();
+  console.log(`▶ ${steps.length} steps, ${jobs} job(s).`);
   let ok;
   try {
-    ({ ok } = runSteps(steps, {
+    ({ ok } = await runSteps(steps, {
+      jobs,
       logDir: path.join(repoRoot, '.verify-logs'),
       verbose: options.verbose === true,
       ci: Boolean(process.env.GITHUB_ACTIONS),
@@ -541,12 +595,17 @@ function runVerification(options = {}) {
 }
 
 if (require.main === module) {
-  const ok = runVerification({
-    release: process.argv.includes('--release'),
-    fast: process.argv.includes('--fast'),
-    verbose: process.argv.includes('--verbose'),
-  });
-  process.exit(ok ? 0 : 1);
+  Promise.resolve()
+    .then(() => runVerification({
+      release: process.argv.includes('--release'),
+      fast: process.argv.includes('--fast'),
+      verbose: process.argv.includes('--verbose'),
+    }))
+    .then((ok) => process.exit(ok ? 0 : 1))
+    .catch((err) => {
+      console.error(err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = {
@@ -554,6 +613,8 @@ module.exports = {
   runVerification,
   buildSteps,
   SLOW_SUITES,
+  SERIAL_SUITES,
+  resolveJobs,
   runSteps,
   childEnv,
   extractDeclaredBlueprints,
