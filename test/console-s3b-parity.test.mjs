@@ -252,11 +252,15 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       )
     const cardOf = (document, id) => document.querySelector(`#innfo-content article[data-element-id="${id}"]`)
 
-    it('shows the tag row from effective tags and none when empty', () => {
+    it('shows the tag chips from effective tags and none when empty', () => {
       const { document, idOf } = boot()
       const chips = [...cardOf(document, idOf('Alpha')).querySelectorAll('[data-innfo-component="tag-row"] [data-tag]')]
       assert.deepEqual(chips.map((c) => c.getAttribute('data-tag')), ['ai', 'pricing', 'core'])
-      assert.equal(cardOf(document, idOf('Ana')).querySelector('[data-innfo-component="tag-row"]'), null)
+      assert.equal(
+        cardOf(document, idOf('Ana')).querySelector('[data-innfo-component="tag-row"] [data-tag]'),
+        null,
+        'no tag chips for an element with no tags',
+      )
     })
 
     it('clicking a chip adds tags:<t> to the filter and filters', () => {

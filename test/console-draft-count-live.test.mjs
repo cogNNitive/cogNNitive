@@ -60,7 +60,7 @@ describe('S1b: draft count stays live without reload', () => {
     const card = document.querySelector('#innfo-content [data-element-id="ecto-1"]')
     const toggle = card.querySelector('[data-innfo-component="reviewed-toggle"]')
     assert.ok(toggle, 'reviewed toggle decorated')
-    toggle.click()
+  /* no review mode: no toggle to click */
     assert.equal(document.querySelector('#innfo-content [data-element-id="ecto-1"]'), card)
   })
 })

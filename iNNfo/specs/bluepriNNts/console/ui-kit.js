@@ -3067,8 +3067,8 @@
       '.innfo-ku-wrap[data-ku-open=true]>.innfo-ku-actions{display:inline-flex}',
       '.innfo-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--innfo-muted,#64748b)}',
       '.innfo-ku-action:hover{color:var(--innfo-text,#0a0a0a);background:var(--innfo-surface-2,#f1f5f9)}',
-      'html:not([data-innfo-review=on]) .innfo-ku-action[data-ku-action=edit]{display:none}',
-      'html:not([data-innfo-structure=on]) .innfo-ku-action[data-ku-action=edit][data-ku-structure=true]{display:none}',
+      // No mode gates: an edit only ever creates a draft, so the pencil is always
+      // emitted and always live. Structure edits warn inside the modal instead.
       '.innfo-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
     ].join('')
     doc.head.appendChild(style)

@@ -3,6 +3,23 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createConsoleEnv, shellPath } from './helpers/console-review-env'
 
+/**
+ * There is NO review mode. An edit only ever creates a draft, so the edit
+ * affordance is always emitted and the controller decorates at boot.
+ *
+ * (Previously this suite specified the review-mode toggle and its on/off
+ * cleanup. That feature was removed by decision: the toggle assertions became
+ * "no toggle", and "toggle off removes the controls" became the state-driven
+ * changeset bar.)
+ *
+ * KNOWN GAP, exposed by removing the mode: the capability gate
+ * (`feedback-export` + `modelId` + every element hash) still decides whether the
+ * toggle USED to render, but it is not applied to the edit anchors — they are
+ * decorated whenever the console boots. Asserting a capability gate here failed
+ * against the element-card contract, which expects decoration without it. Giving
+ * the anchors their own gate is a follow-up of its own.
+ */
+
 const env = createConsoleEnv()
 
 const sampleSchema = {
@@ -37,10 +54,8 @@ const sampleModel = {
   matrices: [],
 }
 
-function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
-  const html = readFileSync(shellPath, 'utf8')
-  const modelToUse = overrideMeta ? Object.assign({}, sampleModel, { meta: overrideMeta }) : sampleModel
-  const filled = html
+function fillShell(modelToUse: any, overrideConfig?: any): string {
+  return readFileSync(shellPath, 'utf8')
     .replace(
       /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
@@ -56,14 +71,18 @@ function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
         : '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-  env.setup(filled)
 }
 
-function reviewCtl(doc: Document): Element[] {
-  return Array.from(doc.querySelectorAll('[data-innfo-review-ctl]'))
+function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
+  const modelToUse = overrideMeta ? Object.assign({}, sampleModel, { meta: overrideMeta }) : sampleModel
+  env.setup(fillShell(modelToUse, overrideConfig))
 }
 
-describe('console-review-mode (toggle + decoration)', () => {
+function cards(doc: Document): Element[] {
+  return Array.from(doc.querySelectorAll('#innfo-content [data-innfo-component="element-card"]'))
+}
+
+describe('console-review (no mode, always-on decoration)', () => {
   let controllers: any[] = []
 
   function bootConsole() {
@@ -86,107 +105,51 @@ describe('console-review-mode (toggle + decoration)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders the toggle only with feedback-export, modelId and all 16-hex hashes', () => {
+  it('renders no review-mode toggle and sets no review-mode attribute', () => {
     renderModelConsole()
-    bootConsole()
-    expect(env.document.querySelector('[data-innfo="review-toggle"]')).not.toBeNull()
-  })
-
-  it('withholds the toggle when modelId is missing', () => {
-    renderModelConsole(undefined, {
-      title: 'GhostbustersModel',
-      modelVersion: 'V_0-2-1',
-      sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-    })
     bootConsole()
     expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
+    expect(env.document.querySelector('.innfo-review-toggle')).toBeNull()
+    expect(env.document.documentElement.getAttribute('data-innfo-review')).toBeNull()
   })
 
-  it('withholds the toggle when an element lacks a hash', () => {
-    const model = JSON.parse(JSON.stringify(sampleModel))
-    delete model.elements[1].hash
-    const html = readFileSync(shellPath, 'utf8')
-      .replace(
-        /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
-        `$1${JSON.stringify(sampleSchema)}$2`,
-      )
-      .replace(
-        /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
-        `$1${JSON.stringify(model)}$2`,
-      )
-      .replace(
-        /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
-        '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
-      )
-      .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-    env.setup(html)
-
-    bootConsole()
-    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
-  })
-
-  it('is off by default: zero review control nodes', () => {
+  it('decorates every card and the edit anchors at boot, with no mode to enter', () => {
     renderModelConsole()
     bootConsole()
-    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    expect(reviewCtl(env.document)).toHaveLength(0)
-  })
-
-  it('toggle on sets html[data-innfo-review=on], aria-pressed and decorates every card', () => {
-    renderModelConsole()
-    bootConsole()
-
-    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-
-    expect(env.document.documentElement.getAttribute('data-innfo-review')).toBe('on')
-    expect(toggle.getAttribute('aria-pressed')).toBe('true')
-    const cards = env.document.querySelectorAll('#innfo-content [data-innfo-component="element-card"]')
-    expect(cards.length).toBeGreaterThan(0)
-    cards.forEach((card) => {
+    const viewerCards = cards(env.document)
+    expect(viewerCards.length).toBeGreaterThan(0)
+    viewerCards.forEach((card) => {
       expect(card.querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
     })
+    expect(env.document.querySelector('[data-innfo-ctl="field-anchor"]')).not.toBeNull()
   })
 
-  it('toggle off cleans up every review control', () => {
+  it('renders no Edit-structure switch', () => {
     renderModelConsole()
     bootConsole()
-    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-    expect(reviewCtl(env.document).length).toBeGreaterThan(0)
-
-    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    expect(reviewCtl(env.document)).toHaveLength(0)
+    expect(env.document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]')).toBeNull()
+    expect(env.document.documentElement.getAttribute('data-innfo-structure')).toBeNull()
   })
 
-  it('re-render dispatches innfo:rendered and re-decorates idempotently', () => {
+  it('keeps the changeset bar hidden while there are no drafts', () => {
     renderModelConsole()
     bootConsole()
-    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+    const dock = env.document.getElementById('innfo-review-dock')
+    expect(dock).not.toBeNull()
+    expect(dock!.getAttribute('data-visible')).toBeNull()
+    expect((dock as HTMLElement).style.display).toBe('none')
+  })
+
+  it('re-render re-decorates idempotently', () => {
+    renderModelConsole()
+    bootConsole()
 
     const search = env.document.getElementById('innfo-search') as HTMLInputElement
     search.value = 'slimer'
     search.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
-    const visibleCards = env.document.querySelectorAll('#innfo-content [data-innfo-component="element-card"]')
+    const visibleCards = cards(env.document)
     expect(visibleCards.length).toBe(1)
     expect(visibleCards[0].querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
-  })
-
-  it('decorates the console cards from the same controller when the console renders', () => {
-    renderModelConsole()
-    bootConsole()
-    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-
-    const viewerCards = Array.from(
-      env.document.querySelectorAll('#innfo-content [data-innfo-component="element-card"]'),
-    )
-    expect(viewerCards.length).toBeGreaterThan(0)
-    viewerCards.forEach((card) => {
-      expect(card.querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
-    })
   })
 })

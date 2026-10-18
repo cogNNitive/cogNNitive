@@ -46,11 +46,11 @@ describe('console matrix cell review editing', () => {
     assert.equal(td.getAttribute('data-col'), 'c1')
     assert.equal(td.getAttribute('data-cell-raw'), 'old')
 
-    const toggle =
-      document.querySelector('.innfo-review-toggle') ||
-      document.querySelector('[data-innfo="review-toggle"]')
-    assert.ok(toggle, 'review toggle exists')
-    toggle.click()
+    // No review mode: decoration follows the render event. Re-dispatch it so the
+    // already-rendered tree gets its anchors.
+    document.dispatchEvent(
+      new dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+    )
 
     const anchor = td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]')
     assert.ok(anchor, 'cell edit anchor appears in review mode')
@@ -101,10 +101,11 @@ describe('console matrix cell review editing', () => {
       'kNNowledge/Coverage',
       'the owning model address reaches the cell',
     )
-    const toggle =
-      document.querySelector('.innfo-review-toggle') ||
-      document.querySelector('[data-innfo="review-toggle"]')
-    toggle.click()
+    // No review mode: decoration follows the render event. Re-dispatch it so the
+    // already-rendered tree gets its anchors.
+    document.dispatchEvent(
+      new dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+    )
     td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]').click()
     const modal = document.querySelector('[data-innfo-component="edit-modal"]')
     modal.querySelector('.innfo-edit-input').value = 'relevant'
@@ -133,8 +134,11 @@ function bootWith(matrix, schemaExtra) {
 
 function editCell(env, matrixName, row, col) {
   const { document } = env
-  const toggle = document.querySelector('.innfo-review-toggle') || document.querySelector('[data-innfo="review-toggle"]')
-  toggle.click()
+  // No review mode: decoration follows the render event. Re-dispatch it so the
+  // already-rendered tree gets its anchors.
+  document.dispatchEvent(
+    new env.dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+  )
   const td = document.querySelector(
     `td[data-matrix="${matrixName}"][data-row="${row}"][data-col="${col}"]`,
   )

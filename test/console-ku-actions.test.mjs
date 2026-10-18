@@ -18,38 +18,40 @@ function boot() {
 }
 
 describe('delegated Ku actions', () => {
-  it('renders edit controls but keeps them inert while review mode is off', () => {
+  it('renders a live edit control with no mode to enter', () => {
     const { document } = boot()
     const edit = document.querySelector('[data-ku-action="edit"]')
     assert.ok(edit, 'edit control is emitted')
+    assert.equal(
+      document.documentElement.getAttribute('data-innfo-review'),
+      null,
+      'no review-mode attribute: the pencil is not gated by a mode',
+    )
     edit.click()
-    assert.equal(document.querySelector('[data-innfo-component="edit-modal"]'), null)
+    assert.ok(
+      document.querySelector('[data-innfo-component="edit-modal"]'),
+      'the pencil is live: it proposes a draft',
+    )
   })
 
   it('opens the shared edit modal through one delegated listener when review is on', () => {
     const { document } = boot()
-    document.querySelector('.innfo-review-toggle').click()
+    /* no review mode: edits are live */
     const edit = document.querySelector('[data-ku-action="edit"]')
     edit.click()
     assert.ok(document.querySelector('[data-innfo-component="edit-modal"]'), 'modal opened')
   })
 })
 
-describe('Edit structure switch', () => {
-  it('toggles html[data-innfo-structure] and resets on review exit', () => {
+describe('no Edit structure switch', () => {
+  it('has no switch and no structure attribute', () => {
     const { document } = boot()
-    const toggle = document.querySelector('.innfo-review-toggle')
-    toggle.click()
-    const sw = document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]')
-    assert.ok(sw, 'switch exists in the review dock')
-    assert.equal(sw.getAttribute('role'), 'switch')
-    assert.equal(sw.getAttribute('aria-checked'), 'false')
-    sw.click()
-    assert.equal(document.documentElement.getAttribute('data-innfo-structure'), 'on')
-    assert.equal(sw.getAttribute('aria-checked'), 'true')
-    toggle.click()
+    assert.equal(
+      document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]'),
+      null,
+      'the switch is gone: the edit modal warns instead',
+    )
     assert.equal(document.documentElement.getAttribute('data-innfo-structure'), null)
-    assert.equal(document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]'), null)
   })
 })
 

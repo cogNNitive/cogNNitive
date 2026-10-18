@@ -60,9 +60,7 @@ function boot(withReview: boolean) {
   const res = mods.Console.boot(env.document)
   if (res && res.controller) controllers.push(res.controller)
   if (withReview) {
-    ;(env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
+    /* no review mode: edits are live */
   }
   return mods
 }

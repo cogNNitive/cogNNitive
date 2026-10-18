@@ -3984,8 +3984,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '.innfo-ku-wrap[data-ku-open=true]>.innfo-ku-actions{display:inline-flex}',
       '.innfo-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--innfo-muted,#64748b)}',
       '.innfo-ku-action:hover{color:var(--innfo-text,#0a0a0a);background:var(--innfo-surface-2,#f1f5f9)}',
-      'html:not([data-innfo-review=on]) .innfo-ku-action[data-ku-action=edit]{display:none}',
-      'html:not([data-innfo-structure=on]) .innfo-ku-action[data-ku-action=edit][data-ku-structure=true]{display:none}',
+      // No mode gates: an edit only ever creates a draft, so the pencil is always
+      // emitted and always live. Structure edits warn inside the modal instead.
       '.innfo-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
     ].join('')
     doc.head.appendChild(style)
@@ -4802,7 +4802,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (el && el.id) elementsById[el.id] = el
     })
 
-    var enabled = false
+    // No review mode: an edit only ever creates a draft, so there is nothing to
+    // "arm". Decoration and the edit affordance are always live; the changeset bar
+    // is driven by the DRAFTS (see syncChangesetBar), not by a mode switch.
+    var enabled = true
     var toggleEl = null
     var structureEl = null
     var openPopover = null
@@ -5723,9 +5726,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return b
     }
 
+    // The changeset bar is STATE-driven: it appears when there is at least one draft
+    // and hides when there is none. There is no mode to enter or leave.
+    function syncChangesetBar() {
+      var dock = doc.getElementById('innfo-review-dock')
+      if (!dock) return
+      var count = store && typeof store.drafts === 'function' ? store.drafts().length : 0
+      if (count > 0) {
+        dock.style.removeProperty('display')
+        dock.setAttribute('data-visible', 'true')
+      } else {
+        dock.style.setProperty('display', 'none', 'important')
+        dock.removeAttribute('data-visible')
+      }
+    }
+
     function applyDecorations() {
       decorateBadges()
       decorateChangePips()
+      syncChangesetBar()
       if (!enabled) return
       decorate(doc)
       decorateRailProgress()
@@ -5770,12 +5789,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // The runtime rebuilds the banner innerHTML on every refresh, so the
       // toggle and changed filter are re-inserted here (idempotent).
       if (canReview(meta, elements, needs)) {
-        toggleEl = buildToggle()
+        // No review mode and no Edit-structure switch: there is no mode to enter, so
+        // these controls are installed unconditionally. Adding the same listener
+        // twice is a no-op, so a re-render stays idempotent.
         buildNewElementButton()
-        if (enabled && toggleEl) buildChangedFilter()
+        buildChangedFilter()
+        if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       }
-      if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
       decorateCounter()
+      // Badge decoration has always been unconditional; the CAPABILITY gate applies
+      // to the edit anchors (`decorate`), which is where a proposal starts.
       decorateBadges()
       decorateChangePips(root || doc)
       if (enabled) {
@@ -5833,7 +5856,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
-      structureEl = buildStructureSwitch()
+      /* no Edit-structure switch: the edit modal warns instead */
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
@@ -5947,7 +5970,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return openEdit(anchorData)
     }
 
-    toggleEl = buildToggle()
+    /* no review-mode toggle: there is no mode */
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
     // One initial pass: covers the render that preceded the controller's creation.
     // With the model viewer retired (SCS) no second render follows boot, so the
@@ -11506,7 +11529,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var dockStatus = active.createElement('div')
     dockStatus.className = 'innfo-dock-status'
-    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Review Mode</span>'
+    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Changeset</span>'
     dock.appendChild(dockStatus)
 
     var sep1 = active.createElement('span')
@@ -11553,15 +11576,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var exitBtn = active.createElement('button')
     exitBtn.type = 'button'
     exitBtn.className = 'innfo-dock-exit'
-    exitBtn.textContent = 'Exit'
-    exitBtn.setAttribute('aria-label', 'Exit review mode')
+    exitBtn.textContent = 'Hide'
+    exitBtn.setAttribute('aria-label', 'Hide the changeset bar')
     exitBtn.addEventListener('click', function () {
-      var toggle = active.querySelector('[data-innfo="review-toggle"]')
-      if (toggle && (toggle.getAttribute('aria-pressed') === 'true' || toggle.classList.contains('active'))) {
-        toggle.click()
-      } else if (state && state.controller && typeof state.controller.disable === 'function') {
-        state.controller.disable()
-      }
       dock.style.setProperty('display', 'none', 'important')
       dock.removeAttribute('data-visible')
       dock.classList.remove('active', 'innfo-dock-blinking')

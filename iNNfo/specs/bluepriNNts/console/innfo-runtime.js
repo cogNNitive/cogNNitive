@@ -5513,7 +5513,7 @@
 
     var dockStatus = active.createElement('div')
     dockStatus.className = 'innfo-dock-status'
-    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Review Mode</span>'
+    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Changeset</span>'
     dock.appendChild(dockStatus)
 
     var sep1 = active.createElement('span')
@@ -5560,15 +5560,9 @@
     var exitBtn = active.createElement('button')
     exitBtn.type = 'button'
     exitBtn.className = 'innfo-dock-exit'
-    exitBtn.textContent = 'Exit'
-    exitBtn.setAttribute('aria-label', 'Exit review mode')
+    exitBtn.textContent = 'Hide'
+    exitBtn.setAttribute('aria-label', 'Hide the changeset bar')
     exitBtn.addEventListener('click', function () {
-      var toggle = active.querySelector('[data-innfo="review-toggle"]')
-      if (toggle && (toggle.getAttribute('aria-pressed') === 'true' || toggle.classList.contains('active'))) {
-        toggle.click()
-      } else if (state && state.controller && typeof state.controller.disable === 'function') {
-        state.controller.disable()
-      }
       dock.style.setProperty('display', 'none', 'important')
       dock.removeAttribute('data-visible')
       dock.classList.remove('active', 'innfo-dock-blinking')

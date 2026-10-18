@@ -498,7 +498,10 @@
       if (el && el.id) elementsById[el.id] = el
     })
 
-    var enabled = false
+    // No review mode: an edit only ever creates a draft, so there is nothing to
+    // "arm". Decoration and the edit affordance are always live; the changeset bar
+    // is driven by the DRAFTS (see syncChangesetBar), not by a mode switch.
+    var enabled = true
     var toggleEl = null
     var structureEl = null
     var openPopover = null
@@ -1419,9 +1422,25 @@
       return b
     }
 
+    // The changeset bar is STATE-driven: it appears when there is at least one draft
+    // and hides when there is none. There is no mode to enter or leave.
+    function syncChangesetBar() {
+      var dock = doc.getElementById('innfo-review-dock')
+      if (!dock) return
+      var count = store && typeof store.drafts === 'function' ? store.drafts().length : 0
+      if (count > 0) {
+        dock.style.removeProperty('display')
+        dock.setAttribute('data-visible', 'true')
+      } else {
+        dock.style.setProperty('display', 'none', 'important')
+        dock.removeAttribute('data-visible')
+      }
+    }
+
     function applyDecorations() {
       decorateBadges()
       decorateChangePips()
+      syncChangesetBar()
       if (!enabled) return
       decorate(doc)
       decorateRailProgress()
@@ -1466,12 +1485,16 @@
       // The runtime rebuilds the banner innerHTML on every refresh, so the
       // toggle and changed filter are re-inserted here (idempotent).
       if (canReview(meta, elements, needs)) {
-        toggleEl = buildToggle()
+        // No review mode and no Edit-structure switch: there is no mode to enter, so
+        // these controls are installed unconditionally. Adding the same listener
+        // twice is a no-op, so a re-render stays idempotent.
         buildNewElementButton()
-        if (enabled && toggleEl) buildChangedFilter()
+        buildChangedFilter()
+        if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       }
-      if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
       decorateCounter()
+      // Badge decoration has always been unconditional; the CAPABILITY gate applies
+      // to the edit anchors (`decorate`), which is where a proposal starts.
       decorateBadges()
       decorateChangePips(root || doc)
       if (enabled) {
@@ -1529,7 +1552,7 @@
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
-      structureEl = buildStructureSwitch()
+      /* no Edit-structure switch: the edit modal warns instead */
       if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
@@ -1643,7 +1666,7 @@
       return openEdit(anchorData)
     }
 
-    toggleEl = buildToggle()
+    /* no review-mode toggle: there is no mode */
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
     // One initial pass: covers the render that preceded the controller's creation.
     // With the model viewer retired (SCS) no second render follows boot, so the

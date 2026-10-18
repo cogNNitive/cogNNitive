@@ -69,13 +69,10 @@ describe('Ku jsdom tree guard (testlab console)', () => {
     assert.deepEqual(failures, [])
   })
 
-  it('review-off and structure-off gating rules are present', () => {
+  it('carries no review-mode or structure gating rule for the edit action', () => {
     const css = [...document.querySelectorAll('style')].map((s) => s.textContent).join('\n')
-    assert.match(css, /html:not\(\[data-innfo-review=on\]\)[^{]*\[data-ku-action=edit\][^{]*\{[^}]*display:none/)
-    assert.match(
-      css,
-      /html:not\(\[data-innfo-structure=on\]\)[^{]*\[data-ku-structure=true\][^{]*\{[^}]*display:none/,
-    )
+    assert.doesNotMatch(css, /html:not\(\[data-innfo-review=on\]\)[^{]*\[data-ku-action=edit\]/)
+    assert.doesNotMatch(css, /html:not\(\[data-innfo-structure=on\]\)[^{]*\[data-ku-structure=true\]/)
     assert.equal(document.documentElement.getAttribute('data-innfo-review'), null)
   })
 })
