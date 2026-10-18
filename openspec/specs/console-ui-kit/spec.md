@@ -170,7 +170,7 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 ### Requirement: CitationIcon and FieldRow
 
 `InnfoUI.CitationIcon({ variant, field }, { onOpen })` (a `button` with `data-origin=<variant>`, `data-field` and `aria-label "<Label>: <field>"`; click stops propagation) MUST keep its contract. `InnfoUI.FieldRow({ name, value,
-citations?, ref? }, { onRef?, onCite? })` MUST return a `ku-badge` of kind `field`
+citations?, ref? }, { onRef?, onCite? })` MUST return a `ku-unit` badge of kind `field`
 (with `data-ku-kind="field"` and `data-field=<name>`), and MUST preserve the
 origin-typed behavior of `console-field-citations`: one `CitationIcon` per distinct
 origin variant present among its citations, in the order `error, agent, human,
@@ -181,7 +181,7 @@ generic SVG (never throw).
 
 #### Scenario: Field row with citations
 - GIVEN a field with two citations of different origins (`agent`, `human`)
-- THEN the row is `data-innfo-component="ku-badge"` with `data-ku-kind="field"` and `data-field`, contains the name and value, and two `citation-icon` children, one per origin
+- THEN the row is `data-innfo-component="ku-unit"` with `data-ku-kind="field"` and `data-field`, contains the name and value, and two `citation-icon` children, one per origin
 
 #### Scenario: Same origin collapses
 - GIVEN a field with two citations of the same origin
@@ -190,6 +190,34 @@ generic SVG (never throw).
 #### Scenario: Field row without citations
 - GIVEN `citations: []`
 - THEN the row has name and value and no `citation-icon`
+
+### Requirement: Knowledge-Unit Badge Presentation
+
+`.innfo-ku` MUST express NATURE in its border, never by colour alone:
+- `container` (domain, document, section): ONE border, `2px` solid — twice the base line width. A double border MUST NOT be used.
+- `structure` (concept / field / matrix definition): a SOLID border in the concept colour (`--c`) plus a monospace face. A dashed border MUST NOT be used.
+- `content` (element, own value, matrix cell): NO border; the concept colour carries on the label, the value and the concept icon.
+- `home === 'source'`: the warm paper fill with neutral ink, never concept-tinted.
+
+A content badge MUST carry the ICON of the concept the unit belongs to, tinted with that concept's colour. `--c` / `--cb` MUST be derived from the unit's `data-concept-slot`.
+
+The actions MUST NOT sit beside the badge: ONE borderless `+` toggle (`.innfo-ku-more`) MUST be the only inline affordance, and the action cluster (`.innfo-ku-actions`) MUST float BELOW the badge on demand (`position: absolute`; hidden until the wrap carries `data-ku-open="true"`), taking no layout space and never shifting a neighbour. The order MUST be `info`, `reveal`, `citations` (only when the unit has citations), `edit` (only when `editability` is not `none`). No review-mode or structure-switch CSS gate may exist.
+
+#### Scenario: Content is borderless and tinted
+- GIVEN a `value` badge whose concept sits in slot 2
+- THEN it has no border, and its label and icon use that concept's colour
+
+#### Scenario: Structure is solid, not dashed
+- GIVEN a `field` definition badge
+- THEN its border is solid and uses the concept colour
+
+#### Scenario: Container border is a single thick line
+- GIVEN a `document` badge
+- THEN its border is a single `2px` line, not a double border
+
+#### Scenario: Actions float below without shifting the badge
+- GIVEN a rendered unit badge
+- THEN a single `+` sits beside it, the action cluster is hidden by default, and revealing it changes neither the badge's position nor its size
 
 ### Requirement: Review Components
 

@@ -317,6 +317,10 @@ The navbar MUST show the model identity from the payload: `meta.title` as the do
 
 A link of the form `#el-<id>` (as produced by the kit for relations, references and pills) MUST resolve to the element whose model-qualified id matches `<id>`. Following it, or loading the page with it in the hash, MUST switch to the element's concept when it is not the active one, open the element's card, and scroll it into view. An `<id>` matching no element MUST do nothing and throw no error.
 
+The kit's `reveal` action (`[data-ku-action="reveal"]`) MUST reuse this mechanism instead of re-rendering the unit: for an `element`, or the element that owns a `value`, it MUST navigate to `#el-<id>`; for a unit with no card of its own (document, section, matrix, source) it MUST narrow the view to the unit's canonical address instead. No second renderer may be introduced for a unit's content.
+
+The unit info panel (`KuInfoPanel`) MUST be fed the per-kind `facts` the runtime actually knows — a concept's or field's usage count, a document's element count, a domain's model count — and MUST omit a fact rather than fabricate one.
+
 #### Scenario: Relation link opens the target
 - GIVEN element A with a relation to element B in another concept
 - WHEN the reviewer follows the relation link `#el-<B id>`
@@ -331,6 +335,21 @@ A link of the form `#el-<id>` (as produced by the kit for relations, references 
 - GIVEN the hash is `#el-nope`
 - WHEN it is applied
 - THEN the view is unchanged and no error is thrown
+
+#### Scenario: Reveal takes you to the unit
+- GIVEN an element badge whose card is currently filtered out
+- WHEN its `reveal` action is activated
+- THEN the filter broadens, the explorer tab is active and the element's card is scrolled into view
+
+#### Scenario: Reveal for a unit with no card of its own
+- GIVEN a document badge
+- WHEN its `reveal` action is activated
+- THEN the view narrows to its canonical address and no error is thrown
+
+#### Scenario: Info facts are real or absent
+- GIVEN an element of a known concept
+- WHEN the `info` action opens the panel
+- THEN the panel carries the concept's usage count, and omits any fact the runtime cannot derive
 
 ### Requirement: Source URL link with a safe-scheme allowlist
 
