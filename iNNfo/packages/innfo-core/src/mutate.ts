@@ -416,7 +416,19 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
   if (args.target_concepts !== undefined) fields['target_concepts'] = args.target_concepts
   if (args.description !== undefined) fields['description'] = args.description
 
-  fds.push({ type: FIELD_DEFINITION, name: fieldName, description: (args.description as string) ?? '', fields, markers: {} })
+  // A Field Definition's human-readable description lives in its
+  // `description::` FIELD; the element-level prose must stay empty. Copying the
+  // field text into the element body as well emitted the description twice.
+  //
+  // The element is appended at the end of the `# NN Field Definition` section.
+  // The previous last element may have been parsed with `trailingBlankLine:
+  // false` (it used to be the last block before the next section heading), so
+  // clear that flag here — otherwise the serializer glues the new block
+  // straight onto it with no blank line between them.
+  const previous = fds[fds.length - 1]
+  if (previous && previous.trailingBlankLine === false) previous.trailingBlankLine = true
+
+  fds.push({ type: FIELD_DEFINITION, name: fieldName, description: '', fields, markers: {} })
   model.elements.set(FIELD_DEFINITION, fds)
   return { success: true }
 }
