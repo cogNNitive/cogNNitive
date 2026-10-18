@@ -76,6 +76,8 @@ If you are an AI Agent (Claude Code, Antigravity, OpenCode, Cursor):
 
 `npm install` at the repo root wires a native `pre-push` hook via
 `core.hooksPath` (`.githooks/pre-push`, no husky/lint-staged). It runs
-`npm run typecheck` before every `git push` and blocks the push on a
-non-zero exit. Bypass with `git push --no-verify`. Uninstall with
+`npm run typecheck`, the docs-facts guard, the ten derived-artifact
+freshness guards and eslint on changed files before every `git push` and
+blocks the push on a non-zero exit. If a generated file is stale, `npm run regen`
+rewrites all of them. Bypass with `git push --no-verify`. Uninstall with
 `git config --unset core.hooksPath`.

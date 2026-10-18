@@ -62,7 +62,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         if [ "$status" -ne 0 ]; then
           echo ""
           echo "pre-push: generated docs facts are stale (exit $status). Push blocked."
-          echo "pre-push: run 'node scripts/generate-docs-facts.mjs' and commit the result."
+          echo "pre-push: run 'npm run regen' (or 'node scripts/generate-docs-facts.mjs') and commit the result."
           echo "pre-push: bypass with: git push --no-verify"
           exit "$status"
         fi

@@ -42,7 +42,7 @@ function main() {
   for (const g of FRESHNESS_GUARDS) {
     const res = spawnSync(process.execPath, [g.script, ...g.args], { cwd: repoRoot, encoding: 'utf8' });
     if (res.status !== 0) {
-      failures.push(`${g.desc} is stale.\n    fix: ${g.regen}   (then commit the result)`);
+      failures.push(`${g.desc} is stale.\n    fix: npm run regen   (all generators; or just: ${g.regen}) then commit the result`);
       process.stderr.write((res.stdout || '') + (res.stderr || ''));
     }
   }
