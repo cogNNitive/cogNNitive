@@ -6484,6 +6484,42 @@
       })
     }
 
+    // DQ6 facts for the info panel: only what the runtime actually knows. Never
+    // fabricated: if a count is not available, the row is omitted.
+    function unitFacts(desc) {
+      var facts = {}
+      if (!desc) return facts
+      var list = Array.isArray(elements) ? elements : []
+      var kind = desc.kind
+      if (kind === 'concept' || kind === 'section') {
+        var used = list.filter(function (el) {
+          return el && String(el.concept || '') === String(desc.label || '')
+        }).length
+        if (used) facts['Used by'] = used + (used === 1 ? ' element' : ' elements')
+      } else if (kind === 'field') {
+        var withField = list.filter(function (el) {
+          return el && el.fields && el.fields[desc.label] != null
+        }).length
+        if (withField) facts['Used by'] = withField + (withField === 1 ? ' element' : ' elements')
+      } else if (kind === 'document') {
+        facts['Elements'] = String(list.length)
+      } else if (kind === 'domain') {
+        var models = meta && Array.isArray(meta.models) ? meta.models.length : 0
+        if (models > 1) facts['Models'] = String(models)
+      } else if (kind === 'matrix') {
+        var defs = schema && Array.isArray(schema.matrices) ? schema.matrices : []
+        var mdef = defs.filter(function (m) {
+          return m && String(m.name || '') === String(desc.label || '')
+        })[0]
+        if (mdef) {
+          var rows = Array.isArray(mdef.rows) ? mdef.rows.length : 0
+          var cols = Array.isArray(mdef.cols) ? mdef.cols.length : 0
+          if (rows && cols) facts['Cells'] = String(rows * cols)
+        }
+      }
+      return facts
+    }
+
     // Ku actions are delegated once per document, never per component.
     if (UI && typeof UI.createKu === 'function' && !state.kuDelegation) {
       state.kuDelegation = UI.createKu({
@@ -6499,7 +6535,10 @@
             return
           }
           if (action === 'info' || action === 'changes') {
-            var panel = UI.KuInfoPanel(descriptor)
+            var withFacts = Object.assign({}, descriptor, {
+              facts: Object.assign({}, (descriptor && descriptor.facts) || {}, unitFacts(descriptor)),
+            })
+            var panel = UI.KuInfoPanel(withFacts)
             if (active.body) active.body.appendChild(panel)
             if (panel && typeof panel.showModal === 'function') panel.showModal()
           }
