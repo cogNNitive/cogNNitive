@@ -48,9 +48,7 @@ function boot(withReview: boolean) {
   const res = mods.Console.boot(env.document)
   if (res && res.controller) controllers.push(res.controller)
   if (withReview) {
-    ;(env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
+    /* no review mode: edits are live */
   }
   return mods
 }
@@ -64,14 +62,16 @@ describe('console review info action + change pip', () => {
     env.teardown()
   })
 
-  it('shows an info action on a unit badge with review mode OFF, and no review controls', () => {
+  it('shows an info action on a unit badge, with no toggle and decoration always on', () => {
     boot(false)
     const badge = env.document.querySelector('.innfo-card-head [data-ku-kind="element"]') as HTMLElement
     expect(badge).not.toBeNull()
     const actions = badge.parentElement!.querySelector('.innfo-ku-actions')
     expect(actions).not.toBeNull()
     expect(actions!.querySelector('[data-ku-action="info"]')).not.toBeNull()
-    expect(env.document.querySelector('[data-innfo-review-ctl]')).toBeNull()
+    // No mode: no toggle exists, and the review controls are decorated from boot.
+    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
+    expect(env.document.querySelector('[data-innfo-review-ctl]')).not.toBeNull()
   })
 
   it('adds a count pip to the targeted unit badge when a draft exists', () => {

@@ -2,40 +2,54 @@
 
 ## Purpose
 
-Human review flow inside generated consoles, rendered by `InnfoConsole`: explicit review mode, inline annotation, reviewed progress, verdict badges, change awareness, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `ReviewedToggle`, `RailProgress`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
+Human review flow inside generated consoles, rendered by `InnfoConsole`: always-on proposals (no review mode), inline annotation, reviewed progress, verdict badges, change awareness, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `ReviewedToggle`, `RailProgress`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
 ## Requirements
-### Requirement: Review Mode Toggle
+### Requirement: No Review Mode — Always-On Proposals
 
-The console MUST provide an explicit review mode toggle in `#innfo-review-dock`, off by default and not persisted across loads. The toggle MUST be offered only when `changeset-export` is declared, `meta.modelId` is present, and EVERY element carries a `hash`; otherwise it MUST NOT render (no fallback).
+There is NO review mode and no toggle. An edit only ever creates a DRAFT, never a direct write, so the edit affordance is always emitted and always live: the console MUST NOT set `html[data-innfo-review]`, MUST NOT render a review-mode toggle, and MUST NOT gate the edit pencil behind CSS.
 
-With review mode off, edit controls emitted in the DOM for editable units MUST be hidden via CSS (`html:not([data-innfo-review=on]) [data-ku-action="edit"] { display: none; }`), removing them from visual rendering, keyboard focus order, and the accessibility tree. As defense in depth, the delegated action listener MUST refuse `edit` actions when `html[data-innfo-review=on]` is absent, and `controller.openEdit` MUST return `false` when review mode is disabled.
+The capability is split by what each condition protects:
+- `canPropose` (`meta.modelId` present AND every element carries a `hash`) gates the edit ANCHORS. It deliberately does NOT require the export surface: a draft is local, and applying it lives outside the console (the MCP owns `propose_changeset` / `apply_change`).
+- `canReview` (= `canPropose` AND `changeset-export` declared) gates the EXPORT surface: the "changed" filter, "+ New element", and the changeset bar's export. The controller MUST be created when either holds.
 
-With review mode on, `html[data-innfo-review=on]` is set, revealing the edit pencil for content units. The toggle MUST expose its state via `aria-pressed`.
+The changeset bar (`#innfo-review-dock`) MUST be STATE-driven: it shows only while the draft store holds at least one draft and hides at zero. It is not a mode and MUST NOT offer a mode exit; its controls are the reviewer identity, the draft count, the jump to the Changes tab, the export, and a "Hide" that only hides the bar.
 
-(Previously: the requirement strictly stated "no edit, annotation, or reviewed control exists in the DOM" with review mode off; this is relaxed to Decision A1 CSS gating and behavioural refusal.)
+A proposal that could not be APPLIED MUST warn inside the edit modal instead of hiding the affordance: an element without a `hash` renders a `role="alert"` banner stating that the apply engine cannot verify the `base_hash` precondition.
 
-#### Scenario: Off by default
-- GIVEN a freshly loaded console with `modelId` and all hashes
+Every proposal MUST show who is proposing (`Proposing as <name>`) in the edit modal, using the remembered identity (`localStorage`), and MUST flag the shared default pseudonym (`reviewer`) so several reviewers do not collapse into a single author.
+
+KNOWN GAP: the capability gate is NOT applied to the edit anchors — they decorate whenever the console boots, because the element-card contract expects decoration without the capability. Splitting badge decoration (always) from anchor decoration (capability) is a follow-up of its own.
+
+(Previously: an explicit review-mode toggle in the dock, off by default and withheld unless `changeset-export` + `meta.modelId` + every element hashed; edit controls hidden via `html:not([data-innfo-review=on])` and refused by the delegated listener.)
+
+#### Scenario: No toggle, no mode attribute
+- GIVEN a freshly loaded console
 - WHEN it renders
-- THEN review mode is off
-- AND edit controls are not rendered, not focusable, absent from the accessibility tree, and inert
+- THEN no review-mode toggle exists and `html[data-innfo-review]` is absent
 
-#### Scenario: Toggle on reveals edit controls
-- GIVEN review mode is off
-- WHEN the reviewer activates the toggle
-- THEN `html[data-innfo-review=on]` is present
-- AND content unit edit controls are rendered, visible, and interactive
-- AND the toggle reports `aria-pressed="true"`
+#### Scenario: The pencil is live
+- GIVEN a proposable domain
+- WHEN the edit pencil of an editable unit is activated
+- THEN the shared edit modal opens, and nothing is written (a draft is proposed)
 
-#### Scenario: Toggle withheld
-- GIVEN a payload with no `meta.modelId`, or one element without `hash`
-- WHEN the console renders
-- THEN no toggle exists and no edit control is interactive
+#### Scenario: The bar is state-driven
+- GIVEN a console with no drafts
+- WHEN it renders
+- THEN `#innfo-review-dock` is hidden
+- AND WHEN a draft is saved
+- THEN the bar is visible with its count
+- AND WHEN the drafts are cleared
+- THEN the bar hides again
 
-#### Scenario: Not persisted across reloads
-- GIVEN review mode on, then a reload
-- WHEN the console renders
-- THEN review mode is off
+#### Scenario: Who is proposing
+- GIVEN the default reviewer pseudonym is in effect
+- WHEN the edit modal opens
+- THEN it shows `Proposing as "reviewer" (default)` and the reviewer chip is flagged
+
+#### Scenario: Unapplicable proposal warns
+- GIVEN an element whose `hash` is missing
+- WHEN its edit pencil is activated
+- THEN the modal carries a `role="alert"` banner about the `base_hash` precondition
 
 ---
 
@@ -44,7 +58,7 @@ With review mode on, `html[data-innfo-review=on]` is set, revealing the edit pen
 Annotating MUST open the kit `AnnotationPopover` anchored to the card or field row, replacing `window.prompt` (which MUST NOT remain). A card anchor offers `comment` and `delete`; a field-row anchor offers `comment` and `correction`. A field-row anchor MUST set `target.field`; a card anchor MUST omit it. `correction` MUST prefill `original` from the payload element's field value (not DOM text) and capture `proposed`. Escape or cancel MUST close the popover, return focus to the anchor, and save nothing. Each saved draft MUST record the element's current `hash` as `base_hash`.
 
 #### Scenario: Field correction
-- GIVEN review mode on and a field row `owner` with payload value `A`
+- GIVEN a field row `owner` with payload value `A`
 - WHEN the reviewer saves a `correction` proposing `B`
 - THEN a draft exists with `target.element_id`, `target.field: "owner"`, `original: "A"`, `proposed: "B"` and `base_hash`
 
@@ -65,7 +79,7 @@ Annotating MUST open the kit `AnnotationPopover` anchored to the card or field r
 
 ### Requirement: Reviewed Marks and Rail Progress
 
-Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the draft store with the element hash recorded at marking. A mark counts as reviewed only while the recorded hash equals the current `hash`; otherwise it shows `changed` and does not count. The rail MUST show `reviewed/total` and the pending-draft count per concept via `RailProgress`; totals come from the payload (the scoped payload for a scoped console), independent of filters. Reviewed controls are shown only in review mode.
+Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the draft store with the element hash recorded at marking. A mark counts as reviewed only while the recorded hash equals the current `hash`; otherwise it shows `changed` and does not count. The rail MUST show `reviewed/total` and the pending-draft count per concept via `RailProgress`; totals come from the payload (the scoped payload for a scoped console), independent of filters. Reviewed controls are always shown (there is no mode).
 (Previously: "in BOTH renderers".)
 
 #### Scenario: Progress updates
@@ -75,7 +89,7 @@ Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the dra
 
 #### Scenario: Survives reload
 - GIVEN an element marked reviewed
-- WHEN the console reloads and review mode is enabled
+- WHEN the console reloads
 - THEN it is still reviewed
 
 #### Scenario: Hash drift un-counts
@@ -90,7 +104,7 @@ Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the dra
 
 ### Requirement: Verdict Badges
 
-Elements targeted by changeset changes MUST show a kit `StatusBadge` per change status, with count: `applied` and `conflict` derived from `element.history` (applied and partially applied changesets), and `proposed` derived from the proposed changesets of the domain payload's `changes` collection. Badges MUST derive only from changesets, never from local drafts, and MUST be visible with review mode off. Entries whose element no longer exists MUST NOT render. Statuses MUST NOT be settable from the console. No other verdict state exists: `pending`, `rejected` and `stale` reviewer verdicts are retired with the verdict ledger, and per-draft staleness is shown on the draft ("target changed"), not as a badge. (Previously: badges were derived from `meta.feedbackState`, read from the verdict ledger.)
+Elements targeted by changeset changes MUST show a kit `StatusBadge` per change status, with count: `applied` and `conflict` derived from `element.history` (applied and partially applied changesets), and `proposed` derived from the proposed changesets of the domain payload's `changes` collection. Badges MUST derive only from changesets, never from local drafts, and MUST always be visible. Entries whose element no longer exists MUST NOT render. Statuses MUST NOT be settable from the console. No other verdict state exists: `pending`, `rejected` and `stale` reviewer verdicts are retired with the verdict ledger, and per-draft staleness is shown on the draft ("target changed"), not as a badge. (Previously: badges were derived from `meta.feedbackState`, read from the verdict ledger.)
 
 #### Scenario: Applied badge
 - GIVEN `element.history` lists one applied change targeting an element
@@ -133,10 +147,10 @@ A filter MUST show only elements whose current `hash` differs from the hash reco
 
 ### Requirement: Keyboard and Accessibility
 
-In review mode, `j`/`k` MUST move focus to the next/previous element card and `c` MUST open the popover for the focused element; shortcuts MUST be ignored while typing in an input, textarea or select. The popover MUST trap focus. The draft counter MUST live in an `aria-live="polite"` region and update on every add or delete. Focus MUST return to the triggering control after save or cancel. Controls MUST meet the kit contrast floor in light and dark themes, and the layout MUST remain usable at narrow viewports.
+`j`/`k` MUST move focus to the next/previous element card — resolving the card by containment, so focus on a control INSIDE a card counts as that card — and `c` MUST open the shared modal for the focused element; shortcuts MUST be ignored while typing in an input, textarea or select. The popover MUST trap focus. The draft counter MUST live in an `aria-live="polite"` region and update on every add or delete. Focus MUST return to the triggering control after save or cancel. Controls MUST meet the kit contrast floor in light and dark themes, and the layout MUST remain usable at narrow viewports.
 
 #### Scenario: Keyboard-only annotation
-- GIVEN review mode on and focus on an element
+- GIVEN focus on an element
 - WHEN `j`, `c`, text, and Enter are used
 - THEN a draft is saved on the next element and the live counter text updates
 
@@ -156,7 +170,7 @@ The review flow MUST work from a double-clicked `file://` page: no `fetch(`, no 
 
 #### Scenario: Offline boot
 - GIVEN a console on `file://` without network
-- WHEN review mode is enabled and a draft saved
+- WHEN a draft is saved
 - THEN no network request is issued and the bundle contains neither `fetch(` nor `type=module`
 
 ### Requirement: Unit Info And Edit Entry Points
@@ -165,27 +179,27 @@ Every knowledge-unit badge MUST expose an **info** action (`[data-ku-action="inf
 
 An **edit** pencil affordance (`[data-ku-action="edit"]`) MUST be emitted for units whose editability is not `none`:
 - Sources (`home === 'source'`) and containers (`nature === 'container'`: domain, document, section) MUST NEVER display an edit pencil.
-- Structure units (`nature === 'structure'`: concept definition, field definition, matrix definition) MUST display an edit pencil only when the Edit structure switch is ON. Activating it opens `EditModal` in comment-only mode.
+- Structure units (`nature === 'structure'`: concept definition, field definition, matrix definition) MUST display the pencil like any other editable unit; there is no switch. Activating it opens `EditModal` in comment-only mode and carries the structure warning banner.
 - Inherited concept-level values displayed on element cards MUST NOT display an edit pencil (info-only). The pencil for an inherited value appears ONLY on its concept section badge, emitting `update_concept_field` with a scope notification ("applies to every element of concept X").
 - Content units (`element`, own `value`, matrix cell) open `EditModal` for field/element mutation.
 
 (Previously: edit affordances were element-only and opened the modal Edit tab directly.)
 
 #### Scenario: Info action opens KuInfoPanel
-- GIVEN review mode off or on
+- GIVEN any rendered console
 - WHEN the info action on any unit is clicked
 - THEN `KuInfoPanel` opens for that unit
 
 #### Scenario: Sources never show edit pencil
 - GIVEN a Source badge rendered in the console
-- WHEN review mode is enabled
+- WHEN the console renders
 - THEN no edit pencil is rendered or visible for that Source
 
 #### Scenario: Inherited value edited only on section badge
 - GIVEN concept-level tags on concept `"Threat"`
-- WHEN viewing an element card of concept `"Threat"` in review mode
+- WHEN viewing an element card of concept `"Threat"`
 - THEN the tags badge displays `"inherited from Threat"` and has no edit pencil
-- AND WHEN viewing the `"Threat"` concept section badge in review mode
+- AND WHEN viewing the `"Threat"` concept section badge
 - THEN an edit pencil is present, and activating it opens the modal emitting `update_concept_field`
 
 ---
@@ -333,31 +347,22 @@ The field edit modal MUST honor the declared Field: `boolean` offers a checkbox,
 - WHEN the draft is stored
 - THEN it targets the `tags` Field with the resulting array and is not a comment draft
 
-### Requirement: Edit Structure Switch
+### Requirement: Structure-Change Warning
 
-The review dock (`#innfo-review-dock`) MUST provide an "Edit structure" switch (`button[role="switch"]`) offered in review mode:
-- Off by default (`aria-checked="false"`).
-- Activating the switch toggles `html[data-innfo-structure=on]` and sets `aria-checked="true"`.
-- Exiting review mode MUST reset the switch to off and remove `html[data-innfo-structure=on]`.
-- While the switch is ON, structure unit badges (concept definitions, field definitions, matrix definitions) expose an edit pencil.
-- Activating a structure pencil opens `EditModal` in comment-only mode with the Propose button labelled to propose a structural change to the blueprint maintainer, producing an `op: "comment"` draft.
+There MUST be no "Edit structure" switch and no `html[data-innfo-structure]` attribute. The edit pencil for a structure unit (concept definition, field definition, matrix definition) MUST be emitted like any other editable unit; activating it opens `EditModal` in comment-only mode (blueprint writes are not supported yet), producing an `op: "comment"` draft.
 
-#### Scenario: Switch toggles structure pencils
-- GIVEN review mode is ON and the Edit structure switch is OFF
-- WHEN a field definition badge is inspected
-- THEN its edit pencil is hidden by CSS (`html:not([data-innfo-structure=on])`)
-- AND WHEN the reviewer activates the Edit structure switch
-- THEN `html[data-innfo-structure=on]` is set and the pencil becomes visible
+Because that is a different KIND of act, the modal MUST carry a `role="alert"` banner at the top stating that the change targets the STRUCTURE of the domain (the bluepriNNt), that it affects every element that uses the definition, and that it is filed as a comment for the blueprint maintainer and will not be applied automatically.
 
-#### Scenario: Structure edit produces comment draft
-- GIVEN Edit structure is ON
-- WHEN the reviewer clicks the pencil on a field definition and submits notes
-- THEN an `op: "comment"` draft targeting that field definition is saved
+(Previously: an "Edit structure" switch in the review dock, off by default, gating the structure pencils via `html:not([data-innfo-structure=on])` and resetting on exit.)
 
-#### Scenario: Switch resets on exit
-- GIVEN Edit structure is ON
-- WHEN review mode is turned OFF
-- THEN the switch resets to OFF and `html[data-innfo-structure=on]` is removed
+#### Scenario: No switch, no attribute
+- GIVEN a rendered console
+- THEN no `[data-innfo="structure-switch"]` exists and `html[data-innfo-structure]` is absent
+
+#### Scenario: Structure pencil warns instead of hiding
+- GIVEN a structure unit badge
+- WHEN its edit pencil is activated
+- THEN the modal opens with the structure warning banner and the comment-only Propose label
 
 ---
 

@@ -77,7 +77,11 @@ describe('Element Card Redesign Contract', () => {
       document.body.appendChild(card)
       const elements = [{ id: 'u', concept: 'C', name: 'U', fields: { f: 'v' }, tags: [], hash: '0123456789abcdef' }]
       const store = InnfoReview.createDraftStore(null, 'm')
-      const ctl = InnfoReview.createReviewController(document, { elements, store })
+      const ctl = InnfoReview.createReviewController(document, {
+        elements,
+        store,
+        meta: { modelId: 'ghostbusters' },
+      })
       ctl.enable()
       assert.ok(card.querySelector('[data-innfo-ctl="tag-add"]'), 'tag add on an untagged card')
       ctl.disable()
@@ -163,7 +167,11 @@ describe('Element Card Redesign Contract', () => {
         },
       ]
       const store = InnfoReview.createDraftStore(null, 'ghostbusters')
-      const ctl = InnfoReview.createReviewController(document, { elements, store })
+      const ctl = InnfoReview.createReviewController(document, {
+        elements,
+        store,
+        meta: { modelId: 'ghostbusters' },
+      })
       ctl.enable()
       return { card, store, ctl }
     }

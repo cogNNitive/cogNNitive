@@ -84,9 +84,9 @@ Inside the dialog, each cited source MUST be rendered as a knowledge-unit badge 
 - Exposes an info button (`[data-ku-action="info"]`) opening `KuInfoPanel` with source metadata (path, anchor, version, sha256, exists flag).
 - MUST NOT expose an edit pencil affordance (`editability === 'none'`).
 
-Each entry in the dialog displays: the Source badge, excerpt (with a visible truncation mark when capped), author, version, sha256, and error. Missing optional fields MUST be omitted rather than replaced with placeholders.
+Each cited source MUST render as ONE card (`article.innfo-cite-card`) whose left edge carries the provenance (`data-origin`), so a reader can tell where one citation ends and the next begins. The card holds, in order: the Source badge, a provenance chip (the origin icon plus its label, e.g. `Human author`), a `resolved`/`unresolved` status chip, a metadata list carrying ONLY the fields that exist (anchor, version, sha256, error, path), the excerpt with a visible truncation mark when capped, and an "Open original" link (`a.innfo-cite-open`, `target="_blank"`, `rel="noopener noreferrer"`) that MUST NOT render for an entry with `error` set. Missing optional fields MUST be omitted rather than replaced with placeholders.
 
-(Previously: citations in the dialog were rendered as unbadged plain text with separate link elements.)
+(Previously: citations in the dialog were rendered as unbadged plain text with separate link elements; the entries were then a flat list of siblings — badge, fields, link and excerpt one after another — with no per-entry grouping.)
 
 #### Scenario: Opening dialog renders Source badge
 - GIVEN a citation icon clicked for field `"pricing"`
@@ -99,6 +99,21 @@ Each entry in the dialog displays: the Source badge, excerpt (with a visible tru
 - WHEN inspected
 - THEN an info action (`[data-ku-action="info"]`) exists
 - AND no edit pencil (`[data-ku-action="edit"]`) exists
+
+#### Scenario: One card per cited source
+- GIVEN a dialog entry list with three resolved sources of different origins
+- WHEN the dialog renders
+- THEN three `article.innfo-cite-card` elements exist, each carrying its own `data-origin`
+
+#### Scenario: An errored entry offers no link
+- GIVEN an entry with `error` set
+- WHEN the dialog renders
+- THEN its card carries the `unresolved` status and no `a.innfo-cite-open`
+
+#### Scenario: Absent optional fields are omitted
+- GIVEN an entry with only `path` and `exists`
+- WHEN its card renders
+- THEN the metadata list has no empty `dd` for anchor, version, sha256 or error
 
 ### Requirement: Consoles emit `innfo-model.meta.sources`
 
