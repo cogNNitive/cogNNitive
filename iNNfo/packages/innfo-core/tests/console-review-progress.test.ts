@@ -96,6 +96,22 @@ describe('console-review-progress (reviewed marks + rail progress)', () => {
     expect(raw.reviewed).toEqual({ 'threat-slimer': 'abcdef0123456789' })
   })
 
+  it('repaints the toggle in place after marking, without a reload', () => {
+    enableReview()
+    const card = env.document.querySelector('[data-element-id="threat-slimer"]') as HTMLElement
+    const toggle = card.querySelector('[data-innfo-component="reviewed-toggle"]') as HTMLElement
+    expect(toggle.getAttribute('data-state')).toBe('none')
+    expect(toggle.textContent).toBe('Mark reviewed')
+
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+
+    const after = card.querySelector('[data-innfo-component="reviewed-toggle"]') as HTMLElement
+    expect(after).toBe(toggle)
+    expect(after.getAttribute('data-state')).toBe('reviewed')
+    expect(after.getAttribute('aria-pressed')).toBe('true')
+    expect(after.textContent).toBe('Reviewed')
+  })
+
   it('attaches RailProgress to concept pills in the viewer showing reviewed/total', () => {
     enableReview()
     const progress = env.document.querySelectorAll('[data-innfo-component="rail-progress"]')

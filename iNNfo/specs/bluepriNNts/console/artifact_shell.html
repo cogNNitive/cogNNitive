@@ -233,10 +233,15 @@
       .innfo-element-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); }
       .innfo-element-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
       .innfo-element-table th, .innfo-element-table td { border-bottom: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .innfo-element-table thead th { position: sticky; top: 0; z-index: 5; background: var(--surface-2); cursor: pointer; user-select: none; }
-      .innfo-element-table thead th:hover { color: var(--text); }
-      .innfo-element-table thead th.sorted { color: var(--primary); }
-      .innfo-element-table-sort { margin-left: 4px; font-size: 0.7rem; }
+      .innfo-element-table thead th { position: sticky; top: 0; z-index: 5; background: var(--surface-2); user-select: none; }
+      .innfo-element-table thead th.sorted { color: var(--text); }
+      /* Sort control: the only clickable part of a header. Muted double triangle when
+         unsorted; a single dark triangle once the column is sorted. */
+      .innfo-element-table-sort { appearance: none; border: none; background: transparent; margin-left: 4px; padding: 0 2px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 0.5; font-size: 0.5rem; color: var(--muted); opacity: 0.5; cursor: pointer; vertical-align: middle; }
+      .innfo-element-table-sort:hover { opacity: 0.9; }
+      .innfo-element-table-sort[data-dir="asc"], .innfo-element-table-sort[data-dir="desc"] { color: var(--text); opacity: 1; }
+      .innfo-element-table-sort[data-dir="asc"] .innfo-element-table-sort-down { visibility: hidden; }
+      .innfo-element-table-sort[data-dir="desc"] .innfo-element-table-sort-up { visibility: hidden; }
       .innfo-element-table tbody tr:hover { background: var(--surface-2); }
       .innfo-element-table-name { font-weight: 600; }
       .innfo-element-table-empty { color: var(--muted); text-align: center; padding: 30px 0; }
