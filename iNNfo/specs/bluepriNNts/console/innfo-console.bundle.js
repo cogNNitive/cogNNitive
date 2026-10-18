@@ -12444,6 +12444,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       state.kuDelegation = UI.createKu({
         doc: active,
         onAction: function (action, descriptor) {
+          if (action === 'reveal') {
+            revealUnit(descriptor)
+            return
+          }
           var ctrl = state.controller
           if (ctrl && typeof ctrl.handleKuAction === 'function') {
             ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
@@ -12496,6 +12500,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           openExportModal(active, state)
         })
       }
+    }
+
+    // "Reveal in context": take the reviewer TO the unit instead of re-rendering it
+    // in a modal. Reuses the deep-link mechanism (`#el-<id>`) wholesale, so the
+    // filter broadening and the scroll come for free. No second renderer.
+    function revealUnit(desc) {
+      var address = String((desc && desc.address) || '')
+      var kind = (desc && desc.kind) || ''
+      var elId = kind === 'element' ? address : kind === 'value' ? address.split('&')[0] : ''
+      var known = false
+      for (var i = 0; i < elements.length; i++) {
+        if (elements[i] && String(elements[i].id || '') === elId) {
+          known = true
+          break
+        }
+      }
+      if (elId && known && active.location) {
+        var hash = '#el-' + encodeURIComponent(elId)
+        if (String(active.location.hash || '') === hash) onHash()
+        else active.location.hash = hash
+        return true
+      }
+      // No card of its own (document, section, matrix, source): narrow the view to
+      // its canonical address instead.
+      var box = active.getElementById('innfo-search')
+      if (box) box.value = address
+      refresh(address)
+      return false
     }
 
     function onHash() {
