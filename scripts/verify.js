@@ -494,6 +494,8 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(freshness('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
   steps.push(freshness('console-bundle'));
+  // 7b-quater. Offline canonical-registry mirror drift guard (embedded spec copies).
+  steps.push(freshness('canonical-registry'));
   // 7c. Samples SSOT Drift Guard.
   steps.push(freshness('samples-parity'));
   // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
