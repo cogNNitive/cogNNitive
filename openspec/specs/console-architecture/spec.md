@@ -6,8 +6,8 @@ Defines the console architecture and authorship pathways across runtime primitiv
 ## Requirements
 ### Requirement: Level 1 Universal Runtime Primitives
 
-The system MUST provide Level 1 primitives (`ConceptPill`, `ElementPill` with origin icons, Element Card, `MarkerChip`, `StatusBadge`) as `InnfoUI` components, and the Concept Rail and Matrix in `innfo-runtime`. Primitives MUST operate offline via `file://` with zero build, hydrating from JSON slots. Every console renderer MUST compose the `InnfoUI` components and MUST NOT carry its own card or pill builders.
-(Previously: the canonical-console scenario named `workspace/assets/model_console.html`; it now names the single shell.)
+The system MUST provide Level 1 primitives (`ConceptPill`, `ElementPill` with origin icons, Element Card, `StatusBadge`) as `InnfoUI` components, and the Concept Rail and Matrix in `innfo-runtime`. Primitives MUST operate offline via `file://` with zero build, hydrating from JSON slots. Every console renderer MUST compose the `InnfoUI` components and MUST NOT carry its own card or pill builders.
+(Previously: the primitive list included `MarkerChip`, and the canonical-console scenario named `workspace/assets/model_console.html`; it now names the single shell.)
 
 #### Scenario: Rendering Level 1 primitives offline
 - GIVEN an HTML console with valid JSON slots
@@ -18,6 +18,10 @@ The system MUST provide Level 1 primitives (`ConceptPill`, `ElementPill` with or
 - GIVEN `artifact_shell.html` rendering a single-model scoped console
 - WHEN its pills and cards are inspected
 - THEN each carries a `data-innfo-component` attribute produced by `InnfoUI`
+
+#### Scenario: No MarkerChip primitive
+- GIVEN the Level 1 primitive list
+- THEN `MarkerChip` is absent
 
 ### Requirement: Level 2 Template Domain Consoles
 

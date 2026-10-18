@@ -3126,6 +3126,55 @@
     }
   }
 
+  // Address-keyed pending-change pips. `Ku` paints a pip only for the count it
+  // was given at render time; this repaints pips across an existing tree keyed
+  // by canonical address, so a host updates counts without re-rendering badges.
+  // Activation is delegated (see `createKu`) unless `opts.onChanges` is given, in
+  // which case the pip handles the click itself and stops it from bubbling.
+  function setUnitChanges(root, countsByAddress, opts) {
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    var host = root || doc
+    if (!host || typeof host.querySelectorAll !== 'function') return
+    var counts = countsByAddress || {}
+    Array.prototype.forEach.call(
+      host.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]'),
+      function (badge) {
+        var address = badge.getAttribute('data-ku-address') || ''
+        var n = Number(counts[address] || 0)
+        var wrap = badge.parentNode || badge
+        var existing =
+          typeof wrap.querySelector === 'function'
+            ? wrap.querySelector('[data-innfo-component="ku-change-pip"]')
+            : null
+        if (n > 0) {
+          badge.setAttribute('data-ku-changes', String(n))
+          if (existing) {
+            existing.textContent = String(n)
+            return
+          }
+          var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(n))
+          pip.setAttribute('type', 'button')
+          pip.setAttribute('data-innfo-component', 'ku-change-pip')
+          pip.setAttribute('data-ku-address', address)
+          var labelEl = badge.querySelector('.innfo-ku-label')
+          var label = labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || address
+          pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + label)
+          if (typeof opts.onChanges === 'function') {
+            pip.addEventListener('click', function (ev) {
+              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+              opts.onChanges(address, badge)
+            })
+          }
+          wrap.appendChild(pip)
+        } else {
+          badge.removeAttribute('data-ku-changes')
+          if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
+        }
+      },
+    )
+  }
+
   function KuInfoPanel(descriptor) {
     if (!descriptor || typeof descriptor !== 'object') {
       throw new TypeError('KuInfoPanel: descriptor required')
@@ -3177,6 +3226,7 @@
     tagSlot: tagSlot,
     describeUnit: describeUnit,
     createKu: createKu,
+    setUnitChanges: setUnitChanges,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,

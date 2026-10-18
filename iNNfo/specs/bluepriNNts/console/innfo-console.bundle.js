@@ -4043,6 +4043,55 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
+  // Address-keyed pending-change pips. `Ku` paints a pip only for the count it
+  // was given at render time; this repaints pips across an existing tree keyed
+  // by canonical address, so a host updates counts without re-rendering badges.
+  // Activation is delegated (see `createKu`) unless `opts.onChanges` is given, in
+  // which case the pip handles the click itself and stops it from bubbling.
+  function setUnitChanges(root, countsByAddress, opts) {
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    var host = root || doc
+    if (!host || typeof host.querySelectorAll !== 'function') return
+    var counts = countsByAddress || {}
+    Array.prototype.forEach.call(
+      host.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]'),
+      function (badge) {
+        var address = badge.getAttribute('data-ku-address') || ''
+        var n = Number(counts[address] || 0)
+        var wrap = badge.parentNode || badge
+        var existing =
+          typeof wrap.querySelector === 'function'
+            ? wrap.querySelector('[data-innfo-component="ku-change-pip"]')
+            : null
+        if (n > 0) {
+          badge.setAttribute('data-ku-changes', String(n))
+          if (existing) {
+            existing.textContent = String(n)
+            return
+          }
+          var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(n))
+          pip.setAttribute('type', 'button')
+          pip.setAttribute('data-innfo-component', 'ku-change-pip')
+          pip.setAttribute('data-ku-address', address)
+          var labelEl = badge.querySelector('.innfo-ku-label')
+          var label = labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || address
+          pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + label)
+          if (typeof opts.onChanges === 'function') {
+            pip.addEventListener('click', function (ev) {
+              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+              opts.onChanges(address, badge)
+            })
+          }
+          wrap.appendChild(pip)
+        } else {
+          badge.removeAttribute('data-ku-changes')
+          if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
+        }
+      },
+    )
+  }
+
   function KuInfoPanel(descriptor) {
     if (!descriptor || typeof descriptor !== 'object') {
       throw new TypeError('KuInfoPanel: descriptor required')
@@ -4094,6 +4143,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     tagSlot: tagSlot,
     describeUnit: describeUnit,
     createKu: createKu,
+    setUnitChanges: setUnitChanges,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
@@ -5418,57 +5468,44 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     // Pending-change pip: a count badge on the unit it targets, visible in both
-    // review modes (it reflects stored drafts). Clicking opens the modal.
+    // review modes (it reflects stored drafts). Counts are keyed by canonical
+    // address; the DOM update itself is owned by the kit (InnfoUI.setUnitChanges).
     function decorateChangePips(root) {
       if (!store || typeof store.drafts !== 'function') return
+      if (!UI || typeof UI.setUnitChanges !== 'function') return
       var host = root || doc
       if (!host.querySelectorAll) return
       var drafts = store.drafts() || []
-      var counts = {}
+      var raw = {}
       drafts.forEach(function (d) {
         if (!d) return
         var fieldPart = d.field && d.field !== '__name' ? '&' + String(d.field) : ''
         var key = d.address || (d.element_id ? '@' + String(d.element_id) + fieldPart : '')
         if (!key) return
-        counts[key] = (counts[key] || 0) + 1
+        raw[key] = (raw[key] || 0) + 1
       })
-      function countFor(address) {
-        if (counts[address] != null) return counts[address]
-        var found = 0
-        Object.keys(counts).forEach(function (key) {
-          if (address && address.slice(-key.length) === key) found += counts[key]
-        })
-        return found
-      }
-      function applyPip(badge, n, address) {
-        if (!badge) return
-        var wrap = badge.parentNode || badge
-        var existing = wrap.querySelector
-          ? wrap.querySelector('[data-innfo-component="ku-change-pip"]')
-          : null
-        if (n > 0) {
-          badge.setAttribute('data-ku-changes', String(n))
-          if (!existing) {
-            var pip = makeEl(doc, 'button', 'innfo-ku-change-pip', String(n))
-            pip.setAttribute('data-innfo-component', 'ku-change-pip')
-            pip.setAttribute('data-ku-address', String(address || ''))
-            pip.setAttribute('type', 'button')
-            pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + address)
-            pip.addEventListener('click', function (ev) {
-              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
-              if (typeof openInfo === 'function') openInfo(anchorFromDescriptor({ address: address }))
-            })
-            wrap.appendChild(pip)
-          } else {
-            existing.textContent = String(n)
+      // Resolve legacy keys (drafts without `address`) onto each badge's
+      // canonical address through a suffix match, then let the kit paint.
+      var counts = {}
+      Array.prototype.forEach.call(
+        host.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]'),
+        function (badge) {
+          var address = badge.getAttribute('data-ku-address') || ''
+          if (raw[address] != null) {
+            counts[address] = raw[address]
+            return
           }
-        } else {
-          badge.removeAttribute('data-ku-changes')
-          if (existing && existing.parentNode) existing.parentNode.removeChild(existing)
-        }
-      }
-      Array.prototype.forEach.call(host.querySelectorAll('[data-ku-address]'), function (badge) {
-        applyPip(badge, countFor(badge.getAttribute('data-ku-address') || ''), badge.getAttribute('data-ku-address'))
+          var found = 0
+          Object.keys(raw).forEach(function (key) {
+            if (address && address.slice(-key.length) === key) found += raw[key]
+          })
+          if (found) counts[address] = found
+        },
+      )
+      UI.setUnitChanges(host, counts, {
+        onChanges: function (address) {
+          if (typeof openInfo === 'function') openInfo(anchorFromDescriptor({ address: address }))
+        },
       })
     }
 

@@ -1,10 +1,8 @@
 # Knowledge Unit Address Specification
 
-## Purpose
+Purpose: Defines the canonical address grammar, address builders (`unitAddress`), the address parser (`parseUnitAddress`), and home derivation (`unitHome`) for all console knowledge units across the cogNNitive system. This grammar provides a unified, rename-stable addressing model for containers, structure definitions, content elements, values, matrix cells, and Sources.
 
-Defines the canonical address grammar, address builders (`unitAddress`), the address parser (`parseUnitAddress`), and home derivation (`unitHome`) for all console knowledge units across the cogNNitive system. This grammar provides a unified, rename-stable addressing model for containers, structure definitions, content elements, values, matrix cells, and Sources.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Canonical Unit Address Grammar and Builders
 

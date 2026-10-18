@@ -2,9 +2,7 @@
 
 ## Purpose
 Align the `nn-innfo` skill entry menu and context selection gates with consolidated audit workflows, dedicated console export actions, and direct documentation consultation.
-
 ## Requirements
-
 ### Requirement: Canonical Entry Menu Structure
 
 When invoked without an explicit, actionable intent, `nn-innfo` MUST present a
@@ -56,10 +54,17 @@ Before executing options `[b]`, `[c]`, `[d]`, or `[x]`, the skill MUST ensure an
 ---
 
 ### Requirement: Documentation Consultation Routing
-Selecting option `[w]` MUST provide direct access to iNNfo specifications, primitives, matrices, markers, and authoring guidelines without modifying workspace files.
+Selecting option `[w]` MUST provide direct access to iNNfo specifications, primitives (Concept, Field, Matrix), matrices, fields (including tags and widgets), and authoring guidelines without modifying workspace files. It MUST NOT present markers as a topic other than the `MARKERS_REMOVED` migration recipe.
+(Previously: the categories included markers.)
 
 #### Scenario: Consulting documentation
 - **GIVEN** a user selects option `[w]`
 - **WHEN** `nn-innfo` processes the request
-- **THEN** it presents available documentation categories (Level 1/2 specs, primitives, matrices, markers, and guidelines)
+- **THEN** it presents available documentation categories (Level 1/2 specs, primitives, matrices, fields and tags, and guidelines)
 - **AND** performs zero filesystem mutations in the workspace
+
+#### Scenario: No marker authoring offered
+- **GIVEN** the model-creation wizard
+- **WHEN** it asks which values elements carry
+- **THEN** it offers Fields and tags and never asks about Marker Definitions
+

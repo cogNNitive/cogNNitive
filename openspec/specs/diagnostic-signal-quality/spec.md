@@ -13,14 +13,14 @@ aggregate.
 
 ### Requirement: Non-Actionable Repetitive Diagnostics Are Aggregated
 
-When a validator check would otherwise emit one diagnostic per occurrence for
-a condition that (a) recurs structurally across many items of the same kind,
-and (b) is not something the document's author can individually fix (the
-defect lives in the template or a shared definition, not the authored
-content), the check MUST emit a single aggregated diagnostic instead,
-containing the occurrence count and the list of affected items. Validation
-semantics (pass/fail, `valid`) MUST NOT change — this affects presentation
-only.
+A validator check MUST aggregate when it would otherwise emit one diagnostic
+per occurrence for a condition that (a) recurs structurally across many items
+of the same kind, and (b) is not something the document's author can
+individually fix (the defect lives in the template or a shared definition, not
+the authored content). The check MUST emit a single aggregated diagnostic
+instead, containing the occurrence count and the list of affected items.
+Validation semantics (pass/fail, `valid`) MUST NOT change — this affects
+presentation only.
 
 #### Scenario: Template documentation gaps aggregate into one diagnostic
 

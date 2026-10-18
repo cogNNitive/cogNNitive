@@ -76,31 +76,29 @@ The header-level placement MUST hold in a runtime-rendered card even when the `s
 
 ### Requirement: Native citation detail dialog
 
-Clicking a citation icon MUST open a native `<dialog id="innfo-citation-dialog">` via `showModal()`, following the existing `innfo-ref-dialog` pattern in `innfo-runtime.js` and `render-procedure-stepper.js`. The dialog MUST show, per selected citation entry: path, anchor, excerpt (with a visible truncation mark when the excerpt was capped), author, version, sha256, and error. A field absent from the underlying `ResolvedCitation` entry (including `author` when the resolver omitted it) MUST be omitted from the dialog rather than shown as a placeholder.
+Clicking a citation icon MUST open a native `<dialog id="innfo-citation-dialog">` via `showModal()`.
 
-#### Scenario: Opening the dialog
+Inside the dialog, each cited source MUST be rendered as a knowledge-unit badge using `Ku` with kind `'source'`. The Source badge:
+- Displays the warm paper background token (`--innfo-source-paper`).
+- Displays nature as `container` when it is a bare path, or `content` when it points to a specific subunit anchor (`path@unit`).
+- Exposes an info button (`[data-ku-action="info"]`) opening `KuInfoPanel` with source metadata (path, anchor, version, sha256, exists flag).
+- MUST NOT expose an edit pencil affordance (`editability === 'none'`).
 
-- GIVEN a rendered citation icon for a field with one resolved entry
-- WHEN the icon is clicked
-- THEN `<dialog id="innfo-citation-dialog">` opens via `showModal()` and shows that entry's path, anchor, and excerpt
+Each entry in the dialog displays: the Source badge, excerpt (with a visible truncation mark when capped), author, version, sha256, and error. Missing optional fields MUST be omitted rather than replaced with placeholders.
 
-#### Scenario: Truncated excerpt shows a mark
+(Previously: citations in the dialog were rendered as unbadged plain text with separate link elements.)
 
-- GIVEN a resolved entry whose excerpt was capped at ~500 characters
-- WHEN the dialog renders that entry
-- THEN a truncation mark is visible at the end of the excerpt
+#### Scenario: Opening dialog renders Source badge
+- GIVEN a citation icon clicked for field `"pricing"`
+- WHEN `<dialog id="innfo-citation-dialog">` opens
+- THEN each citation renders a `[data-innfo-component="ku-unit"][data-ku-kind="source"]` badge
+- AND each Source badge carries its canonical citation address
 
-#### Scenario: Missing author is omitted, not placeholdered
-
-- GIVEN a resolved entry with `origin: "human"` and no `author` field
-- WHEN the dialog renders that entry
-- THEN no author line is shown, and no generic label (e.g. "Human") is substituted
-
-#### Scenario: Error entry shown in dialog
-
-- GIVEN a resolved entry with `error` set and no `excerpt`, `sha256`, or `version`
-- WHEN the dialog renders that entry
-- THEN the error message is shown and the omitted fields are not rendered as empty placeholders
+#### Scenario: Source badge has info action and no edit pencil
+- GIVEN a rendered Source badge inside the citation dialog
+- WHEN inspected
+- THEN an info action (`[data-ku-action="info"]`) exists
+- AND no edit pencil (`[data-ku-action="edit"]`) exists
 
 ### Requirement: Consoles emit `innfo-model.meta.sources`
 

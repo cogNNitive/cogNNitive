@@ -10,6 +10,12 @@ Defines the two-phase generation process for video thumbnails, separating visual
 1. **Phase A (Base Visual)**: The base thumbnail (`thumbnail_[topic]_base.jpeg`) MUST be generated as a 16:9 visual composition without text. The prompt MUST strictly forbid generative text, typography, letters, and watermarks. Multi-face reference anchoring is applied here.
 2. **Phase B (Programmatic Composition)**: Final typography and branding overlays MUST be rendered programmatically via the `render-thumbnail.mjs` CLI tool over the clean Phase A base image.
 
+#### Scenario: Two-phase thumbnail generation
+- GIVEN a topic needing a thumbnail
+- WHEN the pipeline runs
+- THEN a text-free base image is generated first
+- AND typography is composited over it by `render-thumbnail.mjs`
+
 ### REQ-2: Programmatic Typography Tool (`scripts/render-thumbnail.mjs`)
 The `render-thumbnail.mjs` tool MUST:
 1. Accept input parameters via CLI:
@@ -27,3 +33,8 @@ The `render-thumbnail.mjs` tool MUST:
 3. Use SVG vector templating composed over the base image via `sharp` for 100% deterministic pixel output.
 4. Scale and fit the base image without distortion (cover/fit mode preserving 16:9 aspect ratio).
 5. Output valid JPEG / PNG formatted files matching the `--out` extension.
+
+#### Scenario: Deterministic typography render
+- GIVEN a base image and a title
+- WHEN `render-thumbnail.mjs` runs with `--base`, `--title` and `--out`
+- THEN it writes a JPEG/PNG with high-contrast typography matching the output extension
