@@ -267,6 +267,10 @@
     '.innfo-cite-meta dd{margin:0;overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:.74rem}',
     '.innfo-cite-excerpt{margin:0;padding:.5rem .6rem;background:var(--innfo-surface-2);border-radius:var(--innfo-radius-sm);font-family:ui-monospace,monospace;font-size:.74rem;line-height:1.45;white-space:pre-wrap;max-height:9em;overflow:auto}',
     '.innfo-cite-open{justify-self:start;font-size:.78rem;font-weight:600;color:var(--innfo-link)}',
+    // Structure warning inside the edit modal (the structure pencil is ungated).
+    '.innfo-edit-warn{display:flex;align-items:flex-start;gap:.6rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--innfo-status-pending);background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);font-size:.82rem;line-height:1.45}',
+    '.innfo-edit-warn-icon{flex:0 0 auto;display:inline-flex;margin-top:.1rem}',
+    '.innfo-edit-warn strong{display:block;margin-bottom:.15rem}',
     '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
@@ -2114,6 +2118,26 @@
     })
     head.appendChild(closeBtn)
     modal.appendChild(head)
+
+    // A structure edit is a different ACT: it proposes against the bluepriNNt (and is
+    // comment-only today). Warn HERE, at the moment of the action, instead of hiding
+    // the pencil behind a switch you must remember to turn on.
+    if (data.structure === true) {
+      var structureWarn = makeEl(doc, 'div', 'innfo-edit-warn')
+      structureWarn.setAttribute('role', 'alert')
+      var warnIcon = makeEl(doc, 'span', 'innfo-edit-warn-icon')
+      warnIcon.setAttribute('aria-hidden', 'true')
+      warnIcon.innerHTML = icon('cite-error', 16)
+      structureWarn.appendChild(warnIcon)
+      var warnText = makeEl(doc, 'span')
+      warnText.innerHTML =
+        '<strong>Attention: you are proposing a STRUCTURE change</strong>' +
+        'You are proposing a change to the <b>structure</b> of this domain (the bluepriNNt), not to its data. ' +
+        'It affects every element that uses it, and today it is filed as a <b>comment</b> for the blueprint ' +
+        'maintainer: it will not be applied automatically.'
+      structureWarn.appendChild(warnText)
+      modal.appendChild(structureWarn)
+    }
 
     // Unified Modal Navigation: Tabs (Edit vs Lineage)
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')

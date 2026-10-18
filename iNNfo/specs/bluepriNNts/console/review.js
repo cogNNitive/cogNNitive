@@ -767,6 +767,7 @@
           citations: target.citations,
           history: target.history,
           isComment: !!target.isComment,
+          structure: !!target.structure,
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(elementsById[anchorData.elementId]),
@@ -832,6 +833,7 @@
       closePopover()
       lastAnchor = focused && focused !== doc.body ? focused : null
       if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      if (anchorData.structure) target = Object.assign({}, target, { structure: true })
       openModalFor(anchorData, target)
       return true
     }
@@ -1635,7 +1637,7 @@
       if (!enabled) return false
       if (descriptor.editability === 'structure') {
         if (!html() || html().getAttribute('data-innfo-structure') !== 'on') return false
-        return openEdit(Object.assign({}, anchorData, { comment: true }))
+        return openEdit(Object.assign({}, anchorData, { comment: true, structure: true }))
       }
       if (descriptor.editability === 'none') return false
       return openEdit(anchorData)

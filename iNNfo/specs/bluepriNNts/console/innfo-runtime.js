@@ -5228,7 +5228,7 @@
       var head = el('div', 'innfo-cite-head')
       if (head && tag) head.appendChild(tag)
       var prov = el('span', 'innfo-cite-prov', labelText)
-      if (prov && InnfoIcons && typeof InnfoIcons.getSvg === 'function') {
+      if (prov && typeof InnfoIcons !== 'undefined' && InnfoIcons && typeof InnfoIcons.getSvg === 'function') {
         prov.insertAdjacentHTML('afterbegin', InnfoIcons.getSvg('cite-' + variantKey, { size: 13 }))
       }
       if (head && prov) head.appendChild(prov)
@@ -5242,7 +5242,7 @@
       // The card goes into the list first; its children are appended below.
       if (card) body.appendChild(card)
 
-      var dl = el('dl', 'innfo-cite-meta')
+      var dl = el('dl', 'innfo-ref-fields innfo-cite-meta')
       function addField(label, value) {
         if (!dl) return
         if (value === null || value === undefined || value === '') return
