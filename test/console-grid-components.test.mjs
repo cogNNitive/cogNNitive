@@ -27,13 +27,13 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
 
   describe('exports', () => {
     it('exposes all three on the public API', () => {
-      assert.equal(typeof UI.Table, 'function')
+      assert.equal(typeof UI.DataTable, 'function')
       assert.equal(typeof UI.MatrixGrid, 'function')
       assert.equal(typeof UI.Timeline, 'function')
     })
   })
 
-  describe('Table', () => {
+  describe('DataTable', () => {
     const columns = [
       { key: 'name', label: 'Name', kind: 'element' },
       { key: 'role', label: 'Role' },
@@ -41,7 +41,7 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
     const rows = [{ id: 'ecto-1', name: 'Ecto-1', concept: 'Vehicle', fields: { role: 'Interceptor' } }]
 
     it('renders a data-table with headers, element badge and field text', () => {
-      const node = UI.Table({ columns, rows, emptyText: 'none' }, { doc: document })
+      const node = UI.DataTable({ columns, rows, emptyText: 'none' }, { doc: document })
       document.body.appendChild(node)
       assert.equal(node.getAttribute('data-innfo-component'), 'data-table')
       const ths = [...node.querySelectorAll('thead th')].map((t) => t.textContent)
@@ -52,7 +52,7 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
 
     it('calls onEdit with the element id when the element cell is activated', () => {
       const seen = []
-      const node = UI.Table({ columns, rows }, { doc: document, onEdit: (id) => seen.push(id) })
+      const node = UI.DataTable({ columns, rows }, { doc: document, onEdit: (id) => seen.push(id) })
       document.body.appendChild(node)
       const badge = node.querySelector('[role="button"]')
       assert.ok(badge)
@@ -62,14 +62,14 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
 
     it('falls back to onSelect when no onEdit is given', () => {
       const seen = []
-      const node = UI.Table({ columns, rows }, { doc: document, onSelect: (id) => seen.push(id) })
+      const node = UI.DataTable({ columns, rows }, { doc: document, onSelect: (id) => seen.push(id) })
       document.body.appendChild(node)
       node.querySelector('[role="button"]').dispatchEvent(new window.Event('click', { bubbles: true }))
       assert.deepEqual(seen, ['ecto-1'])
     })
 
     it('renders the empty state when there are no rows', () => {
-      const node = UI.Table({ columns, rows: [], emptyText: 'No hay elementos' }, { doc: document })
+      const node = UI.DataTable({ columns, rows: [], emptyText: 'No hay elementos' }, { doc: document })
       document.body.appendChild(node)
       const empty = node.querySelector('.innfo-grid-empty')
       assert.equal(empty.textContent, 'No hay elementos')
@@ -77,8 +77,8 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
     })
 
     it('rejects invalid data', () => {
-      assert.throws(() => UI.Table({ rows: [] }, { doc: document }), /data\.columns/)
-      assert.throws(() => UI.Table({ columns: [] }, { doc: document }), /data\.rows/)
+      assert.throws(() => UI.DataTable({ rows: [] }, { doc: document }), /data\.columns/)
+      assert.throws(() => UI.DataTable({ columns: [] }, { doc: document }), /data\.rows/)
     })
   })
 
@@ -172,7 +172,7 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
 
   describe('shared core', () => {
     it('all three surfaces emit the same grid skeleton (proof of reuse)', () => {
-      const t = UI.Table({ columns: [{ key: 'n', label: 'N' }], rows: [] }, { doc: document })
+      const t = UI.DataTable({ columns: [{ key: 'n', label: 'N' }], rows: [] }, { doc: document })
       const m = UI.MatrixGrid({ columns: [{ key: 'n', label: 'N' }], rows: [] }, { doc: document })
       const l = UI.Timeline({ periods: [{ key: 'n', label: 'N' }], lanes: [] }, { doc: document })
       for (const surface of [t, m, l]) {

@@ -2986,7 +2986,7 @@
     return scroll
   }
 
-  // Table columns describe an element: `kind` picks the cell renderer.
+  // DataTable columns describe an element: `kind` picks the cell renderer.
   //   'element' -> an element knowledge-unit badge (canonical KU)
   //   'field' / 'value' -> the declared field value via FieldValue, else its text
   //   anything else (default) -> plain text
@@ -3036,11 +3036,11 @@
     return el[key]
   }
 
-  function Table(data, opts) {
-    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.Table: data.columns must be an array')
-    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.Table: data.rows must be an array')
+  function DataTable(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.DataTable: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.DataTable: data.rows must be an array')
     var doc = resolveDoc(opts)
-    if (!doc) throw new TypeError('InnfoUI.Table: doc is required')
+    if (!doc) throw new TypeError('InnfoUI.DataTable: doc is required')
     var modelId = (opts && (opts.modelId || opts.model)) || data.modelId || 'model'
     var columns = data.columns.map(function (c) {
       return { key: c.key, label: c.label, align: c.align, kind: c.kind || 'text', type: c.type, value: c.value, render: c.render }
@@ -3671,7 +3671,7 @@
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
     KpiGrid: KpiGrid,
-    Table: Table,
+    DataTable: DataTable,
     MatrixGrid: MatrixGrid,
     Timeline: Timeline,
     defineCustomElements: defineCustomElements,

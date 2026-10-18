@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vrlJ4/9W5LIJWjtYMOr2w3msVWXAXBvN2SJKe/He5WM=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-djx2HF+gK0dKqmlsLFesudSXV6szAgv3nqKi18gP+N4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9739,7 +9739,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-6fe2543a",
-    "generated": "2026-10-18T18:05:12.639Z",
+    "generated": "2026-10-18T18:10:36.296Z",
     "changesBlueprintVersion": "V_0-5-1",
     "models": [
       {
@@ -9750,7 +9750,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-18T18:05:12.602Z",
+        "citationsResolvedAt": "2026-10-18T18:10:36.273Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -14682,7 +14682,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return scroll
   }
 
-  // Table columns describe an element: `kind` picks the cell renderer.
+  // DataTable columns describe an element: `kind` picks the cell renderer.
   //   'element' -> an element knowledge-unit badge (canonical KU)
   //   'field' / 'value' -> the declared field value via FieldValue, else its text
   //   anything else (default) -> plain text
@@ -14732,11 +14732,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return el[key]
   }
 
-  function Table(data, opts) {
-    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.Table: data.columns must be an array')
-    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.Table: data.rows must be an array')
+  function DataTable(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.DataTable: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.DataTable: data.rows must be an array')
     var doc = resolveDoc(opts)
-    if (!doc) throw new TypeError('InnfoUI.Table: doc is required')
+    if (!doc) throw new TypeError('InnfoUI.DataTable: doc is required')
     var modelId = (opts && (opts.modelId || opts.model)) || data.modelId || 'model'
     var columns = data.columns.map(function (c) {
       return { key: c.key, label: c.label, align: c.align, kind: c.kind || 'text', type: c.type, value: c.value, render: c.render }
@@ -15367,7 +15367,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
     KpiGrid: KpiGrid,
-    Table: Table,
+    DataTable: DataTable,
     MatrixGrid: MatrixGrid,
     Timeline: Timeline,
     defineCustomElements: defineCustomElements,
