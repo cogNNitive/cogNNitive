@@ -12,12 +12,15 @@ import { createConsoleEnv, shellPath } from './helpers/console-review-env'
  * "no toggle", and "toggle off removes the controls" became the state-driven
  * changeset bar.)
  *
- * Capability split: badge and mark decoration (verdict badges, change pips, the
- * reviewed toggle, the rail progress) is capability-free and always runs; the edit
+ * Capability split: state decoration (the single per-row change-state badge, the
+ * change pips, the rail progress) is capability-free and always runs; the edit
  * ANCHORS (tag/relation controls, matrix-cell anchors) decorate only when
  * `canPropose` holds (`meta.modelId` present AND every element carries a `hash`).
  * The export surface is gated separately, by `canReview` (= `canPropose` +
  * `feedback-export` declared).
+ *
+ * There is NO reviewed toggle any more: a mark was local state with no effect on
+ * the domain, so it was removed; the console only ever records CHANGES.
  */
 
 const env = createConsoleEnv()
@@ -126,10 +129,10 @@ describe('console-review (no mode, always-on decoration)', () => {
     expect(env.document.querySelector('.innfo-ku-more')).not.toBeNull()
   })
 
-  it('gates the edit anchors on canPropose while marks and badges decorate always', () => {
+  it('gates the edit anchors on canPropose while state decoration always runs', () => {
     // modelId present, but one element has no hash => canPropose is false and
-    // canReview is false. The proposal anchors must be withheld; the marks, the
-    // badges and the rail progress reflect local state and must still decorate.
+    // canReview is false. The proposal anchors must be withheld; the change-state
+    // decoration and the rail progress reflect state and must still decorate.
     const model = {
       meta: sampleModel.meta,
       elements: [
@@ -147,12 +150,12 @@ describe('console-review (no mode, always-on decoration)', () => {
     expect(env.document.querySelector('[data-innfo="changed-filter"]')).toBeNull()
 
     expect(cards(env.document).length).toBeGreaterThan(0)
-    expect(
-      env.document.querySelectorAll('[data-innfo-component="reviewed-toggle"]').length,
-    ).toBeGreaterThan(0)
-    expect(
-      env.document.querySelectorAll('[data-innfo-component="rail-progress"]').length,
-    ).toBeGreaterThan(0)
+    // The reviewed toggle is gone; the rail progress now reads the change.
+    expect(env.document.querySelector('[data-innfo-component="reviewed-toggle"]')).toBeNull()
+    const rail = env.document.querySelector('[data-innfo-component="rail-progress"]') as HTMLElement
+    expect(rail).not.toBeNull()
+    expect(rail.getAttribute('data-total')).toBeTruthy()
+    expect(rail.getAttribute('data-pending')).toBe('0')
   })
 
   it('decorates the edit anchors when the domain is proposable', () => {

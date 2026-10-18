@@ -25,24 +25,21 @@ describe('console-review-math', () => {
     delete (globalThis as any).InnfoReview
   })
 
-  it('progressByConcept computes reviewed/total and pending drafts per concept', () => {
+  it('progressByConcept counts total elements and pending (unsent) changes per concept', () => {
     const Review = loadReview()
-    const reviewed = { a: 'aaaaaaaaaaaaaaaa' }
     const drafts = [
       { id: 'fb-001', concept: 'C1', element_id: 'b' },
       { id: 'fb-002', concept: 'C1', element_id: 'c' },
     ]
-    const progress = Review.progressByConcept(elements, drafts, reviewed)
-    expect(progress.C1).toEqual({ reviewed: 1, total: 3, pending: 2 })
-    expect(progress.C2).toEqual({ reviewed: 0, total: 1, pending: 0 })
+    const progress = Review.progressByConcept(elements, drafts)
+    expect(progress.C1).toEqual({ total: 3, pending: 2 })
+    expect(progress.C2).toEqual({ total: 1, pending: 0 })
   })
 
-  it('reviewState returns none / reviewed / changed', () => {
+  it('has no reviewed-mark math any more', () => {
     const Review = loadReview()
-    const reviewed = { a: 'aaaaaaaaaaaaaaaa', b: 'stalehash________' }
-    expect(Review.reviewState({ id: 'a', hash: 'aaaaaaaaaaaaaaaa' }, reviewed)).toBe('reviewed')
-    expect(Review.reviewState({ id: 'b', hash: 'bbbbbbbbbbbbbbbb' }, reviewed)).toBe('changed')
-    expect(Review.reviewState({ id: 'c', hash: 'cccccccccccccccc' }, reviewed)).toBe('none')
+    expect(Review.reviewState).toBeUndefined()
+    expect(Review.changedIds).toBeUndefined()
   })
 
   it('isTargetChanged is true if element is missing or hash drift', () => {
@@ -85,10 +82,39 @@ describe('console-review-math', () => {
     expect(badges.ghost).toBeUndefined()
   })
 
-  it('changedIds returns reviewed ids whose hash drifted', () => {
+  it('changeCountsByElement folds local drafts into the changeset counts', () => {
     const Review = loadReview()
-    const reviewed = { a: 'aaaaaaaaaaaaaaaa', b: 'stale____________' }
-    expect(Review.changedIds(elements, reviewed)).toEqual(['b'])
+    const list = [
+      { id: 'a', history: [{ status: 'applied' }] },
+      { id: 'b' },
+    ]
+    const changes = [
+      { status: 'proposed', changes: [{ target: 'm@a&f' }] },
+    ]
+    const drafts = [
+      { id: 'fb-001', element_id: 'b', kind: 'comment' },
+      { id: 'fb-002', element_id: 'b', kind: 'correction', field: 'x', proposed: 'y' },
+    ]
+    const counts = Review.changeCountsByElement(list, changes, drafts)
+    expect(counts.a).toEqual({ applied: 1, proposed: 1 })
+    expect(counts.b).toEqual({ local: 2 })
+  })
+
+  it('changeStateOf picks one state: conflict > local > proposed > applied', () => {
+    const Review = loadReview()
+    expect(Review.changeStateOf({ applied: 2, proposed: 1 })).toBe('proposed')
+    expect(Review.changeStateOf({ applied: 2, proposed: 1, local: 1 })).toBe('local')
+    expect(Review.changeStateOf({ applied: 2, conflict: 1, local: 1 })).toBe('conflict')
+    expect(Review.changeStateOf({ applied: 1 })).toBe('applied')
+    expect(Review.changeStateOf({})).toBeNull()
+  })
+
+  it('changeTooltip enumerates every state that is present', () => {
+    const Review = loadReview()
+    expect(Review.changeTooltip('proposed', { applied: 2, proposed: 1, local: 3 })).toBe(
+      '3 unsent, 1 proposed, 2 applied',
+    )
+    expect(Review.changeTooltip('conflict', { conflict: 1 })).toBe('1 in conflict')
   })
 
   it('STORE_PREFIX is innfo-console:v3:', () => {

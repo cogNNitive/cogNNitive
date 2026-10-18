@@ -68,7 +68,7 @@ function boot(withReview: boolean) {
 function badgeStatuses(): string[] {
   return Array.from(
     env.document.querySelectorAll(
-      '[data-innfo-review-badges] [data-innfo-component="status-badge"]',
+      '[data-innfo-change-state] [data-innfo-component="status-badge"]',
     ),
   ).map((b) => (b as HTMLElement).getAttribute('data-status') || '')
 }
@@ -87,19 +87,21 @@ describe('console-review-badges (badges from changesets)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders an applied StatusBadge from element.history', () => {
+  it('renders a single applied change-state badge from element.history', () => {
     renderModelConsole(
       buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }),
     )
     boot(false)
-    const badges = env.document.querySelector(
-      '[data-element-id="threat-slimer"] [data-innfo-review-badges]',
+    const host = env.document.querySelector(
+      '[data-element-id="threat-slimer"] [data-innfo-change-state]',
     )
-    expect(badges).not.toBeNull()
-    const badge = badges!.querySelector('[data-innfo-component="status-badge"]') as HTMLElement
-    expect(badge).not.toBeNull()
+    expect(host).not.toBeNull()
+    const badges = host!.querySelectorAll('[data-innfo-component="status-badge"]')
+    expect(badges.length).toBe(1)
+    const badge = badges[0] as HTMLElement
     expect(badge.getAttribute('data-status')).toBe('applied')
-    expect(badge.textContent).toBe('1')
+    expect(badge.textContent).toBe('Applied')
+    expect(badge.getAttribute('title')).toContain('1 applied')
   })
 
   it('renders a conflict StatusBadge from element.history', () => {
@@ -135,7 +137,7 @@ describe('console-review-badges (badges from changesets)', () => {
     expect(badgeStatuses()).toEqual(['applied'])
   })
 
-  it('a local draft alone produces no verdict badge', () => {
+  it('a local draft alone reads as an Unsent change-state badge', () => {
     renderModelConsole(buildModel())
     env.localStorage.setItem(
       'innfo-console:v3:ghostbusters-model',
@@ -153,11 +155,56 @@ describe('console-review-badges (badges from changesets)', () => {
             comment: 'x',
           },
         ],
-        reviewed: {},
       }),
     )
     boot(false)
-    expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()
+    expect(badgeStatuses()).toEqual(['local'])
+    const badge = env.document.querySelector(
+      '[data-innfo-change-state] [data-innfo-component="status-badge"]',
+    ) as HTMLElement
+    expect(badge.textContent).toBe('Unsent')
+  })
+
+  it('one badge per row: a conflict wins over everything else', () => {
+    renderModelConsole(
+      buildModel({
+        history: [
+          { id: 'c-01', op: 'comment', status: 'applied' },
+          { id: 'c-02', op: 'update_field', status: 'conflict' },
+        ],
+        changes: [
+          {
+            path: 'changes/m_reviewer_1_changes_NN.md',
+            status: 'proposed',
+            changes: [{ id: 'c-03', op: 'comment', target: 'm@threat-slimer&note' }],
+          },
+        ],
+      }),
+    )
+    env.localStorage.setItem(
+      'innfo-console:v3:ghostbusters-model',
+      JSON.stringify({
+        v: 4,
+        modelId: 'ghostbusters-model',
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'threat-slimer',
+            concept: 'ParanormalThreat',
+            element: 'Slimer',
+            base_hash: 'abcdef0123456789',
+            kind: 'comment',
+            comment: 'x',
+          },
+        ],
+      }),
+    )
+    boot(false)
+    expect(badgeStatuses()).toEqual(['conflict'])
+    const badges = env.document.querySelectorAll(
+      '[data-element-id="threat-slimer"] [data-innfo-component="status-badge"]',
+    )
+    expect(badges.length).toBe(1)
   })
 
   it('ignores a proposed change targeting a missing element', () => {
@@ -173,6 +220,6 @@ describe('console-review-badges (badges from changesets)', () => {
       }),
     )
     expect(() => boot(false)).not.toThrow()
-    expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()
+    expect(env.document.querySelector('[data-innfo-change-state]')).toBeNull()
   })
 })

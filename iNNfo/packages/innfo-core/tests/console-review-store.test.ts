@@ -9,11 +9,8 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 type DraftStore = {
   persistent: boolean
   drafts: () => any[]
-  reviewed: () => Record<string, string>
   addDraft: (input: any) => any
   removeDraft: (id: string) => any[]
-  markReviewed: (id: string, hash: string) => void
-  unmarkReviewed: (id: string) => void
 }
 
 function loadReview(): any {
@@ -111,7 +108,6 @@ describe('console-review-store (draft store v3)', () => {
     })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
-    expect(store.reviewed()).toEqual({})
   })
 
   it('discards a persisted v3 store whose drafts carry the old model_id key', () => {
@@ -127,7 +123,6 @@ describe('console-review-store (draft store v3)', () => {
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(Review.STORE_VERSION).toBe(4)
     expect(store.drafts()).toEqual([])
-    expect(store.reviewed()).toEqual({})
   })
 
   it('never reads the previous-version key namespace innfo-console:v2:*', () => {
@@ -155,12 +150,11 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.drafts().map((d) => d.element_id)).toEqual(['e2'])
   })
 
-  it('returns empty drafts and reviewed for corrupted JSON', () => {
+  it('returns empty drafts for corrupted JSON', () => {
     const Review = loadReview()
     const storage = memoryStorage({ 'innfo-console:v3:m1': '{not json' })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
-    expect(store.reviewed()).toEqual({})
   })
 
   it('returns empty when the stored modelId does not match', () => {
@@ -250,20 +244,28 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.drafts()).toHaveLength(1)
   })
 
-  it('markReviewed and unmarkReviewed persist atomically', () => {
+  it('no longer exposes reviewed marks: the store records only changes (drafts)', () => {
     const Review = loadReview()
-    const storage = memoryStorage()
+    const store = Review.createDraftStore(memoryStorage(), 'm1') as any
+    expect(store.reviewed).toBeUndefined()
+    expect(store.markReviewed).toBeUndefined()
+    expect(store.unmarkReviewed).toBeUndefined()
+  })
+
+  it('drops a legacy reviewed map on the next write', () => {
+    const Review = loadReview()
+    const storage = memoryStorage({
+      'innfo-console:v3:m1': JSON.stringify({
+        v: 4,
+        modelId: 'm1',
+        drafts: [],
+        reviewed: { e1: 'abcdef0123456789' },
+      }),
+    })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
-    store.markReviewed('e1', 'abcdef0123456789')
-    expect(store.reviewed()).toEqual({ e1: 'abcdef0123456789' })
-
-    const reread = Review.createDraftStore(storage, 'm1') as DraftStore
-    expect(reread.reviewed()).toEqual({ e1: 'abcdef0123456789' })
-
-    reread.unmarkReviewed('e1')
-    expect(reread.reviewed()).toEqual({})
-    const cleared = Review.createDraftStore(storage, 'm1') as DraftStore
-    expect(cleared.reviewed()).toEqual({})
+    store.addDraft(draftInput('e1'))
+    const raw = JSON.parse(storage.getItem('innfo-console:v3:m1') as string)
+    expect('reviewed' in raw).toBe(false)
   })
 
   const draftInput = (id: string) => ({

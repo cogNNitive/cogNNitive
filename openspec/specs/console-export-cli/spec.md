@@ -223,13 +223,13 @@ The export MUST rewrite every local file reference the console opens so it resol
 
 ### Requirement: Hash Contract Change Invalidates Prior Review State Once
 
-The export MUST emit element hashes under the markers-free contract of `console-payload-builder`. Drafts, `reviewed` marks and ledgers recorded against a pre-change hash MUST NOT be silently treated as current: a mark whose recorded hash differs from the exported `hash` shows `changed`, and a draft keyed to a moved target is flagged, never deleted. Exports MUST NOT carry any `markers` in the hash input or the payload.
+The export MUST emit element hashes under the markers-free contract of `console-payload-builder`. Drafts recorded against a pre-change hash MUST NOT be silently treated as current: a draft keyed to a moved target is flagged, never deleted. Exports MUST NOT carry any `markers` in the hash input or the payload. Since the console records only changes, a legacy `reviewed` map is ignored by the console (nothing renders it) and is dropped from the store on the next write.
 
-#### Scenario: Old reviewed mark shows changed
-- GIVEN a draft store holding a reviewed mark recorded with a pre-change hash
+#### Scenario: Legacy reviewed data is ignored
+- GIVEN a draft store holding a legacy `reviewed` map recorded with a pre-change hash
 - WHEN the re-exported console loads the store
-- THEN the element shows `changed` and does not count as reviewed
-- AND the mark is not deleted
+- THEN no reviewed mark is rendered
+- AND the map is dropped on the next store write
 
 #### Scenario: Old draft is flagged, not lost
 - GIVEN a draft against an element whose hash moved because of this change

@@ -207,7 +207,7 @@ describe('innfo-console — export gate', () => {
     )
   })
 
-  it('reports the pending draft count in the modal instructions', () => {
+  it('reports the unsent change count in the modal instructions', () => {
     localStorage.setItem(
       'innfo-console:v3:acme',
       JSON.stringify({
@@ -228,6 +228,6 @@ describe('innfo-console — export gate', () => {
     const modal = (document.getElementById('innfo-feedback-modal') || document.getElementById('innfo-export-modal'))!
     expect(
       modal.querySelector('[data-innfo="instructions"]')!.textContent,
-    ).toContain('2 pending draft(s)')
+    ).toContain('2 unsent change(s)')
   })
 })

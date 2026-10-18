@@ -258,11 +258,13 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('[data-innfo-ctl="tag-remove"]'), null, 'no tag remove')
       assert.equal(card.querySelector('[data-innfo-ctl="tag-add"]'), null, 'no tag add')
       assert.equal(card.querySelector('[data-innfo-ctl="rel-retarget"]'), null, 'no relation anchors')
-      // Badge/mark decoration is capability-free: the + flyout and the reviewed mark remain.
+      // State decoration is capability-free: the + flyout remains; there is no
+      // reviewed mark any more (the console only records changes).
       assert.ok(card.querySelector('.innfo-ku-more'), 'the badge keeps its + affordance')
-      assert.ok(
+      assert.equal(
         card.querySelector('[data-innfo-component="reviewed-toggle"]'),
-        'the reviewed mark is always shown',
+        null,
+        'no reviewed mark is rendered',
       )
     })
   })

@@ -57,10 +57,12 @@
       '--innfo-status-applied': '#166534',
       '--innfo-status-rejected': '#b91c1c',
       '--innfo-status-stale': '#4b5563',
+      '--innfo-status-unsent': '#1e3a8a',
       '--innfo-status-pending-bg': '#fef3c7',
       '--innfo-status-applied-bg': '#dcfce7',
       '--innfo-status-rejected-bg': '#fee2e2',
       '--innfo-status-stale-bg': '#f3f4f6',
+      '--innfo-status-unsent-bg': '#dbeafe',
       '--innfo-origin-agent': '#7c3aed',
       '--innfo-origin-human': '#2563eb',
       '--innfo-origin-reviewer': '#b45309',
@@ -108,6 +110,9 @@
     '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
     '.innfo-status-badge[data-status=conflict]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
     '.innfo-status-badge[data-status=proposed]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
+    // The single per-row change-state signal: blue means a change that lives only
+    // in this console and has not been submitted yet.
+    '.innfo-status-badge[data-status=local]{color:var(--innfo-status-unsent);background:var(--innfo-status-unsent-bg)}',
     '.innfo-draft-list{list-style:none;margin:0;padding:0}',
     '.innfo-draft-row{display:flex;align-items:baseline;gap:.5em;padding:.3em 0;border-bottom:1px solid var(--innfo-border)}',
     '.innfo-draft-kind{font-weight:600;color:var(--innfo-muted)}',
@@ -117,19 +122,30 @@
     '.innfo-popover-original{color:var(--innfo-muted)}',
     '.innfo-popover-proposed{display:block;width:100%;font:inherit}',
     '.innfo-rail-progress{color:var(--innfo-muted);font-size:.75rem}',
-    '.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
-    '.innfo-review-toggle[aria-pressed=true],.innfo-changed-filter[aria-pressed=true]{background:var(--innfo-accent);color:var(--innfo-surface)}',
+    '.innfo-new-element{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
     '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease}',
     '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
     '[data-innfo-component=element-card]:hover .innfo-review-anchor{opacity:.85}',
     '.innfo-review-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
-    '.innfo-reviewed-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.75rem;padding:.1em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
-    '.innfo-reviewed-toggle[data-state=reviewed]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
-    '.innfo-reviewed-toggle[data-state=changed]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
     '.innfo-review-badges{display:inline-flex;gap:.3em;align-items:center;margin-left:.4em}',
-    'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
+    // The single change-state signal collapses every per-row change signal (the
+    // local edit, the proposed changesets and the applied history) into one badge.
+    // The per-state counts live in the badge tooltip.
+    '.innfo-change-state{font-size:.76rem;font-weight:700;border-radius:999px;padding:.05em .6em}',
+    // Change toast: the feedback that a change was recorded but NOT applied. Fixed
+    // to the bottom-right, temporary, dismissable; it never blocks the page. The
+    // class is `innfo-change-toast` so it never collides with the runtime's inline
+    // error toast (`.innfo-toast`, `[data-innfo="toast"]`).
+    '.innfo-change-toast{position:fixed;right:1rem;bottom:1rem;z-index:90;display:flex;align-items:flex-start;gap:.6rem;max-width:22rem;padding:.75rem .9rem;background:var(--innfo-surface);color:var(--innfo-text);border:1px solid var(--innfo-border);border-left:3px solid var(--innfo-status-unsent);border-radius:var(--innfo-radius);box-shadow:0 10px 32px rgba(0,0,0,.18)}',
+    '.innfo-change-toast-icon{flex:0 0 auto;display:inline-flex;color:var(--innfo-status-unsent);margin-top:.1rem}',
+    '.innfo-change-toast-body{min-width:0}',
+    '.innfo-change-toast-title{display:block;font-weight:700;font-size:.85rem;margin-bottom:.15rem}',
+    '.innfo-change-toast-text{display:block;font-size:.8rem;line-height:1.4;color:var(--innfo-muted)}',
+    '.innfo-change-toast-close{flex:0 0 auto;margin-left:auto;appearance:none;border:0;background:transparent;color:var(--innfo-muted);font:inherit;font-size:1rem;line-height:1;cursor:pointer;padding:.05rem .2rem;border-radius:var(--innfo-radius-sm)}',
+    '.innfo-change-toast-close:hover{color:var(--innfo-text);background:var(--innfo-surface-2)}',
+    '@media (max-width:640px){.innfo-change-toast{left:1rem;right:1rem;max-width:none}}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
-    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter,.innfo-new-element{width:100%}}',
+    '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-new-element{width:100%}}',
     '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
     '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
@@ -690,17 +706,28 @@
     return btn
   }
 
-  var STATUSES = ['applied', 'conflict', 'proposed']
-  // Plain-language help for the review badges: the number is a count of changes in
-  // that state and the colour IS the state. Surfaced on hover via `title` so a reader
-  // who has never seen the console learns what green/orange/red mean.
+  // The change has one vocabulary with four states: a local edit that lives only
+  // in the console (`local`), a submitted proposal (`proposed`), a change written
+  // into the model (`applied`) and one that could not be applied (`conflict`).
+  var STATUSES = ['applied', 'conflict', 'proposed', 'local']
+  // Plain-language help for the change badge: the badge word IS the state and the
+  // colour matches it. Surfaced on hover via `title` so a reader who has never
+  // seen the console learns what blue/orange/green/red mean.
   var STATUS_HELP = {
-    applied:
-      "applied to this model \u2014 approved and merged. Green means done. These come from the model's change history, not from your review marks.",
+    local:
+      'recorded in this console only \u2014 not submitted yet. Blue means unsent.',
     proposed:
-      "proposed and still waiting for review \u2014 not yet applied. Orange means pending. These come from the model's change history, not from your review marks.",
+      'submitted and waiting to be applied \u2014 it has not touched the model yet. Orange means pending.',
+    applied: 'written into the model by the engine. Green means done.',
     conflict:
-      "in conflict with the current content \u2014 they need a decision. Red means attention. These come from the model's change history, not from your review marks.",
+      'in conflict with the current content \u2014 it needs a decision. Red means attention.',
+  }
+
+  var STATUS_LABELS = {
+    local: 'Unsent',
+    proposed: 'Proposed',
+    applied: 'Applied',
+    conflict: 'Conflict',
   }
 
   function statusHelp(status, count) {
@@ -711,6 +738,13 @@
     return n + ' ' + (n === 1 ? 'change ' : 'changes ') + base
   }
 
+  function statusLabel(status) {
+    return STATUS_LABELS[status] || String(status)
+  }
+
+  // `label` (a human word) is optional: with it the badge reads as a state, without
+  // it the badge reads as a bare count (the legacy shape). `title` overrides the
+  // generated help so a collapsed badge can enumerate every state it stands for.
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -720,10 +754,18 @@
     var badge = makeEl(doc, 'span', 'innfo-status-badge')
     badge.setAttribute('data-innfo-component', 'status-badge')
     badge.setAttribute('data-status', String(data.status))
-    var text = data.count != null ? String(data.count) : String(data.status)
+    var text =
+      data.label != null
+        ? String(data.label)
+        : data.count != null
+          ? String(data.count)
+          : String(data.status)
     badge.textContent = text
-    badge.setAttribute('aria-label', data.count != null ? data.count + ' ' + data.status : data.status)
-    badge.setAttribute('title', statusHelp(data.status, data.count))
+    badge.setAttribute('aria-label', String(data.label != null ? data.label : text))
+    badge.setAttribute(
+      'title',
+      data.title != null ? String(data.title) : statusHelp(data.status, data.count),
+    )
     return badge
   }
 
@@ -2805,52 +2847,58 @@
     return wrap
   }
 
-  var REVIEW_STATES = ['none', 'reviewed', 'changed']
-  var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
-
-  // Repaint a reviewed toggle in place. The review controller decorates a toggle
-  // once and then only refreshes its state on later passes, so the label and colour
-  // must be updatable without rebuilding the button.
-  function applyReviewedState(button, state) {
-    if (!button) return
-    var s = REVIEW_STATES.indexOf(state) !== -1 ? state : 'none'
-    button.setAttribute('data-state', String(s))
-    button.setAttribute('aria-pressed', s === 'reviewed' ? 'true' : 'false')
-    button.textContent = REVIEW_LABELS[s]
-  }
-
-  function ReviewedToggle(data) {
-    if (!data || typeof data !== 'object') {
-      throw new TypeError('InnfoUI.ReviewedToggle: data required')
-    }
-    var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
-    var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle')
-    b.setAttribute('data-innfo-component', 'reviewed-toggle')
-    b.setAttribute('type', 'button')
-    applyReviewedState(b, state)
-    return b
-  }
-
+  // Rail progress reads the change, not a review mark: `pending` is how many of the
+  // concept's `total` elements carry a change that lives only in this console.
   function RailProgress(data) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.RailProgress: data required')
     }
-    var reviewed = Number(data.reviewed)
     var total = Number(data.total)
     var pending = Number(data.pending)
-    if (!isFinite(reviewed) || !isFinite(total) || !isFinite(pending)) {
-      throw new TypeError('InnfoUI.RailProgress: numeric reviewed, total and pending required')
+    if (!isFinite(total) || !isFinite(pending)) {
+      throw new TypeError('InnfoUI.RailProgress: numeric total and pending required')
     }
     var doc = resolveDoc(null)
     var span = makeEl(doc, 'span', 'innfo-rail-progress')
     span.setAttribute('data-innfo-component', 'rail-progress')
-    span.setAttribute('data-reviewed', String(reviewed))
     span.setAttribute('data-total', String(total))
     span.setAttribute('data-pending', String(pending))
-    span.appendChild(doc.createTextNode(reviewed + '/' + total))
-    span.appendChild(makeEl(doc, 'span', 'innfo-rail-progress-pending', String(pending)))
+    span.setAttribute(
+      'title',
+      pending + ' of ' + total + ' elements have unsent changes',
+    )
+    span.appendChild(doc.createTextNode(pending + '/' + total))
     return span
+  }
+
+  // Toast: explicit feedback that an edit was RECORDED, not applied. It never
+  // claims a network call or a write; it points at the step still missing (export).
+  function Toast(data, opts) {
+    if (!data || typeof data !== 'object') {
+      throw new TypeError('InnfoUI.Toast: data required')
+    }
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.Toast: doc is required')
+    var toast = makeEl(doc, 'div', 'innfo-change-toast')
+    toast.setAttribute('data-innfo-component', 'toast')
+    toast.setAttribute('role', 'status')
+    toast.setAttribute('aria-live', 'polite')
+    var ico = makeEl(doc, 'span', 'innfo-change-toast-icon')
+    ico.setAttribute('aria-hidden', 'true')
+    if (typeof icon === 'function') ico.innerHTML = icon('git-commit', 16)
+    toast.appendChild(ico)
+    var body = makeEl(doc, 'div', 'innfo-change-toast-body')
+    body.appendChild(makeEl(doc, 'strong', 'innfo-change-toast-title', data.title || ''))
+    body.appendChild(makeEl(doc, 'span', 'innfo-change-toast-text', data.body || ''))
+    toast.appendChild(body)
+    var close = makeEl(doc, 'button', 'innfo-change-toast-close', '\u00d7')
+    close.setAttribute('type', 'button')
+    close.setAttribute('aria-label', 'Dismiss')
+    close.addEventListener('click', function () {
+      if (typeof opts.onClose === 'function') opts.onClose()
+    })
+    toast.appendChild(close)
+    return toast
   }
 
   /**
@@ -3453,9 +3501,10 @@
     CITATION_ORIGIN_LABELS: CITATION_ORIGIN_LABELS,
     DraftList: DraftList,
     AnnotationPopover: AnnotationPopover,
-    ReviewedToggle: ReviewedToggle,
-    applyReviewedState: applyReviewedState,
     RailProgress: RailProgress,
+    Toast: Toast,
+    STATUS_LABELS: STATUS_LABELS,
+    statusLabel: statusLabel,
     EditModal: EditModal,
     NewElementModal: NewElementModal,
     SankeyFlow: SankeyFlow,

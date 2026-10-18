@@ -19,8 +19,8 @@ const IMPLEMENTED = [
   'citation-icon',
   'draft-list',
   'annotation-popover',
-  'reviewed-toggle',
   'rail-progress',
+  'toast',
   'markdown',
 ]
 
@@ -62,8 +62,8 @@ describe('console ui-kit kitchen sink', () => {
       )
       root.appendChild(UI.DraftList({ drafts: [], byId: {} }))
       root.appendChild(UI.AnnotationPopover({ label: 'f', kinds: ['comment'] }, {}))
-      root.appendChild(UI.ReviewedToggle({ state: 'reviewed' }))
-      root.appendChild(UI.RailProgress({ reviewed: 1, total: 2, pending: 1 }))
+      root.appendChild(UI.RailProgress({ total: 2, pending: 1 }))
+      root.appendChild(UI.Toast({ title: 'Change recorded', body: 'Not applied yet.' }, { doc: document }))
       root.appendChild(UI.Markdown('## Title\n\n- **bold** and [safe](https://example.com)'))
       for (const name of IMPLEMENTED) {
         expect(

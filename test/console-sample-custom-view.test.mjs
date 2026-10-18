@@ -109,7 +109,7 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     row.querySelector('input').value = 'A proposed description.'
     row.querySelector('button').click()
 
-    assert.match(doc.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
+    assert.match(doc.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
     const downloads = exportChangeset(dom)
     assert.equal(downloads.length, 1, 'a single changeset')
     const [{ text, filename }] = downloads

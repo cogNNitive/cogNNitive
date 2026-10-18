@@ -823,7 +823,7 @@
   function notifyStoreError(doc, err) {
     showToast(
       doc,
-      'Your draft could not be saved (browser storage is full or blocked). It stays in this tab only: export your changes now.' +
+      'Your change could not be saved (browser storage is full or blocked). It stays in this tab only: export your changes now.' +
         (err && err.name ? ' [' + err.name + ']' : ''),
     )
   }
@@ -1014,10 +1014,10 @@
       )
     }
     var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
-    var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
+    var draftsBadge = el('span', 'innfo-banner-drafts', ' unsent: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
     var dockDrafts = doc.querySelector('#innfo-review-dock .innfo-dock-drafts')
-    if (dockDrafts) dockDrafts.textContent = 'Drafts: ' + (draftCount || 0)
+    if (dockDrafts) dockDrafts.textContent = 'Unsent: ' + (draftCount || 0)
 
     banner.appendChild(title)
     banner.appendChild(version)
@@ -1698,7 +1698,7 @@
       if (draftCount > 0) {
         var badge = el('span', 'innfo-rail-badge', String(draftCount))
         if (badge) {
-          badge.setAttribute('title', draftCount + ' unexported draft note(s)')
+          badge.setAttribute('title', draftCount + ' unsent change(s)')
           btn.appendChild(badge)
         }
       }
@@ -2181,9 +2181,9 @@
     newDrafts.forEach(function (nd) {
       projectedElements.push({
         id: nd.element_id || ('new-' + nd.id),
-        name: nd.element || 'New Draft Element',
-        concept: nd.concept || 'Draft',
-        description: nd.comment || 'Draft element pending application',
+        name: nd.element || 'New element',
+        concept: nd.concept || 'New',
+        description: nd.comment || 'New element, not applied yet',
         fields: nd.fields && isObject(nd.fields) ? nd.fields : {},
         _draft: nd,
       })
@@ -2250,8 +2250,9 @@
     return map
   }
 
-  // Cards project live drafts: active draft edits and notes are visually badged,
-  // new draft elements are projected, and deleted elements are styled.
+  // Cards project live changes: a correction patches its field value, a new
+  // element is projected, and deleted elements are styled. The change STATE is
+  // painted by the review controller as ONE badge per row.
   function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions, modelId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
@@ -2380,27 +2381,9 @@
       card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e5e5))'
       card.style.borderLeft = '4px solid ' + hexColor
 
-      if (element._draft) {
-        var d = element._draft
-        var badgeCls = 'badge badge-sm ' + (d.kind === 'correction' ? 'badge-warning' : d.kind === 'new' ? 'badge-info' : d.kind === 'delete' ? 'badge-error' : 'badge-neutral')
-        var badgeText = d.kind === 'correction' ? 'Draft Edit' : d.kind === 'new' ? 'New Draft' : d.kind === 'delete' ? 'Delete Proposed' : 'Has Comment'
-        var draftBadge = doc.createElement('span')
-        draftBadge.className = 'innfo-card-draft-badge ' + badgeCls + ' ml-2'
-        draftBadge.textContent = badgeText
-
-        var titleEl = card.querySelector('.innfo-card-title, h3, header')
-        if (titleEl) {
-          titleEl.appendChild(draftBadge)
-        }
-
-        if (d.kind === 'delete') {
-          card.classList.add('opacity-50', 'line-through')
-        } else if (d.kind === 'correction') {
-          card.classList.add('border-l-4', 'border-warning')
-        } else if (d.kind === 'new') {
-          card.classList.add('border-l-4', 'border-info')
-        }
-      }
+      // The per-card change state is NOT a separate "Draft Edit" chip any more: the
+      // review controller folds the local edit, the proposals and the applied history
+      // into ONE change-state badge per row (see review.js decorateChangeState).
 
       // Wire the image thumbnail to the media lightbox when the element has
       // image fields (parity with the editor's NodeMedia gallery).
@@ -2568,26 +2551,6 @@
     return String(value)
   }
 
-  function draftBadgeClass(kind) {
-    return kind === 'correction'
-      ? 'badge-warning'
-      : kind === 'new'
-        ? 'badge-info'
-        : kind === 'delete'
-          ? 'badge-error'
-          : 'badge-neutral'
-  }
-
-  function draftBadgeText(kind) {
-    return kind === 'correction'
-      ? 'Draft Edit'
-      : kind === 'new'
-        ? 'New Draft'
-        : kind === 'delete'
-          ? 'Delete Proposed'
-          : 'Comment'
-  }
-
   // Read-only table of the filtered elements: one row per element, one column
   // per field key, sortable by clicking a header. Mirrors the editor's
   // ConceptTableView (table view + header sort) inside the domain console.
@@ -2714,13 +2677,18 @@
           : el('span', null, element.name || element.id || '')
       nameTd.appendChild(elBadge)
       if (element._draft) {
-        nameTd.appendChild(
-          el(
-            'span',
-            'badge badge-sm ' + draftBadgeClass(element._draft.kind) + ' ml-2',
-            draftBadgeText(element._draft.kind),
-          ),
-        )
+        // The local change reads with the same word as the card badge: "Unsent".
+        if (UI && typeof UI.StatusBadge === 'function') {
+          var draftState = UI.StatusBadge({
+            status: 'local',
+            label: 'Unsent',
+            title: 'This element has a change recorded in this console that has not been exported yet.',
+          })
+          draftState.classList.add('ml-2')
+          nameTd.appendChild(draftState)
+        } else {
+          nameTd.appendChild(el('span', 'badge badge-sm badge-info ml-2', 'Unsent'))
+        }
       }
       tr.appendChild(nameTd)
 
@@ -4672,7 +4640,7 @@
         var staleNote = el(
           'p',
           'innfo-review-stale text-sm mt-1',
-          staleCount + (staleCount === 1 ? ' draft targets' : ' drafts target') +
+          staleCount + (staleCount === 1 ? ' unsent change targets' : ' unsent changes target') +
             ' an element that changed since it was written: review before exporting.',
         )
         if (staleNote) {
@@ -4688,7 +4656,7 @@
         return exportedIds.indexOf(d.id) !== -1
       })
       if (exportedPending.length > 0 && state.store && typeof state.store.clearDrafts === 'function') {
-        var clearBtn = el('button', 'innfo-btn innfo-clear-exported btn btn-ghost btn-sm', 'Clear exported drafts (' + exportedPending.length + ')')
+        var clearBtn = el('button', 'innfo-btn innfo-clear-exported btn btn-ghost btn-sm', 'Clear exported changes (' + exportedPending.length + ')')
         if (clearBtn) {
           clearBtn.setAttribute('type', 'button')
           clearBtn.setAttribute('data-innfo', 'clear-exported')
@@ -5551,7 +5519,7 @@
     var draftsBadge = active.createElement('span')
     draftsBadge.className = 'innfo-banner-drafts'
     draftsBadge.setAttribute('data-innfo', 'draft-count')
-    draftsBadge.textContent = ' drafts: 0'
+    draftsBadge.textContent = ' unsent: 0'
     banner.appendChild(draftsBadge)
 
     root.appendChild(banner)
@@ -5571,12 +5539,12 @@
       '<div data-innfo="errors" style="display: none;"></div>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
-      '<button data-innfo="copy-changeset-prompt" type="button">Copy changeset</button>' +
+      '<button data-innfo="copy-changeset-prompt" type="button">Copy change</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<details class="innfo-modal-details">' +
-      '<summary>View generated changeset &amp; prompt</summary>' +
-      '<h4>Changeset content (_changes_NN.md)</h4>' +
+      '<summary>View the generated change &amp; prompt</summary>' +
+      '<h4>Change document (_changes_NN.md)</h4>' +
       '<textarea data-innfo="changeset-preview" readonly></textarea>' +
       '<h4>Instructions</h4>' +
       '<pre data-innfo="instructions"></pre>' +
@@ -5598,7 +5566,7 @@
 
     var dockStatus = active.createElement('div')
     dockStatus.className = 'innfo-dock-status'
-    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Changeset</span>'
+    dockStatus.innerHTML = '<span class="innfo-dock-dot"></span><span>Change</span>'
     dock.appendChild(dockStatus)
 
     var sep1 = active.createElement('span')
@@ -5631,7 +5599,7 @@
 
     var dockDraftsEl = active.createElement('span')
     dockDraftsEl.className = 'innfo-dock-drafts'
-    dockDraftsEl.textContent = 'Drafts: 0'
+    dockDraftsEl.textContent = 'Unsent: 0'
     dock.appendChild(dockDraftsEl)
 
     // Open button (Export changes)
@@ -5646,7 +5614,7 @@
     exitBtn.type = 'button'
     exitBtn.className = 'innfo-dock-exit'
     exitBtn.textContent = 'Hide'
-    exitBtn.setAttribute('aria-label', 'Hide the changeset bar')
+    exitBtn.setAttribute('aria-label', 'Hide the change bar')
     exitBtn.addEventListener('click', function () {
       dock.style.setProperty('display', 'none', 'important')
       dock.removeAttribute('data-visible')
@@ -6055,7 +6023,7 @@
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download or copy the changeset.'
+        ' unsent change(s), then download or copy the change document.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
@@ -6356,9 +6324,9 @@
       var currentDrafts = state.store.drafts()
       var n = currentDrafts.length
       var bannerCount = active.querySelector('.innfo-banner-drafts')
-      if (bannerCount) bannerCount.textContent = ' drafts: ' + n
+      if (bannerCount) bannerCount.textContent = ' unsent: ' + n
       var dockCount = active.querySelector('#innfo-review-dock .innfo-dock-drafts')
-      if (dockCount) dockCount.textContent = 'Drafts: ' + n
+      if (dockCount) dockCount.textContent = 'Unsent: ' + n
       updateTabBadges(active, state)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)

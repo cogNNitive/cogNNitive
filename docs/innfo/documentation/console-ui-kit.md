@@ -27,6 +27,7 @@ InnfoUI = {
   ORIGIN_VARIANTS,       // ['error','agent','human','reviewer','document']
   CITATION_ORIGIN_LABELS,
   StatusBadge(data), CitationIcon(data, opts?),
+  Toast(data, opts?), RailProgress(data),
   describeUnit(kind, ref, index?) -> descriptor,
   Ku(kind, ref, opts?) -> span.innfo-ku-wrap,
   createKu({ doc, onAction }) -> { destroy },
@@ -47,7 +48,9 @@ Every component root carries `data-innfo-component="<kebab-name>"`. Invalid
 | `Ku(kind, ref, { variant?, body? })` | `span.innfo-ku-wrap` > `[data-innfo-component="ku-unit"]` | `data-ku-kind`, `data-ku-nature`, `data-ku-home`, `data-ku-address`; action cluster is a sibling `.innfo-ku-actions` |
 | `describeUnit(kind, ref, index?)` | pure descriptor | `{ kind, nature, home, address, label, slot, vtype?, editability, facts }` |
 | `KuInfoPanel(descriptor)` | `dialog[data-innfo-component="ku-info-panel"]` | focus moves to the heading; Escape restores focus |
-| `StatusBadge({ status, count? })` | `span` | `data-status` (`pending`\|`applied`\|`rejected`\|`stale`) |
+| `StatusBadge({ status, count?, label?, title? })` | `span` | `data-status` (`local`\|`proposed`\|`applied`\|`conflict`); `label` sets the visible word, `title` the tooltip |
+| `Toast({ title, body }, { onClose })` | `div.innfo-change-toast` | `data-innfo-component="toast"`, `role="status"`; dismiss control calls `onClose` |
+| `RailProgress({ total, pending })` | `span.innfo-rail-progress` | `data-total`, `data-pending`; text `pending/total` |
 | `CitationIcon({ variant, field }, { onOpen? })` | `button` | `data-origin`, `data-field`; click stops propagation |
 | `FieldRow({ name, value, citations?, ref?, inherited? }, { model?, element?, onRef?, onCite? })` | `ku-unit` (kind `value`) | `data-ku-kind="value"`, `data-field`; inherited values render `inherited from <Concept>` with editability `none` |
 | `ElementCard({ id, name, conceptId?, description?, fields, inherited? }, opts)` | `article` | `data-element-id`, `data-concept-id`, `data-open`; name is an `element` unit, fields are `value` units |

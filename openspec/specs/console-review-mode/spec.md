@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Human review flow inside generated consoles, rendered by `InnfoConsole`: always-on proposals (no review mode), inline annotation, reviewed progress, verdict badges, change awareness, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `ReviewedToggle`, `RailProgress`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
+Human review flow inside generated consoles, rendered by `InnfoConsole`: always-on proposals (no review mode), inline annotation, one change-state signal per row, rail progress over unsent changes, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `RailProgress`, `Toast`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
+
+The console has ONE concept: the CHANGE, with three states — **Unsent** (a local edit that lives only in the browser), **Proposed** (submitted; a document the engine can apply) and **Applied** (the engine wrote it into the model) — plus `conflict` (a terminal state that needs a decision). The internal terms "draft" and "changeset" are NOT user-facing vocabulary; "mark reviewed" is gone (it was local state with no effect on the domain).
 ## Requirements
 ### Requirement: No Review Mode — Always-On Proposals
 
@@ -18,7 +20,7 @@ A proposal that could not be APPLIED MUST warn inside the edit modal instead of 
 
 Every proposal MUST show who is proposing (`Proposing as <name>`) in the edit modal, using the remembered identity (`localStorage`), and MUST flag the shared default pseudonym (`reviewer`) so several reviewers do not collapse into a single author.
 
-Badge and mark decoration is capability-free and always runs: the verdict badges, the change pips, the reviewed toggle and the rail progress reflect state (changesets, local drafts, reviewed marks), not proposals, so they MUST decorate however the console boots. The proposal ANCHORS (the tag/relation controls on a card and the matrix-cell anchors) decorate only when `canPropose` holds. The element-card contract therefore has two layers: the card renders unconditionally, while its proposal anchors are capability-gated.
+State decoration is capability-free and always runs: the single change-state badge, the change pips and the rail progress reflect state (proposed/applied changesets, local unsent changes), not proposals, so they MUST decorate however the console boots. The proposal ANCHORS (the tag/relation controls on a card and the matrix-cell anchors) decorate only when `canPropose` holds. The element-card contract therefore has two layers: the card renders unconditionally, while its proposal anchors are capability-gated.
 
 (Previously: an explicit review-mode toggle in the dock, off by default and withheld unless `changeset-export` + `meta.modelId` + every element hashed; edit controls hidden via `html:not([data-innfo-review=on])` and refused by the delegated listener.)
 
@@ -77,73 +79,82 @@ Annotating MUST open the kit `AnnotationPopover` anchored to the card or field r
 - WHEN searched for `window.prompt` / `prompt(`
 - THEN no call exists
 
-### Requirement: Reviewed Marks and Rail Progress
+### Requirement: One Change-State Signal Per Row
 
-Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the draft store with the element hash recorded at marking. A mark counts as reviewed only while the recorded hash equals the current `hash`; otherwise it shows `changed` and does not count. The rail MUST show `reviewed/total` and the pending-draft count per concept via `RailProgress`; totals come from the payload (the scoped payload for a scoped console), independent of filters. Reviewed controls are always shown (there is no mode).
-(Previously: "in BOTH renderers".)
+Each element row MUST show at most ONE change-state signal: a single kit `StatusBadge` whose status is the element's change state and whose text is that state's label (`Unsent`, `Proposed`, `Applied` or `Conflict`). The per-state counts MUST live in the badge `title` (tooltip), never as extra on-screen badges. The badge MUST derive from both sources of change: `applied` and `conflict` from `element.history`, `proposed` from the proposed changesets of the payload `changes` collection, and `local` (labelled `Unsent`) from the element's local drafts. When more than one state applies the single signal MUST resolve by precedence `conflict > local > proposed > applied`. Rows with no change MUST show no signal. Entries whose element no longer exists MUST NOT render. Statuses MUST NOT be settable from the console. The local `Unsent` state and the `local` badge status are a change state, not a verdict: the console records changes, it never writes the model.
 
-#### Scenario: Progress updates
-- GIVEN a concept with 4 elements, 1 reviewed, 2 drafts
-- WHEN the reviewer marks another reviewed
-- THEN the rail shows `2/4` and pending `2` for that concept
+#### Scenario: One badge per row
+- GIVEN an element with one applied change, one proposed change and one local draft
+- WHEN the row renders
+- THEN it shows exactly one change-state badge, whose status is `local` and whose text is `Unsent`
+- AND its tooltip lists every count (`1 unsent, 1 proposed, 1 applied`)
 
-#### Scenario: Survives reload
-- GIVEN an element marked reviewed
-- WHEN the console reloads
-- THEN it is still reviewed
+#### Scenario: Conflict wins
+- GIVEN an element with a conflict in its history and a local draft
+- WHEN the row renders
+- THEN its single change-state badge is `conflict`
 
-#### Scenario: Hash drift un-counts
-- GIVEN an element reviewed at `h1` and now `h2`
-- WHEN rendered
-- THEN its toggle is `changed` and the rail count excludes it
-
-#### Scenario: Filters do not change totals
-- GIVEN an active search hiding 2 of 4 elements
-- WHEN the rail renders
-- THEN the total is still 4
-
-### Requirement: Verdict Badges
-
-Elements targeted by changeset changes MUST show a kit `StatusBadge` per change status, with count: `applied` and `conflict` derived from `element.history` (applied and partially applied changesets), and `proposed` derived from the proposed changesets of the domain payload's `changes` collection. Badges MUST derive only from changesets, never from local drafts, and MUST always be visible. Entries whose element no longer exists MUST NOT render. Statuses MUST NOT be settable from the console. No other verdict state exists: `pending`, `rejected` and `stale` reviewer verdicts are retired with the verdict ledger, and per-draft staleness is shown on the draft ("target changed"), not as a badge. (Previously: badges were derived from `meta.feedbackState`, read from the verdict ledger.)
-
-#### Scenario: Applied badge
+#### Scenario: Applied only
 - GIVEN `element.history` lists one applied change targeting an element
 - WHEN rendered
-- THEN that element shows an `applied` StatusBadge with count 1
+- THEN that element shows an `applied` change-state badge labelled `Applied`
 
-#### Scenario: Proposed badge
-- GIVEN a proposed changeset in the payload `changes` collection with a change targeting an element
-- WHEN rendered
-- THEN that element shows a `proposed` StatusBadge
-
-#### Scenario: Draft is not a status
+#### Scenario: Local change reads as Unsent
 - GIVEN a local draft and no changeset targeting the element
 - WHEN rendered
-- THEN no status badge appears
+- THEN the row shows a `local` change-state badge labelled `Unsent`
 
 #### Scenario: Orphan entry
 - GIVEN a change targeting a missing element
 - WHEN rendered
 - THEN nothing is rendered for it and no error is thrown
 
-#### Scenario: Badges in a scoped console
+#### Scenario: Signal in a scoped console
 - GIVEN an applied change targeting an element, rendered in a whole-domaiNN console and in a console scoped to its model
-- WHEN badges render
-- THEN both consoles show the same `applied` StatusBadge for that element
+- WHEN rows render
+- THEN both consoles show the same `applied` change-state badge for that element
 
-### Requirement: Changed-Since-Last-Review Filter
+### Requirement: Rail Progress Over Unsent Changes
 
-A filter MUST show only elements whose current `hash` differs from the hash recorded when last marked reviewed. Never-reviewed elements MUST NOT count as changed.
+The rail MUST show, per concept, the number of elements that carry an unsent local change over the concept's total element count, via `RailProgress({ total, pending })` (`data-total`, `data-pending`). Totals come from the payload (the scoped payload for a scoped console), independent of filters. There are NO reviewed marks: `ReviewedToggle`, the reviewed map and the changed-since-last-review filter MUST NOT exist.
 
-#### Scenario: Changed element listed
-- GIVEN X reviewed at `h1`, now `h2`, and Y reviewed and unchanged
-- WHEN the filter is enabled
-- THEN X is shown and Y is hidden
+#### Scenario: Progress reads pending
+- GIVEN a concept with 4 elements and 2 local drafts
+- WHEN the rail renders
+- THEN that concept's RailProgress reads `2/4` with `data-pending="2"`
 
-#### Scenario: Never reviewed is not changed
-- GIVEN element Z never marked reviewed
-- WHEN the filter is enabled
-- THEN Z is hidden
+#### Scenario: Filters do not change totals
+- GIVEN an active search hiding 2 of 4 elements
+- WHEN the rail renders
+- THEN the total is still 4
+
+#### Scenario: No reviewed mark exists
+- GIVEN any rendered console
+- THEN no `[data-innfo-component="reviewed-toggle"]` and no `[data-innfo="changed-filter"]` exists
+
+### Requirement: Change Recorded Toast
+
+Every action that creates or modifies a change MUST show a transient, dismissable toast (bottom-right) with the fixed copy: title `Change recorded`, body `It lives only in this console until you export it. Then apply it from cogNNitive to write it into the domain.` It MUST appear on saving an edit and on adding or removing a tag or relation. It MUST NOT mention "draft", the store, or where the change is kept. At most one toast is shown at a time; it is dismissable and disappears on its own.
+
+#### Scenario: Saving an edit shows the toast
+- GIVEN a proposable domain
+- WHEN the reviewer saves an edit (a local change)
+- THEN a toast appears with the title `Change recorded` and the fixed body
+
+#### Scenario: Tag or relation change shows the toast
+- GIVEN a tag add, tag remove, relation add or relation unlink
+- WHEN it is recorded
+- THEN the same toast appears
+
+#### Scenario: Dismiss
+- GIVEN the toast is visible
+- WHEN its close control is activated
+- THEN the toast is removed
+
+#### Scenario: No draft vocabulary
+- GIVEN the toast
+- WHEN read
+- THEN it does not contain the words "draft" or "changeset"
 
 ### Requirement: Keyboard and Accessibility
 

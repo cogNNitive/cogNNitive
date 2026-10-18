@@ -7,12 +7,12 @@ describe('S1b: draft count stays live without reload', () => {
     const { document, res } = bootConsole()
     assert.ok(res.controller, 'review controller present')
     res.controller.enable()
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*0/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*0/)
 
     addCommentDraft(document)
 
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
   })
 
@@ -23,8 +23,8 @@ describe('S1b: draft count stays live without reload', () => {
     const del = document.querySelector('#innfo-tab-review .innfo-draft-delete')
     assert.ok(del, 'delete control rendered in review tab')
     del.click()
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*0/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*0/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*0/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*0/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^0 pending changes/)
   })
 
@@ -49,18 +49,25 @@ describe('S1b: draft count stays live without reload', () => {
     assert.equal(after, card, 'card DOM node identity preserved')
     assert.ok(card.contains(control), 'control still inside the same card')
     assert.equal(document.activeElement, control, 'focus stays on the same control')
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
   })
 
-  it('marking an element reviewed does not remount the cards', () => {
+  it('records a change as ONE state badge on the row, without remounting the card', () => {
     const { document, res } = bootConsole()
     res.controller.enable()
     const card = document.querySelector('#innfo-content [data-element-id="ecto-1"]')
-    const toggle = card.querySelector('[data-innfo-component="reviewed-toggle"]')
-    assert.ok(toggle, 'reviewed toggle decorated')
-  /* no review mode: no toggle to click */
-    assert.equal(document.querySelector('#innfo-content [data-element-id="ecto-1"]'), card)
+    assert.equal(card.querySelector('[data-innfo-component="reviewed-toggle"]'), null, 'no reviewed mark')
+
+    addCommentDraft(document)
+
+    const after = document.querySelector('#innfo-content [data-element-id="ecto-1"]')
+    assert.equal(after, card, 'card DOM node identity preserved')
+    const badges = after.querySelectorAll(
+      '[data-innfo-change-state] [data-innfo-component="status-badge"]',
+    )
+    assert.equal(badges.length, 1, 'exactly one change-state signal per row')
+    assert.equal(badges[0].getAttribute('data-status'), 'local')
   })
 })

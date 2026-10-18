@@ -154,8 +154,8 @@ describe('S2b live draft count from a view', () => {
     const { document, ctxs, res } = bootViews([def('alpha')])
     res.controller.enable()
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
   })
 })
@@ -362,7 +362,7 @@ describe('S2b review follow-up: draft change listeners', () => {
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'first' })
     assert.ok(calls <= 3, `listener ran ${calls} times`)
     const n = ctxs.alpha.store.drafts().length
-    assert.equal(document.querySelector('.innfo-banner-drafts').textContent.trim(), `drafts: ${n}`)
+    assert.equal(document.querySelector('.innfo-banner-drafts').textContent.trim(), `unsent: ${n}`)
   })
 
   it('a listener that removes inside onChange also terminates', () => {
@@ -542,12 +542,12 @@ describe('S2b review follow-up: remove refreshes decorations and counts', () => 
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'y' })
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*1/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
     assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*0/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Drafts:\s*0/)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*0/)
+    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*0/)
   })
 })
 

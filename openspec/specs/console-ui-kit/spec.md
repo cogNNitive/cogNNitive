@@ -69,7 +69,7 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: InnfoUI Component Contract
 
-`console/ui-kit.js` MUST expose a UMD global `InnfoUI` whose components are pure functions `(data, opts) -> HTMLElement`, each marked with `data-innfo-component`, whose values are kebab-case: `ku-unit`, `ku-info-panel`, `element-card`, `status-badge`, `citation-icon`, `draft-list`, `annotation-popover`, `reviewed-toggle`, `rail-progress`. The legacy component ids `concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, and `field-row` are deleted without aliases or delegating wrappers. Components MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state through `data-*` attributes, and MUST render user text via text nodes (no `innerHTML` with data). Invalid `data` or an unknown kind MUST throw a `TypeError` naming the component or kind.
+`console/ui-kit.js` MUST expose a UMD global `InnfoUI` whose components are pure functions `(data, opts) -> HTMLElement`, each marked with `data-innfo-component`, whose values are kebab-case: `ku-unit`, `ku-info-panel`, `element-card`, `status-badge`, `citation-icon`, `draft-list`, `annotation-popover`, `rail-progress`, `toast`. The legacy component ids `concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, `reviewed-toggle`, and `field-row` are deleted without aliases or delegating wrappers. Components MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state through `data-*` attributes, and MUST render user text via text nodes (no `innerHTML` with data). Invalid `data` or an unknown kind MUST throw a `TypeError` naming the component or kind.
 (Previously: the contract listed `concept-pill`, `element-pill`, `marker-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`.)
 
 #### Scenario: Purity and no shadow DOM
@@ -155,11 +155,15 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: StatusBadge
 
-`InnfoUI.StatusBadge({ status, count? })` MUST accept only `pending`, `applied`, `rejected`, `stale`, render `data-innfo-component="status-badge"` with `data-status`, and color it from the matching status tokens. Any other value MUST throw a `TypeError`. When `count` is provided the visible text MUST be the count and `aria-label` MUST be `"<count> <status>"`. Status MUST also be conveyed by text or label, never by color alone.
+`InnfoUI.StatusBadge({ status, count?, label?, title? })` MUST accept only `local`, `proposed`, `applied`, `conflict`, render `data-innfo-component="status-badge"` with `data-status`, and color it from the matching status tokens (a `local`/unsent blue is added). Any other value MUST throw a `TypeError`. When `count` is provided (and no `label`) the visible text MUST be the count; when `label` is provided it MUST be the visible text; otherwise the status string is shown. `title` overrides the generated help (so a collapsed badge can enumerate several counts). Status MUST also be conveyed by text or label, never by color alone.
 
 #### Scenario: Count shown
-- GIVEN `{ status: "pending", count: 4 }`
-- THEN text is "4", `data-status="pending"`, `aria-label="4 pending"`
+- GIVEN `{ status: "proposed", count: 4 }`
+- THEN text is "4", `data-status="proposed"`, `title` names the state
+
+#### Scenario: Label shown
+- GIVEN `{ status: "local", count: 1, label: "Unsent", title: "1 unsent" }`
+- THEN text is "Unsent", `data-status="local"`, `title="1 unsent"`
 
 #### Scenario: No count
 - GIVEN `status: "applied"`
@@ -227,8 +231,8 @@ The kit MUST provide presentational review components. They MUST hold no review 
 
 - `DraftList({ drafts, byId }, { onDelete })`: one row per draft showing kind, target, and text, with a delete control. A draft whose target hash differs from `byId[element_id].hash`, or whose element is absent, MUST show a "target changed" text label using the stale status token. It MUST NOT render any status control.
 - `AnnotationPopover({ label, kinds, original? }, { onSave, onCancel })`: `div[role=dialog][aria-modal=true]` offering only the given `kinds`; Tab/Shift+Tab wrap inside it; Escape calls `onCancel` and nothing else; when `kinds` includes `correction` it shows `original` read-only and a `proposed` input.
-- `ReviewedToggle({ state })`: `state` is `none`, `reviewed` or `changed`; exposes `data-state` and `aria-pressed` (true only for `reviewed`).
-- `RailProgress({ reviewed, total, pending })`: shows the literal text `reviewed/total` and the pending count; `data-reviewed`, `data-total`, `data-pending` attributes.
+- `RailProgress({ total, pending })`: shows the literal text `pending/total` and a `title` naming unsent changes; `data-total`, `data-pending` attributes.
+- `Toast({ title, body }, { onClose })`: `div[data-innfo-component="toast"][role=status]` with a title, a body text and a dismiss control; it holds no timer (the caller owns dismissal) and emits nothing but `onClose`. Its copy is supplied by the caller.
 
 #### Scenario: Draft list rows
 - GIVEN two drafts and a matching `byId`
@@ -256,16 +260,17 @@ The kit MUST provide presentational review components. They MUST hold no review 
 - GIVEN `kinds: ["comment", "delete"]`
 - THEN no `correction` option or `proposed` input exists
 
-#### Scenario: Reviewed toggle states
-- GIVEN `state: "changed"`
-- THEN `data-state="changed"` and `aria-pressed="false"`
-
 #### Scenario: Rail progress
-- GIVEN `{ reviewed: 2, total: 4, pending: 2 }`
-- THEN the text includes `2/4` and the pending count `2`
+- GIVEN `{ total: 4, pending: 2 }`
+- THEN the text includes `2/4`, `data-pending="2"`, `data-total="4"` and no `data-reviewed`
+
+#### Scenario: Toast dismiss
+- GIVEN a visible toast
+- WHEN its dismiss control is activated
+- THEN `onClose` is called once
 
 #### Scenario: Invalid review input
-- GIVEN `RailProgress({ reviewed: "x" })`
+- GIVEN `RailProgress({ total: "x" })`
 - THEN it throws a `TypeError` mentioning `RailProgress`
 
 ### Requirement: Renderers Consume the Kit

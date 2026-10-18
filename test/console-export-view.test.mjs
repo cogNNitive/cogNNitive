@@ -303,8 +303,8 @@ describe('export-console size budget and --view (S2c2)', () => {
       const doc = scoped.window.document
       scoped.window.__ctx.store.propose({ kind: 'comment', elementId: modelOf(scoped).elements[0].id, comment: 'keep me' })
       doc.getElementById('innfo-feedback-open').click()
-      assert.match(doc.querySelector('#innfo-feedback-modal [data-innfo="instructions"]').textContent, /Review 1 pending/)
-      assert.match(doc.querySelector('.innfo-banner-drafts').textContent, /drafts: 1/)
+      assert.match(doc.querySelector('#innfo-feedback-modal [data-innfo="instructions"]').textContent, /Review 1 unsent/)
+      assert.match(doc.querySelector('.innfo-banner-drafts').textContent, /unsent: 1/)
       assert.equal(scoped.window.__ctx.changeset.compose('tester').ok, true)
     })
 

@@ -140,32 +140,52 @@ describe('InnfoUI.AnnotationPopover', () => {
   })
 })
 
-describe('InnfoUI.ReviewedToggle', () => {
-  it('maps state to data-state and aria-pressed', () => {
-    const changed = UI.ReviewedToggle({ state: 'changed' })
-    expect(comp(changed)).toBe('reviewed-toggle')
-    expect(changed.getAttribute('data-state')).toBe('changed')
-    expect(changed.getAttribute('aria-pressed')).toBe('false')
+describe('InnfoUI.StatusBadge', () => {
+  it('shows a bare count by default and a human label when asked', () => {
+    const count = UI.StatusBadge({ status: 'applied', count: 2 })
+    expect(comp(count)).toBe('status-badge')
+    expect(count.getAttribute('data-status')).toBe('applied')
+    expect(count.textContent).toBe('2')
 
-    const reviewed = UI.ReviewedToggle({ state: 'reviewed' })
-    expect(reviewed.getAttribute('aria-pressed')).toBe('true')
+    const labelled = UI.StatusBadge({ status: 'local', count: 1, label: 'Unsent', title: '1 unsent' })
+    expect(labelled.getAttribute('data-status')).toBe('local')
+    expect(labelled.textContent).toBe('Unsent')
+    expect(labelled.getAttribute('title')).toBe('1 unsent')
+  })
+
+  it('accepts the local change state', () => {
+    expect(() => UI.StatusBadge({ status: 'local' })).not.toThrow()
+    expect(() => UI.StatusBadge({ status: 'nonsense' })).toThrow(/unknown status/)
   })
 })
 
 describe('InnfoUI.RailProgress', () => {
-  it('shows reviewed/total and the pending count', () => {
-    const p = UI.RailProgress({ reviewed: 2, total: 4, pending: 2 })
+  it('shows pending/total and carries the counts as attributes', () => {
+    const p = UI.RailProgress({ total: 4, pending: 2 })
     expect(comp(p)).toBe('rail-progress')
-    expect(p.getAttribute('data-reviewed')).toBe('2')
     expect(p.getAttribute('data-total')).toBe('4')
     expect(p.getAttribute('data-pending')).toBe('2')
+    expect(p.getAttribute('data-revieweded')).toBeNull()
     expect(p.textContent).toContain('2/4')
-    expect(p.querySelector('.innfo-rail-progress-pending')!.textContent).toBe('2')
+    expect(p.getAttribute('title')).toContain('2 of 4 elements')
   })
 
-  it('throws TypeError naming the component on a non-numeric reviewed', () => {
-    expect(() => UI.RailProgress({ reviewed: 'x', total: 4, pending: 0 })).toThrow(TypeError)
-    expect(() => UI.RailProgress({ reviewed: 'x', total: 4, pending: 0 })).toThrow(/RailProgress/)
+  it('throws TypeError naming the component on a non-numeric total', () => {
+    expect(() => UI.RailProgress({ total: 'x', pending: 0 })).toThrow(TypeError)
+    expect(() => UI.RailProgress({ total: 'x', pending: 0 })).toThrow(/RailProgress/)
+  })
+})
+
+describe('InnfoUI.Toast', () => {
+  it('renders a dismissable, temp card with a title and a body', () => {
+    const onClose = vi.fn()
+    const t = UI.Toast({ title: 'Change recorded', body: 'Not applied yet.' }, { doc: document, onClose })
+    expect(comp(t)).toBe('toast')
+    expect(t.getAttribute('role')).toBe('status')
+    expect(t.querySelector('.innfo-change-toast-title')!.textContent).toBe('Change recorded')
+    expect(t.querySelector('.innfo-change-toast-text')!.textContent).toBe('Not applied yet.')
+    ;(t.querySelector('.innfo-change-toast-close') as HTMLButtonElement).click()
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -175,7 +195,7 @@ describe('review components purity', () => {
     const b = UI.DraftList({ drafts: [], byId: {} })
     expect(a).not.toBe(b)
     expect(a.shadowRoot).toBeNull()
-    for (const name of ['AnnotationPopover', 'ReviewedToggle', 'RailProgress']) {
+    for (const name of ['AnnotationPopover', 'RailProgress', 'Toast']) {
       expect(UI[name]).toBeTypeOf('function')
     }
   })
