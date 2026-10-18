@@ -4,8 +4,7 @@
  * Implements the unified knowledge-unit address grammar (spec: knowledge-unit-address).
  */
 
-import { slugifyHeading, parseCitation, normalizeName } from '../sourceRef.js'
-import { roleOf } from '../naming/contract.js'
+import { slugifyHeading, parseCitation } from '../sourceRef.js'
 
 function assertIdentifier(value: string, name: string): string {
   const trimmed = (value ?? '').trim()

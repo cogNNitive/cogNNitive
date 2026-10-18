@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseKnowledge } from '../src/parser/index.js'
@@ -101,7 +102,7 @@ describe('Task 2.2: Shipped Field Catalogue and Blueprint Conventions', () => {
     const resolver = (ref: { name: string; url?: string }) => {
       const p = join(BLUEPRINTS_DIR, ref.name, 'spec_NN.md')
       try {
-        return require('node:fs').readFileSync(p, 'utf-8')
+        return readFileSync(p, 'utf-8')
       } catch {
         return null
       }

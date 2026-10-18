@@ -268,7 +268,7 @@ function addConcept(model: ParsedKnowledge, args: Record<string, unknown>): Muta
 function addField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   const req = requireArgs(args, ['conceptName', 'fieldName'])
   if (!req.ok) return req.result
-  let { conceptName, fieldName } = req.values
+  const { conceptName, fieldName } = req.values
 
   let conceptVal: unknown = conceptName
   if (typeof conceptName === 'string') {
