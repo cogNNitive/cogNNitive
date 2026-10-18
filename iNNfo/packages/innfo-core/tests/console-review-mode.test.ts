@@ -121,7 +121,9 @@ describe('console-review (no mode, always-on decoration)', () => {
     viewerCards.forEach((card) => {
       expect(card.querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
     })
-    expect(env.document.querySelector('[data-innfo-ctl="field-anchor"]')).not.toBeNull()
+    // No permanent pencil in a value row any more: editing lives in the badge flyout.
+    expect(env.document.querySelector('[data-innfo-ctl="field-anchor"]')).toBeNull()
+    expect(env.document.querySelector('.innfo-ku-more')).not.toBeNull()
   })
 
   it('renders no Edit-structure switch', () => {

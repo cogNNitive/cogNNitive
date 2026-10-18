@@ -167,7 +167,7 @@ describe('element and dynamic field qualifiers', () => {
 })
 
 describe('filter help and field facet values (S4/U4)', () => {
-  it('lists select field values and states the AND/OR asymmetry', () => {
+  it('offers a two-step field facet and keeps the AND/OR help on hover', () => {
     const MODEL = {
       meta: { title: 'Rail Lab', modelId: 'rail-lab', modelVersion: 'V_1-0-0' },
       elements: [
@@ -182,14 +182,33 @@ describe('filter help and field facet values (S4/U4)', () => {
     host.id = 'innfo-filter-facets'
     toolbar.appendChild(host)
 
-    InnfoConsole.renderFilterBar(document, { meta: MODEL.meta, elements: MODEL.elements, schema }, () => {}, '')
+    // Two tokens so an AND/OR connector is rendered between them.
+    InnfoConsole.renderFilterBar(
+      document,
+      { meta: MODEL.meta, elements: MODEL.elements, schema },
+      () => {},
+      'tags:ai role:Interceptor',
+    )
 
-    const help = document.querySelector('[data-innfo-filter-help]')
-    assert.ok(help, 'filter help present')
-    assert.match(help.textContent, /AND/)
-    assert.match(help.textContent, /OR/)
+    // The explanation is NOT visible UI any more. It lives on the AND/OR connector's
+    // tooltip (a segmented control, asserted where the connector itself renders; this
+    // path groups the query into a single clause and renders no connector).
+    assert.equal(document.querySelector('[data-innfo-filter-help]'), null, 'no visible help block')
+    assert.doesNotMatch(toolbar.textContent || '', /combine with AND/, 'the sentence is out of the UI')
 
-    assert.match(host.textContent, /ai/, 'the tags select value is listed')
+    // Level 1: only the FIELD name. Its values appear only after choosing it.
+    const fieldsWrap = Array.from(host.querySelectorAll('.innfo-facet-dropdown')).find((w) =>
+      /Fields/.test(w.textContent),
+    )
+    assert.ok(fieldsWrap, 'the Fields facet dropdown')
+    const fieldsBtn = fieldsWrap.querySelector('.innfo-facet-btn')
+    fieldsBtn.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
+    const firstField = fieldsWrap.querySelector('.innfo-facet-menu .innfo-facet-item')
+    assert.ok(firstField, 'a field row in the first step')
+    assert.match(firstField.textContent, /tags/)
+    assert.doesNotMatch(host.textContent, /pricing/, 'values are not listed before picking the field')
+    firstField.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
+    assert.match(host.textContent, /ai/, 'the tags value is listed after picking the field')
     assert.match(host.textContent, /pricing/, 'every value of the multi-valued field is listed')
   })
 })

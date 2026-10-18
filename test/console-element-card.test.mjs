@@ -183,14 +183,17 @@ describe('Element Card Redesign Contract', () => {
         null,
         'no per-card edit toggle',
       )
-      assert.ok(
-        card.querySelector('.innfo-card-head [data-ku-kind="element"] [data-innfo-ctl="name-anchor"]'),
-        'name pencil',
+      assert.equal(
+        card.querySelector('[data-innfo-ctl="name-anchor"]'),
+        null,
+        'no permanent name pencil: editing lives in the badge flyout',
       )
-      assert.ok(
-        card.querySelector('.innfo-card-desc [data-innfo-ctl="desc-anchor"]'),
-        'description pencil',
+      assert.equal(
+        card.querySelector('[data-innfo-ctl="desc-anchor"]'),
+        null,
+        'no permanent description pencil',
       )
+      assert.ok(card.querySelector('.innfo-ku-more'), 'the badge carries the + affordance')
       assert.equal(
         card.querySelector('[data-innfo-ctl="marker-anchor"]'),
         null,
@@ -219,11 +222,16 @@ describe('Element Card Redesign Contract', () => {
       assert.deepEqual(drafts[0].proposed, ['nyc-fleet'])
     })
 
-    it('name pencil opens the KU modal', () => {
-      const { card } = decorated()
-      card
-        .querySelector('[data-innfo-ctl="name-anchor"]')
-        .dispatchEvent(new window.Event('click', { bubbles: true }))
+    it('the badge carries the + flyout, and openEdit opens the KU modal', () => {
+      const { card, ctl } = decorated()
+      const wrap = card.querySelector('.innfo-card-head [data-ku-kind="element"]').closest('.innfo-ku-wrap')
+      assert.ok(wrap.querySelector('.innfo-ku-more'), 'the + affordance sits beside the badge')
+      assert.ok(wrap.querySelector('[data-ku-action="edit"]'), 'the flyout carries the edit action')
+      // This fixture wires a bare controller with no Ku delegation, so the entry point
+      // under test is the controller API (the runtime's delegated listener is covered
+      // by console-ku-actions).
+      assert.equal(typeof ctl.openEdit, 'function')
+      assert.equal(ctl.openEdit({ elementId: 'ecto-1', field: '__name' }), true)
       const modal = document.querySelector('[data-innfo-component="edit-modal"]')
       assert.ok(modal, 'KU modal opens')
       assert.match(modal.querySelector('h2').textContent, /Ecto-1/)

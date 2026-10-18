@@ -96,8 +96,17 @@ describe('console-review-popover (annotation)', () => {
     const fieldRow = env.document.querySelector(
       '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
-    const anchor = fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement
-    anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+    // No permanent pencil in a value row any more: editing lives in the badge flyout.
+    // This fixture wires a bare controller (no Ku delegation), so the entry point under
+    // test is the controller API; the flyout itself is asserted elsewhere.
+    const ctl = controllers[controllers.length - 1]
+    const rowEl = fieldRow.closest('[data-element-id]') as HTMLElement | null
+    expect(
+      ctl.openEdit({
+        elementId: rowEl ? rowEl.getAttribute('data-element-id') : '',
+        field: fieldRow.getAttribute('data-field') || '',
+      }),
+    ).toBe(true)
 
     // Field edits moved from the inline annotation popover to the edit modal.
     expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).toBeNull()
@@ -118,9 +127,17 @@ describe('console-review-popover (annotation)', () => {
     const fieldRow = env.document.querySelector(
       '[data-ku-kind="value"][data-field="owner"]',
     ) as HTMLElement
-    ;(fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
+    // No permanent pencil in a value row any more: editing lives in the badge flyout.
+    // This fixture wires a bare controller (no Ku delegation), so the entry point under
+    // test is the controller API; the flyout itself is asserted elsewhere.
+    const ctl = controllers[controllers.length - 1]
+    const rowEl = fieldRow.closest('[data-element-id]') as HTMLElement | null
+    expect(
+      ctl.openEdit({
+        elementId: rowEl ? rowEl.getAttribute('data-element-id') : '',
+        field: fieldRow.getAttribute('data-field') || '',
+      }),
+    ).toBe(true)
 
     const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
     const input = modal.querySelector(

@@ -38,7 +38,7 @@ describe('S1b: draft count stays live without reload', () => {
     const Ev = document.defaultView.Event
     card.querySelector('[data-innfo-ctl="tag-add"]').dispatchEvent(new Ev('click', { bubbles: true }))
     document.querySelector('.innfo-popover-comment').value = 'looks wrong'
-    const control = card.querySelector('[data-innfo-ctl="name-anchor"]')
+    const control = card.querySelector('.innfo-ku-more')
     assert.ok(control, 'name pencil control decorated')
     control.focus()
     assert.equal(document.activeElement, control, 'control focused before saving')

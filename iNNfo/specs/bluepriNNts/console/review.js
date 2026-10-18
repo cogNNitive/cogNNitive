@@ -1189,21 +1189,9 @@
         })
         head.insertBefore(rt, headRightRef)
       }
-      var nameEl = card.querySelector('.innfo-card-head [data-ku-kind="element"]')
-      if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
-        nameEl.appendChild(
-          kuEditControl({ elementId: elId, field: '__name', ctl: 'name-anchor' }, 'Edit element name'),
-        )
-      }
-      var descEl = card.querySelector('.innfo-card-desc')
-      if (descEl && !descEl.querySelector('[data-innfo-ctl="desc-anchor"]')) {
-        descEl.appendChild(
-          kuEditControl(
-            { elementId: elId, field: '__description', ctl: 'desc-anchor' },
-            'Edit description',
-          ),
-        )
-      }
+      // The element-name and description pencils used to be inserted INSIDE the badge
+      // and the description block, so they were permanently visible. Editing now lives
+      // in the badge's own `+` flyout: no permanent affordance on the card.
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
 
@@ -1295,13 +1283,10 @@
       }
     }
 
-    function decorateFieldRow(row) {
-      if (row.querySelector('[data-innfo-ctl="field-anchor"]')) return
-      var card = row.closest('[data-innfo-component="element-card"]')
-      var elId = card ? card.getAttribute('data-element-id') : ''
-      var field = row.getAttribute('data-field')
-      row.appendChild(annotateControl({ elementId: elId, field: field }, 'Edit field'))
-    }
+    function decorateFieldRow() {
+        // The pencil in a value row used to be appended INSIDE the badge, so it was
+        // permanently visible. Editing now lives in that badge's own `+` flyout.
+      }
 
     // Matrix cells are not element units: each editable cell carries an anchor
     // that proposes an `update_matrix_cell` draft (row × col coordinate).
