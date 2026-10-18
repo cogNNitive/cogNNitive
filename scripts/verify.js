@@ -294,7 +294,13 @@ const SLOW_SUITES = new Set([
  * Suites that must not share the machine with another suite. Run one at a time after the
  * parallel pool (and before the guards). Add an entry only with the reason.
  */
-const SERIAL_SUITES = new Set([]);
+const SERIAL_SUITES = new Set([
+  // 'two waiters racing for a stale lock' uses staleMs=100 with a 30s heartbeat, so a CPU-starved
+  // event loop makes the mtime rule rob a live holder (reproduced under 12 busy loops). The fix
+  // (staleMs: 60000, the ghost PID is dead anyway) edits an embedded skill, which needs a
+  // video-script blueprint_version bump: left to the maintainer. Remove this entry with that fix.
+  'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/guard-hardening.test.mjs',
+]);
 
 /**
  * Resolves the pool size: `--jobs=N` beats `VERIFY_JOBS`, which beats min(4, cpus-1).
