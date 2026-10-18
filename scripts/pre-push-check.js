@@ -25,19 +25,36 @@ function git(...args) {
   }
 }
 
-/** @returns {string[]} lintable files changed since the merge-base with the integration branch (plus uncommitted edits). */
+/** The sha being pushed (hook stdin local_sha, passed as argv[2]); HEAD when absent or all zeros. */
+const pushedSha = /^[0-9a-f]{40}$/.test(process.argv[2] || '') && !/^0+$/.test(process.argv[2]) ? process.argv[2] : 'HEAD';
+
+/** @returns {string[]} lintable files changed in the pushed ref since the merge-base with the integration branch. */
 function changedLintableFiles() {
   const base = BASES.find((b) => git('rev-parse', '--verify', '--quiet', b) !== null);
+  if (!base) {
+    console.warn(`pre-push: WARNING neither ${BASES.join(' nor ')} resolves (run: git fetch origin). Linting ALL of iNNfo/ and scripts/ instead.`);
+    return ['iNNfo/', 'scripts/'];
+  }
   const names = new Set();
   const add = (out) => (out || '').split('\n').filter(Boolean).forEach((n) => names.add(n));
-  if (base) add(git('diff', '--name-only', '--diff-filter=ACMR', `${base}...HEAD`));
-  add(git('diff', '--name-only', '--diff-filter=ACMR', 'HEAD'));
+  add(git('diff', '--name-only', '--diff-filter=ACMR', `${base}...${pushedSha}`));
+  if (pushedSha === 'HEAD') add(git('diff', '--name-only', '--diff-filter=ACMR', 'HEAD'));
   return [...names].filter((n) => LINTABLE.test(n) && !n.includes('node_modules/'));
 }
 
 function main() {
   const failures = [];
   const t0 = Date.now();
+
+  // The guards read the working tree, but CI sees only committed content (verify.js
+  // checks docs-facts against HEAD on purpose). Uncommitted tracked edits can make a
+  // guard pass here while the committed file is stale.
+  const dirty = (git('status', '--porcelain', '--untracked-files=no') || '').split('\n').filter(Boolean).map((l) => l.trim());
+  if (dirty.length > 0) {
+    failures.push(
+      `uncommitted changes to tracked files, so the guards may pass on content CI will not see:\n      ${dirty.slice(0, 10).join('\n      ')}\n    fix: commit them (e.g. the output of npm run regen), then push again`,
+    );
+  }
 
   for (const g of FRESHNESS_GUARDS) {
     const res = spawnSync(process.execPath, [g.script, ...g.args], { cwd: repoRoot, encoding: 'utf8' });

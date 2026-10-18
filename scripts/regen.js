@@ -19,10 +19,15 @@ const { FRESHNESS_GUARDS } = require('./lib/freshness-guards.js');
 const repoRoot = path.join(__dirname, '..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
+/** Runs a command; `quiet` captures its output instead of inheriting it. */
+function exec(cmd, args, quiet = false) {
+  const res = spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', stdio: quiet ? 'pipe' : 'inherit', shell: process.platform === 'win32' && cmd === npm });
+  return { status: res.status ?? 1, output: (res.stdout || '') + (res.stderr || '') + (res.error ? String(res.error) : '') };
+}
+
 /** @returns {number} exit status */
-function run(cmd, args, quiet = false) {
-  const res = spawnSync(cmd, args, { cwd: repoRoot, stdio: quiet ? 'ignore' : 'inherit', shell: process.platform === 'win32' && cmd === npm });
-  return res.status ?? 1;
+function run(cmd, args) {
+  return exec(cmd, args).status;
 }
 
 function fail(what) {
@@ -44,13 +49,20 @@ const check = [
 
 for (let pass = 1; pass <= 3; pass++) {
   for (const args of generate) {
-    if (run(process.execPath, args, true) !== 0) fail(args[0]);
+    const res = exec(process.execPath, args, true);
+    if (res.status !== 0) {
+      console.error(res.output);
+      fail(args[0]);
+    }
   }
-  const stale = check.filter((args) => run(process.execPath, args, true) !== 0);
+  const results = check.map((args) => ({ args, ...exec(process.execPath, args, true) }));
+  const stale = results.filter((r) => r.status !== 0);
   if (stale.length === 0) {
     console.log(`regen: all derived artifacts fresh (pass ${pass}). Review with: git status --short`);
     process.exit(0);
   }
-  console.log(`regen: pass ${pass} left ${stale.length} stale: ${stale.map((a) => a[0]).join(', ')}`);
+  console.log(`regen: pass ${pass} left ${stale.length} stale:`);
+  for (const r of stale) console.log(`--- ${r.args[0]}
+${r.output.trim()}`);
 }
 fail('convergence (still stale after 3 passes)');
