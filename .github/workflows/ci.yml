@@ -51,8 +51,10 @@ jobs:
 
       # Offline and deterministic: no network, no release tags, no token. Each
       # step logs to .verify-logs/; a failing step's tail is shown in a log group.
+      # session/** pushes get the fast tier (all guards, drift checks and quick suites;
+      # see SLOW_SUITES in verify.js). dev, main, PRs and releases run the full gate.
       - name: Run Deterministic Verification
-        run: node scripts/verify.js
+        run: node scripts/verify.js ${{ startsWith(github.ref, 'refs/heads/session/') && github.event_name == 'push' && '--fast' || '' }}
 
       - name: Upload verify logs
         if: failure()
