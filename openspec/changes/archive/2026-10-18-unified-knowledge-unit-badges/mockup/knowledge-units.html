@@ -173,10 +173,31 @@ section.card code { font-family: var(--innfo-mono); font-size: .76rem; backgroun
 .ku-act[data-act="edit"] { color: var(--innfo-text); }
 
 /* Mode rules: the only place editability is decided */
-/* NO review mode. The pencil is always emitted for editable units: an edit only
-   ever creates a DRAFT, never a write, so there is nothing to "arm". The only
-   surviving gate is the structure SCOPE switch (blueprint writes are unsupported). */
-body[data-structure="off"] .ku-act[data-act="edit"][data-nature="structure"] { display: none; }
+/* NO review mode AND no "Edit structure" switch. The pencil is always emitted for
+   every unit whose editability is not 'none'. Editing a STRUCTURE unit is a
+   different KIND of act (a proposal against the bluepriNNt, comment-only today),
+   so the EDIT MODAL says so with an inline banner — the affordance is never
+   hidden behind a switch you must remember to turn on. */
+.ku-warn {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin: 0 0 14px; padding: 10px 12px;
+  border: 1px solid var(--innfo-status-pending); border-left: 5px solid var(--innfo-status-pending);
+  background: var(--innfo-status-pending-bg); color: var(--innfo-status-pending);
+  border-radius: var(--innfo-radius); font-size: .82rem; line-height: 1.45;
+}
+.ku-warn .ico { flex: 0 0 auto; margin-top: 1px; }
+.ku-warn strong { display: block; margin-bottom: 2px; font-weight: 700; }
+.ku-edit-target { margin: 0 0 12px; font-size: .8rem; color: var(--innfo-muted); }
+.ku-edit-label { display: block; font-size: .78rem; color: var(--innfo-muted); margin-bottom: 4px; }
+.ku-edit-input {
+  width: 100%; min-height: 84px; resize: vertical; font: inherit; font-size: .84rem;
+  padding: 8px 10px; border: 1px solid var(--innfo-border); border-radius: var(--innfo-radius);
+  background: var(--innfo-surface); color: var(--innfo-text);
+}
+.ku-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.ku-modal-foot .btn { font: inherit; font-size: .82rem; font-weight: 600; border-radius: 999px; padding: 6px 16px; cursor: pointer; border: 1px solid var(--innfo-accent); background: var(--innfo-accent); color: var(--innfo-surface); }
+.ku-modal-foot .btn-ghost { font: inherit; font-size: .82rem; font-weight: 600; border-radius: 999px; padding: 6px 16px; cursor: pointer; border: 1px solid var(--innfo-border); background: transparent; color: var(--innfo-muted); }
+.ku-modal-foot .btn-ghost:hover { color: var(--innfo-text); background: var(--innfo-surface-2); }
 
 /* Citations: one icon per distinct provenance, coloured by WHO produced the
    claim (human vs agent). Canonical order: error, agent, human, reviewer, document. */
@@ -320,18 +341,14 @@ body[data-drafts="on"] .edit-bar { display: flex; }
 .toast.on { opacity: 1; }
 </style>
 </head>
-<body data-structure="off" data-drafts="off">
+<body data-drafts="off">
 
 <header class="top">
   <div>
     <h1>Knowledge-unit badges</h1>
-    <p>Mockup: every unit is drawn by one builder. A borderless "+" beside the badge opens a floating flyout <b>below</b> it — info · sheet · citations · edit. <b>No review mode</b>: the pencil is always there, because an edit only ever creates a <b>draft</b>. The changeset bar appears <b>only when drafts exist</b>.</p>
+    <p>Mockup: every unit is drawn by one builder. A borderless "+" beside the badge opens a floating flyout <b>below</b> it — info · sheet · citations · edit. <b>No modes and no switches</b>: the pencil is always there (an edit only creates a <b>draft</b>), the changeset bar appears <b>only when drafts exist</b>, and proposing a <b>structure</b> change warns you inside the modal.</p>
   </div>
-  <label class="switch" style="font-size:.82rem">
-    <input type="checkbox" id="structure-toggle">
-    <span class="track" aria-hidden="true"></span>
-    <span>Edit structure</span>
-  </label>
+  <span style="font-size:.78rem;color:var(--innfo-muted)">No modes &middot; every edit proposes a draft</span>
 </header>
 
 <main>
@@ -345,7 +362,7 @@ body[data-drafts="on"] .edit-bar { display: flex; }
 
     <section class="card">
       <h2>Structure (from the bluepriNNt)</h2>
-      <p class="sub">Solid border in the concept colour, mono font. The pencil appears only when the top-bar "Edit structure" switch is on (a structure edit is comment-only: blueprint writes are not supported yet).</p>
+      <p class="sub">Solid border in the concept colour, mono font. The pencil is always there; because editing structure is a different act, opening it warns you inside the modal (comment-only today: blueprint writes are not supported yet).</p>
       <div class="grid" id="sec-structure"></div>
     </section>
 
@@ -437,6 +454,26 @@ body[data-drafts="on"] .edit-bar { display: flex; }
   </div>
 </div>
 
+<div class="ku-modal-backdrop" id="ku-edit-modal" data-open="false" role="dialog" aria-modal="true" aria-labelledby="ku-edit-title">
+  <div class="ku-modal">
+    <div class="ku-modal-head">
+      <div>
+        <div class="kind" id="ku-edit-title">Propose a change</div>
+        <div id="ku-edit-badge"></div>
+      </div>
+      <button type="button" class="ku-modal-close" id="ku-edit-close" aria-label="Close propose dialog">&times;</button>
+    </div>
+    <div id="ku-edit-warn"></div>
+    <p class="ku-edit-target" id="ku-edit-target"></p>
+    <label class="ku-edit-label" for="ku-edit-note" id="ku-edit-notelabel">Change / note</label>
+    <textarea class="ku-edit-input" id="ku-edit-note" placeholder="Describe the change. Nothing is written: this becomes a draft."></textarea>
+    <div class="ku-modal-foot">
+      <button type="button" class="btn-ghost" id="ku-edit-cancel">Cancel</button>
+      <button type="button" class="btn" id="ku-edit-propose">Propose</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -458,6 +495,7 @@ body[data-drafts="on"] .edit-bar { display: flex; }
     braces: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 2.5c-1.5 0-2 .6-2 1.8v1.6c0 .9-.5 1.6-1.5 2.1 1 .5 1.5 1.2 1.5 2.1v1.6c0 1.2.5 1.8 2 1.8M10 2.5c1.5 0 2 .6 2 1.8v1.6c0 .9.5 1.6 1.5 2.1-1 .5-1.5 1.2-1.5 2.1v1.6c0 1.2-.5 1.8-2 1.8"/></svg>',
     plus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>',
     sheet: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2.5" y="2" width="11" height="12" rx="1.5"/><path d="M5.2 5.6h5.6M5.2 8h5.6M5.2 10.4h3.4"/></svg>',
+    warn: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.1 2.5 1.5 12.2a1.1 1.1 0 0 0 .95 1.7h11.1a1.1 1.1 0 0 0 .95-1.7L8.9 2.5a1.1 1.1 0 0 0-1.8 0z"/><path d="M8 6v3.2M8 11.4v.1"/></svg>',
     // Citation provenance icons — same glyphs as the real console's `cite-<variant>`.
     'cite-agent': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="9"/><line x1="8" y1="14" x2="8" y2="15"/><line x1="16" y1="14" x2="16" y2="15"/></svg>',
     'cite-human': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>',
@@ -845,9 +883,10 @@ body[data-drafts="on"] .edit-bar { display: flex; }
 
   document.addEventListener('click', function (e) {
     var bd = e.target.closest('.ku-modal-backdrop')
-    if (e.target.closest('#ku-modal-close') || e.target.closest('#ku-cite-close') || (bd && e.target === bd)) {
+    if (e.target.closest('#ku-modal-close') || e.target.closest('#ku-cite-close') || e.target.closest('#ku-edit-close') || (bd && e.target === bd)) {
       closeSheet()
       closeCitations()
+      closeEdit()
       return
     }
     var more = e.target.closest('.ku-more')
@@ -872,14 +911,14 @@ body[data-drafts="on"] .edit-bar { display: flex; }
       var key = b.dataset.key
       if (b.dataset.act === 'info') showInfo(key)
       else if (b.dataset.act === 'sheet') openSheet(key)
-      else if (b.dataset.act === 'edit') { closeFlyouts(); addDraft(key) }
+      else if (b.dataset.act === 'edit') { openEdit(key) }
       return
     }
     closeFlyouts()
   })
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeSheet(); closeCitations(); closeFlyouts() }
+    if (e.key === 'Escape') { closeSheet(); closeCitations(); closeEdit(); closeFlyouts() }
   })
 
   // ---- Drafts: the ONLY thing that reveals the changeset bar. There is no mode. ----
@@ -934,9 +973,48 @@ body[data-drafts="on"] .edit-bar { display: flex; }
     toast('All drafts discarded.')
   }
 
-  $('structure-toggle').addEventListener('change', function (e) {
-    document.body.dataset.structure = e.target.checked ? 'on' : 'off'
-  })
+  // ---- The edit modal. The structure warning lives HERE, at the moment of the
+  // action, instead of a switch you must remember to turn on. ----
+  var WARN_STRUCTURE =
+    'You are proposing a change to the STRUCTURE of this domain (the bluepriNNt), not to its data. ' +
+    'It affects every element that uses it, and today it is filed as a comment for the blueprint ' +
+    'maintainer: it will NOT be applied automatically.'
+  var editingKey = null
+
+  function openEdit(key) {
+    var u = U[key]
+    closeFlyouts()
+    editingKey = key
+    var badgeHost = $('ku-edit-badge')
+    badgeHost.innerHTML = ''
+    badgeHost.appendChild(ku(key))
+    var isStructure = u.nature === 'structure'
+    $('ku-edit-warn').innerHTML = isStructure
+      ? '<div class="ku-warn" role="alert"><span class="ico">' + ICON.warn + '</span>' +
+        '<span><strong>Attention: you are proposing a STRUCTURE change</strong>' + esc(WARN_STRUCTURE) + '</span></div>'
+      : ''
+    $('ku-edit-target').innerHTML = 'Target: <code>' + esc(u.address || '(no address)') + '</code>'
+    $('ku-edit-notelabel').textContent = isStructure
+      ? 'Note for the blueprint maintainer'
+      : 'Change / note'
+    $('ku-edit-note').value = ''
+    $('ku-edit-modal').setAttribute('data-open', 'true')
+    $('ku-edit-note').focus()
+  }
+
+  function closeEdit() {
+    $('ku-edit-modal').setAttribute('data-open', 'false')
+  }
+
+  function commitEdit() {
+    var key = editingKey
+    closeEdit()
+    if (key) addDraft(key)
+  }
+
+  $('ku-edit-close').addEventListener('click', closeEdit)
+  $('ku-edit-cancel').addEventListener('click', closeEdit)
+  $('ku-edit-propose').addEventListener('click', commitEdit)
 
   var citeDemo = $('open-cite-demo')
   if (citeDemo) {
