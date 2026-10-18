@@ -23,6 +23,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { freshnessGuard } = require('./lib/freshness-guards.js');
 const { runStep } = require('./lib/verify-reporter.js');
 
 // Ensure local node_modules/.bin is accessible on PATH for standalone node invocations
@@ -297,6 +298,10 @@ function inline(check) {
  */
 function buildSteps(repoRoot, _options = {}) {
   const node = (id, desc, ...args) => ({ id, desc, cmd: process.execPath, args });
+  const freshness = (id) => {
+    const g = freshnessGuard(id);
+    return node(g.id, g.desc, g.script, ...g.args);
+  };
   const steps = [];
 
   // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/, test/ and the skills
@@ -396,11 +401,11 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
 
   // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
-  steps.push(node('preflight-primitives', 'Check Preflight Primitives Bundle Fresh', 'scripts/build-preflight-primitives.mjs', '--check'));
+  steps.push(freshness('preflight-primitives'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
-  steps.push(node('skills-manager-bundle', 'Check Skills Manager Bundle Fresh', 'scripts/build-skills-manager-bundle.mjs', '--check'));
+  steps.push(freshness('skills-manager-bundle'));
   // 5b-bis. Shared rules rendered into the end-user skills match their source.
-  steps.push(node('skill-shared-rules', 'Check Skill Shared Rules Fresh', 'scripts/build-skill-shared-rules.mjs', '--check'));
+  steps.push(freshness('skill-shared-rules'));
   // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
   steps.push({
     id: 'skill-script-refs',
@@ -414,15 +419,15 @@ function buildSteps(repoRoot, _options = {}) {
     }),
   });
   // 7. Blueprint Catalog Drift Guard.
-  steps.push(node('blueprint-catalog', 'Check Blueprint Catalog Fresh', 'scripts/blueprint-catalog.mjs', '--check'));
+  steps.push(freshness('blueprint-catalog'));
   // 7b. nn-sources core mirror drift guard (render of innfo-core trannsform primitives).
-  steps.push(node('core-mirror', 'Check Trannsform Core Mirror Fresh', 'scripts/build-trannsform-core-mirror.mjs', '--check'));
+  steps.push(freshness('core-mirror'));
   // 7b-bis. Console payload mirror drift guard.
-  steps.push(node('console-payload', 'Check Console Payload Mirror Fresh', 'scripts/build-console-payload.mjs', '--check'));
+  steps.push(freshness('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
-  steps.push(node('console-bundle', 'Check Console Bundle Fresh', 'scripts/build-console-bundle.mjs', '--check'));
+  steps.push(freshness('console-bundle'));
   // 7c. Samples SSOT Drift Guard.
-  steps.push(node('samples-parity', 'Check Samples Parity with _samples_nn', 'scripts/sync-samples.mjs', '--check'));
+  steps.push(freshness('samples-parity'));
   // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
   steps.push(node('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7c-ter. Procedures version coherence: every procedure tracks the current `procedures` blueprint_version.
@@ -430,7 +435,7 @@ function buildSteps(repoRoot, _options = {}) {
   // 7c-quater. Usage procedure convention: every procedure-bearing blueprint declares a `usage` procedure.
   steps.push(node('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
   // 7d. Version SSOT Drift Guard (manifest/source.yaml vs specs and SKILL.md).
-  steps.push(node('version-parity', 'Check Version Parity with Specs and Skills', 'scripts/sync-versions.mjs', '--check'));
+  steps.push(freshness('version-parity'));
 
   // 7e. Docs-Derived Facts Drift Guard, checked against HEAD, never the working tree (design D5).
   steps.push({
@@ -446,7 +451,7 @@ function buildSteps(repoRoot, _options = {}) {
 
   // 12-15. Repository guards.
   steps.push(node('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
-  steps.push(node('console-shells-fresh', 'Check Generated Console Shells Fresh', 'scripts/build-console-shells.mjs', '--check'));
+  steps.push(freshness('console-shells-fresh'));
   steps.push(node('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
   steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
   steps.push(node('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
