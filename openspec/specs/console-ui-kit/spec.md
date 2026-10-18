@@ -69,17 +69,8 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: InnfoUI Component Contract
 
-`console/ui-kit.js` MUST expose a UMD global `InnfoUI` whose components are pure
-functions `(data, opts) -> HTMLElement`, each marked with `data-innfo-component`,
-whose values are kebab-case: `concept-pill`, `element-pill`, `element-card`,
-`marker-chip`, `status-badge`, `citation-icon`, `ku-badge`, `ku-actions`,
-`ku-change-pip`, `draft-list`, `annotation-popover`, `reviewed-toggle`,
-`rail-progress`. The legacy `field-row` component id is retired: a field is a
-`ku-badge` of kind `field` and the stable field hook becomes
-`[data-innfo-component="ku-badge"][data-ku-kind="field"][data-field]`. Components
-MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state
-through `data-*` attributes, and MUST render user text via text nodes (no
-`innerHTML` with data). Invalid `data` MUST throw a `TypeError` naming the component.
+`console/ui-kit.js` MUST expose a UMD global `InnfoUI` whose components are pure functions `(data, opts) -> HTMLElement`, each marked with `data-innfo-component`, whose values are kebab-case: `ku-unit`, `ku-info-panel`, `element-card`, `status-badge`, `citation-icon`, `draft-list`, `annotation-popover`, `reviewed-toggle`, `rail-progress`. The legacy component ids `concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, and `field-row` are deleted without aliases or delegating wrappers. Components MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state through `data-*` attributes, and MUST render user text via text nodes (no `innerHTML` with data). Invalid `data` or an unknown kind MUST throw a `TypeError` naming the component or kind.
+(Previously: the contract listed `concept-pill`, `element-pill`, `marker-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`.)
 
 #### Scenario: Purity and no shadow DOM
 - GIVEN any component called twice with equal inputs
@@ -90,9 +81,16 @@ through `data-*` attributes, and MUST render user text via text nodes (no
 - WHEN rendered
 - THEN the label appears as text and no `img` element exists
 
-#### Scenario: Invalid input
-- GIVEN `ConceptPill(null)`
-- THEN it throws a `TypeError` mentioning `ConceptPill`
+#### Scenario: Invalid input or unknown kind throws
+- GIVEN `Ku("unknown-kind", {})` or `describeUnit("unknown-kind", {})`
+- THEN it throws a `TypeError` naming the unknown kind
+
+#### Scenario: Legacy builders deleted
+- GIVEN the built kit and console sources
+- WHEN searched for `ConceptPill`, `ElementPill`, `MarkerChip`, `QudChip`, `KuBadge`, `KuActions`
+- THEN no definition or export exists
+
+---
 
 ### Requirement: ConceptPill
 
@@ -132,56 +130,26 @@ through `data-*` attributes, and MUST render user text via text nodes (no
 
 ### Requirement: ElementCard
 
-`InnfoUI.ElementCard({ id, name, conceptId?, description?, fields, markers? }, { domId?, collapsible?, open?, head?, body?, onRef?, onCite?, actions? })` MUST
-return `data-innfo-component="element-card"` with `data-element-id`. The head
-(`.innfo-card-head`) is a one-line Dense Row: an image chip
-(`.innfo-card-thumb`), the name as a `ku-badge` of kind `element`, one
-`marker-chip` per `markers` entry, up to two facts (`.innfo-card-fact`, the name
-in `<b>` followed by the value), a field count when there are fields
-(`.innfo-card-count`, `"N field"`/`"N fields"`), and a chevron toggle
-(`button.innfo-card-toggle`). The image chip is an `<img>` sourced from the first
-field whose value looks like an image (a `data:image/`/`blob:` URL, or a path
-ending in an image extension); with no such field it is a dashed placeholder
-(`.innfo-card-thumb--empty`). The facts skip the image field and empty values.
-Each field MUST render as a `ku-badge` of kind `field` (`name: value`) inside a
-wrapped `.innfo-card-fields` row, and MUST NOT render as a `<dt>/<dd>` pair.
-`description` renders as a facet paragraph (`.innfo-card-desc`) in the body.
-`opts.head` and `opts.body` are arrays of nodes appended to the head and body
-containers (`.innfo-card-head`, `.innfo-card-body`). The card exposes `data-open`;
-when `collapsible` is not `false` (the default) a toggle button with
-`aria-expanded` and a click on the bar both flip it. An empty `fields` array MUST
-render no field badges and no count.
+`InnfoUI.ElementCard({ id, name, conceptId?, description?, fields }, opts)` MUST return `data-innfo-component="element-card"` with `data-element-id`.
+- The element name in `.innfo-card-head` MUST render as a `Ku` badge of kind `element`.
+- Each field MUST render as a `Ku` badge of kind `value` (or `Ku` block variant for complex types) with actions outside.
+- An inherited concept-level field value MUST render labelled `"inherited from <Concept>"` and MUST have editability `none` (info only).
+- `.innfo-card-head` MUST NOT contain `marker-chip` or legacy pill components.
+(Previously: the card accepted `markers` and rendered `marker-chip` elements in the head.)
 
-#### Scenario: Card with fields
-- GIVEN three fields
-- THEN the card has one head and three `ku-badge[data-ku-kind=field]` children in one `.innfo-card-fields` row
-- AND no `<dt>` exists
+#### Scenario: Element name and fields rendered via Ku
+- GIVEN an element with name `"Slimer"` and two fields
+- WHEN `ElementCard` renders
+- THEN `.innfo-card-head` contains `[data-innfo-component="ku-unit"][data-ku-kind="element"]`
+- AND field values render as `[data-innfo-component="ku-unit"][data-ku-kind="value"]`
 
-#### Scenario: Card without fields
-- GIVEN `fields: []`
-- THEN the card has a head, no field badges and no `.innfo-card-count`
+#### Scenario: Inherited value is info-only on element card
+- GIVEN a card displaying an inherited concept-level value `"core"` from concept `"Threat"`
+- WHEN rendered
+- THEN the value badge shows `"inherited from Threat"`
+- AND no edit pencil is rendered or enabled on that card
 
-#### Scenario: Name is an element badge
-- GIVEN a card with `name: "Slimer"` and `conceptId: "paranormal-threat"`
-- THEN `.innfo-card-head` contains a `ku-badge[data-ku-kind=element]` whose text is `Slimer`
-
-#### Scenario: Dense bar image chip
-- GIVEN a field whose value ends in `.png`
-- THEN `.innfo-card-head img.innfo-card-thumb` has that value as its `src`
-- AND a card with no image-looking field renders `.innfo-card-thumb--empty`
-
-#### Scenario: Collapsed by default
-- GIVEN `{ open: false }`
-- THEN `data-open="false"` and the toggle reports `aria-expanded="false"`
-- AND activating the toggle sets `data-open="true"`
-
-### Requirement: MarkerChip
-
-`InnfoUI.MarkerChip({ id, label, kind })` MUST render `data-innfo-component="marker-chip"` with `data-marker-id` and `data-kind`.
-
-#### Scenario: Marker render
-- GIVEN `{ id: "m1", label: "Risk", kind: "risk" }`
-- THEN `data-marker-id="m1"` and `data-kind="risk"`
+---
 
 ### Requirement: StatusBadge
 
@@ -272,17 +240,21 @@ The kit MUST provide presentational review components. They MUST hold no review 
 
 ### Requirement: Renderers Consume the Kit
 
-`InnfoConsole` MUST build concept pills, element pills, element cards, marker chips, and icons exclusively through `InnfoUI`. `renderConceptPill`, `renderElementPill`, `renderCards`, `svgIcon`, and the `.chip` / `.el-head` / `.el-name` builders MUST be deleted with no aliases or shims.
-(Previously: the requirement also covered `InnfoModelViewer`, a second renderer that no longer exists.)
+All console renderers (`mountElementTable`, `renderMatrices`, cards, rail, facets, guide, dialogs, stepper, timeline, and custom views) MUST build knowledge units exclusively through `ctx.ui.Ku`.
+- A two-layer guard (static file scan + jsdom tree check) MUST fail CI if any table cell (`td`, `th`), definition list item (`dd`, `dt`), or unit container renders bare unbadged unit text without carrying `data-ku-exempt="<reason>"`.
+- `data-ku-exempt` MUST be restricted to the frozen reasons in `KU_EXEMPT_REASONS`: `metamodel-svg`, `chart`, `numeric-aggregate`, `csv-subunit-label`.
+- The guard MUST verify that every `data-ku-address` in the console parses with `parseUnitAddress` and that no address is associated with two different kinds.
+(Previously: the requirement only forbade duplicate legacy builders in `console/*.js`.)
 
-#### Scenario: No duplicate builders
-- GIVEN the `console/*.js` sources and bundle
-- WHEN searched for `renderConceptPill`, `renderElementPill`, `renderCards`, `svgIcon`, `className = 'chip'`, `el-head`
-- THEN no occurrence exists outside `ui-kit.js`
+#### Scenario: Guard detects unbadged unit cell
+- GIVEN a table cell rendering raw element text without `Ku` and without `data-ku-exempt`
+- WHEN the jsdom guard runs over the testlab console
+- THEN the guard fails reporting the unbadged cell
 
-#### Scenario: Same concept, same markup
-- GIVEN one concept rendered by `InnfoConsole` in a whole-domaiNN console and in a console scoped to that concept's model
-- THEN `data-innfo-component` and `data-concept-id` are identical
+#### Scenario: Valid exempt element passes
+- GIVEN a chart series carrying `data-ku-exempt="chart"`
+- WHEN the guard runs
+- THEN it passes without requiring an addressed badge
 
 ### Requirement: Offline Invariant
 
@@ -316,85 +288,104 @@ Token names, component signatures, and every `data-*` hook MUST be documented in
 
 ### Requirement: Knowledge-Unit Badge Family
 
-`console/ui-kit.js` MUST expose `InnfoUI.KuBadge(data, opts)` returning
-`data-innfo-component="ku-badge"` with `data-ku-kind` set to one of `document`,
-`element`, `concept`, `field`, `cell`, `marker`, `reference`. All variants share
-one grammar: the badge shape encodes the unit kind, the concept color encodes the
-concept, and the unit's identity is the slug — there MUST be exactly one
-presentation per canonical address. `data` MUST be an object or the component MUST
-throw a `TypeError` naming `KuBadge`.
+The kit MUST provide a pure descriptor generator `describeUnit(kind, ref, index)` and a single DOM builder `Ku(kind, ref, opts)` returning a wrapper element (`span.innfo-ku-wrap`, `data-innfo-component="ku-unit"`). Every unit is rendered across two orthogonal axes:
+- **nature**: `container` (domain, document, section), `structure` (concept definition, field definition, matrix definition), or `content` (element, value, matrix cell, source unit).
+- **home**: `domain`, `blueprint`, `knowledge`, or `source` (derived via `unitHome`).
 
-Presentation per kind:
+Visual grammar:
+- Container units use a double border.
+- Structure units use a dashed border and monospace typography.
+- Content units use a solid border.
+- Source units use a warm paper background token (`--innfo-source-paper`, with contrast-tested light and dark variants).
+- Concept identity is encoded via the concept color token.
+- Badges carry `aria-label` spelling out nature and home (e.g., `"structure, lives in bluepriNNt: Field owner"`).
 
-- `document` and `concept`: a concept-tinted fill (`--innfo-concept-<slot>-bg`), a
-  concept-colored border, the concept icon and the label. `data-concept-id` and
-  `data-concept-slot` (1..12) MUST be set.
-- `element`: a neutral fill, a border in the concept color, the concept icon and
-  the label. `data-element-id` and `data-concept-slot` MUST be set.
-- `field`: literal `name: value` text (name muted, value normal) in a neutral
-  border. `data-field` MUST equal the field name.
-- `cell`: the value only, in a neutral border.
-- `marker`: the marker label and, when present, its value. `data-marker-id` and
-  `data-kind` MUST be set.
-- `reference`: the `element` presentation, and it MUST be navigable when
-  `opts.href` is given.
+Allowed kinds: `domain`, `document`, `section`, `element`, `value`, `concept`, `field`, `matrix`, `source`.
+- `value` units carry `vtype` from the declared L1 0-5-0 Field type or widget (`string`, `select`, `reference`, `number`, `boolean`, `markdown_inline`, `image`, etc.).
+- When `opts.variant === 'block'`, `Ku` renders a framed block container (`data-ku-variant="block"`) for markdown, media, code, or reference blocks.
+- Tags render as `value` badges of an ordinary `select` field, colored by a stable hash of the tag name (`UI.tagSlot`).
+- Every badge carries `data-ku-address`, `data-ku-kind`, `data-ku-nature`, and `data-ku-home`.
 
-The badge root MUST be non-interactive (`span`) when it carries any action, so that
-an action control is never nested inside an interactive root. When `opts.href` or
-`opts.onSelect` is given and there is no action, the root MAY be `a` / `button`.
+No action control MUST be nested inside the badge root.
 
-#### Scenario: Every kind renders its data hook
-- GIVEN `KuBadge` called with each of the seven kinds
-- THEN each returns `data-innfo-component="ku-badge"` and the matching `data-ku-kind`
-- AND the kind-specific hook (`data-element-id`, `data-field`, `data-marker-id`, `data-concept-id`) is present
+(Previously: `KuBadge` rendered kind-specific badges with kinds `document`, `element`, `concept`, `field`, `cell`, `marker`, `reference` and nested action clusters.)
 
-#### Scenario: Field renders name and value
-- GIVEN `{ kind: "field", name: "owner", value: "Slimer" }`
-- THEN the text contains `owner` and `Slimer` and `data-field="owner"`
+#### Scenario: Every kind renders nature, home, and address
+- GIVEN `describeUnit` and `Ku` called with valid units for each of the nine kinds
+- THEN each returns `data-innfo-component="ku-unit"` with matching `data-ku-kind`, `data-ku-nature`, `data-ku-home`, and `data-ku-address`
+- AND `aria-label` describes both nature and home
 
-#### Scenario: Invalid data
-- GIVEN `KuBadge(null)`
-- THEN it throws a `TypeError` mentioning `KuBadge`
+#### Scenario: Block variant for structured values
+- GIVEN `Ku("value", ref, { variant: "block", body: contentNode })`
+- THEN the container has `data-ku-variant="block"` and wraps `contentNode`
+
+#### Scenario: Tag renders as select value badge
+- GIVEN a tag value `"pricing"` on field `"tags"`
+- THEN it renders as a `value` badge with `data-ku-kind="value"`, `data-field="tags"`, and a color slot derived from `"pricing"`
 
 #### Scenario: Script-injection text is inert
 - GIVEN `data.label` containing `<img src=x onerror=alert(1)>`
 - WHEN an `element` badge renders it
 - THEN the label appears as text and no `img` element exists
 
+---
+
 ### Requirement: Unit Action Cluster
 
-`InnfoUI.KuActions(data, opts)` MUST return
-`data-innfo-component="ku-actions"`, a non-interactive `span` holding the unit's
-action controls to the right of the badge. It MUST render the info control
-(`[data-ku-action="info"]`) when `opts.onInfo` is given, and the edit control
-(`[data-ku-action="edit"]`, a pencil) when `opts.onEdit` is given. The kit holds no
-mode state: an edit control exists only because the caller passed `onEdit`, so
-review-mode gating lives outside the kit. Actions MUST NOT be nested inside an
-interactive badge root.
+`Ku` MUST render the unit's action controls immediately outside the badge root, in a sibling container (`span.innfo-ku-actions`).
+- Action cluster inline width MUST be reserved inside cell or row padding to ensure zero layout shift when revealing controls.
+- Action icons MUST reveal on `:hover` or `:focus-within` of `.innfo-ku-wrap`, and remain visible while pointer is over the cluster until Escape or blur.
+- Under `@media (hover: none)`, action controls MUST remain permanently visible in normal static flow.
+- Every action button MUST meet WCAG 2.2 AA 2.5.8 target size (minimum 24x24 px).
+- The **info** button (`[data-ku-action="info"]`) MUST be present for EVERY kind, opening `KuInfoPanel`.
+- The **edit** button (`[data-ku-action="edit"]`, pencil) MUST be emitted whenever `editability !== 'none'`.
+- Review-mode gating is enforced via CSS: `html:not([data-innfo-review=on])` and `html:not([data-innfo-structure=on])` set `display: none` on edit buttons.
+- Keyboard navigation within any `[data-ku-group]` (card, table row, matrix row) MUST use a single tab stop with roving `tabindex`. Arrow keys move between units and action buttons.
 
-#### Scenario: Info only
-- GIVEN `KuActions({}, { onInfo })`
-- THEN one `[data-ku-action=info]` exists and no `[data-ku-action=edit]` exists
+(Previously: `KuActions` was a standalone component that was omitted when callbacks were absent.)
 
-#### Scenario: Edit present only with callback
-- GIVEN `KuActions({}, { onInfo, onEdit })`
-- THEN both controls exist and clicking edit calls `onEdit` once
+#### Scenario: Action width reserved with no layout shift
+- GIVEN a table cell rendering a `Ku` badge
+- WHEN hovered or focused
+- THEN `.innfo-ku-actions` becomes visible without shifting adjacent text or badges
+
+#### Scenario: Target size satisfies WCAG 2.5.8
+- GIVEN rendered action buttons in `.innfo-ku-actions`
+- WHEN their bounding box is evaluated
+- THEN every target is at least 24x24 px
+
+#### Scenario: Info action exists for every kind
+- GIVEN any unit kind rendered via `Ku`
+- THEN `[data-ku-action="info"]` exists in its action cluster
+
+#### Scenario: Mobile touch keeps actions visible
+- GIVEN `@media (hover: none)`
+- WHEN `Ku` renders
+- THEN `.innfo-ku-actions` is statically positioned and visible without hover
+
+---
 
 ### Requirement: Pending-Change Pip
 
-`KuBadge` MUST render a pending-change pip when `data.changes` is an integer `> 0`:
-a child `[data-innfo-component="ku-change-pip"]` carrying the count text, and it
-MUST set `data-ku-changes="<n>"` on the badge. The badge border MUST use the
-aggregate status token when changes are pending. The pip is the clickable
-affordance to the unit's changes and MUST call `opts.onChanges` when given.
+`Ku` MUST render a pending-change pip (`button[data-innfo-component="ku-change-pip"]`) beside the badge whenever pending changes exist for that unit's address:
+- Pip count MUST equal the pending draft count for `data-ku-address`.
+- The pip MUST carry `aria-label="<n> pending changes on <unit-label>"`.
+- Activating the pip MUST trigger the changes action for that address.
+- `setUnitChanges(root, countsByAddress)` MUST update pip counts across the DOM keyed by canonical address.
 
-#### Scenario: Pip shows the count
-- GIVEN `{ kind: "field", name: "x", value: "v", changes: 2 }`
-- THEN `data-ku-changes="2"` and the pip text is `2`
+(Previously: pips were children of `KuBadge` and keyed only by local element/field context.)
 
-#### Scenario: No pip without changes
-- GIVEN `data.changes` absent
-- THEN no `[data-innfo-component=ku-change-pip]` exists
+#### Scenario: Pip reflects count by address
+- GIVEN unit address `"strategy@vision&statement"` with 2 pending drafts
+- WHEN `setUnitChanges` updates the tree
+- THEN the badge carries `data-ku-changes="2"` and the pip text is `"2"`
+
+#### Scenario: Matrix cell receives pip
+- GIVEN matrix cell address `"swot@swot-matrix&strength-1&opportunity-1"` with 1 draft
+- WHEN `setUnitChanges` runs
+- THEN the cell badge renders a pip with count `1`
+
+---
 
 ### Requirement: Type-Aware Field Value Rendering
 
@@ -537,21 +528,26 @@ The kit MUST provide `InnfoUI.Markdown(text, opts)`, a renderer for a safe markd
 
 ### Requirement: Element Card Tag Row
 
-`ElementCard` MUST render `TagRow` from `element.tags` when the array is non-empty, one chip (`[data-tag]`) per tag, and MUST render no tag row when it is empty or absent (today an empty array still yields an empty row). The runtime MUST pass the payload's `element.tags` to the card. Tag text MUST be inert text. Clicking a chip MUST call `opts.onTag(tag)`; the runtime wires it to add `tag:<tag>` to the active filter. The existing tag-proposal decoration (`review.js`, a comment draft) is unchanged. (S3b P1-7.)
+`ElementCard` MUST render `TagRow` from the element's effective `tags` Field values (own plus inherited, de-duplicated) when non-empty, one chip (`[data-tag]`) per tag, and MUST render no tag row when empty or absent. Each chip MUST take its color from the tag-name color derivation (requirement "Tag Color From Name"). Tag text MUST be inert text. Clicking a chip MUST call `opts.onTag(tag)`; the runtime wires it to add the generic `tags:<tag>` field facet to the active filter. Proposing a tag change from the card produces a `correction` draft on field `tags` carrying the full new array (applied as `update_field`), not a comment draft. (Previously: tags were a derived `element.tags` array, the filter token was `tag:<tag>`, and tag proposals were comment drafts.)
 
 #### Scenario: Tags show on the card
-- GIVEN an element with `tags: ["pricing", "ai"]`
+- GIVEN an element whose effective `tags` are `["pricing", "ai"]`
 - WHEN its card renders
 - THEN a `[data-innfo-component=tag-row]` holds chips with `data-tag="pricing"` and `data-tag="ai"`
 
+#### Scenario: Inherited tag shows on the card
+- GIVEN an element with no own `tags` whose concept carries `tags:: [core]`
+- WHEN its card renders
+- THEN a chip with `data-tag="core"` exists
+
 #### Scenario: No tags, no row
-- GIVEN an element with `tags: []`
+- GIVEN an element with no effective `tags`
 - THEN no tag row exists
 
 #### Scenario: Chip click filters
 - GIVEN a rendered `pricing` chip in a booted console
 - WHEN it is clicked
-- THEN the active filter contains `tag:pricing` and only elements tagged `pricing` are listed
+- THEN the active filter contains `tags:pricing` and only elements whose `tags` include `pricing` are listed
 
 #### Scenario: Hostile tag is inert
 - GIVEN a tag `<img src=x onerror=alert(1)>`
@@ -573,6 +569,56 @@ A field declared `image`, `video` or `audio` MUST render through the media rende
 #### Scenario: Unsafe media source is text
 - GIVEN a field declared `video` with value `javascript:alert(1)`
 - THEN no `video` element exists and the value is shown as text
+
+### Requirement: Tag Color From Name
+
+A tag chip color MUST be derived deterministically from the tag name: one exported, unit-tested function, `UI.tagSlot` in `ui-kit.js`, maps the tag name to one of the 12 existing concept color slots using FNV-1a 32-bit over `valueKey(name)` and `slot = (h >>> 0) % 12 + 1`, with no stored color, icon or symbol. A golden-vector test MUST pin the results. The same name MUST yield the same slot in every console, session and export, and the console runtime and static exports MUST use that single implementation. Names differing only in case or surrounding whitespace MUST yield the same slot (`valueKey`).
+
+#### Scenario: Stable slot
+- GIVEN the tag name `pricing`
+- WHEN the function is called repeatedly and in separate consoles
+- THEN it returns the same slot in 1..12 every time
+
+#### Scenario: Range
+- GIVEN 1,000 distinct tag names
+- WHEN each is mapped
+- THEN every result is in 1..12 and more than one slot is used
+
+#### Scenario: Chip carries the slot
+- GIVEN a `pricing` tag chip
+- WHEN rendered
+- THEN its `data-concept-slot` equals the function's result for `pricing`
+
+#### Scenario: Different names may differ, equal names never do
+- GIVEN two renders of the same element in different scoped consoles
+- WHEN chip colors are compared
+- THEN each tag has an identical slot in both
+
+### Requirement: KuInfoPanel
+
+The kit MUST provide `InnfoUI.KuInfoPanel(descriptor)` rendering an accessible dialog (`dialog[data-innfo-component="ku-info-panel"][role="dialog"]`) displaying unit metadata for any unit kind:
+- Header containing the unit label, nature, and home.
+- Rows for: kind, nature, Lives in, canonical address (with a Copy Address button), Location (human header form or file URL), and editability with human reason.
+- Kind-specific facts:
+  - `concept`, `field`, `matrix`: declaring bluepriNNt and version, type/options/widget, and usage count in the domaiNN.
+  - `section`: element count.
+  - `document`: bluepriNNt family, version, element count, change count, sha256.
+  - `domain`: model count, Source count.
+  - `source`: path, anchor, version, sha256, exists flag.
+  - `element`, `value`: "Open lineage" link targeting `EditModal` history.
+- Focus MUST move to the panel heading on open; Escape MUST close the dialog and restore focus to the triggering info button.
+
+#### Scenario: Info panel opens for structure unit
+- GIVEN a `field` definition unit badge
+- WHEN the info action is triggered
+- THEN `KuInfoPanel` opens showing its declaring bluepriNNt, type, and usage count
+
+#### Scenario: Focus management on open and close
+- GIVEN focus on an info button
+- WHEN activated
+- THEN focus moves inside the opened dialog
+- AND WHEN Escape is pressed
+- THEN the dialog closes and focus returns to that info button
 
 ## Deferred Items
 

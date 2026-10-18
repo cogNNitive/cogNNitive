@@ -6,23 +6,31 @@ One shared versioned runtime (`innfo-runtime.js`) plus a thin console shell (`ar
 ## Requirements
 ### Requirement: Shared UMD/IIFE Runtime
 
-The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global (`window.InnfoConsole`). The console bundle MUST also include `ui-kit.js` (`window.InnfoUI`), ordered before any module that consumes it, and MUST inject the design tokens at boot. The runtime and kit MUST NOT use `fetch()` and MUST NOT use `type=module`. They MUST be hosted on GitHub Pages and jsDelivr, with a vendored local fallback for offline use.
-(Previously: the kit-ordering scenario named `InnfoModelViewer` as a second consumer.)
+The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global (`window.InnfoConsole`). The bundle MUST include `ui-kit.js` (`window.InnfoUI`), `innfo-address.generated.js` (`window.InnfoAddress`), ordered before any module that consumes them.
 
-#### Scenario: Offline file:// open
-- GIVEN a generated console referencing the runtime
-- WHEN opened via `file://` double-click with no network
-- THEN the console renders fully from the local fallback
+The runtime MUST instantiate `createKu({ index, onAction })` once at boot and expose the builder as `ctx.ui.Ku`. All console renderers (cards, tables, matrices, rail, facets, guide, timeline, stepper, dialogs) MUST render knowledge units exclusively via `ctx.ui.Ku`.
 
-#### Scenario: No module primitives in runtime
-- GIVEN the published `innfo-runtime.js` and bundle
-- WHEN scanned for `fetch(` and `type=module`
-- THEN neither token appears
+The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the runtime context; views MUST NOT attempt to invoke modal editors directly. All unit edits and review actions flow through `onAction(action, descriptor)`.
 
-#### Scenario: Kit available before consumers
-- GIVEN the bundle loaded
-- WHEN `InnfoConsole` initializes
-- THEN `window.InnfoUI` is already defined
+(Previously: `ui-kit.js` did not export `createKu`/`Ku`, and `ctx.modal.edit`/`comment` were exposed on the view context.)
+
+#### Scenario: Ku exposed on runtime context
+- GIVEN a booted console runtime
+- WHEN a view's `mount(ctx)` executes
+- THEN `ctx.ui.Ku` is a callable DOM builder function
+- AND `ctx.modal.edit` is undefined
+- AND `ctx.modal.comment` is undefined
+
+#### Scenario: Renderers consume Ku
+- GIVEN table and matrix views rendered by `InnfoConsole`
+- WHEN the DOM is inspected
+- THEN cells and headers carry `data-innfo-component="ku-unit"`
+- AND no legacy `.chip` or unbadged unit text exists
+
+#### Scenario: Edit action dispatches through onAction
+- GIVEN a unit edit pencil clicked in review mode
+- WHEN the click event bubbles
+- THEN the delegated listener invokes `onAction('edit', descriptor)`
 
 ### Requirement: Console Shell with Config and JSON Slots
 
@@ -248,13 +256,23 @@ relations. Incoming relations are derived by scanning every element's
 
 The runtime MUST provide a right-hand concept guide (`#innfo-concept-guide`) that
 appears when a single concept is in focus (a `concept:` filter) and shows the
-concept's description, field schema, markers, associated matrices and element
-count; it MUST be removed when no single concept is in focus.
+concept's description, field schema (including each field's widget and whether it is multi-valued), concept-level field values, associated matrices and element
+count; it MUST be removed when no single concept is in focus. It MUST NOT show a Markers section.
+(Previously: the guide listed the concept's markers.)
 
 #### Scenario: Concept in focus
 - GIVEN a `concept:Fleet` filter and a Fleet concept with a description
 - WHEN the explorer refreshes
 - THEN `#innfo-concept-guide` renders the description, fields, matrices and element count
+
+#### Scenario: Concept-level values shown
+- GIVEN a concept with `tags:: [core]`
+- WHEN it is in focus
+- THEN the guide lists `tags` with `core`
+
+#### Scenario: No markers section
+- GIVEN any concept in focus
+- THEN the guide contains no "Markers" section
 
 #### Scenario: Focus cleared
 - GIVEN the guide is shown
@@ -385,35 +403,6 @@ The runtime SHALL resolve a field's declared definition (`type`, `options`, `tar
 - WHEN its edit modal opens
 - THEN the widget is `input[type=number]`
 
-### Requirement: Tag Facet Matching
-
-The filter SHALL treat `tag:<t>` as exact, case-insensitive membership in `element.tags`, and multiple `tag:` tokens MUST combine with AND. `tag-any:<t>` tokens MUST form one OR group: an element matches the group when it carries at least one of them. The `tag:` set, the `tag-any:` group and every other facet MUST combine with AND. Substring matching MUST NOT be used for tags. `element.tags` is the only tag source: a field that happens to be named `tags` or `tag` MUST NOT be read by the tag facet (full-text search still finds its value). Model and concept facets keep their OR semantics; the asymmetry MUST be stated in the filter help text or documentation. (S3b P0-4.)
-
-#### Scenario: Tags narrow with AND
-- GIVEN elements A `tags: [ai, pricing]` and B `tags: [ai]`
-- WHEN the filter is `tag:ai tag:pricing`
-- THEN only A is listed (today A and B are, by OR)
-
-#### Scenario: Exact match, not substring
-- GIVEN an element with `tags: [retail]`
-- WHEN the filter is `tag:ai`
-- THEN it is not listed (today `ai` matches inside `retail`)
-
-#### Scenario: tag-any widens with OR
-- GIVEN elements A `tags: [ai]`, B `tags: [pricing]`, C `tags: [ops]`
-- WHEN the filter is `tag-any:ai tag-any:pricing`
-- THEN A and B are listed and C is not
-
-#### Scenario: Mixed AND and OR
-- GIVEN elements A `tags: [core, ai]`, B `tags: [core, pricing]`, C `tags: [ai]`
-- WHEN the filter is `tag:core tag-any:ai tag-any:pricing`
-- THEN A and B are listed and C is not
-
-#### Scenario: A field named tags is not a tag source
-- GIVEN an element with no `tags` and a string field `tags: "ai"`
-- WHEN the filter is `tag:ai`
-- THEN it is not listed
-
 ### Requirement: Knowledge Field Click-Through
 
 A field declared `knowledge` SHALL render as a pill naming the bound model. When the value (ignoring `[[ ]]`, a leading `kNNowledge/` path and the `_NN.md`/`.md` suffix, case-insensitively) matches the file stem, `id` or `title` of an entry of `meta.models`, clicking the pill MUST apply the same `model:` filter the rail applies for that model. When it matches no model the pill MUST be inert and clicking it MUST NOT throw. The console MUST NOT offer to create or bind a model. (S3b P1-9.)
@@ -450,4 +439,49 @@ The citation detail dialog SHALL show, for every entry that carries an `href` (s
 - GIVEN an entry whose `href` is `javascript:alert(1)`
 - WHEN the dialog renders it
 - THEN no `a` element is created for it
+
+### Requirement: Field Facet Matching
+
+The filter MUST support `<field>:<value>` for any declared Field, generalising the existing generic field filter. For a multi-valued Field (or any array value) the match MUST be exact, case-insensitive membership in the element's effective values (own plus inherited); substring matching MUST NOT be used for array membership. Matching MUST be type-aware: an array value uses exact `valueKey` membership, a scalar `select` uses exact case-insensitive equality, and other types use substring; numeric comparators are unchanged. Repeated `<field>:<value>` tokens, for the same or different fields, MUST combine with AND. Any-of is written with `|` inside one token, `<field>:a|b`, and matches an element carrying at least one of the listed values; each such token is one OR group. Every token and every other facet MUST combine with AND. Scalar Fields keep the existing generic matching. Model and concept facets keep their OR semantics; the asymmetry MUST be stated in the filter help text or documentation. No dedicated `tag:` or `tag-any:` branch or alias remains. A facet rail or add-facet menu MUST list each `select` Field's values. (Previously: tag facet matching; see the removed requirement.)
+
+#### Scenario: Values narrow with AND
+- GIVEN elements A `tags: [ai, pricing]` and B `tags: [ai]`
+- WHEN the filter is `tags:ai tags:pricing`
+- THEN only A is listed
+
+#### Scenario: Exact membership, not substring
+- GIVEN an element with `tags: [retail]`
+- WHEN the filter is `tags:ai`
+- THEN it is not listed
+
+#### Scenario: Any-of widens with OR
+- GIVEN elements A `tags: [ai]`, B `tags: [pricing]`, C `tags: [ops]`
+- WHEN the filter is `tags:ai|pricing`
+- THEN A and B are listed and C is not
+
+#### Scenario: Mixed AND and any-of
+- GIVEN elements A `tags: [core, ai]`, B `tags: [core, pricing]`, C `tags: [ai]`
+- WHEN the filter is `tags:core tags:ai|pricing`
+- THEN A and B are listed and C is not
+
+#### Scenario: Works for any multi-valued field
+- GIVEN a multi-valued Field `labels` and elements A `labels: [x, y]` and B `labels: [y]`
+- WHEN the filter is `labels:x`
+- THEN only A is listed
+
+#### Scenario: Inherited values match
+- GIVEN an element with no own `tags` whose concept carries `tags:: [core]`
+- WHEN the filter is `tags:core`
+- THEN the element is listed
+
+#### Scenario: A field named tags is a facet source
+- GIVEN an element whose Field `tags` is `[ai]`
+- WHEN the filter is `tags:ai`
+- THEN it is listed (reverses the former "not a tag source" rule)
+
+#### Scenario: Legacy token is not special
+- GIVEN the filter `tag:ai`
+- WHEN it is evaluated
+- THEN it is treated as the generic filter on a Field named `tag`, with no tag-specific branch
+- AND `tag-any:ai` likewise has no special meaning
 

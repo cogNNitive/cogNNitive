@@ -6,28 +6,35 @@ One payload contract and one builder (`buildConsolePayload`, in `innfo-core/src/
 ## Requirements
 ### Requirement: Single Payload Builder
 
-`buildConsolePayload` MUST be the only payload builder. The CLI (`scripts/export-console.mjs`) MUST delegate to it and MUST NOT hand-build payloads. The result MUST carry both slots: `schema` (for `innfo-schema`) and `model` (for `innfo-model`, holding `meta`, `elements` and `matrices`). `relations` MUST be emitted per element as `el.relations: {field, target, targetLabel}[]` (intra-model wikilink targets only), because the runtime reads it per element; there is no model-level `relations`. `element.markers` MUST be a map and `schema.markers` a list of definitions. The runtime reads `schema.concepts` as an array and matrix `rows`/`cols`, so the builder MUST emit array schema slots (via `buildConsoleSchemaSlot`) and matrices with `rows` and `cols` (and MAY emit the additive `head` metadata). The CLI MUST serialize the slots with `serializeConsoleSlot` (two-space JSON with `<` escaped as `<`). The CLI MUST obtain its `schema` slot from the shared console schema resolver (capability `console-schema-resolution`).
-(Previously: the CLI and the `compile_model_console` procedure both delegated to it, the procedure through the `build_console_payload` MCP tool; a golden test compared the two.)
+`buildConsolePayload` MUST be the only payload builder. The CLI (`scripts/export-console.mjs`) MUST delegate to it and MUST NOT hand-build payloads.
 
-#### Scenario: CLI builds through the builder
-- GIVEN one fixture domaiNN
-- WHEN the CLI exports it
-- THEN the `innfo-schema` and `innfo-model` slots equal the builder's serialized output after normalizing `meta.generated` and `meta.citationsResolvedAt`
+The payload contract is extended with unit identity facts:
+- `meta.domain`: an object `{ title, address, modelCount, sourceCount }` where `address` equals `"domaiNN_NN.md"`.
+- `meta.models[]`: each entry carries `family` (the slugified blueprint family name).
+- Schema definitions (`schema.concepts`, `schema.fields`, `schema.matrices`) MUST carry `declaredBy: { family, version, location }`.
+- Domain schema de-duplication MUST use the composite key `(family, name)` (instead of bare name), ensuring definitions retain their declaring blueprint identity and version.
+- `matrices[]` MUST carry `slug` (the matrix slug).
 
-#### Scenario: Relations are emitted
-- GIVEN a model containing relations
-- WHEN the payload is built
-- THEN each element carries `relations` with its intra-model targets, and no `model.relations` exists
+(Previously: `meta.domain` had no `address`, definitions did not carry `declaredBy`, and de-duplication was by bare name.)
 
-#### Scenario: Slot text is script-safe
-- GIVEN a citation excerpt containing `</script>`
-- WHEN the slots are serialized
-- THEN the slot text contains no literal `<`
+#### Scenario: Domain descriptor carries address and counts
+- GIVEN a domain with two models and three sources
+- WHEN the domain payload is assembled
+- THEN `meta.domain.address` is `"domaiNN_NN.md"`
+- AND `meta.domain.modelCount` is `2` and `sourceCount` is `3`
 
-(Removed 2026-10-13: the `MODIFIED: Payload Meta` requirement was dropped. Removing
-`meta.feedbackState` (the verdict-ledger read) is owned by
-`2026-10-13-s2c-retire-legacy-provenance`. The spine contributes only the ADDED per-model
-`sha256`/`citationsResolvedAt` state below.)
+#### Scenario: Schema definitions retain declaredBy
+- GIVEN bluepriNNt `"business"` declaring concept `"Goal"` and field `"owner"`
+- WHEN the schema slot is built
+- THEN `concept.declaredBy.family` is `"business"`
+- AND `field.declaredBy.family` is `"business"`
+
+#### Scenario: Multi-blueprint field definitions survive dedup
+- GIVEN two included bluepriNNts each declaring a field of the same name under their respective concepts
+- WHEN domain schema de-duplication runs
+- THEN both definitions are preserved with their distinct `declaredBy` bluepriNNts
+
+---
 
 ### Requirement: Payload Meta
 
@@ -46,28 +53,28 @@ One payload contract and one builder (`buildConsolePayload`, in `innfo-core/src/
 
 ### Requirement: Element Ids and Hashes
 
-Every element MUST carry `id = element.slug`, the frozen, immutable element slug (`stable-element-identity`), and `hash`, the first 16 hex characters of the sha256 of the canonical JSON of `{concept, name, description, fields, markers}`. The builder MUST NOT derive an id from the concept or name: when any element of the model has no explicit (frozen) slug, `buildConsolePayload` MUST fail with `UNFROZEN_MODEL`, naming the model and telling the user to freeze its slugs (the `freeze_slugs` operation or `migrate-domain.js --freeze-slugs`). The hash MUST NOT change on a version-only edit and MUST change when a field changes. (Previously: `id = slugify(concept + ' ' + name)`, made unique in document order with a `-1`, `-2` suffix, and the slug was a separate field.)
+Every element MUST carry `id = element.slug`, the frozen immutable element slug, and `hash`, the first 16 hex characters of the sha256 of canonical JSON `{concept, name, description, fields, markers}`.
 
-#### Scenario: Id equals the frozen slug
-- GIVEN an element with `slug:: element-1b`
-- WHEN the payload is built
-- THEN `element.id` is `element-1b`
+In addition:
+- `element.canonicalUnit` is RENAMED to `element.location` (carrying the human-readable header location, e.g. `"file_NN.md@## NN Concept: Name"`).
+- `element.unitSlug` is REMOVED without backwards-compatibility alias.
+- Normalization of drafts MUST assign `draft.address`, the canonical unit address targeting the element or value.
 
-#### Scenario: Duplicate names keep distinct ids
-- GIVEN two elements of one concept named `Customer` with slugs `customer` and `customer-2`
-- WHEN built
-- THEN their ids are `customer` and `customer-2`
+(Previously: the location property was named `canonicalUnit`, and `unitSlug` was emitted on elements.)
 
-#### Scenario: An unfrozen model is rejected
-- GIVEN a model with an element lacking `slug::`
-- WHEN the payload is built
-- THEN the build fails with `UNFROZEN_MODEL` naming the model and the freeze remedy
-- AND no payload is produced
+#### Scenario: Location replaces canonicalUnit
+- GIVEN an element in the parsed model
+- WHEN the payload element is built
+- THEN `element.location` is populated with the human location
+- AND `element.canonicalUnit` is undefined
+- AND `element.unitSlug` is undefined
 
-#### Scenario: Hash tracks content only
-- GIVEN a model edited only in its version
-- WHEN rebuilt
-- THEN every element `hash` is unchanged
+#### Scenario: Normalized draft has canonical address
+- GIVEN a draft targeting element `"element-1b"` with field `"photo"` in model `"strategy"`
+- WHEN the draft is normalized
+- THEN `draft.address` is `"strategy@element-1b&photo"`
+
+---
 
 ### Requirement: Single Citation Shape
 
@@ -122,39 +129,23 @@ The CJS mirror `console/console-payload.generated.cjs` MUST be listed in the man
 
 ### Requirement: Matrix Header Metadata
 
-`ConsolePayloadMatrix` MUST accept an optional `head` object carrying per-header
-identity metadata so a renderer can draw row and column headers as knowledge-unit
-badges instead of escaped plain text:
-
-```
+`ConsolePayloadMatrix` MUST provide a `head` object carrying per-header identity metadata:
+```ts
 head?: {
-  rows: Record<string, { label?: string; concept?: string; kind?: "element" | "marker" }>
-  cols: Record<string, { label?: string; concept?: string; kind?: "element" | "marker" }>
+  rows: Record<string, { label?: string; concept?: string; slug?: string; kind?: "element" | "marker" }>
+  cols: Record<string, { label?: string; concept?: string; slug?: string; kind?: "element" | "marker" }>
 }
 ```
 
-`rows` and `cols` MUST remain `string[]` (the header keys, in document order) so
-existing consumers and fixtures are unaffected; `head` is additive. For the
-reserved `item-markers matrix`, column headers MUST carry `kind: "marker"` (columns
-are Markers); for a free matrix, row headers carry the `source` concept and column
-headers the `target` concept with `kind: "element"`. When `head` is absent, a
-renderer MUST fall back to plain-text headers and MUST NOT throw.
+For free matrices, `slug` MUST be populated with the header element's frozen slug. When no slug exists, it falls back to `slugifyHeading(label)`.
 
-#### Scenario: Free matrix headers carry concepts
-- GIVEN a free matrix with `source: "Problems"` and `target: "Value Propositions"`
-- WHEN the payload is built
-- THEN `head.cols[<col>].concept` is the target concept and `kind` is `element`
-- AND `head.rows[<row>].concept` is the source concept
+(Previously: `head` entries carried `label`, `concept`, `kind`, but did not require `slug`.)
 
-#### Scenario: item-markers columns are markers
-- GIVEN the reserved `item-markers matrix`
-- WHEN the payload is built
-- THEN every `head.cols[<col>].kind` is `marker`
-
-#### Scenario: Additive and optional
-- GIVEN a matrix built without header metadata
-- WHEN a renderer draws it
-- THEN row and column headers render as plain text and nothing throws
+#### Scenario: Header element slug emitted
+- GIVEN a free matrix whose row represents element `"Strategy A"` with slug `"strategy-a"`
+- WHEN the matrix payload is built
+- THEN `head.rows["Strategy A"].slug` is `"strategy-a"`
+- AND `head.rows["Strategy A"].kind` is `"element"`
 
 ### Requirement: Per-model state in meta.models
 
@@ -192,7 +183,8 @@ The system MUST NOT expose a `build_console_payload` MCP tool, MUST NOT ship a `
 
 ### Requirement: Declared Field Definitions in the Schema Slot
 
-`buildConsoleSchemaSlot` MUST emit `schema.fields` as a flat array with one entry per declared field, flattened from `schema.concepts[].fields`, where each entry carries `concept` (the owning concept name), `name`, `type` and, when declared, `options`, `target_concepts` and `target_blueprint`. The domain payload assembled by `scripts/export-console.mjs` MUST aggregate these arrays across models, de-duplicated by the pair (`concept`, `name`) with the first definition winning (the same order in which concepts are de-duplicated), and MUST NOT emit `schema.fields` as an object keyed by field name. A test MUST export a real fixture domaiNN whose bluepriNNt declares typed fields and assert on the exported slot; a hand-built schema object MUST NOT be the only evidence. (S3b P0-1.)
+`buildConsoleSchemaSlot` MUST emit `schema.fields` as a flat array with one entry per declared field, flattened from `schema.concepts[].fields` (after `*` and list targets are expanded, so one entry per concept), where each entry carries `concept` (the owning concept name), `name`, `type` and, when declared, `options`, `target_concepts`, `target_blueprint`, `description`, `widget`, `widgetConfig` and the multi-value flag `multiple`. The domain payload assembled by `scripts/export-console.mjs` MUST aggregate these arrays across models, de-duplicated by the pair (`concept`, `name`) with the first definition winning (the same order in which concepts are de-duplicated), and MUST NOT emit `schema.fields` as an object keyed by field name. A test MUST export a real fixture domaiNN whose bluepriNNt declares typed fields and assert on the exported slot; a hand-built schema object MUST NOT be the only evidence. (S3b P0-1.)
+(Previously: entries carried only `concept`, `name`, `type`, `options`, `target_concepts`, `target_blueprint`.)
 
 #### Scenario: Concept fields are flattened with their concept
 - GIVEN a bluepriNNt schema whose concept `Initiative` declares `stage` (`type: select`, `options: [idea, build]`) and `owner` (`type: reference`, `target_concepts: [Person]`)
@@ -216,28 +208,38 @@ The system MUST NOT expose a `build_console_payload` MCP tool, MUST NOT ship a `
 - WHEN the domain payload is assembled
 - THEN `schema.fields` holds exactly one (`Task`, `status`) entry
 
-### Requirement: Element Tags in the Payload
+#### Scenario: Star Field is expanded per concept
+- GIVEN a bluepriNNt with concepts `Goal` and `Risk` and a `tags` Field with `concept:: *`
+- WHEN the slot is built
+- THEN `schema.fields` holds one `tags` entry for `Goal` and one for `Risk`, each with `type: "select"` and its multi-value flag
 
-Every payload element MUST carry `tags`, a de-duplicated array of lowercase strings holding the element's own `tags::` followed by the concept-level `tags::` of its concept (as parsed by `parseTagList`), and an empty array when there are none. `tags` MUST NOT be an input of `computeElementHash`: adding, removing or inheriting tags MUST NOT change an element's `hash`, so the hash still equals `hashParsedElement` for the same node and the `base_hash` precondition of `changeset-apply-engine` is unaffected. (S3b P0-4.)
+#### Scenario: Widget metadata is exposed
+- GIVEN a Field `complexity` with `widget: scale` and `widget_config` `{"min":0,"max":100,"step":5}`
+- WHEN the slot is built
+- THEN its entry carries `widget: "scale"` and `widgetConfig` with those keys
 
-#### Scenario: Element tags reach the payload
-- GIVEN an element with `tags:: Pricing, AI`
+### Requirement: Element Field Values and Inheritance in the Payload
+
+Every payload element MUST carry its own field values in `fields` (the only values that enter `hash`), including `tags` when present, with multi-valued Fields as arrays. Concept-level values inherited by the element MUST be exposed separately and labelled as inherited, as `inherited{field: {value, from}}`, where `from` is the provenance concept and the entry holds only the concept values the element does not already have (multi-valued) or a value only when the element has none (single-valued). Each concept entry MUST also expose its own concept-level values. Multi-valued effective values MUST follow union semantics and single-valued ones override semantics (capability `field-value-model`). Payload `fields` MUST NOT contain inherited values.
+
+#### Scenario: Own tags reach the payload
+- GIVEN an element with `tags:: [pricing, ai]`
 - WHEN the payload is built
-- THEN the element carries `tags: ["pricing", "ai"]`
+- THEN `fields.tags` holds `pricing` and `ai`
 
-#### Scenario: Concept-level tags are inherited
-- GIVEN a concept section with `tags:: core` and an element of it with `tags:: ai, core`
+#### Scenario: Inherited values are labelled with provenance
+- GIVEN concept `Goals` with `tags:: [core]` and an element of it with `tags:: [ai]`
 - WHEN the payload is built
-- THEN the element carries `tags: ["ai", "core"]` (union, no duplicate)
+- THEN the element's own `fields.tags` is `[ai]`
+- AND a separately labelled inherited entry holds `core` with provenance concept `Goals`
 
-#### Scenario: Tags do not move the hash
-- GIVEN the same element built once without any `tags::` and once with element and concept tags
-- WHEN both payloads are built
-- THEN both elements have the same `hash`
-- AND that hash equals `hashParsedElement` for the node
+#### Scenario: Concept exposes its own values
+- GIVEN the same concept
+- WHEN the payload concept entry is read
+- THEN it lists `tags = [core]`
 
-#### Scenario: A real export carries tags (regression)
+#### Scenario: A real export carries field values (regression)
 - GIVEN a fixture domaiNN whose elements carry `tags::`
 - WHEN `export-console.mjs --domain` exports it
-- THEN those elements carry non-empty `tags` in the `innfo-model` slot (today 0 of 336 sample elements do)
+- THEN those elements carry non-empty `fields.tags` in the `innfo-model` slot
 

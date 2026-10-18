@@ -6,47 +6,38 @@ Human review flow inside generated consoles, rendered by `InnfoConsole`: explici
 ## Requirements
 ### Requirement: Review Mode Toggle
 
-The console MUST provide an explicit review mode toggle, off by default and not
-persisted across loads. The toggle MUST be offered only when `changeset-export` is
-declared, `meta.modelId` is present, and EVERY element carries a `hash`; otherwise
-it MUST NOT render (no fallback). With review mode off, no edit, annotation, or
-reviewed control exists in the DOM (the info action and verdict badges remain).
-With review mode on, every unit badge exposes the edit action. The toggle MUST
-expose its state via `aria-pressed`. The renderer MUST dispatch `innfo:rendered`
-on the document (detail `{ root }`) once per card commit; `InnfoReview` decorates
-in response and MUST be idempotent across re-renders.
-(Previously: "Each renderer" dispatched the event, and a scenario compared `InnfoConsole` with `InnfoModelViewer`.)
+The console MUST provide an explicit review mode toggle in `#innfo-review-dock`, off by default and not persisted across loads. The toggle MUST be offered only when `changeset-export` is declared, `meta.modelId` is present, and EVERY element carries a `hash`; otherwise it MUST NOT render (no fallback).
+
+With review mode off, edit controls emitted in the DOM for editable units MUST be hidden via CSS (`html:not([data-innfo-review=on]) [data-ku-action="edit"] { display: none; }`), removing them from visual rendering, keyboard focus order, and the accessibility tree. As defense in depth, the delegated action listener MUST refuse `edit` actions when `html[data-innfo-review=on]` is absent, and `controller.openEdit` MUST return `false` when review mode is disabled.
+
+With review mode on, `html[data-innfo-review=on]` is set, revealing the edit pencil for content units. The toggle MUST expose its state via `aria-pressed`.
+
+(Previously: the requirement strictly stated "no edit, annotation, or reviewed control exists in the DOM" with review mode off; this is relaxed to Decision A1 CSS gating and behavioural refusal.)
 
 #### Scenario: Off by default
 - GIVEN a freshly loaded console with `modelId` and all hashes
 - WHEN it renders
-- THEN no edit or reviewed controls exist in the DOM but the info action does
+- THEN review mode is off
+- AND edit controls are not rendered, not focusable, absent from the accessibility tree, and inert
 
-#### Scenario: Toggle on
+#### Scenario: Toggle on reveals edit controls
 - GIVEN review mode is off
 - WHEN the reviewer activates the toggle
-- THEN each unit badge exposes its edit action
+- THEN `html[data-innfo-review=on]` is present
+- AND content unit edit controls are rendered, visible, and interactive
 - AND the toggle reports `aria-pressed="true"`
 
 #### Scenario: Toggle withheld
 - GIVEN a payload with no `meta.modelId`, or one element without `hash`
 - WHEN the console renders
-- THEN no toggle exists and no edit control is rendered
+- THEN no toggle exists and no edit control is interactive
 
-#### Scenario: Not persisted
+#### Scenario: Not persisted across reloads
 - GIVEN review mode on, then a reload
 - WHEN the console renders
 - THEN review mode is off
 
-#### Scenario: Re-render keeps decoration
-- GIVEN review mode on and a search or filter that re-renders the cards
-- WHEN `innfo:rendered` fires
-- THEN every visible card is decorated exactly once
-
-#### Scenario: Scoped console reviews like the domain console
-- GIVEN one model rendered in a whole-domaiNN console and in a console scoped to it
-- WHEN review mode is on
-- THEN both produce the same `data-innfo-component` review decorations per element
+---
 
 ### Requirement: Inline Annotation Popover
 
@@ -170,60 +161,52 @@ The review flow MUST work from a double-clicked `file://` page: no `fetch(`, no 
 
 ### Requirement: Unit Info And Edit Entry Points
 
-Every knowledge-unit badge MUST expose an **info** action
-(`[data-ku-action="info"]`, rendered in a `ku-actions` cluster OUTSIDE the badge,
-always present) and, only in review mode, an **edit** affordance. Both MUST open
-ONE shared modal: info opens it on the **Info** tab (slug, location, lineage,
-provenance, changes); edit opens it on the **Edit** tab. The modal is a single
-component with mode-gated tabs, not two modals. With review mode off, no edit
-control exists anywhere in the DOM, and the info action MUST still exist. Actions
-SHOULD live outside the badge root so they are never nested inside a navigable
-badge.
+Every knowledge-unit badge MUST expose an **info** action (`[data-ku-action="info"]`, in a sibling `span.innfo-ku-actions` cluster outside the badge root, always present) opening `KuInfoPanel`.
 
-The modal MUST be larger than the pre-change edit modal (a wider dialog with the
-tab bar and scrollable body), and MUST retain the existing Edit and
-History & Provenance panels.
+An **edit** pencil affordance (`[data-ku-action="edit"]`) MUST be emitted for units whose editability is not `none`:
+- Sources (`home === 'source'`) and containers (`nature === 'container'`: domain, document, section) MUST NEVER display an edit pencil.
+- Structure units (`nature === 'structure'`: concept definition, field definition, matrix definition) MUST display an edit pencil only when the Edit structure switch is ON. Activating it opens `EditModal` in comment-only mode.
+- Inherited concept-level values displayed on element cards MUST NOT display an edit pencil (info-only). The pencil for an inherited value appears ONLY on its concept section badge, emitting `update_concept_field` with a scope notification ("applies to every element of concept X").
+- Content units (`element`, own `value`, matrix cell) open `EditModal` for field/element mutation.
 
-#### Scenario: Info outside review mode
-- GIVEN review mode off
-- WHEN a unit badge renders
-- THEN it has a `[data-ku-action=info]` in a sibling `ku-actions` cluster and no edit control
-- AND activating info opens the modal on the Info tab
+(Previously: edit affordances were element-only and opened the modal Edit tab directly.)
 
-#### Scenario: Edit appears in review mode
-- GIVEN review mode on
-- WHEN a unit badge renders
-- THEN an edit affordance opens the modal on the Edit tab
+#### Scenario: Info action opens KuInfoPanel
+- GIVEN review mode off or on
+- WHEN the info action on any unit is clicked
+- THEN `KuInfoPanel` opens for that unit
 
-#### Scenario: One modal
-- GIVEN the console sources
-- WHEN `dialog.innfo-edit-modal` instances are counted per console
-- THEN at most one modal element exists and both entry points target it
+#### Scenario: Sources never show edit pencil
+- GIVEN a Source badge rendered in the console
+- WHEN review mode is enabled
+- THEN no edit pencil is rendered or visible for that Source
+
+#### Scenario: Inherited value edited only on section badge
+- GIVEN concept-level tags on concept `"Threat"`
+- WHEN viewing an element card of concept `"Threat"` in review mode
+- THEN the tags badge displays `"inherited from Threat"` and has no edit pencil
+- AND WHEN viewing the `"Threat"` concept section badge in review mode
+- THEN an edit pencil is present, and activating it opens the modal emitting `update_concept_field`
+
+---
 
 ### Requirement: Pending-Change Indicator
 
-A unit badge whose address has one or more local drafts MUST show a count pip
-(`[data-innfo-component="ku-change-pip"]`) and set `data-ku-changes="<n>"`. The pip
-count is the number of drafts targeting that unit's address. The badge border MUST
-reflect the aggregate draft status using the status tokens, so pending changes are
-scannable without opening the modal. Activating the pip MUST open the shared modal
-on the Changes/History tab. The indicator MUST be visible in both review modes
-(it reflects stored drafts) and MUST update when a draft is added or deleted.
+A unit badge whose canonical address (`data-ku-address`) has one or more local drafts MUST show a count pip (`button[data-innfo-component="ku-change-pip"]`) and set `data-ku-changes="<n>"`.
 
-#### Scenario: Draft adds a pip
-- GIVEN review mode on and a field with one saved correction draft
-- WHEN the cards re-render
-- THEN that field badge shows a pip with text `1` and `data-ku-changes="1"`
+The pip count is the number of drafts targeting that unit's canonical address. The badge border MUST reflect the aggregate draft status using status tokens. Activating the pip MUST open the shared modal on the Changes/History tab. The indicator MUST be visible in both review modes and MUST update whenever drafts are added or removed.
 
-#### Scenario: Delete removes the pip
+(Previously: pips were attached only to elements and fields, not addressing matrix cells or section values.)
+
+#### Scenario: Draft adds pip to matrix cell
+- GIVEN a matrix cell with address `"swot@matrix&r1&c1"`
+- WHEN a draft targeting that exact address is saved
+- THEN the cell badge displays a change pip with text `"1"` and `data-ku-changes="1"`
+
+#### Scenario: Deleting draft removes pip
 - GIVEN a unit with one draft
-- WHEN the draft is deleted
-- THEN the unit badge no longer carries a pip
-
-#### Scenario: Pip opens changes
-- GIVEN a unit badge with a pip
-- WHEN the pip is activated
-- THEN the shared modal opens on the History/Changes tab
+- WHEN that draft is deleted
+- THEN the pip is removed and `data-ku-changes` is cleared
 
 ### Requirement: Multi-tab-safe, durable draft store
 
@@ -302,16 +285,17 @@ The edit modal for a field declared `reference` (and the relation retarget ancho
 
 ### Requirement: Constrained Matrix Cell Editor
 
-When a matrix cell's governing definition declares a `widget` and `values` (the matrix definition of a free matrix, or the column Marker of the reserved `item-markers matrix`), the cell edit modal MUST constrain the proposal to that definition: `set`, `scale` and `cycle` MUST offer a select over `values` plus the blank option and the preserved current value of `console-ui-kit` "Edit Modal Value Type Safety"; `boolean` MUST offer a checkbox proposing `true` or `false`; `text` or no declared widget keeps the string input. The domain `innfo-schema` slot MUST carry the marker and matrix definitions (`widgetType`, `values`) this needs. Whether the engine additionally rejects an out-of-`values` cell on apply is decided by the S3b matrix spike and recorded in `design.md`; the console constraint MUST NOT depend on it. (S3b P1-11.)
+When a matrix cell's governing definition declares a `widget` and `values` (the matrix definition of a free matrix), the cell edit modal MUST constrain the proposal to that definition: `set`, `scale` and `cycle` MUST offer a select over `values` plus the blank option and the preserved current value of `console-ui-kit` "Edit Modal Value Type Safety"; `boolean` MUST offer a checkbox proposing `true` or `false`; `text` or no declared widget keeps the string input. The domain `innfo-schema` slot MUST carry the matrix definitions (`widgetType`, `values`) this needs. Whether the engine additionally rejects an out-of-`values` cell on apply is decided by the S3b matrix spike and recorded in `design.md`; the console constraint MUST NOT depend on it. (S3b P1-11.)
+(Previously: the governing definition could also be the column Marker of the reserved `item-markers matrix`, which no longer exists.)
 
 #### Scenario: Set widget offers only its values
 - GIVEN a free matrix declared with `widget: set` and `values: [Max, High, Low]`
 - WHEN the reviewer edits one of its cells
 - THEN the widget is a `select` offering `""`, `Max`, `High`, `Low` (today a free-text input is offered)
 
-#### Scenario: Boolean marker column
-- GIVEN an `item-markers matrix` column whose Marker declares `widget: boolean`
-- WHEN a cell in that column is edited and checked
+#### Scenario: Boolean widget cell
+- GIVEN a free matrix declared with `widget: boolean`
+- WHEN a cell is edited and checked
 - THEN `proposed` is `true`
 
 #### Scenario: Undeclared widget keeps text
@@ -323,6 +307,81 @@ When a matrix cell's governing definition declares a `widget` and `values` (the 
 - GIVEN a fixture domaiNN whose bluepriNNt declares a matrix with `widget: set` and `values`
 - WHEN it is exported with `export-console.mjs --domain`
 - THEN the `innfo-schema` slot carries that definition's `widgetType` and `values` (today the domain slot carries only `concepts`, `fields` and `procedures`)
+
+### Requirement: Widget-Aware Field Editor
+
+The field edit modal MUST honor the declared Field: `boolean` offers a checkbox, `scale` a bounded numeric control using `widget_config`, `cycle` and `set` a select over the Field options, `text` a text input; a closed `select` offers exactly its options plus the blank option and the preserved current value. A multi-valued Field MUST offer a multi-select (closed vocabulary) or a free-entry chip input (open vocabulary) and MUST propose an array. A proposed tag add or remove MUST be recorded as a `correction` draft on field `tags` carrying the full new array, which applies as `update_field`, not as a comment draft with `field: 'tags'`. Concept-level values are rendered read-only; editing them belongs to the `unified-knowledge-unit-badges` change. Undeclared Fields keep shape-based inference.
+
+#### Scenario: Closed multi-select
+- GIVEN a multi-valued closed Field with options `[core, edge]` and current value `[core]`
+- WHEN its modal opens
+- THEN a multi-select offers `core` and `edge` with `core` selected
+- AND selecting `edge` proposes `[core, edge]`
+
+#### Scenario: Open tags accept a new value
+- GIVEN the open multi-valued `tags` Field
+- WHEN the reviewer enters `new-tag`
+- THEN the proposal contains `new-tag` and the draft updates the `tags` Field
+
+#### Scenario: Scale control is bounded
+- GIVEN a Field with `widget: scale` and config min 0, max 100, step 5
+- WHEN its modal opens
+- THEN the control enforces 0..100 in steps of 5
+
+#### Scenario: Tag draft is not a comment
+- GIVEN a tag added from an element card
+- WHEN the draft is stored
+- THEN it targets the `tags` Field with the resulting array and is not a comment draft
+
+### Requirement: Edit Structure Switch
+
+The review dock (`#innfo-review-dock`) MUST provide an "Edit structure" switch (`button[role="switch"]`) offered in review mode:
+- Off by default (`aria-checked="false"`).
+- Activating the switch toggles `html[data-innfo-structure=on]` and sets `aria-checked="true"`.
+- Exiting review mode MUST reset the switch to off and remove `html[data-innfo-structure=on]`.
+- While the switch is ON, structure unit badges (concept definitions, field definitions, matrix definitions) expose an edit pencil.
+- Activating a structure pencil opens `EditModal` in comment-only mode with the Propose button labelled to propose a structural change to the blueprint maintainer, producing an `op: "comment"` draft.
+
+#### Scenario: Switch toggles structure pencils
+- GIVEN review mode is ON and the Edit structure switch is OFF
+- WHEN a field definition badge is inspected
+- THEN its edit pencil is hidden by CSS (`html:not([data-innfo-structure=on])`)
+- AND WHEN the reviewer activates the Edit structure switch
+- THEN `html[data-innfo-structure=on]` is set and the pencil becomes visible
+
+#### Scenario: Structure edit produces comment draft
+- GIVEN Edit structure is ON
+- WHEN the reviewer clicks the pencil on a field definition and submits notes
+- THEN an `op: "comment"` draft targeting that field definition is saved
+
+#### Scenario: Switch resets on exit
+- GIVEN Edit structure is ON
+- WHEN review mode is turned OFF
+- THEN the switch resets to OFF and `html[data-innfo-structure=on]` is removed
+
+---
+
+### Requirement: Derived Unit Editability
+
+Editability of any knowledge unit MUST be derived as a pure function `describeUnitEditability(unit)` without caller overrides:
+1. `home === 'source'` → `editability: 'none'`
+2. `nature === 'container'` → `editability: 'none'`
+3. `nature === 'structure'` → `editability: 'structure'`
+4. `kind === 'value'` and `isInherited === true` and context is an element card → `editability: 'none'`
+5. `kind === 'value'` and context is a concept section badge → `editability: 'review'` (emits `update_concept_field`)
+6. `kind === 'element'` or own `kind === 'value'` or matrix cell → `editability: 'review'`
+
+The kit and runtime MUST NOT permit callers to pass arbitrary `editable: true` flags bypassing this derivation.
+
+#### Scenario: Container is never editable
+- GIVEN a document or domain unit
+- WHEN its descriptor is generated
+- THEN `editability` is `'none'`
+
+#### Scenario: Element own field is review editable
+- GIVEN an element's own field value
+- WHEN its descriptor is generated
+- THEN `editability` is `'review'`
 
 ## Deferred
 
