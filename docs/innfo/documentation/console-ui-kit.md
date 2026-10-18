@@ -34,6 +34,7 @@ InnfoUI = {
   FieldRow(data, opts?), ElementCard(data, opts?),
   DraftList(data, opts?), RelList(data, opts?),
   KpiGrid(data, opts?), defineCustomElements(doc?),
+  Table(data, opts?), MatrixGrid(data, opts?), Timeline(data, opts?),
 }
 ```
 
@@ -53,6 +54,39 @@ Every component root carries `data-innfo-component="<kebab-name>"`. Invalid
 | `ElementCard({ id, name, conceptId?, description?, fields, inherited? }, opts)` | `article` | `data-element-id`, `data-concept-id`, `data-open`; name is an `element` unit, fields are `value` units |
 | `DraftList({ drafts, byId }, { modelId })` / `RelList({ relations, byId }, { modelId })` | `ul` | each chip is a `ku-unit` addressed by canonical address |
 | `KpiGrid({ items: [{ label, value, concept?, hint? }] }, { doc? })` | `div.innfo-kpi-grid` | `data-innfo-component="kpi-grid"`; responsive grid of KPI cards |
+| `Table({ columns, rows, emptyText? }, { doc, modelId?, onEdit?, onSelect? })` | `div.innfo-grid-scroll` | `data-innfo-component="data-table"`; element-oriented columns (`kind: 'element' \| 'field' \| 'text'`) |
+| `MatrixGrid({ rowHeader?, columns, rows, pinFirstColumn?, emptyText? }, { doc })` | `div.innfo-grid-scroll` | `data-innfo-component="matrix-grid"`, `data-pin-first`; rows × columns of arbitrary cells |
+| `Timeline({ rowHeader?, periods, lanes, pinFirstColumn?, emptyText? }, { doc })` | `div.innfo-grid-scroll` | `data-innfo-component="timeline"`, `data-pin-first`; a matrix whose columns are periods |
+
+### Data surfaces: one grid, three façades
+
+`Table`, `MatrixGrid` and `Timeline` are the same object at three zoom levels — a
+grid of cells addressed by `(row, column)` with a sticky header row and an
+optional sticky first column. ONE internal builder (`buildGrid`) paints all
+three; the public functions only adapt their input shape, so layout, sticky
+behaviour, empty state and cell coercion live in a single place.
+
+- **Cell values** may be a DOM node (a renderer returned one) or a primitive.
+  Strings are written with `textContent` — never `innerHTML`.
+- **Row shape**: `{ key?, header?, cell?, cells? }`. `header` may be a string,
+  a DOM node, or `(row, i) => node|string`; the cell is `cells[col.key]`, a
+  `(col, rowIndex, colIndex) => node|string` function, or nothing.
+- **`Table`** renders an element: `columns[].kind` is `'element'` (a canonical
+  `Ku` element badge, clickable when `onEdit`/`onSelect` is given), `'field'` /
+  `'value'` (the declared field value via `FieldValue`, falling back to its
+  text), or anything else (plain text). It is the shape the `table` scaffold
+  template already calls.
+- **`MatrixGrid`** and **`Timeline`** share the row-header + pinned-first-column
+  path; `Timeline` only relabels the columns as periods and centres them.
+- **Horizontal scroll is owned by the component** (`.innfo-grid-scroll` carries
+  `overflow:auto`, `max-width:100%`, `min-width:0`). A wide matrix never widens
+  the page — do NOT wrap these in a Tailwind `overflow-x-auto`, which the
+  bundle does not ship.
+
+Domain views and the `table` scaffold template use these instead of
+hand-rolled `<table>` markup. When a view needs a legend, a filter toolbar or a
+summary line, it renders them as siblings above the returned surface.
+
 
 ### Declarative Web Components
 

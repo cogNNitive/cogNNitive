@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-U/cNnecGvLJaaHkIw7oWitOAHiTuma/vj/Y0w3X2Zgo=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vrlJ4/9W5LIJWjtYMOr2w3msVWXAXBvN2SJKe/He5WM=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9738,8 +9738,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-7b64689e",
-    "generated": "2026-10-18T15:29:11.395Z",
+    "domainId": "testlab-6fe2543a",
+    "generated": "2026-10-18T18:05:12.639Z",
     "changesBlueprintVersion": "V_0-5-1",
     "models": [
       {
@@ -9750,7 +9750,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-18T15:29:11.366Z",
+        "citationsResolvedAt": "2026-10-18T18:05:12.602Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -11932,6 +11932,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-kpi-header{display:flex;align-items:center;justify-content:space-between;gap:8px}',
     '.innfo-kpi-value{font-size:1.4rem;font-weight:700;color:var(--innfo-text);line-height:1.2}',
     '.innfo-kpi-hint{font-size:.78rem;color:var(--innfo-muted)}',
+    // Data surfaces (Table / MatrixGrid / Timeline): one token-driven grid. The
+    // scroll wrapper is the ONLY horizontal scroll port, so a wide matrix never
+    // widens the page (the old bug: a missing Tailwind `overflow-x-auto`).
+    '.innfo-grid-scroll{max-width:100%;min-width:0;overflow:auto;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);background:var(--innfo-surface)}',
+    '.innfo-grid-scroll+.innfo-grid-scroll{margin-top:.6rem}',
+    '.innfo-grid{border-collapse:separate;border-spacing:0;width:100%;font-size:.82rem;color:var(--innfo-text)}',
+    '.innfo-grid th,.innfo-grid td{padding:.4em .65em;border-bottom:1px solid var(--innfo-border);text-align:left;vertical-align:middle}',
+    '.innfo-grid thead th{position:sticky;top:0;z-index:2;background:var(--innfo-surface-2);color:var(--innfo-muted);font-weight:600;font-size:.75rem;white-space:nowrap}',
+    '.innfo-grid tbody tr:last-child>th,.innfo-grid tbody tr:last-child>td{border-bottom:0}',
+    '.innfo-grid tbody tr:hover>td,.innfo-grid tbody tr:hover>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    '.innfo-grid-cell--center{text-align:center}',
+    '.innfo-grid-cell--end{text-align:right}',
+    '.innfo-grid-corner,.innfo-grid-rowhead{text-align:left;font-weight:600;color:var(--innfo-text)}',
+    '.innfo-grid-empty{padding:1em .8em;color:var(--innfo-muted);text-align:center}',
+    // Pinned first column: the corner + every row header stick to the left edge
+    // and rise above the horizontally scrolled cells.
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid-corner{position:sticky;left:0;z-index:3;background:var(--innfo-surface-2)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid-rowhead{position:sticky;left:0;z-index:1;background:var(--innfo-surface)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:nth-child(even)>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
+    '.innfo-grid-scroll[data-pin-first=true] .innfo-grid tbody tr:hover>.innfo-grid-rowhead{background:var(--innfo-surface-2)}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
     // ONE affordance sits beside the badge: a borderless "+". The actions float
     // BELOW it on demand, so they take no inline space and never push a neighbour.
@@ -14556,6 +14576,222 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return grid
   }
 
+  // ---- Data surfaces: Table / MatrixGrid / Timeline ----
+  //
+  // The three are the SAME object seen at three zoom levels: a grid of cells
+  // addressed by (row, column), with a sticky header row and an optional sticky
+  // first column. ONE builder paints them; the three exports only adapt their
+  // input shape, so there is a single place to fix layout, sticky behaviour,
+  // empty state or cell coercion.
+  //
+  // Why they exist: custom views used to hand-roll `<table>` markup and lean on
+  // Tailwind utility classes (`overflow-x-auto`, `flex`, ...) that the console
+  // bundle does NOT ship, so the page scrolled horizontally forever. These
+  // components own their CSS (token-driven, in COMPONENT_CSS) and never depend
+  // on a utility class being present.
+
+  function gridCellClass(align) {
+    if (align === 'center') return 'innfo-grid-cell innfo-grid-cell--center'
+    if (align === 'end' || align === 'right') return 'innfo-grid-cell innfo-grid-cell--end'
+    return 'innfo-grid-cell'
+  }
+
+  // A cell value may already be a DOM node (a renderer returned one) or a
+  // primitive. Never innerHTML: every string is text.
+  function coerceCellNode(doc, value) {
+    if (value == null) return doc.createTextNode('')
+    if (value && value.nodeType) return value
+    return doc.createTextNode(String(value))
+  }
+
+  function resolveRowHeader(row, ri) {
+    var h = row && row.header
+    return typeof h === 'function' ? h(row, ri) : h
+  }
+
+  function resolveRowCell(row, col, ri, ci) {
+    if (typeof row.cell === 'function') return row.cell(col, ri, ci)
+    if (row.cells && row.cells[col.key] != null) return row.cells[col.key]
+    return null
+  }
+
+  function buildGrid(spec) {
+    var doc = spec.doc
+    var columns = Array.isArray(spec.columns) ? spec.columns : []
+    var rows = Array.isArray(spec.rows) ? spec.rows : []
+    var hasRowHeader = spec.rowHeader != null
+
+    var scroll = makeEl(doc, 'div', 'innfo-grid-scroll')
+    scroll.setAttribute('data-innfo-component', spec.component)
+    if (spec.pinFirstColumn) scroll.setAttribute('data-pin-first', 'true')
+
+    var table = makeEl(doc, 'table', 'innfo-grid')
+    if (hasRowHeader) table.setAttribute('data-has-row-header', 'true')
+
+    var thead = doc.createElement('thead')
+    var htr = doc.createElement('tr')
+    if (hasRowHeader) {
+      var corner = makeEl(doc, 'th', 'innfo-grid-corner')
+      corner.setAttribute('scope', 'col')
+      corner.textContent = spec.rowHeader.label != null ? String(spec.rowHeader.label) : ''
+      htr.appendChild(corner)
+    }
+    columns.forEach(function (col) {
+      var th = doc.createElement('th')
+      th.setAttribute('scope', 'col')
+      if (col.key != null) th.setAttribute('data-col', String(col.key))
+      if (col.align) th.className = gridCellClass(col.align)
+      th.textContent = col.label != null ? String(col.label) : String(col.key == null ? '' : col.key)
+      htr.appendChild(th)
+    })
+    thead.appendChild(htr)
+    table.appendChild(thead)
+
+    var tbody = doc.createElement('tbody')
+    if (!rows.length) {
+      var er = doc.createElement('tr')
+      var ec = makeEl(doc, 'td', 'innfo-grid-empty')
+      ec.colSpan = Math.max(1, columns.length + (hasRowHeader ? 1 : 0))
+      ec.textContent = spec.emptyText != null ? String(spec.emptyText) : ''
+      er.appendChild(ec)
+      tbody.appendChild(er)
+    } else {
+      rows.forEach(function (row, ri) {
+        if (!row) row = {}
+        var tr = doc.createElement('tr')
+        if (row.key != null) tr.setAttribute('data-row', String(row.key))
+        var headerValue = resolveRowHeader(row, ri)
+        if (headerValue != null) {
+          var rth = makeEl(doc, 'th', 'innfo-grid-rowhead')
+          rth.setAttribute('scope', 'row')
+          rth.appendChild(coerceCellNode(doc, headerValue))
+          tr.appendChild(rth)
+        }
+        columns.forEach(function (col, ci) {
+          var td = doc.createElement('td')
+          td.className = gridCellClass(col.align)
+          if (col.key != null) td.setAttribute('data-col', String(col.key))
+          td.appendChild(coerceCellNode(doc, resolveRowCell(row, col, ri, ci)))
+          tr.appendChild(td)
+        })
+        tbody.appendChild(tr)
+      })
+    }
+    table.appendChild(tbody)
+    scroll.appendChild(table)
+    return scroll
+  }
+
+  // Table columns describe an element: `kind` picks the cell renderer.
+  //   'element' -> an element knowledge-unit badge (canonical KU)
+  //   'field' / 'value' -> the declared field value via FieldValue, else its text
+  //   anything else (default) -> plain text
+  function tableCellNode(doc, el, col, modelId, opts) {
+    var kind = col.kind || 'text'
+    if (kind === 'element') {
+      var badge = Ku(
+        'element',
+        {
+          model: modelId,
+          id: el && el.id,
+          label: (el && (el.name || el.id)) || '',
+          concept: el && el.concept,
+          color: el && el.color,
+          index: el && el.index,
+        },
+        { doc: doc },
+      )
+      var activate = opts && (opts.onEdit || opts.onSelect)
+      if (activate && el && el.id) {
+        badge.setAttribute('role', 'button')
+        badge.setAttribute('tabindex', '0')
+        badge.setAttribute('aria-label', 'Open ' + ((el && (el.name || el.id)) || el.id))
+        badge.addEventListener('click', function () {
+          if (opts.onEdit) opts.onEdit(el.id, el)
+          else if (opts.onSelect) opts.onSelect(el.id, el)
+        })
+      }
+      return badge
+    }
+    var value = typeof col.value === 'function' ? col.value(el, col) : fieldLookup(el, col.key)
+    if (typeof col.render === 'function') return coerceCellNode(doc, col.render(value, el, col))
+    if (kind === 'field' || kind === 'value') {
+      var typed = FieldValue(
+        { name: col.key, value: value, type: col.type },
+        { doc: doc, modelId: modelId, elementId: el && el.id },
+      )
+      if (typed) return typed
+    }
+    return coerceCellNode(doc, value)
+  }
+
+  function fieldLookup(el, key) {
+    if (!el || key == null) return null
+    var fields = el.fields
+    if (fields && typeof fields === 'object' && fields[key] != null) return fields[key]
+    return el[key]
+  }
+
+  function Table(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.Table: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.Table: data.rows must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.Table: doc is required')
+    var modelId = (opts && (opts.modelId || opts.model)) || data.modelId || 'model'
+    var columns = data.columns.map(function (c) {
+      return { key: c.key, label: c.label, align: c.align, kind: c.kind || 'text', type: c.type, value: c.value, render: c.render }
+    })
+    var rows = data.rows.map(function (el) {
+      return {
+        key: el && el.id,
+        cell: function (col) {
+          return tableCellNode(doc, el, col, modelId, opts)
+        },
+      }
+    })
+    return buildGrid({
+      doc: doc,
+      component: 'data-table',
+      columns: columns,
+      rows: rows,
+      emptyText: data.emptyText,
+    })
+  }
+
+  function MatrixGrid(data, opts) {
+    if (!data || !Array.isArray(data.columns)) throw new TypeError('InnfoUI.MatrixGrid: data.columns must be an array')
+    if (!Array.isArray(data.rows)) throw new TypeError('InnfoUI.MatrixGrid: data.rows must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.MatrixGrid: doc is required')
+    return buildGrid({
+      doc: doc,
+      component: 'matrix-grid',
+      columns: data.columns.map(function (c) { return { key: c.key, label: c.label, align: c.align } }),
+      rows: data.rows,
+      rowHeader: data.rowHeader || { label: '' },
+      pinFirstColumn: data.pinFirstColumn !== false,
+      emptyText: data.emptyText,
+    })
+  }
+
+  // A timeline is a matrix whose columns ARE periods; identical to MatrixGrid
+  // apart from the component name (styling) and a centre-aligned axis default.
+  function Timeline(data, opts) {
+    if (!data || !Array.isArray(data.periods)) throw new TypeError('InnfoUI.Timeline: data.periods must be an array')
+    if (!Array.isArray(data.lanes)) throw new TypeError('InnfoUI.Timeline: data.lanes must be an array')
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('InnfoUI.Timeline: doc is required')
+    return buildGrid({
+      doc: doc,
+      component: 'timeline',
+      columns: data.periods.map(function (p) { return { key: p.key, label: p.label, align: p.align || 'center' } }),
+      rows: data.lanes,
+      rowHeader: data.rowHeader || { label: data.laneLabel || '' },
+      pinFirstColumn: data.pinFirstColumn !== false,
+      emptyText: data.emptyText,
+    })
+  }
+
   function defineCustomElements() {
     if (typeof window === 'undefined' || !window.customElements || window.customElements.get('innfo-ku')) return
     try {
@@ -15131,6 +15367,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     FieldReferenceWidget: FieldReferenceWidget,
     FieldMarkdownWidget: FieldMarkdownWidget,
     KpiGrid: KpiGrid,
+    Table: Table,
+    MatrixGrid: MatrixGrid,
+    Timeline: Timeline,
     defineCustomElements: defineCustomElements,
   }
 })
