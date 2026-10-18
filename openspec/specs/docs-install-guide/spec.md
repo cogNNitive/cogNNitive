@@ -30,9 +30,9 @@ currently duplicates install steps MUST instead link to this document.
 
 ### Requirement: OpenCode Desktop Recommendation Without Single-Agent Wording
 
-The canonical install guide and any short install CTA (e.g. on
-`docs/skills/index.html`) MUST present OpenCode Desktop as the recommended
-agent while making clear other agents are supported. Wording MUST NOT read
+The canonical install guide MUST present OpenCode Desktop as the recommended
+agent, and any short install CTA (e.g. on `docs/skills/index.html`) MUST do the
+same while making clear other agents are supported. Wording MUST NOT read
 "for OpenCode" or "Built for OpenCode" as if it were the only supported agent.
 
 #### Scenario: Landing page CTA
