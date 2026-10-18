@@ -5223,9 +5223,26 @@
               { doc: doc },
             )
           : el('span', 'innfo-ref-tag', tagText)
-      if (tag) body.appendChild(tag)
+      var card = el('article', 'innfo-cite-card')
+      if (card) card.setAttribute('data-origin', variantKey)
+      var head = el('div', 'innfo-cite-head')
+      if (head && tag) head.appendChild(tag)
+      var prov = el('span', 'innfo-cite-prov', labelText)
+      if (prov && InnfoIcons && typeof InnfoIcons.getSvg === 'function') {
+        prov.insertAdjacentHTML('afterbegin', InnfoIcons.getSvg('cite-' + variantKey, { size: 13 }))
+      }
+      if (head && prov) head.appendChild(prov)
+      var status = el(
+        'span',
+        'innfo-cite-status' + (entry.error ? ' is-bad' : ''),
+        entry.error ? 'unresolved' : 'resolved',
+      )
+      if (head && status) head.appendChild(status)
+      if (card && head) card.appendChild(head)
+      // The card goes into the list first; its children are appended below.
+      if (card) body.appendChild(card)
 
-      var dl = el('dl', 'innfo-ref-fields')
+      var dl = el('dl', 'innfo-cite-meta')
       function addField(label, value) {
         if (!dl) return
         if (value === null || value === undefined || value === '') return
@@ -5234,28 +5251,28 @@
         if (dt) dl.appendChild(dt)
         if (dd) dl.appendChild(dd)
       }
-      addField('Path', entry.path)
       addField('Anchor', entry.anchor)
       addField('Version', entry.version)
       addField('SHA-256', entry.sha256)
       addField('Error', entry.error)
-      if (dl && dl.children.length) body.appendChild(dl)
+      addField('Path', entry.path)
+      if (dl && dl.children.length && card) card.appendChild(dl)
 
-      if (entry.href && !entry.error) {
+      if (entry.href && !entry.error && card) {
         var openHref = UI && typeof UI.safeHref === 'function' ? UI.safeHref(entry.href) : safeSourceHref(entry.href)
         var openLink = openHref ? el('a', 'innfo-cite-open', 'Open original') : null
         if (openLink) {
           openLink.setAttribute('href', openHref)
           openLink.setAttribute('target', '_blank')
           openLink.setAttribute('rel', 'noopener noreferrer')
-          body.appendChild(openLink)
+          card.appendChild(openLink)
         }
       }
 
-      if (entry.excerpt) {
+      if (entry.excerpt && card) {
         var excerptText = entry.excerpt + (entry.truncated ? ' … (truncated)' : '')
         var pre = el('pre', 'innfo-cite-excerpt', excerptText)
-        if (pre) body.appendChild(pre)
+        if (pre) card.appendChild(pre)
       }
     })
 
