@@ -68,6 +68,11 @@ export function createConsoleEnv() {
     g.HTMLElement = dom.window.HTMLElement
     g.HTMLDialogElement = dom.window.HTMLDialogElement
     g.Node = dom.window.Node
+    // The UMD runtime auto-boots when it sees an #innfo-config slot. These suites
+    // boot explicitly, so suppress the module-level auto-boot: without this the
+    // document gets TWO controllers (auto + explicit), each registering its own
+    // keydown listener, so `j`/`k` advance two cards per press.
+    g.__innfoNoAutoBoot = true
     env = {
       dom,
       window: dom.window,
@@ -87,6 +92,7 @@ export function createConsoleEnv() {
     delete g.InnfoUI
     delete g.InnfoReview
     delete g.InnfoConsole
+    delete g.__innfoNoAutoBoot
     env = null
   }
 

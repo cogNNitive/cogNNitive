@@ -18,7 +18,7 @@ A proposal that could not be APPLIED MUST warn inside the edit modal instead of 
 
 Every proposal MUST show who is proposing (`Proposing as <name>`) in the edit modal, using the remembered identity (`localStorage`), and MUST flag the shared default pseudonym (`reviewer`) so several reviewers do not collapse into a single author.
 
-KNOWN GAP: the capability gate is NOT applied to the edit anchors — they decorate whenever the console boots, because the element-card contract expects decoration without the capability. Splitting badge decoration (always) from anchor decoration (capability) is a follow-up of its own.
+Badge and mark decoration is capability-free and always runs: the verdict badges, the change pips, the reviewed toggle and the rail progress reflect state (changesets, local drafts, reviewed marks), not proposals, so they MUST decorate however the console boots. The proposal ANCHORS (the tag/relation controls on a card and the matrix-cell anchors) decorate only when `canPropose` holds. The element-card contract therefore has two layers: the card renders unconditionally, while its proposal anchors are capability-gated.
 
 (Previously: an explicit review-mode toggle in the dock, off by default and withheld unless `changeset-export` + `meta.modelId` + every element hashed; edit controls hidden via `html:not([data-innfo-review=on])` and refused by the delegated listener.)
 
@@ -182,6 +182,8 @@ An **edit** pencil affordance (`[data-ku-action="edit"]`) MUST be emitted for un
 - Structure units (`nature === 'structure'`: concept definition, field definition, matrix definition) MUST display the pencil like any other editable unit; there is no switch. Activating it opens `EditModal` in comment-only mode and carries the structure warning banner.
 - Inherited concept-level values displayed on element cards MUST NOT display an edit pencil (info-only). The pencil for an inherited value appears ONLY on its concept section badge, emitting `update_concept_field` with a scope notification ("applies to every element of concept X").
 - Content units (`element`, own `value`, matrix cell) open `EditModal` for field/element mutation.
+
+The badge's `+` flyout is the ONLY edit entry point: an element card MUST NOT carry permanent name/description pencils and a field row MUST NOT carry a permanent pencil. The retired `name-anchor`, `desc-anchor` and `field-anchor` controls MUST NOT exist in the runtime or the kit.
 
 (Previously: edit affordances were element-only and opened the modal Edit tab directly.)
 

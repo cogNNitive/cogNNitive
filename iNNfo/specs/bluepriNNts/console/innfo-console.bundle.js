@@ -5526,7 +5526,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (!card.getAttribute('tabindex')) card.setAttribute('tabindex', '-1')
     }
 
-    function decorateCard(card) {
+    // A reviewed mark is LOCAL STATE, not a proposal: it is shown whenever a store
+    // exists, independent of the capability gate (bearer rule: "Reviewed controls are
+    // always shown"). This is the "badge/mark" half of the split.
+    function decorateReviewedToggle(card) {
       ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
@@ -5548,12 +5551,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
         head.insertBefore(rt, headRightRef)
       }
+    }
+
+    // The proposal ANCHORS on a card (tag and relation controls) are gated by
+    // `canPropose`; this is the "anchor" half of the split.
+    function decorateCardAnchors(card) {
+      var elId = card.getAttribute('data-element-id')
       // The element-name and description pencils used to be inserted INSIDE the badge
       // and the description block, so they were permanently visible. Editing now lives
       // in the badge's own `+` flyout: no permanent affordance on the card.
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
-
     }
 
     // Tags are not KUs (no sub-ID, no modal): membership is proposed with
@@ -5821,15 +5829,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function applyDecorations() {
+      // Badge/mark decoration is capability-free: verdict badges, change pips, the
+      // reviewed marks and the rail progress reflect state, not proposals, and are
+      // always shown (there is no mode).
       decorateBadges()
       decorateChangePips()
+      decorateMarks(doc)
       syncChangesetBar()
-      // (C): the edit anchors need a PROPOSABLE domain (modelId + every element has a
-      // base_hash). The export surface is gated separately, by canReview.
-      if (!enabled || !canPropose(meta, elements)) return
-      decorate(doc)
+      if (!enabled) return
       decorateRailProgress()
       if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
+      // (C): the edit ANCHORS need a PROPOSABLE domain (modelId + every element has a
+      // base_hash). The export surface is gated separately, by canReview.
+      if (!canPropose(meta, elements)) return
+      decorateAnchors(doc)
     }
 
     // One malformed node must never abort the whole decoration pass: a throw
@@ -5847,13 +5860,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
-    function decorate(root) {
-      if (!enabled) return
+    // Marks (the reviewed toggle): local state, always decorated, no capability.
+    function decorateMarks(root) {
       var host = root || doc
-      if (!host.querySelectorAll) return
+      if (!host || !host.querySelectorAll) return
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
-        safeDecorate(decorateCard),
+        safeDecorate(decorateReviewedToggle),
+      )
+    }
+
+    // Proposal anchors (tag/relation controls, matrix-cell anchors): the caller gates
+    // these on `canPropose`, the edit half of the split.
+    function decorateAnchors(root) {
+      if (!enabled) return
+      var host = root || doc
+      if (!host || !host.querySelectorAll) return
+      Array.prototype.forEach.call(
+        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
+        safeDecorate(decorateCardAnchors),
       )
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-ku-kind="value"][data-field]'),
@@ -5863,6 +5888,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         host.querySelectorAll('td[data-matrix][data-row][data-col]'),
         safeDecorate(decorateMatrixCell),
       )
+    }
+
+    // Retained public name: decorating an element covers its reviewed mark and its
+    // proposal anchors (the badge/mark + anchor halves together).
+    function decorate(root) {
+      if (!enabled) return
+      decorateMarks(root)
+      decorateAnchors(root)
     }
 
     function onRendered(event) {
@@ -5878,14 +5911,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       }
       decorateCounter()
-      // Badge decoration has always been unconditional; the CAPABILITY gate applies
-      // to the edit anchors (`decorate`), which is where a proposal starts.
+      // Badge/mark decoration has always been unconditional; the CAPABILITY gate
+      // applies to the edit anchors (where a proposal starts).
       decorateBadges()
       decorateChangePips(root || doc)
-      if (enabled && canPropose(meta, elements)) {
-        decorate(root || doc)
+      if (enabled) {
+        decorateMarks(root || doc)
         decorateRailProgress()
         if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
+      }
+      if (enabled && canPropose(meta, elements)) {
+        decorateAnchors(root || doc)
       }
     }
 

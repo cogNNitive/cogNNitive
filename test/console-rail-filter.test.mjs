@@ -191,8 +191,8 @@ describe('filter help and field facet values (S4/U4)', () => {
     )
 
     // The explanation is NOT visible UI any more. It lives on the AND/OR connector's
-    // tooltip (a segmented control, asserted where the connector itself renders; this
-    // path groups the query into a single clause and renders no connector).
+    // tooltip (a segmented control, asserted in the dedicated test below where two
+    // clauses make the connector render).
     assert.equal(document.querySelector('[data-innfo-filter-help]'), null, 'no visible help block')
     assert.doesNotMatch(toolbar.textContent || '', /combine with AND/, 'the sentence is out of the UI')
 
@@ -210,6 +210,57 @@ describe('filter help and field facet values (S4/U4)', () => {
     firstField.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
     assert.match(host.textContent, /ai/, 'the tags value is listed after picking the field')
     assert.match(host.textContent, /pricing/, 'every value of the multi-valued field is listed')
+  })
+
+  it('renders the AND/OR segmented control with its tooltip hint and rewrites the query on toggle', () => {
+    const MODEL = {
+      meta: { title: 'Rail Lab', modelId: 'rail-lab', modelVersion: 'V_1-0-0' },
+      elements: [
+        { id: 'a', concept: 'C', name: 'A', fields: { tags: ['ai'] }, hash: '0'.repeat(16) },
+      ],
+      matrices: [],
+    }
+    const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
+    const { document } = bootConsole({ model: MODEL, schema })
+    const toolbar = document.querySelector('.innfo-toolbar')
+    // The connector and the addressed pills live in the active-filters host, which
+    // the shell provides but this minimal DOM does not: create it so the connector
+    // path (rendered only with >= 2 clauses) runs.
+    const facets = document.createElement('div')
+    facets.id = 'innfo-filter-facets'
+    toolbar.appendChild(facets)
+    const active = document.createElement('div')
+    active.id = 'innfo-active-filters'
+    toolbar.appendChild(active)
+
+    let nextQuery = null
+    InnfoConsole.renderFilterBar(
+      document,
+      { meta: MODEL.meta, elements: MODEL.elements, schema },
+      (q) => {
+        nextQuery = q
+      },
+      // Two clauses so an AND/OR connector renders between them.
+      'tags:ai role:Interceptor',
+    )
+
+    const toggle = active.querySelector('.innfo-op-toggle')
+    assert.ok(toggle, 'the connector is a segmented control (.innfo-op-toggle)')
+    assert.equal(toggle.getAttribute('role'), 'group', 'the connector is a labelled group')
+    assert.match(
+      toggle.getAttribute('title') || '',
+      /combine with AND/i,
+      'the AND/OR explanation lives on the tooltip',
+    )
+    assert.doesNotMatch(active.textContent || '', /combine with AND/i, 'and not in the visible text')
+
+    const buttons = Array.from(toggle.querySelectorAll('.innfo-op-btn'))
+    assert.equal(buttons.length, 2, 'one button per connector value')
+    assert.equal(toggle.querySelector('.innfo-op-btn.active').textContent, 'AND')
+
+    const orBtn = buttons.find((b) => b.textContent === 'OR')
+    orBtn.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
+    assert.equal(nextQuery, '(tags:ai OR role:Interceptor)', 'clicking the opposite option rewrites the query')
   })
 })
 

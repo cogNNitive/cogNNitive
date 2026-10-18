@@ -4,12 +4,12 @@
 
 ## Purpose
 
-Define how the domain console generates, selects, and switches between view tabs (Model Explorer, Matrices, Model Map, and registered domain views) while preserving per-tab input, variable, and scroll state. Tabs MUST come from the view registry, and the URL hash MUST drive navigation.
+Define how the domain console generates, selects, and switches between view tabs (kNNowledge, Matrices, domaiNN, and registered domain views) while preserving per-tab input, variable, and scroll state. Tabs MUST come from the view registry, and the URL hash MUST drive navigation.
 
 ## Requirements
 
 #### R1: Dynamic View Tab Generation
-Tabs SHALL come from the view registry (`console-view-registry`) on boot. The runtime SHALL register built-in views from the `model` payload: a `Model Explorer` tab when `elements` exist, and a `Matrices` tab when `matrices` exist and are non-empty. Domain tabs (e.g. `Timeline & Projections`, or the title in `meta.domainTabTitle`) SHALL be created by the registered views the bluepriNNt or domaiNN supplies.
+Tabs SHALL come from the view registry (`console-view-registry`) on boot. The runtime SHALL register built-in views from the `model` payload: a `kNNowledge` tab when `elements` exist, and a `Matrices` tab when `matrices` exist and are non-empty. Domain tabs (e.g. `Timeline & Projections`, or the title in `meta.domainTabTitle`) SHALL be created by the registered views the bluepriNNt or domaiNN supplies.
 
 ##### Scenario: Registered view becomes a tab
 - GIVEN a registered view `timeline` with title `Timeline & Projections`
@@ -23,7 +23,7 @@ Tabs SHALL come from the view registry (`console-view-registry`) on boot. The ru
 
 #### R2: Default Active Tab
 - If a domain capability (`timeline-grid` or `guided-procedure`) is active, the domain tab SHALL be selected by default on load unless overridden by URL hash.
-- Otherwise, `Model Explorer` SHALL be selected by default.
+- Otherwise, `kNNowledge` SHALL be selected by default.
 
 ##### Scenario: Default tab follows the active capability
 - GIVEN a domain with the `timeline-grid` capability active
@@ -44,7 +44,7 @@ Switching tabs SHALL toggle display visibility of the corresponding panels: one 
 - THEN the value is unchanged
 
 #### R4: Layout Separation
-In the `Timeline & Projections` view the content SHALL contain the Timeline & P&L Projection Table (`.innfo-timeline-table`), Interactive Growth Selectors and Variable Overrides, and the scenario studio; charts (`#innfo-charts`) are retired from the domain console with the legacy `timeline.html` shell. In the `Model Explorer` tab it SHALL contain the Concept Rail (`#innfo-rail`), the search toolbar (`.innfo-toolbar`) and the element cards list (`#innfo-content`). The `Matrices` tab SHALL have its own panel `#innfo-tab-matrices` containing the relational matrix grids (`#innfo-matrices`), as a sibling of the explorer panel and not nested in it.
+In the `Timeline & Projections` view the content SHALL contain the Timeline & P&L Projection Table (`.innfo-timeline-table`), Interactive Growth Selectors and Variable Overrides, and the scenario studio; charts (`#innfo-charts`) are retired from the domain console with the legacy `timeline.html` shell. In the `kNNowledge` tab it SHALL contain the Concept Rail (`#innfo-rail`), the search toolbar (`.innfo-toolbar`) and the element cards list (`#innfo-content`). The `Matrices` tab SHALL have its own panel `#innfo-tab-matrices` containing the relational matrix grids (`#innfo-matrices`), as a sibling of the explorer panel and not nested in it.
 
 ##### Scenario: Matrices render in own panel
 - GIVEN a model with a non-empty matrix
@@ -73,7 +73,7 @@ In the `Timeline & Projections` view the content SHALL contain the Timeline & P&
 - AND when the inline chart button is clicked an inline monthly chart row expands beneath it
 
 #### R7: Element Table View
-The `Model Explorer` SHALL offer a Cards/Table toggle. In Table mode it SHALL render one row per filtered element with a column per field key, sortable by clicking a header (toggling ascending/descending and setting `aria-sort`), and SHALL preserve the active filter.
+The `kNNowledge` SHALL offer a Cards/Table toggle. In Table mode it SHALL render one row per filtered element with a column per field key, sortable by clicking a header (toggling ascending/descending and setting `aria-sort`), and SHALL preserve the active filter.
 
 ##### Scenario: Toggle to table
 - GIVEN a model with elements
@@ -85,18 +85,31 @@ The `Model Explorer` SHALL offer a Cards/Table toggle. In Table mode it SHALL re
 - WHEN a column header is clicked
 - THEN the rows reorder and the header carries `aria-sort` (`ascending` then `descending`)
 
-#### R8: Model Map View
-A built-in `Model Map` tab SHALL be registered when the schema declares concepts. It SHALL render concepts as circular nodes and matrices as labelled edges, as inline SVG with no external dependency, and its panel (`#innfo-tab-metamodel`) SHALL be created by the tab shell like the other built-ins.
+#### R8: domaiNN View
+A built-in `domaiNN` tab SHALL be registered when the schema declares concepts. It SHALL render concepts as circular nodes and matrices as labelled edges, as inline SVG with no external dependency, and its panel (`#innfo-tab-metamodel`) SHALL be created by the tab shell like the other built-ins.
 
-##### Scenario: Model Map tab
+##### Scenario: domaiNN tab
 - GIVEN a schema with concepts
 - WHEN the console boots
 - THEN a `.innfo-view-tab[data-tab="metamodel"]` exists and `#innfo-tab-metamodel` contains an SVG with one node per concept
 
+#### R9: View Tones
+Each view tab SHALL carry a tone that sets its accent: `core` for the three built-in tabs (`domaiNN`, `kNNowledge`, `Matrices`), `blueprint` for a registered view whose definition lives under a `bluepriNNts/` path, and `custom` otherwise. The tone SHALL be exposed as a `tone-<tone>` class on the tab button so core, blueprint and custom views are visually distinguishable.
+
+##### Scenario: Built-ins are core
+- GIVEN the three built-in tabs
+- WHEN the tab buttons render
+- THEN each carries `tone-core`
+
+##### Scenario: Registered view tone follows its source
+- GIVEN one registered view sourced from a `bluepriNNts/` path and another from a domain page
+- WHEN their tabs render
+- THEN the first carries `tone-blueprint` and the second `tone-custom`
+
 ## Scenario Verification
 - **Scenario 1**: Metrics console load defaults to the `Timeline & Projections` tab with zero generic element clutter.
-- **Scenario 2**: Clicking `Model Explorer` reveals the concept rail, search input, and element cards.
-- **Scenario 3**: Changing a variable input in `Timeline & Projections`, switching to `Model Explorer`, and switching back preserves the modified value and recomputed numbers.
+- **Scenario 2**: Clicking `kNNowledge` reveals the concept rail, search input, and element cards.
+- **Scenario 3**: Changing a variable input in `Timeline & Projections`, switching to `kNNowledge`, and switching back preserves the modified value and recomputed numbers.
 - **Scenario 4**: Direct navigation to `...#matrices` opens the matrices tab directly.
 - **Scenario 5**: Scrolling down in a tall timeline keeps the table headers fixed at the top; scrolling right keeps metric names fixed at the left.
 - **Scenario 6**: Pinning a metric (e.g. MRR) keeps it visible at the top pinned section; clicking the inline chart icon renders monthly evolution bars matching the grid columns.

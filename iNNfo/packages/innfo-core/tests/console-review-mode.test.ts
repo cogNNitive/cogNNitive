@@ -12,12 +12,12 @@ import { createConsoleEnv, shellPath } from './helpers/console-review-env'
  * "no toggle", and "toggle off removes the controls" became the state-driven
  * changeset bar.)
  *
- * KNOWN GAP, exposed by removing the mode: the capability gate
- * (`feedback-export` + `modelId` + every element hash) still decides whether the
- * toggle USED to render, but it is not applied to the edit anchors — they are
- * decorated whenever the console boots. Asserting a capability gate here failed
- * against the element-card contract, which expects decoration without it. Giving
- * the anchors their own gate is a follow-up of its own.
+ * Capability split: badge and mark decoration (verdict badges, change pips, the
+ * reviewed toggle, the rail progress) is capability-free and always runs; the edit
+ * ANCHORS (tag/relation controls, matrix-cell anchors) decorate only when
+ * `canPropose` holds (`meta.modelId` present AND every element carries a `hash`).
+ * The export surface is gated separately, by `canReview` (= `canPropose` +
+ * `feedback-export` declared).
  */
 
 const env = createConsoleEnv()
@@ -124,6 +124,41 @@ describe('console-review (no mode, always-on decoration)', () => {
     // No permanent pencil in a value row any more: editing lives in the badge flyout.
     expect(env.document.querySelector('[data-innfo-ctl="field-anchor"]')).toBeNull()
     expect(env.document.querySelector('.innfo-ku-more')).not.toBeNull()
+  })
+
+  it('gates the edit anchors on canPropose while marks and badges decorate always', () => {
+    // modelId present, but one element has no hash => canPropose is false and
+    // canReview is false. The proposal anchors must be withheld; the marks, the
+    // badges and the rail progress reflect local state and must still decorate.
+    const model = {
+      meta: sampleModel.meta,
+      elements: [
+        sampleModel.elements[0],
+        { id: 'equip-orphan', concept: 'ContainmentEquipment', name: 'Orphan', fields: {} },
+      ],
+      matrices: [],
+    }
+    env.setup(fillShell(model, { needs: ['feedback-export', 'concept-rail', 'fulltext-search'] }))
+    bootConsole()
+
+    expect(env.document.querySelectorAll('[data-innfo-ctl="tag-add"]').length).toBe(0)
+    expect(env.document.querySelectorAll('[data-innfo-ctl="rel-add"]').length).toBe(0)
+    // No export surface either: canReview is false.
+    expect(env.document.querySelector('[data-innfo="changed-filter"]')).toBeNull()
+
+    expect(cards(env.document).length).toBeGreaterThan(0)
+    expect(
+      env.document.querySelectorAll('[data-innfo-component="reviewed-toggle"]').length,
+    ).toBeGreaterThan(0)
+    expect(
+      env.document.querySelectorAll('[data-innfo-component="rail-progress"]').length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('decorates the edit anchors when the domain is proposable', () => {
+    renderModelConsole()
+    bootConsole()
+    expect(env.document.querySelectorAll('[data-innfo-ctl="tag-add"]').length).toBeGreaterThan(0)
   })
 
   it('renders no Edit-structure switch', () => {

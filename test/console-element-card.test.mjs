@@ -236,6 +236,35 @@ describe('Element Card Redesign Contract', () => {
       assert.ok(modal, 'KU modal opens')
       assert.match(modal.querySelector('h2').textContent, /Ecto-1/)
     })
+
+    it('withholds the proposal anchors when the domain is not proposable', () => {
+      const card = fullCard()
+      document.body.appendChild(card)
+      const elements = [
+        {
+          id: 'ecto-1',
+          concept: 'Fleet Vehicles',
+          name: 'Ecto-1',
+          fields: { role: 'Interceptor' },
+          tags: ['iconic', 'nyc-fleet'],
+          relations: [{ field: 'parked-at', target: 'hq-garage' }],
+          hash: '0123456789abcdef',
+        },
+      ]
+      const store = InnfoReview.createDraftStore(null, 'ghostbusters')
+      // No meta.modelId: canPropose is false, so the proposal anchors are withheld.
+      const ctl = InnfoReview.createReviewController(document, { elements, store })
+      ctl.enable()
+      assert.equal(card.querySelector('[data-innfo-ctl="tag-remove"]'), null, 'no tag remove')
+      assert.equal(card.querySelector('[data-innfo-ctl="tag-add"]'), null, 'no tag add')
+      assert.equal(card.querySelector('[data-innfo-ctl="rel-retarget"]'), null, 'no relation anchors')
+      // Badge/mark decoration is capability-free: the + flyout and the reviewed mark remain.
+      assert.ok(card.querySelector('.innfo-ku-more'), 'the badge keeps its + affordance')
+      assert.ok(
+        card.querySelector('[data-innfo-component="reviewed-toggle"]'),
+        'the reviewed mark is always shown',
+      )
+    })
   })
 })
 

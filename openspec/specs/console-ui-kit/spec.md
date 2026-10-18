@@ -135,7 +135,9 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 - Each field MUST render as a `Ku` badge of kind `value` (or `Ku` block variant for complex types) with actions outside.
 - An inherited concept-level field value MUST render labelled `"inherited from <Concept>"` and MUST have editability `none` (info only).
 - `.innfo-card-head` MUST NOT contain `marker-chip` or legacy pill components.
-(Previously: the card accepted `markers` and rendered `marker-chip` elements in the head.)
+- The card MUST NOT render a hover preview and MUST NOT render an info icon: `ElementMini` MUST be mounted without `preview` and `ElementCard` MUST NOT mount `ElementPreview`.
+- The element name and description MUST NOT carry permanent pencils (`name-anchor` / `desc-anchor`); editing lives only in the unit badge's borderless `+` flyout (`editability !== 'none'`).
+(Previously: the card accepted `markers` and rendered `marker-chip` elements in the head; it also mounted ElementPreview from a `preview` flag and exposed permanent name/description pencils.)
 
 #### Scenario: Element name and fields rendered via Ku
 - GIVEN an element with name `"Slimer"` and two fields
@@ -201,7 +203,7 @@ generic SVG (never throw).
 
 A content badge MUST carry the ICON of the concept the unit belongs to, tinted with that concept's colour. `--c` / `--cb` MUST be derived from the unit's `data-concept-slot`.
 
-The actions MUST NOT sit beside the badge: ONE borderless `+` toggle (`.innfo-ku-more`) MUST be the only inline affordance, and the action cluster (`.innfo-ku-actions`) MUST float BELOW the badge on demand (`position: absolute`; hidden until the wrap carries `data-ku-open="true"`), taking no layout space and never shifting a neighbour. The order MUST be `info`, `reveal`, `citations` (only when the unit has citations), `edit` (only when `editability` is not `none`). No review-mode or structure-switch CSS gate may exist.
+The actions MUST NOT sit beside the badge: ONE borderless `+` toggle (`.innfo-ku-more`) MUST be the only inline affordance, and the action cluster (`.innfo-ku-actions`) MUST float BELOW the badge on demand (`position: fixed`, anchored to the badge's bounding rect when the flyout opens and clamped to the viewport so an ancestor's `overflow` cannot clip it; hidden until the wrap carries `data-ku-open="true"`), taking no layout space and never shifting a neighbour. The order MUST be `info`, `reveal`, `citations` (only when the unit has citations), `edit` (only when `editability` is not `none`). No review-mode or structure-switch CSS gate may exist.
 
 #### Scenario: Content is borderless and tinted
 - GIVEN a `value` badge whose concept sits in slot 2
@@ -269,6 +271,7 @@ The kit MUST provide presentational review components. They MUST hold no review 
 ### Requirement: Renderers Consume the Kit
 
 All console renderers (`mountElementTable`, `renderMatrices`, cards, rail, facets, guide, dialogs, stepper, timeline, and custom views) MUST build knowledge units exclusively through `ctx.ui.Ku`.
+- A table header cell (`th`) MUST render its column label as a `field` knowledge-unit badge, like the cells below; the plain label is only the no-kit fallback.
 - A two-layer guard (static file scan + jsdom tree check) MUST fail CI if any table cell (`td`, `th`), definition list item (`dd`, `dt`), or unit container renders bare unbadged unit text without carrying `data-ku-exempt="<reason>"`.
 - `data-ku-exempt` MUST be restricted to the frozen reasons in `KU_EXEMPT_REASONS`: `metamodel-svg`, `chart`, `numeric-aggregate`, `csv-subunit-label`.
 - The guard MUST verify that every `data-ku-address` in the console parses with `parseUnitAddress` and that no address is associated with two different kinds.
@@ -367,7 +370,7 @@ No action control MUST be nested inside the badge root.
 - Every action button MUST meet WCAG 2.2 AA 2.5.8 target size (minimum 24x24 px).
 - The **info** button (`[data-ku-action="info"]`) MUST be present for EVERY kind, opening `KuInfoPanel`.
 - The **edit** button (`[data-ku-action="edit"]`, pencil) MUST be emitted whenever `editability !== 'none'`.
-- Review-mode gating is enforced via CSS: `html:not([data-innfo-review=on])` and `html:not([data-innfo-structure=on])` set `display: none` on edit buttons.
+- There is no review-mode or structure-switch CSS gate: no `html[data-innfo-review]` or `html[data-innfo-structure]` selector may hide the edit button.
 - Keyboard navigation within any `[data-ku-group]` (card, table row, matrix row) MUST use a single tab stop with roving `tabindex`. Arrow keys move between units and action buttons.
 
 (Previously: `KuActions` was a standalone component that was omitted when callbacks were absent.)

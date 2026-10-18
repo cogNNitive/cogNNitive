@@ -73,10 +73,7 @@ describe('console-review-keyboard (j/k/c + a11y)', () => {
     vi.restoreAllMocks()
   })
 
-      // TODO: `k`/`c` pass; `j` still lands on the first card. The card-by-containment
-    // lookup below in onKeydown is in place, so the remaining cause is elsewhere
-    // (activeElement resolution after focusCard). Needs a focused review.
-    it.skip('j moves focus to the next visible element card', () => {
+  it('j moves focus to the next visible element card', () => {
     enableReview()
     const a = focusCard('a')
     expect(env.document.activeElement).toBe(a)
