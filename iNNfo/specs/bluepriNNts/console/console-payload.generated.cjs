@@ -8755,6 +8755,7 @@ function canonicalValue(v, key) {
   if (v && typeof v === "object") {
     const out = {};
     for (const k of Object.keys(v).sort()) {
+      if (k === "declaredBy") continue;
       const val = v[k];
       if (val === void 0 || val === null) continue;
       out[k] = canonicalValue(val, k);
