@@ -691,6 +691,26 @@
   }
 
   var STATUSES = ['applied', 'conflict', 'proposed']
+  // Plain-language help for the review badges: the number is a count of changes in
+  // that state and the colour IS the state. Surfaced on hover via `title` so a reader
+  // who has never seen the console learns what green/orange/red mean.
+  var STATUS_HELP = {
+    applied:
+      "applied to this model \u2014 approved and merged. Green means done. These come from the model's change history, not from your review marks.",
+    proposed:
+      "proposed and still waiting for review \u2014 not yet applied. Orange means pending. These come from the model's change history, not from your review marks.",
+    conflict:
+      "in conflict with the current content \u2014 they need a decision. Red means attention. These come from the model's change history, not from your review marks.",
+  }
+
+  function statusHelp(status, count) {
+    var base = STATUS_HELP[status] || String(status)
+    if (count == null) return base
+    var n = Number(count)
+    if (!isFinite(n)) return base
+    return n + ' ' + (n === 1 ? 'change ' : 'changes ') + base
+  }
+
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -703,6 +723,7 @@
     var text = data.count != null ? String(data.count) : String(data.status)
     badge.textContent = text
     badge.setAttribute('aria-label', data.count != null ? data.count + ' ' + data.status : data.status)
+    badge.setAttribute('title', statusHelp(data.status, data.count))
     return badge
   }
 
@@ -2787,17 +2808,27 @@
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
 
+  // Repaint a reviewed toggle in place. The review controller decorates a toggle
+  // once and then only refreshes its state on later passes, so the label and colour
+  // must be updatable without rebuilding the button.
+  function applyReviewedState(button, state) {
+    if (!button) return
+    var s = REVIEW_STATES.indexOf(state) !== -1 ? state : 'none'
+    button.setAttribute('data-state', String(s))
+    button.setAttribute('aria-pressed', s === 'reviewed' ? 'true' : 'false')
+    button.textContent = REVIEW_LABELS[s]
+  }
+
   function ReviewedToggle(data) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.ReviewedToggle: data required')
     }
     var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
     var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', REVIEW_LABELS[state])
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle')
     b.setAttribute('data-innfo-component', 'reviewed-toggle')
     b.setAttribute('type', 'button')
-    b.setAttribute('data-state', String(state))
-    b.setAttribute('aria-pressed', state === 'reviewed' ? 'true' : 'false')
+    applyReviewedState(b, state)
     return b
   }
 
@@ -3423,6 +3454,7 @@
     DraftList: DraftList,
     AnnotationPopover: AnnotationPopover,
     ReviewedToggle: ReviewedToggle,
+    applyReviewedState: applyReviewedState,
     RailProgress: RailProgress,
     EditModal: EditModal,
     NewElementModal: NewElementModal,

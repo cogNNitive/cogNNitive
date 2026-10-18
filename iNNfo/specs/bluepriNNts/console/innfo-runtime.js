@@ -2628,8 +2628,6 @@
       var th = el('th', 'innfo-element-table-th')
       th.setAttribute('data-sort-key', col.key)
       th.setAttribute('scope', 'col')
-      th.setAttribute('role', 'button')
-      th.setAttribute('tabindex', '0')
       var fieldDef = fieldDefOf(col.key)
       // Every header is a knowledge unit too: a `field` badge, like the cells below.
       // The plain label stays only as the no-kit / unblessable fallback.
@@ -2658,21 +2656,26 @@
       } else {
         th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
       }
-      if (sortState && sortState.key === col.key) {
+      // The sort control is the ONLY click target in the header, so the field
+      // badge's own "+" flyout opens the field options instead of re-sorting.
+      // The indicator is always shown: both triangles in a muted tone while the
+      // column is unsorted, a single dark triangle once it is sorted.
+      var isSorted = sortState && sortState.key === col.key
+      var dir = isSorted ? (sortState.dir === 'desc' ? 'desc' : 'asc') : 'none'
+      var sortBtn = el('button', 'innfo-element-table-sort')
+      sortBtn.setAttribute('type', 'button')
+      sortBtn.setAttribute('data-dir', dir)
+      sortBtn.setAttribute('aria-label', 'Sort by ' + col.label)
+      sortBtn.appendChild(el('span', 'innfo-element-table-sort-up', '\u25b2'))
+      sortBtn.appendChild(el('span', 'innfo-element-table-sort-down', '\u25bc'))
+      sortBtn.addEventListener('click', function () {
+        if (typeof onSort === 'function') onSort(col.key)
+      })
+      th.appendChild(sortBtn)
+      if (isSorted) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')
-        th.appendChild(el('span', 'innfo-element-table-sort', sortState.dir === 'desc' ? '▼' : '▲'))
       }
-      function trigger() {
-        if (typeof onSort === 'function') onSort(col.key)
-      }
-      th.addEventListener('click', trigger)
-      th.addEventListener('keydown', function (e) {
-        if (e && (e.key === 'Enter' || e.key === ' ')) {
-          if (e.preventDefault) e.preventDefault()
-          trigger()
-        }
-      })
       headTr.appendChild(th)
     })
     thead.appendChild(headTr)

@@ -70,13 +70,13 @@ describe('Model Explorer element table view', () => {
   it('sorts by name ascending then descending', () => {
     const { document } = bootConsole({ model: MODEL })
     click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
-    click(document.querySelector('.innfo-element-table th[data-sort-key="name"]'))
+    click(document.querySelector('.innfo-element-table th[data-sort-key="name"] .innfo-element-table-sort'))
     assert.deepEqual(nameCells(document), ['Alpha', 'Beta', 'Gamma'])
     assert.equal(
       document.querySelector('.innfo-element-table th[data-sort-key="name"]').getAttribute('aria-sort'),
       'ascending',
     )
-    click(document.querySelector('.innfo-element-table th[data-sort-key="name"]'))
+    click(document.querySelector('.innfo-element-table th[data-sort-key="name"] .innfo-element-table-sort'))
     assert.deepEqual(nameCells(document), ['Gamma', 'Beta', 'Alpha'])
     assert.equal(
       document.querySelector('.innfo-element-table th[data-sort-key="name"]').getAttribute('aria-sort'),
@@ -84,10 +84,48 @@ describe('Model Explorer element table view', () => {
     )
   })
 
+  it('shows a muted double triangle that becomes a single dark one when sorted', () => {
+    const { document } = bootConsole({ model: MODEL })
+    click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
+    const ctl = () =>
+      document.querySelector(
+        '.innfo-element-table th[data-sort-key="name"] .innfo-element-table-sort',
+      )
+    assert.ok(ctl(), 'every header carries a sort control')
+    assert.equal(ctl().getAttribute('data-dir'), 'none', 'unsorted by default')
+    assert.ok(ctl().querySelector('.innfo-element-table-sort-up'), 'up triangle present')
+    assert.ok(ctl().querySelector('.innfo-element-table-sort-down'), 'down triangle present')
+    click(ctl())
+    assert.equal(ctl().getAttribute('data-dir'), 'asc', 'the rebuilt control marks ascending')
+    click(ctl())
+    assert.equal(ctl().getAttribute('data-dir'), 'desc', 'the rebuilt control marks descending')
+  })
+
+  it('clicking a header field badge + opens the field options without sorting', () => {
+    const { document } = bootConsole({ model: MODEL })
+    click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
+    const before = nameCells(document)
+    const rankTh = document.querySelector('.innfo-element-table th[data-sort-key="rank"]')
+    const more = rankTh.querySelector('.innfo-ku-more')
+    assert.ok(more, 'header badge keeps its + affordance')
+    click(more)
+    assert.equal(
+      document.querySelector('.innfo-element-table th[data-sort-key="rank"]').getAttribute('aria-sort'),
+      null,
+      'clicking + does not sort the column',
+    )
+    assert.deepEqual(nameCells(document), before, 'rows stay in payload order')
+    assert.equal(
+      rankTh.querySelector('.innfo-ku-wrap').getAttribute('data-ku-open'),
+      'true',
+      'the field options flyout opened',
+    )
+  })
+
   it('sorts numeric field values numerically, not lexically', () => {
     const { document } = bootConsole({ model: MODEL })
     click(document.querySelector('.innfo-viewmode-btn[data-mode="table"]'))
-    click(document.querySelector('.innfo-element-table th[data-sort-key="rank"]'))
+    click(document.querySelector('.innfo-element-table th[data-sort-key="rank"] .innfo-element-table-sort'))
     const rankIdx = headKeys(document).indexOf('rank')
     const ranks = [...document.querySelectorAll('.innfo-element-table tbody tr')].map(
       (tr) => tr.children[rankIdx].textContent.trim(),

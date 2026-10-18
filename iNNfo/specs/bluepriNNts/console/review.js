@@ -1174,24 +1174,32 @@
       ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
+      if (!store) return
+      var elForRev = elementsById[elId]
+      var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
+      // The toggle is created once and then only refreshed: a later decoration pass
+      // must repaint the existing button, or its label stays stuck on "Mark reviewed"
+      // even after the element was marked (the click still persisted the mark).
+      var existing = head.querySelector('[data-innfo-component="reviewed-toggle"]')
+      if (existing) {
+        if (typeof UI.applyReviewedState === 'function') UI.applyReviewedState(existing, stateForRev)
+        return
+      }
       var headRightRef =
         head.querySelector('.innfo-card-count') || head.querySelector('.innfo-card-toggle') || null
-      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
-        var elForRev = elementsById[elId]
-        var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
-        var rt = UI.ReviewedToggle({ state: stateForRev })
-        rt.setAttribute('data-innfo-review-ctl', '1')
-        rt.addEventListener('click', function () {
-          var current = store.reviewed()
-          if (Object.prototype.hasOwnProperty.call(current, elId)) {
-            store.unmarkReviewed(elId)
-          } else if (elForRev) {
-            store.markReviewed(elId, elForRev.hash)
-          }
-          applyDecorations()
-        })
-        head.insertBefore(rt, headRightRef)
-      }
+      var rt = UI.ReviewedToggle({ state: stateForRev })
+      rt.setAttribute('data-innfo-review-ctl', '1')
+      rt.addEventListener('click', function () {
+        var current = store.reviewed()
+        if (Object.prototype.hasOwnProperty.call(current, elId)) {
+          store.unmarkReviewed(elId)
+        } else {
+          var el = elementsById[elId]
+          if (el) store.markReviewed(elId, el.hash)
+        }
+        applyDecorations()
+      })
+      head.insertBefore(rt, headRightRef)
     }
 
     // The proposal ANCHORS on a card (tag and relation controls) are gated by

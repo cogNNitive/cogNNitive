@@ -1608,6 +1608,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   var STATUSES = ['applied', 'conflict', 'proposed']
+  // Plain-language help for the review badges: the number is a count of changes in
+  // that state and the colour IS the state. Surfaced on hover via `title` so a reader
+  // who has never seen the console learns what green/orange/red mean.
+  var STATUS_HELP = {
+    applied:
+      "applied to this model \u2014 approved and merged. Green means done. These come from the model's change history, not from your review marks.",
+    proposed:
+      "proposed and still waiting for review \u2014 not yet applied. Orange means pending. These come from the model's change history, not from your review marks.",
+    conflict:
+      "in conflict with the current content \u2014 they need a decision. Red means attention. These come from the model's change history, not from your review marks.",
+  }
+
+  function statusHelp(status, count) {
+    var base = STATUS_HELP[status] || String(status)
+    if (count == null) return base
+    var n = Number(count)
+    if (!isFinite(n)) return base
+    return n + ' ' + (n === 1 ? 'change ' : 'changes ') + base
+  }
+
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -1620,6 +1640,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var text = data.count != null ? String(data.count) : String(data.status)
     badge.textContent = text
     badge.setAttribute('aria-label', data.count != null ? data.count + ' ' + data.status : data.status)
+    badge.setAttribute('title', statusHelp(data.status, data.count))
     return badge
   }
 
@@ -3704,17 +3725,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
   var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
 
+  // Repaint a reviewed toggle in place. The review controller decorates a toggle
+  // once and then only refreshes its state on later passes, so the label and colour
+  // must be updatable without rebuilding the button.
+  function applyReviewedState(button, state) {
+    if (!button) return
+    var s = REVIEW_STATES.indexOf(state) !== -1 ? state : 'none'
+    button.setAttribute('data-state', String(s))
+    button.setAttribute('aria-pressed', s === 'reviewed' ? 'true' : 'false')
+    button.textContent = REVIEW_LABELS[s]
+  }
+
   function ReviewedToggle(data) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.ReviewedToggle: data required')
     }
     var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
     var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', REVIEW_LABELS[state])
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle')
     b.setAttribute('data-innfo-component', 'reviewed-toggle')
     b.setAttribute('type', 'button')
-    b.setAttribute('data-state', String(state))
-    b.setAttribute('aria-pressed', state === 'reviewed' ? 'true' : 'false')
+    applyReviewedState(b, state)
     return b
   }
 
@@ -4340,6 +4371,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     DraftList: DraftList,
     AnnotationPopover: AnnotationPopover,
     ReviewedToggle: ReviewedToggle,
+    applyReviewedState: applyReviewedState,
     RailProgress: RailProgress,
     EditModal: EditModal,
     NewElementModal: NewElementModal,
@@ -5533,24 +5565,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
+      if (!store) return
+      var elForRev = elementsById[elId]
+      var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
+      // The toggle is created once and then only refreshed: a later decoration pass
+      // must repaint the existing button, or its label stays stuck on "Mark reviewed"
+      // even after the element was marked (the click still persisted the mark).
+      var existing = head.querySelector('[data-innfo-component="reviewed-toggle"]')
+      if (existing) {
+        if (typeof UI.applyReviewedState === 'function') UI.applyReviewedState(existing, stateForRev)
+        return
+      }
       var headRightRef =
         head.querySelector('.innfo-card-count') || head.querySelector('.innfo-card-toggle') || null
-      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
-        var elForRev = elementsById[elId]
-        var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
-        var rt = UI.ReviewedToggle({ state: stateForRev })
-        rt.setAttribute('data-innfo-review-ctl', '1')
-        rt.addEventListener('click', function () {
-          var current = store.reviewed()
-          if (Object.prototype.hasOwnProperty.call(current, elId)) {
-            store.unmarkReviewed(elId)
-          } else if (elForRev) {
-            store.markReviewed(elId, elForRev.hash)
-          }
-          applyDecorations()
-        })
-        head.insertBefore(rt, headRightRef)
-      }
+      var rt = UI.ReviewedToggle({ state: stateForRev })
+      rt.setAttribute('data-innfo-review-ctl', '1')
+      rt.addEventListener('click', function () {
+        var current = store.reviewed()
+        if (Object.prototype.hasOwnProperty.call(current, elId)) {
+          store.unmarkReviewed(elId)
+        } else {
+          var el = elementsById[elId]
+          if (el) store.markReviewed(elId, el.hash)
+        }
+        applyDecorations()
+      })
+      head.insertBefore(rt, headRightRef)
     }
 
     // The proposal ANCHORS on a card (tag and relation controls) are gated by
@@ -8761,8 +8801,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var th = el('th', 'innfo-element-table-th')
       th.setAttribute('data-sort-key', col.key)
       th.setAttribute('scope', 'col')
-      th.setAttribute('role', 'button')
-      th.setAttribute('tabindex', '0')
       var fieldDef = fieldDefOf(col.key)
       // Every header is a knowledge unit too: a `field` badge, like the cells below.
       // The plain label stays only as the no-kit / unblessable fallback.
@@ -8791,21 +8829,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       } else {
         th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
       }
-      if (sortState && sortState.key === col.key) {
+      // The sort control is the ONLY click target in the header, so the field
+      // badge's own "+" flyout opens the field options instead of re-sorting.
+      // The indicator is always shown: both triangles in a muted tone while the
+      // column is unsorted, a single dark triangle once it is sorted.
+      var isSorted = sortState && sortState.key === col.key
+      var dir = isSorted ? (sortState.dir === 'desc' ? 'desc' : 'asc') : 'none'
+      var sortBtn = el('button', 'innfo-element-table-sort')
+      sortBtn.setAttribute('type', 'button')
+      sortBtn.setAttribute('data-dir', dir)
+      sortBtn.setAttribute('aria-label', 'Sort by ' + col.label)
+      sortBtn.appendChild(el('span', 'innfo-element-table-sort-up', '\u25b2'))
+      sortBtn.appendChild(el('span', 'innfo-element-table-sort-down', '\u25bc'))
+      sortBtn.addEventListener('click', function () {
+        if (typeof onSort === 'function') onSort(col.key)
+      })
+      th.appendChild(sortBtn)
+      if (isSorted) {
         th.classList.add('sorted')
         th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')
-        th.appendChild(el('span', 'innfo-element-table-sort', sortState.dir === 'desc' ? '▼' : '▲'))
       }
-      function trigger() {
-        if (typeof onSort === 'function') onSort(col.key)
-      }
-      th.addEventListener('click', trigger)
-      th.addEventListener('keydown', function (e) {
-        if (e && (e.key === 'Enter' || e.key === ' ')) {
-          if (e.preventDefault) e.preventDefault()
-          trigger()
-        }
-      })
       headTr.appendChild(th)
     })
     thead.appendChild(headTr)
