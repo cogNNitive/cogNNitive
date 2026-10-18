@@ -4,8 +4,9 @@ export default defineConfig({
   test: {
     clearMocks: true,
     pool: 'forks',
-    // Vitest 4: poolOptions removed; fileParallelism:false is the singleFork replacement.
-    fileParallelism: false,
+    // Files run in parallel. Under that load, tests that dynamically import the whole
+    // package entry (tests/writeOnce/plan.test.ts) cross the default 5s timeout.
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

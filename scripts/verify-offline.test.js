@@ -37,6 +37,15 @@ assert.deepStrictEqual(
   steps.map((s) => s.id),
 );
 
+// 4b. --fast drops only SLOW_SUITES suites; every guard and drift check stays.
+{
+  const fastIds = new Set(buildSteps(repoRoot, { fast: true }).map((s) => s.id));
+  const dropped = steps.filter((s) => !fastIds.has(s.id));
+  assert.ok(dropped.length > 0, '--fast skips something');
+  assert.ok(dropped.every((s) => s.id.startsWith('test-')), '--fast skips only test suites');
+  assert.ok(steps.filter((s) => !s.id.startsWith('test-')).every((s) => fastIds.has(s.id)), '--fast keeps every guard');
+}
+
 // 5. All steps run even when an early one fails; failures are summarized.
 {
   const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-offline-'));

@@ -34,7 +34,8 @@
     "check:versions": "node scripts/sync-versions.mjs --check && node scripts/blueprint-catalog.mjs --check",
     "check:spec-version": "node scripts/check-spec-version.mjs",
     "check:spec-urls": "node scripts/check-spec-version.mjs --check-urls",
-    "check:specs": "node scripts/check-spec-version.mjs --check-urls && node scripts/check-spec-version.mjs --inventory"
+    "check:specs": "node scripts/check-spec-version.mjs --check-urls && node scripts/check-spec-version.mjs --inventory",
+    "regen": "node scripts/regen.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

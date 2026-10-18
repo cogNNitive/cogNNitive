@@ -22,6 +22,7 @@
 
 typechecked=0
 docs_checked=0
+guards_checked=0
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Ref deletion: local sha is all zeros. Nothing to check.
@@ -60,11 +61,24 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         if [ "$status" -ne 0 ]; then
           echo ""
           echo "pre-push: generated docs facts are stale (exit $status). Push blocked."
-          echo "pre-push: run 'node scripts/generate-docs-facts.mjs' and commit the result."
+          echo "pre-push: run 'npm run regen' (or 'node scripts/generate-docs-facts.mjs') and commit the result."
           echo "pre-push: bypass with: git push --no-verify"
           exit "$status"
         fi
         docs_checked=1
+      fi
+
+      if [ "$guards_checked" -eq 0 ]; then
+        # Derived-artifact freshness guards (list shared with scripts/verify.js)
+        # plus eslint on the files changed against origin/dev. CI was otherwise
+        # the first place these ran: 22 of the last 100 CI runs failed on lint
+        # and 10 on stale generated files.
+        node scripts/pre-push-check.js "$local_sha"
+        status=$?
+        if [ "$status" -ne 0 ]; then
+          exit "$status"
+        fi
+        guards_checked=1
       fi
       ;;
     *)
