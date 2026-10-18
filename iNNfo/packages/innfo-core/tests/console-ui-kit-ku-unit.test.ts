@@ -98,3 +98,22 @@ describe('KuInfoPanel', () => {
     expect(dlg.querySelector('h2')).toBeTruthy()
   })
 })
+
+describe('setUnitChanges', () => {
+  it('paints and clears address-keyed pips without re-rendering the badge', () => {
+    const wrap = UI.Ku('value', { model: 'm', element: 'slimer', field: 'owner', value: 'Egon' })
+    document.body.appendChild(wrap)
+    const badge = wrap.querySelector('[data-innfo-component="ku-unit"]') as HTMLElement
+    const address = badge.getAttribute('data-ku-address')!
+
+    UI.setUnitChanges(document, { [address]: 2 })
+    expect(badge.getAttribute('data-ku-changes')).toBe('2')
+    expect(wrap.querySelector('[data-innfo-component="ku-change-pip"]')!.textContent).toBe('2')
+
+    UI.setUnitChanges(document, {})
+    expect(badge.getAttribute('data-ku-changes')).toBeNull()
+    expect(wrap.querySelector('[data-innfo-component="ku-change-pip"]')).toBeNull()
+
+    wrap.remove()
+  })
+})
