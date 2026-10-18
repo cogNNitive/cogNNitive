@@ -60,6 +60,10 @@ function canonicalValue(v: unknown, key?: string): unknown {
   if (v && typeof v === 'object') {
     const out: Record<string, unknown> = {}
     for (const k of Object.keys(v as Record<string, unknown>).sort()) {
+      // `declaredBy` records which bluepriNNt authored the Definition; it is
+      // provenance, not definition body, so it never makes two otherwise
+      // AST-identical Definitions differ.
+      if (k === 'declaredBy') continue
       const val = (v as Record<string, unknown>)[k]
       if (val === undefined || val === null) continue
       out[k] = canonicalValue(val, k)
