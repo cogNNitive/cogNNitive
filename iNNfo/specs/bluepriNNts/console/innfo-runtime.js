@@ -2354,6 +2354,7 @@
           modelId: modelId || element.modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
+          lazy: Array.isArray(elements) && elements.length > 20,
           head:
             UI && typeof UI.CitationIcons === 'function'
               ? UI.CitationIcons('sources', sourcesEntries, {
@@ -2417,15 +2418,16 @@
         })
       }
       if (mediaItems.length) {
-        var fieldImgs = card.querySelectorAll('.innfo-field-image')
-        for (var fii = 0; fii < fieldImgs.length; fii++) {
-          ;(function (fImg) {
-            fImg.addEventListener('click', function (ev) {
-              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+        card.addEventListener('click', function (ev) {
+          var t = ev && ev.target
+          if (t && typeof t.closest === 'function') {
+            var fImg = t.closest('.innfo-field-image')
+            if (fImg) {
+              if (ev.stopPropagation) ev.stopPropagation()
               renderMediaDialog(doc, mediaItems, 0)
-            })
-          })(fieldImgs[fii])
-        }
+            }
+          }
+        })
       }
 
       content.appendChild(card)
@@ -4770,6 +4772,9 @@
     // 2. Find card by id (cards carry the `el-` prefixed domId, matching `#el-` hrefs)
     var card = doc.getElementById('el-' + String(elementId))
     if (card) {
+      if (typeof card.setOpen === 'function' && card.getAttribute('data-open') === 'false') {
+        card.setOpen(true)
+      }
       if (typeof card.scrollIntoView === 'function') {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
