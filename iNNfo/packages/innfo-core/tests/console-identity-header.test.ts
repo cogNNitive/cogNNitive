@@ -46,10 +46,11 @@ describe('renderNavbarIdentity', () => {
     })
     expect(doc.getElementById('innfo-domain-title')!.textContent).toBe('Acme Pricing')
     expect(doc.querySelector('.innfo-scope-label')!.textContent).toBe('Pricing')
-    const extra = doc.getElementById('innfo-navbar-extra')!.textContent!
-    expect(extra).toContain('business')
-    expect(extra).toContain('V_1-2-0')
-    expect(extra).toContain('2026-10-11 16:56:22')
+    const popover = doc.querySelector('.innfo-navbar-info-popover')!.textContent!
+    expect(popover).toContain('business')
+    expect(popover).toContain('V_1-2-0')
+    expect(popover).toContain('2026-10-11 16:56:22')
+    expect(doc.getElementById('innfo-navbar-extra')!.textContent).toBe('')
   })
 
   it('uses meta.title for a multi-model console and no scope label', () => {

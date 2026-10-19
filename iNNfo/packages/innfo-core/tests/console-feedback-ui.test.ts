@@ -238,13 +238,16 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(banner!.textContent).not.toContain('needs:')
   })
 
-  it('stamps the console header with the generated timestamp', () => {
+  it('stamps the console header info popover with the generated timestamp', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.renderNavbarIdentity(document, { generated: '2026-10-11T16:56:22.123Z' })
+    const popover = document.querySelector('.innfo-navbar-info-popover')!
+    expect(popover).not.toBeNull()
+    expect(popover.textContent).toContain('Generated: 2026-10-11 16:56:22 UTC')
     const host = document.getElementById('innfo-navbar-extra')!
     expect(host).not.toBeNull()
-    expect(host.textContent).toBe('Generated 2026-10-11 16:56:22 UTC')
+    expect(host.textContent).toBe('')
   })
 
   it('the single shell renders a citation icon for an element with citations', () => {
