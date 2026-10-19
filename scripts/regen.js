@@ -58,6 +58,8 @@ for (let pass = 1; pass <= 3; pass++) {
   const results = check.map((args) => ({ args, ...exec(process.execPath, args, true) }));
   const stale = results.filter((r) => r.status !== 0);
   if (stale.length === 0) {
+    // Keep testlab domain console fixture synchronized with fresh console bundle
+    exec(process.execPath, ['scripts/export-console.mjs', '--domain', '--no-open'], true);
     console.log(`regen: all derived artifacts fresh (pass ${pass}). Review with: git status --short`);
     process.exit(0);
   }

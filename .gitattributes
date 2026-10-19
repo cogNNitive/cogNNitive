@@ -8,3 +8,4 @@
 *.jpg binary
 *.svg text eol=lf
 *.bundle.js -diff
+test/fixtures/testlab/*.html -diff merge=binary

@@ -175,4 +175,36 @@ describe('classifyAgainstCatalog', () => {
     expect(c.status).toBe('unknown')
     expect(c.gap).toBe('none')
   })
+
+  it('classifies an unversioned canonical blueprint URL as current at catalog adopted', () => {
+    const c = classifyAgainstCatalog(`${CANON}/business/spec_NN.md`, CATALOG)
+    expect(c.status).toBe('current')
+    expect(c.gap).toBe('same')
+    expect(c.template).toBe('business')
+    expect(c.pinned).toBe('V_0-2-0')
+    expect(c.adopted).toBe('V_0-2-0')
+  })
+
+  it('classifies an unversioned URL in catalog.frozen as current at adopted', () => {
+    const catalogWithFrozen: TemplateCatalog = {
+      blueprints: CATALOG.blueprints,
+      frozen: {
+        workspace: {
+          name: 'workspace',
+          adopted: 'V_0-9-0',
+          versions: [
+            {
+              blueprint_version: 'V_0-9-0',
+              url: `${CANON}/workspace/spec_NN.md`,
+            },
+          ],
+        },
+      },
+    }
+    const c = classifyAgainstCatalog(`${CANON}/workspace/spec_NN.md`, catalogWithFrozen)
+    expect(c.status).toBe('current')
+    expect(c.template).toBe('workspace')
+    expect(c.pinned).toBe('V_0-9-0')
+    expect(c.adopted).toBe('V_0-9-0')
+  })
 })

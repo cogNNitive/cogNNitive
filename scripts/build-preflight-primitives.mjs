@@ -98,7 +98,12 @@ const BUNDLE_TARGETS = [
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
 function loadEsbuild() {
-  for (const base of [path.join(REPO_ROOT, 'iNNfo'), REPO_ROOT]) {
+  for (const base of [
+    path.join(REPO_ROOT, 'iNNfo'),
+    REPO_ROOT,
+    path.join(process.cwd(), 'iNNfo'),
+    process.cwd(),
+  ]) {
     try {
       return require(require.resolve('esbuild', { paths: [base] }))
     } catch {
@@ -123,6 +128,12 @@ async function renderTarget(target) {
     write: false,
     legalComments: 'none',
     absWorkingDir: REPO_ROOT,
+    nodePaths: [
+      path.join(REPO_ROOT, 'iNNfo', 'node_modules'),
+      path.join(process.cwd(), 'iNNfo', 'node_modules'),
+      path.join(REPO_ROOT, 'node_modules'),
+      path.join(process.cwd(), 'node_modules'),
+    ],
     banner: { js: target.banner },
   })
   // esbuild prints third-party paths relative to the checkout (`../<checkout-dir>/node_modules/...`

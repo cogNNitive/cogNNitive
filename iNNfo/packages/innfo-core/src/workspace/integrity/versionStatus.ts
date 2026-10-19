@@ -127,6 +127,22 @@ export function parsePinnedUrl(url: string): { name: string; version: string } |
 }
 
 /**
+ * Extract canonical blueprint name from an unversioned canonical URL, such as:
+ *   - .../bluepriNNts/<name>/spec_NN.md
+ *   - .../bluepriNNts/<name>/<name>_spec_NN.md
+ *   - .../bluepriNNts/<name>_spec_NN.md
+ *   - specs/bluepriNNts/<name>/spec_NN.md
+ */
+export function parseUnversionedBlueprintName(url: string): string | null {
+  const str = String(url)
+  const pkg = str.match(/bluepriNNts\/([^/]+)\/(?:spec_NN|[a-zA-Z0-9_-]+_spec_NN)\.md$/i)
+  if (pkg) return pkg[1]
+  const flat = str.match(/bluepriNNts\/([^/]+?)_spec_NN\.md$/i)
+  if (flat) return flat[1]
+  return null
+}
+
+/**
  * Classify a Level-3 model's pinned template URL against the resolved catalog.
  *
  * Mirrors the `scanWorkspaceUpgrades` decision tree in `upgrade-check.js`
@@ -143,9 +159,10 @@ export function classifyAgainstCatalog(
   // Additive sixth value: the catalog was unreachable. The pass degrades every
   // model to `unknown` rather than guessing a status from stale data.
   if (catalog === null) {
+    const unversionedName = parentUrl ? parseUnversionedBlueprintName(parentUrl) : null
     return {
       status: 'unknown',
-      template: pinned?.name ?? null,
+      template: pinned?.name ?? unversionedName ?? null,
       pinned: pinned?.version ?? null,
       adopted: null,
       gap: 'none',
@@ -165,6 +182,50 @@ export function classifyAgainstCatalog(
   }
 
   if (!pinned) {
+    const unversionedName = parseUnversionedBlueprintName(parentUrl)
+    if (unversionedName) {
+      const matchKey = Object.keys(catalog.blueprints || {}).find(
+        (k) => k.toLowerCase() === unversionedName.toLowerCase()
+      )
+      const entry = matchKey ? catalog.blueprints[matchKey] : catalog.frozen?.[unversionedName]
+      if (entry) {
+        return {
+          status: 'current',
+          template: entry.name,
+          pinned: entry.adopted,
+          adopted: entry.adopted,
+          gap: 'same',
+          detail: 'Canonical unversioned blueprint URL resolved to catalog adopted version',
+        }
+      }
+      return {
+        status: 'unlisted',
+        template: unversionedName,
+        pinned: null,
+        adopted: null,
+        gap: 'none',
+        detail: 'Template not in catalog',
+      }
+    }
+
+    // Direct match against any version.url in catalog blueprints or frozen
+    const allCatalogEntries = [
+      ...Object.values(catalog.blueprints || {}),
+      ...Object.values(catalog.frozen || {}),
+    ]
+    for (const entry of allCatalogEntries) {
+      if (entry.versions?.some((v) => v.url === parentUrl)) {
+        return {
+          status: 'current',
+          template: entry.name,
+          pinned: entry.adopted,
+          adopted: entry.adopted,
+          gap: 'same',
+          detail: 'Canonical unversioned blueprint URL resolved to catalog adopted version',
+        }
+      }
+    }
+
     return {
       status: 'unlisted',
       template: null,
@@ -175,7 +236,10 @@ export function classifyAgainstCatalog(
     }
   }
 
-  const entry = catalog.blueprints?.[pinned.name]
+  let entry = catalog.blueprints?.[pinned.name]
+  if (!entry && catalog.frozen?.[pinned.name]) {
+    entry = catalog.frozen[pinned.name]
+  }
   if (!entry) {
     return {
       status: 'unlisted',

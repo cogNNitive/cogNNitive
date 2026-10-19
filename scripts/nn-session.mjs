@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, readdirSync, rmdirSync, unlinkSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, rmSync, unlinkSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -215,13 +215,13 @@ function stop(argv) {
   }
   if (registered) tryGit(['worktree', 'prune'], root)
 
-  // A leftover dir a process still holds: drop it if empty, else leave for the maintainer.
+  // A leftover dir a process still holds: drop it if possible, else leave for the maintainer.
   if (dirExists) {
     try {
-      rmdirSync(target)
+      rmSync(target, { recursive: true, force: true })
       dirExists = false
     } catch {
-      // non-empty or locked — leave it
+      // locked by another process
     }
   }
 
@@ -233,7 +233,39 @@ function stop(argv) {
   }
   console.log(`removed ${target}`)
   if (dirExists) {
-    console.error(`note: ${target} still exists (locked or non-empty); delete it once the lock holder closes.`)
+    console.error(`note: ${target} still exists (locked); delete it once the lock holder closes.`)
+  }
+}
+
+function sweep(argv) {
+  const root = repoRoot(argv)
+  const isAncestor = (branch, ref) => tryGit(['merge-base', '--is-ancestor', branch, ref], root).ok
+
+  // 1. Scan registered worktrees
+  const out = tryGit(['worktree', 'list', '--porcelain'], root).out
+  const blocks = out.split(/\r?\n\r?\n/)
+  for (const block of blocks) {
+    const wm = block.match(/^worktree (.+)$/m)
+    const bm = block.match(/^branch refs\/heads\/(session\/.+)$/m)
+    if (wm && bm) {
+      const target = wm[1]
+      const branch = bm[1]
+      const id = branch.replace(/^session\//, '')
+      if (isAncestor(branch, 'dev') || isAncestor(branch, 'origin/dev') || isAncestor(branch, 'main')) {
+        console.log(`sweeping merged session worktree: ${branch} (${target})`)
+        stop(['stop', '--id', id, '--root', root])
+      }
+    }
+  }
+
+  // 2. Scan remaining local session/* branches that are already merged
+  const rawBranches = tryGit(['branch', '--list', 'session/*'], root).out
+  const branches = rawBranches.split(/\r?\n/).map((b) => b.trim().replace(/^\*\s*/, '')).filter(Boolean)
+  for (const branch of branches) {
+    if (isAncestor(branch, 'dev') || isAncestor(branch, 'origin/dev') || isAncestor(branch, 'main')) {
+      console.log(`deleting merged local branch: ${branch}`)
+      tryGit(['branch', '-d', branch], root)
+    }
   }
 }
 
@@ -243,7 +275,8 @@ else if (cmd === 'list') list(process.argv.slice(2))
 else if (cmd === 'status') status(process.argv.slice(2))
 else if (cmd === 'batch-status') await batchStatus(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
+else if (cmd === 'sweep') sweep(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|batch-status|stop [--id <id>] [--no-install] [--root <path>] [--json] [--strict]')
+  console.error('usage: nn-session.mjs start|list|status|batch-status|stop|sweep [--id <id>] [--no-install] [--root <path>] [--json] [--strict]')
   process.exit(2)
 }

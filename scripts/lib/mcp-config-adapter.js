@@ -75,6 +75,7 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
 
   const existing = config.mcp[serverName];
   const targetCommand = ['node', bundlePath];
+  const targetCwd = path.dirname(bundlePath);
 
   if (
     existing &&
@@ -83,7 +84,8 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
     Array.isArray(existing.command) &&
     existing.command.length === 2 &&
     existing.command[0] === 'node' &&
-    existing.command[1] === bundlePath
+    existing.command[1] === bundlePath &&
+    existing.cwd === targetCwd
   ) {
     return { agent: 'opencode', file: configFile, updated: false };
   }
@@ -91,6 +93,7 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
   config.mcp[serverName] = {
     type: 'local',
     command: targetCommand,
+    cwd: targetCwd,
     enabled: true,
   };
 
@@ -132,13 +135,15 @@ function registerMcpServersFormat({ agent, configFile, serverName = 'innfo-mcp',
     config.mcpServers = {};
   }
 
+  const targetCwd = path.dirname(bundlePath);
   const existing = config.mcpServers[serverName];
   if (
     existing &&
     existing.command === 'node' &&
     Array.isArray(existing.args) &&
     existing.args.length === 1 &&
-    existing.args[0] === bundlePath
+    existing.args[0] === bundlePath &&
+    existing.cwd === targetCwd
   ) {
     return { agent, file: configFile, updated: false };
   }
@@ -146,6 +151,7 @@ function registerMcpServersFormat({ agent, configFile, serverName = 'innfo-mcp',
   config.mcpServers[serverName] = {
     command: 'node',
     args: [bundlePath],
+    cwd: targetCwd,
   };
 
   writeJsonClean(configFile, config);
