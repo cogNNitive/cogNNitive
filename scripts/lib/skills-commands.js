@@ -632,7 +632,7 @@ async function consentOrAbort(label, names, menu, yes) {
 
 /**
  * Executes status command comparing installed commits against pinned commits.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, stateFile: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string }} args
  * @returns {Promise<void>}
  */
 async function cmdStatus(args) {
@@ -754,7 +754,7 @@ async function cmdStatus(args) {
 
 /**
  * Executes install command installing missing skills and templates with consent.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, stateFile: string, yes: boolean, agent?: string, scope?: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, yes: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdInstall(args) {
@@ -913,7 +913,7 @@ async function cmdInstallExternal(args) {
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString();
