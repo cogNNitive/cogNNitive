@@ -4734,9 +4734,9 @@
       if (drafts.length === 0) {
         var empty = el('div', 'empty-state innfo-review-empty text-sm p-4 rounded-lg flex items-center gap-3')
         if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
-          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
+          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Edit an element to propose one.</span>'
         } else {
-          empty.textContent = 'No proposed changes yet. Annotate an element in review mode.'
+          empty.textContent = 'No proposed changes yet. Edit an element to propose one.'
         }
         listSection.appendChild(empty)
       } else {

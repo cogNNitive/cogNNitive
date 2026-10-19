@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-MlKvUEPPdlfvlcJcd80qNCFkFR2141ekVeDXKWZrwE4=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-sRkcjtHbl6hAA8OGUGv09MMuH/TVdAM+BDpByMEKKI0=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -8237,6 +8237,7 @@ input[type="text"], input[type="search"], textarea, select {
         border: 1px solid var(--filter-box-border);
         border-radius: var(--radius-sm);
       }
+      @media (max-width: 640px) { #innfo-search { font-size: 16px; } }
       #innfo-search:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
       #innfo-rail { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 
@@ -9731,8 +9732,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-573dca6d",
-    "generated": "2026-10-19T17:26:38.430Z",
+    "domainId": "testlab-02f7a960",
+    "generated": "2026-10-19T18:24:23.320Z",
     "changesBlueprintVersion": "V_0-5-1",
     "models": [
       {
@@ -9743,7 +9744,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-19T17:26:38.391Z",
+        "citationsResolvedAt": "2026-10-19T18:24:23.283Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -18192,7 +18193,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       host.textContent = ''
       if (parts.length) {
-        host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
         var infoBtn = doc.createElement('button')
         infoBtn.className = 'innfo-navbar-info-btn'
         infoBtn.type = 'button'
@@ -18231,7 +18231,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       if (meta.sourceUrl) {
-        if (parts.length) host.appendChild(doc.createTextNode(' \u00b7 '))
         var href = safeSourceHref(meta.sourceUrl)
         if (href) {
           var link = doc.createElement('a')
@@ -18958,39 +18957,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function mk(tag) {
       return doc.createElement ? doc.createElement(tag) : el(tag)
     }
-    function conceptButton(name, index) {
-      var count = counts[name] || 0
-      var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
-      var btn = mk('button')
-      if (!btn) return null
-      var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
-      btn.className = 'innfo-rail-item' + (isActive ? ' active' : '')
-      btn.setAttribute('data-concept', String(name))
-      var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
-      var pill = UI.Ku(
-        'section',
-        {
-          model: railModel,
-          concept: name,
-          label: name,
-          index: index,
-        },
-        { doc: doc },
-      )
-      if (pill) btn.appendChild(pill)
-      if (pill && count != null) btn.appendChild(el('span', 'innfo-rail-count', String(count)))
-      if (draftCount > 0) {
-        var badge = el('span', 'innfo-rail-badge', String(draftCount))
-        if (badge) {
-          badge.setAttribute('title', draftCount + ' unsent change(s)')
-          btn.appendChild(badge)
-        }
-      }
-      btn.addEventListener('click', function () {
-        if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
-      })
-      return btn
-    }
     function conceptNamesForModel(m) {
       var mid = String(m.id || m.filePath)
       var seen = {}
@@ -19092,9 +19058,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var a = mk('a')
           if (a) {
             a.setAttribute('data-concept', String(name))
-            if (activeConcepts.indexOf(String(name).toLowerCase()) !== -1) {
-              a.className = 'active'
-            }
+            var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+            a.className = 'innfo-rail-item' + (isActive ? ' active' : '')
             var cMeta = conceptMetaOf(globalConcepts, name)
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
@@ -19130,11 +19095,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var cHdr = el('div', 'innfo-rail-header')
     cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
     rail.appendChild(cHdr)
-    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
+
+    var list = mk('ul')
+    if (list) list.className = 'menu menu-xs bg-base-100 p-2 w-full'
+    var globalConcepts = Array.isArray(concepts) ? concepts : []
+    var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
+
+    globalConcepts.forEach(function (concept, index) {
       var name = typeof concept === 'string' ? concept : concept.name
-      var btn = conceptButton(name, index)
-      if (btn) rail.appendChild(btn)
+      var cli = mk('li')
+      var a = mk('a')
+      if (a) {
+        var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+        a.className = 'innfo-rail-item' + (isActive ? ' active' : '')
+        a.setAttribute('data-concept', String(name))
+        var cMeta = conceptMetaOf(globalConcepts, name)
+        var color = cMeta.hexColor
+        a.setAttribute('data-concept-slot', String(cMeta.slot))
+        if (color) a.style.setProperty('--rail-concept-color', color)
+        a.appendChild(
+          UI.Ku(
+            'section',
+            { model: railModel, concept: name, label: name, index: cMeta.index, color: cMeta.color },
+            { doc: doc },
+          ),
+        )
+        a.appendChild(
+          el('span', 'innfo-rail-count badge badge-ghost badge-xs', String(Number(counts && counts[name]) || 0)),
+        )
+        var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
+        if (draftCount > 0) {
+          var badge = el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(draftCount))
+          if (badge) {
+            badge.setAttribute('title', draftCount + ' unsent change(s)')
+            a.appendChild(badge)
+          }
+        }
+        a.addEventListener('click', function (e) {
+          if (e && e.preventDefault) e.preventDefault()
+          if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
+        })
+      }
+      cli.appendChild(a)
+      list.appendChild(cli)
     })
+    rail.appendChild(list)
   }
 
   // ---- Concept guidance panel ----------------------------------------------
@@ -22009,9 +22014,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (drafts.length === 0) {
         var empty = el('div', 'empty-state innfo-review-empty text-sm p-4 rounded-lg flex items-center gap-3')
         if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
-          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
+          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Edit an element to propose one.</span>'
         } else {
-          empty.textContent = 'No proposed changes yet. Annotate an element in review mode.'
+          empty.textContent = 'No proposed changes yet. Edit an element to propose one.'
         }
         listSection.appendChild(empty)
       } else {
