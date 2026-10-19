@@ -20,7 +20,7 @@ describe('S1b: draft count stays live without reload', () => {
     const { document, res } = bootConsole()
     res.controller.enable()
     addCommentDraft(document)
-    const del = document.querySelector('#innfo-tab-review .innfo-draft-delete')
+    const del = document.querySelector('#innfo-tab-review .innfo-change-discard')
     assert.ok(del, 'delete control rendered in review tab')
     del.click()
     assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*0/)

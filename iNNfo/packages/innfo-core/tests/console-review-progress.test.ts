@@ -112,6 +112,14 @@ describe('console-review-progress (change state + rail progress, no reviewed mar
     expect(env.document.querySelector('[data-innfo-component="toast"]')).toBeNull()
   })
 
+  it('the change toast body describes the export-and-agent flow, not cogNNitive', () => {
+    const ctl = boot()
+    ctl.propose({ elementId: 'equip-trap' }, { kind: 'comment', comment: 'x' })
+    const body = env.document.querySelector('.innfo-change-toast-text')!
+    expect(body.textContent).toContain('export it')
+    expect(body.textContent).not.toContain('from cogNNitive')
+  })
+
   it('attaches RailProgress per concept showing pending/total', () => {
     const ctl = boot()
     ctl.propose({ elementId: 'threat-slimer' }, { kind: 'comment', comment: 'x' })

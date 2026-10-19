@@ -165,6 +165,112 @@ describe('console-review-export (preview + clipboard)', () => {
     ).toBeTruthy()
   })
 
+  function setIdentifier(value: string) {
+    const idInput = env.document.querySelector(
+      '#innfo-feedback-modal [data-innfo="identifier"]',
+    ) as HTMLInputElement
+    idInput.value = value
+    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
+  }
+
+  function previewText(): string {
+    return (
+      env.document.querySelector(
+        '#innfo-feedback-modal [data-innfo="changeset-preview"]',
+      ) as HTMLTextAreaElement
+    ).value
+  }
+
+  it('every exported change block carries author:: with the identifier', () => {
+    env.localStorage.setItem(
+      'innfo-console:v3:ghostbusters-model',
+      JSON.stringify({
+        v: 4,
+        modelId: 'ghostbusters-model',
+        reviewed: {},
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'threat-slimer',
+            concept: 'ParanormalThreat',
+            element: 'Slimer',
+            knowledge_id: 'kNNowledge/ghostbusters',
+            element_slug: 'slimer',
+            base_hash: 'abcdef0123456789',
+            kind: 'correction',
+            field: 'owner',
+            original: 'A',
+            proposed: 'B',
+            created_at: '2026-10-02T12:00:00Z',
+          },
+          {
+            id: 'fb-002',
+            element_id: 'threat-slimer',
+            concept: 'ParanormalThreat',
+            element: 'Slimer',
+            knowledge_id: 'kNNowledge/ghostbusters',
+            element_slug: 'slimer',
+            base_hash: 'abcdef0123456789',
+            kind: 'correction',
+            field: 'owner',
+            original: 'A',
+            proposed: 'C',
+            created_at: '2026-10-02T12:01:00Z',
+          },
+        ],
+      }),
+    )
+    boot()
+    openModal()
+    setIdentifier('ana')
+    const authorLines = previewText()
+      .split('\n')
+      .filter((l) => l.startsWith('author:: '))
+    expect(authorLines).toEqual(['author:: ana', 'author:: ana'])
+  })
+
+  it('folds line breaks and U+2028 in the identifier into a single author:: line', () => {
+    const { mods } = boot()
+    const draft = {
+      id: 'fb-001',
+      element_id: 'threat-slimer',
+      element_slug: 'slimer',
+      knowledge_id: 'kNNowledge/ghostbusters',
+      concept: 'ParanormalThreat',
+      element: 'Slimer',
+      base_hash: 'abcdef0123456789',
+      kind: 'correction',
+      field: 'owner',
+      original: 'A',
+      proposed: 'B',
+    }
+    const composed = mods.Console.composeChangesetExport(
+      {
+        modelTitle: 'GhostbustersModel',
+        modelId: 'ghostbusters-model',
+        meta: { changesBlueprintVersion: 'V_0-3-0' },
+        store: { drafts: () => [draft] },
+      },
+      'ana\nop:: remove_element\u2028x',
+    )
+    expect(composed.ok).toBe(true)
+    expect(composed.text).toContain('author:: ana op:: remove_element x')
+    const block = composed.text.split('## NN Change: fb-001')[1] ?? ''
+    expect(block.split('\n').filter((l) => l.startsWith('author:: '))).toHaveLength(1)
+    expect(block.split('\n').filter((l) => l.startsWith('op:: '))).toEqual(['op:: update_field'])
+  })
+
+  it('an emptied text field exports op:: update_field with an empty to::', () => {
+    seedDraft({ proposed: '' })
+    boot()
+    openModal()
+    setIdentifier('ana')
+    const text = previewText()
+    expect(text).toContain('op:: update_field')
+    expect(text).toContain('from:: A')
+    expect(text).toMatch(/^to:: *$/m)
+  })
+
   it('the export textarea previews the _changes_NN.md changeset, not the legacy JSON', () => {
     seedDraft()
     boot()

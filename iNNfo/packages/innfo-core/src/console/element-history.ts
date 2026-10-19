@@ -35,6 +35,13 @@ interface ChangesetChangeRecord {
   status?: string
   sources?: string
   replaced_sources?: string
+  /** Card data for the Changes tab: the diff, the added fields and the reason. */
+  from?: string
+  to?: string
+  concept?: string
+  name?: string
+  fields?: Record<string, string>
+  resolution?: string
 }
 
 /** A parsed changeset reduced to what element history needs. */
@@ -44,6 +51,7 @@ export interface ChangesetRecord {
   status?: string
   author?: string
   appliedAt?: string
+  resolution?: string
   changes: ChangesetChangeRecord[]
 }
 
@@ -119,6 +127,7 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
       status: fm.status as string | undefined,
       author: fm.author as string | undefined,
       appliedAt: fm.applied_at as string | undefined,
+      resolution: fm.resolution as string | undefined,
       changes: doc.changes.map((c) => ({
         id: c.id,
         op: c.op,
@@ -128,6 +137,12 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
         status: c.status,
         sources: c.sources,
         replaced_sources: c.replaced_sources,
+        from: c.from,
+        to: c.to,
+        concept: c.concept,
+        name: c.name,
+        fields: c.fields,
+        resolution: c.resolution,
       })),
     })
   }

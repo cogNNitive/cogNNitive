@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
 import { applyMutation, rewriteFieldCitation } from '../src/mutate.js'
 import type { ElementNode } from '../src/types/index.js'
+import type { BlueprintSchema } from '../src/schema/index.js'
 
 const MODEL_WITH_MATRIX = `---
 spec_version: "V_0-3-0"
@@ -277,5 +278,77 @@ describe('Field updates preserve the value type (S3b P0-3)', () => {
     expect(result.success).toBe(true)
     const el = model.elements.get('Metrics')?.[0]
     expect(el?.fields.budget).toBe('100')
+  })
+})
+
+const MODEL_FOR_CLEARING = `---
+spec_version: "V_0-3-0"
+level: 3
+title: "Clearing Fields Model"
+---
+
+# NN Owners
+## NN Owners: Team
+owner:: Ana
+price:: 5
+note:: keep this raw
+`
+
+function ownersSchema(): BlueprintSchema {
+  return {
+    concepts: [
+      { name: 'Owners', type: 'category', fields: [{ name: 'price', type: 'number' as never }] },
+    ],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+}
+
+describe('U1: update_field with an empty value clears the field', () => {
+  it('removes the field line', () => {
+    const model = parseKnowledge(MODEL_FOR_CLEARING)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Team',
+      fieldName: 'owner',
+      to: '',
+    })
+    expect(result.success).toBe(true)
+    const el = model.elements.get('Owners')?.[0]
+    expect(el?.fields.owner).toBeUndefined()
+    const serialized = serializeKnowledge(model)
+    expect(serialized).not.toContain('owner::')
+    expect(serialized).toContain('note:: keep this raw')
+  })
+
+  it('is a no-op success on an absent field', () => {
+    const model = parseKnowledge(MODEL_FOR_CLEARING)
+    const result = applyMutation(model, 'update_field', {
+      elementName: 'Team',
+      fieldName: 'nonexistent',
+      to: '',
+    })
+    expect(result.success).toBe(true)
+    expect(model.elements.get('Owners')?.[0]?.fields.nonexistent).toBeUndefined()
+  })
+
+  it('does not fail the schema value check for a number field', () => {
+    const model = parseKnowledge(MODEL_FOR_CLEARING)
+    const result = applyMutation(
+      model,
+      'update_field',
+      { elementName: 'Team', fieldName: 'price', to: '' },
+      ownersSchema(),
+    )
+    expect(result.success).toBe(true)
+    expect(model.elements.get('Owners')?.[0]?.fields.price).toBeUndefined()
+  })
+
+  it('keeps every untouched field byte-for-byte', () => {
+    const model = parseKnowledge(MODEL_FOR_CLEARING)
+    applyMutation(model, 'update_field', { elementName: 'Team', fieldName: 'owner', to: '' })
+    const serialized = serializeKnowledge(model)
+    expect(serialized).toContain('note:: keep this raw')
+    expect(serialized).toContain('price:: 5')
   })
 })

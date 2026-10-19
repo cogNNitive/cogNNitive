@@ -6,9 +6,50 @@ import { createConsoleEnv, consoleDir } from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
-describe('console-review-tab (shell CSS + DraftList)', () => {
+const ELEMENTS = [
+  { id: 'e1', concept: 'C', name: 'E1', slug: 'e1', hash: 'h1', fields: { owner: 'Bea' } },
+]
+
+const APPLIED = [
+  {
+    path: 'changes/m_ana_1_changes_NN.md',
+    status: 'applied',
+    author: 'ana',
+    appliedAt: '2026-10-02T12:00:00Z',
+    changes: [
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'm@e1&owner',
+        from: 'Ana',
+        to: 'Bea',
+        author: 'ana',
+        status: 'applied',
+      },
+    ],
+  },
+]
+
+function renderTab(state: any, onRefresh?: () => void): HTMLElement {
+  const { Console } = env.loadConsole()
+  Console.renderReviewTab(env.document, state, { needs: [] }, onRefresh)
+  return env.document.getElementById('innfo-tab-review') as HTMLElement
+}
+
+function addDraft(store: any) {
+  store.addDraft({
+    element_id: 'e1',
+    concept: 'C',
+    element: 'E1',
+    base_hash: 'h1',
+    kind: 'comment',
+    comment: 'hi',
+  })
+}
+
+describe('console-review-tab (one Changes tab)', () => {
   beforeEach(() => {
-    env.setup('<!doctype html><html><head></head><body></body></html>')
+    env.setup('<!doctype html><html><body><div id="innfo-tab-review"></div></body></html>')
     env.localStorage.clear()
   })
 
@@ -26,24 +67,105 @@ describe('console-review-tab (shell CSS + DraftList)', () => {
     expect(css.includes('.innfo-review-list')).toBe(false)
   })
 
-  it('renderReviewTab renders through InnfoUI.DraftList', () => {
-    const { Review, Console } = env.loadConsole()
-
-    const host = env.document.createElement('div')
-    host.id = 'innfo-tab-review'
-    env.document.body.appendChild(host)
-
+  it('renders the heading "Changes" and both sections through the kit', () => {
+    const { Review } = env.loadConsole()
     const store = Review.createDraftStore(env.localStorage, 'm1')
-    store.addDraft({
-      element_id: 'e1',
-      concept: 'C',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'hi',
-    })
-    Console.renderReviewTab(env.document, { store }, { needs: [] })
+    addDraft(store)
+    const tab = renderTab({ store, elements: ELEMENTS, changes: APPLIED })
+    expect(tab.querySelector('h2')!.textContent).toBe('Changes')
+    // Unsent is above Applied.
+    const sections = tab.querySelectorAll('section')
+    const unsent = tab.querySelector('.innfo-changes-unsent') as HTMLElement
+    const applied = tab.querySelector('.innfo-changes-applied') as HTMLElement
+    expect(unsent.compareDocumentPosition(applied) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(unsent.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
+    expect(applied.querySelector('[data-innfo-component="change-history"]')).not.toBeNull()
+    expect(sections.length).toBeGreaterThanOrEqual(2)
+  })
 
-    expect(host.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
+  it('tops the Unsent list with the publication banner while it has items', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    addDraft(store)
+    const tab = renderTab({ store, elements: ELEMENTS, changes: [] })
+    const unsent = tab.querySelector('.innfo-changes-unsent')!
+    const banner = unsent.querySelector('[data-innfo="publication-banner"]')!
+    expect(banner).not.toBeNull()
+    const list = unsent.querySelector('[data-innfo-component="draft-list"]')!
+    expect(banner.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(banner.textContent).toContain('every console generated from this domain')
+  })
+
+  it('shows the publication message as a one-line note when Unsent is empty', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    const tab = renderTab({ store, elements: ELEMENTS, changes: [] })
+    const note = tab.querySelector('[data-innfo="publication-note"]')!
+    expect(note).not.toBeNull()
+    expect(note.textContent).toContain('every console generated from this domain')
+    expect(tab.querySelector('[data-innfo="publication-banner"]')).toBeNull()
+  })
+
+  it('renders the applied history newest first and an empty state per section', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    const newer = {
+      status: 'applied',
+      author: 'ana',
+      appliedAt: '2026-10-03T00:00:00Z',
+      changes: [
+        { id: 'c-02', op: 'update_field', target: 'm@e1&owner', from: 'X', to: 'Y', status: 'applied' },
+      ],
+    }
+    const older = {
+      status: 'applied',
+      author: 'ana',
+      appliedAt: '2026-10-01T00:00:00Z',
+      changes: [
+        { id: 'c-01', op: 'update_field', target: 'm@e1&owner', from: 'A', to: 'B', status: 'applied' },
+      ],
+    }
+    const tab = renderTab({ store, elements: ELEMENTS, changes: [newer, older] })
+    const diffs = Array.from(tab.querySelectorAll('.innfo-change-card-diff')).map(
+      (n) => n.textContent,
+    )
+    expect(diffs).toEqual(['X \u2192 Y', 'A \u2192 B'])
+    expect(tab.querySelector('.innfo-review-empty')).not.toBeNull()
+  })
+
+  it('Revert adds one unsent update_field with the current hash and value', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    let refreshed = 0
+    const tab = renderTab({ store, elements: ELEMENTS, changes: APPLIED }, () => {
+      refreshed++
+    })
+    ;(tab.querySelector('.innfo-change-revert') as HTMLButtonElement).click()
+    expect(refreshed).toBe(1)
+    const draft = store.drafts()[0]
+    expect(draft).toMatchObject({
+      element_id: 'e1',
+      field: 'owner',
+      original: 'Bea',
+      proposed: 'Ana',
+      base_hash: 'h1',
+      kind: 'correction',
+    })
+  })
+
+  it('Go to element focuses the element card', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    const card = env.document.createElement('article')
+    card.id = 'el-e1'
+    let scrolled = false
+    ;(card as any).scrollIntoView = () => {
+      scrolled = true
+    }
+    env.document.body.appendChild(card)
+    const tab = renderTab({ store, elements: ELEMENTS, changes: APPLIED })
+    ;(tab.querySelector('.innfo-change-goto') as HTMLButtonElement).click()
+    expect(scrolled).toBe(true)
+    expect(card.classList.contains('innfo-highlight')).toBe(true)
   })
 })

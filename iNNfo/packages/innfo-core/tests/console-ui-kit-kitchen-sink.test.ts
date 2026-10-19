@@ -52,7 +52,7 @@ describe('console ui-kit kitchen sink', () => {
       document.body.appendChild(root)
       // Mirror kitchen-sink.js build() without executing the DOMContentLoaded boot.
       root.appendChild(UI.Ku('element', { model: 'm', id: 'e', label: 'E' }))
-      root.appendChild(UI.StatusBadge({ status: 'applied', count: 2 }))
+      root.appendChild(UI.StatusBadge({ status: 'local', count: 2 }))
       root.appendChild(
         UI.ElementCard({
           id: 'card',
