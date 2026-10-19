@@ -139,6 +139,29 @@ describe('Element Card Redesign Contract', () => {
       assert.ok(thumbEdge, 'concept icon thumb rendered for Edge Cases')
       assert.equal(thumbEdge.getAttribute('data-concept-icon'), 'flask-conical')
     })
+
+    it('lazy-mounts the card body only when opened', () => {
+      const card = fullCard()
+      assert.ok(card.querySelector('.innfo-card-body'), 'open card has body immediately')
+
+      const collapsed = UI.ElementCard(
+        {
+          id: 'ecto-lazy',
+          name: 'Ecto Lazy',
+          conceptId: 'Fleet Vehicles',
+          fields: [{ name: 'role', value: 'Interceptor' }],
+          path: 'ghostbusters / ecto-lazy',
+        },
+        { doc: document, open: false, collapsible: true, lazy: true },
+      )
+      document.body.appendChild(collapsed)
+      assert.equal(collapsed.querySelector('.innfo-card-body'), null, 'collapsed card has no body in DOM')
+      assert.equal(collapsed.querySelector('.innfo-card-path'), null, 'collapsed card has no footer in DOM')
+
+      collapsed.setOpen(true)
+      assert.ok(collapsed.querySelector('.innfo-card-body'), 'opening mounts the card body')
+      assert.ok(collapsed.querySelector('.innfo-card-path'), 'opening mounts the footer')
+    })
   })
 
   describe('EditAnchor', () => {
@@ -324,6 +347,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     InnfoConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
+    card.setOpen(true)
     assert.match(
       card.querySelector('.innfo-card-path').textContent,
       /ghostbusters_NN\.md/,

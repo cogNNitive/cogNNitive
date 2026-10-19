@@ -6,6 +6,7 @@
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
   "bin": {
+    "nn-mcp": "./dist/server.js",
     "innfo-mcp": "./dist/server.js"
   },
   "exports": {

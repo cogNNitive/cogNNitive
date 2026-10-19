@@ -2643,6 +2643,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function setOpen(next) {
       open = next
+      if (open) mountBody()
       card.setAttribute('data-open', open ? 'true' : 'false')
       var tg = head.querySelector('.innfo-card-toggle')
       if (tg) tg.setAttribute('aria-expanded', open ? 'true' : 'false')
@@ -2762,84 +2763,105 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
-    var body = makeEl(doc, 'section', 'innfo-card-body')
-    var hasHistory = Array.isArray(data.history) && data.history.length > 0
-    if (hasHistory) {
-      var metaStrip = makeEl(doc, 'div', 'innfo-card-meta-strip')
+    var lazy = opts && opts.lazy === true
+    var bodyMounted = false
+    function mountBody() {
+      if (bodyMounted) return
+      bodyMounted = true
+
+      var body = makeEl(doc, 'section', 'innfo-card-body')
+      var hasHistory = Array.isArray(data.history) && data.history.length > 0
       if (hasHistory) {
-        var firstHist = data.history[0] || {}
-        var histText = data.history.length + (data.history.length === 1 ? ' applied change' : ' applied changes')
-        if (firstHist.id || firstHist.author) {
-          histText += ' (' + [firstHist.id, firstHist.author ? 'by ' + firstHist.author : null].filter(Boolean).join(' ') + ')'
+        var metaStrip = makeEl(doc, 'div', 'innfo-card-meta-strip')
+        if (hasHistory) {
+          var firstHist = data.history[0] || {}
+          var histText = data.history.length + (data.history.length === 1 ? ' applied change' : ' applied changes')
+          if (firstHist.id || firstHist.author) {
+            histText += ' (' + [firstHist.id, firstHist.author ? 'by ' + firstHist.author : null].filter(Boolean).join(' ') + ')'
+          }
+          var linPill = makeEl(doc, 'span', 'innfo-lineage-pill')
+          var linIco = makeEl(doc, 'span', 'innfo-lineage-icon')
+          linIco.innerHTML = icon('git-commit', 12)
+          linPill.appendChild(linIco)
+          linPill.appendChild(doc.createTextNode(histText))
+          metaStrip.appendChild(linPill)
         }
-        var linPill = makeEl(doc, 'span', 'innfo-lineage-pill')
-        var linIco = makeEl(doc, 'span', 'innfo-lineage-icon')
-        linIco.innerHTML = icon('git-commit', 12)
-        linPill.appendChild(linIco)
-        linPill.appendChild(doc.createTextNode(histText))
-        metaStrip.appendChild(linPill)
+        body.appendChild(metaStrip)
       }
-      body.appendChild(metaStrip)
-    }
-    if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
-    if (bodyFields.length) {
-      var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
-      var inherited = data.inherited && typeof data.inherited === 'object' ? data.inherited : {}
-      bodyFields.forEach(function (fr) {
-        var inheritedInfo = fr && fr.inherited ? fr.inherited : inherited[fr && fr.name]
-        fieldRow.appendChild(
-          FieldRow(
-            {
-              name: fr.name,
-              value: fr.value,
-              type: fr.type,
-              ref: fr.ref,
-              citations: fr.citations,
-              model: unitModel,
-              element: data.id,
-              inherited: inheritedInfo,
-            },
-            {
-              onRef: opts && opts.onRef,
-              onCite: opts && opts.onCite,
-              onKnowledge: opts && opts.onKnowledge,
-              isKnowledgeBound: opts && opts.isKnowledgeBound,
-            },
-          ),
+      if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
+      if (bodyFields.length) {
+        var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
+        var inherited = data.inherited && typeof data.inherited === 'object' ? data.inherited : {}
+        bodyFields.forEach(function (fr) {
+          var inheritedInfo = fr && fr.inherited ? fr.inherited : inherited[fr && fr.name]
+          fieldRow.appendChild(
+            FieldRow(
+              {
+                name: fr.name,
+                value: fr.value,
+                type: fr.type,
+                ref: fr.ref,
+                citations: fr.citations,
+                model: unitModel,
+                element: data.id,
+                inherited: inheritedInfo,
+              },
+              {
+                onRef: opts && opts.onRef,
+                onCite: opts && opts.onCite,
+                onKnowledge: opts && opts.onKnowledge,
+                isKnowledgeBound: opts && opts.isKnowledgeBound,
+              },
+            ),
+          )
+        })
+        body.appendChild(fieldRow)
+      }
+      if (Array.isArray(opts && opts.body)) {
+        ;(opts.body || []).forEach(function (n) {
+          if (n) body.appendChild(n)
+        })
+      }
+      // No tag row without tags (the review controller adds its own for "+ tag").
+      var tags = Array.isArray(data.tags) ? data.tags : []
+      if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
+      if (relations && relations.length) {
+        var outWrap = makeEl(doc, 'div', 'innfo-card-outgoing')
+        outWrap.appendChild(
+          makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
         )
-      })
-      body.appendChild(fieldRow)
+        outWrap.appendChild(RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }))
+        body.appendChild(outWrap)
+      }
+      var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
+      if (incoming && incoming.length) {
+        var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
+        incWrap.appendChild(
+          makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
+        )
+        incWrap.appendChild(RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }))
+        body.appendChild(incWrap)
+      }
+      card.appendChild(body)
+      if (data.path) {
+        var cardFooter = makeEl(doc, 'footer', 'innfo-card-footer')
+        if (data.path) cardFooter.appendChild(makeEl(doc, 'span', 'innfo-card-path', data.path))
+        card.appendChild(cardFooter)
+      }
+      var win = doc && (doc.defaultView || (doc.ownerDocument && doc.ownerDocument.defaultView))
+      var CustomEv = (win && win.CustomEvent) || (typeof CustomEvent !== 'undefined' ? CustomEvent : null)
+      if (CustomEv && typeof doc.dispatchEvent === 'function') {
+        try {
+          doc.dispatchEvent(new CustomEv('innfo:rendered', { detail: { root: card } }))
+        } catch (_) {}
+      }
     }
-    if (Array.isArray(opts && opts.body)) {
-      ;(opts.body || []).forEach(function (n) {
-        if (n) body.appendChild(n)
-      })
-    }
-    // No tag row without tags (the review controller adds its own for "+ tag").
-    var tags = Array.isArray(data.tags) ? data.tags : []
-    if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
-    if (relations && relations.length) {
-      var outWrap = makeEl(doc, 'div', 'innfo-card-outgoing')
-      outWrap.appendChild(
-        makeEl(doc, 'span', 'innfo-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
-      )
-      outWrap.appendChild(RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }))
-      body.appendChild(outWrap)
-    }
-    var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
-    if (incoming && incoming.length) {
-      var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
-      incWrap.appendChild(
-        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
-      )
-      incWrap.appendChild(RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }))
-      body.appendChild(incWrap)
-    }
-    card.appendChild(body)
-    if (data.path) {
-      var cardFooter = makeEl(doc, 'footer', 'innfo-card-footer')
-      if (data.path) cardFooter.appendChild(makeEl(doc, 'span', 'innfo-card-path', data.path))
-      card.appendChild(cardFooter)
+
+    card.setOpen = setOpen
+    card.__mountBody = mountBody
+
+    if (open || !lazy) {
+      mountBody()
     }
     return card
   }
@@ -7398,7 +7420,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       host.textContent = ''
       if (parts.length) {
-        host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
         var infoBtn = doc.createElement('button')
         infoBtn.className = 'innfo-navbar-info-btn'
         infoBtn.type = 'button'
@@ -7437,7 +7458,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       if (meta.sourceUrl) {
-        if (parts.length) host.appendChild(doc.createTextNode(' \u00b7 '))
         var href = safeSourceHref(meta.sourceUrl)
         if (href) {
           var link = doc.createElement('a')
@@ -8164,39 +8184,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function mk(tag) {
       return doc.createElement ? doc.createElement(tag) : el(tag)
     }
-    function conceptButton(name, index) {
-      var count = counts[name] || 0
-      var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
-      var btn = mk('button')
-      if (!btn) return null
-      var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
-      btn.className = 'innfo-rail-item' + (isActive ? ' active' : '')
-      btn.setAttribute('data-concept', String(name))
-      var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
-      var pill = UI.Ku(
-        'section',
-        {
-          model: railModel,
-          concept: name,
-          label: name,
-          index: index,
-        },
-        { doc: doc },
-      )
-      if (pill) btn.appendChild(pill)
-      if (pill && count != null) btn.appendChild(el('span', 'innfo-rail-count', String(count)))
-      if (draftCount > 0) {
-        var badge = el('span', 'innfo-rail-badge', String(draftCount))
-        if (badge) {
-          badge.setAttribute('title', draftCount + ' unsent change(s)')
-          btn.appendChild(badge)
-        }
-      }
-      btn.addEventListener('click', function () {
-        if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
-      })
-      return btn
-    }
     function conceptNamesForModel(m) {
       var mid = String(m.id || m.filePath)
       var seen = {}
@@ -8298,9 +8285,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var a = mk('a')
           if (a) {
             a.setAttribute('data-concept', String(name))
-            if (activeConcepts.indexOf(String(name).toLowerCase()) !== -1) {
-              a.className = 'active'
-            }
+            var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+            a.className = 'innfo-rail-item' + (isActive ? ' active' : '')
             var cMeta = conceptMetaOf(globalConcepts, name)
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
@@ -8336,11 +8322,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var cHdr = el('div', 'innfo-rail-header')
     cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
     rail.appendChild(cHdr)
-    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
+
+    var list = mk('ul')
+    if (list) list.className = 'menu menu-xs bg-base-100 p-2 w-full'
+    var globalConcepts = Array.isArray(concepts) ? concepts : []
+    var railModel = (state && (state.modelId || (state.meta && (state.meta.modelId || state.meta.model)))) || ''
+
+    globalConcepts.forEach(function (concept, index) {
       var name = typeof concept === 'string' ? concept : concept.name
-      var btn = conceptButton(name, index)
-      if (btn) rail.appendChild(btn)
+      var cli = mk('li')
+      var a = mk('a')
+      if (a) {
+        var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+        a.className = 'innfo-rail-item' + (isActive ? ' active' : '')
+        a.setAttribute('data-concept', String(name))
+        var cMeta = conceptMetaOf(globalConcepts, name)
+        var color = cMeta.hexColor
+        a.setAttribute('data-concept-slot', String(cMeta.slot))
+        if (color) a.style.setProperty('--rail-concept-color', color)
+        a.appendChild(
+          UI.Ku(
+            'section',
+            { model: railModel, concept: name, label: name, index: cMeta.index, color: cMeta.color },
+            { doc: doc },
+          ),
+        )
+        a.appendChild(
+          el('span', 'innfo-rail-count badge badge-ghost badge-xs', String(Number(counts && counts[name]) || 0)),
+        )
+        var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
+        if (draftCount > 0) {
+          var badge = el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(draftCount))
+          if (badge) {
+            badge.setAttribute('title', draftCount + ' unsent change(s)')
+            a.appendChild(badge)
+          }
+        }
+        a.addEventListener('click', function (e) {
+          if (e && e.preventDefault) e.preventDefault()
+          if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
+        })
+      }
+      cli.appendChild(a)
+      list.appendChild(cli)
     })
+    rail.appendChild(list)
   }
 
   // ---- Concept guidance panel ----------------------------------------------
@@ -8839,6 +8865,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           modelId: modelId || element.modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
+          lazy: Array.isArray(elements) && elements.length > 20,
           head:
             UI && typeof UI.CitationIcons === 'function'
               ? UI.CitationIcons('sources', sourcesEntries, {
@@ -8902,15 +8929,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       }
       if (mediaItems.length) {
-        var fieldImgs = card.querySelectorAll('.innfo-field-image')
-        for (var fii = 0; fii < fieldImgs.length; fii++) {
-          ;(function (fImg) {
-            fImg.addEventListener('click', function (ev) {
-              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+        card.addEventListener('click', function (ev) {
+          var t = ev && ev.target
+          if (t && typeof t.closest === 'function') {
+            var fImg = t.closest('.innfo-field-image')
+            if (fImg) {
+              if (ev.stopPropagation) ev.stopPropagation()
               renderMediaDialog(doc, mediaItems, 0)
-            })
-          })(fieldImgs[fii])
-        }
+            }
+          }
+        })
       }
 
       content.appendChild(card)
@@ -11255,6 +11283,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // 2. Find card by id (cards carry the `el-` prefixed domId, matching `#el-` hrefs)
     var card = doc.getElementById('el-' + String(elementId))
     if (card) {
+      if (typeof card.setOpen === 'function' && card.getAttribute('data-open') === 'false') {
+        card.setOpen(true)
+      }
       if (typeof card.scrollIntoView === 'function') {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
