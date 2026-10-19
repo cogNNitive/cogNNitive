@@ -1,0 +1,48 @@
+#!/bin/sh
+set -e
+
+CACHE_DIR="${HOME}/.cache/nn-mcp"
+VERSION_FILE="${CACHE_DIR}/current-version.txt"
+BUNDLE_FILE="${CACHE_DIR}/nn-mcp.bundle.js"
+MANIFEST_URL="https://cognnitive.com/innfo/cdn/manifest.json"
+
+mkdir -p "${CACHE_DIR}"
+
+LATEST=""
+if command -v curl >/dev/null 2>&1; then
+    LATEST=$(curl -sL --connect-timeout 3 "${MANIFEST_URL}" 2>/dev/null | sed 's/.*"latest"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+elif command -v wget >/dev/null 2>&1; then
+    LATEST=$(wget -q -O - --timeout=3 "${MANIFEST_URL}" 2>/dev/null | sed 's/.*"latest"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+fi
+
+if [ -n "${LATEST}" ]; then
+    CACHED=""
+    if [ -f "${VERSION_FILE}" ]; then
+        CACHED=$(cat "${VERSION_FILE}")
+    fi
+    if [ "${LATEST}" != "${CACHED}" ]; then
+        echo "Downloading nn-mcp ${LATEST}..."
+        BUNDLE_URL="https://cognnitive.com/innfo/cdn/nn-mcp-v${LATEST}.bundle.js"
+        DOWNLOAD_OK=0
+        if command -v curl >/dev/null 2>&1; then
+            curl -sL "${BUNDLE_URL}" -o "${BUNDLE_FILE}" && DOWNLOAD_OK=1 || true
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q "${BUNDLE_URL}" -O "${BUNDLE_FILE}" && DOWNLOAD_OK=1 || true
+        fi
+        if [ $DOWNLOAD_OK -eq 0 ] || [ ! -s "${BUNDLE_FILE}" ]; then
+            FALLBACK_URL="https://cognnitive.com/innfo/cdn/innfo-mcp-v${LATEST}.bundle.js"
+            if command -v curl >/dev/null 2>&1; then
+                curl -sL "${FALLBACK_URL}" -o "${BUNDLE_FILE}"
+            elif command -v wget >/dev/null 2>&1; then
+                wget -q "${FALLBACK_URL}" -O "${BUNDLE_FILE}"
+            fi
+        fi
+        echo "${LATEST}" > "${VERSION_FILE}"
+        echo "Done."
+    fi
+elif [ ! -f "${BUNDLE_FILE}" ]; then
+    echo "ERROR: No internet and no cached bundle. Run with internet first."
+    exit 1
+fi
+
+exec node "${BUNDLE_FILE}" "$@"
