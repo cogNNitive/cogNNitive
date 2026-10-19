@@ -11,7 +11,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-yfXnpdWXnmEi/GSxYu/7RFIigr+7abKXTSfZ/ojs0qw=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-bpkz7/6sq5yzAys9Ys/4k2nG6oIuj1j2ya6AcvEm+EI=' 'sha256-t8KuRybBg4kClI4qqOTFTvc+pcOFdfpySqCpT2s/K2c=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -4517,6 +4517,14 @@ details.collapse summary {
     animation-duration: 15s;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .innfo-dock-blinking,
+  .innfo-highlight,
+  .innfo-card-toggle {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 @keyframes skeleton {
   from {
     background-position: 150%;
@@ -7410,6 +7418,16 @@ button.cite-icon,
   box-shadow: none !important;
 }
 
+/* Keyboard focus must stay visible on the interactive controls reset above. */
+.innfo-card-count:focus-visible,
+.innfo-card-toggle:focus-visible,
+.innfo-edit-toggle:focus-visible,
+#innfo-rail details.collapse > summary.collapse-title:focus-visible,
+#innfo-rail .menu li > a[data-concept]:focus-visible {
+  outline: 2px solid var(--innfo-focus, #52525b) !important;
+  outline-offset: 2px !important;
+}
+
 /* 8. Tabla de campos */
 [data-innfo-component="element-card"] .innfo-card-fields {
   display: flex !important;
@@ -8237,6 +8255,7 @@ input[type="text"], input[type="search"], textarea, select {
         border: 1px solid var(--filter-box-border);
         border-radius: var(--radius-sm);
       }
+      @media (max-width: 640px) { #innfo-search { font-size: 16px; } }
       #innfo-search:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
       #innfo-rail { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 
@@ -9731,8 +9750,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-d211459a",
-    "generated": "2026-10-18T21:07:38.056Z",
+    "domainId": "testlab-02f7a960",
+    "generated": "2026-10-19T16:29:40.592Z",
     "changesBlueprintVersion": "V_0-5-1",
     "models": [
       {
@@ -9743,7 +9762,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-18T21:07:38.022Z",
+        "citationsResolvedAt": "2026-10-19T16:29:40.534Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -11644,7 +11663,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   "event": "<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><circle cx=\"12\" cy=\"12\" r=\"3.5\" fill=\"currentColor\"></circle>",
   "task": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" />",
   "refresh": "<path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\" /> <path d=\"M21 3v5h-5\" /> <path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\" /> <path d=\"M8 16H3v5\" />",
-  "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />"
+  "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />",
+  "clipboard-check": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" /> <path d=\"m9 14 2 2 4-4\" />",
+  "receipt": "<path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z\" /> <path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\" /> <path d=\"M12 17.5v-11\" />",
+  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />"
 };
 
   function getIconPaths(name) {
@@ -21217,6 +21239,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return typeof v === 'string' && v.trim() !== ''
   }
 
+  var TAB_ICONS = {
+    chart: 'bar-chart-2',
+    'chart-bar': 'bar-chart-2',
+    matrices: 'table',
+    explorer: 'boxes',
+    review: 'edit',
+    metamodel: 'boxes',
+    timeline: 'clock',
+    layout: 'layout-dashboard',
+    network: 'workflow',
+    columns: 'split',
+    list: 'list-ordered',
+    milestone: 'tag',
+    'git-commit': 'git-branch',
+  }
+
   // Returns '' when valid, otherwise a message naming the view id and field.
   function validateViewDef(def) {
     if (!def || typeof def !== 'object') return 'view "(missing id)": definition must be an object'
@@ -21227,6 +21265,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
     if (typeof def.icon !== 'string' || !ICON_NAME_RE.test(def.icon)) {
       return at + 'icon must be a slug of lowercase alphanumerics and hyphens'
+    }
+    var iconKey = TAB_ICONS[def.icon] || def.icon
+    if (typeof InnfoIcons !== 'undefined' && InnfoIcons && InnfoIcons.ICONS && !InnfoIcons.ICONS[iconKey]) {
+      return at + 'icon "' + def.icon + '" is unknown (known icons: ' + Object.keys(InnfoIcons.ICONS).sort().join(', ') + ')'
     }
     if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
     if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
@@ -21414,8 +21456,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (query) parts.push('q=' + encodeURIComponent(query))
     return parts.length ? '#' + parts.join('&') : ''
   }
-
-  var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit', metamodel: 'boxes' }
 
   // Builds the tabs once from built-ins plus registered views. Panels are
   // created here; a registered view's mount runs on first activation only.
@@ -21964,9 +22004,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (drafts.length === 0) {
         var empty = el('div', 'empty-state innfo-review-empty text-sm p-4 rounded-lg flex items-center gap-3')
         if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
-          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
+          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Edit an element to propose one.</span>'
         } else {
-          empty.textContent = 'No proposed changes yet. Annotate an element in review mode.'
+          empty.textContent = 'No proposed changes yet. Edit an element to propose one.'
         }
         listSection.appendChild(empty)
       } else {
