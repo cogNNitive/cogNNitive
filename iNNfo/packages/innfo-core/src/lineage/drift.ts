@@ -27,23 +27,77 @@ export interface LineageSectionDiff {
 
 export type LineageDriftResult = { ok: true } | { ok: false; diffs: LineageSectionDiff[] }
 
-function describeFirstDiff(expected: string, actual: string): string {
+function formatSnippet(s: string): string {
+  const snippet = s.slice(0, 100) + (s.length > 100 ? '…' : '')
+  return `(${s.length} chars) ${JSON.stringify(snippet)}`
+}
+
+function formatLineDiff(e: string | undefined, a: string | undefined): string {
+  if (e === undefined) {
+    const found = a === undefined ? '<end of section>' : a.length <= 120 ? JSON.stringify(a) : formatSnippet(a)
+    return `expected <end of section>, found ${found}`
+  }
+  if (a === undefined) {
+    const want = e.length <= 120 ? JSON.stringify(e) : formatSnippet(e)
+    return `expected ${want}, found <end of section>`
+  }
+
+  if (Math.max(e.length, a.length) <= 120) {
+    return `expected ${JSON.stringify(e)}, found ${JSON.stringify(a)}`
+  }
+
+  let firstDivergence = 0
+  const minLen = Math.min(e.length, a.length)
+  while (firstDivergence < minLen && e[firstDivergence] === a[firstDivergence]) {
+    firstDivergence++
+  }
+
+  const windowStart = Math.max(0, firstDivergence - 30)
+  const expEnd = Math.min(e.length, firstDivergence + 90)
+  const actEnd = Math.min(a.length, firstDivergence + 90)
+
+  const expWindow = (windowStart > 0 ? '…' : '') + e.slice(windowStart, expEnd) + (expEnd < e.length ? '…' : '')
+  const actWindow = (windowStart > 0 ? '…' : '') + a.slice(windowStart, actEnd) + (actEnd < a.length ? '…' : '')
+
+  return `diverges at offset ${firstDivergence}: expected (${e.length} chars) ${JSON.stringify(expWindow)}, found (${a.length} chars) ${JSON.stringify(actWindow)}`
+}
+
+function describeSectionDiff(expected: string, actual: string): string {
   const exp = expected.split('\n')
   const act = actual.split('\n')
   const max = Math.max(exp.length, act.length)
-  let element: string | undefined
+  let currentElement = ''
+  const elementMismatches = new Map<string, string[]>()
+
   for (let i = 0; i < max; i++) {
     const e = exp[i]
     const a = act[i]
-    if (e !== undefined && e.startsWith('## ')) element = e
+    if (e !== undefined && e.startsWith('## ')) currentElement = e
+    else if (!currentElement && a !== undefined && a.startsWith('## ')) currentElement = a
     if (e === a) continue
-    if (element === undefined && a !== undefined && a.startsWith('## ')) element = a
-    const where = element ? `${element}: ` : ''
-    const want = e === undefined ? '<end of section>' : JSON.stringify(e)
-    const found = a === undefined ? '<end of section>' : JSON.stringify(a)
-    return `${where}line ${i + 1}: expected ${want}, found ${found}`
+
+    const key = currentElement || '<preamble>'
+    if (!elementMismatches.has(key)) {
+      elementMismatches.set(key, [])
+    }
+    elementMismatches.get(key)!.push(`line ${i + 1}: ${formatLineDiff(e, a)}`)
   }
-  return 'sections differ'
+
+  if (elementMismatches.size === 0) return 'sections differ'
+
+  const parts: string[] = []
+  for (const [elem, mismatches] of elementMismatches) {
+    const where = elem !== '<preamble>' ? `${elem}: ` : ''
+    if (mismatches.length === 1) {
+      parts.push(`${where}${mismatches[0]}`)
+    } else {
+      const list = mismatches.slice(0, 10).join('; ')
+      const more = mismatches.length > 10 ? `; ... and ${mismatches.length - 10} more` : ''
+      parts.push(`${where}(${mismatches.length} mismatches: ${list}${more})`)
+    }
+  }
+
+  return parts.slice(0, 10).join(' | ') + (parts.length > 10 ? ` | ... and ${parts.length - 10} more elements` : '')
 }
 
 /** Fails for every managed section of `record` whose text differs from `rendered`. */
@@ -58,7 +112,9 @@ export function checkLineageDrift(record: string, rendered: RenderedSections): L
       continue
     }
     const actual = blockText(block.heading, block.lines)
-    if (actual !== expected) diffs.push({ section: managed.name, firstDiff: describeFirstDiff(expected, actual) })
+    if (actual !== expected) {
+      diffs.push({ section: managed.name, firstDiff: describeSectionDiff(expected, actual) })
+    }
   }
   return diffs.length === 0 ? { ok: true } : { ok: false, diffs }
 }

@@ -62,6 +62,52 @@ describe('checkLineageDrift', () => {
     expect(result.diffs[0].firstDiff).toContain('HACKED.md')
   })
 
+  it('reports all mismatches within a single element (P0-1 regression)', () => {
+    // Introduce 3 deliberate line mismatches within the single element "## NN Sources: a.md"
+    const edited = syncedRecord()
+      .replace('raw_filename:: sources/import/a.md', 'raw_filename:: sources/import/MODIFIED.md')
+      .replace('version:: V1\n\n## NN Sources: b.md', 'version:: V99\nextra_field:: injected\n\n## NN Sources: b.md')
+    const result = checkLineageDrift(edited, SECTIONS)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diffs).toHaveLength(1)
+    const diff = result.diffs[0].firstDiff
+    expect(diff).toContain('## NN Sources: a.md: (3 mismatches:')
+    expect(diff).toContain('MODIFIED.md')
+    expect(diff).toContain('V99')
+    expect(diff).toContain('extra_field')
+  })
+
+  it('caps diagnostic payload for massive line differences under 4KB while pinpointing first divergence offset (P0-2 regression)', () => {
+    // Generate two synthetic 200 KB strings that share the first 39,681 characters of the line
+    const prefixLen = 39681 - 'derived_from:: '.length
+    const commonPrefix = 'x'.repeat(prefixLen)
+    const expectedTail = 'A'.repeat(200000 - 39681)
+    const actualTail = 'B'.repeat(200000 - 39681)
+    const hugeExpected = commonPrefix + expectedTail
+    const hugeActual = commonPrefix + actualTail
+
+    const customSections = {
+      ...SECTIONS,
+      sources: `# NN Sources\n\n## NN Sources: huge.md\nderived_from:: ${hugeExpected}\n`,
+    }
+    const recordWithHugeActual = refreshExistingModel(BASE_RECORD, {
+      ...SECTIONS,
+      sources: `# NN Sources\n\n## NN Sources: huge.md\nderived_from:: ${hugeActual}\n`,
+    })
+
+    const result = checkLineageDrift(recordWithHugeActual, customSections)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.diffs).toHaveLength(1)
+    const diff = result.diffs[0].firstDiff
+    // Diagnostic message stays under 4 KB (P0-2 acceptance criterion)
+    expect(diff.length).toBeLessThan(4096)
+    expect(diff).toContain('diverges at offset 39681')
+    expect(diff).toContain('expected (200000 chars)')
+    expect(diff).toContain('found (200000 chars)')
+  })
+
   it('fails when the workspace gained an element the record does not list', () => {
     const grown = {
       ...SECTIONS,

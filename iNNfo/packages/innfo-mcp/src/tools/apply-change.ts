@@ -26,6 +26,7 @@ import {
   resolveCitation,
   scaffoldKnowledgeDocument,
   RECORD_BLUEPRINT,
+  roleOf,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -766,6 +767,18 @@ export async function executeChangesetApply(
           }
         }
         const model = await loadKnowledge(modelFile)
+        const parentName = (model.frontmatter.parent_spec as { name?: string } | undefined)?.name
+        if (
+          parentName === RECORD_BLUEPRINT ||
+          roleOf({ path: modelFile, parentSpecName: parentName }) === 'lineage-record' ||
+          (model.frontmatter as Record<string, unknown>).generated === true
+        ) {
+          return rejectPhase1(
+            'TOOL_OWNED_DOCUMENT',
+            change.target,
+            `"${modelSlug}" is a tool-owned lineage record and cannot be mutated by changesets; run nn-sources --lineage to regenerate it`,
+          )
+        }
         const baseVersion = String(
           model.frontmatter.knowledge_version ?? model.frontmatter.blueprint_version ?? 'V_0-1-0',
         )

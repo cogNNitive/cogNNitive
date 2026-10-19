@@ -398,4 +398,48 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     const written = await readFile(csFile, 'utf-8')
     expect(written).toContain('sources:: sources/import/interview.md@## Needs')
   })
+
+  it('P0-3 regression: apply_change refuses to mutate a tool-owned lineage record and leaves it byte-identical', async () => {
+    const lineageContent = `---
+specification_version: "V_0-3-0"
+specification_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
+level: 3
+parent_spec:
+  name: "cogNNitive"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md"
+title: "Provenance"
+---
+
+# NN index
+
+* [[Sources]]
+* [[ModelRecords]]
+
+# NN ModelRecords
+
+## NN ModelRecords: strategy
+model_ref:: kNNowledge/strategy_NN.md
+knowledge_version:: V_0-1-0
+derived_from:: [ sources/import/interview.md@## Needs ]
+`
+    const lineageFile = join(csRoot, 'test_cogNNitive_NN.md')
+    await writeFile(lineageFile, lineageContent, 'utf-8')
+
+    // Attempting single-op applyChange against the lineage record
+    const res = await applyChange(csRoot, 'test_cogNNitive', 'update_field', {
+      conceptName: 'ModelRecords',
+      elementName: 'strategy',
+      fieldName: 'knowledge_version',
+      value: 'V_0-2-0',
+    })
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors?.some((e) => e.code === 'TOOL_OWNED_DOCUMENT' && /tool-owned lineage record/i.test(e.message))).toBe(true)
+
+    // Verify the lineage file was NEVER modified or injected with slug::
+    const after = await readFile(lineageFile, 'utf-8')
+    expect(after).toBe(lineageContent)
+    expect(after).not.toContain('slug::')
+  })
 })
