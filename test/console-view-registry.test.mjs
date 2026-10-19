@@ -435,7 +435,9 @@ describe('booting twice on one document', () => {
     const { dom, document } = bootConsole({ registry })
     InnfoConsole.boot(document, { registry })
     let rendered = 0
-    document.addEventListener('innfo:rendered', () => rendered++)
+    document.addEventListener('innfo:rendered', (ev) => {
+      if (ev.detail && ev.detail.root && ev.detail.root.id === 'innfo-content') rendered++
+    })
     const box = document.getElementById('innfo-search')
     box.value = 'ecto'
     box.dispatchEvent(new dom.window.Event('input'))

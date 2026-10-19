@@ -45,7 +45,7 @@ function writeJsonClean(filePath, data, indent = 2) {
  * }} options
  * @returns {{ agent: 'opencode', file: string, updated: boolean }}
  */
-function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePath }) {
+function registerMcpForOpenCode({ configFile, serverName = 'nn-mcp', bundlePath }) {
   const dir = path.dirname(configFile);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -76,6 +76,10 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
   const existing = config.mcp[serverName];
   const targetCommand = ['node', bundlePath];
   const targetCwd = path.dirname(bundlePath);
+
+  if (serverName === 'nn-mcp' && config.mcp['innfo-mcp']) {
+    delete config.mcp['innfo-mcp'];
+  }
 
   if (
     existing &&
@@ -111,7 +115,7 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
  * }} options
  * @returns {{ agent: 'claude' | 'antigravity', file: string, updated: boolean }}
  */
-function registerMcpServersFormat({ agent, configFile, serverName = 'innfo-mcp', bundlePath }) {
+function registerMcpServersFormat({ agent, configFile, serverName = 'nn-mcp', bundlePath }) {
   const dir = path.dirname(configFile);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -133,6 +137,10 @@ function registerMcpServersFormat({ agent, configFile, serverName = 'innfo-mcp',
 
   if (!config.mcpServers || typeof config.mcpServers !== 'object' || Array.isArray(config.mcpServers)) {
     config.mcpServers = {};
+  }
+
+  if (serverName === 'nn-mcp' && config.mcpServers['innfo-mcp']) {
+    delete config.mcpServers['innfo-mcp'];
   }
 
   const targetCwd = path.dirname(bundlePath);
@@ -184,7 +192,7 @@ function registerMcpForClaude(options) {
  * @returns {Array<{ agent: 'antigravity', file: string, updated: boolean }>}
  */
 function registerMcpForAntigravity(options) {
-  const serverName = options.serverName || 'innfo-mcp';
+  const serverName = options.serverName || 'nn-mcp';
   const bundlePath = options.bundlePath;
   const homedir = options.homedir || os.homedir();
 
@@ -228,7 +236,7 @@ function registerMcpForAntigravity(options) {
  * }} options
  * @returns {Array<{ agent: string, file: string, updated: boolean }>}
  */
-function registerMcpAuto({ bundlePath, serverName = 'innfo-mcp', homedir = os.homedir(), targetAgent = 'auto' }) {
+function registerMcpAuto({ bundlePath, serverName = 'nn-mcp', homedir = os.homedir(), targetAgent = 'auto' }) {
   const results = [];
   const normalizedAgent = (targetAgent || 'auto').toLowerCase();
 

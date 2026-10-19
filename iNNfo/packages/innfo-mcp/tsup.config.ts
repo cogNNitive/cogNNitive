@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup'
 import { readFileSync } from 'node:fs'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as {
@@ -26,6 +26,7 @@ export default defineConfig([
   },
   {
     entry: {
+      'nn-mcp.bundle': 'src/server.ts',
       'innfo-mcp.bundle': 'src/server.ts',
     },
     format: 'esm',
