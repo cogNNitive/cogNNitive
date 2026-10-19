@@ -76,6 +76,22 @@ describe('attachSourceCitations', () => {
     attachSourceCitations(node)
     expect(node.sources).toBeUndefined()
   })
+
+  it('P2-4: splitSourceFieldValue tolerates missing closing bracket and trailing commas', () => {
+    const unclosed = elementNode({ sources: '[sources/import/a.csv, sources/import/b.csv' })
+    attachSourceCitations(unclosed)
+    expect(unclosed.sources?.map((s) => s.filePath)).toEqual([
+      'sources/import/a.csv',
+      'sources/import/b.csv',
+    ])
+
+    const trailingComma = elementNode({ sources: '[sources/import/a.csv, sources/import/b.csv, ]' })
+    attachSourceCitations(trailingComma)
+    expect(trailingComma.sources?.map((s) => s.filePath)).toEqual([
+      'sources/import/a.csv',
+      'sources/import/b.csv',
+    ])
+  })
 })
 
 // H2/H3: the serialized `sources::` form written by the mutation engine must

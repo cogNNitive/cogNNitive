@@ -11,4 +11,4 @@ export {
   buildSidecar,
   parseSidecarFrontmatter,
 } from './sidecar.js'
-export type { Normalizer, SidecarInput } from './sidecar.js'
+export type { Normalizer, Normalizer as NormalizerAdapter, SidecarInput } from './sidecar.js'
