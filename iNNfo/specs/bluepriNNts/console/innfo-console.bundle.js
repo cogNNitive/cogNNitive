@@ -872,7 +872,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   "event": "<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><circle cx=\"12\" cy=\"12\" r=\"3.5\" fill=\"currentColor\"></circle>",
   "task": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" />",
   "refresh": "<path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\" /> <path d=\"M21 3v5h-5\" /> <path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\" /> <path d=\"M8 16H3v5\" />",
-  "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />"
+  "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />",
+  "clipboard-check": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" /> <path d=\"m9 14 2 2 4-4\" />",
+  "receipt": "<path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z\" /> <path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\" /> <path d=\"M12 17.5v-11\" />",
+  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />"
 };
 
   function getIconPaths(name) {
@@ -10445,6 +10448,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return typeof v === 'string' && v.trim() !== ''
   }
 
+  var TAB_ICONS = {
+    chart: 'bar-chart-2',
+    'chart-bar': 'bar-chart-2',
+    matrices: 'table',
+    explorer: 'boxes',
+    review: 'edit',
+    metamodel: 'boxes',
+    timeline: 'clock',
+    layout: 'layout-dashboard',
+    network: 'workflow',
+    columns: 'split',
+    list: 'list-ordered',
+    milestone: 'tag',
+    'git-commit': 'git-branch',
+  }
+
   // Returns '' when valid, otherwise a message naming the view id and field.
   function validateViewDef(def) {
     if (!def || typeof def !== 'object') return 'view "(missing id)": definition must be an object'
@@ -10455,6 +10474,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
     if (typeof def.icon !== 'string' || !ICON_NAME_RE.test(def.icon)) {
       return at + 'icon must be a slug of lowercase alphanumerics and hyphens'
+    }
+    var iconKey = TAB_ICONS[def.icon] || def.icon
+    if (typeof InnfoIcons !== 'undefined' && InnfoIcons && InnfoIcons.ICONS && !InnfoIcons.ICONS[iconKey]) {
+      return at + 'icon "' + def.icon + '" is unknown (known icons: ' + Object.keys(InnfoIcons.ICONS).sort().join(', ') + ')'
     }
     if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
     if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
@@ -10642,8 +10665,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (query) parts.push('q=' + encodeURIComponent(query))
     return parts.length ? '#' + parts.join('&') : ''
   }
-
-  var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit', metamodel: 'boxes' }
 
   // Builds the tabs once from built-ins plus registered views. Panels are
   // created here; a registered view's mount runs on first activation only.

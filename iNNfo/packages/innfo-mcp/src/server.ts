@@ -52,6 +52,7 @@ import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/con
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { pruneChangesets } from './tools/prune-changesets.js'
+import { syncLineageTool } from './tools/sync-lineage.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
@@ -606,7 +607,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'cognitivize',
       description:
-        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-sources CLI). Paths outside the workspace, sidecars, and NN documents are rejected.',
+        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw file in place, so it can be cited. Markdown, CSV, and JSON files are handled directly; binary formats (PDF, DOCX, XLSX, images) are converted when the environment has converter adapters available. Paths outside the workspace, sidecars, and NN documents are rejected.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -627,6 +628,31 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       },
     },
     handler: handleCognitivize,
+  },
+  {
+    definition: {
+      name: 'sync_lineage',
+      description:
+        'Recompute the lineage projection from the workspace filesystem and regenerate the canonical lineage record (`<project>_cogNNitive_NN.md`) without requiring the CLI. Re-synchronizes # NN Sources, # NN ModelRecords, and # NN Artifacts sections.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          domain: {
+            type: 'string',
+            description: 'Optional domain root directory override (default: server root)',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
+          projectName: {
+            type: 'string',
+            description: 'Optional project name override (default: basename of domain root)',
+          },
+        },
+      },
+    },
+    handler: handleSyncLineage,
   },
   {
     definition: {
@@ -964,6 +990,13 @@ async function handleCognitivize(args: Record<string, unknown>): Promise<CallToo
   const result = await cognitivizeTool(root, path)
   const text = JSON.stringify(envelope('innfo-cognitivize', result), null, 2)
   return result.status === 'rejected' ? errorResult(text) : textResult(text)
+}
+
+async function handleSyncLineage(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const projectName = args.projectName as string | undefined
+  const result = await syncLineageTool(root, { projectName })
+  return textResult(JSON.stringify(envelope('innfo-sync-lineage', result), null, 2))
 }
 
 async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {

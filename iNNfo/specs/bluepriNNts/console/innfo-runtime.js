@@ -3963,6 +3963,22 @@
     return typeof v === 'string' && v.trim() !== ''
   }
 
+  var TAB_ICONS = {
+    chart: 'bar-chart-2',
+    'chart-bar': 'bar-chart-2',
+    matrices: 'table',
+    explorer: 'boxes',
+    review: 'edit',
+    metamodel: 'boxes',
+    timeline: 'clock',
+    layout: 'layout-dashboard',
+    network: 'workflow',
+    columns: 'split',
+    list: 'list-ordered',
+    milestone: 'tag',
+    'git-commit': 'git-branch',
+  }
+
   // Returns '' when valid, otherwise a message naming the view id and field.
   function validateViewDef(def) {
     if (!def || typeof def !== 'object') return 'view "(missing id)": definition must be an object'
@@ -3973,6 +3989,10 @@
     if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
     if (typeof def.icon !== 'string' || !ICON_NAME_RE.test(def.icon)) {
       return at + 'icon must be a slug of lowercase alphanumerics and hyphens'
+    }
+    var iconKey = TAB_ICONS[def.icon] || def.icon
+    if (typeof InnfoIcons !== 'undefined' && InnfoIcons && InnfoIcons.ICONS && !InnfoIcons.ICONS[iconKey]) {
+      return at + 'icon "' + def.icon + '" is unknown (known icons: ' + Object.keys(InnfoIcons.ICONS).sort().join(', ') + ')'
     }
     if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
     if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
@@ -4160,8 +4180,6 @@
     if (query) parts.push('q=' + encodeURIComponent(query))
     return parts.length ? '#' + parts.join('&') : ''
   }
-
-  var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit', metamodel: 'boxes' }
 
   // Builds the tabs once from built-ins plus registered views. Panels are
   // created here; a registered view's mount runs on first activation only.

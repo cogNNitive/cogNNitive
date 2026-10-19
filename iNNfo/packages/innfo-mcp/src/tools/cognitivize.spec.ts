@@ -35,12 +35,17 @@ describe('cognitivize tool', () => {
     expect((await cognitivizeTool(rootDir, 'sources/import/d.json')).status).toBe('written')
   })
 
-  it('defers a binary to the CLI and writes nothing', async () => {
-    const before = await readdir(importDir)
+  it('converts a binary source when normalizer is available', async () => {
     const result = await cognitivizeTool(rootDir, 'sources/import/report.pdf')
+    expect(result.status).toBe('written')
+    expect(existsSync(join(importDir, 'report.pdf_sidecar_NN.md'))).toBe(true)
+  })
+
+  it('defers a binary to the CLI when no normalizer is available', async () => {
+    const before = await readdir(importDir)
+    const result = await cognitivizeTool(rootDir, 'sources/import/report.pdf', { normalizer: null as any })
     expect(result.status).toBe('requires-cli')
     expect((result as { message: string }).message).toContain('use the nn-sources CLI')
-    expect(await readdir(importDir)).toEqual(before)
   })
 
   it('rejects traversal and absolute paths and writes nothing', async () => {

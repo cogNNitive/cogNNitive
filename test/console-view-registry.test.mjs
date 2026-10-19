@@ -55,6 +55,23 @@ describe('registerView contract', () => {
     assert.equal(registry.list().length, 0)
   })
 
+  it('rejects an icon that is an unknown Lucide name and names known icons', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    assert.throws(
+      () => registry.register(def({ icon: 'nonexistent-super-icon' })),
+      (err) => err.message.includes('unknown') && err.message.includes('known icons:'),
+    )
+    assert.equal(registry.list().length, 0)
+  })
+
+  it('accepts newly added icons: clipboard-check, receipt, and alias edit', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(def({ id: 'v1', icon: 'clipboard-check' }))
+    registry.register(def({ id: 'v2', icon: 'receipt' }))
+    registry.register(def({ id: 'v3', icon: 'edit' }))
+    assert.equal(registry.list().length, 3)
+  })
+
   it('icon helper never interpolates an unvalidated name into attributes', () => {
     const svg = global.InnfoIcons.getSvg('x"><img onerror=1>', { size: 15 })
     assert.ok(!svg.includes('<img'), svg)
