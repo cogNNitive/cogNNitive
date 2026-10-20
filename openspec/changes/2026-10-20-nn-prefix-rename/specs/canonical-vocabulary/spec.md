@@ -6,10 +6,10 @@ Scope guard: the iNNfo term, the Level-1 name, the skill `nn-innfo`, the `docs/i
 
 ### Requirement: Retired distribution identifiers are recorded in the dictionary
 
-When slice S6 lands, `iNNfo/specs/vocabulary.json` MUST list the retired distribution identifiers in `retired_identifiers`, each with `id`, `old`, `new`, `kind` and `notes` in the existing entry shape. The entries MUST cover at least: the release keys and tag families `innfo-mcp` and `innfo-console` (new: `nn-mcp`, `nn-console`), the packages `@cognnitive/innfo-core`, `@cognnitive/innfo-mcp` and `@cognnitive/innfo-console` (new: `@cognnitive/nn-*`), the directories `iNNfo/packages/innfo-core` and `iNNfo/packages/innfo-mcp`, the MCP bin and server name `innfo-mcp`, the tool prefix `innfo-mcp_`, the console shell pin `@innfo-console-v`, and the console asset and generated file name prefix `innfo-` (new: `nn-`). The `notes` of each entry MUST state that existing git tags, published CDN files and stamped exports under the old name remain valid and are not renamed. `docs/innfo/documentation/vocabulary.md` MUST render the new entries.
+In the cleanup commit (after the first `nn-*` releases publish), `iNNfo/specs/vocabulary.json` MUST list the retired distribution identifiers in `retired_identifiers`, each with `id`, `old`, `new`, `kind` and `notes` in the existing entry shape. The entries MUST cover at least: the release keys and tag families `innfo-mcp` and `innfo-console` (new: `nn-mcp`, `nn-console`), the packages `@cognnitive/innfo-core`, `@cognnitive/innfo-mcp` and `@cognnitive/innfo-console` (new: `@cognnitive/nn-*`), the directories `iNNfo/packages/innfo-core` and `iNNfo/packages/innfo-mcp`, the MCP bin and server name `innfo-mcp`, the tool prefix `innfo-mcp_`, the console shell pin `@innfo-console-v`, and the console asset and generated file name prefix `innfo-` (new: `nn-`). The `notes` of each entry MUST state that existing git tags, published CDN files and stamped exports under the old name remain valid and are not renamed. `docs/innfo/documentation/vocabulary.md` MUST render the new entries.
 
 #### Scenario: Old names are recorded
-- GIVEN `vocabulary.json` after S6
+- GIVEN `vocabulary.json` after the cleanup commit
 - WHEN `retired_identifiers` is read
 - THEN it contains an entry for each retired distribution identifier listed above
 - AND each entry names its `nn-` replacement in `new`
@@ -21,7 +21,7 @@ When slice S6 lands, `iNNfo/specs/vocabulary.json` MUST list the retired distrib
 
 #### Scenario: Docs page renders them
 - GIVEN the generated `docs/innfo/documentation/vocabulary.md`
-- WHEN it is read after S6
+- WHEN it is read after the cleanup commit
 - THEN the retired distribution identifiers are listed with their replacements
 
 ### Requirement: Rename scope exclusions are never recorded as retired
@@ -34,17 +34,17 @@ When slice S6 lands, `iNNfo/specs/vocabulary.json` MUST list the retired distrib
 - THEN it fails and names the entry
 
 #### Scenario: Canonical terms intact
-- GIVEN `vocabulary.json` after S6
+- GIVEN `vocabulary.json` after the cleanup commit
 - WHEN the canonical terms are listed
 - THEN `defiNNition`, `iNNfo`, `bluepriNNt`, `kNNowledge` and `domaiNN` are still defined and unchanged
 
 ### Requirement: Retired distribution identifiers are guarded against reintroduction
 
-After S6 the `no-retired-references` guard MUST fail when a retired distribution identifier appears in a live file. It MUST allow these classes only: frozen history (`openspec/changes/**` and archive indexes, stamped and simulacro fixtures, `dev/*.md`, `simulation/FINDINGS.md`), published manifests and snapshots, existing git tags and references to them, the retired-identifier list itself, and the legacy-pin regex that lets tooling read stamped exports. Living specs under `openspec/specs/` MUST use the `nn-` names except where they quote a legacy tag as history.
+After the cleanup commit the `no-retired-references` guard MUST fail when a retired distribution identifier appears in a live file. It MUST allow these classes only: frozen history (`openspec/changes/**` and archive indexes, stamped and simulacro fixtures, `dev/*.md`, `simulation/FINDINGS.md`), published manifests and snapshots, existing git tags and references to them, the retired-identifier list itself, and the reader regexes that accept legacy console pins so tooling can read stamped exports. Living specs under `openspec/specs/` MUST use the `nn-` names except where they quote a legacy tag as history.
 
 #### Scenario: Live file reintroduces an old name
 - GIVEN a script that references `iNNfo/packages/innfo-mcp`
-- WHEN the guard runs after S6
+- WHEN the guard runs after the cleanup commit
 - THEN it fails and names the file
 
 #### Scenario: Frozen history is allowed
@@ -58,6 +58,6 @@ After S6 the `no-retired-references` guard MUST fail when a retired distribution
 - THEN it does not flag the regex
 
 #### Scenario: Completeness check
-- GIVEN the repository after S6
+- GIVEN the repository after the cleanup commit
 - WHEN `rg 'innfo-(core|mcp|console|shell|export|ui-css|payload)'` runs outside the allowed classes
 - THEN it returns zero matches

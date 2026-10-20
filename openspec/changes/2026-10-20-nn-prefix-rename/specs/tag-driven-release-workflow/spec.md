@@ -10,7 +10,7 @@ A release MUST be identified by a tag named `<key>-v<semver>` where `<semver>` m
 
 Each key releases independently of the others, including `nn-console`, which MUST NOT require an `nn-mcp` release.
 
-While the transition window is open (from slice S1 until S6 lands, see "Legacy release families are accepted only during the transition window"), the legacy keys `innfo-mcp` and `innfo-console` are additionally accepted. After the sunset slice (S6) the key set is exactly the four keys above.
+The legacy keys `innfo-mcp` and `innfo-console` are not accepted and `RELEASE_KEYS` carries no alias map. Existing `innfo-*-v*` tags remain in git as history and are simply not release triggers. The cutover lands in PR 2 (release identity); the first `nn-mcp-v*` release follows PR 3.
 
 (Previously: the closed key set was `skills`, `blueprints`, `innfo-mcp`, `innfo-console`.)
 
@@ -44,15 +44,15 @@ While the transition window is open (from slice S1 until S6 lands, see "Legacy r
 - WHEN the release completes
 - THEN the console pin is updated and the `nn-mcp` pin is unchanged
 
-#### Scenario: Release keys after the sunset
-- GIVEN the repository after S6
+#### Scenario: Legacy keys are not release keys
+- GIVEN the repository after PR 2
 - WHEN `RELEASE_KEYS` is read
 - THEN it contains exactly `skills`, `blueprints`, `nn-mcp` and `nn-console`
 - AND `innfo-mcp-v0.31.0` is not accepted as a release tag
 
 ### Requirement: Release workflow is triggered only by monorepo tags
 
-The release workflow MUST be a workflow separate from push-to-main CI and MUST trigger only on `push` of tags matching an allowed release key (`skills-v*`, `blueprints-v*`, `nn-mcp-v*`, `nn-console-v*`; plus `innfo-mcp-v*` and `innfo-console-v*` only while the transition window is open). It MUST NOT trigger on branch pushes, pull requests, or schedule. The only additional entry point MAY be a manual dispatch that is forced to dry-run (it prints decisions and the staged manifest and never pushes). Push-to-main CI MUST NOT perform any release step.
+The release workflow MUST be a workflow separate from push-to-main CI and MUST trigger only on `push` of tags matching an allowed release key (`skills-v*`, `blueprints-v*`, `nn-mcp-v*`, `nn-console-v*`); the `tags:` list MUST equal `RELEASE_KEYS` mapped to `-v*`. It MUST NOT trigger on branch pushes, pull requests, or schedule. The only additional entry point MAY be a manual dispatch that is forced to dry-run (it prints decisions and the staged manifest and never pushes). Push-to-main CI MUST NOT perform any release step.
 
 (Previously: the trigger patterns named only `innfo-mcp-v*` and `innfo-console-v*` for the MCP and console keys.)
 
@@ -82,8 +82,8 @@ The release workflow MUST be a workflow separate from push-to-main CI and MUST t
 - WHEN a tag is pushed
 - THEN nothing is published and previously published artifacts are unchanged
 
-#### Scenario: Legacy trigger removed at the sunset
-- GIVEN the release workflow after S6
+#### Scenario: Legacy triggers are absent
+- GIVEN the release workflow after PR 2
 - WHEN its `on.push.tags` patterns are read
 - THEN neither `innfo-mcp-v*` nor `innfo-console-v*` is listed
 
@@ -93,11 +93,11 @@ The stable manifest at `https://cognnitive.com/use/manifest.md` MUST be the last
 
 The manifest MUST list only the latest version of each key (its published shape is unchanged). Entries of the released key MUST be built from the tagged commit's Core inventory (`manifest/source.yaml`) and versions, with `ref` equal to the release tag and `commit` equal to C. For the `blueprints` key, `scripts/verify.js` and `scripts/release/assemble-manifest.js` MUST require only the 7 Core `bluepriNNts` (`domaiNN`, `changes`, `sidecar`, `sources`, `artifacts`, `procedures`, `blank`) in the assembled manifest while optional vertical `bluepriNNts` remain governed by `iNNfo/specs/bluepriNNts/catalog.json` and decoupled from core manifest assembly gates. Pins of units not covered by the released key MUST be retained from the previously published manifest and each retained `ref` MUST resolve to its recorded `commit` in the web clone. Nested units MUST be handled per unit: releasing `skills` MUST keep the nested `nn-mcp` pin and version of the previous manifest, and releasing `nn-mcp` MUST change only that nested unit.
 
-When the previously published manifest still carries a pin under a legacy name (`innfo-mcp`, `innfo-console`), manifest assembly MUST parse it and retain it as the pin of the corresponding `nn-*` unit until that unit is released under the new name. The first `nn-*` release MUST NOT fail or drop a pin because the previous manifest uses the legacy names. Retention is driven by `legacy_names` (MCP) and `legacy_files` (console assets) in `manifest/source.yaml`; a retained console entry keeps the previous `file` and `url` verbatim.
+When the previously published manifest still carries a pin under a former name (`innfo-mcp`, `innfo-console`), manifest assembly MUST retain it as the pin of the corresponding `nn-*` unit until that unit is released under the new name, so the first `nn-*` releases do not throw `requirePin` or drop a pin. Retention uses the transient assemble-time `PREVIOUS_PIN_RENAMES` map, consulted only when the previous manifest has no entry under the new name; a retained console entry keeps the previous `file` and `url` verbatim. The map is code only, never part of a published manifest, and is deleted in the cleanup commit.
 
 Every release MUST additionally write an immutable snapshot of the published manifest at `docs/use/manifests/<tag>.md` in `cogNNitive-web`. A snapshot MUST NOT be modified after it is written. Existing snapshots named after legacy tags MUST remain untouched.
 
-(Previously: the nested unit was named `innfo-mcp`, and assembly did not state how legacy-named pins in the previous manifest are retained.)
+(Previously: the nested unit was named `innfo-mcp`, and assembly did not state how former-name pins in the previous manifest are retained.)
 
 #### Scenario: Releasing one key preserves other pins
 - GIVEN a published manifest pinning `skills` and `blueprints`
@@ -117,11 +117,11 @@ Every release MUST additionally write an immutable snapshot of the published man
 - THEN `nn-innfo` is rebuilt at the new skills pin
 - AND its nested `nn-mcp` pin remains `0.30.0`
 
-#### Scenario: First nn release parses legacy-named pins
+#### Scenario: First nn release retains former-name pins
 - GIVEN a published manifest whose MCP and console pins are named `innfo-mcp` and `innfo-console`
 - WHEN `nn-console-v0.8.0` is released
 - THEN the console pin is the new release
-- AND the MCP pin is retained from the legacy-named entry and still resolves
+- AND the MCP pin is retained from the `innfo-mcp` entry through `PREVIOUS_PIN_RENAMES` and still resolves
 
 #### Scenario: Snapshot written per release
 - GIVEN `nn-mcp-v0.30.0` completed
@@ -145,7 +145,7 @@ Every release MUST additionally write an immutable snapshot of the published man
 
 ### Requirement: New tag version is strictly greater than every existing tag of its key
 
-Before any write, the workflow MUST verify that the tag version is strictly greater than the highest existing tag version for that key in both the monorepo and `cogNNitive-web`. For `nn-mcp` and `nn-console`, "existing tags of its key" MUST include the legacy-family tags of the same logical unit (`innfo-mcp-v*`, `innfo-console-v*`), so version numbering continues across the rename and never restarts. The first `nn-mcp` version MUST therefore be strictly greater than the highest existing `innfo-mcp-v*` tag (at least `0.30.0` while that tag is `innfo-mcp-v0.29.0`), and the same holds for `nn-console` against `innfo-console-v*`. A violation MUST fail the job and name the offending and highest versions.
+Before any write, the workflow MUST verify that the tag version is strictly greater than the highest existing tag version for that key in both the monorepo and `cogNNitive-web`. For `nn-mcp` and `nn-console`, "existing tags of its key" MUST include the former-family tags of the same logical unit (`innfo-mcp-v*`, `innfo-console-v*`), counted for the version comparison only, so version numbering continues across the rename and never restarts. The first `nn-mcp` version MUST therefore be strictly greater than the highest existing `innfo-mcp-v*` tag (at least `0.30.0` while that tag is `innfo-mcp-v0.29.0`), and the same holds for `nn-console` against `innfo-console-v*`. A violation MUST fail the job and name the offending and highest versions.
 
 For keys that have a single authored version (`nn-mcp`: its `package.json`; `nn-console`: the console `package.json`), the tag version MUST additionally equal that authored version at the tagged commit. `skills` and `blueprints` have no single authored channel version, so no equality check applies to them.
 
@@ -182,7 +182,7 @@ For keys that have a single authored version (`nn-mcp`: its `package.json`; `nn-
 
 The workflow MUST validate the staged manifest (structure, tag shape, ref-to-commit, reachability from `cogNNitive-web` `main`, path existence at the commit, version parity, MCP pin, closure) after C and the mirror tag exist and before M is pushed. A failure MUST stop the release without touching the live manifest.
 
-After M is pushed, the workflow MUST poll `https://cognnitive.com/use/manifest.md` until it is byte-equal to the staged manifest (30 s interval, 15 min timeout) and then validate the served URL. For `nn-mcp`, it MUST also verify that the sha256 of the served CDN bundle `nn-mcp-v<version>.bundle.js` equals the committed bundle. While the transition window is open, the same check MUST also cover the legacy-named CDN bundle `innfo-mcp-v<version>.bundle.js` published by that release. A failing smoke test MUST fail the job and block the release from being reported as deployed.
+After M is pushed, the workflow MUST poll `https://cognnitive.com/use/manifest.md` until it is byte-equal to the staged manifest (30 s interval, 15 min timeout) and then validate the served URL. For `nn-mcp`, it MUST also verify that the sha256 of the served CDN bundle `nn-mcp-v<version>.bundle.js` equals the committed bundle. Only the `nn-mcp-v<version>.bundle.js` file is staged and verified; no `innfo-mcp-v<version>.bundle.js` is created. A failing smoke test MUST fail the job and block the release from being reported as deployed.
 
 A published mirror tag MUST NOT be deleted after any failure. If the smoke test fails after M, C, the tag and M remain and a re-run on the same tag MUST converge. Manifest rollback is a documented manual step: re-publish the previous `docs/use/manifests/<tag>.md` snapshot.
 
@@ -210,12 +210,6 @@ A published mirror tag MUST NOT be deleted after any failure. If the smoke test 
 - GIVEN `nn-mcp-v0.30.0` was published
 - WHEN the smoke test fetches the served CDN bundle `nn-mcp-v0.30.0.bundle.js`
 - THEN its sha256 equals the committed bundle's sha256
-
-#### Scenario: Both bundle names verified during the window
-- GIVEN the transition window is open and `nn-mcp-v0.30.0` was published
-- WHEN the smoke test runs
-- THEN `innfo-mcp-v0.30.0.bundle.js` is also fetched
-- AND its sha256 equals the committed bundle's sha256
 
 ### Requirement: Releases are serialized and safe to re-run
 
@@ -245,53 +239,41 @@ Writes to `cogNNitive-web` `main` MUST use an optimistic lock: a non-fast-forwar
 
 ## ADDED Requirements
 
-### Requirement: Legacy release families are accepted only during the transition window
+### Requirement: Release identity is nn-only from PR 2
 
-From slice S1 until the sunset slice S6 lands, the release pipeline MUST accept the legacy tag families `innfo-mcp-v<semver>` and `innfo-console-v<semver>` in addition to `nn-mcp-v<semver>` and `nn-console-v<semver>`, in every place that classifies a tag: the release workflow triggers, the tag parser, `RELEASE_KEYS`, manifest assembly, freshness computation and batch status. A legacy-family tag MUST be treated as the same logical unit as its `nn-*` counterpart (`innfo-mcp` with `nn-mcp`, `innfo-console` with `nn-console`), so a unit has one pin in the assembled manifest regardless of which family released last.
+From PR 2 the release pipeline MUST classify, trigger on and emit only `nn-mcp-v<semver>` and `nn-console-v<semver>` (with `skills` and `blueprints`), in every place that classifies a tag: the release workflow triggers, the tag parser, `RELEASE_KEYS`, manifest assembly, freshness computation and batch status. There MUST be no alias map (`RELEASE_FAMILIES`) and no dual-family handling. `isReleaseOwnedPath` MUST be derived from `RELEASE_OWNED_GLOBS`, which adds `innfo/cdn/nn-mcp-v*.bundle.js` and keeps `innfo/cdn/innfo-mcp-v*.bundle.js` and `innfo-console-v*` files preserved as read-only history. CDN staging MUST write only `nn-mcp-v<version>.bundle.js` (from `bin/nn-mcp.bundle.js`), and a versioned CDN file that already exists with different bytes MUST fail the job. The first `nn-mcp-v*` release is cut after PR 3 and the first `nn-console-v*` release right after PR 2; a `nn-*` tag cut before its PR merges is not supported.
 
-While the window is open, a release of the MCP unit (under either family) MUST stage the CDN bundle under both file names, `nn-mcp-v<version>.bundle.js` and `innfo-mcp-v<version>.bundle.js`, with identical bytes, and both names MUST be release-owned paths so the append-only rule applies to them. A versioned CDN file that already exists with different bytes MUST fail the job.
-
-#### Scenario: Legacy tag still releases during the window
-- GIVEN the transition window is open
+#### Scenario: Legacy tag does not release
+- GIVEN the repository after PR 2
 - WHEN `innfo-console-v0.7.1` is pushed
-- THEN the release workflow starts and the tag is classified as the console unit
+- THEN no release job publishes anything for it
 
-#### Scenario: Both bundle names are staged
-- GIVEN `nn-mcp-v0.30.0` is released during the window
+#### Scenario: Only the nn bundle is staged
+- GIVEN `nn-mcp-v0.30.0` is released
 - WHEN the CDN files are staged
-- THEN `nn-mcp-v0.30.0.bundle.js` and `innfo-mcp-v0.30.0.bundle.js` both exist with identical bytes
-- AND the `nn-mcp.*` wrapper scripts resolve the first URL without falling back
+- THEN `nn-mcp-v0.30.0.bundle.js` exists
+- AND no `innfo-mcp-v0.30.0.bundle.js` is created
+
+#### Scenario: Old CDN files survive Pages pushes
+- GIVEN the published file `innfo/cdn/innfo-mcp-v0.29.0.bundle.js`
+- WHEN the web tree is published
+- THEN `isReleaseOwnedPath` preserves it, and `innfo/cdn/nn-mcp-v1.2.3.bundle.js`
 
 #### Scenario: Existing versioned bundle with different bytes
 - GIVEN `nn-mcp-v0.30.0.bundle.js` is already published with different bytes
 - WHEN the publish stage runs
 - THEN the job fails and the file is unchanged
 
-### Requirement: Legacy release emission is removed at the sunset
-
-The sunset slice (S6) MUST run only after a maintainer-agreed deprecation window following the first `nn-*` releases (S5). When S6 lands, the release pipeline MUST stop accepting, classifying and emitting the legacy families: the legacy workflow triggers, the legacy `RELEASE_KEYS` entries, the `innfo-mcp-v<version>.bundle.js` staging and the legacy manifest entries MUST be removed. A legacy-named release tag pushed after S6 MUST NOT start a release.
-
-#### Scenario: Legacy bundle is no longer staged
-- GIVEN the repository after S6
-- WHEN `nn-mcp-v0.32.0` is released
-- THEN only `nn-mcp-v0.32.0.bundle.js` is staged
-- AND no `innfo-mcp-v0.32.0.bundle.js` is created
-
-#### Scenario: Legacy tag after the sunset
-- GIVEN the repository after S6
-- WHEN `innfo-mcp-v0.32.0` is pushed
-- THEN no release job publishes anything for it
-
 ### Requirement: Published legacy tags and CDN files stay immutable and resolvable
 
-Existing `innfo-mcp-v*` and `innfo-console-v*` tags (monorepo and mirror) and the CDN files published under them MUST NOT be deleted, moved or rewritten by any slice, including S6. Historical snapshots, retained pins and stamped exports that reference them MUST keep resolving. Shape validation of a historical ref MUST remain valid for any tag conforming to `TAG_SHAPE_RE`.
+Existing `innfo-mcp-v*` and `innfo-console-v*` tags (monorepo and mirror), their manifest snapshots and the CDN files published under them MUST NOT be deleted, moved or rewritten by any PR or the cleanup commit. Historical snapshots, retained pins and stamped exports that reference them MUST keep resolving. Shape validation of a historical ref MUST remain valid for any tag conforming to `TAG_SHAPE_RE`.
 
-#### Scenario: Old tag resolves after the sunset
-- GIVEN the repository after S6
+#### Scenario: Old tag resolves
+- GIVEN the repository after the cleanup commit
 - WHEN `innfo-mcp-v0.29.0` is resolved in the monorepo and in `cogNNitive-web`
 - THEN it resolves to the same commit as before this change
 
 #### Scenario: Old CDN URL still serves
 - GIVEN a stamped export pinning `cdn.jsdelivr.net/gh/cogNNitive/cogNNitive-web@innfo-console-v0.7.0/...`
-- WHEN the URL is requested after S6
+- WHEN the URL is requested after the cleanup commit
 - THEN it returns the originally published bytes

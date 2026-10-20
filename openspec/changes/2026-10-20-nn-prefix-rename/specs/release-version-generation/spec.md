@@ -37,7 +37,7 @@ Each stable channel ref MUST be the pushed release tag `<key>-v<version>`. `mani
 
 ### Requirement: Entry versions are read from their single authored source
 
-The version of each manifest entry MUST be read from the tagged tree by one shared reader used by both manifest assembly and manifest validation: SKILL.md `version` for skills, spec `version`/`spec_version` for blueprints, `nn-mcp/package.json` for the MCP bundle, and the console `package.json` (`iNNfo/specs/bluepriNNts/console/package.json`, `private`, outside the root workspaces) for `nn-console`. No independently authored copy of an entry version MAY exist in `manifest/source.yaml`. While the transition window is open, the reader MUST resolve a legacy-named key (`innfo-mcp`, `innfo-console`) to the same authored source as its `nn-*` counterpart.
+The version of each manifest entry MUST be read from the tagged tree by one shared reader used by both manifest assembly and manifest validation: SKILL.md `version` for skills, spec `version`/`spec_version` for blueprints, `nn-mcp/package.json` for the MCP bundle, and the console `package.json` (`iNNfo/specs/bluepriNNts/console/package.json`, `private`, outside the root workspaces) for `nn-console`. No independently authored copy of an entry version MAY exist in `manifest/source.yaml`. The reader resolves only the `nn-*` keys.
 
 (Previously: the sources were `innfo-mcp/package.json` and the `innfo-console` key.)
 
@@ -56,14 +56,9 @@ The version of each manifest entry MUST be read from the tagged tree by one shar
 - WHEN the console entry is assembled
 - THEN its version is read from the console `package.json`, not from `nn-mcp`
 
-#### Scenario: Legacy key reads the same source
-- GIVEN the transition window is open and a legacy-named manifest entry `innfo-mcp`
-- WHEN its version is read
-- THEN the value equals the version read for `nn-mcp`
-
 ### Requirement: The nn-mcp version has one authored source
 
-With `iNNfo/packages/nn-mcp/package.json` version as the single authored value, `nn-core`'s version and the `@cognnitive/nn-core` dependency range MUST remain generated from it by `sync-versions` and verified offline by `sync-versions --check` (without any `source.yaml` synchronization). After slice S3 the workspace packages MUST be named `@cognnitive/nn-core`, `@cognnitive/nn-mcp` and `@cognnitive/nn-console`, their directories MUST be `iNNfo/packages/nn-core` and `iNNfo/packages/nn-mcp`, and `sync-versions` MUST read and write only those paths and names. The CDN `manifest.json` `latest` MUST be written by the release workflow as a release-owned file. The `nn-mcp` ref MUST be the release tag. `checkVersionSquare`'s version-comparison logic MUST be decommissioned and its `verify.js` call site removed.
+With `iNNfo/packages/nn-mcp/package.json` version as the single authored value, `nn-core`'s version and the `@cognnitive/nn-core` dependency range MUST remain generated from it by `sync-versions` and verified offline by `sync-versions --check` (without any `source.yaml` synchronization). After PR 1 the workspace packages MUST be named `@cognnitive/nn-core`, `@cognnitive/nn-mcp` and `@cognnitive/nn-console`, their directories MUST be `iNNfo/packages/nn-core` and `iNNfo/packages/nn-mcp`, and `sync-versions` MUST read and write only those paths and names. The CDN `manifest.json` `latest` MUST be written by the release workflow as a release-owned file. The `nn-mcp` ref MUST be the release tag. `checkVersionSquare`'s version-comparison logic MUST be decommissioned and its `verify.js` call site removed.
 
 The workspace packages are workspace-only (not published to an npm registry, root `package.json` is `private`); no npm deprecation step is required.
 
@@ -87,13 +82,13 @@ The workspace packages are workspace-only (not published to an npm registry, roo
 - AND no local rebuild's bytes are compared to the committed bundle
 
 #### Scenario: Old package names are gone after the rename
-- GIVEN the repository after S3
+- GIVEN the repository after PR 1
 - WHEN the root `workspaces` glob, every workspace `package.json` and `package-lock.json` are inspected
 - THEN no `@cognnitive/innfo-core`, `@cognnitive/innfo-mcp` or `@cognnitive/innfo-console` name or dependency range remains
 - AND `package-lock.json` is consistent with `package.json` so `npm ci` succeeds
 
 #### Scenario: Directory rename preserves history
-- GIVEN S3 is applied
+- GIVEN PR 1 is applied
 - WHEN `iNNfo/packages/nn-core` and `iNNfo/packages/nn-mcp` are inspected
 - THEN they contain the former `innfo-core` and `innfo-mcp` contents
 - AND no `iNNfo/packages/innfo-*` directory exists
@@ -123,11 +118,11 @@ Scripts and guards whose only purpose was to keep hand-typed version copies in s
 
 ### Requirement: Generated and wrapper file names use the nn prefix
 
-After slice S3, files whose names embed the distribution prefix MUST use `nn-`: the generated core files (`nn-core.generated.cjs` in each skill that vendors it, and the other generated files that carried the `innfo-` prefix in their file name) and the three `docs/innfo/documentation/innfo-*.md` file names (the `docs/innfo/` URL base itself is kept). The MCP wrapper scripts `scripts/nn-mcp.{sh,ps1,cmd}` are the live wrappers; the legacy `scripts/innfo-mcp.{sh,ps1,cmd}` MAY remain only until S6 and MUST NOT exist afterwards. Generators, guards and tests that reference these files MUST use the new names. The generated file contents MUST be regenerated by the existing generators, never hand-edited. Internal identifiers inside the files (for example the `InnfoSlug` global) are out of scope and MUST remain unchanged.
+From PR 1 (generated core files), PR 2 (console files) and PR 3 (wrappers and docs), files whose names embed the distribution prefix MUST use `nn-`: the generated core files (`nn-core.generated.cjs` in each skill that vendors it, and the other generated files that carried the `innfo-` prefix in their file name) and the three `docs/innfo/documentation/innfo-*.md` file names (the `docs/innfo/` URL base itself is kept). The MCP wrapper scripts are `scripts/nn-mcp.{sh,ps1,cmd}`; the former `scripts/innfo-mcp.{sh,ps1,cmd}` and the `innfo-mcp.bundle.js` bin entry are deleted in PR 3. Generators, guards and tests that reference these files MUST use the new names. The generated file contents MUST be regenerated by the existing generators, never hand-edited. Internal identifiers inside the files (for example the `InnfoSlug` global) are out of scope and MUST remain unchanged.
 
 #### Scenario: Generated core file renamed
 - GIVEN the skills that vendor the core bundle
-- WHEN `skills/*/scripts/lib/` is listed after S3
+- WHEN `skills/*/scripts/lib/` is listed after PR 1
 - THEN `nn-core.generated.cjs` exists where `innfo-core.generated.cjs` existed
 - AND the regeneration command produces it byte-identically
 

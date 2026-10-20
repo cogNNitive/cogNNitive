@@ -1,23 +1,26 @@
 # Proposal: Distribution Prefix Rename (`innfo-*` to `nn-*`)
 
+> Revision 2 (2026-10-20). Simplified from a 9-PR dual-emission plan to a direct cutover in 3 PRs plus a cleanup commit. The maintainer is the only consumer, developer and user of cogNNitive, so installed-client compatibility is not a requirement.
+
 ## Intent
-cogNNitive ships its distribution under two prefixes. `nn-mcp`/`nn-console` names are already emitted in some places, but the CDN `nn-mcp-v*.bundle.js` does not exist, so every `nn-mcp.*` wrapper falls back to the `innfo-mcp-v*` URL. Release keys, tags, manifest entries, packages and directories are still `innfo-*`. This change finishes the rename so that `nn-` is the only live distribution prefix. Installed clients keep working, old tags and CDN files stay immutable, and dual emission exists only for the transition.
+cogNNitive ships its distribution under two prefixes. `nn-mcp`/`nn-console` names are already emitted in some places, but the CDN `nn-mcp-v*.bundle.js` does not exist, so every `nn-mcp.*` wrapper falls back to the `innfo-mcp-v*` URL. Release keys, tags, manifest entries, packages and directories are still `innfo-*`. This change finishes the rename so that `nn-` is the only live distribution prefix, in one direct cutover. Old tags and CDN files stay immutable as history. There is no dual emission and no deprecation window.
 
 ## Scope
 
 ### In Scope
 - npm workspace packages `@cognnitive/innfo-{core,mcp,console}` become `@cognnitive/nn-*`. Directories `iNNfo/packages/innfo-*` become `nn-*`. `package-lock.json` is regenerated.
-- Release tag families `innfo-mcp-v*`/`innfo-console-v*` become `nn-mcp-v*`/`nn-console-v*`: `release.yml`, `RELEASE_KEYS`, `assemble-manifest`, `freshness.js`, `batch-status`, `stage-mcp-bundle`, `run-release`.
+- Release tag families `innfo-mcp-v*`/`innfo-console-v*` become `nn-mcp-v*`/`nn-console-v*`: `release.yml`, `RELEASE_KEYS`, `assemble-manifest`, `freshness.js`, `batch-status`, `stage-mcp-bundle`, `run-release`. Only the `nn-*` families are accepted afterwards.
 - Manifest `name`/`ref_key`/`path`, CDN bundle paths, console asset file names (`iNNfo/specs/bluepriNNts/console/innfo-*.js`, `innfo-ui.css`) and shell pins (`@nn-console-v`).
-- Generated file names (`innfo-core.generated.cjs` and others), wrapper scripts `scripts/innfo-mcp.*`, the three `docs/innfo/documentation/innfo-*.md` file names.
-- MCP `Server` name, the `innfo-mcp_*` tool prefix in skills, `nn-preflight` and `mcp-config-adapter` reconciliation, and blueprint procedure `tool::` references (blueprint bump).
-- S6 sunset: legacy emission removed, old names recorded as retired identifiers and guarded.
+- Generated file names (`innfo-core.generated.cjs` and others), wrapper scripts `scripts/innfo-mcp.*`, the three `docs/innfo/documentation/innfo-*.md` file names (no stub pages).
+- MCP `Server` name, the `innfo-mcp_*` tool prefix in skills, `nn-preflight` and `skills-manager`/`mcp-config-adapter` migration of a stale `innfo-mcp` entry, and blueprint procedure `tool::` references (blueprint bump).
+- Retired old names recorded as retired identifiers and guarded (cleanup commit).
 
 ### Out of Scope
 - The iNNfo term and the Level-1 name in specs.
 - Internal identifiers that are not file or folder names: `InnfoConsole`/`InnfoSlug` globals, `--innfo-*` CSS tokens, `innfo-config/model/schema` slot ids, the `innfo-console:v3:` localStorage key, `__INNFO_MCP_VERSION__`, `INNFO_*` env vars.
 - The `docs/innfo/` URL base (`cognnitive.com/innfo/`) and the `nn-innfo` skill.
-- Frozen history: `openspec/changes/**`, archive indexes, stamped fixtures, simulacro fixtures, published manifests, existing git tags.
+- Frozen history: `openspec/changes/**`, archive indexes, stamped fixtures, simulacro fixtures, published manifests, existing git tags and published CDN files.
+- Any compatibility layer for old installed clients: alias tag families, dual freshness keys, dual CDN bundles, `legacy_names`/`legacy_files`, a deprecation window, a legacy-preflight fixture.
 
 ## Capabilities
 
@@ -25,99 +28,89 @@ cogNNitive ships its distribution under two prefixes. `nn-mcp`/`nn-console` name
 - None
 
 ### Modified Capabilities
-- `tag-driven-release-workflow`: accepts `nn-mcp-v*`/`nn-console-v*` triggers. Legacy families are accepted only until S6.
+- `tag-driven-release-workflow`: triggers are `nn-mcp-v*`/`nn-console-v*` only. The `innfo-*` triggers are removed.
 - `release-version-generation`: version sync targets `@cognnitive/nn-*` packages and paths.
-- `monorepo-release-manifest`: manifest entries, `ref_key`s and bundle paths use `nn-*`. The manifest never lists `innfo-mcp` and `nn-mcp` side by side: the MCP entry switches name once, in S5.
-- `manifest-governance`: `source.yaml` asset names and paths, plus `legacy_names`/`legacy_files` retention fields (S1 until S6).
-- `ci-subsystem-freshness-computation`: subsystem keys and tag regexes. `freshness.json` is the only place carrying both names, from S1 until S6.
-- `preflight-freshness-reporting`: `nn-preflight` resolves either MCP name and either freshness key.
-- `console-export-slots-and-standalone-pin`: the standalone shell pins `@nn-console-v*`. Guards accept both pins.
+- `monorepo-release-manifest`: manifest entries, `ref_key`s and bundle paths use `nn-*`. The manifest has one MCP entry and it switches name once.
+- `manifest-governance`: `source.yaml` asset names and paths use `nn-*`. No `legacy_*` retention fields.
+- `ci-subsystem-freshness-computation`: subsystem keys, tag regexes and paths use `nn-*` only.
+- `preflight-freshness-reporting`: `nn-preflight` resolves `nn-mcp` and the `nn-*` freshness keys.
+- `console-export-slots-and-standalone-pin`: the standalone shell pins `@nn-console-v*`. Readers accept the legacy pin for reading stamped exports only.
 - `innfo-console-runtime`: console runtime and asset file names.
-- `canonical-vocabulary`: retired distribution identifiers are recorded in `vocabulary.json` `retired_identifiers`.
+- `canonical-vocabulary`: retired distribution identifiers are recorded in `vocabulary.json` `retired_identifiers` (cleanup commit).
 
 ## Approach
-Approach B: an additive-first sliced migration. Every slice leaves `main` green and releasable.
+Direct cutover in three mechanically independent PRs. Every PR leaves `main` green and releasable.
 
-| Slice | Content | Why this position |
+| PR | Content | Why this position |
 |---|---|---|
-| S0 | Regenerate the stale `package-lock.json` in its own commit | Separates lockfile drift from the rename |
-| S1 | Release plumbing accepts both families and emits `nn-mcp-v*.bundle.js` | Nothing can be renamed until the pipeline accepts the new tags. Also fixes today's wrapper 404 |
-| S2 | Console file rename, `@nn-console-v` pin, dual-regex guards | Smallest consumer surface. `nn-console` can ship first (default 7) |
-| S3 | `git mv` of the packages and directories, imports, CI, allowlists, generated names | Largest mechanical diff. It needs S0 and S1 because `repoPaths`/`mcp.path` move |
-| S4 | S4a: server identity, preflight and skills-manager reconciliation, released as `skills-v*` before S5. S4b: tool-prefix prose, doc renames, `procedures`/`visual-catalog` blueprint bump | Depends on S3 paths. Touches installed-client behaviour |
-| S5 | First `nn-mcp-v*` release: the MCP manifest entry switches name to `nn-mcp` (one entry only; `freshness.json` already carries both names since S1) | Cutover proven before anything is removed |
-| S6 | Sunset: remove legacy bins, bundles, keys and aliases. Add retired-identifier guards | Only after the deprecation window, so the rename is complete |
+| 1 | Package graph: lockfile fix, `git mv` of `innfo-core`/`innfo-mcp`, package names, generated file names, CI and tooling paths. Release names stay `innfo-*` | Largest mechanical diff, fully reversible by `git revert`. Isolated from any published identity |
+| 2 | Release identity and console: `nn-*` release keys, tags, `release.yml`, freshness, stage/publish plumbing (emits `nn-mcp-v*.bundle.js`, fixing today's wrapper 404), console source rename and `@nn-console-v` pin, transient assemble pin-rename lookup | Needs PR 1 paths. Then cut `nn-console-v*` |
+| 3 | Runtime identity: `Server` name, manifest `mcp.name: nn-mcp`, preflight, skills-manager migration, wrapper scripts, prose, doc renames, `procedures`/`visual-catalog` blueprint bump | Depends on PR 1 and PR 2. Then cut `nn-mcp-v*`, `skills-v*`, `blueprints-v*` |
+| Cleanup | Remove the transient lookup, add retired identifiers and the content guard | Only after the first `nn-*` releases are published |
 
 ## Affected Areas
 
 | Area | Impact | Description |
 |---|---|---|
-| `iNNfo/packages/innfo-{core,mcp}` | Renamed | Become `nn-core`, `nn-mcp`. Package names, `bin`, tsup, vitest alias |
-| `package.json`, `package-lock.json` | Modified | Workspaces glob and dependency range, lockfile regenerated |
-| `.github/workflows/{ci,release}.yml` | Modified | Tag triggers, `--workspace=` |
-| `scripts/release/*`, `scripts/lib/release-keys.js`, `stage-mcp-bundle.mjs`, `freshness.js`, `batch-status.mjs`, `sync-versions.mjs` | Modified | Dual-family, then `nn-` only |
-| `manifest/source.yaml`, `scripts/manifest/generate-manifest.js` | Modified | Names, `ref_key`s, paths, legacy aliases |
-| `iNNfo/specs/bluepriNNts/console/` | Renamed | `nn-*.js`, `nn-ui.css`, regenerated payload |
-| `scripts/lib/console-*.js`, `export-console.mjs` | Modified | Pin regexes, bundle names |
-| `skills/nn-preflight`, `skills/*/scripts/lib/*.generated.cjs`, `nn-dev-*` skills | Modified | Name reconciliation, regenerated files |
+| `iNNfo/packages/innfo-{core,mcp,console}` | Renamed | Directories and package names |
+| `scripts/release/*`, `scripts/freshness.js`, `scripts/lib/{batch-status,publish-web-tree}.*`, `scripts/stage-mcp-bundle.mjs` | Modified | `nn-*` keys, paths, staging and owned globs |
+| `.github/workflows/{ci,release}.yml` | Modified | `--workspace=` names and the `nn-*` tag triggers |
+| `manifest/source.yaml`, `docs/use/manifest-next.md` | Modified | Names, paths and the single MCP entry rename |
+| `iNNfo/specs/bluepriNNts/console/innfo-*.js`, `innfo-ui.css`, console bundles, shells | Renamed / regenerated | File names and the `@nn-console-v` pin |
+| `skills/*/scripts/lib/innfo-core.generated.cjs` and other generated files | Renamed | Through their generators |
+| `skills/nn-preflight`, `scripts/lib/skills-commands.js`, `mcp-config-adapter.js` | Modified | `nn-mcp` identity and stale-entry migration |
 | `scripts/innfo-mcp.*`, `docs/innfo/documentation/innfo-*.md` | Renamed | Wrapper scripts and three doc files |
-| `iNNfo/specs/bluepriNNts/{procedures,visual-catalog}/**` | Version bump | `tool:: [[nn-mcp]]` in a new blueprint version and a `blueprints-v*` tag. The frozen `workspace` procedures are allowlisted, not bumped |
-| `test/no-retired-references.test.mjs`, other guards | Modified | Allowlists. Retired names are added in S6 |
+| `iNNfo/specs/bluepriNNts/{procedures,visual-catalog}/**` | Version bump | `tool:: [[nn-mcp]]` in a new blueprint version and a `blueprints-v*` tag. Frozen `workspace` procedures are allowlisted, not bumped |
+| `test/no-retired-references.test.mjs`, other guards | Modified | Filename guard per PR; retired-name content guard in cleanup |
 
 ## Risks
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Installed `preflight-check.js`/`skills-manager` hardcode `innfo-mcp` and its freshness keys | High | `freshness.json` dual-emits keys from S1. The manifest carries one MCP entry that switches name in S5 (two entries would register two servers). An old preflight copy loses only the informational MCP line, and is tested. S4a ships as `skills-v*` before S5. S6 waits for the window |
-| Immutable `innfo-*-v*` tags and published CDN files (stamped exports pin `@innfo-console-vX`) | Med | Tags and published CDN files are never deleted or moved. Guards keep accepting the legacy pin for reading |
-| Write-once blueprint procedures name `innfo-mcp` | Med | Bump `template_version` of `procedures` and `visual-catalog` only and cut a new `blueprints-v*` tag. The 5 `workspace` procedures are frozen: allowlist them |
-| `assemble-manifest` keeps old pins by parsing the published manifest | Med | Alias map in S1 plus `legacy_names`/`legacy_files` in `source.yaml`. The first `nn-*` release must retain `innfo-*` pins |
-| Stale lockfile | High | The S0 commit runs before S3 |
-| Worktree `node_modules` junctions point into old paths after S3 | High | Writers in a worktree with a junction run builds only, never `npm ci`. The primary `node_modules` is refreshed after S3 merges |
-| CI-only failures: preflight tests leak the home dir, engine floors differ | Med | Re-run with an empty `USERPROFILE`/`HOME`. CI is the source of truth for each slice |
-| Test drift in `freshness.test.js` and `validate-manifest.test.js` | Med | Update them inside the slice that changes the behaviour |
+| First `nn-*` release cannot find previous pins (`requirePin` throws) because the last manifest is keyed `innfo-*` | High | Transient `PREVIOUS_PIN_RENAMES` lookup in assemble (design D3), tested, removed in the cleanup commit. Exact console keying verified at apply time |
+| An old skills-manager installs `nn-mcp` beside `innfo-mcp` (two servers) | Med | Only the maintainer's own machine. The new skills-manager migrates the stale entry (D10). Fallback: delete the `innfo-mcp` config key by hand |
+| Immutable `innfo-*-v*` tags and published CDN files (stamped exports pin `@innfo-console-vX`) | Low | Never delete or move them. Readers accept the legacy pin for reading only. `isReleaseOwnedPath` preserves old CDN files on Pages pushes |
+| Write-once blueprint procedures name `innfo-mcp` | Med | Bump `template_version` of `procedures` and `visual-catalog` and cut `blueprints-v*`. The 5 `workspace` procedures are frozen and allowlisted |
+| Stale lockfile | High | Regenerated in the first commit of PR 1 |
+| Worktree `node_modules` junctions point into old paths after PR 1 | High | Writers in a worktree with a junction run builds only, never `npm ci`. Refresh the primary `node_modules` after PR 1 merges |
+| CI-only failures (preflight tests leak the home dir, engine floors differ) | Med | Re-run with an empty `USERPROFILE`/`HOME`. CI is the source of truth |
+| A published tag or manifest mistake cannot be undone | Med | All release steps need explicit maintainer confirmation and are never run by apply. Rollback is a new release, never a tag deletion |
 
 ## Rollback Plan
-- S0–S3: revert the merge commit. S3 is a `git mv`, so a revert restores the paths. Afterwards refresh the primary `node_modules`.
-- S4: revert the commit, and re-publish the previous `skills-v*` and blueprint pins in the manifest. Published tags are never deleted.
-- S5: set `mcp.name` back to `innfo-mcp` and cut a skills release to re-render the manifest. The `nn-mcp-v*` tag stays, unused.
-- S6: revert to restore the legacy emission and keys. Nothing published has to be recovered.
+- PR 1: revert the merge commit (the `git mv` reverses). Refresh the primary `node_modules`.
+- PR 2: revert the merge commit. A cut `nn-console-v*` tag stays unused.
+- PR 3: revert and cut a skills release to re-render the manifest. A published `nn-mcp-v*` tag stays unused.
+- Cleanup: revert. Nothing published has to be recovered.
 
 ## Dependencies
 - jsDelivr/GitHub serving the new tag families.
-- A deprecation window of 14 days between S5 and S6.
 
 ## Success Criteria
-- [ ] `rg 'innfo-(core|mcp|console|shell|export|ui-css|payload)'` outside the frozen and allowlisted classes returns 0 after S6.
-- [ ] `node scripts/verify.js` is green after every slice.
-- [ ] CI is green on `main` after every slice.
-- [ ] The first `nn-console-v*` and `nn-mcp-v*` releases are published, and `nn-mcp-v*.bundle.js` resolves on the CDN.
-- [ ] A pre-change copy of `preflight-check.js` runs without error against the S5 manifest and keeps its skills and console freshness lines (it omits only the MCP line).
-- [ ] `innfo-mcp-v*`/`innfo-console-v*` tags and pinned CDN URLs still resolve after S6.
+- [ ] `rg 'innfo-(core|mcp|console|shell|export|ui-css|payload)'` outside the frozen and allowlisted classes returns 0 after the cleanup commit.
+- [ ] `node scripts/verify.js` and CI are green on `main` after every PR.
+- [ ] The first `nn-console-v*` and `nn-mcp-v*` releases are published, `nn-mcp-v*.bundle.js` resolves on the CDN, and the first `nn-mcp` version is strictly greater than the highest `innfo-mcp-v*` tag (>= 0.30.0).
+- [ ] The published manifest has one MCP entry, named `nn-mcp`, and `freshness.json` carries only `nn-*` keys.
+- [ ] `innfo-*-v*` tags and pinned CDN URLs still resolve.
 
-## Assumptions (defaults applied under automatic mode)
-These are the exploration defaults. They have not been confirmed by the user, and each one can be reversed before its slice.
-1. The `docs/innfo/` URL base is kept. Only the three doc file names are renamed.
-2. Old tags and CDN files resolve permanently. The dual-name window (freshness keys, CDN bundle names, `legacy_*` fields) lasts until S6.
+## Assumptions
+Confirmed or delegated by the maintainer on 2026-10-20.
+1. The maintainer is the sole consumer, developer and user. No backward compatibility for installed clients.
+2. The `docs/innfo/` URL base is kept. Only the three doc file names are renamed, with no stub page.
 3. Internal non-file identifiers are out of scope.
 4. The `nn-innfo` skill is kept.
-5. Blueprint procedures with `tool:: [[innfo-mcp]]` in `procedures` and `visual-catalog` are bumped in S4b with a `blueprints-v*` release; the frozen `workspace` ones are allowlisted.
-6. The new tag families continue the current numbering: the first `nn-mcp` tag is strictly greater than the highest `innfo-mcp-v*` tag (>= 0.30.0 while that is 0.29.0), likewise for console.
-7. `nn-console` may ship before `nn-mcp`.
-8. The stale lockfile is fixed in a separate commit before S3 (S0).
+5. `procedures` and `visual-catalog` blueprints are bumped; frozen `workspace` ones are allowlisted.
+6. New tag families continue the numbering: the first `nn-mcp` tag is strictly greater than the highest `innfo-mcp-v*` tag, likewise for console.
+7. `nn-console` ships before `nn-mcp`.
 
 ## Review Workload Forecast
 
-| Slice | Est. changed lines (hand-written, generated excluded) |
+| PR | Est. changed lines (hand-written, generated and `git mv` excluded) |
 |---|---|
-| S0 | lockfile only (generated) |
-| S1 | ~300 |
-| S2 | ~350 |
-| S3 | ~700, split into S3a `nn-core` and S3b `nn-mcp` (~350 each) |
-| S4 | ~450, split into S4a identity/preflight and S4b prose/blueprint bump |
-| S5 | ~150 plus release operations |
-| S6 | ~250 |
+| 1 | ~700 (path and name edits), mostly mechanical |
+| 2 | ~600 |
+| 3 | ~500 |
+| Cleanup | ~100 |
 
-- Chained PRs recommended: Yes (stacked-to-main).
-- 400-line budget risk: High for S3/S4 if they are not split, Low once split.
-- Decision needed before apply: No (defaults applied; the S6 deprecation window is fixed at 14 days after the S5 cutover).
+- Chained PRs recommended: Yes (stacked-to-main, PR 1 then 2 then 3).
+- 400-line budget risk: Medium-High per PR. The diffs are mechanical (renames and path edits), so review cost is lower than the line count suggests. Split PR 1 into core/mcp commits if needed.
+- Decision needed before apply: No.

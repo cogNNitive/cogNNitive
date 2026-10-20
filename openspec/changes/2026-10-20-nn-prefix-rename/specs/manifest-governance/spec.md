@@ -20,7 +20,7 @@ Scope guard: only distribution names and paths in `manifest/source.yaml` change.
 
 ### Requirement: Source inventory uses nn-prefixed distribution names and paths
 
-From S5 `manifest/source.yaml` MUST declare the MCP unit as `nn-mcp` (`name`, `ref_key`); from S3b its `path` is under `iNNfo/packages/nn-mcp/` (the `name` stays `innfo-mcp` between S3b and S5). From S2 every `console_assets` entry with `ref_key: nn-console`, `path` and file name carrying the `nn-` prefix (the console runtime sources, the `nn-ui.css` stylesheet and the `nn-console.bundle.js` bundle). Every `path:` MUST exist in the tree. The names in `source.yaml` MUST match `RELEASE_KEYS` and the release tag families, so that a release key, its manifest `ref_key` and its entry name are the same string.
+From PR 3 `manifest/source.yaml` MUST declare the MCP unit as `nn-mcp` (`name`, `ref_key`); its `path` is under `iNNfo/packages/nn-mcp/` from PR 1 (the `name` stays `innfo-mcp` between PR 1 and PR 3). From PR 2 every `console_assets` entry has `ref_key: nn-console` and a `path` and file name carrying the `nn-` prefix (the console runtime sources, the `nn-ui.css` stylesheet and the `nn-console.bundle.js` bundle). Every `path:` MUST exist in the tree. The names in `source.yaml` MUST match `RELEASE_KEYS` and the release tag families, so that a release key, its manifest `ref_key` and its entry name are the same string.
 
 #### Scenario: Names agree across release key, source and manifest
 - GIVEN the release key `nn-console`
@@ -32,26 +32,16 @@ From S5 `manifest/source.yaml` MUST declare the MCP unit as `nn-mcp` (`name`, `r
 - WHEN `verify.js` runs
 - THEN the inventory guard fails
 
-### Requirement: Legacy aliases are explicit, bounded and removable
+### Requirement: source.yaml carries no legacy identifiers
 
-While the transition window is open (S1 until S6 lands), `manifest/source.yaml` MAY declare legacy identifiers for the renamed units: `legacy_names: [innfo-mcp]` on the MCP entry and `legacy_files: [...]` on the renamed console assets (their former file names). Legacy identifiers are fields of a primary entry (never independent entries, so they never produce a second published manifest entry), carry no path of their own, and MUST be distinguishable from primary names by the governance guard. They exist only so manifest assembly can match a pin retained from a previous manifest. No alias MAY be introduced for any name outside the rename scope. At S6 every legacy alias MUST be removed from `manifest/source.yaml`, and the governance guard MUST fail when one reappears.
+`manifest/source.yaml` MUST NOT declare `legacy_names`, `legacy_files` or any other alias for a renamed unit. Each unit has one primary name. Retention of pins from the last published `innfo-*` manifest is handled by the transient assemble-time `PREVIOUS_PIN_RENAMES` map (see `monorepo-release-manifest`), which is code, not inventory data. The governance guard MUST fail when a legacy field appears.
 
-#### Scenario: Alias tied to a primary
-- GIVEN a `legacy_files` list on a primary `nn-console` asset in `manifest/source.yaml`
+#### Scenario: Legacy field rejected
+- GIVEN `manifest/source.yaml` with a `legacy_files` list on a console asset
 - WHEN the governance guard runs
-- THEN it confirms the legacy identifier belongs to a primary entry and carries no content of its own
+- THEN it fails and names the field
 
-#### Scenario: Orphan alias
-- GIVEN a legacy identifier whose primary entry does not exist
-- WHEN the governance guard runs
-- THEN it fails and names the alias
-
-#### Scenario: Out-of-scope alias
-- GIVEN an alias proposed for the skill `nn-innfo`, the `docs/innfo/` URL base or an `innfo-config` slot id
-- WHEN the governance guard runs
-- THEN it fails because the name is outside the rename scope
-
-#### Scenario: Aliases removed at the sunset
-- GIVEN `manifest/source.yaml` after S6
-- WHEN it is scanned for legacy aliases
+#### Scenario: No legacy fields present
+- GIVEN `manifest/source.yaml` after PR 3
+- WHEN it is scanned for `legacy_names` and `legacy_files`
 - THEN none is present

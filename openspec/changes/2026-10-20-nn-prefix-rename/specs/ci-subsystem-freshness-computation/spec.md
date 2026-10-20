@@ -20,12 +20,13 @@ cut but not yet repinned would make drift read zero while users are still
 receiving the older pinned release — exactly the silent-drift failure this
 capability exists to eliminate.
 
-The MCP subsystem is keyed `nn-mcp` and the tag regex used to recognise its
-release tags MUST match the `nn-mcp-v*` family. While the transition window is
-open (S1 until S6 lands) the regex MUST also match the legacy `innfo-mcp-v*` family, and
-the `nn-mcp` subsystem's baseline is the pinned tag of the MCP unit whichever
-family named it. After S6 only `nn-mcp-v*` is matched for new baselines; a
-legacy-named tag remains a valid historical pinned tag.
+The MCP subsystem is keyed 
+n-mcp and the tag regex used to recognise its
+release tags MUST match only the 
+n-mcp-v* family. A subsystem whose pinned tag is a
+former-family tag (innfo-mcp-v*) in an already published manifest remains a valid
+historical pin and MUST resolve, but new baselines use 
+n-mcp-v*.
 
 (Previously: the MCP subsystem path was `iNNfo/packages/innfo-mcp/` and its tag prefix `innfo-mcp`.)
 
@@ -91,8 +92,8 @@ legacy-named tag remains a valid historical pinned tag.
 - **WHEN** the freshness job runs
 - **THEN** the `nn-mcp` entry SHALL report `commitsSincePin: 1`
 
-#### Scenario: Pin by a legacy-family tag during the window
-- **GIVEN** the transition window is open and the MCP unit is pinned to `innfo-mcp-v0.29.0`
+#### Scenario: Historical former-family pin still resolves
+- **GIVEN** a published manifest whose MCP unit is pinned to `innfo-mcp-v0.29.0`
 - **WHEN** the freshness job runs
 - **THEN** the `nn-mcp` entry SHALL resolve that tag as its baseline
 - **AND** it SHALL NOT report `unresolved`
@@ -105,15 +106,7 @@ per subsystem: the pinned tag name, the pinned tag's commit date, the count
 of later commits touching that subsystem's paths, and the list of touched
 paths or commit identifiers.
 
-From S1 (the release-plumbing slice) until the sunset (S6), the artifact MUST
-emit the MCP subsystem under both keys, `nn-mcp` and `innfo-mcp`. This is the
-only place where both names coexist: the published manifest carries a single
-MCP entry (see `monorepo-release-manifest`). Both entries MUST carry the same
-drift data, and each `pinnedTag` MUST be the newest pinned tag across both tag
-families, so a pre-change `preflight-check.js` that compares the legacy key's
-`pinnedTag` with the manifest ref keeps matching. The same rule applies to the
-console subsystem keys `nn-console` and `innfo-console`.
-After S6 the artifact MUST emit only the `nn-*` keys.
+From PR 2 the artifact MUST emit the MCP and console subsystems only under the keys `nn-mcp` and `nn-console`. It MUST NOT emit `innfo-mcp` or `innfo-console` keys. `findNewestTag` patterns and `SUBSYSTEM_PATHS` use the new names and the new directories (`iNNfo/packages/nn-mcp/`; paths move in PR 1).
 
 (Previously: one entry per subsystem, keyed `innfo-mcp` for the MCP unit.)
 
@@ -127,18 +120,7 @@ After S6 the artifact MUST emit only the `nn-*` keys.
   answer "how far has `main` drifted past the pin" for any tracked
   subsystem.
 
-#### Scenario: Both keys emitted during the window
-- **GIVEN** the transition window is open (S1 until S6 lands)
-- **WHEN** `freshness.json` is published
-- **THEN** it contains an `nn-mcp` entry and an `innfo-mcp` entry
-- **AND** their `commitsSincePin` and `filesTouched` are equal
-
-#### Scenario: Legacy key carries the newest tag of either family
-- **GIVEN** the manifest pins the single MCP entry at `nn-mcp-v0.30.0` and the older tag `innfo-mcp-v0.29.0` exists
-- **WHEN** the `innfo-mcp` freshness entry is read
-- **THEN** its `pinnedTag` is `nn-mcp-v0.30.0`, equal to the `nn-mcp` entry's `pinnedTag`
-
-#### Scenario: Only nn keys after the sunset
-- **GIVEN** `freshness.json` published after S6
-- **WHEN** its subsystem keys are listed
-- **THEN** no key is `innfo-mcp` or `innfo-console`
+#### Scenario: Only nn keys are emitted
+- GIVEN `freshness.json` published after PR 2
+- WHEN its subsystem keys are listed
+- THEN the MCP and console keys are `nn-mcp` and `nn-console`, and no key is `innfo-mcp` or `innfo-console`

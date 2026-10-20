@@ -8,7 +8,7 @@ Scope guard: only the distribution prefix of the MCP and console entries changes
 
 All skills, templates, and MCP bundles declared in the bootstrap manifest (`manifest/source.yaml`) MUST declare `repo: cogNNitive/cogNNitive-web`, the public repository that mirrors the monorepo release tags. No asset MAY declare the private monorepo `cogNNitive/cogNNitive` as a pin source, nor the archived repositories (`cogNNitive`/`iNNfo` or `cogNNitive/actioNN`). Asset `path:` values MUST stay relative to the repository root with the same layout as the monorepo, because the release copies key paths verbatim. `manifest/source.yaml` MUST hold inventory only: it MUST NOT contain `version:` fields or a `channels:` section.
 
-From the cutover slice S5 the MCP entry MUST be named `nn-mcp`, MUST use `ref_key: nn-mcp` and MUST point at `iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js` (before S5 the entry keeps the name `innfo-mcp` and only its path moves, in S3b). The console entries MUST use `ref_key: nn-console` and `nn-`prefixed asset file names from S2.
+From PR 3 the MCP entry MUST be named `nn-mcp`, MUST use `ref_key: nn-mcp` and MUST point at `iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js` (PR 1 moves only the path; the name changes once, in PR 3, together with `Server({name:'nn-mcp'})`). The console entries MUST use `ref_key: nn-console` and `nn-`prefixed asset file names from PR 2.
 
 (Previously: the MCP entry was named `innfo-mcp` with path `iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js`.)
 
@@ -72,7 +72,7 @@ For the `stable` channel, all assets MUST resolve to tags on `cogNNitive/cogNNit
 
 ### Requirement: The MCP entry switches name once, with no side-by-side entries
 
-The published stable manifest MUST NOT list `innfo-mcp` and `nn-mcp` side by side, because the skills installer registers one server per MCP entry name and two entries would register two servers with duplicated tools. The manifest MUST carry exactly one MCP entry: named `innfo-mcp` until the cutover slice S5, and named `nn-mcp` from the first `nn-mcp-v*` release onward. The same holds for the console units: each console asset appears once, under its current file name. While a unit is retained from a previous manifest, assembly MUST match the previous entry by its current OR legacy identifier (`legacy_names`, `legacy_files` in `manifest/source.yaml`) and a retained console entry MUST keep the previous `file` and `url` verbatim. The overall manifest shape (tag and SHA pins) MUST NOT change. The only place where both MCP names coexist is `freshness.json` (see `ci-subsystem-freshness-computation`), and the CDN bundle is staged under both file names (see `tag-driven-release-workflow`).
+The published stable manifest MUST NOT list `innfo-mcp` and `nn-mcp` side by side, because the skills installer registers one server per MCP entry name and two entries would register two servers with duplicated tools. The manifest MUST carry exactly one MCP entry, named `nn-mcp` from the first `nn-mcp-v*` release onward (the first release after PR 3, with a version strictly greater than the highest `innfo-mcp-v*` tag). Each console asset appears once, under its `nn-` file name. `manifest/source.yaml` MUST NOT declare `legacy_names` or `legacy_files`. To retain pins from the last published `innfo-*` manifest, `scripts/release/assemble-manifest.js` MAY carry a transient `PREVIOUS_PIN_RENAMES` map, consulted only when the previous manifest has no entry under the new name; a retained console entry MUST keep the previous `file` and `url` verbatim. The map is code, never part of a published manifest, and is deleted in the cleanup commit. The overall manifest shape (tag and SHA pins) MUST NOT change.
 
 #### Scenario: Single MCP entry after the cutover
 - GIVEN the manifest published by the first `nn-mcp-v*` release
@@ -81,32 +81,31 @@ The published stable manifest MUST NOT list `innfo-mcp` and `nn-mcp` side by sid
 - AND no entry is named `innfo-mcp`
 
 #### Scenario: Retention across the rename
-- GIVEN a published manifest whose MCP entry is named `innfo-mcp`
-- WHEN a `skills-v*` release is assembled before S5
-- THEN the MCP entry is retained under its previous name and pin, matched through the identifier in `source.yaml`
+- GIVEN a previous published manifest whose MCP entry is named `innfo-mcp` pinned at `innfo-mcp-v0.29.0`
+- WHEN a `skills-v*` release is assembled after PR 2
+- THEN the MCP pin is retained under the name `nn-mcp` through `PREVIOUS_PIN_RENAMES`
+- AND the assembler does not throw `requirePin`
 
-#### Scenario: Pre-change preflight keeps working
-- GIVEN a copy of `preflight-check.js` installed before this change (it hardcodes the name `innfo-mcp`)
-- WHEN it runs against the S5 manifest
-- THEN it raises no error and its `exitCode` is unchanged
-- AND it omits only the informational MCP line, and keeps the skills and console freshness lines
+#### Scenario: Console entry retained verbatim
+- GIVEN a previous manifest with a console asset under its `innfo-` file name
+- WHEN a non-console release is assembled
+- THEN the retained entry keeps the previous `file` and `url` unchanged
 
-#### Scenario: Pre-change skills-manager keeps working
-- GIVEN a skills-manager installed before this change
-- WHEN it fetches the S5 manifest
-- THEN it parses and resolves pins without modification
+#### Scenario: No legacy fields in source
+- GIVEN `manifest/source.yaml`
+- WHEN it is scanned
+- THEN it contains no `legacy_names` or `legacy_files`
 
-### Requirement: Legacy identifiers are removed at the sunset
+### Requirement: The transient pin-rename map is removed in the cleanup commit
 
-When slice S6 lands, `manifest/source.yaml` MUST stop declaring `legacy_names` and `legacy_files`, and the generated manifest MUST NOT carry a legacy `ref_key` (`innfo-mcp`, `innfo-console`). Manifests and snapshots already published remain unchanged. After S6 the manifest validator MUST reject a new manifest that still carries a legacy-named entry, while continuing to accept legacy-named tags as historical pin targets.
+In the cleanup commit that follows the first `nn-*` releases, `PREVIOUS_PIN_RENAMES` and its tests MUST be deleted. The generated manifest MUST NOT carry a legacy `ref_key` (`innfo-mcp`, `innfo-console`), and the manifest validator MUST reject a new manifest that carries a legacy-named entry, while continuing to accept legacy-named tags as historical pin targets. Manifests and snapshots already published remain unchanged.
 
-#### Scenario: Legacy names absent after S6
-- GIVEN a manifest assembled after S6
-- WHEN its entries are listed
-- THEN only `nn-mcp` and `nn-console` are present
-- AND no entry is named `innfo-mcp` or `innfo-console`
+#### Scenario: Map deleted
+- GIVEN the repository after the cleanup commit
+- WHEN `scripts/release/assemble-manifest.js` is scanned
+- THEN `PREVIOUS_PIN_RENAMES` does not exist
 
-#### Scenario: Legacy entry rejected after S6
-- GIVEN a staged manifest after S6 that still contains an `innfo-mcp` entry
+#### Scenario: Legacy entry rejected
+- GIVEN a staged manifest after the cleanup commit that still contains an `innfo-mcp` entry
 - WHEN staged validation runs
 - THEN it fails and names the legacy entry

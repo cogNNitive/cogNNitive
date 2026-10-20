@@ -1,3 +1,5 @@
+> **Note (2026-10-20):** historical exploration. Its dual-emission, sliced approach was superseded by the direct-cutover plan in `design.md` revision 2.
+
 # Exploration: nn-prefix-rename (`innfo-*` becomes `nn-*`)
 
 Scope decided by the maintainer (2026-10-20): rename ONLY the distribution prefix of

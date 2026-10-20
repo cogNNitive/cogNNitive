@@ -39,8 +39,8 @@ The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the
 
 ### Requirement: Bundle Matches Its Sources
 
-`nn-console.bundle.js` MUST equal the output of `scripts/build-console-bundle.mjs` over its declared `SOURCES`, which MUST include `ui-kit.js` and MUST NOT include `render-model-viewer.js`. While the transition window is open (S2 until S6 lands) the build MUST also emit `innfo-console.bundle.js` with identical bytes; after S6 it MUST NOT. Root npm scripts `build:console` (build) and `check:console-bundle` (drift check) MUST exist. A node:test drift suite, wired into `verify.js` and `check-integrity.js`, MUST fail when a checked-in bundle (either name while both exist) differs from a fresh build. The build process MUST be documented.
-(Previously: the bundle was `innfo-console.bundle.js` and no second name was emitted.)
+`nn-console.bundle.js` MUST equal the output of `scripts/build-console-bundle.mjs` over its declared `SOURCES`, which MUST include `ui-kit.js` and MUST NOT include `render-model-viewer.js`. The build MUST emit only `nn-console.bundle.js`; no `innfo-console.bundle.js` exists after PR 2. Root npm scripts `build:console` (build) and `check:console-bundle` (drift check) MUST exist. A node:test drift suite, wired into `verify.js` and `check-integrity.js`, MUST fail when a checked-in bundle differs from a fresh build. The build process MUST be documented.
+(Previously: the bundle was `innfo-console.bundle.js`.)
 
 #### Scenario: Fresh bundle passes
 - GIVEN sources unchanged since the last build
@@ -62,19 +62,14 @@ The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the
 - WHEN listed
 - THEN `render-model-viewer.js` is absent and the bundle contains no `InnfoModelViewer`
 
-#### Scenario: Both bundle names identical during the window
-- GIVEN the window is open
-- WHEN the console bundle is built
-- THEN `nn-console.bundle.js` and `innfo-console.bundle.js` have identical bytes
-
-#### Scenario: Single bundle after the sunset
-- GIVEN the repository after S6
+#### Scenario: Single bundle after PR 2
+- GIVEN the repository after PR 2
 - WHEN the console assets directory is listed
 - THEN `nn-console.bundle.js` exists and `innfo-console.bundle.js` does not
 
 ### Requirement: Released Bundle Is Versioned
 
-A changed bundle MUST ship under a new `nn-console-v*` tag and a new CDN file; a published tagged bundle MUST NOT be overwritten. Legacy `innfo-console-v*` tags are accepted for a release only while the transition window is open, and existing legacy tags and their CDN files MUST remain as published. Version references MUST be produced by the release tooling (`sync-versions.mjs`), never hand-edited. Shell edits under `bluepriNNts/**` MUST be accompanied by a `blueprints-v*` tag (not `templates-v*`) and a repin in the same batch. Frozen vendored bundle copies (the three sample/export copies and two innfo-core test fixtures) MUST each be declared frozen or regenerated explicitly.
+A changed bundle MUST ship under a new `nn-console-v*` tag and a new CDN file; a published tagged bundle MUST NOT be overwritten. Only `nn-console-v*` tags release; existing `innfo-console-v*` tags and their CDN files MUST remain as published. Version references MUST be produced by the release tooling (`sync-versions.mjs`), never hand-edited. Shell edits under `bluepriNNts/**` MUST be accompanied by a `blueprints-v*` tag (not `templates-v*`) and a repin in the same batch. Frozen vendored bundle copies (the three sample/export copies and two innfo-core test fixtures) MUST each be declared frozen or regenerated explicitly.
 (Previously: tags were `innfo-console-v*`, and the requirement bound the change and change C (`2026-10-01-console-review-ux`) to ONE tag.)
 
 #### Scenario: Refs are derived
@@ -83,7 +78,7 @@ A changed bundle MUST ship under a new `nn-console-v*` tag and a new CDN file; a
 - THEN both pass with generated refs only
 
 #### Scenario: First nn-console release
-- GIVEN the console assets renamed in S2
+- GIVEN the console assets renamed in PR 2
 - WHEN the first release is cut
 - THEN the tag is `nn-console-v<version>` with a version strictly greater than the highest existing `innfo-console-v*`
 
@@ -101,10 +96,10 @@ A changed bundle MUST ship under a new `nn-console-v*` tag and a new CDN file; a
 
 ### Requirement: Console asset files use the nn prefix
 
-From slice S2 the console runtime sources, stylesheet and bundle MUST be named with the `nn-` prefix: `nn-runtime.js`, `nn-icons.js`, `nn-preact-init.js`, `nn-address.generated.js`, `nn-slug.generated.js`, `nn-ui.css` and `nn-console.bundle.js`, under `iNNfo/specs/bluepriNNts/console/`. The regenerated payload (`console-payload.generated.cjs`) and the generated shells MUST reference the new names. No console asset file name MAY begin with `innfo-` after S6.
+From PR 2 the console runtime sources, stylesheet and bundle MUST be named with the `nn-` prefix: `nn-runtime.js`, `nn-icons.js`, `nn-preact-init.js`, `nn-address.generated.js`, `nn-slug.generated.js`, `nn-ui.css` and `nn-console.bundle.js`, under `iNNfo/specs/bluepriNNts/console/`. The regenerated payload (`console-payload.generated.cjs`) and the generated shells MUST reference the new names. No console asset file name MAY begin with `innfo-` after PR 2.
 
 #### Scenario: Files renamed
-- GIVEN `iNNfo/specs/bluepriNNts/console/` after S2
+- GIVEN `iNNfo/specs/bluepriNNts/console/` after PR 2
 - WHEN it is listed
 - THEN the seven `nn-` files exist and the former `innfo-*` runtime sources and `innfo-ui.css` do not
 
@@ -115,11 +110,11 @@ From slice S2 the console runtime sources, stylesheet and bundle MUST be named w
 
 ### Requirement: Internal console identifiers are unchanged by the rename
 
-No slice MAY change the following in the runtime: the `window.InnfoConsole`, `window.InnfoUI`, `window.InnfoAddress` and `InnfoSlug` globals, the `--innfo-*` CSS custom properties, DOM ids and classes beginning `innfo-`, `data-innfo-*` attributes, the `innfo-config`, `innfo-schema` and `innfo-model` slot ids, and the `innfo-console:v3:` localStorage key. Drafts saved by reviewers MUST therefore survive the rename.
+No PR MAY change the following in the runtime: the `window.InnfoConsole`, `window.InnfoUI`, `window.InnfoAddress` and `InnfoSlug` globals, the `--innfo-*` CSS custom properties, DOM ids and classes beginning `innfo-`, `data-innfo-*` attributes, the `innfo-config`, `innfo-schema` and `innfo-model` slot ids, and the `innfo-console:v3:` localStorage key. Drafts saved by reviewers MUST therefore survive the rename.
 
 #### Scenario: Saved drafts survive
-- GIVEN a reviewer with a draft stored under the `innfo-console:v3:` key before S2
-- WHEN the console built after S6 boots for the same domaiNN
+- GIVEN a reviewer with a draft stored under the `innfo-console:v3:` key before PR 2
+- WHEN the console built after PR 2 boots for the same domaiNN
 - THEN the draft is loaded from the same key
 
 #### Scenario: Styling tokens unchanged
