@@ -8,9 +8,7 @@ age, and whether `main` has diverged. The data is sourced from one additional
 guarded fetch of the CI-published `docs/use/freshness.json`. It does not add a
 warning state, does not add a severity level or staleness threshold, and MUST
 NEVER change the script's exit code under any reachability condition.
-
 ## Requirements
-
 ### Requirement: One informational freshness line is printed when data is available and the pin matches
 
 `preflight-check.js` MUST make one additional guarded fetch (reusing the
@@ -131,3 +129,14 @@ For the freshness fetch specifically — because it is optional enrichment issue
   - **WHEN** that older script runs
 - **THEN** it SHALL ignore the unrecognized data and behave exactly as it
   did before this change, printing no freshness line and raising no error.
+
+### Requirement: Uninstalled Optional Catalog Blueprints Are Ignored in Preflight
+
+`skills/nn-preflight/scripts/preflight-check.js` MUST require only Core `bluepriNNts` for baseline installation readiness and MUST ignore optional vertical `bluepriNNts` governed by `catalog.json` when they are not installed locally. Installed optional catalog `bluepriNNts` MAY be reported for version/pin state without blocking uninstalled verticals.
+
+#### Scenario: Uninstalled optional catalog blueprint does not block or warn
+- **GIVEN** an environment with all 7 Core `bluepriNNts` installed and optional catalog `bluepriNNts` absent from `~/.agents/bluepriNNts/`
+- **WHEN** `preflight-check.js` executes
+- **THEN** no missing-blueprint error, warning, or blocker is emitted for uninstalled optional catalog `bluepriNNts`
+- **AND** `exitCode` remains `0`
+

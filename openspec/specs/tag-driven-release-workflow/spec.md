@@ -3,9 +3,7 @@
 ## Purpose
 
 A release is decided by exactly one act: pushing an annotated monorepo tag `<key>-v<semver>`. A dedicated workflow, separate from push-to-main CI, turns that tag into a web content commit, a mirror tag, a validated manifest commit and a smoke-tested result, in a fixed order, as a pure function of the tag. No gate waits on state that only a later stage creates.
-
 ## Requirements
-
 ### Requirement: Release tag shape and allowed keys
 
 A release MUST be identified by a tag named `<key>-v<semver>` where `<semver>` matches `\d+\.\d+\.\d+` and `<key>` is exactly one of `skills`, `blueprints`, `innfo-mcp`, `innfo-console`. The tag MUST be annotated, MUST be created in the monorepo `cogNNitive/cogNNitive`, and MUST point at a commit reachable from `origin/main`. Any other tag name MUST NOT start a release. The key set is closed: adding a key is a spec change.
@@ -105,15 +103,23 @@ Because the manifest must contain C's SHA, C and M MUST be separate commits. Man
 
 The stable manifest at `https://cognnitive.com/use/manifest.md` MUST be the last artifact written by a release. The live manifest MUST NOT reference a version whose web commit or mirror tag does not exist.
 
-The manifest MUST list only the latest version of each key (its published shape is unchanged). Entries of the released key MUST be built from the tagged commit's inventory and versions, with `ref` equal to the release tag and `commit` equal to C. Pins of units not covered by the released key MUST be retained from the previously published manifest and each retained `ref` MUST resolve to its recorded `commit` in the web clone. Nested units MUST be handled per unit: releasing `skills` MUST keep the nested `innfo-mcp` pin and version of the previous manifest, and releasing `innfo-mcp` MUST change only that nested unit.
+The manifest MUST list only the latest version of each key (its published shape is unchanged). Entries of the released key MUST be built from the tagged commit's Core inventory (`manifest/source.yaml`) and versions, with `ref` equal to the release tag and `commit` equal to C. For the `blueprints` key, `scripts/verify.js` and `scripts/release/assemble-manifest.js` MUST require only the 7 Core `bluepriNNts` (`domaiNN`, `changes`, `sidecar`, `sources`, `artifacts`, `procedures`, `blank`) in the assembled manifest while optional vertical `bluepriNNts` remain governed by `iNNfo/specs/bluepriNNts/catalog.json` and decoupled from core manifest assembly gates. Pins of units not covered by the released key MUST be retained from the previously published manifest and each retained `ref` MUST resolve to its recorded `commit` in the web clone. Nested units MUST be handled per unit: releasing `skills` MUST keep the nested `innfo-mcp` pin and version of the previous manifest, and releasing `innfo-mcp` MUST change only that nested unit.
 
 Every release MUST additionally write an immutable snapshot of the published manifest at `docs/use/manifests/<tag>.md` in `cogNNitive-web`. A snapshot MUST NOT be modified after it is written.
+
+(Previously: `assemble-manifest.js` and `verify.js` required every repository blueprint directory, including optional verticals, to be enumerated in `manifest/source.yaml` and the assembled core manifest.)
 
 #### Scenario: Releasing one key preserves other pins
 - GIVEN a published manifest pinning `skills` and `blueprints`
 - WHEN `skills-v2.10.0` is released
 - THEN the new manifest pins `skills` at `2.10.0`
 - AND the `blueprints` pin is unchanged and still resolves
+
+#### Scenario: Releasing blueprints key assembles only Core blueprints into manifest
+- GIVEN optional vertical blueprints exist in `iNNfo/specs/bluepriNNts/catalog.json` outside `manifest/source.yaml`
+- WHEN `blueprints-v0.21.0` is released
+- THEN `verify.js` and `assemble-manifest.js` succeed without requiring optional verticals in `manifest/source.yaml`
+- AND the assembled manifest contains the 7 Core `bluepriNNts` pinned at `blueprints-v0.21.0`
 
 #### Scenario: Nested pin is retained
 - GIVEN `nn-innfo` embeds `innfo-mcp` at `0.11.0`
@@ -288,3 +294,4 @@ The preview channel (`manifest-next.md`, refs fixed to `main`) MUST keep its cur
 - GIVEN a stable release run
 - WHEN the job completes
 - THEN the preview manifest is byte-identical to its prior state
+
