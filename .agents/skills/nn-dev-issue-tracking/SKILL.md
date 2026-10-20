@@ -95,7 +95,7 @@ Classify each into exactly one bucket:
 | Bucket | Meaning | Action |
 |--------|---------|--------|
 | **fixes-here** | The defect is in `skills/`, `iNNfo/`, or `scripts/` (ships to web via `manifest/source.yaml`) | Import into `cogNNitive` (§4) |
-| **web-only** | Path does not exist in this monorepo, or it belongs to a different product (e.g. the editor app `innfo-editor`), or is a stale/renamed skill (`nn-trannsform` → `nn-sources`) | Comment the classification; keep in web or re-file elsewhere |
+| **web-only** | Path does not exist in this monorepo, or it belongs to a different product (e.g. the retired iNNfo Modeler app), or is a stale/renamed skill (`nn-trannsform` → `nn-sources`) | Comment the classification; keep in web or re-file elsewhere |
 | **already-fixed-here** | Source already carries the fix (verify the code, do not trust the title) | Comment the evidence (file:line + test); close |
 
 Verify against **current code**, never against the issue title. A title can lie in both

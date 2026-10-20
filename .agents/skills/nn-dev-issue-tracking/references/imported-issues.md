@@ -36,6 +36,6 @@ Notes on the 2026-10-20 sweep:
   empty (**0 issues**), its Issues feature nominally still enabled as the public intake.
 - 10 of them (`web#1,3,4,6,7,12,13,14,16,18`) had been **closed as already-fixed** in the
   sweep before the transfer; they appear here because the whole tracker was consolidated.
-- `web#10` is a **web-only / wrong-product** issue (the iNNfo Modeler app, `innfo-editor`,
+- `web#10` is a **web-only / wrong-product** issue (the iNNfo Modeler app, now retired,
   is not in this monorepo) — imported as a pointer, re-file it against the app repo when one
   exists.
