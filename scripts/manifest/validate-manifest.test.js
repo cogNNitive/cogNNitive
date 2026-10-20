@@ -254,6 +254,7 @@ agent-bootstrap:
   }
 
   {
+    mod.resetRemoteCaches();
     const stub = stubFetchOnce(200, JSON.stringify({ sha: item.commit }));
     try {
       const violation = await mod.checkCommitExists(item);
@@ -378,6 +379,7 @@ agent-bootstrap:
     }
   }
   {
+    mod.resetRemoteCaches();
     const stub = stubFetchSequence([{ status: 200, body: JSON.stringify({ status: 'identical' }) }]);
     try {
       const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
@@ -387,6 +389,7 @@ agent-bootstrap:
     }
   }
   {
+    mod.resetRemoteCaches();
     const stub = stubFetchSequence([{ status: 200, body: JSON.stringify({ status: 'behind' }) }]);
     try {
       const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
@@ -452,6 +455,7 @@ agent-bootstrap:
 
   // Failing case: path not found at commit
   {
+    mod.resetRemoteCaches();
     const stub = stubFetchSequence([
       { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
       { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
@@ -563,6 +567,56 @@ agent-bootstrap:
     console.log('✔ --manifest <url> validation test passed');
   } finally {
     stub.restore();
+  }
+}
+
+// 18. Memoized remote verification: entries sharing (repo, ref, commit) hit each
+//     GitHub endpoint once, and resetRemoteCaches() re-enables a fresh lookup.
+{
+  const mod = freshValidatorModule();
+  const shared = {
+    repo: 'cogNNitive/cogNNitive-web',
+    ref: 'skills-v1.0.0',
+    commit: 'd60a7109315820085ab127b70412992db6986c88',
+  };
+  const skillA = { name: 'skill-a', ...shared, path: 'skills/skill-a', version: '1.0.0' };
+  const skillB = { name: 'skill-b', ...shared, path: 'skills/skill-b', version: '1.0.0' };
+
+  const stub = stubFetchSequence([
+    { status: 200, body: JSON.stringify({ sha: shared.commit }) },                              // commit (shared)
+    { status: 200, body: JSON.stringify({ object: { sha: shared.commit, type: 'commit' } }) },   // ref (shared)
+    { status: 200, body: JSON.stringify({ status: 'identical' }) },                             // provenance (shared)
+    { status: 200, body: JSON.stringify([{ name: 'SKILL.md' }]) },                              // contents A
+    { status: 200, body: '---\nversion: "1.0.0"\n---\n# SKILL A' },                             // raw A
+    { status: 200, body: JSON.stringify([{ name: 'SKILL.md' }]) },                              // contents B
+    { status: 200, body: '---\nversion: "1.0.0"\n---\n# SKILL B' },                             // raw B
+  ]);
+  try {
+    const { violations } = await mod.validateManifest({ skills: [skillA, skillB] }, mod.CHANNELS.stable);
+    assert.deepStrictEqual(violations, [], `Shared-tuple entries should pass. Violations: ${JSON.stringify(violations)}`);
+
+    const urls = stub.urls();
+    const countMatching = (re) => urls.filter((u) => re.test(u)).length;
+    assert.strictEqual(countMatching(/\/repos\/[^/]+\/[^/]+\/commits\//), 1, 'commit lookup must be shared once');
+    assert.strictEqual(countMatching(/git\/ref\/tags\//), 1, 'ref lookup must be shared once');
+    assert.strictEqual(countMatching(/\/compare\/main\.\.\./), 1, 'provenance lookup must be shared once');
+  } finally {
+    stub.restore();
+  }
+
+  // resetRemoteCaches() drops the memo so the next lookup hits the network again.
+  mod.resetRemoteCaches();
+  const stub2 = stubFetchSequence([{ status: 200, body: JSON.stringify({ sha: shared.commit }) }]);
+  try {
+    const item = { name: 'skill-a', repo: shared.repo, commit: shared.commit };
+    await mod.checkCommitExists(item);
+    await mod.checkCommitExists(item); // memoized — no new request
+    mod.resetRemoteCaches();
+    await mod.checkCommitExists(item); // fresh lookup after reset
+    assert.strictEqual(stub2.urls().length, 2, 'repeat is memoized; reset re-enables one fresh lookup');
+    console.log('✔ Memoized remote verification + resetRemoteCaches test passed');
+  } finally {
+    stub2.restore();
   }
 }
 

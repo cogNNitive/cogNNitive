@@ -22,7 +22,7 @@ import {
   UnresolvedBlueprintError,
   procedureIdOf,
 } from '@cognnitive/innfo-core'
-import { mkdir, copyFile, readdir } from 'node:fs/promises'
+import { mkdir, copyFile, readdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import type {
   SpecDocument,
@@ -36,10 +36,13 @@ import {
   resolveBlueprintPackage,
   hydrateBlueprintPackageAtomically,
   fetchSpecContent,
+  fetchBlueprintPackageFromRemote,
   isLocalPath,
   toLocalFilePath,
   parseSpecName,
   findSpecInPackageDir,
+  resolveAuthToken,
+  BlueprintAuthError,
 } from './resolver-node.js'
 import type { FreshnessResult, ResolvedCache } from './resolver-node.js'
 
@@ -368,17 +371,99 @@ export async function getBlueprintFromModel(
   return getBlueprintFromUrl(rootDir, parent.url, parent.name, cacheOpts)
 }
 
+export interface BlueprintCatalogVersion {
+  blueprint_version: string
+  spec_version: string | null
+  title: string | null
+  url: string
+}
+
+/** One entry of `iNNfo/specs/bluepriNNts/catalog.json` (Level 2 catalog). */
+export interface BlueprintCatalogEntry {
+  name: string
+  adopted: string
+  tier: 'core' | 'free' | 'paid'
+  access: 'public' | 'authenticated'
+  when_to_use: string | null
+  release_tag: string
+  embedded_skills?: string[]
+  versions?: BlueprintCatalogVersion[]
+}
+
+export interface BlueprintCatalog {
+  generator?: string
+  blueprints: Record<string, BlueprintCatalogEntry>
+  frozen?: Record<string, BlueprintCatalogEntry>
+  warnings?: string[]
+}
+
+/**
+ * Load the Level-2 blueprint catalog. Precedence: an explicit parsed catalog,
+ * then an explicit path, then the conventional repository paths. Returns null
+ * when no catalog is reachable — discovery then degrades to local-only.
+ */
+async function loadCatalog(
+  rootDir: string,
+  opts?: { catalog?: BlueprintCatalog; catalogPath?: string },
+): Promise<BlueprintCatalog | null> {
+  if (opts?.catalog) return opts.catalog
+  const envPath = process.env.INNFO_BLUEPRINT_CATALOG
+  const candidates = opts?.catalogPath
+    ? [opts.catalogPath]
+    : [
+        ...(envPath ? [envPath] : []),
+        join(rootDir, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json'),
+        join(rootDir, 'specs', 'bluepriNNts', 'catalog.json'),
+      ]
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(await readFile(candidate, 'utf-8')) as BlueprintCatalog
+      if (parsed && parsed.blueprints) return parsed
+    } catch {
+      // unreadable / absent catalog — try the next candidate
+    }
+  }
+  return null
+}
+
+/** Case-insensitive lookup of a catalog entry by blueprint name. */
+function catalogEntryFor(
+  catalog: BlueprintCatalog | null,
+  name: string,
+): BlueprintCatalogEntry | undefined {
+  if (!catalog) return undefined
+  const wanted = name.toLowerCase()
+  for (const [key, entry] of Object.entries(catalog.blueprints ?? {})) {
+    if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
+  }
+  for (const [key, entry] of Object.entries(catalog.frozen ?? {})) {
+    if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
+  }
+  return undefined
+}
+
 export interface DiscoveredBlueprint {
   name: string
   version: string
-  source: 'workspace' | 'global' | string
-  filePath: string
+  source: 'workspace' | 'global' | 'catalog' | string
+  /** True when the blueprint is present on disk (or embedded as a Core blueprint). */
+  installed: boolean
+  tier: 'core' | 'free' | 'paid'
+  access: 'public' | 'authenticated'
+  when_to_use?: string | null
+  embedded_skills?: string[]
+  filePath?: string
   skillName?: string
 }
 
 export async function listBlueprints(
   rootDir: string,
-  opts?: { globalDir?: string; skillsDir?: string },
+  opts?: {
+    globalDir?: string
+    skillsDir?: string
+    catalog?: BlueprintCatalog
+    catalogPath?: string
+  },
 ): Promise<DiscoveredBlueprint[]> {
   const globalDir = opts?.globalDir ?? join(homedir(), '.agents', 'bluepriNNts')
   const skillsDir = opts?.skillsDir ?? join(homedir(), '.agents', 'skills')
@@ -417,6 +502,9 @@ export async function listBlueprints(
             name: stem,
             version,
             source: source === 'skill' ? `skill:${skillName}` : source,
+            installed: true,
+            tier: 'free',
+            access: 'public',
             filePath,
             ...(skillName ? { skillName } : {}),
           })
@@ -452,6 +540,9 @@ export async function listBlueprints(
                 name: file.name,
                 version,
                 source: source === 'skill' ? `skill:${skillName}` : source,
+                installed: true,
+                tier: 'free',
+                access: 'public',
                 filePath: specFile,
                 ...(skillName ? { skillName } : {}),
               })
@@ -486,6 +577,36 @@ export async function listBlueprints(
     }
   }
 
+  // Merge catalog state: enrich every discovered local blueprint with its
+  // catalog metadata, then add every catalog blueprint that is not on disk as
+  // an installable (installed:false) entry. Core blueprints are embedded in the
+  // registry, so they report installed:true even when absent from disk.
+  const catalog = await loadCatalog(rootDir, opts)
+  if (catalog) {
+    const byName = new Map(discovered.map((d) => [d.name.toLowerCase(), d]))
+    for (const entry of Object.values(catalog.blueprints ?? {})) {
+      const existing = byName.get(entry.name.toLowerCase())
+      if (existing) {
+        existing.tier = entry.tier
+        existing.access = entry.access
+        existing.when_to_use = entry.when_to_use ?? null
+        if (entry.embedded_skills) existing.embedded_skills = entry.embedded_skills
+      } else {
+        discovered.push({
+          name: entry.name,
+          version: entry.adopted,
+          source: 'catalog',
+          installed: entry.tier === 'core',
+          tier: entry.tier,
+          access: entry.access,
+          when_to_use: entry.when_to_use ?? null,
+          ...(entry.embedded_skills ? { embedded_skills: entry.embedded_skills } : {}),
+        })
+        seenNames.add(entry.name)
+      }
+    }
+  }
+
   return discovered
 }
 export interface HydrateBlueprintResult {
@@ -494,12 +615,55 @@ export interface HydrateBlueprintResult {
   targetPath: string
   source: string
   message?: string
+  /** Embedded skills projected into the skills directory during hydration. */
+  projectedSkills?: Array<{ name: string; path: string }>
+}
+
+/**
+ * Project a fetched package's embedded `skills/` payload into the canonical
+ * skills directory. Payload keys are relative to `skills/`
+ * (e.g. `nn-domain-helper/SKILL.md`); each top-level folder becomes one skill.
+ */
+async function projectEmbeddedSkills(
+  skillsDir: string,
+  skills: Record<string, string> | undefined,
+): Promise<Array<{ name: string; path: string }>> {
+  if (!skills) return []
+  const bySkill = new Map<string, Record<string, string>>()
+  for (const [rel, content] of Object.entries(skills)) {
+    const slash = rel.indexOf('/')
+    const dirName = slash === -1 ? rel : rel.slice(0, slash)
+    const rest = slash === -1 ? rel : rel.slice(slash + 1)
+    if (!bySkill.has(dirName)) bySkill.set(dirName, {})
+    bySkill.get(dirName)![rest] = content
+  }
+  const projected: Array<{ name: string; path: string }> = []
+  for (const [name, files] of bySkill) {
+    const skillPath = join(skillsDir, name)
+    await mkdir(skillPath, { recursive: true })
+    for (const [rel, content] of Object.entries(files)) {
+      const dest = join(skillPath, rel)
+      await mkdir(join(dest, '..'), { recursive: true })
+      await writeFile(dest, content, 'utf-8')
+    }
+    projected.push({ name, path: skillPath })
+  }
+  return projected
 }
 
 export async function hydrateBlueprint(
   rootDir: string,
   templateName: string,
-  opts?: { targetDir?: string; globalDir?: string; skillsDir?: string },
+  opts?: {
+    targetDir?: string
+    globalDir?: string
+    skillsDir?: string
+    catalog?: BlueprintCatalog
+    catalogPath?: string
+    token?: string
+    repo?: string
+    ref?: string
+  },
 ): Promise<HydrateBlueprintResult> {
   const parsed = parseSpecName(templateName)
   if (parsed.base === 'domainn' && !parsed.version) {
@@ -591,6 +755,54 @@ export async function hydrateBlueprint(
   })
 
   if (!location) {
+    // On-demand hydration: a blueprint that is neither workspace-resident nor
+    // installed globally can still be fetched from its catalog release pin,
+    // optionally authenticated, then cached under ~/.agents/bluepriNNts/ with
+    // its embedded skills projected into the skills directory.
+    const catalog = await loadCatalog(rootDir, opts)
+    const entry = catalogEntryFor(catalog, parsed.base)
+    if (entry && entry.release_tag) {
+      const version = parsed.version ?? entry.adopted
+      const token = opts?.token ?? resolveAuthToken() ?? undefined
+      try {
+        const payload = await fetchBlueprintPackageFromRemote(entry.name, version, {
+          repo: opts?.repo,
+          ref: opts?.ref ?? entry.release_tag,
+          token,
+          access: entry.access,
+        })
+        const pkgDir = await hydrateBlueprintPackageAtomically(
+          rootDir,
+          entry.name,
+          version,
+          payload,
+          { baseDir: globalBlueprintsDir },
+        )
+        const projected = await projectEmbeddedSkills(skillsDir, payload.skills)
+        return {
+          success: true,
+          templateName,
+          targetPath: pkgDir,
+          source: 'catalog',
+          projectedSkills: projected,
+          message:
+            `Hydrated blueprint ${entry.name} (${version}) on demand from ` +
+            `${entry.release_tag} to ${pkgDir}` +
+            (projected.length ? ` and projected ${projected.length} embedded skill(s)` : ''),
+        }
+      } catch (err) {
+        // A missing/invalid token is actionable on its own; every other failure
+        // gets the offline guidance the spec requires.
+        if (err instanceof BlueprintAuthError) throw err
+        const detail = err instanceof Error ? err.message : String(err)
+        throw new Error(
+          `Failed to hydrate "${entry.name}" from catalog: ${detail}. ` +
+            `Connect to the network, or pre-install with ` +
+            `\`skills-manager.js install --blueprint ${entry.name}\`.`,
+        )
+      }
+    }
+
     const checkedPaths = await getBlueprintSearchPaths(templateName, {
       workspaceDir: rootDir,
       globalBlueprintsDir,
@@ -739,6 +951,7 @@ export async function discoverTransitiveAssets(
   if (queue.length === 0) {
     const templates = await listBlueprints(rootDir)
     for (const tmpl of templates) {
+      if (!tmpl.filePath) continue // catalog-only entries have no on-disk spec
       const content = await readFile(tmpl.filePath, 'utf-8').catch(() => null)
       if (content) {
         const fm = parseFrontmatter(content)

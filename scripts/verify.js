@@ -67,6 +67,25 @@ function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null)
   const sourceText = fs.readFileSync(sourceYamlPath, 'utf8');
   const declaredBlueprints = extractDeclaredBlueprints(sourceText);
 
+  // Optional vertical bluepriNNts are governed by catalog.json rather than
+  // source.yaml. When present, its `blueprints`/`frozen` partitions also
+  // satisfy the inventory guard; when absent, behavior is unchanged (the
+  // source.yaml partitions are the sole authority).
+  const catalogPath = path.join(blueprintsDir, 'catalog.json');
+  if (fs.existsSync(catalogPath)) {
+    try {
+      const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+      for (const partition of ['blueprints', 'frozen']) {
+        if (catalog[partition] && typeof catalog[partition] === 'object') {
+          for (const name of Object.keys(catalog[partition])) declaredBlueprints.add(name);
+        }
+      }
+    } catch {
+      // A malformed catalog must not mask an inventory gap: fall back to
+      // source.yaml declarations only.
+    }
+  }
+
   let diskFolders = [];
   if (fs.existsSync(blueprintsDir)) {
     diskFolders = fs.readdirSync(blueprintsDir, { withFileTypes: true })

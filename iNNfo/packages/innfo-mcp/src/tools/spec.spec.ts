@@ -662,3 +662,156 @@ describe('blueprint name derivation for spec_NN.md packages', () => {
     }
   })
 })
+
+describe('catalog-driven discovery and on-demand hydration', () => {
+  const catRoot = join(import.meta.dirname!, '..', '..', 'temp-test-spec-catalog')
+  const globalDir = join(catRoot, 'global_templates')
+  const skillsDir = join(catRoot, 'skills')
+  const catalog = {
+    blueprints: {
+      domaiNN: {
+        name: 'domaiNN',
+        adopted: 'V_0-4-0',
+        tier: 'core' as const,
+        access: 'public' as const,
+        when_to_use: 'Scaffold a domain workspace',
+        release_tag: 'blueprints-v0.39.0',
+        embedded_skills: [],
+      },
+      organization: {
+        name: 'organization',
+        adopted: 'V_0-4-0',
+        tier: 'free' as const,
+        access: 'public' as const,
+        when_to_use: 'Model an organization',
+        release_tag: 'blueprints-v0.39.0',
+        embedded_skills: ['nn-org'],
+      },
+    },
+  }
+
+  beforeEach(async () => {
+    await rm(catRoot, { recursive: true, force: true })
+    await mkdir(join(catRoot, 'specs', 'bluepriNNts'), { recursive: true })
+    await mkdir(globalDir, { recursive: true })
+    await mkdir(skillsDir, { recursive: true })
+    vi.restoreAllMocks()
+  })
+
+  afterEach(async () => {
+    await rm(catRoot, { recursive: true, force: true })
+    delete process.env.COGNNITIVE_TOKEN
+    delete process.env.COGNNITIVE_CREDENTIALS
+  })
+
+  it('listBlueprints merges catalog availability, tier, access, when_to_use, and embedded_skills', async () => {
+    const discovered = await listBlueprints(catRoot, { globalDir, skillsDir, catalog })
+
+    const core = discovered.find((b) => b.name === 'domaiNN')
+    expect(core).toBeDefined()
+    expect(core?.tier).toBe('core')
+    expect(core?.installed).toBe(true) // core blueprints are embedded
+    expect(core?.when_to_use).toBe('Scaffold a domain workspace')
+
+    const vertical = discovered.find((b) => b.name === 'organization')
+    expect(vertical).toBeDefined()
+    expect(vertical?.source).toBe('catalog')
+    expect(vertical?.installed).toBe(false)
+    expect(vertical?.tier).toBe('free')
+    expect(vertical?.embedded_skills).toEqual(['nn-org'])
+  })
+
+  it('listBlueprints enriches a locally present blueprint with catalog metadata', async () => {
+    await mkdir(join(catRoot, 'specs', 'bluepriNNts', 'domaiNN'), { recursive: true })
+    await writeFile(
+      join(catRoot, 'specs', 'bluepriNNts', 'domaiNN', 'spec_NN.md'),
+      '---\nblueprint_version: "V_0-4-0"\nlevel: 2\n---\n',
+      'utf-8',
+    )
+
+    const discovered = await listBlueprints(catRoot, { globalDir, skillsDir, catalog })
+    const core = discovered.find((b) => b.name === 'domaiNN')
+    expect(core?.installed).toBe(true)
+    expect(core?.source).toBe('workspace')
+    expect(core?.tier).toBe('core')
+  })
+
+  function mockCatalogFetch(): void {
+    vi.spyOn(global, 'fetch').mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.startsWith('https://api.github.com/')) {
+        if (url.includes('skills/nn-org')) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(JSON.stringify([{ name: 'SKILL.md', type: 'file', path: 'SKILL.md' }])),
+          } as Response)
+        }
+        if (url.includes('/skills?')) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(JSON.stringify([{ name: 'nn-org', type: 'dir', path: 'nn-org' }])),
+          } as Response)
+        }
+        // procedures/samples/assets — absent
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('[]') } as Response)
+      }
+      if (url.endsWith('/organization/spec_NN.md')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('---\nblueprint_version: "V_0-4-0"\nlevel: 2\ntitle: "Organization"\n---\n# Org'),
+        } as Response)
+      }
+      if (url.endsWith('/organization/skills/nn-org/SKILL.md')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('---\nname: nn-org\nversion: "1.0.0"\n---\n# Skill'),
+        } as Response)
+      }
+      return Promise.resolve({ ok: false, status: 404, statusText: 'Not Found' } as Response)
+    })
+  }
+
+  it('hydrateBlueprint fetches an uncached catalog blueprint on demand and projects embedded skills', async () => {
+    mockCatalogFetch()
+
+    const res = await hydrateBlueprint(catRoot, 'organization', {
+      globalDir,
+      skillsDir,
+      catalog,
+    })
+
+    expect(res.success).toBe(true)
+    expect(res.source).toBe('catalog')
+    expect(res.targetPath).toBe(join(globalDir, 'organization', 'V_0-4-0'))
+    expect(res.projectedSkills?.some((s) => s.name === 'nn-org')).toBe(true)
+
+    const { stat: statFs } = await import('node:fs/promises')
+    expect((await statFs(join(globalDir, 'organization', 'V_0-4-0', 'spec_NN.md'))).isFile()).toBe(
+      true,
+    )
+    expect((await statFs(join(skillsDir, 'nn-org', 'SKILL.md'))).isFile()).toBe(true)
+  })
+
+  it('hydrateBlueprint returns an actionable offline diagnostic when the catalog fetch fails', async () => {
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'))
+
+    await expect(
+      hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog }),
+    ).rejects.toThrow(/install --blueprint organization/)
+  })
+
+  it('hydrateBlueprint surfaces an auth error for an authenticated catalog blueprint without a token', async () => {
+    delete process.env.COGNNITIVE_TOKEN
+    process.env.COGNNITIVE_CREDENTIALS = join(catRoot, 'no-creds.json')
+    const authedCatalog = {
+      blueprints: {
+        ...catalog.blueprints,
+        organization: { ...catalog.blueprints.organization, access: 'authenticated' as const },
+      },
+    }
+
+    await expect(
+      hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog: authedCatalog }),
+    ).rejects.toThrow(/requires authentication/)
+  })
+})

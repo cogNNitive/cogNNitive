@@ -16,35 +16,44 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const GENERATOR = path.join(SCRIPT_DIR, 'blueprint-catalog.mjs');
+const FIXTURE_RELEASE_TAG = 'blueprints-v9.9.9';
 
 function runGenerator(args) {
-  return spawnSync(process.execPath, [GENERATOR, ...args], { encoding: 'utf-8' });
+  // Pin the release tag so the fixture is deterministic regardless of the host
+  // repo's git tags (or absence of git).
+  return spawnSync(process.execPath, [GENERATOR, '--release-tag', FIXTURE_RELEASE_TAG, ...args], { encoding: 'utf-8' });
 }
 
 function fixtureTree() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'blueprint-catalog-test-'));
   const t = path.join(root, 'templates');
-  fs.mkdirSync(path.join(t, 'business'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'business', 'skills', 'nn-business'), { recursive: true });
   fs.mkdirSync(path.join(t, 'business', 'samples'), { recursive: true });
   fs.mkdirSync(path.join(t, 'documentation'), { recursive: true });
   fs.mkdirSync(path.join(t, 'draft'), { recursive: true });
   fs.mkdirSync(path.join(t, 'cogNNitive'), { recursive: true });
-  fs.mkdirSync(path.join(t, 'base'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'blank', 'skills', 'nn-blank'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'blank', 'skills', 'ignored-no-skill-md'), { recursive: true });
 
   const spec = (url, level, tv, field = 'blueprint_version') =>
     `---\nspec_version: "V_0-2-1"\nlevel: ${level}\nspec_url: "${url}"\n` +
     (tv == null ? '' : `${field}: "${tv}"\n`) +
-    `title: "T"\n---\n`;
+    `title: "T"\ndescription: "Use when testing."\n---\n`;
 
   // Canonical unversioned filenames; version is the authoritative frontmatter
   // `blueprint_version`, not the path.
   fs.writeFileSync(path.join(t, 'business', 'spec_NN.md'), spec('https://x/business/spec_NN.md', 2, 'V_0-2-1'));
+  // an embedded skill child (must be collected); a skills child without SKILL.md is ignored
+  fs.writeFileSync(path.join(t, 'business', 'skills', 'nn-business', 'SKILL.md'), '# skill');
   // a leftover historical file in the same dir still aggregates by frontmatter version
   fs.writeFileSync(path.join(t, 'business', 'business_V_0-1-0_NN.md'), spec('https://x/business/business_V_0-1-0_NN.md', 2, 'V_0-1-0'));
   // sample model (level 3) must be excluded
   fs.writeFileSync(path.join(t, 'business', 'samples', 'Ghostbusters_V_0-2-0_business_NN.md'), spec('https://x/Ghostbusters_V_0-2-0_business_NN.md', 3, 'V_0-2-0'));
   // flat canonical subdir template
   fs.writeFileSync(path.join(t, 'documentation', 'spec_NN.md'), spec('https://x/documentation/spec_NN.md', 2, 'V_0-2-0'));
+  // a Core blueprint (tier: core) carrying one embedded skill
+  fs.writeFileSync(path.join(t, 'blank', 'spec_NN.md'), spec('https://x/blank/spec_NN.md', 2, 'V_0-4-0'));
+  fs.writeFileSync(path.join(t, 'blank', 'skills', 'nn-blank', 'SKILL.md'), '# skill');
   // root workspace spec — canonical bare filename, discovered as `workspace`
   fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0', 'template_version'));
   // level-2 template with no frontmatter blueprint_version — skipped with a warning
@@ -104,6 +113,44 @@ async function runTests() {
       assert.ok(!('workspace' in catalog.blueprints), 'workspace dropped from blueprints');
       assert.strictEqual(catalog.frozen.cogNNitive.adopted, 'V_0-2-0', 'frozen cogNNitive adopted version preserved');
       console.log('✔ frozen partition emits cogNNitive and drops it from blueprints');
+    }
+
+    // Test 1b: enriched catalog metadata — tier/access/when_to_use/release_tag/embedded_skills
+    {
+      const catalog = JSON.parse(fs.readFileSync(out, 'utf-8'));
+      const bp = catalog.blueprints;
+
+      for (const entry of Object.values(bp)) {
+        assert.ok('tier' in entry, `${entry.name} carries tier`);
+        assert.ok('access' in entry, `${entry.name} carries access`);
+        assert.ok('when_to_use' in entry, `${entry.name} carries when_to_use`);
+        assert.ok('release_tag' in entry, `${entry.name} carries release_tag`);
+        assert.ok(Array.isArray(entry.embedded_skills), `${entry.name} carries embedded_skills`);
+        assert.strictEqual(entry.access, 'public', `${entry.name} access is public`);
+        assert.strictEqual(entry.release_tag, FIXTURE_RELEASE_TAG, `${entry.name} release_tag is the override`);
+      }
+
+      assert.strictEqual(bp.business.tier, 'free', 'business is a free vertical');
+      assert.strictEqual(bp.documentation.tier, 'free', 'documentation is a free vertical');
+      assert.strictEqual(bp.blank.tier, 'core', 'blank is a Core blueprint');
+
+      assert.strictEqual(
+        bp.business.when_to_use,
+        'Use when testing.',
+        'when_to_use falls back to the frontmatter description when when_to_use is absent',
+      );
+
+      assert.deepStrictEqual(
+        bp.blank.embedded_skills,
+        ['nn-blank'],
+        'embedded_skills lists only child dirs carrying a SKILL.md',
+      );
+      assert.deepStrictEqual(bp.business.embedded_skills, ['nn-business'], 'business embedded skill discovered');
+      assert.deepStrictEqual(bp.documentation.embedded_skills, [], 'no skills dir yields an empty array');
+
+      // Frozen partition keeps its original shape (no tier/access metadata).
+      assert.ok(!('tier' in catalog.frozen.cogNNitive), 'frozen entries keep their unchanged shape');
+      console.log('✔ enriched metadata (tier/access/when_to_use/release_tag/embedded_skills) is emitted');
     }
 
     // Test 2: --check passes on a fresh catalog

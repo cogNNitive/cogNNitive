@@ -18,6 +18,7 @@ const { parseFocusedYaml, parseFrontmatter, parseManifest } = require('../lib/ya
 const { apiRequest, fetchString, authHeaders, rateLimited, resolveRef } = require('../lib/github-client.js');
 const {
   COMMIT_RE, TAG_SHAPE_RE, CHANNELS, tagShapeViolation, refKindViolation,
+  resetRemoteCaches,
   checkReleaseProvenance, checkRefResolvesInDeclaredRepo, checkReleaseAndRefPolicy,
   structuralViolations, checkCommitExists, checkPathAtCommit, checkVersionParity,
   checkMcpUrlPinned, validateMcp, validateConsoleAsset, validateSkill,
@@ -162,6 +163,7 @@ module.exports = {
   apiRequest, fetchString, authHeaders, rateLimited, resolveRef,
   parseFocusedYaml, parseFrontmatter, parseManifest,
   COMMIT_RE, TAG_SHAPE_RE, CHANNELS, tagShapeViolation, refKindViolation,
+  resetRemoteCaches,
   checkReleaseProvenance, checkRefResolvesInDeclaredRepo, checkReleaseAndRefPolicy,
   structuralViolations, checkCommitExists, checkPathAtCommit, checkVersionParity,
   checkMcpUrlPinned, validateMcp, validateConsoleAsset, validateSkill,

@@ -18,17 +18,20 @@
  *     single entry; historical versions live in immutable `templates-v*` tags.
  *
  * Usage:
- *   node scripts/blueprint-catalog.mjs [--check] [--root <dir>] [--out <file>]
+ *   node scripts/blueprint-catalog.mjs [--check] [--root <dir>] [--out <file>] [--release-tag <tag>]
  *
- *   --check   compare the rendered catalog to the committed file; exit 1 on drift.
- *   --root    override the bluepriNNts tree (default: iNNfo/specs/bluepriNNts).
- *   --out     override the output file (default: iNNfo/specs/bluepriNNts/catalog.json).
+ *   --check        compare the rendered catalog to the committed file; exit 1 on drift.
+ *   --root         override the bluepriNNts tree (default: iNNfo/specs/bluepriNNts).
+ *   --out          override the output file (default: iNNfo/specs/bluepriNNts/catalog.json).
+ *   --release-tag  override the `release_tag` stamped on every entry (default: newest
+ *                  `blueprints-v*` git tag of the repo, or `blueprints-v0.0.0`).
  *
  * Zero external dependencies. LF line endings, stable key ordering.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -45,6 +48,62 @@ const SKIP_DIRS = new Set(['samples', 'node_modules', '.git', 'dist', '.spec-cac
  * which reads only `catalog.blueprints` — gives them no upgrade notices).
  */
 const FROZEN_NAMES = ['cogNNitive', 'workspace'];
+
+/**
+ * The 7 Core `bluepriNNts` that remain bundled in `manifest/source.yaml` and the
+ * offline canonical registry. Every other catalog entry is an optional vertical
+ * hydrated on demand (`tier: 'free'`).
+ */
+const CORE_NAMES = new Set(['domaiNN', 'changes', 'sidecar', 'sources', 'artifacts', 'procedures', 'blank']);
+
+/** Fallback used when git tag resolution fails (offline checkout, no repo). */
+const FALLBACK_RELEASE_TAG = 'blueprints-v0.0.0';
+
+/**
+ * Newest `blueprints-vX.Y.Z` git tag of the repository, or `FALLBACK_RELEASE_TAG`
+ * when git is unavailable or no such tag exists. Injected into every blueprint
+ * entry as `release_tag` so on-demand hydration can pin a fetch.
+ */
+function resolveReleaseTag(override) {
+  if (override) return override;
+  try {
+    const out = execFileSync('git', ['tag', '--list', 'blueprints-v*'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const tags = out
+      .split(/\r?\n/)
+      .map((t) => t.trim())
+      .filter((t) => /^blueprints-v\d+\.\d+\.\d+$/.test(t));
+    if (tags.length === 0) return FALLBACK_RELEASE_TAG;
+    tags.sort((a, b) => compareVersions(a, b));
+    return tags[tags.length - 1];
+  } catch {
+    return FALLBACK_RELEASE_TAG;
+  }
+}
+
+/**
+ * Sorted child directory names of `<rootDir>/<name>/skills/` that contain a
+ * `SKILL.md`. Empty array when the package carries no embedded skills.
+ */
+function embeddedSkills(rootDir, name) {
+  const dir = path.join(rootDir, name, 'skills');
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const entry of entries) {
+    if (entry.isDirectory() && fs.existsSync(path.join(dir, entry.name, 'SKILL.md'))) {
+      out.push(entry.name);
+    }
+  }
+  return out.sort();
+}
 
 function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -109,7 +168,7 @@ function walk(rootDir, rel, files) {
   }
 }
 
-function generate(rootDir) {
+function generate(rootDir, releaseTag) {
   const files = [];
   walk(rootDir, '', files);
 
@@ -146,6 +205,9 @@ function generate(rootDir) {
       spec_version: fm.spec_version || null,
       title: fm.title || null,
       url,
+      // Transient: `when_to_use` falls back to `description`. Kept out of the
+      // rendered `versions` shape (stripped below) and read from the adopted one.
+      _when_to_use: fm.when_to_use || fm.description || null,
     });
   }
 
@@ -153,15 +215,34 @@ function generate(rootDir) {
   const frozen = {};
   for (const [name, versions] of byName.entries()) {
     versions.sort((a, b) => compareVersions(a.blueprint_version, b.blueprint_version));
+    const adopted = versions[versions.length - 1];
+    const whenToUse = adopted._when_to_use;
+    const versionsOut = versions.map(({ blueprint_version, spec_version, title, url }) => ({
+      blueprint_version,
+      spec_version,
+      title,
+      url,
+    }));
     const entry = {
       name,
-      adopted: versions[versions.length - 1].blueprint_version,
-      versions,
+      adopted: adopted.blueprint_version,
+      versions: versionsOut,
     };
     if (FROZEN_NAMES.includes(name)) {
+      // Frozen legacy specs are retired from active distribution: their
+      // partition shape is intentionally unchanged (no tier/access metadata).
       frozen[name] = entry;
     } else {
-      blueprints[name] = entry;
+      blueprints[name] = {
+        name,
+        adopted: entry.adopted,
+        tier: CORE_NAMES.has(name) ? 'core' : 'free',
+        access: 'public',
+        when_to_use: whenToUse,
+        release_tag: releaseTag,
+        embedded_skills: embeddedSkills(rootDir, name),
+        versions: versionsOut,
+      };
     }
   }
 
@@ -182,15 +263,17 @@ function main() {
   const check = argv.includes('--check');
   const rootIdx = argv.indexOf('--root');
   const outIdx = argv.indexOf('--out');
+  const tagIdx = argv.indexOf('--release-tag');
   const rootDir = rootIdx !== -1 ? argv[rootIdx + 1] : DEFAULT_ROOT;
   const outFile = outIdx !== -1 ? argv[outIdx + 1] : DEFAULT_OUT;
+  const releaseTag = resolveReleaseTag(tagIdx !== -1 ? argv[tagIdx + 1] : undefined);
 
   if (!fs.existsSync(rootDir)) {
     console.error(`blueprint-catalog: bluepriNNts tree not found: ${rootDir}`);
     process.exit(2);
   }
 
-  const catalog = generate(rootDir);
+  const catalog = generate(rootDir, releaseTag);
   const rendered = render(catalog);
 
   if (check) {

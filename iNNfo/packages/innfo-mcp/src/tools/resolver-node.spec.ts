@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import {
   resolveParentChainNode,
   saveSpecOnce,
   fetchBlueprintPackageFromRemote,
   defaultCacheDir,
+  resolveAuthToken,
+  redactToken,
+  BlueprintAuthError,
 } from './resolver-node'
 import { rmWithRetry } from '../../test/helpers/fs-retry'
 
@@ -1093,5 +1096,80 @@ describe('Temp-dir cache default (validator-robustness 4.3)', () => {
       content,
     )
     expect(existsSync(join(cacheIsolatedDir, 'inplace_V_0-1-0_NN.md'))).toBe(false)
+  })
+})
+
+describe('bearer auth, token resolution, and redaction', () => {
+  const origToken = process.env.COGNNITIVE_TOKEN
+  const origCred = process.env.COGNNITIVE_CREDENTIALS
+
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    if (origToken !== undefined) process.env.COGNNITIVE_TOKEN = origToken
+    else delete process.env.COGNNITIVE_TOKEN
+    if (origCred !== undefined) process.env.COGNNITIVE_CREDENTIALS = origCred
+    else delete process.env.COGNNITIVE_CREDENTIALS
+    await rmWithRetry(rootDir)
+  })
+
+  it('resolveAuthToken prefers COGNNITIVE_TOKEN; redactToken masks the raw token', () => {
+    process.env.COGNNITIVE_TOKEN = 'secret-abc'
+    expect(resolveAuthToken()).toBe('secret-abc')
+    expect(redactToken('rejected Bearer secret-abc', 'secret-abc')).toBe('rejected Bearer ***')
+    expect(redactToken('no token here', null)).toBe('no token here')
+  })
+
+  it('reads the token from a credentials file when the env var is absent', async () => {
+    delete process.env.COGNNITIVE_TOKEN
+    await mkdir(rootDir, { recursive: true })
+    process.env.COGNNITIVE_CREDENTIALS = join(rootDir, 'creds.json')
+    writeFileSync(join(rootDir, 'creds.json'), JSON.stringify({ token: 'file-token' }), 'utf-8')
+    expect(resolveAuthToken()).toBe('file-token')
+  })
+
+  it('attaches Authorization: Bearer <token> to the raw spec request', async () => {
+    const seen: Array<Record<string, string> | undefined> = []
+    vi.spyOn(global, 'fetch').mockImplementation((input, init) => {
+      const url = String(input)
+      seen.push((init as RequestInit | undefined)?.headers as Record<string, string> | undefined)
+      if (url.startsWith('https://api.github.com/')) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve('[]') } as Response)
+      }
+      return Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('---\nlevel: 2\n---\n# spec'),
+      } as Response)
+    })
+
+    await fetchBlueprintPackageFromRemote('business', 'V_0-2-1', {
+      ref: 'blueprints-v0.18.0',
+      token: 'tok-123',
+    })
+
+    expect(seen[0]?.Authorization).toBe('Bearer tok-123')
+    expect(seen.every((h) => h?.Authorization === 'Bearer tok-123')).toBe(true)
+  })
+
+  it('throws BlueprintAuthError for access:authenticated without any token', async () => {
+    delete process.env.COGNNITIVE_TOKEN
+    process.env.COGNNITIVE_CREDENTIALS = join(rootDir, 'missing-creds.json')
+    await expect(
+      fetchBlueprintPackageFromRemote('business', 'V_0-2-1', {
+        ref: 'blueprints-v0.18.0',
+        access: 'authenticated',
+      }),
+    ).rejects.toBeInstanceOf(BlueprintAuthError)
+  })
+
+  it('converts an authenticated 401 into BlueprintAuthError without leaking the token', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve({ ok: false, status: 401, statusText: 'Unauthorized' } as Response),
+    )
+    await expect(
+      fetchBlueprintPackageFromRemote('business', 'V_0-2-1', {
+        ref: 'blueprints-v0.18.0',
+        token: 'tok-secret-value',
+      }),
+    ).rejects.toBeInstanceOf(BlueprintAuthError)
   })
 })

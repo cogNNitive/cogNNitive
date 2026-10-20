@@ -78,12 +78,50 @@ function refKindViolation(entry, resolvedKind, policy) {
 }
 
 /**
+ * Per-run memo caches for remote GitHub verification. Keyed by repo+ref or
+ * repo+commit so entries sharing a release tuple issue a single network request.
+ * The cached value is the in-flight promise, so concurrent callers share it.
+ * @type {Map<string, Promise<any>>}
+ */
+const commitExistsCache = new Map();
+/** @type {Map<string, Promise<any>>} */
+const refResolveCache = new Map();
+/** @type {Map<string, Promise<any>>} */
+const releaseProvenanceCache = new Map();
+
+/**
+ * Clears all memoized remote-verification results. Call at the start of a
+ * validation run so each run starts from a clean cache.
+ * @returns {void}
+ */
+function resetRemoteCaches() {
+  commitExistsCache.clear();
+  refResolveCache.clear();
+  releaseProvenanceCache.clear();
+}
+
+/**
  * Checks release provenance verifying commit reachability from main.
+ * Memoized per (repo, commit) for the duration of a validation run.
  * @param {string} repo
  * @param {string} commit
  * @returns {Promise<string | null>}
  */
 async function checkReleaseProvenance(repo, commit) {
+  const key = `${repo}@${commit}`;
+  if (!releaseProvenanceCache.has(key)) {
+    releaseProvenanceCache.set(key, fetchReleaseProvenance(repo, commit));
+  }
+  return releaseProvenanceCache.get(key);
+}
+
+/**
+ * Uncached release-provenance lookup; see {@link checkReleaseProvenance}.
+ * @param {string} repo
+ * @param {string} commit
+ * @returns {Promise<string | null>}
+ */
+async function fetchReleaseProvenance(repo, commit) {
   const res = await apiRequest(`https://api.github.com/repos/${repo}/compare/main...${commit}`);
   if (res.status === 200 && res.data && res.data.status) {
     if (res.data.status === 'identical' || res.data.status === 'behind') return null;
@@ -97,11 +135,16 @@ async function checkReleaseProvenance(repo, commit) {
 
 /**
  * Checks whether a ref resolves to the expected commit SHA in the declared repo.
+ * Memoized per (repo, ref) for the duration of a validation run.
  * @param {{ name: string, repo: string, ref: string, commit: string }} item
  * @returns {Promise<{ violation: string | null, kind: 'tag' | 'branch' | null }>}
  */
 async function checkRefResolvesInDeclaredRepo(item) {
-  const resolved = await resolveRef(item.repo, item.ref);
+  const key = `${item.repo}@${item.ref}`;
+  if (!refResolveCache.has(key)) {
+    refResolveCache.set(key, resolveRef(item.repo, item.ref));
+  }
+  const resolved = await refResolveCache.get(key);
   if ('error' in resolved) return { violation: `${item.name}: ${resolved.error}`, kind: null };
   if (resolved.sha !== item.commit) {
     return {
@@ -158,11 +201,19 @@ function structuralViolations(item) {
 
 /**
  * Checks if the pinned commit exists in declared repository.
+ * Memoized per (repo, commit) for the duration of a validation run.
  * @param {{ name: string, repo: string, commit: string }} item
  * @returns {Promise<string | null>}
  */
 async function checkCommitExists(item) {
-  const res = await apiRequest(`https://api.github.com/repos/${item.repo}/commits/${item.commit}`);
+  const key = `${item.repo}@${item.commit}`;
+  if (!commitExistsCache.has(key)) {
+    commitExistsCache.set(
+      key,
+      apiRequest(`https://api.github.com/repos/${item.repo}/commits/${item.commit}`),
+    );
+  }
+  const res = await commitExistsCache.get(key);
   if (res.status === 200) return null;
   if (rateLimited(res.status)) {
     return `${item.name}: GitHub API rate limit hit (HTTP ${res.status}) while checking commit; ${RATE_LIMIT_HINT}.`;
@@ -494,6 +545,7 @@ function checkClosureViolations(manifestData, bundledBlueprintNames = []) {
  * }>}
  */
 async function validateManifest(manifestData, policy) {
+  resetRemoteCaches();
   const { skills = [], blueprints = [], workflows = [], mcp = [], consoleAssets = [] } = manifestData;
   const mcpCount = mcp.length + skills.reduce((n, s) => n + ((s.mcp || []).length), 0);
   const violations = [];
@@ -540,6 +592,7 @@ module.exports = {
   CHANNELS,
   tagShapeViolation,
   refKindViolation,
+  resetRemoteCaches,
   checkReleaseProvenance,
   checkRefResolvesInDeclaredRepo,
   checkReleaseAndRefPolicy,

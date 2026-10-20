@@ -783,8 +783,11 @@ agent-bootstrap:
       }
     }
 
-    // Stub self-check: the fake must be what ran (never the real network/home dir)
-    assert.ok(downloads.length >= 5, 'downloadFile fake must have been exercised');
+    // Stub self-check: the fake must be what ran (never the real network/home dir).
+    // All sub-cases share (repo 'o/r', commit 'abc1234'), so the session tarball
+    // cache serves every re-install from a single deduplicated download.
+    assert.strictEqual(downloads.length, 1, 'downloadFile fake must have run exactly once for the shared (repo, commit)');
+    assert.ok(downloads.every((u) => u.includes('codeload.github.com')), 'fake saw only codeload URLs');
   } finally {
     require(githubClientPath).downloadFile = realDownload;
     require(atomicFsPath).extractTarball = realExtract;
@@ -860,6 +863,174 @@ agent-bootstrap:
       assert.ok(fs.existsSync(path.join(skillsDir, 'ext', 'SKILL.md')), 'commit-only install must work');
       console.log('✔ commit-only install works without sha256');
     }
+  } finally {
+    require(githubClientPath).downloadFile = realDownload;
+    require(atomicFsPath).extractTarball = realExtract;
+    delete require.cache[commandsPath];
+    if (realCommands) require.cache[commandsPath] = realCommands;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// 11b. Session tarball cache: repeated (repo, commit) fetches download one archive,
+//      a distinct commit downloads again, resetTarballCache() re-enables a fresh
+//      download, and a download failure keeps withRetiredHint behavior. Mocks as in
+//      blocks 10/11 (patch github-client before a fresh load of skills-commands).
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-tarball-'));
+  const githubClientPath = require.resolve('./lib/github-client.js');
+  const commandsPath = require.resolve('./lib/skills-commands.js');
+  const realDownload = require(githubClientPath).downloadFile;
+  const realCommands = require.cache[commandsPath];
+
+  const downloads = [];
+  require(githubClientPath).downloadFile = async (url, dest) => {
+    downloads.push(url);
+    fs.writeFileSync(dest, 'fake-tarball', 'utf-8');
+  };
+  delete require.cache[commandsPath];
+  const { fetchRepoCommitTarball, resetTarballCache } = require('./lib/skills-commands.js');
+
+  try {
+    const item = { name: 'x', repo: 'o/r', commit: 'a'.repeat(40) };
+    const first = await fetchRepoCommitTarball(item);
+    const second = await fetchRepoCommitTarball(item);
+    assert.strictEqual(first, second, 'same (repo, commit) must reuse the cached archive path');
+    assert.strictEqual(downloads.length, 1, 'only one codeload download per (repo, commit)');
+    assert.match(downloads[0], /^https:\/\/codeload\.github\.com\/o\/r\/tar\.gz\//);
+    assert.ok(fs.existsSync(first), 'cached archive must exist on disk');
+
+    await fetchRepoCommitTarball({ name: 'y', repo: 'o/r', commit: 'b'.repeat(40) });
+    assert.strictEqual(downloads.length, 2, 'a distinct commit downloads its own archive');
+
+    resetTarballCache();
+    assert.strictEqual(fs.existsSync(first), false, 'resetTarballCache removes the cached temp archive');
+    await fetchRepoCommitTarball(item);
+    assert.strictEqual(downloads.length, 3, 'resetTarballCache re-enables a fresh download');
+
+    // A failed download is surfaced through withRetiredHint for retired repos.
+    require(githubClientPath).downloadFile = async () => {
+      throw new Error('Failed to download https://codeload.github.com/x, status: 404');
+    };
+    delete require.cache[commandsPath];
+    const { fetchRepoCommitTarball: fetchRetired } = require('./lib/skills-commands.js');
+    let caught = null;
+    try {
+      await fetchRetired({ name: 'z', repo: 'cogNNitive/cogNNitive', commit: 'c'.repeat(40) });
+    } catch (err) { caught = err; }
+    assert.ok(caught && /retired repo/.test(caught.message), 'download failure on a retired repo keeps the migration hint');
+
+    console.log('✔ Session tarball cache dedup + resetTarballCache + retired-hint test passed');
+  } finally {
+    require(githubClientPath).downloadFile = realDownload;
+    delete require.cache[commandsPath];
+    if (realCommands) require.cache[commandsPath] = realCommands;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// 12. On-demand catalog blueprint install: `install --blueprint <name>` resolves the
+//     catalog release pin, installs the package, and projects embedded skills to the
+//     agent dir. Mocks as in blocks 10/11 (patch github-client / atomic-fs before a
+//     fresh load of skills-commands).
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-catalog-'));
+  const githubClientPath = require.resolve('./lib/github-client.js');
+  const commandsPath = require.resolve('./lib/skills-commands.js');
+  const atomicFsPath = require.resolve('./lib/atomic-fs.js');
+  const realDownload = require(githubClientPath).downloadFile;
+  const realExtract = require(atomicFsPath).extractTarball;
+  const realCommands = require.cache[commandsPath];
+
+  const fixtureRoot = path.join(tmpDir, 'repo-org');
+  const pkg = path.join(fixtureRoot, 'repo-abc', 'iNNfo', 'specs', 'bluepriNNts', 'organization');
+  fs.mkdirSync(path.join(pkg, 'skills', 'nn-org'), { recursive: true });
+  fs.writeFileSync(path.join(pkg, 'spec_NN.md'), '---\nblueprint_version: "V_0-4-0"\nlevel: 2\n---\n# org', 'utf-8');
+  fs.writeFileSync(
+    path.join(pkg, 'skills', 'nn-org', 'SKILL.md'),
+    '---\nname: nn-org\nversion: V_1-0-0\n---\n# nn-org',
+    'utf-8',
+  );
+
+  const catalogPath = path.join(tmpDir, 'catalog.json');
+  fs.writeFileSync(
+    catalogPath,
+    JSON.stringify({
+      blueprints: {
+        organization: {
+          name: 'organization',
+          adopted: 'V_0-4-0',
+          tier: 'free',
+          access: 'public',
+          when_to_use: 'Model an organization',
+          release_tag: 'blueprints-v0.39.0',
+          embedded_skills: ['nn-org'],
+        },
+      },
+    }),
+    'utf-8',
+  );
+
+  const downloads = [];
+  require(githubClientPath).downloadFile = async (url, dest) => {
+    downloads.push(url);
+    fs.writeFileSync(dest, 'fake-tarball', 'utf-8');
+  };
+  require(atomicFsPath).extractTarball = (tarFile, destDir) => {
+    fs.cpSync(fixtureRoot, destDir, { recursive: true });
+  };
+  delete require.cache[commandsPath];
+  const { cmdInstallBlueprint } = require('./lib/skills-commands.js');
+
+  const saveEnv = (keys) => Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  const restoreEnv = (saved) => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  };
+
+  try {
+    const blueprintsDir = path.join(tmpDir, 'out', 'bluepriNNts');
+    const skillsDir = path.join(tmpDir, 'out', 'skills');
+    const stateFile = path.join(tmpDir, 'out', 'state.json');
+    const fakeHome = path.join(tmpDir, 'out', 'home');
+    fs.mkdirSync(fakeHome, { recursive: true });
+    const saved = saveEnv(['HOME', 'USERPROFILE']);
+    process.env.HOME = fakeHome;
+    process.env.USERPROFILE = fakeHome;
+    try {
+      await cmdInstallBlueprint({
+        blueprint: 'organization',
+        catalogPath,
+        repo: 'o/r',
+        blueprintsDir,
+        skillsDir,
+        stateFile,
+        yes: true,
+        agent: 'claude',
+        scope: 'global',
+      });
+    } finally {
+      restoreEnv(saved);
+    }
+
+    assert.ok(fs.existsSync(path.join(blueprintsDir, 'organization', 'spec_NN.md')), 'blueprint package must be installed');
+    assert.ok(fs.existsSync(path.join(skillsDir, 'nn-org', 'SKILL.md')), 'embedded skill must be projected to the skills dir');
+    assert.ok(
+      fs.existsSync(path.join(fakeHome, '.claude', 'skills', 'nn-org')),
+      'embedded skill must be projected to the agent dir',
+    );
+    assert.ok(downloads.some((u) => u.includes('blueprints-v0.39.0')), 'must download from the catalog release pin');
+
+    // Unknown blueprint name is rejected before any download.
+    let caught = null;
+    try {
+      await cmdInstallBlueprint({ blueprint: 'nope', catalogPath, blueprintsDir, skillsDir, stateFile, yes: true });
+    } catch (err) { caught = err; }
+    assert.ok(caught && /not in the catalog/.test(caught.message), 'unknown blueprint must be rejected');
+
+    console.log('✔ on-demand catalog blueprint install + skill projection test passed');
   } finally {
     require(githubClientPath).downloadFile = realDownload;
     require(atomicFsPath).extractTarball = realExtract;

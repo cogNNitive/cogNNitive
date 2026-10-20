@@ -39,67 +39,70 @@ const fieldNameTypes = (content: string): string[] => {
 }
 
 describe('Canonical Template Registry & Offline Fallback', () => {
-  it('bundles all standard Level 2 templates', () => {
+  it('bundles exactly the L0/L1 specs and the 7 Core Level 2 blueprints', () => {
     const templates = listCanonicalBlueprints()
     const names = templates.map((t) => t.name)
 
-    expect(names).toContain('business')
-    expect(names).toContain('procedures')
-    expect(names).toContain('sources')
-    expect(names).toContain('artifacts')
-    expect(names).toContain('organization')
-    expect(names).toContain('metrics')
-    expect(names).toContain('workspace')
-    expect(names).toContain('cogNNitive')
+    for (const core of ['domaiNN', 'changes', 'sidecar', 'sources', 'artifacts', 'procedures', 'blank']) {
+      expect(names, `${core} must be bundled`).toContain(core)
+    }
+    expect(names).toContain('defiNNition')
+    expect(names).toContain('innfo')
+
+    for (const removed of ['business', 'business-model', 'organization', 'metrics', 'workspace', 'cogNNitive', 'analysis', 'projects']) {
+      expect(names, `${removed} must NOT be bundled`).not.toContain(removed)
+    }
   })
 
   it('resolves templates by exact canonical name', () => {
-    const biz = findCanonicalBlueprint('business')
-    expect(biz).not.toBeNull()
-    expect(biz?.name).toBe('business')
+    const domann = findCanonicalBlueprint('domaiNN')
+    expect(domann).not.toBeNull()
+    expect(domann?.name).toBe('domaiNN')
+
+    const blank = findCanonicalBlueprint('blank')
+    expect(blank).not.toBeNull()
+    expect(blank?.name).toBe('blank')
 
     const proc = findCanonicalBlueprint('procedures')
     expect(proc).not.toBeNull()
     expect(proc?.name).toBe('procedures')
 
-    const org = findCanonicalBlueprint('organization')
-    expect(org).not.toBeNull()
-    expect(org?.name).toBe('organization')
+    const changes = findCanonicalBlueprint('changes')
+    expect(changes).not.toBeNull()
+    expect(changes?.name).toBe('changes')
 
-    const metrics = findCanonicalBlueprint('metrics')
-    expect(metrics).not.toBeNull()
-    expect(metrics?.name).toBe('metrics')
-
-    const ws = findCanonicalBlueprint('workspace')
-    expect(ws).not.toBeNull()
-    expect(ws?.name).toBe('workspace')
-
-    const cog = findCanonicalBlueprint('cogNNitive')
-    expect(cog).not.toBeNull()
-    expect(cog?.name).toBe('cogNNitive')
+    const sc = findCanonicalBlueprint('sidecar')
+    expect(sc).not.toBeNull()
+    expect(sc?.name).toBe('sidecar')
   })
 
   it('resolves templates by shorthand spec name aliases', () => {
-    expect(findCanonicalBlueprint('business_spec_NN')?.name).toBe('business')
-    expect(findCanonicalBlueprint('business_V_0-2-0_NN.md')?.name).toBe('business')
+    expect(findCanonicalBlueprint('domaiNN_spec_NN')?.name).toBe('domaiNN')
+    expect(findCanonicalBlueprint('domaiNN_V_0-4-0_NN.md')?.name).toBe('domaiNN')
+    expect(findCanonicalBlueprint('blank_spec_NN')?.name).toBe('blank')
     expect(findCanonicalBlueprint('procedures_spec_NN')?.name).toBe('procedures')
-    expect(findCanonicalBlueprint('procedures_V_0-2-0_NN.md')?.name).toBe('procedures')
-    expect(findCanonicalBlueprint('organization_spec_NN')?.name).toBe('organization')
-    expect(findCanonicalBlueprint('metrics_spec_NN')?.name).toBe('metrics')
-    expect(findCanonicalBlueprint('workspace_spec_NN')?.name).toBe('workspace')
-    expect(findCanonicalBlueprint('cognnitive_spec_NN')?.name).toBe('cogNNitive')
+    expect(findCanonicalBlueprint('sidecar_spec_NN')?.name).toBe('sidecar')
+    expect(findCanonicalBlueprint('changes_spec_NN')?.name).toBe('changes')
   })
 
   it('resolves templates by remote raw GitHub URLs', () => {
     const url =
-      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/business_V_0-2-0_NN.md'
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md'
     const template = findCanonicalBlueprint(url)
     expect(template).not.toBeNull()
-    expect(template?.name).toBe('business')
+    expect(template?.name).toBe('domaiNN')
 
-    const procUrl =
-      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md'
-    expect(findCanonicalBlueprint(procUrl)?.name).toBe('procedures')
+    const blankUrl =
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md'
+    expect(findCanonicalBlueprint(blankUrl)?.name).toBe('blank')
+  })
+
+  it('returns null for removed vertical blueprint identifiers', () => {
+    expect(findCanonicalBlueprint('business')).toBeNull()
+    expect(findCanonicalBlueprint('organization')).toBeNull()
+    expect(findCanonicalBlueprint('metrics')).toBeNull()
+    expect(findCanonicalBlueprint('workspace')).toBeNull()
+    expect(findCanonicalBlueprint('cogNNitive')).toBeNull()
   })
 
   it('returns valid spec content for offline parsing', () => {
@@ -191,9 +194,10 @@ describe('Canonical Template Registry & Offline Fallback', () => {
     expect(innfoMirror).toBe(innfoDisk)
   })
 
-  it('mirrors the workspace and artifacts V_0-2-2 templates without drift', () => {
+  it('mirrors the domaiNN, blank and artifacts templates without drift', () => {
     for (const [template, specPath] of [
-      ['workspace', 'bluepriNNts/workspace_spec_NN.md'],
+      ['domaiNN', 'bluepriNNts/domaiNN/spec_NN.md'],
+      ['blank', 'bluepriNNts/blank/spec_NN.md'],
       ['artifacts', 'bluepriNNts/artifacts/spec_NN.md'],
     ] as const) {
       const disk = readFileSync(join(specsRoot, specPath), 'utf-8')

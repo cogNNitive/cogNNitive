@@ -232,6 +232,73 @@ function findRepoRoot(extractDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Session tarball cache (deduplicated downloads by repo@commit)
+// ---------------------------------------------------------------------------
+
+/** @type {string | null} */
+let tarballCacheDir = null;
+/** @type {Map<string, Promise<string>>} keyed by `${repo}@${commit}` */
+const tarballCache = new Map();
+
+/**
+ * Lazily creates the per-process temp directory holding cached tarballs and
+ * registers a one-shot exit hook to remove it.
+ * @returns {string}
+ */
+function getTarballCacheDir() {
+  if (!tarballCacheDir) {
+    tarballCacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-tarballs-'));
+    const dir = tarballCacheDir;
+    process.once('exit', () => {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {}
+    });
+  }
+  return tarballCacheDir;
+}
+
+/**
+ * Drops the session tarball cache and removes its temp directory. Test seam.
+ * @returns {void}
+ */
+function resetTarballCache() {
+  tarballCache.clear();
+  if (tarballCacheDir) {
+    try { fs.rmSync(tarballCacheDir, { recursive: true, force: true }); } catch (_) {}
+    tarballCacheDir = null;
+  }
+}
+
+/**
+ * Downloads (at most once per process) the repository archive for a pinned
+ * (repo, commit) and returns the cached archive path. Repeated callers — install,
+ * update, bootstrap — reuse the same archive instead of re-downloading it.
+ * @param {{ repo: string, commit: string }} item
+ * @returns {Promise<string>}
+ */
+async function fetchRepoCommitTarball(item) {
+  const key = `${item.repo}@${item.commit}`;
+  if (tarballCache.has(key)) return tarballCache.get(key);
+
+  const promise = (async () => {
+    const dir = getTarballCacheDir();
+    const safe = key.replace(/[^a-zA-Z0-9@._-]/g, '_');
+    const tarball = path.join(dir, `${safe}.tar.gz`);
+    const url = `https://codeload.github.com/${item.repo}/tar.gz/${item.commit}`;
+    try {
+      await downloadFile(url, tarball);
+    } catch (err) {
+      throw withRetiredHint(item, err);
+    }
+    return tarball;
+  })();
+
+  tarballCache.set(key, promise);
+  // A failed download is not cached: retries may re-attempt the network.
+  promise.catch(() => tarballCache.delete(key));
+  return promise;
+}
+
+// ---------------------------------------------------------------------------
 // Diff previews via GitHub compare API
 // ---------------------------------------------------------------------------
 
@@ -271,13 +338,7 @@ async function fetchCompareSummary(item, installedCommit) {
 async function installSkillAtCommit(skill, skillsDir, state) {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-skills-'));
   try {
-    const tarball = path.join(tmpRoot, 'skill.tar.gz');
-    const url = `https://codeload.github.com/${skill.repo}/tar.gz/${skill.commit}`;
-    try {
-      await downloadFile(url, tarball);
-    } catch (err) {
-      throw withRetiredHint(skill, err);
-    }
+    const tarball = await fetchRepoCommitTarball(skill);
 
     const extractDir = path.join(tmpRoot, 'x');
     extractTarball(tarball, extractDir);
@@ -423,13 +484,7 @@ async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDi
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-blueprints-'));
   try {
-    const tarball = path.join(tmpRoot, 'tmpl.tar.gz');
-    const url = `https://codeload.github.com/${template.repo}/tar.gz/${template.commit}`;
-    try {
-      await downloadFile(url, tarball);
-    } catch (err) {
-      throw withRetiredHint(template, err);
-    }
+    const tarball = await fetchRepoCommitTarball(template);
 
     const extractDir = path.join(tmpRoot, 'x');
     extractTarball(tarball, extractDir);
@@ -909,6 +964,117 @@ async function cmdInstallExternal(args) {
   });
   saveState(args.stateFile, state);
   console.log(`installed referenced external skill ${name} @ ${String(commit).slice(0, 7)}`);
+}
+
+const DEFAULT_BLUEPRINT_REPO = 'cogNNitive/cogNNitive-web';
+const DEFAULT_CATALOG_PATH = path.join(__dirname, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
+
+/**
+ * Loads the Level-2 blueprint catalog (`catalog.json`). Resolution order:
+ * an explicit path, the `COGNNITIVE_CATALOG` / `SM_CATALOG` env override, then
+ * the in-repo copy. Returns null when no catalog is readable.
+ * @param {string} [override]
+ * @returns {object | null}
+ */
+function loadBlueprintCatalog(override) {
+  const candidate = override || process.env.COGNNITIVE_CATALOG || process.env.SM_CATALOG || DEFAULT_CATALOG_PATH;
+  try {
+    return JSON.parse(fs.readFileSync(candidate, 'utf-8'));
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Finds a catalog entry by blueprint name (case-insensitive) across the
+ * `blueprints` and `frozen` partitions.
+ * @param {object | null} catalog
+ * @param {string} name
+ * @returns {object | null}
+ */
+function findCatalogEntry(catalog, name) {
+  if (!catalog) return null;
+  const wanted = String(name).toLowerCase();
+  for (const group of [catalog.blueprints || {}, catalog.frozen || {}]) {
+    for (const [key, entry] of Object.entries(group)) {
+      if (key.toLowerCase() === wanted) return entry;
+      if (entry && entry.name && String(entry.name).toLowerCase() === wanted) return entry;
+    }
+  }
+  return null;
+}
+
+/**
+ * Installs a single optional catalog bluepriNNt on demand
+ * (`skills-manager.js install --blueprint <name>`) from its catalog release pin
+ * into the blueprints directory, projecting any embedded `<name>/skills/*` into
+ * the skills directory. Consent-gated.
+ * @param {{ blueprintsDir?: string, skillsDir?: string, stateFile: string, blueprint: string, repo?: string, catalogPath?: string, yes?: boolean, agent?: string, scope?: string }} args
+ * @returns {Promise<void>}
+ */
+async function cmdInstallBlueprint(args) {
+  const name = args.blueprint;
+  if (!name) throw new Error('install --blueprint requires a blueprint name');
+
+  const catalogPath = args.catalogPath;
+  const catalog = loadBlueprintCatalog(catalogPath);
+  const entry = findCatalogEntry(catalog, name);
+  if (!entry) {
+    throw new Error(
+      `blueprint '${name}' is not in the catalog (${catalogPath || DEFAULT_CATALOG_PATH}); ` +
+        'check the name or refresh catalog.json',
+    );
+  }
+
+  const blueprintsDir = args.blueprintsDir || DEFAULT_BLUEPRINTS_DIR;
+  const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;
+  const repo = args.repo || DEFAULT_BLUEPRINT_REPO;
+  const ref = entry.release_tag;
+  const version = entry.adopted;
+  const entryName = entry.name || name;
+  const embedded = Array.isArray(entry.embedded_skills) ? entry.embedded_skills : [];
+
+  // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
+  // cache and the standard blueprint install path for extraction + projection.
+  const template = {
+    name: entryName,
+    repo,
+    path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
+    version,
+    ref,
+    commit: ref,
+  };
+
+  const menu =
+    `Optional catalog blueprint (on demand):\n` +
+    `  - ${entryName} (${version}) from ${repo} @ ${ref}\n` +
+    `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}\n` +
+    (embedded.length ? `  embedded skills: ${embedded.join(', ')}\n` : '') +
+    `\n[a] Install\n[b] Skip\n`;
+  const proceed = await consentOrAbort(`install catalog blueprint ${entryName}`, [`blueprint:${entryName}`], menu, args.yes);
+  if (!proceed) return;
+
+  const state = loadState(args.stateFile);
+  let projected = [];
+  try {
+    projected = await installBlueprintAtCommit(template, blueprintsDir, state, skillsDir);
+  } catch (err) {
+    if (err.projectedSkills) projected = err.projectedSkills;
+    throw err;
+  }
+
+  projectSkillsToAgents({
+    canonicalSkillsDir: skillsDir,
+    targetAgent: args.agent,
+    scope: args.scope,
+    state,
+    skillNames: projected.length > 0 ? projected : undefined,
+  });
+  saveState(args.stateFile, state);
+  console.log(
+    `installed catalog blueprint ${entryName} (${version}) @ ${ref}` +
+      (projected.length ? ` and projected ${projected.length} skill(s): ${projected.join(', ')}` : ''),
+  );
 }
 
 /**
@@ -1512,6 +1678,8 @@ module.exports = {
   replaceDirAtomic,
   copyDirRecursive,
   fetchCompareSummary,
+  fetchRepoCommitTarball,
+  resetTarballCache,
   installSkillAtCommit,
   installBlueprintAtCommit,
   installEmbeddedSkills,
@@ -1525,6 +1693,11 @@ module.exports = {
   cmdStatus,
   cmdInstall,
   cmdInstallExternal,
+  cmdInstallBlueprint,
+  loadBlueprintCatalog,
+  findCatalogEntry,
+  DEFAULT_BLUEPRINT_REPO,
+  DEFAULT_CATALOG_PATH,
   cmdUpdate,
   cmdSync,
   cmdBootstrap,

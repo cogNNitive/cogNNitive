@@ -75,7 +75,7 @@ describe('resolveConsoleSchema', () => {
   it('falls back to the canonical registry when no workspace or global package exists', async () => {
     const result = await resolveConsoleSchema({
       rootDir,
-      parentName: 'business',
+      parentName: 'blank',
       globalDir,
       skillsDir,
     })
@@ -143,14 +143,14 @@ type:: list
   it('resolves a stale versioned parent_spec by family (canonical fallback) and warns', async () => {
     const result = await resolveConsoleSchema({
       rootDir,
-      parentName: 'business_V_0-1-0',
+      parentName: 'blank_V_0-1-0',
       globalDir,
       skillsDir,
     })
 
     expect(result.schemaSource).toBe('blueprint')
     expect(result.schema?.concepts.length).toBeGreaterThan(0)
-    expect(result.warnings.some((w) => w.includes('business_V_0-1-0'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('blank_V_0-1-0'))).toBe(true)
   })
 
   it('warns when the referenced version differs from the blueprint, silently otherwise', async () => {

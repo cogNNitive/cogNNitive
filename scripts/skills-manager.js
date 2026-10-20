@@ -16,7 +16,7 @@ const commands = require('./lib/skills-commands.js');
 /**
  * Parses CLI command line arguments into structured SkillManagerArgs.
  * @param {string[]} argv
- * @returns {{ positional: string[], skillsDir: string | null, blueprintsDir: string | null, mcpDir: string | null, consoleDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string, name: string | null, repo: string | null, path: string | null, commit: string | null, sha256: string | null }}
+ * @returns {{ positional: string[], skillsDir: string | null, blueprintsDir: string | null, mcpDir: string | null, consoleDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string, name: string | null, repo: string | null, path: string | null, commit: string | null, sha256: string | null, blueprint: string | null }}
  */
 function parseArgs(argv) {
   const args = {
@@ -37,47 +37,36 @@ function parseArgs(argv) {
     path: null,
     commit: null,
     sha256: null,
+    // on-demand catalog install flag
+    blueprint: null,
+  };
+  const valueFlags = {
+    '--direction': 'direction',
+    '--agent': 'agent',
+    '--scope': 'scope',
+    '--skills-dir': 'skillsDir',
+    '--blueprints-dir': 'blueprintsDir',
+    '--templates-dir': 'blueprintsDir',
+    '--mcp-dir': 'mcpDir',
+    '--console-dir': 'consoleDir',
+    '--state': 'state',
+    '--name': 'name',
+    '--repo': 'repo',
+    '--path': 'path',
+    '--commit': 'commit',
+    '--sha256': 'sha256',
+    '--blueprint': 'blueprint',
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--yes' || arg === '-y') {
       args.yes = true;
-    } else if (arg === '--direction') {
+    } else if (valueFlags[arg]) {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) {
         throw new Error(`Option ${arg} requires a value`);
       }
-      args.direction = value;
-      i++;
-    } else if (arg === '--agent') {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new Error(`Option ${arg} requires a value`);
-      }
-      args.agent = value;
-      i++;
-    } else if (arg === '--scope') {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new Error(`Option ${arg} requires a value`);
-      }
-      args.scope = value;
-      i++;
-    } else if (arg === '--skills-dir' || arg === '--blueprints-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--console-dir' || arg === '--state' || arg === '--name' || arg === '--repo' || arg === '--path' || arg === '--commit' || arg === '--sha256') {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new Error(`Option ${arg} requires a value`);
-      }
-      if (arg === '--skills-dir') args.skillsDir = value;
-      else if (arg === '--blueprints-dir' || arg === '--templates-dir') args.blueprintsDir = value;
-      else if (arg === '--mcp-dir') args.mcpDir = value;
-      else if (arg === '--console-dir') args.consoleDir = value;
-      else if (arg === '--state') args.state = value;
-      else if (arg === '--name') args.name = value;
-      else if (arg === '--repo') args.repo = value;
-      else if (arg === '--path') args.path = value;
-      else if (arg === '--commit') args.commit = value;
-      else args.sha256 = value;
+      args[valueFlags[arg]] = value;
       i++;
     } else if (arg.startsWith('--')) {
       throw new Error(`Unknown option: ${arg}`);
@@ -96,7 +85,7 @@ function usage() {
   console.log(`Usage:
   node scripts/skills-manager.js bootstrap [--scope <global|workspace>] [--agent <auto|opencode|claude|antigravity>] [--yes]
   node scripts/skills-manager.js status    [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>]
-  node scripts/skills-manager.js install   [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>] [--yes]
+  node scripts/skills-manager.js install   [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>] [--blueprint <name>] [--yes]
   node scripts/skills-manager.js install-external --name <n> --repo <owner/repo> --path <skills/x> --commit <40-hex> [--sha256 <64-hex>] [--skills-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js update    [item ...] [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js sync      [--skills-dir <dir>] [--blueprints-dir <dir>] [--direction <local-to-global|global-to-local>] [--yes]
@@ -104,7 +93,7 @@ function usage() {
 Commands:
   bootstrap Full zero-touch ecosystem setup: skills, blueprints, MCP bundles, and agent registration.
   status    Compare installed commits (state file) against manifest pins.
-  install   Install missing skills and blueprints at their pinned commit.
+  install   Install missing skills and blueprints at their pinned commit. \`--blueprint <name>\` installs one optional catalog blueprint on demand.
   install-external  Install a single referenced external skill (third-party) from its upstream repo at a pinned commit, verifying its sha256 tree digest when given.
   update    Update outdated skills and blueprints at their pinned commit.
   sync      Synchronize skill and blueprint files between local repository and global agent directory.
@@ -166,11 +155,13 @@ async function main() {
     path: args.path,
     commit: args.commit,
     sha256: args.sha256,
+    blueprint: args.blueprint,
   };
 
   try {
     if (command === 'bootstrap') await commands.cmdBootstrap(resolvedArgs);
     else if (command === 'status') await commands.cmdStatus(resolvedArgs);
+    else if (command === 'install' && resolvedArgs.blueprint) await commands.cmdInstallBlueprint(resolvedArgs);
     else if (command === 'install') await commands.cmdInstall(resolvedArgs);
     else if (command === 'install-external') await commands.cmdInstallExternal(resolvedArgs);
     else if (command === 'update') await commands.cmdUpdate(resolvedArgs);

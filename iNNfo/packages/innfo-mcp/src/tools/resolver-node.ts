@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { join, basename, isAbsolute } from 'node:path'
 import { isInsideRoot, isDriveQualified, isDriveContained } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import {
   parseFrontmatter,
   SpecResolutionError,
@@ -123,11 +124,53 @@ export function toLocalFilePath(url: string, rootDir?: string): string | null {
 
 const MAX_DEPTH_DEFAULT = 10
 
-async function download(url: string, timeout: number): Promise<string> {
+/**
+ * Raised when a catalog blueprint requires authentication and no usable token
+ * is available, or when an authenticated remote fetch is rejected (HTTP 401/403).
+ * The message never contains the raw token.
+ */
+export class BlueprintAuthError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'BlueprintAuthError'
+  }
+}
+
+/**
+ * Resolve a distribution bearer token without ever asking the caller for it:
+ * `COGNNITIVE_TOKEN` first, then `~/.agents/credentials.json` (`{ "token": "…" }`).
+ * Keeping the token out of tool arguments keeps it out of prompt history and logs.
+ */
+export function resolveAuthToken(): string | null {
+  const env = process.env.COGNNITIVE_TOKEN
+  if (env && env.trim()) return env.trim()
+  try {
+    const credPath =
+      process.env.COGNNITIVE_CREDENTIALS ?? join(homedir(), '.agents', 'credentials.json')
+    const raw = readFileSync(credPath, 'utf-8')
+    const parsed = JSON.parse(raw) as { token?: unknown }
+    if (parsed && typeof parsed.token === 'string' && parsed.token.trim()) return parsed.token.trim()
+  } catch {
+    // No credentials file or unreadable JSON — treated as "no token".
+  }
+  return null
+}
+
+/** Replace every occurrence of a bearer token in a diagnostic with `***`. */
+export function redactToken(text: string, token?: string | null): string {
+  if (!token) return text
+  return text.split(token).join('***')
+}
+
+async function download(
+  url: string,
+  timeout: number,
+  headers?: Record<string, string>,
+): Promise<string> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
   try {
-    const resp = await fetch(url, { signal: controller.signal })
+    const resp = await fetch(url, { signal: controller.signal, headers })
     if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`)
     return await resp.text()
   } finally {
@@ -326,7 +369,13 @@ export class IncompleteSkillsTreeError extends Error {
 export async function fetchBlueprintPackageFromRemote(
   base: string,
   version: string,
-  options: { repo?: string; ref?: string; timeout?: number } = {},
+  options: {
+    repo?: string
+    ref?: string
+    timeout?: number
+    token?: string
+    access?: 'public' | 'authenticated'
+  } = {},
 ): Promise<TemplatePackagePayload> {
   if (!options.ref) {
     throw new Error('ref is required for fetchBlueprintPackageFromRemote')
@@ -337,70 +386,101 @@ export async function fetchBlueprintPackageFromRemote(
     )
   }
   const ref = options.ref
-  const repo = options.repo ?? 'cogNNitive/cogNNitive'
+  const repo = options.repo ?? 'cogNNitive/cogNNitive-web'
   const timeout = options.timeout ?? 10000
   const dirInRepo = `iNNfo/specs/bluepriNNts/${base}`
   const specName = SPEC_FILENAME
   const rawBase = `https://raw.githubusercontent.com/${repo}/${ref}/${dirInRepo}`
 
-  const spec = await download(`${rawBase}/${specName}`, timeout)
+  // Resolve the bearer token from options first (an explicit, programmatic
+  // caller), then the environment / credentials file. A blueprint that
+  // declares `access: authenticated` must have a token or the fetch fails
+  // fast with setup instructions rather than a confusing 401.
+  const token = options.token ?? resolveAuthToken() ?? undefined
+  if (options.access === 'authenticated' && !token) {
+    throw new BlueprintAuthError(
+      `Blueprint "${base}" requires authentication but no token was found. ` +
+        'Set COGNNITIVE_TOKEN or add { "token": "…" } to ~/.agents/credentials.json.',
+    )
+  }
+  const authHeaders: Record<string, string> | undefined = token
+    ? { Authorization: `Bearer ${token}` }
+    : undefined
 
-  // `recursive` is opt-in (only `skills/`): samples/assets keep their flat payload.
-  // `strict` (used for `skills/` only) turns every failure into IncompleteSkillsTreeError instead
-  // of a warn-and-skip: a top-level 404 still means "no skills/ dir" (absent), but any other
-  // listing failure, a vanished nested dir, or an undownloadable file means the tree is partial.
-  const fetchSubdir = async (
-    name: string,
-    opts: { recursive?: boolean; strict?: boolean; nested?: boolean } = {},
-  ): Promise<Record<string, string> | undefined> => {
-    let entries: Array<{ name: string; type: string; path: string }>
-    try {
-      const apiUrl = `https://api.github.com/repos/${repo}/contents/${dirInRepo}/${name}?ref=${encodeURIComponent(ref)}`
-      const listing = JSON.parse(await download(apiUrl, timeout))
-      entries = Array.isArray(listing) ? listing : []
-    } catch (err) {
-      if (opts.strict && (opts.nested || !/HTTP 404/.test(String(err)))) {
-        throw new IncompleteSkillsTreeError(`listing ${dirInRepo}/${name} failed: ${err}`)
-      }
-      /* v8 ignore start */
-      // log + continue: fetchSubdir is best effort — a missing subdirectory is
-      // simply absent from the payload.
-      console.warn(`[resolver-node] Failed to list subdir ${dirInRepo}/${name}: ${err}`)
-      return undefined
-      /* v8 ignore stop */
-    }
-    const out: Record<string, string> = {}
-    for (const entry of entries) {
-      if (entry.type === 'dir' && opts.recursive) {
-        const nested = await fetchSubdir(`${name}/${entry.name}`, { ...opts, nested: true })
-        for (const [rel, body] of Object.entries(nested ?? {})) {
-          out[`${entry.name}/${rel}`] = body
-        }
-        continue
-      }
-      if (entry.type !== 'file') continue
+  try {
+    const spec = await download(`${rawBase}/${specName}`, timeout, authHeaders)
+
+    // `recursive` is opt-in (only `skills/`): samples/assets keep their flat payload.
+    // `strict` (used for `skills/` only) turns every failure into IncompleteSkillsTreeError instead
+    // of a warn-and-skip: a top-level 404 still means "no skills/ dir" (absent), but any other
+    // listing failure, a vanished nested dir, or an undownloadable file means the tree is partial.
+    const fetchSubdir = async (
+      name: string,
+      opts: { recursive?: boolean; strict?: boolean; nested?: boolean } = {},
+    ): Promise<Record<string, string> | undefined> => {
+      let entries: Array<{ name: string; type: string; path: string }>
       try {
-        out[entry.name] = await download(`${rawBase}/${name}/${entry.name}`, timeout)
+        const apiUrl = `https://api.github.com/repos/${repo}/contents/${dirInRepo}/${name}?ref=${encodeURIComponent(ref)}`
+        const listing = JSON.parse(await download(apiUrl, timeout, authHeaders))
+        entries = Array.isArray(listing) ? listing : []
       } catch (err) {
-        if (opts.strict) {
-          throw new IncompleteSkillsTreeError(`fetching ${name}/${entry.name} failed: ${err}`)
+        if (opts.strict && (opts.nested || !/HTTP 404/.test(String(err)))) {
+          throw new IncompleteSkillsTreeError(`listing ${dirInRepo}/${name} failed: ${redactToken(String(err), token)}`)
         }
         /* v8 ignore start */
-        // log + continue: an unfetchable asset is skipped — the package
-        // hydrates without it.
-        console.warn(`[resolver-node] Failed to fetch asset ${name}/${entry.name}: ${err}`)
+        // log + continue: fetchSubdir is best effort — a missing subdirectory is
+        // simply absent from the payload.
+        console.warn(`[resolver-node] Failed to list subdir ${dirInRepo}/${name}: ${redactToken(String(err), token)}`)
+        return undefined
         /* v8 ignore stop */
       }
+      const out: Record<string, string> = {}
+      for (const entry of entries) {
+        if (entry.type === 'dir' && opts.recursive) {
+          const nested = await fetchSubdir(`${name}/${entry.name}`, { ...opts, nested: true })
+          for (const [rel, body] of Object.entries(nested ?? {})) {
+            out[`${entry.name}/${rel}`] = body
+          }
+          continue
+        }
+        if (entry.type !== 'file') continue
+        try {
+          out[entry.name] = await download(`${rawBase}/${name}/${entry.name}`, timeout, authHeaders)
+        } catch (err) {
+          if (opts.strict) {
+            throw new IncompleteSkillsTreeError(`fetching ${name}/${entry.name} failed: ${redactToken(String(err), token)}`)
+          }
+          /* v8 ignore start */
+          // log + continue: an unfetchable asset is skipped — the package
+          // hydrates without it.
+          console.warn(`[resolver-node] Failed to fetch asset ${name}/${entry.name}: ${redactToken(String(err), token)}`)
+          /* v8 ignore stop */
+        }
+      }
+      return Object.keys(out).length > 0 ? out : undefined
     }
-    return Object.keys(out).length > 0 ? out : undefined
-  }
 
-  return {
-    spec,
-    procedures: await fetchSubdir('procedures'),
-    samples: await fetchSubdir('samples'),
-    assets: await fetchSubdir('assets'),
-    skills: await fetchSubdir('skills', { recursive: true, strict: true }),
+    return {
+      spec,
+      procedures: await fetchSubdir('procedures'),
+      samples: await fetchSubdir('samples'),
+      assets: await fetchSubdir('assets'),
+      skills: await fetchSubdir('skills', { recursive: true, strict: true }),
+    }
+  } catch (err) {
+    // Every diagnostic path rejects with a token-redacted message. A rejected
+    // authenticated fetch is surfaced as BlueprintAuthError with setup steps.
+    const message = redactToken(err instanceof Error ? err.message : String(err), token)
+    if (authHeaders && /HTTP 40[13]/.test(message)) {
+      throw new BlueprintAuthError(
+        `${message} — blueprint authentication failed. Verify COGNNITIVE_TOKEN or ~/.agents/credentials.json.`,
+      )
+    }
+    if (err instanceof Error) {
+      err.message = message
+      throw err
+    }
+    throw new Error(message)
   }
 }
 

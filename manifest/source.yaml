@@ -58,55 +58,14 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md
     ref_key: blueprints
-  - name: projects
+  - name: changes
     repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/projects/spec_NN.md
+    path: iNNfo/specs/bluepriNNts/changes/spec_NN.md
+    version: "V_0-5-0"
     ref_key: blueprints
-  - name: procedures
+  - name: sidecar
     repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/procedures/spec_NN.md
-    version: "V_0-3-2"
-    ref_key: blueprints
-  - name: organization
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/organization/spec_NN.md
-    ref_key: blueprints
-  - name: business
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/business/spec_NN.md
-    ref_key: blueprints
-  - name: business-model
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/business-model/spec_NN.md
-    ref_key: blueprints
-  - name: analysis
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/analysis/spec_NN.md
-    ref_key: blueprints
-  - name: innovation
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/innovation/spec_NN.md
-    ref_key: blueprints
-  - name: blank
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/blank/spec_NN.md
-    ref_key: blueprints
-  - name: documentation
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/documentation/spec_NN.md
-    ref_key: blueprints
-  - name: metrics
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/metrics/spec_NN.md
-    ref_key: blueprints
-  - name: repository
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/repository/spec_NN.md
-    ref_key: blueprints
-  - name: video-script
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/video-script/spec_NN.md
-    version: "V_0-1-4"
+    path: iNNfo/specs/bluepriNNts/sidecar/spec_NN.md
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web
@@ -116,23 +75,14 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/artifacts/spec_NN.md
     ref_key: blueprints
-  - name: sidecar
+  - name: procedures
     repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/sidecar/spec_NN.md
+    path: iNNfo/specs/bluepriNNts/procedures/spec_NN.md
+    version: "V_0-3-2"
     ref_key: blueprints
-  - name: design-presets
+  - name: blank
     repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/design-presets/spec_NN.md
-    ref_key: blueprints
-  - name: visual-catalog
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md
-    version: "V_0-1-0"
-    ref_key: blueprints
-  - name: changes
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/changes/spec_NN.md
-    version: "V_0-5-0"
+    path: iNNfo/specs/bluepriNNts/blank/spec_NN.md
     ref_key: blueprints
 
 frozen_blueprints:
