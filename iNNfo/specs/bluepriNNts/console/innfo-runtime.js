@@ -4770,7 +4770,7 @@
     }
 
     function openSource(source) {
-      renderCitationDialog(doc, 'sources', [{ origin: 'document', path: source }])
+      openSourceCitation(doc, source)
     }
 
     var unsent = el('section', 'innfo-changes-unsent mb-8')
@@ -5400,11 +5400,14 @@
         prov.insertAdjacentHTML('afterbegin', InnfoIcons.getSvg('cite-' + variantKey, { size: 13 }))
       }
       if (head && prov) head.appendChild(prov)
-      var status = el(
-        'span',
-        'innfo-cite-status' + (entry.error ? ' is-bad' : ''),
-        entry.error ? 'unresolved' : 'resolved',
-      )
+      // An `unchecked` entry (a change source nothing has resolved) claims no status.
+      var status = entry.unchecked
+        ? null
+        : el(
+            'span',
+            'innfo-cite-status' + (entry.error ? ' is-bad' : ''),
+            entry.error ? 'unresolved' : 'resolved',
+          )
       if (head && status) head.appendChild(status)
       if (card && head) card.appendChild(head)
       // The card goes into the list first; its children are appended below.
@@ -6048,6 +6051,16 @@
     return composed
   }
 
+  // A change `sources` value is a path plus an optional `#anchor`. Nothing resolves it
+  // here, so the entry is marked `unchecked` and the dialog claims no status for it.
+  function openSourceCitation(doc, source) {
+    var text = String(source)
+    var hash = text.indexOf('#')
+    var entry = { origin: 'document', unchecked: true, path: hash === -1 ? text : text.slice(0, hash) }
+    if (hash !== -1 && hash < text.length - 1) entry.anchor = text.slice(hash + 1)
+    renderCitationDialog(doc, 'sources', [entry])
+  }
+
   function updateExportPreview(doc, state) {
     var modal = doc.getElementById('innfo-feedback-modal')
     if (!modal) return { ok: false }
@@ -6059,7 +6072,13 @@
     if (preview) {
       preview.innerHTML = ''
       preview.appendChild(
-        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged }),
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
+          doc: doc,
+          isTargetChanged: Review.isTargetChanged,
+          onCitation: function (source) {
+            openSourceCitation(doc, source)
+          },
+        }),
       )
     }
 

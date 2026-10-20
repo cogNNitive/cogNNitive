@@ -205,7 +205,13 @@ describe('console-review-tab (one Changes tab)', () => {
     const tab = renderTab({ store, elements: ELEMENTS, changes: cited })
     ;(tab.querySelector('.innfo-change-card-source .cite-icon') as HTMLButtonElement).click()
     expect(dialog.showModal).toHaveBeenCalledTimes(1)
-    expect(dialog.textContent).toContain('sources/report.pdf#p3')
+    // The source splits into a path and an anchor; nothing was checked, so no status is claimed.
+    const labels = Array.from(dialog.querySelectorAll('dt')).map((n: any) => n.textContent)
+    const values = Array.from(dialog.querySelectorAll('dd')).map((n: any) => n.textContent)
+    expect(labels).toEqual(['Anchor', 'Path'])
+    expect(values).toEqual(['p3', 'sources/report.pdf'])
+    expect(dialog.querySelector('.innfo-cite-status')).toBeNull()
+    expect(dialog.textContent).not.toContain('resolved')
   })
 
   it('Go to element focuses the element card', () => {

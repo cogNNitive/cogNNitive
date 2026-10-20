@@ -50,6 +50,17 @@ describe('InnfoUI.DraftList', () => {
     expect(onDelete).toHaveBeenCalledWith('fb-001')
   })
 
+  it('renders no citation icon without onCitation, so a dead icon never appears', () => {
+    const list = UI.DraftList({
+      drafts: [
+        { id: 'fb-8', element_id: 'el-a', kind: 'comment', base_hash: 'h1', comment: 'c', sources: 'sources/a.md' },
+      ],
+      byId,
+    })
+    expect(list.querySelector('[data-innfo-component="citation-icon"]')).toBeNull()
+    expect(list.querySelector('.innfo-change-card-source')!.textContent).toBe('sources/a.md')
+  })
+
   it('renders no Discard control without onDelete (the export preview)', () => {
     const list = UI.DraftList({ drafts, byId })
     expect(list.querySelector('.innfo-change-discard')).toBeNull()

@@ -2033,17 +2033,20 @@
         if (src == null || src === '') return
         var srcText = String(src)
         var srcEl = makeEl(doc, 'span', 'innfo-change-card-source text-xs inline-flex items-center gap-1', srcText)
-        srcEl.appendChild(
-          CitationIcon(
-            { variant: 'document', field: srcText },
-            {
-              doc: doc,
-              onOpen: function () {
-                if (opts && typeof opts.onCitation === 'function') opts.onCitation(srcText)
+        // A citation icon only exists when the host can open it: never a dead control.
+        if (opts && typeof opts.onCitation === 'function') {
+          srcEl.appendChild(
+            CitationIcon(
+              { variant: 'document', field: srcText },
+              {
+                doc: doc,
+                onOpen: function () {
+                  opts.onCitation(srcText)
+                },
               },
-            },
-          ),
-        )
+            ),
+          )
+        }
         body.appendChild(srcEl)
       })
     }

@@ -92,6 +92,34 @@ describe('console-review-export (preview + clipboard)', () => {
     vi.unstubAllGlobals()
   })
 
+  it('a source citation in the export preview opens the citation dialog', () => {
+    renderModelConsole()
+    seedDraft()
+    // The draft store does not persist `sources`, so graft one on the drafts the
+    // runtime reads: the preview must wire its citation icon regardless.
+    const mods = env.loadConsole()
+    const createDraftStore = mods.Review.createDraftStore
+    mods.Review.createDraftStore = (...args: unknown[]) => {
+      const store = createDraftStore(...args)
+      const read = store.drafts
+      store.drafts = () => read().map((d: object) => ({ ...d, sources: 'sources/report.pdf#p3' }))
+      return store
+    }
+    mods.Console.boot(env.document)
+    const dialog = env.document.createElement('dialog') as any
+    dialog.id = 'innfo-citation-dialog'
+    dialog.showModal = vi.fn()
+    env.document.body.appendChild(dialog)
+    openModal()
+    const icon = env.document.querySelector(
+      '#innfo-feedback-modal [data-innfo="preview"] .innfo-change-card-source .cite-icon',
+    ) as HTMLButtonElement
+    expect(icon).not.toBeNull()
+    icon.click()
+    expect(dialog.showModal).toHaveBeenCalledTimes(1)
+    expect(dialog.textContent).toContain('sources/report.pdf')
+  })
+
   it('opening the feedback modal renders a DraftList preview', () => {
     seedDraft()
     boot()
