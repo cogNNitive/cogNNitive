@@ -56,8 +56,8 @@ The PDF/DOCX/TXT path (`reflowExtractedText()`) is materially better and is **no
 Three phases, each independently landable and CI-verifiable.
 
 1. **Fidelity, no new dependencies.** Fix the existing converter: normalize line endings first, decode numeric + full named entities, drop boilerplate tags and prefer `<main>`/`<article>`. These four changes remove the bulk of the measured noise with zero dependency and zero distribution risk.
-2. **Real extraction.** Replace the regex pass with a main-content extractor. Because `nn-sources` is **distributed** (`manifest/source.yaml`) and the converters already have a dependency story (`mammoth`, `pdf-parse`, `xlsx`, plus `ensureDependency` for on-demand installs), this phase adds the parser through that same consent-gated path and keeps a regex fallback.
-3. **Gate + contract.** Add the quality assessment and the non-`ready` status; refuse zero-byte subjects; honour charset; fix the lineage `source_format` projection and promote the sidecar-subject mismatch to an error.
+2. **Real extraction.** Replace the regex pass with a main-content extractor. Because `nn-sources` is **distributed** (`manifest/source.yaml`) and the converters already have a dependency story (`mammoth`, `pdf-parse`, `xlsx`, plus `ensureDependency` for on-demand installs), this phase adds the parser through that same consent-gated path and keeps a regex fallback. Chosen pair (D2, resolved): `@mozilla/readability` (Apache-2.0, zero deps) + `linkedom` (ISC) — both in the `allow` list of `scripts/license-policy.json`, so no licence exception is needed. Readability picks the article region and its HTML is rendered by the hardened `htmlToPlainText` (D10), so no separate Markdown converter is added.
+3. **Gate + contract.** Add the quality assessment and the non-`ready` status (`partial`, D6 — resolved); refuse zero-byte subjects; honour charset; fix the lineage `source_format` projection and promote the sidecar-subject mismatch to an error. A `partial` source's citations are **warned, never hard-blocked** (D11 — resolved).
 
 ## Affected Areas
 
@@ -92,7 +92,7 @@ Fully reversible. Phase 1/3 are edits to one converter, one projection function 
 - [ ] `FT_55866` re-cognitivized → blank lines < 10% (was 82.5%).
 - [ ] `PD_NN` re-scan → 0 undecoded HTML entities (was 5497).
 - [ ] `PMC9547138` body does not begin with `Skip to main content`/`Log in`/`Dashboard`.
-- [ ] A captcha/JS-wall page yields a non-`ready` status and is not citable as evidence.
+- [ ] A captcha/JS-wall page yields `status:: partial` and is warned, not offered as evidence.
 - [ ] A 0-byte `.html` subject is refused and produces no `# NN Sources` entry.
 - [ ] An `.html` source projects `source_format:: html` (was `md`).
 - [ ] `--lineage --check` reports the 7 `LC_programas` sidecar-subject mismatches as errors.

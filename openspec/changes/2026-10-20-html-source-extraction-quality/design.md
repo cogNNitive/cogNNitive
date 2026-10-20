@@ -12,21 +12,27 @@ Three seams, each aligned to an existing boundary. No new architecture.
 
 | # | Decision | Options | Choice | Rationale |
 |---|----------|---------|--------|-----------|
-| D1 | Phase-2 extractor | vendor a parser in-repo vs add a npm dep via `ensureDependency` vs keep regex and harden | **npm dep (Mozilla Readability + a DOM parser), consent-gated, regex fallback** | Readability is the battle-tested main-content algorithm; the skill already ships runtime deps and an `ensureDependency` prompt, so distribution is an existing solved problem, not a new one |
+| D1 | Phase-2 extractor | vendor a parser in-repo vs add a npm dep via `ensureDependency` vs keep regex and harden | **`@mozilla/readability` + `linkedom`, optional/consent-gated, hardened regex fallback** | Readability is the battle-tested main-content algorithm and needs a DOM; the skill already ships runtime deps and an `ensureDependency` prompt, so distribution is an existing solved problem. Licences verified in the `allow` list: `@mozilla/readability` Apache-2.0 (zero deps), `linkedom` ISC (5 permissive transitives: css-select BSD-2, cssom/html-escaper/htmlparser2 MIT, uhyphen ISC) → `check:licenses` needs no `reviewed` exception. `jsdom` rejected (20 deps); `turndown` not needed (see D10) |
 | D2 | Boilerplate strategy | blanket tag removal vs `main`/`article` extraction vs both | **`main`/`article` first, tag strip as the fallback** | Blanket removal can delete real content when a page has no semantic regions; prefer the region, fall back conservatively |
 | D3 | Entity decoding | full named table + numeric vs numeric only vs keep 8 | **numeric + full named table, `&amp;` last** | The measured corpus needs the Spanish numeric entities and `&iacute;`; decoding `&amp;` last avoids double-decode |
 | D4 | CRLF handling | normalize at read vs fix each regex vs leave | **normalize once at function entry** | One line closes the 82.5%-blank class; per-regex CRLF handling is a maintenance trap |
 | D5 | Quality signal home | a new frontmatter field vs a new `status` value vs both | **new `status` value `partial`, plus an optional `extraction_quality` note** | `status` is the field the catalog/console already read; a note preserves the diagnostic without a new contract surface |
-| D6 | `partial` vs reuse `error` | add `partial` vs map walls to `error` | **add `partial` (open for maintainer)** | `error` means "operation failed"; a successfully-ingested wall is a *content* problem, qualitatively different from a transient failure. Reusing `error` would overload it |
+| D6 | `partial` vs reuse `error` | add `partial` vs map walls to `error` | **add `partial`** (resolved 2026-10-20) | `error` means "operation failed"; a successfully-ingested wall is a *content* problem, qualitatively different from a transient failure. Reusing `error` would overload it |
 | D7 | Charset source of truth | HTTP header vs `<meta>` vs both, first wins | **`Content-Type` charset, then `<meta charset>`, then UTF-8** | Header is authoritative on download; `<meta>` covers hand-dropped files with no header |
 | D8 | Zero-byte subjects | refuse at import vs refuse at cognitivize vs both | **refuse at cognitivize (single writer), surfaced by import** | `cognitivize` is the one gate every subject passes; import should warn early but not be the only guard |
 | D9 | `SIDECAR_SUBJECT_MISMATCH` severity | warning vs error vs configurable | **error** | It means a citation can resolve to a subject whose bytes were never hashed; silence is how the 7 `nn-upgrade` artifacts accumulated |
+| D10 | Markup→Markdown step | add `turndown` vs reuse `htmlToPlainText` | **reuse `htmlToPlainText` on the extracted region** | Readability returns the article's *HTML*; the existing converter already does markup→markdown and is being hardened in Phase 1. Readability decides *which region*, the converter decides *how to render it*. One dependency less |
+| D11 | A `partial` source's citation | hard-block vs warn only | **warn only** (resolved 2026-10-20) | Existing models must keep resolving; a hard block would turn a detection improvement into a corpus break. The signal is surfaced, the human decides |
 
 ## Interfaces / Contracts
 
 ```js
 // scanner-converters.js — HTML conversion (public shape unchanged)
 htmlToPlainText(html) -> string        // body only; callers unchanged
+
+// Phase-2 pipeline (optional dep): readability picks the article region, then
+// htmlToPlainText renders that region's HTML to markdown (D10 — no turndown).
+// extractArticle(html, { charset }) -> { content: string } | null   // null => fall back
 
 // new internal seam (Phase 1/2), exported for tests
 normalizeHtml(html, { charset } = {}) -> {
@@ -115,8 +121,13 @@ Runner: `node scripts/verify.js` (discovers skill `*.test.js|mjs`) and `npm --pr
 | Integration | blueprint `status` value validates; `catalog.json` fresh | `validate_knowledge` + `check:specs` |
 | Regression | the 6 `PD_NN` fixtures are committed and each has an assertion | `test/fixtures/html/` |
 
-## Open Questions
+## Resolved Decisions (2026-10-20)
 
-- [ ] **D6 — `partial` vs `error`**: is a new status value acceptable as a public-contract addition, or should walls map to the existing `error`? (Proposed: add `partial`.) Maintainer call before Phase 3.
-- [ ] **Phase 2 dependency**: which exact pair (`@mozilla/readability` + `linkedom`) — confirm licence passes `check:licenses` and the bundled/offline story for distributed workspaces. (Proposed: `@mozilla/readability` + `linkedom`.)
-- [ ] Should the gate **block** citation of a `partial` source (a hard error in `--check-impact`), or only mark it? (Proposed: mark + warn, never hard-block, so existing models keep resolving.)
+| # | Question | Resolution | Basis |
+|---|----------|------------|-------|
+| D6 | `partial` vs reuse `error` | **Add `partial` to the `status` value set** | Content problem ≠ operational failure; maintainer accepted the recommendation |
+| D2 | Phase-2 dependency | **`@mozilla/readability` + `linkedom`, optional/consent-gated, hardened regex fallback** | Licences verified against `scripts/license-policy.json`: both (and all 5 transitives) are in `allow`; Readability carries zero deps; `jsdom` (20 deps) rejected |
+| D11 | A `partial` source's citation | **Warn only; never hard-block** | Existing models must keep resolving; the gate improves detection, it does not prune the corpus |
+
+Consequences folded into `tasks.md`: task 3.8 adds `partial`; task 2.2 names the pair; the gate
+requirement in `source-content-quality-gate` names `partial` explicitly.

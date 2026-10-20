@@ -43,23 +43,43 @@ visible to the catalog and the lineage record; it MUST NOT be silently treated a
 
 ### Requirement: The source status distinguishes a content problem from an operational failure
 
-The `Source.status` value set MUST gain a value that means "ingested, but the extracted
-content is not trustworthy" — distinct from `error`, which means the operation itself failed.
-A wall or empty extraction is a content outcome, not a transient failure, and the two MUST
-NOT be conflated. The new value MUST be reflected in the `sources` bluepriNNt `status`
-field definition and in the lineage record.
+The `Source.status` value set MUST gain the value `partial`, meaning "ingested, but the
+extracted content is not trustworthy" — distinct from `error`, which means the operation
+itself failed. A wall or empty extraction is a content outcome, not a transient failure, and
+the two MUST NOT be conflated. `partial` MUST be reflected in the `sources` bluepriNNt
+`status` field definition and in the lineage record.
 
 #### Scenario: A wall is `partial`, not `error`
 
 - GIVEN a source whose body is an anti-bot wall
 - WHEN its status is recorded
-- THEN the status is the content-problem value (not `ready`, not `error`)
+- THEN the status is `partial`
 
 #### Scenario: A transient failure is still `error`
 
 - GIVEN a conversion that threw or could not fetch its input
 - WHEN the status is recorded
 - THEN the status is `error`
+
+### Requirement: A `partial` source is surfaced, never silently blocked
+
+A `partial` source MUST be surfaced wherever sources are presented (catalog and lineage), and
+a model that cites one MUST receive a warning. It MUST NOT be hard-blocked: its citations
+MUST continue to resolve, so an improvement in detection does not break existing knowledge
+that already cites the source.
+
+#### Scenario: Citation of a `partial` source still resolves
+
+- GIVEN a model element whose `sources::` cites a source now marked `partial`
+- WHEN the citations are resolved
+- THEN the citation resolves (no drift/not-found error)
+- AND a warning identifies the source as not usable evidence
+
+#### Scenario: The condition is visible without resolving citations
+
+- GIVEN a cognitivized source marked `partial`
+- WHEN the catalog or the lineage `# NN Sources` section is read
+- THEN its `partial` status is present
 
 ### Requirement: A zero-byte subject is refused
 

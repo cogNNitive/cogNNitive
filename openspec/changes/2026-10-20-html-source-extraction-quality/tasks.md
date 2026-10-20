@@ -25,9 +25,11 @@ red test → green implementation → verify.
 - [ ] 2.1 RED — a golden-body test over a real fixture: article prose is present **and** journal
       chrome (`Skip to main content`, `Log in`, section menus) is gone; run it against the Phase-1
       converter to characterise the gap.
-- [ ] 2.2 GREEN — add the extractor dependency (`@mozilla/readability` + `linkedom`, D1/D2 open
-      question) to `skills/nn-sources/package.json`; route `normalizeHtml` through it with the
-      Phase-1 regex converter as fallback when the dep is not resolvable.
+- [ ] 2.2 GREEN — add the extractor dependency (`@mozilla/readability@^0.6.0` Apache-2.0 +
+      `linkedom@^0.18.13` ISC — D1/D2 resolved; both in the licence `allow` list) to
+      `skills/nn-sources/package.json`; route `.html` through `extractArticle` then feed its HTML
+      to the hardened `htmlToPlainText` (D10 — no turndown), with the Phase-1 regex path as
+      fallback when the dep is not resolvable.
 - [ ] 2.3 GREEN — wire the consent-gated install through the existing `ensureDependency` path so a
       distributed workspace prompts rather than hard-fails; confirm `scripts/check-licenses.mjs`
       passes with the new dep.
@@ -51,8 +53,10 @@ red test → green implementation → verify.
 - [ ] 3.7 GREEN — `project.ts`: derive `source_format` from the subject's own extension / sidecar
       `source_format`; promote `SIDECAR_SUBJECT_MISMATCH` to an error.
 - [ ] 3.8 GREEN — `iNNfo/specs/bluepriNNts/sources/spec_NN.md`: add `partial` to the `status`
-      `options::` (decision D6) and the optional `extraction_quality` field; bump
+      `options::` (D6 resolved — add `partial`) and the optional `extraction_quality` field; bump
       `blueprint_version` V_0-3-0 → V_0-4-0; regenerate `catalog.json`.
+- [ ] 3.8a GREEN — a `partial` source's citations warn but still resolve (D11 resolved — warn
+      only, never hard-block); assert no drift/not-found error is raised for it.
 - [ ] 3.9 Verify — `npm --workspace=@cognnitive/innfo-core test`, `validate_knowledge` on a sample,
       `npm run check:specs` and `node scripts/verify.js --fast` green.
 
