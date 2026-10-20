@@ -14,6 +14,7 @@ export const CHANGE_OPS = [
   'update_concept_text',
   'update_concept_field',
   'remove_matrix',
+  'add_matrix',
   'comment',
   'add_model',
   'freeze_slugs',

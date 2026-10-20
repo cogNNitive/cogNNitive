@@ -186,6 +186,12 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       if (target.split('&').length < 3) problems.push(`${label}: update_matrix_cell target must be model@matrix&row&col`)
       need('to')
       break
+    case 'add_matrix':
+      if (!target.includes('matrix:')) problems.push(`${label}: add_matrix target must be model@matrix:<name>`)
+      need('name', ' (the matrix name)')
+      need('concept', ' (the row-axis concept)')
+      need('to', ' (the column-axis concept)')
+      break
     case 'comment':
       need('notes')
       break

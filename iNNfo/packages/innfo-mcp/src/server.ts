@@ -302,6 +302,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
               'rename_element',
               'update_concept_field',
               'remove_matrix',
+              'add_matrix',
               'generate_index',
               'bump_version',
               'freeze_slugs',
@@ -310,7 +311,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For add_matrix: { matrixName, source, targetConcept, columns?, rows? } (source/targetConcept are the row/column axis concepts; columns/rows seed the grid and default to the axis concepts elements). For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',
@@ -351,7 +352,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'propose_changeset',
       description:
         'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
-        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, comment, add_model, freeze_slugs, bump_version); the tool does not interpret conversations. ' +
+        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, remove_matrix, add_matrix, comment, add_model, freeze_slugs, bump_version); the tool does not interpret conversations. ' +
         'Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. ' +
         'The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset.',
       inputSchema: {

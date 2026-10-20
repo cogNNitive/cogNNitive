@@ -130,6 +130,31 @@ describe('Level-3 maintenance operations are changesets', () => {
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(before)
   })
 
+  it('add_matrix creates a Level-3 matrix table through apply_change (cogNNitive-web#19)', async () => {
+    const res = await applyChange(root, 'strategy', 'add_matrix', {
+      matrixName: 'Work Impact',
+      source: 'Work',
+      targetConcept: 'Work',
+      columns: 'Outcome',
+      rows: 'Vision',
+    })
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    const out = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(out).toContain('# NN matrices: Work Impact')
+    expect(out).toContain('| Work \\ Work | Outcome |')
+    expect(out).toContain('| Vision | - |')
+  })
+
+  it('add_matrix is refused on a Level-2 bluepriNNt', async () => {
+    const res = await applyChange(root, 'tpl', 'add_matrix', {
+      matrixName: 'X',
+      source: 'Work',
+      targetConcept: 'Work',
+    })
+    expect(res.success).toBe(false)
+  })
+
   it('propose_changeset accepts the new operations and rejects a bad level', async () => {
     const ok = await proposeChangeset(
       root,
@@ -138,6 +163,18 @@ describe('Level-3 maintenance operations are changesets', () => {
     )
     expect(ok.errors ?? []).toEqual([])
     expect(ok.success).toBe(true)
+    const okMatrix = await proposeChangeset(
+      root,
+      {
+        operations: [
+          { op: 'add_matrix', target: 'strategy@matrix:Work Impact', name: 'Work Impact', concept: 'Work', to: 'Work' },
+        ],
+        open: false,
+      },
+      { open: false },
+    )
+    expect(okMatrix.errors ?? []).toEqual([])
+    expect(okMatrix.success).toBe(true)
     const bad = await proposeChangeset(
       root,
       { operations: [{ op: 'bump_version', target: 'strategy', to: 'huge' }], open: false },
