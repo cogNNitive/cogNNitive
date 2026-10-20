@@ -21,6 +21,9 @@
  *   node scripts/blueprint-catalog.mjs [--check] [--root <dir>] [--out <file>] [--release-tag <tag>]
  *
  *   --check        compare the rendered catalog to the committed file; exit 1 on drift.
+ *                  `release_tag` is release state, not catalog content, so it is
+ *                  normalized away: the offline gate must not depend on git tags
+ *                  (see `scripts/verify.js`).
  *   --root         override the bluepriNNts tree (default: iNNfo/specs/bluepriNNts).
  *   --out          override the output file (default: iNNfo/specs/bluepriNNts/catalog.json).
  *   --release-tag  override the `release_tag` stamped on every entry (default: newest
@@ -258,6 +261,20 @@ function render(catalog) {
   return JSON.stringify(catalog, null, 2) + '\n';
 }
 
+/**
+ * The catalog text with every `release_tag` value replaced by a fixed placeholder.
+ *
+ * `release_tag` is release state — it is derived from the newest `blueprints-v*` git
+ * tag — and `scripts/verify.js` promises a gate that is deterministic **without**
+ * release tags ("Release state (pins, tags, the published manifest) is checked by the
+ * release workflow, not here"). Comparing it here made the gate depend on the tag set:
+ * cutting a `blueprints-v*` tag instantly reddened every branch until the committed pin
+ * was regenerated. The drift guard therefore compares catalog *content* only.
+ */
+function withoutReleaseTag(text) {
+  return text.replace(/("release_tag"\s*:\s*)"(?:[^"\\]|\\.)*"/g, '$1"<release-state>"');
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const check = argv.includes('--check');
@@ -278,7 +295,7 @@ function main() {
 
   if (check) {
     const committed = fs.existsSync(outFile) ? fs.readFileSync(outFile, 'utf-8') : null;
-    if (rendered === committed) {
+    if (committed !== null && withoutReleaseTag(rendered) === withoutReleaseTag(committed)) {
       console.log(`blueprint-catalog: OK — ${outFile} is up to date.`);
       process.exit(0);
     }

@@ -160,6 +160,19 @@ async function runTests() {
       console.log('✔ --check passes when catalog is fresh');
     }
 
+    // Test 2b: --check ignores `release_tag` — it is release state, not catalog
+    // content, and verify.js must stay deterministic without release tags (see its
+    // header). A different tag alone must not be reported as drift.
+    {
+      const res = spawnSync(
+        process.execPath,
+        [GENERATOR, '--release-tag', 'blueprints-v1.2.3', '--check', '--root', t, '--out', out],
+        { encoding: 'utf-8' },
+      );
+      assert.strictEqual(res.status, 0, `a differing release_tag alone is not drift: ${res.stderr}`);
+      console.log('✔ --check ignores release_tag drift (gate stays deterministic without release tags)');
+    }
+
     // Test 3: --check exits 1 on drift
     {
       const before = fs.readFileSync(out, 'utf-8');
