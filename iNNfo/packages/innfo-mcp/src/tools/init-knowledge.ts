@@ -1,6 +1,6 @@
 import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { ChangeItem, ValidationError } from '@cognnitive/innfo-core'
+import { canonicalModelId, type ChangeItem, type ValidationError } from '@cognnitive/innfo-core'
 import { normalizeId } from './spec.js'
 import { isSafeRelativeId } from './path-guard.js'
 import { applyChange } from './apply-change.js'
@@ -24,6 +24,8 @@ export interface InitKnowledgeArgs {
 
 export interface InitKnowledgeResult {
   success: boolean
+  /** Present only when the document was written: the canonical id it was created under (`<name>_<blueprint>`). */
+  id?: string
   /** Present only when the document was written. */
   filePath?: string
   /** Present only when the document was written. */
@@ -71,7 +73,8 @@ export async function initKnowledge(
       },
     ])
   }
-  const cleanId = normalizeId(id)
+  // The canonical id carries the bluepriNNt suffix and no version token; the caller's id is only input.
+  const cleanId = args.blueprint_name ? canonicalModelId(normalizeId(id), args.blueprint_name) : normalizeId(id)
   const change: ChangeItem = {
     id: 'c-01',
     op: 'add_model',
@@ -119,6 +122,7 @@ export async function initKnowledge(
   const content = await readFile(filePath, 'utf-8')
   return {
     success: true,
+    id: cleanId,
     filePath,
     content,
     changeset: written.path,

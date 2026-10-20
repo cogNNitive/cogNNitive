@@ -65,7 +65,27 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
 }
 
 export const DEFAULT_KNOWLEDGE_VERSION = 'V_0-1-0'
-const SCAFFOLD_SPEC_VERSION = 'V_0-4-0'
+/** Fallback only: used when the bluepriNNt declares no usable `parent_spec`. */
+const FALLBACK_SPEC_VERSION = 'V_0-4-0'
+const FALLBACK_SPEC_URL =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md'
+
+/**
+ * The iNNfo spec a new document is written against: the bluepriNNt's own
+ * `parent_spec` (name `iNNfo_V_x-y-z` plus its URL), so a document never claims
+ * an older spec than the bluepriNNt it conforms to.
+ */
+export function resolveScaffoldSpec(
+  blueprintFrontmatter: Record<string, unknown> | null | undefined,
+): { version: string; url: string } {
+  const parent = blueprintFrontmatter?.parent_spec
+  if (parent && typeof parent === 'object') {
+    const { name, url } = parent as { name?: unknown; url?: unknown }
+    const version = typeof name === 'string' ? /_(V_\d+-\d+-\d+)$/i.exec(name.trim())?.[1] : undefined
+    if (version && typeof url === 'string' && url.trim() !== '') return { version, url: url.trim() }
+  }
+  return { version: FALLBACK_SPEC_VERSION, url: FALLBACK_SPEC_URL }
+}
 
 const NOTICE = `> [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
@@ -111,12 +131,13 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
   const knowledgeVersion = inferKnowledgeVersion(input.knowledgeVersion, input.blueprintFrontmatter)
   const title = input.title || input.id
   const modelSlug = input.modelSlug || slugify(input.id)
+  const spec = resolveScaffoldSpec(input.blueprintFrontmatter)
 
   const esc = (s: string) => JSON.stringify(s)
   const frontmatter = [
     '---',
-    `spec_version: ${esc(SCAFFOLD_SPEC_VERSION)}`,
-    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"',
+    `spec_version: ${esc(spec.version)}`,
+    `spec_url: ${esc(spec.url)}`,
     `knowledge_slug: ${esc(modelSlug)}`,
     'level: 3',
     'parent_spec:',

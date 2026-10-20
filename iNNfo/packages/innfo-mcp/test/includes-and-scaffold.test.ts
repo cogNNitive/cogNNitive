@@ -144,8 +144,9 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     const content = await readFile(res.filePath!, 'utf-8')
     // Version-aware scaffold (validator-robustness): frontmatter versions are
     // inferred from the resolved parent template (stamped V_0-1-0 above).
-    expect(content).toContain('spec_version: "V_0-4-0"')
-    expect(content).toContain('knowledge_slug: "my-model-v-1-0-0-demo-tpl"')
+    expect(content).toContain('spec_version: "V_0-1-0"')
+    expect(content).toContain('knowledge_slug: "my-model-demo-tpl"')
+    expect(res.id).toBe('my_model_demo_tpl')
     expect(content).toMatch(/(knowledge_version|knowledge_version): "V_0-1-0"/)
     expect(content).not.toContain('# NN index')
     expect(content).toContain('# NN Overview')

@@ -114,22 +114,24 @@ describe('add_model: model creation', () => {
 
     expect(res.success).toBe(true)
     expect(res.status).toBe('applied')
-    expect(res.createdModels).toEqual(['acme'])
-    expect(await kFiles()).toEqual(['acme_NN.md', 'strategy_NN.md'])
+    expect(res.createdModels).toEqual(['acme_strategy'])
+    expect(await kFiles()).toEqual(['acme_strategy_NN.md', 'strategy_NN.md'])
 
-    const created = parseKnowledge(await readFile(join(knowledgeDir, 'acme_NN.md'), 'utf-8'))
+    const created = parseKnowledge(await readFile(join(knowledgeDir, 'acme_strategy_NN.md'), 'utf-8'))
     expect(created.frontmatter.title).toBe('ACME Strategy')
     expect(created.frontmatter.parent_spec?.name).toBe(BLUEPRINT_NAME)
     const blueprint = parseKnowledge(BLUEPRINT)
     expect(coreValidate(created, blueprint as never, null, () => null).valid).toBe(true)
 
-    expect(res.models!.acme).toEqual({ result_version: String(created.frontmatter.knowledge_version) })
-    expect(res.models!.acme).not.toHaveProperty('base_version')
+    expect(res.models!.acme_strategy).toEqual({ result_version: String(created.frontmatter.knowledge_version) })
+    expect(res.models!.acme_strategy).not.toHaveProperty('base_version')
     const applied = parseChangeset(await readFile(join(root, cs), 'utf-8'))
-    expect(applied.frontmatter.models!.acme).not.toHaveProperty('base_version')
+    expect(applied.frontmatter.models!.acme_strategy).not.toHaveProperty('base_version')
     expect(applied.changes[0].status).toBe('applied')
+    // The sealed proposal keeps the id the caller proposed; only the models map records the canonical one.
+    expect(applied.changes[0].target).toBe('acme')
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
-    expect(existsSync(join(knowledgeDir, 'acme.tmp'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'acme_strategy.tmp'))).toBe(false)
     expect(existsSync(join(changesDir, '.lock'))).toBe(false)
   })
 
@@ -137,7 +139,7 @@ describe('add_model: model creation', () => {
     const cs = await writeCs([{ ...ADD_ACME, knowledge_version: 'V_9-9-9' }])
     const res = await applyChange(root, cs)
     expect(res.success).toBe(true)
-    expect(await readFile(join(knowledgeDir, 'acme_NN.md'), 'utf-8')).toContain('knowledge_version: "V_9-9-9"')
+    expect(await readFile(join(knowledgeDir, 'acme_strategy_NN.md'), 'utf-8')).toContain('knowledge_version: "V_9-9-9"')
   })
 
   it('an existing model conflicts: MODEL_EXISTS, dependants conflicted, file untouched', async () => {
@@ -166,12 +168,12 @@ describe('add_model: model creation', () => {
 
     expect(res.success).toBe(true)
     expect(res.status).toBe('applied')
-    const text = await readFile(join(knowledgeDir, 'acme_NN.md'), 'utf-8')
+    const text = await readFile(join(knowledgeDir, 'acme_strategy_NN.md'), 'utf-8')
     expect(text).toContain('Pillar One')
     expect(text).toContain('Own the market')
     expect(text).toContain('Example Work')
     expect(text).toContain('knowledge_version: "V_0-2-0"')
-    expect(res.models!.acme).toEqual({ result_version: 'V_0-2-0' })
+    expect(res.models!.acme_strategy).toEqual({ result_version: 'V_0-2-0' })
   })
 
   it('rejects a change that targets the model before the add_model that creates it', async () => {
@@ -236,15 +238,15 @@ describe('add_model: model creation', () => {
 
   it('removes the models this run created when a later persist fails, and keeps pre-existing ones', async () => {
     // A directory squatting on zeta's staging path makes the second write throw.
-    await mkdir(join(knowledgeDir, 'zeta.tmp'), { recursive: true })
+    await mkdir(join(knowledgeDir, 'zeta_strategy.tmp'), { recursive: true })
     const cs = await writeCs([ADD_ACME, { ...ADD_ACME, id: 'c-02', target: 'zeta', name: 'Zeta' }])
     const outcome = await applyChange(root, cs).then(
       (res) => res,
       (err) => err as Error,
     )
     if (!(outcome instanceof Error)) expect(outcome.success).toBe(false)
-    expect(existsSync(join(knowledgeDir, 'acme_NN.md'))).toBe(false)
-    expect(existsSync(join(knowledgeDir, 'zeta_NN.md'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'acme_strategy_NN.md'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'zeta_strategy_NN.md'))).toBe(false)
     expect(existsSync(join(knowledgeDir, 'strategy_NN.md'))).toBe(true)
     expect(existsSync(join(changesDir, '.lock'))).toBe(false)
   })
@@ -341,6 +343,6 @@ describe('bump_version on a model created in the same changeset', () => {
     const res = await applyChange(root, path)
     expect(res.success).toBe(false)
     expect(res.errors![0].code).toBe('BUMP_ON_CREATED_MODEL')
-    expect(existsSync(join(knowledgeDir, 'acme_NN.md'))).toBe(false)
+    expect(existsSync(join(knowledgeDir, 'acme_strategy_NN.md'))).toBe(false)
   })
 })

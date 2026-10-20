@@ -206,7 +206,44 @@ describe('proposal validation before write', () => {
     expect(ok.success).toBe(true)
     const applied = await applyChange(root, ok.changeset!)
     expect(applied.status).toBe('applied')
-    expect(await readFile(join(knowledgeDir, 'acme_NN.md'), 'utf-8')).toContain('## NN Work: Pillar')
+    expect(await readFile(join(knowledgeDir, 'acme_strategy_NN.md'), 'utf-8')).toContain('## NN Work: Pillar')
+  })
+
+  describe('add_model canonical id aliasing within one changeset', () => {
+    const addFor = (target: string) => ({
+      op: 'add_model',
+      target,
+      blueprint_name: 'strategy_V_0-2-0',
+      blueprint_url: 'specs/strategy_V_0-2-0_NN.md',
+    })
+
+    it.each([
+      ['the id the caller passed', 'acme_V_0-1-0', 'acme_V_0-1-0@Work'],
+      ['the canonical id', 'acme_V_0-1-0', 'acme_strategy@Work'],
+      ['the unsuffixed id', 'acme', 'acme@Work'],
+      ['the canonical id of an unsuffixed id', 'acme', 'acme_strategy@Work'],
+    ])('a follow-up add_element targeting %s lands in the created model', async (_label, modelId, elementTarget) => {
+      const ok = await propose([addFor(modelId), { op: 'add_element', target: elementTarget, concept: 'Work', name: 'Pillar' }])
+      expect(ok.success).toBe(true)
+      const applied = await applyChange(root, ok.changeset!)
+      expect(applied.status).toBe('applied')
+      expect(applied.createdModels).toEqual(['acme_strategy'])
+      expect(Object.keys(applied.models ?? {})).toEqual(['acme_strategy'])
+      const written = await readFile(join(knowledgeDir, 'acme_strategy_NN.md'), 'utf-8')
+      expect(written).toContain('## NN Work: Pillar')
+      expect(written).toContain('knowledge_slug: "acme-strategy"')
+    })
+
+    it('the alias also enforces ordering: an element before its add_model is still ADD_MODEL_ORDER', async () => {
+      const early = await propose([{ op: 'add_element', target: 'acme_strategy@Work', concept: 'Work', name: 'Pillar' }, addFor('acme')])
+      expect(early.errors?.[0].code).toBe('ADD_MODEL_ORDER')
+    })
+
+    it('two add_model ids that canonicalize to the same model are a duplicate', async () => {
+      const dup = await propose([addFor('acme'), addFor('acme_V_0-1-0_strategy')])
+      expect(dup.success).toBe(false)
+      expect(dup.errors?.[0].code).toBe('ADD_MODEL_DUPLICATE')
+    })
   })
 })
 

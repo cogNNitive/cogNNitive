@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkNameInvariant, blueprintNameOf } from '../../src/naming/contract.js'
+import { checkNameInvariant, blueprintNameOf, canonicalModelId } from '../../src/naming/contract.js'
 import { validateFormatContent } from '../../src/validator/content.js'
 
 describe('checkNameInvariant', () => {
@@ -91,5 +91,26 @@ describe('validator rule NN_NAME_INVARIANT', () => {
   it('reads the blueprint from a versioned parent_spec name', () => {
     const report = validateFormatContent(doc('business_V_0-2-2'), 'Client_business_NN.md')
     expect(report.checks.find((c) => c.id === 'NN_NAME_INVARIANT')).toBeUndefined()
+  })
+})
+
+describe('canonicalModelId', () => {
+  it.each([
+    ['cognnitive', 'business', 'cognnitive_business'],
+    ['Starter', 'business', 'Starter_business'],
+    ['cognnitive_business', 'business', 'cognnitive_business'],
+    ['Cognnitive_Business', 'business', 'Cognnitive_Business'],
+    ['cognnitive_V_0-1-0_business', 'business', 'cognnitive_business'],
+    ['cognnitive_business_V_0-1-0', 'business', 'cognnitive_business'],
+    ['cognnitive', 'business_V_0-2-0', 'cognnitive_business'],
+    ['acme', 'business-model', 'acme_business-model'],
+  ])('%s against %s becomes %s', (id, blueprint, expected) => {
+    expect(canonicalModelId(id, blueprint)).toBe(expected)
+  })
+
+  it('always yields a name that satisfies the _NN invariant', () => {
+    for (const id of ['x', 'x_V_1-2-3_business', 'x_business']) {
+      expect(checkNameInvariant(`${canonicalModelId(id, 'business')}_NN.md`, 'business')).toBeNull()
+    }
   })
 })

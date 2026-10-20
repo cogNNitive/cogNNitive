@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { parseChangeset, parseKnowledge } from '@cognnitive/innfo-core'
+import { parseChangeset, parseKnowledge, checkNameInvariant } from '@cognnitive/innfo-core'
 import { initKnowledge } from './init-knowledge'
 import type { ConsoleWriter } from './console-regeneration'
 import {
@@ -23,6 +23,15 @@ const knowledgeDir = join(rootDir, 'kNNowledge')
 const changesDir = join(rootDir, 'changes')
 
 const BUSINESS = { blueprint_name: 'business_V_0-2-0', blueprint_url: BUSINESS_URL }
+
+/**
+ * The shared golden, as it reads when created through `add_model`: the id is canonical
+ * (`<name>_<blueprint>`), so the slug (and a default title) follow it.
+ */
+const goldenAs = (name: Parameters<typeof golden>[0], slug: string, title?: string): string => {
+  const out = golden(name).replace(/^knowledge_slug: ".*"$/m, `knowledge_slug: "${slug}"`)
+  return title === undefined ? out : out.replace(/^title: ".*"$/m, `title: "${title}"`)
+}
 
 const writer: ConsoleWriter = async () => ({
   path: join(rootDir, 'domaiNN_console.html'),
@@ -61,8 +70,9 @@ describe('initKnowledge (add_model wrapper)', () => {
     const result = await run('NewModel', { ...BUSINESS, title: 'New Model' })
 
     expect(result.success).toBe(true)
-    expect(result.filePath).toBe(join(knowledgeDir, 'NewModel_NN.md'))
-    expect(result.content).toBe(golden('business'))
+    expect(result.id).toBe('NewModel_business')
+    expect(result.filePath).toBe(join(knowledgeDir, 'NewModel_business_NN.md'))
+    expect(result.content).toBe(goldenAs('business', 'newmodel-business'))
     expect(await readFile(result.filePath!, 'utf-8')).toBe(result.content)
 
     const files = await readdir(changesDir)
@@ -71,7 +81,7 @@ describe('initKnowledge (add_model wrapper)', () => {
     const cs = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
     expect(cs.frontmatter.status).toBe('applied')
     expect(cs.changes).toHaveLength(1)
-    expect(cs.changes[0]).toMatchObject({ op: 'add_model', target: 'NewModel', status: 'applied' })
+    expect(cs.changes[0]).toMatchObject({ op: 'add_model', target: 'NewModel_business', status: 'applied' })
     expect(result.validation.valid).toBe(true)
   })
 
@@ -84,7 +94,7 @@ describe('initKnowledge (add_model wrapper)', () => {
 
   it('an existing id fails with MODEL_EXISTS and the broken document is left untouched', async () => {
     const broken = '# NN Person\n\n## NN Person: Alice\ncompensation:: Standard\n'
-    await writeFile(join(knowledgeDir, 'Existing_NN.md'), broken, 'utf-8')
+    await writeFile(join(knowledgeDir, 'Existing_business_NN.md'), broken, 'utf-8')
 
     const result = await run('Existing', BUSINESS)
 
@@ -92,7 +102,7 @@ describe('initKnowledge (add_model wrapper)', () => {
     expect(result.errors?.some((e) => e.code === 'MODEL_EXISTS')).toBe(true)
     expect(result).not.toHaveProperty('filePath')
     expect(result).not.toHaveProperty('content')
-    expect(await readFile(join(knowledgeDir, 'Existing_NN.md'), 'utf-8')).toBe(broken)
+    expect(await readFile(join(knowledgeDir, 'Existing_business_NN.md'), 'utf-8')).toBe(broken)
   })
 
   it('an unresolvable bluepriNNt fails, writes no document and leaves no proposal behind', async () => {
@@ -167,6 +177,42 @@ describe('initKnowledge (add_model wrapper)', () => {
     expect(parseKnowledge(await readFile(newlines.filePath!, 'utf-8')).frontmatter.title).toBe('Line1\nLine2')
   })
 
+  describe('canonical model id', () => {
+    it.each([
+      ['cognnitive', 'cognnitive_business'],
+      ['Starter', 'Starter_business'],
+      ['cognnitive_business', 'cognnitive_business'],
+      ['cognnitive_V_0-1-0_business', 'cognnitive_business'],
+    ])('id %s is created as %s: version-free name, slug and no NN_NAME_INVARIANT', async (id, canonical) => {
+      const result = await run(id, BUSINESS)
+
+      expect(result.success).toBe(true)
+      expect(result.id).toBe(canonical)
+      expect(result.filePath).toBe(join(knowledgeDir, `${canonical}_NN.md`))
+      expect(checkNameInvariant(`${canonical}_NN.md`, 'business')).toBeNull()
+      const fm = parseKnowledge(await readFile(result.filePath!, 'utf-8')).frontmatter as unknown as Record<string, unknown>
+      expect(fm.knowledge_slug).toBe(canonical.toLowerCase().replace(/_/g, '-'))
+      expect(String(fm.knowledge_slug)).not.toMatch(/v-\d+-\d+-\d+/)
+      expect(existsSync(join(knowledgeDir, `${id}_NN.md`))).toBe(id === canonical)
+    })
+
+    it('an existing canonical model blocks creating it again under the short id', async () => {
+      await writeFile(join(knowledgeDir, 'cognnitive_business_NN.md'), '# NN Work', 'utf-8')
+
+      const result = await run('cognnitive', BUSINESS)
+
+      expect(result.success).toBe(false)
+      expect(result.errors?.some((e) => e.code === 'MODEL_EXISTS')).toBe(true)
+    })
+
+    it('records the canonical id in the applied changeset models map', async () => {
+      const result = await run('cognnitive_V_0-1-0_business', BUSINESS)
+      const files = await readdir(changesDir)
+      const cs = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
+      expect(Object.keys(cs.frontmatter.models ?? {})).toEqual([result.id])
+    })
+  })
+
   describe('version-aware frontmatter', () => {
     it('inferred from the resolved parent bluepriNNt', async () => {
       const result = await run('Inferred', BUSINESS)
@@ -186,7 +232,7 @@ describe('initKnowledge (add_model wrapper)', () => {
     it('an explicit differing version is accepted (no VERSION_MISMATCH)', async () => {
       const result = await run('Acme', { ...BUSINESS, knowledge_version: 'V_9-9-9' })
       expect(result.success).toBe(true)
-      expect(result.content).toBe(golden('businessV999'))
+      expect(result.content).toBe(goldenAs('businessV999', 'acme-business', 'Acme_business'))
     })
   })
 
@@ -195,7 +241,7 @@ describe('initKnowledge (add_model wrapper)', () => {
       await stubSpec('reftpl_V_0-1-0', REFERENCE_STUB)
       const result = await run('RefModel', { blueprint_name: 'reftpl_V_0-1-0', blueprint_url: REFERENCE_URL })
       expect(result.success).toBe(true)
-      expect(result.content).toBe(golden('ref'))
+      expect(result.content).toBe(goldenAs('ref', 'refmodel-reftpl', 'RefModel_reftpl'))
       expect(result.content).not.toContain('linkedItem::')
     })
 
@@ -203,7 +249,7 @@ describe('initKnowledge (add_model wrapper)', () => {
       await stubSpec('blank_V_0-2-0', BLANK_SPEC)
       const result = await run('BlankModel', { blueprint_name: 'blank_V_0-2-0', blueprint_url: BLANK_URL })
       expect(result.success).toBe(true)
-      expect(result.content).toBe(golden('blank'))
+      expect(result.content).toBe(goldenAs('blank', 'blankmodel-blank', 'BlankModel_blank'))
       expect(result.content).not.toMatch(/##\s+NN\s+Content:/)
     })
   })

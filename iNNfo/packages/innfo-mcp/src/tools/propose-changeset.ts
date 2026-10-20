@@ -21,6 +21,7 @@ import {
 } from '@cognnitive/innfo-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
+import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { findManifestPath } from './workspace-sync.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 
@@ -230,8 +231,11 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
 
   const created = new Set<string>()
   const createdLater = new Map<string, number>()
+  // A created model is addressed by its canonical id; the id the caller passed is an alias.
+  const aliases = modelIdAliases(operations)
+  const canonicalModelOf = (target: string): string => modelIdOfTarget(canonicalizeTarget(target, aliases))
   operations.forEach((change, index) => {
-    if (change.op === 'add_model' && change.target) createdLater.set(change.target.toLowerCase(), index)
+    if (change.op === 'add_model' && change.target) createdLater.set(canonicalModelOf(change.target).toLowerCase(), index)
   })
 
   for (const [index, change] of operations.entries()) {
@@ -247,7 +251,7 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     for (const message of shape) errors.push({ path: label, code: 'INVALID_OPERATION', message })
     if (shape.length > 0 || !change.target) continue
 
-    const modelId = change.target.split('@')[0].trim()
+    const modelId = canonicalModelOf(change.target)
     const key = modelId.toLowerCase()
     if (change.op === 'add_model') {
       if (created.has(key)) {

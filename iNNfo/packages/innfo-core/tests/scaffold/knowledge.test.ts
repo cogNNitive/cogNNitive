@@ -83,6 +83,44 @@ describe('scaffoldKnowledgeDocument: byte-identical to the pre-change init_knowl
   })
 })
 
+describe('scaffoldKnowledgeDocument: spec_version follows the bluepriNNt parent_spec', () => {
+  it('takes spec_version and spec_url from the bluepriNNt parent_spec (blank -> iNNfo_V_0-5-0)', () => {
+    const out = scaffoldKnowledgeDocument({
+      id: 'BlankModel_blank',
+      blueprintName: 'blank',
+      blueprintUrl: BLANK_URL,
+      ...inputsFor(BLANK_SPEC),
+    })
+    const fm = parseKnowledge(out).frontmatter as unknown as Record<string, unknown>
+    expect(fm.spec_version).toBe('V_0-5-0')
+    expect(fm.spec_url).toBe('https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md')
+  })
+
+  it('takes them from a local stub parent_spec too', () => {
+    const out = scaffoldKnowledgeDocument({
+      id: 'Acme_business',
+      blueprintName: 'business_V_0-2-0',
+      blueprintUrl: BUSINESS_URL,
+      ...inputsFor(BUSINESS_STUB),
+    })
+    const fm = parseKnowledge(out).frontmatter as unknown as Record<string, unknown>
+    expect(fm.spec_version).toBe('V_0-3-0')
+    expect(fm.spec_url).toBe('https://example.com/iNNfo_V_0-3-0_NN.md')
+  })
+
+  it('keeps the V_0-4-0 fallback only when the bluepriNNt declares no parent_spec', () => {
+    const out = scaffoldKnowledgeDocument({
+      id: 'Acme_business',
+      blueprintName: 'business',
+      blueprintUrl: BUSINESS_URL,
+      blueprintFrontmatter: { blueprint_version: 'V_0-2-0' },
+    })
+    const fm = parseKnowledge(out).frontmatter as unknown as Record<string, unknown>
+    expect(fm.spec_version).toBe('V_0-4-0')
+    expect(String(fm.spec_url)).toContain('iNNfo_V_0-4-0_NN.md')
+  })
+})
+
 describe('inferKnowledgeVersion', () => {
   it('explicit wins over the parent version', () => {
     expect(inferKnowledgeVersion('V_3-0-0', { blueprint_version: 'V_0-2-0' })).toBe('V_3-0-0')
