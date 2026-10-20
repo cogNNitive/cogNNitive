@@ -13,10 +13,5 @@ title: "BlankModel"
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
 
-# NN index
-* [[Content]]
-
 # NN Content
-## NN Content: Example Content
-slug:: example-content
 _Describe Content here._

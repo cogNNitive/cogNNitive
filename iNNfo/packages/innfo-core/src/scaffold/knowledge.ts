@@ -11,35 +11,25 @@ export interface ScaffoldSchema {
 }
 
 /**
- * Build a starter level-3 body from a resolved template schema: an index
- * block, one `# NN <Concept>` section per concept (a prose stub for `text`
- * concepts, one placeholder Element with its declared fields for the rest),
+ * Build a starter level-3 body from a resolved template schema: one
+ * `# NN <Concept>` section per concept (a prose stub for `text` concepts, one
+ * placeholder Element with its declared fields for the rest; no index block,
+ * since taxonomy is owned by the Level 2 bluepriNNt),
  * a seeded `# NN matrices:` block per declared Matrix (example row/column
  * from the source/target Concepts).
  */
 export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   const lines: string[] = []
   const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
-  const listConcepts = schema.concepts.filter((c) => c.type !== 'text')
 
   lines.push(
     '> [!NOTE]',
     '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
     '',
   )
-  if (schema.concepts.length > 0) {
-    lines.push('# NN index')
-    for (const c of schema.concepts) lines.push(`* [[${c.name}]]`)
-    lines.push('')
-  }
   for (const c of schema.concepts) {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
-      if (listConcepts.length === 0) {
-        const ex = exampleFor(c.name)
-        lines.push(`## NN ${c.name}: ${ex}`)
-        lines.push(`slug:: ${slugify(ex)}`)
-      }
       lines.push(`_Describe ${c.name} here._`, '')
       continue
     }

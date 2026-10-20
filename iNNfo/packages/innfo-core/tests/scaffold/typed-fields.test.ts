@@ -6,6 +6,7 @@ import {
   resolveBlueprintSchema,
   parseKnowledge,
   validateKnowledge,
+  validateDocument,
 } from '../../src/index.js'
 
 const BLUEPRINTS_DIR = join(import.meta.dirname!, '..', '..', '..', '..', 'specs', 'bluepriNNts')
@@ -16,6 +17,15 @@ const resolveInclude = (ref: { name: string }): string | null =>
 
 function validateScaffold(name: string, doc: string) {
   return validateKnowledge(parseKnowledge(doc), parseKnowledge(readBlueprint(name)) as never, null, resolveInclude).errors
+}
+
+/** Full hygiene + schema pass, exactly what the MCP validate tool runs. */
+function auditScaffold(name: string, doc: string) {
+  return validateDocument(doc, {
+    fileName: `Starter_${name}_NN.md`,
+    template: parseKnowledge(readBlueprint(name)) as never,
+    resolveInclude,
+  })
 }
 
 function scaffoldFor(name: string) {
@@ -54,6 +64,14 @@ describe('scaffold: every shipped bluepriNNt yields a self-valid starter documen
   })
 
   for (const name of names) {
+    it(`${name}: scaffold does not trip the Level 3 index or empty-element warnings`, () => {
+      const { composed, doc } = scaffoldFor(name)
+      if (composed.errors.length > 0) return
+      const paths = auditScaffold(name, doc).warnings.map((w) => w.path)
+      expect(paths).not.toContain('format.l3-index-ignored')
+      expect(paths.filter((p) => p.startsWith('elements.'))).toEqual([])
+    })
+
     it(`${name}: scaffold validates with zero errors`, () => {
       const { composed, doc } = scaffoldFor(name)
       if (composed.errors.length > 0) return // composition problems are not a scaffold concern

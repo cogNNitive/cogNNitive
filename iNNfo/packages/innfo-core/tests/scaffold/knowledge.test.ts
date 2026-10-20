@@ -58,7 +58,7 @@ describe('scaffoldKnowledgeDocument: byte-identical to the pre-change init_knowl
     expect(out).toContain('label:: <string>')
   })
 
-  it('the shipped blank bluepriNNt (lone text concept) gets a real element marker', () => {
+  it('the shipped blank bluepriNNt (lone text concept) gets a prose stub and no element heading', () => {
     const out = scaffoldKnowledgeDocument({
       id: 'BlankModel',
       blueprintName: 'blank_V_0-2-0',
@@ -66,7 +66,8 @@ describe('scaffoldKnowledgeDocument: byte-identical to the pre-change init_knowl
       ...inputsFor(BLANK_SPEC),
     })
     expect(out).toBe(golden('blank'))
-    expect(out).toMatch(/##\s+NN\s+Content:\s+.+/)
+    expect(out).not.toMatch(/##\s+NN\s+Content:/)
+    expect(out).not.toContain('# NN index')
   })
 
   it('the scaffolded document parses and validates against its bluepriNNt', () => {
