@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest'
 import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 const req = createRequire(import.meta.url)
@@ -350,6 +351,14 @@ describe('InnfoUI.StatusBadge', () => {
     )
   })
 
+  it('ships no styling for the retired statuses', () => {
+    const source = readFileSync(join(consoleDir, 'ui-kit.js'), 'utf8')
+    expect(source).not.toMatch(
+      /innfo-status-badge\[data-status=(pending|applied|rejected|stale|conflict|proposed)\]/,
+    )
+    expect(source).toContain('innfo-status-badge[data-status=local]')
+  })
+
   it('rejects the retired statuses', () => {
     for (const s of ['applied', 'proposed', 'conflict', 'nonsense']) {
       expect(() => UI.StatusBadge({ status: s })).toThrow(/unknown status/)
@@ -367,6 +376,23 @@ describe('InnfoUI.ElementCard applied history', () => {
     })
     expect(card.querySelector('.innfo-lineage-pill')).toBeNull()
     expect(card.querySelector('.innfo-card-meta-strip')).toBeNull()
+  })
+
+  it('keeps the applied history in the modal Lineage tab', () => {
+    const history = [{ author: 'ana', timestamp: '2026-10-02T12:00:00Z', notes: 'Set the owner' }]
+    const card = UI.ElementCard({ id: 'e', name: 'E', fields: [], history })
+    expect(card.querySelector('.innfo-lineage-pill')).toBeNull()
+
+    // The review controller opens the modal with the element's history, on the Lineage tab.
+    const modal = UI.EditModal(
+      { title: 'E', fieldName: 'owner', type: 'string', value: 'Bea', history, startTab: 'history' },
+      {},
+    )
+    const lineage = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]') as HTMLElement
+    expect(lineage.style.display).toBe('block')
+    expect(lineage.textContent).toContain('Author: ana')
+    expect(lineage.textContent).toContain('Set the owner')
+    expect(modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')).not.toBeNull()
   })
 })
 

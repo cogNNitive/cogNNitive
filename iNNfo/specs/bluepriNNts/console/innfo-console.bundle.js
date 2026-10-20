@@ -1024,12 +1024,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-element-origin[data-origin=human]{color:var(--innfo-origin-human)}',
     '.innfo-element-origin[data-origin=reviewer]{color:var(--innfo-origin-reviewer)}',
     '.innfo-status-badge{border-radius:var(--innfo-radius-sm);padding:.05em .5em;font-weight:600}',
-    '.innfo-status-badge[data-status=pending]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
-    '.innfo-status-badge[data-status=applied]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
-    '.innfo-status-badge[data-status=rejected]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
-    '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
-    '.innfo-status-badge[data-status=conflict]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
-    '.innfo-status-badge[data-status=proposed]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
     // The single per-row change-state signal: blue means a change that lives only
     // in this console and has not been submitted yet.
     '.innfo-status-badge[data-status=local]{color:var(--innfo-status-unsent);background:var(--innfo-status-unsent-bg)}',
