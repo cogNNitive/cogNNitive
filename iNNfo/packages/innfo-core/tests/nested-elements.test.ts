@@ -16,7 +16,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: "video-script"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md"
 title: "Sample Nested Script"
 ---
 
