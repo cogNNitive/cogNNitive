@@ -20,6 +20,7 @@ export interface ScaffoldSchema {
  */
 export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   const lines: string[] = []
+  const listConcepts = schema.concepts.filter((c) => c.type !== 'text')
   const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
 
   lines.push(
@@ -30,6 +31,15 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   for (const c of schema.concepts) {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
+      // A document with no `## NN <Concept>: <Element>` marker at all fails the hygiene
+      // check (`format.body-element-markers`, an error), so a blueprint made only of text
+      // concepts keeps one placeholder element heading even though the schema check then
+      // warns (`elements.<Concept>`). A warning is the lesser evil; see the scaffold tests.
+      if (listConcepts.length === 0) {
+        const ex = exampleFor(c.name)
+        lines.push(`## NN ${c.name}: ${ex}`)
+        lines.push(`slug:: ${slugify(ex)}`)
+      }
       lines.push(`_Describe ${c.name} here._`, '')
       continue
     }

@@ -245,12 +245,12 @@ describe('initKnowledge (add_model wrapper)', () => {
       expect(result.content).not.toContain('linkedItem::')
     })
 
-    it('scaffolds the real blank bluepriNNt clean (a lone text concept gets a prose stub, no element heading)', async () => {
+    it('scaffolds the real blank bluepriNNt clean (a lone text concept gets a real element marker)', async () => {
       await stubSpec('blank_V_0-2-0', BLANK_SPEC)
       const result = await run('BlankModel', { blueprint_name: 'blank_V_0-2-0', blueprint_url: BLANK_URL })
       expect(result.success).toBe(true)
       expect(result.content).toBe(goldenAs('blank', 'blankmodel-blank', 'BlankModel_blank'))
-      expect(result.content).not.toMatch(/##\s+NN\s+Content:/)
+      expect(result.content).toMatch(/##\s+NN\s+Content:\s+.+/)
     })
   })
 })

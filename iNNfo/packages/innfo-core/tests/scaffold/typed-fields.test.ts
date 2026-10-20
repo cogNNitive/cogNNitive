@@ -64,12 +64,20 @@ describe('scaffold: every shipped bluepriNNt yields a self-valid starter documen
   })
 
   for (const name of names) {
-    it(`${name}: scaffold does not trip the Level 3 index or empty-element warnings`, () => {
+    it(`${name}: full document validation (hygiene + schema) has no errors and no Level 3 index warning`, () => {
       const { composed, doc } = scaffoldFor(name)
       if (composed.errors.length > 0) return
-      const paths = auditScaffold(name, doc).warnings.map((w) => w.path)
-      expect(paths).not.toContain('format.l3-index-ignored')
-      expect(paths.filter((p) => p.startsWith('elements.'))).toEqual([])
+      const audit = auditScaffold(name, doc)
+      expect(audit.errors).toEqual([])
+      expect(audit.warnings.map((w) => w.path)).not.toContain('format.l3-index-ignored')
+    })
+
+    it(`${name}: scaffold only warns about a text concept's placeholder element when no list concept exists`, () => {
+      const { composed, doc } = scaffoldFor(name)
+      if (composed.errors.length > 0) return
+      const elementWarnings = auditScaffold(name, doc).warnings.filter((w) => w.path.startsWith('elements.'))
+      const hasListConcept = composed.schema.concepts.some((c) => c.type !== 'text')
+      if (hasListConcept) expect(elementWarnings).toEqual([])
     })
 
     it(`${name}: scaffold validates with zero errors`, () => {
