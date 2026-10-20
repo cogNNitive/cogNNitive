@@ -6,6 +6,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { runExportConsole } from '../scripts/export-console.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
@@ -13,6 +14,18 @@ const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 const samples = resolve(here, '..', '_samples_nn')
 const VIEW_ID = 'missing-descriptions'
+
+/** Real CLI subprocess, kept as an exit-code/wiring smoke test. */
+async function runCliSubprocess(args) {
+  try {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
+      maxBuffer: 64 * 1024 * 1024,
+    })
+    return { code: 0, stdout, stderr }
+  } catch (err) {
+    return { code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }
+  }
+}
 
 describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js)', () => {
   let tmp
@@ -22,12 +35,10 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
   before(async () => {
     tmp = await mkdtemp(join(tmpdir(), 'nn-sample-view-'))
     await cp(samples, tmp, { recursive: true })
-    const { stdout } = await execFileAsync(process.execPath, [scriptPath, tmp, '--domain', '--no-open'], {
-      maxBuffer: 64 * 1024 * 1024,
-    })
+    const { stdout } = await runExportConsole([tmp, '--domain', '--no-open'], { open: false })
     assert.match(stdout, /size: total \d+ B/)
     html = await readFile(join(tmp, 'domaiNN_console.html'), 'utf-8')
-    await execFileAsync(process.execPath, [scriptPath, tmp, '--view', VIEW_ID, '--no-open'], { maxBuffer: 64 * 1024 * 1024 })
+    await runExportConsole([tmp, '--view', VIEW_ID, '--no-open'], { open: false })
     const dir = join(tmp, 'artifacts', `${VIEW_ID}_view`)
     const [name] = await readdir(dir)
     scopedHtml = await readFile(join(dir, name), 'utf-8')
@@ -37,7 +48,23 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     await rm(tmp, { recursive: true, force: true })
   })
 
+  it('CLI subprocess smoke: --status exits 0 through the real entry point', async () => {
+    const res = await runCliSubprocess([tmp, '--status'])
+    assert.equal(res.code, 0, res.stderr)
+    assert.match(res.stdout, /Status \(/)
+  })
+
+  it('CLI subprocess smoke: --view without an id exits non-zero', async () => {
+    const res = await runCliSubprocess([tmp, '--view'])
+    assert.equal(res.code, 2)
+    assert.match(res.stderr, /--view needs a view id/)
+  })
+
+  // A single JSDOM per source is booted once and shared across read-only assertions
+  // (design D4): parsing the multi-MB console HTML is the expensive part.
+  const domCache = new Map()
   const boot = async (source = html) => {
+    if (domCache.has(source)) return domCache.get(source)
     const dom = new JSDOM(source, {
       url: 'http://localhost',
       runScripts: 'dangerously',
@@ -53,6 +80,7 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
       },
     })
     await new Promise((ok) => dom.window.addEventListener('load', ok))
+    domCache.set(source, dom)
     return dom
   }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, readdirSync, rmdirSync, rmSync, unlinkSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, symlinkSync, unlinkSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -42,21 +43,78 @@ function tryGit(args, root) {
 // outside the root workspaces, so the root `npm ci` does not cover it.
 const INSTALL_DIRS = ['', join('skills', 'nn-sources')]
 
+/** @returns {string|null} SHA-256 of `file`, or null when it does not exist. */
+function sha256(file) {
+  try {
+    return createHash('sha256').update(readFileSync(file)).digest('hex')
+  } catch {
+    return null
+  }
+}
+
+function npmCi(dir) {
+  // Test seam: skip the real (slow) install and stand in a plain node_modules dir.
+  if (process.env.NN_SESSION_TEST_NPM_STUB) {
+    console.error(`nn-session: [stub] npm ci in ${dir}`)
+    mkdirSync(join(dir, 'node_modules'), { recursive: true })
+    return
+  }
+  console.error(`nn-session: npm ci in ${dir}…`)
+  try {
+    execFileSync('npm', ['ci'], { cwd: dir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
+  } catch {
+    console.error(`WARNING: npm ci failed in ${dir}; fix and re-run it there, or start with --no-install`)
+    process.exitCode = 1
+  }
+}
+
 /**
+ * Reuses the primary checkout's installed dependencies when the worktree's
+ * `package-lock.json` SHA-256 matches the primary's and `node_modules` is present
+ * (design D6): the worktree gets a `node_modules` directory junction instead of a
+ * ~90s `npm ci`. Falls back to a real `npm ci` when lockfiles differ, the primary
+ * has no `node_modules`, or `--full-install` is passed.
+ *
  * A real install makes @cognnitive/* resolve to THIS worktree's source, so tests
  * and gates exercise the session's own edits. (#1624/#2009)
+ * @param {string} target - the session worktree root
+ * @param {string} root - the primary checkout
+ * @param {boolean} fullInstall
  */
-function installDependencies(target) {
+function hydrateDependencies(target, root, fullInstall) {
   for (const rel of INSTALL_DIRS) {
     const dir = join(target, rel)
     if (!existsSync(join(dir, 'package.json'))) continue
-    console.error(`nn-session: npm ci in ${dir}…`)
-    try {
-      execFileSync('npm', ['ci'], { cwd: dir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
-    } catch {
-      console.error(`WARNING: npm ci failed in ${dir}; fix and re-run it there, or start with --no-install`)
-      process.exitCode = 1
+    const linkPath = join(dir, 'node_modules')
+    const targetLock = sha256(join(dir, 'package-lock.json'))
+    const primaryLock = sha256(join(root, rel, 'package-lock.json'))
+    const primaryModules = join(root, rel, 'node_modules')
+    const reusable =
+      !fullInstall && targetLock !== null && targetLock === primaryLock && existsSync(primaryModules)
+    if (reusable) {
+      removeLink(linkPath) // drop a stale junction before re-pointing
+      try {
+        symlinkSync(primaryModules, linkPath, 'junction')
+        console.error(`nn-session: linked node_modules in ${dir} (lockfile match)`)
+        continue
+      } catch (err) {
+        console.error(`WARNING: could not link node_modules in ${dir} (${err.message}); falling back to npm ci`)
+      }
     }
+    npmCi(dir)
+  }
+}
+
+/** Builds @cognnitive/innfo-core in the worktree so its dist matches the session source. */
+function buildCore(target) {
+  const coreDir = join(target, 'iNNfo', 'packages', 'innfo-core')
+  if (!existsSync(join(coreDir, 'package.json')) || process.env.NN_SESSION_TEST_NPM_STUB) return
+  console.error('nn-session: building @cognnitive/innfo-core…')
+  try {
+    execFileSync('npm', ['run', 'build'], { cwd: coreDir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
+  } catch {
+    console.error('WARNING: building @cognnitive/innfo-core failed; build it there before using the worktree')
+    process.exitCode = 1
   }
 }
 
@@ -110,7 +168,10 @@ function start(argv) {
   const target = worktreePath(root, id)
   if (!existsSync(target)) {
     git(['worktree', 'add', '-b', `session/${id}`, target, 'dev'], root)
-    if (!argv.includes('--no-install')) installDependencies(target)
+    if (!argv.includes('--no-install')) {
+      hydrateDependencies(target, root, argv.includes('--full-install'))
+      buildCore(target)
+    }
   }
   console.log(target)
 }
@@ -277,6 +338,6 @@ else if (cmd === 'batch-status') await batchStatus(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else if (cmd === 'sweep') sweep(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|batch-status|stop|sweep [--id <id>] [--no-install] [--root <path>] [--json] [--strict]')
+  console.error('usage: nn-session.mjs start|list|status|batch-status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>] [--json] [--strict]')
   process.exit(2)
 }

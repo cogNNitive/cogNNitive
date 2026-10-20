@@ -12,8 +12,9 @@
  *   innfo-mcp tests + coverage ratchet, spec-url resolution)
  *
  * Usage:
- *   node scripts/check-integrity.js            # Standard deterministic gate (Groups 0-4, 7+)
- *   node scripts/check-integrity.js --pre-push # Full pre-push gate (includes CI mirror)
+ *   node scripts/check-integrity.js            # Standard inner-loop gate (verify.js --fast)
+ *   node scripts/check-integrity.js --only=X   # Forward an --only filter to verify.js
+ *   node scripts/check-integrity.js --pre-push # Full pre-push gate (full verify.js + CI mirror)
  *   node scripts/check-integrity.js --release  # Same as --pre-push (verification is offline in every mode)
  */
 
@@ -115,7 +116,20 @@ console.log(`  ✅ Referenced external skills satisfy the pin/license policy (${
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 // verify.js is async (worker pool); run it as a child so this script stays synchronous.
-const verifyArgs = [path.join(__dirname, 'verify.js'), ...(isRelease ? ['--release'] : [])];
+// Inner-loop (default) mode uses `--fast`; the dev -> main batch gate (`--pre-push` /
+// `--release`) uses the full unfiltered run. Any `--only` filter is forwarded verbatim.
+const onlyEq = args.find((a) => a.startsWith('--only='));
+const onlyIdx = args.indexOf('--only');
+const onlyArgs = onlyEq
+  ? [onlyEq]
+  : onlyIdx !== -1 && args[onlyIdx + 1]
+    ? ['--only', args[onlyIdx + 1]]
+    : [];
+const verifyArgs = [
+  path.join(__dirname, 'verify.js'),
+  ...(isRelease ? ['--release'] : isPrePush ? [] : ['--fast']),
+  ...onlyArgs,
+];
 if (spawnSync(process.execPath, verifyArgs, { stdio: 'inherit' }).status !== 0) {
   console.error('❌ Workspace verification failed (see the step summary above).');
   process.exit(1);

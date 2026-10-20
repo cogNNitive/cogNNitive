@@ -35,7 +35,8 @@
     "check:spec-version": "node scripts/check-spec-version.mjs",
     "check:spec-urls": "node scripts/check-spec-version.mjs --check-urls",
     "check:specs": "node scripts/check-spec-version.mjs --check-urls && node scripts/check-spec-version.mjs --inventory",
-    "regen": "node scripts/regen.js"
+    "regen": "node scripts/regen.js",
+    "verify:fast": "node scripts/verify.js --fast"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

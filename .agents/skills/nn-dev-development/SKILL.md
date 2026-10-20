@@ -57,10 +57,21 @@ node scripts/nn-session.mjs start --id <short-kebab-id>
 ```
 
 This creates the worktree `../cogNNitive-<id>` on branch `session/<id>` cut from
-`origin/dev`, and runs a real `npm ci` there (root + `skills/nn-sources`). Pass
+`origin/dev`. When the worktree's `package-lock.json` SHA-256 matches the primary
+checkout's, it links `node_modules` (root + `skills/nn-sources`) via a directory
+junction — about 2s instead of ~90s — and builds `@cognnitive/innfo-core`. Pass
+`--full-install` to force a clean `npm ci` when dependencies must be rebuilt, or
 `--no-install` only for docs-only work. Do all writes, commits and pushes from that
 worktree. If the tool environment refuses a worktree as `cwd`, keep the primary as `cwd`
 and use absolute paths or `git -C <worktree>`.
+
+**Inner-loop verification.** After an edit, run the affected suite directly
+(`node --test <file>`) or a targeted filter (`node scripts/verify.js --only=<substring>`);
+for a broader but still fast pass run `npm run verify:fast` (`verify.js --fast`, which
+skips the SLOW_SUITES roster). The full unfiltered `node scripts/verify.js` is the
+`dev -> main` batch gate (§4d), not the inner loop. Checkpoints on `session/*` pushed as
+`wip:<id>: <reason>` take the pre-push fast-path and skip the heavy build/guard pipeline
+(§2).
 
 ### 1b. Primary-tree health check
 

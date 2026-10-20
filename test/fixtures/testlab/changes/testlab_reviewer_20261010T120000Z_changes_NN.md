@@ -3,7 +3,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "V_0-2-0"
 status: applied
 proposal_sha: ba6bddba1d6a9295d6d178f1dca74f09dfcdc8d3610bfaf13d803deb31fb3e52

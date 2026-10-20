@@ -1,6 +1,6 @@
-import { test } from 'node:test'
+import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, cpSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -20,11 +20,14 @@ function write(repo, rel, content) {
 }
 
 /**
- * origin (bare) + primary clone. main holds the tagged baseline; dev is one
- * commit ahead (touches skills/ and the innfo-mcp bundle) and pushed.
+ * Builds the baseline fixture ONCE (origin bare + primary clone). Each test clones
+ * it via `fs.cpSync` instead of paying for `git init`/`config`/`commit`/`tag`/`push`
+ * subprocesses again (design D3).
  */
-function makeFixture() {
-  const base = mkdtempSync(join(tmpdir(), 'nn-batch-'))
+let TEMPLATE = null
+
+before(() => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-batch-tpl-'))
   const origin = join(base, 'origin.git')
   const repo = join(base, 'repo')
   git(['init', '--bare', '-b', 'main', origin], base)
@@ -47,7 +50,30 @@ function makeFixture() {
   git(['add', '-A'], repo)
   git(['commit', '-m', 'feat: change'], repo)
   git(['push', 'origin', 'dev'], repo)
-  return { base, repo, origin, devSha: git(['rev-parse', 'origin/dev'], repo), mainSha: git(['rev-parse', 'origin/main'], repo) }
+  TEMPLATE = {
+    base,
+    origin,
+    repo,
+    devSha: git(['rev-parse', 'origin/dev'], repo),
+    mainSha: git(['rev-parse', 'origin/main'], repo),
+  }
+})
+
+after(() => {
+  if (TEMPLATE) rmSync(TEMPLATE.base, { recursive: true, force: true })
+})
+
+/**
+ * Clone of the pristine template for one test. The copied remote URL still points at
+ * the template's origin, so it is re-pointed at the clone's own bare origin.
+ */
+function makeFixture() {
+  const base = mkdtempSync(join(tmpdir(), 'nn-batch-'))
+  cpSync(TEMPLATE.base, base, { recursive: true })
+  const repo = join(base, 'repo')
+  const origin = join(base, 'origin.git')
+  git(['remote', 'set-url', 'origin', origin], repo)
+  return { base, repo, origin, devSha: TEMPLATE.devSha, mainSha: TEMPLATE.mainSha }
 }
 
 /** Injectable gh runner: answers `pr list` and the two `run list` shapes. */

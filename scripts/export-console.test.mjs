@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
+import { runExportConsole } from './export-console.mjs'
 import { createHash } from 'node:crypto'
 
 const execFileAsync = promisify(execFile)
@@ -18,20 +19,28 @@ function computeHash(str) {
   return createHash('sha256').update(str, 'utf8').digest('hex')
 }
 
+/**
+ * Runs the exporter. Env-sensitive cases stay real CLI subprocesses (they exercise
+ * env-only wiring); everything else runs in-process via the programmatic API.
+ */
 async function runCli(args, opts = {}) {
-  try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
-      cwd: opts.cwd || process.cwd(),
-      env: { ...process.env, ...opts.env },
-    })
-    return { code: 0, stdout, stderr }
-  } catch (err) {
-    return {
-      code: err.code ?? (err.status || 1),
-      stdout: err.stdout ?? '',
-      stderr: err.stderr ?? '',
+  if (opts.env || opts.subprocess) {
+    try {
+      const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
+        cwd: opts.cwd || process.cwd(),
+        env: { ...process.env, ...opts.env },
+      })
+      return { code: 0, stdout, stderr }
+    } catch (err) {
+      return {
+        code: err.code ?? (err.status || 1),
+        stdout: err.stdout ?? '',
+        stderr: err.stderr ?? '',
+      }
     }
   }
+  const res = await runExportConsole([...args, '--no-open'], { open: false })
+  return { code: res.exitCode, stdout: res.stdout, stderr: res.stderr }
 }
 
 describe('export-console CLI test suite', () => {
@@ -95,9 +104,45 @@ level: 3
     }
   })
 
+  describe('programmatic runExportConsole API', () => {
+    it('returns { exitCode, stdout, stderr, writtenFiles } without exiting the host process', async () => {
+      const res = await runExportConsole([tempDir, '--all', '--no-open'], { open: false })
+      assert.equal(res.exitCode, 0, res.stderr)
+      assert.equal(typeof res.stdout, 'string')
+      assert.equal(typeof res.stderr, 'string')
+      assert.ok(Array.isArray(res.writtenFiles))
+      assert.ok(res.writtenFiles.length >= 1, 'a successful export reports its written file(s)')
+      assert.ok(res.writtenFiles.every((f) => existsSync(f)), 'each writtenFiles entry exists on disk')
+    })
+
+    it('reports invalid flags with a non-zero exit code instead of terminating', async () => {
+      const res = await runExportConsole(['--domain', '--all'])
+      assert.notEqual(res.exitCode, 0)
+      assert.match(res.stderr, /Usage:|mutually|--domain/)
+    })
+
+    it('returns writtenFiles=[] for read-only commands', async () => {
+      const res = await runExportConsole([tempDir, '--list', '--no-open'], { open: false })
+      assert.equal(res.exitCode, 0, res.stderr)
+      assert.deepEqual(res.writtenFiles, [])
+    })
+  })
+
   describe('Phase 1: Argument Parsing and Usage', () => {
     it('exits with code 2 when workspaceRoot is omitted', async () => {
       const res = await runCli([])
+      assert.equal(res.code, 2)
+      assert.match(res.stderr, /Usage:/)
+    })
+
+    it('CLI subprocess smoke: --list exits 0 through the real entry point', async () => {
+      const res = await runCli([tempDir, '--list'], { subprocess: true })
+      assert.equal(res.code, 0)
+      assert.match(res.stdout, /\(3 models\)/)
+    })
+
+    it('CLI subprocess smoke: omitting the workspace root exits 2', async () => {
+      const res = await runCli([], { subprocess: true })
       assert.equal(res.code, 2)
       assert.match(res.stderr, /Usage:/)
     })
@@ -228,7 +273,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "V_0-1-0"
 status: applied
 title: "Review"
