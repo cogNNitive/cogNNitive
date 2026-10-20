@@ -91,6 +91,73 @@ Some markdown body.`;
   assert.throws(() => yamlParser.parseManifest('---\nother-key: true\n---'), /agent-bootstrap block not found/);
   assert.throws(() => yamlParser.parseManifest('---\nagent-bootstrap:\n  skills: invalid\n---'), /skills is not a list/);
 
+  // parseManifest hoists skills[].mcp[] (the owning-skill declaration) into manifest.mcp
+  const nestedMcpManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      repo: cogNNitive/cogNNitive-web
+      path: skills/nn-innfo
+      version: "V_0-5-13"
+      commit: "94e43dfd764e2d88da3c8e32312c170b7311a055"
+      mcp:
+        - name: innfo-mcp
+          repo: cogNNitive/cogNNitive-web
+          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          version: "0.27.0"
+          ref: "innfo-mcp-v0.27.0"
+          commit: "94e43dfd764e2d88da3c8e32312c170b7311a055"
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+---
+# Manifest`;
+  const nestedParsed = yamlParser.parseManifest(nestedMcpManifest);
+  assert.strictEqual(Array.isArray(nestedParsed.skills[0].mcp), true, 'skill.mcp must parse as an array of objects');
+  assert.strictEqual(nestedParsed.skills[0].mcp[0].name, 'innfo-mcp');
+  assert.deepStrictEqual(nestedParsed.mcp, [{
+    name: 'innfo-mcp',
+    repo: 'cogNNitive/cogNNitive-web',
+    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    version: '0.27.0',
+    ref: 'innfo-mcp-v0.27.0',
+    commit: '94e43dfd764e2d88da3c8e32312c170b7311a055',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+  }], 'parseManifest must hoist the nested skill MCP server into manifest.mcp');
+
+  // Top-level + nested MCP entries merge, de-duplicated by name (first wins)
+  const mergedMcpManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  mcp:
+    - name: innfo-mcp
+      version: "0.26.0"
+      commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  skills:
+    - name: nn-innfo
+      mcp:
+        - name: innfo-mcp
+          version: "0.27.0"
+          commit: "94e43dfd764e2d88da3c8e32312c170b7311a055"
+        - name: other-mcp
+          version: "1.0.0"
+          commit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+---
+# Manifest`;
+  const mergedParsed = yamlParser.parseManifest(mergedMcpManifest);
+  assert.deepStrictEqual(mergedParsed.mcp.map((m) => m.name), ['innfo-mcp', 'other-mcp'], 'top-level and nested MCP entries must merge');
+  assert.strictEqual(mergedParsed.mcp[0].version, '0.26.0', 'the first declaration must win the name de-duplication');
+
+  // The real committed preview manifest declares innfo-mcp nested under nn-innfo
+  const realManifestPath = path.join(__dirname, '..', '..', 'docs', 'use', 'manifest-next.md');
+  if (fs.existsSync(realManifestPath)) {
+    const realManifest = yamlParser.parseManifest(fs.readFileSync(realManifestPath, 'utf-8'));
+    const innfo = realManifest.mcp.find((m) => m.name === 'innfo-mcp');
+    assert.ok(innfo, 'the real manifest must surface innfo-mcp in manifest.mcp');
+    const nestedInnfo = realManifest.skills.find((s) => s.name === 'nn-innfo').mcp.find((m) => m.name === 'innfo-mcp');
+    assert.strictEqual(innfo.commit, nestedInnfo.commit, 'the hoisted MCP commit must match its nested declaration');
+    assert.strictEqual(innfo.version, nestedInnfo.version, 'the hoisted MCP version must match its nested declaration');
+  }
+
   console.log('✔ yaml-parser.js tests passed');
 }
 

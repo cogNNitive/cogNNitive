@@ -1191,16 +1191,8 @@ async function cmdBootstrap(args) {
     }
   }
 
-  // 3. MCP servers declared in skills or manifest
-  const mcpList = [];
-  for (const skill of manifest.skills) {
-    if (Array.isArray(skill.mcp)) {
-      mcpList.push(...skill.mcp);
-    }
-  }
-  if (Array.isArray(manifest.mcp)) {
-    mcpList.push(...manifest.mcp);
-  }
+  // 3. MCP servers — parseManifest already hoists skills[].mcp into manifest.mcp.
+  const mcpList = manifest.mcp || [];
 
   if (mcpList.length > 0) {
     console.log(`\nInstalling/verifying ${mcpList.length} MCP server(s)...`);

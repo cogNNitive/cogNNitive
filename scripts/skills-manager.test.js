@@ -452,6 +452,120 @@ agent-bootstrap:
   console.log('✔ cmdUpdate completes a partial console asset set test passed');
 }
 
+// 8c. MCP servers declared nested inside the owning skill are visible to
+//     status / install / update, and positional filters still select them.
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-mcp-nested-'));
+  const skillsDir = path.join(tmpDir, 'skills');
+  const blueprintsDir = path.join(tmpDir, 'bluepriNNts');
+  const mcpDir = path.join(tmpDir, 'mcp');
+  const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+  const home = path.join(tmpDir, 'home');
+  // The owning skill is already present, so install/update skip it and only the
+  // nested MCP server is exercised — no GitHub tarball traffic.
+  fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+  fs.mkdirSync(home, { recursive: true });
+
+  const mcpCommit = '94e43dfd764e2d88da3c8e32312c170b7311a055';
+  const skillCommit = 'd60a7109315820085ab127b70412992db6986c88';
+  // The owning skill is recorded up-to-date so update selects only the MCP server.
+  fs.writeFileSync(stateFile, JSON.stringify({
+    manifest: '',
+    skills: { 'nn-innfo': { commit: skillCommit, version: 'V_0-5-13' } },
+    blueprints: {},
+    mcp: {},
+    console: {},
+    projections: {},
+  }, null, 2), 'utf-8');
+  const commonFlags = [
+    '--skills-dir', skillsDir,
+    '--templates-dir', blueprintsDir,
+    '--mcp-dir', mcpDir,
+    '--state', stateFile,
+    '--agent', 'opencode',
+    '--scope', 'workspace',
+  ];
+
+  let base = '';
+  const server = http.createServer((req, res) => {
+    if (req.url === '/manifest.md') {
+      res.writeHead(200, { 'Content-Type': 'text/markdown' });
+      res.end(`---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      repo: cogNNitive/cogNNitive-web
+      path: skills/nn-innfo
+      version: "V_0-5-13"
+      commit: "${skillCommit}"
+      mcp:
+        - name: innfo-mcp
+          repo: cogNNitive/cogNNitive-web
+          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          version: "0.27.0"
+          ref: "innfo-mcp-v0.27.0"
+          commit: "${mcpCommit}"
+          url: ${base}/innfo-mcp.bundle.js
+---
+# Manifest`);
+    } else if (req.url === '/innfo-mcp.bundle.js') {
+      res.writeHead(200, { 'Content-Type': 'application/javascript' });
+      res.end('module.exports = {};\n');
+    } else {
+      res.writeHead(404);
+      res.end('not found');
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  base = `http://127.0.0.1:${server.address().port}`;
+  const env = { ...process.env, USERPROFILE: home, HOME: home, SM_MANIFEST_URL: `${base}/manifest.md` };
+
+  try {
+    // status surfaces the nested MCP server as a `mcp` row
+    const st = await spawnAsync([managerScript, 'status', ...commonFlags], { env });
+    assert.strictEqual(st.status, 0, `status must succeed. stderr: ${st.stderr}`);
+    assert.match(
+      st.stdout,
+      /mcp\s*\|\s*innfo-mcp\s*\|\s*94e43df\s*\|\s*-\s*\|\s*missing/,
+      `status must list the nested MCP server. Got:\n${st.stdout}`,
+    );
+
+    // install downloads the missing bundle and records { commit, version, updated_at }
+    const ins = await spawnAsync([managerScript, 'install', ...commonFlags, '--yes'], { env });
+    assert.strictEqual(ins.status, 0, `install must succeed. stderr: ${ins.stderr}`);
+    assert.ok(fs.existsSync(path.join(mcpDir, 'innfo-mcp.bundle.js')), 'install must download the MCP bundle');
+    let state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    assert.strictEqual(state.mcp['innfo-mcp'].commit, mcpCommit, 'install must record the MCP commit');
+    assert.strictEqual(state.mcp['innfo-mcp'].version, '0.27.0', 'install must record the MCP version');
+    assert.ok(state.mcp['innfo-mcp'].updated_at, 'install must record updated_at');
+
+    // update upgrades an outdated bundle
+    state.mcp['innfo-mcp'].commit = '0'.repeat(40);
+    fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf-8');
+    const upd = await spawnAsync([managerScript, 'update', ...commonFlags, '--yes'], { env });
+    assert.strictEqual(upd.status, 0, `update must succeed. stderr: ${upd.stderr}`);
+    assert.match(upd.stdout, /updated MCP innfo-mcp -> 0\.27\.0/, `update must upgrade the MCP bundle. Got:\n${upd.stdout}`);
+    state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    assert.strictEqual(state.mcp['innfo-mcp'].commit, mcpCommit, 'update must record the upgraded MCP commit');
+    assert.ok(state.mcp['innfo-mcp'].updated_at, 'update must record updated_at');
+
+    // positional filters: `update innfo-mcp` and `update mcp`
+    for (const filter of ['innfo-mcp', 'mcp']) {
+      state.mcp['innfo-mcp'].commit = '0'.repeat(40);
+      fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf-8');
+      const r = await spawnAsync([managerScript, 'update', filter, ...commonFlags, '--yes'], { env });
+      assert.strictEqual(r.status, 0, `update ${filter} must succeed. stderr: ${r.stderr}`);
+      assert.match(r.stdout, /updated MCP innfo-mcp/, `update ${filter} must select the MCP server. Got:\n${r.stdout}`);
+    }
+
+    console.log('✔ Nested MCP server status/install/update + positional filters test passed');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 // 9. ADR-2 Ownership and unmanaged link/dir handling
 {
   const { projectSkillsToAgents } = require('./lib/skills-commands.js');
