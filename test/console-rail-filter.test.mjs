@@ -51,6 +51,26 @@ describe('rail and facets render knowledge units', () => {
     assert.match(railBadge.getAttribute('data-ku-address'), /rail-lab@concept:alpha/i)
     assert.equal(railBadge.getAttribute('data-ku-home'), 'knowledge')
   })
+
+  it('carries the concept icon on the rail badge and drops the dead rail pill', () => {
+    const { document } = bootConsole({
+      model: MODEL,
+      schema: {
+        concepts: [
+          { name: 'Alpha', icon: 'swords' },
+          { name: 'Beta' },
+        ],
+      },
+    })
+    const railBadge = document.querySelector('#innfo-rail [data-ku-kind="section"]')
+    const icon = railBadge.querySelector('.innfo-ku-icon svg')
+    assert.ok(icon, 'the rail concept badge renders the concept icon')
+    assert.equal(
+      document.querySelector('#innfo-rail .innfo-rail-concept-pill'),
+      null,
+      'the dead rail-concept-pill markup is gone',
+    )
+  })
 })
 
 describe('field facet: tags: is exact membership (AND), | is any-of', () => {
