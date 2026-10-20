@@ -70,6 +70,16 @@ defaults to the diff vs `origin/main` without a secondary scope question.
 
 Group 0 (working tree and sessions) is owned by `nn-dev-development`, not run here.
 
+### Tiered verification (inner loop vs batch gate)
+
+The default `[d]` run delegates Group 2's workspace verification to
+`node scripts/verify.js --fast`, which skips the SLOW_SUITES roster — that is the
+**inner-loop** tier. Pass `--only=<substring>` to further narrow it
+(`node scripts/check-integrity.js --only=batch-status`), or run the affected suite
+directly (`node --test <file>`). The **batch-gate** tier (`--pre-push` / `--release`)
+runs the full unfiltered `node scripts/verify.js` plus the Group 5 CI mirror, and is
+mandatory before promoting a `dev` batch to `main`.
+
 ### The runner can hang — bound it
 
 `check-integrity.js` is long and stalls in this environment (observed 2026-10-13: no output

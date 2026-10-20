@@ -21,9 +21,9 @@ Chain strategy: size-exception
 
 ## Phase 2: Git-Heavy Test Suite Template Cloning (D3)
 
-- [ ] 2.1 Refactor `scripts/lib/batch-status.test.mjs` to initialize its baseline git repository once in `before()` and clone per-test workspaces via `fs.cpSync(templateDir, testDir, { recursive: true })`.
-- [ ] 2.2 Refactor `scripts/nn-session.test.mjs` to clone a `before()` template git repo via `fs.cpSync` and replace redundant real `npm ci` runs with lightweight stub/junction verification.
-- [ ] 2.3 Refactor `scripts/release/run-release.test.js` to build seed local+remote git repositories once in `before()` and clone via `fs.cpSync` per test; verify with `node scripts/verify.js --only=batch-status`, `--only=nn-session`, and `--only=run-release`.
+- [x] 2.1 Refactor `scripts/lib/batch-status.test.mjs` to initialize its baseline git repository once in `before()` and clone per-test workspaces via `fs.cpSync(templateDir, testDir, { recursive: true })`.
+- [x] 2.2 Refactor `scripts/nn-session.test.mjs` to clone a `before()` template git repo via `fs.cpSync` and replace redundant real `npm ci` runs with lightweight stub/junction verification.
+- [x] 2.3 Refactor `scripts/release/run-release.test.js` to build seed local+remote git repositories once in `before()` and clone via `fs.cpSync` per test; verify with `node scripts/verify.js --only=batch-status`, `--only=nn-session`, and `--only=run-release`.
 
 ## Phase 3: In-Process `runExportConsole` API & Console Test Suites (D4)
 
@@ -38,9 +38,9 @@ Chain strategy: size-exception
 
 ## Phase 5: Worktree Lockfile Junction Reuse & Maintainer Skill Tiering (D6)
 
-- [ ] 5.1 Add unit tests in `scripts/nn-session.test.mjs` for SHA-256 `package-lock.json` comparison, `'junction'` linking of root and `skills/nn-sources` `node_modules`, and fallback to `npm ci` on lockfile mismatch or `--full-install`.
-- [ ] 5.2 Implement lockfile-verified `node_modules` junction reuse and `--full-install` in `scripts/nn-session.mjs`.
-- [ ] 5.3 Update `scripts/check-integrity.js` (use `verify.js --fast` in default non-`--pre-push` mode and forward `--fast`/`--only`), `.agents/skills/nn-dev-development/SKILL.md`, and `.agents/skills/nn-dev-check-integrity/SKILL.md` to codify inner-loop vs. batch-gate verification.
+- [x] 5.1 Add unit tests in `scripts/nn-session.test.mjs` for SHA-256 `package-lock.json` comparison, `'junction'` linking of root and `skills/nn-sources` `node_modules`, and fallback to `npm ci` on lockfile mismatch or `--full-install`.
+- [x] 5.2 Implement lockfile-verified `node_modules` junction reuse and `--full-install` in `scripts/nn-session.mjs`.
+- [x] 5.3 Update `scripts/check-integrity.js` (use `verify.js --fast` in default non-`--pre-push` mode and forward `--fast`/`--only`), `.agents/skills/nn-dev-development/SKILL.md`, and `.agents/skills/nn-dev-check-integrity/SKILL.md` to codify inner-loop vs. batch-gate verification.
 
 ## Phase 6: Final Verification & Benchmarks
 
