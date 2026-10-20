@@ -192,7 +192,21 @@ function parseManifest(text) {
   }
   const blueprints = Array.isArray(bootstrap.blueprints) ? bootstrap.blueprints : [];
   const workflows = Array.isArray(bootstrap.workflows) ? bootstrap.workflows : [];
-  const mcp = Array.isArray(bootstrap.mcp) ? bootstrap.mcp : [];
+  // MCP servers live nested inside the skill that owns them
+  // (`agent-bootstrap.skills[].mcp[]`); a top-level `agent-bootstrap.mcp` is
+  // still honored for backward compatibility. Merge both, de-duplicating by
+  // name so the first declaration wins.
+  const mcp = [];
+  if (Array.isArray(bootstrap.mcp)) mcp.push(...bootstrap.mcp);
+  for (const skill of bootstrap.skills) {
+    if (Array.isArray(skill.mcp)) mcp.push(...skill.mcp);
+  }
+  const seenMcpNames = new Set();
+  const dedupedMcp = mcp.filter((server) => {
+    if (!server || !server.name || seenMcpNames.has(server.name)) return false;
+    seenMcpNames.add(server.name);
+    return true;
+  });
   const consoleAssets = Array.isArray(bootstrap['console-assets']) ? bootstrap['console-assets'] : [];
   return {
     version: bootstrap.version,
@@ -200,7 +214,7 @@ function parseManifest(text) {
     skills: bootstrap.skills,
     blueprints,
     workflows,
-    mcp,
+    mcp: dedupedMcp,
     consoleAssets,
   };
 }
