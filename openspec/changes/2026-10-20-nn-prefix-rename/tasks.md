@@ -22,7 +22,7 @@ Source of truth: `design.md` (code-verified). Where proposal/specs disagreed, th
 | Chain strategy | stacked-to-main |
 | Suggested split | PR S0 -> S1 -> S2 -> S3a -> S3b -> S4a -> S4b -> S5 -> S6, each merged to main in order |
 
-Decision needed before apply: No for S0-S5. Yes for S6 only (deprecation-window length, see Open Decisions)
+Decision needed before apply: No (S6 window fixed at 14 days after S5, see Open Decisions)
 Chained PRs recommended: Yes
 Chain strategy: stacked-to-main
 400-line budget risk: Medium (High if S3 or S4 were not split)
@@ -123,7 +123,7 @@ Rules for every slice: Strict TDD (RED test first, then GREEN, then REFACTOR). S
 
 ## Phase S6: Sunset (PR 9) - blocked on deprecation-window decision
 
-- [ ] 6.1 [DECISION] Maintainer sets the window length and confirms it elapsed. Needs maintainer confirmation.
+- [ ] 6.1 [DECISION - resolved 2026-10-20] The deprecation window is 14 days after the S5 manifest cutover is published. Before starting S6, confirm 14 days elapsed and `gh run list` shows no consumer-side failures; the release tags in 6.x still need maintainer confirmation.
 - [ ] 6.2 [RED] Content guard row in `test/no-retired-references.test.mjs` for retired names with a plant; `release-keys.test.js` (`innfo-mcp-v0.31.0` rejected); `validate-manifest.test.js` (legacy entry rejected); preflight test (legacy-only data treated as absent); freshness test (only `nn-*` keys); filename guard drops transitional entries.
 - [ ] 6.3 [GREEN] Delete `bin/innfo-mcp.bundle.js` (+ tsup entry and bin), `innfo-console.bundle.js`, `innfo-ui.css`, `scripts/innfo-mcp.{sh,ps1,cmd}`, legacy CDN staging, `RELEASE_FAMILIES` aliases, legacy `release.yml` triggers, legacy freshness keys and old paths, `legacy_names`/`legacy_files`, `test/fixtures/legacy-nn-preflight/`, legacy preflight fallbacks. Keep the user-config cleanup of stale `innfo-mcp` entries.
 - [ ] 6.4 [GREEN] Add retired entries to `iNNfo/specs/vocabulary.json` `retired_identifiers`.
@@ -132,9 +132,12 @@ Rules for every slice: Strict TDD (RED test first, then GREEN, then REFACTOR). S
 
 ## Open Decisions
 
-- S6 deprecation-window length (blocks S6 only).
-- Rename of the three public doc URLs with no redirect vs a stub page (blocks 4b.2 only).
-- Whether pre-82efdbad skills-manager copies exist (checked in 5.1).
+Resolved 2026-10-20 by the maintainer delegating the call (sole user, no-backwards-compat preference):
+
+- S6 deprecation window: 14 days after the S5 cutover.
+- Three public doc files (4b.2): rename with NO stub page. Before the `git mv`, list inbound links to the old filenames; fix live ones, and if a frozen or write-once file links one, keep that single filename unchanged instead of editing frozen content.
+- `workspace` procedures: frozen, allowlisted rather than bumped.
+- Still checked at run time: whether pre-82efdbad skills-manager copies exist (task 5.1).
 
 ## Acceptance
 

@@ -114,7 +114,9 @@ Preflight suites must also be re-run with an empty `USERPROFILE`/`HOME` (they le
 
 ## Open Questions
 
-- [ ] Renaming the three doc files changes the public URLs `cognnitive.com/innfo/documentation/innfo-*`. Should they be renamed with no redirect (the maintainer's no-compat preference), or keep a stub page?
-- [ ] Confirm that `workspace` procedures are frozen and should be allowlisted rather than bumped (C9).
+Resolved 2026-10-20 (maintainer delegated the decisions):
+
+- [x] Doc files: rename with no stub page (no-compat preference), after listing inbound links; if a frozen file links one, keep that filename.
+- [x] `workspace` procedures are frozen: allowlist, do not bump (C9).
 - [ ] Do installed skills-manager copies that predate 82efdbad still exist? Those copies would register `nn-mcp` beside `innfo-mcp` at S5.
-- [ ] S6 deprecation window length (it blocks S6 only).
+- [x] S6 deprecation window: 14 days after the S5 cutover.

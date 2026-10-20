@@ -85,7 +85,7 @@ Approach B: an additive-first sliced migration. Every slice leaves `main` green 
 
 ## Dependencies
 - jsDelivr/GitHub serving the new tag families.
-- A maintainer-agreed deprecation window between S5 and S6.
+- A deprecation window of 14 days between S5 and S6.
 
 ## Success Criteria
 - [ ] `rg 'innfo-(core|mcp|console|shell|export|ui-css|payload)'` outside the frozen and allowlisted classes returns 0 after S6.
@@ -120,4 +120,4 @@ These are the exploration defaults. They have not been confirmed by the user, an
 
 - Chained PRs recommended: Yes (stacked-to-main).
 - 400-line budget risk: High for S3/S4 if they are not split, Low once split.
-- Decision needed before apply: No for S0–S5 (defaults applied). Yes before S6, because the deprecation window length must be set.
+- Decision needed before apply: No (defaults applied; the S6 deprecation window is fixed at 14 days after the S5 cutover).
