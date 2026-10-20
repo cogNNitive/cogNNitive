@@ -16,11 +16,15 @@ title: "Workspace Index"
 * [Plan](./kNNowledge/Plan_V_1-0-0_NN.md)
 `
 
+// Fixtures target `blank`, a core bluepriNNt that ships in the offline canonical
+// registry. Vertical bluepriNNts (e.g. `business`) are distributed on demand and
+// resolve only through the user's global/temp caches, which don't exist on a clean
+// CI runner — a vertical here would make this suite green on Windows and red on Linux.
 const MODEL = `---
 level: 3
 parent_spec:
-  name: business
-  url: "business"
+  name: blank
+  url: "blank"
 knowledge_version: "V_0-1-0"
 title: "Plan"
 ---
@@ -92,8 +96,8 @@ describe('validate_model workspace mode — sources:: Citations', () => {
     const nestedModel = `---
 level: 3
 parent_spec:
-  name: business
-  url: "business"
+  name: blank
+  url: "blank"
 knowledge_version: "V_0-1-0"
 title: "Finance Plan"
 ---
@@ -135,8 +139,8 @@ Budget details.
     const nestedModel = `---
 level: 3
 parent_spec:
-  name: business
-  url: "business"
+  name: blank
+  url: "blank"
 knowledge_version: "V_0-1-0"
 title: "Fallback Plan"
 ---
@@ -175,8 +179,8 @@ Root policy details.
     const modelWithErrors = `---
 level: 3
 parent_spec:
-  name: business
-  url: "business"
+  name: blank
+  url: "blank"
 knowledge_version: "V_0-1-0"
 title: "Error Plan"
 ---
