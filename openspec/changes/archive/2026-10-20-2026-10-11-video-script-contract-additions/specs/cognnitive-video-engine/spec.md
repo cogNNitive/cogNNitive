@@ -26,11 +26,9 @@ their dimensions (`<slug>_<W>x<H>.mp4`).
 - THEN it writes `<slug>_1080x1920.mp4` and `<slug>_1920x1080.mp4`
 - AND each shows the square entire, centered, with the missing zones blurred
 
-## MODIFIED Requirements
-
 ### Requirement: B-roll overlay rendering
 
-(Previously: b-roll rendered at `fit: cover`, no animation.) The b-roll overlay MUST
+The b-roll overlay MUST
 honor a per-Layer `fit` (`cover`|`contain`); with `contain` it MUST present the asset
 whole, uncropped, inside a margin, and MUST apply a subtle zoom-in over its duration
 (disable with `zoomIn:false`).

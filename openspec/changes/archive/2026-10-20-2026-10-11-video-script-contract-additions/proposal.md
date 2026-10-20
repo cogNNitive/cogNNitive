@@ -48,11 +48,12 @@ that the workspace cannot rely on:
 ## Capabilities
 
 ### New Capabilities
-- `video-format-variants`: render square/vertical/horizontal outputs from one master
-  with dimension-encoded names and blur fill.
+- None. (`video-format-variants` was drafted as a new capability; its single
+  format-variant requirement ships inside `cognnitive-video-engine` instead of
+  creating a capability wrapper around one requirement.)
 
 ### Modified Capabilities
-- `video-script`: the Layer/Scene field contract gains `watermark`, `model`, `fit`,
+- `video-blueprint`: the Layer/Scene field contract gains `watermark`, `model`, `fit`,
   `music_volume`.
 - `cognnitive-video-engine`: b-roll `fit`/zoom, watermark renderer, per-Scene music
   volume, stable TTS cache key, format-variant rendering.

@@ -66,12 +66,19 @@ format-variant step (section 5). Evidence paths are relative to `iNNfo/specs/blu
       gains workflow step 6c + the tooling-table row.
 - [x] 6.2 Embedded-skill change bumped the owning blueprint `blueprint_version` V_0-2-1 → V_0-2-2
       (required by `guard-template-immutability`) and regenerated `iNNfo/specs/bluepriNNts/catalog.json`.
-      Open for the maintainer: `manifest/source.yaml` still pins `video-script` at V_0-1-4; reconcile
-      at the next blueprints release.
+      Corrected 2026-10-20: the earlier note about `manifest/source.yaml` pinning `video-script` at
+      `V_0-1-4` was wrong — the manifest carries no `video-script` blueprint entry at all (its
+      `blueprints:` list is domaiNN, changes, sidecar, sources, artifacts, procedures, blank), so
+      there is nothing to reconcile there. The embedded skill ships through the `blueprints`
+      family (`repoPaths: ['iNNfo/specs']`), not through a `video-script` pin.
 - [x] 6.3 `node scripts/verify.js --fast` green (150/150 steps). `npm run check:integrity` is not
       part of the merge gate in this environment (it hangs; `verify.js` + CI cover it).
-- [ ] 6.4 Land on `dev`; cut `blueprints-v*` / `skills-v*` via `nn-dev-release` (tag needs
-      maintainer confirmation).
+- [x] 6.4 Landed on `dev` (`4d5a32a2`, "feat(video-script): derive format variants from the
+      square master") and published with the blueprint: `blueprints-v0.40.0` (`c6ecb08d0`) carries
+      `video-script` `blueprint_version: V_0-2-2`. No `skills-v*` cut is needed — the embedded
+      `nn-video-script` skill lives under `iNNfo/specs/`, owned by the `blueprints` family
+      (`release-keys.js` → `blueprints.repoPaths: ['iNNfo/specs']`); the `skills` family owns only
+      the root `skills/`.
 
 ## Acceptance
 
