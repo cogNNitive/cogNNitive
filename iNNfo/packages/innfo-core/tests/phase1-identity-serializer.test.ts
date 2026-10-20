@@ -90,4 +90,49 @@ matrices:
     expect(serialized).toContain('slug: "concept-user"')
     expect(serialized).toContain('slug: "matrix-interaction"')
   })
+
+  it('1.1.5 A non-grammar prose section survives a frontmatter-only mutation (cogNNitive-web#20)', () => {
+    const content = `---
+spec_version: "V_0-5-0"
+level: 2
+blueprint_version: "V_0-1-0"
+blueprint_name: "neuro"
+title: "Neuro"
+parent_spec:
+  name: "iNNfo_V_0-5-0"
+  url: "https://example/iNNfo_V_0-5-0_NN.md"
+---
+
+> [!NOTE]
+> note
+
+# NN Concept Definition
+
+## NN Concept Definition: Sintoma
+icon:: activity
+
+# Neuro App
+
+## Philosophy
+
+Rigor matters.
+
+## Sintoma
+
+### Summary
+
+Un resumen.
+`
+    const parsed = parseKnowledge(content)
+    // Simulate a managed mutation that switches serializeKnowledge off the
+    // raw-frontmatter path (a `bump_version`, for instance).
+    parsed.frontmatter.blueprint_version = 'V_0-2-0'
+    const serialized = serializeKnowledge(parsed)
+    expect(serialized).toContain('blueprint_version: "V_0-2-0"')
+    expect(serialized).toContain('# Neuro App')
+    expect(serialized).toContain('## Philosophy')
+    expect(serialized).toContain('Rigor matters.')
+    expect(serialized).toContain('### Summary')
+    expect(serialized).toContain('Un resumen.')
+  })
 })

@@ -224,4 +224,33 @@ describe('Level-2 bump_version validation', () => {
     expect(res.errors!.length).toBeGreaterThan(0)
     expect(await readFile(file, 'utf-8')).toBe(before)
   })
+
+  it('preserves free-form app/prose sections when it bumps a Level-2 blueprint (cogNNitive-web#20)', async () => {
+    const withProse =
+      BLUEPRINT +
+      `
+# Strategy App
+
+## Philosophy
+
+Rigor matters.
+
+## Work
+
+### Summary
+
+A summary.
+`
+    const file = join(knowledgeDir, 'tpl_NN.md')
+    await writeFile(file, withProse, 'utf-8')
+    const res = await applyChange(root, 'tpl', 'bump_version', { bump: 'minor' })
+    expect(res.success).toBe(true)
+    const out = await readFile(file, 'utf-8')
+    expect(out).toContain('blueprint_version: "V_0-3-0"')
+    expect(out).toContain('# Strategy App')
+    expect(out).toContain('## Philosophy')
+    expect(out).toContain('Rigor matters.')
+    expect(out).toContain('### Summary')
+    expect(out).toContain('A summary.')
+  })
 })

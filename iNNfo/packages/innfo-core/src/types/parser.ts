@@ -385,6 +385,17 @@ export interface ParsedKnowledge {
    * so any additional blockquote content is otherwise dropped on save.
    */
   rawPreamble?: string
+  /**
+   * Top-level `# …` sections the model grammar does not model — an app/template
+   * prose block (`# Business Template`) and any other `# Heading` that is not
+   * `# NN …`. Stored as the exact heading + body text keyed by the raw heading
+   * title, and re-emitted verbatim by `serializeKnowledge` in `sectionOrder`.
+   * Without it, a managed mutation of one frontmatter key (`bump_version`, for
+   * instance) switches `serializeKnowledge` off the raw path and silently drops
+   * a blueprint's prose — the exact loss reported in cogNNitive-web#20. Optional
+   * so a programmatically constructed `ParsedKnowledge` keeps working unchanged.
+   */
+  rawOtherSections?: Record<string, string>
 }
 
 export interface SpecCache {
