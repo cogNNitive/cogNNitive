@@ -4,6 +4,7 @@ import { join, dirname, relative } from 'path'
 import { fileURLToPath } from 'url'
 import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
 import { rawPathOfSidecar } from '../src/naming/index.js'
+import { applyMutation } from '../src/mutate.js'
 
 /**
  * Requirement 1 (round-trip identity) and Requirement 2 (idempotency) of
@@ -50,6 +51,23 @@ function firstDifference(original: string, serialized: string): string {
   return 'no line differs (trailing whitespace only)'
 }
 
+/**
+ * Index of the single `field::` line inside the element's own section, or -1 when the
+ * heading is not found once or the field line is not unique within that section.
+ */
+function fieldLineIndex(lines: string[], element: string, field: string): number {
+  const headings: number[] = []
+  lines.forEach((line, i) => {
+    if (/^##\s/.test(line) && line.trimEnd().endsWith(': ' + element)) headings.push(i)
+  })
+  if (headings.length !== 1) return -1
+  const found: number[] = []
+  for (let i = headings[0] + 1; i < lines.length && !lines[i].startsWith('#'); i++) {
+    if (lines[i].trim().toLowerCase().startsWith(field.toLowerCase() + '::')) found.push(i)
+  }
+  return found.length === 1 ? found[0] : -1
+}
+
 describe('round-trip fidelity over the shipped corpus', () => {
   const files = corpus()
 
@@ -79,5 +97,69 @@ describe('round-trip fidelity over the shipped corpus', () => {
       }
     }
     expect(notIdempotent).toEqual([])
+  })
+
+  it('clearing one field removes exactly that line and nothing else', () => {
+    const failures: string[] = []
+    const skipped: string[] = []
+    let withFields = 0
+    let cleared = 0
+    const isSlugLine = (line: string) => line.trim().toLowerCase().startsWith('slug::')
+    for (const file of files) {
+      const name = relative(REPO_ROOT, file)
+      const original = readFileSync(file, 'utf-8')
+      // Every mutation first freezes element slugs (a documented engine invariant), so the
+      // baseline is the document after a bare freeze: the clear must change nothing beyond it.
+      const frozen = parseKnowledge(original)
+      applyMutation(frozen, 'freeze_slugs', {})
+      const baseline = serializeKnowledge(frozen).split('\n')
+
+      // The freeze itself may only add `slug::` lines.
+      const stripSlugs = (lines: string[]) => lines.filter((l) => !isSlugLine(l)).join('\n')
+      if (stripSlugs(baseline) !== stripSlugs(original.split('\n'))) {
+        failures.push(`${name} - freeze_slugs changed more than slug lines: ${firstDifference(stripSlugs(original.split('\n')), stripSlugs(baseline))}`)
+        continue
+      }
+
+      const model = parseKnowledge(original)
+      let hasAnyField = false
+      let target: { element: string; field: string; index: number } | null = null
+      outer: for (const [, nodes] of model.elements.entries()) {
+        for (const node of nodes) {
+          for (const field of Object.keys(node.fields)) {
+            hasAnyField = true
+            const index = fieldLineIndex(baseline, node.name, field)
+            if (index !== -1) {
+              target = { element: node.name, field, index }
+              break outer
+            }
+          }
+        }
+      }
+      if (hasAnyField) withFields++
+      if (!target) {
+        if (hasAnyField) skipped.push(name)
+        continue
+      }
+      const result = applyMutation(model, 'update_field', {
+        elementName: target.element,
+        fieldName: target.field,
+        to: '',
+      })
+      if (!result.success) {
+        failures.push(`${name} - clear of ${target.field} failed`)
+        continue
+      }
+      cleared++
+      const expected = baseline.filter((_, i) => i !== target!.index).join('\n')
+      const serialized = serializeKnowledge(model)
+      if (serialized !== expected) {
+        failures.push(`${name} - clearing ${target.field}: ${firstDifference(expected, serialized)}`)
+      }
+    }
+    expect(failures).toEqual([])
+    // A silent skip must be visible: the skipped documents are named, and most documents with fields are cleared.
+    expect(skipped).toEqual([])
+    expect(cleared).toBeGreaterThanOrEqual(Math.ceil(withFields * 0.8))
   })
 })
