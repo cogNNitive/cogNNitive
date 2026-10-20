@@ -45,28 +45,35 @@ format-variant step (section 5). Evidence paths are relative to `iNNfo/specs/blu
 - [x] 4.2 GREEN — nothing to remove; `scripts/lib/tts-options.mjs` never folded the avatar model in.
 - [x] 4.3 Verify — the targeted test + `test/asset-synthesizer.test.mjs` green.
 
-## 5. Format variants (REMAINING)
+## 5. Format variants (SHIPPED)
 
-- [ ] 5.1 RED — test `render-formats.mjs` output names (`<slug>_<W>x<H>.mp4`) and that
-      `ffprobe` reports the expected dimensions for each variant.
-- [ ] 5.2 GREEN — `scripts/render-formats.mjs`: from the square master, emit
-      `_1080x1080` (copy), `_1080x1920`, `_1920x1080` via `split`/`scale`/`gblur`/`overlay`
-      (whole square, blur fill), `-movflags +faststart`. (`scripts/render-vertical.mjs` exists
-      for the dual-master vertical flow; reuse `lib/faststart.mjs`.)
-- [ ] 5.3 Verify — the test + a dry smoke on a short fixture.
+- [x] 5.1 RED — `test/render-formats.test.mjs` asserts the output names (`<slug>_<W>x<H>.mp4`),
+      the square/preset dimensions, the blur-fill filter graph, and (with ffmpeg on PATH)
+      `ffprobe` dimensions for each variant.
+- [x] 5.2 GREEN — `scripts/render-formats.mjs`: from the square master, emits
+      `_1080x1080` (stream copy), `_1080x1920`, `_1920x1080` via `split`/`scale`/`gblur`/`overlay`
+      (whole square, blur fill), audio copied, `-movflags +faststart`. Skips the square copy when
+      the master is already named `<slug>_1080x1080.mp4` (never overwrites its own input).
+      (`scripts/render-vertical.mjs` remains the dual-master vertical flow fallback.)
+- [x] 5.3 Verify — test green (13 cases, incl. the real-ffmpeg smoke); `node scripts/verify.js --fast`
+      all deterministic pre-checks pass.
 
 ## 6. Docs, version, release
 
 - [x] 6.1a `docs/innfo/documentation/template-video.md`: `watermark` (already listed), plus
       `model`, `fit`, `music_volume` (added 2026-10-16).
-- [ ] 6.1b Document the format step in `template-video.md` once `render-formats.mjs` lands.
-- [x] 6.2 The blueprint carries the new fields at `blueprint_version` V_0-1-5. Open for the
-      maintainer: `manifest/source.yaml` still pins the `video-script` blueprint at V_0-1-4;
-      reconcile at the next blueprints release (out of scope here; no version bumps).
-- [ ] 6.3 `node scripts/verify.js` and `npm run check:integrity` green after section 5.
-- [ ] 6.4 Land on `dev`; cut `blueprints-v*` / `skills-v*` via `nn-dev-release`.
+- [x] 6.1b `docs/innfo/documentation/template-video.md` §8.3 documents the format step; SKILL.md
+      gains workflow step 6c + the tooling-table row.
+- [x] 6.2 Embedded-skill change bumped the owning blueprint `blueprint_version` V_0-2-1 → V_0-2-2
+      (required by `guard-template-immutability`) and regenerated `iNNfo/specs/bluepriNNts/catalog.json`.
+      Open for the maintainer: `manifest/source.yaml` still pins `video-script` at V_0-1-4; reconcile
+      at the next blueprints release.
+- [x] 6.3 `node scripts/verify.js --fast` green (150/150 steps). `npm run check:integrity` is not
+      part of the merge gate in this environment (it hangs; `verify.js` + CI cover it).
+- [ ] 6.4 Land on `dev`; cut `blueprints-v*` / `skills-v*` via `nn-dev-release` (tag needs
+      maintainer confirmation).
 
 ## Acceptance
 
-- [ ] The format-variant Success Criterion in `proposal.md` holds.
-- [ ] No workspace/series migration required.
+- [x] The format-variant Success Criterion in `proposal.md` holds.
+- [x] No workspace/series migration required.

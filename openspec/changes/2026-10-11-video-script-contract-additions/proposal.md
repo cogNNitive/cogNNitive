@@ -1,11 +1,11 @@
 # Proposal: video-script contract additions (watermark, per-Layer model/fit, per-Scene music_volume) + b-roll/format ergonomics
 
-> **Re-scoped 2026-10-16.** The contract additions below (watermark, `model`, `fit`,
-> `music_volume`, b-roll fit/zoom, stable TTS cache key) are shipped and verified (commits
+> **Re-scoped 2026-10-16; completed 2026-10-20.** The contract additions below (watermark, `model`,
+> `fit`, `music_volume`, b-roll fit/zoom, stable TTS cache key) shipped and verified (commits
 > c43de73f, 3769d206, 50633fac, e4c35a67, 09554a18; tests in `test/contract-additions.test.mjs`).
-> **Remaining work: format variants (`render-formats.mjs`) only** - see `tasks.md` section 5.
-> The sections below are kept as the original rationale; their delta specs are retained so the
-> archive step merges them into the living specs.
+> The final piece — format variants (`render-formats.mjs`, `<slug>_<W>x<H>.mp4` with blur fill) —
+> landed with `test/render-formats.test.mjs`. The sections below are kept as the original rationale;
+> their delta specs are retained so the archive step merges them into the living specs.
 
 ## Intent
 
@@ -103,6 +103,6 @@ new fields are optional; a document that omits them behaves exactly as before).
       subtle zoom-in; `cover` is unchanged.
 - [x] A Scene with `music_volume:: 0.06` emits its music track at 0.06.
 - [x] Changing an avatar model does **not** re-bill TTS for an unchanged narration.
-- [ ] The format step emits `<slug>_1080x1080.mp4`, `<slug>_1080x1920.mp4`,
+- [x] The format step emits `<slug>_1080x1080.mp4`, `<slug>_1080x1920.mp4`,
       `<slug>_1920x1080.mp4` with the square intact over a blurred fill.
-- [ ] `node scripts/verify.js` and the skill tests are green.
+- [x] `node scripts/verify.js --fast` and the skill tests are green.

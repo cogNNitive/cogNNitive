@@ -268,9 +268,11 @@ need a maintainer decision or a template bump. None blocks a release.
 - **GC never proposes `sources/archive/` files** (design D16 expects it): old archive stamps
   are not contract stamps, so `planGc` treats each file as its own latest. Needs a ledgered
   `legacy:` marker and a core rule if the maintainer wants it.
-- **`workspace-index` `index.md` keeps a fixed name** (skip-if-unchanged, not `writeOnce`)
-  because MCP `apply_change` and the editor read it by name; this deviates from the
-  `write-once-artifacts` spec. Decide whether to amend the spec or migrate the readers.
+- **[RESOLVED #225] `workspace-index` root `index.md` retired.** The fixed-name exception to
+  `write-once-artifacts` is gone: `nn-sources` no longer generates the file. Its stated
+  justification was false — the parser never read it as an entrypoint
+  (`recursiveParser/workspace.ts` scans `*_NN.md`), MCP `apply_change` explicitly skips it,
+  and the editor was deleted (S5). `write-once-artifacts` no longer lists `workspace-index.js`.
 - **Four published `_V_` Ghostbusters samples were edited by `sync-samples`** (business-model
   V_0-2-1, metrics V_0-1-0, organization V_0-2-0, video V_0-1-0; one citation path each) to
   keep parity with `_samples_nn`. Parity and immutability gates pass, but published `_V_` files
