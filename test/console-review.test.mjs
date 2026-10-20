@@ -149,9 +149,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         reviewTab.querySelector('[data-innfo-component="draft-list"]'),
         'Review tab renders through InnfoUI.DraftList',
       )
-      const items = reviewTab.querySelectorAll('.innfo-draft-row')
+      const items = reviewTab.querySelectorAll('.innfo-change-card')
       assert.equal(items.length, 1)
-      assert.match(items[0].textContent, /Updated seat minimum to 50/)
+      assert.match(
+        items[0].querySelector('.innfo-change-card-note').textContent,
+        /Updated seat minimum to 50/,
+      )
     })
 
     function reviewTabFor(elementHash) {
@@ -181,7 +184,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
     it('flags a draft whose target element hash changed since it was written', () => {
       const { tab } = reviewTabFor('2222222222222222')
-      const rows = [...tab.querySelectorAll('.innfo-draft-row')]
+      const rows = [...tab.querySelectorAll('.innfo-change-card')]
       assert.equal(rows.length, 2)
       assert.equal(rows[0].getAttribute('data-target-changed'), 'true')
       assert.ok(tab.querySelector('[data-innfo="stale-drafts"]'), 'review head names the stale drafts')
@@ -195,23 +198,43 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.equal(tab.querySelector('[data-innfo="stale-drafts"]'), null)
     })
 
-    it('offers to clear exported drafts and removes only those', () => {
-      const { tab, state, store } = reviewTabFor('1111111111111111')
-      assert.equal(tab.querySelector('[data-innfo="clear-exported"]'), null, 'nothing exported yet')
+    it('removes already-applied field drafts on controller start and keeps the rest', () => {
+      const InnfoReview = require(
+        join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'),
+      )
+      window.localStorage.clear()
+      const store = InnfoReview.createDraftStore(window.localStorage, 'applied-model')
+      const elements = [
+        { id: 'e1', concept: 'C', name: 'Alpha', hash: 'ffffffffffffffff', fields: { owner: 'Bea' } },
+      ]
+      // Stale + value now matches -> applied, removed on load.
+      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', field: 'owner', original: 'Ana', proposed: 'Bea', base_hash: '1111111111111111' })
+      // Stale but diverged -> stays.
+      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', field: 'owner', original: 'Ana', proposed: 'Other', base_hash: '1111111111111111' })
+      // Comment, new-element, delete and matrix-cell drafts are never auto-removed.
+      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'comment', comment: 'x', base_hash: '1111111111111111' })
+      store.addDraft({ knowledge_id: 'applied-model', concept: 'C', element: 'Fresh', kind: 'new' })
+      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'delete', base_hash: '1111111111111111' })
+      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', matrix: 'M', row: 'r', col: 'c', original: 'x', proposed: 'y', base_hash: '1111111111111111' })
 
-      const exported = store.drafts()[0].id
-      state.exportedDraftIds = [exported]
-      let refreshed = 0
-      InnfoConsole.renderReviewTab(document, state, { needs: [] }, () => {
-        refreshed++
+      InnfoReview.createReviewController(document, {
+        meta: { modelId: 'applied-model' },
+        elements,
+        needs: ['feedback-export'],
+        store,
       })
-      const btn = document.getElementById('innfo-tab-review').querySelector('[data-innfo="clear-exported"]')
-      assert.ok(btn)
-      btn.click()
-      assert.equal(refreshed, 1)
-      assert.deepEqual(
-        store.drafts().map((d) => d.element),
-        ['Fresh'],
+
+      const remaining = store.drafts()
+      assert.equal(remaining.some((d) => d.proposed === 'Bea'), false, 'the applied draft is gone')
+      assert.equal(remaining.length, 5, 'the other five drafts stay')
+      const persisted = JSON.parse(
+        window.localStorage.getItem('innfo-console:v3:applied-model'),
+      )
+      assert.equal(persisted.drafts.some((d) => d.proposed === 'Bea'), false, 'removal persisted')
+      assert.equal(
+        document.querySelector('#innfo-tab-review [data-innfo="clear-exported"]'),
+        null,
+        'no clear-exported control',
       )
     })
 

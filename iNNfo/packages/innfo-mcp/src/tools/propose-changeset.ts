@@ -161,7 +161,11 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
   switch (change.op) {
     case 'update_field':
       if (!target.includes('&')) problems.push(`${label}: update_field target must be model@element&field`)
-      need('to')
+      // An empty `to` is a clear: it removes the field line. Only a missing
+      // `to` (undefined/null) is invalid.
+      if (change.to === undefined || change.to === null) {
+        problems.push(`${label}: update_field requires "to"`)
+      }
       break
     case 'add_element':
       need('concept')

@@ -189,6 +189,22 @@ describe('proposal validation before write', () => {
     await nothingWritten()
   })
 
+  it('update_field accepts an empty to (a clear) but still rejects a missing to', async () => {
+    const ok = await propose([{ ...UPDATE, to: '' }])
+    expect(ok.success).toBe(true)
+    const doc = parseChangeset(await readFile(join(root, ok.changeset!), 'utf-8'))
+    expect(doc.changes[0].op).toBe('update_field')
+    expect(doc.changes[0].to).toBe('')
+
+    const missing = await propose([
+      { op: 'update_field', target: 'strategy@Vision&statement', from: 'Accelerate green energy' },
+    ])
+    expect(missing.success).toBe(false)
+    expect(
+      missing.errors?.some((e) => e.code === 'INVALID_OPERATION' && /requires "to"/.test(e.message)),
+    ).toBe(true)
+  })
+
   it('an empty or non-array operations list is rejected', async () => {
     expect((await propose([])).errors?.[0].code).toBe('EMPTY_PROPOSAL')
     expect((await propose('nope')).success).toBe(false)

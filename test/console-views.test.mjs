@@ -59,12 +59,12 @@ describe('Changes view (--domain)', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('ships the read-only Changes view and lists it in the header', async () => {
+  it('inlines no built-in console-view-changes view', async () => {
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
-    assert.match(html, /console-view-changes/, 'the changes blueprint view is inlined')
-    const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
-    assert.match(header, /console-view-changes/, 'the header lists the Changes view')
-    // Read-only: it registers no editable draft surface.
-    assert.match(html, /kind:\s*'readonly'/)
+    assert.doesNotMatch(html, /console-view-changes/, 'the changes blueprint view is not inlined')
+    const header = html.match(/<!-- innfo-views[\s\S]*?-->/)
+    if (header) {
+      assert.doesNotMatch(header[0], /console-view-changes/, 'the header lists no Changes view')
+    }
   })
 })

@@ -9,8 +9,6 @@ import {
   serializeKnowledge,
   applyMutation,
 } from '@cognnitive/innfo-core';
-import { pruneChangesets } from '../src/tools/prune-changesets.js';
-
 async function runSmokeTest() {
   console.log('🚀 Starting Greenfield E2E Smoke Test...');
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cognnitive-greenfield-smoke-'));
@@ -97,46 +95,6 @@ status:: Draft
     const serialized = serializeKnowledge(model);
     assert(!serialized.includes('Example Campaña'), 'Example Campaña removed from body');
     console.log('  ✅ Element removal clean');
-
-    // Step 7: Changeset pruning
-    console.log('Step 7: Prune changesets');
-    const changesDir = path.join(domainDir, 'changes');
-    const kDir = path.join(domainDir, 'kNNowledge');
-    fs.mkdirSync(changesDir, { recursive: true });
-    fs.mkdirSync(kDir, { recursive: true });
-
-    const activeChangeset = 'domain_agent_20261016T120000Z_changes_NN.md';
-    const deadChangeset = 'domain_agent_20261016T120100Z_changes_NN.md';
-    const appliedChangeset = [
-      '---',
-      'spec_version: "V_0-4-0"',
-      'level: 3',
-      'parent_spec:',
-      '  name: "changes"',
-      '  url: "specs/changes_V_0-1-0_NN.md"',
-      'blueprint_version: "V_0-1-0"',
-      'status: applied',
-      '---',
-      '',
-      '## NN Change: c-01',
-      'op:: update_field',
-      'target:: marketing@item&name',
-      'to:: x',
-      '',
-    ].join('\n');
-    fs.writeFileSync(path.join(changesDir, activeChangeset), appliedChangeset);
-    fs.writeFileSync(path.join(changesDir, deadChangeset), appliedChangeset);
-
-    // Save model referencing only activeChangeset
-    const finalModelContent = serialized + `\nsources:: [changes/${activeChangeset}@## NN Change: c-01]\n`;
-    fs.writeFileSync(path.join(kDir, 'marketing_NN.md'), finalModelContent);
-
-    const pruneRes = await pruneChangesets(domainDir, { dryRun: false });
-    assert.strictEqual(pruneRes.deletedCount, 1);
-    assert.strictEqual(pruneRes.deleted[0], deadChangeset);
-    assert(fs.existsSync(path.join(changesDir, activeChangeset)), 'active changeset kept');
-    assert(!fs.existsSync(path.join(changesDir, deadChangeset)), 'dead changeset pruned');
-    console.log('  ✅ Changeset pruning passed');
 
     console.log('🎉 All Greenfield E2E Smoke Tests PASSED successfully!');
   } finally {

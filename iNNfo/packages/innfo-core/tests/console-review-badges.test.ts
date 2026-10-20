@@ -55,25 +55,29 @@ function renderModelConsole(model = buildModel()): void {
 
 let controllers: any[] = []
 
-function boot(withReview: boolean) {
+function boot() {
   const mods = env.loadConsole()
   const res = mods.Console.boot(env.document)
   if (res && res.controller) controllers.push(res.controller)
-  if (withReview) {
-    /* no review mode: edits are live */
-  }
   return mods
 }
 
-function badgeStatuses(): string[] {
+function seedDrafts(drafts: any[]) {
+  env.localStorage.setItem(
+    'innfo-console:v3:ghostbusters-model',
+    JSON.stringify({ v: 4, modelId: 'ghostbusters-model', drafts, reviewed: {} }),
+  )
+}
+
+function changeBadges(): HTMLElement[] {
   return Array.from(
     env.document.querySelectorAll(
       '[data-innfo-change-state] [data-innfo-component="status-badge"]',
     ),
-  ).map((b) => (b as HTMLElement).getAttribute('data-status') || '')
+  ) as HTMLElement[]
 }
 
-describe('console-review-badges (badges from changesets)', () => {
+describe('console-review-badges (Unsent-only, from the draft store)', () => {
   beforeEach(() => {
     controllers = []
     env.setup(readFileSync(shellPath, 'utf8'))
@@ -87,85 +91,7 @@ describe('console-review-badges (badges from changesets)', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders a single applied change-state badge from element.history', () => {
-    renderModelConsole(
-      buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }),
-    )
-    boot(false)
-    const host = env.document.querySelector(
-      '[data-element-id="threat-slimer"] [data-innfo-change-state]',
-    )
-    expect(host).not.toBeNull()
-    const badges = host!.querySelectorAll('[data-innfo-component="status-badge"]')
-    expect(badges.length).toBe(1)
-    const badge = badges[0] as HTMLElement
-    expect(badge.getAttribute('data-status')).toBe('applied')
-    expect(badge.textContent).toBe('Applied')
-    expect(badge.getAttribute('title')).toContain('1 applied')
-  })
-
-  it('renders a conflict StatusBadge from element.history', () => {
-    renderModelConsole(
-      buildModel({ history: [{ id: 'c-01', op: 'update_field', status: 'conflict' }] }),
-    )
-    boot(false)
-    expect(badgeStatuses()).toEqual(['conflict'])
-  })
-
-  it('renders a proposed StatusBadge from the proposed changesets of payload.changes', () => {
-    renderModelConsole(
-      buildModel({
-        changes: [
-          {
-            path: 'changes/m_reviewer_1_changes_NN.md',
-            status: 'proposed',
-            changes: [{ id: 'c-01', op: 'comment', target: 'm@threat-slimer&note' }],
-          },
-        ],
-      }),
-    )
-    boot(false)
-    expect(badgeStatuses()).toEqual(['proposed'])
-  })
-
-  it('renders badges with review mode OFF', () => {
-    renderModelConsole(
-      buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }),
-    )
-    boot(false)
-    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    expect(badgeStatuses()).toEqual(['applied'])
-  })
-
-  it('a local draft alone reads as an Unsent change-state badge', () => {
-    renderModelConsole(buildModel())
-    env.localStorage.setItem(
-      'innfo-console:v3:ghostbusters-model',
-      JSON.stringify({
-        v: 4,
-        modelId: 'ghostbusters-model',
-        drafts: [
-          {
-            id: 'fb-001',
-            element_id: 'threat-slimer',
-            concept: 'ParanormalThreat',
-            element: 'Slimer',
-            base_hash: 'abcdef0123456789',
-            kind: 'comment',
-            comment: 'x',
-          },
-        ],
-      }),
-    )
-    boot(false)
-    expect(badgeStatuses()).toEqual(['local'])
-    const badge = env.document.querySelector(
-      '[data-innfo-change-state] [data-innfo-component="status-badge"]',
-    ) as HTMLElement
-    expect(badge.textContent).toBe('Unsent')
-  })
-
-  it('one badge per row: a conflict wins over everything else', () => {
+  it('shows no change signal for applied, conflict and proposed history with an empty draft store', () => {
     renderModelConsole(
       buildModel({
         history: [
@@ -181,45 +107,55 @@ describe('console-review-badges (badges from changesets)', () => {
         ],
       }),
     )
-    env.localStorage.setItem(
-      'innfo-console:v3:ghostbusters-model',
-      JSON.stringify({
-        v: 4,
-        modelId: 'ghostbusters-model',
-        drafts: [
-          {
-            id: 'fb-001',
-            element_id: 'threat-slimer',
-            concept: 'ParanormalThreat',
-            element: 'Slimer',
-            base_hash: 'abcdef0123456789',
-            kind: 'comment',
-            comment: 'x',
-          },
-        ],
-      }),
-    )
-    boot(false)
-    expect(badgeStatuses()).toEqual(['conflict'])
-    const badges = env.document.querySelectorAll(
-      '[data-element-id="threat-slimer"] [data-innfo-component="status-badge"]',
-    )
-    expect(badges.length).toBe(1)
+    boot()
+    expect(env.document.querySelector('[data-innfo-change-state]')).toBeNull()
+    expect(changeBadges()).toEqual([])
   })
 
-  it('ignores a proposed change targeting a missing element', () => {
-    renderModelConsole(
-      buildModel({
-        changes: [
-          {
-            path: 'changes/m_reviewer_1_changes_NN.md',
-            status: 'proposed',
-            changes: [{ id: 'c-01', op: 'comment', target: 'm@ghost-element&note' }],
-          },
-        ],
-      }),
-    )
-    expect(() => boot(false)).not.toThrow()
-    expect(env.document.querySelector('[data-innfo-change-state]')).toBeNull()
+  it('shows one Unsent badge with the unsent count in its title when the store has drafts', () => {
+    renderModelConsole(buildModel())
+    seedDrafts([
+      {
+        id: 'fb-001',
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        base_hash: 'abcdef0123456789',
+        kind: 'comment',
+        comment: 'x',
+      },
+      {
+        id: 'fb-002',
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        base_hash: 'abcdef0123456789',
+        kind: 'comment',
+        comment: 'y',
+      },
+    ])
+    boot()
+    const badges = changeBadges()
+    expect(badges).toHaveLength(1)
+    expect(badges[0].getAttribute('data-status')).toBe('local')
+    expect(badges[0].textContent).toBe('Unsent')
+    expect(badges[0].getAttribute('title')).toBe('2 unsent')
+  })
+
+  it('still shows the Unsent badge when the payload also carries applied history', () => {
+    renderModelConsole(buildModel({ history: [{ id: 'c-01', op: 'comment', status: 'applied' }] }))
+    seedDrafts([
+      {
+        id: 'fb-001',
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        base_hash: 'abcdef0123456789',
+        kind: 'comment',
+        comment: 'x',
+      },
+    ])
+    boot()
+    expect(changeBadges().map((b) => b.getAttribute('data-status'))).toEqual(['local'])
   })
 })

@@ -158,6 +158,60 @@ describe('console element history (changeset lineage)', () => {
     })
   })
 
+  it('loadChangesetRecords copies from, to, name, concept, fields and resolution for the Changes tab', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'nn-hist-'))
+    temps.push(dir)
+    await mkdir(join(dir, 'changes'), { recursive: true })
+    const cs = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "0.1.0"
+status: partially_applied
+title: "Mixed"
+author: "lucas"
+applied_at: "2026-10-10T17:20:19.500Z"
+resolution: "One change could not be applied"
+---
+
+# NN Change
+
+## NN Change: c-01
+op:: update_field
+target:: M@e&owner
+from:: "Ana"
+to:: "Bea"
+
+## NN Change: c-02
+op:: update_field
+target:: M@e&owner
+from:: "Bea"
+to:: "Carla"
+status:: conflict
+resolution:: PRECONDITION_FAILED: from mismatch
+
+## NN Change: c-03
+op:: add_element
+target:: M@Work
+concept:: Work
+name:: Mission
+fields:: {"owner":"ana"}
+`
+    await writeFile(join(dir, 'changes', 'dom_lucas_1_changes_NN.md'), cs, 'utf-8')
+    const records = await loadChangesetRecords(dir)
+    expect(records[0].resolution).toBe('One change could not be applied')
+    expect(records[0].changes[0]).toMatchObject({ id: 'c-01', from: 'Ana', to: 'Bea' })
+    expect(records[0].changes[1].resolution).toContain('PRECONDITION_FAILED')
+    expect(records[0].changes[2]).toMatchObject({
+      id: 'c-03',
+      name: 'Mission',
+      concept: 'Work',
+      fields: { owner: 'ana' },
+    })
+  })
+
   it('loadChangesetRecords returns [] when changes/ is absent', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'nn-hist-'))
     temps.push(dir)

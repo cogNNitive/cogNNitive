@@ -40,6 +40,10 @@ type:: string
 ## NN Field Definition: target_year
 concept:: Work
 type:: string
+
+## NN Field Definition: depends_on
+concept:: Work
+type:: reference
 `
 
   const LIVE_STRATEGY_MODEL = `---
@@ -384,6 +388,90 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(parsedCs.frontmatter.level).toBe(3)
     expect(parsedCs.frontmatter.parent_spec.name).toBe('changes')
     expect(parsedCs.changes.length).toBe(1)
+  })
+
+  it('update_field with an empty to clears the field line', async () => {
+    const csFile = join(changesDir, 'clear_field_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Accelerate green energy',
+          to: '',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/clear_field_changes_NN.md')
+    expect(res.success).toBe(true)
+
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).not.toContain('statement:: Accelerate green energy')
+    // Untouched fields survive the clear.
+    expect(live).toContain('target_year:: 2030')
+
+    const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(annotated.changes[0].status).toBe('applied')
+  })
+
+  it('a clear whose from does not match is a conflict with a resolution and writes nothing', async () => {
+    const csFile = join(changesDir, 'clear_conflict_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Wrong prior value',
+          to: '',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/clear_conflict_changes_NN.md')
+    expect(res.success).toBe(false)
+
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('statement:: Accelerate green energy')
+
+    const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(annotated.changes[0].status).toBe('conflict')
+    expect(annotated.changes[0].resolution).toContain('PRECONDITION_FAILED')
+  })
+
+  it('a validation failure rejects the whole file: a valid clear in the same batch is not persisted', async () => {
+    const before = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    const csFile = join(changesDir, 'invalid_after_apply_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-clear',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Accelerate green energy',
+          to: '',
+        },
+        {
+          id: 'c-dangle',
+          op: 'update_field',
+          target: 'strategy@Vision&depends_on',
+          to: 'Ghost Element',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/invalid_after_apply_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.errors?.some((e) => e.code === 'VALIDATION_FAILED')).toBe(true)
+
+    // Whole-file rejection: even the otherwise-valid clear is not persisted.
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(before)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
   })
 
   describe('Slice S2b: Partitioning, Slugs, and Delete Impact', () => {

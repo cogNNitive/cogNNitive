@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -7,7 +7,6 @@ import {
   serializeKnowledge,
   applyMutation,
 } from '@cognnitive/innfo-core'
-import { pruneChangesets } from '../src/tools/prune-changesets.js'
 import { applyChange } from '../src/tools/mutate.js'
 import { writeProposedChangeset } from '../src/tools/propose-changeset.js'
 
@@ -118,57 +117,4 @@ matrices:
     expect(serialized).toContain('| Mensaje1 | High |')
   })
 
-  it('prune_changesets removes unreferenced changesets from changes/ and keeps cited ones', async () => {
-    const changesDir = join(tempDir, 'changes')
-    const kDir = join(tempDir, 'kNNowledge')
-    await mkdir(changesDir, { recursive: true })
-    await mkdir(kDir, { recursive: true })
-
-    const citedChangeName = 'acme_agent_20261016T120000Z_changes_NN.md'
-    const unreferencedChangeName = 'test_exploratory_20261016T120500Z_changes_NN.md'
-
-    const appliedChangeset = `---
-spec_version: "V_0-4-0"
-level: 3
-parent_spec:
-  name: "changes"
-  url: "specs/changes_V_0-1-0_NN.md"
-blueprint_version: "V_0-1-0"
-status: applied
----
-
-## NN Change: c-01
-op:: update_field
-target:: model@item&name
-to:: x
-`
-    await writeFile(join(changesDir, citedChangeName), appliedChangeset)
-    await writeFile(join(changesDir, unreferencedChangeName), appliedChangeset)
-
-    // Knowledge model citing citedChangeName
-    const modelContent = `---
-level: 3
----
-# NN Model
-## NN Item: Test
-sources:: [changes/${citedChangeName}@## NN Change: c-01]
-`
-    await writeFile(join(kDir, 'model_NN.md'), modelContent)
-
-    // Run pruneChangesets with dryRun: true
-    const dryRunRes = await pruneChangesets(tempDir, { dryRun: true })
-    expect(dryRunRes.deletedCount).toBe(1)
-    expect(dryRunRes.deleted).toContain(unreferencedChangeName)
-    expect(dryRunRes.kept).toContain(citedChangeName)
-
-    // Run pruneChangesets for real
-    const liveRes = await pruneChangesets(tempDir, { dryRun: false })
-    expect(liveRes.deletedCount).toBe(1)
-    expect(liveRes.deleted).toContain(unreferencedChangeName)
-
-    // Verify unreferenced file was deleted, cited file kept
-    const { existsSync } = await import('node:fs')
-    expect(existsSync(join(changesDir, unreferencedChangeName))).toBe(false)
-    expect(existsSync(join(changesDir, citedChangeName))).toBe(true)
-  })
 })

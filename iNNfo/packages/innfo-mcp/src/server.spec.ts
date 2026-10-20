@@ -129,7 +129,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(23)
+    expect(tools).toHaveLength(22)
 
     const canonicalNames = [
       'list_knowledge',
@@ -154,7 +154,6 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       'resolve_sources',
       'list_blueprint_procedures',
       'list_blueprint_skills',
-      'prune_changesets',
     ].sort()
     expect(names).toEqual(canonicalNames)
 
@@ -177,6 +176,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       'check_workspace',
       'migrate_domain',
       'build_console_payload',
+      'prune_changesets',
     ]
     for (const r of retired) {
       expect(names).not.toContain(r)

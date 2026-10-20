@@ -50,10 +50,11 @@ describe('console-review-math', () => {
     expect(Review.isTargetChanged({ element_id: 'zz', base_hash: 'aaaaaaaaaaaaaaaa' }, byId)).toBe(true)
   })
 
-  it('isAlreadyApplied is true only for stale drafts whose proposed equals current', () => {
+  it('isAlreadyApplied is true for a stale draft whose value now matches, including a clear', () => {
     const Review = loadReview()
     const byId = {
       a: { id: 'a', hash: 'aaaaaaaaaaaaaaaa', fields: { statement: 'New value' } },
+      b: { id: 'b', hash: 'bbbbbbbbbbbbbbbb', fields: {} },
     }
     const staleApplied = { element_id: 'a', field: 'statement', proposed: 'New value', base_hash: 'stale____________' }
     const staleDiverged = { element_id: 'a', field: 'statement', proposed: 'Other value', base_hash: 'stale____________' }
@@ -64,57 +65,20 @@ describe('console-review-math', () => {
     expect(Review.isAlreadyApplied(fresh, byId)).toBe(false)
     expect(Review.isAlreadyApplied(noProposed, byId)).toBe(false)
     expect(Review.isAlreadyApplied(staleApplied, {})).toBe(false)
+
+    // An empty proposed value on a field the element no longer has is the applied clear.
+    const staleClear = { element_id: 'b', field: 'owner', proposed: '', base_hash: 'stale____________' }
+    expect(Review.isAlreadyApplied(staleClear, byId)).toBe(true)
+    const clearStillPresent = { element_id: 'a', field: 'statement', proposed: '', base_hash: 'stale____________' }
+    expect(Review.isAlreadyApplied(clearStillPresent, byId)).toBe(false)
   })
 
-  it('badgesByElement maps {status: count} from history + proposed changes, skipping orphans', () => {
+  it('no longer exports the payload-derived counting helpers', () => {
     const Review = loadReview()
-    const list = [
-      { id: 'a', history: [{ status: 'applied' }, { status: 'conflict' }, { status: 'proposed' }] },
-      { id: 'b' },
-    ]
-    const changes = [
-      { status: 'proposed', changes: [{ target: 'm@a&f' }, { target: 'm@ghost&f' }] },
-      { status: 'applied', changes: [{ target: 'm@b&f' }] },
-    ]
-    const badges = Review.badgesByElement(list, changes)
-    expect(badges.a).toEqual({ applied: 1, conflict: 1, proposed: 1 })
-    expect(badges.b).toBeUndefined()
-    expect(badges.ghost).toBeUndefined()
-  })
-
-  it('changeCountsByElement folds local drafts into the changeset counts', () => {
-    const Review = loadReview()
-    const list = [
-      { id: 'a', history: [{ status: 'applied' }] },
-      { id: 'b' },
-    ]
-    const changes = [
-      { status: 'proposed', changes: [{ target: 'm@a&f' }] },
-    ]
-    const drafts = [
-      { id: 'fb-001', element_id: 'b', kind: 'comment' },
-      { id: 'fb-002', element_id: 'b', kind: 'correction', field: 'x', proposed: 'y' },
-    ]
-    const counts = Review.changeCountsByElement(list, changes, drafts)
-    expect(counts.a).toEqual({ applied: 1, proposed: 1 })
-    expect(counts.b).toEqual({ local: 2 })
-  })
-
-  it('changeStateOf picks one state: conflict > local > proposed > applied', () => {
-    const Review = loadReview()
-    expect(Review.changeStateOf({ applied: 2, proposed: 1 })).toBe('proposed')
-    expect(Review.changeStateOf({ applied: 2, proposed: 1, local: 1 })).toBe('local')
-    expect(Review.changeStateOf({ applied: 2, conflict: 1, local: 1 })).toBe('conflict')
-    expect(Review.changeStateOf({ applied: 1 })).toBe('applied')
-    expect(Review.changeStateOf({})).toBeNull()
-  })
-
-  it('changeTooltip enumerates every state that is present', () => {
-    const Review = loadReview()
-    expect(Review.changeTooltip('proposed', { applied: 2, proposed: 1, local: 3 })).toBe(
-      '3 unsent, 1 proposed, 2 applied',
-    )
-    expect(Review.changeTooltip('conflict', { conflict: 1 })).toBe('1 in conflict')
+    expect(Review.badgesByElement).toBeUndefined()
+    expect(Review.changeCountsByElement).toBeUndefined()
+    expect(Review.changeStateOf).toBeUndefined()
+    expect(Review.changeTooltip).toBeUndefined()
   })
 
   it('STORE_PREFIX is innfo-console:v3:', () => {

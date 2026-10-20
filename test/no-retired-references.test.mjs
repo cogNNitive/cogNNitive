@@ -33,7 +33,8 @@ const EDITOR_ALLOWLIST = [
   'scripts/guard-template-immutability.test.js', // old badge URL normalisation test
   SELF, // this guard names the tokens it forbids
   'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', // embeds write-once specs
-  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs
+  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
+  'iNNfo/packages/innfo-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
   'iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs', // embeds write-once specs
   'test/fixtures/testlab/artifacts/', // stamped console exports of earlier runtimes
 ]

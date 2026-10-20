@@ -410,24 +410,25 @@ sub-agents and synthesise. For a deeper adversarial pass, point the maintainer a
 uncertain one is ⚠️ labelled `PLAUSIBLE`. Refactor and QA-smell items are always ⚠️ /
 informational — Group 10 **never fails the gate on its own**; it informs.
 
-### Group 11 — cogNNitive-web issues triage (distribution feedback loop) — advisory
+### Group 11 — cogNNitive-web issues triage (distribution feedback loop) — advisory, delegated
 **Expediente:** 2026-10-12 — end-user sessions filed 12 issues against
 `cogNNitive/cogNNitive-web` (the public distribution mirror); none was triaged
 back into this source monorepo, so a confirmed preflight false positive
 (web#12, reserved `target:: Markers`) lived on while the fix belonged here.
 
+**Owned by `nn-dev-issue-tracking`.** When this group is selected, read and follow
+`.agents/skills/nn-dev-issue-tracking/SKILL.md` §3 (intake sweep) and report its buckets
+(`fixes-here` / `web-only` / `already-fixed`). It also owns the import (transfer + traceability
+comment + ledger) in §4–§6. This group stays a thin trigger inside the gate — do not duplicate
+the sweep here.
+
 ```powershell
-gh issue list --repo cogNNitive/cogNNitive-web --state open --limit 30 --json number,title,createdAt
+gh issue list --repo cogNNitive/cogNNitive-web --state open --limit 100 --json number,title,author,createdAt
 ```
 
-- ⚠️ any open web issue with no corresponding source fix, tracking issue, or
-  wontfix note here — list `web#<n> <title>` and map it: fixes-here (source path),
-  web-only (no counterpart in `skills/` or `iNNfo/`), or already-fixed-here
-  (e.g. web#3 manifest 404 — source already pins `https://cognnitive.com/use/manifest.md`).
-- Source of truth is this monorepo: `skills/` + `iNNfo/` + `scripts/` are what
-  ships to web via `manifest/source.yaml` + release workflow. A web issue whose
-  path does not exist here (e.g. `nn-video-script`, `nn-trannsform`) is web-only
-  or a renamed skill (`nn-trannsform` → `nn-sources`) — say so, do not invent a fix.
+- ⚠️ any open web issue not yet in a bucket — list `web#<n> <title>`. A completed sweep leaves
+  **no open `fixes-here`** web issue (source of truth is this monorepo: `skills/` + `iNNfo/` +
+  `scripts/` ship to web via `manifest/source.yaml` + release workflow).
 - Never fails the gate on its own (advisory, like Group 10). Run on `--pre-push`
   and before a release batch, not on every edit.
 
