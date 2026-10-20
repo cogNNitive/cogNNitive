@@ -49,7 +49,7 @@ Chain strategy: pending
 - [x] 1.6 RED `iNNfo/packages/innfo-mcp/src/server.spec.ts`: `prune_changesets` moves from the canonical to the retired list. Run: `npm --workspace=@cognnitive/innfo-mcp test -- src/server.spec.ts`.
 - [x] 1.7 GREEN delete the prune tool and its tests and references (design 2). Re-run 1.6 and `npm --workspace=@cognnitive/innfo-mcp test`.
 - [x] 1.8 REGEN: `npm run regen`; `npm --workspace=@cognnitive/innfo-mcp run build`. `rg prune_changesets` must have no hit outside `openspec/` except the retired-name list assertion in `iNNfo/packages/innfo-mcp/src/server.spec.ts`.
-- [ ] 1.9 `openspec/specs/prune-changesets/` is deleted at archive (REMOVED delta).
+- [x] 1.9 `openspec/specs/prune-changesets/` is deleted at archive (REMOVED delta).
 
 ## U2 Console export
 
@@ -85,8 +85,8 @@ Chain strategy: pending
 
 ## Before each PR
 
-- [ ] V.1 `npm run typecheck`, `npm test`, `node scripts/verify.js`, `npm run check:specs`.
-- [ ] V.2 Fresh-context review of the diff (repo PR rule).
+- [x] V.1 `npm run typecheck`, `npm test`, `node scripts/verify.js`, `npm run check:specs`. Evidence on the branch tip after round 2: typecheck exit 0; innfo-core 170 files / 1603 tests pass; innfo-mcp 46 files / 477 tests pass; `npm run check:specs` exit 0; `node scripts/verify.js` exit 0 with 169 checks passed and 0 failed.
+- [x] V.2 Fresh-context review of the diff (repo PR rule). Evidence: two independent blind adversarial reviews (judge A and judge B) of `git diff origin/dev...HEAD` found no CRITICAL issues; their warnings (dead citation icon in the export preview, misleading resolved status, weak round-trip test, scenario wording) were fixed in commits `6df0e1c1`, `b0f9c08c` and `f767ff27`.
 
 ## Follow-up from verification
 
