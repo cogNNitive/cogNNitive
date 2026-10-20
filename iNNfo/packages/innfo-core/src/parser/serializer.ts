@@ -479,9 +479,26 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     if (matrix) emitMatrixTable(matrix)
   }
 
+  // A top-level section the grammar does not model (an app/template prose
+  // block, or any `# Heading` that is not `# NN …`). Re-emitted verbatim so a
+  // managed mutation elsewhere in the document cannot drop it.
+  const emittedOpaque = new Set<string>()
+  const emitOpaqueSection = (title: string) => {
+    if (emittedOpaque.has(title)) return
+    emittedOpaque.add(title)
+    const text = model.rawOtherSections?.[title]
+    if (!text || !text.trim()) return
+    for (const line of text.split('\n')) lines.push(line)
+    lines.push('')
+  }
+  const isOpaque = (entry: string) =>
+    model.rawOtherSections !== undefined &&
+    Object.prototype.hasOwnProperty.call(model.rawOtherSections, entry)
+
   for (const entry of model.sectionOrder ?? []) {
     if (entry === 'index') emitIndex()
     else if (entry.startsWith('matrices: ')) emitMatrixSection(entry.slice('matrices: '.length))
+    else if (isOpaque(entry)) emitOpaqueSection(entry)
     else emitConceptSection(entry)
   }
 
@@ -497,6 +514,9 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName)
   }
   for (const matrix of model.matrices) emitMatrixSection(matrix.name)
+  if (model.rawOtherSections) {
+    for (const title of Object.keys(model.rawOtherSections)) emitOpaqueSection(title)
+  }
 
   return lines.join('\n')
 }

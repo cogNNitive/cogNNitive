@@ -1,4 +1,4 @@
-import type { ParsedKnowledge, ElementNode, TaxonomyEdge } from './types/index.js'
+import type { ParsedKnowledge, ElementNode, TaxonomyEdge, MatrixCell } from './types/index.js'
 import { ElementsMap } from './types/index.js'
 import type { BlueprintSchema } from './schema/index.js'
 import {
@@ -179,6 +179,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   update_concept_text: (model, args, schema) => updateConceptText(model, args, schema),
   update_concept_field: (model, args, schema) => updateConceptField(model, args, schema),
   remove_matrix: (model, args) => removeMatrix(model, args),
+  add_matrix: (model, args) => addMatrix(model, args),
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
 }
@@ -199,6 +200,14 @@ export function listMutationOperations(): string[] {
  */
 const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field'])
 
+/**
+ * `add_matrix` authors a Level-3 `# NN matrices: <name>` section. A Level-2
+ * bluepriNNt declares its matrices as `Matrix Definition` elements instead, so
+ * the op is gated to Level-3 models: on a blueprint it would emit a section the
+ * blueprint grammar does not use.
+ */
+const LEVEL3_ONLY_OPS = new Set(['add_matrix'])
+
 function runMutation(
   model: ParsedKnowledge,
   op: string,
@@ -217,6 +226,17 @@ function runMutation(
           {
             path: 'frontmatter.level',
             message: `Operation "${op}" authors template primitives and is only valid on a level-2 template; this document is level ${model.frontmatter.level ?? 'unset'}. Use add_element/update_field on a level-3 model, or target the parent template.`,
+          },
+        ],
+      }
+    }
+    if (LEVEL3_ONLY_OPS.has(op) && model.frontmatter.level !== 3) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter.level',
+            message: `Operation "${op}" authors a Level-3 matrix table and is only valid on a level-3 kNNowledge model; this document is level ${model.frontmatter.level ?? 'unset'}. On a bluepriNNt, declare a matrix with add_element on the "Matrix Definition" concept instead.`,
           },
         ],
       }
@@ -1041,6 +1061,90 @@ function updateConceptField(
     !model.sectionOrder.map((s) => s.toLowerCase()).includes(targetConceptKey.toLowerCase())
   ) {
     model.sectionOrder.push(targetConceptKey)
+  }
+
+  return { success: true }
+}
+
+/** Case-insensitive match of a matrix identity (name, slug or heading-slug). */
+function matrixIdentMatches(name: string, ident: string): boolean {
+  const lower = ident.toLowerCase()
+  return (
+    name.toLowerCase() === lower ||
+    slugify(name).toLowerCase() === lower ||
+    slugifyHeading(name).toLowerCase() === lower
+  )
+}
+
+/**
+ * Adds a new `# NN matrices: <name>` table to a Level-3 model. `matrixName` is
+ * required; `source`/`targetConcept` name the row/column axis concepts, and
+ * `columns`/`rows` (arrays or comma-separated strings) seed the grid — when a
+ * seed list is omitted it is derived from the model's elements of the matching
+ * concept. Every seeded cell starts empty. Fails when the matrix already exists.
+ */
+function addMatrix(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+  let matrixName = (args.matrixName as string) || (args.name as string) || (args.matrixSlug as string) || ''
+  if (args.target && typeof args.target === 'string') {
+    let clean = args.target.trim()
+    if (clean.includes('@')) clean = clean.slice(clean.indexOf('@') + 1)
+    if (clean.toLowerCase().startsWith('matrix:')) clean = clean.slice('matrix:'.length).trim()
+    if (!matrixName) matrixName = clean
+  }
+  if (matrixName.toLowerCase().startsWith('matrix:')) {
+    matrixName = matrixName.slice('matrix:'.length).trim()
+  }
+  if (!matrixName) {
+    return { success: false, errors: [{ path: '', message: 'matrixName is required' }] }
+  }
+
+  const exists =
+    (model.matrices && model.matrices.some((m) => matrixIdentMatches(m.name, matrixName))) ||
+    (model.sectionOrder &&
+      model.sectionOrder.some((s) => {
+        const ident = s.toLowerCase().startsWith('matrices: ') ? s.slice('matrices: '.length) : s
+        return matrixIdentMatches(ident, matrixName)
+      }))
+  if (exists) {
+    return { success: false, errors: [{ path: '', message: `Matrix "${matrixName}" already exists` }] }
+  }
+
+  const source = (args.source as string) || (args.conceptName as string) || ''
+  const targetConcept =
+    (args.targetConcept as string) || (args.axisTarget as string) || (args.to as string) || ''
+
+  const listArg = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean)
+    if (typeof value === 'string') return value.split(',').map((v) => v.trim()).filter(Boolean)
+    return []
+  }
+  const elementNamesOf = (concept: string): string[] => {
+    if (!concept) return []
+    const nodes = model.elements.get(concept)
+    return nodes ? nodes.map((n) => n.name) : []
+  }
+
+  const columnSeeds = listArg(args.columns)
+  const rowSeeds = listArg(args.rows)
+  const cols = columnSeeds.length > 0 ? columnSeeds : elementNamesOf(targetConcept)
+  const rows = rowSeeds.length > 0 ? rowSeeds : elementNamesOf(source)
+
+  const cells: MatrixCell[] = []
+  for (const row of rows) {
+    for (const col of cols) cells.push({ row, col, value: '' })
+  }
+
+  if (!model.matrices) model.matrices = []
+  model.matrices.push({ name: matrixName, source, target: targetConcept, cells })
+
+  if (
+    model.sectionOrder &&
+    !model.sectionOrder.some((s) => {
+      const ident = s.toLowerCase().startsWith('matrices: ') ? s.slice('matrices: '.length) : s
+      return matrixIdentMatches(ident, matrixName)
+    })
+  ) {
+    model.sectionOrder.push(`matrices: ${matrixName}`)
   }
 
   return { success: true }

@@ -12,8 +12,10 @@ describe('Task 1.16 & 1.17: Changeset operations update_concept_field and remove
   it('CHANGE_OPS includes update_concept_field and remove_matrix', () => {
     expect(isChangeOp('update_concept_field')).toBe(true)
     expect(isChangeOp('remove_matrix')).toBe(true)
+    expect(isChangeOp('add_matrix')).toBe(true)
     expect(CHANGE_OPS).toContain('update_concept_field')
     expect(CHANGE_OPS).toContain('remove_matrix')
+    expect(CHANGE_OPS).toContain('add_matrix')
     expect(CHANGE_OPS).toContain('freeze_slugs')
     expect(CHANGE_OPS).toContain('bump_version')
   })
@@ -309,6 +311,80 @@ title: "Strategy"
 
       const serialized = serializeKnowledge(model)
       expect(serialized).not.toContain('item-markers matrix')
+    })
+
+    it('add_matrix creates a new table, seeding rows/columns from the axis concepts (cogNNitive-web#19)', () => {
+      const model = parseKnowledge(`---
+spec_version: "V_0-4-0"
+level: 3
+knowledge_version: "V_0-1-0"
+title: "Targets"
+---
+
+# NN Dianas
+## NN Dianas: Grow revenue
+## NN Dianas: Cut churn
+
+# NN Resultados
+## NN Resultados: ARR up
+## NN Resultados: Logo retention
+`)
+      const res = applyMutation(model, 'add_matrix', {
+        matrixName: 'Dianas x Resultados',
+        source: 'Dianas',
+        targetConcept: 'Resultados',
+      })
+      expect(res.success).toBe(true)
+      const matrix = model.matrices.find((m) => m.name === 'Dianas x Resultados')
+      expect(matrix).toBeDefined()
+      expect(matrix!.source).toBe('Dianas')
+      expect(matrix!.target).toBe('Resultados')
+      // rows = Dianas elements, cols = Resultados elements: a full seeded grid.
+      const rows = new Set(matrix!.cells.map((c) => c.row))
+      const cols = new Set(matrix!.cells.map((c) => c.col))
+      expect([...rows].sort()).toEqual(['Cut churn', 'Grow revenue'])
+      expect([...cols].sort()).toEqual(['ARR up', 'Logo retention'])
+
+      const serialized = serializeKnowledge(model)
+      expect(serialized).toContain('# NN matrices: Dianas x Resultados')
+      expect(serialized).toContain('| Dianas \\ Resultados | ARR up | Logo retention |')
+    })
+
+    it('add_matrix rejects a matrix that already exists', () => {
+      const model = parseKnowledge(`---
+spec_version: "V_0-4-0"
+level: 3
+knowledge_version: "V_0-1-0"
+title: "Targets"
+---
+
+# NN matrices: Access Matrix
+| Role \\ Permission | Read |
+| :--- | :---: |
+| Admin | allow |
+`)
+      const res = applyMutation(model, 'add_matrix', { matrixName: 'Access Matrix', source: 'Role', targetConcept: 'Permission' })
+      expect(res.success).toBe(false)
+      expect(res.errors?.[0].message).toMatch(/already exists/i)
+    })
+
+    it('add_matrix is refused on a Level-2 bluepriNNt', () => {
+      const model = parseKnowledge(`---
+spec_version: "V_0-5-0"
+level: 2
+blueprint_version: "V_0-1-0"
+blueprint_name: "targets"
+title: "Targets"
+parent_spec:
+  name: "iNNfo_V_0-5-0"
+  url: "https://example/iNNfo_V_0-5-0_NN.md"
+---
+
+# NN index
+`)
+      const res = applyMutation(model, 'add_matrix', { matrixName: 'X', source: 'A', targetConcept: 'B' })
+      expect(res.success).toBe(false)
+      expect(res.errors?.[0].message).toMatch(/level-3/i)
     })
 
     it('update_concept_text preserves concept property block byte-identically', () => {

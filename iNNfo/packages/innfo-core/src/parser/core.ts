@@ -146,6 +146,7 @@ export function parseKnowledge(content: string): ParsedKnowledge {
   const body = normalizedContent.replace(YAML_BLOCK_RE, '').trim()
   const sections = splitTopLevelSections(body)
   const rawSections: Record<string, string> = {}
+  const rawOtherSections: Record<string, string> = {}
   const sectionOrder: string[] = []
   const sectionBlankLine: Record<string, boolean> = {}
 
@@ -167,6 +168,13 @@ export function parseKnowledge(content: string): ParsedKnowledge {
       sectionKey = name
     } else if (type === 'matrix') {
       sectionKey = `matrices: ${name}`
+    } else {
+      // A non-grammar top-level section: an app/template prose block
+      // (`# Business Template` + its `## …` subsections), or any `# Heading`
+      // that is not `# NN …`. Keep it verbatim, keyed by its raw title, so the
+      // serializer can re-emit it in document order instead of dropping it.
+      sectionKey = rawTitle
+      rawOtherSections[rawTitle] = section.trim()
     }
     if (sectionKey !== undefined) {
       sectionOrder.push(sectionKey)
@@ -256,6 +264,7 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
+    rawOtherSections: Object.keys(rawOtherSections).length > 0 ? rawOtherSections : undefined,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : undefined,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : undefined,

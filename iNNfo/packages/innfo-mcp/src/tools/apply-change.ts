@@ -1077,6 +1077,19 @@ export async function executeChangesetApply(
           matrixName = matrixName.slice('matrix:'.length).trim()
         }
         mutationArgs = { matrixName, target: change.target }
+      } else if (change.op === 'add_matrix') {
+        let matrixName = change.name || remainder.trim()
+        if (matrixName.toLowerCase().startsWith('matrix:')) {
+          matrixName = matrixName.slice('matrix:'.length).trim()
+        }
+        mutationArgs = {
+          matrixName,
+          source: change.concept,
+          targetConcept: change.to,
+          columns: change.fields?.['columns'],
+          rows: change.fields?.['rows'],
+          target: change.target,
+        }
       } else {
         mutationArgs = { target: change.target, value: change.to, to: change.to }
       }
@@ -1356,29 +1369,51 @@ async function synthesizeAndExecuteChangeset(
   } else if (op === 'remove_matrix') {
     const m = (opArgs.matrixName as string) || ''
     target = `${id}@matrix:${m}`
+  } else if (op === 'add_matrix') {
+    const m = (opArgs.matrixName as string) || (opArgs.name as string) || ''
+    target = `${id}@matrix:${m}`
   } else if (op === 'bump_version' || op === 'freeze_slugs') {
     target = id
   } else if (opArgs.target && typeof opArgs.target === 'string') {
     target = opArgs.target.includes('@') ? opArgs.target : `${id}@${opArgs.target}`
   }
 
+  const isAddMatrix = op === 'add_matrix'
+  const matrixSeedFields: Record<string, string> | undefined = isAddMatrix
+    ? {
+        ...(opArgs.columns !== undefined
+          ? { columns: Array.isArray(opArgs.columns) ? opArgs.columns.join(', ') : String(opArgs.columns) }
+          : {}),
+        ...(opArgs.rows !== undefined
+          ? { rows: Array.isArray(opArgs.rows) ? opArgs.rows.join(', ') : String(opArgs.rows) }
+          : {}),
+      }
+    : undefined
+
   const changeItem: ChangeItem = {
     id: 'c-01',
     op: op as ChangeItem['op'],
     target,
     from: opArgs.from !== undefined ? String(opArgs.from) : undefined,
-    to:
-      op === 'bump_version'
+    to: isAddMatrix
+      ? ((opArgs.targetConcept as string) || (opArgs.to as string) || undefined)
+      : op === 'bump_version'
         ? String(opArgs.bump ?? 'patch')
         : opArgs.value !== undefined
           ? String(opArgs.value)
           : opArgs.to !== undefined
             ? String(opArgs.to)
             : (opArgs.newName as string | undefined),
-    concept: (opArgs.conceptName as string) || undefined,
-    name: (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
+    concept: isAddMatrix ? (opArgs.source as string) || undefined : (opArgs.conceptName as string) || undefined,
+    name: isAddMatrix
+      ? (opArgs.matrixName as string) || (opArgs.name as string) || undefined
+      : (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
     slug: (opArgs.slug as string) || undefined,
-    fields: (opArgs.fields as Record<string, string>) || undefined,
+    fields: isAddMatrix
+      ? matrixSeedFields && Object.keys(matrixSeedFields).length > 0
+        ? matrixSeedFields
+        : undefined
+      : (opArgs.fields as Record<string, string>) || undefined,
     author: (opArgs.author as string) || 'agent',
     notes: (opArgs.rationale as string) || undefined,
   }

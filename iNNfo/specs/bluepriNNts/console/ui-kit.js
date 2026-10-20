@@ -3728,8 +3728,10 @@
     if (ref.parentLabel) desc.parentLabel = String(ref.parentLabel)
     if (ref.location) desc.location = String(ref.location)
     // Content badges carry the ICON of the concept the unit belongs to (tinted by
-    // that concept's colour through --c in CSS).
-    if (nature === 'content') {
+    // that concept's colour through --c in CSS). Section badges (a rail concept
+    // entry, a facet, a guide reference) are concept-addressed too, so they carry
+    // the same concept icon when the reference names a concept.
+    if (nature === 'content' || (kind === 'section' && (ref.concept || ref.conceptId))) {
       desc.icon = resolveConceptIconName(ref.concept || ref.conceptId, {
         index: index,
         color: ref.color,
