@@ -12,7 +12,7 @@ Commands (from the worktree root):
 
 ## Decisions needed
 
-1. Whole-file rejection: a mutation, validation or citation failure rejects the whole file today. Open; default = keep the current behaviour; alternative in `deferred.md`. Not accepted yet.
+1. Whole-file rejection: a mutation, validation or citation failure rejects the whole file today. ACCEPTED: keep whole-file rejection (the documented default); the risk is logged in `deferred.md` (per-change skip).
 2. Chain strategy: pending; recommended `stacked-to-main` (no release gate in this chain).
 
 ## Review Workload Forecast
@@ -48,7 +48,7 @@ Chain strategy: pending
 - [x] 1.5 GREEN `propose-changeset.ts` `requiredKeyProblems`. Re-run 1.3, 1.4.
 - [x] 1.6 RED `iNNfo/packages/innfo-mcp/src/server.spec.ts`: `prune_changesets` moves from the canonical to the retired list. Run: `npm --workspace=@cognnitive/innfo-mcp test -- src/server.spec.ts`.
 - [x] 1.7 GREEN delete the prune tool and its tests and references (design 2). Re-run 1.6 and `npm --workspace=@cognnitive/innfo-mcp test`.
-- [x] 1.8 REGEN: `npm run regen`; `npm --workspace=@cognnitive/innfo-mcp run build`. `rg -c prune_changesets` outside `openspec/changes/` must be 0.
+- [x] 1.8 REGEN: `npm run regen`; `npm --workspace=@cognnitive/innfo-mcp run build`. `rg prune_changesets` must have no hit outside `openspec/` except the retired-name list assertion in `iNNfo/packages/innfo-mcp/src/server.spec.ts`.
 - [ ] 1.9 `openspec/specs/prune-changesets/` is deleted at archive (REMOVED delta).
 
 ## U2 Console export
@@ -62,7 +62,7 @@ Chain strategy: pending
 
 ## U3a Model views show only Unsent
 
-- [x] 3.1 RED `iNNfo/packages/innfo-core/tests/console-ui-kit-review.test.ts` and `tests/console-ui-kit-kitchen-sink.test.ts`: `StatusBadge` throws for `applied`, `proposed`, `conflict`; the `local` title says "Only in your browser. Export it and give it to the agent." [P]; an `ElementCard` with `history` renders no `.innfo-lineage-pill` and its modal Lineage tab still lists the history.
+- [x] 3.1 RED `iNNfo/packages/innfo-core/tests/console-ui-kit-review.test.ts` and `tests/console-ui-kit-kitchen-sink.test.ts`: `StatusBadge` throws for `applied`, `proposed`, `conflict`; the `local` title says "Only in your browser. Export it and give it to the agent." [P]; an `ElementCard` with `history` renders no `.innfo-lineage-pill` (the modal Lineage tab assertion is covered by task F.5).
 - [x] 3.2 GREEN `ui-kit.js`: `STATUSES`/`STATUS_HELP`/`STATUS_LABELS` reduced to `local`; delete the card meta-strip pill (~:1852-1868).
 - [x] 3.3 RED `iNNfo/packages/innfo-core/tests/console-review-badges.test.ts` and `tests/console-review-math.test.ts`: a row with drafts shows one `Unsent` badge titled "N unsent"; a row with only applied, conflict or proposed history shows nothing; with an empty draft store no element shows any change signal; `badgesByElement`, `changeStateOf`, `changeTooltip` are no longer exported. `isAlreadyApplied` is true for a stale clear draft (`proposed: ''`, field absent).
 - [x] 3.4 GREEN `review.js`: delete the payload-derived counting (design 4); `decorateChangeState` reads drafts only; extend `isAlreadyApplied` (design 5); drop the `changes` option and its runtime argument (~:6572).
@@ -87,3 +87,18 @@ Chain strategy: pending
 
 - [ ] V.1 `npm run typecheck`, `npm test`, `node scripts/verify.js`, `npm run check:specs`.
 - [ ] V.2 Fresh-context review of the diff (repo PR rule).
+
+## Follow-up from verification
+
+Source: the independent verification report (findings W1-W5, S1-S5). One work-unit commit per group.
+
+- [x] F.1 W1 RED/GREEN `console-ui-kit-review.test.ts`, `console-review-tab.test.ts`: evidence `sources` render through the kit `CitationIcon` and open the citation dialog (`onCitation`); `ui-kit.js`, `innfo-runtime.js`.
+- [x] F.2 W2 Applied cards carry the "Recorded in the domain." help as the state `title` (`COPY.appliedHelp`).
+- [x] F.3 W4 The context line reads `author - date - state`; the applied title shows the element display name (`byId[slug].name`), with the slug as fallback.
+- [x] F.4 W3 Tests: "Revert of an added field becomes a clear" (`console-review-tab.test.ts`); clear-one-field loop over the shipped corpus (`tests/roundtrip-fidelity.test.ts`). The loop compares against the post-`freeze_slugs` baseline, because every mutation freezes slugs; the "Round trip is unaffected" scenario in the engine delta spec now says so.
+- [x] F.5 S2 `console-ui-kit-review.test.ts`: an element with history shows no lineage pill, and the modal Lineage tab (`startTab: 'history'`) lists the history.
+- [x] F.6 S3 `console-feedback-ui.test.ts`: the full `UI.COPY.exportFlow` paragraph is in the modal.
+- [x] F.7 S4 `iNNfo/packages/innfo-mcp/test/console-export-roundtrip.test.ts`: a console-exported raw `to::` clear applies through `applyChange`.
+- [x] F.8 S1 `server.spec.ts` test title says 22 canonical tools.
+- [x] F.9 S5 The retired-status badge CSS rules are removed from `ui-kit.js`, guarded by a test.
+- [x] F.10 W5 "Decisions needed 1" recorded as accepted (whole-file rejection).

@@ -20,3 +20,4 @@ One line each: what, why it is deferred, risk of waiting. The full first draft i
 - Clearing number, boolean and multiselect fields from the console (their editors cannot express an empty value): small UI change; risk: low.
 - The optional multi-person review procedure: not core; risk: none.
 - `nn-ui.css` vs `innfo-ui.css` (the export prefers a stale hand copy): pre-existing, outside the flow; risk: medium, CSS fixes made to `innfo-ui.css` do not reach exported consoles. Needs a maintainer decision.
+- Stale kit docs: `docs/innfo/documentation/console-ui-kit.md` (StatusBadge row, ~:53) still lists `proposed`/`applied`/`conflict` as `data-status` values and `ChangeHistory` is not documented; risk: low, misleading docs only.
