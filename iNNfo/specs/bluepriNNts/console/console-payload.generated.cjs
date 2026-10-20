@@ -8506,6 +8506,7 @@ function parseKnowledge(content) {
   const body = normalizedContent.replace(YAML_BLOCK_RE, "").trim();
   const sections = splitTopLevelSections(body);
   const rawSections = {};
+  const rawOtherSections = {};
   const sectionOrder = [];
   const sectionBlankLine = {};
   for (const section of sections) {
@@ -8522,6 +8523,9 @@ function parseKnowledge(content) {
       sectionKey = name;
     } else if (type === "matrix") {
       sectionKey = `matrices: ${name}`;
+    } else {
+      sectionKey = rawTitle;
+      rawOtherSections[rawTitle] = section.trim();
     }
     if (sectionKey !== void 0) {
       sectionOrder.push(sectionKey);
@@ -8586,6 +8590,7 @@ function parseKnowledge(content) {
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
+    rawOtherSections: Object.keys(rawOtherSections).length > 0 ? rawOtherSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : void 0,
@@ -9115,7 +9120,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-5-1", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-5-2", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/innfo-core/src/resolver.ts
@@ -10016,6 +10021,7 @@ var CHANGE_OPS = [
   "update_concept_text",
   "update_concept_field",
   "remove_matrix",
+  "add_matrix",
   "comment",
   "add_model",
   "freeze_slugs",

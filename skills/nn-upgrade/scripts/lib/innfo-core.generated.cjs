@@ -8517,9 +8517,20 @@ function serializeKnowledge(model) {
     const matrix = model.matrices.find((m) => m.name.toLowerCase() === key);
     if (matrix) emitMatrixTable(matrix);
   };
+  const emittedOpaque = /* @__PURE__ */ new Set();
+  const emitOpaqueSection = (title) => {
+    if (emittedOpaque.has(title)) return;
+    emittedOpaque.add(title);
+    const text = model.rawOtherSections?.[title];
+    if (!text || !text.trim()) return;
+    for (const line of text.split("\n")) lines.push(line);
+    lines.push("");
+  };
+  const isOpaque = (entry) => model.rawOtherSections !== void 0 && Object.prototype.hasOwnProperty.call(model.rawOtherSections, entry);
   for (const entry of model.sectionOrder ?? []) {
     if (entry === "index") emitIndex();
     else if (entry.startsWith("matrices: ")) emitMatrixSection(entry.slice("matrices: ".length));
+    else if (isOpaque(entry)) emitOpaqueSection(entry);
     else emitConceptSection(entry);
   }
   emitIndex();
@@ -8531,6 +8542,9 @@ function serializeKnowledge(model) {
     for (const conceptName of Object.keys(model.rawSections)) emitConceptSection(conceptName);
   }
   for (const matrix of model.matrices) emitMatrixSection(matrix.name);
+  if (model.rawOtherSections) {
+    for (const title of Object.keys(model.rawOtherSections)) emitOpaqueSection(title);
+  }
   return lines.join("\n");
 }
 
@@ -8678,6 +8692,7 @@ function parseKnowledge(content) {
   const body = normalizedContent.replace(YAML_BLOCK_RE, "").trim();
   const sections = splitTopLevelSections(body);
   const rawSections = {};
+  const rawOtherSections = {};
   const sectionOrder = [];
   const sectionBlankLine = {};
   for (const section of sections) {
@@ -8694,6 +8709,9 @@ function parseKnowledge(content) {
       sectionKey = name;
     } else if (type === "matrix") {
       sectionKey = `matrices: ${name}`;
+    } else {
+      sectionKey = rawTitle;
+      rawOtherSections[rawTitle] = section.trim();
     }
     if (sectionKey !== void 0) {
       sectionOrder.push(sectionKey);
@@ -8758,6 +8776,7 @@ function parseKnowledge(content) {
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : void 0,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : void 0,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : void 0,
+    rawOtherSections: Object.keys(rawOtherSections).length > 0 ? rawOtherSections : void 0,
     rawContent: content,
     sectionOrder: sectionOrder.length > 0 ? sectionOrder : void 0,
     sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : void 0,
