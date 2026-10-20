@@ -237,6 +237,12 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(modal.textContent).not.toContain('proposal_sha')
     expect(modal.textContent).not.toContain('PROPOSAL_TAMPERED')
     expect(modal.textContent).toContain('give it to the agent')
+    // The full flow paragraph: export, hand over, what the agent reports, how to retry.
+    const exportFlow = (globalThis as any).InnfoUI.COPY.exportFlow as string
+    expect(modal.textContent).toContain(exportFlow)
+    expect(exportFlow).toContain('Export the file and give it to the agent.')
+    expect(exportFlow).toContain('reports every skipped change and its reason')
+    expect(exportFlow).toContain('export a new file with only the skipped changes')
   })
 
   it('the agent prompt asks the agent to apply and report skipped changes with reasons', () => {

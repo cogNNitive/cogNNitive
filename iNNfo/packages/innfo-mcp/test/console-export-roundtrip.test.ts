@@ -237,6 +237,27 @@ describe('console export round trip', () => {
     expect(author).toBe('tester')
   })
 
+  it('applies a console-exported clear (raw empty to::) and removes that field line', async () => {
+    const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
+    const vision = payload.model.elements.find((e) => e.name === 'Vision')!
+    const clear: Draft = { ...visionCorrection(vision, vision.hash), proposed: '' }
+    const text = exportChangeset([clear], 'kNNowledge/strategy')
+    expect(text).toMatch(/^to:: *$/m)
+
+    await writeFile(join(changesDir, 'clear_changes_NN.md'), text, 'utf-8')
+    const result = await applyChange(root, 'changes/clear_changes_NN.md')
+    expect(result.errors ?? []).toEqual([])
+    expect(result.success).toBe(true)
+    expect(result.appliedCount).toBe(1)
+
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    const visionBlock = live.slice(live.indexOf('## NN Work: Vision'), live.indexOf('## NN Work: Legacy Plan'))
+    expect(visionBlock).not.toMatch(/^statement::/m)
+    expect(visionBlock).toContain('target_year:: 2030')
+    // The untouched element is byte-identical.
+    expect(live).toContain(MODEL_FILE.slice(MODEL_FILE.indexOf('## NN Work: Legacy Plan')))
+  })
+
   it('exports a new draft without concept or name as a comment', () => {
     const text = exportChangeset(
       [{ id: 'fb-001', kind: 'new', element_id: 'x', base_hash: '0123456789abcdef', concept: '', element: '' }],
