@@ -18,7 +18,8 @@ Every deterministic check traces to a documented incident (its *expediente*). If
 no history and no concrete preventive action, it does not belong here.
 
 Maintainer-only: not under `skills/`, not registered in `manifest/source.yaml`. Sibling of
-`nn-dev-development`, `nn-dev-release` and `nn-template-audit`. Scope: repository root only.
+`nn-dev-development`, `nn-dev-release`, `nn-dev-issue-tracking` and `nn-template-audit`.
+Scope: repository root only.
 
 The detailed group catalog lives in [`references/catalog.md`](references/catalog.md). Read
 only the groups you are about to run.
@@ -107,7 +108,7 @@ Summary (details, commands, verdict rules and expedientes in the catalog):
 | 8 | Preflight + skill-flow coherence (part judgement) |
 | 9 | Environment (Node engines, `npm ci`, rollup win32, `gh auth`) |
 | 10 | General code review (QA, bug hunt, easy refactors) — default OFF |
-| 11 | cogNNitive-web issue triage — advisory |
+| 11 | cogNNitive-web issue triage — advisory (delegated to `nn-dev-issue-tracking`) |
 
 ---
 
