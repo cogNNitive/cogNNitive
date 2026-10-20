@@ -43,6 +43,11 @@ obsolete entries — 14 (the inline projections/master shells no longer exist),
 remains in git history and the matching archived changes. Open items that cite
 `innfo-editor`, `nn-trannsform` or the hosted web app need a re-scope before starting.
 
+Updated 2026-10-20: added items 38-41, the follow-ups of the archived change
+`2026-10-19-simplify-change-workflow` that carry real risk (per-change skip on apply
+failures, the stale `nn-ui.css` hand copy, drafts that drop `sources`, stale kit docs).
+Its low-risk leftovers stay only in the archived `deferred.md`.
+
 ---
 
 ## 1. `feature/source-import-guards` — import-time guards, duplicate detection + in-app editor import
@@ -1021,3 +1026,69 @@ activities/resources). The chosen order and its rationale MUST be stated in the 
    (parent + child tasks with `next::`/`parent::`), not a monolithic 60-step doc.
 
 **Suggested trigger:** `/sdd-explore business-guided-completion`.
+
+---
+
+## 38. `feature/changeset-per-change-skip` — skip a failing change instead of rejecting the whole changeset file
+
+**Type:** functional · **Size:** medium · **Added:** 2026-10-20 · **Risk of waiting:** medium
+
+**Why:** a mutation, validation or citation failure rejects the whole changeset file, so
+one bad change (for example clearing a required field) blocks the entire export until the
+reviewer discards it.
+
+**Scope:** apply the valid changes, skip and report the failing ones per change, and let the
+console show the skipped change as "Not applied" with its reason. Likely needs the engine
+rewrite deferred by the same change (strict two-status parser, new apply result shape,
+removal of `partially_applied`/`rejected`/replay). The decision was OPEN with default
+"keep whole-file rejection"; settle it in the proposal.
+
+**Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` (second line).
+
+**Suggested trigger:** `/sdd-new changeset-per-change-skip`.
+
+## 39. `fix/console-css-source-of-truth` — the export prefers a stale hand copy `nn-ui.css` over `innfo-ui.css`
+
+**Type:** fix / decision · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** medium
+
+**Why:** the console export prefers the hand-maintained `nn-ui.css` over `innfo-ui.css`, so CSS
+fixes made to `innfo-ui.css` never reach exported consoles. Pre-existing and outside the review
+flow, found while closing the change workflow simplification.
+
+**Needs a maintainer decision first:** delete `nn-ui.css` and make `innfo-ui.css` the only source,
+or keep both and generate one from the other. Also remove the dead selectors left by the
+removed card lineage pill (`.innfo-lineage-pill`, `.innfo-card-meta-strip`) in both files.
+
+**Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` ("`nn-ui.css` vs `innfo-ui.css`" and "Dead CSS").
+
+**Suggested trigger:** `/sdd-explore console-css-source-of-truth` (light lane once decided).
+
+## 40. `fix/review-draft-keeps-sources` — the draft store drops `sources`, so unsent drafts carry no evidence
+
+**Type:** fix · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** low until drafts gain evidence
+
+**Why:** `normalizeDraft` in the console `review.js` drops `sources`, so an unsent draft never
+carries a citation in the app and the `DraftList` citation path is reachable only through
+direct kit use. Evidence proposed with a change is lost before it is exported.
+
+**Scope:** keep `sources` through `normalizeDraft`, the storage round trip and the export, with a
+test that goes red when the field is dropped.
+
+**Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` (last line).
+
+**Suggested trigger:** `/sdd-new review-draft-keeps-sources` (light lane).
+
+## 41. `docs/console-ui-kit-refresh` — refresh the console UI kit documentation
+
+**Type:** docs · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** low (misleading docs only)
+
+**Why:** `docs/innfo/documentation/console-ui-kit.md` (StatusBadge row, around line 53) still lists
+`proposed`/`applied`/`conflict` as `data-status` values, and `ChangeHistory` is not documented.
+The living `console-ui-kit` spec now carries the current statuses and the "Change Card and
+Applied History" requirement.
+
+**Scope:** align the page with the living spec; no code change.
+
+**Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` ("Stale kit docs").
+
+**Suggested trigger:** `/sdd-new console-ui-kit-refresh` (light lane).
