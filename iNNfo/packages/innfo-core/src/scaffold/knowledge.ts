@@ -11,30 +11,30 @@ export interface ScaffoldSchema {
 }
 
 /**
- * Build a starter level-3 body from a resolved template schema: an index
- * block, one `# NN <Concept>` section per concept (a prose stub for `text`
- * concepts, one placeholder Element with its declared fields for the rest),
+ * Build a starter level-3 body from a resolved template schema: one
+ * `# NN <Concept>` section per concept (a prose stub for `text` concepts, one
+ * placeholder Element with its declared fields for the rest; no index block,
+ * since taxonomy is owned by the Level 2 bluepriNNt),
  * a seeded `# NN matrices:` block per declared Matrix (example row/column
  * from the source/target Concepts).
  */
 export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   const lines: string[] = []
-  const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
   const listConcepts = schema.concepts.filter((c) => c.type !== 'text')
+  const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
 
   lines.push(
     '> [!NOTE]',
     '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
     '',
   )
-  if (schema.concepts.length > 0) {
-    lines.push('# NN index')
-    for (const c of schema.concepts) lines.push(`* [[${c.name}]]`)
-    lines.push('')
-  }
   for (const c of schema.concepts) {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
+      // A document with no `## NN <Concept>: <Element>` marker at all fails the hygiene
+      // check (`format.body-element-markers`, an error), so a blueprint made only of text
+      // concepts keeps one placeholder element heading even though the schema check then
+      // warns (`elements.<Concept>`). A warning is the lesser evil; see the scaffold tests.
       if (listConcepts.length === 0) {
         const ex = exampleFor(c.name)
         lines.push(`## NN ${c.name}: ${ex}`)
@@ -47,7 +47,9 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
     lines.push(`## NN ${c.name}: ${ex}`)
     lines.push(`slug:: ${slugify(ex)}`)
     for (const f of c.fields ?? []) {
-      if (f.type === 'reference') {
+      // References have no concrete target; number and boolean values are
+      // type-checked, so a `<type>` placeholder would fail validation. Omit them.
+      if (f.type === 'reference' || f.type === 'number' || f.type === 'boolean') {
         continue
       }
       const hint =
@@ -73,7 +75,27 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
 }
 
 export const DEFAULT_KNOWLEDGE_VERSION = 'V_0-1-0'
-const SCAFFOLD_SPEC_VERSION = 'V_0-4-0'
+/** Fallback only: used when the bluepriNNt declares no usable `parent_spec`. */
+const FALLBACK_SPEC_VERSION = 'V_0-4-0'
+const FALLBACK_SPEC_URL =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md'
+
+/**
+ * The iNNfo spec a new document is written against: the bluepriNNt's own
+ * `parent_spec` (name `iNNfo_V_x-y-z` plus its URL), so a document never claims
+ * an older spec than the bluepriNNt it conforms to.
+ */
+export function resolveScaffoldSpec(
+  blueprintFrontmatter: Record<string, unknown> | null | undefined,
+): { version: string; url: string } {
+  const parent = blueprintFrontmatter?.parent_spec
+  if (parent && typeof parent === 'object') {
+    const { name, url } = parent as { name?: unknown; url?: unknown }
+    const version = typeof name === 'string' ? /_(V_\d+-\d+-\d+)$/i.exec(name.trim())?.[1] : undefined
+    if (version && typeof url === 'string' && url.trim() !== '') return { version, url: url.trim() }
+  }
+  return { version: FALLBACK_SPEC_VERSION, url: FALLBACK_SPEC_URL }
+}
 
 const NOTICE = `> [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
@@ -119,12 +141,13 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
   const knowledgeVersion = inferKnowledgeVersion(input.knowledgeVersion, input.blueprintFrontmatter)
   const title = input.title || input.id
   const modelSlug = input.modelSlug || slugify(input.id)
+  const spec = resolveScaffoldSpec(input.blueprintFrontmatter)
 
   const esc = (s: string) => JSON.stringify(s)
   const frontmatter = [
     '---',
-    `spec_version: ${esc(SCAFFOLD_SPEC_VERSION)}`,
-    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"',
+    `spec_version: ${esc(spec.version)}`,
+    `spec_url: ${esc(spec.url)}`,
     `knowledge_slug: ${esc(modelSlug)}`,
     'level: 3',
     'parent_spec:',

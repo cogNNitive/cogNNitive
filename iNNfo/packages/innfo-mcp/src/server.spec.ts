@@ -450,7 +450,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-init-knowledge@1')
       expect(parsed.success).toBe(true)
-      expect(parsed.filePath).toContain('test_doc_NN.md')
+      expect(parsed.filePath).toContain('test_doc_business_NN.md')
       expect(parsed.changeset).toMatch(/^changes\/.+_changes_NN\.md$/)
       expect(parsed.next_steps.notice).toContain('The changeset was applied')
     })

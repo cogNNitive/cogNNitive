@@ -118,6 +118,6 @@ describe('init_domain', () => {
 
     const applied = await applyChange(domainDir, proposed.changeset!)
     expect(applied.status).toBe('applied')
-    expect((await stat(join(domainDir, 'kNNowledge', 'strategy_NN.md'))).isFile()).toBe(true)
+    expect((await stat(join(domainDir, 'kNNowledge', 'strategy_business_NN.md'))).isFile()).toBe(true)
   })
 })

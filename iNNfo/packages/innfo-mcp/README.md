@@ -73,7 +73,7 @@ Tools returning a list wrap it under a named key:
 ```json
 {
   "version": "innfo-list-knowledge@1",
-  "knowledge": [ { "id": "Ghostbusters_V_0-1-0_business_NN" } ]
+  "knowledge": [ { "id": "Ghostbusters_business" } ]
 }
 ```
 

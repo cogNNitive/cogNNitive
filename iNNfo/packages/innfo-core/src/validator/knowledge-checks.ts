@@ -1,6 +1,8 @@
 import type { Concept, MatrixDecl, ParsedKnowledge } from '../types/index.js'
 import type { Diagnostics } from '../diagnostics.js'
-import { checkElementsAgainstSchema } from '../schema/index.js'
+import { checkElementsAgainstSchema, extractBlueprintSchema } from '../schema/index.js'
+import type { IncludeResolver } from '../schema/index.js'
+import { parseKnowledge } from '../parser/index.js'
 import { validateFieldValue } from '../schema/field-values.js'
 import { RESERVED_CONCEPT_NAMES } from './constants.js'
 import { checkRemovedMarkerConstructs } from './removed-constructs.js'
@@ -153,20 +155,92 @@ export function scanGuidanceSections(rawContent: string): H2Section[] {
 
 const REQUIRED_GUIDANCE_H3S = ['Summary', 'Description', 'Methodologies', 'Prompts']
 
+/** Where a composed Concept's guidance lives: the raw blueprint that defines it, under its own name there. */
+interface GuidanceSource {
+  raw: string
+  name: string
+}
+
+const PARSE_CACHE_LIMIT = 64
+const parseCache = new Map<string, ReturnType<typeof parseKnowledge>>()
+
+/**
+ * `parseKnowledge` memoized on the raw text (a pure function of it; callers must not
+ * mutate the result). Validating a workspace re-reads the same few blueprints once per
+ * model, and re-parsing them dominated the cost of the guidance check.
+ */
+function parseBlueprintCached(raw: string): ReturnType<typeof parseKnowledge> {
+  const hit = parseCache.get(raw)
+  if (hit) return hit
+  const parsed = parseKnowledge(raw)
+  if (parseCache.size >= PARSE_CACHE_LIMIT) parseCache.delete(parseCache.keys().next().value as string)
+  parseCache.set(raw, parsed)
+  return parsed
+}
+
+/**
+ * Map every composed Concept (lower-cased, post-alias name) to the blueprint file
+ * that DEFINES it, following `includes` the way `resolveBlueprintSchema` composes
+ * them: nested includes first, the host's own definitions on top, concept aliases
+ * applied on the way up.
+ */
+function mapGuidanceSources(
+  raw: string,
+  resolveInclude: IncludeResolver,
+  seen: Set<string> = new Set(),
+  depth = 0,
+): Map<string, GuidanceSource> {
+  const sources = new Map<string, GuidanceSource>()
+  const parsed = parseBlueprintCached(raw)
+  if (depth < 10) {
+    for (const ref of parsed.frontmatter?.includes ?? []) {
+      const key = ref.name.toLowerCase()
+      if (seen.has(key)) continue
+      const content = resolveInclude(ref)
+      if (content === null) continue
+      const renames = new Map(
+        Object.entries(ref.alias?.concepts ?? {}).map(([from, to]) => [from.toLowerCase(), to]),
+      )
+      for (const [name, source] of mapGuidanceSources(content, resolveInclude, new Set([...seen, key]), depth + 1)) {
+        sources.set((renames.get(name) ?? name).toLowerCase(), source)
+      }
+    }
+  }
+  for (const concept of extractBlueprintSchema(parsed).concepts) {
+    sources.set(concept.name.toLowerCase(), { raw, name: concept.name })
+  }
+  return sources
+}
+
 /**
  * Warn (never error) when a template Concept has no `## <Concept>` guidance
- * section, or one that is missing required `### ` subsections.
+ * section, or one that is missing required `### ` subsections. With a
+ * `resolveInclude`, each composed Concept is judged against the raw content of the
+ * blueprint that defines it (an included blueprint documents its own Concepts);
+ * without one, only `templateRawContent` is consulted. What counts as complete is
+ * the same either way.
  */
 export function checkBlueprintDocumentation(
   templateConcepts: Concept[],
   templateRawContent: string,
   d: Diagnostics,
+  resolveInclude?: IncludeResolver,
 ): void {
-  const sections = scanGuidanceSections(templateRawContent)
+  const definers = resolveInclude ? mapGuidanceSources(templateRawContent, resolveInclude) : null
+  const sectionsByRaw = new Map<string, H2Section[]>()
+  const sectionsOf = (raw: string): H2Section[] => {
+    let sections = sectionsByRaw.get(raw)
+    if (!sections) {
+      sections = scanGuidanceSections(raw)
+      sectionsByRaw.set(raw, sections)
+    }
+    return sections
+  }
   const incomplete: Array<{ name: string; missing: string[] }> = []
 
   for (const concept of templateConcepts) {
-    const section = sections.find((s) => s.title === concept.name)
+    const source = definers?.get(concept.name.toLowerCase()) ?? { raw: templateRawContent, name: concept.name }
+    const section = sectionsOf(source.raw).find((s) => s.title === source.name)
     const missing = section
       ? REQUIRED_GUIDANCE_H3S.filter((req) => !section.subheadings.includes(req))
       : [...REQUIRED_GUIDANCE_H3S]

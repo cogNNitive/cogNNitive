@@ -284,6 +284,20 @@ export function checkNameInvariant(path: string, bp?: string): { expected: strin
   return conforms ? null : { expected: formatNNName(stem, blueprint) }
 }
 
+/**
+ * The canonical Level 3 model id (file stem) for `id` under `blueprint`:
+ * any `_V_x-y-z` token is dropped (a version lives in `knowledge_version`, never
+ * in the name) and the `_<blueprint>` suffix is ensured. Idempotent, and the
+ * result always satisfies `checkNameInvariant`.
+ */
+export function canonicalModelId(id: string, blueprint: string): string {
+  const bp = blueprintNameOf(blueprint)
+  const probe = `${id.trim()}_NN.md`
+  const verdict = checkNameInvariant(probe, bp)
+  if (!verdict) return id.trim()
+  return verdict.expected.replace(/_NN\.md$/i, '')
+}
+
 /** True for any `_NN.md` document name (sidecars included); reads the basename of a path. */
 export function isNNName(nameOrPath: string): boolean {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath))

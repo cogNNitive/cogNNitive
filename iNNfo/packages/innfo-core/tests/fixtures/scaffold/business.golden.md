@@ -1,6 +1,6 @@
 ---
-spec_version: "V_0-4-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"
+spec_version: "V_0-3-0"
+spec_url: "https://example.com/iNNfo_V_0-3-0_NN.md"
 knowledge_slug: "newmodel"
 level: 3
 parent_spec:
@@ -12,9 +12,6 @@ title: "New Model"
 
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
-# NN index
-* [[Work]]
 
 # NN Work
 ## NN Work: Example Work

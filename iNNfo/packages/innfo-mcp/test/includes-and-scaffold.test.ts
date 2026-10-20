@@ -105,7 +105,7 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     )
   })
 
-  it('init_model scaffolds a body (index, sections, markers) and validates its output', async () => {
+  it('init_model scaffolds a body (sections, markers, no index) and validates its output', async () => {
     const tplUrl = await writeTemplate(
       'demo_tpl',
       [
@@ -144,12 +144,12 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     const content = await readFile(res.filePath!, 'utf-8')
     // Version-aware scaffold (validator-robustness): frontmatter versions are
     // inferred from the resolved parent template (stamped V_0-1-0 above).
-    expect(content).toContain('spec_version: "V_0-4-0"')
-    expect(content).toContain('knowledge_slug: "my-model-v-1-0-0-demo-tpl"')
+    expect(content).toContain('spec_version: "V_0-1-0"')
+    expect(content).toContain('knowledge_slug: "my-model-demo-tpl"')
+    expect(res.id).toBe('my_model_demo_tpl')
     expect(content).toMatch(/(knowledge_version|knowledge_version): "V_0-1-0"/)
-    expect(content).toContain('# NN index')
-    expect(content).toContain('* [[Overview]]')
-    expect(content).toContain('* [[Item]]')
+    expect(content).not.toContain('# NN index')
+    expect(content).toContain('# NN Overview')
     expect(content).toContain('# NN Item')
     expect(content).toContain('## NN Item: Example Item')
     expect(content).toContain('slug:: example-item')

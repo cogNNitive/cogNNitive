@@ -39,6 +39,7 @@ import type {
   BumpLevel,
 } from '@cognnitive/innfo-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId } from './spec.js'
+import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
@@ -617,6 +618,12 @@ export async function executeChangesetApply(
     /** Like rejectPhase1, for a defect of the proposal itself: the rejection is persisted. */
     const rejectProposal = (code: string, path: string, message: string, changeId?: string) =>
       recordRejection([{ path, message: `${code}: ${message}`, code }], changeId)
+
+    // A new model is created under its canonical id (<name>_<blueprint>, no version token).
+    // Later changes may address it by the id passed to add_model or by the canonical one;
+    // both are rewritten in memory (like D11 below), so the sealed proposal text is untouched.
+    const idAliases = modelIdAliases(csDoc.changes)
+    for (const change of csDoc.changes) change.target = canonicalizeTarget(change.target, idAliases)
 
     // add_model pre-checks: ordering, duplicates, existing targets, domain layout.
     const addModelIndex = new Map<string, number>()

@@ -116,7 +116,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           id: {
             type: 'string',
-            description: 'Knowledge id (filename stem, e.g. Ghostbusters_V_0-1-0_business)',
+            description: 'Knowledge id (filename stem, `<name>_<blueprint>`, e.g. Ghostbusters_business)',
           },
           knowledge_id: {
             type: 'string',
@@ -445,7 +445,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'init_knowledge',
       description:
         'Create a new level-3 knowledge document. Create-only: it is a wrapper over a one-change add_model changeset (written to changes/ and applied), so the creation is recorded as a change. ' +
-        'It scaffolds canonical YAML frontmatter and a starter body (index block + one section per Concept) from the resolved blueprint schema; an unresolvable blueprint fails and writes nothing. ' +
+        'It scaffolds canonical YAML frontmatter and a starter body (one section per Concept, no index block: taxonomy lives in the blueprint) from the resolved blueprint schema; an unresolvable blueprint fails and writes nothing. ' +
+        'The model id is `<name>_<blueprint>` and carries no version (the version lives in knowledge_version): the server canonicalizes the id you pass (drops any `_V_x-y-z` token, appends `_<blueprint>` when missing) and returns the canonical id. ' +
         'An existing id fails with MODEL_EXISTS and the file is untouched (it never repairs or rewrites a document). ' +
         'Returns filePath, content and changeset on success (none of them on failure), plus console and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
@@ -453,12 +454,12 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           id: {
             type: 'string',
-            description: 'Knowledge ID/filename stem (e.g. arenzano_V_0-1-0_cogNNitive)',
+            description: 'Knowledge id, `<name>_<blueprint>` with no version (e.g. arenzano_cogNNitive); the server appends the blueprint suffix and drops any version token',
           },
           blueprint_url: { type: 'string', description: 'Immutable URL of the parent blueprint' },
           blueprint_name: {
             type: 'string',
-            description: 'Name of the parent blueprint (e.g. cogNNitive_V_0-1-0)',
+            description: 'Name of the parent blueprint (e.g. cogNNitive)',
           },
           title: { type: 'string', description: 'Logical title of the knowledge document (defaults to ID)' },
           knowledge_version: {
@@ -503,7 +504,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           blueprint_name: {
             type: 'string',
-            description: 'Name of blueprint to hydrate (e.g. business_V_0-1-0)',
+            description: 'Name of blueprint to hydrate (e.g. business)',
           },
           domain: { type: 'string', description: 'Optional domain root directory override' },
           root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
