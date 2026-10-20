@@ -33,8 +33,8 @@ Chain strategy: size-exception
 
 ## Phase 4: Parallel `pre-push-check.js` & `wip:` Session Push Fast-Path (D5)
 
-- [ ] 4.1 Add failing unit tests in `scripts/pre-push-check.test.js` for parallel `FRESHNESS_GUARDS` failure collection and the `refs/heads/session/*` + `wip:` commit subject fast-path bypass (ensuring non-`wip:` or `dev`/`main` pushes run the full pipeline).
-- [ ] 4.2 Update `scripts/pre-push-check.js` and `.githooks/pre-push` to forward git stdin ref lines, skip heavy builds/guards when all pushed commits on `refs/heads/session/*` start with `wip:`, and run `FRESHNESS_GUARDS` concurrently via `Promise.all`.
+- [x] 4.1 Add failing unit tests in `scripts/pre-push-check.test.js` for parallel `FRESHNESS_GUARDS` failure collection and the `refs/heads/session/*` + `wip:` commit subject fast-path bypass (ensuring non-`wip:` or `dev`/`main` pushes run the full pipeline).
+- [x] 4.2 Update `scripts/pre-push-check.js` and `.githooks/pre-push` to forward git stdin ref lines, skip heavy builds/guards when all pushed commits on `refs/heads/session/*` start with `wip:`, and run `FRESHNESS_GUARDS` concurrently via `Promise.all`.
 
 ## Phase 5: Worktree Lockfile Junction Reuse & Maintainer Skill Tiering (D6)
 
