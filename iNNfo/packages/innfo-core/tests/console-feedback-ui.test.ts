@@ -228,6 +228,31 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(document.querySelector('[data-innfo="stale-feedback"]')).toBeNull()
   })
 
+  it('the export modal describes the real flow and never mentions sealing', () => {
+    renderModelConsole()
+    const api = loadRuntime()
+    api.boot(document)
+    const modal = document.getElementById('innfo-feedback-modal')!
+    expect(modal.textContent).not.toContain('Sealed')
+    expect(modal.textContent).not.toContain('proposal_sha')
+    expect(modal.textContent).not.toContain('PROPOSAL_TAMPERED')
+    expect(modal.textContent).toContain('give it to the agent')
+  })
+
+  it('the agent prompt asks the agent to apply and report skipped changes with reasons', () => {
+    renderModelConsole()
+    const api = loadRuntime()
+    api.boot(document)
+    document
+      .getElementById('innfo-feedback-open')!
+      .dispatchEvent(new Event('click', { bubbles: true }))
+    const prompt = document.querySelector('#innfo-feedback-modal [data-innfo="agent-prompt"]')!
+    const lower = (prompt.textContent || '').toLowerCase()
+    expect(lower).toContain('apply')
+    expect(lower).toContain('skipped')
+    expect(lower).toContain('reason')
+  })
+
   it('does not leak the config needs[] list into the review banner', () => {
     renderModelConsole()
     const api = loadRuntime()

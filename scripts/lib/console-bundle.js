@@ -82,6 +82,8 @@ function buildConsoleBundle(repoRoot = process.cwd(), options = {}) {
     const outPath = path.join(consoleDir, 'innfo-console.bundle.js');
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
     fs.writeFileSync(outPath, content, 'utf8');
+    const nnOutPath = path.join(consoleDir, 'nn-console.bundle.js');
+    fs.writeFileSync(nnOutPath, content, 'utf8');
   }
 
   return content;

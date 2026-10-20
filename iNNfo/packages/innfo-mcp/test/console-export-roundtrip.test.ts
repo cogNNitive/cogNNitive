@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { applyChange } from '../src/tools/apply-change.js'
-import { buildConsolePayload, parseChangeset } from '@cognnitive/innfo-core'
+import { buildConsolePayload, parseChangeset, readChangeAuthor, extractHeadings } from '@cognnitive/innfo-core'
 
 /**
  * Console -> apply contract: a changeset exported by the console runtime must
@@ -218,6 +218,23 @@ describe('console export round trip', () => {
     expect(result.appliedCount).toBe(0)
     expect(JSON.stringify(result.errors)).toMatch(/base_hash/)
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(MODEL_FILE)
+  })
+
+  it('an exported author:: resolves as a human author', async () => {
+    const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
+    const vision = payload.model.elements.find((e) => e.name === 'Vision')!
+    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'kNNowledge/strategy')
+    expect(text).toContain('author:: tester')
+
+    await writeFile(join(changesDir, 'author_changes_NN.md'), text, 'utf-8')
+    const applied = await applyChange(root, 'changes/author_changes_NN.md')
+    expect(applied.success).toBe(true)
+
+    const persisted = await readFile(join(changesDir, 'author_changes_NN.md'), 'utf-8')
+    const heading = extractHeadings(persisted).find((h) => h.text.indexOf('NN Change:') === 0)!
+    const { origin, author } = readChangeAuthor(persisted, heading)
+    expect(origin).toBe('human')
+    expect(author).toBe('tester')
   })
 
   it('exports a new draft without concept or name as a comment', () => {

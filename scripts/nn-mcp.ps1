@@ -1,0 +1,41 @@
+param()
+
+$CacheDir    = Join-Path $env:USERPROFILE ".cache\nn-mcp"
+$VersionFile = Join-Path $CacheDir "current-version.txt"
+$BundleFile  = Join-Path $CacheDir "nn-mcp.bundle.js"
+$ManifestUrl = "https://cognnitive.com/innfo/cdn/manifest.json"
+
+$null = New-Item -ItemType Directory -Path $CacheDir -Force
+
+$latest = $null
+try {
+    $manifest = Invoke-WebRequest -Uri $ManifestUrl -TimeoutSec 3 -UseBasicParsing
+    $latest = ($manifest.Content | ConvertFrom-Json).latest
+} catch {
+    Write-Warning "Cannot reach $ManifestUrl — using cached bundle"
+}
+
+if ($latest) {
+    $cached = if (Test-Path $VersionFile) { (Get-Content $VersionFile -Raw).Trim() } else { $null }
+    if ($latest -ne $cached) {
+        Write-Host "Downloading nn-mcp $latest..."
+        $bundleUrl = "https://cognnitive.com/innfo/cdn/nn-mcp-v$latest.bundle.js"
+        try {
+            Invoke-WebRequest -Uri $bundleUrl -OutFile $BundleFile
+            Set-Content -Path $VersionFile -Value $latest
+            Write-Host "Done."
+        } catch {
+            # Fallback to innfo-mcp CDN url during transition
+            $fallbackUrl = "https://cognnitive.com/innfo/cdn/innfo-mcp-v$latest.bundle.js"
+            Invoke-WebRequest -Uri $fallbackUrl -OutFile $BundleFile
+            Set-Content -Path $VersionFile -Value $latest
+            Write-Host "Done (from fallback)."
+        }
+    }
+} elseif (-not (Test-Path $BundleFile)) {
+    Write-Error "No internet and no cached bundle. Run with internet first."
+    exit 1
+}
+
+& node $BundleFile $args
+exit $LASTEXITCODE

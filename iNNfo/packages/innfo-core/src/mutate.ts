@@ -667,6 +667,17 @@ function updateField(
     }
   }
 
+  // An empty value clears the field: the line is removed and the type check is
+  // skipped, since "no value" cannot be expressed by any declared field type.
+  // An absent field is a no-op success.
+  if (val === '') {
+    delete foundElement.fields[fieldName]
+    if (foundElement.rawFields) {
+      delete foundElement.rawFields[fieldName]
+    }
+    return { success: true }
+  }
+
   let parsedVal: unknown = val
   if (typeof val === 'string') {
     const trimmed = val.trim()
