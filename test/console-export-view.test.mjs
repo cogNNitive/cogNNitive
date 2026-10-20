@@ -7,17 +7,38 @@ import { join, resolve, dirname, basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { runExportConsole } from '../scripts/export-console.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
+/**
+ * Runs the exporter. A caller-provided env keeps a real CLI subprocess (it may rely
+ * on env-only mechanisms such as a NODE_OPTIONS preload); otherwise it runs in-process.
+ */
 async function runCli(args, env) {
+  if (env) {
+    try {
+      const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
+        maxBuffer: 64 * 1024 * 1024,
+        env: { ...process.env, ...env },
+      })
+      return { code: 0, stdout, stderr }
+    } catch (err) {
+      return { code: err.code ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' }
+    }
+  }
+  const res = await runExportConsole([...args, '--no-open'], { open: false })
+  return { code: res.exitCode, stdout: res.stdout, stderr: res.stderr }
+}
+
+/** Real CLI subprocess, kept as an exit-code/wiring smoke test. */
+async function runCliSubprocess(args) {
   try {
     const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
       maxBuffer: 64 * 1024 * 1024,
-      env: env ? { ...process.env, ...env } : process.env,
     })
     return { code: 0, stdout, stderr }
   } catch (err) {
@@ -89,6 +110,20 @@ describe('export-console size budget and --view (S2c2)', () => {
 
   afterEach(async () => {
     await rm(root, { recursive: true, force: true })
+  })
+
+  describe('CLI subprocess smoke', () => {
+    it('--list exits 0 through the real entry point', async () => {
+      const res = await runCliSubprocess([root, '--list'])
+      assert.equal(res.code, 0, res.stderr)
+      assert.match(res.stdout, /Models:/)
+    })
+
+    it('an unknown --view exits non-zero and lists available views', async () => {
+      const res = await runCliSubprocess([root, '--view', 'nope'])
+      assert.notEqual(res.code, 0)
+      assert.match(res.stderr, /available views: \(none\)/)
+    })
   })
 
   describe('size budget', () => {

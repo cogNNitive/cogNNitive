@@ -152,18 +152,21 @@ async function testRunner() {
     }
   }
 
-  // 5f. resolveJobs: flag > env > min(4, cpus-1); junk is rejected.
-  assert.strictEqual(resolveJobs([], {}, 12), 4);
-  assert.strictEqual(resolveJobs([], {}, 3), 2);
+  // 5f. resolveJobs: flag > env > min(8, max(1, floor(cpus*0.75))); junk is rejected.
+  assert.strictEqual(resolveJobs([], {}, 12), 8);
+  assert.strictEqual(resolveJobs([], {}, 4), 3);
   assert.strictEqual(resolveJobs([], {}, 1), 1);
   assert.strictEqual(resolveJobs([], { VERIFY_JOBS: '6' }, 12), 6);
   assert.strictEqual(resolveJobs(['--jobs=1'], { VERIFY_JOBS: '6' }, 12), 1);
   for (const bad of ['0', 'x', '1.5', '-2']) assert.throws(() => resolveJobs([`--jobs=${bad}`], {}, 12), /invalid job count/);
 
-  // 5g. Suites are pool-eligible unless listed in SERIAL_SUITES; guards never are.
+  // 5g. Test suites and read-only child-process guards are pool-eligible; SERIAL_SUITES and
+  //     in-process checks are not.
   const all = buildSteps(repoRoot);
-  assert.ok(all.filter((s) => s.parallel).every((s) => s.id.startsWith('test-')), 'only test suites are pooled');
-  assert.ok(all.some((s) => s.parallel), 'suites are pooled');
+  assert.ok(all.some((s) => s.parallel), 'some steps are pooled');
+  assert.ok(all.some((s) => s.parallel && s.id.startsWith('test-')), 'test suites are pooled');
+  assert.ok(all.some((s) => s.parallel && !s.id.startsWith('test-')), 'read-only guards are pooled');
+  assert.ok(all.filter((s) => s.parallel).every((s) => !s.run), 'in-process steps are never pooled');
   for (const rel of SERIAL_SUITES) assert.ok(all.some((s) => s.desc === 'Test ' + rel && !s.parallel), rel + ' is serial');
 }
 
