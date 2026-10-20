@@ -404,7 +404,7 @@ function inline(check) {
  * substring). Powers `--only=<substring>` for targeted inner-loop verification.
  * @param {Array<{ id: string, desc: string, script?: string, cmd?: string, args?: string[] }>} steps
  * @param {string} [only]
- * @returns {typeof steps}
+ * @returns {Array<{ id: string, desc: string, script?: string, cmd?: string, args?: string[] }>}
  */
 function filterSteps(steps, only) {
   if (only === undefined || only === null || only === '') return steps;
