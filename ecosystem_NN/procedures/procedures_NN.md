@@ -28,6 +28,14 @@ outputs_expected:: Published Subsystem Bundles and Tags
 executed_by:: Release Manager
 procedure_model:: .agents/skills/nn-dev-release/SKILL.md
 
+## NN Procedure: Track and Import Issues
+category:: audit
+summary:: Two-repo issue governance — sweeps the public intake (cogNNitive-web), triages each open issue (fixes-here / web-only / already-fixed), and imports engineering issues into the source-of-truth tracker (cogNNitive) with traceability.
+inputs_required:: cogNNitive-web Open Issues, cogNNitive Issue Tracker
+outputs_expected:: Triaged Intake Sweep Report and Traceability Ledger
+executed_by:: Lead Maintainer
+procedure_model:: .agents/skills/nn-dev-issue-tracking/SKILL.md
+
 ## NN Procedure: Reconcile Artifact Feedback
 category:: transformation
 summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation extractor, 4-layer discrepancy triage engine, and upstream iNNfo domain model reconciler.
