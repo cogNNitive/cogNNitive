@@ -17,10 +17,16 @@
  * `--fast` runs every guard and drift check but skips the SLOW_SUITES below
  * (~two thirds of the wall time) for branch pushes that feed back to the author.
  *
- * Test suites run through a bounded worker pool (`--jobs=N` / `VERIFY_JOBS`, default
- * min(4, cpus-1); `--jobs=1` is fully serial). Guards, drift checks and the SERIAL_SUITES
- * keep their order and run one at a time after the pool. Each step's output is buffered
- * in its log and printed in one piece when it finishes, so lines never interleave.
+ * Test suites and the read-only child-process guards run through a bounded worker pool
+ * (`--jobs=N` / `VERIFY_JOBS`, default min(8, floor(cpus*0.75)); `--jobs=1` is fully
+ * serial). Only steps that build or mutate shared workspace state, the SERIAL_SUITES,
+ * and the in-process checks keep their order and run one at a time after the pool. Each
+ * step's output is buffered in its log and printed in one piece when it finishes, so
+ * lines never interleave.
+ *
+ * `--only=<substring>` (`--only <substring>`) keeps only steps and suites whose
+ * id/desc/script/cmd/args match, for fast inner-loop checks; matching zero steps is an
+ * error.
  *
  * Output is quiet: each step writes to `.verify-logs/<id>.log`; passing steps
  * print one line, failing steps print the last 60 lines. `--verbose` streams.
@@ -123,7 +129,8 @@ function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null)
  * (never a tracked repo file) and removed once it has run.
  *
  * @param {string} repoRoot - target repo whose git-tracked docs are scanned
- *   (its own working tree is never read — only `git show <ref>:<path>`).
+ *   (its own working tree is never read — only blobs read from `ref` via
+ *   `git ls-tree` + a single `git cat-file --batch`).
  * @param {string} ref - git ref to scan (design D5: never the working tree —
  *   CI runs `build:docs` before `verify.js`, so a working-tree scan could
  *   never see drift that write mode already rewrote).
@@ -149,21 +156,50 @@ function checkHandTypedFactsAtRef(repoRoot, ref, deps = {}) {
     `const repoRoot = ${JSON.stringify(repoRoot)};`,
     `const ref = ${JSON.stringify(ref)};`,
     '',
-    'function git(args) {',
-    "  return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf-8' });",
+    'function git(args, input) {',
+    "  return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf-8', input, maxBuffer: 64 * 1024 * 1024 });",
     '}',
     '',
     "const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'docs/innfo', 'docs/skills']);",
-    "const paths = listing.split(/\\r?\\n/).filter((p) => p && /\\.(md|txt)$/.test(p));",
-    "const files = paths.map((p) => ({ path: p, content: git(['show', ref + ':' + p]) }));",
+    "const docPaths = listing.split(/\\r?\\n/).filter((p) => p && /\\.(md|txt)$/.test(p));",
+    '',
+    '// One batched read for every blob: ls-tree + cat-file are the only two git spawns.',
+    "const specs = [...docPaths, 'manifest/source.yaml'];",
+    "const input = specs.map((p) => ref + ':' + p).join('\\n') + '\\n';",
+    '// No encoding: cat-file --batch is parsed as raw bytes (a string would break indexOf(10)).',
+    "const batch = execFileSync('git', ['cat-file', '--batch'], { cwd: repoRoot, input: Buffer.from(input, 'utf-8'), maxBuffer: 64 * 1024 * 1024 });",
+    '',
+    '// Parse `<sha> <type> <size>\\n<bytes>\\n` records; a missing object is a single',
+    '// `<spec> missing` line, recorded as null so skill-version checks can be skipped.',
+    'function parseBatch(buf) {',
+    '  const records = [];',
+    '  let pos = 0;',
+    '  while (pos < buf.length) {',
+    '    const nl = buf.indexOf(10, pos);',
+    '    if (nl === -1) break;',
+    '    const header = buf.toString("utf-8", pos, nl);',
+    '    pos = nl + 1;',
+    '    const m = header.match(/^[0-9a-f]{4,} (?:blob|tree|commit|tag) (\\d+)$/);',
+    '    if (!m) { records.push(null); continue; }',
+    '    const size = Number(m[1]);',
+    '    records.push(buf.toString("utf-8", pos, pos + size));',
+    '    pos += size + 1;',
+    '  }',
+    '  return records;',
+    '}',
+    '',
+    'const contents = parseBatch(batch);',
+    "const files = docPaths.map((p, i) => ({ path: p, content: contents[i] ?? '' }));",
     '',
     `const { parseSourceYaml } = require(${JSON.stringify(generateManifestPath)});`,
     'let skillNames = [];',
-    'try {',
-    "  const manifestContent = git(['show', ref + ':manifest/source.yaml']);",
-    '  skillNames = parseSourceYaml(manifestContent).skills.map((s) => s.name);',
-    '} catch (err) {',
-    '  // manifest missing at ref: the tool-count rule still runs, the skill-version rule is skipped',
+    'const manifestContent = contents[docPaths.length];',
+    'if (typeof manifestContent === "string") {',
+    '  try {',
+    '    skillNames = parseSourceYaml(manifestContent).skills.map((s) => s.name);',
+    '  } catch (err) {',
+    '    // manifest present but unparsable at ref: the tool-count rule still runs',
+    '  }',
     '}',
     '',
     'const violations = findHandTypedFacts(files, { skillNames });',
@@ -271,22 +307,31 @@ function collectTestSuites(dir, found = []) {
  * just stays in the full tier only.
  */
 const SLOW_SUITES = new Set([
+  'scripts/check-licenses.test.mjs',
   'scripts/export-console.test.mjs',
+  'scripts/generate-docs-facts.test.mjs',
   'scripts/guard-template-immutability.test.js',
   'scripts/lib/batch-status.test.mjs',
   'scripts/nn-session.test.mjs',
+  'scripts/pre-push-check.test.js',
   'scripts/release/run-release.test.js',
+  'scripts/skills-manager.test.js',
+  'scripts/sync-samples.test.mjs',
+  'scripts/verify.test.js',
   'skills/nn-preflight/scripts/preflight-check.test.js',
+  'test/console-draft-Reconcile.test.mjs',
   'test/console-draft-count-live.test.mjs',
   'test/console-element-card.test.mjs',
   'test/console-export-filename.test.mjs',
   'test/console-export-view.test.mjs',
   'test/console-export.test.mjs',
+  'test/console-golden-parity.test.mjs',
   'test/console-ku-actions.test.mjs',
   'test/console-matrix-cells.test.mjs',
   'test/console-s3b-parity.test.mjs',
   'test/console-sample-custom-view.test.mjs',
   'test/console-view-context.test.mjs',
+  'test/init-domain-blueprints.test.mjs',
   'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/video-engine-cli.test.mjs',
 ]);
 
@@ -303,7 +348,8 @@ const SERIAL_SUITES = new Set([
 ]);
 
 /**
- * Resolves the pool size: `--jobs=N` beats `VERIFY_JOBS`, which beats min(4, cpus-1).
+ * Resolves the pool size: `--jobs=N` beats `VERIFY_JOBS`, which beats
+ * `min(8, max(1, floor(cpuCount * 0.75)))`.
  * @param {string[]} [argv]
  * @param {NodeJS.ProcessEnv} [env]
  * @param {number} [cpuCount]
@@ -317,7 +363,7 @@ function resolveJobs(argv = process.argv, env = process.env, cpuCount = os.cpus(
     if (!Number.isInteger(n) || n < 1) throw new Error(`invalid job count: ${raw} (expected an integer >= 1)`);
     return n;
   }
-  return Math.max(1, Math.min(4, cpuCount - 1));
+  return Math.min(8, Math.max(1, Math.floor(cpuCount * 0.75)));
 }
 
 const OFFLINE_GUARD = path.join(__dirname, 'lib', 'offline-guard.js').split(path.sep).join('/');
@@ -354,10 +400,30 @@ function inline(check) {
 }
 
 /**
+ * Keeps only steps whose id, desc, script, cmd or args contain `only` (case-insensitive
+ * substring). Powers `--only=<substring>` for targeted inner-loop verification.
+ * @param {Array<{ id: string, desc: string, script?: string, cmd?: string, args?: string[] }>} steps
+ * @param {string} [only]
+ * @returns {Array<{ id: string, desc: string, script?: string, cmd?: string, args?: string[] }>}
+ */
+function filterSteps(steps, only) {
+  if (only === undefined || only === null || only === '') return steps;
+  const needle = String(only).toLowerCase();
+  return steps.filter((step) => {
+    const haystack = [step.id, step.desc, step.script, step.cmd, ...(step.args || [])]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(needle);
+  });
+}
+
+/**
  * Builds the ordered list of verification steps. Pure: nothing runs here.
  * @param {string} repoRoot
- * @param {{ release?: boolean, fast?: boolean }} [options] - `release` is accepted for CLI
- *   compatibility and changes nothing; `fast` omits SLOW_SUITES.
+ * @param {{ release?: boolean, fast?: boolean, only?: string }} [options] - `release` is
+ *   accepted for CLI compatibility and changes nothing; `fast` omits SLOW_SUITES;
+ *   `only` filters steps by substring.
  * @returns {Array<{ id: string, desc: string, parallel?: boolean, cmd?: string, args?: string[], run?: () => { ok: boolean, output?: string } }>}
  */
 function buildSteps(repoRoot, options = {}) {
@@ -366,6 +432,10 @@ function buildSteps(repoRoot, options = {}) {
     const g = freshnessGuard(id);
     return node(g.id, g.desc, g.script, ...g.args);
   };
+  // Read-only child-process guards are pool-eligible (quality-gates spec: they can
+  // run concurrently with the discovered test suites).
+  const ro = (id, desc, ...args) => ({ ...node(id, desc, ...args), parallel: true });
+  const roFresh = (id) => ({ ...freshness(id), parallel: true });
   const steps = [];
 
   // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/, test/ and the skills
@@ -390,9 +460,9 @@ function buildSteps(repoRoot, options = {}) {
   }
 
   // 0c. Suites whose filenames do not match the `*.test.*` shape. Keep explicit.
-  steps.push(node('test-nn-sources', 'Test nn-sources Skill Suite', 'skills/nn-sources/test/run.js'));
-  steps.push(node('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
-  steps.push(node('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
+  steps.push(ro('test-nn-sources', 'Test nn-sources Skill Suite', 'skills/nn-sources/test/run.js'));
+  steps.push(ro('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
+  steps.push(ro('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
 
   // 1. Template Inventory Guard: every template folder is declared in manifest/source.yaml.
   steps.push({
@@ -462,18 +532,18 @@ function buildSteps(repoRoot, options = {}) {
   });
 
   // 4. Script static type checking.
-  steps.push(node('typecheck-scripts', 'Typecheck Scripts', 'node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.scripts.json'));
+  steps.push(ro('typecheck-scripts', 'Typecheck Scripts', 'node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.scripts.json'));
 
   // 4b. Third-party license gate (offline, reads installed node_modules): no denied/unknown
   //     license, vendored assets unchanged, THIRD_PARTY.md fresh.
-  steps.push(node('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
+  steps.push(ro('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
 
   // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
-  steps.push(freshness('preflight-primitives'));
+  steps.push(roFresh('preflight-primitives'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
-  steps.push(freshness('skills-manager-bundle'));
+  steps.push(roFresh('skills-manager-bundle'));
   // 5b-bis. Shared rules rendered into the end-user skills match their source.
-  steps.push(freshness('skill-shared-rules'));
+  steps.push(roFresh('skill-shared-rules'));
   // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
   steps.push({
     id: 'skill-script-refs',
@@ -487,49 +557,48 @@ function buildSteps(repoRoot, options = {}) {
     }),
   });
   // 7. Blueprint Catalog Drift Guard.
-  steps.push(freshness('blueprint-catalog'));
+  steps.push(roFresh('blueprint-catalog'));
   // 7b. nn-sources core mirror drift guard (render of innfo-core trannsform primitives).
-  steps.push(freshness('core-mirror'));
+  steps.push(roFresh('core-mirror'));
   // 7b-bis. Console payload mirror drift guard.
-  steps.push(freshness('console-payload'));
+  steps.push(roFresh('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
-  steps.push(freshness('console-bundle'));
+  steps.push(roFresh('console-bundle'));
   // 7b-quater. Offline canonical-registry mirror drift guard (embedded spec copies).
-  steps.push(freshness('canonical-registry'));
+  steps.push(roFresh('canonical-registry'));
   // 7c. Samples SSOT Drift Guard.
-  steps.push(freshness('samples-parity'));
+  steps.push(roFresh('samples-parity'));
   // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
-  steps.push(node('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
+  steps.push(ro('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7c-ter. Procedures version coherence: every procedure tracks the current `procedures` blueprint_version.
-  steps.push(node('procedures-version', 'Check Procedures Version Coherence', 'scripts/check-procedures-version.mjs'));
+  steps.push(ro('procedures-version', 'Check Procedures Version Coherence', 'scripts/check-procedures-version.mjs'));
   // 7c-quater. Usage procedure convention: every procedure-bearing blueprint declares a `usage` procedure.
-  steps.push(node('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
+  steps.push(ro('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
   // 7d. Version SSOT Drift Guard (manifest/source.yaml vs specs and SKILL.md).
-  steps.push(freshness('version-parity'));
+  steps.push(roFresh('version-parity'));
 
   // 7e. Docs-Derived Facts Drift Guard, checked against HEAD, never the working tree (design D5).
+  //     A child step (verify.js re-enters with --check-docs-facts-drift) so its batched
+  //     `git cat-file --batch` scan runs concurrently in the worker pool.
   steps.push({
     id: 'docs-facts-drift',
     desc: 'Docs-Derived Facts Drift Guard (against HEAD)',
-    run: inline(() => {
-      const res = checkDocsFactsDriftAtRef(repoRoot, 'HEAD');
-      return res.ok
-        ? { ok: true, lines: ['no drift detected against HEAD.'] }
-        : { ok: false, lines: res.failures.map((f) => `  - ${f}`) };
-    }),
+    cmd: process.execPath,
+    args: [__filename, '--check-docs-facts-drift', '--root', repoRoot],
+    parallel: true,
   });
 
   // 12-15. Repository guards.
-  steps.push(node('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
-  steps.push(freshness('console-shells-fresh'));
-  steps.push(node('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
-  steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
-  steps.push(node('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
-  steps.push(node('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
-  steps.push(node('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));
-  steps.push(node('lineage-drift', 'Lineage Drift Guard', 'scripts/lib/lineage-drift-guard.js'));
+  steps.push(ro('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
+  steps.push(roFresh('console-shells-fresh'));
+  steps.push(ro('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
+  steps.push(ro('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
+  steps.push(ro('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
+  steps.push(ro('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
+  steps.push(ro('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));
+  steps.push(ro('lineage-drift', 'Lineage Drift Guard', 'scripts/lib/lineage-drift-guard.js'));
 
-  return steps;
+  return filterSteps(steps, options.only);
 }
 
 /**
@@ -570,7 +639,7 @@ async function runSteps(steps, options) {
 }
 
 /**
- * @param {{ release?: boolean, fast?: boolean, verbose?: boolean, jobs?: number }} [options]
+ * @param {{ release?: boolean, fast?: boolean, verbose?: boolean, jobs?: number, only?: string }} [options]
  * @returns {Promise<boolean>} true when every step passed
  */
 async function runVerification(options = {}) {
@@ -581,6 +650,12 @@ async function runVerification(options = {}) {
   console.log('🔍 [cogNNitive Verify] Running workspace verification (offline)...');
 
   const steps = buildSteps(repoRoot, options);
+  if (options.only && steps.length === 0) {
+    console.error(`✖ --only=${options.only} matched no steps or suites.`);
+    if (previousOffline === undefined) delete process.env.NN_OFFLINE;
+    else process.env.NN_OFFLINE = previousOffline;
+    return false;
+  }
   const jobs = options.jobs || resolveJobs();
   console.log(`▶ ${steps.length} steps, ${jobs} job(s).`);
   let ok;
@@ -602,12 +677,49 @@ async function runVerification(options = {}) {
   return ok;
 }
 
+/**
+ * Parses `--only=<substring>` / `--only <substring>` from argv.
+ * @param {string[]} argv
+ * @returns {string|undefined}
+ */
+function parseOnly(argv) {
+  const eq = argv.find((a) => a.startsWith('--only='));
+  if (eq) return eq.slice('--only='.length);
+  const i = argv.indexOf('--only');
+  return i !== -1 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : undefined;
+}
+
+/**
+ * Hidden re-entry mode: runs only the docs-derived-facts drift guard as a child
+ * step of the worker pool, so the batched `git cat-file --batch` scan is parallel.
+ * @param {string[]} argv
+ */
+function runDocsFactsCheck(argv) {
+  const rootFlag = argv.find((a) => a.startsWith('--root='));
+  const rootIdx = argv.indexOf('--root');
+  const root =
+    (rootFlag && rootFlag.slice('--root='.length)) ||
+    (rootIdx !== -1 && argv[rootIdx + 1]) ||
+    path.join(__dirname, '..');
+  const res = checkDocsFactsDriftAtRef(root, 'HEAD');
+  if (!res.ok) {
+    process.stderr.write(res.failures.map((f) => `  - ${f}`).join('\n') + '\n');
+    return 1;
+  }
+  process.stdout.write('no drift detected against HEAD.\n');
+  return 0;
+}
+
 if (require.main === module) {
+  if (process.argv.includes('--check-docs-facts-drift')) {
+    process.exit(runDocsFactsCheck(process.argv.slice(2)));
+  }
   Promise.resolve()
     .then(() => runVerification({
       release: process.argv.includes('--release'),
       fast: process.argv.includes('--fast'),
       verbose: process.argv.includes('--verbose'),
+      only: parseOnly(process.argv),
     }))
     .then((ok) => process.exit(ok ? 0 : 1))
     .catch((err) => {
@@ -620,6 +732,7 @@ module.exports = {
   checkBlueprintInventory,
   runVerification,
   buildSteps,
+  filterSteps,
   SLOW_SUITES,
   SERIAL_SUITES,
   resolveJobs,

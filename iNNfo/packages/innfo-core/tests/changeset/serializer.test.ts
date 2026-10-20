@@ -8,7 +8,7 @@ const L3 = [
   'level: 3',
   'parent_spec:',
   '  name: changes',
-  '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+  '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
   'blueprint_version: "0.1.0"',
   'status: proposed',
   'proposal_sha: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff"',
