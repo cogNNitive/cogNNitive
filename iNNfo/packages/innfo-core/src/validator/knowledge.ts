@@ -155,7 +155,7 @@ export function validateKnowledge(
     matrices: templateMatrices,
   } = composed.schema
 
-  checkBlueprintDocumentation(templateConcepts, template.rawContent || '', d)
+  checkBlueprintDocumentation(templateConcepts, template.rawContent || '', d, opts.resolveInclude)
 
   const knownConceptGroups = checkElementGroups(model, templateConcepts, d)
   checkSchemaConformance(knownConceptGroups, templateConcepts, d)
