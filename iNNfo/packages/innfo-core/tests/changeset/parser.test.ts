@@ -10,7 +10,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "0.1.0"
 status: proposed
 proposal_sha: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff"
@@ -66,7 +66,7 @@ notes:: Looks good, pending executive review
     expect(doc.frontmatter.level).toBe(3)
     expect(doc.frontmatter.parent_spec).toEqual({
       name: 'changes',
-      url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md',
+      url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md',
     })
     expect(doc.frontmatter.blueprint_version).toBe('0.1.0')
     expect(doc.frontmatter.status).toBe('proposed')
@@ -211,7 +211,7 @@ notes:: Looks good, pending executive review
 
   it('rejects a scalar parent_spec, naming parent_spec', () => {
     const md = sampleMarkdown.replace(
-      'parent_spec:\n  name: changes\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
+      'parent_spec:\n  name: changes\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"',
       'parent_spec: "changes"',
     )
     expect(() => parseChangeset(md)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*parent_spec/)
@@ -224,7 +224,7 @@ notes:: Looks good, pending executive review
 
   it('rejects a missing parent_spec.url, naming parent_spec.url', () => {
     const md = sampleMarkdown.replace(
-      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"\n',
+      '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"\n',
       '',
     )
     expect(() => parseChangeset(md)).toThrow(/CHANGESET_FRONTMATTER_INVALID[\s\S]*parent_spec\.url/)
@@ -265,7 +265,7 @@ spec_version: "V_0-4-0"
 level: 3
 parent_spec:
   name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
 blueprint_version: "V_0-3-0"
 status: proposed
 ---
