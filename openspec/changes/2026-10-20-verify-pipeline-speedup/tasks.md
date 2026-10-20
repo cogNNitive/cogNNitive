@@ -27,9 +27,9 @@ Chain strategy: size-exception
 
 ## Phase 3: In-Process `runExportConsole` API & Console Test Suites (D4)
 
-- [ ] 3.1 Add unit tests in `scripts/export-console.test.mjs` for programmatic `runExportConsole(argv, options)` returning `{ exitCode, stdout, stderr, writtenFiles }` without calling `process.exit`.
-- [ ] 3.2 Export `runExportConsole(argv, options)` from `scripts/export-console.mjs` and route CLI execution through it while preserving stdio and exit-code behavior.
-- [ ] 3.3 Migrate `scripts/export-console.test.mjs`, `test/console-export.test.mjs`, `test/console-export-view.test.mjs`, and `test/console-sample-custom-view.test.mjs` to invoke `runExportConsole` in-process and share read-only `JSDOM` instances per `describe` block (retaining 2–3 CLI subprocess smoke tests).
+- [x] 3.1 Add unit tests in `scripts/export-console.test.mjs` for programmatic `runExportConsole(argv, options)` returning `{ exitCode, stdout, stderr, writtenFiles }` without calling `process.exit`.
+- [x] 3.2 Export `runExportConsole(argv, options)` from `scripts/export-console.mjs` and route CLI execution through it while preserving stdio and exit-code behavior.
+- [x] 3.3 Migrate `scripts/export-console.test.mjs`, `test/console-export.test.mjs`, `test/console-export-view.test.mjs`, and `test/console-sample-custom-view.test.mjs` to invoke `runExportConsole` in-process and share read-only `JSDOM` instances per `describe` block (retaining 2–3 CLI subprocess smoke tests).
 
 ## Phase 4: Parallel `pre-push-check.js` & `wip:` Session Push Fast-Path (D5)
 

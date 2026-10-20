@@ -8,26 +8,35 @@ import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
+import { runExportConsole } from '../scripts/export-console.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
+/**
+ * Runs the exporter. Env-sensitive cases stay real CLI subprocesses (they exercise
+ * env-only wiring such as INNFO_CONSOLE_DIR); everything else runs in-process.
+ */
 async function runCli(args, opts = {}) {
-  try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
-      cwd: opts.cwd || process.cwd(),
-      env: { ...process.env, ...opts.env },
-    })
-    return { code: 0, stdout, stderr }
-  } catch (err) {
-    return {
-      code: err.code ?? (err.status || 1),
-      stdout: err.stdout ?? '',
-      stderr: err.stderr ?? '',
+  if (opts.env || opts.subprocess) {
+    try {
+      const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
+        cwd: opts.cwd || process.cwd(),
+        env: { ...process.env, ...opts.env },
+      })
+      return { code: 0, stdout, stderr }
+    } catch (err) {
+      return {
+        code: err.code ?? (err.status || 1),
+        stdout: err.stdout ?? '',
+        stderr: err.stderr ?? '',
+      }
     }
   }
+  const res = await runExportConsole([...args, '--no-open'], { open: false })
+  return { code: res.exitCode, stdout: res.stdout, stderr: res.stderr }
 }
 
 describe('Console Offline Contract & CLI Standalone Export', () => {
