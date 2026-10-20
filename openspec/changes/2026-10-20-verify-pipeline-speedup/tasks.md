@@ -44,4 +44,4 @@ Chain strategy: size-exception
 
 ## Phase 6: Final Verification & Benchmarks
 
-- [ ] 6.1 Run `npm run lint`, `npm run typecheck`, `node scripts/verify.js --fast`, and full `node scripts/verify.js` to confirm 100% pass rate and reduced wall-clock duration.
+- [x] 6.1 Run `npm run lint`, `npm run typecheck`, `node scripts/verify.js --fast`, and full `node scripts/verify.js` to confirm 100% pass rate and reduced wall-clock duration.
