@@ -25,7 +25,7 @@ storage. All text MUST render as text, never as HTML.
 #### Scenario: Applied card anatomy
 - GIVEN an applied block `update_field` on `goal-1&owner` with `from:: Ana`, `to:: Bea`, `author:: ana`
 - WHEN `ChangeHistory` renders it
-- THEN the card title reads "Edit owner of Goal 1", it shows `Ana -> Bea`, the context line names `ana` and reads "Applied"
+- THEN the card title reads "Edit `owner` of `Goal 1`", it shows `Ana -> Bea`, the context line names `ana` and reads "Applied"
 - AND it contains no `StatusBadge`
 - AND a Revert control exists
 

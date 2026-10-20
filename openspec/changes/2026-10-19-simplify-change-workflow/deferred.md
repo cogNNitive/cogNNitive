@@ -21,3 +21,9 @@ One line each: what, why it is deferred, risk of waiting. The full first draft i
 - The optional multi-person review procedure: not core; risk: none.
 - `nn-ui.css` vs `innfo-ui.css` (the export prefers a stale hand copy): pre-existing, outside the flow; risk: medium, CSS fixes made to `innfo-ui.css` do not reach exported consoles. Needs a maintainer decision.
 - Stale kit docs: `docs/innfo/documentation/console-ui-kit.md` (StatusBadge row, ~:53) still lists `proposed`/`applied`/`conflict` as `data-status` values and `ChangeHistory` is not documented; risk: low, misleading docs only.
+- Unsent cards show their state twice (the context line and the local `StatusBadge`); risk: none, cosmetic.
+- A `sources::` value such as `a.md, b.md` is rendered as one citation, not two; risk: low.
+- The change-source citation icon reads `Origin: <path>` (origin-icon wording) in its `aria-label` and `title`; risk: low, wording only.
+- `ChangeHistory` looks elements up in a plain object `byId`; use `hasOwnProperty` so slugs like `constructor` cannot hit the prototype; risk: low.
+- The retired-status CSS guard test matches only the unquoted selector form and scans `ui-kit.js` only; risk: low.
+- The draft store (`review.js` `normalizeDraft`) drops `sources`, so unsent drafts never carry one in the app and the `DraftList` citation path is reachable only through direct kit use; risk: low until drafts gain evidence.

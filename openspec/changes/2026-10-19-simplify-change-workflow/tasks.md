@@ -102,3 +102,8 @@ Source: the independent verification report (findings W1-W5, S1-S5). One work-un
 - [x] F.8 S1 `server.spec.ts` test title says 22 canonical tools.
 - [x] F.9 S5 The retired-status badge CSS rules are removed from `ui-kit.js`, guarded by a test.
 - [x] F.10 W5 "Decisions needed 1" recorded as accepted (whole-file rejection).
+- [x] F.11 Round 2 item 1: the export-preview `DraftList` opens the citation dialog; `changeCard` renders no citation icon without `onCitation` (`console-review-export.test.ts`, `console-ui-kit-review.test.ts`).
+- [x] F.12 Round 2 item 2: a change source opens the dialog split into Path and Anchor with no "resolved" status (`console-review-tab.test.ts`).
+- [x] F.13 Round 2 item 3: the clear round trip asserts that the slug freeze adds only `slug::` lines, covers every document with fields, and names skips.
+- [x] F.14 Round 2 item 4: the Applied-card scenario in `console-ui-kit` uses the backticked title.
+- [x] F.15 Round 2 item 5: five cosmetic and robustness items (plus the draft-store `sources` drop) recorded in `deferred.md`.
