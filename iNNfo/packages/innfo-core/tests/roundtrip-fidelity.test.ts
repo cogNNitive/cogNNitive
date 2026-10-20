@@ -4,6 +4,7 @@ import { join, dirname, relative } from 'path'
 import { fileURLToPath } from 'url'
 import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
 import { rawPathOfSidecar } from '../src/naming/index.js'
+import { applyMutation } from '../src/mutate.js'
 
 /**
  * Requirement 1 (round-trip identity) and Requirement 2 (idempotency) of
@@ -79,5 +80,56 @@ describe('round-trip fidelity over the shipped corpus', () => {
       }
     }
     expect(notIdempotent).toEqual([])
+  })
+
+  it('clearing one field removes exactly that line and nothing else', () => {
+    const failures: string[] = []
+    let cleared = 0
+    for (const file of files) {
+      const original = readFileSync(file, 'utf-8')
+      // Every mutation first freezes element slugs (a documented engine invariant), so the
+      // baseline is the document after a bare freeze: the clear must change nothing beyond it.
+      const frozen = parseKnowledge(original)
+      applyMutation(frozen, 'freeze_slugs', {})
+      const baseline = serializeKnowledge(frozen).split('\n')
+
+      const model = parseKnowledge(original)
+      let target: { element: string; field: string; index: number } | null = null
+      outer: for (const [, nodes] of model.elements.entries()) {
+        for (const node of nodes) {
+          for (const field of Object.keys(node.fields)) {
+            const matching: number[] = []
+            baseline.forEach((line, i) => {
+              if (line.trim().toLowerCase().startsWith(field.toLowerCase() + '::')) matching.push(i)
+            })
+            // Only a field whose line is unique in the document is unambiguous to diff.
+            if (matching.length === 1) {
+              target = { element: node.name, field, index: matching[0] }
+              break outer
+            }
+          }
+        }
+      }
+      if (!target) continue
+      const result = applyMutation(model, 'update_field', {
+        elementName: target.element,
+        fieldName: target.field,
+        to: '',
+      })
+      if (!result.success) {
+        failures.push(`${relative(REPO_ROOT, file)} — clear of ${target.field} failed`)
+        continue
+      }
+      cleared++
+      const expected = baseline.filter((_, i) => i !== target!.index).join('\n')
+      const serialized = serializeKnowledge(model)
+      if (serialized !== expected) {
+        failures.push(
+          `${relative(REPO_ROOT, file)} — clearing ${target.field}: ${firstDifference(expected, serialized)}`,
+        )
+      }
+    }
+    expect(failures).toEqual([])
+    expect(cleared).toBeGreaterThan(0)
   })
 })

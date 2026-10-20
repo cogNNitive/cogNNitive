@@ -41,4 +41,4 @@ empty `to` for `update_field` and MUST still reject a missing `to`.
 #### Scenario: Round trip is unaffected
 - GIVEN any document of the round-trip corpus
 - WHEN one field of one element is cleared and the document is serialized
-- THEN every other line is byte-identical to the input
+- THEN every other line is byte-identical to the input, apart from the explicit `slug::` lines the engine adds to every mutated document (slug freezing, an existing invariant of all operations)
