@@ -2,132 +2,101 @@
 
 ## Technical Approach
 
-Three seams, each aligned to an existing boundary. No new architecture.
+One seam, and it already exists. `scanner-converters.js` is the only module that turns raw bytes into a sidecar body, injected into `cognitivize` as the normalizer (see `cognitivize-in-place`). The change hardens its HTML branch and reuses two mechanisms that are already in the codebase:
 
-1. **Conversion fidelity owns the body bytes.** `scanner-converters.js` is the only module that turns raw bytes into a sidecar body (injected into `cognitivize` as the normalizer — see `cognitivize-in-place`). Phase 1 fixes it in place; Phase 2 swaps its HTML branch for a main-content extractor behind the same function name (`htmlToPlainText`), so no caller changes.
-2. **Quality is a property of the produced body, computed at the seam that produces it.** The normalizer already returns metadata into the sidecar frontmatter (`source_type`, CSV profile, origin URL). It gains `extraction_quality` metadata; the scanner maps that to `Source.status`. This keeps `cognitivize` (innfo-core) unchanged — it stays a dumb writer of whatever the injected normalizer returns, honouring "The normalizer is injected".
-3. **The projection reads the subject, not the sidecar.** innfo-core's lineage projection derives `source_format` from the subject's own `.ext` (and the sidecar's `source_format`), never from `normalized_content`'s `.md`.
+1. **Conversion** — `htmlToPlainText()` keeps its signature (`html -> string`) and gets: line-ending normalization, numeric + full named entity decoding, furniture stripping with a `<main>`/`<article>` preference.
+2. **The "extraction is incomplete" signal already exists.** `convertPdf` returns `{ body, partial: true, note }`; `normalizer.js:80` records it via `notes.set(rel, { partial, note })`; `scanner.js:52` prints `✅ Processed (Partial)` with the reason. The HTML path returns a bare string from `convertOkFormat`, so it simply never signals. The change makes it signal **at the normalizer** (where `notes` already lives), not by widening the converter's return type.
+3. **The "refused" signal also already exists.** `scanner.js:58` maps `cognitivize` status `rejected` to `⚠️ Skipped (reason)`. A zero-byte subject needs a rejection reason, not a new mechanism.
 
 ## Architecture Decisions
 
 | # | Decision | Options | Choice | Rationale |
 |---|----------|---------|--------|-----------|
-| D1 | Phase-2 extractor | vendor a parser in-repo vs add a npm dep via `ensureDependency` vs keep regex and harden | **`@mozilla/readability` + `linkedom`, optional/consent-gated, hardened regex fallback** | Readability is the battle-tested main-content algorithm and needs a DOM; the skill already ships runtime deps and an `ensureDependency` prompt, so distribution is an existing solved problem. Licences verified in the `allow` list: `@mozilla/readability` Apache-2.0 (zero deps), `linkedom` ISC (5 permissive transitives: css-select BSD-2, cssom/html-escaper/htmlparser2 MIT, uhyphen ISC) → `check:licenses` needs no `reviewed` exception. `jsdom` rejected (20 deps); `turndown` not needed (see D10) |
-| D2 | Boilerplate strategy | blanket tag removal vs `main`/`article` extraction vs both | **`main`/`article` first, tag strip as the fallback** | Blanket removal can delete real content when a page has no semantic regions; prefer the region, fall back conservatively |
-| D3 | Entity decoding | full named table + numeric vs numeric only vs keep 8 | **numeric + full named table, `&amp;` last** | The measured corpus needs the Spanish numeric entities and `&iacute;`; decoding `&amp;` last avoids double-decode |
-| D4 | CRLF handling | normalize at read vs fix each regex vs leave | **normalize once at function entry** | One line closes the 82.5%-blank class; per-regex CRLF handling is a maintenance trap |
-| D5 | Quality signal home | a new frontmatter field vs a new `status` value vs both | **new `status` value `partial`, plus an optional `extraction_quality` note** | `status` is the field the catalog/console already read; a note preserves the diagnostic without a new contract surface |
-| D6 | `partial` vs reuse `error` | add `partial` vs map walls to `error` | **add `partial`** (resolved 2026-10-20) | `error` means "operation failed"; a successfully-ingested wall is a *content* problem, qualitatively different from a transient failure. Reusing `error` would overload it |
-| D7 | Charset source of truth | HTTP header vs `<meta>` vs both, first wins | **`Content-Type` charset, then `<meta charset>`, then UTF-8** | Header is authoritative on download; `<meta>` covers hand-dropped files with no header |
-| D8 | Zero-byte subjects | refuse at import vs refuse at cognitivize vs both | **refuse at cognitivize (single writer), surfaced by import** | `cognitivize` is the one gate every subject passes; import should warn early but not be the only guard |
-| D9 | `SIDECAR_SUBJECT_MISMATCH` severity | warning vs error vs configurable | **error** | It means a citation can resolve to a subject whose bytes were never hashed; silence is how the 7 `nn-upgrade` artifacts accumulated |
-| D10 | Markup→Markdown step | add `turndown` vs reuse `htmlToPlainText` | **reuse `htmlToPlainText` on the extracted region** | Readability returns the article's *HTML*; the existing converter already does markup→markdown and is being hardened in Phase 1. Readability decides *which region*, the converter decides *how to render it*. One dependency less |
-| D11 | A `partial` source's citation | hard-block vs warn only | **warn only** (resolved 2026-10-20) | Existing models must keep resolving; a hard block would turn a detection improvement into a corpus break. The signal is surfaced, the human decides |
+| D1 | Where the HTML signal is derived | change `htmlToPlainText` to return `{body, quality}` vs derive it at the call site | **derive at the normalizer** | `htmlToPlainText` has 4 call sites (`extract.js:115`, `scanner.js:180`, `convertOkFormat:455`, tests). Widening its return type is a blast radius for nothing; the `normalizer` is already the module that assembles per-file outcomes |
+| D2 | How an incomplete extraction is represented | new `status:: partial` enum value + blueprint bump + `LineageSource.status` vs reuse the existing `partial`/`note` convention | **reuse `partial`/`note`** | That convention already runs end-to-end for PDFs; `LineageSource` has no `status` field today and `LineageDiagnostic` has no severity, so a dedicated value would be new contract for a distinction nothing consumes |
+| D3 | Boilerplate removal | parse with a DOM library vs regex tag-strip + region preference | **`<main>`/`<article>` region first, furniture tag-strip otherwise** | Solves the measured damage with zero dependencies; the region preference is one regex slice |
+| D4 | Zero-byte subject | new rejection reason vs let it produce an empty source | **reject via the existing `rejected` + reason path** | The path exists and the scanner already surfaces it; a 0-byte subject is an input error, not content |
+| D5 | Where a walkable status lives | `Source.status:: partial` (needs contract) vs the catalog's existing `error` value + the console note | **`error` (already a valid value) + the `(Partial)` console note** | The value set stays `[ready, stale, processing, error]`, the blueprint needs no bump, `catalog.json` needs no regeneration — and no behavior changes for a consumer that does not exist yet |
+
+## Deliberate Deferrals
+
+Simplifications with a known ceiling and an explicit upgrade path.
+
+| Deferred | Ceiling | Upgrade path / trigger |
+|---|---|---|
+| Main-content extractor (`@mozilla/readability` + `linkedom`) | The `<main>`/`<article>` preference plus furniture stripping handles pages that declare a content region; a single-page-app that renders content into an anonymous `<div>` would still keep its furniture | Add after measuring this change against the 6 fixtures. If article prose is still polluted, the dependency earns its place. Licences already verified as passable (`@mozilla/readability` Apache-2.0, zero deps; `linkedom` ISC) |
+| Charset enforcement | A legacy single-byte HTML page (windows-1252) would still be read as UTF-8 | Zero mojibake in 455 audited sidecars, so there is no observed harm. Revisit when a real mojibake case appears |
+| `status:: partial` as a first-class contract value | A consumer cannot distinguish "content untrustworthy" from "operation failed" programmatically; it must read the note | Revisit when a consumer needs the distinction (e.g. a console badge or `--check-impact` policy). Then the enum, the blueprint bump and the projection field earn their cost together |
+| `<base href>` handling | Relative links inside a downloaded page keep the origin-relative href | Out of scope: no observed instance |
 
 ## Interfaces / Contracts
 
 ```js
-// scanner-converters.js — HTML conversion (public shape unchanged)
-htmlToPlainText(html) -> string        // body only; callers unchanged
+// scanner-converters.js — signature unchanged
+htmlToPlainText(html) -> string
 
-// Phase-2 pipeline (optional dep): readability picks the article region, then
-// htmlToPlainText renders that region's HTML to markdown (D10 — no turndown).
-// extractArticle(html, { charset }) -> { content: string } | null   // null => fall back
-
-// new internal seam (Phase 1/2), exported for tests
-normalizeHtml(html, { charset } = {}) -> {
-  body: string,                        // markdown-ish body
-  quality: {
-    status: 'ready' | 'partial',       // signal for the scanner to map onto Source.status
-    reason?: 'anti-bot-wall' | 'empty' | 'trivial',
-    chars: number,                     // non-whitespace characters in the body
-  }
-}
+// new pure predicate, exported for tests and used by the normalizer
+looksPartial(body) -> null | 'anti-bot-wall' | 'empty' | 'trivial'
 ```
 
-```yaml
-# sidecar frontmatter gains (written by the normalizer metadata path, optional)
-extraction_quality: partial           # mirrors the status; omission means ready
-extraction_reason: anti-bot-wall
+```js
+// normalizer.js — the existing channel, extended to the HTML branch
+// (convertPdf already does: if (result.partial) notes.set(rel, { partial: true, note }))
+if (TEXT_NATIVE_FORMATS.has(ext)) ...
+if (dotExt in converters.PROMPT_CONVERTERS) ...           // existing
+const body = converters.convertOkFormat(dotExt, abs, baseName)
+const reason = converters.looksPartial(body)             // new, one line
+if (reason) notes.set(rel, { partial: true, note: reason })
+return { body, normalizedBy, metadata }
 ```
 
-```ts
-// innfo-core lineage projection — # NN Sources entry
-source_format:: html   // from the subject's own extension / sidecar source_format
-                       // NEVER derived from normalized_content's .md suffix
-```
-
-```yaml
-# sources blueprint — status value set (V_0-3-0 -> V_0-4-0)
-options:: [ready, stale, processing, error, partial]
-```
+No change to `cognitivize` (innfo-core), to the `sources` or `sidecar` bluepriNNts, or to the lineage projection.
 
 ## Data Flow
 
 ```
 raw .html bytes
-  └─ (download) charset from Content-Type / <meta>       [Phase 3]
-  └─ normalizeHtml(html, {charset})
-        ├─ normalize line endings (LF)                   [Phase 1]
-        ├─ strip <nav|header|footer|aside|form|noscript|svg|iframe|button>  [Phase 1]
-        ├─ prefer <main>/<article> region                [Phase 1/2]
-        ├─ decode entities (numeric + named, &amp; last) [Phase 1]
-        ├─ collapse whitespace                           [Phase 1]
-        └─ assess quality → {status, reason, chars}       [Phase 3]
-  └─ sidecar body + `source_format` + `extraction_quality`    (cognitivize writes)
-  └─ Source.status = quality.status                    [Phase 3]
-  └─ lineage projection: source_format from the SUBJECT [Phase 3]
+  └─ htmlToPlainText(html)
+        ├─ normalize line endings (LF)                          [D-paper: 82.5% blanks]
+        ├─ strip <nav|header|footer|aside|form|noscript|svg|iframe|button>
+        ├─ prefer <main>/<article> when present
+        ├─ decode entities (numeric + named, &amp; last)         [5497 occurrences]
+        └─ collapse whitespace
+  └─ looksPartial(body) -> reason | null                        [wall / empty / trivial]
+  └─ normalizer.notes.set(rel, { partial, note })  →  scanner prints "✅ Processed (Partial)" + reason
+  └─ 0-byte subject → cognitivize `rejected` → scanner prints "⚠️ Skipped (zero-byte subject)"
 ```
 
 ## File Changes
 
 | File | Action | Description |
 |------|--------|-------------|
-| `skills/nn-sources/scripts/lib/scanner-converters.js` | Modify | `normalizeHtml` seam; CRLF; entities; boilerplate; Phase-2 extractor with regex fallback |
-| `skills/nn-sources/scripts/lib/normalizer.js` | Modify | Return `extraction_quality`; pass charset through |
-| `skills/nn-sources/scripts/lib/scanner-core.js` (or `scanner.js`) | Modify | Refuse zero-byte subjects; map quality → `status` |
-| `skills/nn-sources/scripts/webImport.js` | Modify | Charset detection on download; zero-byte warning |
-| `skills/nn-sources/scripts/index.js` | Modify | Surface the status/no-op result in `--cognitivize`/`--scan` output |
-| `skills/nn-sources/package.json` | Modify | Phase-2 extractor dependency |
-| `iNNfo/packages/innfo-core/src/lineage/project.ts` | Modify | `source_format` from the subject |
-| `iNNfo/specs/bluepriNNts/sources/spec_NN.md` | Modify | `status` value set + `extraction_quality` field (version bump) |
-| `iNNfo/specs/bluepriNNts/catalog.json` | Regenerate | Blueprint version bump |
-| `skills/nn-sources/test/unit/test-web-import.js` | Modify | Fidelity assertions (replaces the 6 happy-path checks with a superset) |
-| `skills/nn-sources/test/fixtures/html/**` | Create | The 6 `PD_NN` regression fixtures (redacted/hosted bytes) |
-| `iNNfo/packages/innfo-core/tests/lineage-*.test.ts` | Modify | `source_format` fidelity assertion |
+| `skills/nn-sources/scripts/lib/scanner-converters.js` | Modify | CRLF, entities, furniture/`<main>`; export `looksPartial` |
+| `skills/nn-sources/scripts/lib/normalizer.js` | Modify | One line: flag the HTML body through the existing `notes` map |
+| `skills/nn-sources/scripts/scanner.js` | Modify | Refuse a zero-byte subject before cognitivizing |
+| `skills/nn-sources/test/unit/test-web-import.js` | Modify | Fidelity + wall + zero-byte assertions (superset of today's 6 happy-path checks) |
+| `skills/nn-sources/test/fixtures/html/**` | Create | The 6 `PD_NN` regression fixtures |
+| `skills/nn-sources/SKILL.md` | Modify | Document the partial flag and the `error`-status convention for a wall source |
 
 ## Sequencing / Rollout
 
-1. **Phase 1** — RED: fixtures + assertions for CRLF blank ratio, entity decoding, nav-chrome absence. GREEN: `normalizeHtml` CRLF/entities/boilerplate. Verify: unit suite + a re-scan of a copied `PD_NN` subset. Land.
-2. **Phase 2** — RED: a golden-body assertion that nav chrome is gone **and** article prose is retained on a real fixture. GREEN: extractor behind `normalizeHtml`, regex fallback when the dep is absent. Verify: unit + `ensureDependency` path. Land.
-3. **Phase 3** — RED: wall → `partial`, zero-byte → refused, `.html` → `source_format:: html`, mismatch → error. GREEN: assessment, refusal, projection fix, severity. Verify: unit + blueprint validator + `check:specs`. Bump the blueprint, regenerate `catalog.json`.
-4. Docs (`nn-sources` SKILL.md + `docs/innfo/documentation/`) + release.
+1. RED — fixtures + assertions (CRLF blank ratio, entity decoding, chrome absence + prose retention, wall flag, zero-byte refusal). Confirm they fail against today's converter.
+2. GREEN — `scanner-converters.js` fidelity + `looksPartial`; `normalizer.js` one line; `scanner.js` guard.
+3. Verify — `npm --prefix skills/nn-sources test`, `node scripts/verify.js --fast`, `npm run typecheck:scripts`.
+4. Docs + release (`skills-v*`).
 
-Each phase is its own commit on `session/html-source-quality` and is independently CI-green.
+One commit per step; each CI-green.
 
 ## Testing Strategy
 
-Runner: `node scripts/verify.js` (discovers skill `*.test.js|mjs`) and `npm --prefix skills/nn-sources test`; Vitest for `innfo-core`.
+Runner: `node scripts/verify.js` (discovers skill `*.test.js|mjs`) and `npm --prefix skills/nn-sources test`.
 
 | Layer | What to Test | Approach |
 |-------|--------------|----------|
-| Unit | CRLF HTML body < 10% blank lines | fixture `FT_55866` + ratio assertion |
-| Unit | `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode; a literal `&amp;#243;` stays literal | fixture + explicit double-decode guard |
-| Unit | nav/header/footer/aside text absent; `<main>` prose present | fixtures `PMC9547138` (chrome) + a `main`-bearing page |
-| Unit | captcha/JS-wall body → `partial` + reason; healthy article → `ready` | wall fixtures `NBK1478`, `s10072`, `920` |
-| Unit | 0-byte subject → refused, no sidecar, no `# NN Sources` entry | fixture `37032388-15-year-…` (empty) |
-| Unit | `source_format:: html` for an HTML subject | projection test in `innfo-core` |
-| Integration | `--lineage --check` exits non-zero on the mismatch set | PowerShell/native suite in `skills/nn-sources/test` |
-| Integration | blueprint `status` value validates; `catalog.json` fresh | `validate_knowledge` + `check:specs` |
-| Regression | the 6 `PD_NN` fixtures are committed and each has an assertion | `test/fixtures/html/` |
-
-## Resolved Decisions (2026-10-20)
-
-| # | Question | Resolution | Basis |
-|---|----------|------------|-------|
-| D6 | `partial` vs reuse `error` | **Add `partial` to the `status` value set** | Content problem ≠ operational failure; maintainer accepted the recommendation |
-| D2 | Phase-2 dependency | **`@mozilla/readability` + `linkedom`, optional/consent-gated, hardened regex fallback** | Licences verified against `scripts/license-policy.json`: both (and all 5 transitives) are in `allow`; Readability carries zero deps; `jsdom` (20 deps) rejected |
-| D11 | A `partial` source's citation | **Warn only; never hard-block** | Existing models must keep resolving; the gate improves detection, it does not prune the corpus |
-
-Consequences folded into `tasks.md`: task 3.8 adds `partial`; task 2.2 names the pair; the gate
-requirement in `source-content-quality-gate` names `partial` explicitly.
+| Unit | CRLF body < 10% blank lines; no run of >1 blank line | fixture `FT_55866` |
+| Unit | `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode; literal `&amp;#243;` stays literal | fixture + double-decode guard |
+| Unit | nav/header/footer text absent; `<main>` prose retained | fixture `PMC9547138` + a `main`-bearing page |
+| Unit | wall fixtures → `looksPartial() === 'anti-bot-wall'`; a healthy article → `null` | `NBK1478`, `s10072`, `920` |
+| Unit | 0-byte subject refused; no sidecar written | fixture `37032388-15-year-…` (empty) |
+| Integration | the scanner reports `(Partial)` with the reason for a wall fixture | native suite in `skills/nn-sources/test` |
+| Regression | the 6 `PD_NN` fixtures committed, each with an assertion | `test/fixtures/html/` |

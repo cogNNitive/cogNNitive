@@ -9,8 +9,7 @@ content. It MUST remove navigation and furniture elements — at minimum `<nav>`
 `<footer>`, `<aside>`, `<form>`, `<noscript>`, `<svg>`, `<iframe>`, `<button>` — and MUST
 prefer the `<main>` or `<article>` region when one is present. When no semantic content
 region exists, it MUST fall back to removing the furniture elements rather than emitting the
-whole page. Anchors that point outside the content region (site navigation links) MUST NOT
-appear in the body as content.
+whole page.
 
 #### Scenario: Navigation chrome is absent from the body
 
@@ -39,9 +38,9 @@ appear in the body as content.
 
 The HTML conversion MUST decode both numeric entities (`&#NNN;` and `&#xHH;`) and the
 standard named entity set, including the Latin-1/typographic entities used by non-English
-documents (`&iacute;`, `&oacute;`, `&ntilde;`, `&eacute;`, `&aacute;`, `&iquest;`, `&nbsp;`,
-`&mdash;`, `&rsquo;`, …). Decoding MUST NOT double-decode: a source that literally contains
-`&amp;#243;` MUST yield `&#243;`, not `ó`.
+documents (`&iacute;`, `&oacute;`, `&ntilde;`, `&eacute;`, `&aacute;`, `&nbsp;`, `&mdash;`,
+`&rsquo;`, …). Decoding MUST NOT double-decode: a source that literally contains `&amp;#243;`
+MUST yield `&#243;`, not `ó`.
 
 #### Scenario: Numeric accented entities decode
 
@@ -72,8 +71,8 @@ documents (`&iacute;`, `&oacute;`, `&ntilde;`, `&eacute;`, `&aacute;`, `&iquest;
 ### Requirement: Line endings are normalized before whitespace collapse
 
 The HTML conversion MUST normalize CRLF and lone-CR line endings to LF before collapsing
-whitespace, so the whitespace-collapse rules apply to Windows-authored and Latin-1 HTML.
-A document's body MUST NOT be dominated by blank lines.
+whitespace, so the whitespace-collapse rules apply to Windows-authored HTML. A document's
+body MUST NOT be dominated by blank lines.
 
 #### Scenario: A CRLF document does not explode into blank lines
 
@@ -82,22 +81,50 @@ A document's body MUST NOT be dominated by blank lines.
 - THEN fewer than 10% of the body's lines are blank
 - AND no run of more than one consecutive blank line remains
 
-### Requirement: HTML charset is honoured
+### Requirement: An incomplete HTML extraction is reported, never presented as complete
 
-Downloaded HTML MUST be decoded using the charset declared by the `Content-Type` response
-header, falling back to a `<meta charset>` in the document, and finally to UTF-8. A document
-declared as a legacy single-byte charset (e.g. `windows-1252`, `ISO-8859-1`) MUST NOT be
-read as UTF-8.
+When a binary conversion produces a body that is an anti-bot / JavaScript-wall interstitial,
+empty, or too short to be the document's content, the pipeline MUST report the extraction as
+incomplete together with a reason, through the existing per-file partial-outcome channel. It
+MUST NOT be presented as an ordinary complete extraction. The signal MUST be advisory: it
+MUST NOT prevent the source from being cognitivized or its citations from resolving.
 
-#### Scenario: A windows-1252 page decodes its accents
+#### Scenario: An anti-bot interstitial is reported
 
-- GIVEN an HTML download with `Content-Type: text/html; charset=windows-1252`
-- WHEN the file is imported and cognitivized
-- THEN accented characters in the body render correctly
-- AND no replacement character (`U+FFFD`) or mojibake sequence appears in the body
+- GIVEN a cognitivized HTML source whose body is the text of a reCAPTCHA / `Client Challenge`
+  / "JavaScript is disabled" / "enable JS and disable any ad blocker" interstitial
+- WHEN it is cognitivized
+- THEN the extraction is reported as incomplete with an anti-bot reason
+- AND a caller that cites the source still resolves
 
-#### Scenario: `<meta charset>` covers a hand-dropped file
+#### Scenario: A healthy article is not reported
 
-- GIVEN an HTML file dropped into `sources/import/` by hand with a `<meta charset="iso-8859-1">` and no HTTP header
-- WHEN the file is cognitivized
-- THEN the body is decoded as ISO-8859-1
+- GIVEN a cognitivized HTML article with a substantial prose body
+- WHEN it is cognitivized
+- THEN no incomplete-extraction reason is reported
+
+#### Scenario: An empty or trivial body is reported
+
+- GIVEN a cognitivized source whose body has fewer than a minimal number of non-whitespace
+  characters
+- WHEN it is cognitivized
+- THEN the extraction is reported as incomplete with an empty/trivial reason
+
+### Requirement: A zero-byte subject is refused
+
+A raw file whose byte length is zero MUST NOT be cognitivized into a usable source. The
+pipeline MUST refuse it with an explicit reason, using the existing rejected/skipped outcome,
+rather than registering a source whose `sha256` is the hash of the empty string.
+
+#### Scenario: A zero-byte download is refused
+
+- GIVEN `sources/import/<name>.html` with `size_bytes: 0`
+- WHEN the scan processes it
+- THEN it is refused with a reason identifying the zero-byte subject
+- AND no sidecar body presents it as a usable extraction
+
+#### Scenario: A non-empty subject is unaffected
+
+- GIVEN a subject with one or more bytes
+- WHEN the scan processes it
+- THEN it is cognitivized normally
