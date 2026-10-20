@@ -4769,6 +4769,10 @@
       if (typeof onRefresh === 'function') onRefresh()
     }
 
+    function openSource(source) {
+      renderCitationDialog(doc, 'sources', [{ origin: 'document', path: source }])
+    }
+
     var unsent = el('section', 'innfo-changes-unsent mb-8')
     if (unsent) {
       unsent.appendChild(el('h3', 'text-lg font-semibold mb-2', UI.COPY.unsent))
@@ -4789,6 +4793,7 @@
                 if (typeof onRefresh === 'function') onRefresh()
               },
               onGoTo: goTo,
+              onCitation: openSource,
             },
           ),
         )
@@ -4808,7 +4813,7 @@
       applied.appendChild(el('h3', 'text-lg font-semibold mb-2', UI.COPY.applied))
       var history = UI.ChangeHistory(
         { changes: changes, byId: byId },
-        { doc: doc, onGoTo: goTo, onRevert: revertChange },
+        { doc: doc, onGoTo: goTo, onRevert: revertChange, onCitation: openSource },
       )
       if (history && history.children.length > 0) {
         applied.appendChild(history)

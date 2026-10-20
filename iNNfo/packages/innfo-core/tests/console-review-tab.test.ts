@@ -153,6 +153,61 @@ describe('console-review-tab (one Changes tab)', () => {
     })
   })
 
+  it('Revert of an added field (no previous value) becomes a clear', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    const added = [
+      {
+        status: 'applied',
+        author: 'ana',
+        appliedAt: '2026-10-02T12:00:00Z',
+        changes: [
+          { id: 'c-02', op: 'update_field', target: 'm@e1&owner', to: 'Bea', status: 'applied' },
+        ],
+      },
+    ]
+    const tab = renderTab({ store, elements: ELEMENTS, changes: added })
+    ;(tab.querySelector('.innfo-change-revert') as HTMLButtonElement).click()
+    expect(store.drafts()[0]).toMatchObject({
+      element_id: 'e1',
+      field: 'owner',
+      original: 'Bea',
+      proposed: '',
+      kind: 'correction',
+    })
+  })
+
+  it('opens the citation dialog when an evidence source is clicked', () => {
+    const { Review } = env.loadConsole()
+    const store = Review.createDraftStore(env.localStorage, 'm1')
+    const dialog = env.document.createElement('dialog') as any
+    dialog.id = 'innfo-citation-dialog'
+    dialog.showModal = vi.fn()
+    env.document.body.appendChild(dialog)
+    const cited = [
+      {
+        status: 'applied',
+        author: 'ana',
+        appliedAt: '2026-10-02T12:00:00Z',
+        changes: [
+          {
+            id: 'c-03',
+            op: 'update_field',
+            target: 'm@e1&owner',
+            from: 'Ana',
+            to: 'Bea',
+            sources: 'sources/report.pdf#p3',
+            status: 'applied',
+          },
+        ],
+      },
+    ]
+    const tab = renderTab({ store, elements: ELEMENTS, changes: cited })
+    ;(tab.querySelector('.innfo-change-card-source .cite-icon') as HTMLButtonElement).click()
+    expect(dialog.showModal).toHaveBeenCalledTimes(1)
+    expect(dialog.textContent).toContain('sources/report.pdf#p3')
+  })
+
   it('Go to element focuses the element card', () => {
     const { Review } = env.loadConsole()
     const store = Review.createDraftStore(env.localStorage, 'm1')

@@ -88,7 +88,7 @@ describe('InnfoUI.DraftList', () => {
 })
 
 describe('InnfoUI.ChangeHistory', () => {
-  const byId = { 'goal-1': { id: 'goal-1', hash: 'h' } }
+  const byId = { 'goal-1': { id: 'goal-1', name: 'Goal 1', hash: 'h' } }
   const changes = [
     {
       path: 'changes/m_ana_1_changes_NN.md',
@@ -126,16 +126,71 @@ describe('InnfoUI.ChangeHistory', () => {
     expect(cards[0].getAttribute('data-change-state')).toBe('applied')
     expect(cards[0].querySelector('.innfo-change-card-state')!.textContent).toBe('Applied')
     expect(cards[0].querySelector('.innfo-change-card-title')!.textContent).toBe(
-      'Edit `owner` of `goal-1`',
+      'Edit `owner` of `Goal 1`',
+    )
+    expect(cards[0].querySelector('.innfo-change-card-state')!.getAttribute('title')).toBe(
+      'Recorded in the domain.',
     )
     expect(cards[0].querySelector('.innfo-change-card-diff')!.textContent).toBe('Ana \u2192 Bea')
-    expect(cards[0].querySelector('.innfo-change-card-context')!.textContent).toContain('ana')
+    expect(cards[0].querySelector('.innfo-change-card-context')!.textContent).toBe(
+      'ana · 2026-10-02T12:00:00Z · Applied',
+    )
     expect(cards[1].getAttribute('data-change-state')).toBe('not-applied')
     expect(cards[1].querySelector('.innfo-change-card-state')!.textContent).toBe('Not applied')
     expect(cards[1].querySelector('.innfo-change-card-resolution')!.textContent).toContain(
       'PRECONDITION_FAILED',
     )
     expect(history.querySelector('[data-innfo-component="status-badge"]')).toBeNull()
+  })
+
+  it('falls back to the slug in the title when the element is unknown', () => {
+    const history = UI.ChangeHistory({ changes, byId: {} }, {})
+    expect(history.querySelector('.innfo-change-card-title')!.textContent).toBe(
+      'Edit `owner` of `goal-1`',
+    )
+  })
+
+  it('renders evidence sources as a clickable citation on applied and unsent cards', () => {
+    const onCitation = vi.fn()
+    const withSource = [
+      {
+        status: 'applied',
+        changes: [
+          {
+            id: 'c-09',
+            op: 'update_field',
+            target: 'm@goal-1&owner',
+            from: 'A',
+            to: 'B',
+            sources: 'sources/report.pdf#p3',
+            status: 'applied',
+          },
+        ],
+      },
+    ]
+    const history = UI.ChangeHistory({ changes: withSource, byId }, { onCitation })
+    const cite = history.querySelector(
+      '.innfo-change-card-source [data-innfo-component="citation-icon"]',
+    ) as HTMLButtonElement
+    expect(cite).not.toBeNull()
+    expect(history.querySelector('.innfo-change-card-source')!.textContent).toContain(
+      'sources/report.pdf#p3',
+    )
+    cite.click()
+    expect(onCitation).toHaveBeenCalledWith('sources/report.pdf#p3')
+
+    const onDraftCitation = vi.fn()
+    const list = UI.DraftList(
+      {
+        drafts: [
+          { id: 'fb-9', element_id: 'goal-1', kind: 'comment', base_hash: 'h', comment: 'c', sources: 'sources/a.md' },
+        ],
+        byId,
+      },
+      { onCitation: onDraftCitation },
+    )
+    ;(list.querySelector('[data-innfo-component="citation-icon"]') as HTMLButtonElement).click()
+    expect(onDraftCitation).toHaveBeenCalledWith('sources/a.md')
   })
 
   it('falls back to the changeset resolution when the block carries none', () => {
