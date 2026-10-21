@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { validateKnowledge, validateBlueprint } from '../src/tools/validate.js'
-import { checkRemovedMarkerConstructs, parseKnowledge } from '@cognnitive/innfo-core'
+import { checkRemovedMarkerConstructs, parseKnowledge } from '@cognnitive/nn-core'
 import { writeFile, rm, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'

@@ -3,7 +3,7 @@
  * their underlying file, anchor, and content — "where did this value come
  * from?" without manually tracing `sources::` values by hand.
  *
- * Reuses the canonical citation resolution logic from `@cognnitive/innfo-core`.
+ * Reuses the canonical citation resolution logic from `@cognnitive/nn-core`.
  */
 import {
   SOURCE_FIELD_NAMES,
@@ -14,13 +14,13 @@ import {
   CHANGE_CONCEPT,
   KNOWN_AGENT_TOOL_IDS,
   createFsSourceResolver,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import type {
   ParsedKnowledge,
   BlueprintSchema,
   CitationOrigin,
   ResolvedCitation,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { readKnowledge } from './list-read.js'
 import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
 import { buildBlueprintSchemaResolverFromCache } from './validate.js'

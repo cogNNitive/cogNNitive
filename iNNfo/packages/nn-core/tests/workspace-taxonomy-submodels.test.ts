@@ -55,7 +55,7 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
   return handle
 }
 
-describe('Workspace Taxonomy and Submodels (Phase 1 innfo-core)', () => {
+describe('Workspace Taxonomy and Submodels (Phase 1 nn-core)', () => {
   describe('4.1 Core Parser: Entrypoint resolution & Models path extraction', () => {
     it('loads primary workspace_01.md entrypoint and extracts Models path submodels', async () => {
       const files: Record<string, string> = {

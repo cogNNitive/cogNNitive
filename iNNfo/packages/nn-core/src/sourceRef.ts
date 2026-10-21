@@ -1,7 +1,7 @@
 /**
  * Source-reference parsing and GitHub-compatible heading slugs.
  *
- * THE single implementation shared by `innfo-core` and `innfo-mcp`.
+ * THE single implementation shared by `nn-core` and `innfo-mcp`.
  *
  * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
  * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).
@@ -127,7 +127,7 @@ export function parseSourceRef(input: string): SourceRef | null {
 
 /**
  * Parse a unified Citation (`@` markdown heading/CSV unit, file-level bare path,
- * or legacy `#slug`). Single entry point exported by innfo-core.
+ * or legacy `#slug`). Single entry point exported by nn-core.
  */
 export function parseCitation(input: string): Citation | null {
   if (!input || typeof input !== 'string') return null

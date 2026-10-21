@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises'
-import { parseChangeset, verifyProposalSha } from '@cognnitive/innfo-core'
+import { parseChangeset, verifyProposalSha } from '@cognnitive/nn-core'
 import { proposeChangeset, writeProposedChangeset } from './propose-changeset'
 import { applyChange } from './apply-change'
 import type { ConsoleWriter } from './console-regeneration'

@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')
 const require = createRequire(import.meta.url)
 const { slugify: coreSlugify } = require('../iNNfo/specs/bluepriNNts/console/innfo-slug.generated.js')
-const { parseCitation } = require('../skills/nn-sources/scripts/lib/innfo-core.generated.cjs')
+const { parseCitation } = require('../skills/nn-sources/scripts/lib/nn-core.generated.cjs')
 
 const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 const generatedSlugPath = join(consoleDir, 'innfo-slug.generated.js')

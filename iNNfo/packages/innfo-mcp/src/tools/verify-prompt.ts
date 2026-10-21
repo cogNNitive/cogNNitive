@@ -10,7 +10,7 @@
  * unchanged (zero validator diff).
  */
 
-import type { ValidationError } from '@cognnitive/innfo-core'
+import type { ValidationError } from '@cognnitive/nn-core'
 
 /** Outcome data a `verify` prompt may carry. */
 export interface VerifyPromptInput {

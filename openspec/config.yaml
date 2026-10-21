@@ -18,7 +18,7 @@ testing:
     command: 'npm test'
     framework: 'Vitest (iNNfo workspaces) / Node scripts (scripts/, skills/, test/)'
     per_package:
-      innfo-core: 'npm --workspace=@cognnitive/innfo-core test'
+      innfo-core: 'npm --workspace=@cognnitive/nn-core test'
       innfo-mcp: 'npm --workspace=@cognnitive/innfo-mcp test'
       scripts_and_skills: 'node scripts/verify.js (discovers every *.test.js/*.test.mjs under scripts/, skills/, test/ via collectTestSuites)'
       nn-sources: 'npm --prefix skills/nn-sources test (own package.json; CI needs npm ci --prefix)'

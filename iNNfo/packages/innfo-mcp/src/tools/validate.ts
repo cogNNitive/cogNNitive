@@ -23,7 +23,7 @@ import {
   findCanonicalBlueprint,
   CANONICAL_BLUEPRINTS,
   checkRemovedMarkerConstructs,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import type {
   SpecDocument,
   ValidationError,
@@ -39,7 +39,7 @@ import type {
   ValidationBaseline,
   BaselineEntry,
   BaselineDiff,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
@@ -131,7 +131,7 @@ function syncFindSubmodel(
 }
 
 /**
- * Builds a SYNCHRONOUS `BlueprintSchemaResolver` (innfo-core's C1 callback
+ * Builds a SYNCHRONOUS `BlueprintSchemaResolver` (nn-core's C1 callback
  * type, `recursiveParser/types.ts`) reading from an already-resolved
  * `SpecCache` (produced by `resolveBlueprintWithCache`). Every template named
  * by a node's `parent_spec.name` — plus everything on its `includes` chain —
@@ -318,8 +318,8 @@ async function runWorkspaceValidation(
 /**
  * Differential validation against a versioned known-errors baseline.
  *
- * Single shared implementation: re-exported from `@cognnitive/innfo-core`
- * (`innfo-core/src/validator/baseline.ts`, exposed through the core barrel).
+ * Single shared implementation: re-exported from `@cognnitive/nn-core`
+ * (`nn-core/src/validator/baseline.ts`, exposed through the core barrel).
  * This module keeps the exported names so existing import sites are
  * untouched; the algorithm is core's, so fingerprints match core-generated
  * baselines byte-for-byte by construction.

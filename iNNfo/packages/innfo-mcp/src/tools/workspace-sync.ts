@@ -6,8 +6,8 @@ import {
   parseFrontmatter,
   parentSpecNameOf,
   displayStem,
-} from '@cognnitive/innfo-core'
-import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
 
 /**
  * sync_workspace_manifest — the headless (MCP) caller of `reconcileManifest`

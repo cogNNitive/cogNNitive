@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { applyChange } from '../src/tools/apply-change.js'
-import { buildConsolePayload, parseChangeset, readChangeAuthor, extractHeadings } from '@cognnitive/innfo-core'
+import { buildConsolePayload, parseChangeset, readChangeAuthor, extractHeadings } from '@cognnitive/nn-core'
 
 /**
  * Console -> apply contract: a changeset exported by the console runtime must

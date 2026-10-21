@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * innfo-mcp — MCP server wrapping @cognnitive/innfo-core.
+ * innfo-mcp — MCP server wrapping @cognnitive/nn-core.
  *
  * Exposes semantic iNNfo tools over stdio transport for consumption by
  * MCP clients such as OpenCode Desktop.
@@ -15,7 +15,7 @@
  * preserved at the top level alongside a `version` field of the form
  * `innfo-<tool>@<major>`. Consumers MUST check the version before parsing;
  * optional fields may be added within a major, breaking shape or meaning
- * changes require a new major (see packages/innfo-core/src/envelope.ts).
+ * changes require a new major (see packages/nn-core/src/envelope.ts).
  */
 
 import { pathToFileURL } from 'node:url'
@@ -52,7 +52,7 @@ import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/con
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { syncLineageTool } from './tools/sync-lineage.js'
-import { envelope, envelopeList } from '@cognnitive/innfo-core'
+import { envelope, envelopeList } from '@cognnitive/nn-core'
 
 /**
  * Root directory for knowledge scanning and `specs/` placement.

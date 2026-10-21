@@ -9,8 +9,8 @@
 
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { listKnowledge as coreListModels, parseKnowledge, ElementsMap } from '@cognnitive/innfo-core'
-import type { KnowledgeInfo, ParsedKnowledge } from '@cognnitive/innfo-core'
+import { listKnowledge as coreListModels, parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
+import type { KnowledgeInfo, ParsedKnowledge } from '@cognnitive/nn-core'
 
 /**
  * Default line cap for surgical slice reads (llm-context-efficiency).

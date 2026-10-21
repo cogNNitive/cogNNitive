@@ -69,7 +69,7 @@ function shouldSkip(relPath, isDir) {
   // Frozen write-once predecessors (permanent history, never migrated).
   if (normalized === 'iNNfo/specs/defiNNe_V_0-1-0_NN.md') return true;
   if (normalized === 'iNNfo/specs/defiNNition_V_0-1-0_NN.md') return true;
-  if (normalized === 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts') return true;
+  if (normalized === 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts') return true;
 
   if (!isDir) {
     if (normalized === SELF_PATH) return true;

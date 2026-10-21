@@ -49,7 +49,7 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
   return handle
 }
 
-describe('DAG Topology Scanner & Root Discovery (innfo-core)', () => {
+describe('DAG Topology Scanner & Root Discovery (nn-core)', () => {
   it('computes model in-degrees and discovers top-level root model (in_degree === 0)', async () => {
     const files: Record<string, string> = {
       'domaiNN_NN.md': `---

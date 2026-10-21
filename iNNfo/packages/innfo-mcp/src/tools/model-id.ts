@@ -1,4 +1,4 @@
-import { canonicalModelId, type ChangeItem } from '@cognnitive/innfo-core'
+import { canonicalModelId, type ChangeItem } from '@cognnitive/nn-core'
 
 /**
  * A new model is always created under its canonical id (`<name>_<blueprint>`, no

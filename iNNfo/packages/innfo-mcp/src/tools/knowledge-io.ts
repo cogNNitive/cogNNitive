@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { parseKnowledge, serializeKnowledge } from '@cognnitive/innfo-core'
-import type { ParsedKnowledge, SpecDocument } from '@cognnitive/innfo-core'
+import { parseKnowledge, serializeKnowledge } from '@cognnitive/nn-core'
+import type { ParsedKnowledge, SpecDocument } from '@cognnitive/nn-core'
 import { resolveBlueprintWithCache } from './spec.js'
 
 /**

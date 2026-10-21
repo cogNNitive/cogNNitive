@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { computeProposalSha, serializeChangeset } from '@cognnitive/innfo-core'
-import type { ChangeItem } from '@cognnitive/innfo-core'
+import { computeProposalSha, serializeChangeset } from '@cognnitive/nn-core'
+import type { ChangeItem } from '@cognnitive/nn-core'
 
 // Failure injection: `renameFailure` makes the staging -> live rename throw, which is the
 // instant a crash would hit between "archive the old file" and "install the new one".

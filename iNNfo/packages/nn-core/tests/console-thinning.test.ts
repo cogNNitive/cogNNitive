@@ -104,7 +104,7 @@ describe('frozen vendored console bundles (not migrated, not guarded)', () => {
       repoRoot,
       'iNNfo',
       'packages',
-      'innfo-core',
+      'nn-core',
       'tests',
       'fixtures',
       'simulacro-refactorizacion',

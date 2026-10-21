@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile } from 'node:fs/promises'
-import { parseFrontmatter } from '@cognnitive/innfo-core'
-import type { SpecCache } from '@cognnitive/innfo-core'
+import { parseFrontmatter } from '@cognnitive/nn-core'
+import type { SpecCache } from '@cognnitive/nn-core'
 import { collectWorkspaceDiagnostics, filterDiagnosticsForModel, fingerprint } from './validate'
 import { validateKnowledge } from './mutate'
 
-vi.mock('@cognnitive/innfo-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@cognnitive/innfo-core')>()
+vi.mock('@cognnitive/nn-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@cognnitive/nn-core')>()
   return {
     ...actual,
     recursiveParse: vi.fn(actual.recursiveParse),
@@ -192,7 +192,7 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
 
   it('collectWorkspaceDiagnostics returns unfiltered cross-model diagnostics for the whole tree with ONE recursiveParse', async () => {
     await writeWorkspace()
-    const { recursiveParse: parseSpy } = await import('@cognnitive/innfo-core')
+    const { recursiveParse: parseSpy } = await import('@cognnitive/nn-core')
     const diagnostics = await collectWorkspaceDiagnostics(rootDir, buildCache())
     expect(parseSpy).toHaveBeenCalledTimes(1)
     const crossModel = diagnostics.find((d) => d.message.includes('Dangling cross-model reference'))
@@ -419,7 +419,7 @@ describe('baseline differential MCP plumbing (validator-robustness 4.3)', () => 
 
 describe('baseline single shared implementation (robustness-coda 1.3)', () => {
   it('consumers share one implementation with the core barrel', async () => {
-    const core = await import('@cognnitive/innfo-core')
+    const core = await import('@cognnitive/nn-core')
     const mcp = await import('./validate')
     expect(typeof core.fingerprint).toBe('function')
     expect(mcp.fingerprint).toBe(core.fingerprint)
@@ -429,7 +429,7 @@ describe('baseline single shared implementation (robustness-coda 1.3)', () => {
   })
 
   it('fingerprints are byte-identical after consolidation', async () => {
-    const core = await import('@cognnitive/innfo-core')
+    const core = await import('@cognnitive/nn-core')
     const mcp = await import('./validate')
     const diag = {
       path: 'elements.Task',

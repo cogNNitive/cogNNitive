@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
-import { parseChangeset } from '@cognnitive/innfo-core'
+import { parseChangeset } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { writeProposedChangeset } from '../src/tools/propose-changeset.js'
 

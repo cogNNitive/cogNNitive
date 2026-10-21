@@ -7,7 +7,7 @@ import {
   readLineageSnapshot,
   refreshExistingModel,
   renderLineageSections,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { checkWorkspace, resolveCatalog, toIntegrityDiagnostics } from './check-workspace'
 import { rmWithRetry } from '../../test/helpers/fs-retry'
 

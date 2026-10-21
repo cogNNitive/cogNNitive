@@ -32,8 +32,8 @@ import {
   type TemplateResolutionResult,
   type IntegrityDiagnostic,
   type CatalogSource,
-} from '@cognnitive/innfo-core'
-import type { SpecCache } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { SpecCache } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
 import { deriveNameFromUrl } from './spec.js'
 import {

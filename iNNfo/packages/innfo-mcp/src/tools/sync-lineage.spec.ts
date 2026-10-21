@@ -8,7 +8,7 @@ import {
   projectLineage,
   readLineageSnapshot,
   renderLineageSections,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-sync-lineage')
 const importDir = join(rootDir, 'sources', 'import')

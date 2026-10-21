@@ -3,8 +3,8 @@ import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { applyChange } from '../src/tools/apply-change.js'
-import { computeProposalSha, serializeChangeset, parseChangeset, verifyProposalSha } from '@cognnitive/innfo-core'
-import type { ChangesetDocument, ChangeItem } from '@cognnitive/innfo-core'
+import { computeProposalSha, serializeChangeset, parseChangeset, verifyProposalSha } from '@cognnitive/nn-core'
+import type { ChangesetDocument, ChangeItem } from '@cognnitive/nn-core'
 
 // Linux-safe rejection paths of the two-phase changeset engine: none of these
 // reach blueprint resolution (pre-validation failures, idempotent replay and

@@ -15,7 +15,7 @@ export default defineConfig([
     clean: true,
     outDir: 'dist',
     dts: false,
-    noExternal: ['@cognnitive/innfo-core'],
+    noExternal: ['@cognnitive/nn-core'],
     external: ['yaml'],
     // Inline the version so the emitted artifact never reads ../package.json
     // at runtime (the dist build is shipped with its package.json, but baking

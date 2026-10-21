@@ -8,8 +8,8 @@ import {
   serializeChangeset,
   parseChangeset,
   verifyProposalSha,
-} from '@cognnitive/innfo-core'
-import type { ChangesetDocument, ChangeItem } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { ChangesetDocument, ChangeItem } from '@cognnitive/nn-core'
 
 describe('Two-Phase Changeset Apply Engine (Phase 5)', () => {
   const csRoot = join(import.meta.dirname!, '..', 'temp-test-changeset-apply')

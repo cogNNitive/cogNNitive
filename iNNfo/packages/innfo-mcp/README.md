@@ -1,6 +1,6 @@
 # @cognnitive/innfo-mcp
 
-Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `cogNNitive` ecosystem. Exposes deterministic tools over stdio transport for knowledge parsing, validation, multi-tier blueprint resolution, transitive asset discovery, safe reachability pruning, and intent-level mutations.
+Model Context Protocol (MCP) server wrapping `@cognnitive/nn-core` for the `cogNNitive` ecosystem. Exposes deterministic tools over stdio transport for knowledge parsing, validation, multi-tier blueprint resolution, transitive asset discovery, safe reachability pruning, and intent-level mutations.
 
 ---
 
@@ -77,7 +77,7 @@ Tools returning a list wrap it under a named key:
 }
 ```
 
-Consumers MUST check `version` before parsing a result. Optional fields may be added within a major version; a breaking shape or meaning change requires a new major (bumping the envelope contract in `@cognnitive/innfo-core`, `src/envelope.ts`). Helpers: `envelope(contract, payload)`, `envelopeList(contract, key, items)`, `envelopeVersion(contract, major)`.
+Consumers MUST check `version` before parsing a result. Optional fields may be added within a major version; a breaking shape or meaning change requires a new major (bumping the envelope contract in `@cognnitive/nn-core`, `src/envelope.ts`). Helpers: `envelope(contract, payload)`, `envelopeList(contract, key, items)`, `envelopeVersion(contract, major)`.
 
 ---
 

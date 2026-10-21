@@ -32,7 +32,7 @@ const EDITOR_ALLOWLIST = [
   'scripts/guard-template-immutability.js', // old badge URL normalisation
   'scripts/guard-template-immutability.test.js', // old badge URL normalisation test
   SELF, // this guard names the tokens it forbids
-  'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', // embeds write-once specs
+  'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', // embeds write-once specs
   'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
   'iNNfo/packages/innfo-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
   'iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs', // embeds write-once specs
@@ -48,13 +48,13 @@ const editorAllowed = (rel) => WRITE_ONCE_SPEC.test(rel) || prefixAllow(EDITOR_A
 const PROVENANCE_ABSENCE_PINS = new Set([
   SELF,
   'test/console-export.test.mjs',
-  'iNNfo/packages/innfo-core/tests/console-payload-builder.test.ts',
-  'iNNfo/packages/innfo-core/tests/exports.test.ts',
-  'iNNfo/packages/innfo-core/tests/naming/contract.test.ts',
+  'iNNfo/packages/nn-core/tests/console-payload-builder.test.ts',
+  'iNNfo/packages/nn-core/tests/exports.test.ts',
+  'iNNfo/packages/nn-core/tests/naming/contract.test.ts',
   'iNNfo/packages/innfo-mcp/src/server.spec.ts',
 ])
 const PROVENANCE_SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'temp', '.verify-logs', 'openspec', '_samples_nn'])
-const PROVENANCE_SKIP_PREFIXES = ['test/fixtures/', 'iNNfo/packages/innfo-core/tests/fixtures/']
+const PROVENANCE_SKIP_PREFIXES = ['test/fixtures/', 'iNNfo/packages/nn-core/tests/fixtures/']
 const BINARY_EXT = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|eot|pdf|zip|mp4|webm|svg)$/i
 const provenanceAllowed = (rel) => {
   const dirs = rel.split('/').slice(0, -1)
@@ -77,7 +77,7 @@ const HUB_ALLOWLIST = [
   'openspec/changes/2026-10-13-s5-retire-innfo-editor/',
   'openspec/changes/single-console-shell/',
   'openspec/specs/',
-  'iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/',
+  'iNNfo/packages/nn-core/tests/fixtures/simulacro-refactorizacion/',
   'test/fixtures/testlab/',
   'simulation/FINDINGS.md',
   'simulation/results/',
@@ -299,7 +299,7 @@ describe('the workspace hub is deleted', () => {
     'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md',
     '_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
     'docs/innfo/documentation/workspace-console-hub.md',
-    'iNNfo/packages/innfo-core/tests/workspace-hub.test.ts',
+    'iNNfo/packages/nn-core/tests/workspace-hub.test.ts',
   ]
   it('requires every hub file to be deleted', () => {
     for (const rel of DELETED) {

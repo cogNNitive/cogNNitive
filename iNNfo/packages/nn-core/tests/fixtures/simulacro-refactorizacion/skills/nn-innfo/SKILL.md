@@ -46,7 +46,7 @@ Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `
 
 This skill guides LLMs and agents in authoring, creating from scratch (wizard), editing, auditing, and validating **iNNfo-compliant files** (V_0-2-0 Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
-**Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/innfo-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
+**Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/nn-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
 
 > 🛡️ **Single Source of Truth & Zero Workspace Pollution**:
 > 1. The `iNNfo` repository is the **Single Source of Truth** for all apps and specs. Do NOT duplicate app files across repositories.
@@ -283,7 +283,7 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 
 ## 1. MCP Operating Model
 
-The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/innfo-core`.
+The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/nn-core`.
 
 | Tool | Purpose |
 |---|---|

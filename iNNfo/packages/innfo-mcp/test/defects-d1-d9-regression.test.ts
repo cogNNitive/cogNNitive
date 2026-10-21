@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { validateKnowledge } from '../src/tools/mutate.js'
 import { isLocalPath, toLocalFilePath } from '../src/tools/resolver-node.js'
-import { parseKnowledge, validateFormatContent, validateKnowledge as coreValidate } from '../../innfo-core/src/index.ts'
+import { parseKnowledge, validateFormatContent, validateKnowledge as coreValidate } from '../../nn-core/src/index.ts'
 
 describe('Defects D1–D9 Regression Test Suite', () => {
   beforeEach(() => {

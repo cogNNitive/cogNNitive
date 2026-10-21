@@ -6,7 +6,7 @@ import {
   parseKnowledge,
   serializeKnowledge,
   applyMutation,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/mutate.js'
 import { writeProposedChangeset } from '../src/tools/propose-changeset.js'
 

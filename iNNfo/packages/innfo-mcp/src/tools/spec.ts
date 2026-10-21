@@ -6,7 +6,7 @@
  *   1. an explicit `url` supplied by the caller, or
  *   2. the `parent_spec.url` declared by a loaded model (`model_id`).
  *
- * Resolution runs through `resolveParentChain` (innfo-core), which walks
+ * Resolution runs through `resolveParentChain` (nn-core), which walks
  * the self-describing parent chain up to level 0, caching locally.
  */
 
@@ -21,7 +21,7 @@ import {
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
   procedureIdOf,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { mkdir, copyFile, readdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import type {
@@ -30,7 +30,7 @@ import type {
   TemplateProcedure,
   TemplateSkill,
   SpecFrontmatter,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import {
   resolveParentChainNode,
   resolveBlueprintPackage,
@@ -317,7 +317,7 @@ export async function getBlueprintFromUrl(
 /**
  * Like `getBlueprintFromUrl`, but also returns the full resolved `SpecCache`
  * (parent chain + every `includes` target) and an `IncludeResolver` bound to
- * it — so a caller can pass template composition through to innfo-core's
+ * it — so a caller can pass template composition through to nn-core's
  * `validateKnowledge` / `resolveBlueprintSchema` without re-reading anything.
  */
 export async function resolveBlueprintWithCache(

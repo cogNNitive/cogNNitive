@@ -184,8 +184,8 @@ function htmlToPlainText(html) {
  * quoting with `""` escape, CRLF/LF row breaks, and newlines preserved verbatim
  * inside quoted fields. CR-only is data; a trailing newline yields no extra row.
  *
- * Mirrors the canonical `parseCsvTable` (iNNfo/packages/innfo-core/src/csvTable.ts).
- * Kept inline because the distributed skill ships zero innfo-core dependency.
+ * Mirrors the canonical `parseCsvTable` (iNNfo/packages/nn-core/src/csvTable.ts).
+ * Kept inline because the distributed skill ships zero nn-core dependency.
  *
  * @param {string} content
  * @returns {{ rows: string[][], malformed: boolean }} malformed=true on unbalanced quotes.

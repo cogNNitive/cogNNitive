@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { CHANGE_OPS, listMutationOperations } from '@cognnitive/innfo-core'
+import { CHANGE_OPS, listMutationOperations } from '@cognnitive/nn-core'
 import { applyChange, MAINTENANCE_OPS, SCHEMA_OPS } from '../src/tools/apply-change.js'
 
 const SERVER_SRC = join(import.meta.dirname!, '..', 'src', 'server.ts')

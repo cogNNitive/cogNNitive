@@ -47,7 +47,7 @@ jobs:
       # Docs facts drift check in verify.js imports innfo-mcp's built dist/server.js
       # to inspect MCP tool definitions.
       - name: Build MCP packages for facts check
-        run: npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run build
+        run: npm --workspace=@cognnitive/nn-core run build && npm --workspace=@cognnitive/innfo-mcp run build
 
       # Offline and deterministic: no network, no release tags, no token. Each
       # step logs to .verify-logs/; a failing step's tail is shown in a log group.
@@ -126,7 +126,7 @@ jobs:
         run: npm ci
 
       - name: Build core package
-        run: npm --workspace=@cognnitive/innfo-core run build
+        run: npm --workspace=@cognnitive/nn-core run build
 
       - name: Lint
         run: npm run lint
@@ -147,7 +147,7 @@ jobs:
         run: npm --workspace=@cognnitive/innfo-mcp run typecheck
 
       - name: Unit tests + coverage (core)
-        run: npm --workspace=@cognnitive/innfo-core run test:coverage
+        run: npm --workspace=@cognnitive/nn-core run test:coverage
 
       - name: Unit tests + coverage (innfo-mcp)
         run: npm --workspace=@cognnitive/innfo-mcp run test:coverage

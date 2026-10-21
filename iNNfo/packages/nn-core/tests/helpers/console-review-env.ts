@@ -1,7 +1,7 @@
 /**
  * Per-test JSDOM harness for the console review suites.
  *
- * vitest runs innfo-core with `pool: 'forks'` + `singleFork: true`, so every
+ * vitest runs nn-core with `pool: 'forks'` + `singleFork: true`, so every
  * test file shares one process and a shared jsdom document is a singleton. The
  * console UMD sources cache references to `document` at load, so a shared
  * document leaks state between suites. A fresh JSDOM per test removes the
@@ -20,7 +20,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
 const req = createRequire(import.meta.url)
-// tests/helpers -> tests -> innfo-core -> packages -> iNNfo
+// tests/helpers -> tests -> nn-core -> packages -> iNNfo
 const iNNfoDir = join(import.meta.dirname!, '..', '..', '..', '..')
 export const consoleDir = join(iNNfoDir, 'specs', 'bluepriNNts', 'console')
 export const blueprintsDir = join(iNNfoDir, 'specs', 'bluepriNNts')

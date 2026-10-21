@@ -1,6 +1,6 @@
 import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { canonicalModelId, type ChangeItem, type ValidationError } from '@cognnitive/innfo-core'
+import { canonicalModelId, type ChangeItem, type ValidationError } from '@cognnitive/nn-core'
 import { normalizeId } from './spec.js'
 import { isSafeRelativeId } from './path-guard.js'
 import { applyChange } from './apply-change.js'

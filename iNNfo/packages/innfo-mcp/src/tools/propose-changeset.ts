@@ -18,8 +18,8 @@ import {
   slugify,
   createFsSourceResolver,
   resolveCitation,
-} from '@cognnitive/innfo-core'
-import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
 import { findKnowledgeFile } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { findManifestPath } from './workspace-sync.js'

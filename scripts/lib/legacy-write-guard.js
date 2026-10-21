@@ -48,8 +48,8 @@ const TOKENS = [
  */
 const ALLOWLIST = [
   { pattern: 'scripts/migrate-spec-urls.mjs', reason: 'historical one-time codemod (cogNNitive/iNNfo -> monorepo) that must match the pre-migration paths' },
-  { pattern: 'iNNfo/packages/innfo-core/src/validator/content.ts', reason: 'V_0-3-0 gate: detects and rejects retired frontmatter keys / the retired `type:: model` keyword with an explicit migration message' },
-  { pattern: 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', reason: 'offline fallback registry: embeds canonical spec copies + the permanent lowercase legacy URL/alias maps' },
+  { pattern: 'iNNfo/packages/nn-core/src/validator/content.ts', reason: 'V_0-3-0 gate: detects and rejects retired frontmatter keys / the retired `type:: model` keyword with an explicit migration message' },
+  { pattern: 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', reason: 'offline fallback registry: embeds canonical spec copies + the permanent lowercase legacy URL/alias maps' },
   { pattern: 'skills/nn-sources/scripts/provenance.js', reason: 'detects the legacy `_workspace_NN.md` lineage record by name for one-time in-place migration to `_cogNNitive_NN.md`' },
   { pattern: 'skills/nn-sources/scripts/lib/provenance-knowledge.js', reason: 'legacy `_workspace_NN.md` lineage-record suffix documented for one-time migration' },
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'this guard carries the token table itself' },

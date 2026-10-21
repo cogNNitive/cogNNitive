@@ -13,7 +13,7 @@ import {
 } from './index.js'
 import type { SpecDocument } from './types/index.js'
 
-describe('Multi-Store Template Resolver (innfo-core)', () => {
+describe('Multi-Store Template Resolver (nn-core)', () => {
   let tmpDir: string
   let workspaceDir: string
   let globalDir: string

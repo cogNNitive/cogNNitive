@@ -1,5 +1,5 @@
 /**
- * Console subsystem entrypoint for innfo-core.
+ * Console subsystem entrypoint for nn-core.
  */
 
 export * from './citations.js'

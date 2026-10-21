@@ -23,7 +23,7 @@ each exported console) concatenates the vendored assets above with first-party c
 
 ## npm production dependencies
 
-Production dependency trees of `innfo-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development
+Production dependency trees of `nn-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development
 tooling is not distributed and is not listed.
 
 | Package | Version | License | Policy | Used by | Copyright |
@@ -151,7 +151,7 @@ tooling is not distributed and is not listed.
 | wrappy | 1.0.2 | ISC | allow | innfo-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
 | xlsx | 0.20.3 | Apache-2.0 | allow | nn-sources | (see package) |
 | xmlbuilder | 10.1.1 | MIT | allow | nn-sources | Copyright (c) 2013 Ozgur Ozcitak |
-| yaml | 2.9.1 | ISC | allow | innfo-core | (see package) |
+| yaml | 2.9.1 | ISC | allow | nn-core | (see package) |
 | zod | 3.25.76 | MIT | allow | innfo-mcp | Copyright (c) 2025 Colin McDonnell |
 | zod-to-json-schema | 3.25.2 | ISC | allow | innfo-mcp | Copyright (c) 2020, Stefan Terdell |
 

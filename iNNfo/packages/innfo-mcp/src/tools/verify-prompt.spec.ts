@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { ValidationError } from '@cognnitive/innfo-core'
+import type { ValidationError } from '@cognnitive/nn-core'
 import { buildVerifyPrompt, buildVerifyPromptFromValidation } from './verify-prompt'
 
 function err(message: string): ValidationError {

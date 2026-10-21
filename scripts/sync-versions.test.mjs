@@ -62,7 +62,7 @@ function fixtureTree() {
 
   // MCP packages
   const mcpDir = path.join(root, 'iNNfo', 'packages', 'innfo-mcp');
-  const coreDir = path.join(root, 'iNNfo', 'packages', 'innfo-core');
+  const coreDir = path.join(root, 'iNNfo', 'packages', 'nn-core');
   fs.mkdirSync(mcpDir, { recursive: true });
   fs.mkdirSync(coreDir, { recursive: true });
   const mcpPkgPath = path.join(mcpDir, 'package.json');
@@ -74,7 +74,7 @@ function fixtureTree() {
         name: '@cognnitive/innfo-mcp',
         version: '9.9.9',
         dependencies: {
-          '@cognnitive/innfo-core': '^0.0.0',
+          '@cognnitive/nn-core': '^0.0.0',
         },
       },
       null,
@@ -86,7 +86,7 @@ function fixtureTree() {
     corePkgPath,
     JSON.stringify(
       {
-        name: '@cognnitive/innfo-core',
+        name: '@cognnitive/nn-core',
         version: '0.0.0',
       },
       null,
@@ -143,7 +143,7 @@ async function runTests() {
     const corePkg = JSON.parse(fs.readFileSync(corePkgPath, 'utf8'));
     assert.strictEqual(corePkg.version, '9.9.9', 'core package version must match mcp version');
     const mcpPkg = JSON.parse(fs.readFileSync(mcpPkgPath, 'utf8'));
-    assert.strictEqual(mcpPkg.dependencies['@cognnitive/innfo-core'], '^9.9.9', 'mcp dep range must be ^9.9.9');
+    assert.strictEqual(mcpPkg.dependencies['@cognnitive/nn-core'], '^9.9.9', 'mcp dep range must be ^9.9.9');
 
     console.log('✔ syncVersions writes the MCP package targets');
     fs.rmSync(root, { recursive: true, force: true });
@@ -172,8 +172,8 @@ async function runTests() {
     const res = syncVersions({ check: true, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath });
     assert.strictEqual(res.ok, false, 'Expected drift to be detected');
     const joined = res.errors.join('\n');
-    assert.ok(joined.includes('innfo-core package.json'), 'error must name core package drift');
-    assert.ok(joined.includes('@cognnitive/innfo-core drift'), 'error must name dep range drift');
+    assert.ok(joined.includes('nn-core package.json'), 'error must name core package drift');
+    assert.ok(joined.includes('@cognnitive/nn-core drift'), 'error must name dep range drift');
     assert.ok(joined.includes('sync:versions'), 'error must name fix command');
     console.log('✔ --check mode reports package drift with fix command');
     fs.rmSync(root, { recursive: true, force: true });

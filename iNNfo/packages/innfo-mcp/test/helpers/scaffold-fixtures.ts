@@ -1,12 +1,12 @@
 /**
- * The scaffold stubs and golden documents shared with the innfo-core suites. They are
- * plain files in innfo-core (`tests/fixtures/scaffold`), read here by path so both
+ * The scaffold stubs and golden documents shared with the nn-core suites. They are
+ * plain files in nn-core (`tests/fixtures/scaffold`), read here by path so both
  * packages pin the very same bytes.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const dir = join(import.meta.dirname!, '..', '..', '..', 'innfo-core', 'tests', 'fixtures', 'scaffold')
+const dir = join(import.meta.dirname!, '..', '..', '..', 'nn-core', 'tests', 'fixtures', 'scaffold')
 const read = (file: string): string => readFileSync(join(dir, file), 'utf-8')
 
 export const SPEC_L1 = read('l1.stub.md')

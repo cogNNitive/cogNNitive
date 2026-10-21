@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { parseKnowledge, parseChangeset } from '@cognnitive/innfo-core'
+import { parseKnowledge, parseChangeset } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { proposeChangeset } from '../src/tools/propose-changeset.js'
 

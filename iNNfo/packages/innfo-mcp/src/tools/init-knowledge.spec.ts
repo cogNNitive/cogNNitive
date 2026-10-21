@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { parseChangeset, parseKnowledge, checkNameInvariant } from '@cognnitive/innfo-core'
+import { parseChangeset, parseKnowledge, checkNameInvariant } from '@cognnitive/nn-core'
 import { initKnowledge } from './init-knowledge'
 import type { ConsoleWriter } from './console-regeneration'
 import {

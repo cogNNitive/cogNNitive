@@ -2,11 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const core = require('./lib/scanner-core');
 const converters = require('./lib/scanner-converters');
-const { cognitivize, isSidecarName, isNNName } = require('./lib/innfo-core.generated.cjs');
+const { cognitivize, isSidecarName, isNNName } = require('./lib/nn-core.generated.cjs');
 const { createNormalizer } = require('./lib/normalizer');
 
 /**
- * Cognitivize one raw file in place through innfo-core. Dependency and consent
+ * Cognitivize one raw file in place through nn-core. Dependency and consent
  * checks for the prompt formats run first, and only when the sidecar is stale.
  *
  * @returns {Promise<{ format: string, status: string, action: string, outcome: 'processed' | 'skipped', refreshed?: boolean }>}

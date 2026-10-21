@@ -3,13 +3,13 @@
 /**
  * scripts/build-preflight-primitives.mjs
  *
- * Bundles the platform-neutral primitives from `@cognnitive/innfo-core` into
+ * Bundles the platform-neutral primitives from `@cognnitive/nn-core` into
  * committed, zero-dependency CommonJS artifacts that distributed skills can `require()`.
  *
  * Targets:
  *   1. skills/nn-preflight/scripts/lib/version-status.generated.cjs (versionStatus.ts)
  *   2. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
- *   3. skills/nn-upgrade/scripts/lib/innfo-core.generated.cjs (parser, scaffold, freeze_slugs)
+ *   3. skills/nn-upgrade/scripts/lib/nn-core.generated.cjs (parser, scaffold, freeze_slugs)
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check]
@@ -34,7 +34,7 @@ const BUNDLE_TARGETS = [
       REPO_ROOT,
       'iNNfo',
       'packages',
-      'innfo-core',
+      'nn-core',
       'src',
       'workspace',
       'integrity',
@@ -51,14 +51,14 @@ const BUNDLE_TARGETS = [
     banner:
       '/**\n' +
       ' * GENERATED FILE — DO NOT EDIT.\n' +
-      ' * Source: iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts\n' +
+      ' * Source: iNNfo/packages/nn-core/src/workspace/integrity/versionStatus.ts\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
       ' */\n// @ts-nocheck',
   },
   {
     name: 'naming-contract',
-    entry: path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'naming', 'index.ts'),
+    entry: path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'src', 'naming', 'index.ts'),
     out: path.join(
       REPO_ROOT,
       'skills',
@@ -70,7 +70,7 @@ const BUNDLE_TARGETS = [
     banner:
       '/**\n' +
       ' * GENERATED FILE — DO NOT EDIT.\n' +
-      ' * Source: iNNfo/packages/innfo-core/src/naming/index.ts\n' +
+      ' * Source: iNNfo/packages/nn-core/src/naming/index.ts\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
       ' */\n// @ts-nocheck',
@@ -83,13 +83,13 @@ const BUNDLE_TARGETS = [
       "export { parseKnowledge, serializeKnowledge } from './src/parser/index.ts'",
       "export { freeze_slugs } from './src/mutate.ts'",
     ].join('\n'),
-    resolveDir: path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core'),
+    resolveDir: path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core'),
     platform: 'node',
-    out: path.join(REPO_ROOT, 'skills', 'nn-upgrade', 'scripts', 'lib', 'innfo-core.generated.cjs'),
+    out: path.join(REPO_ROOT, 'skills', 'nn-upgrade', 'scripts', 'lib', 'nn-core.generated.cjs'),
     banner:
       '/**\n' +
       ' * GENERATED FILE — DO NOT EDIT.\n' +
-      ' * Source: iNNfo/packages/innfo-core (planDomainScaffold, parseKnowledge, serializeKnowledge, freeze_slugs)\n' +
+      ' * Source: iNNfo/packages/nn-core (planDomainScaffold, parseKnowledge, serializeKnowledge, freeze_slugs)\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
       ' */\n// @ts-nocheck',

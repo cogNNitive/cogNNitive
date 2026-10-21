@@ -5,7 +5,7 @@ import {
   runQuery,
   type FileSnapshot,
   type QueryResult,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 
 /** Hard cap on returned URIs; beyond it the tool reports `truncated: true`. */
 export const QUERY_RESULT_CAP = 100

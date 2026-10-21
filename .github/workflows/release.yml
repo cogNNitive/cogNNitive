@@ -48,7 +48,7 @@ jobs:
         run: npm ci --prefix skills/nn-sources
 
       - name: Build MCP packages for facts check
-        run: npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run build
+        run: npm --workspace=@cognnitive/nn-core run build && npm --workspace=@cognnitive/innfo-mcp run build
 
       - name: Run Deterministic Verification
         run: node scripts/verify.js

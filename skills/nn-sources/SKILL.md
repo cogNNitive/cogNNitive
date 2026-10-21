@@ -216,7 +216,7 @@ cited_works:
 
 > **⚠️ Citation Rule**: There is no `source_id`/`src-NNN` system and **no implicit path prefix**: a citation path is domaiNN-relative, written in full. Downstream Level 3 models reference sources directly by path and `@` anchor via `sources:: sources/import/<file>.md@## <Heading>` (CSV row/col: `sources/import/<file>.csv@RowID&col`; JSON Pointer: `sources/import/<file>.json@/items/0/name`, RFC 6901, starting with `/`, a literal `&` written `%26`; or file-level citation `kNNowledge/<model>_NN.md`; multiple values use list syntax: `sources:: [sources/import/a.md@## Intro, sources/import/b_20261001T101500Z.pdf_sidecar_NN.md@## Summary]`). Binary raw files cannot be cited directly: cite the binary's sidecar (citing `x.pdf@...` reports `KU_BINARY_TARGET` and suggests `x.pdf_sidecar_NN.md@...`). Line numbers are prohibited; heading text anchors, CSV row keys or JSON Pointers are mandatory.
 
-> **Heading anchors use the human-readable heading text** (`@## Visión`) — the same rule the iNNfo editor and `@cognnitive/innfo-core` use.
+> **Heading anchors use the human-readable heading text** (`@## Visión`) — the same rule the iNNfo editor and `@cognnitive/nn-core` use.
 
 #### 2a-1b. Cognitivize a File or a Folder (`--cognitivize`)
 

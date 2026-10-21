@@ -18,7 +18,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out
 }
 
-describe('legacy quarantine is removed from innfo-core', () => {
+describe('legacy quarantine is removed from nn-core', () => {
   it('package.json declares no ./legacy export', () => {
     const pkg = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
     expect(Object.keys(pkg.exports)).not.toContain('./legacy')
@@ -51,6 +51,6 @@ describe('legacy quarantine is removed from innfo-core', () => {
   it('the MCP package has no legacy-hint module and no ./legacy vitest alias', () => {
     const mcp = join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp')
     expect(existsSync(join(mcp, 'src', 'tools', 'legacy' + '-hint.ts'))).toBe(false)
-    expect(readFileSync(join(mcp, 'vitest.config.ts'), 'utf8')).not.toContain('innfo-core/legacy')
+    expect(readFileSync(join(mcp, 'vitest.config.ts'), 'utf8')).not.toContain('nn-core/legacy')
   })
 })

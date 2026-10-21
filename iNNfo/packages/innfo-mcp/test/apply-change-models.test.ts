@@ -8,8 +8,8 @@ import {
   parseChangeset,
   parseKnowledge,
   validateKnowledge as coreValidate,
-} from '@cognnitive/innfo-core'
-import type { ChangeItem } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { ChangeItem } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { applyWithConsole, type ConsoleWriter } from '../src/tools/console-regeneration.js'
 

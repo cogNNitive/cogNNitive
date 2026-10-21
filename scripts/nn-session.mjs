@@ -105,15 +105,15 @@ function hydrateDependencies(target, root, fullInstall) {
   }
 }
 
-/** Builds @cognnitive/innfo-core in the worktree so its dist matches the session source. */
+/** Builds @cognnitive/nn-core in the worktree so its dist matches the session source. */
 function buildCore(target) {
-  const coreDir = join(target, 'iNNfo', 'packages', 'innfo-core')
+  const coreDir = join(target, 'iNNfo', 'packages', 'nn-core')
   if (!existsSync(join(coreDir, 'package.json')) || process.env.NN_SESSION_TEST_NPM_STUB) return
-  console.error('nn-session: building @cognnitive/innfo-core…')
+  console.error('nn-session: building @cognnitive/nn-core…')
   try {
     execFileSync('npm', ['run', 'build'], { cwd: coreDir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
   } catch {
-    console.error('WARNING: building @cognnitive/innfo-core failed; build it there before using the worktree')
+    console.error('WARNING: building @cognnitive/nn-core failed; build it there before using the worktree')
     process.exitCode = 1
   }
 }

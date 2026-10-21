@@ -9,7 +9,7 @@ import {
   renderRecordFrontmatter,
   refreshExistingModel,
   type LineageProjection,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 export interface SyncLineageResult {

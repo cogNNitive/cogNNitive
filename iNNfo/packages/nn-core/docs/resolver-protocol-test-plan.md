@@ -2,7 +2,7 @@
 
 > Date: 2026-07-01
 > Status: Draft
-> Purpose: Define test scenarios for the spec resolver protocol in `@cognnitive/innfo-core`.
+> Purpose: Define test scenarios for the spec resolver protocol in `@cognnitive/nn-core`.
 
 ## Protocol Summary
 
@@ -130,7 +130,7 @@ As defined in defiNNe §3, when an application loads a level 3 model:
 - Only the root `_NN.md` triggers a chain resolution
 - Element `_NN.md` files under `Alice/`, `MachineLearning/` etc. are NOT resolved independently
 
-## Implementation Notes for `@cognnitive/innfo-core`
+## Implementation Notes for `@cognnitive/nn-core`
 
 The resolver should provide these functions in `io/`:
 

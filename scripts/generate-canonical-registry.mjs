@@ -4,7 +4,7 @@
  * scripts/generate-canonical-registry.mjs
  *
  * Regenerates the embedded `*_SPEC_CONTENT` string constants in
- * `iNNfo/packages/innfo-core/src/schema/canonical-registry.ts` from their
+ * `iNNfo/packages/nn-core/src/schema/canonical-registry.ts` from their
  * on-disk spec files, so the offline fallback mirrors the canonical specs
  * byte-for-byte.
  *
@@ -25,7 +25,7 @@ const REGISTRY = path.join(
   REPO_ROOT,
   'iNNfo',
   'packages',
-  'innfo-core',
+  'nn-core',
   'src',
   'schema',
   'canonical-registry.ts',

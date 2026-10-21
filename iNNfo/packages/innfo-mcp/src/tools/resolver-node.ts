@@ -16,17 +16,17 @@ import {
   findLocalSpec,
   versionFromFrontmatter,
   findSpecInPackageDir,
-} from '@cognnitive/innfo-core'
-import type { SpecCache, SpecDocument, ResolverOptions } from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
+import type { SpecCache, SpecDocument, ResolverOptions } from '@cognnitive/nn-core'
 
-// Relocated to innfo-core (shared with the console export CLI). Re-exported so
+// Relocated to nn-core (shared with the console export CLI). Re-exported so
 // existing MCP imports from './resolver-node.js' keep working unchanged.
 export {
   resolveBlueprintPackage,
   normalizeVersion,
   parseSpecName,
   findSpecInPackageDir,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 
 export type FreshnessVerdict = 'fresh' | 'stale' | 'unknown'
 
@@ -708,7 +708,7 @@ export async function resolveParentChainNode(
 
   // Additive composition: pull in every template named by a resolved level-2
   // template's `includes` list (recursively), so `resolveBlueprintSchema` in
-  // innfo-core can compose their schemas offline. Best-effort — an
+  // nn-core can compose their schemas offline. Best-effort — an
   // unresolvable include is left out and surfaces later as a validation error.
   await resolveIncludesInto(specs, specsDir, timeout, undefined, cacheDir)
 
@@ -768,7 +768,7 @@ export async function fetchSpecContent(
 
 /**
  * Resolve a set of `includes` refs (recursively following nested `includes`)
- * into a `name → raw content` map, for building an innfo-core `IncludeResolver`.
+ * into a `name → raw content` map, for building an nn-core `IncludeResolver`.
  * `specsBaseDir` is the repo root; templates are looked up under its `specs/`.
  * Keys are stored in both original name and lowercase name for case-insensitive lookup (Fix W-01).
  */

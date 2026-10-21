@@ -1,5 +1,5 @@
 {
-  "name": "@cognnitive/innfo-core",
+  "name": "@cognnitive/nn-core",
   "version": "0.29.0",
   "description": "Core library for iNNfo parser, model, IO drivers, and validator",
   "type": "module",

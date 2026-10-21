@@ -1,10 +1,10 @@
 import { mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
-import { planDomainScaffold } from '@cognnitive/innfo-core'
+import { planDomainScaffold } from '@cognnitive/nn-core'
 
 /**
  * `init_domain`: creates an empty, conformant domaiNN container from the one pure
- * scaffold plan (`planDomainScaffold` in innfo-core). It is not a changeset: a changeset
+ * scaffold plan (`planDomainScaffold` in nn-core). It is not a changeset: a changeset
  * lives inside a domain, and the manifest is the record of the domain.
  */
 

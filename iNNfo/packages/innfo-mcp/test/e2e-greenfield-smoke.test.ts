@@ -8,7 +8,7 @@ import {
   parseKnowledge,
   serializeKnowledge,
   applyMutation,
-} from '@cognnitive/innfo-core';
+} from '@cognnitive/nn-core';
 async function runSmokeTest() {
   console.log('🚀 Starting Greenfield E2E Smoke Test...');
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cognnitive-greenfield-smoke-'));

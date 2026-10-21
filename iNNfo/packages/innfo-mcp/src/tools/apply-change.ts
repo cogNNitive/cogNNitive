@@ -27,7 +27,7 @@ import {
   scaffoldKnowledgeDocument,
   RECORD_BLUEPRINT,
   roleOf,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import type {
   SpecDocument,
   ParsedKnowledge,
@@ -37,7 +37,7 @@ import type {
   ModelVersionTransition,
   ChangeStatus,
   BumpLevel,
-} from '@cognnitive/innfo-core'
+} from '@cognnitive/nn-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId } from './spec.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { writeProposedChangeset } from './propose-changeset.js'

@@ -53,7 +53,7 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
   return handle
 }
 
-describe('Recursive Submodels & Specification Alignment (Phase 4 innfo-core)', () => {
+describe('Recursive Submodels & Specification Alignment (Phase 4 nn-core)', () => {
   describe('Path Resolution & Normalization', () => {
     it('normalizes Windows backslashes, collapses slashes and strips leading ./', () => {
       expect(normalizePathKey('.\\kNNowledge\\subsystems\\auth_NN.md')).toBe(

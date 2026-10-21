@@ -295,7 +295,7 @@ function collectRepoFiles(dir, includeArchives) {
         if (rel === 'iNNfo/specs/iNNfo_V_0-3-0_NN.md') continue
         if (rel === 'iNNfo/specs/iNNfo_V_0-4-0_NN.md') continue
         // Generated mirror of the frozen specs (by-design embedded history).
-        if (rel === 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts') continue
+        if (rel === 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts') continue
         if (rel === 'iNNfo/scripts/check-spec-version.mjs') continue
         if (gitVisible && !gitVisible.has(full.replace(/\\/g, '/'))) continue
         const ext = extname(entry)

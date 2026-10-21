@@ -3,7 +3,7 @@ import { parseKnowledge } from '../src/parser/index'
 import { validateKnowledge } from '../src/validator/knowledge'
 import type { SpecDocument } from '../src/types'
 
-describe('Template Freshness Diagnostic in innfo-core validateKnowledge (Phase 1)', () => {
+describe('Template Freshness Diagnostic in nn-core validateKnowledge (Phase 1)', () => {
   const sampleModelContent = [
     '---',
     'spec_version: "V_0-2-0"',
