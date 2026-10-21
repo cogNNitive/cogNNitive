@@ -60,7 +60,7 @@ skills:
     mcp:
       - name: innfo-mcp
         repo: cogNNitive/cogNNitive
-        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+        path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
         version: "0.2.1"
         ref_key: innfo-mcp
 templates: []

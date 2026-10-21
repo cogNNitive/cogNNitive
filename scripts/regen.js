@@ -36,7 +36,7 @@ function fail(what) {
 }
 
 if (run(npm, ['--workspace=@cognnitive/nn-core', 'run', 'build']) !== 0) fail('nn-core build');
-if (run(npm, ['--workspace=@cognnitive/innfo-mcp', 'run', 'build:dist']) !== 0) fail('innfo-mcp build:dist');
+if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fail('innfo-mcp build:dist');
 
 const generate = [
   ...FRESHNESS_GUARDS.map((g) => [g.script]),

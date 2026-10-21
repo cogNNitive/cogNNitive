@@ -25,7 +25,7 @@ test('RELEASE_TABLE defines copied paths for every key', () => {
 
   assert.ok(RELEASE_TABLE['innfo-mcp']);
   assert.deepEqual(RELEASE_TABLE['innfo-mcp'].repoPaths, [
-    'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   ]);
 
   assert.ok(RELEASE_TABLE['innfo-console']);
@@ -40,7 +40,7 @@ test('DISTRIBUTION_PATHS is derived from RELEASE_TABLE', () => {
   assert.ok(Array.isArray(DISTRIBUTION_PATHS));
   assert.ok(DISTRIBUTION_PATHS.includes('skills'));
   assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/specs'));
-  assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js'));
+  assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/export-console.mjs'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/console-views.mjs'));
 });

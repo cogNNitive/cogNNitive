@@ -44,10 +44,10 @@ jobs:
       - name: Install nn-sources skill dependencies
         run: npm ci --prefix skills/nn-sources
 
-      # Docs facts drift check in verify.js imports innfo-mcp's built dist/server.js
+      # Docs facts drift check in verify.js imports nn-mcp's built dist/server.js
       # to inspect MCP tool definitions.
       - name: Build MCP packages for facts check
-        run: npm --workspace=@cognnitive/nn-core run build && npm --workspace=@cognnitive/innfo-mcp run build
+        run: npm --workspace=@cognnitive/nn-core run build && npm --workspace=@cognnitive/nn-mcp run build
 
       # Offline and deterministic: no network, no release tags, no token. Each
       # step logs to .verify-logs/; a failing step's tail is shown in a log group.
@@ -143,14 +143,14 @@ jobs:
             echo "No formattable files changed."
           fi
 
-      - name: Typecheck (innfo-mcp)
-        run: npm --workspace=@cognnitive/innfo-mcp run typecheck
+      - name: Typecheck (nn-mcp)
+        run: npm --workspace=@cognnitive/nn-mcp run typecheck
 
       - name: Unit tests + coverage (core)
         run: npm --workspace=@cognnitive/nn-core run test:coverage
 
-      - name: Unit tests + coverage (innfo-mcp)
-        run: npm --workspace=@cognnitive/innfo-mcp run test:coverage
+      - name: Unit tests + coverage (nn-mcp)
+        run: npm --workspace=@cognnitive/nn-mcp run test:coverage
 
   # ── Every hardcoded raw.githubusercontent.com spec URL must resolve to a
   #    file that exists; specs/ is immutable and filename-encoded.

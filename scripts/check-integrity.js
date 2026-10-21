@@ -147,7 +147,7 @@ if (isPrePush) {
     runCmd('npm run lint', 'Lint');
     runCmd('npm run typecheck', 'Typecheck');
     runCmd('npm --workspace=@cognnitive/nn-core run test:coverage', 'Unit tests + coverage (core)');
-    runCmd('npm --workspace=@cognnitive/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
+    runCmd('npm --workspace=@cognnitive/nn-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
     runCmd('node scripts/check-spec-version.mjs --check-urls', 'Check spec URLs resolve');
     console.log('\n✅ [Group 5] CI mirror passed.');
   } catch (err) {

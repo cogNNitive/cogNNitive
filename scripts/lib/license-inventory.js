@@ -16,7 +16,7 @@ const { classifyExpression, declaredLicense } = require('./license-policy.js')
 /** Workspace roots whose production dependency trees are inventoried. */
 const WORKSPACE_DIRS = [
   'iNNfo/packages/nn-core',
-  'iNNfo/packages/innfo-mcp',
+  'iNNfo/packages/nn-mcp',
   'skills/nn-sources',
   'skills/nn-upgrade',
 ]

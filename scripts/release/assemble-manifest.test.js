@@ -30,11 +30,11 @@ agent-bootstrap:
       mcp:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
           version: "0.11.0"
           ref: "innfo-mcp-v0.11.0"
           commit: "bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
   blueprints:
     - name: workspace_spec_NN
       repo: cogNNitive/cogNNitive-web
@@ -78,7 +78,7 @@ const SOURCE_YAML = {
         {
           name: 'innfo-mcp',
           repo: 'cogNNitive/cogNNitive-web',
-          path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+          path: 'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
           ref_key: 'innfo-mcp',
         },
       ],

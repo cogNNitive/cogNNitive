@@ -22,7 +22,7 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 
 const DEFAULT_BLUEPRINTS_DIR = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 const DEFAULT_SKILLS_DIR = path.join(REPO_ROOT, 'skills');
-const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'package.json');
+const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-mcp', 'package.json');
 const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'package.json');
 
 const FRONTMATTER_VERSION_RE = /^---\r?\n([\s\S]*?)\r?\n---/;

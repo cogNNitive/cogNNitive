@@ -32,7 +32,7 @@ describe('legacy quarantine is removed from nn-core', () => {
   it('no source in core, MCP or the preflight scripts references the legacy detector or hint', () => {
     const roots = [
       join(PKG_ROOT, 'src'),
-      join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'src'),
+      join(REPO_ROOT, 'iNNfo', 'packages', 'nn-mcp', 'src'),
       join(REPO_ROOT, 'skills', 'nn-preflight', 'scripts'),
     ]
     const offenders: string[] = []
@@ -49,7 +49,7 @@ describe('legacy quarantine is removed from nn-core', () => {
   })
 
   it('the MCP package has no legacy-hint module and no ./legacy vitest alias', () => {
-    const mcp = join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp')
+    const mcp = join(REPO_ROOT, 'iNNfo', 'packages', 'nn-mcp')
     expect(existsSync(join(mcp, 'src', 'tools', 'legacy' + '-hint.ts'))).toBe(false)
     expect(readFileSync(join(mcp, 'vitest.config.ts'), 'utf8')).not.toContain('nn-core/legacy')
   })

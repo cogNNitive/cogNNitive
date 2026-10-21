@@ -64,7 +64,7 @@ function git(cwd, args) {
 function buildFixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-drift-guard-'));
 
-  const distDir = path.join(root, 'iNNfo', 'packages', 'innfo-mcp', 'dist');
+  const distDir = path.join(root, 'iNNfo', 'packages', 'nn-mcp', 'dist');
   fs.mkdirSync(distDir, { recursive: true });
   fs.writeFileSync(
     path.join(distDir, 'server.js'),

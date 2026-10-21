@@ -31,9 +31,9 @@ function main() {
 
   // 1. A seeded `_NN.md` regex outside the contract fails, naming file and line.
   {
-    const r = run({ 'iNNfo/packages/innfo-mcp/src/tools/seeded.ts': `const a = 1\nconst re = ${NN_REGEX}\n` });
+    const r = run({ 'iNNfo/packages/nn-mcp/src/tools/seeded.ts': `const a = 1\nconst re = ${NN_REGEX}\n` });
     assert.strictEqual(r.ok, false, 'a regex must fail');
-    assert.ok(r.errors.some((e) => e.includes('iNNfo/packages/innfo-mcp/src/tools/seeded.ts:2')), r.errors.join('; '));
+    assert.ok(r.errors.some((e) => e.includes('iNNfo/packages/nn-mcp/src/tools/seeded.ts:2')), r.errors.join('; '));
   }
   console.log('✔ a seeded _NN.md regex outside src/naming fails with file and line');
 
@@ -69,7 +69,7 @@ function main() {
     const r = run({
       'scripts/a.test.js': body,
       'iNNfo/packages/nn-core/tests/a.test.ts': body,
-      'iNNfo/packages/innfo-mcp/src/tools/a.spec.ts': body,
+      'iNNfo/packages/nn-mcp/src/tools/a.spec.ts': body,
       'skills/nn-sources/scripts/lib/nn-core.generated.cjs': body,
       'docs/x.md': body,
       'openspec/x.md': body,

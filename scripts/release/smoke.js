@@ -119,7 +119,7 @@ async function runSmokeTest(config, options = {}) {
       repoRoot,
       'iNNfo',
       'packages',
-      'innfo-mcp',
+      'nn-mcp',
       'bin',
       'innfo-mcp.bundle.js'
     );

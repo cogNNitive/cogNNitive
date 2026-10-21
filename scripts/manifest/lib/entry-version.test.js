@@ -49,7 +49,7 @@ version: "0.19.2"
 });
 
 test('readMcpVersion extracts version from innfo-mcp package.json', () => {
-  const pkg = JSON.stringify({ name: '@cognnitive/innfo-mcp', version: '0.12.0' });
+  const pkg = JSON.stringify({ name: '@cognnitive/nn-mcp', version: '0.12.0' });
   assert.equal(readMcpVersion(pkg), '0.12.0');
   assert.equal(readMcpVersion({ version: '0.12.0' }), '0.12.0');
 });

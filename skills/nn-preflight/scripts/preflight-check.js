@@ -1088,7 +1088,7 @@ async function runCheck(options = {}) {
     const SUBSYSTEM_PATH_LABELS = {
       skills: 'skills/',
       templates: 'iNNfo/specs/bluepriNNts/',
-      'innfo-mcp': 'iNNfo/packages/innfo-mcp/',
+      'innfo-mcp': 'iNNfo/packages/nn-mcp/',
       'innfo-console': 'iNNfo/specs/bluepriNNts/console/',
     };
     const MAX_FILES_SHOWN = 3;

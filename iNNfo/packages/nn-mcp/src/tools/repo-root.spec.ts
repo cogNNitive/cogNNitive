@@ -27,7 +27,7 @@ describe('findRepoRoot', () => {
 
   it('walks up nested subdirectories to find a .git directory', async () => {
     await mkdir(join(rootDir, '.git'), { recursive: true })
-    const nested = join(rootDir, 'packages', 'innfo-mcp', 'src', 'tools')
+    const nested = join(rootDir, 'packages', 'nn-mcp', 'src', 'tools')
     await mkdir(nested, { recursive: true })
     expect(findRepoRoot(nested)).toBe(rootDir)
   })

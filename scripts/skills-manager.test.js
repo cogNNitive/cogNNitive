@@ -502,7 +502,7 @@ agent-bootstrap:
       mcp:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
           version: "0.27.0"
           ref: "innfo-mcp-v0.27.0"
           commit: "${mcpCommit}"

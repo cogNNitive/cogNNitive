@@ -25,10 +25,10 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe('Task 3.8: no-legacy-markers: live src has no legacy marker or tag constructs outside removed-constructs.ts', () => {
-  it('no live source in nn-core/src or innfo-mcp/src references legacy tokens', () => {
+  it('no live source in nn-core/src or nn-mcp/src references legacy tokens', () => {
     const roots = [
       join(PKG_ROOT, 'src'),
-      join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'src'),
+      join(REPO_ROOT, 'iNNfo', 'packages', 'nn-mcp', 'src'),
     ]
 
     const offenders: string[] = []

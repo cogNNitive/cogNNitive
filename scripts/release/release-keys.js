@@ -17,7 +17,7 @@ const RELEASE_TABLE = Object.freeze({
     sitePaths: Object.freeze([]),
   }),
   'innfo-mcp': Object.freeze({
-    repoPaths: Object.freeze(['iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js']),
+    repoPaths: Object.freeze(['iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js']),
     sitePaths: Object.freeze(['docs/innfo/cdn/manifest.json']),
   }),
   'innfo-console': Object.freeze({
@@ -38,7 +38,7 @@ const RELEASE_TABLE = Object.freeze({
 const DISTRIBUTION_PATHS = Object.freeze([
   'skills',
   'iNNfo/specs',
-  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+  'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   'scripts/export-console.mjs',
   'scripts/console-views.mjs',
 ]);

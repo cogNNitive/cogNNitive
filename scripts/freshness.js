@@ -20,7 +20,7 @@ const SUBSYSTEM_PATHS = {
   skills: ['skills/'],
   blueprints: ['iNNfo/specs/bluepriNNts/'],
   templates: ['iNNfo/specs/bluepriNNts/'],
-  'innfo-mcp': ['iNNfo/packages/innfo-mcp/'],
+  'innfo-mcp': ['iNNfo/packages/nn-mcp/'],
   'innfo-console': ['iNNfo/specs/bluepriNNts/console/', 'scripts/export-console.mjs', 'scripts/console-views.mjs'],
 };
 

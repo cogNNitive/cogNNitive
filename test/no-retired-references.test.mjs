@@ -33,8 +33,8 @@ const EDITOR_ALLOWLIST = [
   'scripts/guard-template-immutability.test.js', // old badge URL normalisation test
   SELF, // this guard names the tokens it forbids
   'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', // embeds write-once specs
-  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
-  'iNNfo/packages/innfo-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
+  'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
+  'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
   'iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs', // embeds write-once specs
   'test/fixtures/testlab/artifacts/', // stamped console exports of earlier runtimes
 ]
@@ -51,7 +51,7 @@ const PROVENANCE_ABSENCE_PINS = new Set([
   'iNNfo/packages/nn-core/tests/console-payload-builder.test.ts',
   'iNNfo/packages/nn-core/tests/exports.test.ts',
   'iNNfo/packages/nn-core/tests/naming/contract.test.ts',
-  'iNNfo/packages/innfo-mcp/src/server.spec.ts',
+  'iNNfo/packages/nn-mcp/src/server.spec.ts',
 ])
 const PROVENANCE_SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'temp', '.verify-logs', 'openspec', '_samples_nn'])
 const PROVENANCE_SKIP_PREFIXES = ['test/fixtures/', 'iNNfo/packages/nn-core/tests/fixtures/']
@@ -91,11 +91,11 @@ const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 // Changes are reviewed in the static domain console (a file), never in a hosted
 // app or a live-preview URL.
 const PREVIEW_FILES = [
-  'iNNfo/packages/innfo-mcp/src/tools/console-regeneration.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/propose-changeset.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/init-domain.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/init-knowledge.ts',
-  'iNNfo/packages/innfo-mcp/README.md',
+  'iNNfo/packages/nn-mcp/src/tools/console-regeneration.ts',
+  'iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts',
+  'iNNfo/packages/nn-mcp/src/tools/init-domain.ts',
+  'iNNfo/packages/nn-mcp/src/tools/init-knowledge.ts',
+  'iNNfo/packages/nn-mcp/README.md',
   'scripts/export-console.mjs',
   'skills/nn-innfo/SKILL.md',
 ]

@@ -126,7 +126,7 @@ function runHeavyPrerequisites() {
   if (npmStep(['run', 'typecheck']).status !== 0) {
     failures.push('typecheck failed.\n    fix: the errors above, or bypass with: git push --no-verify');
   }
-  npmStep(['--workspace=@cognnitive/innfo-mcp', 'run', 'build:dist']);
+  npmStep(['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']);
   if (nodeStep([path.join(repoRoot, 'scripts', 'generate-docs-facts.mjs'), '--check']).status !== 0) {
     failures.push("generated docs facts are stale.\n    fix: npm run regen (or node scripts/generate-docs-facts.mjs) and commit the result");
   }

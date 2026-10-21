@@ -1,4 +1,4 @@
-# @cognnitive/innfo-mcp
+# @cognnitive/nn-mcp
 
 Model Context Protocol (MCP) server wrapping `@cognnitive/nn-core` for the `cogNNitive` ecosystem. Exposes deterministic tools over stdio transport for knowledge parsing, validation, multi-tier blueprint resolution, transitive asset discovery, safe reachability pruning, and intent-level mutations.
 

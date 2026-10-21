@@ -61,7 +61,7 @@ function fixtureTree() {
   );
 
   // MCP packages
-  const mcpDir = path.join(root, 'iNNfo', 'packages', 'innfo-mcp');
+  const mcpDir = path.join(root, 'iNNfo', 'packages', 'nn-mcp');
   const coreDir = path.join(root, 'iNNfo', 'packages', 'nn-core');
   fs.mkdirSync(mcpDir, { recursive: true });
   fs.mkdirSync(coreDir, { recursive: true });
@@ -71,7 +71,7 @@ function fixtureTree() {
     mcpPkgPath,
     JSON.stringify(
       {
-        name: '@cognnitive/innfo-mcp',
+        name: '@cognnitive/nn-mcp',
         version: '9.9.9',
         dependencies: {
           '@cognnitive/nn-core': '^0.0.0',

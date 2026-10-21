@@ -16,7 +16,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 function makeRepo(bundleText, version = '1.2.3') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'stage-mcp-'));
-  const mcpDir = path.join(root, 'iNNfo', 'packages', 'innfo-mcp');
+  const mcpDir = path.join(root, 'iNNfo', 'packages', 'nn-mcp');
   fs.mkdirSync(path.join(mcpDir, 'bin'), { recursive: true });
   fs.writeFileSync(path.join(mcpDir, 'package.json'), JSON.stringify({ version }), 'utf8');
   if (bundleText !== null) {

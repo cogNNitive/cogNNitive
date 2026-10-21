@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const perfRoot = join(repoRoot, 'temp', 'simulation-perf')
-const mcpEntry = join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp', 'dist', 'server.js')
+const mcpEntry = join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'dist', 'server.js')
 
 /** Retry a recursive rm; Windows MCP children may still hold handles briefly. */
 function rmWithRetry(dir, attempts = 8, delayMs = 300) {
