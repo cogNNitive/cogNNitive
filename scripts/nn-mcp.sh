@@ -23,19 +23,10 @@ if [ -n "${LATEST}" ]; then
     if [ "${LATEST}" != "${CACHED}" ]; then
         echo "Downloading nn-mcp ${LATEST}..."
         BUNDLE_URL="https://cognnitive.com/innfo/cdn/nn-mcp-v${LATEST}.bundle.js"
-        DOWNLOAD_OK=0
         if command -v curl >/dev/null 2>&1; then
-            curl -sL "${BUNDLE_URL}" -o "${BUNDLE_FILE}" && DOWNLOAD_OK=1 || true
+            curl -sL "${BUNDLE_URL}" -o "${BUNDLE_FILE}"
         elif command -v wget >/dev/null 2>&1; then
-            wget -q "${BUNDLE_URL}" -O "${BUNDLE_FILE}" && DOWNLOAD_OK=1 || true
-        fi
-        if [ $DOWNLOAD_OK -eq 0 ] || [ ! -s "${BUNDLE_FILE}" ]; then
-            FALLBACK_URL="https://cognnitive.com/innfo/cdn/innfo-mcp-v${LATEST}.bundle.js"
-            if command -v curl >/dev/null 2>&1; then
-                curl -sL "${FALLBACK_URL}" -o "${BUNDLE_FILE}"
-            elif command -v wget >/dev/null 2>&1; then
-                wget -q "${FALLBACK_URL}" -O "${BUNDLE_FILE}"
-            fi
+            wget -q "${BUNDLE_URL}" -O "${BUNDLE_FILE}"
         fi
         echo "${LATEST}" > "${VERSION_FILE}"
         echo "Done."

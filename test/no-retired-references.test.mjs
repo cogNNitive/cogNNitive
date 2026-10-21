@@ -153,6 +153,34 @@ const GUARDS = [
     allow: () => false,
     plant: 'open the Hosted App to review',
   },
+  {
+    // PR 3 of the nn-prefix-rename cutover renamed the MCP server to `nn-mcp`.
+    // Blueprint procedures name it in `tool:: [[innfo-mcp]]` and
+    // `## NN Tools: innfo-mcp`; those references are write-once, so the rename
+    // ships through a blueprint version bump, never an in-place edit. The frozen
+    // `workspace` procedures (C9) are the only remaining allowlist entry.
+    name: 'retired MCP name in blueprint procedures',
+    patterns: [/tool::\s*\[\[innfo-mcp\b/, /##\s*NN Tools:\s*innfo-mcp\b/],
+    files: 'tracked',
+    allow: prefixAllow([
+      'openspec/', // frozen change/spec history
+      'iNNfo/specs/bluepriNNts/workspace/', // frozen_blueprints (C9)
+      'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro fixtures
+      '_samples_nn/', // deferred sample workspace
+      SELF,
+    ]),
+    lines: true,
+    plant: 'tool:: [[innfo-mcp]]',
+  },
+  {
+    // Guarded in nn-innfo only, where the tool prefix `innfo-mcp_*` was prose the
+    // PR rewrote; the migration literals in skills-commands.js stay by design (D10).
+    name: 'retired MCP tool prefix in the nn-innfo skill',
+    patterns: [/innfo-mcp[_.]/],
+    files: ['skills/nn-innfo/SKILL.md'],
+    allow: () => false,
+    plant: 'call innfo-mcp_validate_knowledge',
+  },
 ]
 
 function trackedFiles() {
@@ -218,6 +246,9 @@ describe('retired names appear nowhere outside their allowlists', () => {
 const RETIRED_PATH_STEMS = [
   /(^|\/)iNNfo\/packages\/innfo-(core|mcp)(\/|$)/, // the package directories
   /(^|\/)innfo-core\.generated\.cjs$/, // the generated core mirror
+  /(^|\/)scripts\/innfo-mcp\.(sh|ps1|cmd)$/, // pre-cutover wrapper scripts (PR 3)
+  /(^|\/)iNNfo\/packages\/nn-mcp\/bin\/innfo-mcp\.bundle\.js$/, // pre-cutover MCP bundle (PR 3)
+  /(^|\/)docs\/innfo\/documentation\/(innfo-core|innfo-mcp|opencode-innfo-agent)\.md$/, // pre-cutover public docs (PR 3)
 ]
 
 /** Paths whose old names are expected at this point of the cutover. */
@@ -244,6 +275,9 @@ describe('the renamed package and generated paths stay retired', () => {
       'iNNfo/packages/innfo-core/src/index.ts',
       'iNNfo/packages/innfo-mcp/package.json',
       'skills/nn-sources/scripts/lib/innfo-core.generated.cjs',
+      'scripts/innfo-mcp.sh',
+      'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
+      'docs/innfo/documentation/innfo-mcp.md',
     ]) {
       assert.deepEqual(retiredPathHits([planted]), [planted], `${planted} must be flagged`)
     }
@@ -255,6 +289,21 @@ describe('the renamed package and generated paths stay retired', () => {
 
   it('no tracked path outside the frozen prefixes uses them', () => {
     assert.deepEqual(retiredPathHits(trackedFiles()), [])
+  })
+
+  it('the MCP-name guard flags procedures/visual-catalog and exempts the frozen workspace', () => {
+    const guard = GUARDS.find((g) => g.name === 'retired MCP name in blueprint procedures')
+    assert.ok(guard, 'the MCP-name guard row must exist')
+    assert.deepEqual(
+      scan(guard, 'iNNfo/specs/bluepriNNts/visual-catalog/procedures/x_NN.md', 'tool:: [[innfo-mcp]]'),
+      ['iNNfo/specs/bluepriNNts/visual-catalog/procedures/x_NN.md:1'],
+    )
+    assert.deepEqual(
+      scan(guard, 'iNNfo/specs/bluepriNNts/procedures/procedures/x_NN.md', '## NN Tools: innfo-mcp Server'),
+      ['iNNfo/specs/bluepriNNts/procedures/procedures/x_NN.md:1'],
+    )
+    assert.equal(guard.allow('iNNfo/specs/bluepriNNts/workspace/procedures/x_NN.md'), true)
+    assert.equal(guard.allow('iNNfo/specs/bluepriNNts/procedures/procedures/x_NN.md'), false)
   })
 })
 

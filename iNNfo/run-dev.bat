@@ -28,7 +28,7 @@ if not exist "%ROOT%node_modules" (
     echo.
 )
 
-REM ── Pre-build nn-core (required by innfo-mcp) ──
+REM ── Pre-build nn-core (required by nn-mcp) ──
 echo   Building @cognnitive/nn-core...
 cd /d "%ROOT%packages\nn-core" && call npx tsc
 if %ERRORLEVEL% NEQ 0 (

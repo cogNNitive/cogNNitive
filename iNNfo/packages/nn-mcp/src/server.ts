@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * innfo-mcp — MCP server wrapping @cognnitive/nn-core.
+ * nn-mcp — MCP server wrapping @cognnitive/nn-core.
  *
  * Exposes semantic iNNfo tools over stdio transport for consumption by
  * MCP clients such as OpenCode Desktop.
@@ -66,13 +66,13 @@ export const ROOT_DIR: string =
   process.env.INNFO_DOMAIN_DIR ?? findRepoRoot(process.cwd()) ?? process.cwd()
 
 // MCP server version: injected at build time by tsup via `define`, so the
-// standalone bundle (bin/innfo-mcp.bundle.js) stays self-contained when
+// standalone bundle (bin/nn-mcp.bundle.js) stays self-contained when
 // installed flat (e.g. ~/.agents/mcp/) — it never reads a sibling
 // package.json at boot.
 declare const __INNFO_MCP_VERSION__: string
 
 export const server = new Server(
-  { name: 'innfo-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.11.0' },
+  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.11.0' },
   { capabilities: { tools: {} } },
 )
 
@@ -1052,7 +1052,7 @@ const isDirectRun =
 
 if (isDirectRun) {
   main().catch((err) => {
-    console.error('Fatal error starting innfo-mcp:', err)
+    console.error('Fatal error starting nn-mcp:', err)
     process.exit(1)
   })
 }

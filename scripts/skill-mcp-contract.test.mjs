@@ -14,7 +14,7 @@ const serverTsPath = path.join(ROOT, 'iNNfo', 'packages', 'nn-mcp', 'src', 'serv
 const serverContent = fs.readFileSync(serverTsPath, 'utf8');
 
 const toolMatches = [...serverContent.matchAll(/name:\s*'([^']+)'/g)].map((m) => m[1]);
-const registeredTools = new Set(toolMatches.filter((name) => name !== 'innfo-mcp'));
+const registeredTools = new Set(toolMatches.filter((name) => name !== 'nn-mcp'));
 
 console.log(`  Found ${registeredTools.size} registered MCP tools in server.ts.`);
 assert.ok(
@@ -68,18 +68,18 @@ for (const file of filesToScan) {
 
   // A. Check for known fake/retired tool names
   for (const retired of retiredToolNames) {
-    // Match bare tool citations or innfo-mcp_<tool>
-    const regex = new RegExp(`\\b(?:innfo-mcp_)?${retired}\\b`, 'g');
+    // Match bare tool citations or nn-mcp_<tool>
+    const regex = new RegExp(`\\b(?:nn-mcp_)?${retired}\\b`, 'g');
     if (regex.test(content)) {
       invalidToolCitations.push({ file: relPath, tool: retired });
     }
   }
 
-  // B. Check for innfo-mcp_<tool> citations
-  const mcpCalls = [...content.matchAll(/innfo-mcp_([a-zA-Z0-9_]+)/g)].map((m) => m[1]);
+  // B. Check for nn-mcp_<tool> citations
+  const mcpCalls = [...content.matchAll(/nn-mcp_([a-zA-Z0-9_]+)/g)].map((m) => m[1]);
   for (const tool of mcpCalls) {
     if (!registeredTools.has(tool)) {
-      invalidToolCitations.push({ file: relPath, tool: `innfo-mcp_${tool}` });
+      invalidToolCitations.push({ file: relPath, tool: `nn-mcp_${tool}` });
     }
   }
 

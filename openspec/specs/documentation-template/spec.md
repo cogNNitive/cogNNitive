@@ -57,7 +57,7 @@ The template MUST declare Field Definitions (`# NN Field Definition` blocks) for
 
 `docs/innfo/documentation/documentation_NN.md` MUST be a Level 3 instance conforming to the `documentation` template, with one `DocSite` (`iNNfo Documentation`, `base_path:: docs/innfo/documentation/`) and a single top-level `Page` parented directly to the DocSite (`Home`: `README.md`). It MUST organize the remaining technical documentation pages into three ordered sections, and relationship and usage guidance MUST live under `Guides`, not under `Architecture`:
 
-- `Components` (`section_order:: 1`): `innfo-core.md`, `innfo-mcp.md`, `opencode-innfo-agent.md`
+- `Components` (`section_order:: 1`): `nn-core.md`, `nn-mcp.md`, `opencode-nn-agent.md`
 - `Architecture` (`section_order:: 2`): `ecosystem.md`, `specifications.md`, and `ecosystem.md#open-knowledge-format-compatibility` (OKF Compatibility)
 - `Guides` (`section_order:: 3`): `usage.md` (Usage), `relationships.md` (Relationships & Connections)
 

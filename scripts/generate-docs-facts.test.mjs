@@ -52,9 +52,9 @@ function fixtureTree(opts = {}) {
   const docsDir = path.join(root, 'docs', 'innfo', 'documentation');
   fs.mkdirSync(docsDir, { recursive: true });
   const body = withMarkers
-    ? ['# innfo-mcp', '', '## Tools', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
-    : ['# innfo-mcp', '', '## Tools', '', '| Tool | Description |', '|------|-------------|', ''].join('\n');
-  fs.writeFileSync(path.join(docsDir, 'innfo-mcp.md'), body, 'utf8');
+    ? ['# nn-mcp', '', '## Tools', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
+    : ['# nn-mcp', '', '## Tools', '', '| Tool | Description |', '|------|-------------|', ''].join('\n');
+  fs.writeFileSync(path.join(docsDir, 'nn-mcp.md'), body, 'utf8');
 
   // The mcp-tools job also renders into the nn-innfo skill's own mcp-tools region (design D4).
   const nnInnfoDir = path.join(root, 'skills', 'nn-innfo');
@@ -94,7 +94,7 @@ function runCli(cwd, args = []) {
 }
 
 function readTarget(root) {
-  return fs.readFileSync(path.join(root, 'docs', 'innfo', 'documentation', 'innfo-mcp.md'), 'utf8');
+  return fs.readFileSync(path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md'), 'utf8');
 }
 
 function readSkillTarget(root) {

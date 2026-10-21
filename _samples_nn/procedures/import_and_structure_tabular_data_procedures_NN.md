@@ -113,9 +113,9 @@ condition:: Domain model populated
 input:: [[Updated Domain Model]]
 output:: [[Verified Target Domain Model]]
 output_status:: verified
-tool:: [[innfo-mcp]]
+tool:: [[nn-mcp]]
 scope:: internal
-Validate the populated domain model using innfo-mcp to ensure reference integrity and schema compliance.
+Validate the populated domain model using nn-mcp to ensure reference integrity and schema compliance.
 
 # NN Tools
 
@@ -139,7 +139,7 @@ Scanner converting tabular sources into normalized Markdown with provenance.
 scope:: internal
 Tool for writing models and updating semantic definitions.
 
-## NN Tools: innfo-mcp
+## NN Tools: nn-mcp
 scope:: internal
 Deterministic validation engine for iNNfo models.
 
@@ -183,7 +183,7 @@ Domain model file populated with elements derived from tabular records.
 ## NN Artifact: Verified Target Domain Model
 type:: report
 format:: status
-Validation report from innfo-mcp confirming model integrity.
+Validation report from nn-mcp confirming model integrity.
 
 # NN Roles
 
@@ -210,7 +210,7 @@ Human maintainer confirming column mappings and approving model changes.
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Tabular Data Parser | nn-sources Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Tabular Data Parser | nn-sources Scanner | File Editor | nn-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Structure Tabular Data | Uses | - | - | - | - | - |
 | Discover Raw Tabular Files | - | Uses | - | - | - | - |

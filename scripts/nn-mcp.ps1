@@ -20,17 +20,9 @@ if ($latest) {
     if ($latest -ne $cached) {
         Write-Host "Downloading nn-mcp $latest..."
         $bundleUrl = "https://cognnitive.com/innfo/cdn/nn-mcp-v$latest.bundle.js"
-        try {
-            Invoke-WebRequest -Uri $bundleUrl -OutFile $BundleFile
-            Set-Content -Path $VersionFile -Value $latest
-            Write-Host "Done."
-        } catch {
-            # Fallback to innfo-mcp CDN url during transition
-            $fallbackUrl = "https://cognnitive.com/innfo/cdn/innfo-mcp-v$latest.bundle.js"
-            Invoke-WebRequest -Uri $fallbackUrl -OutFile $BundleFile
-            Set-Content -Path $VersionFile -Value $latest
-            Write-Host "Done (from fallback)."
-        }
+        Invoke-WebRequest -Uri $bundleUrl -OutFile $BundleFile
+        Set-Content -Path $VersionFile -Value $latest
+        Write-Host "Done."
     }
 } elseif (-not (Test-Path $BundleFile)) {
     Write-Error "No internet and no cached bundle. Run with internet first."
