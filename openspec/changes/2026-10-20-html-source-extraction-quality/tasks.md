@@ -63,9 +63,10 @@ One phase. No dependency, no blueprint bump, no contract change.
       **Correction:** `node scripts/check-specs.mjs` does not exist in this repo; the closest
       script is `scripts/check-spec-version.mjs`, and spec freshness is covered by the
       `Docs-Derived Facts Drift Guard` step inside `verify.js`.
-- [ ] 5.3 Land on `dev`; cut `skills-v*` via `nn-dev-release` (tag needs maintainer confirmation).
+- [x] 5.3 Land on `dev`; cut `skills-v*` via `nn-dev-release` (tag needs maintainer confirmation).
       The change touches `skills/nn-sources`, which the `skills` family owns, so a `skills-v*`
-      release **is** required to distribute it.
+      release **is** required to distribute it. Landed on `dev` in PR #272 and shipped in
+      `skills-v2.29.0` (the released tree carries `looksPartial` and the numeric-entity decode).
 
 ## 6. Out of scope — filed on #266, not fixed here
 
