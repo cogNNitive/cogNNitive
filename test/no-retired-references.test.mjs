@@ -205,6 +205,59 @@ describe('retired names appear nowhere outside their allowlists', () => {
   }
 })
 
+/**
+ * PR 1 of the nn-prefix-rename cutover moved the two package directories and renamed
+ * the generated core mirror. `git ls-files` is read directly, so the row goes red the
+ * moment one of those paths comes back.
+ *
+ * Deliberately narrow: the CDN bundle file name, the wrapper scripts and the three
+ * public doc files still carry an `innfo-*` name on purpose until PR 3 retires them,
+ * so this row matches the package directories and the generated mirror, not every
+ * `innfo-*` path.
+ */
+const RETIRED_PATH_STEMS = [
+  /(^|\/)iNNfo\/packages\/innfo-(core|mcp)(\/|$)/, // the package directories
+  /(^|\/)innfo-core\.generated\.cjs$/, // the generated core mirror
+]
+
+/** Paths whose old names are expected at this point of the cutover. */
+const FROZEN_PATH_PREFIXES = [
+  'openspec/changes/', // frozen change history
+  'iNNfo/specs/', // published blueprint specs and generated console artifacts
+  'test/fixtures/', // frozen fixtures
+  'simulation/', // sample domain, never distributed
+  'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro fixtures
+]
+
+/** @param {string[]} rels @returns {string[]} the paths that still use a retired stem. */
+export function retiredPathHits(rels) {
+  return rels.filter(
+    (rel) =>
+      !FROZEN_PATH_PREFIXES.some((prefix) => rel.startsWith(prefix)) &&
+      RETIRED_PATH_STEMS.some((re) => re.test(rel)),
+  )
+}
+
+describe('the renamed package and generated paths stay retired', () => {
+  it('the scanner can go red: it flags a planted path', () => {
+    for (const planted of [
+      'iNNfo/packages/innfo-core/src/index.ts',
+      'iNNfo/packages/innfo-mcp/package.json',
+      'skills/nn-sources/scripts/lib/innfo-core.generated.cjs',
+    ]) {
+      assert.deepEqual(retiredPathHits([planted]), [planted], `${planted} must be flagged`)
+    }
+  })
+
+  it('a frozen path is exempt', () => {
+    assert.deepEqual(retiredPathHits(['openspec/changes/archive/x/innfo-core.generated.cjs']), [])
+  })
+
+  it('no tracked path outside the frozen prefixes uses them', () => {
+    assert.deepEqual(retiredPathHits(trackedFiles()), [])
+  })
+})
+
 describe('the retired editor and hosted app', () => {
   it('the scanner flags every reference shape and ignores the S5 change name', () => {
     const editor = GUARDS[0]
