@@ -1520,7 +1520,7 @@ agent-bootstrap:
   }
 
   // Test 30: (g) All four published subsystems are reported (skills, templates,
-  // innfo-mcp, nn-console), not just the first two; a long filesTouched list
+  // innfo-mcp, innfo-console), not just the first two; a long filesTouched list
   // is truncated for readability instead of being joined in full.
   {
     const manyFiles = Array.from({ length: 23 }, (_, i) => `skills/nn-router/file-${i}.md`);
@@ -1561,8 +1561,8 @@ agent-bootstrap:
           commitsSincePin: 7,
           filesTouched: ['iNNfo/packages/nn-mcp/src/path-containment.ts'],
         },
-        'nn-console': {
-          subsystem: 'nn-console',
+        'innfo-console': {
+          subsystem: 'innfo-console',
           pinnedTag: 'nn-console-v0.2.0',
           pinnedTagDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           commitsSincePin: 1,
@@ -1609,7 +1609,7 @@ agent-bootstrap:
         `innfo-mcp drift must be reported, not silently dropped. Got:\n${res.stdout}`
       );
       assert.ok(
-        res.stdout.includes('Channel freshness: nn-console pinned to nn-console-v0.2.0'),
+        res.stdout.includes('Channel freshness: innfo-console pinned to nn-console-v0.2.0'),
         `nn-console drift must be reported, not silently dropped. Got:\n${res.stdout}`
       );
       assert.ok(
