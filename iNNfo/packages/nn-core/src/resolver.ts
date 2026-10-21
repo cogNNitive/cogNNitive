@@ -191,12 +191,12 @@ export async function resolveBlueprintPath(
   return null
 }
 
-/* ── Blueprint package resolution (relocated from innfo-mcp) ─────
+/* ── Blueprint package resolution (relocated from nn-mcp) ─────
  *
  * The package resolver and its pure/fs leaf helpers live here so BOTH the MCP
  * tooling and the console export CLI share exactly one tier chain — including
  * the unversioned workspace-package Tier 1 that canonical Level-2 packages use.
- * Network fetch/hydration stays in innfo-mcp; only resolution moved.
+ * Network fetch/hydration stays in nn-mcp; only resolution moved.
  */
 
 /**

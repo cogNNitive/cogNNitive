@@ -6,7 +6,7 @@ import type { BlueprintSchema } from './extract.js'
  *
  * Shared by `validator/workspaceSources.ts` (`isCitationField`) and
  * `recursiveParser/normalize.ts` (`attachSchemaTypedCitations`) /
- * `innfo-mcp`'s `resolve_sources` tool, so the declared-type resolution rule
+ * `nn-mcp`'s `resolve_sources` tool, so the declared-type resolution rule
  * lives in exactly one place instead of being duplicated or imported across
  * a private module boundary.
  */

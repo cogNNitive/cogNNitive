@@ -620,6 +620,35 @@ agent-bootstrap:
   }
 }
 
+// 19. A manifest entry carrying a pre-cutover distribution name is rejected
+{
+  const mod = freshValidatorModule();
+  const violations = mod.legacyEntryViolations({
+    skills: [{ name: 'nn-innfo', mcp: [{ name: 'innfo-mcp' }] }],
+  });
+  assert.strictEqual(violations.length, 1, 'a nested legacy MCP name must be rejected');
+  assert.match(violations[0], /innfo-mcp/);
+
+  const mcpViolations = mod.legacyEntryViolations({ mcp: [{ name: 'innfo-mcp' }] });
+  assert.strictEqual(mcpViolations.length, 1, 'a top-level legacy MCP name must be rejected');
+
+  const consoleViolations = mod.legacyEntryViolations({
+    consoleAssets: [{ file: 'iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js' }],
+  });
+  assert.strictEqual(consoleViolations.length, 1, 'a legacy console asset name must be rejected');
+
+  assert.deepStrictEqual(
+    mod.legacyEntryViolations({
+      skills: [{ name: 'nn-innfo', mcp: [{ name: 'nn-mcp' }] }],
+      mcp: [{ name: 'nn-mcp' }],
+      consoleAssets: [{ file: 'iNNfo/specs/bluepriNNts/console/nn-console.bundle.js' }],
+    }),
+    [],
+    'the nn- names pass',
+  );
+  console.log('✔ legacy manifest entry name rejection test passed');
+}
+
 console.log('All validate-manifest unit tests passed successfully!');
 }
 

@@ -88,7 +88,7 @@ function parseArgs(argv) {
 }
 
 /**
- * Reads the tool registry from the built innfo-mcp dist. Imported as an
+ * Reads the tool registry from the built nn-mcp dist. Imported as an
  * absolute file URL (Windows-safe) so the same code works from any cwd.
  * @param {string} distPath
  * @returns {Promise<Array<{ name: string, description: string }>>}
@@ -148,7 +148,7 @@ function writeOrCheck({ targetPath, currentContent, rendered, check, log, logErr
 }
 
 /**
- * Job: derive the `mcp-tools` region from the built innfo-mcp registry
+ * Job: derive the `mcp-tools` region from the built nn-mcp registry
  * (design D3/D4/D5).
  * @returns {Promise<number>} exit code for this job alone
  */

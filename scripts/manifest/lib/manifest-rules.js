@@ -544,11 +544,43 @@ function checkClosureViolations(manifestData, bundledBlueprintNames = []) {
  *   stats: { skillsCount: number, blueprintsCount: number, mcpCount: number, consoleCount: number },
  * }>}
  */
+/**
+ * A new manifest MUST NOT carry a pre-cutover distribution name (design D12). The
+ * MCP unit is `nn-mcp` and console assets use the `nn-` prefix; historical pins are
+ * quoted only by their `innfo-*-v*` tag, never by an entry name.
+ * @param {{ skills?: any[], mcp?: any[], consoleAssets?: any[] }} manifestData
+ * @returns {string[]}
+ */
+function legacyEntryViolations(manifestData) {
+  const { skills = [], mcp = [], consoleAssets = [] } = manifestData || {};
+  const legacyNames = new Set(['innfo-mcp', 'innfo-console']);
+  const violations = [];
+  for (const skill of skills) {
+    for (const entry of (skill.mcp || [])) {
+      if (legacyNames.has(entry && entry.name)) {
+        violations.push(`${entry.name}: legacy manifest entry name; the MCP unit is 'nn-mcp'`);
+      }
+    }
+  }
+  for (const entry of mcp) {
+    if (legacyNames.has(entry && entry.name)) {
+      violations.push(`${entry.name}: legacy manifest entry name; the MCP unit is 'nn-mcp'`);
+    }
+  }
+  for (const asset of consoleAssets) {
+    const file = String((asset && (asset.file || asset.url)) || '');
+    if (/(^|\/)innfo-/.test(file)) {
+      violations.push(`${file}: legacy console asset name; use the 'nn-' prefix`);
+    }
+  }
+  return violations;
+}
+
 async function validateManifest(manifestData, policy) {
   resetRemoteCaches();
   const { skills = [], blueprints = [], workflows = [], mcp = [], consoleAssets = [] } = manifestData;
   const mcpCount = mcp.length + skills.reduce((n, s) => n + ((s.mcp || []).length), 0);
-  const violations = [];
+  const violations = legacyEntryViolations(manifestData);
   const knownSkillBundledBlueprints = new Set();
 
   for (const skill of skills) {
@@ -608,5 +640,6 @@ module.exports = {
   validateSkill,
   validateBlueprint,
   checkClosureViolations,
+  legacyEntryViolations,
   validateManifest,
 };

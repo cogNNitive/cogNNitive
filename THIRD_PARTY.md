@@ -23,7 +23,7 @@ each exported console) concatenates the vendored assets above with first-party c
 
 ## npm production dependencies
 
-Production dependency trees of `nn-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development
+Production dependency trees of `nn-core`, `nn-mcp`, `nn-sources` and `nn-upgrade`. Development
 tooling is not distributed and is not listed.
 
 | Package | Version | License | Policy | Used by | Copyright |
