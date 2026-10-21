@@ -310,9 +310,10 @@ function assembleManifest(params) {
     const mcp = [];
     for (const m of skill.mcp || []) {
       const prevMcp = findPrevMcp(prevSkill, m.name) || {};
-      let mRef, mCommit, mVersion, mUrl;
+      let mRef, mCommit, mVersion, mUrl, mPath;
 
       if (key === 'nn-mcp') {
+        mPath = m.path;
         mRef = releaseTag;
         mCommit = contentSha;
         mVersion = readVersion ? readVersion({ ...m, section: 'mcp' }) : m.version || newVersion;
@@ -321,7 +322,13 @@ function assembleManifest(params) {
         mRef = prevMcp.ref;
         mCommit = prevMcp.commit;
         mVersion = prevMcp.version;
-        mUrl = prevMcp.url || (mRef && mCommit ? `https://raw.githubusercontent.com/${m.repo}/${mCommit}/${m.path}` : undefined);
+        // A retained pin keeps the path it was PUBLISHED with. The raw URL is
+        // `commit + path`, and the manifest pins the content commit of that release:
+        // substituting the path source.yaml declares today would request a file that
+        // did not exist at that commit (404). The path moves when the key itself is
+        // released, together with its name.
+        mPath = prevMcp.path || m.path;
+        mUrl = prevMcp.url || (mRef && mCommit ? `https://raw.githubusercontent.com/${m.repo}/${mCommit}/${mPath}` : undefined);
         requirePin('MCP', m.name, mRef, mCommit);
         verifyRetainedPin(m.name, mRef, mCommit);
       }
@@ -329,7 +336,7 @@ function assembleManifest(params) {
       mcp.push({
         name: m.name,
         repo: m.repo,
-        path: m.path,
+        path: mPath,
         version: mVersion,
         ref: mRef,
         commit: mCommit,

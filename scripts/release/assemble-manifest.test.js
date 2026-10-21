@@ -235,3 +235,72 @@ test('assembleManifest fails with a clear message when a new blueprint has no pr
     (err) => err instanceof AssembleManifestError && /brand_new_NN/.test(err.message) && /blueprints-v\*/.test(err.message)
   );
 });
+
+test('a retained MCP pin keeps the path it was published with', () => {
+  // The package graph moved the bundle before the MCP entry was released under its new
+  // name. A retained pin's raw URL is `commit + path`, and the commit is the content
+  // commit of the release that pinned it: substituting the path source.yaml declares
+  // today requests a file that did not exist at that commit. The 0.25.0 console release
+  // failed the staged-manifest validation on exactly this (HTTP 404).
+  const prevWithLegacyPath = `---
+title: "cogNNitive — Bootstrap manifest"
+channel: "stable"
+agent-bootstrap:
+  version: "1.0.0"
+  entrypoint: "nn-router"
+  skills:
+    - name: nn-innfo
+      repo: cogNNitive/cogNNitive-web
+      path: skills/nn-innfo
+      version: "1.0.0"
+      ref: "skills-v1.0.0"
+      commit: "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
+      description: iNNfo
+      mcp:
+        - name: innfo-mcp
+          repo: cogNNitive/cogNNitive-web
+          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          version: "0.11.0"
+          ref: "innfo-mcp-v0.11.0"
+          commit: "bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+  blueprints:
+    - name: workspace_spec_NN
+      repo: cogNNitive/cogNNitive-web
+      path: iNNfo/specs/workspace_spec_NN.md
+      version: "0.19.2"
+      ref: "blueprints-v0.19.2"
+      commit: "cccc3333cccc3333cccc3333cccc3333cccc3333"
+  console-assets:
+    - file: docs/console/index.html
+      version: "0.2.0"
+      ref: "nn-console-v0.2.0"
+      commit: "dddd4444dddd4444dddd4444dddd4444dddd4444"
+      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/dddd4444dddd4444dddd4444dddd4444dddd4444/docs/console/index.html
+  workflows:
+    - id: wf1
+      label: Test Workflow
+      description: Test
+---
+`;
+
+  const result = assembleManifest({
+    releaseTag: 'skills-v2.11.0',
+    contentSha: 'eeee5555eeee5555eeee5555eeee5555eeee5555',
+    source: SOURCE_YAML,
+    prevManifestText: prevWithLegacyPath,
+    readVersion: () => '2.11.0',
+    resolveGitRef: () => true,
+  });
+
+  assert.ok(
+    result.manifestText.includes('path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js'),
+    'the retained pin keeps the published path',
+  );
+  assert.ok(
+    !result.manifestText.includes('path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js'),
+    'the retained pin must not adopt the path source.yaml declares today',
+  );
+  assert.ok(result.manifestText.includes('ref: "innfo-mcp-v0.11.0"'), 'the MCP pin itself is unchanged');
+  assert.ok(result.manifestText.includes('ref: "skills-v2.11.0"'), 'the released key still moves');
+});
