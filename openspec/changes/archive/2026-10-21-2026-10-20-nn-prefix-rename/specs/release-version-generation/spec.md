@@ -114,6 +114,11 @@ Scripts and guards whose only purpose was to keep hand-typed version copies in s
 - WHEN `verify.js` runs
 - THEN the inventory guard fails
 
+## RENAMED Requirements
+
+- FROM: `### Requirement: The innfo-mcp version has one authored source`
+- TO: `### Requirement: The nn-mcp version has one authored source`
+
 ## ADDED Requirements
 
 ### Requirement: Generated and wrapper file names use the nn prefix
