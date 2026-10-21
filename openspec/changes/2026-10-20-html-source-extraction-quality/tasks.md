@@ -9,61 +9,63 @@ One phase. No dependency, no blueprint bump, no contract change.
 
 ## 1. Conversion fidelity
 
-- [ ] 1.1 RED — `test/unit/test-web-import.js`: add the CRLF fixture (`FT_55866`) and assert the
-      normalized body is < 10% blank lines with no run of more than one blank line; assert
-      `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode and a literal `&amp;#243;` is **not**
-      double-decoded; assert `nav`/`header`/`footer` text is absent while `<main>` prose is
-      retained. Tests fail against the current `htmlToPlainText`.
-- [ ] 1.2 GREEN — `scanner-converters.js`: normalize line endings first (`/\r\n?/g -> \n`) before
-      any whitespace collapse.
-- [ ] 1.3 GREEN — `scanner-converters.js`: decode numeric (`&#NNN;`, `&#xHH;`) and the full named
-      entity set, with `&amp;` decoded last.
-- [ ] 1.4 GREEN — `scanner-converters.js`: strip
-      `nav/header/footer/aside/form/noscript/svg/iframe/button`; when a `<main>`/`<article>`
-      region exists, derive the body from it instead of the whole page.
-- [ ] 1.5 Verify — `node --test skills/nn-sources/test/unit/test-web-import.js` and
-      `npm --prefix skills/nn-sources run test:unit` green.
-- [ ] 1.6 Commit `fix(nn-sources): html conversion — line endings, entities, boilerplate`.
+- [x] 1.1 RED — `test/unit/test-web-import.js`: added the CRLF fixture (`FT_55866`) and asserted
+      no run of more than one blank line, `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode, a literal
+      `&amp;#243;` is **not** double-decoded, and nav/header/footer/aside text is absent while
+      `<main>` prose is retained. Confirmed failing against the previous `htmlToPlainText`.
+      **Deviation on 2.1's wall grouping:** `920` extracts to an **empty** body (its markup carries
+      no extractable text), so it is reported as `empty`, not `anti-bot-wall`. `design.md`'
+      contract is `null | 'anti-bot-wall' | 'empty' | 'trivial'` and the spec scenario is
+      "an empty or trivial body is reported", so `empty` is the correct reason for it.
+- [x] 1.2 GREEN — `scanner-converters.js`: line endings normalized first (`/\r\n?/g -> \n`).
+- [x] 1.3 GREEN — `scanner-converters.js`: numeric (`&#NNN;`, `&#xHH;`) and named entity decoding,
+      with `&amp;` last.
+- [x] 1.4 GREEN — `scanner-converters.js`: `nav/header/footer/aside/form/noscript/svg/iframe/button`
+      stripped; `<main>`/`<article>` region preferred when present.
+- [x] 1.5 Verify — `node --test`-style suite green: `test/unit/test-web-import.js` 61/61 and
+      `npm --prefix skills/nn-sources test` 654 passed, 0 failed.
+- [x] 1.6 Commit — folded into the nn-sources fix commit of this change's PR.
 
 ## 2. Flag an incomplete extraction (reuse the existing channel)
 
-- [ ] 2.1 RED — assert `looksPartial(body)` returns `'anti-bot-wall'` for the wall fixtures
-      (`NBK1478`, `s10072`, `920`) and `null` for a healthy article body; assert the scanner
-      reports a wall fixture as partial with a reason.
-- [ ] 2.2 GREEN — `scanner-converters.js`: export the pure `looksPartial(body)` predicate
-      (signature of `htmlToPlainText` unchanged).
-- [ ] 2.3 GREEN — `normalizer.js`: one line at the `convertOkFormat` call site —
-      `if (reason) notes.set(rel, { partial: true, note: reason })`, mirroring what the PDF branch
-      already does at line 80.
-- [ ] 2.4 Verify — the partial path is exercised end to end; `scanner.js` prints
-      `✅ Processed (Partial)` with the reason (no scanner change required).
-- [ ] 2.5 Commit `fix(nn-sources): flag html wall/empty extractions as partial`.
+- [x] 2.1 RED — `looksPartial(body)` asserted `'anti-bot-wall'` for `NBK1478` and `s10072`,
+      `'empty'` for `920` and for an empty/whitespace body, `'trivial'` for a short body, and
+      `null` for the healthy `PMC9547138` article; the scanner is asserted to report the wall
+      fixture as partial with a reason.
+- [x] 2.2 GREEN — `scanner-converters.js`: exports the pure `looksPartial(body)` predicate
+      (`htmlToPlainText` keeps its signature).
+- [x] 2.3 GREEN — `normalizer.js`: the HTML branch flags through the existing `notes` map, the
+      same channel the PDF branch already uses.
+- [x] 2.4 Verify — exercised end to end: the scanner reports `✅ Processed (Partial)` with the
+      reason and still writes the sidecar (the signal is advisory). No scanner change required.
+- [x] 2.5 Commit — folded into the nn-sources fix commit of this change's PR.
 
 ## 3. Refuse a zero-byte subject (reuse the existing rejected path)
 
-- [ ] 3.1 RED — assert a 0-byte `.html` subject is refused and produces no sidecar body and no
-      usable source entry.
-- [ ] 3.2 GREEN — `scanner.js`: guard before cognitivizing (`size_bytes === 0`) and return the
-      existing skipped shape with a `zero-byte subject` reason.
-- [ ] 3.3 Verify — the refusal is reported as `⚠️ Skipped (<reason>)`; a non-empty subject is
-      unaffected.
-- [ ] 3.4 Commit `fix(nn-sources): refuse zero-byte subjects`.
+- [x] 3.1 RED — asserted a 0-byte `.html` subject is refused with a `zero-byte subject` reason
+      and writes no sidecar.
+- [x] 3.2 GREEN — `scanner.js`: guard before cognitivizing (`size === 0`), returning the existing
+      skipped shape.
+- [x] 3.3 Verify — reported as `⚠️ Skipped`; a non-empty subject is unaffected.
+- [x] 3.4 Commit — folded into the nn-sources fix commit of this change's PR.
 
 ## 4. Regression fixtures
 
-- [ ] 4.1 Commit the 6 `PD_NN` fixtures under `skills/nn-sources/test/fixtures/html/`, each with a
-      one-line provenance note: `NBK1478` (captcha), `s10072-023-06789-7` (Client Challenge),
-      `920` (21-char body), `37032388-15-year-…` (0 bytes), `PMC9547138` (nav chrome),
-      `FT_55866` (CRLF blanks + entities).
-- [ ] 4.2 Each fixture has at least one assertion from §1–§3; run the suite.
+- [x] 4.1 Committed the 6 `PD_NN` fixtures under `skills/nn-sources/test/fixtures/html/`, with a
+      one-line provenance note each in that directory's `README.md`.
+- [x] 4.2 Each fixture has at least one assertion from §1–§3; the suite runs them.
 
 ## 5. Docs, version, release
 
-- [ ] 5.1 `skills/nn-sources/SKILL.md`: document the partial flag and the convention that a source
-      flagged partial is registered with the existing `status:: error` value (no new enum value).
-- [ ] 5.2 `node scripts/verify.js --fast` green; `npm run typecheck:scripts` clean;
-      `node scripts/check-specs.mjs` green.
+- [x] 5.1 `skills/nn-sources/SKILL.md`: documents the partial flag and the `status:: error`
+      convention (no new enum value), plus the separate zero-byte refusal.
+- [x] 5.2 `node scripts/verify.js --fast` green (150/150) and `npm run typecheck:scripts` clean.
+      **Correction:** `node scripts/check-specs.mjs` does not exist in this repo; the closest
+      script is `scripts/check-spec-version.mjs`, and spec freshness is covered by the
+      `Docs-Derived Facts Drift Guard` step inside `verify.js`.
 - [ ] 5.3 Land on `dev`; cut `skills-v*` via `nn-dev-release` (tag needs maintainer confirmation).
+      The change touches `skills/nn-sources`, which the `skills` family owns, so a `skills-v*`
+      release **is** required to distribute it.
 
 ## 6. Out of scope — filed on #266, not fixed here
 
@@ -76,5 +78,16 @@ One phase. No dependency, no blueprint bump, no contract change.
 ## Acceptance
 
 - [ ] Every Success Criterion in `proposal.md` holds.
-- [ ] No new dependency; the `Source.status` value set is unchanged; no blueprint bump.
-- [ ] No user domaiNN requires an in-place migration (sidecars refresh on the next `--scan`).
+      **Not met, reported for the maintainer:** the CRLF criterion
+      *"`FT_55866` re-cognitivized → blank lines < 10% (was 82.5%)"* is **not reachable** by this
+      change's mechanism. Line-ending normalization takes the body from 82.5% to **49.8%** blank
+      lines and removes every run of more than one blank line, but the document's markup carries
+      **243 separate `<p>` blocks for ~200 content lines**, so one blank line per paragraph is
+      ~50% by line count in correct Markdown. Reaching <10% would require merging those
+      paragraphs, which discards the source's own line structure; the alternative that was
+      measured (routing the body through `reflowExtractedText`) makes it **worse** for a healthy
+      article (PMC9547138: 22% → 49.8%) and drops 459 characters of content, so it was rejected.
+      The other five criteria hold. A maintainer decision is needed: relax the criterion to
+      "no run of more than one blank line, materially reduced", or accept paragraph merging.
+- [x] No new dependency; the `Source.status` value set is unchanged; no blueprint bump.
+- [x] No user domaiNN requires an in-place migration (sidecars refresh on the next `--scan`).

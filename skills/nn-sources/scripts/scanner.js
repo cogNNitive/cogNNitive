@@ -27,6 +27,12 @@ async function processFile(projectDir, item, normalizer, notes, options) {
     return { format, status: '⚠️ Skipped', action: `Format ${core.EXT_LABELS[ext]} excluded by user selection.`, outcome: 'skipped' };
   }
 
+  // A zero-byte subject is an input error, not content: refuse it through the existing
+  // skipped outcome rather than registering a source whose sha256 hashes the empty string.
+  if (fs.statSync(absPath).size === 0) {
+    return { format, status: '⚠️ Skipped', action: 'Not cognitivized (zero-byte subject).', outcome: 'skipped' };
+  }
+
   if (isPrompt) {
     if (ext === '.doc') {
       return { format, status: '⚠️ Skipped', action: 'Legacy .doc is not supported — convert it to .docx, or provide the .txt', outcome: 'skipped' };

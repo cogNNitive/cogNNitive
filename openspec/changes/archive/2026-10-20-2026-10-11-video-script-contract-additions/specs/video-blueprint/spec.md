@@ -1,4 +1,4 @@
-# Delta for video-script
+# Delta for video-blueprint
 
 ## ADDED Requirements
 
