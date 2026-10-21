@@ -83,11 +83,12 @@ body MUST NOT be dominated by blank lines.
 
 ### Requirement: An incomplete HTML extraction is reported, never presented as complete
 
-When a binary conversion produces a body that is an anti-bot / JavaScript-wall interstitial,
-empty, or too short to be the document's content, the pipeline MUST report the extraction as
-incomplete together with a reason, through the existing per-file partial-outcome channel. It
-MUST NOT be presented as an ordinary complete extraction. The signal MUST be advisory: it
-MUST NOT prevent the source from being cognitivized or its citations from resolving.
+The pipeline MUST report an incomplete HTML extraction together with a reason whenever a
+binary conversion produces a body that is an anti-bot / JavaScript-wall interstitial, empty,
+or too short to be the document's content. The report MUST use the existing per-file
+partial-outcome channel, and the pipeline MUST NOT present such an extraction as an ordinary
+complete one. The signal MUST be advisory: it MUST NOT prevent the source from being
+cognitivized or its citations from resolving.
 
 #### Scenario: An anti-bot interstitial is reported
 
