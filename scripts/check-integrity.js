@@ -9,7 +9,7 @@
  * - Group 2: Checks verify.js does not run (tag/pin freshness, node engines, console bundle, external-skill policy)
  * - Group 3, 4, 7+: Full workspace verification suite (scripts/verify.js)
  * - Group 5 (optional): Complete CI mirror (lint, typecheck, core/app tests,
- *   innfo-mcp tests + coverage ratchet, spec-url resolution)
+ *   nn-mcp tests + coverage ratchet, spec-url resolution)
  *
  * Usage:
  *   node scripts/check-integrity.js            # Standard inner-loop gate (verify.js --fast)
@@ -147,7 +147,7 @@ if (isPrePush) {
     runCmd('npm run lint', 'Lint');
     runCmd('npm run typecheck', 'Typecheck');
     runCmd('npm --workspace=@cognnitive/nn-core run test:coverage', 'Unit tests + coverage (core)');
-    runCmd('npm --workspace=@cognnitive/nn-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
+    runCmd('npm --workspace=@cognnitive/nn-mcp run test:coverage', 'Unit tests + coverage (nn-mcp)');
     runCmd('node scripts/check-spec-version.mjs --check-urls', 'Check spec URLs resolve');
     console.log('\n✅ [Group 5] CI mirror passed.');
   } catch (err) {

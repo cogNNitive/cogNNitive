@@ -22,7 +22,7 @@ const {
   checkReleaseProvenance, checkRefResolvesInDeclaredRepo, checkReleaseAndRefPolicy,
   structuralViolations, checkCommitExists, checkPathAtCommit, checkVersionParity,
   checkMcpUrlPinned, validateMcp, validateConsoleAsset, validateSkill,
-  validateBlueprint, checkClosureViolations, validateManifest,
+  validateBlueprint, checkClosureViolations, legacyEntryViolations, validateManifest,
 } = require('./lib/manifest-rules.js');
 
 /**
@@ -167,7 +167,7 @@ module.exports = {
   checkReleaseProvenance, checkRefResolvesInDeclaredRepo, checkReleaseAndRefPolicy,
   structuralViolations, checkCommitExists, checkPathAtCommit, checkVersionParity,
   checkMcpUrlPinned, validateMcp, validateConsoleAsset, validateSkill,
-  validateBlueprint, checkClosureViolations, validateManifest,
+  validateBlueprint, checkClosureViolations, legacyEntryViolations, validateManifest,
   validateChannel, validateManifestText, validateManifestSource, parseArgs, main,
 };
 

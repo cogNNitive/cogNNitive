@@ -3,7 +3,7 @@
  *
  * Ported verbatim (behaviour-for-behaviour) from
  * `skills/nn-preflight/scripts/upgrade-check.js:37-215` so the whole
- * cogNNitive ecosystem — the preflight CLI and `innfo-mcp` —
+ * cogNNitive ecosystem - the preflight CLI and `nn-mcp` -
  * classifies template versions through ONE implementation with no private copy.
  *
  * Pure: no `node:fs`, no `require`, no network of their own. Remote data (the

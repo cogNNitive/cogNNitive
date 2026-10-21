@@ -1,7 +1,7 @@
 /**
  * Source-reference parsing and GitHub-compatible heading slugs.
  *
- * THE single implementation shared by `nn-core` and `innfo-mcp`.
+ * THE single implementation shared by `nn-core` and `nn-mcp`.
  *
  * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
  * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).

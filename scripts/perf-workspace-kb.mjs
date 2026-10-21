@@ -126,7 +126,7 @@ function generateWorkspace({ models, rows, units, sources }) {
   return perfRoot
 }
 
-/** One stdio JSON-RPC round trip against the innfo-mcp server. */
+/** One stdio JSON-RPC round trip against the nn-mcp server. */
 function mcpCall(rootDir, toolName, args) {
   return new Promise((resolvePromise, rejectPromise) => {
     const child = spawn(process.execPath, [mcpEntry], {

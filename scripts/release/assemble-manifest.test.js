@@ -237,11 +237,11 @@ test('assembleManifest fails with a clear message when a new blueprint has no pr
 });
 
 test('a retained MCP pin keeps the path it was published with', () => {
-  // The package graph moved the bundle before the MCP entry was released under its new
-  // name. A retained pin's raw URL is `commit + path`, and the commit is the content
+  // A retained pin's raw URL is `commit + path`, and the commit is the content
   // commit of the release that pinned it: substituting the path source.yaml declares
   // today requests a file that did not exist at that commit. The 0.25.0 console release
-  // failed the staged-manifest validation on exactly this (HTTP 404).
+  // failed the staged-manifest validation on exactly this (HTTP 404). The path and ref
+  // below are deliberately the previous release's, not source.yaml's current values.
   const prevWithLegacyPath = `---
 title: "cogNNitive — Bootstrap manifest"
 channel: "stable"
@@ -257,13 +257,13 @@ agent-bootstrap:
       commit: "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
       description: iNNfo
       mcp:
-        - name: innfo-mcp
+        - name: nn-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/published.bundle.js
           version: "0.11.0"
-          ref: "innfo-mcp-v0.11.0"
+          ref: "nn-mcp-v0.11.0"
           commit: "bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/nn-mcp/bin/published.bundle.js
   blueprints:
     - name: workspace_spec_NN
       repo: cogNNitive/cogNNitive-web
@@ -294,13 +294,13 @@ agent-bootstrap:
   });
 
   assert.ok(
-    result.manifestText.includes('path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js'),
+    result.manifestText.includes('path: iNNfo/packages/nn-mcp/bin/published.bundle.js'),
     'the retained pin keeps the published path',
   );
   assert.ok(
     !result.manifestText.includes('path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js'),
     'the retained pin must not adopt the path source.yaml declares today',
   );
-  assert.ok(result.manifestText.includes('ref: "innfo-mcp-v0.11.0"'), 'the MCP pin itself is unchanged');
+  assert.ok(result.manifestText.includes('ref: "nn-mcp-v0.11.0"'), 'the MCP pin itself is unchanged');
   assert.ok(result.manifestText.includes('ref: "skills-v2.11.0"'), 'the released key still moves');
 });

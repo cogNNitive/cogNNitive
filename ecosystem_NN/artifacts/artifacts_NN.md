@@ -23,9 +23,9 @@ status:: verified
 file_path:: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
 tags:: [mcp, bundle, agent-tooling]
 
-## NN Artifact: innfo-console UMD Runtime Bundle
+## NN Artifact: nn-console UMD Runtime Bundle
 format:: javascript
 summary:: Single-file client-side bundle containing InnfoConsole, model viewer, and procedure stepper for offline HTML artifacts. Derived from the Workspace Metamodel Specification (not a citable file pointer).
 status:: verified
-file_path:: iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js
+file_path:: iNNfo/specs/bluepriNNts/console/nn-console.bundle.js
 tags:: [console, runtime, browser-umd]
