@@ -17,7 +17,7 @@ Files copied into the repository (not installed from npm). The list is hand-main
 | Preact | 10.24.3 | MIT | `iNNfo/specs/bluepriNNts/console/vendor/preact.umd.js` | https://github.com/preactjs/preact |
 | htm | 3.0.1 - 3.1.1 | Apache-2.0 | `iNNfo/specs/bluepriNNts/console/vendor/htm.umd.js` | https://github.com/developit/htm |
 
-The console bundle (`innfo-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to
+The console bundle (`nn-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to
 each exported console) concatenates the vendored assets above with first-party code. The generated
 `*.generated.cjs` skill mirrors are esbuild bundles that inline `yaml`, listed in the npm table below.
 

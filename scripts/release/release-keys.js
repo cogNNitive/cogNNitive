@@ -5,7 +5,7 @@
  * site additions, and release-owned paths in cogNNitive-web.
  */
 
-const RELEASE_KEYS = Object.freeze(['skills', 'blueprints', 'innfo-mcp', 'innfo-console']);
+const RELEASE_KEYS = Object.freeze(['skills', 'blueprints', 'nn-mcp', 'nn-console']);
 
 const RELEASE_TABLE = Object.freeze({
   skills: Object.freeze({
@@ -16,11 +16,11 @@ const RELEASE_TABLE = Object.freeze({
     repoPaths: Object.freeze(['iNNfo/specs']),
     sitePaths: Object.freeze([]),
   }),
-  'innfo-mcp': Object.freeze({
-    repoPaths: Object.freeze(['iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js']),
+  'nn-mcp': Object.freeze({
+    repoPaths: Object.freeze(['iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js']),
     sitePaths: Object.freeze(['docs/innfo/cdn/manifest.json']),
   }),
-  'innfo-console': Object.freeze({
+  'nn-console': Object.freeze({
     repoPaths: Object.freeze([
       'iNNfo/specs/bluepriNNts/console',
       'scripts/export-console.mjs',
@@ -38,7 +38,7 @@ const RELEASE_TABLE = Object.freeze({
 const DISTRIBUTION_PATHS = Object.freeze([
   'skills',
   'iNNfo/specs',
-  'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
+  'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js',
   'scripts/export-console.mjs',
   'scripts/console-views.mjs',
 ]);
@@ -46,8 +46,13 @@ const DISTRIBUTION_PATHS = Object.freeze([
 /**
  * Globs and paths in cogNNitive-web docs/ owned strictly by the release workflow.
  * Push-to-main publishing MUST preserve these and MUST NOT overwrite or delete them.
+ *
+ * `innfo/cdn/innfo-mcp-v*.bundle.js` is retained on purpose: the cutover retires the
+ * name but the already-published CDN files stay immutable and must survive a Pages
+ * push (design D5). Nothing emits it any more.
  */
 const RELEASE_OWNED_GLOBS = Object.freeze([
+  'innfo/cdn/nn-mcp-v*.bundle.js',
   'innfo/cdn/innfo-mcp-v*.bundle.js',
   'innfo/cdn/manifest.json',
   'use/manifest.md',

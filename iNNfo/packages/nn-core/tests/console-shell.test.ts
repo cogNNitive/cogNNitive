@@ -7,7 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const shellPath = join(consoleDir, 'artifact_shell.html')
 const registryPath = join(consoleDir, 'needs-registry.json')
-const runtimePath = join(consoleDir, 'innfo-runtime.js')
+const runtimePath = join(consoleDir, 'nn-runtime.js')
 
 function readShell(): string {
   return readFileSync(shellPath, 'utf8')
@@ -37,7 +37,7 @@ describe('artifact_shell.html (console shell)', () => {
 
   it('loads the shared runtime via static script tags (no fetch, no modules)', () => {
     const html = readShell()
-    expect(html).toContain('innfo-runtime.js')
+    expect(html).toContain('nn-runtime.js')
     expect(html).not.toContain('type="module"')
     expect(html).not.toContain('fetch(')
   })
@@ -75,7 +75,7 @@ describe('needs-registry.json (capability pins)', () => {
   })
 })
 
-describe('innfo-runtime.js (module hygiene)', () => {
+describe('nn-runtime.js (module hygiene)', () => {
   it('ships as UMD with no fetch() and no type=module', () => {
     const source = readFileSync(runtimePath, 'utf8')
     expect(source).toContain('InnfoConsole')
@@ -84,8 +84,8 @@ describe('innfo-runtime.js (module hygiene)', () => {
   })
 })
 
-describe('innfo-console.bundle.js (single-file distribution)', () => {
-  const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
+describe('nn-console.bundle.js (single-file distribution)', () => {
+  const bundlePath = join(consoleDir, 'nn-console.bundle.js')
 
   it('exists and embeds console globals in order', () => {
     expect(existsSync(bundlePath)).toBe(true)

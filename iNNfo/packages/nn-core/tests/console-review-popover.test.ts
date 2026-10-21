@@ -200,7 +200,7 @@ describe('console-review-popover (annotation)', () => {
   })
 
   it('source scan finds no prompt( and no review status select across console sources', () => {
-    const files = readdirSync(consoleDir).filter((f) => f.endsWith('.js') && f !== 'innfo-console.bundle.js')
+    const files = readdirSync(consoleDir).filter((f) => f.endsWith('.js') && f !== 'nn-console.bundle.js')
     files.forEach((f) => {
       const src = readFileSync(join(consoleDir, f), 'utf8')
       expect(src.includes('prompt('), `${f} must not call prompt(`).toBe(false)

@@ -23,7 +23,7 @@ function makeRepo(version) {
   fs.mkdirSync(pkgDir, { recursive: true });
   fs.writeFileSync(
     path.join(pkgDir, 'package.json'),
-    JSON.stringify({ name: '@cognnitive/innfo-console', version }, null, 2),
+    JSON.stringify({ name: '@cognnitive/nn-console', version }, null, 2),
   );
   return root;
 }
@@ -32,7 +32,7 @@ function markedShell(pin, { repo = 'cogNNitive/cogNNitive', subpath = 'templates
   return [
     '<html><body>',
     MARKER_START,
-    `<script src="https://cdn.jsdelivr.net/gh/${repo}@innfo-console-v${pin}/iNNfo/specs/${subpath}/console/innfo-console.bundle.js"></script>`,
+    `<script src="https://cdn.jsdelivr.net/gh/${repo}@nn-console-v${pin}/iNNfo/specs/${subpath}/console/nn-console.bundle.js"></script>`,
     MARKER_END,
     '</body></html>',
   ].join('\n');
@@ -50,9 +50,9 @@ function runTests() {
 
   // 2. getGeneratedPin reads the marked block only
   {
-    assert.strictEqual(getGeneratedPin(markedShell('0.7.2')), 'innfo-console-v0.7.2');
+    assert.strictEqual(getGeneratedPin(markedShell('0.7.2')), 'nn-console-v0.7.2');
     assert.strictEqual(
-      getGeneratedPin('<script src="https://cdn/cogNNitive@innfo-console-v0.9.9/x.js"></script>'),
+      getGeneratedPin('<script src="https://cdn/cogNNitive@nn-console-v0.9.9/x.js"></script>'),
       null,
       'an unmarked shell has no generated pin',
     );
@@ -64,9 +64,9 @@ function runTests() {
     const root = makeRepo('0.7.3');
     const src = markedShell('0.7.2', { repo: 'cogNNitive/cogNNitive', subpath: 'templates' });
     const synced = syncShellContent(src, expectedVersion(root));
-    assert.strictEqual(getGeneratedPin(synced), 'innfo-console-v0.7.3');
+    assert.strictEqual(getGeneratedPin(synced), 'nn-console-v0.7.3');
     // the repo/path survive untouched
-    assert.ok(synced.includes('cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.7.3/iNNfo/specs/templates/'));
+    assert.ok(synced.includes('cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v0.7.3/iNNfo/specs/templates/'));
     // idempotent
     assert.strictEqual(syncShellContent(synced, '0.7.3'), synced);
     // unmarked content is left alone

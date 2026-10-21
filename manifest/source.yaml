@@ -102,30 +102,30 @@ seam_dirs:
     description: Shared console seam — artifact shell, InnfoConsole UMD runtime, and feedback JSON schema for the reviewer feedback loop.
 
 console_assets:
-  - name: innfo-console
+  - name: nn-console
     repo: cogNNitive/cogNNitive-web
-    file: iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js
-    ref_key: innfo-console
-  - name: innfo-console-shell
+    file: iNNfo/specs/bluepriNNts/console/nn-console.bundle.js
+    ref_key: nn-console
+  - name: nn-console-shell
     repo: cogNNitive/cogNNitive-web
     file: iNNfo/specs/bluepriNNts/console/artifact_shell.html
-    ref_key: innfo-console
-  - name: innfo-console-export-cli
+    ref_key: nn-console
+  - name: nn-console-export-cli
     repo: cogNNitive/cogNNitive-web
     file: scripts/export-console.mjs
-    ref_key: innfo-console
-  - name: innfo-console-export-views
+    ref_key: nn-console
+  - name: nn-console-export-views
     repo: cogNNitive/cogNNitive-web
     file: scripts/console-views.mjs
-    ref_key: innfo-console
-  - name: innfo-console-ui-css
+    ref_key: nn-console
+  - name: nn-console-ui-css
     repo: cogNNitive/cogNNitive-web
-    file: iNNfo/specs/bluepriNNts/console/innfo-ui.css
-    ref_key: innfo-console
-  - name: innfo-console-payload-mirror
+    file: iNNfo/specs/bluepriNNts/console/nn-ui.css
+    ref_key: nn-console
+  - name: nn-console-payload-mirror
     repo: cogNNitive/cogNNitive-web
     file: iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs
-    ref_key: innfo-console
+    ref_key: nn-console
 
 workflows:
   - id: model

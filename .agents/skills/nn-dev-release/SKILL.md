@@ -51,7 +51,7 @@ npm --workspace=@cognnitive/innfo-mcp run build:bundle
 
 # innfo-console bump: the bundle banner + the CDN pin in generated console shells
 node scripts/build-console-bundle.mjs        # banner derived from console/package.json
-node scripts/build-console-shells.mjs        # rewrites the @innfo-console-v* pin in marked shells
+node scripts/build-console-shells.mjs        # rewrites the @nn-console-v* pin in marked shells
 ```
 
 The console shells carry an `<!-- nn:console-shell:start/end -->` marker; the pin inside

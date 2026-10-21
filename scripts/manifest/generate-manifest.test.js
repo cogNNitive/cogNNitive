@@ -89,21 +89,21 @@ entrypoint: "workspace_NN.md"
 skills: []
 templates: []
 console_assets:
-  - name: innfo-console
+  - name: nn-console
     repo: cogNNitive/cogNNitive
-    file: iNNfo/specs/templates/console/innfo-console.bundle.js
+    file: iNNfo/specs/templates/console/nn-console.bundle.js
     version: "0.1.0"
-    ref_key: innfo-console
+    ref_key: nn-console
 workflows: []
 channels:
   stable:
     refs:
-      - key: innfo-console
+      - key: nn-console
         repo: cogNNitive/cogNNitive
-        ref: innfo-console-v0.1.0
+        ref: nn-console-v0.1.0
   preview:
     refs:
-      - key: innfo-console
+      - key: nn-console
         repo: cogNNitive/cogNNitive
         ref: main
 `;
@@ -308,7 +308,7 @@ channels:
     const rendered = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.strictEqual(typeof rendered, 'string', 'console asset must resolve on the preview channel');
     assert.match(rendered, /\n  console-assets:\n/, 'console-assets block must be emitted');
-    assert.match(rendered, /- file: iNNfo\/specs\/templates\/console\/innfo-console\.bundle\.js/, 'file must render');
+    assert.match(rendered, /- file: iNNfo\/specs\/templates\/console\/nn-console\.bundle\.js/, 'file must render');
     assert.match(rendered, /ref: "main"/, 'ref must render');
     assert.match(rendered, new RegExp(`commit: "${commit}"`), 'commit must render');
     console.log('✔ console-assets block rendering in preview test passed');

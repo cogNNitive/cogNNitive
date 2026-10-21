@@ -259,7 +259,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.equal(html.match(/data-innfo-view="/g).length, 1)
       assert.ok(html.includes('data-innfo-view="alpha"'))
       assert.equal(html.includes('Beta'), false, 'the other view is not embedded')
-      assert.equal(html.match(/innfo-console\.bundle\.js — single-file console runtime/g).length, 1)
+      assert.equal(html.match(/nn-console\.bundle\.js — single-file console runtime/g).length, 1)
       const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
       assert.equal(header.split('\n').filter((l) => /sha256:/.test(l)).length, 1)
       assert.match(header, /^alpha domaiNN domaiNN:consoles\/views\/alpha\.js sha256:[0-9a-f]{12}$/m)

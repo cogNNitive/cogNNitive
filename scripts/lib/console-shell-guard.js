@@ -9,7 +9,7 @@
  * 2. Shell discovery by shape (all *.html under iNNfo/specs/bluepriNNts/ declaring needs or loading bundle).
  * 3. Shell needs are valid subset of needs-registry.
  * 4. Required DOM anchors are present for declared capabilities.
- * 5. Script tag pins match manifest/source.yaml innfo-console version without floating refs.
+ * 5. Script tag pins match manifest/source.yaml nn-console version without floating refs.
  * 6. Dead `runtime` key rejected in `innfo-config`.
  * 7. Generated shells (marked `nn:console-shell`) carry the CURRENT console pin — a
  *    release bump must regenerate them, else they drift. Authored shells (no marker)
@@ -126,7 +126,7 @@ function discoverConsoleShells(repoRoot) {
         walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.html')) {
         const content = fs.readFileSync(fullPath, 'utf8');
-        if (content.includes('id="innfo-config"') || content.includes("id='innfo-config'") || content.includes('innfo-console.bundle.js')) {
+        if (content.includes('id="innfo-config"') || content.includes("id='innfo-config'") || content.includes('nn-console.bundle.js')) {
           results.push(relPosix);
         }
       }
@@ -230,7 +230,7 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
   }
 
   const expectedVersion = options.expectedVersion || getExpectedConsoleVersion(repoRoot);
-  const expectedTagPin = `@innfo-console-v${expectedVersion}`;
+  const expectedTagPin = `@nn-console-v${expectedVersion}`;
   const shells = discoverConsoleShells(repoRoot);
 
   // Generated shells (marked `nn:console-shell`) get a freshness check in addition to
@@ -290,7 +290,7 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
     let foundCdnScript = false;
     while ((scriptMatch = scriptTagRegex.exec(content)) !== null) {
       const url = scriptMatch[1];
-      if (url.includes('innfo-console')) {
+      if (url.includes('nn-console')) {
         foundCdnScript = true;
         if (!url.includes(expectedTagPin)) {
           errors.push(`Shell ${shellPath} pins incorrect CDN bundle version: found "${url}", expected tag pin "${expectedTagPin}"`);
@@ -302,7 +302,7 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
     }
 
     if (!foundCdnScript) {
-      errors.push(`Shell ${shellPath} does not load the innfo-console bundle via CDN script tag`);
+      errors.push(`Shell ${shellPath} does not load the nn-console bundle via CDN script tag`);
     }
 
     // Requirement: shells must consume var(--innfo-*) tokens, never :root color

@@ -9,13 +9,13 @@ import { createRequire } from 'node:module'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')
 const require = createRequire(import.meta.url)
-const { slugify: coreSlugify } = require('../iNNfo/specs/bluepriNNts/console/innfo-slug.generated.js')
+const { slugify: coreSlugify } = require('../iNNfo/specs/bluepriNNts/console/nn-slug.generated.js')
 const { parseCitation } = require('../skills/nn-sources/scripts/lib/nn-core.generated.cjs')
 
 const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
-const generatedSlugPath = join(consoleDir, 'innfo-slug.generated.js')
-const runtimePath = join(consoleDir, 'innfo-runtime.js')
-const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
+const generatedSlugPath = join(consoleDir, 'nn-slug.generated.js')
+const runtimePath = join(consoleDir, 'nn-runtime.js')
+const bundlePath = join(consoleDir, 'nn-console.bundle.js')
 
 describe('Console runtime slug parity with core (D8)', () => {
   it('parses console contract citations via core parseCitation', () => {
@@ -24,8 +24,8 @@ describe('Console runtime slug parity with core (D8)', () => {
     assert.equal(citation.filePath, 'sources/nn/conversations/s1_source.md')
     assert.equal(citation.unit?.slug, 'update-field-severity')
   })
-  it('console/innfo-slug.generated.js exists and exposes global InnfoSlug', () => {
-    assert.equal(existsSync(generatedSlugPath), true, 'innfo-slug.generated.js must exist')
+  it('console/nn-slug.generated.js exists and exposes global InnfoSlug', () => {
+    assert.equal(existsSync(generatedSlugPath), true, 'nn-slug.generated.js must exist')
     const code = readFileSync(generatedSlugPath, 'utf8')
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
     dom.window.eval(code)
@@ -34,7 +34,7 @@ describe('Console runtime slug parity with core (D8)', () => {
   })
 
   it('maintains slug parity with core parser/slug.ts across a fixture corpus', () => {
-    assert.equal(existsSync(generatedSlugPath), true, 'innfo-slug.generated.js must exist')
+    assert.equal(existsSync(generatedSlugPath), true, 'nn-slug.generated.js must exist')
     const code = readFileSync(generatedSlugPath, 'utf8')
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
     dom.window.eval(code)
@@ -61,8 +61,8 @@ describe('Console runtime slug parity with core (D8)', () => {
     }
   })
 
-  it('innfo-runtime.js delegates to InnfoSlug and preserves empty fallback "feedback"', () => {
-    assert.equal(existsSync(generatedSlugPath), true, 'innfo-slug.generated.js must exist')
+  it('nn-runtime.js delegates to InnfoSlug and preserves empty fallback "feedback"', () => {
+    assert.equal(existsSync(generatedSlugPath), true, 'nn-slug.generated.js must exist')
     const slugCode = readFileSync(generatedSlugPath, 'utf8')
     const runtimeCode = readFileSync(runtimePath, 'utf8')
 
@@ -79,29 +79,29 @@ describe('Console runtime slug parity with core (D8)', () => {
     assert.equal(dom.window.InnfoConsole.resolveElementId('Problems', 'Café & Crème'), 'problems-cafe-creme')
   })
 
-  it('innfo-runtime.js contains no independent slugify regex implementation', () => {
+  it('nn-runtime.js contains no independent slugify regex implementation', () => {
     const runtimeCode = readFileSync(runtimePath, 'utf8')
     const slugifyFuncMatch = runtimeCode.match(/function\s+slugify\s*\([^)]*\)\s*\{([\s\S]*?)\}/)
-    assert.ok(slugifyFuncMatch, 'function slugify should exist in innfo-runtime.js')
+    assert.ok(slugifyFuncMatch, 'function slugify should exist in nn-runtime.js')
     const slugifyBody = slugifyFuncMatch[1]
-    assert.ok(slugifyBody.includes('InnfoSlug'), 'slugify in innfo-runtime.js must delegate to InnfoSlug')
+    assert.ok(slugifyBody.includes('InnfoSlug'), 'slugify in nn-runtime.js must delegate to InnfoSlug')
     assert.equal(slugifyBody.includes('[\\u0300-\\u036f]'), false, 'slugify body must not contain duplicate regex logic')
   })
 
-  it('scripts/lib/console-bundle.js concatenates innfo-slug.generated.js first', () => {
+  it('scripts/lib/console-bundle.js concatenates nn-slug.generated.js first', () => {
     // SOURCES lives in the extracted CommonJS lib (scripts/lib/console-bundle.js);
     // build-console-bundle.mjs is a thin entry that re-exports it.
     const bundleLibPath = join(repoRoot, 'scripts', 'lib', 'console-bundle.js')
     const bundleLib = readFileSync(bundleLibPath, 'utf8')
-    assert.match(bundleLib, /\[\s*'innfo-slug\.generated\.js'\s*,\s*'InnfoSlug'\s*\]/, 'SOURCES must include innfo-slug.generated.js')
+    assert.match(bundleLib, /\[\s*'nn-slug\.generated\.js'\s*,\s*'InnfoSlug'\s*\]/, 'SOURCES must include nn-slug.generated.js')
     const firstSourceMatch = bundleLib.match(/const\s+SOURCES\s*=\s*\[\s*\[\s*'([^']+)'/)
     assert.ok(firstSourceMatch, 'SOURCES array must be found')
-    assert.equal(firstSourceMatch[1], 'innfo-slug.generated.js', 'innfo-slug.generated.js must be the first entry in SOURCES')
+    assert.equal(firstSourceMatch[1], 'nn-slug.generated.js', 'nn-slug.generated.js must be the first entry in SOURCES')
   })
 
-  it('innfo-console.bundle.js starts with innfo-slug.generated.js content after header', () => {
-    assert.equal(existsSync(bundlePath), true, 'innfo-console.bundle.js must exist')
+  it('nn-console.bundle.js starts with nn-slug.generated.js content after header', () => {
+    assert.equal(existsSync(bundlePath), true, 'nn-console.bundle.js must exist')
     const bundleContent = readFileSync(bundlePath, 'utf8')
-    assert.match(bundleContent, /\/\* ===== innfo-slug\.generated\.js \(defines InnfoSlug\) ===== \*\//, 'Bundle must contain innfo-slug section')
+    assert.match(bundleContent, /\/\* ===== nn-slug\.generated\.js \(defines InnfoSlug\) ===== \*\//, 'Bundle must contain innfo-slug section')
   })
 })

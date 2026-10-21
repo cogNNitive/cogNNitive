@@ -94,7 +94,7 @@ describe('console export round trip', () => {
   })
 
   function exportChangeset(drafts: Draft[], modelId: string): string {
-    const runtime = req(join(consoleDir, 'innfo-runtime.js')) as {
+    const runtime = req(join(consoleDir, 'nn-runtime.js')) as {
       composeChangesetExport: (state: unknown, identifier: string) => { ok: boolean; text: string }
     }
     const composed = runtime.composeChangesetExport(

@@ -48,17 +48,17 @@ function main() {
   // 2. SOURCES lists the expected source files in exact dependency order.
   {
     const expectedSources = [
-      'innfo-slug.generated.js',
-  'innfo-address.generated.js',
+      'nn-slug.generated.js',
+  'nn-address.generated.js',
       'vendor/preact.umd.js',
       'vendor/htm.umd.js',
-      'innfo-preact-init.js',
+      'nn-preact-init.js',
       'uplot.iife.min.js',
       'visuals.js',
-      'innfo-icons.js',
+      'nn-icons.js',
       'ui-kit.js',
       'review.js',
-      'innfo-runtime.js',
+      'nn-runtime.js',
       'render-procedure-stepper.js',
     ];
     const actualFiles = SOURCES.map(([f]) => f);
@@ -74,14 +74,14 @@ function main() {
   {
     const { tmpDir, targetConsole } = createTempConsoleFixture(repoRoot);
     try {
-      const bundlePath = path.join(targetConsole, 'innfo-console.bundle.js');
+      const bundlePath = path.join(targetConsole, 'nn-console.bundle.js');
       const original = fs.readFileSync(bundlePath, 'utf8');
       fs.writeFileSync(bundlePath, original + '\n/* altered byte */\n', 'utf8');
 
       const result = checkConsoleBundle(tmpDir);
       assert.strictEqual(result.ok, false, 'Altered bundle must fail checkConsoleBundle');
-      const namesFile = result.errors.some(e => e.includes('innfo-console.bundle.js'));
-      assert.strictEqual(namesFile, true, 'Error message must name innfo-console.bundle.js');
+      const namesFile = result.errors.some(e => e.includes('nn-console.bundle.js'));
+      assert.strictEqual(namesFile, true, 'Error message must name nn-console.bundle.js');
       console.log('✔ Altered byte in bundle fails and names the file');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -92,7 +92,7 @@ function main() {
   {
     const { tmpDir, targetConsole } = createTempConsoleFixture(repoRoot);
     try {
-      const runtimePath = path.join(targetConsole, 'innfo-runtime.js');
+      const runtimePath = path.join(targetConsole, 'nn-runtime.js');
       fs.appendFileSync(runtimePath, '\n// test change\n', 'utf8');
 
       const result = checkConsoleBundle(tmpDir);

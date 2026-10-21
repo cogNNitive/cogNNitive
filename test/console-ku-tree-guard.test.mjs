@@ -18,8 +18,8 @@ const { parseUnitAddress, unitHome } = require(
 let document
 
 before(() => {
-  global.InnfoIcons = require(join(consoleDir, 'innfo-icons.js'))
-  const InnfoConsole = require(join(consoleDir, 'innfo-runtime.js'))
+  global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
+  const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
   const html = readFileSync(join(root, 'test', 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
   const dom = new JSDOM(html, { url: 'http://localhost' })
   global.window = dom.window

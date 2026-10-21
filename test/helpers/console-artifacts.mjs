@@ -36,6 +36,6 @@ export function consoleHtml(root, stem) {
 /** The latest vendored bundle in a console folder, or a non-existent placeholder path. */
 export function consoleBundle(root, stem) {
   const dir = join(root, 'artifacts', `${stem}_console`)
-  const all = members(dir, 'innfo-console.bundle', 'js')
-  return join(dir, all.length > 0 ? all[all.length - 1] : 'innfo-console.bundle.js')
+  const all = members(dir, 'nn-console.bundle', 'js')
+  return join(dir, all.length > 0 ? all[all.length - 1] : 'nn-console.bundle.js')
 }

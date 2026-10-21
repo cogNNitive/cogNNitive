@@ -591,7 +591,7 @@ async function installMcpAtCommit(mcp, mcpDir, state) {
 }
 
 /**
- * Installs a console asset bundle (innfo-console.bundle.js) from GitHub raw URL
+ * Installs a console asset bundle (nn-console.bundle.js) from GitHub raw URL
  * at the pinned commit. The bundle is self-contained (runtime + renderers) and
  * lives in ~/.agents/console/ so generated artifacts can vendor it locally.
  * @param {object} asset

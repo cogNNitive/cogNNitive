@@ -5,8 +5,8 @@ on:
     tags:
       - 'skills-v*'
       - 'blueprints-v*'
-      - 'innfo-mcp-v*'
-      - 'innfo-console-v*'
+      - 'nn-mcp-v*'
+      - 'nn-console-v*'
   workflow_dispatch:
     inputs:
       tag:

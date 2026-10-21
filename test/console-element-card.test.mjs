@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-global.InnfoIcons = require(join(consoleDir, 'innfo-icons.js'))
+global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
 const UI = require(join(consoleDir, 'ui-kit.js'))
 const InnfoReview = require(join(consoleDir, 'review.js'))
 
@@ -343,7 +343,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     global.Event = dom.window.Event
     global.InnfoUI = UI
     global.InnfoReview = InnfoReview
-    const InnfoConsole = require(join(consoleDir, 'innfo-runtime.js'))
+    const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
     InnfoConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')

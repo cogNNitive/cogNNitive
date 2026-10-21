@@ -60,19 +60,19 @@ function parseSourceYaml(text, repoRoot = process.cwd()) {
             ref = `${r.key}-v${r.version}`;
           }
           if (!ref) {
-            if (r.key === 'innfo-mcp') {
+            if (r.key === 'nn-mcp') {
               for (const s of (doc.skills || [])) {
                 for (const m of (s.mcp || [])) {
-                  if (m.name === 'innfo-mcp' && m.version) {
-                    ref = `innfo-mcp-v${m.version}`;
+                  if (m.name === 'nn-mcp' && m.version) {
+                    ref = `nn-mcp-v${m.version}`;
                     break;
                   }
                 }
               }
-            } else if (r.key === 'innfo-console') {
+            } else if (r.key === 'nn-console') {
               for (const c of (doc.console_assets || [])) {
-                if (c.name === 'innfo-console' && c.version) {
-                  ref = `innfo-console-v${c.version}`;
+                if (c.name === 'nn-console' && c.version) {
+                  ref = `nn-console-v${c.version}`;
                   break;
                 }
               }

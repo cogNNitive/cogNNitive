@@ -14,8 +14,8 @@ const { RELEASE_KEYS, RELEASE_TABLE } = require('../release/release-keys.js')
 
 /** package.json that authors the version for keys that have one. */
 const AUTHORED_VERSION_PATH = {
-  'innfo-mcp': 'iNNfo/packages/nn-mcp/package.json',
-  'innfo-console': 'iNNfo/specs/bluepriNNts/console/package.json',
+  'nn-mcp': 'iNNfo/packages/nn-mcp/package.json',
+  'nn-console': 'iNNfo/specs/bluepriNNts/console/package.json',
 }
 
 const CI_WORKFLOW = 'CI & Verify'

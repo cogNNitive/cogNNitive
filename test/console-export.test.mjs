@@ -100,7 +100,7 @@ level: 3
     const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
     const html = await readFile(htmlPath, 'utf-8')
     const bundleJs = await readFile(
-      resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+      resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-console.bundle.js'),
       'utf-8',
     )
 
@@ -279,14 +279,14 @@ level: 3
     try {
       const repoConsoleDir = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
       const shellContent = await readFile(join(repoConsoleDir, 'artifact_shell.html'), 'utf-8')
-      const bundleContent = await readFile(join(repoConsoleDir, 'innfo-console.bundle.js'), 'utf-8')
+      const bundleContent = await readFile(join(repoConsoleDir, 'nn-console.bundle.js'), 'utf-8')
       const mirrorContent = await readFile(join(repoConsoleDir, 'console-payload.generated.cjs'), 'utf-8')
-      const cssContent = await readFile(join(repoConsoleDir, 'innfo-ui.css'), 'utf-8')
+      const cssContent = await readFile(join(repoConsoleDir, 'nn-ui.css'), 'utf-8')
 
       await writeFile(join(standaloneDir, 'artifact_shell.html'), shellContent, 'utf-8')
-      await writeFile(join(standaloneDir, 'innfo-console.bundle.js'), bundleContent, 'utf-8')
+      await writeFile(join(standaloneDir, 'nn-console.bundle.js'), bundleContent, 'utf-8')
       await writeFile(join(standaloneDir, 'console-payload.generated.cjs'), mirrorContent, 'utf-8')
-      await writeFile(join(standaloneDir, 'innfo-ui.css'), cssContent, 'utf-8')
+      await writeFile(join(standaloneDir, 'nn-ui.css'), cssContent, 'utf-8')
 
       const res = await runCli([tempDir, '--all'], {
         env: { INNFO_CONSOLE_DIR: standaloneDir },
@@ -368,25 +368,25 @@ level: 3
       (await readdir(tempDir, { withFileTypes: true })).filter((e) => e.isFile()).map((e) => e.name)
     const banner = async () => {
       const bundle = await readFile(
-        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-console.bundle.js'),
         'utf-8',
       )
-      return bundle.match(/innfo-console\.bundle\.js — single-file console runtime/)[0]
+      return bundle.match(/nn-console\.bundle\.js — single-file console runtime/)[0]
     }
     const stripStamp = (html) => html.replace(/"generated": "[^"]*"/g, '"generated": "<stamp>"')
 
     it('writes exactly one root file, overwrites it, and leaves old root bundle files alone', async () => {
-      await writeFile(join(tempDir, 'innfo-console.bundle.js'), '// old sibling', 'utf-8')
-      await writeFile(join(tempDir, 'innfo-ui.css'), '/* old css */', 'utf-8')
+      await writeFile(join(tempDir, 'nn-console.bundle.js'), '// old sibling', 'utf-8')
+      await writeFile(join(tempDir, 'nn-ui.css'), '/* old css */', 'utf-8')
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const second = await runCli([tempDir, '--domain'])
       assert.equal(second.code, 0)
       assert.equal(second.stderr.match(/leftover from an earlier export/g)?.length, 1, 'warned once')
-      assert.match(second.stderr, /innfo-console\.bundle\.js and innfo-ui\.css/)
+      assert.match(second.stderr, /nn-console\.bundle\.js and nn-ui\.css/)
       assert.match(second.stderr, /not removed/)
-      assert.deepEqual((await rootFiles()).sort(), ['domaiNN_console.html', 'innfo-console.bundle.js', 'innfo-ui.css'])
-      assert.equal(await readFile(join(tempDir, 'innfo-console.bundle.js'), 'utf-8'), '// old sibling')
-      assert.equal(await readFile(join(tempDir, 'innfo-ui.css'), 'utf-8'), '/* old css */')
+      assert.deepEqual((await rootFiles()).sort(), ['domaiNN_console.html', 'nn-console.bundle.js', 'nn-ui.css'])
+      assert.equal(await readFile(join(tempDir, 'nn-console.bundle.js'), 'utf-8'), '// old sibling')
+      assert.equal(await readFile(join(tempDir, 'nn-ui.css'), 'utf-8'), '/* old css */')
     })
 
     it('creates no sibling files on a fresh domain', async () => {
@@ -587,7 +587,7 @@ scenarioMonths:: 12
 
     describe('validates everything before the first write', () => {
       const consoleSrc = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
-      const ASSETS = ['artifact_shell.html', 'innfo-console.bundle.js', 'console-payload.generated.cjs', 'innfo-ui.css']
+      const ASSETS = ['artifact_shell.html', 'nn-console.bundle.js', 'console-payload.generated.cjs', 'nn-ui.css']
       const assetsWith = async (name, { shell = (s) => s, omit = [] } = {}) => {
         const dir = join(tempDir, name)
         await mkdir(dir, { recursive: true })
@@ -603,7 +603,7 @@ scenarioMonths:: 12
       }
 
       it('rejects a shell without the stylesheet link', async () => {
-        const env = await assetsWith('no-css', { shell: (s) => s.replace(/<link rel="stylesheet" href="\.\/innfo-ui\.css" ?\/>/, '') })
+        const env = await assetsWith('no-css', { shell: (s) => s.replace(/<link rel="stylesheet" href="\.\/nn-ui\.css" ?\/>/, '') })
         const res = await runCli([tempDir, '--domain'], { env })
         assert.notEqual(res.code, 0)
         assert.match(res.stderr, /stylesheet link/)
@@ -627,17 +627,17 @@ scenarioMonths:: 12
       })
 
       it('rejects a missing bundle', async () => {
-        const env = await assetsWith('no-bundle', { omit: ['innfo-console.bundle.js'] })
+        const env = await assetsWith('no-bundle', { omit: ['nn-console.bundle.js'] })
         const res = await runCli([tempDir, '--domain'], { env })
         assert.notEqual(res.code, 0)
         await untouched()
       })
 
       it('rejects a missing stylesheet file', async () => {
-        const env = await assetsWith('no-css-file', { omit: ['innfo-ui.css'] })
+        const env = await assetsWith('no-css-file', { omit: ['nn-ui.css'] })
         const res = await runCli([tempDir, '--domain'], { env })
         assert.notEqual(res.code, 0)
-        assert.match(res.stderr, /innfo-ui\.css/)
+        assert.match(res.stderr, /nn-ui\.css/)
         await untouched()
       })
 

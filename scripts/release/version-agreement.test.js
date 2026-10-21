@@ -33,7 +33,7 @@ function mkRepo(opts = {}) {
     fs.mkdirSync(conDir, { recursive: true });
     fs.writeFileSync(
       path.join(conDir, 'package.json'),
-      JSON.stringify({ name: '@cognnitive/innfo-console', version: opts.consoleVersion }),
+      JSON.stringify({ name: '@cognnitive/nn-console', version: opts.consoleVersion }),
       'utf8'
     );
   }
@@ -47,9 +47,9 @@ function testMcpVersionAgreement() {
     // Valid agreement
     assert.doesNotThrow(() => {
       checkVersionAgreement({
-        releaseTag: 'innfo-mcp-v0.12.0',
+        releaseTag: 'nn-mcp-v0.12.0',
         repoRoot: repo,
-        existingTags: ['innfo-mcp-v0.11.0'],
+        existingTags: ['nn-mcp-v0.11.0'],
       });
     });
 
@@ -57,9 +57,9 @@ function testMcpVersionAgreement() {
     assert.throws(
       () => {
         checkVersionAgreement({
-          releaseTag: 'innfo-mcp-v0.13.0',
+          releaseTag: 'nn-mcp-v0.13.0',
           repoRoot: repo,
-          existingTags: ['innfo-mcp-v0.11.0'],
+          existingTags: ['nn-mcp-v0.11.0'],
         });
       },
       (err) => err instanceof VersionAgreementError && /mismatch/i.test(err.message)
@@ -75,9 +75,9 @@ function testConsoleVersionAgreement() {
     // Valid agreement
     assert.doesNotThrow(() => {
       checkVersionAgreement({
-        releaseTag: 'innfo-console-v0.6.0',
+        releaseTag: 'nn-console-v0.6.0',
         repoRoot: repo,
-        existingTags: ['innfo-console-v0.5.0'],
+        existingTags: ['nn-console-v0.5.0'],
       });
     });
 
@@ -85,9 +85,9 @@ function testConsoleVersionAgreement() {
     assert.throws(
       () => {
         checkVersionAgreement({
-          releaseTag: 'innfo-console-v0.7.0',
+          releaseTag: 'nn-console-v0.7.0',
           repoRoot: repo,
-          existingTags: ['innfo-console-v0.5.0'],
+          existingTags: ['nn-console-v0.5.0'],
         });
       },
       (err) => err instanceof VersionAgreementError && /mismatch/i.test(err.message)

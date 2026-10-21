@@ -8,8 +8,23 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { RELEASE_OWNED_GLOBS } = require('../release/release-keys.js');
 
 const DEFAULT_PRESERVE = ['.nojekyll', 'CNAME'];
+
+/**
+ * Compiles a `*`-glob (single-segment wildcard, no `**`) into an anchored regex.
+ * The release-owned surface is derived from RELEASE_OWNED_GLOBS so the workflow
+ * triggers, the globs and this predicate cannot drift apart (design D5).
+ * @param {string} glob
+ * @returns {RegExp}
+ */
+function globToRegExp(glob) {
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*');
+  return new RegExp(`^${escaped}$`);
+}
+
+const RELEASE_OWNED_RES = RELEASE_OWNED_GLOBS.map(globToRegExp);
 
 /**
  * Checks if a relative path (relative to docs/ site root) is owned by the release workflow.
@@ -18,12 +33,7 @@ const DEFAULT_PRESERVE = ['.nojekyll', 'CNAME'];
  */
 function isReleaseOwnedPath(relPath) {
   const norm = relPath.replace(/\\/g, '/').replace(/^\/+/, '');
-  if (/^innfo\/cdn\/innfo-mcp-v\d+\.\d+\.\d+\.bundle\.js$/.test(norm)) return true;
-  if (norm === 'innfo/cdn/manifest.json') return true;
-  if (norm === 'use/manifest.md') return true;
-  if (norm === 'update/manifest.md') return true;
-  if (/^use\/manifests\/[a-z0-9-.]+\.md$/.test(norm)) return true;
-  return false;
+  return RELEASE_OWNED_RES.some((re) => re.test(norm));
 }
 
 /**

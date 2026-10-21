@@ -2,8 +2,8 @@
  * scripts/release/version-agreement.js
  *
  * Verifies version agreement before publishing a release (AD-6):
- * 1. For innfo-mcp, tag version MUST match iNNfo/packages/nn-mcp/package.json.
- * 2. For innfo-console, tag version MUST match iNNfo/specs/bluepriNNts/console/package.json.
+ * 1. For nn-mcp, tag version MUST match iNNfo/packages/nn-mcp/package.json.
+ * 2. For nn-console, tag version MUST match iNNfo/specs/bluepriNNts/console/package.json.
  * 3. For all keys, tag version MUST be >= highest existing tag for that key.
  */
 
@@ -47,17 +47,17 @@ function checkVersionAgreement(params) {
   const { key, version } = parseReleaseTag(releaseTag);
 
   // 1. Check authored version agreement for package-sourced keys
-  if (key === 'innfo-mcp') {
+  if (key === 'nn-mcp') {
     const pkgPath = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'package.json');
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
       if (pkg.version && pkg.version !== version) {
         throw new VersionAgreementError(
-          `Authored version mismatch: release tag is '${releaseTag}' (v${version}) but innfo-mcp package.json has '${pkg.version}'.`
+          `Authored version mismatch: release tag is '${releaseTag}' (v${version}) but nn-mcp package.json has '${pkg.version}'.`
         );
       }
     }
-  } else if (key === 'innfo-console') {
+  } else if (key === 'nn-console') {
     const pkgPath = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json');
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));

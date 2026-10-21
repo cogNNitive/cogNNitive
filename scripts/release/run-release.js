@@ -87,10 +87,10 @@ async function runRelease(config, options = {}) {
     const keyConfig = RELEASE_TABLE[key] || { repoPaths: [], sitePaths: [] };
     for (const rel of keyConfig.repoPaths) copyDistributionPath(repoRoot, rel, work);
 
-    if (key === 'innfo-mcp') {
-      const src = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'bin', 'innfo-mcp.bundle.js');
+    if (key === 'nn-mcp') {
+      const src = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'bin', 'nn-mcp.bundle.js');
       if (fs.existsSync(src)) {
-        const dst = path.join(work, 'docs', 'innfo', 'cdn', `innfo-mcp-v${version}.bundle.js`);
+        const dst = path.join(work, 'docs', 'innfo', 'cdn', `nn-mcp-v${version}.bundle.js`);
         fs.mkdirSync(path.dirname(dst), { recursive: true });
         fs.copyFileSync(src, dst);
         fs.writeFileSync(path.join(work, 'docs', 'innfo', 'cdn', 'manifest.json'), JSON.stringify({ latest: version }, null, 2) + '\n');

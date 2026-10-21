@@ -4,7 +4,7 @@
  * Post-publish smoke test for tag-driven releases (AD-5).
  * 1. Polls the live manifest URL until byte-equal to staged manifest.
  * 2. Validates the served live manifest.
- * 3. For innfo-mcp releases, asserts served CDN bundle sha256 equals committed bundle.
+ * 3. For nn-mcp releases, asserts served CDN bundle sha256 equals committed bundle.
  */
 
 const crypto = require('node:crypto');
@@ -113,21 +113,21 @@ async function runSmokeTest(config, options = {}) {
     throw new SmokeTestError(`Live manifest at ${manifestUrl} failed validation${detail}.`);
   }
 
-  // If innfo-mcp was released, check CDN bundle sha256
-  if (key === 'innfo-mcp' && version) {
+  // If nn-mcp was released, check CDN bundle sha256
+  if (key === 'nn-mcp' && version) {
     const committedBundlePath = path.join(
       repoRoot,
       'iNNfo',
       'packages',
       'nn-mcp',
       'bin',
-      'innfo-mcp.bundle.js'
+      'nn-mcp.bundle.js'
     );
     if (fs.existsSync(committedBundlePath)) {
       const committedBundle = fs.readFileSync(committedBundlePath, 'utf8');
       const committedSha = sha256(committedBundle);
 
-      const cdnUrl = `${cdnBaseUrl}/innfo-mcp-v${version}.bundle.js`;
+      const cdnUrl = `${cdnBaseUrl}/nn-mcp-v${version}.bundle.js`;
       logger.log(`smoke-test: checking CDN bundle integrity at ${cdnUrl}...`);
       const cdnRes = await fetchFn(cdnUrl);
       const servedBundle = await cdnRes.text();

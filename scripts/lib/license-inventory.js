@@ -345,7 +345,7 @@ function renderThirdParty({ classified, policy, projectLicense }) {
   }
   lines.push('')
   lines.push(
-    'The console bundle (`innfo-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to',
+    'The console bundle (`nn-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to',
   )
   lines.push(
     'each exported console) concatenates the vendored assets above with first-party code. The generated',
