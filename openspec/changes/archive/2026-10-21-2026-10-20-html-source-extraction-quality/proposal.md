@@ -80,11 +80,11 @@ Fully reversible: edits to two converters plus a scanner guard. No data migrates
 
 ## Success Criteria
 
-- [ ] `FT_55866` re-cognitivized → blank lines < 10% (was 82.5%).
-- [ ] `PD_NN` re-scan → 0 undecoded HTML entities (was 5497).
-- [ ] `PMC9547138` body does not begin with `Skip to main content`/`Log in`/`Dashboard`.
-- [ ] A captcha/JS-wall page is reported as a partial extraction with a reason (not silent).
-- [ ] A 0-byte `.html` subject is refused and produces no usable source entry.
-- [ ] The 6 `PD_NN` regression fixtures are committed and green.
-- [ ] `node scripts/verify.js --fast` + `npm --prefix skills/nn-sources test` green.
-- [ ] No new dependency, no blueprint version bump, no change to the `Source.status` value set.
+- [x] `FT_55866` re-cognitivized → no run of more than one blank line, with a material reduction of blank lines. Measured **49.8%** (was 82.5%). The original `< 10%` target is unreachable without merging the document's 243 `<p>` blocks, which discards its own line structure; that alternative was measured and rejected. Criterion relaxed by maintainer decision (2026-10-21).
+- [x] `PD_NN` re-scan → 0 undecoded HTML entities (was 5497).
+- [x] `PMC9547138` body does not begin with `Skip to main content`/`Log in`/`Dashboard`.
+- [x] A captcha/JS-wall page is reported as a partial extraction with a reason (not silent).
+- [x] A 0-byte `.html` subject is refused and produces no usable source entry.
+- [x] The 6 `PD_NN` regression fixtures are committed and green.
+- [x] `node scripts/verify.js --fast` + `npm --prefix skills/nn-sources test` green.
+- [x] No new dependency, no blueprint version bump, no change to the `Source.status` value set.
