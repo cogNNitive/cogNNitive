@@ -107,7 +107,7 @@ function buildReportMetadata(
  * Orchestrates the individual checks in `knowledge-checks.ts`, routing every
  * diagnostic through a single `Diagnostics` accumulator. `resolveInclude`
  * returns the raw content of a template named in the resolved template's
- * `includes` list (supplied by the host — innfo-mcp / the editor — which owns
+ * `includes` list (supplied by the host - nn-mcp / the editor - which owns
  * spec I/O); when omitted, `includes` composition is skipped.
  *
  * `_formatSpec` is retained for call-site compatibility and unused; the

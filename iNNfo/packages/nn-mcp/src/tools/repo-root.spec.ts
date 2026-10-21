@@ -7,7 +7,7 @@ import { findRepoRoot } from './repo-root'
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-repo-root')
 // Outside the repo tree entirely, so no ancestor .git can be found —
 // isolates the "no repo root exists" branch from this repo's own .git.
-const isolatedDir = join(tmpdir(), 'innfo-mcp-repo-root-test-no-git')
+const isolatedDir = join(tmpdir(), 'nn-mcp-repo-root-test-no-git')
 
 describe('findRepoRoot', () => {
   beforeEach(async () => {

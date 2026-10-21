@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.join(SCRIPT_DIR, 'generate-docs-facts.mjs');
 
-const OPEN_MARKER = '<!-- generated:mcp-tools (source: innfo-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->';
+const OPEN_MARKER = '<!-- generated:mcp-tools (source: nn-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->';
 const CLOSE_MARKER = '<!-- /generated:mcp-tools -->';
 
 /**
@@ -104,7 +104,7 @@ function readSkillTarget(root) {
 function main() {
   console.log('Running generate-docs-facts CLI fixture tests...');
 
-  // 1. Missing innfo-mcp dist exits 2, naming the missing path (design D3).
+  // 1. Missing nn-mcp dist exits 2, naming the missing path (design D3).
   {
     const root = fixtureTree({ withDist: false });
     try {

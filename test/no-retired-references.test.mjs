@@ -100,6 +100,54 @@ const PREVIEW_FILES = [
   'skills/nn-innfo/SKILL.md',
 ]
 
+// --- retired distribution prefix (nn-prefix-rename cleanup, D12) -------------
+// Live distribution file/name stems retired by the `innfo-*` -> `nn-*` cutover.
+// Frozen history, the trees the maintainer deferred by scope, and the permanent
+// migration/reader code that necessarily names the old strings are allowlisted.
+const DISTRIBUTION_RETIRED_RE = /innfo-(core|mcp)\b/
+const DISTRIBUTION_RETIRED_PATTERNS = [
+  DISTRIBUTION_RETIRED_RE, // the package and distribution names
+  /innfo-console\.bundle\.js/, // retired console bundle file name
+  /innfo-ui\.css/, // retired console stylesheet
+  /@cognnitive\/innfo-/, // retired package scope
+  /scripts\/innfo-mcp\./, // retired wrapper scripts
+  /innfo-mcp_/, // retired MCP tool prefix
+  /innfo-(mcp|console)-v/, // legacy release tag families
+  /@innfo-console-v/, // legacy console shell pin
+  /innfo\/cdn\/innfo-/, // legacy published CDN files
+]
+const DISTRIBUTION_ALLOWLIST = [
+  'openspec/', // SDD specs, changes, archive and backlog are the permanent record
+  'docs/', // published docs prose deferred by scope
+  '.agents/', // maintainer-only skills prose deferred by scope
+  'simulation/', // executable simulation of the shipped contract, never distributed
+  '_samples_nn/', // sample workspace deferred by scope
+  'test/fixtures/', // stamped console exports and simulacro fixtures
+  'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro and scaffold fixtures
+  'dev/', // maintainer handoff and planning notes
+  'iNNfo/specs/', // published blueprints, catalog and the vocabulary dictionary
+  'iNNfo/packages/nn-mcp/test/', // test temp-dir prefixes and describe labels
+  'README.md',
+  'THIRD_PARTY.md',
+  'scripts/lib/skills-commands.js', // D10 migration literals (kept permanently)
+  'scripts/lib/mcp-config-adapter.js', // D10 user-config migration literals
+  'scripts/lib/mcp-config-adapter.test.js', // D10 tests
+  'scripts/skills-manager.test.js', // D10 tests
+  'scripts/manifest/lib/manifest-rules.js', // legacy-entry rejection (D12)
+  'scripts/manifest/lib/entry-version.js', // reader alias for a legacy section id
+  'scripts/manifest/lib/entry-version.test.js',
+  'scripts/manifest/generate-manifest.test.js',
+  'scripts/manifest/validate-manifest.test.js',
+  'scripts/release/release-keys.js', // legacy CDN glob preserved as read-only history
+  'scripts/export-console.mjs', // reader accepts the legacy console pin/file for stamped exports
+  'scripts/build-console-shells.mjs', // documents the legacy pin the shell guard also reads
+  'scripts/lib/publish-web-tree.test.js', // asserts legacy CDN files survive a Pages push
+  'scripts/lib/docs-facts.test.mjs', // fixtures that use the retired name as arbitrary content
+  'scripts/generate-about-twin.test.mjs', // fixture mirrors the deferred about.html prose
+  'skills/nn-skills-lifecycle/scripts/skills-manager.js', // generated D10 bundle
+  SELF,
+]
+
 /**
  * name      row label
  * patterns  forbidden RegExps
@@ -180,6 +228,15 @@ const GUARDS = [
     files: ['skills/nn-innfo/SKILL.md'],
     allow: () => false,
     plant: 'call innfo-mcp_validate_knowledge',
+  },
+  {
+    // Cleanup commit (D12): no live file may reintroduce a retired distribution stem.
+    name: 'retired distribution prefix',
+    patterns: DISTRIBUTION_RETIRED_PATTERNS,
+    files: 'tracked',
+    allow: prefixAllow(DISTRIBUTION_ALLOWLIST),
+    lines: true,
+    plant: 'see iNNfo/packages/innfo-mcp/package.json',
   },
 ]
 

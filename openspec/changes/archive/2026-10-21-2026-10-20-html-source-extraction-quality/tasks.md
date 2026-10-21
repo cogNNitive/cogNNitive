@@ -63,9 +63,10 @@ One phase. No dependency, no blueprint bump, no contract change.
       **Correction:** `node scripts/check-specs.mjs` does not exist in this repo; the closest
       script is `scripts/check-spec-version.mjs`, and spec freshness is covered by the
       `Docs-Derived Facts Drift Guard` step inside `verify.js`.
-- [ ] 5.3 Land on `dev`; cut `skills-v*` via `nn-dev-release` (tag needs maintainer confirmation).
+- [x] 5.3 Land on `dev`; cut `skills-v*` via `nn-dev-release` (tag needs maintainer confirmation).
       The change touches `skills/nn-sources`, which the `skills` family owns, so a `skills-v*`
-      release **is** required to distribute it.
+      release **is** required to distribute it. Landed on `dev` in PR #272 and shipped in
+      `skills-v2.29.0` (the released tree carries `looksPartial` and the numeric-entity decode).
 
 ## 6. Out of scope — filed on #266, not fixed here
 
@@ -77,17 +78,13 @@ One phase. No dependency, no blueprint bump, no contract change.
 
 ## Acceptance
 
-- [ ] Every Success Criterion in `proposal.md` holds.
-      **Not met, reported for the maintainer:** the CRLF criterion
-      *"`FT_55866` re-cognitivized → blank lines < 10% (was 82.5%)"* is **not reachable** by this
-      change's mechanism. Line-ending normalization takes the body from 82.5% to **49.8%** blank
-      lines and removes every run of more than one blank line, but the document's markup carries
-      **243 separate `<p>` blocks for ~200 content lines**, so one blank line per paragraph is
-      ~50% by line count in correct Markdown. Reaching <10% would require merging those
-      paragraphs, which discards the source's own line structure; the alternative that was
-      measured (routing the body through `reflowExtractedText`) makes it **worse** for a healthy
-      article (PMC9547138: 22% → 49.8%) and drops 459 characters of content, so it was rejected.
-      The other five criteria hold. A maintainer decision is needed: relax the criterion to
-      "no run of more than one blank line, materially reduced", or accept paragraph merging.
+- [x] Every Success Criterion in `proposal.md` holds.
+      **Resolved by maintainer decision (2026-10-21):** the CRLF criterion
+      *"`FT_55866` → blank lines < 10%"* was relaxed to *"no run of more than one
+      blank line, with a material reduction"*. The change takes the body from 82.5% to
+      49.8% blank lines and removes every run of more than one blank line; reaching
+      <10% would require merging the document's 243 `<p>` blocks, and the measured
+      alternative (`reflowExtractedText`) worsens a healthy article and drops 459
+      characters, so both were rejected. The other criteria hold.
 - [x] No new dependency; the `Source.status` value set is unchanged; no blueprint bump.
 - [x] No user domaiNN requires an in-place migration (sidecars refresh on the next `--scan`).

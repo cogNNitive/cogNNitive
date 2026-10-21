@@ -16,39 +16,14 @@ class AssembleManifestError extends Error {
   }
 }
 
-/**
- * Transient, assemble-time only (design D3). The first `nn-*` releases must still find
- * the pins of the last published `innfo-*` manifest, whose entries carry the old names
- * or the old asset file names. The map is code, never data: it cannot reach a published
- * manifest, and it is deleted in the cleanup commit right after the first cutover
- * releases. A retained entry keeps the previous identity VERBATIM, so the published
- * pin only changes when that asset ships under its new name in its own release.
- *
- * @type {{ mcpNames: Record<string, string>, consoleFiles: Record<string, string> }}
- */
-const PREVIOUS_PIN_RENAMES = {
-  mcpNames: { 'nn-mcp': 'innfo-mcp' },
-  consoleFiles: {
-    'iNNfo/specs/bluepriNNts/console/nn-console.bundle.js': 'iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js',
-    'iNNfo/specs/bluepriNNts/console/nn-ui.css': 'iNNfo/specs/bluepriNNts/console/innfo-ui.css',
-  },
-};
-
-/** Finds a previous console asset by its current name, else by its pre-cutover name. */
+/** Finds a previous console asset by its exact file name. */
 function findPrevConsoleAsset(prevAssets, file) {
-  const exact = prevAssets.find((a) => a.file === file);
-  if (exact) return exact;
-  const renamedFrom = PREVIOUS_PIN_RENAMES.consoleFiles[file];
-  return renamedFrom ? prevAssets.find((a) => a.file === renamedFrom) : undefined;
+  return prevAssets.find((a) => a.file === file);
 }
 
-/** Finds a previous MCP entry by its current name, else by its pre-cutover name. */
+/** Finds a previous MCP entry by its exact name. */
 function findPrevMcp(prevSkill, name) {
-  const entries = prevSkill.mcp || [];
-  const exact = entries.find((pm) => pm.name === name);
-  if (exact) return exact;
-  const renamedFrom = PREVIOUS_PIN_RENAMES.mcpNames[name];
-  return renamedFrom ? entries.find((pm) => pm.name === renamedFrom) : undefined;
+  return (prevSkill.mcp || []).find((pm) => pm.name === name);
 }
 
 function parseSemver(v) {

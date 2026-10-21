@@ -357,7 +357,7 @@ function renderThirdParty({ classified, policy, projectLicense }) {
   lines.push('## npm production dependencies')
   lines.push('')
   lines.push(
-    'Production dependency trees of `nn-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development',
+    'Production dependency trees of `nn-core`, `nn-mcp`, `nn-sources` and `nn-upgrade`. Development',
   )
   lines.push('tooling is not distributed and is not listed.')
   lines.push('')

@@ -91,7 +91,7 @@ const MUTABLE_KNOWLEDGE_CONTENT = [
   '',
 ].join('\n')
 
-describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round-trip)', () => {
+describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-trip)', () => {
   let client: Client
   const origCache = process.env.INNFO_CACHE_DIR
 
