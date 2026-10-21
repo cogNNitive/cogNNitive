@@ -176,7 +176,7 @@ test('checkHandTypedFactsAtRef detects a hand-typed tool count via batched git r
   try {
     const docs = path.join(root, 'docs', 'innfo', 'documentation');
     fs.mkdirSync(docs, { recursive: true });
-    fs.writeFileSync(path.join(docs, 'innfo-mcp.md'), '# mcp\n\n9 MCP tools\n');
+    fs.writeFileSync(path.join(docs, 'nn-mcp.md'), '# mcp\n\n9 MCP tools\n');
     commitAll(root, 'docs');
     const res = checkHandTypedFactsAtRef(root, 'HEAD', { scriptsDir: SCRIPTS_DIR });
     assert.equal(res.ok, false, res.output);

@@ -110,6 +110,47 @@ function emptyState() {
 }
 
 /**
+ * Migrates a pre-cutover `innfo-mcp` state entry and installed bundle to `nn-mcp`
+ * (design D10). Kept permanently: it is small and idempotent, and without it an
+ * installed skills-manager could register `nn-mcp` beside the stale `innfo-mcp`
+ * entry, ending up with two MCP servers. Running it twice changes nothing.
+ *
+ * @param {object} state
+ * @param {string} [mcpDir] when set, the legacy bundle file is renamed/deleted too
+ * @returns {boolean} true when anything changed
+ */
+function migrateLegacyMcpState(state, mcpDir) {
+  let changed = false;
+
+  if (state && state.mcp && state.mcp['innfo-mcp']) {
+    if (!state.mcp['nn-mcp']) {
+      state.mcp['nn-mcp'] = state.mcp['innfo-mcp'];
+    }
+    delete state.mcp['innfo-mcp'];
+    changed = true;
+  }
+
+  if (mcpDir) {
+    const legacyBundle = path.join(mcpDir, 'innfo-mcp.bundle.js');
+    const newBundle = path.join(mcpDir, 'nn-mcp.bundle.js');
+    if (fs.existsSync(legacyBundle)) {
+      try {
+        if (!fs.existsSync(newBundle)) {
+          fs.renameSync(legacyBundle, newBundle);
+        } else {
+          fs.rmSync(legacyBundle, { force: true });
+        }
+        changed = true;
+      } catch (_) {
+        // best-effort: a locked legacy bundle must not break install/update
+      }
+    }
+  }
+
+  return changed;
+}
+
+/**
   * Loads the current machine skill state from JSON file, supporting legacy migrations.
   * @param {string} file
   * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
@@ -119,7 +160,7 @@ function loadState(file) {
     try {
       const raw = fs.readFileSync(file, 'utf-8').replace(/^\uFEFF/, '');
       const data = JSON.parse(raw);
-      return {
+      const state = {
         manifest: data.manifest || getManifestUrl(),
         skills: data.skills || {},
         blueprints: data.blueprints || {},
@@ -127,6 +168,8 @@ function loadState(file) {
         console: data.console || {},
         projections: data.projections || {},
       };
+      migrateLegacyMcpState(state);
+      return state;
     } catch (err) {
       return emptyState();
     }
@@ -818,6 +861,7 @@ async function cmdInstall(args) {
   const state = loadState(args.stateFile);
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
   const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
+  migrateLegacyMcpState(state, mcpDir);
 
   const toInstallSkills = skills.filter(skill => !fs.existsSync(path.join(args.skillsDir, skill.name)));
   const toInstallBlueprints = blueprints.filter(template => {
@@ -1087,6 +1131,7 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
   const state = loadState(args.stateFile);
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
   const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
+  migrateLegacyMcpState(state, mcpDir);
 
   const isOutdatedSkill = (skill) => {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
@@ -1311,6 +1356,7 @@ async function cmdBootstrap(args) {
 
   const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
+  migrateLegacyMcpState(state, mcpDir);
   fs.mkdirSync(args.skillsDir, { recursive: true });
   fs.mkdirSync(args.blueprintsDir, { recursive: true });
   fs.mkdirSync(mcpDir, { recursive: true });
@@ -1671,6 +1717,7 @@ module.exports = {
   emptyState,
   loadState,
   saveState,
+  migrateLegacyMcpState,
   runTar,
   extractTarball,
   findRepoRoot,

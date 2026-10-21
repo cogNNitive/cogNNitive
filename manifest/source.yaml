@@ -20,11 +20,11 @@ skills:
     description: Author, edit, and validate iNNfo knowledge with built-in step-by-step Model Creation Wizard.
     blueprints: [domaiNN]
     mcp:
-      - name: innfo-mcp
+      - name: nn-mcp
         repo: cogNNitive/cogNNitive-web
-        path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
+        path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
         min_version: "0.12.0"
-        ref_key: innfo-mcp
+        ref_key: nn-mcp
   - name: nn-preflight
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-preflight

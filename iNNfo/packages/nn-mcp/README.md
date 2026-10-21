@@ -121,7 +121,7 @@ skills:
 
 ## 4-Tier Resolution Architecture
 
-`innfo-mcp` resolves blueprint dependencies across four fallback tiers:
+`nn-mcp` resolves blueprint dependencies across four fallback tiers:
 
 1. **Workspace Package Directory**: `./specs/bluepriNNts/<name>/<version>/`
 2. **Workspace Flat Fallback**: `./bluepriNNts/<name>_V_<version>_NN.md` or `./specs/`

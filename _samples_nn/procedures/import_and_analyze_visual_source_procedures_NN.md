@@ -113,9 +113,9 @@ condition:: Domain model updated
 input:: [[Updated Domain Model]]
 output:: [[Verified Target Domain Model]]
 output_status:: verified
-tool:: [[innfo-mcp]]
+tool:: [[nn-mcp]]
 scope:: internal
-Validate the updated domain model using innfo-mcp to ensure zero broken references or schema errors.
+Validate the updated domain model using nn-mcp to ensure zero broken references or schema errors.
 
 # NN Tools
 
@@ -139,7 +139,7 @@ Deterministic scanner creating normalized Markdown files with origin metadata.
 scope:: internal
 Tool for writing staged files and modifying domain models.
 
-## NN Tools: innfo-mcp
+## NN Tools: nn-mcp
 scope:: internal
 Deterministic validation tool for iNNfo models.
 
@@ -210,7 +210,7 @@ Human maintainer reviewing extracted descriptions and approving domain model cha
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Vision Analysis Engine | nn-sources Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Vision Analysis Engine | nn-sources Scanner | File Editor | nn-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Analyze Visual Sources | Uses | - | - | - | - | - |
 | Discover Raw Visual Files | - | Uses | - | - | - | - |

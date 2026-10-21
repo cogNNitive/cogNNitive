@@ -25,7 +25,7 @@ const SCRIPTS_DIR = __dirname;
 const GENERATE_DOCS_FACTS = path.join(SCRIPTS_DIR, 'generate-docs-facts.mjs');
 const GENERATE_ABOUT_TWIN = path.join(SCRIPTS_DIR, 'generate-about-twin.mjs');
 
-const OPEN_MCP = '<!-- generated:mcp-tools (source: innfo-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->';
+const OPEN_MCP = '<!-- generated:mcp-tools (source: nn-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->';
 const CLOSE_MCP = '<!-- /generated:mcp-tools -->';
 const OPEN_SKILLS = '<!-- generated:skills-catalog (source: manifest/source.yaml) -->';
 const CLOSE_SKILLS = '<!-- /generated:skills-catalog -->';
@@ -109,8 +109,8 @@ function buildFixtureRepo() {
   const mcpDocsDir = path.join(root, 'docs', 'innfo', 'documentation');
   fs.mkdirSync(mcpDocsDir, { recursive: true });
   fs.writeFileSync(
-    path.join(mcpDocsDir, 'innfo-mcp.md'),
-    ['# innfo-mcp', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
+    path.join(mcpDocsDir, 'nn-mcp.md'),
+    ['# nn-mcp', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
     'utf-8',
   );
 
@@ -179,7 +179,7 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'innfo-mcp.md');
+      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
       const stale = fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools');
       fs.writeFileSync(mcpPath, stale, 'utf-8');
       commitChange(root, 'introduce stale region');
@@ -201,7 +201,7 @@ function main() {
     const root = buildFixtureRepo();
     try {
       const llmsPath = path.join(root, 'docs', 'innfo', 'llms-full.txt');
-      fs.writeFileSync(llmsPath, 'innfo-mcp exposes seven semantic tools today.\n', 'utf-8');
+      fs.writeFileSync(llmsPath, 'nn-mcp exposes seven semantic tools today.\n', 'utf-8');
       commitChange(root, 'reintroduce a hand-typed tool count');
 
       const result = checkFixture(root, 'HEAD');
@@ -221,10 +221,10 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'innfo-mcp.md');
+      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
       fs.writeFileSync(mcpPath, fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools'), 'utf-8');
       const llmsPath = path.join(root, 'docs', 'innfo', 'llms-full.txt');
-      fs.writeFileSync(llmsPath, 'innfo-mcp exposes seven semantic tools today.\n', 'utf-8');
+      fs.writeFileSync(llmsPath, 'nn-mcp exposes seven semantic tools today.\n', 'utf-8');
       // Deliberately no commit: both changes are uncommitted working-tree dirt.
 
       const result = checkFixture(root, 'HEAD');

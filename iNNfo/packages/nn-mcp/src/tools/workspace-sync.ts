@@ -11,7 +11,7 @@ import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive
 
 /**
  * sync_workspace_manifest — the headless (MCP) caller of `reconcileManifest`
- * (AD-09: an innfo-mcp tool, not a new actioNN CLI binary). Mirrors the
+ * (AD-09: an nn-mcp tool, not a new actioNN CLI binary). Mirrors the
  * editor's write-guard: only writes when a mutating change was computed.
  */
 

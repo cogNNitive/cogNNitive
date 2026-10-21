@@ -4,7 +4,7 @@
  * scripts/sync-versions.mjs
  *
  * Single Source of Truth synchronization and drift validation for:
- *   - MCP package version (innfo-mcp/package.json -> nn-core, dep range)
+ *   - MCP package version (nn-mcp/package.json -> nn-core, dep range)
  *
  * (source.yaml synchronization is removed under tag-driven release AD-6).
  *
@@ -207,7 +207,7 @@ export function syncVersions({
 
   const mcpVersion = readMcpPackageVersion(mcpPkgPath);
   if (mcpVersion) {
-    skillVersions['innfo-mcp'] = mcpVersion;
+    skillVersions['nn-mcp'] = mcpVersion;
   }
 
   if (mcpVersion && fs.existsSync(corePkgPath)) {
@@ -216,7 +216,7 @@ export function syncVersions({
       if (coreResult.drift) {
         errors.push(
           `nn-core package.json version drift in ${corePkgPath}: ` +
-          `expected "${coreResult.drift.expected}" (from innfo-mcp), found "${coreResult.drift.actual}". ` +
+          `expected "${coreResult.drift.expected}" (from nn-mcp), found "${coreResult.drift.actual}". ` +
           `Run \`npm run sync:versions\` to fix it.`
         );
       } else {
@@ -230,7 +230,7 @@ export function syncVersions({
     if (!depResult.ok) {
       if (depResult.drift) {
         errors.push(
-          `innfo-mcp dependency @cognnitive/nn-core drift in ${mcpPkgPath}: ` +
+          `nn-mcp dependency @cognnitive/nn-core drift in ${mcpPkgPath}: ` +
           `expected "${depResult.drift.expected}", found "${depResult.drift.actual}". ` +
           `Run \`npm run sync:versions\` to fix it.`
         );

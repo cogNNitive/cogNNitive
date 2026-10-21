@@ -113,9 +113,9 @@ condition:: Domain model updated
 input:: [[Updated Domain Model]]
 output:: [[Verified Target Domain Model]]
 output_status:: verified
-tool:: [[innfo-mcp]]
+tool:: [[nn-mcp]]
 scope:: internal
-Execute validate_knowledge on the target domain model via innfo-mcp to ensure reference integrity and schema compliance.
+Execute validate_knowledge on the target domain model via nn-mcp to ensure reference integrity and schema compliance.
 
 # NN Tools
 
@@ -139,7 +139,7 @@ Built-in scanner script normalizing staged imports into Markdown with provenance
 scope:: internal
 Tool for writing staged transcripts and editing Level 3 model files.
 
-## NN Tools: innfo-mcp
+## NN Tools: nn-mcp
 scope:: internal
 Deterministic MCP server validating iNNfo models against Level 2 templates.
 
@@ -210,7 +210,7 @@ Human owner reviewing transcripts, confirming entity mappings, and approving mod
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | ASR Transcription Engine | nn-sources Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | ASR Transcription Engine | nn-sources Scanner | File Editor | nn-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Transcribe Audio Sources | Uses | - | - | - | - | - |
 | Discover Raw Audio Files | - | Uses | - | - | - | - |

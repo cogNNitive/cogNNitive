@@ -52,7 +52,7 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_procedures_NN.md',
-    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-4-0_procedures_NN.md')
+    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-5-0_procedures_NN.md')
   },
   {
     source: 'Ghostbusters_projects_NN.md',

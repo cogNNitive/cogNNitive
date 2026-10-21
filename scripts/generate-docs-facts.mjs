@@ -5,8 +5,8 @@
  *
  * Derives two generated regions from their canonical sources (design
  * D1/D2/D3/D4/D5):
- *   - `mcp-tools` in docs/innfo/documentation/innfo-mcp.md, from the built
- *     innfo-mcp tool registry.
+ *   - `mcp-tools` in docs/innfo/documentation/nn-mcp.md, from the built
+ *     nn-mcp tool registry.
  *   - `skills-catalog` in docs/skills/documentation/README.md, from
  *     manifest/source.yaml. Before rendering, this job also enforces that
  *     the iNNfo model's canonical-skills Page set equals the source.yaml
@@ -61,7 +61,7 @@ const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'ser
 // skill's own SKILL.md (design D4), so the skill ships an accurate tool
 // inventory instead of a hand-typed count.
 const MCP_TARGET_RELATIVE_PATHS = [
-  path.join('docs', 'innfo', 'documentation', 'innfo-mcp.md'),
+  path.join('docs', 'innfo', 'documentation', 'nn-mcp.md'),
   path.join('skills', 'nn-innfo', 'SKILL.md'),
 ];
 
@@ -155,7 +155,7 @@ function writeOrCheck({ targetPath, currentContent, rendered, check, log, logErr
 async function runMcpToolsJob(cwd, check, against, execFile, log, logError) {
   const distPath = path.join(cwd, DIST_RELATIVE_PATH);
   if (!fs.existsSync(distPath)) {
-    logError(`FAIL: innfo-mcp build artifact not found at: ${distPath}. Build it first (npm --workspace=@cognnitive/nn-mcp run build).`);
+    logError(`FAIL: nn-mcp build artifact not found at: ${distPath}. Build it first (npm --workspace=@cognnitive/nn-mcp run build).`);
     return 2;
   }
 

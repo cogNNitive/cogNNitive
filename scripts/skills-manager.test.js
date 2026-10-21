@@ -500,16 +500,16 @@ agent-bootstrap:
       version: "V_0-5-13"
       commit: "${skillCommit}"
       mcp:
-        - name: innfo-mcp
+        - name: nn-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
           version: "0.27.0"
-          ref: "innfo-mcp-v0.27.0"
+          ref: "nn-mcp-v0.27.0"
           commit: "${mcpCommit}"
-          url: ${base}/innfo-mcp.bundle.js
+          url: ${base}/nn-mcp.bundle.js
 ---
 # Manifest`);
-    } else if (req.url === '/innfo-mcp.bundle.js') {
+    } else if (req.url === '/nn-mcp.bundle.js') {
       res.writeHead(200, { 'Content-Type': 'application/javascript' });
       res.end('module.exports = {};\n');
     } else {
@@ -527,36 +527,36 @@ agent-bootstrap:
     assert.strictEqual(st.status, 0, `status must succeed. stderr: ${st.stderr}`);
     assert.match(
       st.stdout,
-      /mcp\s*\|\s*innfo-mcp\s*\|\s*94e43df\s*\|\s*-\s*\|\s*missing/,
+      /mcp\s*\|\s*nn-mcp\s*\|\s*94e43df\s*\|\s*-\s*\|\s*missing/,
       `status must list the nested MCP server. Got:\n${st.stdout}`,
     );
 
     // install downloads the missing bundle and records { commit, version, updated_at }
     const ins = await spawnAsync([managerScript, 'install', ...commonFlags, '--yes'], { env });
     assert.strictEqual(ins.status, 0, `install must succeed. stderr: ${ins.stderr}`);
-    assert.ok(fs.existsSync(path.join(mcpDir, 'innfo-mcp.bundle.js')), 'install must download the MCP bundle');
+    assert.ok(fs.existsSync(path.join(mcpDir, 'nn-mcp.bundle.js')), 'install must download the MCP bundle');
     let state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-    assert.strictEqual(state.mcp['innfo-mcp'].commit, mcpCommit, 'install must record the MCP commit');
-    assert.strictEqual(state.mcp['innfo-mcp'].version, '0.27.0', 'install must record the MCP version');
-    assert.ok(state.mcp['innfo-mcp'].updated_at, 'install must record updated_at');
+    assert.strictEqual(state.mcp['nn-mcp'].commit, mcpCommit, 'install must record the MCP commit');
+    assert.strictEqual(state.mcp['nn-mcp'].version, '0.27.0', 'install must record the MCP version');
+    assert.ok(state.mcp['nn-mcp'].updated_at, 'install must record updated_at');
 
     // update upgrades an outdated bundle
-    state.mcp['innfo-mcp'].commit = '0'.repeat(40);
+    state.mcp['nn-mcp'].commit = '0'.repeat(40);
     fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf-8');
     const upd = await spawnAsync([managerScript, 'update', ...commonFlags, '--yes'], { env });
     assert.strictEqual(upd.status, 0, `update must succeed. stderr: ${upd.stderr}`);
-    assert.match(upd.stdout, /updated MCP innfo-mcp -> 0\.27\.0/, `update must upgrade the MCP bundle. Got:\n${upd.stdout}`);
+    assert.match(upd.stdout, /updated MCP nn-mcp -> 0\.27\.0/, `update must upgrade the MCP bundle. Got:\n${upd.stdout}`);
     state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-    assert.strictEqual(state.mcp['innfo-mcp'].commit, mcpCommit, 'update must record the upgraded MCP commit');
-    assert.ok(state.mcp['innfo-mcp'].updated_at, 'update must record updated_at');
+    assert.strictEqual(state.mcp['nn-mcp'].commit, mcpCommit, 'update must record the upgraded MCP commit');
+    assert.ok(state.mcp['nn-mcp'].updated_at, 'update must record updated_at');
 
-    // positional filters: `update innfo-mcp` and `update mcp`
-    for (const filter of ['innfo-mcp', 'mcp']) {
-      state.mcp['innfo-mcp'].commit = '0'.repeat(40);
+    // positional filters: `update nn-mcp` and `update mcp`
+    for (const filter of ['nn-mcp', 'mcp']) {
+      state.mcp['nn-mcp'].commit = '0'.repeat(40);
       fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf-8');
       const r = await spawnAsync([managerScript, 'update', filter, ...commonFlags, '--yes'], { env });
       assert.strictEqual(r.status, 0, `update ${filter} must succeed. stderr: ${r.stderr}`);
-      assert.match(r.stdout, /updated MCP innfo-mcp/, `update ${filter} must select the MCP server. Got:\n${r.stdout}`);
+      assert.match(r.stdout, /updated MCP nn-mcp/, `update ${filter} must select the MCP server. Got:\n${r.stdout}`);
     }
 
     console.log('✔ Nested MCP server status/install/update + positional filters test passed');
@@ -564,6 +564,35 @@ agent-bootstrap:
     await new Promise((resolve) => server.close(resolve));
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
+}
+
+// 8d. D10: a pre-cutover `innfo-mcp` state entry, legacy bundle file and
+//     user-config key migrate to `nn-mcp`; re-running is a no-op.
+{
+  const { migrateLegacyMcpState } = require('./lib/skills-commands.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-mcp-migrate-'));
+  const mcpDir = path.join(tmpDir, 'mcp');
+  fs.mkdirSync(mcpDir, { recursive: true });
+  fs.writeFileSync(path.join(mcpDir, 'innfo-mcp.bundle.js'), '// legacy bundle\n');
+
+  const state = { mcp: { 'innfo-mcp': { commit: 'abc', version: '0.29.0' } } };
+  assert.strictEqual(migrateLegacyMcpState(state, mcpDir), true, 'first migration must report a change');
+  assert.deepStrictEqual(state.mcp['nn-mcp'], { commit: 'abc', version: '0.29.0' }, 'the state entry moves to nn-mcp');
+  assert.ok(!state.mcp['innfo-mcp'], 'the legacy state entry is gone');
+  assert.ok(fs.existsSync(path.join(mcpDir, 'nn-mcp.bundle.js')), 'the legacy bundle is renamed');
+  assert.ok(!fs.existsSync(path.join(mcpDir, 'innfo-mcp.bundle.js')), 'the legacy bundle is deleted');
+  assert.strictEqual(migrateLegacyMcpState(state, mcpDir), false, 'second migration changes nothing');
+
+  const { registerMcpForOpenCode } = require('./lib/mcp-config-adapter.js');
+  const configFile = path.join(tmpDir, 'opencode.json');
+  fs.writeFileSync(configFile, JSON.stringify({ mcp: { 'innfo-mcp': { type: 'local', command: ['node', 'x'], cwd: '.', enabled: true } } }), 'utf-8');
+  registerMcpForOpenCode({ configFile, serverName: 'nn-mcp', bundlePath: path.join(mcpDir, 'nn-mcp.bundle.js') });
+  const cfg = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+  assert.ok(!cfg.mcp['innfo-mcp'], 'the legacy config key is removed');
+  assert.ok(cfg.mcp['nn-mcp'], 'the nn-mcp config key is registered');
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  console.log('✔ D10 legacy innfo-mcp state/bundle/config migration is idempotent');
 }
 
 // 9. ADR-2 Ownership and unmanaged link/dir handling

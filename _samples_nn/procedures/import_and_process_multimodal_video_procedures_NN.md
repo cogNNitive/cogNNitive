@@ -125,9 +125,9 @@ condition:: Domain model updated
 input:: [[Updated Domain Model]]
 output:: [[Verified Target Domain Model]]
 output_status:: verified
-tool:: [[innfo-mcp]]
+tool:: [[nn-mcp]]
 scope:: internal
-Validate updated domain model via innfo-mcp to ensure reference integrity.
+Validate updated domain model via nn-mcp to ensure reference integrity.
 
 # NN Tools
 
@@ -155,7 +155,7 @@ Scanner script converting staged text to normalized Markdown with media linking.
 scope:: internal
 Tool for writing staged summaries and updating domain models.
 
-## NN Tools: innfo-mcp
+## NN Tools: nn-mcp
 scope:: internal
 Deterministic validation tool for iNNfo models.
 
@@ -204,7 +204,7 @@ Domain model file enriched with video source citations.
 ## NN Artifact: Verified Target Domain Model
 type:: report
 format:: status
-Validation confirmation from innfo-mcp.
+Validation confirmation from nn-mcp.
 
 # NN Roles
 
@@ -232,7 +232,7 @@ Human maintainer reviewing synthesized video summaries and approving model updat
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Media Processing Tool | Multimodal Extraction Engine | nn-sources Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Media Processing Tool | Multimodal Extraction Engine | nn-sources Scanner | File Editor | nn-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Process Multimodal Video | Uses | - | - | - | - | - | - |
 | Discover Raw Video Files | - | Uses | - | - | - | - | - |

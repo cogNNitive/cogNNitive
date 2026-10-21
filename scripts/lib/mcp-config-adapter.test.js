@@ -138,6 +138,35 @@ async function testMcpAdapter() {
       console.log('✔ Multi-agent registration (all) passed');
     }
 
+    // 6. D10: registering `nn-mcp` removes a stale `innfo-mcp` key (both formats)
+    {
+      const configFile = path.join(tmpDir, 'opencode-d10.json');
+      fs.writeFileSync(configFile, JSON.stringify({
+        mcp: { 'innfo-mcp': { type: 'local', command: ['node', 'old'], cwd: '.', enabled: true } }
+      }, null, 2), 'utf-8');
+
+      const bundlePath = path.join(tmpDir, 'nn-mcp.bundle.js');
+      const result = registerMcpForOpenCode({ configFile, serverName: 'nn-mcp', bundlePath });
+      assert.strictEqual(result.updated, true);
+      const updated = readJsonClean(configFile);
+      assert.ok(!updated.mcp['innfo-mcp'], 'the stale innfo-mcp key is removed');
+      assert.ok(updated.mcp['nn-mcp'], 'nn-mcp is registered');
+
+      // idempotent: a second identical registration changes nothing
+      const again = registerMcpForOpenCode({ configFile, serverName: 'nn-mcp', bundlePath });
+      assert.strictEqual(again.updated, false, 're-registering nn-mcp is a no-op');
+
+      const claudeFile = path.join(tmpDir, 'claude-d10.json');
+      fs.writeFileSync(claudeFile, JSON.stringify({
+        mcpServers: { 'innfo-mcp': { command: 'node', args: ['old'], cwd: '.' } }
+      }, null, 2), 'utf-8');
+      registerMcpForClaude({ configFile: claudeFile, serverName: 'nn-mcp', bundlePath });
+      const claude = readJsonClean(claudeFile);
+      assert.ok(!claude.mcpServers['innfo-mcp'], 'the stale innfo-mcp mcpServers key is removed');
+      assert.ok(claude.mcpServers['nn-mcp'], 'nn-mcp is registered in mcpServers');
+      console.log('✔ D10 stale innfo-mcp config-key migration passed');
+    }
+
     console.log('All mcp-config-adapter unit tests passed successfully!');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });

@@ -224,7 +224,7 @@ function testFindHandTypedFacts() {
       '| Tool | Description |',
       '<!-- /generated:mcp-tools -->',
     ].join('\n');
-    const violations = findHandTypedFacts([{ path: 'docs/innfo/documentation/innfo-mcp.md', content }]);
+    const violations = findHandTypedFacts([{ path: 'docs/innfo/documentation/nn-mcp.md', content }]);
     assert.strictEqual(violations.length, 0, 'generated region content is excluded from the scan');
   }
 

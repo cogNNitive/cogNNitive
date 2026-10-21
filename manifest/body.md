@@ -25,7 +25,7 @@ on a machine is recorded per-machine in `~/.agents/bootstrap-state.json` (like l
    `node scripts/skills-manager.js update`. Never silently update, and never report
    "installed and up to date" without having run the check.
 6. For each skill that declares `mcp[]`, download the bundle `url` into `{target}/mcp/{name}.bundle.js` (default: `~/.agents/mcp/{name}.bundle.js`) and register it in your agent MCP config (e.g. `opencode.jsonc`, `antigravity.json`, or workspace config).
-7. For each template declared in `templates:`, `innfo-mcp` resolves and hydrates versioned packages using 4-tier lookup:
+7. For each template declared in `templates:`, `nn-mcp` resolves and hydrates versioned packages using 4-tier lookup:
    - Workspace Package Directory: `./specs/bluepriNNts/<name>/<version>/`
    - Workspace Flat Fallback: `./templates/<name>_V_<version>_NN.md` or `./specs/`
    - Global User Cache: `~/.agents/templates/<name>/<version>/`

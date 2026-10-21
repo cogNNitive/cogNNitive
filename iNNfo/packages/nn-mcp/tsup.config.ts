@@ -27,7 +27,6 @@ export default defineConfig([
   {
     entry: {
       'nn-mcp.bundle': 'src/server.ts',
-      'innfo-mcp.bundle': 'src/server.ts',
     },
     format: 'esm',
     clean: false,

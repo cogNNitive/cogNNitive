@@ -6,7 +6,7 @@
  * a stale-mirror push failure (or CI "... Fresh" / "Docs-Derived Facts" guard)
  * is fixed by a single step instead of hunting for the right generator.
  *
- * Order: build nn-core and the innfo-mcp dist (generators read them), run each
+ * Order: build nn-core and the nn-mcp dist (generators read them), run each
  * freshness-guard generator (scripts/lib/freshness-guards.js), then the docs
  * facts. The generators are repeated until the --check guards pass (max 3
  * passes), because some generated files feed others.
@@ -36,7 +36,7 @@ function fail(what) {
 }
 
 if (run(npm, ['--workspace=@cognnitive/nn-core', 'run', 'build']) !== 0) fail('nn-core build');
-if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fail('innfo-mcp build:dist');
+if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fail('nn-mcp build:dist');
 
 const generate = [
   ...FRESHNESS_GUARDS.map((g) => [g.script]),
