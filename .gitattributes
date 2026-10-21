@@ -9,3 +9,7 @@
 *.svg text eol=lf
 *.bundle.js -diff
 test/fixtures/testlab/*.html -diff merge=binary
+
+# HTML extraction regression fixtures are byte-exact inputs — FT_55866 is a CRLF
+# document on purpose, so storing it normalized would silently stop testing CRLF.
+skills/nn-sources/test/fixtures/html/*.html -text
