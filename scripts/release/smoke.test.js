@@ -67,19 +67,19 @@ test('runSmokeTest fails on timeout when manifest is never served', async () => 
   );
 });
 
-test('runSmokeTest checks MCP bundle sha256 when releasing innfo-mcp', async () => {
+test('runSmokeTest checks MCP bundle sha256 when releasing nn-mcp', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'smoke-mcp-'));
   const bundleContent = 'console.log("mcp bundle test v0.12.0");';
   const bundleSha = crypto.createHash('sha256').update(bundleContent).digest('hex');
 
   const bundlePath = path.join(tmp, 'iNNfo', 'packages', 'nn-mcp', 'bin');
   fs.mkdirSync(bundlePath, { recursive: true });
-  fs.writeFileSync(path.join(bundlePath, 'innfo-mcp.bundle.js'), bundleContent);
+  fs.writeFileSync(path.join(bundlePath, 'nn-mcp.bundle.js'), bundleContent);
 
   const stagedManifest = '---\nagent-bootstrap:\n  version: "1.0.0"\n---\n# Staged';
 
   const fakeFetch = async (url) => {
-    if (url.includes('innfo-mcp-v0.12.0.bundle.js')) {
+    if (url.includes('nn-mcp-v0.12.0.bundle.js')) {
       return {
         status: 200,
         text: async () => bundleContent,
@@ -94,7 +94,7 @@ test('runSmokeTest checks MCP bundle sha256 when releasing innfo-mcp', async () 
   const result = await runSmokeTest({
     manifestUrl: 'https://cognnitive.com/use/manifest.md',
     stagedManifestText: stagedManifest,
-    key: 'innfo-mcp',
+    key: 'nn-mcp',
     version: '0.12.0',
     repoRoot: tmp,
     pollIntervalMs: 5,
@@ -107,7 +107,7 @@ test('runSmokeTest checks MCP bundle sha256 when releasing innfo-mcp', async () 
 
   // Mismatched bundle sha fails
   const mismatchFetch = async (url) => {
-    if (url.includes('innfo-mcp-v0.12.0.bundle.js')) {
+    if (url.includes('nn-mcp-v0.12.0.bundle.js')) {
       return {
         status: 200,
         text: async () => 'DIFFERENT BYTES',
@@ -124,7 +124,7 @@ test('runSmokeTest checks MCP bundle sha256 when releasing innfo-mcp', async () 
       runSmokeTest({
         manifestUrl: 'https://cognnitive.com/use/manifest.md',
         stagedManifestText: stagedManifest,
-        key: 'innfo-mcp',
+        key: 'nn-mcp',
         version: '0.12.0',
         repoRoot: tmp,
         pollIntervalMs: 5,

@@ -22,7 +22,7 @@ function makeRepoWithConsolePackage(version) {
   if (version !== undefined) {
     fs.writeFileSync(
       path.join(pkgDir, 'package.json'),
-      JSON.stringify({ name: '@cognnitive/innfo-console', version, private: true }, null, 2),
+      JSON.stringify({ name: '@cognnitive/nn-console', version, private: true }, null, 2),
       'utf8'
     );
   }
@@ -38,10 +38,10 @@ function main() {
     try {
       const info = getConsoleReleaseInfo(dir);
       assert.strictEqual(info.version, '0.2.0');
-      assert.strictEqual(info.cdnRef, 'innfo-console-v0.2.0');
+      assert.strictEqual(info.cdnRef, 'nn-console-v0.2.0');
       assert.strictEqual(
         info.cdnUrl,
-        'https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive-web@innfo-console-v0.2.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js',
+        'https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive-web@nn-console-v0.2.0/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js',
       );
       console.log('✔ Derives version and CDN URL from console package.json');
     } finally {
@@ -55,7 +55,7 @@ function main() {
     try {
       const info = getConsoleReleaseInfo(dir);
       assert.strictEqual(info.version, '0.3.0');
-      assert.match(info.cdnUrl, /innfo-console-v0\.3\.0/);
+      assert.match(info.cdnUrl, /nn-console-v0\.3\.0/);
       console.log('✔ Bumped package.json is reflected without code changes');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });

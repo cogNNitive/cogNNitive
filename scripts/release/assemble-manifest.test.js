@@ -28,13 +28,13 @@ agent-bootstrap:
       commit: "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"
       description: iNNfo
       mcp:
-        - name: innfo-mcp
+        - name: nn-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
           version: "0.11.0"
-          ref: "innfo-mcp-v0.11.0"
+          ref: "nn-mcp-v0.11.0"
           commit: "bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/bbbb2222bbbb2222bbbb2222bbbb2222bbbb2222/iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
   blueprints:
     - name: workspace_spec_NN
       repo: cogNNitive/cogNNitive-web
@@ -45,7 +45,7 @@ agent-bootstrap:
   console-assets:
     - file: docs/console/index.html
       version: "0.2.0"
-      ref: "innfo-console-v0.2.0"
+      ref: "nn-console-v0.2.0"
       commit: "dddd4444dddd4444dddd4444dddd4444dddd4444"
       url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/dddd4444dddd4444dddd4444dddd4444dddd4444/docs/console/index.html
   workflows:
@@ -76,10 +76,10 @@ const SOURCE_YAML = {
       description: 'iNNfo',
       mcp: [
         {
-          name: 'innfo-mcp',
+          name: 'nn-mcp',
           repo: 'cogNNitive/cogNNitive-web',
-          path: 'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
-          ref_key: 'innfo-mcp',
+          path: 'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js',
+          ref_key: 'nn-mcp',
         },
       ],
     },
@@ -97,7 +97,7 @@ const SOURCE_YAML = {
       name: 'console-index',
       file: 'docs/console/index.html',
       repo: 'cogNNitive/cogNNitive-web',
-      ref_key: 'innfo-console',
+      ref_key: 'nn-console',
     },
   ],
   workflows: [
@@ -125,13 +125,13 @@ test('assembleManifest preserves other pins and updates released key', () => {
   assert.ok(result.manifestText.includes('ref: "blueprints-v0.19.2"'));
   assert.ok(result.manifestText.includes('commit: "cccc3333cccc3333cccc3333cccc3333cccc3333"'));
   // Nested MCP pin retained from previous manifest
-  assert.ok(result.manifestText.includes('ref: "innfo-mcp-v0.11.0"'));
+  assert.ok(result.manifestText.includes('ref: "nn-mcp-v0.11.0"'));
   assert.ok(result.manifestText.includes('version: "0.11.0"'));
 });
 
-test('assembleManifest releasing innfo-mcp updates nested mcp pin while preserving skill pin', () => {
+test('assembleManifest releasing nn-mcp updates nested mcp pin while preserving skill pin', () => {
   const result = assembleManifest({
-    releaseTag: 'innfo-mcp-v0.12.0',
+    releaseTag: 'nn-mcp-v0.12.0',
     contentSha: 'ffff6666ffff6666ffff6666ffff6666ffff6666',
     source: SOURCE_YAML,
     prevManifestText: PREV_MANIFEST,
@@ -143,7 +143,7 @@ test('assembleManifest releasing innfo-mcp updates nested mcp pin while preservi
   assert.ok(result.manifestText.includes('ref: "skills-v2.9.0"'));
   assert.ok(result.manifestText.includes('commit: "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111"'));
   // Nested MCP pin updated
-  assert.ok(result.manifestText.includes('ref: "innfo-mcp-v0.12.0"'));
+  assert.ok(result.manifestText.includes('ref: "nn-mcp-v0.12.0"'));
   assert.ok(result.manifestText.includes('commit: "ffff6666ffff6666ffff6666ffff6666ffff6666"'));
   assert.ok(result.manifestText.includes('version: "0.12.0"'));
 });
@@ -182,7 +182,7 @@ test('assembleManifest fails with a clear message when a console asset has no pr
     ...SOURCE_YAML,
     consoleAssets: [
       ...SOURCE_YAML.consoleAssets,
-      { name: 'console-new', file: 'scripts/console-views.mjs', repo: 'cogNNitive/cogNNitive-web', ref_key: 'innfo-console' },
+      { name: 'console-new', file: 'scripts/console-views.mjs', repo: 'cogNNitive/cogNNitive-web', ref_key: 'nn-console' },
     ],
   };
   assert.throws(
@@ -198,7 +198,7 @@ test('assembleManifest fails with a clear message when a console asset has no pr
     (err) =>
       err instanceof AssembleManifestError &&
       /scripts\/console-views\.mjs/.test(err.message) &&
-      /innfo-console release/i.test(err.message)
+      /nn-console release/i.test(err.message)
   );
 });
 

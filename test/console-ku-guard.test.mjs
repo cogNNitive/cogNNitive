@@ -27,7 +27,7 @@ const LEGACY = [
 
 function consoleSources() {
   return readdirSync(consoleDir)
-    .filter((f) => f.endsWith('.js') && f !== 'innfo-console.bundle.js')
+    .filter((f) => f.endsWith('.js') && f !== 'nn-console.bundle.js')
     .map((f) => join(consoleDir, f))
 }
 

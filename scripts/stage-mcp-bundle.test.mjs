@@ -20,7 +20,7 @@ function makeRepo(bundleText, version = '1.2.3') {
   fs.mkdirSync(path.join(mcpDir, 'bin'), { recursive: true });
   fs.writeFileSync(path.join(mcpDir, 'package.json'), JSON.stringify({ version }), 'utf8');
   if (bundleText !== null) {
-    fs.writeFileSync(path.join(mcpDir, 'bin', 'innfo-mcp.bundle.js'), bundleText);
+    fs.writeFileSync(path.join(mcpDir, 'bin', 'nn-mcp.bundle.js'), bundleText);
   }
   return root;
 }
@@ -31,7 +31,7 @@ function makeRepo(bundleText, version = '1.2.3') {
   const root = makeRepo(bytes);
   const docsRoot = path.join(root, 'out-docs');
   const result = stageMcpBundle({ repoRoot: root, docsRoot });
-  const staged = path.join(docsRoot, 'innfo', 'cdn', 'innfo-mcp-v1.2.3.bundle.js');
+  const staged = path.join(docsRoot, 'innfo', 'cdn', 'nn-mcp-v1.2.3.bundle.js');
   assert.ok(fs.readFileSync(staged).equals(bytes), 'CDN bytes equal the committed bundle');
   assert.strictEqual(result.version, '1.2.3');
   const manifest = JSON.parse(fs.readFileSync(path.join(docsRoot, 'innfo', 'cdn', 'manifest.json'), 'utf8'));
@@ -45,7 +45,7 @@ function makeRepo(bundleText, version = '1.2.3') {
   const docsRoot = path.join(root, 'out-docs');
   assert.throws(() => stageMcpBundle({ repoRoot: root, docsRoot }), /code-split/);
   assert.ok(
-    !fs.existsSync(path.join(docsRoot, 'innfo', 'cdn', 'innfo-mcp-v1.2.3.bundle.js')),
+    !fs.existsSync(path.join(docsRoot, 'innfo', 'cdn', 'nn-mcp-v1.2.3.bundle.js')),
     'broken bundle is not left in the CDN dir',
   );
   console.log('✔ fails on code-split output');
@@ -61,7 +61,7 @@ function makeRepo(bundleText, version = '1.2.3') {
 // 4. build-docs.mjs no longer stages the CDN bundle.
 {
   const src = fs.readFileSync(path.join(here, 'build-docs.mjs'), 'utf8');
-  assert.ok(!src.includes('innfo-mcp.bundle.js'), 'build-docs.mjs must not reference the MCP bundle');
+  assert.ok(!src.includes('nn-mcp.bundle.js'), 'build-docs.mjs must not reference the MCP bundle');
   assert.ok(!/cdnDir|cdn\/manifest\.json/.test(src), 'build-docs.mjs must not stage the CDN dir');
   console.log('✔ build-docs.mjs does not stage the CDN bundle');
 }

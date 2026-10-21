@@ -16,6 +16,41 @@ class AssembleManifestError extends Error {
   }
 }
 
+/**
+ * Transient, assemble-time only (design D3). The first `nn-*` releases must still find
+ * the pins of the last published `innfo-*` manifest, whose entries carry the old names
+ * or the old asset file names. The map is code, never data: it cannot reach a published
+ * manifest, and it is deleted in the cleanup commit right after the first cutover
+ * releases. A retained entry keeps the previous identity VERBATIM, so the published
+ * pin only changes when that asset ships under its new name in its own release.
+ *
+ * @type {{ mcpNames: Record<string, string>, consoleFiles: Record<string, string> }}
+ */
+const PREVIOUS_PIN_RENAMES = {
+  mcpNames: { 'nn-mcp': 'innfo-mcp' },
+  consoleFiles: {
+    'iNNfo/specs/bluepriNNts/console/nn-console.bundle.js': 'iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js',
+    'iNNfo/specs/bluepriNNts/console/nn-ui.css': 'iNNfo/specs/bluepriNNts/console/innfo-ui.css',
+  },
+};
+
+/** Finds a previous console asset by its current name, else by its pre-cutover name. */
+function findPrevConsoleAsset(prevAssets, file) {
+  const exact = prevAssets.find((a) => a.file === file);
+  if (exact) return exact;
+  const renamedFrom = PREVIOUS_PIN_RENAMES.consoleFiles[file];
+  return renamedFrom ? prevAssets.find((a) => a.file === renamedFrom) : undefined;
+}
+
+/** Finds a previous MCP entry by its current name, else by its pre-cutover name. */
+function findPrevMcp(prevSkill, name) {
+  const entries = prevSkill.mcp || [];
+  const exact = entries.find((pm) => pm.name === name);
+  if (exact) return exact;
+  const renamedFrom = PREVIOUS_PIN_RENAMES.mcpNames[name];
+  return renamedFrom ? entries.find((pm) => pm.name === renamedFrom) : undefined;
+}
+
 function parseSemver(v) {
   const parts = String(v || '').replace(/^v/, '').split('.').map(Number);
   return parts.length === 3 && parts.every((n) => !isNaN(n)) ? parts : null;
@@ -196,22 +231,22 @@ function assembleManifest(params) {
       const match = b.ref.match(/blueprints-v(\d+\.\d+\.\d+)/);
       if (match) prevVersion = match[1];
     }
-  } else if (key === 'innfo-mcp') {
+  } else if (key === 'nn-mcp') {
     for (const s of prev.skills) {
       if (s.mcp && s.mcp[0] && s.mcp[0].ref) {
         prevRef = s.mcp[0].ref;
-        const match = s.mcp[0].ref.match(/innfo-mcp-v(\d+\.\d+\.\d+)/);
+        const match = s.mcp[0].ref.match(/(?:nn|innfo)-mcp-v(\d+\.\d+\.\d+)/);
         if (match) {
           prevVersion = match[1];
           break;
         }
       }
     }
-  } else if (key === 'innfo-console') {
+  } else if (key === 'nn-console') {
     const c = prev.consoleAssets[0];
     if (c && c.ref) {
       prevRef = c.ref;
-      const match = c.ref.match(/innfo-console-v(\d+\.\d+\.\d+)/);
+      const match = c.ref.match(/(?:nn|innfo)-console-v(\d+\.\d+\.\d+)/);
       if (match) prevVersion = match[1];
     }
   }
@@ -241,7 +276,7 @@ function assembleManifest(params) {
   const requirePin = (kind, name, ref, commit) => {
     if (!ref || !commit) {
       throw new AssembleManifestError(
-        `${kind} '${name}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Release its own key first (skills-v*, blueprints-v*, innfo-mcp-v*).`
+        `${kind} '${name}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Release its own key first (skills-v*, blueprints-v*, nn-mcp-v*).`
       );
     }
   };
@@ -274,10 +309,10 @@ function assembleManifest(params) {
 
     const mcp = [];
     for (const m of skill.mcp || []) {
-      const prevMcp = (prevSkill.mcp || []).find((pm) => pm.name === m.name) || {};
+      const prevMcp = findPrevMcp(prevSkill, m.name) || {};
       let mRef, mCommit, mVersion, mUrl;
 
-      if (key === 'innfo-mcp') {
+      if (key === 'nn-mcp') {
         mRef = releaseTag;
         mCommit = contentSha;
         mVersion = readVersion ? readVersion({ ...m, section: 'mcp' }) : m.version || newVersion;
@@ -347,10 +382,11 @@ function assembleManifest(params) {
 
   // 3. Console Assets
   for (const asset of source.consoleAssets || []) {
-    const prevAsset = prev.consoleAssets.find((a) => a.file === asset.file) || {};
-    let aRef, aCommit, aVersion, aUrl;
+    const prevAsset = findPrevConsoleAsset(prev.consoleAssets, asset.file) || {};
+    let aRef, aCommit, aVersion, aUrl, aFile;
 
-    if (key === 'innfo-console') {
+    if (key === 'nn-console') {
+      aFile = asset.file;
       aRef = releaseTag;
       aCommit = contentSha;
       aVersion = readVersion ? readVersion({ ...asset, section: 'console' }) : asset.version || newVersion;
@@ -358,20 +394,23 @@ function assembleManifest(params) {
     } else {
       if (!prevAsset.ref || !prevAsset.commit) {
         throw new AssembleManifestError(
-          `Console asset '${asset.file}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Cut an innfo-console release (innfo-console-v*) that carries this asset before any other release.`
+          `Console asset '${asset.file}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Cut an nn-console release (nn-console-v*) that carries this asset before any other release.`
         );
       }
       aRef = prevAsset.ref;
       aCommit = prevAsset.commit;
       aVersion = prevAsset.version;
-      aUrl = prevAsset.url || (aRef && aCommit ? `https://raw.githubusercontent.com/${asset.repo}/${aCommit}/${asset.file}` : undefined);
+      // Retained verbatim (design D3): until this asset ships under its new name in its own
+      // release, the published entry keeps the previous file name and URL byte-identically.
+      aFile = prevAsset.file;
+      aUrl = prevAsset.url || (aRef && aCommit ? `https://raw.githubusercontent.com/${asset.repo}/${aCommit}/${aFile}` : undefined);
       if (aRef && aCommit) {
-        verifyRetainedPin(asset.file, aRef, aCommit);
+        verifyRetainedPin(aFile, aRef, aCommit);
       }
     }
 
     model.consoleAssets.push({
-      file: asset.file,
+      file: aFile,
       version: aVersion,
       ref: aRef,
       commit: aCommit,

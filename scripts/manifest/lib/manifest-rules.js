@@ -358,7 +358,7 @@ async function validateMcp(entry, policy) {
 }
 
 /**
- * Validates a console asset bundle entry (innfo-console.bundle.js) against
+ * Validates a console asset bundle entry (nn-console.bundle.js) against
  * structural, existence, and channel policies. Mirrors validateMcp: the asset
  * is a committed JS bundle pinned by commit + version + ref.
  * @param {{ file: string, repo: string, version: string, ref: string, commit: string, url?: string, path?: string }} entry

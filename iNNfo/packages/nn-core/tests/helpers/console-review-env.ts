@@ -29,7 +29,7 @@ export const blueprintsDir = join(iNNfoDir, 'specs', 'bluepriNNts')
 // `render-model-viewer.js` are gone.
 export const shellPath = join(consoleDir, 'artifact_shell.html')
 
-const CONSOLE_SOURCES = ['ui-kit.js', 'review.js', 'innfo-runtime.js']
+const CONSOLE_SOURCES = ['ui-kit.js', 'review.js', 'nn-runtime.js']
 
 type Env = {
   dom: JSDOM
@@ -105,7 +105,7 @@ export function createConsoleEnv() {
     clearCache()
     g.InnfoUI = req(join(consoleDir, 'ui-kit.js'))
     g.InnfoReview = req(join(consoleDir, 'review.js'))
-    g.InnfoConsole = req(join(consoleDir, 'innfo-runtime.js'))
+    g.InnfoConsole = req(join(consoleDir, 'nn-runtime.js'))
     return {
       UI: g.InnfoUI,
       Review: g.InnfoReview,

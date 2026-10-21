@@ -1,7 +1,7 @@
 /**
  * scripts/lib/console-release-info.js
  *
- * Single source of truth for the innfo-console release identity (bundle
+ * Single source of truth for the nn-console release identity (bundle
  * version + CDN pin), derived from `iNNfo/specs/bluepriNNts/console/package.json`
  * instead of duplicated as hardcoded literals (AD-6).
  */
@@ -33,9 +33,9 @@ function getConsoleReleaseInfo(repoRoot = process.cwd()) {
   }
 
   const version = String(pkg.version);
-  const cdnRef = `innfo-console-v${version}`;
+  const cdnRef = `nn-console-v${version}`;
   const repoSlug = 'cogNNitive/cogNNitive-web';
-  const cdnUrl = `https://cdn.jsdelivr.net/gh/${repoSlug}@${cdnRef}/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js`;
+  const cdnUrl = `https://cdn.jsdelivr.net/gh/${repoSlug}@${cdnRef}/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js`;
 
   return { version, cdnRef, cdnUrl };
 }

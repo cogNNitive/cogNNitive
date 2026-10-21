@@ -20,8 +20,8 @@ const SUBSYSTEM_PATHS = {
   skills: ['skills/'],
   blueprints: ['iNNfo/specs/bluepriNNts/'],
   templates: ['iNNfo/specs/bluepriNNts/'],
-  'innfo-mcp': ['iNNfo/packages/nn-mcp/'],
-  'innfo-console': ['iNNfo/specs/bluepriNNts/console/', 'scripts/export-console.mjs', 'scripts/console-views.mjs'],
+  'nn-mcp': ['iNNfo/packages/nn-mcp/'],
+  'nn-console': ['iNNfo/specs/bluepriNNts/console/', 'scripts/export-console.mjs', 'scripts/console-views.mjs'],
 };
 
 function parseSemver(v) {
@@ -60,7 +60,7 @@ function findNewestTag(key, runGit) {
 
   const valid = [];
   for (const tag of allTags) {
-    const m = tag.match(/^(?:skills|blueprints|templates|innfo-mcp|innfo-console)-v(\d+\.\d+\.\d+)$/);
+    const m = tag.match(/^(?:skills|blueprints|templates|nn-mcp|nn-console)-v(\d+\.\d+\.\d+)$/);
     if (m) {
       valid.push({ tag, version: m[1] });
     }

@@ -405,12 +405,12 @@ agent-bootstrap:
   console-assets:
     - file: scripts/export-console.mjs
       version: "0.10.0"
-      ref: "innfo-console-v0.10.0"
+      ref: "nn-console-v0.10.0"
       commit: "2222222222222222222222222222222222222222"
       url: ${base}/export-console.mjs
     - file: scripts/console-views.mjs
       version: "0.10.0"
-      ref: "innfo-console-v0.10.0"
+      ref: "nn-console-v0.10.0"
       commit: "2222222222222222222222222222222222222222"
       url: ${base}/console-views.mjs
 ---

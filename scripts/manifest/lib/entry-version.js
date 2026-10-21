@@ -2,7 +2,7 @@
  * scripts/manifest/lib/entry-version.js
  *
  * Single shared reader for reading authored entry versions across skills,
- * blueprints, innfo-mcp, and console.
+ * blueprints, nn-mcp, and console.
  */
 
 const { parseFocusedYaml, parseFrontmatter } = require('../../lib/yaml-parser.js');
@@ -63,7 +63,7 @@ function readBlueprintVersion(input) {
 }
 
 /**
- * Extracts version from innfo-mcp package.json.
+ * Extracts version from nn-mcp package.json.
  * @param {string | object} input
  * @returns {string | null}
  */
@@ -113,10 +113,10 @@ function readEntryVersion(params) {
   if (section === 'blueprints' || section === 'templates') {
     return readBlueprintVersion(content);
   }
-  if (section === 'mcp' || section === 'innfo-mcp') {
+  if (section === 'mcp' || section === 'nn-mcp' || section === 'innfo-mcp') {
     return readMcpVersion(content);
   }
-  if (section === 'console' || section === 'innfo-console' || section === 'console_assets') {
+  if (section === 'console' || section === 'nn-console' || section === 'innfo-console' || section === 'console_assets') {
     return readConsoleVersion(content);
   }
   return null;

@@ -1,9 +1,9 @@
 /**
- * Keeps the four lists that describe the innfo-console release surface in step:
+ * Keeps the four lists that describe the nn-console release surface in step:
  *   manifest/source.yaml console_assets  (what is pinned and installed)
- *   RELEASE_TABLE['innfo-console'].repoPaths  (what a console release copies)
+ *   RELEASE_TABLE['nn-console'].repoPaths  (what a console release copies)
  *   DISTRIBUTION_PATHS  (what reaches cogNNitive-web)
- *   SUBSYSTEM_PATHS['innfo-console']  (what the freshness report watches)
+ *   SUBSYSTEM_PATHS['nn-console']  (what the freshness report watches)
  * Adding a console asset to one and forgetting another ships a release that is
  * missing a file, or a freshness report that never notices it changed.
  */
@@ -50,8 +50,8 @@ test('console_assets basenames are unique (the installer places them flat)', () 
   assert.deepEqual(dupes, []);
 });
 
-test('RELEASE_TABLE innfo-console repoPaths match the console_assets files', () => {
-  assertSameSurface('RELEASE_TABLE[innfo-console].repoPaths', RELEASE_TABLE['innfo-console'].repoPaths);
+test('RELEASE_TABLE nn-console repoPaths match the console_assets files', () => {
+  assertSameSurface('RELEASE_TABLE[nn-console].repoPaths', RELEASE_TABLE['nn-console'].repoPaths);
 });
 
 test('DISTRIBUTION_PATHS covers every console asset', () => {
@@ -63,8 +63,8 @@ test('DISTRIBUTION_PATHS covers every console asset', () => {
   }
 });
 
-test('every innfo-console repoPath is distributed', () => {
-  for (const entry of RELEASE_TABLE['innfo-console'].repoPaths) {
+test('every nn-console repoPath is distributed', () => {
+  for (const entry of RELEASE_TABLE['nn-console'].repoPaths) {
     assert.ok(
       DISTRIBUTION_PATHS.some((d) => covers(d, entry)),
       `DISTRIBUTION_PATHS does not cover repoPath ${entry}`
@@ -72,6 +72,6 @@ test('every innfo-console repoPath is distributed', () => {
   }
 });
 
-test('freshness SUBSYSTEM_PATHS innfo-console matches the console_assets files', () => {
-  assertSameSurface('SUBSYSTEM_PATHS[innfo-console]', SUBSYSTEM_PATHS['innfo-console']);
+test('freshness SUBSYSTEM_PATHS nn-console matches the console_assets files', () => {
+  assertSameSurface('SUBSYSTEM_PATHS[nn-console]', SUBSYSTEM_PATHS['nn-console']);
 });

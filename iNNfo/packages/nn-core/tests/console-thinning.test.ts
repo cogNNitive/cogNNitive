@@ -14,7 +14,7 @@ const assets = {
 const timelineView = join(templatesDir, 'metrics', 'assets', 'console-view-timeline.js')
 
 // Markers that would indicate a duplicated inline copy of the shared runtime.
-// Static <script src="...innfo-runtime.js"> tags are REQUIRED (not markers).
+// Static <script src="...nn-runtime.js"> tags are REQUIRED (not markers).
 const INLINE_RUNTIME_MARKERS = [
   'INNFO_RUNTIME_INLINE',
   'innfo-runtime-inline',
@@ -39,7 +39,7 @@ describe.each([['shell', assets.shell]])('%s console asset', (_name, path) => {
 
   it('loads a shared runtime via static script tags', () => {
     const html = readAsset(path)
-    expect(html).toMatch(/innfo-(runtime|console\.bundle)\.js/)
+    expect(html).toMatch(/nn-(runtime|console\.bundle)\.js/)
     expect(html).not.toContain('type="module"')
   })
 
@@ -87,7 +87,7 @@ describe('timeline view asset', () => {
     const code = readAsset(timelineView)
     expect(code).toContain('registerView(')
     expect(code).toContain('renderTimelineGrid')
-    expect(code).not.toContain('innfo-console.bundle.js')
+    expect(code).not.toContain('nn-console.bundle.js')
     expect(code).not.toMatch(/^\s*(import|export)\b/m)
     for (const marker of ['const MODEL_DATA', 'const FORMULAS', 'const DEPS', 'const SERIES', 'new uPlot']) {
       expect(code).not.toContain(marker)

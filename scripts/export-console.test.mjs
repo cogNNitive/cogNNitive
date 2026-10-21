@@ -431,13 +431,13 @@ notes:: "Please review the tagline"
       const config = JSON.parse(configMatch[1])
 
       const bundle = await readFile(
-        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-console.bundle.js'),
         'utf-8',
       )
       const version = bundle.match(/\bVersion (\d+\.\d+\.\d+)\./)[1]
       assert.equal(
         config.runtime.cdn,
-        `https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v${version}/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js`,
+        `https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v${version}/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js`,
       )
     })
 
@@ -449,12 +449,12 @@ notes:: "Please review the tagline"
       const htmlContent = await readFile(htmlPath, 'utf-8')
 
       const bundle = await readFile(
-        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-console.bundle.js'),
         'utf-8',
       )
       const version = bundle.match(/\bVersion (\d+\.\d+\.\d+)\./)[1]
 
-      const refs = [...htmlContent.matchAll(/@innfo-console-v(\d+\.\d+\.\d+)/g)].map((m) => m[1])
+      const refs = [...htmlContent.matchAll(/@nn-console-v(\d+\.\d+\.\d+)/g)].map((m) => m[1])
       assert.ok(refs.length > 0, 'console CDN ref(s) present in output')
       assert.deepEqual(
         [...new Set(refs)],
@@ -473,9 +473,9 @@ notes:: "Please review the tagline"
       await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       for (const name of [
         'artifact_shell.html',
-        'innfo-console.bundle.js',
+        'nn-console.bundle.js',
         'console-payload.generated.cjs',
-        'innfo-ui.css',
+        'nn-ui.css',
       ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
@@ -507,9 +507,9 @@ notes:: "Please review the tagline"
       await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       // Installs made before the shell rename only carry the old filename.
       await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_blueprint.html'))
-      await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
+      await copyFile(join(consoleSrc, 'nn-console.bundle.js'), join(assetsDir, 'nn-console.bundle.js'))
       await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
-      await copyFile(join(consoleSrc, 'innfo-ui.css'), join(assetsDir, 'innfo-ui.css'))
+      await copyFile(join(consoleSrc, 'nn-ui.css'), join(assetsDir, 'nn-ui.css'))
 
       const { stdout } = await execFileAsync(
         process.execPath,
@@ -535,9 +535,9 @@ notes:: "Please review the tagline"
       await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_shell.html'))
       const shell = await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')
       await writeFile(join(assetsDir, 'artifact_blueprint.html'), shell.replace('<title>', '<title>STALE-LEGACY '))
-      await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
+      await copyFile(join(consoleSrc, 'nn-console.bundle.js'), join(assetsDir, 'nn-console.bundle.js'))
       await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
-      await copyFile(join(consoleSrc, 'innfo-ui.css'), join(assetsDir, 'innfo-ui.css'))
+      await copyFile(join(consoleSrc, 'nn-ui.css'), join(assetsDir, 'nn-ui.css'))
 
       await execFileAsync(
         process.execPath,
@@ -561,9 +561,9 @@ notes:: "Please review the tagline"
       await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       for (const name of [
         'artifact_shell.html',
-        'innfo-console.bundle.js',
+        'nn-console.bundle.js',
         'console-payload.generated.cjs',
-        'innfo-ui.css',
+        'nn-ui.css',
       ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
@@ -621,10 +621,10 @@ notes:: "Please review the tagline"
     const domainHtml = () => readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
     const assertWholeConsole = async (html) => {
       const bundle = await readFile(
-        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-console.bundle.js'),
         'utf-8',
       )
-      const banner = bundle.match(/innfo-console\.bundle\.js — single-file console runtime/)[0]
+      const banner = bundle.match(/nn-console\.bundle\.js — single-file console runtime/)[0]
       assert.equal(html.split(banner).length - 1, 1, 'bundle inlined once')
       assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
       assert.ok(
@@ -646,9 +646,9 @@ notes:: "Please review the tagline"
       for (const need of [
         'export-console.mjs',
         'console-views.mjs',
-        'innfo-ui.css',
+        'nn-ui.css',
         'console-payload.generated.cjs',
-        'innfo-console.bundle.js',
+        'nn-console.bundle.js',
         'artifact_shell.html',
       ]) {
         assert.ok(names.includes(need), need + ' must be a console_assets entry')

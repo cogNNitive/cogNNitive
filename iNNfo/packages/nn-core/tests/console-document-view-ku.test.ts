@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 
 const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const runtime = req(join(consoleDir, 'innfo-runtime.js')) as any
+const runtime = req(join(consoleDir, 'nn-runtime.js')) as any
 
 // Spec: console-ui-kit "Renderers Consume the Kit" — renderDocument builds
 // element and value units through Ku, addressed by canonical address.

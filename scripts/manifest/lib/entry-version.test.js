@@ -55,7 +55,7 @@ test('readMcpVersion extracts version from innfo-mcp package.json', () => {
 });
 
 test('readConsoleVersion extracts version from console package.json', () => {
-  const pkg = JSON.stringify({ name: '@cognnitive/innfo-console', version: '0.3.0', private: true });
+  const pkg = JSON.stringify({ name: '@cognnitive/nn-console', version: '0.3.0', private: true });
   assert.equal(readConsoleVersion(pkg), '0.3.0');
   assert.equal(readConsoleVersion({ version: '0.3.0' }), '0.3.0');
 });

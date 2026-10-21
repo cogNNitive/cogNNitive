@@ -296,12 +296,12 @@ Changed body.`));
         fs.writeFileSync(path.join(repo, rel), tpl('V_0-3-0'));
         g('add', '-A');
         g('commit', '-qm', 'release 0.3.0');
-        g('tag', 'innfo-console-v0.7.2');
+        g('tag', 'nn-console-v0.7.2');
         fs.writeFileSync(path.join(repo, rel), tpl('V_0-4-0'));
         g('add', '-A');
         g('commit', '-qm', 'bump blueprint_version to 0.4.0 on main');
         g('update-ref', 'refs/remotes/origin/main', 'HEAD');
-        g('checkout', '-q', 'innfo-console-v0.7.2');
+        g('checkout', '-q', 'nn-console-v0.7.2');
         const res = await runGuard(['--root', 'iNNfo/specs/bluepriNNts'], repo);
         assert.strictEqual(
           res.status,

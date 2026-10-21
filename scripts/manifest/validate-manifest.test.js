@@ -481,16 +481,16 @@ agent-bootstrap:
   skills: []
   blueprints: []
   console-assets:
-    - file: iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js
+    - file: iNNfo/specs/bluepriNNts/console/nn-console.bundle.js
       version: "0.1.0"
-      ref: "innfo-console-v0.1.0"
+      ref: "nn-console-v0.1.0"
       commit: "3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6"
-      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js
+      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js
 ---
 # Manifest`;
   const parsed = mod.parseManifest(manifestText);
   assert.strictEqual(parsed.consoleAssets.length, 1, 'console-assets must be parsed');
-  assert.strictEqual(parsed.consoleAssets[0].file, 'iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js');
+  assert.strictEqual(parsed.consoleAssets[0].file, 'iNNfo/specs/bluepriNNts/console/nn-console.bundle.js');
   assert.strictEqual(parsed.consoleAssets[0].version, '0.1.0');
 
   // validateConsoleAsset happy path: commit exists, ref resolves, provenance identical, path present
@@ -499,7 +499,7 @@ agent-bootstrap:
     { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
     { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
     { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
-    { status: 200, body: JSON.stringify({ name: 'innfo-console.bundle.js' }) }, // contents check
+    { status: 200, body: JSON.stringify({ name: 'nn-console.bundle.js' }) }, // contents check
   ]);
   try {
     const violations = await mod.validateConsoleAsset(entry, mod.CHANNELS.stable);

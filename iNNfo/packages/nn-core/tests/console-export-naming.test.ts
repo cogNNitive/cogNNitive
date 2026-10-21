@@ -12,7 +12,7 @@ const runtimePath = join(
   'specs',
   'bluepriNNts',
   'console',
-  'innfo-runtime.js',
+  'nn-runtime.js',
 )
 
 // nodeRequire aliases Node's require so the browser-first UMD bundle loads in tests.

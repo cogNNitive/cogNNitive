@@ -45,8 +45,8 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.0.0': '2026-09-16T08:41:12+00:00\n',
@@ -58,15 +58,15 @@ function main() {
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '3\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': 'iNNfo/specs/bluepriNNts/business/spec_01.md\n',
 
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
 
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, 9, 'skills drift must be 9');
@@ -91,22 +91,22 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': new Error('fatal: ambiguous argument'),
       'rev-parse blueprints-v0.18.0^{commit}': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n',
       'log -1 --format=%cI blueprints-v0.18.0': '2026-09-10T00:00:00+00:00\n',
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '0\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '',
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, null, 'unresolved tag must report null, never 0');
@@ -122,8 +122,8 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.0.0': '2026-09-16T08:41:12+00:00\n',
@@ -133,14 +133,14 @@ function main() {
       'log -1 --format=%cI blueprints-v0.18.0': '2026-09-10T00:00:00+00:00\n',
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '0\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '',
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, 0, 'zero drift must be reported as 0, not omitted');
@@ -159,8 +159,8 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.0.0': new Error('git: unexpected failure'),
@@ -168,14 +168,14 @@ function main() {
       'log -1 --format=%cI blueprints-v0.18.0': '2026-09-10T00:00:00+00:00\n',
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '3\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': 'iNNfo/specs/bluepriNNts/business/spec_01.md\n',
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, null, 'a mid-computation git failure must unresolve only that subsystem');
@@ -191,8 +191,8 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.0.0': '2026-09-16T08:41:12+00:00\n',
@@ -202,21 +202,21 @@ function main() {
       'log -1 --format=%cI blueprints-v0.18.0': '2026-09-10T00:00:00+00:00\n',
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '3\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '',
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const first = mod.computeFreshness({ runGit, head: HEAD });
     const second = mod.computeFreshness({ runGit, head: HEAD });
     assert.deepStrictEqual(Object.keys(first), Object.keys(second), 'subsystem key order must be stable across runs');
     assert.deepStrictEqual(
       Object.keys(first),
-      ['skills', 'blueprints', 'templates', 'innfo-mcp', 'innfo-console'],
+      ['skills', 'blueprints', 'templates', 'nn-mcp', 'nn-console'],
       'subsystem key order must match the declared SUBSYSTEM_PATHS table order'
     );
     console.log('✔ (e) output key order stable across runs');
@@ -230,8 +230,8 @@ function main() {
       'tag -l skills-v*': 'skills-v1.0.0\nskills-v2.10.0\nskills-v2.9.0\nskills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\nblueprints-v0.19.2\n',
       'tag -l templates-v*': 'templates-v0.17.0\n',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.12.0\ninnfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.6.0\ninnfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.12.0\nnn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.6.0\nnn-console-v0.2.0\n',
 
       'rev-parse skills-v2.10.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.10.0': '2026-09-16T08:41:12+00:00\n',
@@ -243,15 +243,15 @@ function main() {
       'rev-list --count blueprints-v0.19.2..HEAD -- iNNfo/specs/bluepriNNts/': '0\n',
       'diff --name-only blueprints-v0.19.2..HEAD -- iNNfo/specs/bluepriNNts/': '',
 
-      'rev-parse innfo-mcp-v0.12.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.12.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.12.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.12.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-mcp-v0.12.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.12.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.12.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.12.0..HEAD -- iNNfo/packages/nn-mcp/': '',
 
-      'rev-parse innfo-console-v0.6.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.6.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-console-v0.6.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.6.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.pinnedTag, 'skills-v2.10.0', 'baseline must be the newest semver tag');
@@ -268,8 +268,8 @@ function main() {
       'tag -l skills-v*': 'skills-v2.0.0\n',
       'tag -l blueprints-v*': 'blueprints-v0.18.0\n',
       'tag -l templates-v*': '',
-      'tag -l innfo-mcp-v*': 'innfo-mcp-v0.9.0\n',
-      'tag -l innfo-console-v*': 'innfo-console-v0.2.0\n',
+      'tag -l nn-mcp-v*': 'nn-mcp-v0.9.0\n',
+      'tag -l nn-console-v*': 'nn-console-v0.2.0\n',
 
       'rev-parse skills-v2.0.0^{commit}': '6ad8eb8000000000000000000000000000000000\n',
       'log -1 --format=%cI skills-v2.0.0': '2026-09-16T08:41:12+00:00\n',
@@ -281,15 +281,15 @@ function main() {
       'rev-list --count blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '0\n',
       'diff --name-only blueprints-v0.18.0..HEAD -- iNNfo/specs/bluepriNNts/': '',
 
-      'rev-parse innfo-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
-      'log -1 --format=%cI innfo-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
-      'rev-list --count innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
-      'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
+      'rev-parse nn-mcp-v0.9.0^{commit}': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n',
+      'log -1 --format=%cI nn-mcp-v0.9.0': '2026-09-01T00:00:00+00:00\n',
+      'rev-list --count nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '0\n',
+      'diff --name-only nn-mcp-v0.9.0..HEAD -- iNNfo/packages/nn-mcp/': '',
 
-      'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
-      'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
+      'rev-parse nn-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
+      'log -1 --format=%cI nn-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
+      'rev-list --count nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only nn-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     for (const key of ['subsystem', 'pinnedTag', 'pinnedTagDate', 'commitsSincePin', 'filesTouched']) {

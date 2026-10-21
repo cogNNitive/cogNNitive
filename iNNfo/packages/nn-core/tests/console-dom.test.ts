@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 
 /**
  * DOM-level contract of the generated console, previously asserted by the
- * Playwright suite `16-innfo-console.spec.ts` (deleted).
+ * Playwright suite `16-nn-console.spec.ts` (deleted).
  *
  * That suite drove a real Chromium, so nothing ran it: Playwright was never
  * wired into CI. Most of what it checked was pure logic reached through
@@ -78,7 +78,7 @@ function renderShell(): void {
 }
 
 function bootConsole(): ConsoleApi {
-  const api = req(join(consoleDir, 'innfo-runtime.js')) as ConsoleApi
+  const api = req(join(consoleDir, 'nn-runtime.js')) as ConsoleApi
   api.boot(document)
   return api
 }
@@ -89,7 +89,7 @@ function typeInto(selector: string, value: string): void {
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-describe('innfo-console — rendered DOM', () => {
+describe('nn-console — rendered DOM', () => {
   beforeEach(() => {
     renderShell()
   })
@@ -131,7 +131,7 @@ describe('innfo-console — rendered DOM', () => {
   })
 })
 
-describe('innfo-console — export gate', () => {
+describe('nn-console — export gate', () => {
   let downloads: string[]
   let clickSpy: ReturnType<typeof vi.spyOn>
 

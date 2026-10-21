@@ -6,13 +6,13 @@ import { createRequire } from 'node:module'
 import { installDialogStub } from './helpers/dialog-stub'
 
 /**
- * C4 — the `innfo-citation-dialog` in `innfo-runtime.js`. jsdom does not
+ * C4 — the `innfo-citation-dialog` in `nn-runtime.js`. jsdom does not
  * implement `HTMLDialogElement.showModal`, so `installDialogStub` adds it.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const runtimePath = join(consoleDir, 'innfo-runtime.js')
+const runtimePath = join(consoleDir, 'nn-runtime.js')
 const uiKitPath = join(consoleDir, 'ui-kit.js')
 const nodeRequire = createRequire(import.meta.url)
 
@@ -65,7 +65,7 @@ describe('InnfoUI.icon citation entries', () => {
   })
 })
 
-describe('innfo-runtime.js — renderCitationDialog', () => {
+describe('nn-runtime.js — renderCitationDialog', () => {
   beforeEach(() => {
     installDialogStub()
     document.documentElement.innerHTML = '<body></body>'

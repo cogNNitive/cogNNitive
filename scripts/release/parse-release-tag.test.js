@@ -21,15 +21,15 @@ test('parseReleaseTag accepts valid tags for each allowed key', () => {
     version: '0.20.0',
     tag: 'blueprints-v0.20.0',
   });
-  assert.deepEqual(parseReleaseTag('innfo-mcp-v0.12.0'), {
-    key: 'innfo-mcp',
+  assert.deepEqual(parseReleaseTag('nn-mcp-v0.12.0'), {
+    key: 'nn-mcp',
     version: '0.12.0',
-    tag: 'innfo-mcp-v0.12.0',
+    tag: 'nn-mcp-v0.12.0',
   });
-  assert.deepEqual(parseReleaseTag('innfo-console-v0.3.0'), {
-    key: 'innfo-console',
+  assert.deepEqual(parseReleaseTag('nn-console-v0.3.0'), {
+    key: 'nn-console',
     version: '0.3.0',
-    tag: 'innfo-console-v0.3.0',
+    tag: 'nn-console-v0.3.0',
   });
 });
 
@@ -101,12 +101,12 @@ test('parseReleaseTag validates annotated tag and ancestor-of-main git state', (
   fs.writeFileSync(path.join(tmp, 'feature.txt'), 'feature\n');
   git(['add', 'feature.txt']);
   git(['commit', '-m', 'feature commit']);
-  git(['tag', '-a', 'innfo-mcp-v0.12.0', '-m', 'release innfo-mcp-v0.12.0']);
+  git(['tag', '-a', 'nn-mcp-v0.12.0', '-m', 'release nn-mcp-v0.12.0']);
 
   // Return to main so feature-branch commit is not on main
   git(['checkout', 'main']);
   assert.throws(
-    () => parseReleaseTag('innfo-mcp-v0.12.0', { repoRoot: tmp, mainBranch: 'main' }),
+    () => parseReleaseTag('nn-mcp-v0.12.0', { repoRoot: tmp, mainBranch: 'main' }),
     (err) => err instanceof TagValidationError && /ancestor|not reachable/i.test(err.message)
   );
 });

@@ -13,7 +13,7 @@ const {
 } = require('./release-keys.js');
 
 test('RELEASE_KEYS contains exactly the 4 allowed keys', () => {
-  assert.deepEqual(RELEASE_KEYS, ['skills', 'blueprints', 'innfo-mcp', 'innfo-console']);
+  assert.deepEqual(RELEASE_KEYS, ['skills', 'blueprints', 'nn-mcp', 'nn-console']);
 });
 
 test('RELEASE_TABLE defines copied paths for every key', () => {
@@ -23,13 +23,13 @@ test('RELEASE_TABLE defines copied paths for every key', () => {
   assert.ok(RELEASE_TABLE.blueprints);
   assert.deepEqual(RELEASE_TABLE.blueprints.repoPaths, ['iNNfo/specs']);
 
-  assert.ok(RELEASE_TABLE['innfo-mcp']);
-  assert.deepEqual(RELEASE_TABLE['innfo-mcp'].repoPaths, [
-    'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
+  assert.ok(RELEASE_TABLE['nn-mcp']);
+  assert.deepEqual(RELEASE_TABLE['nn-mcp'].repoPaths, [
+    'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js',
   ]);
 
-  assert.ok(RELEASE_TABLE['innfo-console']);
-  assert.deepEqual(RELEASE_TABLE['innfo-console'].repoPaths, [
+  assert.ok(RELEASE_TABLE['nn-console']);
+  assert.deepEqual(RELEASE_TABLE['nn-console'].repoPaths, [
     'iNNfo/specs/bluepriNNts/console',
     'scripts/export-console.mjs',
     'scripts/console-views.mjs',
@@ -40,7 +40,7 @@ test('DISTRIBUTION_PATHS is derived from RELEASE_TABLE', () => {
   assert.ok(Array.isArray(DISTRIBUTION_PATHS));
   assert.ok(DISTRIBUTION_PATHS.includes('skills'));
   assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/specs'));
-  assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js'));
+  assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/export-console.mjs'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/console-views.mjs'));
 });

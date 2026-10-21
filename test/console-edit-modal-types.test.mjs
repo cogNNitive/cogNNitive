@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 const UI = require(join(consoleDir, 'ui-kit.js'))
-const InnfoConsole = require(join(consoleDir, 'innfo-runtime.js'))
+const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
 
 // Mounts UI.EditModal in a fresh jsdom document and returns the capture helpers.
 // The global window/document/localStorage mirror the pattern in

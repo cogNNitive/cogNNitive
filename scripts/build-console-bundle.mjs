@@ -2,7 +2,7 @@
 /**
  * scripts/build-console-bundle.mjs
  *
- * Builds or checks the single-file innfo-console bundle from the console package's UMD
+ * Builds or checks the single-file nn-console bundle from the console package's UMD
  * sources. Uses scripts/lib/console-bundle.js.
  *
  * Usage:
@@ -38,6 +38,6 @@ if (isCheck) {
   buildConsoleBundle(repoRoot, { write: true })
   const { version } = getConsoleReleaseInfo(repoRoot)
   const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
-  const outPath = join(consoleDir, 'innfo-console.bundle.js')
+  const outPath = join(consoleDir, 'nn-console.bundle.js')
   console.log(`wrote ${outPath} (${SOURCES.length} sources, version ${version})`)
 }

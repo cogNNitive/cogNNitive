@@ -4,7 +4,7 @@
  * Single source of truth for the console CDN pin carried by *generated* console
  * shells. The pin is never hand-typed: it is the release identity derived from
  * `iNNfo/specs/bluepriNNts/console/package.json` (see console-release-info.js) and
- * stamped into the `@innfo-console-v<version>` token of every jsDelivr script tag
+ * stamped into the `@nn-console-v<version>` token of every jsDelivr script tag
  * inside the `nn:console-shell` marker block.
  *
  * The rewrite is surgical — only the version token changes, so each shell keeps
@@ -22,7 +22,16 @@ const MARKER_END = '<!-- nn:console-shell:end -->';
 const BLOCK_RE = new RegExp(
   `${escapeRe(MARKER_START)}[\\s\\S]*?${escapeRe(MARKER_END)}`,
 );
-const JSDELIVR_PIN_RE = /(@innfo-console-v)\d+\.\d+\.\d+/g;
+/**
+ * Readers accept both families (design D7): the repo's generated shells carry
+ * `@nn-console-v`, while a stamped export published before the cutover still carries
+ * `@nn-console-v` and MUST keep resolving (its tag exists; `nn-console-v<old>` does not).
+ * Only `syncShellContent` writes, and it writes the canonical new family.
+ */
+const JSDELIVR_PIN_RE = /@(?:nn|innfo)-console-v(\d+\.\d+\.\d+)/g;
+const CONSOLE_PIN_PREFIX = '@nn-console-v';
+/** A stamped export may still point at the pre-cutover bundle file name. */
+const LEGACY_BUNDLE_NAME_RE = /\/nn-console\.bundle\.js/g;
 
 function escapeRe(s) {
   return s.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -43,11 +52,14 @@ function generatedBlocks(content) {
 function syncShellContent(content, version) {
   if (!BLOCK_RE.test(content)) return null;
   return content.replace(BLOCK_RE, (block) =>
-    block.replace(JSDELIVR_PIN_RE, `$1${version}`),
+    block
+      // Re-pinning a stamped export also moves it to the cutover file name and family.
+      .replace(LEGACY_BUNDLE_NAME_RE, '/nn-console.bundle.js')
+      .replace(JSDELIVR_PIN_RE, `${CONSOLE_PIN_PREFIX}${version}`),
   );
 }
 
-/** The pin in a shell's generated block (e.g. "innfo-console-v0.7.3"), or null. */
+/** The pin in a shell's generated block (e.g. "nn-console-v0.7.3"), or null. Reported in the family the shell carries. */
 function getGeneratedPin(content) {
   const block = generatedBlocks(content)[0];
   if (!block) return null;

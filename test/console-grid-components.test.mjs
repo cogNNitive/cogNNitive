@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-global.InnfoIcons = require(join(consoleDir, 'innfo-icons.js'))
+global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
 const UI = require(join(consoleDir, 'ui-kit.js'))
 
 describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () => {

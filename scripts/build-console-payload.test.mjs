@@ -69,7 +69,7 @@ function testExits1OnStaleMirror() {
 function testSlugMirrorCheck() {
   const tempDir = mkdtempSync(join(tmpdir(), 'payload-slug-test-'))
   const tempOut = join(tempDir, 'console-payload.generated.cjs')
-  const tempSlugOut = join(tempDir, 'innfo-slug.generated.js')
+  const tempSlugOut = join(tempDir, 'nn-slug.generated.js')
 
   try {
     execFileSync('node', [scriptPath, '--out', tempOut, '--slug-out', tempSlugOut], {

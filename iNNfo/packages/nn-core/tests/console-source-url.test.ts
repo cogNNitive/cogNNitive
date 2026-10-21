@@ -13,7 +13,7 @@ import { JSDOM } from 'jsdom'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const runtimePath = join(consoleDir, 'innfo-runtime.js')
+const runtimePath = join(consoleDir, 'nn-runtime.js')
 const shellPath = join(consoleDir, 'artifact_shell.html')
 
 const nodeRequire = createRequire(import.meta.url)

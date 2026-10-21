@@ -83,7 +83,7 @@ describe('console-views lib', () => {
   })
 
   describe('constants', () => {
-    const runtimeSource = readFileSync(join(consoleDir, 'innfo-runtime.js'), 'utf8')
+    const runtimeSource = readFileSync(join(consoleDir, 'nn-runtime.js'), 'utf8')
     const accepted = (id) => {
       try {
         InnfoConsole.createViewRegistry().register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
@@ -441,9 +441,9 @@ describe('console-views lib', () => {
 
       it('a bundle with the same strings does not swallow the rest of the page', async () => {
         const shell =
-          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./innfo-ui.css" /></head><body>' +
+          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./nn-ui.css" /></head><body>' +
           '<div id="elements"></div>' +
-          '<script src="./innfo-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->' +
+          '<script src="./nn-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->' +
           '<script>window.__after = 1</script><div id="after-div"></div></body>'
         const bundle = "window.__bundle = '<!-- <script>' + ' </script>'"
         const win = await parse(inlineConsoleAssets(shell, { bundle, css: '', views: [] }))
@@ -457,8 +457,8 @@ describe('console-views lib', () => {
         assert.doesNotThrow(() => assertClassicScript(code, 'src'))
         assert.throws(() => wrapView({ ...view, code }), /domaiNN:consoles\/views\/pipeline\.js.*cannot be embedded/s)
         const shell = [
-          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./innfo-ui.css" /></head>',
-          '<script src="./innfo-console.bundle.js"></script>',
+          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./nn-ui.css" /></head>',
+          '<script src="./nn-console.bundle.js"></script>',
           '<!-- nn:console-shell:start --><!-- nn:console-shell:end -->',
         ].join('\n')
         assert.throws(() => inlineConsoleAssets(shell, { bundle: code, css: '', views: [] }), /console bundle.*cannot be embedded/s)
@@ -494,8 +494,8 @@ describe('console-views lib', () => {
   describe('inlineConsoleAssets', () => {
     const shell = [
       '<head><meta name="viewport" content="x" />',
-      '<link rel="stylesheet" href="./innfo-ui.css" /></head><body>',
-      '<script src="./innfo-console.bundle.js"></script>',
+      '<link rel="stylesheet" href="./nn-ui.css" /></head><body>',
+      '<script src="./nn-console.bundle.js"></script>',
       '<!-- nn:console-shell:start -->',
       '<script src="https://cdn.example/x.js"></script>',
       '<script src="https://raw.example/x.js"></script>',
@@ -520,7 +520,7 @@ describe('console-views lib', () => {
     })
 
     it('fails when the shell carries two bundle blocks, instead of replacing only the first', () => {
-      const block = '<script src="./innfo-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->'
+      const block = '<script src="./nn-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->'
       const twice = shell.replace('</body>', block + '\n</body>')
       const args = { bundle: 'b', css: 'c', views: [] }
       assert.throws(() => assertInlinable(twice, args), /2 bundle script blocks/)
@@ -528,7 +528,7 @@ describe('console-views lib', () => {
     })
 
     it('fails on a bundle script tag left outside the replaced block', () => {
-      const stray = shell.replace('</body>', '<script src="https://cdn.example/innfo-console.bundle.js"></script>\n</body>')
+      const stray = shell.replace('</body>', '<script src="https://cdn.example/nn-console.bundle.js"></script>\n</body>')
       assert.throws(() => inlineConsoleAssets(stray, { bundle: 'b', css: 'c', views: [] }), /outside the shell block/)
     })
 
