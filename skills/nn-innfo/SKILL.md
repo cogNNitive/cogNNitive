@@ -105,7 +105,7 @@ Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `
 
 This skill guides LLMs and agents in authoring, creating from scratch (wizard), editing, auditing, and validating **iNNfo-compliant files** (Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
-**Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/innfo-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
+**Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/nn-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
 
 > 🛡️ **Single Source of Truth & Zero Workspace Pollution**:
 > 1. The `iNNfo` repository is the **Single Source of Truth** for all apps and specs. Do NOT duplicate app files across repositories.
@@ -120,7 +120,7 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 To minimize token usage and unnecessary file I/O operations across large workspaces, all agent interactions MUST adhere to the 3-Tier Progressive Disclosure Protocol:
 
 - **Tier 1 (Root Discovery)**:
-  Read `domaiNN_NN.md` (or query `innfo-core` DAG topology) to discover workspace dimensions, directory conventions, and top-level catalog references (`models`, `sources`, `procedures`, `artifacts`).
+  Read `domaiNN_NN.md` (or query `nn-core` DAG topology) to discover workspace dimensions, directory conventions, and top-level catalog references (`models`, `sources`, `procedures`, `artifacts`).
 - **Tier 2 (Catalog Query)**:
   Read `sources_NN.md`, `procedures_NN.md`, or `artifacts_NN.md` to scan `summary`, `format`, `status`, `category`, and `tags` of all registered entities with zero additional file I/O. Make routing, indexing, and citation decisions based entirely on these indexed catalog summaries.
 - **Tier 3 (Targeted Inspection)**:
@@ -332,7 +332,7 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 
 ## 1. MCP Operating Model
 
-The `innfo-mcp` server exposes a deterministic tool set built on `@cognnitive/innfo-core`.
+The `innfo-mcp` server exposes a deterministic tool set built on `@cognnitive/nn-core`.
 
 <!-- generated:mcp-tools (source: innfo-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->
 **22** tools

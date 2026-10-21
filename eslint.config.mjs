@@ -35,7 +35,7 @@ export default tseslint.config(
       // Published/built site output (bundled + minified) — not source.
       '**/*.min.js',
       '**/*.bundle.js',
-      'iNNfo/packages/innfo-mcp/bin/**',
+      'iNNfo/packages/nn-mcp/bin/**',
       // Generated artifacts and blueprints assets
       '**/*.generated.cjs',
       '**/*.generated.js',

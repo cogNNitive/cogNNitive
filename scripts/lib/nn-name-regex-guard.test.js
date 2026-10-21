@@ -31,16 +31,16 @@ function main() {
 
   // 1. A seeded `_NN.md` regex outside the contract fails, naming file and line.
   {
-    const r = run({ 'iNNfo/packages/innfo-mcp/src/tools/seeded.ts': `const a = 1\nconst re = ${NN_REGEX}\n` });
+    const r = run({ 'iNNfo/packages/nn-mcp/src/tools/seeded.ts': `const a = 1\nconst re = ${NN_REGEX}\n` });
     assert.strictEqual(r.ok, false, 'a regex must fail');
-    assert.ok(r.errors.some((e) => e.includes('iNNfo/packages/innfo-mcp/src/tools/seeded.ts:2')), r.errors.join('; '));
+    assert.ok(r.errors.some((e) => e.includes('iNNfo/packages/nn-mcp/src/tools/seeded.ts:2')), r.errors.join('; '));
   }
   console.log('✔ a seeded _NN.md regex outside src/naming fails with file and line');
 
   // 2. The escaped form inside a RegExp string and the standalone literal fail too.
   {
     assert.strictEqual(run({ 'scripts/a.mjs': `const re = ${NN_REGEX_STRING}\n` }).ok, false);
-    assert.strictEqual(run({ 'iNNfo/packages/innfo-core/src/a.ts': `if (n.endsWith(${NN_LITERAL})) {}\n` }).ok, false);
+    assert.strictEqual(run({ 'iNNfo/packages/nn-core/src/a.ts': `if (n.endsWith(${NN_LITERAL})) {}\n` }).ok, false);
     assert.strictEqual(run({ 'skills/nn-sources/scripts/a.js': `name.endsWith(${NN_LITERAL})\n` }).ok, false);
   }
   console.log('✔ RegExp strings and standalone _NN.md literals fail');
@@ -57,7 +57,7 @@ function main() {
   // 4. The contract module itself is the one place that may define the pattern.
   {
     const r = run({
-      'iNNfo/packages/innfo-core/src/naming/contract.ts': `const NN = ${NN_REGEX}\nconst d = ${STAMP_REGEX}\nnow.getUTCHours()\n`,
+      'iNNfo/packages/nn-core/src/naming/contract.ts': `const NN = ${NN_REGEX}\nconst d = ${STAMP_REGEX}\nnow.getUTCHours()\n`,
     });
     assert.strictEqual(r.ok, true, r.errors.join('; '));
   }
@@ -68,9 +68,9 @@ function main() {
     const body = `const re = ${NN_REGEX}\n`;
     const r = run({
       'scripts/a.test.js': body,
-      'iNNfo/packages/innfo-core/tests/a.test.ts': body,
-      'iNNfo/packages/innfo-mcp/src/tools/a.spec.ts': body,
-      'skills/nn-sources/scripts/lib/innfo-core.generated.cjs': body,
+      'iNNfo/packages/nn-core/tests/a.test.ts': body,
+      'iNNfo/packages/nn-mcp/src/tools/a.spec.ts': body,
+      'skills/nn-sources/scripts/lib/nn-core.generated.cjs': body,
       'docs/x.md': body,
       'openspec/x.md': body,
     });
@@ -99,7 +99,7 @@ function main() {
 
   // 8. Clean input passes; helpers behave.
   assert.strictEqual(run({ 'scripts/clean.mjs': 'export const a = 1\n' }).ok, true);
-  assert.strictEqual(inScope('iNNfo/packages/innfo-core/src/layout.ts'), true);
+  assert.strictEqual(inScope('iNNfo/packages/nn-core/src/layout.ts'), true);
   assert.strictEqual(inScope('docs/x.md'), false);
   assert.strictEqual(inScope('scripts/x.cjs'), false);
   assert.strictEqual(isExcluded('skills/a/scripts/x.generated.cjs'), true);

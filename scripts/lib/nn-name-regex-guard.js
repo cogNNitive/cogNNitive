@@ -3,7 +3,7 @@
  * scripts/lib/nn-name-regex-guard.js
  *
  * One definition of `_NN.md`: the naming contract in
- * `iNNfo/packages/innfo-core/src/naming/` is the only place that may define the
+ * `iNNfo/packages/nn-core/src/naming/` is the only place that may define the
  * `_NN.md` filename pattern or build a timestamp. Every other consumer imports
  * the contract's predicates. This guard fails when a second definition appears.
  *
@@ -25,7 +25,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const CONTRACT_DIR = 'iNNfo/packages/innfo-core/src/naming/';
+const CONTRACT_DIR = 'iNNfo/packages/nn-core/src/naming/';
 
 /** `id` is stable, `re` is the match, `label` says what to use instead. */
 const PATTERNS = [
@@ -45,8 +45,8 @@ const ALLOWLIST = [
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'carries the retired workspace-entrypoint token table; matches a retired name, not the live pattern' },
   { pattern: 'scripts/lib/tag-pin-freshness.js', reason: 'matches the canonical blueprint spec filename (a fixed package asset identity), not the workspace model name pattern' },
   { pattern: 'scripts/lib/nn-name-regex-guard.js', reason: 'this guard carries the pattern table itself' },
-  { pattern: 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },
-  { pattern: 'iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts', reason: 'parses pinned published-spec URLs (spec identity, not workspace files)' },
+  { pattern: 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },
+  { pattern: 'iNNfo/packages/nn-core/src/workspace/integrity/versionStatus.ts', reason: 'parses pinned published-spec URLs (spec identity, not workspace files)' },
   { pattern: 'skills/nn-upgrade/scripts/backup-workspace.js', reason: 'local-time backup folder name, not a write-once family stamp; revisited with the backup rework' },
 ];
 

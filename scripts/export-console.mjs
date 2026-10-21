@@ -8,7 +8,7 @@
  * console (bundle, CSS, views and JSON slots inlined) against the canonical
  * console shell (`iNNfo/specs/bluepriNNts/console/artifact_shell.html`), filling
  * the `innfo-config` / `innfo-schema` / `innfo-model` slots from a direct model
- * scan (no runtime dependency on innfo-core, whose raw `dist/` barrel is not
+ * scan (no runtime dependency on nn-core, whose raw `dist/` barrel is not
  * ESM-importable). There is no per-model console: every console is the domain
  * console, optionally scoped to a model subset or a single view.
  *
@@ -77,7 +77,7 @@ function resolveConsoleDir() {
   )
 }
 
-/** The console payload mirror (single innfo-core build shared by every producer). */
+/** The console payload mirror (single nn-core build shared by every producer). */
 let payloadHelper = null
 
 function loadPayloadHelper(consoleDir) {
@@ -868,7 +868,7 @@ export async function writeConsole(opts = {}) {
     ? payloadHelper.createFsSourceResolver(root)
     : undefined
 
-  // Single shared schema path (innfo-core) — the same helper the console payload
+  // Single shared schema path (nn-core) — the same helper the console payload
   // mirror uses, so every producer emits byte-identical slots.
   const resolveModelSchema = async (content) => {
     const fm = frontmatterOf(content)

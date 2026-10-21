@@ -19,11 +19,11 @@ function mkRepo(opts = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'version-agreement-'));
 
   if (opts.mcpVersion) {
-    const mcpDir = path.join(dir, 'iNNfo', 'packages', 'innfo-mcp');
+    const mcpDir = path.join(dir, 'iNNfo', 'packages', 'nn-mcp');
     fs.mkdirSync(mcpDir, { recursive: true });
     fs.writeFileSync(
       path.join(mcpDir, 'package.json'),
-      JSON.stringify({ name: '@cognnitive/innfo-mcp', version: opts.mcpVersion }),
+      JSON.stringify({ name: '@cognnitive/nn-mcp', version: opts.mcpVersion }),
       'utf8'
     );
   }

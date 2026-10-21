@@ -15,8 +15,8 @@ const { classifyExpression, declaredLicense } = require('./license-policy.js')
 
 /** Workspace roots whose production dependency trees are inventoried. */
 const WORKSPACE_DIRS = [
-  'iNNfo/packages/innfo-core',
-  'iNNfo/packages/innfo-mcp',
+  'iNNfo/packages/nn-core',
+  'iNNfo/packages/nn-mcp',
   'skills/nn-sources',
   'skills/nn-upgrade',
 ]
@@ -357,7 +357,7 @@ function renderThirdParty({ classified, policy, projectLicense }) {
   lines.push('## npm production dependencies')
   lines.push('')
   lines.push(
-    'Production dependency trees of `innfo-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development',
+    'Production dependency trees of `nn-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development',
   )
   lines.push('tooling is not distributed and is not listed.')
   lines.push('')

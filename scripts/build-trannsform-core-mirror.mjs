@@ -3,15 +3,15 @@
 /**
  * scripts/build-trannsform-core-mirror.mjs
  *
- * Bundles the core primitives from `@cognnitive/innfo-core`
+ * Bundles the core primitives from `@cognnitive/nn-core`
  * (`src/trannsformPrimitives.ts`) into a committed, zero-dependency CommonJS
  * artifact the DISTRIBUTED `nn-sources` skill can `require()`. The skill is
- * installed at `~/.agents/skills/` where `@cognnitive/innfo-core` does not exist,
- * and innfo-core is ESM-only, so a runtime import is impossible — this bundle IS
+ * installed at `~/.agents/skills/` where `@cognnitive/nn-core` does not exist,
+ * and nn-core is ESM-only, so a runtime import is impossible — this bundle IS
  * the single shared implementation.
  *
- *   input : iNNfo/packages/innfo-core/src/trannsformPrimitives.ts
- *   output: skills/nn-sources/scripts/lib/innfo-core.generated.cjs
+ *   input : iNNfo/packages/nn-core/src/trannsformPrimitives.ts
+ *   output: skills/nn-sources/scripts/lib/nn-core.generated.cjs
  *
  * Usage:
  *   node scripts/build-trannsform-core-mirror.mjs [--check] [--out <file>]
@@ -32,20 +32,20 @@ const require = createRequire(import.meta.url)
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..')
-const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'trannsformPrimitives.ts')
+const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'src', 'trannsformPrimitives.ts')
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
   'skills',
   'nn-sources',
   'scripts',
   'lib',
-  'innfo-core.generated.cjs',
+  'nn-core.generated.cjs',
 )
 
 const BANNER =
   '/**\n' +
   ' * GENERATED FILE — DO NOT EDIT.\n' +
-  ' * Source: iNNfo/packages/innfo-core/src/trannsformPrimitives.ts\n' +
+  ' * Source: iNNfo/packages/nn-core/src/trannsformPrimitives.ts\n' +
   ' * Regenerate: node scripts/build-trannsform-core-mirror.mjs\n' +
   ' * Drift-guarded by scripts/verify.js (build-trannsform-core-mirror --check).\n' +
   ' */\n// @ts-nocheck'

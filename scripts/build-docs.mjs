@@ -34,8 +34,8 @@ function run(cmd, desc) {
 }
 
 // 1. Sequential topological build execution
-run('npm --workspace=@cognnitive/innfo-core run build', 'Build @cognnitive/innfo-core');
-run('npm --workspace=@cognnitive/innfo-mcp run build', 'Build @cognnitive/innfo-mcp');
+run('npm --workspace=@cognnitive/nn-core run build', 'Build @cognnitive/nn-core');
+run('npm --workspace=@cognnitive/nn-mcp run build', 'Build @cognnitive/nn-mcp');
 
 // 2. The retired hosted-app address keeps one hand-written static notice page
 // (spec hosted-app-retirement-notice). Nothing is built for it; the Pages

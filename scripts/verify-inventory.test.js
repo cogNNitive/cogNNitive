@@ -233,7 +233,7 @@ blueprints:
       repoRoot,
       'iNNfo',
       'packages',
-      'innfo-core',
+      'nn-core',
       'src',
       'schema',
       'canonical-registry.ts',

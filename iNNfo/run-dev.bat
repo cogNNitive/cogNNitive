@@ -28,11 +28,11 @@ if not exist "%ROOT%node_modules" (
     echo.
 )
 
-REM ── Pre-build innfo-core (required by innfo-mcp) ──
-echo   Building @cognnitive/innfo-core...
-cd /d "%ROOT%packages\innfo-core" && call npx tsc
+REM ── Pre-build nn-core (required by innfo-mcp) ──
+echo   Building @cognnitive/nn-core...
+cd /d "%ROOT%packages\nn-core" && call npx tsc
 if %ERRORLEVEL% NEQ 0 (
-    echo   ERROR: innfo-core build failed!
+    echo   ERROR: nn-core build failed!
     pause
     exit /b 1
 )

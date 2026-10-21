@@ -4,7 +4,7 @@
  * scripts/sync-versions.mjs
  *
  * Single Source of Truth synchronization and drift validation for:
- *   - MCP package version (innfo-mcp/package.json -> innfo-core, dep range)
+ *   - MCP package version (innfo-mcp/package.json -> nn-core, dep range)
  *
  * (source.yaml synchronization is removed under tag-driven release AD-6).
  *
@@ -22,8 +22,8 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 
 const DEFAULT_BLUEPRINTS_DIR = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 const DEFAULT_SKILLS_DIR = path.join(REPO_ROOT, 'skills');
-const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'package.json');
-const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'package.json');
+const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-mcp', 'package.json');
+const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'package.json');
 
 const FRONTMATTER_VERSION_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const BLUEPRINT_VERSION_RE = /^blueprint_version:\s*"?([^"\r\n]+?)"?\s*$/m;
@@ -163,14 +163,14 @@ function syncMcpDepRange({ mcpVersion, mcpPkgPath, check }) {
   let currentDep;
   try {
     const pkg = JSON.parse(content);
-    currentDep = pkg.dependencies && pkg.dependencies['@cognnitive/innfo-core'];
+    currentDep = pkg.dependencies && pkg.dependencies['@cognnitive/nn-core'];
   } catch (err) {
     return { ok: false, error: `Failed to parse ${mcpPkgPath}: ${err.message}` };
   }
 
   const expectedDep = `^${mcpVersion}`;
   const updated = content.replace(
-    /^(\s*"@cognnitive\/innfo-core":\s*)"[^"]*"(,?)$/m,
+    /^(\s*"@cognnitive\/nn-core":\s*)"[^"]*"(,?)$/m,
     `$1"${expectedDep}"$2`,
   );
 
@@ -215,7 +215,7 @@ export function syncVersions({
     if (!coreResult.ok) {
       if (coreResult.drift) {
         errors.push(
-          `innfo-core package.json version drift in ${corePkgPath}: ` +
+          `nn-core package.json version drift in ${corePkgPath}: ` +
           `expected "${coreResult.drift.expected}" (from innfo-mcp), found "${coreResult.drift.actual}". ` +
           `Run \`npm run sync:versions\` to fix it.`
         );
@@ -230,7 +230,7 @@ export function syncVersions({
     if (!depResult.ok) {
       if (depResult.drift) {
         errors.push(
-          `innfo-mcp dependency @cognnitive/innfo-core drift in ${mcpPkgPath}: ` +
+          `innfo-mcp dependency @cognnitive/nn-core drift in ${mcpPkgPath}: ` +
           `expected "${depResult.drift.expected}", found "${depResult.drift.actual}". ` +
           `Run \`npm run sync:versions\` to fix it.`
         );

@@ -72,7 +72,7 @@ test('runSmokeTest checks MCP bundle sha256 when releasing innfo-mcp', async () 
   const bundleContent = 'console.log("mcp bundle test v0.12.0");';
   const bundleSha = crypto.createHash('sha256').update(bundleContent).digest('hex');
 
-  const bundlePath = path.join(tmp, 'iNNfo', 'packages', 'innfo-mcp', 'bin');
+  const bundlePath = path.join(tmp, 'iNNfo', 'packages', 'nn-mcp', 'bin');
   fs.mkdirSync(bundlePath, { recursive: true });
   fs.writeFileSync(path.join(bundlePath, 'innfo-mcp.bundle.js'), bundleContent);
 

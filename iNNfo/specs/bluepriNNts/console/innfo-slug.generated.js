@@ -19,7 +19,7 @@ var InnfoSlug = (() => {
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // iNNfo/packages/innfo-core/src/parser/slug.ts
+  // iNNfo/packages/nn-core/src/parser/slug.ts
   var slug_exports = {};
   __export(slug_exports, {
     nfc: () => nfc,

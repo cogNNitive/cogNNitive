@@ -30,7 +30,7 @@ function main() {
 
   // 1. Each retired token fails inside scope
   for (const [token, id] of [[TV, 'template-version'], [TN, 'template-name'], [MV, 'model-version'], [TT, 'target-template'], [TM, 'type-model'], [ST, 'specs-templates'], [WS, 'workspace-entrypoint'], [KL, 'lowercase-knowledge-dir'], [BL, 'lowercase-blueprints-dir']]) {
-    const r = run({ 'iNNfo/packages/innfo-core/src/foo.ts': `const x = '${token}';\n` });
+    const r = run({ 'iNNfo/packages/nn-core/src/foo.ts': `const x = '${token}';\n` });
     assert.strictEqual(r.ok, false, `${id} must fail`);
     assert.ok(r.errors.some((e) => e.includes(id)), `error must name ${id}`);
   }
@@ -61,7 +61,7 @@ function main() {
   {
     const ok = run({ 'scripts/migrate-spec-urls.mjs': `const s = '${ST}';\n` });
     assert.strictEqual(ok.ok, true, ok.errors.join('; '));
-    const bad = run({ 'iNNfo/packages/innfo-core/src/legacy/detect.ts': `const s = '${ST}';\n` });
+    const bad = run({ 'iNNfo/packages/nn-core/src/legacy/detect.ts': `const s = '${ST}';\n` });
     assert.strictEqual(bad.ok, false, 'the retired quarantine path must no longer be allowlisted');
   }
   console.log('✔ allowlisted paths pass; the retired quarantine module path is not allowlisted');
@@ -85,13 +85,13 @@ function main() {
 
   // 7. Clean input passes
   {
-    const r = run({ 'iNNfo/packages/innfo-core/src/clean.ts': 'export const a = 1;\n' });
+    const r = run({ 'iNNfo/packages/nn-core/src/clean.ts': 'export const a = 1;\n' });
     assert.strictEqual(r.ok, true);
   }
   console.log('✔ clean runtime source passes');
 
   // Sanity: helpers
-  assert.strictEqual(inScope('iNNfo/packages/innfo-core/src/layout.ts'), true);
+  assert.strictEqual(inScope('iNNfo/packages/nn-core/src/layout.ts'), true);
   assert.strictEqual(inScope('docs/x.md'), false);
   assert.strictEqual(isExcluded('docs/innfo/cdn/x.js'), true);
   assert.deepStrictEqual(validateAllowlist(), []);

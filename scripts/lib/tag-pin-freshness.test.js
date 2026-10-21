@@ -38,7 +38,7 @@ function testManifestTouchedPasses() {
 }
 
 function testUnrelatedChangePasses() {
-  const r = checkTagPinFreshness(['README.md', 'iNNfo/packages/innfo-core/src/types.ts']);
+  const r = checkTagPinFreshness(['README.md', 'iNNfo/packages/nn-core/src/types.ts']);
   assert.strictEqual(r.ok, true, 'unrelated change must pass');
   assert.strictEqual(r.triggered.skills.length, 0);
   assert.strictEqual(r.triggered.blueprints.length, 0);

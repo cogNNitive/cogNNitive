@@ -32,9 +32,9 @@ const EDITOR_ALLOWLIST = [
   'scripts/guard-template-immutability.js', // old badge URL normalisation
   'scripts/guard-template-immutability.test.js', // old badge URL normalisation test
   SELF, // this guard names the tokens it forbids
-  'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', // embeds write-once specs
-  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
-  'iNNfo/packages/innfo-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
+  'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', // embeds write-once specs
+  'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
+  'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
   'iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs', // embeds write-once specs
   'test/fixtures/testlab/artifacts/', // stamped console exports of earlier runtimes
 ]
@@ -48,13 +48,13 @@ const editorAllowed = (rel) => WRITE_ONCE_SPEC.test(rel) || prefixAllow(EDITOR_A
 const PROVENANCE_ABSENCE_PINS = new Set([
   SELF,
   'test/console-export.test.mjs',
-  'iNNfo/packages/innfo-core/tests/console-payload-builder.test.ts',
-  'iNNfo/packages/innfo-core/tests/exports.test.ts',
-  'iNNfo/packages/innfo-core/tests/naming/contract.test.ts',
-  'iNNfo/packages/innfo-mcp/src/server.spec.ts',
+  'iNNfo/packages/nn-core/tests/console-payload-builder.test.ts',
+  'iNNfo/packages/nn-core/tests/exports.test.ts',
+  'iNNfo/packages/nn-core/tests/naming/contract.test.ts',
+  'iNNfo/packages/nn-mcp/src/server.spec.ts',
 ])
 const PROVENANCE_SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'temp', '.verify-logs', 'openspec', '_samples_nn'])
-const PROVENANCE_SKIP_PREFIXES = ['test/fixtures/', 'iNNfo/packages/innfo-core/tests/fixtures/']
+const PROVENANCE_SKIP_PREFIXES = ['test/fixtures/', 'iNNfo/packages/nn-core/tests/fixtures/']
 const BINARY_EXT = /\.(png|jpe?g|gif|webp|ico|woff2?|ttf|eot|pdf|zip|mp4|webm|svg)$/i
 const provenanceAllowed = (rel) => {
   const dirs = rel.split('/').slice(0, -1)
@@ -77,7 +77,7 @@ const HUB_ALLOWLIST = [
   'openspec/changes/2026-10-13-s5-retire-innfo-editor/',
   'openspec/changes/single-console-shell/',
   'openspec/specs/',
-  'iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/',
+  'iNNfo/packages/nn-core/tests/fixtures/simulacro-refactorizacion/',
   'test/fixtures/testlab/',
   'simulation/FINDINGS.md',
   'simulation/results/',
@@ -91,11 +91,11 @@ const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 // Changes are reviewed in the static domain console (a file), never in a hosted
 // app or a live-preview URL.
 const PREVIEW_FILES = [
-  'iNNfo/packages/innfo-mcp/src/tools/console-regeneration.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/propose-changeset.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/init-domain.ts',
-  'iNNfo/packages/innfo-mcp/src/tools/init-knowledge.ts',
-  'iNNfo/packages/innfo-mcp/README.md',
+  'iNNfo/packages/nn-mcp/src/tools/console-regeneration.ts',
+  'iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts',
+  'iNNfo/packages/nn-mcp/src/tools/init-domain.ts',
+  'iNNfo/packages/nn-mcp/src/tools/init-knowledge.ts',
+  'iNNfo/packages/nn-mcp/README.md',
   'scripts/export-console.mjs',
   'skills/nn-innfo/SKILL.md',
 ]
@@ -205,6 +205,59 @@ describe('retired names appear nowhere outside their allowlists', () => {
   }
 })
 
+/**
+ * PR 1 of the nn-prefix-rename cutover moved the two package directories and renamed
+ * the generated core mirror. `git ls-files` is read directly, so the row goes red the
+ * moment one of those paths comes back.
+ *
+ * Deliberately narrow: the CDN bundle file name, the wrapper scripts and the three
+ * public doc files still carry an `innfo-*` name on purpose until PR 3 retires them,
+ * so this row matches the package directories and the generated mirror, not every
+ * `innfo-*` path.
+ */
+const RETIRED_PATH_STEMS = [
+  /(^|\/)iNNfo\/packages\/innfo-(core|mcp)(\/|$)/, // the package directories
+  /(^|\/)innfo-core\.generated\.cjs$/, // the generated core mirror
+]
+
+/** Paths whose old names are expected at this point of the cutover. */
+const FROZEN_PATH_PREFIXES = [
+  'openspec/changes/', // frozen change history
+  'iNNfo/specs/', // published blueprint specs and generated console artifacts
+  'test/fixtures/', // frozen fixtures
+  'simulation/', // sample domain, never distributed
+  'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro fixtures
+]
+
+/** @param {string[]} rels @returns {string[]} the paths that still use a retired stem. */
+export function retiredPathHits(rels) {
+  return rels.filter(
+    (rel) =>
+      !FROZEN_PATH_PREFIXES.some((prefix) => rel.startsWith(prefix)) &&
+      RETIRED_PATH_STEMS.some((re) => re.test(rel)),
+  )
+}
+
+describe('the renamed package and generated paths stay retired', () => {
+  it('the scanner can go red: it flags a planted path', () => {
+    for (const planted of [
+      'iNNfo/packages/innfo-core/src/index.ts',
+      'iNNfo/packages/innfo-mcp/package.json',
+      'skills/nn-sources/scripts/lib/innfo-core.generated.cjs',
+    ]) {
+      assert.deepEqual(retiredPathHits([planted]), [planted], `${planted} must be flagged`)
+    }
+  })
+
+  it('a frozen path is exempt', () => {
+    assert.deepEqual(retiredPathHits(['openspec/changes/archive/x/innfo-core.generated.cjs']), [])
+  })
+
+  it('no tracked path outside the frozen prefixes uses them', () => {
+    assert.deepEqual(retiredPathHits(trackedFiles()), [])
+  })
+})
+
 describe('the retired editor and hosted app', () => {
   it('the scanner flags every reference shape and ignores the S5 change name', () => {
     const editor = GUARDS[0]
@@ -299,7 +352,7 @@ describe('the workspace hub is deleted', () => {
     'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md',
     '_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
     'docs/innfo/documentation/workspace-console-hub.md',
-    'iNNfo/packages/innfo-core/tests/workspace-hub.test.ts',
+    'iNNfo/packages/nn-core/tests/workspace-hub.test.ts',
   ]
   it('requires every hub file to be deleted', () => {
     for (const rel of DELETED) {

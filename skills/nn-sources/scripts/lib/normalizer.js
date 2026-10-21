@@ -1,5 +1,5 @@
 /**
- * normalizer.js: the converter adapter nn-sources injects into innfo-core's
+ * normalizer.js: the converter adapter nn-sources injects into nn-core's
  * `cognitivize`. Core never imports a converter; this module turns a raw file
  * into the `{ body, normalizedBy, metadata }` shape the sidecar writer expects.
  *
@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const converters = require('./scanner-converters');
 const { parseFrontmatterFields } = require('./scanner-core');
-const { TEXT_NATIVE_FORMATS } = require('./innfo-core.generated.cjs');
+const { TEXT_NATIVE_FORMATS } = require('./nn-core.generated.cjs');
 
 const TRANNNSFORM_VERSION = (() => {
   try {

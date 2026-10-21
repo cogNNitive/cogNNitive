@@ -23,137 +23,137 @@ each exported console) concatenates the vendored assets above with first-party c
 
 ## npm production dependencies
 
-Production dependency trees of `innfo-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development
+Production dependency trees of `nn-core`, `innfo-mcp`, `nn-sources` and `nn-upgrade`. Development
 tooling is not distributed and is not listed.
 
 | Package | Version | License | Policy | Used by | Copyright |
 |---|---|---|---|---|---|
-| @hono/node-server | 2.1.3 | MIT | allow | innfo-mcp | Copyright (c) 2022 - present, Yusuke Wada and Hono contributors |
-| @modelcontextprotocol/sdk | 1.32.1 | MIT | allow | innfo-mcp | Copyright (c) 2024 Anthropic, PBC |
+| @hono/node-server | 2.1.3 | MIT | allow | nn-mcp | Copyright (c) 2022 - present, Yusuke Wada and Hono contributors |
+| @modelcontextprotocol/sdk | 1.32.1 | MIT | allow | nn-mcp | Copyright (c) 2024 Anthropic, PBC |
 | @xmldom/xmldom | 0.8.15 | MIT | allow | nn-sources | Copyright 2019 - present Christopher J. Brody and other contributors, as listed in: https://github.com/xmldom/xmldom/graphs/contributors; Copyright 2012 - 2017 @jindw <jindw@xidea.org> and other contributors, as listed in: https://github.com/jindw/xmldom/graphs/contributors |
-| accepts | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| ajv | 8.20.0 | MIT | allow | innfo-mcp | Copyright (c) 2015-2021 Evgeny Poberezkin |
-| ajv-formats | 3.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2020 Evgeny Poberezkin |
+| accepts | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| ajv | 8.20.0 | MIT | allow | nn-mcp | Copyright (c) 2015-2021 Evgeny Poberezkin |
+| ajv-formats | 3.0.1 | MIT | allow | nn-mcp | Copyright (c) 2020 Evgeny Poberezkin |
 | argparse | 1.0.10 | MIT | allow | nn-sources | Copyright (C) 2012 by Vitaly Puzrin |
 | base64-js | 1.5.1 | MIT | allow | nn-sources | Copyright (c) 2014 Jameson Little |
 | bluebird | 3.4.7 | MIT | allow | nn-sources | Copyright (c) 2013-2015 Petka Antonov |
-| body-parser | 2.3.0 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| bytes | 3.1.2 | MIT | allow | innfo-mcp | Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2015 Jed Watson <jed.watson@me.com> |
-| call-bind-apply-helpers | 1.0.2 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| call-bound | 1.0.4 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| content-disposition | 1.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
-| content-type | 1.0.5 | MIT | allow | innfo-mcp | Copyright (c) 2015 Douglas Christopher Wilson |
-| content-type | 2.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2015 Douglas Christopher Wilson |
-| cookie | 0.7.2 | MIT | allow | innfo-mcp | Copyright (c) 2012-2014 Roman Shtylman <shtylman@gmail.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| cookie-signature | 1.2.2 | MIT | allow | innfo-mcp | Copyright (c) 2012–2024 LearnBoost <tj@learnboost.com> and other contributors; |
+| body-parser | 2.3.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| bytes | 3.1.2 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2015 Jed Watson <jed.watson@me.com> |
+| call-bind-apply-helpers | 1.0.2 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| call-bound | 1.0.4 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| content-disposition | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
+| content-type | 1.0.5 | MIT | allow | nn-mcp | Copyright (c) 2015 Douglas Christopher Wilson |
+| content-type | 2.1.0 | MIT | allow | nn-mcp | Copyright (c) 2015 Douglas Christopher Wilson |
+| cookie | 0.7.2 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 Roman Shtylman <shtylman@gmail.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| cookie-signature | 1.2.2 | MIT | allow | nn-mcp | Copyright (c) 2012–2024 LearnBoost <tj@learnboost.com> and other contributors; |
 | core-util-is | 1.0.3 | MIT | allow | nn-sources | (see package) |
-| cors | 2.8.6 | MIT | allow | innfo-mcp | Copyright (c) 2013 Troy Goode <troygoode@gmail.com> |
-| cross-spawn | 7.0.6 | MIT | allow | innfo-mcp | Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio> |
+| cors | 2.8.6 | MIT | allow | nn-mcp | Copyright (c) 2013 Troy Goode <troygoode@gmail.com> |
+| cross-spawn | 7.0.6 | MIT | allow | nn-mcp | Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio> |
 | debug | 3.2.7 | MIT | allow | nn-sources | Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca> |
-| debug | 4.4.3 | MIT | allow | innfo-mcp | Copyright (c) 2014-2017 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2018-2021 Josh Junon |
-| depd | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2014-2018 Douglas Christopher Wilson |
+| debug | 4.4.3 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2018-2021 Josh Junon |
+| depd | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014-2018 Douglas Christopher Wilson |
 | dingbat-to-unicode | 1.0.1 | BSD-2-Clause | allow | nn-sources | (see package) |
 | duck | 0.1.12 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
-| dunder-proto | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2024 ECMAScript Shims |
-| ee-first | 1.1.1 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong me@jongleberry.com |
-| encodeurl | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2016 Douglas Christopher Wilson |
-| es-define-property | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| es-errors | 1.3.0 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| es-object-atoms | 1.1.2 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| escape-html | 1.0.3 | MIT | allow | innfo-mcp | Copyright (c) 2012-2013 TJ Holowaychuk; Copyright (c) 2015 Andreas Lubbe; Copyright (c) 2015 Tiancheng "Timothy" Gu |
-| etag | 1.8.1 | MIT | allow | innfo-mcp | Copyright (c) 2014-2016 Douglas Christopher Wilson |
-| eventsource | 3.0.7 | MIT | allow | innfo-mcp | Copyright (c) EventSource GitHub organisation |
-| eventsource-parser | 3.1.1 | MIT | allow | innfo-mcp | Copyright (c) 2026 Espen Hovlandsdal <espen@hovlandsdal.com> |
-| express | 5.2.1 | MIT | allow | innfo-mcp | Copyright (c) 2009-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2013-2014 Roman Shtylman <shtylman+expressjs@gmail.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| express-rate-limit | 8.7.1 | MIT | allow | innfo-mcp | Copyright 2023 Nathan Friedly, Vedant K |
-| fast-deep-equal | 3.1.3 | MIT | allow | innfo-mcp | Copyright (c) 2017 Evgeny Poberezkin |
-| fast-uri | 3.1.8 | BSD-3-Clause | allow | innfo-mcp | Copyright (c) 2011-2021, Gary Court until https://github.com/garycourt/uri-js/commit/a1acf730b4bba3f1097c9f52e7d9d3aba8cdcaae; Copyright (c) 2021-present The Fastify team <https://github.com/fastify/fastify#team> |
-| finalhandler | 2.1.1 | MIT | allow | innfo-mcp | Copyright (c) 2014-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| forwarded | 0.2.0 | MIT | allow | innfo-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
-| fresh | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2016-2017 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| function-bind | 1.1.2 | MIT | allow | innfo-mcp | Copyright (c) 2013 Raynos. |
-| get-intrinsic | 1.3.0 | MIT | allow | innfo-mcp | Copyright (c) 2020 Jordan Harband |
-| get-proto | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2025 Jordan Harband |
-| gopd | 1.2.0 | MIT | allow | innfo-mcp | Copyright (c) 2022 Jordan Harband |
-| has-symbols | 1.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2016 Jordan Harband |
-| hasown | 2.0.4 | MIT | allow | innfo-mcp | Copyright (c) Jordan Harband and contributors |
-| hono | 4.13.13 | MIT | allow | innfo-mcp | Copyright (c) 2021 - present, Yusuke Wada and Hono contributors |
-| http-errors | 2.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong me@jongleberry.com; Copyright (c) 2016 Douglas Christopher Wilson doug@somethingdoug.com |
-| iconv-lite | 0.7.3 | MIT | allow | innfo-mcp | Copyright (c) 2011 Alexander Shtuchkin |
+| dunder-proto | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2024 ECMAScript Shims |
+| ee-first | 1.1.1 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong me@jongleberry.com |
+| encodeurl | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2016 Douglas Christopher Wilson |
+| es-define-property | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| es-errors | 1.3.0 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| es-object-atoms | 1.1.2 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| escape-html | 1.0.3 | MIT | allow | nn-mcp | Copyright (c) 2012-2013 TJ Holowaychuk; Copyright (c) 2015 Andreas Lubbe; Copyright (c) 2015 Tiancheng "Timothy" Gu |
+| etag | 1.8.1 | MIT | allow | nn-mcp | Copyright (c) 2014-2016 Douglas Christopher Wilson |
+| eventsource | 3.0.7 | MIT | allow | nn-mcp | Copyright (c) EventSource GitHub organisation |
+| eventsource-parser | 3.1.1 | MIT | allow | nn-mcp | Copyright (c) 2026 Espen Hovlandsdal <espen@hovlandsdal.com> |
+| express | 5.2.1 | MIT | allow | nn-mcp | Copyright (c) 2009-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2013-2014 Roman Shtylman <shtylman+expressjs@gmail.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| express-rate-limit | 8.7.1 | MIT | allow | nn-mcp | Copyright 2023 Nathan Friedly, Vedant K |
+| fast-deep-equal | 3.1.3 | MIT | allow | nn-mcp | Copyright (c) 2017 Evgeny Poberezkin |
+| fast-uri | 3.1.8 | BSD-3-Clause | allow | nn-mcp | Copyright (c) 2011-2021, Gary Court until https://github.com/garycourt/uri-js/commit/a1acf730b4bba3f1097c9f52e7d9d3aba8cdcaae; Copyright (c) 2021-present The Fastify team <https://github.com/fastify/fastify#team> |
+| finalhandler | 2.1.1 | MIT | allow | nn-mcp | Copyright (c) 2014-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| forwarded | 0.2.0 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
+| fresh | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2016-2017 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| function-bind | 1.1.2 | MIT | allow | nn-mcp | Copyright (c) 2013 Raynos. |
+| get-intrinsic | 1.3.0 | MIT | allow | nn-mcp | Copyright (c) 2020 Jordan Harband |
+| get-proto | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2025 Jordan Harband |
+| gopd | 1.2.0 | MIT | allow | nn-mcp | Copyright (c) 2022 Jordan Harband |
+| has-symbols | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2016 Jordan Harband |
+| hasown | 2.0.4 | MIT | allow | nn-mcp | Copyright (c) Jordan Harband and contributors |
+| hono | 4.13.13 | MIT | allow | nn-mcp | Copyright (c) 2021 - present, Yusuke Wada and Hono contributors |
+| http-errors | 2.0.1 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong me@jongleberry.com; Copyright (c) 2016 Douglas Christopher Wilson doug@somethingdoug.com |
+| iconv-lite | 0.7.3 | MIT | allow | nn-mcp | Copyright (c) 2011 Alexander Shtuchkin |
 | immediate | 3.0.6 | MIT | allow | nn-sources | Copyright (c) 2012 Barnesandnoble.com, llc, Donavon West, Domenic Denicola, Brian Cavalier |
-| inherits | 2.0.4 | ISC | allow | innfo-mcp, nn-sources | Copyright (c) Isaac Z. Schlueter |
-| ip-address | 10.7.3 | MIT | allow | innfo-mcp | Copyright (C) 2011 by Beau Gunderson |
-| ipaddr.js | 1.9.1 | MIT | allow | innfo-mcp | Copyright (C) 2011-2017 whitequark <whitequark@whitequark.org> |
-| is-promise | 4.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2014 Forbes Lindesay |
+| inherits | 2.0.4 | ISC | allow | nn-mcp, nn-sources | Copyright (c) Isaac Z. Schlueter |
+| ip-address | 10.7.3 | MIT | allow | nn-mcp | Copyright (C) 2011 by Beau Gunderson |
+| ipaddr.js | 1.9.1 | MIT | allow | nn-mcp | Copyright (C) 2011-2017 whitequark <whitequark@whitequark.org> |
+| is-promise | 4.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Forbes Lindesay |
 | isarray | 1.0.0 | MIT | allow | nn-sources | (see package) |
-| isexe | 2.0.0 | ISC | allow | innfo-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
-| jose | 6.2.12 | MIT | allow | innfo-mcp | Copyright (c) 2018 Filip Skokan |
-| json-schema-traverse | 1.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2017 Evgeny Poberezkin |
-| json-schema-typed | 8.0.2 | BSD-2-Clause | allow | innfo-mcp | (see package) |
+| isexe | 2.0.0 | ISC | allow | nn-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
+| jose | 6.2.12 | MIT | allow | nn-mcp | Copyright (c) 2018 Filip Skokan |
+| json-schema-traverse | 1.0.0 | MIT | allow | nn-mcp | Copyright (c) 2017 Evgeny Poberezkin |
+| json-schema-typed | 8.0.2 | BSD-2-Clause | allow | nn-mcp | (see package) |
 | jszip | 3.10.1 | (MIT OR GPL-3.0-or-later) | allow | nn-sources | Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso |
 | kleur | 3.0.3 | MIT | allow | nn-sources | Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com) |
 | lie | 3.3.0 | MIT | allow | nn-sources | (see package) |
 | lop | 0.4.2 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
 | mammoth | 1.12.0 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
-| math-intrinsics | 1.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2024 ECMAScript Shims |
-| media-typer | 1.1.1 | MIT | allow | innfo-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
-| merge-descriptors | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) Jonathan Ong <me@jongleberry.com>; Copyright (c) Douglas Christopher Wilson <doug@somethingdoug.com>; Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com) |
-| mime-db | 1.54.0 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| mime-types | 3.0.2 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| math-intrinsics | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2024 ECMAScript Shims |
+| media-typer | 1.1.1 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
+| merge-descriptors | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) Jonathan Ong <me@jongleberry.com>; Copyright (c) Douglas Christopher Wilson <doug@somethingdoug.com>; Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com) |
+| mime-db | 1.54.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| mime-types | 3.0.2 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | minimist | 1.2.8 | MIT | allow | nn-sources | (see package) |
-| ms | 2.1.3 | MIT | allow | innfo-mcp, nn-sources | Copyright (c) 2020 Vercel, Inc. |
-| negotiator | 1.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2012-2014 Federico Romero; Copyright (c) 2012-2014 Isaac Z. Schlueter; Copyright (c) 2014-2015 Douglas Christopher Wilson |
+| ms | 2.1.3 | MIT | allow | nn-mcp, nn-sources | Copyright (c) 2020 Vercel, Inc. |
+| negotiator | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 Federico Romero; Copyright (c) 2012-2014 Isaac Z. Schlueter; Copyright (c) 2014-2015 Douglas Christopher Wilson |
 | node-ensure | 0.0.0 | MIT | allow | nn-sources | (see package) |
-| object-assign | 4.1.1 | MIT | allow | innfo-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
-| object-inspect | 1.13.4 | MIT | allow | innfo-mcp | Copyright (c) 2013 James Halliday |
-| on-finished | 2.4.1 | MIT | allow | innfo-mcp | Copyright (c) 2013 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| once | 1.4.0 | ISC | allow | innfo-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
+| object-assign | 4.1.1 | MIT | allow | nn-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
+| object-inspect | 1.13.4 | MIT | allow | nn-mcp | Copyright (c) 2013 James Halliday |
+| on-finished | 2.4.1 | MIT | allow | nn-mcp | Copyright (c) 2013 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| once | 1.4.0 | ISC | allow | nn-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
 | option | 0.2.4 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
 | pako | 1.0.11 | (MIT AND Zlib) | allow | nn-sources | Copyright (C) 2014-2017 by Vitaly Puzrin and Andrei Tuputcyn |
-| parseurl | 1.3.3 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2017 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| parseurl | 1.3.3 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2017 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | path-is-absolute | 1.0.1 | MIT | allow | nn-sources | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
-| path-key | 3.1.1 | MIT | allow | innfo-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
-| path-to-regexp | 8.4.2 | MIT | allow | innfo-mcp | Copyright (c) 2014 Blake Embrey (hello@blakeembrey.com) |
+| path-key | 3.1.1 | MIT | allow | nn-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
+| path-to-regexp | 8.4.2 | MIT | allow | nn-mcp | Copyright (c) 2014 Blake Embrey (hello@blakeembrey.com) |
 | pdf-parse | 1.1.1 | MIT | allow | nn-sources | Copyright (c) 2017 Mehmet Kozan |
-| pkce-challenge | 5.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2019 |
+| pkce-challenge | 5.0.1 | MIT | allow | nn-mcp | Copyright (c) 2019 |
 | process-nextick-args | 2.0.1 | MIT | allow | nn-sources | (see package) |
 | prompts | 2.4.2 | MIT | allow | nn-sources | Copyright (c) 2018 Terkel Gjervig Nielsen |
-| proxy-addr | 2.0.8 | MIT | allow | innfo-mcp | Copyright (c) 2014-2016 Douglas Christopher Wilson |
-| qs | 6.16.0 | BSD-3-Clause | allow | innfo-mcp | Copyright (c) 2014, Nathan LaFreniere and other [contributors](https://github.com/ljharb/qs/graphs/contributors) |
-| range-parser | 1.3.0 | MIT | allow | innfo-mcp | Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2015-2016 Douglas Christopher Wilson <doug@somethingdoug.com |
-| raw-body | 3.0.2 | MIT | allow | innfo-mcp | Copyright (c) 2013-2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| proxy-addr | 2.0.8 | MIT | allow | nn-mcp | Copyright (c) 2014-2016 Douglas Christopher Wilson |
+| qs | 6.16.0 | BSD-3-Clause | allow | nn-mcp | Copyright (c) 2014, Nathan LaFreniere and other [contributors](https://github.com/ljharb/qs/graphs/contributors) |
+| range-parser | 1.3.0 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2015-2016 Douglas Christopher Wilson <doug@somethingdoug.com |
+| raw-body | 3.0.2 | MIT | allow | nn-mcp | Copyright (c) 2013-2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | readable-stream | 2.3.8 | MIT | allow | nn-sources | (see package) |
-| require-from-string | 2.0.2 | MIT | allow | innfo-mcp | Copyright (c) Vsevolod Strukchinsky <floatdrop@gmail.com> (github.com/floatdrop) |
-| router | 2.2.0 | MIT | allow | innfo-mcp | Copyright (c) 2013 Roman Shtylman; Copyright (c) 2014-2022 Douglas Christopher Wilson |
+| require-from-string | 2.0.2 | MIT | allow | nn-mcp | Copyright (c) Vsevolod Strukchinsky <floatdrop@gmail.com> (github.com/floatdrop) |
+| router | 2.2.0 | MIT | allow | nn-mcp | Copyright (c) 2013 Roman Shtylman; Copyright (c) 2014-2022 Douglas Christopher Wilson |
 | safe-buffer | 5.1.2 | MIT | allow | nn-sources | Copyright (c) Feross Aboukhadijeh |
-| safer-buffer | 2.1.2 | MIT | allow | innfo-mcp | Copyright (c) 2018 Nikita Skovoroda <chalkerx@gmail.com> |
-| send | 1.2.1 | MIT | allow | innfo-mcp | Copyright (c) 2012 TJ Holowaychuk; Copyright (c) 2014-2022 Douglas Christopher Wilson |
-| serve-static | 2.2.1 | MIT | allow | innfo-mcp | Copyright (c) 2010 Sencha Inc.; Copyright (c) 2011 LearnBoost; Copyright (c) 2011 TJ Holowaychuk |
+| safer-buffer | 2.1.2 | MIT | allow | nn-mcp | Copyright (c) 2018 Nikita Skovoroda <chalkerx@gmail.com> |
+| send | 1.2.1 | MIT | allow | nn-mcp | Copyright (c) 2012 TJ Holowaychuk; Copyright (c) 2014-2022 Douglas Christopher Wilson |
+| serve-static | 2.2.1 | MIT | allow | nn-mcp | Copyright (c) 2010 Sencha Inc.; Copyright (c) 2011 LearnBoost; Copyright (c) 2011 TJ Holowaychuk |
 | setimmediate | 1.0.5 | MIT | allow | nn-sources | Copyright (c) 2012 Barnesandnoble.com, llc, Donavon West, and Domenic Denicola |
-| setprototypeof | 1.2.0 | ISC | allow | innfo-mcp | Copyright (c) 2015, Wes Todd |
-| shebang-command | 2.0.0 | MIT | allow | innfo-mcp | Copyright (c) Kevin Mårtensson <kevinmartensson@gmail.com> (github.com/kevva) |
-| shebang-regex | 3.0.0 | MIT | allow | innfo-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
-| side-channel | 1.1.1 | MIT | allow | innfo-mcp | Copyright (c) 2019 Jordan Harband |
-| side-channel-list | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| side-channel-map | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2024 Jordan Harband |
-| side-channel-weakmap | 1.0.2 | MIT | allow | innfo-mcp | Copyright (c) 2019 Jordan Harband |
+| setprototypeof | 1.2.0 | ISC | allow | nn-mcp | Copyright (c) 2015, Wes Todd |
+| shebang-command | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) Kevin Mårtensson <kevinmartensson@gmail.com> (github.com/kevva) |
+| shebang-regex | 3.0.0 | MIT | allow | nn-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
+| side-channel | 1.1.1 | MIT | allow | nn-mcp | Copyright (c) 2019 Jordan Harband |
+| side-channel-list | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| side-channel-map | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
+| side-channel-weakmap | 1.0.2 | MIT | allow | nn-mcp | Copyright (c) 2019 Jordan Harband |
 | sisteransi | 1.0.5 | MIT | allow | nn-sources | Copyright (c) 2018 Terkel Gjervig Nielsen |
 | sprintf-js | 1.0.3 | BSD-3-Clause | allow | nn-sources | Copyright (c) 2007-2014, Alexandru Marasteanu <hello [at) alexei (dot] ro> |
-| statuses | 2.0.2 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2016 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| statuses | 2.0.2 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2016 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | string_decoder | 1.1.1 | MIT | allow | nn-sources | (see package) |
-| toidentifier | 1.0.1 | MIT | allow | innfo-mcp | Copyright (c) 2016 Douglas Christopher Wilson <doug@somethingdoug.com> |
-| type-is | 2.1.0 | MIT | allow | innfo-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| toidentifier | 1.0.1 | MIT | allow | nn-mcp | Copyright (c) 2016 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| type-is | 2.1.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | underscore | 1.13.8 | MIT | allow | nn-sources | Copyright (c) 2009-2022 Jeremy Ashkenas, Julian Gonggrijp, and DocumentCloud and Investigative Reporters & Editors |
-| unpipe | 1.0.0 | MIT | allow | innfo-mcp | Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| unpipe | 1.0.0 | MIT | allow | nn-mcp | Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | util-deprecate | 1.0.2 | MIT | allow | nn-sources | Copyright (c) 2014 Nathan Rajlich <nathan@tootallnate.net> |
-| vary | 1.1.2 | MIT | allow | innfo-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
-| which | 2.0.2 | ISC | allow | innfo-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
-| wrappy | 1.0.2 | ISC | allow | innfo-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
+| vary | 1.1.2 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
+| which | 2.0.2 | ISC | allow | nn-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
+| wrappy | 1.0.2 | ISC | allow | nn-mcp | Copyright (c) Isaac Z. Schlueter and Contributors |
 | xlsx | 0.20.3 | Apache-2.0 | allow | nn-sources | (see package) |
 | xmlbuilder | 10.1.1 | MIT | allow | nn-sources | Copyright (c) 2013 Ozgur Ozcitak |
-| yaml | 2.9.1 | ISC | allow | innfo-core | (see package) |
-| zod | 3.25.76 | MIT | allow | innfo-mcp | Copyright (c) 2025 Colin McDonnell |
-| zod-to-json-schema | 3.25.2 | ISC | allow | innfo-mcp | Copyright (c) 2020, Stefan Terdell |
+| yaml | 2.9.1 | ISC | allow | nn-core | (see package) |
+| zod | 3.25.76 | MIT | allow | nn-mcp | Copyright (c) 2025 Colin McDonnell |
+| zod-to-json-schema | 3.25.2 | ISC | allow | nn-mcp | Copyright (c) 2020, Stefan Terdell |
 
 ## License texts
 

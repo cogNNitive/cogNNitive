@@ -20,7 +20,7 @@ title: "cogNNitive Monorepo Artifacts Catalog"
 format:: javascript
 summary:: Single-file bundled distribution of the innfo-mcp Server executable for offline and zero-config agent integration. Derived from the iNNfo Language Specification (not a citable file pointer).
 status:: verified
-file_path:: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+file_path:: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
 tags:: [mcp, bundle, agent-tooling]
 
 ## NN Artifact: innfo-console UMD Runtime Bundle

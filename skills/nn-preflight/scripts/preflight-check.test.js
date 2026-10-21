@@ -1559,7 +1559,7 @@ agent-bootstrap:
           pinnedTag: 'innfo-mcp-v0.9.0',
           pinnedTagDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           commitsSincePin: 7,
-          filesTouched: ['iNNfo/packages/innfo-mcp/src/path-containment.ts'],
+          filesTouched: ['iNNfo/packages/nn-mcp/src/path-containment.ts'],
         },
         'innfo-console': {
           subsystem: 'innfo-console',

@@ -14,7 +14,7 @@ const { RELEASE_KEYS, RELEASE_TABLE } = require('../release/release-keys.js')
 
 /** package.json that authors the version for keys that have one. */
 const AUTHORED_VERSION_PATH = {
-  'innfo-mcp': 'iNNfo/packages/innfo-mcp/package.json',
+  'innfo-mcp': 'iNNfo/packages/nn-mcp/package.json',
   'innfo-console': 'iNNfo/specs/bluepriNNts/console/package.json',
 }
 

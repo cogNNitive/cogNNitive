@@ -12,7 +12,7 @@ const root = join(here, '..')
 const consoleDir = join(root, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
 const { parseUnitAddress, unitHome } = require(
-  join(root, 'iNNfo', 'packages', 'innfo-core', 'dist', 'index.js'),
+  join(root, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js'),
 )
 
 let document

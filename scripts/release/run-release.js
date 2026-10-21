@@ -88,7 +88,7 @@ async function runRelease(config, options = {}) {
     for (const rel of keyConfig.repoPaths) copyDistributionPath(repoRoot, rel, work);
 
     if (key === 'innfo-mcp') {
-      const src = path.join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp', 'bin', 'innfo-mcp.bundle.js');
+      const src = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'bin', 'innfo-mcp.bundle.js');
       if (fs.existsSync(src)) {
         const dst = path.join(work, 'docs', 'innfo', 'cdn', `innfo-mcp-v${version}.bundle.js`);
         fs.mkdirSync(path.dirname(dst), { recursive: true });
@@ -132,7 +132,7 @@ async function runRelease(config, options = {}) {
         : entry.section === 'blueprints'
           ? (entry.path ? [entry.path] : ['iNNfo', 'specs', entry.name || ''])
           : entry.section === 'mcp'
-            ? ['iNNfo', 'packages', 'innfo-mcp', 'package.json']
+            ? ['iNNfo', 'packages', 'nn-mcp', 'package.json']
             : ['iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json'];
       const target = path.join(repoRoot, ...pList.filter(Boolean));
       return (fs.existsSync(target) ? readEntryVersion({ section: entry.section, content: fs.readFileSync(target, 'utf8') }) : null) || version;

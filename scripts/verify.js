@@ -557,7 +557,7 @@ function buildSteps(repoRoot, options = {}) {
   //     license, vendored assets unchanged, THIRD_PARTY.md fresh.
   steps.push(ro('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
 
-  // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
+  // 5. Preflight Primitives Drift Guard (committed bundle matches nn-core source).
   steps.push(roFresh('preflight-primitives'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
   steps.push(roFresh('skills-manager-bundle'));
@@ -577,7 +577,7 @@ function buildSteps(repoRoot, options = {}) {
   });
   // 7. Blueprint Catalog Drift Guard.
   steps.push(roFresh('blueprint-catalog'));
-  // 7b. nn-sources core mirror drift guard (render of innfo-core trannsform primitives).
+  // 7b. nn-sources core mirror drift guard (render of nn-core trannsform primitives).
   steps.push(roFresh('core-mirror'));
   // 7b-bis. Console payload mirror drift guard.
   steps.push(roFresh('console-payload'));

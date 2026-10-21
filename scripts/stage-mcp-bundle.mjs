@@ -26,7 +26,7 @@ const defaultRepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 export function stageMcpBundle(options = {}) {
   const repoRoot = options.repoRoot || defaultRepoRoot;
   const docsRoot = options.docsRoot || path.join(repoRoot, 'docs');
-  const mcpDir = path.join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp');
+  const mcpDir = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp');
 
   const version = JSON.parse(fs.readFileSync(path.join(mcpDir, 'package.json'), 'utf8')).version;
   if (!version) throw new Error('Could not determine version from innfo-mcp package.json');
@@ -40,7 +40,7 @@ export function stageMcpBundle(options = {}) {
     throw new Error(
       `MCP bundle is code-split (${splitImport[0]}). ` +
         'docs/innfo/cdn/ only publishes innfo-mcp.bundle.js, so this would break the install. ' +
-        'Set splitting:false on the bin config in iNNfo/packages/innfo-mcp/tsup.config.ts.',
+        'Set splitting:false on the bin config in iNNfo/packages/nn-mcp/tsup.config.ts.',
     );
   }
 

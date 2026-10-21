@@ -3,7 +3,7 @@
  * scripts/lib/lineage-drift-guard.js
  *
  * Site (2) of the lineage drift gate. Runs the one core comparator over ONE
- * committed fixture domaiNN under the innfo-core tests fixtures, so a change to
+ * committed fixture domaiNN under the nn-core tests fixtures, so a change to
  * the projection, the renderer, or the managed-section definitions that is not
  * reflected in the committed record turns `scripts/verify.js` red.
  *
@@ -18,7 +18,7 @@
 
 const path = require('node:path');
 
-const GUARD_FIXTURE_ROOT = 'iNNfo/packages/innfo-core/tests/fixtures/';
+const GUARD_FIXTURE_ROOT = 'iNNfo/packages/nn-core/tests/fixtures/';
 const FIXTURE_DOMAIN = `${GUARD_FIXTURE_ROOT}lineage-drift-domain`;
 
 /**
@@ -44,7 +44,7 @@ function checkLineageDriftGuard(options = {}) {
     projectLineage,
     renderLineageSections,
     checkLineageDrift,
-  } = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'innfo-core.generated.cjs'));
+  } = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'nn-core.generated.cjs'));
 
   const label = insideRepo ? relToRepo : domainDir;
   const record = readLineageRecord(domainDir);

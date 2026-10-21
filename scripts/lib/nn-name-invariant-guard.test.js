@@ -113,7 +113,7 @@ function main() {
   // 7. Test directories are out of scope; a file with no parent_spec is only judged on the version rule.
   {
     const r = run({
-      'iNNfo/packages/innfo-core/tests/fixtures/Client_NN.md': doc('business'),
+      'iNNfo/packages/nn-core/tests/fixtures/Client_NN.md': doc('business'),
       'skills/nn-innfo/templates/workspace_spec_NN.md': '---\nlevel: 2\n---\n',
     });
     assert.strictEqual(r.ok, true, r.errors.join('; '));

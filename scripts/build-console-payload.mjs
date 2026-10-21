@@ -3,7 +3,7 @@
  * scripts/build-console-payload.mjs
  *
  * Bundles the console payload builder and feedback ledger engine from
- * `@cognnitive/innfo-core` into a standalone CommonJS bundle:
+ * `@cognnitive/nn-core` into a standalone CommonJS bundle:
  * `iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs`
  *
  * Also bundles the core slug primitives into an IIFE bundle:
@@ -20,10 +20,10 @@ import { build } from 'esbuild'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')
-const entryPoint = join(repoRoot, 'iNNfo', 'packages', 'innfo-core', 'src', 'console', 'index.ts')
+const entryPoint = join(repoRoot, 'iNNfo', 'packages', 'nn-core', 'src', 'console', 'index.ts')
 const defaultOutfile = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'console-payload.generated.cjs')
 
-const slugEntryPoint = join(repoRoot, 'iNNfo', 'packages', 'innfo-core', 'src', 'parser', 'slug.ts')
+const slugEntryPoint = join(repoRoot, 'iNNfo', 'packages', 'nn-core', 'src', 'parser', 'slug.ts')
 const defaultSlugOutfile = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-slug.generated.js')
 
 // The exporter CJS ships a stub registry instead of the ~500 KB canonical one: only the `changes`

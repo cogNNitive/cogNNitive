@@ -120,7 +120,7 @@ function checkNnNameInvariantGuard(options = {}) {
   const carvedOut = [];
   const allowlisted = [];
 
-  const core = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'innfo-core.generated.cjs'));
+  const core = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'nn-core.generated.cjs'));
   const readFile = options.readFile || ((f) => fs.readFileSync(path.join(repoRoot, f), 'utf8'));
   const manifestText =
     options.manifestText !== undefined

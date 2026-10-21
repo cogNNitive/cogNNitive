@@ -40,7 +40,7 @@ function fixtureTree(opts = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-facts-cli-test-'));
 
   if (withDist) {
-    const distDir = path.join(root, 'iNNfo', 'packages', 'innfo-mcp', 'dist');
+    const distDir = path.join(root, 'iNNfo', 'packages', 'nn-mcp', 'dist');
     fs.mkdirSync(distDir, { recursive: true });
     fs.writeFileSync(
       path.join(distDir, 'server.js'),
@@ -111,7 +111,7 @@ function main() {
       const res = runCli(root);
       assert.strictEqual(res.status, 2, `expected exit 2, got ${res.status}: ${res.stderr}`);
       assert.ok(
-        res.stderr.includes(path.join('iNNfo', 'packages', 'innfo-mcp', 'dist', 'server.js')),
+        res.stderr.includes(path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'server.js')),
         `stderr must name the missing dist path, got: ${res.stderr}`,
       );
     } finally {

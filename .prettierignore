@@ -12,4 +12,4 @@ archive/**
 **/fixtures/**
 **/*.golden
 docs/app/**
-packages/innfo-mcp/bin/**
+packages/nn-mcp/bin/**

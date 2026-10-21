@@ -3,7 +3,7 @@
  * scripts/export-address-module.mjs
  *
  * Bundles the canonical knowledge-unit address grammar from
- * `@cognnitive/innfo-core` (`console/unit-address.ts`) into a standalone IIFE:
+ * `@cognnitive/nn-core` (`console/unit-address.ts`) into a standalone IIFE:
  * `iNNfo/specs/bluepriNNts/console/innfo-address.generated.js` (window.InnfoAddress).
  *
  * The console runtime consumes `window.InnfoAddress` so badge addresses are built and
@@ -17,7 +17,7 @@ import { build } from 'esbuild'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '..')
-const entryPoint = join(repoRoot, 'iNNfo', 'packages', 'innfo-core', 'src', 'console', 'unit-address.ts')
+const entryPoint = join(repoRoot, 'iNNfo', 'packages', 'nn-core', 'src', 'console', 'unit-address.ts')
 const defaultOutfile = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-address.generated.js')
 
 const args = process.argv.slice(2)

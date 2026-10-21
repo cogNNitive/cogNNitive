@@ -104,11 +104,11 @@ agent-bootstrap:
       mcp:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive-web
-          path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          path: iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
           version: "0.27.0"
           ref: "innfo-mcp-v0.27.0"
           commit: "94e43dfd764e2d88da3c8e32312c170b7311a055"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js
 ---
 # Manifest`;
   const nestedParsed = yamlParser.parseManifest(nestedMcpManifest);
@@ -117,11 +117,11 @@ agent-bootstrap:
   assert.deepStrictEqual(nestedParsed.mcp, [{
     name: 'innfo-mcp',
     repo: 'cogNNitive/cogNNitive-web',
-    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    path: 'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
     version: '0.27.0',
     ref: 'innfo-mcp-v0.27.0',
     commit: '94e43dfd764e2d88da3c8e32312c170b7311a055',
-    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/94e43dfd764e2d88da3c8e32312c170b7311a055/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   }], 'parseManifest must hoist the nested skill MCP server into manifest.mcp');
 
   // Top-level + nested MCP entries merge, de-duplicated by name (first wins)

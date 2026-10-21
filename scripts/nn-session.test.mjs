@@ -259,11 +259,11 @@ test('stop removes a legacy node_modules junction without deleting primary sourc
   // node_modules. A recursive worktree delete that followed the junction into
   // the primary's node_modules would then follow this symlink and delete the
   // source dir (the data-loss bug this test guards).
-  const srcDir = join(repo, 'iNNfo', 'packages', 'innfo-core')
+  const srcDir = join(repo, 'iNNfo', 'packages', 'nn-core')
   mkdirSync(srcDir, { recursive: true })
   writeFileSync(join(srcDir, 'keep.txt'), 'keep')
   mkdirSync(join(repo, 'node_modules', '@cognnitive'), { recursive: true })
-  symlinkSync(srcDir, join(repo, 'node_modules', '@cognnitive', 'innfo-core'), 'junction')
+  symlinkSync(srcDir, join(repo, 'node_modules', '@cognnitive', 'nn-core'), 'junction')
   writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
   git(['add', '.gitignore'], repo)
   git(['commit', '-m', 'ignore node_modules'], repo)

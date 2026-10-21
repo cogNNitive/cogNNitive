@@ -2,7 +2,7 @@
  * scripts/release/version-agreement.js
  *
  * Verifies version agreement before publishing a release (AD-6):
- * 1. For innfo-mcp, tag version MUST match iNNfo/packages/innfo-mcp/package.json.
+ * 1. For innfo-mcp, tag version MUST match iNNfo/packages/nn-mcp/package.json.
  * 2. For innfo-console, tag version MUST match iNNfo/specs/bluepriNNts/console/package.json.
  * 3. For all keys, tag version MUST be >= highest existing tag for that key.
  */
@@ -48,7 +48,7 @@ function checkVersionAgreement(params) {
 
   // 1. Check authored version agreement for package-sourced keys
   if (key === 'innfo-mcp') {
-    const pkgPath = path.join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp', 'package.json');
+    const pkgPath = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'package.json');
     if (fs.existsSync(pkgPath)) {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
       if (pkg.version && pkg.version !== version) {

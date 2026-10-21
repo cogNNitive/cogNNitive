@@ -56,7 +56,7 @@ const require = createRequire(import.meta.url);
 const { parseSourceYaml } = require('./manifest/generate-manifest.js');
 
 const MCP_TOOLS_REGION = 'mcp-tools';
-const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'innfo-mcp', 'dist', 'server.js');
+const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'server.js');
 // The mcp-tools region is rendered into the docs page and into the nn-innfo
 // skill's own SKILL.md (design D4), so the skill ships an accurate tool
 // inventory instead of a hand-typed count.
@@ -155,7 +155,7 @@ function writeOrCheck({ targetPath, currentContent, rendered, check, log, logErr
 async function runMcpToolsJob(cwd, check, against, execFile, log, logError) {
   const distPath = path.join(cwd, DIST_RELATIVE_PATH);
   if (!fs.existsSync(distPath)) {
-    logError(`FAIL: innfo-mcp build artifact not found at: ${distPath}. Build it first (npm --workspace=@cognnitive/innfo-mcp run build).`);
+    logError(`FAIL: innfo-mcp build artifact not found at: ${distPath}. Build it first (npm --workspace=@cognnitive/nn-mcp run build).`);
     return 2;
   }
 

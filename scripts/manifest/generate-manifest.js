@@ -36,7 +36,7 @@ function resolveVersionForEntry(entry, section, repoRoot) {
     : section === 'blueprints'
       ? (entry.path ? [entry.path] : ['iNNfo', 'specs', entry.name || ''])
       : section === 'mcp'
-        ? ['iNNfo', 'packages', 'innfo-mcp', 'package.json']
+        ? ['iNNfo', 'packages', 'nn-mcp', 'package.json']
         : ['iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json'];
   const target = path.join(repoRoot, ...pList.filter(Boolean));
   if (fs.existsSync(target)) {

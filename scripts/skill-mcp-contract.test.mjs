@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..');
 console.log('▶ [skill-mcp-contract] Running Skill MCP Contract & Drift Guard...');
 
 // 1. Extract valid MCP tools from server.ts
-const serverTsPath = path.join(ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'src', 'server.ts');
+const serverTsPath = path.join(ROOT, 'iNNfo', 'packages', 'nn-mcp', 'src', 'server.ts');
 const serverContent = fs.readFileSync(serverTsPath, 'utf8');
 
 const toolMatches = [...serverContent.matchAll(/name:\s*'([^']+)'/g)].map((m) => m[1]);

@@ -93,7 +93,7 @@ function main() {
   // 6. Scope: only a committed core-tests fixture, never shipped content.
   {
     assert.ok(FIXTURE_DOMAIN.startsWith(GUARD_FIXTURE_ROOT));
-    assert.ok(GUARD_FIXTURE_ROOT.startsWith('iNNfo/packages/innfo-core/tests/fixtures/'));
+    assert.ok(GUARD_FIXTURE_ROOT.startsWith('iNNfo/packages/nn-core/tests/fixtures/'));
     assert.ok(!/_samples_nn|specs\/bluepriNNts/.test(FIXTURE_DOMAIN));
     const r = checkLineageDriftGuard({ repoRoot: REPO_ROOT, domainDir: path.join(REPO_ROOT, 'iNNfo', 'specs') });
     assert.strictEqual(r.ok, false, 'a domaiNN outside the core-tests fixtures must be refused');

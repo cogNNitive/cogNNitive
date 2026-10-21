@@ -407,15 +407,15 @@ agent-bootstrap:
   const pinned = {
     name: 'innfo-mcp',
     repo: 'cogNNitive/cogNNitive',
-    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    path: 'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
     ref: 'innfo-mcp-v0.2.1',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
-    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   };
   assert.strictEqual(await mod.checkMcpUrlPinned(pinned), null, 'commit-pinned mcp url must pass');
   const unpinned = {
     ...pinned,
-    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   };
   const violation = await mod.checkMcpUrlPinned(unpinned);
   assert.notStrictEqual(violation, null, 'unpinned (/main/) mcp url must fail');
@@ -429,11 +429,11 @@ agent-bootstrap:
   const entry = {
     name: 'innfo-mcp',
     repo: 'cogNNitive/cogNNitive',
-    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    path: 'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
     version: '0.2.4',
     ref: 'innfo-mcp-v0.2.4',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
-    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
   };
 
   // Passing case
@@ -464,7 +464,7 @@ agent-bootstrap:
     ]);
     try {
       const violations = await mod.validateMcp(entry, mod.CHANNELS.stable);
-      assert.strictEqual(violations.some(v => v.includes('path iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js not found')), true);
+      assert.strictEqual(violations.some(v => v.includes('path iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js not found')), true);
       console.log('✔ validateMcp missing path violation test passed');
     } finally {
       stub.restore();
