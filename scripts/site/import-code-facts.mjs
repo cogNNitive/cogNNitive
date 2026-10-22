@@ -47,6 +47,7 @@ export async function run({ domainDir, facts, now }) {
     if (!facts || !Array.isArray(facts[key])) throw new Error(`facts.${key} must be an array`);
     return [group, renderSnapshot(group, facts[key])];
   });
+  /** @type {Record<string, { status: 'written' | 'unchanged', path: string, sidecar?: string }>} */
   const groups = {};
   for (const [group, text] of rendered) {
     const written = await writeOnce(domainDir, { dir: FACTS_DIR, key: group, ext: 'md' }, text, now ? { now } : {});

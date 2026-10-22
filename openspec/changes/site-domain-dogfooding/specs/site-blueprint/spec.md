@@ -125,7 +125,9 @@ because nn-core only enforces per-document uniqueness.
 
 ### Requirement: `sources` reserved for citations
 
-`Page.sources` MUST hold only citation tokens in the form `[<path>@<unit>]`. The
+`Page.sources` MUST hold only citations in the form `<path>@<unit>`, written as ONE bracketed,
+comma-separated list: `[<path>@<unit>, <path>@<unit>]` (nn-core splits a bracketed list on
+commas, so separate brackets would corrupt the citations). The
 bluepriNNt MUST NOT define a `source` field on `Page` or `Site`. Free-text references
 MUST NOT be stored in `sources`.
 

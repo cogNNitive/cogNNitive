@@ -176,7 +176,7 @@ test('same facts in two different directories give byte-identical snapshots', as
 
 test('run fails closed on malformed facts and writes nothing', async () => {
   const dir = tmpDomain();
-  await assert.rejects(run({ domainDir: dir, facts: { tools: FACTS.tools }, now: T1 }), /skills/);
+  await assert.rejects(run({ domainDir: dir, facts: /** @type {any} */ ({ tools: FACTS.tools }), now: T1 }), /skills/);
   await assert.rejects(run({ domainDir: dir, facts: { tools: [{ name: '', description: 'x' }], skills: FACTS.skills }, now: T1 }), /name/);
   assert.deepEqual(hashes(dir), {});
 });
