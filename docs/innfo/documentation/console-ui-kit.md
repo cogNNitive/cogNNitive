@@ -2,12 +2,13 @@
 
 `ui-kit.js` is the single source of truth for console **design tokens** and
 **presentational components**. It is one UMD source in the console bundle
-(global `InnfoUI`) and ships **before** `innfo-runtime.js`, which consumes it
+(global `InnfoUI`) and ships **before** `nn-runtime.js`, which consumes it
 through UMD factory injection.
 
 - Tokens are injected once as `<style data-innfo-tokens="<VERSION>">`.
-- Theming is driven solely by `data-theme` on `<html>` (`light` / `dark` / absent
-  = follow the OS). There is no `.dark` class mechanism.
+- The token set is **light-only**: `setTheme(doc, 'light' | null)` sets or
+  removes `data-theme` on `<html>` and throws a `TypeError` for any other value.
+  There is no dark theme and no `.dark` class mechanism.
 - Components create DOM, keep no module state, and write text via `textContent`.
   No shadow DOM.
 
@@ -16,24 +17,34 @@ through UMD factory injection.
 ```js
 InnfoUI = {
   VERSION,
-  TOKEN_VALUES,          // { light: {...}, dark: {...} }
+  COPY,                  // user-facing strings
+  TOKEN_VALUES,          // { light: {...} } (light-only)
   TOKENS,                // token names
   generateTokenCss(values?) -> string,
   ensureTokens(doc?) -> HTMLStyleElement,
-  setTheme(doc, 'light' | 'dark' | null),
+  setTheme(doc, 'light' | null),
   icon(name, size?, cls?) -> string,
   slug(s) -> string,
   conceptSlot({ index, color? }) -> 1..12,
+  tagSlot(name) -> 1..12,   // FNV-1a hash of the lower-cased tag name
+  resolveConceptIconName(name) -> string,
   ORIGIN_VARIANTS,       // ['error','agent','human','reviewer','document']
   CITATION_ORIGIN_LABELS,
-  StatusBadge(data), CitationIcon(data, opts?),
+  STATUS_LABELS, statusLabel(status),
+  StatusBadge(data), CitationIcon(data, opts?), CitationIcons(data, opts?),
   Toast(data, opts?), RailProgress(data),
   describeUnit(kind, ref, index?) -> descriptor,
   Ku(kind, ref, opts?) -> span.innfo-ku-wrap,
   createKu({ doc, onAction }) -> { destroy },
-  KuInfoPanel(descriptor) -> dialog,
-  FieldRow(data, opts?), ElementCard(data, opts?),
-  DraftList(data, opts?), RelList(data, opts?),
+  setUnitChanges(...), KuInfoPanel(descriptor) -> dialog,
+  FieldRow(data, opts?), FieldValue(data, opts?), Markdown(text, opts?), safeHref(url),
+  ElementCard(data, opts?), ElementMini(data, opts?), ElementPreview(data, opts?),
+  TagRow, EditAnchor,
+  DraftList(data, opts?), RelList(data, opts?), ChangeHistory(data, opts?),
+  AnnotationPopover(data, opts?), EditModal(data, opts?), NewElementModal(data, opts?),
+  SankeyFlow(data, opts?),
+  FieldStringWidget, FieldNumberWidget, FieldBooleanWidget, FieldSelectWidget,
+  FieldMultiSelectWidget, FieldReferenceWidget, FieldMarkdownWidget,
   KpiGrid(data, opts?), defineCustomElements(doc?),
   DataTable(data, opts?), MatrixGrid(data, opts?), Timeline(data, opts?),
   FilterSelect(data, opts?),
@@ -50,7 +61,8 @@ Every component root carries `data-innfo-component="<kebab-name>"`. Invalid
 | `Ku(kind, ref, { variant?, body? })` | `span.innfo-ku-wrap` > `[data-innfo-component="ku-unit"]` | `data-ku-kind`, `data-ku-nature`, `data-ku-home`, `data-ku-address`; action cluster is a sibling `.innfo-ku-actions` |
 | `describeUnit(kind, ref, index?)` | pure descriptor | `{ kind, nature, home, address, label, slot, vtype?, editability, facts }` |
 | `KuInfoPanel(descriptor)` | `dialog[data-innfo-component="ku-info-panel"]` | focus moves to the heading; Escape restores focus |
-| `StatusBadge({ status, count?, label?, title? })` | `span` | `data-status` (`local`\|`proposed`\|`applied`\|`conflict`); `label` sets the visible word, `title` the tooltip |
+| `StatusBadge({ status, count?, label?, title? })` | `span` | `data-status` accepts **only** `local` (rendered as `Unsent`); any other value throws `TypeError`. `label` sets the visible word, `title` the tooltip |
+| `ChangeHistory({ changes, byId }, { onRevert?, onGoTo?, onCitation? })` | `ul` | `data-innfo-component="change-history"`; one card per `applied` change (with Revert for `update_field`) and one muted card per not-applied change (`conflict` / `rejected`) with the engine's reason |
 | `Toast({ title, body }, { onClose })` | `div.innfo-change-toast` | `data-innfo-component="toast"`, `role="status"`; dismiss control calls `onClose` |
 | `RailProgress({ total, pending })` | `span.innfo-rail-progress` | `data-total`, `data-pending`; text `pending/total` |
 | `CitationIcon({ variant, field }, { onOpen? })` | `button` | `data-origin`, `data-field`; click stops propagation |
@@ -138,18 +150,21 @@ per canonical address. Allowed kinds: `domain`, `document`, `section`, `element`
 `value`, `concept`, `field`, `matrix`, `source`. Every badge carries
 `data-ku-kind`, `data-ku-nature` (`container` / `structure` / `content`),
 `data-ku-home` (`domain` / `blueprint` / `knowledge` / `source`) and
-`data-ku-address` (parsed by `innfo-core`'s `parseUnitAddress`).
+`data-ku-address` (parsed by `nn-core`'s `parseUnitAddress`). There is one unified badge selector, `[data-innfo-component="ku-unit"]`; the former `ku-badge` and `concept-pill` selectors no longer exist.
 
 - `Ku(kind, ref, { variant?, body? })`: `ref` carries the identity facts
   (`model`, `family`, `id`, `concept`, `name`, `field`, `element`, `row`, `col`,
   `address`). Sections and definitions are prefixed with `concept:` / `matrix:`;
   element, value and cell addresses stay equal to changeset `target::`.
-- Visual grammar: container = double border, structure = dashed + mono, content =
-  solid, source = warm `--innfo-source-paper` fill, concept identity via slots.
-- The action cluster (`span.innfo-ku-actions`) is always OUTSIDE the badge root.
-  Info is always present; edit appears when `describeUnit(...).editability !== 'none'`.
-  CSS hides edit under `html:not([data-innfo-review=on])` and structure pencils
-  under `html:not([data-innfo-structure=on])`.
+- Visual grammar: container = `2px` solid border, structure = `1.5px` solid border
+  + mono type, content = borderless (tinted fill), source = warm
+  `--innfo-source-paper` fill, concept identity via slots.
+- One affordance sits beside each badge: a single `+` button
+  (`button[data-ku-more="true"]`, `aria-expanded`). It opens a floating flyout
+  (`span.innfo-ku-actions`) that is always OUTSIDE the badge root. Info is always
+  present; reveal, citations (when there are any) and edit (only when
+  `describeUnit(...).editability !== 'none'`) follow. There are no
+  `data-innfo-review` / `data-innfo-structure` CSS gates.
 - `createKu({ doc, onAction })` installs ONE delegated listener per document and
   forwards `(action, descriptor)`; the kit owns no review state.
 - A pending-change pip (`button[data-innfo-component="ku-change-pip"]`) sits beside
@@ -214,21 +229,24 @@ Anything else (tables, images, nested lists, HTML) is literal text, so nothing i
 
 ### Tags and the filter
 
-`ElementCard` renders `TagRow` from `element.tags` only when it is non-empty (the review
+`ElementCard` renders `TagRow` from the element's tags only when non-empty (the review
 controller adds its own row for "+ tag" on untagged cards). With `opts.onTag` each chip is a
-button; the runtime wires it to add `tag:<t>` to the active filter.
+button; the runtime wires it to add `tags:<t>` to the active filter.
 
-`element.tags` is the only tag source (a field merely named `tags` is not one). Filter facets
+In `iNNfo_V_0-5-0`, `tags` is the built-in multi-valued `select` Field present on every
+Concept and Element, not a separate property. Chip colors are not configured anywhere:
+`tagSlot(name)` hashes the lower-cased tag name with FNV-1a (32-bit) and maps it to one of
+the 12 `--innfo-concept-N` slots, so a tag has the same color in every console. Filter facets
 combine as follows:
 
 | Token | Meaning |
 |---|---|
-| `tag:a tag:b` | AND, exact and case-insensitive: the element carries both |
-| `tag-any:a tag-any:b` | OR group: the element carries at least one |
+| `tags:a tags:b` | AND, exact and case-insensitive: the element carries both |
+| `tags:a|b` | any-of inside one token: the element carries at least one of the listed tags |
 | `concept:` / `model:` (repeated) | OR within the facet |
 | different facets, text | AND |
 
-The search box tooltip states the asymmetry (tags narrow, concepts and models widen).
+The runtime treats `tags` as an ordinary Field facet; any-of lives inside a single token with `|`.
 
 ### Open original
 
@@ -239,19 +257,19 @@ for the file.
 
 ## Tokens
 
-`TOKEN_VALUES` holds a light and a dark value for every `--innfo-*` token:
+`TOKEN_VALUES` holds a (light-only) value for every `--innfo-*` token:
 surfaces (`--innfo-bg`/`-surface`/`-surface-2`), text (`--innfo-text`/`-muted`/
 `-border`), `--innfo-accent`/`-link`/`-focus`, 12 `--innfo-concept-N` plus a
 matching `--innfo-concept-N-bg` tint for tinted badge fills, status
-(`--innfo-status-{pending,applied,rejected,stale}` + `-bg`), origin
+(`--innfo-status-{pending,applied,rejected,stale,unsent}` + `-bg`), origin
 (`--innfo-origin-{agent,human,reviewer,document,error}`), radii, `--innfo-font`,
 `--innfo-mono`, `--innfo-shadow`. `generateTokenCss` is the only place the CSS is
 produced; nothing is hand-written twice.
 
-**Contrast**: status foregrounds meet WCAG AA (>= 4.5:1) against their own `-bg`
-in both themes, the allowed text pairs meet 4.5:1, and origin icons meet 3:1 on
+**Contrast**: status foregrounds meet WCAG AA (>= 4.5:1) against their own `-bg`,
+the allowed text pairs meet 4.5:1, and origin icons meet 3:1 on
 `--innfo-surface`. These are enforced by `console-ui-kit-contrast.test.ts` with an
-independent luminance function. Light `--innfo-muted` is **not** allowed on
+independent luminance function. `--innfo-muted` is **not** allowed on
 `--innfo-surface-2` (chips use `--innfo-text`).
 
 ## Build and check
@@ -283,9 +301,9 @@ never migrated to tokens, and are excluded from the shell guard (it skips
 - One card commit point per renderer: `InnfoConsole.refresh` -> `mountElementCards`
   and the viewer's `render()`.
 - Stable hooks: `[data-innfo-component=element-card][data-element-id]`,
-  `[data-innfo-component=ku-badge][data-ku-kind=field][data-field]` inside it,
-  `[data-innfo-component=concept-pill][data-concept-id]`, the `ku-actions` cluster
-  (`[data-ku-action]`), the change pip (`[data-innfo-component=ku-change-pip]`),
+  `[data-innfo-component=ku-unit][data-ku-kind=field][data-field]` inside it,
+  `[data-innfo-component=ku-unit][data-concept-id]`, the `ku-actions` cluster
+  (`[data-ku-action]`, inside the `+` flyout), the change pip (`[data-innfo-component=ku-change-pip]`),
   and the `.innfo-card-head` / `.innfo-card-body` containers.
-- `TOKEN_VALUES`, `TEXT_PAIRS`, `StatusBadge` (with `stale`) and the review
+- `TOKEN_VALUES`, `TEXT_PAIRS`, `StatusBadge` (only `local`), `ChangeHistory` and the review
   components are exported for the review UX layer.

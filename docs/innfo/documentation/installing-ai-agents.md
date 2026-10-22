@@ -1,8 +1,8 @@
 # Installing AI Agents
 
-To edit, bootstrap, and maintain **cogNNitive** knowledge models (`*_NN.md`), you can read them visually in the domain console or drive them directly via **local AI coding agents**.
+To edit, bootstrap, and maintain **cogNNitive** kNNowledge documents (`*_NN.md`), you can read them visually in the domain console or drive them directly via **local AI coding agents**.
 
-An AI coding agent is software that runs locally on your computer (desktop app or CLI). Unlike web-based chat interfaces, local agents have secure permission to inspect workspace directories, create files, run validation tools via MCP (Model Context Protocol), and keep your models synchronized.
+An AI coding agent is software that runs locally on your computer (desktop app or CLI). Unlike web-based chat interfaces, local agents have secure permission to inspect domaiNN directories, create files, run validation tools via MCP (Model Context Protocol), and keep your documents synchronized.
 
 ---
 
@@ -30,9 +30,9 @@ An AI coding agent is software that runs locally on your computer (desktop app o
   - **Windows (Winget):** `winget install opencode`
   - **Linux / npm:** `npm install -g opencode-ai`
 
-### Launching OpenCode in your workspace
+### Launching OpenCode in your domaiNN
 
-Open your terminal and navigate to your workspace folder (e.g. ending in `_NN`):
+Open your terminal and navigate to your domaiNN folder (e.g. ending in `_NN`):
 
 ```bash
 cd ~/Documents/my-project_NN
@@ -55,7 +55,7 @@ npm install -g @anthropic-ai/claude-code
 
 ### Launching Claude Code
 
-Navigate to your workspace directory and start the interactive session:
+Navigate to your domaiNN directory and start the interactive session:
 
 ```bash
 cd ~/Documents/my-project_NN
@@ -94,9 +94,9 @@ Follow the installation instructions for your chosen OpenAI CLI distribution (e.
 
 Download the installer for your OS from [cursor.com](https://cursor.com).
 
-### Launching Cursor in your workspace
+### Launching Cursor in your domaiNN
 
-Open your workspace folder (e.g. ending in `_NN`) via **File → Open Folder**, or from your terminal:
+Open your domaiNN folder (e.g. ending in `_NN`) via **File → Open Folder**, or from your terminal:
 
 ```bash
 cd ~/Documents/my-project_NN
@@ -105,8 +105,8 @@ cursor .
 
 ---
 
-## Connecting the MCP Server (`innfo-mcp`)
+## Connecting the MCP Server (`nn-mcp`)
 
-Once your agent is installed, you can connect the `innfo-mcp` Model Context Protocol server. This gives your agent deterministic validation, AST mutation, and spec resolution tools for all `_NN.md` files without manual formatting errors.
+Once your agent is installed, you can connect the `nn-mcp` Model Context Protocol server. This gives your agent deterministic validation, AST mutation, and spec resolution tools for all `_NN.md` files without manual formatting errors.
 
 For full setup instructions, see the [MCP Setup Guide](mcp-setup).

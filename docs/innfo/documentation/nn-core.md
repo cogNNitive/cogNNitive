@@ -5,22 +5,25 @@ Framework-agnostic TypeScript library shared across the cogNNitive ecosystem. Us
 ## Features
 
 - **Parser** — unified frontmatter, concept, and matrix parsing for `_NN.md` iNNfo documents
-- **Model** — type definitions for Concept, Element, Field, Marker, Matrix, Relationship
-- **Validator** — `validateModel`, `validateFormatContent`, `validateFormatSyntax`, and `validateReferences`, validating model instances against template schemas
-- **IO Drivers** — drivers for reading and writing iNNfo documents, including a browser driver for the File System Access API
-- **Resolver** — resolves the parent chain from level 3 (model) up to level 0 (defiNNe), downloading specs as needed and caching them locally
+- **Model** — type definitions for Concept, Element, Field, Matrix, and Relationship
+- **Validator** — `validateKnowledge`, `validateBlueprint`, `validateFormatContent`, `validateFormatSyntax`, and `validateReferences`, validating kNNowledge documents against bluepriNNt schemas
+- **Mutate & Changeset** — intent-level mutation operations and the sealed changeset apply/re-validate engine
+- **Lineage & Cognitivize** — sidecar-backed source provenance and the lineage projection
+- **Slug & Unit Address** — canonical slug derivation and the `unitAddress` / `parseUnitAddress` grammar
+- **IO Drivers** — the `FsDriver` interface for reading and writing iNNfo documents
+- **Resolver** — resolves the parent chain from level 3 (kNNowledge) up to level 0 (defiNNition), downloading specs as needed and caching them in the OS temp directory
 
 ## API
 
 ```typescript
-import { parseFrontmatter, validateModel } from '@cognnitive/nn-core'
+import { parseFrontmatter, validateKnowledge } from '@cognnitive/nn-core'
 
 // Parse YAML frontmatter from an iNNfo document
 const fm = parseFrontmatter(content)
-// Returns: { title, level, parent, ... }
+// Returns: { title, level, parent_spec, ... }
 
-// Validate a parsed model against its resolved template and spec chain
-const result = validateModel(model, template, formatSpec)
+// Validate a parsed kNNowledge document against its resolved blueprint and spec chain
+const result = validateKnowledge(knowledgeDoc, blueprintDoc, formatSpecDoc, options)
 ```
 
 ## Usage
@@ -32,4 +35,3 @@ npm run build -w @cognnitive/nn-core
 # Run tests
 npm run test -w @cognnitive/nn-core
 ```
-

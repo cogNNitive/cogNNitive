@@ -1,44 +1,47 @@
 # Tags & Open Taxonomy
 
-cogNNitive models support open-ended tagging across all architectural layers. This document outlines the **Open Taxonomy with Progressive Enhancement** pattern, which combines lightweight ad-hoc labeling at the model level with structured, visually enhanced taxonomies defined at the workspace root.
+cogNNitive documents support open-ended tagging across all architectural layers. This document outlines the **Open Taxonomy** pattern: lightweight ad-hoc labeling that needs no upfront schema, rendered consistently by the Domain Console.
 
 ---
 
-## 1. Concepts: Tags vs. Markers vs. Releases
+## 1. Concepts: Tags, Fields, and Releases
 
-To maintain clean architectural boundaries, cogNNitive cleanly distinguishes three dimensions of classification:
+To keep clean architectural boundaries, cogNNitive distinguishes three dimensions of classification:
 
 | Mechanism | Purpose | Scope | Schema Requirement |
 | :--- | :--- | :--- | :--- |
-| **Tags (`tags::`)** | Cross-cutting categorization, ad-hoc taxonomy, and multi-dimensional view filtering (e.g. `strategy-a`, `enterprise`, `q4`). | Model Elements and Concepts | **None** (ad-hoc, open vocabulary). |
-| **Markers** | Quantitative evaluation, matrix intersections, and lifecycle scoring with formal widgets (`scale`, `cycle`, `boolean`). | Specific matrices and elements | **Mandatory** definition in Level 2 app (`spec_NN.md`). |
-| **Releases / Snapshots** | Immutable point-in-time milestones for frozen baselines, pipeline inputs, and public distribution. | Whole model repository | Defined via version tags (`V_1-0-0`) and git tags. |
+| **Tags (`tags::`)** | Cross-cutting categorization, ad-hoc taxonomy, and multi-dimensional view filtering (e.g. `strategy-a`, `enterprise`, `q4`). | Every Concept and Element | **None** (ad-hoc, open vocabulary). |
+| **Fields** | Quantitative evaluation and matrix intersections. A former flag "marker" is now just a value of the built-in `tags` field; a former valued "marker" is a normal Field. Matrix scales and cycles live directly on the `# NN Matrix Definition`. | Concepts, Elements, and Matrices | Defined in the Level 2 `spec_NN.md`. |
+| **Releases / Snapshots** | Immutable point-in-time milestones for frozen baselines, pipeline inputs, and public distribution. | Whole domain | Defined via `knowledge_version` frontmatter and git tags. |
 
 > [!TIP]
-> **CONCEPTS > CODE**: Use **Tags** to filter the dimensional space (what elements belong to which strategy); use **Releases** to freeze the timeline (a verified baseline of the whole model).
+> **CONCEPTS > CODE**: Use **Tags** to filter the dimensional space (what elements belong to which strategy); use **Releases** to freeze the timeline (a verified baseline of the whole domain).
+
+> [!NOTE]
+> The former `Marker` primitive (`# NN Marker Definition`, `item-markers` matrices, and the `set_marker` operation) was **removed** in iNNfo `V_0-5-0`. Attempts to use it fail with `MARKERS_REMOVED` / `UNKNOWN_OPERATION`. Flag markers became values on the built-in `tags` field; valued markers became normal Fields.
 
 ---
 
-## 2. Using Tags in Models (Ad-hoc / Open Vocabulary)
+## 2. Using Tags in Documents (Ad-hoc / Open Vocabulary)
 
-At the model level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring them upfront in your app:
+At the document level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring anything upfront in your blueprint:
 
 ```markdown
-# NN Oferta
+# NN Offering
 
-## NN Oferta: Enterprise Cloud Platform
+## NN Offering: Enterprise Cloud Platform
 tags:: strategy-growth, b2b, enterprise
-precio:: 12000
+price:: 12000
 status:: active
 
-## NN Oferta: Community Starter
+## NN Offering: Community Starter
 tags:: [strategy-plg, open-source]
-precio:: 0
+price:: 0
 status:: active
 
-## NN Oferta: Premium Onboarding
+## NN Offering: Premium Onboarding
 tags:: strategy-growth, strategy-plg
-precio:: 2500
+price:: 2500
 status:: optional
 ```
 
@@ -50,53 +53,33 @@ status:: optional
 
 ---
 
-## 3. The Workspace Catalog: Progressive Enhancement
+## 3. `tags` Is a Built-in Field
 
-While tags can be created on-the-fly, workspaces (`workspace_NN.md`) can provide a centralized **Tag Catalog** to give semantic meaning, standardized colors, and icons to common tags.
+In `V_0-5-0`, `tags` is the **built-in multi-valued `select` Field** present on every Concept and Element. There is no `# NN Tag` concept in a domaiNN, and no domain-root tag catalog:
 
-### Workspace Specification (`workspace_spec_NN.md`)
-The `workspace_spec` defines the `Tag` Concept and its fields:
-* `color`: Hex code (e.g. `#10b981`) or design token for badge styling.
-* `icon`: Lucide icon name (e.g. `rocket`, `layers`, `shield`).
-* `description`: Semantic definition and strategic intent.
-
-### Declaring Workspace Tags (`workspace_NN.md`)
-```markdown
-# NN Tag
-
-## NN Tag: strategy-growth
-color:: #10b981
-icon:: trending-up
-description:: Initiatives focused on enterprise revenue expansion and corporate accounts.
-
-## NN Tag: strategy-plg
-color:: #6366f1
-icon:: users
-description:: Product-Led Growth and community self-serve adoption.
-
-## NN Tag: enterprise
-color:: #f59e0b
-icon:: building
-description:: Mission-critical features required for Fortune 500 deployments.
-```
+* A tag is simply a value of the `tags` field — there is nothing to declare or register.
+* Tags are never validated against a closed list; an unknown tag is always valid.
+* Adding a tag is adding a value to the field, exactly like any other field value.
 
 ---
 
-## 4. Progressive Resolution in the Console & Procedures
+## 4. Tag Rendering in the Console
 
-When the domain console or an agent procedure encounters a tag:
+The Domain Console renders tags without any per-tag configuration:
 
-1. **Workspace Hit**: If the tag matches an entry in `workspace_NN.md`, it renders as an enriched badge with its designated color, icon, and a hover tooltip showing its description.
-2. **Graceful Fallback**: If the tag was created ad-hoc in the model and has no workspace entry, it renders as a neutral gray badge. It remains completely valid and never triggers validation warnings.
+1. **Deterministic colors**: Each tag chip's color is computed from the tag **name** with an FNV-1a 32-bit hash (`InnfoUI.tagSlot(name)`). The same tag always gets the same color, on every machine, with no catalog.
+2. **No catalog, no fallback**: Because color is hashed from the name, there is no "workspace hit vs. graceful fallback". A tag created ad-hoc in a document renders with the same deterministic chip as any other tag and never triggers a validation warning.
 
 ---
 
 ## 5. View Projection and Filtering
 
-In the domain console, the search and filter controls in the header narrow the view:
+In the Domain Console, the toolbar narrows the view through `FilterSelect` facets:
 
-* **Conceptos Tab**: Filters models by domain structure (e.g. show only `Offerings` or `Stakeholders`).
-* **Etiquetas Tab**: Displays all tags present in the workspace and active models.
-  * Toggling tags dynamically filters the view to show only elements matching the selected tags.
-  * Multi-tag filtering allows projecting specific strategic combinations (e.g., all offerings belonging to both `strategy-growth` AND `enterprise`).
-  * Convenient **Todas** and **Ninguna** buttons enable rapid filter switching.
+* **Models / Concepts**: Filter by document structure (e.g. show only `Offerings` or `Stakeholders`).
+* **Fields**: Filter by field presence or value.
+* **Tags**: Lists all tags present across the domain. Toggling a tag dynamically filters the view to show only elements carrying it.
+  * Multi-tag filtering projects specific combinations (e.g. all offerings belonging to both `strategy-growth` AND `enterprise`).
+* **Changes**: Filter by change status.
+
+The search box also accepts a `tags:<tag>` token to filter directly by tag.

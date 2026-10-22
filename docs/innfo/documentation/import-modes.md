@@ -99,7 +99,8 @@ no daemon and no background process to enable.
 | :--- | :--- | :--- |
 | **One-off** | Copy verbatim, normalise once, done. | Yes — the default scan. |
 | **Snapshot series** | Each new drop in a dynamic root becomes a new immutable, timestamped source in a family. | Yes — `--scan-external`. |
-| **Reviewer feedback** | Structured feedback JSON from a reviewer console ingests as a normalised source you can cite item by item (`#fb-001`). | Yes — `sources/import/feedback/`. |
+
+> Reviewer feedback is no longer an ingestion strategy. A reviewer console exports a `_changes_NN.md` changeset into `changes/`, applied with `apply_change` — it never re-enters as a source.
 
 ## 4. Dynamic sources and impact checking
 
@@ -149,7 +150,7 @@ first column. You then cite a row directly:
 sources:: [sources/import/sales.csv@2026-03]
 ```
 
-The editor highlights the cited row when the source is opened.
+The console highlights the cited row (through `AnnotationPopover`) when the source is opened.
 
 ## 7. Convergence strategies
 

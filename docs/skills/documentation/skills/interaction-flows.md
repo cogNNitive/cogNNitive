@@ -1,13 +1,13 @@
 ﻿---
-title: "Interaction Flows & Statechart â€” cogNNitive Skills"
+title: "Interaction Flows & Statechart — cogNNitive Skills"
 description: "Deterministic state machine, decision matrix, and navigation paths across cogNNitive agent skills from the nn entry point."
-html_url: https://cognnitive.com/skills/docs/#/skills/interaction-flows
+html_url: https://cognnitive.com/skills/documentation/#/skills/interaction-flows
 generator: https://cognnitive.com/skills/nn-design-presets
 ---
 
 # Interaction Flows & Statechart
 
-**Architecture**: Finite State Machine (FSM) Â· **Design Pattern**: Front Controller Â· **Entry Point**: `nn`
+**Architecture**: Finite State Machine (FSM) · **Design Pattern**: Front Controller · **Entry Point**: `nn`
 
 ---
 
@@ -49,16 +49,16 @@ stateDiagram-v2
             [*] --> ActiveModelGate: Check active model context
             ActiveModelGate --> WizardL2L3: "[a] Create model (Wizard L2 -> L3)"
             ActiveModelGate --> EditModel: "[b] Edit existing model"
-            ActiveModelGate --> ValidateMCP: "[c] Validate schema with innfo-mcp"
+            ActiveModelGate --> ValidateMCP: "[c] Validate schema with nn-mcp"
             ActiveModelGate --> ArchAssistant: "[d] Architecture Assistant (Audit)"
             ActiveModelGate --> ExecProc: "[x] Execute model procedure"
             
             state "Model Creation Wizard" as WizardL2L3 {
-                [*] --> PhaseA_Template: Phase A: Template Design (Level 2)
+                [*] --> PhaseA_Template: Phase A: Blueprint Design (Level 2)
                 PhaseA_Template --> ConfirmA: User approves Level 2 spec?
-                ConfirmA --> PhaseB_Model: "Yes -> Phase B: Populate Model (Level 3)"
-                ConfirmA --> PhaseA_Template: Adjust template
-                PhaseB_Model --> ConfirmB: User approves Level 3 model?
+                ConfirmA --> PhaseB_Model: "Yes -> Phase B: Populate kNNowledge (Level 3)"
+                ConfirmA --> PhaseA_Template: Adjust blueprint
+                PhaseB_Model --> ConfirmB: User approves Level 3 kNNowledge?
                 ConfirmB --> SaveModel: "Yes -> Persist to kNNowledge/"
             }
         }
@@ -114,8 +114,8 @@ The table below defines the deterministic transition rules executed by the agent
 | **`ROUTER_TRIAGE`** | "ingest pdf" / "transform" | Matches `nn-sources` | Activate `nn-sources`, verify workspace layout | **`SOURCES_SETUP`** |
 | **`ROUTER_TRIAGE`** | "generate website" / "ui" | Matches `nn-site-generator` | Prompt for visual palette preset (`nn-design-presets`) | **`SITEGEN_STYLE_SELECTION`** |
 | **`ROUTER_TRIAGE`** | "update skills" / "audit" | Matches `nn-skills-lifecycle` | Compare local commits against remote manifest | **`LIFECYCLE_DIFF_PREVIEW`** |
-| **`INNFO_ENTRY`** | Option `[a]` selected | New model requested | Launch Phase A (Template design Level 2) | **`WIZARD_PHASE_A`** |
-| **`WIZARD_PHASE_A`** | User approves template | Level 2 validated | Transition to Phase B (Model population Level 3) | **`WIZARD_PHASE_B`** |
+| **`INNFO_ENTRY`** | Option `[a]` selected | New kNNowledge requested | Launch Phase A (bluepriNNt design Level 2) | **`WIZARD_PHASE_A`** |
+| **`WIZARD_PHASE_A`** | User approves blueprint | Level 2 validated | Transition to Phase B (kNNowledge population Level 3) | **`WIZARD_PHASE_B`** |
 | **`ACTIVE_BRANCH`** | Workflow finished / exit | Work complete or abort | Save transcript in `conversations/YYYY-MM-DD_...md` | **`CONVERSATION_LOGGED`** |
 
 ---

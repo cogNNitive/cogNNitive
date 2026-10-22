@@ -6,7 +6,7 @@
     <title>About — iNNfo</title>
     <meta
       name="description"
-      content="Learn about iNNfo, the hub for the iNNfo ecosystem — the domain console, innfo-core, innfo-mcp, and the spec chain."
+      content="Learn about iNNfo, the hub for the iNNfo ecosystem — the domain console, nn-core, nn-mcp, and the spec chain."
     />
     <meta name="generator" content="https://cognnitive.com/skills/nn-design-presets" />
     <link rel="canonical" href="https://cognnitive.com/innfo/about" />
@@ -22,7 +22,7 @@
         "@type": "WebSite",
         "name": "iNNfo",
         "url": "https://cognnitive.com/innfo/",
-        "description": "The hub for the iNNfo ecosystem. the domain console, innfo-core, innfo-mcp, and the spec chain.",
+        "description": "The hub for the iNNfo ecosystem. The domain console, nn-core, nn-mcp, and the spec chain.",
         "author": { "@type": "Organization", "name": "cogNNitive" },
         "inLanguage": "en",
         "isAccessibleForFree": true
@@ -85,8 +85,8 @@
           <div style="max-width: 720px; margin: 0 auto">
             <h2 style="font-size: 22px; margin-bottom: var(--space-md)">Architecture</h2>
             <p style="margin-bottom: var(--space-lg)">
-              iNNfo is organized as an npm workspaces monorepo — one editor app, two shared
-              packages, and the spec chain:
+              iNNfo is organized as an npm workspaces monorepo — two shared
+              packages and the spec chain:
             </p>
 
             <div
@@ -103,17 +103,17 @@
             >
               iNNfo/<br />
               ├── packages/<br />
-              │&nbsp;&nbsp; ├── innfo-core/ &nbsp;&nbsp;&nbsp;<span
+              │&nbsp;&nbsp; ├── nn-core/ &nbsp;&nbsp;&nbsp;<span
                 style="color: var(--ink-muted); font-family: var(--sans); font-size: 12px"
                 >// TS parser, resolver, validator</span
               ><br />
-              │&nbsp;&nbsp; └── innfo-mcp/ &nbsp;&nbsp;&nbsp;&nbsp;<span
+              │&nbsp;&nbsp; └── nn-mcp/ &nbsp;&nbsp;&nbsp;&nbsp;<span
                 style="color: var(--ink-muted); font-family: var(--sans); font-size: 12px"
                 >// MCP server for AI agents</span
               ><br />
               ├── specs/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
                 style="color: var(--ink-muted); font-family: var(--sans); font-size: 12px"
-                >// defiNNe, iNNfo, templates, samples</span
+                >// defiNNition, iNNfo, bluepriNNts, samples</span
               ><br />
               └── docs/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
                 style="color: var(--ink-muted); font-family: var(--sans); font-size: 12px"
@@ -141,24 +141,24 @@
             </h2>
 
             <div class="card" style="margin-bottom: var(--space-md)">
-              <span class="card-tag">@cognnitive/innfo-core v0.1.0</span>
-              <h3 style="margin-top: var(--space-sm)">innfo-core</h3>
+              <span class="card-tag">@cognnitive/nn-core</span>
+              <h3 style="margin-top: var(--space-sm)">nn-core</h3>
               <p>
-                Framework-agnostic TypeScript library: the iNNfo parser, model types (Concept,
-                Element, Field, Marker, Matrix, Relationship), IO drivers for the browser and Node, a
-                validator against template schemas, and a parent-spec-chain resolver. Both the domain console
+                Framework-agnostic TypeScript library: the iNNfo parser, document types (Concept,
+                Element, Field, Matrix, Relationship), IO drivers, a validator against blueprint
+                schemas, and a parent-spec-chain resolver. Both the domain console
                 tooling and the MCP server run on top of it.
               </p>
             </div>
 
             <div class="card" style="margin-bottom: var(--space-md)">
-              <span class="card-tag">@cognnitive/innfo-mcp v0.1.0</span>
-              <h3 style="margin-top: var(--space-sm)">innfo-mcp</h3>
+              <span class="card-tag">@cognnitive/nn-mcp</span>
+              <h3 style="margin-top: var(--space-sm)">nn-mcp</h3>
               <p>
-                A Model Context Protocol server (stdio) wrapping innfo-core. It exposes a focused set
+                A Model Context Protocol server (stdio) wrapping nn-core. It exposes a focused set
                 of semantic tools so any MCP-capable AI agent can read, validate, and
-                safely mutate iNNfo models. Spec and template resolution follow the model's parent
-                chain, with no hardcoded URLs. See the
+                safely mutate iNNfo kNNowledge. Spec and bluepriNNt resolution follow the document's
+                <code>parent_spec</code> chain, with no hardcoded URLs. See the
                 <a href="/innfo/documentation/#/nn-mcp">full tool reference</a> for the current list.
               </p>
             </div>
@@ -175,48 +175,51 @@
             <div class="grid-2" style="margin-bottom: var(--space-xl)">
               <div class="card">
                 <span class="card-tag">Level 0</span>
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">defiNNe</h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">defiNNition</h3>
                 <p>Meta-specification: structure, SemVer, RFC 2119. The root of the chain.</p>
               </div>
               <div class="card">
                 <span class="card-tag">Level 1</span>
                 <h3 style="margin-top: var(--space-sm); font-size: 18px">iNNfo</h3>
                 <p>
-                  The central specification. A single-file <code>_NN.md</code> model with YAML
-                  frontmatter, concepts, elements, markers, and relationships.
+                  The central specification. A single-file <code>_NN.md</code> document with YAML
+                  frontmatter, concepts, elements, fields, and matrices.
                 </p>
               </div>
               <div class="card">
                 <span class="card-tag">Level 2</span>
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">Templates</h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">bluepriNNts</h3>
                 <p>
-                  business, procedures, organization — each declares concepts, markers, and
+                  business, procedures, organization — each declares concepts, fields, and
                   relationship types on top of iNNfo.
                 </p>
               </div>
               <div class="card">
                 <span class="card-tag">Level 3</span>
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">Models</h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">kNNowledge</h3>
                 <p>
-                  Concrete instances like Ghostbusters or Engineering Team. Lightweight — just data
-                  and a parent pointer.
+                  Concrete documents like Ghostbusters or Engineering Team. Lightweight — just data
+                  and a <code>parent_spec</code> pointer.
                 </p>
               </div>
             </div>
 
             <h2 style="font-size: 22px; margin-bottom: var(--space-md)">
-              Open Knowledge Format compatibility
+              Open Knowledge Format alignment
             </h2>
             <p style="margin-bottom: var(--space-lg)">
-              The iNNfo specification is <strong>100% compatible</strong> with
+              iNNfo takes <strong>conceptual inspiration</strong> from
               <a
                 href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 >OKF v0.1</a
               >
-              (Open Knowledge Format) by Google Cloud Platform. Every iNNfo document is a valid OKF
-              knowledge bundle.
+              (Open Knowledge Format) by Google Cloud Platform, and its architecture is aligned with
+              several of OKF's ideas. It is <strong>not</strong> natively OKF-compliant today: iNNfo
+              does not claim formal OKF v0.1 conformance, and a domaiNN is not an OKF knowledge bundle
+              as-is. Full OKF compatibility is planned for the future through a dedicated export
+              mechanism that will translate a domaiNN into an OKF bundle.
             </p>
 
             <div class="grid-2" style="margin-bottom: var(--space-xl)">
@@ -230,35 +233,30 @@
                 </p>
               </div>
               <div class="card">
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">Conformance met</h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">Conceptual alignment</h3>
                 <p>
-                  OKF v0.1 conformance (§9) requires: (1) parseable YAML frontmatter on every
-                  non-reserved <code>.md</code> file, (2) a non-empty <code>type</code> field, (3)
-                  reserved filenames follow OKF conventions. iNNfo satisfies all three: every
-                  <code>_NN.md</code> has frontmatter, the <code>level</code>+template system provides
-                  type semantics, and <code>index.md</code> follows the same progressive-disclosure
-                  pattern.
+                  An iNNfo domaiNN resembles the directory-of-Markdown-files structure that OKF calls a
+                  <em>knowledge bundle</em>, and each <code>_NN.md</code> resembles an OKF concept
+                  document. iNNfo's richer frontmatter — <code>spec_version</code>, <code>level</code>,
+                  <code>parent_spec</code>, <code>knowledge_version</code> /
+                  <code>blueprint_version</code> — is a superset of OKF's minimal metadata.
                 </p>
               </div>
               <div class="card">
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">Extensions tolerated</h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">Known gaps</h3>
                 <p>
-                  OKF explicitly states consumers MUST NOT reject bundles because of unknown
-                  additional frontmatter keys, unknown <code>type</code> values, or missing optional
-                  fields. iNNfo's richer frontmatter — <code>spec_version</code>, <code>level</code>,
-                  <code>parent</code>, <code>concepts</code>, <code>markers</code>,
-                  <code>matrices</code> — is fully tolerated by OKF consumers.
+                  The formats differ in granularity (an iNNfo document holds many concepts and
+                  elements per file), in the <code>type</code> frontmatter convention, and in the
+                  absence of a literal <code>index.md</code>. Until the export mechanism exists, treat
+                  OKF as a design reference rather than a supported interchange format.
                 </p>
               </div>
               <div class="card">
-                <h3 style="margin-top: var(--space-sm); font-size: 18px">
-                  A workspace = an OKF Bundle
-                </h3>
+                <h3 style="margin-top: var(--space-sm); font-size: 18px">Future export</h3>
                 <p>
-                  An iNNfo workspace produces exactly the directory-of-Markdown-files structure that
-                  OKF defines as a <em>knowledge bundle</em> (§3). Each <code>_NN.md</code> maps to an
-                  OKF <em>concept document</em> (§4) with <code>index.md</code> as the directory
-                  listing (§6). Wikilinks and standard Markdown links coexist for cross-linking.
+                  100% OKF compatibility will be delivered by a dedicated export projection that maps
+                  a domaiNN into an OKF bundle, rather than by making iNNfo's native structure
+                  identical to OKF.
                 </p>
               </div>
             </div>

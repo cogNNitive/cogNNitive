@@ -1,6 +1,6 @@
 # Knowledge Lifecycle Walkthrough (Ghostbusters Inc. Case Study)
 
-This guide walks through the end-to-end **cogNNitive Knowledge Lifecycle** (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop) using the canonical **Ghostbusters Inc.** universe.
+This guide walks through the end-to-end **cogNNitive Knowledge Lifecycle** (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Review) using the canonical **Ghostbusters Inc.** universe.
 
 You can inspect the entire sample workspace directly on disk or in the repository under [`docs/innfo/samples/lifecycle-ghostbusters/`](../samples/lifecycle-ghostbusters/).
 
@@ -22,13 +22,13 @@ flowchart LR
     end
 
     subgraph P2["2. MANAGE (iNNfo Model)"]
-        SC -->|"sources:: [file.md@## Heading]"| M["kNNowledge/Ghostbusters_Operations_NN.md"]
+        SC -->|"sources:: [file.md@## Heading]"| M["kNNowledge/Ghostbusters_Operations_business_NN.md"]
     end
 
-    subgraph P3["3. EXPORT & Feedback"]
+    subgraph P3["3. EXPORT & Review"]
         M -->|"Generate"| EXP["artifacts/Paranormal_Containment_Brief_<UTC suffix>.md"]
-        EXP -.->|"EPA Inspector Review"| FB["sources/import/feedback/"]
-        FB -.->|"Re-ingestion"| IMP
+        EXP -.->|"EPA Inspector Review"| CHG["changes/<stamp>-<slug>_changes_NN.md"]
+        CHG -.->|"apply_change"| M
     end
 
     classDef p0 fill:#F4F4F6,stroke:#8E8E93,color:#1C1C1E;
@@ -39,7 +39,7 @@ flowchart LR
     class E,V,F1,F2 p0;
     class IMP,STG,SC p1;
     class M p2;
-    class EXP,FB p3;
+    class EXP,CHG p3;
 ```
 
 ---
@@ -60,13 +60,13 @@ The raw files are imported into the workspace:
 ```text
 workspace/
 ├── sources/
-│   ├── import/
-│   │   ├── containment_debrief.srt          # Immutable verbatim copy (SHA-256 tracked)
-│   │   ├── containment_debrief.srt_sidecar_NN.md  # Co-located sidecar (normalized body)
-│   │   ├── commercial_pricing_memo.md       # Immutable verbatim copy
-│   │   └── commercial_pricing_memo.md_sidecar_NN.md  # Co-located sidecar (no body)
-│   └── staging/
-│       └── pke_audio_buffer.tmp             # Ephemeral transcription buffer (never cited)
+│   └── import/
+│       ├── containment_debrief.srt          # Immutable verbatim copy (SHA-256 tracked)
+│       ├── containment_debrief.srt_sidecar_NN.md  # Co-located sidecar (normalized body)
+│       ├── commercial_pricing_memo.md       # Immutable verbatim copy
+│       └── commercial_pricing_memo.md_sidecar_NN.md  # Co-located sidecar (no body)
+└── staging/
+    └── pke_audio_buffer.tmp                 # Ephemeral transcription buffer (never cited)
 ```
 
 Run the scanner:
@@ -85,7 +85,7 @@ sha256: "b4c2...f8a1"
 size_bytes: 382
 source_format: md
 normalized_at: "2026-09-12T12:00:00Z"
-normalized_by: "traNNsform v1.0.0"
+normalized_by: "nn-sources v1.0.0"
 ---
 ```
 
@@ -93,7 +93,7 @@ normalized_by: "traNNsform v1.0.0"
 
 ## 4. Phase 2: Semantic Modeling (`MANAGE`)
 
-With normalized sources available, the team structures the knowledge into an **iNNfo Level 3 Semantic Model** ([`models/Ghostbusters_Operations_V_1-0-0_NN.md`](../samples/lifecycle-ghostbusters/workspace/models/Ghostbusters_Operations_V_1-0-0_NN.md)):
+With normalized sources available, the team structures the knowledge into an **iNNfo Level 3 Semantic Model** ([`kNNowledge/Ghostbusters_Operations_business_NN.md`](../samples/lifecycle-ghostbusters/workspace/kNNowledge/Ghostbusters_Operations_business_NN.md)):
 
 ```markdown
 # NN ServiceTier
@@ -125,12 +125,12 @@ laser_lock_frequency:: 14.8 MHz
 
 The model produces client- and regulatory-facing deliverables:
 
-1. **Generated Brief**: [**`export/Paranormal_Containment_Brief_V_1-0-0.md`**](../samples/lifecycle-ghostbusters/workspace/export/Paranormal_Containment_Brief_V_1-0-0.md) embeds lineage metadata:
+1. **Generated Brief**: [**`artifacts/Paranormal_Containment_Brief_20261016T120000Z.md`**](../samples/lifecycle-ghostbusters/workspace/artifacts/Paranormal_Containment_Brief_20261016T120000Z.md) embeds lineage metadata:
    ```yaml
    ---
    type: deliverable
-   derived_from: [Ghostbusters_Operations_V_1-0-0_NN]
-   exported_at: "2026-09-12T12:00:00Z"
+   sources: ["kNNowledge/Ghostbusters_Operations_business_NN.md"]
+   generated_at: "2026-10-16T12:00:00Z"
    ---
    ```
 2. **Human Review Loop**: Walter Peck (EPA) reviews the compiled console and exports a changeset (`<model>_<reviewer>_<stamp>_changes_NN.md`).
@@ -146,11 +146,11 @@ When an existing source changes over time:
 3. **Scan Warning**: The terminal immediately alerts:
    ```text
    ⚠️  [IMPACT WARNING] A newer member of "sources/import/commercial_pricing_memo" affects downstream models:
-       - kNNowledge/Ghostbusters_Operations_NN.md (Standard Class IV Elimination): cites "commercial_pricing_memo.md@## Manhattan Commercial Rates" [unit_missing_in_latest]
+       - kNNowledge/Ghostbusters_Operations_business_NN.md (Standard Class IV Elimination): cites "commercial_pricing_memo.md@## Manhattan Commercial Rates" [unit_missing_in_latest]
    ```
 4. **On-Demand Audit**: Running `node skills/nn-sources/scripts/index.js --check-impact` highlights the exact missing citation and suggests the closest matching heading:
    ```text
-   ❌ kNNowledge/Ghostbusters_Operations_NN.md (Standard Class IV Elimination): references missing heading "## Manhattan Commercial Rates" in "sources/import/commercial_pricing_memo_<UTC suffix>.md" (Did you mean: ## Downtown Commercial Rates?).
+   ❌ kNNowledge/Ghostbusters_Operations_business_NN.md (Standard Class IV Elimination): references missing heading "## Manhattan Commercial Rates" in "sources/import/commercial_pricing_memo_<UTC suffix>.md" (Did you mean: ## Downtown Commercial Rates?).
    ```
 
 ---

@@ -1,10 +1,14 @@
 ---
-source_file: "sources/import/brand_style_guide.md"
-sha256: "7c2d1e9f4a8b3c5e7a9d1b3f5a7c9e1d3f5a7b9c1e3d5f7a9b1c3e5d7f9a1b3c"
-normalized_at: "2026-08-26T10:00:00Z"
-provenance:
-  verified: true
-  method: "nn-sources"
+level: 3
+parent_spec:
+  name: "sidecar"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md"
+source_file: "sources/import/brand_style_guide.pdf"
+sha256: "2d8a7201912e775c995c3d5a22512d5f12b8019b22ce994dcccf095a6a842731"
+size_bytes: 69
+source_format: "pdf"
+normalized_at: "2026-08-27T09:00:00Z"
+normalized_by: "nn-sources"
 ---
 
 # Verdant Roasters — Brand Identity & Style Guide

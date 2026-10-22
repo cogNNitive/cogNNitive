@@ -3,12 +3,13 @@
 - **Components**
   - [nn-core](nn-core)
   - [nn-mcp](nn-mcp)
-  - [OpenCode Agent](opencode-nn-agent)
+  - [OpenCode Agent (Legacy)](opencode-nn-agent)
 
 - **Architecture**
+  - [Vocabulary](vocabulary)
   - [Ecosystem](ecosystem)
   - [Specifications](specifications)
-  - [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility)
+  - [OKF Alignment](ecosystem?id=open-knowledge-format-alignment)
   - [Discipline Overlaps](discipline-overlaps)
   - [External Tooling & Integrations](integrations)
 
@@ -21,14 +22,15 @@
   - [Import Modes & Dynamic Sources](import-modes)
   - [Building a Domain from Scratch](domain-from-scratch)
   - [Lifecycle Walkthrough (Case Study)](lifecycle-walkthrough)
+  - [Reviewer Guide](reviewer-guide)
   - [Tags & Open Taxonomy](tags-and-taxonomy)
   - [Collaboration with Git](collaboration-git)
-  - [Workspace Backup Strategies](workspace-backups)
-  - [Editing Models by Hand](manual-editing-risks)
+  - [Domain Backup Strategies](workspace-backups)
+  - [Editing kNNowledge by Hand](manual-editing-risks)
 
-- **Templates**
-  - [Overview](templates)
-  - [Video App](template-video)
+- **Blueprints**
+  - [Blueprints Overview](templates)
+  - [Video Script Blueprint](template-video)
 
 - **Runtime & Internals**
   - [Offline Consoles](offline-consoles)

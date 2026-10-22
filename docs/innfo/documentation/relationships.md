@@ -1,72 +1,72 @@
-# Relaciones y Conexiones en iNNfo
+# Relationships and Connections in iNNfo
 
-El modelo de datos de **iNNfo** no se limita a almacenar bloques jerárquicos o páginas independientes: constituye una **Red de Conocimiento (Knowledge Graph)** donde las entidades interactúan entre sí.
+The iNNfo data model is not limited to storing hierarchical blocks or independent pages: it forms a **Knowledge Graph** where entities interact with each other.
 
-En iNNfo, las relaciones entre elementos y conceptos se clasifican en **5 niveles formales** (alineados con la Especificación Nivel 1 `iNNfo_V_0-2-1_NN.md`), dependiendo de su origen y grado de estructuración.
+In iNNfo, relationships between elements and concepts are classified into **5 formal levels** (aligned with the Level 1 Specification `iNNfo_V_0-5-0_NN.md`), depending on their origin and degree of structuring.
 
 ---
 
-## Los 5 Niveles de Relaciones
+## The 5 Levels of Relationships
 
 ```
                                   ┌─────────────────────────────────────────────────────────┐
-                                  │                  RED DE CONOCIMIENTO                    │
+                                  │                  KNOWLEDGE GRAPH                        │
                                   └────────────────────────────┬────────────────────────────┘
                                                                │
          ┌───────────────────────────────┬─────────────────────┼─────────────────────────────┬───────────────────────────────┐
          ▼                               ▼                     ▼                             ▼                               ▼
 ┌───────────────────┐         ┌───────────────────┐ ┌───────────────────┐         ┌───────────────────┐         ┌───────────────────┐
-│ 1. JERÁRQUICA     │         │ 2. ESTRUCTURAL    │ │ 3. ATRIBUTO       │         │ 4. CONTEXTUAL     │         │ 5. SUBMODELO      │
-│    (Taxonomía)    │         │    (Matriz)       │ │    (Campo)        │         │    (Mención)      │         │  (type:: knowledge) │
+│ 1. HIERARCHICAL   │         │ 2. STRUCTURAL     │ │ 3. ATTRIBUTE      │         │ 4. CONTEXTUAL     │         │ 5. SUBMODEL       │
+│    (Taxonomy)     │         │    (Matrix)       │ │    (Field)        │         │    (Mention)      │         │  (type:: knowledge) │
 └────────┬──────────┘         └────────┬──────────┘ └────────┬──────────┘         └────────┬──────────┘         └────────┬──────────┘
          │                             │                     │                             │                             │
-  Anidamiento de árbol        Matriz de Dominio       Campo referencial             Wikilink libre                Composición modular
-  (# NN index)                (ej. WORK → ROLES)      (key:: [[target]])            ([[Target Element]])          (campo:: [[sub_NN.md]])
+   Tree nesting               Domain Matrix            Referential field            Free wikilink                Modular composition
+   (# NN index)               (e.g. WORK → ROLES)      (key:: [[target]])           ([[Target Element]])          (field:: [[sub_NN.md]])
 ```
 
-### 1. Relaciones Jerárquicas / Taxonómicas (`hierarchy`)
+### 1. Hierarchical / Taxonomic Relationships (`hierarchy`)
 
-- **Origen**: Bloque `# NN index` al inicio del modelo Nivel 3.
-- **Sintaxis**: Listas Markdown anidadas usando sintaxis WikiLink (`* [[Padre]]` → `  * [[Hijo]]`).
-- **Icono Visual**: 🌳 `FolderTree` / Árbol lateral
-- **Ejemplo**: `Salón-Comedor` anidado dentro de `Casa`.
+- **Origin**: The `# NN index` block at the start of a Level 3 document.
+- **Syntax**: Nested Markdown lists using WikiLink syntax (`* [[Parent]]` → `  * [[Child]]`).
+- **Visual Icon**: 🌳 `FolderTree` / sidebar tree
+- **Example**: `Living-Room` nested inside `House`.
 
-### 2. Relaciones Estructurales (`evaluable_matrix`)
+### 2. Structural Relationships (`evaluable_matrix`)
 
-- **Origen**: Celdas de intersección declaradas en matrices formales del metamodelo (ej. `WORK → ROLES` o `WORK → ARTIFACT`).
-- **Sintaxis**: Declaración centralizada en cabecera de metamodelo (`matrices`) o bloques `# NN matrices:` e intersecciones en bloques.
-- **Icono Visual**: 📊 `LayoutGrid`
-- **Ejemplo**: Un procedimiento `Solicitud de Visado` asignado con el rol `Responsible` hacia `Inés (viajera)`.
+- **Origin**: Intersection cells declared in formal metamodel matrices (e.g. `WORK → ROLES` or `WORK → ARTIFACT`).
+- **Syntax**: The matrix is declared as a Level 2 `# NN Matrix Definition`, and each instance is a Level 3 `# NN Matrix: <Name>` block whose scales and cycles live directly on the definition. There is no frontmatter `matrices` key and no `# NN matrices:` heading.
+- **Visual Icon**: 📊 `LayoutGrid`
+- **Example**: A procedure `Visa Application` assigned the role `Responsible` toward `Inés (traveler)`.
 
-### 3. Relaciones por Atributo (Campos Referenciales)
+### 3. Attribute Relationships (Referential Fields)
 
-- **Origen**: Campos estructurados en los bloques cuyos valores hacen referencia explícita a otro elemento mediante corchetes WikiLink.
-- **Sintaxis**: `campo:: [[nombre_del_elemento]]` (campos con `type:: reference` en su definición).
-- **Icono Visual**: 🏷️ `Tag`
-- **Ejemplo**: `location:: [[Salón-Comedor]]` o `depends_on:: [[Verificación de Pasaporte]]`.
-- **Nota importante**: Los campos referenciales NUNCA deben escribirse como texto plano (`location:: Salón-Comedor`); el uso de `[[...]]` es obligatorio para que el motor de iNNfo resuelva la conexión en la red.
+- **Origin**: Structured fields in blocks whose values explicitly reference another element through WikiLink brackets.
+- **Syntax**: `field:: [[element_name]]` (fields with `type:: reference` in their definition).
+- **Visual Icon**: 🏷️ `Tag`
+- **Example**: `location:: [[Living-Room]]` or `depends_on:: [[Passport Check]]`.
+- **Important note**: Referential fields must NEVER be written as plain text (`location:: Living-Room`); `[[...]]` is mandatory so the iNNfo engine can resolve the connection in the graph.
 
-### 4. Relaciones Contextuales (Menciones & Wikilinks)
+### 4. Contextual Relationships (Mentions & Wikilinks)
 
-- **Origen**: Menciones informales y enlaces de hipertexto escritos libremente en el cuerpo Markdown de la descripción de un bloque.
-- **Sintaxis**: `[[Nombre del Elemento]]` dentro del texto explicativo.
-- **Icono Visual**: 📝 `FileText`
-- **Ejemplo**: _"...para completar este paso es necesario revisar el [[Formulario DS-2019]] emitido por el patrocinador."_
+- **Origin**: Informal mentions and hypertext links written freely in the Markdown body of a block's description.
+- **Syntax**: `[[Element Name]]` inside the explanatory text.
+- **Visual Icon**: 📝 `FileText`
+- **Example**: _"...to complete this step it is necessary to review the [[DS-2019 Form]] issued by the sponsor."_
 
-### 5. Composición de Submodelos (`type:: knowledge`)
+### 5. Submodel Composition (`type:: knowledge`)
 
-La composición de submodelos permite desacoplar arquitecturas complejas subdividiendo el dominio en múltiples documentos físicos Nivel 3 (`*_NN.md`), manteniendo una relación formal de pertenencia y navegación entre un elemento padre y un modelo hijo especializado.
+Submodel composition decouples complex architectures by subdividing a domain into multiple physical Level 3 documents (`*_NN.md`), keeping a formal relationship of belonging and navigation between a parent element and a specialized child document.
 
-- **Origen**: Definición formal en el metamodelo con `type:: knowledge` y restricción opcional `target_blueprint:: <bluepriNNt>`.
-- **Sintaxis de Campo**: `campo:: [[ruta/al/submodelo_NN.md]]` o `campo:: ruta/al/submodelo_NN.md`.
-- **Icono Visual**: 📦 `Boxes` / Píldora interactiva de submodelo con badge de plantilla.
-- **Comportamiento en Árbol**: El submodelo no flota como raíz independiente en el espacio de trabajo; se anida bajo el elemento que lo declara y se excluye de las raíces globales.
+- **Origin**: A formal definition in the metamodel with `type:: knowledge` and an optional constraint `target_blueprint:: <bluepriNNt>`.
+- **Field Syntax**: `field:: [[path/to/submodel_NN.md]]` or `field:: path/to/submodel_NN.md`.
+- **Visual Icon**: 📦 `Boxes` / interactive submodel pill with a blueprint badge.
+- **Tree Behavior**: The submodel does not float as an independent root in the console; it nests under the element that declares it and is excluded from the global roots.
 
-#### Ejemplo Canónico: Ghostbusters Innovation → Business Model
+#### Canonical Example: Ghostbusters Innovation → Business Model
 
-Un modelo de cartera de innovación (`Ghostbusters_innovation_NN.md`) contiene la iniciativa de expansión municipal, la cual instancia su propio modelo de negocio dedicado (`Ghostbusters_business_NN.md`):
+An innovation-portfolio document (`Ghostbusters_innovation_NN.md`) contains a municipal-expansion initiative that instantiates its own dedicated business model (`Ghostbusters_business_NN.md`):
 
-##### 1. Definición en Metamodelo (`innovation_V_0-2-0_NN.md`)
+##### 1. Definition in the Metamodel (`specs/bluepriNNts/innovation/spec_NN.md`)
 
 ```markdown
 ## NN Field Definition: business_model
@@ -76,7 +76,7 @@ type:: knowledge
 target_blueprint:: business
 ```
 
-##### 2. Instanciación en el Modelo Padre (`Ghostbusters_innovation_NN.md`)
+##### 2. Instantiation in the Parent Document (`Ghostbusters_innovation_NN.md`)
 
 ```markdown
 # NN Initiative
@@ -89,7 +89,7 @@ business_model:: [[kNNowledge/Ghostbusters_business_NN.md]]
 tags:: [initiative, franchise, commercial, expansion]
 ```
 
-##### 3. Submodelo Hijo Scaffolded (`Ghostbusters_business_NN.md`)
+##### 3. Scaffolded Child Submodel (`Ghostbusters_business_NN.md`)
 
 ```markdown
 ---
@@ -103,43 +103,44 @@ title: "Ghostbusters Inc. Municipal Franchise Business Model"
 # NN Business Model
 ```
 
-#### Experiencia Visual e Interactiva
+#### Visual and Interactive Experience
 
-1. **Creación en un Clic**: Desde el editor del campo en `FieldModel.vue`, el botón `[+ Create & bind new model]` crea automáticamente el documento hijo con cabeceras estándar Nivel 3 y la plantilla esperada.
-2. **Jerarquía Limpia en la Barra Lateral**: En la vista de espacio de trabajo, el submodelo se excluye de las raíces no adjuntas y se muestra anidado directamente bajo el elemento que lo declara (`ConceptTreeNode.vue`), acompañado del icono 📦 `Boxes` y la etiqueta de la plantilla.
-3. **Navegación Fluida**: Al hacer clic en el submodelo hijo (en la píldora del campo o en el árbol lateral), `uiStore.focusModel` activa el modo enfocado y despliega la ruta de migas de pan (`Workspace > Ghostbusters Innovation > Ghostbusters Business`).
-
----
-
-## Direccionalidad de las Conexiones
-
-Todas las relaciones en el editor se presentan con un indicador claro de dirección según la posición del elemento actual:
-
-### Conexión Saliente (`outgoing`)
-
-Indica que el elemento actual **inicia o apunta** la relación hacia un elemento destino:
-$$\text{> ( Rol / Campo ) > [Píldora Destino]}$$
-
-- **Ejemplo**: `> ( 🏷️ location ) > [Salón-Comedor]`
-
-### Conexión Entrante (`incoming`)
-
-Indica que otro elemento fuente **apunta o referencia** al elemento actual (Backlinks / Participación como destino):
-$$\text{[Píldora Fuente] < ( Rol / Campo ) <}$$
-
-- **Ejemplo**: `[Sofás salón] < ( 🏷️ location ) <`
-
-### Conexión Completa (`full`)
-
-En vistas globales, reportes de validación o tablas completas:
-$$\text{[Píldora Fuente] — ( Rol / Campo ) → [Píldora Destino]}$$
+1. **Rendering**: In the Domain Console, a knowledge field renders its `type:: knowledge` values as interactive pills through `InnfoUI.FieldValue` / `renderFieldKnowledge`. Creating and binding the child document is an agent-driven changeset (`add_element`), not an in-editor button.
+2. **Clean Hierarchy**: In the console, the submodel is excluded from unattached roots and is shown nested directly under the element that declares it, rendered with `InnfoUI.Ku` unit pills and the 📦 `Boxes` icon plus the blueprint label.
+3. **Fluid Navigation**: Clicking the submodel child (in the field pill or in the tree) navigates the console to the child document and shows the breadcrumb path (`Ghostbusters Innovation > Ghostbusters Business`).
 
 ---
 
-## Componente `ConnectionPill`
+## Directionality of Connections
 
-La interfaz visual de iNNfo estandariza todas estas relaciones mediante el componente **`ConnectionPill`**, el cual reúne:
+All relationships in the console are presented with a clear direction indicator based on the position of the current element:
 
-1. El **icono del tipo de relación** (📊 Matriz, 🏷️ Campo, 📝 Mención).
-2. El **rol o nombre de la relación** en un badge destacado.
-3. El **bloque interactivo (`BlockPill`)** del nodo conectado con su icono de concepto, color y soporte de navegación al hacer click.
+### Outgoing Connection (`outgoing`)
+
+Indicates that the current element **initiates or points** the relationship toward a target element:
+$$\text{> ( Role / Field ) > [Target Pill]}$$
+
+- **Example**: `> ( 🏷️ location ) > [Living-Room]`
+
+### Incoming Connection (`incoming`)
+
+Indicates that another source element **points at or references** the current element (Backlinks / Participation as a target):
+$$\text{[Source Pill] < ( Role / Field ) <}$$
+
+- **Example**: `[Living-room sofas] < ( 🏷️ location ) <`
+
+### Full Connection (`full`)
+
+In global views, validation reports, or full tables:
+$$\text{[Source Pill] — ( Role / Field ) → [Target Pill]}$$
+
+---
+
+## How the Domain Console Renders Relations
+
+The Domain Console standardizes all these relationships through the console UI kit (`ui-kit.js`):
+
+1. **`InnfoUI.RelList`** renders the list of references for a unit, with the **relationship icon** (📊 Matrix, 🏷️ Field, 📝 Mention) and the **role or field name** in a highlighted badge.
+2. **`InnfoUI.Ku`** renders the connected node as an interactive unit pill (concept, element, field value, matrix, document, or source) with its concept icon and navigation on click.
+3. **`InnfoUI.SankeyFlow`** visualizes matrix relationships as flows across the graph.
+4. **`AnnotationPopover`** surfaces citation targets when a cited value is inspected.

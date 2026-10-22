@@ -9,8 +9,8 @@ severities that decide whether a diagnostic fails the run.
 ## Deterministic diagnostics
 
 - A diagnostic carries a severity of `error`, `warning`, or `info`
-  (`innfo-core/src/types/validation.ts`).
-- `Diagnostics` (`innfo-core/src/diagnostics.ts`) routes each diagnostic into an
+  (`iNNfo/packages/nn-core/src/types/validation.ts`).
+- `Diagnostics` (`iNNfo/packages/nn-core/src/diagnostics.ts`) routes each diagnostic into an
   errors bucket or a warnings bucket by its severity. `info` lands in the warnings
   bucket but keeps `severity: 'info'` so reporters can tell it apart.
 - **Only `error` fails validation.** `warning` and `info` never affect the
@@ -20,11 +20,11 @@ severities that decide whether a diagnostic fails the run.
 
 ## Differential validation (`baseline_path`)
 
-Pass `baseline_path` to `validate_model` to compare the current run against a
+Pass `baseline_path` to `validate_knowledge` to compare the current run against a
 versioned baseline of known errors. Only **new** errors surface in the main
 output; known errors are suppressed and counted with a `backlog` link.
 
-The core logic is a pure module, `innfo-core/src/validator/baseline.ts`:
+The core logic is a pure module, `iNNfo/packages/nn-core/src/validator/baseline.ts`:
 
 | Export | Role |
 | :--- | :--- |
@@ -50,49 +50,42 @@ Behavior:
 
 ## Version inference at scaffold time
 
-`innfo-mcp/src/tools/init-model.ts` infers a new model's version from the resolved
-**parent app's own `spec_version`**:
+`iNNfo/packages/nn-mcp/src/tools/init-knowledge.ts` (the `init_knowledge` tool) infers a new kNNowledge document's version from the resolved **parent bluepriNNt**:
 
-- Omitting `knowledge_version` inherits the bluepriNNt's `spec_version`.
-- An explicit `knowledge_version` wins only when it does not contradict the inferred
-  one.
-- When both exist and differ, init refuses to write and returns
-  `VERSION_MISMATCH` instead of emitting a differing version.
+- Omitting `knowledge_version` inherits the bluepriNNt's `blueprint_version`, else its `spec_version`, else `V_0-1-0`.
+- An explicit `knowledge_version` is **accepted even when it differs** from the parent's version — there is no `VERSION_MISMATCH` rejection at scaffold time.
+- The id is `<name>_<blueprint>` and carries no version; the server drops any `_V_x-y-z` token and appends the blueprint suffix when missing.
 
-The document is validated before it is written. The write is gated on
-`templateErrors.length > 0 || (templateResolved && !doc.valid)`, so a schema
-failure aborts the write — **unless** the parent template could not be resolved
-(`templateResolved === false`), in which case the frontmatter-only document is
-still written and the failure is reported as a warning.
+`init_knowledge` is create-only and implemented as a one-change `add_model` changeset (written to `changes/` and applied). If the parent bluepriNNt **cannot be resolved, the call fails and writes nothing** — no frontmatter-only document is produced and there is no warning-only fallback. An existing id fails with `MODEL_EXISTS` and leaves the file untouched.
 
 ---
 
-## Resolver: workspace-first, temp writes
+## Resolver: domaiNN-first, temp writes
 
-`innfo-mcp/src/tools/resolver-node.ts` resolves a parent chain in a fixed order:
+`iNNfo/packages/nn-mcp/src/tools/resolver-node.ts` resolves a parent chain in a fixed order:
 
 1. **Direct local read** — when the parent URL is a local path or `file://`
-   URI, it is read directly.
-2. **4-tier package resolution** (`resolveTemplatePackage`) — Tier 1 workspace
-   package (`specs/bluepriNNts/<base>/<version>/`), Tier 2 workspace flat
-   (`specs/` + `templates/`), Tier 3 global cache, Tier 4 installed skills.
-   There is no standalone local-`specs/` step ahead of this: the workspace
-   `specs/` tree **is** Tier 2.
+   URI, it is read directly (confined to the domain root).
+2. **Local package resolution** (`resolveBlueprintPackage`, exported from `nn-core`) —
+   Tier 1 domaiNN package (`specs/bluepriNNts/<name>/spec_NN.md`, or the versioned
+   `specs/bluepriNNts/<name>/<version>/` directory), Tier 2 domaiNN flat
+   (`specs/`), Tier 3 global user cache (`~/.agents/bluepriNNts/`), Tier 4 installed
+   skills (`~/.agents/skills/<skill>/bluepriNNts/`).
 3. **OS temp cache** — a previous default run's fetched specs.
 4. **Network** — download and hydrate.
+5. **Built-in Canonical Fallback Registry** — the canonical bluepriNNts bundled with the server, used when nothing else resolves.
 
 Fetch-and-save writes go to the **OS temp directory by default**, not the
-workspace:
+domaiNN:
 
 - `defaultCacheDir()` returns `INNFO_CACHE_DIR` when set, otherwise
   `join(tmpdir(), 'innfo-specs')`.
 - Setting `in_place: true` restores in-tree writes under `specs/`.
 
-So a default run leaves the workspace tree clean; nothing is written into `specs/`
+So a default run leaves the domaiNN tree clean; nothing is written into `specs/`
 unless `in_place` is requested.
 
 ---
-
 ## Version numbers
 
 Do not copy version strings from `specifications.md` — it can lag the code. Read

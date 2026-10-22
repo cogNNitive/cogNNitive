@@ -29,7 +29,7 @@ Every project workspace adheres to this standard structure:
 ├── procedures/           # Reusable procedure specs (<verb>_<noun>_procedures_NN.md)
 ├── artifacts/            # Every producer output, write-once (UTC-suffixed names)
 ├── staging/              # Scratch extraction buffer — never cited, never projected
-└── domaiNN_NN.md         # Workspace entrypoint (# NN index)
+└── domaiNN_NN.md         # DomaiNN entrypoint (# NN kNNowledge)
 ```
 
 `sources/nn/`, `sources/original/`, `sources/export/`, `sources/archive/`, and
@@ -79,5 +79,6 @@ Before generating write-once final deliverables under `artifacts/`, the user sel
 - **`[d]`** MLA 9th Edition
 - **`[e]`** Chicago Author-Date
 - **`[f]`** IEEE numbered citations
+- **`[g]`** Vancouver numbered citations
 - **`[h]`** BibTeX export (`.bib` companion file)
 - **`[i]`** Clean presentation (no sources / callouts omitted)

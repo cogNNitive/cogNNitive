@@ -40,7 +40,7 @@ Upgrades bluepriNNt versions for adopted models within a current domaiNN:
 2. **Inform & Consent** — present `[a] (Recommended) Upgrade / [b] Continue`. No mutation without consent.
 3. **Backup** — `scripts/backup-workspace.js` creates a timestamped backup outside the workspace.
 4. **Impact Analysis** — diff the schemas; ask mapping questions only for removed / renamed / re-typed definitions in active use.
-5. **Rehydrate & Validate** — hydrate adopted bluepriNNts, repoint `parent_spec`, apply mappings, bump version, and re-validate through `innfo-mcp`.
+5. **Rehydrate & Validate** — hydrate adopted bluepriNNts, repoint `parent_spec`, apply mappings, bump version, and re-validate through `nn-mcp`.
 6. **Confirm** — report versions, gap kinds, mappings, validation outcomes, and backup path.
 
 ### Freezing slugs

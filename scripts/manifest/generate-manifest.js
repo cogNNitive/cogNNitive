@@ -314,7 +314,7 @@ function renderFrontmatter(model, channel) {
   out += '  skills:\n';
   for (const s of model.skills) out += renderSkillEntry(s);
   out += '  blueprints:\n';
-  for (const t of model.blueprints) out += renderBlueprintEntry(t);
+  for (const bp of model.blueprints) out += renderBlueprintEntry(bp);
   if (model.consoleAssets && model.consoleAssets.length) {
     out += '  console-assets:\n';
     for (const a of model.consoleAssets) out += renderConsoleAssetEntry(a);

@@ -1,6 +1,6 @@
 ---
 title: About — iNNfo
-description: Learn about iNNfo, the hub for the iNNfo ecosystem — the domain console, innfo-core, innfo-mcp, and the spec chain.
+description: Learn about iNNfo, the hub for the iNNfo ecosystem — the domain console, nn-core, nn-mcp, and the spec chain.
 html_url: https://cognnitive.com/innfo/about
 generator: https://cognnitive.com/skills/nn-design-presets
 ---
@@ -11,15 +11,15 @@ The monorepo that ties the iNNfo ecosystem together.
 
 ## Architecture
 
-iNNfo is organized as an npm workspaces monorepo — one editor app, two shared
-packages, and the spec chain:
+iNNfo is organized as an npm workspaces monorepo — two shared
+packages and the spec chain:
 
 ```
 iNNfo/
 ├── packages/
-│   ├── innfo-core/    // TS parser, resolver, validator
-│   └── innfo-mcp/     // MCP server for AI agents
-├── specs/             // defiNNe, iNNfo, templates, samples
+│   ├── nn-core/    // TS parser, resolver, validator
+│   └── nn-mcp/     // MCP server for AI agents
+├── specs/             // defiNNition, iNNfo, bluepriNNts, samples
 └── docs/             // This website
 ```
 
@@ -36,23 +36,23 @@ changesets. No server and no account are needed; open the file in a browser.
 
 ## Packages
 
-@cognnitive/innfo-core v0.1.0
+@cognnitive/nn-core
 
-### innfo-core
+### nn-core
 
-Framework-agnostic TypeScript library: the iNNfo parser, model types (Concept,
-Element, Field, Marker, Matrix, Relationship), IO drivers for the browser and Node, a
-validator against template schemas, and a parent-spec-chain resolver. Both the domain console
+Framework-agnostic TypeScript library: the iNNfo parser, document types (Concept,
+Element, Field, Matrix, Relationship), IO drivers, a validator against blueprint
+schemas, and a parent-spec-chain resolver. Both the domain console
 tooling and the MCP server run on top of it.
 
-@cognnitive/innfo-mcp v0.1.0
+@cognnitive/nn-mcp
 
-### innfo-mcp
+### nn-mcp
 
-A Model Context Protocol server (stdio) wrapping innfo-core. It exposes a focused set
+A Model Context Protocol server (stdio) wrapping nn-core. It exposes a focused set
 of semantic tools so any MCP-capable AI agent can read, validate, and
-safely mutate iNNfo models. Spec and template resolution follow the model's parent
-chain, with no hardcoded URLs. See the
+safely mutate iNNfo kNNowledge. Spec and bluepriNNt resolution follow the document's
+`parent_spec` chain, with no hardcoded URLs. See the
 [full tool reference](/innfo/documentation/#/nn-mcp) for the current list.
 
 ## Specifications
@@ -61,7 +61,7 @@ The ecosystem defines four specification levels, each building on the previous:
 
 Level 0
 
-### defiNNe
+### defiNNition
 
 Meta-specification: structure, SemVer, RFC 2119. The root of the chain.
 
@@ -69,29 +69,32 @@ Level 1
 
 ### iNNfo
 
-The central specification. A single-file `_NN.md` model with YAML
-frontmatter, concepts, elements, markers, and relationships.
+The central specification. A single-file `_NN.md` document with YAML
+frontmatter, concepts, elements, fields, and matrices.
 
 Level 2
 
-### Templates
+### bluepriNNts
 
-business, procedures, organization — each declares concepts, markers, and
+business, procedures, organization — each declares concepts, fields, and
 relationship types on top of iNNfo.
 
 Level 3
 
-### Models
+### kNNowledge
 
-Concrete instances like Ghostbusters or Engineering Team. Lightweight — just data
-and a parent pointer.
+Concrete documents like Ghostbusters or Engineering Team. Lightweight — just data
+and a `parent_spec` pointer.
 
-## Open Knowledge Format compatibility
+## Open Knowledge Format alignment
 
-The iNNfo specification is **100% compatible** with
+iNNfo takes **conceptual inspiration** from
 [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
-(Open Knowledge Format) by Google Cloud Platform. Every iNNfo document is a valid OKF
-knowledge bundle.
+(Open Knowledge Format) by Google Cloud Platform, and its architecture is aligned with
+several of OKF's ideas. It is **not** natively OKF-compliant today: iNNfo
+does not claim formal OKF v0.1 conformance, and a domaiNN is not an OKF knowledge bundle
+as-is. Full OKF compatibility is planned for the future through a dedicated export
+mechanism that will translate a domaiNN into an OKF bundle.
 
 ### Shared substrate
 
@@ -100,29 +103,26 @@ No proprietary tooling, no centralized schema registry — just text files in ve
 control. OKF's "if you can `cat` a file, you can read OKF" applies equally
 to iNNfo.
 
-### Conformance met
+### Conceptual alignment
 
-OKF v0.1 conformance (§9) requires: (1) parseable YAML frontmatter on every
-non-reserved `.md` file, (2) a non-empty `type` field, (3)
-reserved filenames follow OKF conventions. iNNfo satisfies all three: every
-`_NN.md` has frontmatter, the `level`+template system provides
-type semantics, and `index.md` follows the same progressive-disclosure
-pattern.
+An iNNfo domaiNN resembles the directory-of-Markdown-files structure that OKF calls a
+*knowledge bundle*, and each `_NN.md` resembles an OKF concept
+document. iNNfo's richer frontmatter — `spec_version`, `level`,
+`parent_spec`, `knowledge_version` /
+`blueprint_version` — is a superset of OKF's minimal metadata.
 
-### Extensions tolerated
+### Known gaps
 
-OKF explicitly states consumers MUST NOT reject bundles because of unknown
-additional frontmatter keys, unknown `type` values, or missing optional
-fields. iNNfo's richer frontmatter — `spec_version`, `level`,
-`parent`, `concepts`, `markers`,
-`matrices` — is fully tolerated by OKF consumers.
+The formats differ in granularity (an iNNfo document holds many concepts and
+elements per file), in the `type` frontmatter convention, and in the
+absence of a literal `index.md`. Until the export mechanism exists, treat
+OKF as a design reference rather than a supported interchange format.
 
-### A workspace = an OKF Bundle
+### Future export
 
-An iNNfo workspace produces exactly the directory-of-Markdown-files structure that
-OKF defines as a *knowledge bundle* (§3). Each `_NN.md` maps to an
-OKF *concept document* (§4) with `index.md` as the directory
-listing (§6). Wikilinks and standard Markdown links coexist for cross-linking.
+100% OKF compatibility will be delivered by a dedicated export projection that maps
+a domaiNN into an OKF bundle, rather than by making iNNfo's native structure
+identical to OKF.
 
 ## Get in Touch
 

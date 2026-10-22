@@ -1,10 +1,10 @@
 ---
 level: 3
 parent_spec:
-  name: "documentation_V_0-2-0"
+  name: "documentation_V_0-4-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/documentation/spec_NN.md"
-model_version: "V_0-2-0"
-title: "Agent Skills Documentation Model"
+knowledge_version: "V_0-4-0"
+title: "Agent Skills Documentation"
 ---
 
 > [!NOTE]
@@ -24,7 +24,7 @@ site_title:: Agent Skills Documentation
 site_description:: Autonomous agent skills, deterministic statecharts, and transformation workflows for AI pair programming.
 base_path:: docs/skills/documentation/
 site_logo:: favicon.svg
-repo_url:: https://github.com/cogNNitive/cogNNitive
+repo_url:: https://github.com/cogNNitive/cogNNitive-web
 nav_enabled:: true
 
 # NN Section

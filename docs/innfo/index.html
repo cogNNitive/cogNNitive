@@ -21,7 +21,7 @@
         "@type": "WebSite",
         "name": "iNNfo",
         "url": "https://cognnitive.com/innfo/",
-        "description": "The hub for the iNNfo ecosystem. The domain console, innfo-core, innfo-mcp, and OpenCode AI agent modeling.",
+        "description": "The hub for the iNNfo ecosystem. The domain console, nn-core, nn-mcp, and OpenCode AI agent kNNowledge authoring.",
         "author": { "@type": "Organization", "name": "cogNNitive" },
         "inLanguage": "en",
         "isAccessibleForFree": true
@@ -391,13 +391,13 @@
             <pre class="mermaid">
 flowchart TD
     subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & traNNsform)"]
+        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & nn-sources)"]
         RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
     end
 
     subgraph Step2["Step 2: Validation & Engine"]
         Router --> Models["📘 Structured Models (_NN.md)"]
-        Models <--> MCP["⚙️ innfo-mcp Server + Core Engine"]
+        Knowledge <--> MCP["⚙️ nn-mcp Server + nn-core Engine"]
     end
 
     subgraph Step3["Step 3: Delivery & Access"]

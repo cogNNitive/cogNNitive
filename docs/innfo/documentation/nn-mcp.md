@@ -1,12 +1,12 @@
-﻿# nn-mcp
+# nn-mcp
 
-`@cognnitive/nn-mcp` is an MCP (Model Context Protocol) server that wraps `@cognnitive/nn-core` and exposes iNNfo models over the stdio transport, so AI coding agents — Claude Code, OpenCode, and others — can read, validate, and edit iNNfo models through structured tool calls instead of freeform file edits.
+`@cognnitive/nn-mcp` is an MCP (Model Context Protocol) server that wraps `@cognnitive/nn-core` and exposes iNNfo kNNowledge documents over the stdio transport, so AI coding agents — Claude Code, OpenCode, and others — can read, validate, and edit iNNfo kNNowledge documents through structured tool calls instead of freeform file edits.
 
 ## Why an MCP server
 
 - Validation stays **deterministic** — the `nn-core` validator decides validity, not the calling LLM.
-- Specification and template content is never duplicated into agent rules or config — it is always resolved live via `get_spec` / `get_template`.
-- Spec and template resolution follows the model's `parent_spec` chain or an explicit URL — no hardcoded spec URLs.
+- Specification and bluepriNNt content is never duplicated into agent rules or config — it is always resolved live via `get_spec` / `get_blueprint`.
+- Spec and bluepriNNt resolution follows the document's `parent_spec` chain or an explicit URL — no hardcoded spec URLs.
 
 ## Tools
 
@@ -41,20 +41,26 @@
 
 ### `apply_change` operations
 
-`apply_change` accepts an `op` and operation-specific `args`:
+`apply_change` has two modes:
 
-- `add_concept`
-- `add_field`
-- `set_marker`
+1. **Changeset application** — pass `changeset` (or `changeset_path`), a path to a `changes/*_changes_NN.md` document, to apply a proposed changeset.
+2. **Bare mutation** — pass `id` (or `knowledge_id`), an `op` and operation-specific `args`:
+
+- `add_concept` / `add_field` (Level-2 bluepriNNt authoring only; refused on a Level-3 model with `SCHEMA_OP_ON_LEVEL3`)
 - `add_element`
 - `update_field`
+- `update_concept_field`
 - `remove_element`
 - `rename_concept`
 - `rename_element`
+- `add_matrix` / `remove_matrix`
 - `generate_index`
 - `bump_version`
+- `freeze_slugs`
 
-Each call re-validates the model and returns either the updated model or the validation errors that blocked the change.
+`set_marker` no longer exists: markers were removed in `iNNfo_V_0-5-0` (`MARKERS_REMOVED`), and the operation fails with `UNKNOWN_OPERATION`.
+
+Each call re-validates the document and returns either the updated document or the validation errors that blocked the change. Operations that mutate a Level-3 kNNowledge document are recorded as a sealed changeset under `changes/`.
 
 ### Canonical unit addresses
 
@@ -77,7 +83,7 @@ so `update_matrix_cell` still resolves cells by row/column slug. Citation parsin
 ```
 AI coding agent (Claude Code, OpenCode, ...) → nn-mcp (MCP server, stdio) → @cognnitive/nn-core
                                                         ↓
-                                    Public iNNfo spec/template URLs (single source of truth)
+                                    Public iNNfo spec/bluepriNNt URLs (single source of truth)
 ```
 
 ## Running
@@ -89,6 +95,6 @@ npm run build -w @cognnitive/nn-mcp
 # The server communicates over stdio — register it with your MCP-compatible agent/client
 ```
 
-By default the server scans models under the current working directory; override with the `INNFO_MODELS_DIR` environment variable.
+By default the server uses the domaiNN found from the current working directory (repo root detection); override the domain root with the `INNFO_DOMAIN_DIR` environment variable. The server binary is `nn-mcp`.
 
 See [OpenCode iNNfo Agent](opencode-nn-agent) for a full walkthrough of connecting nn-mcp to OpenCode Desktop.

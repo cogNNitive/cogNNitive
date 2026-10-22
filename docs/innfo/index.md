@@ -15,7 +15,7 @@ Model, edit, and query knowledge visually in your browser or conversationally wi
 
 - **Visual Modeling**: Explore your documentation as interactive graph trees, block sheets, matrices, and visual diagrams.
 - **Automatic Validation**: Catch broken links, missing properties, and outdated specs automatically as you edit.
-- **AI & Web Editing**: Edit visually in the browser app or ask your AI coding agent (OpenCode Desktop, Claude Code, Antigravity, Cursor) to create and update models for you.
+- **AI & Console Editing**: Edit visually in the single-file domain console (`domaiNN_console.html`) or ask your AI coding agent (OpenCode Desktop, Claude Code, Antigravity, Cursor) to create and update kNNowledge for you.
 
 ---
 
@@ -24,13 +24,13 @@ Model, edit, and query knowledge visually in your browser or conversationally wi
 ```mermaid
 flowchart TD
     subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User & AI Agent\n(OpenCode, Antigravity, Claude Code)"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & traNNsform)"]
+        U["👤 User & AI Agent\n(OpenCode, Antigravity, Claude Code)"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & nn-sources)"]
         RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
     end
 
     subgraph Step2["Step 2: Validation & Engine"]
-        Router --> Models["📘 Structured Models (_NN.md)"]
-        Models <--> MCP["⚙️ innfo-mcp Server + Core Engine"]
+        Router --> Knowledge["📘 kNNowledge (_NN.md)"]
+        Knowledge <--> MCP["⚙️ nn-mcp Server + nn-core Engine"]
     end
 
     subgraph Step3["Step 3: Delivery & Access"]
@@ -50,4 +50,4 @@ flowchart TD
 1. **Choose Your AI Agent**: Launch OpenCode Desktop (recommended reference desktop client) or use Google Antigravity, Claude Code, Cursor, or Codex CLI.
 2. **Open Your Project**: Open the workspace folder containing your documentation and models.
 3. **Prompt Your Agent**: Tell your agent: `I want to use https://cognnitive.com/use`
-4. **Create & Edit Models**: Ask your agent to create an iNNfo model, validate documentation, or explore structures.
+4. **Create & Edit kNNowledge**: Ask your agent to create an iNNfo kNNowledge document, validate documentation, or explore structures.

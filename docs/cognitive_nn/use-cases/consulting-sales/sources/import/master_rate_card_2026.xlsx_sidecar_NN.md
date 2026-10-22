@@ -1,10 +1,14 @@
 ---
-source_file: "sources/import/master_rate_card_2026.md"
-sha256: "3d5f7a9b1c3e5d7f9a1b3c5e7a9d1b3f5a7c9e1d3f5a7b9c1e3d5f7a9b1c3e5d"
-normalized_at: "2026-08-20T08:00:00Z"
-provenance:
-  verified: true
-  method: "nn-sources"
+level: 3
+parent_spec:
+  name: "sidecar"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md"
+source_file: "sources/import/master_rate_card_2026.xlsx"
+sha256: "f6a8d3393fdcbb078e70c19773c6351c5a4459d54824c74edff200449a34b067"
+size_bytes: 81
+source_format: "xlsx"
+normalized_at: "2026-08-27T09:00:00Z"
+normalized_by: "nn-sources"
 ---
 
 # Corporate Consulting Master Rate Card (FY2026)

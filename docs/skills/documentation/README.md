@@ -18,9 +18,9 @@ The cogNNitive ecosystem provides the following specialized, autonomous agent sk
 
 | Skill | Version | Description |
 |-------|---------|-------------|
-| [`nn`](skills/nn.md) | `V_3-4-3` | Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [m] Models, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router. |
+| [`nn`](skills/nn.md) | `V_3-4-3` | Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [k] kNNowledge, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router. |
 | [`nn-sources`](skills/nn-sources.md) | `V_3-5-4` | Ingest documents (PDF, DOCX, XLSX), normalize them into citable sources with mandatory sidecar provenance, and keep source lineage in sync. |
-| [`nn-innfo`](skills/nn-innfo.md) | `V_0-5-13` | Author, edit, and validate iNNfo knowledge with built-in step-by-step Model Creation Wizard. |
+| [`nn-innfo`](skills/nn-innfo.md) | `V_0-5-13` | Author, edit, and validate iNNfo kNNowledge with built-in step-by-step kNNowledge Creation Wizard. |
 | [`nn-preflight`](skills/nn-preflight.md) | `V_0-2-5` | Environment readiness gate (Tier 1/Tier 2/Tier 3) and canonical skill-location reference. |
 | [`nn-upgrade`](skills/nn-upgrade.md) | `V_0-4-2` | Guided, consent-gated migration of a domaiNN to the latest adopted iNNfo Level-2 blueprints. |
 | [`nn-site-generator`](skills/nn-site-generator.md) | `V_0-2-0` | Create or edit websites, add analytics, add contact forms. |
@@ -32,7 +32,7 @@ The cogNNitive ecosystem provides the following specialized, autonomous agent sk
 
 For full install steps across every supported AI coding agent (Claude Code, Cursor, Google Antigravity, Codex, and OpenCode Desktop — recommended), see the [canonical install guide](https://cognnitive.com/innfo/documentation/#/installing-ai-agents).
 
-Skills that declare `mcp[]` register the MCP server at install time. Skills that declare `templates:` resolve versioned iNNfo template packages through `innfo-mcp`'s four-tier lookup (workspace package directory, workspace flat fallback, global user cache, installed skills directory).
+Skills that declare `mcp[]` register the MCP server at install time. Skills that declare `bluepriNNts:` resolve versioned iNNfo bluepriNNt packages through `nn-mcp`'s four-tier lookup (domaiNN package directory, domaiNN flat fallback, global user cache, installed skills directory).
 
 ## Sample Workflows
 
@@ -40,8 +40,8 @@ Ready-to-run transformation recipes on the [landing page](/):
 
 | Sample | What it does |
 |--------|-------------|
-| [Paper to YouTube Script](/samples/paper-to-youtube/) | Convert a scientific PDF into a YouTube video script |
-| [Meeting Notes to Executive Summary](/samples/meeting-to-summary/) | Transform a video transcript into a structured summary with decisions and action items |
+| [Paper to YouTube Script](/skills/samples/paper-to-youtube/) | Convert a scientific PDF into a YouTube video script |
+| [Meeting Notes to Executive Summary](/skills/samples/meeting-to-summary/) | Transform a video transcript into a structured summary with decisions and action items |
 
 Each sample includes a downloadable input, step-by-step instructions, and an output preview.
 

@@ -6,7 +6,7 @@ skills:
     repo: cogNNitive/cogNNitive-web
     path: skills/nn
     ref_key: skills
-    description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [m] Models, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router.
+    description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [k] kNNowledge, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router.
   - name: nn-sources
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-sources
@@ -17,7 +17,7 @@ skills:
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-innfo
     ref_key: skills
-    description: Author, edit, and validate iNNfo knowledge with built-in step-by-step Model Creation Wizard.
+    description: Author, edit, and validate iNNfo kNNowledge with built-in step-by-step kNNowledge Creation Wizard.
     blueprints: [domaiNN]
     mcp:
       - name: nn-mcp
@@ -99,7 +99,7 @@ seam_dirs:
   - name: console
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/console/
-    description: Shared console seam — artifact shell, InnfoConsole UMD runtime, and feedback JSON schema for the reviewer feedback loop.
+    description: Shared console seam — artifact shell, InnfoConsole UMD runtime, and changeset export for the reviewer feedback loop.
 
 console_assets:
   - name: nn-console
@@ -128,9 +128,9 @@ console_assets:
     ref_key: nn-console
 
 workflows:
-  - id: model
-    label: Create an iNNfo model
-    description: Turn an idea, document, or dataset into a validated structured model.
+  - id: knowledge
+    label: Create iNNfo kNNowledge
+    description: Turn an idea, document, or dataset into validated structured kNNowledge against a bluepriNNt.
     skill: nn-innfo
     blueprint: domaiNN
   - id: transform

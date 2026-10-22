@@ -1,11 +1,11 @@
 ---
 title: "cogNNitive — Agent Skills"
-description: "Modular agent skills that give AI agents specialized capabilities: iNNfo model authoring, document transformation, site generation, design presets, and lifecycle governance."
+description: "Modular agent skills that give AI agents specialized capabilities: iNNfo kNNowledge authoring, source ingestion, site generation, design presets, and lifecycle governance."
 ---
 
 # Modular skills that give your AI agent specialized powers.
 
-Teach your AI agent domain capabilities: iNNfo model authoring, document transformation, site generation, design presets, and skills lifecycle governance.
+Teach your AI agent domain capabilities: iNNfo kNNowledge authoring, source ingestion, site generation, design presets, and skills lifecycle governance.
 
 - [Read the docs](https://cognnitive.com/innfo/documentation/)
 - [Explore Skills Documentation](https://cognnitive.com/skills/documentation/)
@@ -15,7 +15,7 @@ Teach your AI agent domain capabilities: iNNfo model authoring, document transfo
 ## Featured Skills
 
 - **nn**: Front controller and system governance. Handles setup, the environment readiness gate (Preflight), and routes requests to the right skill.
-- **nn-innfo**: Author, edit, and validate iNNfo models, including the conversational Model Creation Wizard.
+- **nn-innfo**: Author, edit, and validate iNNfo kNNowledge and bluepriNNts, including the conversational kNNowledge Creation Wizard.
 - **nn-sources**: Multi-modal document ingestion (PDF, DOCX, XLSX), normalization, and multi-step procedure execution.
 - **nn-site-generator**: Static website generation, markdown twin hydration, and Docsify documentation suites.
 - **nn-design-presets**: Complete design system with the Morado Nazareno palette, systematic typography, and an 8px grid.
@@ -28,13 +28,13 @@ Teach your AI agent domain capabilities: iNNfo model authoring, document transfo
 ```mermaid
 flowchart TD
     subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & traNNsform)"]
+        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & nn-sources)"]
         RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
     end
 
     subgraph Step2["Step 2: Validation & Engine"]
-        Router --> Models["📘 Structured Models (_NN.md)"]
-        Models <--> MCP["⚙️ innfo-mcp Server + Core Engine"]
+        Router --> Knowledge["📘 kNNowledge (_NN.md)"]
+        Knowledge <--> MCP["⚙️ nn-mcp Server + nn-core Engine"]
     end
 
     subgraph Step3["Step 3: Delivery & Access"]

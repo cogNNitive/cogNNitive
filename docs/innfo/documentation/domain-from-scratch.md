@@ -36,7 +36,7 @@ The rest of the folders (`sources/conversations/`, `conversations/`, `procedures
 An empty domain is scaffolded, not hand-built. The MCP tool `init_domain` creates the manifest, the folder skeleton, and the `.gitattributes` that pins source hashes:
 
 ```text
-init_domain  name: "Aurora"
+init_domain  dir: "Aurora"  name: "Aurora"
 ```
 
 `domaiNN_NN.md` is generated, and it already states the house rule:
@@ -204,7 +204,7 @@ Notice the citation shapes already in play: `@## Heading` for a Markdown unit an
 Before trusting anything, validate. The MCP `validate_knowledge` tool checks one model; `check_domain` runs the workspace integrity pass (dangling citations, drift, orphans):
 
 ```text
-validate_knowledge  path: kNNowledge/Aurora_business_NN.md
+validate_knowledge  id: "Aurora_business"
 → 0 errors, 5 citations resolved
 
 check_domain  domain: Aurora
@@ -317,6 +317,7 @@ version:: V1
 
 ## NN ModelRecords: Aurora business
 model_ref:: kNNowledge/Aurora_business_NN.md
+knowledge_version:: V_0-1-0
 model_template:: business
 derived_from:: [sources/import/discovery-call.md@## The offer]
 
@@ -347,14 +348,14 @@ The three view sections are a pure function of the files on disk: add a source, 
 Because the record is derived, the only failure mode is **drift**: the persisted text disagreeing with a fresh projection. That happens if someone edits a managed section by hand. The gate catches it:
 
 ```console
-$ node scripts/index.js --lineage --check --src Aurora
+$ node skills/nn-sources/scripts/index.js --lineage --check --src Aurora
 ✖ LINEAGE_DRIFT  # NN Sources differs from a fresh projection
 ```
 
 The fix is always regeneration, never a hand edit:
 
 ```text
-sync_lineage  domain: Aurora     # or: node scripts/index.js --lineage --src Aurora
+sync_lineage  domain: Aurora     # or: node skills/nn-sources/scripts/index.js --lineage --src Aurora
 → record regenerated; # NN Procedures preserved
 ```
 

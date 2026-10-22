@@ -9,12 +9,12 @@ editor.
 The pitch in one line:
 
 > Instead of re-uploading documents to a chat every time, you import them once,
-> normalise them once, and every future AI session reads exactly the slice it
+> cognitivize them once, and every future AI session reads exactly the slice it
 > needs — with a citation back to the original.
 
 ---
 
-## The problem with talking straight to a general model
+## The problem with talking straight to a general LLM
 
 Attaching files to a chat (GPT, Gemini, Claude, or an ad-hoc scripted pipeline)
 works, but it costs you on every single session:
@@ -36,9 +36,9 @@ smarter model, by **structure around the model**.
 
 | Pillar | What it means | Mechanism |
 | :--- | :--- | :--- |
-| **Efficiency** | Import once, reuse forever; feed the model only the slice it needs. | Source normalisation, a sources catalog of short summaries, and bounded model reads. |
-| **Traceability** | Every model statement points to an exact heading in an exact source version. | `sources::` citations, write-once source families, the lineage record. |
-| **Versatility & review comfort** | Review in a text editor, the domain console, or a conversation — same files. | Text editors, the domain console, AI agents; reviewer feedback re-ingests. |
+| **Efficiency** | Import once, reuse forever; feed the model only the slice it needs. | Source cognitivization into `sources/import/` with `_sidecar_NN.md` records, a sources catalog of short summaries, and bounded reads. |
+| **Traceability** | Every kNNowledge statement points to an exact heading in an exact source version. | `sources::` citations, write-once source families, the lineage record. |
+| **Versatility & review comfort** | Review in a text editor, the domain console, or a conversation — same files. | Text editors, the domain console, AI agents; reviewer consoles export `changes/*_changes_NN.md` changesets applied with `apply_change`. |
 | **No vendor lock-in** | Plain Markdown plus Git; the knowledge is yours forever. | Files on disk; Git is the copy-of-record and the collaboration layer. |
 
 ### Efficiency
@@ -55,9 +55,9 @@ whole corpus, it reads less and answers with less noise.
 
 Citations are anchored to a heading, never to a line range:
 `sources:: [sources/import/pricing_memo.md@## Manhattan Rates]`. Each source keeps
-its own version history inside the workspace as write-once family members,
-answering *"what exact version did this model see at time T?"* even if no commit
-was made. A lineage record ties Sources, ModelRecords, and Artifacts together, and
+its own version history inside the domaiNN as write-once family members,
+answering *"what exact version did this kNNowledge see at time T?"* even if no commit
+was made. A lineage record ties Sources, KnowledgeRecords, and Artifacts together, and
 an impact check warns you when a living source changes in a way that breaks a
 downstream citation.
 
@@ -65,8 +65,8 @@ downstream citation.
 
 The same files are readable three ways without conversion — a plain editor, the
 self-contained domain console, or an AI agent. Reviewer feedback is a first-class
-input: reviewer consoles export structured feedback that re-enters the pipeline
-and can be applied to the model with a diff preview.
+input: reviewer consoles export a `_changes_NN.md` changeset into `changes/`, which
+the agent previews with `propose_changeset` and applies to the kNNowledge with `apply_change`.
 
 ### No vendor lock-in
 
@@ -82,8 +82,8 @@ gives each artifact an immutable identity. The two are complementary — see
 
 Clear boundaries keep the ecosystem honest:
 
-- **Not a database engine** — models are Markdown files in your repository.
-- **Not a closed SaaS platform** — it runs locally, or in your browser.
+- **Not a database engine** — kNNowledge is Markdown files in your repository.
+- **Not a closed SaaS platform** — it runs locally, with a self-contained domain console.
 - **Not a script runner** — `_NN.md` documents are declarative data, nothing more.
 - **Not a one-shot converter** — the lifecycle is continuous, verified, reversible.
 

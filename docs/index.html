@@ -955,13 +955,13 @@
                     <div class="import-paths-bar">
                       <span class="path-pill highlight" title="Immutable Originals">sources/import/</span>
                       <span class="path-pill" title="Intermediate Extraction Scratchpad">staging/</span>
-                      <span class="path-pill highlight" title="Normalized Markdown with #heading-slugs">sources/normalized/</span>
+                      <span class="path-pill highlight" title="Co-located Sidecars with Heading Anchors">*_sidecar_NN.md</span>
                     </div>
                   </div>
                 </div>
                 <div class="flow-card-body">
                   <h3><span>1. Ingestion &amp; Lineage</span></h3>
-                  <p>Ingest files, recordings, and raw notes into immutable <code>sources/import/</code>, stage extraction buffers, and normalize into clean Markdown in <code>sources/normalized/</code>.</p>
+                  <p>Ingest files, recordings, and raw notes verbatim into immutable <code>sources/import/</code>, stage extraction buffers in <code>staging/</code>, and cognitivize in place with co-located <code>*_sidecar_NN.md</code> files.</p>
                 </div>
               </div>
 
@@ -979,7 +979,7 @@
                   <div class="model-tree-box">
                     <div class="tree-node root">
                       <span>📦</span>
-                      <span><strong>Model:</strong> Business_NN.md</span>
+                      <span><strong>kNNowledge:</strong> Business_business_NN.md</span>
                     </div>
                     <div class="tree-branch">
                       <div class="tree-node">
@@ -1000,13 +1000,13 @@
                   </div>
                   <div class="access-modes-row">
                     <span class="access-badge" title="Obsidian / VS Code / Notepad">📝 Text Editors</span>
-                    <span class="access-badge" title="Visual Graph Navigation">🛠️ Web App</span>
+                    <span class="access-badge" title="Self-Contained Interactive Console">🛠️ Domain Console</span>
                     <span class="access-badge" title="OpenCode / Antigravity / Claude Code">🤖 AI Agents</span>
                   </div>
                 </div>
                 <div class="flow-card-body">
                   <h3><span>2. Semantic Modeling (SSOT)</span></h3>
-                  <p>Structure knowledge into predictable **kNNowledge** with fine-grained citations (<code>sources:: [doc.md#slug]</code>). Access and edit freely via text editors, web app, or AI agents.</p>
+                  <p>Structure knowledge into predictable <strong>kNNowledge</strong> governed by <strong>bluepriNNts</strong> with fine-grained citations (<code>sources:: [sources/import/doc.md@## Heading]</code>). Access and edit freely via text editors, the Domain Console, or AI agents (<code>ageNNt</code>).</p>
                 </div>
               </div>
 
@@ -1027,19 +1027,19 @@
                         <span>📊</span>
                         <span>Interactive Dashboard</span>
                       </div>
-                      <span class="tag">export/html</span>
+                      <span class="tag">artifacts/html</span>
                     </div>
                     <div class="deliverable-item">
                       <div class="icon-badge">
                         <span>📑</span>
                         <span>Exec Brief &amp; BibTeX</span>
                       </div>
-                      <span class="tag">export/docx</span>
+                      <span class="tag">artifacts/docx</span>
                     </div>
                     <div class="deliverable-item" style="background: #FDF4FD; border-color: rgba(77,14,78,0.2);">
                       <div class="icon-badge">
                         <span style="color: var(--brand);">&#x2714;</span>
-                        <span style="font-size: 9.5px; font-family: var(--mono); color: var(--brand);">derived_from: [Model_NN]</span>
+                        <span style="font-size: 9.5px; font-family: var(--mono); color: var(--brand);">sources: [kNNowledge/*_NN.md]</span>
                       </div>
                       <span class="tag" style="background: var(--brand-subtle); color: var(--brand);">Lineage</span>
                     </div>
@@ -1047,7 +1047,7 @@
                 </div>
                 <div class="flow-card-body">
                   <h3><span>3. Artifacts &amp; Feedback</span></h3>
-                  <p>Project role-tailored **Artifacts** — dashboards, executive briefs, and specifications into <code>artifacts/</code>. Annotated stakeholder reviews re-ingest into sources to continuously evolve kNNowledge.</p>
+                  <p>Project role-tailored <strong>Artifacts</strong> — dashboards, executive briefs, and specifications into <code>artifacts/</code>. Stakeholder review changesets (<code>_changes_NN.md</code>) apply back through <code>changes/</code> to continuously evolve kNNowledge.</p>
                 </div>
               </div>
 
@@ -1087,7 +1087,7 @@
             <span class="use-case-avatar">🚀</span>
             <div class="use-case-role">Startup Founders</div>
             <div class="use-case-tagline">Living Business kNNowledge</div>
-            <p class="use-case-desc">Turn messy investor feedback, pitch decks, and discovery transcripts into an auditable business model where pivots update the whole company in 1 hour.</p>
+            <p class="use-case-desc">Turn messy investor feedback, pitch decks, and discovery transcripts into auditable business kNNowledge where pivots update the whole company in 1 hour.</p>
             <div class="use-case-footer">
               <span class="use-case-roi">Pivot in 1h vs 2wks</span>
               <span class="use-case-cta">Explore &rarr;</span>
@@ -1147,13 +1147,13 @@
         <div class="diagram-card">
           <pre class="mermaid">
 flowchart LR
-    subgraph P1["1. IMPORT &amp; NORMALIZE"]
-        RAW["📁 Raw Inputs\n(Audio, Docs, Sheets, Notes)"] --> NORM["📝 sources/normalized/\n(Markdown + Citations)"]
+    subgraph P1["1. IMPORT &amp; COGNITIVIZE"]
+        RAW["📁 Raw Inputs\n(Audio, Docs, Sheets, Notes)"] --> NORM["📝 sources/import/\n(Verbatim + _sidecar_NN.md)"]
     end
 
     subgraph P2["2. MANAGE (Living SSOT)"]
         NORM --> MOD["🧠 kNNowledge/*_NN.md\n(Concepts, Elements, Fields)"]
-        MOD <--> EDIT["👥 Text Editors · Web App · AI Agents"]
+        MOD <--> EDIT["👥 Text Editors · Domain Console · AI Agents"]
     end
 
     subgraph P3["3. EXPORT &amp; FEEDBACK"]
@@ -1305,14 +1305,8 @@ flowchart LR
       </div>
     </section>
 
-    <!-- End-to-End Traceability & Verifiable Lineage Section -->
-    <section style="background: var(--canvas-inert); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-      <div class="container">
-        <div class="section-title">
-          <span class="badge-pill">&#x2728; Mathematical Traceability &amp; OKF Standard</span>
-          <h2>Every Insight Traceable. Zero Hallucinations.</h2>
     <!-- Extreme Traceability & Verifiable Lineage Section -->
-    <section style="background: var(--canvas-inert); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <section id="traceability" style="background: var(--canvas-inert); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
       <div class="container">
         <div class="section-title">
           <span class="badge-pill">&#x2728; Radical Precision</span>
@@ -1324,9 +1318,9 @@ flowchart LR
           <!-- Card 1 -->
           <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F50E;</div>
-            <h3 style="font-size: 18px; margin-bottom: 10px;">1. Multimodal Normalization</h3>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">1. In-Place Source Cognition</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              Normalize audio transcripts (<code style="font-family: var(--mono); font-size: 12px;">.srt/.vtt</code>), spreadsheets (<code style="font-family: var(--mono); font-size: 12px;">.csv/.xlsx</code>), conversation logs, and PDFs into clean Markdown under <code style="font-family: var(--mono); font-size: 12px;">sources/normalized/</code>.
+              Ingest audio transcripts (<code style="font-family: var(--mono); font-size: 12px;">.srt/.vtt</code>), spreadsheets (<code style="font-family: var(--mono); font-size: 12px;">.csv/.xlsx</code>), conversation logs, and PDFs into <code style="font-family: var(--mono); font-size: 12px;">sources/import/</code> with co-located <code style="font-family: var(--mono); font-size: 12px;">*_sidecar_NN.md</code> files.
             </p>
           </div>
 
@@ -1335,7 +1329,7 @@ flowchart LR
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F517;</div>
             <h3 style="font-size: 18px; margin-bottom: 10px;">2. Permanent Section Anchors</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              kNNowledge links assertions directly to sources using clear heading syntax (<code style="font-family: var(--mono); font-size: 12px;">sources:: [report.md#budget]</code>). Volatile line numbers are rejected in favor of permanent anchors.
+              kNNowledge links assertions directly to sources using the <code style="font-family: var(--mono); font-size: 12px;">@</code> locator grammar (<code style="font-family: var(--mono); font-size: 12px;">sources:: [sources/import/report.md@## Budget]</code>). Volatile line numbers are rejected in favor of permanent anchors.
             </p>
           </div>
 
@@ -1344,7 +1338,7 @@ flowchart LR
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F4DA;</div>
             <h3 style="font-size: 18px; margin-bottom: 10px;">3. Project Artifacts &amp; Lineage</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              Generate interactive HTML dashboards, executive briefs, and formal specifications with verified citations and automatic lineage tracking (<code style="font-family: var(--mono); font-size: 12px;">derived_from: [Model_NN]</code>).
+              Generate interactive HTML dashboards, executive briefs, and formal specifications with verified citations and automatic lineage tracking (<code style="font-family: var(--mono); font-size: 12px;">sources: [kNNowledge/Business_business_NN.md]</code>).
             </p>
           </div>
         </div>
@@ -1352,14 +1346,14 @@ flowchart LR
         <div class="diagram-card" style="margin-top: 36px; padding: 24px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px;">
           <pre class="mermaid">
 flowchart LR
-    subgraph Sources["1. SOURCES (sources/normalized/)"]
+    subgraph Sources["1. SOURCES (sources/import/)"]
         S1["🎥 Subtitles &amp; Audio Transcripts"]
         S2["📊 Spreadsheets &amp; Data Tables"]
         S3["📑 Documents, PDFs &amp; Chats"]
     end
 
     subgraph Model["2. kNNowledge (kNNowledge/*_NN.md)"]
-        M["🧠 Living Concepts &amp; Elements<br/><span style='font-size:11px;'>sources:: [source.md#slug]</span>"]
+        M["🧠 Living Concepts &amp; Elements<br/><span style='font-size:11px;'>sources:: [sources/import/source.md@## Section]</span>"]
     end
 
     subgraph Output["3. ARTIFACTS (artifacts/)"]
@@ -1369,7 +1363,7 @@ flowchart LR
 
     Sources -->|"Permanent Section Citations"| M
     M -->|"Deterministic Projection"| Output
-    Output -.->|"Feedback Re-ingestion"| Sources
+    Output -.->|"Changeset &amp; Source Loop"| Sources
 
     classDef s fill:#FAFAFC,stroke:#636366,color:#111112;
     classDef m fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E,font-weight:bold;
@@ -1412,18 +1406,23 @@ flowchart LR
           <div class="compare-card highlight">
             <div class="compare-header">
               <span class="compare-badge good">&#x2714; The cogNNitive Way</span>
-              <span style="font-size: 12px; color: var(--brand); font-family: var(--mono);">Business_V_1-0-0_business_NN.md</span>
+              <span style="font-size: 12px; color: var(--brand); font-family: var(--mono);">kNNowledge/Business_business_NN.md</span>
             </div>
-            <pre class="compare-code" style="background: #140815; border: 1px solid rgba(77,14,78,0.2);"><code>### 🔹 PricingTier [Element]
-- tier_name:: Growth
-- price_monthly:: 49
-- billing_model:: per-seat
-- sources:: [meeting_q3.md#approved-pricing]
+            <pre class="compare-code" style="background: #140815; border: 1px solid rgba(77,14,78,0.2);"><code># NN PricingTier
 
-### 🔹 BudgetCap [Element]
-- q3_ceiling:: 45000
-- approved_by:: Dave
-- sources:: [finance_sync.md#executive-signoff]</code></pre>
+## NN PricingTier: Growth
+slug:: growth
+price_monthly:: 49
+billing_model:: per-seat
+sources:: [sources/import/meeting_q3.md@## Approved Pricing]
+
+# NN BudgetCap
+
+## NN BudgetCap: Q3 Ceiling
+slug:: q3-ceiling
+amount:: 45000
+approved_by:: Dave
+sources:: [sources/import/finance_sync.md@## Executive Signoff]</code></pre>
             <div class="compare-footer">
               <span style="color: #10B981; font-weight: bold;">&#x2714;</span>
               <span>Strict compliance. Machine-readable. Ground truth for humans and AI agents.</span>
@@ -1488,7 +1487,7 @@ flowchart LR
             <div class="benefit-num">&#x2716;</div>
             <div class="benefit-content">
               <h4>Not a universal format</h4>
-              <p>OKF-compatible and plain Markdown, but not the single format for all knowledge. Your source of truth stays yours.</p>
+              <p>Plain Markdown with YAML frontmatter, not a single proprietary format for all knowledge. Your source of truth stays yours.</p>
             </div>
           </div>
           <div class="benefit-item">
@@ -1558,11 +1557,11 @@ flowchart LR
         </div>
       </div>
       <p style="font-size: 13px; color: var(--ink-muted); display: flex; align-items: center; gap: 10px;">
-        <span style="font-family: var(--mono); background: var(--brand-subtle); color: var(--brand); padding: 2px 6px; border-radius: 4px; font-weight: 600;">v0.7.0</span>
+        <span style="font-family: var(--mono); background: var(--brand-subtle); color: var(--brand); padding: 2px 6px; border-radius: 4px; font-weight: 600;">iNNfo V_0-5-0</span>
         <span>&bull;</span>
-        <span>Control de versiones en Git</span>
+        <span>Git-native version control</span>
         <span>&bull;</span>
-        <span>Última actualización: <time datetime="2026-09-12">Septiembre 2026</time></span>
+        <span>Last updated: <time datetime="2026-10-22">October 2026</time></span>
       </p>
     </div>
   </footer>

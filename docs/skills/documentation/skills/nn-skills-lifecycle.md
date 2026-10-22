@@ -22,8 +22,8 @@ Executes the canonical activation gate defined in [`nn-preflight`](skills/nn-pre
 ## 1. Desired State & Installed State Architecture
 
 - **Desired State (Source of Truth)**: The bootstrap manifest at `docs/use/manifest.md` (or fetched from GitHub). Frontmatter declares the canonical list of skills with pinned 40-character commit SHAs.
-- **Installed State (Local Record)**: `~/.agents/skills-state.json`, recording `{ commit, version, updated_at }` for each locally installed skill.
-- **MCP Servers**: each server is declared nested inside the skill that owns it (`agent-bootstrap.skills[].mcp[]`), not as a separate top-level list. `parseManifest()` hoists every nested `mcp[]` into one merged, name-deduplicated list, so `status`, `install`, and `update` treat MCP servers exactly like skills and templates. A top-level `agent-bootstrap.mcp` is still honored for backward compatibility.
+- **Installed State (Local Record)**: `~/.agents/bootstrap-state.json`, recording `{ commit, version, updated_at }` for each locally installed skill.
+- **MCP Servers**: each server is declared nested inside the skill that owns it (`agent-bootstrap.skills[].mcp[]`), not as a separate top-level list. `parseManifest()` hoists every nested `mcp[]` into one merged, name-deduplicated list, so `status`, `install`, and `update` treat MCP servers exactly like skills and bluepriNNts. A top-level `agent-bootstrap.mcp` is still honored for backward compatibility.
 
 ---
 
@@ -31,7 +31,7 @@ Executes the canonical activation gate defined in [`nn-preflight`](skills/nn-pre
 
 | Command | Action |
 | :--- | :--- |
-| `bootstrap [--scope <global\|workspace>]` | Zero-touch ecosystem setup: downloads pinned skills, templates, MCP bundles, and configures agent MCP settings. |
+| `bootstrap [--scope <global\|workspace>]` | Zero-touch ecosystem setup: downloads pinned skills, bluepriNNts, MCP bundles, and configures agent MCP settings. |
 | `status` | Compares installed vs. pinned commits; prints status table and diff-file count preview. |
 | `install` | Installs missing skills from GitHub tarballs into `~/.agents/skills/{name}/` (or workspace). |
 | `install-external --name <n> --repo <owner/repo> --path <skills/x> --commit <40-hex> [--sha256 <64-hex>]` | **Opt-in.** Installs a *referenced* external (third-party) skill at its pinned commit, verifying the `sha256` tree digest when given. Never invoked by `install`/`update`. |
@@ -48,14 +48,14 @@ Executes the canonical activation gate defined in [`nn-preflight`](skills/nn-pre
 
 When a fresh AI agent receives the bootstrap trigger (`"I want to use https://cognnitive.com/use"`), it executes `node scripts/skills-manager.js bootstrap`:
 
-1. **Manifest Retrieval**: Fetches the canonical manifest (`manifest.md`) containing 40-character SHA commits for all skills, templates, and MCP bundles.
+1. **Manifest Retrieval**: Fetches the canonical manifest (`manifest.md`) containing 40-character SHA commits for all skills, bluepriNNts, and MCP bundles.
 2. **Scope Selection**:
-   - **Global User Profile (Default / Recommended)**: Installs tools to `~/.agents/skills/`, `~/.agents/templates/`, and `~/.agents/mcp/` (`%USERPROFILE%\.agents\` on Windows).
-   - **Local Workspace**: Installs directly into the repository (`./.agents/skills/`, `./specs/templates/`, `./.agents/mcp/`).
-3. **Multi-Agent MCP Auto-Registration**: Registers the `innfo-mcp` server bundle into detected AI agent configuration files (`~/.config/opencode/opencode.json`, `~/.claude.json`, `~/.gemini/antigravity.json`).
+   - **Global User Profile (Default / Recommended)**: Installs tools to `~/.agents/skills/`, `~/.agents/bluepriNNts/`, and `~/.agents/mcp/` (`%USERPROFILE%\.agents\` on Windows).
+   - **Local DomaiNN**: Installs directly into the repository (`./.agents/skills/`, `./specs/bluepriNNts/`, `./.agents/mcp/`).
+3. **Multi-Agent MCP Auto-Registration**: Registers the `nn-mcp` server bundle into detected AI agent configuration files (`~/.config/opencode/opencode.json`, `~/.claude.json`, `~/.gemini/antigravity.json`).
 4. **Hybrid Resolution Runtime**:
    - **Global Layer**: Executables, skills, and MCP servers run centrally across all agent sessions.
-   - **Workspace Layer**: Project-specific kNNowledge (`*_NN.md`) and customized bluepriNNts reside in `./specs/` and `./kNNowledge/`, prioritized first by the 4-tier lookup engine.
+   - **DomaiNN Layer**: Project-specific kNNowledge (`*_NN.md`) and customized bluepriNNts reside in `./specs/` and `./kNNowledge/`, prioritized first by the 4-tier lookup engine.
 
 ---
 

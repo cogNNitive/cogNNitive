@@ -1,58 +1,58 @@
 ---
 layout: default
 title: Cognitive Ecosystem — External Tooling & Integrations
-description: Arquitectura de integración de herramientas independientes en cogNNitive, analizando el caso de estudio de generación de imágenes con WaveSpeed (MCP frente a CLI).
+description: Integration architecture of independent tools in cogNNitive, analyzing the WaveSpeed image-generation case study (MCP vs CLI).
 ---
 
 # Cognitive Ecosystem & External Tooling
 
-El ecosistema **cogNNitive** está diseñado con una arquitectura modular y desacoplada centrada en el conocimiento estructurado (**iNNfo**) y las capacidades de los agentes de IA (**ageNNt**). Para conocer el ciclo de vida completo de la información (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop), consulta el [**Lifecycle Walkthrough**](lifecycle-walkthrough.md).
+The **cogNNitive** ecosystem is designed with a modular, decoupled architecture centered on structured knowledge (**iNNfo**) and AI agent capabilities (**ageNNt**). For the full information lifecycle (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop), see the [**Lifecycle Walkthrough**](lifecycle-walkthrough.md).
 
-Este documento explora la integración con herramientas y servicios externos independientes mediante casos de estudio prácticos (como renderizado multimedia con WaveSpeed).
-
----
-
-## 1. Filosofía de Integración: Núcleo Desacoplado y Herramientas Externas
-
-En una plataforma de conocimiento vivo, el procesamiento lógico de modelos y especificaciones reside en el motor local (`innfo-core` y `innfo-mcp`), mientras que las capacidades pesadas de cómputo en la nube (como renderizado gráfico, síntesis de voz, generación de vídeo o modelos 3D) se delegan en servicios especializados de terceros.
-
-Para conectar estas capacidades con nuestros agentes de IA (en OpenCode, Claude Desktop, Cursor, etc.), existen fundamentalmente dos aproximaciones técnicas: **Model Context Protocol (MCP)** y **Command Line Interface (CLI)**.
+This document explores integration with independent external tools and services through practical case studies (such as multimedia rendering with WaveSpeed).
 
 ---
 
-## 2. Caso de Estudio: Generación de Imágenes con WaveSpeed
+## 1. Integration Philosophy: Decoupled Core and External Tools
 
-WaveSpeed (`wavespeed.ai`) provee una plataforma en la nube para ejecutar modelos generativos en catálogo abierto (imagen, vídeo, audio, 3D). Analizaremos las dos alternativas para integrarlo en el flujo de trabajo de Cognnitive.
+In a living-knowledge platform, the logical processing of models and specifications lives in the local engine (`nn-core` and `nn-mcp`), while heavy cloud compute capabilities (such as graphic rendering, speech synthesis, video generation, or 3D models) are delegated to specialized third-party services.
 
-### Opción A: WaveSpeed MCP (Recomendado)
-El servidor MCP oficial (`@wavespeed/mcp`) expone las capacidades de WaveSpeed directamente como herramientas nativas al agente de IA (ej. `list_models`, `run_model`, `get_price`, `get_model_schema`).
-
-* **Cómo funciona:** El servidor corre como un proceso hijo independiente gestionado por el cliente de IA (configurado globalmente en `mcp.json`). Cuando el usuario solicita generar una imagen, el agente realiza introspección de esquemas del modelo, evalúa precios o parámetros y ejecuta la llamada de forma autónoma y estructurada mediante JSON-RPC.
-
-### Opción B: WaveSpeed CLI (`@wavespeed/cli`)
-El paquete de línea de comandos tradicional que permite ejecutar tareas mediante la terminal (`wavespeed run ...`).
-
-* **Cómo funciona:** El agente o un script de shell ejecuta comandos monolíticos en la terminal del sistema operativo, parseando la salida estándar (stdout/stderr).
+To connect these capabilities to our AI agents (in OpenCode, Claude Desktop, Cursor, etc.), there are fundamentally two technical approaches: **Model Context Protocol (MCP)** and **Command Line Interface (CLI)**.
 
 ---
 
-## 3. Análisis Comparativo: MCP vs. CLI
+## 2. Case Study: Image Generation with WaveSpeed
 
-| Eje de Evaluación | WaveSpeed MCP (Opción A) | WaveSpeed CLI (Opción B) |
+WaveSpeed (`wavespeed.ai`) provides a cloud platform for running generative models from an open catalog (image, video, audio, 3D). We will analyze the two alternatives for integrating it into the Cognnitive workflow.
+
+### Option A: WaveSpeed MCP (Recommended)
+The official MCP server (`@wavespeed/mcp`) exposes WaveSpeed's capabilities directly as native tools to the AI agent (e.g. `list_models`, `run_model`, `get_price`, `get_model_schema`).
+
+* **How it works:** The server runs as an independent child process managed by the AI client (configured globally in `mcp.json`). When the user requests an image, the agent introspects model schemas, evaluates prices or parameters, and executes the call autonomously and in a structured way via JSON-RPC.
+
+### Option B: WaveSpeed CLI (`@wavespeed/cli`)
+The traditional command-line package that allows running tasks from the terminal (`wavespeed run ...`).
+
+* **How it works:** The agent or a shell script runs monolithic commands in the operating system terminal, parsing standard output (stdout/stderr).
+
+---
+
+## 3. Comparative Analysis: MCP vs. CLI
+
+| Evaluation Axis | WaveSpeed MCP (Option A) | WaveSpeed CLI (Option B) |
 | :--- | :--- | :--- |
-| **Interoperabilidad Multi-Agente** | **Nativa y Estructurada:** Soportada automáticamente en OpenCode, Claude Desktop, Cursor, Cline y Roo Code con un único archivo de configuración (`mcp.json`). | **Limitada para Agentes Conversacionales:** Requiere que el agente ejecute comandos de shell y maneje salidas de texto de forma heurística, sin tipado estricto de herramientas (*tool use*). |
-| **Complejidad de Instalación** | Se instala de forma global vía `npx` o paquete de Node y se declara en la configuración del cliente. | Requiere instalación global del CLI (`npm install -g @wavespeed/cli`) y wrappers de automatización en shell. |
-| **Autonomía del Modelo (IA)** | **Alta:** El modelo de lenguaje lee los esquemas de entrada antes de escribir la solicitud, validando parámetros y evitando errores de sintaxis. | **Baja/Media:** Depende de la destreza del agente construyendo argumentos de comandos en la terminal de texto. |
-| **Seguridad de la Clave API** | Aislada en el entorno de ejecución del proceso MCP o inyectada por el cliente de IA mediante la propiedad `env` del archivo `mcp.json`. | Expuesta en variables de entorno de la sesión de shell o pasada por argumentos de comandos. |
-| **Control de Costes y Precios** | Acceso a herramientas de introspección de precios (`get_price`) previas a la ejecución del modelo. | Ejecución directa sin pre-validación estructurada de costes a menos que se implemente script adicional. |
+| **Multi-Agent Interoperability** | **Native and Structured:** Automatically supported in OpenCode, Claude Desktop, Cursor, Cline, and Roo Code with a single configuration file (`mcp.json`). | **Limited for Conversational Agents:** Requires the agent to run shell commands and handle text output heuristically, without strict tool typing (*tool use*). |
+| **Installation Complexity** | Installed globally via `npx` or a Node package and declared in the client configuration. | Requires global CLI installation (`npm install -g @wavespeed/cli`) and shell automation wrappers. |
+| **Model Autonomy (AI)** | **High:** The language model reads the input schemas before writing the request, validating parameters and avoiding syntax errors. | **Low/Medium:** Depends on the agent's skill at building command arguments in the text terminal. |
+| **API Key Security** | Isolated in the MCP process execution environment or injected by the AI client through the `env` property of the `mcp.json` file. | Exposed in shell session environment variables or passed through command arguments. |
+| **Cost and Price Control** | Access to price-introspection tools (`get_price`) before running the model. | Direct execution without structured cost pre-validation unless an additional script is implemented. |
 
 ---
 
-## 4. Recomendación Arquitectónica para Cognnitive
+## 4. Architectural Recommendation for Cognnitive
 
-Para el desarrollo dentro de **Cognnitive**, la recomendación definitiva es **adoptar WaveSpeed MCP** como estándar para los flujos asistidos por IA.
+For development within **Cognnitive**, the definitive recommendation is to **adopt WaveSpeed MCP** as the standard for AI-assisted flows.
 
-### Razones clave:
-1. **Autonomía guiada por esquemas:** Al utilizar MCP, el agente no adivina los parámetros que acepta un modelo en la nube; consulta dinámicamente el esquema en vivo (`get_model_schema`), garantizando que la generación de recursos gráficos cumpla exactamente con lo esperado.
-2. **Centralización multi-cliente:** Configurar el servidor en `C:\Users\<usuario>\.opencode\mcp.json` (o equivalente en otros clientes) permite compartir la herramienta de generación gráfica instantáneamente en cualquier proyecto del monorepo sin duplicar código ni dependencias.
-3. **Respeto por el paradigma de seguridad:** La separación de procesos mediante el protocolo MCP aísla la lógica de red y las credenciales de API del código fuente de la aplicación principal.
+### Key reasons:
+1. **Schema-guided autonomy:** By using MCP, the agent does not guess the parameters a cloud model accepts; it queries the live schema dynamically (`get_model_schema`), guaranteeing that graphic asset generation matches exactly what is expected.
+2. **Multi-client centralization:** Configuring the server in `C:\Users\<user>\.opencode\mcp.json` (or the equivalent in other clients) lets you share the graphic-generation tool instantly across any project in the monorepo without duplicating code or dependencies.
+3. **Respect for the security paradigm:** Process separation through the MCP protocol isolates network logic and API credentials from the main application's source code.

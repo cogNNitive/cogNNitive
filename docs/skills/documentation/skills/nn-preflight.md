@@ -9,7 +9,7 @@ generator: https://cognnitive.com/skills/nn-design-presets
 
 **Skill**: `nn-preflight` · **Role**: Environment Readiness Gate
 
-Environment readiness gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, `innfo-mcp` availability, workspace layout) and optional Tier 2 checks (iNNfo output workspace structure, semantic source validation), then reports blockers, warnings, and verified status.
+Environment readiness gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, `nn-mcp` availability, domaiNN layout) and optional Tier 2 checks (iNNfo output domaiNN structure, semantic source validation), then reports blockers, warnings, and verified status.
 
 ---
 
@@ -54,17 +54,17 @@ node scripts/preflight-check.js
 ### Tier 1 Checks (Always Run)
 1. **Preflight & Integrity Runner**: Executes `node scripts/preflight-check.js`.
 2. **Node.js**: Requires `>= 18`.
-3. **`innfo-mcp` Availability**: Calls `innfo-mcp_list_models` or verifies bundle at `~/.agents/mcp/innfo-mcp.bundle.js`.
-4. **Workspace Layout**: Verifies `sources/`, `kNNowledge/`, `procedures/`, `artifacts/`, and `domaiNN_NN.md`.
+3. **`nn-mcp` Availability**: Calls `nn-mcp_list_knowledge` or verifies bundle at `~/.agents/mcp/nn-mcp.bundle.js`.
+4. **DomaiNN Layout**: Verifies `sources/`, `kNNowledge/`, `procedures/`, `artifacts/`, and `domaiNN_NN.md`.
 
 ### Tier 2 Checks (iNNfo Output Workflows)
-1. **Model Workspace Structure**: Verifies `kNNowledge/` holds valid `*_NN.md` models and `domaiNN_NN.md` contains `# NN index`.
+1. **kNNowledge Structure**: Verifies `kNNowledge/` holds valid `*_NN.md` kNNowledge documents and `domaiNN_NN.md` contains `# NN kNNowledge`.
 2. **Semantic Link Validation**: Verifies that every source path cited in `sources:: [...]` physically resolves against the workspace-relative path, and that each raw file under `sources/import/` (and `sources/conversations/`) has a co-located, up-to-date sidecar.
 
-### Tier 3 Checks (Workspace Template Upgrades — Informational)
-1. **Template upgrade detection**: when `--workspace-dir` is provided and the workspace
-   contains Level-3 models, classifies each model's pinned template against the committed
-   Level-2 template catalog (`iNNfo/specs/bluepriNNts/catalog.json`). Reports `current` /
+### Tier 3 Checks (DomaiNN bluepriNNt Upgrades — Informational)
+1. **bluepriNNt upgrade detection**: when `--workspace-dir` is provided and the domaiNN
+   contains Level-3 kNNowledge documents, classifies each document's pinned bluepriNNt against the committed
+   Level-2 bluepriNNt catalog (`iNNfo/specs/bluepriNNts/catalog.json`). Reports `current` /
    `upgrade-available` (with `major`/`minor`/`patch` gap) / `ahead` / `unlisted`. Available
    upgrades are informational and never flip the exit code. Offline catalog → non-blocking
    `offline` notice. Migration is handled by `nn-upgrade`.

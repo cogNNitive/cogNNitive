@@ -2,75 +2,60 @@
 
 The cogNNitive ecosystem is organized in four specification levels.
 
-## Level 0: defiNNe
+## Level 0: defiNNition
 
 The meta-specification. Defines the structure, versioning conventions (SemVer with `V_MAJOR-MINOR-PATCH` format), RFC 2119 normative language, and the level/parent chain system. The root of the hierarchy.
 
-## Level 1: iNNfo
+## Level 1: iNNfo and the meta-bluepriNNt
 
-The central specification. Every model is a single `_NN.md` document containing concepts, elements, fields, markers, and matrices, with optional structural children.
+The central specification (currently `iNNfo_V_0-5-0`). Every kNNowledge document is a single `_NN.md` file containing concepts, elements, and fields, with optional structural children. There are three root primitives: **Concept**, **Element**, and **Field**. The former `Marker` primitive was removed in `iNNfo_V_0-5-0` — flag markers became values of the built-in `tags` Field, valued markers became ordinary Fields, and matrix scales/cycles live on `# NN Matrix Definition`. Documents that still declare markers are rejected with `MARKERS_REMOVED`.
 
-## Level 2: Apps
+## Level 2: bluepriNNts
 
-Domain-specific apps that declare which concepts, markers, and relationship types apply:
+Domain-specific bluepriNNts declare which concepts, fields, and relationship types apply. Each carries a `blueprint_version` and is listed in [`iNNfo/specs/bluepriNNts/catalog.json`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/catalog.json):
 
-| App | Description |
+| bluepriNNt | Description |
 |----------|-------------|
 | business | Business strategy modeling |
 | procedures | Workflows, SOPs, processes |
 | organization | Organizational structure modeling |
+| domaiNN | The container bluepriNNt for a domaiNN (`domaiNN_NN.md`) |
+| sources, sidecar, artifacts, changes | Source ingestion, `_sidecar_NN.md` records, exported artifacts, and changesets |
 
-## Level 3: Models
+See [Blueprints Overview](templates) for the full, current list with versions.
 
-Concrete instances of an app. Lightweight — just data and a `parent` pointer to the app.
+## Level 3: kNNowledge
 
-## Open Knowledge Format Compatibility
+Concrete instances of a bluepriNNt. Lightweight — just data and a `parent_spec` pointer to the bluepriNNt. Files are named `<Name>_<blueprint>_NN.md` and carry `knowledge_version` in their frontmatter (never a `_V_` token in the filename).
 
-iNNfo is **compatible** with [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (Open Knowledge Format) by Google Cloud Platform. The iNNfo specification satisfies OKF's conformance requirements while adding richer semantic structure.
+## Open Knowledge Format Alignment
 
-### Why iNNfo meets every OKF conformance rule
+cogNNitive takes **conceptual inspiration** from [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (Open Knowledge Format) by Google Cloud Platform, and its architecture is aligned with several of OKF's ideas. It is **not** natively OKF-compliant today: it does not claim formal OKF v0.1 conformance, and a domaiNN is not an OKF knowledge bundle as-is. Full OKF compatibility is planned for the future through a **dedicated export mechanism** that will translate a domaiNN into an OKF bundle.
 
-OKF v0.1 defines three conformance requirements (§9). Here is the exact mapping:
+### Conceptual alignment
 
-| OKF Requirement | How iNNfo Satisfies It |
+| OKF idea | cogNNitive counterpart |
 |---|---|
-| **§9.1** Every non-reserved `.md` file contains a parseable YAML frontmatter block | iNNfo requires YAML frontmatter on every `_NN.md` document. The `---` delimited block is mandatory — unparseable frontmatter is a validation error. |
-| **§9.2** Every frontmatter block contains a non-empty `type` field | iNNfo's `level` field (0–3) and app system provide equivalent type semantics. A model document's `parent` app name serves as its conceptual type. OKF's permissive consumption model tolerates any `type` value — iNNfo's structured approach exceeds what OKF requires. |
-| **§9.3** Reserved filenames (`index.md`, `log.md`) follow OKF conventions | iNNfo has **no** literal `index.md`: the index is the `# NN kNNowledge` block inside `domaiNN_NN.md`, which fills OKF §6's progressive-disclosure role. iNNfo does not prescribe `log.md` usage, which is optional in OKF as well. No conflicts. |
-
-### OKF's permissive consumption model
-
-OKF explicitly states consumers MUST NOT reject a bundle because of:
-
-- Missing optional frontmatter fields ✓
-- Unknown `type` values ✓ — iNNfo's app names are valid OKF type values
-- Unknown additional frontmatter keys ✓ — iNNfo adds `spec_version`, `level`, `parent`, `concepts`, `markers`, `matrices`, `relationship_declarations`, all tolerated
-- Broken cross-links ✓ — iNNfo also tolerates broken wikilinks with warnings
-- Missing index documents ✓ — iNNfo requires a `domaiNN_NN.md` entrypoint, which exceeds OKF's baseline
-
-### Structural alignment
-
-| OKF Concept | iNNfo Equivalent |
-|---|---|
-| Knowledge Bundle | A directory of `_NN.md` documents — an iNNfo workspace |
+| Knowledge bundle | A directory of `_NN.md` documents — a domaiNN |
 | Concept | A concept section within a `_NN.md` document |
-| Concept ID | File path relative to workspace root (minus `_NN.md` suffix) |
-| Frontmatter (`type`, `title`, `description`, `tags`, `timestamp`) | iNNfo frontmatter (`spec_version`, `level`, `parent`, `knowledge_version`, `title`) |
-| Body (Markdown) | Body (Markdown + `_NN` structural markers + matrices) |
-| Cross-linking (`/relative/path.md`) | Wikilinks (`[[target]]`) and standard Markdown links |
-| `index.md` (progressive disclosure) | `domaiNN_NN.md` with wikilinks listing workspace kNNowledge |
-| # Citations (optional) | Not prescribed but fully compatible |
+| Frontmatter metadata | iNNfo frontmatter (`level`, `parent_spec`, `knowledge_version` / `blueprint_version`, `title`) |
+| Body (Markdown) | Body (Markdown + `# NN` / `## NN` structural headings) |
+| Cross-linking | Wikilinks (`[[target]]`) and standard Markdown links |
+| `index.md` progressive disclosure | The `# NN kNNowledge` block inside `domaiNN_NN.md` |
+| Citations | `@` locators resolved through sidecars and lineage |
 
-### Bottom line
+### Known gaps
 
-Any directory of `_NN.md` documents opened in an OKF consumer will be accepted as a conformant OKF v0.1 bundle. The reverse is not guaranteed — iNNfo adds structural requirements (parent chain, app validation, marker syntax) that OKF bundles may lack. But the **intersection is compatible**: every valid iNNfo document is a valid OKF document.
+The formats differ in granularity (iNNfo documents hold many concepts and elements per file), in the `type` frontmatter convention, and in the absence of a literal `index.md`. These differences are exactly what the planned export mechanism is meant to bridge; until it exists, treat OKF as a design reference rather than a supported interchange format.
 
 ## Resolver Protocol
 
-When a model is loaded:
-1. Read the model's `parent` pointer
-2. If not cached in `specs/`, download from the specification URL
-3. Save to `specs/<parent.name>_NN.md`
-4. Read the downloaded spec's `parent`, repeat until level 0
-5. On subsequent loads, use cache
-6. On version mismatch, re-download
+When a kNNowledge document is loaded, its `parent_spec` chain is resolved up to level 0. For each spec the resolver tries, in order:
+
+1. The domaiNN's own local tiers (the domaiNN tree and project-local bluepriNNt directories)
+2. `~/.agents/bluepriNNts/` and installed skill packages
+3. The OS temp cache (`<tmpdir>/innfo-specs`, overridable with `INNFO_CACHE_DIR`)
+4. The network, using the `parent_spec.url`; fetched specs are cached in the OS temp directory, and only written into the domaiNN's `specs/` folder when `in_place: true` is requested
+5. The built-in canonical fallback registry
+
+The default run therefore leaves no cache artifacts inside the domaiNN or repository tree. On version mismatch the spec is fetched again.

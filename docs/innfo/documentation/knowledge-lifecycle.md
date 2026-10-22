@@ -122,7 +122,7 @@ sequenceDiagram
 
 A change is not just a diff: it is itself a **lineage node**. A field's `sources` points at the change that last touched it (`changes/<cs>@## NN Change: <id>`), that change carries the evidence it derived from (`sources::`) and, when it displaced an earlier citation, the value it replaced (`replaced_sources::`). The chain runs field → change → (`sources` | `replaced_sources`) → … until it reaches a Source or a change with neither. Git keeps the file history; the model needs no snapshots.
 
-Two properties follow. **Attribution:** every change is signed with an author and recorded as a changeset under `changes/` — there is no parallel ledger. **Propose/decide separation:** the console can only *propose*; the outcome (`applied`, `partially_applied`, `conflict`, `rejected`) and the version transition are written by the engine on apply.
+Two properties follow. **Attribution:** every change is signed with an author and recorded as a changeset under `changes/` — there is no parallel ledger. **Propose/decide separation:** the console can only *propose*; the outcome and the version transition are written by the engine on apply. The engine reports four statuses — `applied`, `partially_applied`, `conflict`, `rejected` — but the console surfaces only **two** badges: `applied` and `partially_applied` render as **Applied**, while `conflict` and `rejected` render as **Not applied** (with the engine's reason).
 
 The mechanics of producing and applying a change from the console live in the [Reviewer Guide](reviewer-guide).
 
