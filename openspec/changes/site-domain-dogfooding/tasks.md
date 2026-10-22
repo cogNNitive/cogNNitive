@@ -68,15 +68,15 @@ Chain strategy: stacked-to-main
 
 ## Slice 4: Compiler (PR 4)
 
-- [ ] 4.1 RED: `scripts/site/compile-site.test.mjs` on a temp copy of `site_NN/`, with `outDir` as a temp dir: flat `<slug>.html`, `index.html`, relative `site.css`, `<title>` and meta description, derived nav (fixed kind order, then order, then slug, empty groups omitted), `{{sources}}` list, non-ASCII survives.
-- [ ] 4.2 RED: `sitemap.xml` has N `<loc>` values starting with `base_url` and no `lastmod`; `llms.txt` has one line per Page; no `.md` file in the output; rerun and copy-to-another-dir outputs are byte-identical; no data read outside the domaiNN.
-- [ ] 4.3 RED: failure behavior. An invalid Page returns exit 1 and leaves the previous `outDir` byte-identical; a removed Page's file disappears on success; only the given directory is removed.
-- [ ] 4.4 Create `site_NN/specs/bluepriNNts/site/assets/shell.html` (slots `{{title}} {{nav}} {{content}} {{sources}}`) and `assets/site.css`.
-- [ ] 4.5 GREEN: `scripts/site/compile-site.mjs` exporting `run({ domainDir, outDir, log })` and a CLI default of `docs/next/`. It validates and renders everything before touching `outDir`. LF endings, single trailing newline, explicit `utf8`.
-- [ ] 4.6 RED then GREEN: citation policy tests. `auditModelCitations` errors fail; `unresolved_in_latest` fails; a stale sidecar hash fails; `superseded` warns, exits 0 and writes output. Use fixtures built with `writeOnce`.
-- [ ] 4.7 Generate `docs/next/` with `node scripts/site/compile-site.mjs`; commit it as generated output.
-- [ ] 4.8 RED then GREEN: freshness test. Compile into a temp dir and byte-compare with the committed `docs/next/`; the failure message says to rerun the compiler.
-- [ ] 4.9 Run `node scripts/verify.js --fast`; diff-check that protected paths (`verify.js`, `package.json`, `build-docs.mjs`, CI, `docs/use/`, `docs/update/`, `.nojekyll`, `CNAME`) are untouched.
+- [x] 4.1 RED: `scripts/site/compile-site.test.mjs` on a temp copy of `site_NN/`, with `outDir` as a temp dir: flat `<slug>.html`, `index.html`, relative `site.css`, `<title>` and meta description, derived nav (fixed kind order, then order, then slug, empty groups omitted), `{{sources}}` list, non-ASCII survives.
+- [x] 4.2 RED: `sitemap.xml` has N `<loc>` values starting with `base_url` and no `lastmod`; `llms.txt` has one line per Page; no `.md` file in the output; rerun and copy-to-another-dir outputs are byte-identical; no data read outside the domaiNN.
+- [x] 4.3 RED: failure behavior. An invalid Page returns exit 1 and leaves the previous `outDir` byte-identical; a removed Page's file disappears on success; only the given directory is removed.
+- [x] 4.4 Create `site_NN/specs/bluepriNNts/site/assets/shell.html` (slots `{{title}} {{nav}} {{content}} {{sources}}`) and `assets/site.css`.
+- [x] 4.5 GREEN: `scripts/site/compile-site.mjs` exporting `run({ domainDir, outDir, log })` and a CLI default of `docs/next/`. It validates and renders everything before touching `outDir`. LF endings, single trailing newline, explicit `utf8`.
+- [x] 4.6 RED then GREEN: citation policy tests. `auditModelCitations` errors fail; `unresolved_in_latest` fails; a stale sidecar hash fails; `superseded` warns, exits 0 and writes output. Use fixtures built with `writeOnce`.
+- [x] 4.7 Generate `docs/next/` with `node scripts/site/compile-site.mjs`; commit it as generated output.
+- [x] 4.8 RED then GREEN: freshness test. Compile into a temp dir and byte-compare with the committed `docs/next/`; the failure message says to rerun the compiler.
+- [x] 4.9 Run `node scripts/verify.js --fast`; diff-check that protected paths (`verify.js`, `package.json`, `build-docs.mjs`, CI, `docs/use/`, `docs/update/`, `.nojekyll`, `CNAME`) are untouched.
 
 ## Slice 5: Code facts and staleness (PR 5)
 

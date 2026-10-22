@@ -3,7 +3,7 @@
 import { KEY_LINE, SiteError } from './site-model.mjs';
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-const esc = (s) => s.replace(/[&<>"']/g, (c) => ESC[c]);
+export const esc = (s) => s.replace(/[&<>"']/g, (c) => ESC[c]);
 const BULLET = /^\s*[-*]\s/;
 // Emphasis markers must touch non-space text, so "a * b * c" stays literal.
 const INLINE = /`([^`]+)`|\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]*)\)|\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*/g;

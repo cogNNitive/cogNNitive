@@ -30,7 +30,7 @@ to `docs/next/` on the CLI.
 ### Requirement: One flat HTML file per Page
 
 For each Page the compiler MUST write `<outDir>/<slug>.html`, wrapped in the shell template
-(slots `{{title}}`, `{{nav}}`, `{{content}}`, `{{sources}}`) and linked to a single
+(slots `{{title}}`, `{{description}}`, `{{site}}`, `{{tagline}}`, `{{nav}}`, `{{content}}`, `{{sources}}`; every slot must appear and unknown slots fail) and linked to a single
 `<outDir>/site.css` copied from the bluepriNNt assets. The `index` Page is the home Page and
 MUST be written as `index.html`. Internal links MUST be relative so the output works from
 `file://`. Output MUST be UTF-8 and MUST NOT contain U+FFFD. The Page `<title>` MUST be the
@@ -64,7 +64,7 @@ element name and `<meta name="description">` MUST be the `summary`.
 
 Navigation MUST be derived: groups follow the fixed order `pitch`, `tutorial`, `guide`,
 `concept`, `reference`, `legal`; Pages within a group sort by `order`, then by `slug`
-(ascending). Every rendered page MUST contain the same navigation. Empty groups MUST be
+(ascending). Every rendered page MUST contain the same navigation entries; only the entry of the page being shown carries `aria-current="page"`. Every page MUST offer a skip link to the main region. Empty groups MUST be
 omitted. Each nav entry MUST show the Page title and `summary`.
 
 #### Scenario: Ordering is stable
@@ -219,7 +219,7 @@ list in the `{{sources}}` slot.
 The output directory is wholly owned by the compiler: on a successful run it MUST be
 removed and rewritten, so files no longer generated disappear. All parsing, validation and
 rendering MUST complete before the output directory is touched, so a failing run leaves the
-previous output byte-identical. The compiler MUST remove only the directory it was given.
+previous output byte-identical. The compiler MUST remove only the directory it was given, and only when it is missing, empty, or carries the `.site-compiled` marker it writes into every output; any other non-empty directory (for example a parent such as `docs/`) MUST be refused with exit 1 and left untouched. An `outDir` that is a link is replaced by a real directory and its target is left alone.
 
 #### Scenario: Failure leaves prior output intact
 

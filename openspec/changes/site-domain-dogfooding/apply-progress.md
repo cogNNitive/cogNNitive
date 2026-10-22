@@ -131,3 +131,40 @@ Modified: `tasks.md` (3.1-3.7 ticked), this file. Protected paths untouched.
 
 Fresh review fixes, each with a RED test first (14 new tests failed for the right reasons, then 54/54 green):
 href positive allowlist plus rejection of control/space/backslash characters (C0/C1 bypass, backslash and protocol-relative bypass, attribute breakout); malformed links (`](` left over, parentheses in URLs) fail closed; ordered lists must be numbered 1, 2, 3; stray `*` is not emphasis; `loadSite` rejects a level-1 heading inside a body, Page names that repeat site-wide, duplicate field keys, unterminated frontmatter, and a `base_url` containing quotes, angle brackets or backslashes; parser fence handling now matches the renderer (only a bare fence closes); weak test assertions made exact; site-compiler spec says `<ol>`. Hand-written lines now 682 (276 code, 406 tests).
+
+## Batch 4: Slice 3b (compiler, shell, CSS, generated `docs/next/`)
+
+Status: complete. 9/9 tasks 4.1-4.9 of `tasks.md` ("Slice 4: Compiler", delivered as PR 4 / slice 3b) done (29/29 cumulative). Tasks 5.x (code facts, staleness script, citing Page) are NOT started. Branch `session/site-domain-dogfooding-s3b`, size exception approved (hand-written about 730 lines, 469 of them tests; generated `docs/next/` 505 lines in its own commit).
+
+### TDD cycle evidence
+
+| Task | Test file | Layer | RED | GREEN | Triangulate | Refactor |
+|------|-----------|-------|-----|-------|-------------|----------|
+| 4.1-4.3 | `scripts/site/compile-site.test.mjs` | Integration (temp domaiNN, real shell/CSS) | `ERR_MODULE_NOT_FOUND` for `compile-site.mjs` (module absent; whole file red) | 33 of 35 green on first implementation; 2 left: the injection test (a test-side expectation for the llms.txt link text was wrong: only `\`, `[`, `]` are escaped) and the freshness test (no `docs/next/` yet) | pages, nav order/grouping/identity, BOM+CRLF, U+FFFD, slot single-pass, seed compile, link resolution, sitemap, llms, determinism x2, read-spy, failure x6, outDir guard, shell slot x2 | `esc` exported from `markdown-subset.mjs` and reused instead of duplicating |
+| 4.4, 4.5 | same | Integration | covered by 4.1 | shell (7 slots) + CSS (morado-nazareno tokens) + `compile-site.mjs` | n/a | none |
+| 4.6 | same | Integration (fixtures via `writeOnce` + `cognitivize`) | covered by file-level RED | missing file, missing heading, superseded warn, unresolved fail, stale hash fail (uncited too), non-token `sources::`, current citation visible | all five policy branches | none |
+| 4.7, 4.8 | same | Freshness | test written before `docs/next/` existed: failed with "docs/next/ is missing" | `node scripts/site/compile-site.mjs`, then green | byte-compare of file set and every file | none |
+| 4.9 | `node scripts/verify.js --fast` | Repo guards | n/a | all pre-checks passed | n/a | n/a |
+
+Mutation checks (each turned the right test red, then reverted): remove `esc` on the description, treat `unresolved_in_latest` as a warning, drop the outDir guard, drop `audit.errors`, skip the stale-hash walk, drop `mdUrl`.
+
+Final: `node --test "scripts/site/**/*.test.mjs"` 89 pass, 0 fail (54 from 3a + 35 new); `npx eslint scripts/site/` clean; `node scripts/verify.js --fast` all pre-checks passed.
+
+### Decisions and deviations
+
+1. Shell slots are seven, not four: `{{title}} {{description}} {{site}} {{tagline}} {{nav}} {{content}} {{sources}}`. The `<meta description>` needs the summary and the header needs the Site name and tagline; the spec text was reconciled. Every slot must appear and unknown slots fail. Filling is single pass, so a body containing `{{nav}}` stays literal.
+2. Staleness policy (D7) is fully in the compiler (it needs no Slice 5 code): `auditModelCitations().errors`, `checkScanImpact` `unresolved_in_latest` and `findStaleSources` over every file under `sources/` fail; `superseded` and audit warnings are logged as `warning:` and the run continues. The standalone `site-staleness.mjs` stays in tasks 5.x; no seam is needed. Finding for 5.3: `checkScanImpact` DOES report `superseded` and `unresolved_in_latest` for header-unit citations (`path@## heading`) in this domaiNN layout (see the "superseded" and "unresolved in the latest member" tests).
+3. `run` refuses (exit 1, nothing deleted) an `outDir` that is the domaiNN, inside it, or contains it, or that exists as a file. Paths are compared after `realpath` (Windows 8.3 names).
+4. Nav has no `aria-current` marker so every page carries byte-identical navigation (spec). The index Page URL in sitemap and llms.txt is `<base_url>index.html`, uniform with the other Pages. `llms.txt` escapes only `\`, `[`, `]` in link text and percent-encodes parentheses in URLs; HTML and XML use the shared `esc`.
+5. The injection test covers Site name, tagline, `base_url` (ampersand, parentheses), Page name and summary across HTML, XML and llms.txt (3a review item).
+6. The Write tool again emitted literal U+FEFF/U+FFFD for `\u` escapes (test and compiler); a node script replaced them with escapes (verified clean).
+
+### Files
+
+Created: `scripts/site/compile-site.mjs`, `scripts/site/compile-site.test.mjs`, `site_NN/specs/bluepriNNts/site/assets/{shell.html,site.css}`, `docs/next/**` (9 files, generated).
+Modified: `scripts/site/lib/markdown-subset.mjs` (export `esc`), `specs/site-compiler/spec.md` (slot list), `tasks.md` (4.1-4.9 ticked), this file. Protected paths untouched.
+
+### Review follow-up (Slice 3b)
+
+Fresh review fixes, tests first (the new tests failed on the missing `MARKER_FILE` export, then 41/41 green in `compile-site.test.mjs`):
+safe deletion (the compiler writes `.site-compiled` into every output and refuses to delete a non-empty `outDir` without it, so `outDir = docs/` is rejected and untouched; an empty or missing dir is fine; a marked dir is replaced); a link `outDir` is unlinked and replaced by a real directory while its target survives (junction test); page count comes from `ordered.length`; a multi-line summary is pinned (the continuation line becomes body, so `llms.txt` keeps one line per Page); skip link plus `main id="main"` in the shell; `aria-current="page"` on the active nav entry (navigation otherwise identical, spec reworded). The previously committed `docs/next/` had no marker, so it was deleted once by hand and regenerated; `findSourceOffenders` accepts the marker file (it only flags `.env*`, `node_modules` and root-forbidden names).

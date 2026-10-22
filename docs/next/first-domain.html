@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create your first domaiNN</title>
+<meta name="description" content="Install the skills and the MCP server, then create a domaiNN and your first kNNowledge document.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+<header class="site-header">
+<a href="index.html" class="site-name">cogNNitive</a>
+<span class="site-tagline">Turn complex knowledge into simple, actionable Markdown models.</span>
+</header>
+<div class="layout">
+<nav aria-label="Site">
+<section>
+<h2>Overview</h2>
+<ul>
+<li><a href="index.html">cogNNitive</a><span>cogNNitive turns complex knowledge into plain Markdown models that people and AI agents can both read.</span></li>
+</ul>
+</section>
+<section>
+<h2>Tutorials</h2>
+<ul>
+<li><a href="first-domain.html" aria-current="page">Create your first domaiNN</a><span>Install the skills and the MCP server, then create a domaiNN and your first kNNowledge document.</span></li>
+</ul>
+</section>
+<section>
+<h2>Guides</h2>
+<ul>
+<li><a href="validate-domain.html">Validate your domaiNN</a><span>Check one kNNowledge document or a whole domaiNN, and fix the common findings.</span></li>
+</ul>
+</section>
+<section>
+<h2>Concepts</h2>
+<ul>
+<li><a href="levels.html">The levels of cogNNitive</a><span>The four levels, from the meta-specification language to your own kNNowledge.</span></li>
+</ul>
+</section>
+<section>
+<h2>Reference</h2>
+<ul>
+<li><a href="reference.html">Domain layout and tools</a><span>The main folders of a domaiNN and the MCP tools you will use first.</span></li>
+</ul>
+</section>
+<section>
+<h2>Legal</h2>
+<ul>
+<li><a href="legal.html">Legal notice</a><span>Licence and where to find the legal notice and the privacy policy.</span></li>
+</ul>
+</section>
+</nav>
+<main id="main">
+<article>
+<h1>Create your first domaiNN</h1>
+<p>You will end with a validated domaiNN that holds one source and one kNNowledge document that cites it.</p>
+<h3>Install</h3>
+<p>Open your AI coding agent and paste one line. The agent installs the skills, registers the MCP server and checks that it responds.</p>
+<pre><code class="language-text">I want to use https://cognnitive.com/use</code></pre>
+<h3>Create the domaiNN</h3>
+<p>Ask your agent to create a domaiNN. It calls the <code>init_domain</code> tool, which creates the folder skeleton and the <code>domaiNN_NN.md</code> manifest. The tool refuses a directory that already exists and is not empty.</p>
+<h3>Add a source</h3>
+<p>Copy a raw file, such as meeting notes, into <code>sources/import/</code>. Ask the agent to cognitivize it. The <code>cognitivize</code> tool writes a sidecar next to the file, which makes the file citable. The original is never changed.</p>
+<h3>Write the kNNowledge</h3>
+<p>Ask the agent to model what the source says. Pick a bluepriNNt, for example business. The agent creates a kNNowledge document under <code>kNNowledge/</code> from it and cites the source.</p>
+<h3>Check your work</h3>
+<p>Ask the agent to validate the document and to check the domaiNN. The <code>validate_knowledge</code> and <code>check_domain</code> tools report errors, dangling citations and drift.</p>
+<p><a href="validate-domain.html">Validate your domaiNN</a> explains how to read the results.</p>
+</article>
+
+</main>
+</div>
+</body>
+</html>
