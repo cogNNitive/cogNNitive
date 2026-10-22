@@ -11,11 +11,11 @@ Strict TDD: every GREEN task is preceded by its RED task. All paths are relative
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 (S1) -> PR 2 (S2) -> PR 3 (S3a) -> PR 4 (S3b) -> PR 5 (S4) |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Chain strategy | stacked-to-main (integration branch `dev`) |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: stacked-to-main
 400-line budget risk: Medium
 
 | Slice | Hand-written | Generated |
@@ -39,14 +39,14 @@ Chain strategy: pending
 
 ## Slice 1: Local bluepriNNt resolution proof (PR 1)
 
-- [ ] 1.1 RED: create `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts` that runs `validateKnowledge` on `site_NN/kNNowledge/site_NN.md` with no network and expects no unresolved-bluepriNNt error (BP: domain-local resolution). Run vitest, confirm it fails because the files do not exist.
-- [ ] 1.2 Create `site_NN/domaiNN_NN.md` with `knowledge_dir:: kNNowledge/`, `blueprints_dir:: specs/bluepriNNts/` and the kNNowledge registry. No retired keys.
-- [ ] 1.3 Create `site_NN/specs/bluepriNNts/site/spec_NN.md` (Level 2, `blueprint_version: "V_0-1-0"`): `Site` singleton (`tagline`, `base_url`, `repository_url?`), `Page` (`kind` select of 6, `order` number, `summary`, `sources` citation list). No `slug` Field, no `Section`/`Navigation`.
-- [ ] 1.4 Create `site_NN/specs/bluepriNNts/site/procedures/usage_procedures_NN.md`.
-- [ ] 1.5 Create `site_NN/kNNowledge/site_NN.md` (Site singleton, `parent_spec.url` to the local spec) and `site_NN/kNNowledge/pitch_site_NN.md` (one Page, `slug:: index`).
-- [ ] 1.6 GREEN: vitest passes. Add cases: missing `summary` rejected, `kind: blog` rejected, second Site rejected, `sources:: see the README` rejected (BP scenarios).
-- [ ] 1.7 STOP GATE: if nn-core or MCP rejects the local `parent_spec.url`, record the rejection reason in the failing test, do NOT start Slice 2, and report that fallback B must be chosen explicitly.
-- [ ] 1.8 Run `node scripts/verify.js --fast`; confirm the name-invariant, text-encoding and legacy-write guards accept `site_NN/`.
+- [x] 1.1 RED: create `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts` that runs `validateKnowledge` on `site_NN/kNNowledge/site_NN.md` with no network and expects no unresolved-bluepriNNt error (BP: domain-local resolution). Run vitest, confirm it fails because the files do not exist.
+- [x] 1.2 Create `site_NN/domaiNN_NN.md` with `knowledge_dir:: kNNowledge/`, `blueprints_dir:: specs/bluepriNNts/` and the kNNowledge registry. No retired keys.
+- [x] 1.3 Create `site_NN/specs/bluepriNNts/site/spec_NN.md` (Level 2, `blueprint_version: "V_0-1-0"`): `Site` singleton (`tagline`, `base_url`, `repository_url?`), `Page` (`kind` select of 6, `order` number, `summary`, `sources` citation list). No `slug` Field, no `Section`/`Navigation`.
+- [x] 1.4 Create `site_NN/specs/bluepriNNts/site/procedures/usage_procedures_NN.md`.
+- [x] 1.5 Create `site_NN/kNNowledge/site_NN.md` (Site singleton, `parent_spec.url` to the local spec) and `site_NN/kNNowledge/pitch_site_NN.md` (one Page, `slug:: index`).
+- [x] 1.6 GREEN: vitest passes. Add cases: missing `summary` rejected, `kind: blog` rejected, second Site rejected, `sources:: see the README` rejected (BP scenarios).
+- [x] 1.7 STOP GATE: if nn-core or MCP rejects the local `parent_spec.url`, record the rejection reason in the failing test, do NOT start Slice 2, and report that fallback B must be chosen explicitly.
+- [x] 1.8 Run `node scripts/verify.js --fast`; confirm the name-invariant, text-encoding and legacy-write guards accept `site_NN/`.
 
 ## Slice 2: Seed Pages (PR 2)
 
