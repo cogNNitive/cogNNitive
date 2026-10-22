@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 import { join } from 'node:path'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -22,6 +22,10 @@ beforeAll(async () => {
   vi.stubGlobal('fetch', fetchSpy)
 })
 
+beforeEach(() => {
+  fetchSpy.mockClear()
+})
+
 afterAll(async () => {
   vi.unstubAllGlobals()
   await rm(cacheDir, { recursive: true, force: true })
@@ -34,6 +38,8 @@ const read = (rel: string): Promise<string> => readFile(join(domainDir, rel), 'u
 // bluepriNNt must never be requested over the network.
 function expectNoSiteSpecFetch(): void {
   const urls = fetchSpy.mock.calls.map((c) => String(c[0]))
+  // Positive control: the platform parents were requested, so the spy is wired and the filter below is not vacuous.
+  expect(urls.some((u) => /iNNfo_V_0-5-0/.test(u))).toBe(true)
   expect(urls.filter((u) => /site/i.test(u))).toEqual([])
 }
 

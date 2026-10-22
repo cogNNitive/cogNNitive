@@ -41,10 +41,10 @@ Chain strategy: stacked-to-main
 
 - [x] 1.1 RED: create `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts` that runs `validateKnowledge` on `site_NN/kNNowledge/site_NN.md` with no network and expects no unresolved-bluepriNNt error (BP: domain-local resolution). Run vitest, confirm it fails because the files do not exist.
 - [x] 1.2 Create `site_NN/domaiNN_NN.md` with `knowledge_dir:: kNNowledge/`, `blueprints_dir:: specs/bluepriNNts/` and the kNNowledge registry. No retired keys.
-- [x] 1.3 Create `site_NN/specs/bluepriNNts/site/spec_NN.md` (Level 2, `blueprint_version: "V_0-1-0"`): `Site` singleton (`tagline`, `base_url`, `repository_url?`), `Page` (`kind` select of 6, `order` number, `summary`, `sources` citation list). No `slug` Field, no `Section`/`Navigation`.
+- [x] 1.3 Create `site_NN/specs/bluepriNNts/site/spec_NN.md` (Level 2, `blueprint_version: "V_0-1-0"`): `Site` singleton (`tagline`, `base_url`, `repository_url?`), `Page` (`kind` select of 6, `order` number, `summary`, `sources` citation list). No `slug` Field, no `Section`/`Navigation`. Required-ness and the Site singleton are enforced by `loadSite` (Slice 3a); `sources` is the reserved citation property, not a declared Field.
 - [x] 1.4 Create `site_NN/specs/bluepriNNts/site/procedures/usage_procedures_NN.md`.
 - [x] 1.5 Create `site_NN/kNNowledge/site_NN.md` (Site singleton, `parent_spec.url` to the local spec) and `site_NN/kNNowledge/pitch_site_NN.md` (one Page, `slug:: index`).
-- [x] 1.6 GREEN: vitest passes. Add cases: missing `summary` rejected, `kind: blog` rejected, second Site rejected, `sources:: see the README` rejected (BP scenarios).
+- [x] 1.6 GREEN: vitest passes. `kind: blog` is rejected by `validateKnowledge`. Missing `summary`, a second Site and `sources:: see the README` are characterization tests: not enforced by nn-core; enforced by `loadSite` (Slice 3a).
 - [x] 1.7 STOP GATE: if nn-core or MCP rejects the local `parent_spec.url`, record the rejection reason in the failing test, do NOT start Slice 2, and report that fallback B must be chosen explicitly.
 - [x] 1.8 Run `node scripts/verify.js --fast`; confirm the name-invariant, text-encoding and legacy-write guards accept `site_NN/`.
 
@@ -59,6 +59,7 @@ Chain strategy: stacked-to-main
 
 - [ ] 3.1 RED: `scripts/site/site-model.test.mjs` for `loadSite`: field block only, mid-prose and in-fence `key::` rejected, duplicate names, duplicate/malformed slug, missing or duplicate `index`, unknown kind, non-integer order, relative `base_url`, BOM+CRLF equals LF, U+FFFD fails, errors carry `file:line`.
 - [ ] 3.2 GREEN: `scripts/site/lib/site-model.mjs` (`loadSite`, `SiteError`).
+- [ ] 3.2a RED then GREEN: `loadSite` enforces what nn-core does not (BP): missing `tagline`/`base_url`/`kind`/`order`/`summary` named in the error, a second Site element, and a `sources` value that is not a `[path@unit]` token.
 - [ ] 3.3 RED: agreement test in the same file. `loadSite` vs nn-upgrade `parseKnowledge` on every seed document, comparing element names and field maps (SC: parser agreement).
 - [ ] 3.4 GREEN: fix any parser divergence found; the hand parser stays fail-closed.
 - [ ] 3.5 RED: `scripts/site/markdown-subset.test.mjs`. Supported: `###`/`####`, paragraphs, flat lists, fences keep indentation, inline code/bold/em, https and relative links, `[[Page]]`. Rejected, each with `file:line`: `#`/`##`, table, blockquote, image, raw HTML, nested list, unterminated fence, `javascript:` scheme, unknown `[[Nope]]`. HTML escaping.

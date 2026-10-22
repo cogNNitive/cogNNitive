@@ -48,17 +48,23 @@ The `site` bluepriNNt MUST define exactly two element types: `Site` (singleton) 
 
 A domaiNN MUST contain exactly one `Site` element, held in `kNNowledge/site_NN.md`.
 
+nn-core has no required-field or singleton mechanism, so required-ness (`tagline`, `base_url`,
+`kind`, `order`, `summary`) and the Site singleton are enforced by the site model check
+(`loadSite`, Slice 3a), not by `validateKnowledge`. `sources` is the reserved citation
+property, not a Field declared by the bluepriNNt. The only inline `validateKnowledge`
+rejection of Page data is the `kind` select.
+
 #### Scenario: A conforming Page validates
 
-- GIVEN a Page `## 01 Page: Install` with `slug:: install`, `kind`, `order` and `summary`
+- GIVEN a Page `## NN Page: Install` with `slug:: install`, `kind`, `order` and `summary`
 - WHEN the document is validated against the `site` bluepriNNt
 - THEN validation passes
 
 #### Scenario: A Page missing a required field is rejected
 
 - GIVEN a Page with no `summary`
-- WHEN the document is validated
-- THEN validation fails and names the missing field `summary`
+- WHEN the site model check (`loadSite`, Slice 3a) runs
+- THEN it fails and names the missing field `summary`
 
 #### Scenario: A relative base_url is rejected
 
@@ -69,8 +75,8 @@ A domaiNN MUST contain exactly one `Site` element, held in `kNNowledge/site_NN.m
 #### Scenario: A second Site element is rejected
 
 - GIVEN a document with two `Site` elements
-- WHEN the document is validated
-- THEN validation fails with a singleton violation
+- WHEN the site model check (`loadSite`, Slice 3a) runs
+- THEN it fails with a singleton violation
 
 ### Requirement: Page kind set
 
@@ -126,8 +132,8 @@ MUST NOT be stored in `sources`.
 #### Scenario: A non-citation value in `sources` is rejected
 
 - GIVEN a Page with `sources:: see the README`
-- WHEN the domaiNN is validated
-- THEN validation fails because the value is not a citation token
+- WHEN the site model check (`loadSite`, Slice 3a) runs
+- THEN it fails because the value is not a citation token
 
 #### Scenario: A resolvable header-unit citation passes
 
