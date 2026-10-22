@@ -4,14 +4,15 @@
 > in sidebar order. The individual pages are the source of truth; this file is
 > a single-file snapshot for offline reading and full-text search.
 
-> Pages: 26.
+> Pages: 28.
 
 ## Contents
 
-- [Home](#home) — iNNfo Documentation
+- [Home](#home) — 
 - [nn-core](#nn-core) — Components
 - [nn-mcp](#nn-mcp) — Components
-- [OpenCode Agent](#opencode-agent) — Components
+- [OpenCode Agent (Legacy)](#opencode-agent-legacy) — Components
+- [Vocabulary](#vocabulary) — Architecture
 - [Ecosystem](#ecosystem) — Architecture
 - [Specifications](#specifications) — Architecture
 - [Discipline Overlaps](#discipline-overlaps) — Architecture
@@ -24,12 +25,13 @@
 - [Import Modes & Dynamic Sources](#import-modes-dynamic-sources) — Guides
 - [Building a Domain from Scratch](#building-a-domain-from-scratch) — Guides
 - [Lifecycle Walkthrough (Case Study)](#lifecycle-walkthrough-case-study) — Guides
+- [Reviewer Guide](#reviewer-guide) — Guides
 - [Tags & Open Taxonomy](#tags-open-taxonomy) — Guides
 - [Collaboration with Git](#collaboration-with-git) — Guides
-- [Workspace Backup Strategies](#workspace-backup-strategies) — Guides
-- [Editing Models by Hand](#editing-models-by-hand) — Guides
-- [Overview](#overview) — Templates
-- [Video App](#video-app) — Templates
+- [Domain Backup Strategies](#domain-backup-strategies) — Guides
+- [Editing kNNowledge by Hand](#editing-knnowledge-by-hand) — Guides
+- [Blueprints Overview](#blueprints-overview) — Blueprints
+- [Video Script Blueprint](#video-script-blueprint) — Blueprints
 - [Offline Consoles](#offline-consoles) — Runtime & Internals
 - [Console Needs & Visuals](#console-needs-visuals) — Runtime & Internals
 - [Console UI Kit](#console-ui-kit) — Runtime & Internals
@@ -41,7 +43,7 @@
 
 # iNNfo Documentation
 
-Welcome to the iNNfo documentation. iNNfo is the monorepo (`@cognnitive/innfo`) that powers the cogNNitive **iNNfo** ecosystem.
+Welcome to the iNNfo documentation. iNNfo is the specification and tooling layer (`@cognnitive/nn-core` and `@cognnitive/nn-mcp`) that powers the cogNNitive ecosystem.
 
 ## Quick Start
 
@@ -60,32 +62,32 @@ npm run build -w @cognnitive/nn-mcp
 The **domain console** — one self-contained `domaiNN_console.html` per domaiNN, generated locally. It shows the domain's kNNowledge and reviews it through changesets.
 
 ### [nn-core](nn-core)
-`@cognnitive/nn-core` is the framework-agnostic TypeScript library shared across the ecosystem: parser, model types, validator, IO drivers, and the spec-chain resolver.
+`@cognnitive/nn-core` is the framework-agnostic TypeScript library shared across the ecosystem: parser, type definitions, validators (`validateKnowledge`, `validateBlueprint`), mutation and changeset engine, lineage and cognitivize helpers, and the `FsDriver` interface.
 
 ### [nn-mcp](nn-mcp)
-`@cognnitive/nn-mcp` is an MCP server that exposes iNNfo models and operations to AI coding agents (Claude Code, OpenCode, and others) over stdio.
+`@cognnitive/nn-mcp` is an MCP server that exposes iNNfo kNNowledge documents, bluepriNNts and operations to AI coding agents (Claude Code, OpenCode, and others) over stdio.
 
 ### [Ecosystem](ecosystem)
 The four-level specification chain:
 
 | Level | Name | Description |
 |-------|------|-------------|
-| 0 | **defiNNe** | Meta-specification: structure, SemVer, RFC 2119 |
-| 1 | **iNNfo** | Central spec — single-file `_NN.md` documents |
-| 2 | **Apps** | business, procedures, organization |
-| 3 | **Models** | Concrete instances (Ghostbusters, Code Review Process, Engineering Team) |
+| 0 | **defiNNition** | Meta-specification: structure, SemVer, RFC 2119 |
+| 1 | **iNNfo** (and meta-bluepriNNt) | Central spec — single-file `_NN.md` documents |
+| 2 | **bluepriNNts** | business, procedures, organization, and more |
+| 3 | **kNNowledge** | Concrete instances (Ghostbusters, Code Review Process, Engineering Team) |
 
 ### [Specifications](specifications)
-Complete listing of all specs and models at every level, with links to source files.
+Complete listing of all specs and kNNowledge samples at every level, with links to source files.
 
-### [Open Knowledge Format (OKF)](ecosystem?id=open-knowledge-format-compatibility)
-iNNfo is **compatible** with OKF v0.1 by Google Cloud Platform. Every iNNfo document is a valid OKF knowledge bundle.
+### [Open Knowledge Format (OKF) alignment](ecosystem?id=open-knowledge-format-alignment)
+iNNfo takes conceptual inspiration from OKF v0.1 by Google Cloud Platform and is architecturally aligned with its ideas. cogNNitive is **not** natively OKF-compliant today; full OKF compatibility is planned through a dedicated export mechanism.
 
 ### [Usage](usage)
-How to create iNNfo models, use apps, and work with the ecosystem.
+How to author kNNowledge documents, use bluepriNNts, and work with the ecosystem.
 
 ### [iNNfo Agent (OpenCode)](opencode-nn-agent)
-Connect the iNNfo MCP agent to OpenCode Desktop for natural-language model editing.
+Connect the iNNfo MCP agent to OpenCode Desktop for natural-language kNNowledge editing.
 
 <!-- end: README.md -->
 
@@ -100,22 +102,25 @@ Framework-agnostic TypeScript library shared across the cogNNitive ecosystem. Us
 ## Features
 
 - **Parser** — unified frontmatter, concept, and matrix parsing for `_NN.md` iNNfo documents
-- **Model** — type definitions for Concept, Element, Field, Marker, Matrix, Relationship
-- **Validator** — `validateModel`, `validateFormatContent`, `validateFormatSyntax`, and `validateReferences`, validating model instances against template schemas
-- **IO Drivers** — drivers for reading and writing iNNfo documents, including a browser driver for the File System Access API
-- **Resolver** — resolves the parent chain from level 3 (model) up to level 0 (defiNNe), downloading specs as needed and caching them locally
+- **Model** — type definitions for Concept, Element, Field, Matrix, and Relationship
+- **Validator** — `validateKnowledge`, `validateBlueprint`, `validateFormatContent`, `validateFormatSyntax`, and `validateReferences`, validating kNNowledge documents against bluepriNNt schemas
+- **Mutate & Changeset** — intent-level mutation operations and the sealed changeset apply/re-validate engine
+- **Lineage & Cognitivize** — sidecar-backed source provenance and the lineage projection
+- **Slug & Unit Address** — canonical slug derivation and the `unitAddress` / `parseUnitAddress` grammar
+- **IO Drivers** — the `FsDriver` interface for reading and writing iNNfo documents
+- **Resolver** — resolves the parent chain from level 3 (kNNowledge) up to level 0 (defiNNition), downloading specs as needed and caching them in the OS temp directory
 
 ## API
 
 ```typescript
-import { parseFrontmatter, validateModel } from '@cognnitive/nn-core'
+import { parseFrontmatter, validateKnowledge } from '@cognnitive/nn-core'
 
 // Parse YAML frontmatter from an iNNfo document
 const fm = parseFrontmatter(content)
-// Returns: { title, level, parent, ... }
+// Returns: { title, level, parent_spec, ... }
 
-// Validate a parsed model against its resolved template and spec chain
-const result = validateModel(model, template, formatSpec)
+// Validate a parsed kNNowledge document against its resolved blueprint and spec chain
+const result = validateKnowledge(knowledgeDoc, blueprintDoc, formatSpecDoc, options)
 ```
 
 ## Usage
@@ -136,13 +141,13 @@ npm run test -w @cognnitive/nn-core
 
 # nn-mcp
 
-`@cognnitive/nn-mcp` is an MCP (Model Context Protocol) server that wraps `@cognnitive/nn-core` and exposes iNNfo models over the stdio transport, so AI coding agents — Claude Code, OpenCode, and others — can read, validate, and edit iNNfo models through structured tool calls instead of freeform file edits.
+`@cognnitive/nn-mcp` is an MCP (Model Context Protocol) server that wraps `@cognnitive/nn-core` and exposes iNNfo kNNowledge documents over the stdio transport, so AI coding agents — Claude Code, OpenCode, and others — can read, validate, and edit iNNfo kNNowledge documents through structured tool calls instead of freeform file edits.
 
 ## Why an MCP server
 
 - Validation stays **deterministic** — the `nn-core` validator decides validity, not the calling LLM.
-- Specification and template content is never duplicated into agent rules or config — it is always resolved live via `get_spec` / `get_template`.
-- Spec and template resolution follows the model's `parent_spec` chain or an explicit URL — no hardcoded spec URLs.
+- Specification and bluepriNNt content is never duplicated into agent rules or config — it is always resolved live via `get_spec` / `get_blueprint`.
+- Spec and bluepriNNt resolution follows the document's `parent_spec` chain or an explicit URL — no hardcoded spec URLs.
 
 ## Tools
 
@@ -177,20 +182,26 @@ npm run test -w @cognnitive/nn-core
 
 ### `apply_change` operations
 
-`apply_change` accepts an `op` and operation-specific `args`:
+`apply_change` has two modes:
 
-- `add_concept`
-- `add_field`
-- `set_marker`
+1. **Changeset application** — pass `changeset` (or `changeset_path`), a path to a `changes/*_changes_NN.md` document, to apply a proposed changeset.
+2. **Bare mutation** — pass `id` (or `knowledge_id`), an `op` and operation-specific `args`:
+
+- `add_concept` / `add_field` (Level-2 bluepriNNt authoring only; refused on a Level-3 model with `SCHEMA_OP_ON_LEVEL3`)
 - `add_element`
 - `update_field`
+- `update_concept_field`
 - `remove_element`
 - `rename_concept`
 - `rename_element`
+- `add_matrix` / `remove_matrix`
 - `generate_index`
 - `bump_version`
+- `freeze_slugs`
 
-Each call re-validates the model and returns either the updated model or the validation errors that blocked the change.
+`set_marker` no longer exists: markers were removed in `iNNfo_V_0-5-0` (`MARKERS_REMOVED`), and the operation fails with `UNKNOWN_OPERATION`.
+
+Each call re-validates the document and returns either the updated document or the validation errors that blocked the change. Operations that mutate a Level-3 kNNowledge document are recorded as a sealed changeset under `changes/`.
 
 ### Canonical unit addresses
 
@@ -213,7 +224,7 @@ so `update_matrix_cell` still resolves cells by row/column slug. Citation parsin
 ```
 AI coding agent (Claude Code, OpenCode, ...) → nn-mcp (MCP server, stdio) → @cognnitive/nn-core
                                                         ↓
-                                    Public iNNfo spec/template URLs (single source of truth)
+                                    Public iNNfo spec/bluepriNNt URLs (single source of truth)
 ```
 
 ## Running
@@ -225,7 +236,7 @@ npm run build -w @cognnitive/nn-mcp
 # The server communicates over stdio — register it with your MCP-compatible agent/client
 ```
 
-By default the server scans models under the current working directory; override with the `INNFO_MODELS_DIR` environment variable.
+By default the server uses the domaiNN found from the current working directory (repo root detection); override the domain root with the `INNFO_DOMAIN_DIR` environment variable. The server binary is `nn-mcp`.
 
 See [OpenCode iNNfo Agent](opencode-nn-agent) for a full walkthrough of connecting nn-mcp to OpenCode Desktop.
 
@@ -239,11 +250,11 @@ See [OpenCode iNNfo Agent](opencode-nn-agent) for a full walkthrough of connecti
 
 > **This agent definition has been superseded by the [agent skills bundle](/use).**
 >
-> Instead of maintaining agent rules in this repo, install the full skills suite — it includes the `nn-innfo` skill plus router, trannsform, workflow orchestrator, and more.
+> Instead of maintaining agent rules in this repo, install the full skills suite — it includes the `nn-innfo` skill plus the router, `nn-sources` (which superseded the former `trannsform`), workflow orchestrator, and more.
 
 The agent definition files (`.opencode/agents/innfo.md`, `.opencode/rules/innfo.md`) have been removed from this repo. The MCP server registration remains for local development of `nn-core` and `nn-mcp`.
 
-## For AI interaction with iNNfo models
+## For AI interaction with iNNfo kNNowledge documents
 
 See [bootstrap](/use) — install the agent skills bundle and the skills auto-load when you edit `_NN.md` files in OpenCode Desktop.
 
@@ -252,12 +263,190 @@ See [bootstrap](/use) — install the agent skills bundle and the skills auto-lo
 The MCP server is still available locally for testing:
 
 ```bash
-npm run build --workspace=packages/nn-mcp
+npm run build -w @cognnitive/nn-mcp
 ```
 
 This registers `nn-mcp` in OpenCode Desktop via `opencode.json`. No agent-level rules are needed — the installed skills provide those.
 
 <!-- end: opencode-nn-agent.md -->
+
+---
+
+<!-- begin: vocabulary.md -->
+
+# Vocabulary: Canonical Terms
+
+The cogNNitive ecosystem pins a canonical vocabulary so every editor label, doc, and
+skill refers to the same concept by the same name. The authoritative source is the
+machine-readable dictionary at
+[`iNNfo/specs/vocabulary.json`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/vocabulary.json);
+this page is the human-readable rendering of it.
+
+## Level Hierarchy & Canonical Terms
+
+| Level | Canonical Term | Deprecated / Former Aliases | Sense |
+|---|---|---|---|
+| Level 0 | **defiNNition** | `defiNNe` | Level-0 meta-specification language (formerly defiNNe) |
+| Level 1 | **iNNfo** | *(none)* | Level-1 concrete specification meta-template defining root primitives (Concept Definition, Field Definition, Matrix Definition) |
+| Ecosystem / Role | **tag** | *(none)* | A value of the `tags` Field, an ordinary multi-valued select Field; there is no reserved `tags` property and no Marker primitive |
+| Level 1 | **meta-bluepriNNt** | `meta-template` | Level-1 specification describing the structure of bluepriNNts |
+| Level 2 | **bluepriNNt** | `app`, `template` | Level-2 domain schema specification file (formerly Template / App; e.g. specs/bluepriNNts/business/spec_NN.md) |
+| Level 3 | **kNNowledge** | `model` | Level-3 domain data model (formerly Model). Uncountable noun. The version lives in the `knowledge_version` frontmatter, never in the filename (`_V_` names are retired). |
+| Level 3 | **domaiNN** | `workspace` | Container of kNNowledge, bluepriNNts, sources, procedures and related assets (formerly Workspace). A domaiNN is itself a kNNowledge document. |
+| Ecosystem / Role | **ageNNt** | `actioNN` | Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive |
+| Ecosystem / Role | **referenced skill** | `external skill` | A third-party agent skill a bluepriNNt declares in its frontmatter `skills:` array, pinned to a commit + sha256 digest with an SPDX license, and fetched from its upstream repo at install time (never vendored, never fetched at runtime). Its guarantee is bounded to reproducible + unmodified-since-pin + license-declared; the maintainer does not vouch for the author. Distinct from an embedded skill, which is vendored and curated. |
+| Level 3 | **sidecar** | *(none)* | Co-located <file>.<ext>_sidecar_NN.md document that carries a file's hash, size, metadata and, for binary files, a normalized body. A concept, not a new level: a kNNowledge-level document that is never a model and is never mirrored into a separate `sources/nn/` tree (that tree is retired). |
+| Ecosystem / Role | **cognitivize** | *(none)* | Operation that creates or refreshes a sidecar in place, leaving the original file untouched. One @cognnitive/nn-core operation (cognitivize), surfaced through the nn-sources CLI (--cognitivize <file|dir>) and the nn-mcp tool; raw imports land verbatim in sources/import/ and are cognitivized there. |
+| Ecosystem / Role | **artifacts** | *(none)* | The single write destination for every producer output (consoles, reports, curated CSVs, briefs). Replaces the retired `export/` folder: one rename, no fallback. A non-_NN.md file is an artifact lineage node only if it is a timestamped write-once family member or declares upstream sources. |
+| Ecosystem / Role | **write-once** | *(none)* | Producer rule: each output is a new family member named with a UTC suffix _YYYYMMDDTHHmmssZ (with -2, -3... same-second tie-breaks) placed before the extension; existing bytes are never overwritten, and latest-of-family is resolved by name. GC only proposes deletions and deletes only with explicit user consent. |
+| Ecosystem / Role | **drift-gate** | *(none)* | Consistency check that the managed view sections of the persisted lineage record (*_cogNNitive_NN.md) equal a fresh core projection. Runs in nn-sources --lineage --check, scripts/verify.js, and the nn-mcp check_domain tool. |
+| Ecosystem / Role | **assistant** | `coach`, `architecture coach` | Interactive architecture mentor and modeling guide persona in iNNfo |
+| Ecosystem / Role | **console** | *(none)* | User-facing UI that shows and reviews a domaiNN: the domain console (`domaiNN_console.html`, one per domaiNN) whose specialized surfaces are views shown as tabs. Replaces the retired Vue "editor" and the retired hosted web app. |
+
+## Level Terms Detail
+
+### **defiNNition**
+
+- **Sense**: Level-0 meta-specification language (formerly defiNNe)
+- **Deprecated Aliases**: `defiNNe`
+- **Excluded Senses** (not renamed): `ordinary-english-definition`
+
+### **iNNfo**
+
+- **Sense**: Level-1 concrete specification meta-template defining root primitives (Concept Definition, Field Definition, Matrix Definition)
+
+### **tag**
+
+- **Sense**: A value of the `tags` Field, an ordinary multi-valued select Field; there is no reserved `tags` property and no Marker primitive
+- **Excluded Senses** (not renamed): `git-tag`, `release-tag`, `html-tag`
+
+### **meta-bluepriNNt**
+
+- **Sense**: Level-1 specification describing the structure of bluepriNNts
+- **Deprecated Aliases**: `meta-template`
+
+### **bluepriNNt**
+
+- **Sense**: Level-2 domain schema specification file (formerly Template / App; e.g. specs/bluepriNNts/business/spec_NN.md)
+- **Deprecated Aliases**: `app`, `template`
+- **Excluded Senses** (not renamed): `vue-sfc-template`, `generic-english`
+
+### **kNNowledge**
+
+- **Sense**: Level-3 domain data model (formerly Model). Uncountable noun. The version lives in the `knowledge_version` frontmatter, never in the filename (`_V_` names are retired).
+- **Deprecated Aliases**: `model`
+- **Grammar Rule**: Uncountable noun. Written as `N kNNowledge documents`.
+- **Distinct Senses**: "knowledge unit"
+- **Excluded Senses** (not renamed): `llm-model`, `statistical-model`
+
+### **domaiNN**
+
+- **Sense**: Container of kNNowledge, bluepriNNts, sources, procedures and related assets (formerly Workspace). A domaiNN is itself a kNNowledge document.
+- **Deprecated Aliases**: `workspace`
+- **Container Nature**: A domaiNN is itself a kNNowledge document containing other documents.
+- **Excluded Senses** (not renamed): `npm workspace`, `VS Code workspace`, `git worktree`, `IndexedDB workspace`, `subject-area domain`
+
+### **ageNNt**
+
+- **Sense**: Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive
+- **Deprecated Aliases**: `actioNN`
+- **Excluded Senses** (not renamed): `generic-agent`, `subagent-runtime`
+
+### **referenced skill**
+
+- **Sense**: A third-party agent skill a bluepriNNt declares in its frontmatter `skills:` array, pinned to a commit + sha256 digest with an SPDX license, and fetched from its upstream repo at install time (never vendored, never fetched at runtime). Its guarantee is bounded to reproducible + unmodified-since-pin + license-declared; the maintainer does not vouch for the author. Distinct from an embedded skill, which is vendored and curated.
+- **Deprecated Aliases**: `external skill`
+- **Excluded Senses** (not renamed): `embedded skill`, `vendored skill`
+
+### **sidecar**
+
+- **Sense**: Co-located <file>.<ext>_sidecar_NN.md document that carries a file's hash, size, metadata and, for binary files, a normalized body. A concept, not a new level: a kNNowledge-level document that is never a model and is never mirrored into a separate `sources/nn/` tree (that tree is retired).
+- **Excluded Senses** (not renamed): `motorcycle-sidecar`, `sidecar-container`
+
+### **cognitivize**
+
+- **Sense**: Operation that creates or refreshes a sidecar in place, leaving the original file untouched. One @cognnitive/nn-core operation (cognitivize), surfaced through the nn-sources CLI (--cognitivize <file|dir>) and the nn-mcp tool; raw imports land verbatim in sources/import/ and are cognitivized there.
+
+### **artifacts**
+
+- **Sense**: The single write destination for every producer output (consoles, reports, curated CSVs, briefs). Replaces the retired `export/` folder: one rename, no fallback. A non-_NN.md file is an artifact lineage node only if it is a timestamped write-once family member or declares upstream sources.
+- **Excluded Senses** (not renamed): `git-artifacts`, `build-artifacts`
+
+### **write-once**
+
+- **Sense**: Producer rule: each output is a new family member named with a UTC suffix _YYYYMMDDTHHmmssZ (with -2, -3... same-second tie-breaks) placed before the extension; existing bytes are never overwritten, and latest-of-family is resolved by name. GC only proposes deletions and deletes only with explicit user consent.
+- **Excluded Senses** (not renamed): `write-once-memory`
+
+### **drift-gate**
+
+- **Sense**: Consistency check that the managed view sections of the persisted lineage record (*_cogNNitive_NN.md) equal a fresh core projection. Runs in nn-sources --lineage --check, scripts/verify.js, and the nn-mcp check_domain tool.
+
+### **assistant**
+
+- **Sense**: Interactive architecture mentor and modeling guide persona in iNNfo
+- **Deprecated Aliases**: `coach`, `architecture coach`
+- **Excluded Senses** (not renamed): `system-prompt-generic`
+
+### **console**
+
+- **Sense**: User-facing UI that shows and reviews a domaiNN: the domain console (`domaiNN_console.html`, one per domaiNN) whose specialized surfaces are views shown as tabs. Replaces the retired Vue "editor" and the retired hosted web app.
+- **Excluded Senses** (not renamed): `terminal-console`, `browser-dev-console`, `game-console`
+
+## Retired Identifiers (Documentation Only)
+
+The following table lists retired identifiers and their canonical replacements.
+This mapping is documentation-only; no runtime aliases exist.
+
+| Old Identifier / Name | Canonical Replacement | Kind | Notes |
+|---|---|---|---|
+| `Marker Definition` | ``tags` Field value (flag) or a declared Field (valued)` | primitive | Retired in iNNfo V_0-5-0: a flag marker becomes a value of the tags Field, a valued marker becomes a normal Field; a document that still carries one fails with MARKERS_REMOVED |
+| `item-markers matrix` | `declared Fields + concept-level values` | primitive | Retired in iNNfo V_0-5-0: removed with remove_matrix; cells become field values and concept rows become concept-level values |
+| `set_marker` | `update_field / update_concept_field` | operation | Retired schema operation; apply_change now rejects it with UNKNOWN_OPERATION |
+| `specs/templates/` | `specs/bluepriNNts/` | path | Relocated under iNNfo/specs/bluepriNNts/ and domain specs/bluepriNNts/ |
+| `models/` | `kNNowledge/` | path | Domain models directory renamed to kNNowledge/ |
+| `export/` | `artifacts/` | path | Producer output folder renamed once to artifacts/, with no fallback; runtime never resolves export/ |
+| `sources/nn/` | `sources/import/ + co-located sidecars` | path | Retired mirror tree; raw files live in sources/import/ and are cognitivized in place |
+| `sources/original/` | `sources/import/` | path | Retired legacy fallback; sources/import/ is the only canonical raw-import location |
+| `sources/export/` | `artifacts/` | path | Retired promotion folder; an artifact reused as input is cognitivized where it lives |
+| `sources/archive/` | `write-once families` | path | Retired; a changed source becomes a new suffixed family member, so no snapshot is needed. Any pre-existing content is inert |
+| `<name>_V_<x-y-z>_<bp>_NN.md` | `knowledge_version frontmatter` | naming | kNNowledge names drop _V_; the version lives in the knowledge_version frontmatter key |
+| `~/.agents/templates` | `~/.agents/bluepriNNts` | path | Global template storage location renamed to bluepriNNts |
+| `model_version` | `knowledge_version` | key | Level-3 frontmatter version property |
+| `template_version` | `blueprint_version` | key | Level-2 frontmatter version property |
+| `template_name` | `blueprint_name` | key | Level-2 schema name property |
+| `models_dir` | `knowledge_dir` | key | Domain layout configuration key |
+| `templates_dir` | `blueprints_dir` | key | Domain layout configuration key |
+| `target_template` | `target_blueprint` | key | Field definition property naming target blueprint |
+| `type:: model` | `type:: knowledge` | keyword | Grammar keyword for submodel references |
+| `workflow: model` | `workflow: knowledge` | key | Manifest workflow definition key |
+| `workflow: template` | `workflow: blueprint` | key | Manifest workflow template parameter key |
+| `INNFO_MODELS_DIR` | `INNFO_DOMAIN_DIR` | env_var | Domain root environment variable (no fallback) |
+| `templates-v*` | `blueprints-v*` | tag_namespace | Tag namespace for blueprint releases |
+| `workspace_NN.md` | `domaiNN_NN.md` | entrypoint | Domain container entrypoint document |
+| `nn-workspace-git` | `nn-domain-git` | skill | Skill renamed to reflect domaiNN terminology |
+| `capability_folders` | `capability_folders` | mapping | Openspec capability folders retain their existing kebab-case names per D13 |
+| `13 legacy tool names` | `13 canonical blueprint/knowledge tool names` | mcp_tools | list_knowledge, read_knowledge, init_knowledge, validate_knowledge, validate_knowledge_url, get_blueprint, validate_blueprint, list_blueprints, hydrate_blueprint, list_blueprint_procedures, list_blueprint_skills, sync_domain_manifest, check_domain |
+| `editor` | `console` | ui_term | Retired user-facing UI term: the Vue editor app is replaced by the domain console (see the console term). Not used in user-facing copy. |
+| `hosted app` | `console` | ui_term | Retired user-facing UI term for the hosted web application; the domain console replaces it. Distinct from the "app" alias of bluepriNNt, which keeps its entry and is untouched. |
+| `innfo-mcp` | `nn-mcp` | release_key | Distribution prefix rename. Existing `innfo-mcp-v*` git tags, published CDN files and stamped exports remain valid and are not renamed; only new releases use `nn-mcp-v*`. |
+| `innfo-console` | `nn-console` | release_key | Distribution prefix rename. Existing `innfo-console-v*` git tags, published CDN files and stamped exports remain valid and are not renamed; only new releases use `nn-console-v*`. |
+| `@cognnitive/innfo-core` | `@cognnitive/nn-core` | package | npm workspace package renamed to the nn- prefix; workspace-only, never published to the npm registry. |
+| `@cognnitive/innfo-mcp` | `@cognnitive/nn-mcp` | package | npm workspace package renamed to the nn- prefix. |
+| `@cognnitive/innfo-console` | `@cognnitive/nn-console` | package | npm workspace package renamed to the nn- prefix. |
+| `iNNfo/packages/innfo-core` | `iNNfo/packages/nn-core` | path | Package directory renamed to the nn- prefix. |
+| `iNNfo/packages/innfo-mcp` | `iNNfo/packages/nn-mcp` | path | Package directory renamed to the nn- prefix. |
+| `innfo-mcp` | `nn-mcp` | mcp_server | The MCP `bin` name and the `Server({name})` identity. The old bundle `bin/innfo-mcp.bundle.js` is deleted; existing `innfo-mcp-v*` CDN files and stamped exports remain valid and resolvable. |
+| `innfo-mcp_` | `nn-mcp_` | tool_prefix | The MCP tool prefix in skills and documentation. The client builds the prefix from the registered server name; tool names after the prefix are unchanged. |
+| `@innfo-console-v` | `@nn-console-v` | console_pin | The console shell pin. Readers still accept `@innfo-console-v*` so already-stamped exports keep resolving; nothing emits it. |
+| `innfo-` | `nn-` | prefix | Console assets, generated mirrors and wrapper scripts renamed to the nn- prefix. Existing published files under the old name are never moved or deleted, so old stamps and CDN URLs keep resolving. |
+
+## Consumer Notes
+
+- **Editor labels**: read `vocabulary.json` (read-only) to drive user-facing copy.
+- **Skill copy**: references the same dictionary for consistency.
+- **Agent Ubiquitous Language**: `AGENTS.md` points to this dictionary and vocabulary page.
+
+<!-- end: vocabulary.md -->
 
 ---
 
@@ -267,78 +456,63 @@ This registers `nn-mcp` in OpenCode Desktop via `opencode.json`. No agent-level 
 
 The cogNNitive ecosystem is organized in four specification levels.
 
-## Level 0: defiNNe
+## Level 0: defiNNition
 
 The meta-specification. Defines the structure, versioning conventions (SemVer with `V_MAJOR-MINOR-PATCH` format), RFC 2119 normative language, and the level/parent chain system. The root of the hierarchy.
 
-## Level 1: iNNfo
+## Level 1: iNNfo and the meta-bluepriNNt
 
-The central specification. Every model is a single `_NN.md` document containing concepts, elements, fields, markers, and matrices, with optional structural children.
+The central specification (currently `iNNfo_V_0-5-0`). Every kNNowledge document is a single `_NN.md` file containing concepts, elements, and fields, with optional structural children. There are three root primitives: **Concept**, **Element**, and **Field**. The former `Marker` primitive was removed in `iNNfo_V_0-5-0` — flag markers became values of the built-in `tags` Field, valued markers became ordinary Fields, and matrix scales/cycles live on `# NN Matrix Definition`. Documents that still declare markers are rejected with `MARKERS_REMOVED`.
 
-## Level 2: Apps
+## Level 2: bluepriNNts
 
-Domain-specific apps that declare which concepts, markers, and relationship types apply:
+Domain-specific bluepriNNts declare which concepts, fields, and relationship types apply. Each carries a `blueprint_version` and is listed in [`iNNfo/specs/bluepriNNts/catalog.json`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/catalog.json):
 
-| App | Description |
+| bluepriNNt | Description |
 |----------|-------------|
 | business | Business strategy modeling |
 | procedures | Workflows, SOPs, processes |
 | organization | Organizational structure modeling |
+| domaiNN | The container bluepriNNt for a domaiNN (`domaiNN_NN.md`) |
+| sources, sidecar, artifacts, changes | Source ingestion, `_sidecar_NN.md` records, exported artifacts, and changesets |
 
-## Level 3: Models
+See [Blueprints Overview](templates) for the full, current list with versions.
 
-Concrete instances of an app. Lightweight — just data and a `parent` pointer to the app.
+## Level 3: kNNowledge
 
-## Open Knowledge Format Compatibility
+Concrete instances of a bluepriNNt. Lightweight — just data and a `parent_spec` pointer to the bluepriNNt. Files are named `<Name>_<blueprint>_NN.md` and carry `knowledge_version` in their frontmatter (never a `_V_` token in the filename).
 
-iNNfo is **compatible** with [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (Open Knowledge Format) by Google Cloud Platform. The iNNfo specification satisfies OKF's conformance requirements while adding richer semantic structure.
+## Open Knowledge Format Alignment
 
-### Why iNNfo meets every OKF conformance rule
+cogNNitive takes **conceptual inspiration** from [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) (Open Knowledge Format) by Google Cloud Platform, and its architecture is aligned with several of OKF's ideas. It is **not** natively OKF-compliant today: it does not claim formal OKF v0.1 conformance, and a domaiNN is not an OKF knowledge bundle as-is. Full OKF compatibility is planned for the future through a **dedicated export mechanism** that will translate a domaiNN into an OKF bundle.
 
-OKF v0.1 defines three conformance requirements (§9). Here is the exact mapping:
+### Conceptual alignment
 
-| OKF Requirement | How iNNfo Satisfies It |
+| OKF idea | cogNNitive counterpart |
 |---|---|
-| **§9.1** Every non-reserved `.md` file contains a parseable YAML frontmatter block | iNNfo requires YAML frontmatter on every `_NN.md` document. The `---` delimited block is mandatory — unparseable frontmatter is a validation error. |
-| **§9.2** Every frontmatter block contains a non-empty `type` field | iNNfo's `level` field (0–3) and app system provide equivalent type semantics. A model document's `parent` app name serves as its conceptual type. OKF's permissive consumption model tolerates any `type` value — iNNfo's structured approach exceeds what OKF requires. |
-| **§9.3** Reserved filenames (`index.md`, `log.md`) follow OKF conventions | iNNfo has **no** literal `index.md`: the index is the `# NN kNNowledge` block inside `domaiNN_NN.md`, which fills OKF §6's progressive-disclosure role. iNNfo does not prescribe `log.md` usage, which is optional in OKF as well. No conflicts. |
-
-### OKF's permissive consumption model
-
-OKF explicitly states consumers MUST NOT reject a bundle because of:
-
-- Missing optional frontmatter fields ✓
-- Unknown `type` values ✓ — iNNfo's app names are valid OKF type values
-- Unknown additional frontmatter keys ✓ — iNNfo adds `spec_version`, `level`, `parent`, `concepts`, `markers`, `matrices`, `relationship_declarations`, all tolerated
-- Broken cross-links ✓ — iNNfo also tolerates broken wikilinks with warnings
-- Missing index documents ✓ — iNNfo requires a `domaiNN_NN.md` entrypoint, which exceeds OKF's baseline
-
-### Structural alignment
-
-| OKF Concept | iNNfo Equivalent |
-|---|---|
-| Knowledge Bundle | A directory of `_NN.md` documents — an iNNfo workspace |
+| Knowledge bundle | A directory of `_NN.md` documents — a domaiNN |
 | Concept | A concept section within a `_NN.md` document |
-| Concept ID | File path relative to workspace root (minus `_NN.md` suffix) |
-| Frontmatter (`type`, `title`, `description`, `tags`, `timestamp`) | iNNfo frontmatter (`spec_version`, `level`, `parent`, `knowledge_version`, `title`) |
-| Body (Markdown) | Body (Markdown + `_NN` structural markers + matrices) |
-| Cross-linking (`/relative/path.md`) | Wikilinks (`[[target]]`) and standard Markdown links |
-| `index.md` (progressive disclosure) | `domaiNN_NN.md` with wikilinks listing workspace kNNowledge |
-| # Citations (optional) | Not prescribed but fully compatible |
+| Frontmatter metadata | iNNfo frontmatter (`level`, `parent_spec`, `knowledge_version` / `blueprint_version`, `title`) |
+| Body (Markdown) | Body (Markdown + `# NN` / `## NN` structural headings) |
+| Cross-linking | Wikilinks (`[[target]]`) and standard Markdown links |
+| `index.md` progressive disclosure | The `# NN kNNowledge` block inside `domaiNN_NN.md` |
+| Citations | `@` locators resolved through sidecars and lineage |
 
-### Bottom line
+### Known gaps
 
-Any directory of `_NN.md` documents opened in an OKF consumer will be accepted as a conformant OKF v0.1 bundle. The reverse is not guaranteed — iNNfo adds structural requirements (parent chain, app validation, marker syntax) that OKF bundles may lack. But the **intersection is compatible**: every valid iNNfo document is a valid OKF document.
+The formats differ in granularity (iNNfo documents hold many concepts and elements per file), in the `type` frontmatter convention, and in the absence of a literal `index.md`. These differences are exactly what the planned export mechanism is meant to bridge; until it exists, treat OKF as a design reference rather than a supported interchange format.
 
 ## Resolver Protocol
 
-When a model is loaded:
-1. Read the model's `parent` pointer
-2. If not cached in `specs/`, download from the specification URL
-3. Save to `specs/<parent.name>_NN.md`
-4. Read the downloaded spec's `parent`, repeat until level 0
-5. On subsequent loads, use cache
-6. On version mismatch, re-download
+When a kNNowledge document is loaded, its `parent_spec` chain is resolved up to level 0. For each spec the resolver tries, in order:
+
+1. The domaiNN's own local tiers (the domaiNN tree and project-local bluepriNNt directories)
+2. `~/.agents/bluepriNNts/` and installed skill packages
+3. The OS temp cache (`<tmpdir>/innfo-specs`, overridable with `INNFO_CACHE_DIR`)
+4. The network, using the `parent_spec.url`; fetched specs are cached in the OS temp directory, and only written into the domaiNN's `specs/` folder when `in_place: true` is requested
+5. The built-in canonical fallback registry
+
+The default run therefore leaves no cache artifacts inside the domaiNN or repository tree. On version mismatch the spec is fetched again.
 
 <!-- end: ecosystem.md -->
 
@@ -365,135 +539,133 @@ lists the current file for each spec.
 
 ## Level 1 — Central specification
 
-The **iNNfo** specification. Every model is a single `_NN.md` document with optional structural children — concepts, elements, fields, markers, and matrices.
+The **iNNfo** specification (and the meta-bluepriNNt). Every kNNowledge document is a single `_NN.md` file with optional structural children — concepts, elements, and fields. There are three root primitives: Concept, Element, and Field. The former `Marker` primitive was removed in `iNNfo_V_0-5-0` (rejected with `MARKERS_REMOVED`): flag markers became values of the built-in `tags` Field, valued markers became normal Fields, and matrix scales/cycles live on `# NN Matrix Definition`.
 
 The `status` frontmatter field on a spec file uses the `defiNNition` vocabulary
-`Draft | Stable | Deprecated`. `iNNfo_V_0-3-0` is the adopted L1 (`status: "Stable"`).
-The **adopted** version is the highest published spec in `specs/`, not a mutation of older spec files:
-`iNNfo_V_0-2-2_NN.md`, `iNNfo_V_0-2-1_NN.md`, `iNNfo_V_0-2-0_NN.md` and `iNNfo_V_0-1-0_NN.md` are immutable and keep whatever
-`status` they were published with; they are simply no longer the default, and stay
-resolvable forever for models authored against them.
+`Draft | Stable | Deprecated`. `iNNfo_V_0-5-0` is the current L1 (published as `status: "Draft"`; `iNNfo_V_0-3-0` is the latest version published as `Stable`).
+The **current** version is the highest published spec in `specs/`, not a mutation of older spec files:
+every earlier `iNNfo_V_*_NN.md` file is immutable and keeps whatever
+`status` it was published with; they are simply no longer the default, and stay
+resolvable forever for kNNowledge authored against them.
 
 | Spec | Role | Source |
 |------|------|--------|
-| **iNNfo** V 0.3.0 | Adopted (`status: "Stable"`) | [`specs/iNNfo_V_0-3-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md) |
+| **iNNfo** V 0.5.0 | Current (`Marker` removed) | [`specs/iNNfo_V_0-5-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md) |
+| iNNfo V 0.4.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-4-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md) |
+| iNNfo V 0.3.0 | Superseded — frozen, still resolvable (`status: "Stable"`) | [`specs/iNNfo_V_0-3-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md) |
 | iNNfo V 0.2.2 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-2-2_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-2-2_NN.md) |
 | iNNfo V 0.2.1 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-2-1_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md) |
 | iNNfo V 0.2.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md) |
 | iNNfo V 0.1.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md) |
 
-## Level 2 — Apps
+## Level 2 — bluepriNNts
 
-Domain-specific apps. Each declares concepts, markers, matrices, and relationship types for a specific domain, and its own `template_version` (independent of `spec_version`, which tracks L1 compliance). All apps are L1-compliant with `iNNfo_V_0-2-1`. `business_V_0-2-0` is a pure composite that `includes` `business-model` + `analysis`; `analysis` and `business-model` are first-revision apps carved out of the former monolithic `business` app, so they carry `spec_version: V_0-2-0` with `template_version: V_0-1-0`.
+Domain-specific bluepriNNts. Each declares concepts, fields, matrices, and relationship types for a specific domain, and its own `blueprint_version` (independent of `spec_version`, which tracks L1 compliance). The authoritative list is [`catalog.json`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/catalog.json); the table below mirrors the current adopted version of each active bluepriNNt. `business` is a composite that `includes` `business-model` + `analysis`.
 
-| App | `template_version` | Source |
+| bluepriNNt | `blueprint_version` | Source |
 |----------|--------------------|--------|
-| **Blank** | V_0-2-0 | [`specs/bluepriNNts/blank/blank_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/blank/blank_V_0-2-0_NN.md) |
-| **Business** (composite) | V_0-2-1 | [`specs/bluepriNNts/business/business_V_0-2-1_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/business_V_0-2-1_NN.md) |
-| **Business Model** | V_0-1-0 | [`specs/bluepriNNts/business-model/business-model_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business-model/business-model_V_0-1-0_NN.md) |
-| **Analysis** | V_0-1-0 | [`specs/bluepriNNts/analysis/analysis_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/analysis_V_0-1-0_NN.md) |
-| **Innovation** | V_0-2-0 | [`specs/bluepriNNts/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/innovation_V_0-2-0_NN.md) |
-| **cogNNitive** | V_0-2-0 | [`specs/bluepriNNts/cogNNitive/cogNNitive_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/cogNNitive/cogNNitive_V_0-2-0_NN.md) |
-| **Organization** | V_0-2-0 | [`specs/bluepriNNts/organization/organization_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/organization_V_0-2-0_NN.md) |
-| **Procedures** | V_0-2-0 | [`specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md) |
-| **Projects** | V_0-2-0 | [`specs/bluepriNNts/projects/projects_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/projects_V_0-2-0_NN.md) |
-| **Video Script** | V_0-1-0 | [`specs/bluepriNNts/video-script/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md) |
+| **Analysis** | V_0-4-0 | [`specs/bluepriNNts/analysis/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/spec_NN.md) |
+| **Artifacts** | V_0-5-0 | [`specs/bluepriNNts/artifacts/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/artifacts/spec_NN.md) |
+| **Blank** | V_0-4-0 | [`specs/bluepriNNts/blank/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md) |
+| **Business** (composite) | V_0-5-0 | [`specs/bluepriNNts/business/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/spec_NN.md) |
+| **Business Model** | V_0-4-0 | [`specs/bluepriNNts/business-model/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md) |
+| **Changes** | V_0-5-2 | [`specs/bluepriNNts/changes/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md) |
+| **Design Presets** | V_0-4-0 | [`specs/bluepriNNts/design-presets/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/design-presets/spec_NN.md) |
+| **Documentation** | V_0-4-0 | [`specs/bluepriNNts/documentation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/documentation/spec_NN.md) |
+| **domaiNN** | V_0-4-0 | [`specs/bluepriNNts/domaiNN/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md) |
+| **Innovation** | V_0-4-0 | [`specs/bluepriNNts/innovation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/spec_NN.md) |
+| **Metrics** | V_0-5-0 | [`specs/bluepriNNts/metrics/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/metrics/spec_NN.md) |
+| **Organization** | V_0-4-0 | [`specs/bluepriNNts/organization/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/spec_NN.md) |
+| **Procedures** | V_0-5-0 | [`specs/bluepriNNts/procedures/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md) |
+| **Projects** | V_0-4-0 | [`specs/bluepriNNts/projects/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md) |
+| **Repository** | V_0-3-0 | [`specs/bluepriNNts/repository/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/repository/spec_NN.md) |
+| **Sidecar** | V_0-1-1 | [`specs/bluepriNNts/sidecar/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md) |
+| **Sources** | V_0-3-0 | [`specs/bluepriNNts/sources/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md) |
+| **Video Script** | V_0-2-2 | [`specs/bluepriNNts/video-script/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md) |
+| **Visual Catalog** | V_0-3-0 | [`specs/bluepriNNts/visual-catalog/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md) |
 
-Each app's `_V_0-1-0_` file (where one existed) stays frozen and resolvable for models still pinned to it.
+The legacy `cogNNitive` (V_0-5-0) and `workspace` (V_0-9-0) entries remain in the catalog as **frozen** records only; they are not active bluepriNNts. Each bluepriNNt's earlier versions stay frozen and resolvable for kNNowledge still pinned to them.
 
-## Level 3 — Sample models
+## Level 3 — Sample kNNowledge
 
-Concrete data instances. Lightweight — just data and a parent pointer to their app. Each sample stays pinned to the app version it was authored against; a `_V_0-1-0_` sample remains valid after the adoption.
+Concrete data instances. Lightweight — just data and a parent pointer to their bluepriNNt. L3 documents carry `knowledge_version` in frontmatter and `type:: knowledge` for kNNowledge references. Each sample stays pinned to the bluepriNNt version it was authored against and remains valid after later adoptions. Samples live under `specs/bluepriNNts/<name>/samples/`; some older sample files still carry a version token in the filename, which is a legacy convention — the frontmatter `knowledge_version` is authoritative.
 
-| Model | App | Source |
+| kNNowledge | bluepriNNt | Source |
 |-------|----------|--------|
-| **Ghostbusters** | business V_0-2-1 | [`specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-1_business_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-1_business_NN.md) |
-| **Ghostbusters** | business V_0-2-0 | [`specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-0_business_NN.md) |
-| **Ghostbusters** | business V_0-1-0 | [`specs/bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md) |
-| **Ghostbusters** | analysis V_0-2-0 | [`specs/bluepriNNts/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md) |
-| **Ghostbusters** | innovation V_0-2-0 | [`specs/bluepriNNts/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md) |
-| **Ghostbusters** | organization V_0-2-0 | [`specs/bluepriNNts/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md) |
-| **Ghostbusters** | procedures V_0-2-0 | [`specs/bluepriNNts/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md) |
-| **Ghostbusters** | projects V_0-2-0 | [`specs/bluepriNNts/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md) |
+| **Ghostbusters** | business | [`specs/bluepriNNts/business/samples/Ghostbusters_V_0-5-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-5-0_business_NN.md) |
+| **Ghostbusters** | business-model | [`specs/bluepriNNts/business-model/samples/Ghostbusters_V_0-4-0_business-model_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business-model/samples/Ghostbusters_V_0-4-0_business-model_NN.md) |
+| **Ghostbusters** | analysis | [`specs/bluepriNNts/analysis/samples/Ghostbusters_V_0-4-0_analysis_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/samples/Ghostbusters_V_0-4-0_analysis_NN.md) |
+| **Ghostbusters** | innovation | [`specs/bluepriNNts/innovation/samples/Ghostbusters_V_0-4-0_innovation_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/samples/Ghostbusters_V_0-4-0_innovation_NN.md) |
+| **Ghostbusters** | organization | [`specs/bluepriNNts/organization/samples/Ghostbusters_V_0-4-0_organization_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/samples/Ghostbusters_V_0-4-0_organization_NN.md) |
+| **Ghostbusters** | procedures | [`specs/bluepriNNts/procedures/samples/Ghostbusters_V_0-5-0_procedures_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/samples/Ghostbusters_V_0-5-0_procedures_NN.md) |
+| **Ghostbusters** | projects | [`specs/bluepriNNts/projects/samples/Ghostbusters_V_0-4-0_projects_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/samples/Ghostbusters_V_0-4-0_projects_NN.md) |
+| **Ghostbusters** | metrics | [`specs/bluepriNNts/metrics/samples/Ghostbusters_V_0-5-0_metrics_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/metrics/samples/Ghostbusters_V_0-5-0_metrics_NN.md) |
+| **Ghostbusters** | repository | [`specs/bluepriNNts/repository/samples/Ghostbusters_V_0-3-0_repository_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/repository/samples/Ghostbusters_V_0-3-0_repository_NN.md) |
+| **Ghostbusters** | design-presets | [`specs/bluepriNNts/design-presets/samples/Ghostbusters_V_0-4-0_design-presets_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/design-presets/samples/Ghostbusters_V_0-4-0_design-presets_NN.md) |
+| **Ghostbusters** | documentation | [`specs/bluepriNNts/documentation/samples/Ghostbusters_V_0-4-0_documentation_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/documentation/samples/Ghostbusters_V_0-4-0_documentation_NN.md) |
 
 ## Traceability & change propagation
 
-The format spec (L0 `defiNNe` → L1 `iNNfo` → L2 apps) is consumed by every other
+The format spec (L0 `defiNNition` → L1 `iNNfo` → L2 bluepriNNts) is consumed by every other
 part of the project. What reads it, and how a change flows through:
 
 | Consumer | How it reads the spec | Source |
 |---|---|---|
-| `@cognnitive/innfo-core` | Parses the parent chain, extracts app schema, validates models | `packages/innfo-core/src/resolver.ts`, `schema.ts`, `validator/` |
-| `innfo-mcp` (MCP server) | Wraps core. Resolves local `specs/` first, then network `fetch`, then persists write-once into `specs/` | `packages/innfo-mcp/src/tools/spec.ts`, `resolver-node.ts` |
-| Domain console (UI) | Reads the schema and models embedded by `export-console.mjs` at generation time | `scripts/export-console.mjs`, `iNNfo/specs/bluepriNNts/console/` |
-| Skills (`skills/nn-innfo`) | Delegates all resolution/validation to `innfo-mcp`; bundles a copy of `workspace_spec_NN` | `skills/nn-innfo/` |
-| Bootstrap manifest | Pins skills and templates by `repo` + `path` + `version` + `commit`; CI validates | `docs/use/manifest.md` |
+| `@cognnitive/nn-core` | Parses the parent chain, extracts bluepriNNt schema, validates kNNowledge (`validateKnowledge`, `validateBlueprint`) | `iNNfo/packages/nn-core/src/` |
+| `nn-mcp` (MCP server) | Wraps core. Resolves local tiers first, then the OS temp cache, then network `fetch`, then the built-in canonical fallback registry; fetched specs are cached in the OS temp directory unless `in_place: true` | `iNNfo/packages/nn-mcp/src/tools/spec.ts`, `resolver-node.ts` |
+| Domain console (UI) | Reads the schema and kNNowledge embedded by `export-console.mjs` at generation time | `scripts/export-console.mjs`, `iNNfo/specs/bluepriNNts/console/` |
+| Skills (`skills/nn-innfo`) | Delegates all resolution/validation to `nn-mcp` | `skills/nn-innfo/` |
+| Bootstrap manifest | Pins skills and bluepriNNts by `repo` + `path` + `version` + `commit`; CI validates | `docs/use/manifest.md` |
 | Docs | Describe the resolver protocol and level system | `docs/innfo/documentation/ecosystem.md`, this page |
 
 ### Invariants
 
 - **Immutable, filename-encoded.** Every file under `specs/` carries its version in the
-  filename. A bump always creates a new file; a published file is never edited in place
-  or deleted while a model still references it (`spec-versioning` R-SV-01/R-SV-02).
+  filename (or, for bluepriNNt `spec_NN.md` files, in frontmatter and the catalog). A bump
+  always creates a new version record; a published version is never edited in place
+  or deleted while kNNowledge still references it (`spec-versioning` R-SV-01/R-SV-02).
 - **Single source of the version string.** The spec file itself (frontmatter `spec_version`
   and `blueprint_version`); no code file hardcodes it elsewhere.
-- **`parent_spec.url` pins a versioned filename** — never a mutable alias (R-SV-08).
+- **`parent_spec.url` pins a versioned location** — never a mutable alias (R-SV-08).
 - **Write-once persistence is the whole integrity guarantee** — nothing is silently
   replaced, so there is nothing to hash-verify (`spec-resolution` R-LSR-02).
 
 ### When a format spec changes
 
-The mechanical procedure lives in the dev skill
-`.agents/skills/nn-dev-spec-version-propagator/`; the canonical detection tool is
-`scripts/check-spec-version.mjs` (`npm run check:spec-version` / `check:spec-urls`).
+The canonical detection tool is `scripts/check-spec-version.mjs`
+(`npm run check:spec-version` / `check:spec-urls`).
 
-1. **New file.** Author `specs/…_V_x-y-z_NN.md` (SemVer per `defiNNe` §7). The old file stays.
-2. **Engine.** Update `innfo-core` (parser / `schema.ts` / validator) and its fixtures.
-   `innfo-mcp` inherits core; rebuild the bundle.
-3. **Version constant.** Update `DEFAULT_INNFO_VERSION` / `DEFAULT_TEMPLATE_VERSION`.
+1. **New file.** Author `specs/…_V_x-y-z_NN.md` (SemVer per `defiNNition` §7). The old file stays.
+2. **Engine.** Update `nn-core` (parser / schema / validator) and its fixtures.
+   `nn-mcp` inherits core; rebuild the bundle.
+3. **Version constant.** Update the default iNNfo version constant in `nn-core`.
 4. **Sweep stale references.**
    `node scripts/check-spec-version.mjs --version <old> --check --by-type --with-skills`
    lists every doc, sample, test, fixture and skill file still on the old version — update each.
 5. **URLs.** `npm run check:spec-urls` must stay green (also gated in CI, job `spec-integrity`).
-6. **Apps.** Each L2 app must be compliant with the new L1. Apps that only
-   exist at the old version must get a new-version file before the L1 can be made the default.
-7. **Skills.** Sync any bundled copy under `skills/` (today: `workspace_spec_NN`) from
-   the canonical file here. Bump `version` + `commit` in the bootstrap manifest
-   (`docs/use/manifest.md`).
+6. **bluepriNNts.** Each L2 bluepriNNt must be compliant with the new L1. BluepriNNts that only
+   exist at the old version must get a new-version record before the L1 can be made the default.
+7. **Skills.** Sync any bundled copy under `skills/` from the canonical file here. Bump
+   `version` + `commit` in the bootstrap manifest (`docs/use/manifest.md`).
 8. **Docs.** Update this page's tables and `ecosystem.md`.
-9. **Existing L3 models are not migrated.** They keep resolving their old, immutable parent
+9. **Existing L3 kNNowledge is not migrated.** It keeps resolving its old, immutable parent
    until an author repoints `parent_spec.url`. No silent fallbacks.
 
-> **V_0-2-0 adopted (2026-09-01).** L1 `iNNfo_V_0-2-0` is `status: Stable` and is the
-> value of `DEFAULT_INNFO_VERSION`. `iNNfo_V_0-1-0_NN.md` is immutable (R-SV-02) and
-> unchanged — it is simply no longer the default. Every shipped L2
-> app resolves at `iNNfo_V_0-2-0`. The V_0-2-0 rule changes (the four
-> frontmatter-block forms `concepts:` / `markers:` / `matrices:` removed in favour of
-> body-element definitions; `includes` duplicate-name entries with AST-identical bodies
-> merged instead of erroring; `model` added to the `Concept Definition` and
-> `Field Definition` `type` enums) are all in the engine. Existing L3 models pinned to
-> `iNNfo_V_0-1-0` apps keep resolving unchanged.
+> **V_0-3-0 → V_0-5-0 history.** `iNNfo_V_0-3-0` replaced `type:: model` with
+> `type:: knowledge` for kNNowledge references and renamed L3 `model_version` to
+> `knowledge_version`. `iNNfo_V_0-5-0` removed the `Marker` root primitive
+> (`MARKERS_REMOVED`; `set_marker` now fails with `UNKNOWN_OPERATION`). The retired
+> frontmatter-block forms `concepts:` / `markers:` / `matrices:` were removed back in
+> `V_0-2-0` in favour of body-element definitions. Existing L3 kNNowledge pinned to older
+> bluepriNNt versions keeps resolving unchanged.
 
 ## Related Standards
 
 ### Open Knowledge Format (OKF)
 
-iNNfo is **compatible** with [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), the Open Knowledge Format by Google Cloud Platform. Every iNNfo document is a valid OKF knowledge bundle.
+cogNNitive takes **conceptual inspiration** from [OKF v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md), the Open Knowledge Format by Google Cloud Platform, and its architecture is aligned with several of OKF's ideas (Markdown + YAML frontmatter, a directory of documents as a knowledge unit, progressive disclosure through an index). It is **not natively OKF-compliant**, and this page does not claim formal conformance. 100% OKF compatibility is planned for the future through a dedicated export mechanism.
 
-| OKF Conformance Rule (Â§9) | iNNfo Status |
-|---|---|
-| Parseable YAML frontmatter on every non-reserved `.md` file | âœ… Satisfied — every `_NN.md` has required frontmatter |
-| Non-empty `type` field in every frontmatter block | âœ… Satisfied — `level` + app name provides type semantics |
-| Reserved filenames follow OKF conventions | âœ… Satisfied — no literal `index.md`; the `# NN kNNowledge` block in `domaiNN_NN.md` is the directory listing |
-
-**Why the compatibility holds:**
-
-1. **Same substrate**: Both use Markdown + YAML frontmatter. OKF's "if you can `cat` a file, you can read OKF" applies to iNNfo verbatim.
-2. **OKF tolerates extensions**: OKF explicitly allows unknown frontmatter keys and unknown `type` values. iNNfo's additional fields (`spec_version`, `level`, `parent`, `concepts`, `markers`, `matrices`) are fully tolerated.
-3. **A directory of `_NN.md` documents = an OKF knowledge bundle**: a workspace of iNNfo models produces the exact directory-of-Markdown-files structure OKF defines as a knowledge bundle (Â§3). Each `_NN.md` is an OKF concept document (Â§4), with the `# NN kNNowledge` block in `domaiNN_NN.md` as the directory listing (Â§6).
-4. **Cross-linking**: OKF uses standard Markdown links; iNNfo supports wikilinks (`[[target]]`) and standard links — both work for cross-referencing concepts.
-
-See the [Ecosystem page](ecosystem) for the full compatibility mapping.
+See the [Ecosystem page](ecosystem?id=open-knowledge-format-alignment) for the conceptual mapping and known gaps.
 
 <!-- end: specifications.md -->
 
@@ -511,25 +683,25 @@ cogNNitive does not invent a new discipline: it **recombines several well-establ
 
 ### 1. Model-Driven Engineering / Metamodeling (MDE · MDA · MOF)
 
-iNNfo's four-level cascade (`defiNNe` → `iNNfo` → apps → models) is a formal **metamodeling architecture**: a meta-specification (Level 0) defines the language used to describe apps (Level 2), which in turn are the metamodels against which concrete instances (Level 3) are validated. The resolver walks the parent chain, validation is deterministic, and references are immutable (*write-once*). Structurally, this is the same problem solved by **OMG MOF/MDA** (M3→M0 layers) and DSL engineering tooling (Eclipse EMF, Xtext).
+iNNfo's four-level cascade (`defiNNition` → `iNNfo` → bluepriNNts → kNNowledge) is a formal **metamodeling architecture**: a meta-specification (Level 0) defines the language used to describe bluepriNNts (Level 2), which in turn are the metamodels against which concrete instances (Level 3) are validated. The resolver walks the parent chain, validation is deterministic, and references are immutable (*write-once*). Structurally, this is the same problem solved by **OMG MOF/MDA** (M3→M0 layers) and DSL engineering tooling (Eclipse EMF, Xtext).
 
-Unlike MOF/MDA, iNNfo does not generate code or PIM→PSM transformations: its output is validated knowledge models and derived artifacts (dashboards, summaries), not executable artifacts.
+Unlike MOF/MDA, iNNfo does not generate code or PIM→PSM transformations: its output is validated kNNowledge documents and derived artifacts (dashboards, summaries), not executable artifacts.
 
 ### 2. Knowledge Management (KM)
 
 The commercial positioning is explicit: a *Knowledge Evolution Framework* that turns **tacit** knowledge (what lives in the team's heads) and **explicit** knowledge (PDFs, DOCX, spreadsheets, meetings) into a living base that is validated and enriched on every pass. This is Nonaka–Takeuchi's tacit↔explicit cycle, with the addition of deterministic validation and AI-agent consumption. The `A ⇄ K` paradigm makes the cycle explicit: any file goes in, is decomposed into structured knowledge, and is recomposed into another artifact, reversibly.
 
-Classic KM usually stops at capture, classification, and search; cogNNitive adds a verifiable contract (validation against an app) and origin traceability.
+Classic KM usually stops at capture, classification, and search; cogNNitive adds a verifiable contract (validation against a bluepriNNt) and origin traceability.
 
 ### 3. Enterprise Architecture (EA)
 
-The Level 2 apps (`business`, `organization`, `procedures`) operate as domain *viewpoints*, and intersection matrices (for example `WORK → ROLES`) act as relationship matrices between domains. Together —metamodel + viewpoints + typed relationships + matrices— they reproduce the conceptual scaffolding of frameworks such as **TOGAF** and notations such as **ArchiMate**.
+The Level 2 bluepriNNts (`business`, `organization`, `procedures`) operate as domain *viewpoints*, and intersection matrices (for example `WORK → ROLES`) act as relationship matrices between domains. Together —metamodel + viewpoints + typed relationships + matrices— they reproduce the conceptual scaffolding of frameworks such as **TOGAF** and notations such as **ArchiMate**.
 
 cogNNitive does not implement an ADM (Architecture Development Method) or a governed EA repository; it provides the *language* to model the architecture, not the corporate governance process.
 
 ### 4. Ontology Engineering / Knowledge Graphs
 
-iNNfo defines itself as a **Knowledge Network** with five formal levels of relationships (hierarchical/taxonomic, structural via matrix, by attribute, contextual via mention, and submodel composition), plus WikiLinks and an open taxonomy with progressive enhancement. Concepts, elements, typed fields, and references compose a directed graph with backlinks, structurally analogous to an RDF/OWL graph and to SKOS schemas for controlled vocabularies. It is also 100% compatible with Google Cloud's **OKF v0.1** (Open Knowledge Format).
+iNNfo defines itself as a **Knowledge Network** with five formal levels of relationships (hierarchical/taxonomic, structural via matrix, by attribute, contextual via mention, and submodel composition), plus WikiLinks and an open taxonomy with progressive enhancement. Concepts, elements, typed fields, and references compose a directed graph with backlinks, structurally analogous to an RDF/OWL graph and to SKOS schemas for controlled vocabularies. It also takes conceptual inspiration from Google Cloud's **OKF v0.1** (Open Knowledge Format); cogNNitive is not natively OKF-compliant today, and full OKF compatibility is planned through a dedicated export mechanism.
 
 It is a *descriptive* graph, with no inference engine or automated reasoning: there are no axioms, subsumption, or OWL-DL-style reasoners.
 
@@ -541,7 +713,7 @@ It is a *descriptive* graph, with no inference engine or automated reasoning: th
 
 Documentation is treated as source code: plain text (Markdown) versioned in Git, reviewed through branches and pull requests, built and published automatically, with the repository as the single source of truth. cogNNitive's own public website is a Jekyll site generated from `docs/`, and the design deliberately favors readable Git diffs and write-once versioned artifacts over real-time collaboration.
 
-Docs as Code optimizes the *authoring and publishing* of documentation; cogNNitive layers a validated semantic model and an agent-consumption channel (`innfo-mcp`) on top, which Docs as Code does not prescribe.
+Docs as Code optimizes the *authoring and publishing* of documentation; cogNNitive layers a validated semantic model and an agent-consumption channel (`nn-mcp`) on top, which Docs as Code does not prescribe.
 
 ### 6. Personal Knowledge Management (PKM) — Obsidian, Logseq and peers
 
@@ -564,61 +736,61 @@ The value of cogNNitive does not lie in any one of these disciplines on its own,
 ---
 layout: default
 title: Cognitive Ecosystem — External Tooling & Integrations
-description: Arquitectura de integración de herramientas independientes en cogNNitive, analizando el caso de estudio de generación de imágenes con WaveSpeed (MCP frente a CLI).
+description: Integration architecture of independent tools in cogNNitive, analyzing the WaveSpeed image-generation case study (MCP vs CLI).
 ---
 
 # Cognitive Ecosystem & External Tooling
 
-El ecosistema **cogNNitive** está diseñado con una arquitectura modular y desacoplada centrada en el conocimiento estructurado (**iNNfo**) y las capacidades de los agentes de IA (**ageNNt**). Para conocer el ciclo de vida completo de la información (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop), consulta el [**Lifecycle Walkthrough**](lifecycle-walkthrough.md).
+The **cogNNitive** ecosystem is designed with a modular, decoupled architecture centered on structured knowledge (**iNNfo**) and AI agent capabilities (**ageNNt**). For the full information lifecycle (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop), see the [**Lifecycle Walkthrough**](lifecycle-walkthrough.md).
 
-Este documento explora la integración con herramientas y servicios externos independientes mediante casos de estudio prácticos (como renderizado multimedia con WaveSpeed).
-
----
-
-## 1. Filosofía de Integración: Núcleo Desacoplado y Herramientas Externas
-
-En una plataforma de conocimiento vivo, el procesamiento lógico de modelos y especificaciones reside en el motor local (`innfo-core` y `innfo-mcp`), mientras que las capacidades pesadas de cómputo en la nube (como renderizado gráfico, síntesis de voz, generación de vídeo o modelos 3D) se delegan en servicios especializados de terceros.
-
-Para conectar estas capacidades con nuestros agentes de IA (en OpenCode, Claude Desktop, Cursor, etc.), existen fundamentalmente dos aproximaciones técnicas: **Model Context Protocol (MCP)** y **Command Line Interface (CLI)**.
+This document explores integration with independent external tools and services through practical case studies (such as multimedia rendering with WaveSpeed).
 
 ---
 
-## 2. Caso de Estudio: Generación de Imágenes con WaveSpeed
+## 1. Integration Philosophy: Decoupled Core and External Tools
 
-WaveSpeed (`wavespeed.ai`) provee una plataforma en la nube para ejecutar modelos generativos en catálogo abierto (imagen, vídeo, audio, 3D). Analizaremos las dos alternativas para integrarlo en el flujo de trabajo de Cognnitive.
+In a living-knowledge platform, the logical processing of models and specifications lives in the local engine (`nn-core` and `nn-mcp`), while heavy cloud compute capabilities (such as graphic rendering, speech synthesis, video generation, or 3D models) are delegated to specialized third-party services.
 
-### Opción A: WaveSpeed MCP (Recomendado)
-El servidor MCP oficial (`@wavespeed/mcp`) expone las capacidades de WaveSpeed directamente como herramientas nativas al agente de IA (ej. `list_models`, `run_model`, `get_price`, `get_model_schema`).
-
-* **Cómo funciona:** El servidor corre como un proceso hijo independiente gestionado por el cliente de IA (configurado globalmente en `mcp.json`). Cuando el usuario solicita generar una imagen, el agente realiza introspección de esquemas del modelo, evalúa precios o parámetros y ejecuta la llamada de forma autónoma y estructurada mediante JSON-RPC.
-
-### Opción B: WaveSpeed CLI (`@wavespeed/cli`)
-El paquete de línea de comandos tradicional que permite ejecutar tareas mediante la terminal (`wavespeed run ...`).
-
-* **Cómo funciona:** El agente o un script de shell ejecuta comandos monolíticos en la terminal del sistema operativo, parseando la salida estándar (stdout/stderr).
+To connect these capabilities to our AI agents (in OpenCode, Claude Desktop, Cursor, etc.), there are fundamentally two technical approaches: **Model Context Protocol (MCP)** and **Command Line Interface (CLI)**.
 
 ---
 
-## 3. Análisis Comparativo: MCP vs. CLI
+## 2. Case Study: Image Generation with WaveSpeed
 
-| Eje de Evaluación | WaveSpeed MCP (Opción A) | WaveSpeed CLI (Opción B) |
+WaveSpeed (`wavespeed.ai`) provides a cloud platform for running generative models from an open catalog (image, video, audio, 3D). We will analyze the two alternatives for integrating it into the Cognnitive workflow.
+
+### Option A: WaveSpeed MCP (Recommended)
+The official MCP server (`@wavespeed/mcp`) exposes WaveSpeed's capabilities directly as native tools to the AI agent (e.g. `list_models`, `run_model`, `get_price`, `get_model_schema`).
+
+* **How it works:** The server runs as an independent child process managed by the AI client (configured globally in `mcp.json`). When the user requests an image, the agent introspects model schemas, evaluates prices or parameters, and executes the call autonomously and in a structured way via JSON-RPC.
+
+### Option B: WaveSpeed CLI (`@wavespeed/cli`)
+The traditional command-line package that allows running tasks from the terminal (`wavespeed run ...`).
+
+* **How it works:** The agent or a shell script runs monolithic commands in the operating system terminal, parsing standard output (stdout/stderr).
+
+---
+
+## 3. Comparative Analysis: MCP vs. CLI
+
+| Evaluation Axis | WaveSpeed MCP (Option A) | WaveSpeed CLI (Option B) |
 | :--- | :--- | :--- |
-| **Interoperabilidad Multi-Agente** | **Nativa y Estructurada:** Soportada automáticamente en OpenCode, Claude Desktop, Cursor, Cline y Roo Code con un único archivo de configuración (`mcp.json`). | **Limitada para Agentes Conversacionales:** Requiere que el agente ejecute comandos de shell y maneje salidas de texto de forma heurística, sin tipado estricto de herramientas (*tool use*). |
-| **Complejidad de Instalación** | Se instala de forma global vía `npx` o paquete de Node y se declara en la configuración del cliente. | Requiere instalación global del CLI (`npm install -g @wavespeed/cli`) y wrappers de automatización en shell. |
-| **Autonomía del Modelo (IA)** | **Alta:** El modelo de lenguaje lee los esquemas de entrada antes de escribir la solicitud, validando parámetros y evitando errores de sintaxis. | **Baja/Media:** Depende de la destreza del agente construyendo argumentos de comandos en la terminal de texto. |
-| **Seguridad de la Clave API** | Aislada en el entorno de ejecución del proceso MCP o inyectada por el cliente de IA mediante la propiedad `env` del archivo `mcp.json`. | Expuesta en variables de entorno de la sesión de shell o pasada por argumentos de comandos. |
-| **Control de Costes y Precios** | Acceso a herramientas de introspección de precios (`get_price`) previas a la ejecución del modelo. | Ejecución directa sin pre-validación estructurada de costes a menos que se implemente script adicional. |
+| **Multi-Agent Interoperability** | **Native and Structured:** Automatically supported in OpenCode, Claude Desktop, Cursor, Cline, and Roo Code with a single configuration file (`mcp.json`). | **Limited for Conversational Agents:** Requires the agent to run shell commands and handle text output heuristically, without strict tool typing (*tool use*). |
+| **Installation Complexity** | Installed globally via `npx` or a Node package and declared in the client configuration. | Requires global CLI installation (`npm install -g @wavespeed/cli`) and shell automation wrappers. |
+| **Model Autonomy (AI)** | **High:** The language model reads the input schemas before writing the request, validating parameters and avoiding syntax errors. | **Low/Medium:** Depends on the agent's skill at building command arguments in the text terminal. |
+| **API Key Security** | Isolated in the MCP process execution environment or injected by the AI client through the `env` property of the `mcp.json` file. | Exposed in shell session environment variables or passed through command arguments. |
+| **Cost and Price Control** | Access to price-introspection tools (`get_price`) before running the model. | Direct execution without structured cost pre-validation unless an additional script is implemented. |
 
 ---
 
-## 4. Recomendación Arquitectónica para Cognnitive
+## 4. Architectural Recommendation for Cognnitive
 
-Para el desarrollo dentro de **Cognnitive**, la recomendación definitiva es **adoptar WaveSpeed MCP** como estándar para los flujos asistidos por IA.
+For development within **Cognnitive**, the definitive recommendation is to **adopt WaveSpeed MCP** as the standard for AI-assisted flows.
 
-### Razones clave:
-1. **Autonomía guiada por esquemas:** Al utilizar MCP, el agente no adivina los parámetros que acepta un modelo en la nube; consulta dinámicamente el esquema en vivo (`get_model_schema`), garantizando que la generación de recursos gráficos cumpla exactamente con lo esperado.
-2. **Centralización multi-cliente:** Configurar el servidor en `C:\Users\<usuario>\.opencode\mcp.json` (o equivalente en otros clientes) permite compartir la herramienta de generación gráfica instantáneamente en cualquier proyecto del monorepo sin duplicar código ni dependencias.
-3. **Respeto por el paradigma de seguridad:** La separación de procesos mediante el protocolo MCP aísla la lógica de red y las credenciales de API del código fuente de la aplicación principal.
+### Key reasons:
+1. **Schema-guided autonomy:** By using MCP, the agent does not guess the parameters a cloud model accepts; it queries the live schema dynamically (`get_model_schema`), guaranteeing that graphic asset generation matches exactly what is expected.
+2. **Multi-client centralization:** Configuring the server in `C:\Users\<user>\.opencode\mcp.json` (or the equivalent in other clients) lets you share the graphic-generation tool instantly across any project in the monorepo without duplicating code or dependencies.
+3. **Respect for the security paradigm:** Process separation through the MCP protocol isolates network logic and API credentials from the main application's source code.
 
 <!-- end: integrations.md -->
 
@@ -637,12 +809,12 @@ editor.
 The pitch in one line:
 
 > Instead of re-uploading documents to a chat every time, you import them once,
-> normalise them once, and every future AI session reads exactly the slice it
+> cognitivize them once, and every future AI session reads exactly the slice it
 > needs — with a citation back to the original.
 
 ---
 
-## The problem with talking straight to a general model
+## The problem with talking straight to a general LLM
 
 Attaching files to a chat (GPT, Gemini, Claude, or an ad-hoc scripted pipeline)
 works, but it costs you on every single session:
@@ -664,9 +836,9 @@ smarter model, by **structure around the model**.
 
 | Pillar | What it means | Mechanism |
 | :--- | :--- | :--- |
-| **Efficiency** | Import once, reuse forever; feed the model only the slice it needs. | Source normalisation, a sources catalog of short summaries, and bounded model reads. |
-| **Traceability** | Every model statement points to an exact heading in an exact source version. | `sources::` citations, write-once source families, the lineage record. |
-| **Versatility & review comfort** | Review in a text editor, the domain console, or a conversation — same files. | Text editors, the domain console, AI agents; reviewer feedback re-ingests. |
+| **Efficiency** | Import once, reuse forever; feed the model only the slice it needs. | Source cognitivization into `sources/import/` with `_sidecar_NN.md` records, a sources catalog of short summaries, and bounded reads. |
+| **Traceability** | Every kNNowledge statement points to an exact heading in an exact source version. | `sources::` citations, write-once source families, the lineage record. |
+| **Versatility & review comfort** | Review in a text editor, the domain console, or a conversation — same files. | Text editors, the domain console, AI agents; reviewer consoles export `changes/*_changes_NN.md` changesets applied with `apply_change`. |
 | **No vendor lock-in** | Plain Markdown plus Git; the knowledge is yours forever. | Files on disk; Git is the copy-of-record and the collaboration layer. |
 
 ### Efficiency
@@ -683,9 +855,9 @@ whole corpus, it reads less and answers with less noise.
 
 Citations are anchored to a heading, never to a line range:
 `sources:: [sources/import/pricing_memo.md@## Manhattan Rates]`. Each source keeps
-its own version history inside the workspace as write-once family members,
-answering *"what exact version did this model see at time T?"* even if no commit
-was made. A lineage record ties Sources, ModelRecords, and Artifacts together, and
+its own version history inside the domaiNN as write-once family members,
+answering *"what exact version did this kNNowledge see at time T?"* even if no commit
+was made. A lineage record ties Sources, KnowledgeRecords, and Artifacts together, and
 an impact check warns you when a living source changes in a way that breaks a
 downstream citation.
 
@@ -693,8 +865,8 @@ downstream citation.
 
 The same files are readable three ways without conversion — a plain editor, the
 self-contained domain console, or an AI agent. Reviewer feedback is a first-class
-input: reviewer consoles export structured feedback that re-enters the pipeline
-and can be applied to the model with a diff preview.
+input: reviewer consoles export a `_changes_NN.md` changeset into `changes/`, which
+the agent previews with `propose_changeset` and applies to the kNNowledge with `apply_change`.
 
 ### No vendor lock-in
 
@@ -710,8 +882,8 @@ gives each artifact an immutable identity. The two are complementary — see
 
 Clear boundaries keep the ecosystem honest:
 
-- **Not a database engine** — models are Markdown files in your repository.
-- **Not a closed SaaS platform** — it runs locally, or in your browser.
+- **Not a database engine** — kNNowledge is Markdown files in your repository.
+- **Not a closed SaaS platform** — it runs locally, with a self-contained domain console.
 - **Not a script runner** — `_NN.md` documents are declarative data, nothing more.
 - **Not a one-shot converter** — the lifecycle is continuous, verified, reversible.
 
@@ -731,56 +903,58 @@ Clear boundaries keep the ecosystem honest:
 
 # Usage Guide
 
-## Creating an iNNfo Model
+## Creating an iNNfo kNNowledge document
 
-An iNNfo model is a single Markdown file (`_NN.md`) with YAML frontmatter following the spec chain conventions.
+An iNNfo kNNowledge document is a single Markdown file (`_NN.md`) with YAML frontmatter following the spec chain conventions. Files live in the domaiNN's `kNNowledge/` folder and are named `<Name>_<blueprint>_NN.md` — the version is carried by `knowledge_version`, never by a `_V_` token in the filename.
 
 ```markdown
 ---
-spec_version: "V_0-2-0"
 level: 3
 parent_spec:
-  name: "business_V_0-2-1"
+  name: "business_V_0-5-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md"
 knowledge_version: "V_0-1-0"
-title: "My Model"
+title: "My kNNowledge"
 ---
 
-# My Model
+# NN Strategy
 
-_NN Strategy
+## NN Strategy: Core Objective
+slug:: core-objective
+tags:: [priority]
+Build the next generation of...
 
-* _NN Strategy: Core Objective
-  * type: text
-  * value: "Build the next generation of..."
+# NN Metrics
 
-_NN Metrics
-
-* _NN Metrics: KPI
-  * type: text
-  * value: "Monthly active users"
+## NN Metrics: KPI
+slug:: monthly-active-users
+Monthly active users
 ```
 
-## Apps
+Concepts are `# NN <Concept>` headings, elements are `## NN <Concept>: <Element>` headings, fields are `key:: value` lines, and the free text after the field lines is the element body. Element and field names must come from the parent bluepriNNt. In `iNNfo_V_0-5-0` there is no `Marker` primitive: categorise with the built-in `tags` Field instead.
 
-Level 2 apps declare the concepts, markers, and relationship types available to a model:
+## bluepriNNts
+
+Level 2 bluepriNNts declare the concepts, fields, and relationship types available to a kNNowledge document:
 
 - **business** — business strategy modeling
 - **procedures** — workflows, SOPs, processes
 - **organization** — organizational structure modeling
 
+See the [bluepriNNts overview](templates) for the full catalog.
 ## Working with the ecosystem
 
-1. Create or open a workspace folder and let your AI agent author the models through [nn-mcp](nn-mcp).
+1. Create or open a domaiNN folder and let your AI agent author the kNNowledge through [nn-mcp](nn-mcp).
 2. Generate the domain console (`domaiNN_console.html`) with `export-console.mjs` or the MCP `regenerate_console` tool and open it in a browser; see [offline consoles](offline-consoles).
-3. Validation runs on every write through [nn-mcp](nn-mcp) (`validate_model`).
-4. Reviewers send feedback as changesets; see the [reviewer guide](reviewer-guide).
-5. Change models through the agent or a changeset, not by hand; see [editing models by hand](manual-editing-risks).
+3. Validation runs on every write through [nn-mcp](nn-mcp) (`validate_knowledge`).
+4. Reviewers export `changes/*_changes_NN.md` changesets, which you apply with `apply_change`; see the [reviewer guide](reviewer-guide).
+5. Change kNNowledge through the agent or a changeset, not by hand; see [editing kNNowledge by hand](manual-editing-risks).
 
 ## Generating the console
 
 ```bash
 # From the iNNfo repo root
-node scripts/export-console.mjs <workspaceRoot> --domain
+node scripts/export-console.mjs <domainRoot> --domain
 ```
 
 The command writes `domaiNN_console.html` at the domain root; open it in a browser.
@@ -791,75 +965,75 @@ The command writes `domaiNN_console.html` at the domain root; open it in a brows
 
 <!-- begin: relationships.md -->
 
-# Relaciones y Conexiones en iNNfo
+# Relationships and Connections in iNNfo
 
-El modelo de datos de **iNNfo** no se limita a almacenar bloques jerárquicos o páginas independientes: constituye una **Red de Conocimiento (Knowledge Graph)** donde las entidades interactúan entre sí.
+The iNNfo data model is not limited to storing hierarchical blocks or independent pages: it forms a **Knowledge Graph** where entities interact with each other.
 
-En iNNfo, las relaciones entre elementos y conceptos se clasifican en **5 niveles formales** (alineados con la Especificación Nivel 1 `iNNfo_V_0-2-1_NN.md`), dependiendo de su origen y grado de estructuración.
+In iNNfo, relationships between elements and concepts are classified into **5 formal levels** (aligned with the Level 1 Specification `iNNfo_V_0-5-0_NN.md`), depending on their origin and degree of structuring.
 
 ---
 
-## Los 5 Niveles de Relaciones
+## The 5 Levels of Relationships
 
 ```
                                   ┌─────────────────────────────────────────────────────────┐
-                                  │                  RED DE CONOCIMIENTO                    │
+                                  │                  KNOWLEDGE GRAPH                        │
                                   └────────────────────────────┬────────────────────────────┘
                                                                │
          ┌───────────────────────────────┬─────────────────────┼─────────────────────────────┬───────────────────────────────┐
          ▼                               ▼                     ▼                             ▼                               ▼
 ┌───────────────────┐         ┌───────────────────┐ ┌───────────────────┐         ┌───────────────────┐         ┌───────────────────┐
-│ 1. JERÁRQUICA     │         │ 2. ESTRUCTURAL    │ │ 3. ATRIBUTO       │         │ 4. CONTEXTUAL     │         │ 5. SUBMODELO      │
-│    (Taxonomía)    │         │    (Matriz)       │ │    (Campo)        │         │    (Mención)      │         │  (type:: knowledge) │
+│ 1. HIERARCHICAL   │         │ 2. STRUCTURAL     │ │ 3. ATTRIBUTE      │         │ 4. CONTEXTUAL     │         │ 5. SUBMODEL       │
+│    (Taxonomy)     │         │    (Matrix)       │ │    (Field)        │         │    (Mention)      │         │  (type:: knowledge) │
 └────────┬──────────┘         └────────┬──────────┘ └────────┬──────────┘         └────────┬──────────┘         └────────┬──────────┘
          │                             │                     │                             │                             │
-  Anidamiento de árbol        Matriz de Dominio       Campo referencial             Wikilink libre                Composición modular
-  (# NN index)                (ej. WORK → ROLES)      (key:: [[target]])            ([[Target Element]])          (campo:: [[sub_NN.md]])
+   Tree nesting               Domain Matrix            Referential field            Free wikilink                Modular composition
+   (# NN index)               (e.g. WORK → ROLES)      (key:: [[target]])           ([[Target Element]])          (field:: [[sub_NN.md]])
 ```
 
-### 1. Relaciones Jerárquicas / Taxonómicas (`hierarchy`)
+### 1. Hierarchical / Taxonomic Relationships (`hierarchy`)
 
-- **Origen**: Bloque `# NN index` al inicio del modelo Nivel 3.
-- **Sintaxis**: Listas Markdown anidadas usando sintaxis WikiLink (`* [[Padre]]` → `  * [[Hijo]]`).
-- **Icono Visual**: 🌳 `FolderTree` / Árbol lateral
-- **Ejemplo**: `Salón-Comedor` anidado dentro de `Casa`.
+- **Origin**: The `# NN index` block at the start of a Level 3 document.
+- **Syntax**: Nested Markdown lists using WikiLink syntax (`* [[Parent]]` → `  * [[Child]]`).
+- **Visual Icon**: 🌳 `FolderTree` / sidebar tree
+- **Example**: `Living-Room` nested inside `House`.
 
-### 2. Relaciones Estructurales (`evaluable_matrix`)
+### 2. Structural Relationships (`evaluable_matrix`)
 
-- **Origen**: Celdas de intersección declaradas en matrices formales del metamodelo (ej. `WORK → ROLES` o `WORK → ARTIFACT`).
-- **Sintaxis**: Declaración centralizada en cabecera de metamodelo (`matrices`) o bloques `# NN matrices:` e intersecciones en bloques.
-- **Icono Visual**: 📊 `LayoutGrid`
-- **Ejemplo**: Un procedimiento `Solicitud de Visado` asignado con el rol `Responsible` hacia `Inés (viajera)`.
+- **Origin**: Intersection cells declared in formal metamodel matrices (e.g. `WORK → ROLES` or `WORK → ARTIFACT`).
+- **Syntax**: The matrix is declared as a Level 2 `# NN Matrix Definition`, and each instance is a Level 3 `# NN Matrix: <Name>` block whose scales and cycles live directly on the definition. There is no frontmatter `matrices` key and no `# NN matrices:` heading.
+- **Visual Icon**: 📊 `LayoutGrid`
+- **Example**: A procedure `Visa Application` assigned the role `Responsible` toward `Inés (traveler)`.
 
-### 3. Relaciones por Atributo (Campos Referenciales)
+### 3. Attribute Relationships (Referential Fields)
 
-- **Origen**: Campos estructurados en los bloques cuyos valores hacen referencia explícita a otro elemento mediante corchetes WikiLink.
-- **Sintaxis**: `campo:: [[nombre_del_elemento]]` (campos con `type:: reference` en su definición).
-- **Icono Visual**: 🏷️ `Tag`
-- **Ejemplo**: `location:: [[Salón-Comedor]]` o `depends_on:: [[Verificación de Pasaporte]]`.
-- **Nota importante**: Los campos referenciales NUNCA deben escribirse como texto plano (`location:: Salón-Comedor`); el uso de `[[...]]` es obligatorio para que el motor de iNNfo resuelva la conexión en la red.
+- **Origin**: Structured fields in blocks whose values explicitly reference another element through WikiLink brackets.
+- **Syntax**: `field:: [[element_name]]` (fields with `type:: reference` in their definition).
+- **Visual Icon**: 🏷️ `Tag`
+- **Example**: `location:: [[Living-Room]]` or `depends_on:: [[Passport Check]]`.
+- **Important note**: Referential fields must NEVER be written as plain text (`location:: Living-Room`); `[[...]]` is mandatory so the iNNfo engine can resolve the connection in the graph.
 
-### 4. Relaciones Contextuales (Menciones & Wikilinks)
+### 4. Contextual Relationships (Mentions & Wikilinks)
 
-- **Origen**: Menciones informales y enlaces de hipertexto escritos libremente en el cuerpo Markdown de la descripción de un bloque.
-- **Sintaxis**: `[[Nombre del Elemento]]` dentro del texto explicativo.
-- **Icono Visual**: 📝 `FileText`
-- **Ejemplo**: _"...para completar este paso es necesario revisar el [[Formulario DS-2019]] emitido por el patrocinador."_
+- **Origin**: Informal mentions and hypertext links written freely in the Markdown body of a block's description.
+- **Syntax**: `[[Element Name]]` inside the explanatory text.
+- **Visual Icon**: 📝 `FileText`
+- **Example**: _"...to complete this step it is necessary to review the [[DS-2019 Form]] issued by the sponsor."_
 
-### 5. Composición de Submodelos (`type:: knowledge`)
+### 5. Submodel Composition (`type:: knowledge`)
 
-La composición de submodelos permite desacoplar arquitecturas complejas subdividiendo el dominio en múltiples documentos físicos Nivel 3 (`*_NN.md`), manteniendo una relación formal de pertenencia y navegación entre un elemento padre y un modelo hijo especializado.
+Submodel composition decouples complex architectures by subdividing a domain into multiple physical Level 3 documents (`*_NN.md`), keeping a formal relationship of belonging and navigation between a parent element and a specialized child document.
 
-- **Origen**: Definición formal en el metamodelo con `type:: knowledge` y restricción opcional `target_blueprint:: <bluepriNNt>`.
-- **Sintaxis de Campo**: `campo:: [[ruta/al/submodelo_NN.md]]` o `campo:: ruta/al/submodelo_NN.md`.
-- **Icono Visual**: 📦 `Boxes` / Píldora interactiva de submodelo con badge de plantilla.
-- **Comportamiento en Árbol**: El submodelo no flota como raíz independiente en el espacio de trabajo; se anida bajo el elemento que lo declara y se excluye de las raíces globales.
+- **Origin**: A formal definition in the metamodel with `type:: knowledge` and an optional constraint `target_blueprint:: <bluepriNNt>`.
+- **Field Syntax**: `field:: [[path/to/submodel_NN.md]]` or `field:: path/to/submodel_NN.md`.
+- **Visual Icon**: 📦 `Boxes` / interactive submodel pill with a blueprint badge.
+- **Tree Behavior**: The submodel does not float as an independent root in the console; it nests under the element that declares it and is excluded from the global roots.
 
-#### Ejemplo Canónico: Ghostbusters Innovation → Business Model
+#### Canonical Example: Ghostbusters Innovation → Business Model
 
-Un modelo de cartera de innovación (`Ghostbusters_innovation_NN.md`) contiene la iniciativa de expansión municipal, la cual instancia su propio modelo de negocio dedicado (`Ghostbusters_business_NN.md`):
+An innovation-portfolio document (`Ghostbusters_innovation_NN.md`) contains a municipal-expansion initiative that instantiates its own dedicated business model (`Ghostbusters_business_NN.md`):
 
-##### 1. Definición en Metamodelo (`innovation_V_0-2-0_NN.md`)
+##### 1. Definition in the Metamodel (`specs/bluepriNNts/innovation/spec_NN.md`)
 
 ```markdown
 ## NN Field Definition: business_model
@@ -869,7 +1043,7 @@ type:: knowledge
 target_blueprint:: business
 ```
 
-##### 2. Instanciación en el Modelo Padre (`Ghostbusters_innovation_NN.md`)
+##### 2. Instantiation in the Parent Document (`Ghostbusters_innovation_NN.md`)
 
 ```markdown
 # NN Initiative
@@ -882,7 +1056,7 @@ business_model:: [[kNNowledge/Ghostbusters_business_NN.md]]
 tags:: [initiative, franchise, commercial, expansion]
 ```
 
-##### 3. Submodelo Hijo Scaffolded (`Ghostbusters_business_NN.md`)
+##### 3. Scaffolded Child Submodel (`Ghostbusters_business_NN.md`)
 
 ```markdown
 ---
@@ -896,46 +1070,47 @@ title: "Ghostbusters Inc. Municipal Franchise Business Model"
 # NN Business Model
 ```
 
-#### Experiencia Visual e Interactiva
+#### Visual and Interactive Experience
 
-1. **Creación en un Clic**: Desde el editor del campo en `FieldModel.vue`, el botón `[+ Create & bind new model]` crea automáticamente el documento hijo con cabeceras estándar Nivel 3 y la plantilla esperada.
-2. **Jerarquía Limpia en la Barra Lateral**: En la vista de espacio de trabajo, el submodelo se excluye de las raíces no adjuntas y se muestra anidado directamente bajo el elemento que lo declara (`ConceptTreeNode.vue`), acompañado del icono 📦 `Boxes` y la etiqueta de la plantilla.
-3. **Navegación Fluida**: Al hacer clic en el submodelo hijo (en la píldora del campo o en el árbol lateral), `uiStore.focusModel` activa el modo enfocado y despliega la ruta de migas de pan (`Workspace > Ghostbusters Innovation > Ghostbusters Business`).
-
----
-
-## Direccionalidad de las Conexiones
-
-Todas las relaciones en el editor se presentan con un indicador claro de dirección según la posición del elemento actual:
-
-### Conexión Saliente (`outgoing`)
-
-Indica que el elemento actual **inicia o apunta** la relación hacia un elemento destino:
-$$\text{> ( Rol / Campo ) > [Píldora Destino]}$$
-
-- **Ejemplo**: `> ( 🏷️ location ) > [Salón-Comedor]`
-
-### Conexión Entrante (`incoming`)
-
-Indica que otro elemento fuente **apunta o referencia** al elemento actual (Backlinks / Participación como destino):
-$$\text{[Píldora Fuente] < ( Rol / Campo ) <}$$
-
-- **Ejemplo**: `[Sofás salón] < ( 🏷️ location ) <`
-
-### Conexión Completa (`full`)
-
-En vistas globales, reportes de validación o tablas completas:
-$$\text{[Píldora Fuente] — ( Rol / Campo ) → [Píldora Destino]}$$
+1. **Rendering**: In the Domain Console, a knowledge field renders its `type:: knowledge` values as interactive pills through `InnfoUI.FieldValue` / `renderFieldKnowledge`. Creating and binding the child document is an agent-driven changeset (`add_element`), not an in-editor button.
+2. **Clean Hierarchy**: In the console, the submodel is excluded from unattached roots and is shown nested directly under the element that declares it, rendered with `InnfoUI.Ku` unit pills and the 📦 `Boxes` icon plus the blueprint label.
+3. **Fluid Navigation**: Clicking the submodel child (in the field pill or in the tree) navigates the console to the child document and shows the breadcrumb path (`Ghostbusters Innovation > Ghostbusters Business`).
 
 ---
 
-## Componente `ConnectionPill`
+## Directionality of Connections
 
-La interfaz visual de iNNfo estandariza todas estas relaciones mediante el componente **`ConnectionPill`**, el cual reúne:
+All relationships in the console are presented with a clear direction indicator based on the position of the current element:
 
-1. El **icono del tipo de relación** (📊 Matriz, 🏷️ Campo, 📝 Mención).
-2. El **rol o nombre de la relación** en un badge destacado.
-3. El **bloque interactivo (`BlockPill`)** del nodo conectado con su icono de concepto, color y soporte de navegación al hacer click.
+### Outgoing Connection (`outgoing`)
+
+Indicates that the current element **initiates or points** the relationship toward a target element:
+$$\text{> ( Role / Field ) > [Target Pill]}$$
+
+- **Example**: `> ( 🏷️ location ) > [Living-Room]`
+
+### Incoming Connection (`incoming`)
+
+Indicates that another source element **points at or references** the current element (Backlinks / Participation as a target):
+$$\text{[Source Pill] < ( Role / Field ) <}$$
+
+- **Example**: `[Living-room sofas] < ( 🏷️ location ) <`
+
+### Full Connection (`full`)
+
+In global views, validation reports, or full tables:
+$$\text{[Source Pill] — ( Role / Field ) → [Target Pill]}$$
+
+---
+
+## How the Domain Console Renders Relations
+
+The Domain Console standardizes all these relationships through the console UI kit (`ui-kit.js`):
+
+1. **`InnfoUI.RelList`** renders the list of references for a unit, with the **relationship icon** (📊 Matrix, 🏷️ Field, 📝 Mention) and the **role or field name** in a highlighted badge.
+2. **`InnfoUI.Ku`** renders the connected node as an interactive unit pill (concept, element, field value, matrix, document, or source) with its concept icon and navigation on click.
+3. **`InnfoUI.SankeyFlow`** visualizes matrix relationships as flows across the graph.
+4. **`AnnotationPopover`** surfaces citation targets when a cited value is inspected.
 
 <!-- end: relationships.md -->
 
@@ -1067,7 +1242,7 @@ sequenceDiagram
 
 A change is not just a diff: it is itself a **lineage node**. A field's `sources` points at the change that last touched it (`changes/<cs>@## NN Change: <id>`), that change carries the evidence it derived from (`sources::`) and, when it displaced an earlier citation, the value it replaced (`replaced_sources::`). The chain runs field → change → (`sources` | `replaced_sources`) → … until it reaches a Source or a change with neither. Git keeps the file history; the model needs no snapshots.
 
-Two properties follow. **Attribution:** every change is signed with an author and recorded as a changeset under `changes/` — there is no parallel ledger. **Propose/decide separation:** the console can only *propose*; the outcome (`applied`, `partially_applied`, `conflict`, `rejected`) and the version transition are written by the engine on apply.
+Two properties follow. **Attribution:** every change is signed with an author and recorded as a changeset under `changes/` — there is no parallel ledger. **Propose/decide separation:** the console can only *propose*; the outcome and the version transition are written by the engine on apply. The engine reports four statuses — `applied`, `partially_applied`, `conflict`, `rejected` — but the console surfaces only **two** badges: `applied` and `partially_applied` render as **Applied**, while `conflict` and `rejected` render as **Not applied** (with the engine's reason).
 
 The mechanics of producing and applying a change from the console live in the [Reviewer Guide](reviewer-guide).
 
@@ -1426,13 +1601,22 @@ offered again while an unchanged, ignored one is not. The digest is read-only:
 producing it never touches `sources/`, and it does nothing at all when a domaiNN
 declares no watch roots — so it can never delay or block a session.
 
+### Finding the feature
+
+Watching is discoverable from the session itself, not only from these docs: the
+`nn` entry menu surfaces it **contextually** under `[s] Sources` — *Scan external
+watch roots* when the workspace declares roots, or *Declare a watch root* when it
+does not — and `[h] Help` lists it as the **Watched folders** capability. There is
+no daemon and no background process to enable.
+
 ## 3. Ingestion strategies
 
 | Strategy | Behaviour | Available today |
 | :--- | :--- | :--- |
 | **One-off** | Copy verbatim, normalise once, done. | Yes — the default scan. |
 | **Snapshot series** | Each new drop in a dynamic root becomes a new immutable, timestamped source in a family. | Yes — `--scan-external`. |
-| **Reviewer feedback** | Structured feedback JSON from a reviewer console ingests as a normalised source you can cite item by item (`#fb-001`). | Yes — `sources/import/feedback/`. |
+
+> Reviewer feedback is no longer an ingestion strategy. A reviewer console exports a `_changes_NN.md` changeset into `changes/`, applied with `apply_change` — it never re-enters as a source.
 
 ## 4. Dynamic sources and impact checking
 
@@ -1482,7 +1666,7 @@ first column. You then cite a row directly:
 sources:: [sources/import/sales.csv@2026-03]
 ```
 
-The editor highlights the cited row when the source is opened.
+The console highlights the cited row (through `AnnotationPopover`) when the source is opened.
 
 ## 7. Convergence strategies
 
@@ -1587,7 +1771,7 @@ The rest of the folders (`sources/conversations/`, `conversations/`, `procedures
 An empty domain is scaffolded, not hand-built. The MCP tool `init_domain` creates the manifest, the folder skeleton, and the `.gitattributes` that pins source hashes:
 
 ```text
-init_domain  name: "Aurora"
+init_domain  dir: "Aurora"  name: "Aurora"
 ```
 
 `domaiNN_NN.md` is generated, and it already states the house rule:
@@ -1755,7 +1939,7 @@ Notice the citation shapes already in play: `@## Heading` for a Markdown unit an
 Before trusting anything, validate. The MCP `validate_knowledge` tool checks one model; `check_domain` runs the workspace integrity pass (dangling citations, drift, orphans):
 
 ```text
-validate_knowledge  path: kNNowledge/Aurora_business_NN.md
+validate_knowledge  id: "Aurora_business"
 → 0 errors, 5 citations resolved
 
 check_domain  domain: Aurora
@@ -1868,6 +2052,7 @@ version:: V1
 
 ## NN ModelRecords: Aurora business
 model_ref:: kNNowledge/Aurora_business_NN.md
+knowledge_version:: V_0-1-0
 model_template:: business
 derived_from:: [sources/import/discovery-call.md@## The offer]
 
@@ -1898,14 +2083,14 @@ The three view sections are a pure function of the files on disk: add a source, 
 Because the record is derived, the only failure mode is **drift**: the persisted text disagreeing with a fresh projection. That happens if someone edits a managed section by hand. The gate catches it:
 
 ```console
-$ node scripts/index.js --lineage --check --src Aurora
+$ node skills/nn-sources/scripts/index.js --lineage --check --src Aurora
 ✖ LINEAGE_DRIFT  # NN Sources differs from a fresh projection
 ```
 
 The fix is always regeneration, never a hand edit:
 
 ```text
-sync_lineage  domain: Aurora     # or: node scripts/index.js --lineage --src Aurora
+sync_lineage  domain: Aurora     # or: node skills/nn-sources/scripts/index.js --lineage --src Aurora
 → record regenerated; # NN Procedures preserved
 ```
 
@@ -1942,7 +2127,7 @@ The same drift is reported by `node scripts/verify.js` in CI and by the MCP `che
 
 # Knowledge Lifecycle Walkthrough (Ghostbusters Inc. Case Study)
 
-This guide walks through the end-to-end **cogNNitive Knowledge Lifecycle** (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop) using the canonical **Ghostbusters Inc.** universe.
+This guide walks through the end-to-end **cogNNitive Knowledge Lifecycle** (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Review) using the canonical **Ghostbusters Inc.** universe.
 
 You can inspect the entire sample workspace directly on disk or in the repository under [`docs/innfo/samples/lifecycle-ghostbusters/`](../samples/lifecycle-ghostbusters/).
 
@@ -1964,13 +2149,13 @@ flowchart LR
     end
 
     subgraph P2["2. MANAGE (iNNfo Model)"]
-        SC -->|"sources:: [file.md@## Heading]"| M["kNNowledge/Ghostbusters_Operations_NN.md"]
+        SC -->|"sources:: [file.md@## Heading]"| M["kNNowledge/Ghostbusters_Operations_business_NN.md"]
     end
 
-    subgraph P3["3. EXPORT & Feedback"]
+    subgraph P3["3. EXPORT & Review"]
         M -->|"Generate"| EXP["artifacts/Paranormal_Containment_Brief_<UTC suffix>.md"]
-        EXP -.->|"EPA Inspector Review"| FB["sources/import/feedback/"]
-        FB -.->|"Re-ingestion"| IMP
+        EXP -.->|"EPA Inspector Review"| CHG["changes/<stamp>-<slug>_changes_NN.md"]
+        CHG -.->|"apply_change"| M
     end
 
     classDef p0 fill:#F4F4F6,stroke:#8E8E93,color:#1C1C1E;
@@ -1981,7 +2166,7 @@ flowchart LR
     class E,V,F1,F2 p0;
     class IMP,STG,SC p1;
     class M p2;
-    class EXP,FB p3;
+    class EXP,CHG p3;
 ```
 
 ---
@@ -2002,13 +2187,13 @@ The raw files are imported into the workspace:
 ```text
 workspace/
 ├── sources/
-│   ├── import/
-│   │   ├── containment_debrief.srt          # Immutable verbatim copy (SHA-256 tracked)
-│   │   ├── containment_debrief.srt_sidecar_NN.md  # Co-located sidecar (normalized body)
-│   │   ├── commercial_pricing_memo.md       # Immutable verbatim copy
-│   │   └── commercial_pricing_memo.md_sidecar_NN.md  # Co-located sidecar (no body)
-│   └── staging/
-│       └── pke_audio_buffer.tmp             # Ephemeral transcription buffer (never cited)
+│   └── import/
+│       ├── containment_debrief.srt          # Immutable verbatim copy (SHA-256 tracked)
+│       ├── containment_debrief.srt_sidecar_NN.md  # Co-located sidecar (normalized body)
+│       ├── commercial_pricing_memo.md       # Immutable verbatim copy
+│       └── commercial_pricing_memo.md_sidecar_NN.md  # Co-located sidecar (no body)
+└── staging/
+    └── pke_audio_buffer.tmp                 # Ephemeral transcription buffer (never cited)
 ```
 
 Run the scanner:
@@ -2027,7 +2212,7 @@ sha256: "b4c2...f8a1"
 size_bytes: 382
 source_format: md
 normalized_at: "2026-09-12T12:00:00Z"
-normalized_by: "traNNsform v1.0.0"
+normalized_by: "nn-sources v1.0.0"
 ---
 ```
 
@@ -2035,7 +2220,7 @@ normalized_by: "traNNsform v1.0.0"
 
 ## 4. Phase 2: Semantic Modeling (`MANAGE`)
 
-With normalized sources available, the team structures the knowledge into an **iNNfo Level 3 Semantic Model** ([`models/Ghostbusters_Operations_V_1-0-0_NN.md`](../samples/lifecycle-ghostbusters/workspace/models/Ghostbusters_Operations_V_1-0-0_NN.md)):
+With normalized sources available, the team structures the knowledge into an **iNNfo Level 3 Semantic Model** ([`kNNowledge/Ghostbusters_Operations_business_NN.md`](../samples/lifecycle-ghostbusters/workspace/kNNowledge/Ghostbusters_Operations_business_NN.md)):
 
 ```markdown
 # NN ServiceTier
@@ -2067,12 +2252,12 @@ laser_lock_frequency:: 14.8 MHz
 
 The model produces client- and regulatory-facing deliverables:
 
-1. **Generated Brief**: [**`export/Paranormal_Containment_Brief_V_1-0-0.md`**](../samples/lifecycle-ghostbusters/workspace/export/Paranormal_Containment_Brief_V_1-0-0.md) embeds lineage metadata:
+1. **Generated Brief**: [**`artifacts/Paranormal_Containment_Brief_20261016T120000Z.md`**](../samples/lifecycle-ghostbusters/workspace/artifacts/Paranormal_Containment_Brief_20261016T120000Z.md) embeds lineage metadata:
    ```yaml
    ---
    type: deliverable
-   derived_from: [Ghostbusters_Operations_V_1-0-0_NN]
-   exported_at: "2026-09-12T12:00:00Z"
+   sources: ["kNNowledge/Ghostbusters_Operations_business_NN.md"]
+   generated_at: "2026-10-16T12:00:00Z"
    ---
    ```
 2. **Human Review Loop**: Walter Peck (EPA) reviews the compiled console and exports a changeset (`<model>_<reviewer>_<stamp>_changes_NN.md`).
@@ -2088,11 +2273,11 @@ When an existing source changes over time:
 3. **Scan Warning**: The terminal immediately alerts:
    ```text
    ⚠️  [IMPACT WARNING] A newer member of "sources/import/commercial_pricing_memo" affects downstream models:
-       - kNNowledge/Ghostbusters_Operations_NN.md (Standard Class IV Elimination): cites "commercial_pricing_memo.md@## Manhattan Commercial Rates" [unit_missing_in_latest]
+       - kNNowledge/Ghostbusters_Operations_business_NN.md (Standard Class IV Elimination): cites "commercial_pricing_memo.md@## Manhattan Commercial Rates" [unit_missing_in_latest]
    ```
 4. **On-Demand Audit**: Running `node skills/nn-sources/scripts/index.js --check-impact` highlights the exact missing citation and suggests the closest matching heading:
    ```text
-   ❌ kNNowledge/Ghostbusters_Operations_NN.md (Standard Class IV Elimination): references missing heading "## Manhattan Commercial Rates" in "sources/import/commercial_pricing_memo_<UTC suffix>.md" (Did you mean: ## Downtown Commercial Rates?).
+   ❌ kNNowledge/Ghostbusters_Operations_business_NN.md (Standard Class IV Elimination): references missing heading "## Manhattan Commercial Rates" in "sources/import/commercial_pricing_memo_<UTC suffix>.md" (Did you mean: ## Downtown Commercial Rates?).
    ```
 
 ---
@@ -2107,49 +2292,164 @@ When an existing source changes over time:
 
 ---
 
+<!-- begin: reviewer-guide.md -->
+
+# Reviewer Guide: Asynchronous Consoles & Three-Tier Review
+
+## Overview
+
+iNNfo standalone consoles provide an offline, interactive environment for reviewing and annotating domain models without requiring node or server dependencies.
+
+## Three-Tier Console Architecture
+
+1. **Level 1: Universal Core Primitives**
+   - Implemented in `nn-runtime.js` / `nn-console.bundle.js`.
+   - Provides concept pills, element pills with citation navigation, the concept rail, element cards, matrix grids, and search. There is **no review mode and no review toggle** — an edit only ever records a change (see §2).
+2. **Level 2: Domain Blueprint Consoles**
+   - Specialized views declared in Level 2 bluepriNNts (e.g. Financial Timelines for `business`, Procedure Step-by-Step for `procedures`, Video Screenplay for `video-script`).
+3. **Level 3: Domain Console**
+   - The single-file Domain Console (`domaiNN_console.html`) is regenerated with the MCP `regenerate_console` tool and renders every `_NN.md` document in the domain.
+
+---
+
+## Review Workflow
+
+### 1. Setting Your Reviewer Identity
+In the top navigation banner, locate the **Reviewer** chip (e.g., `Reviewer: reviewer`). Click it to open the feedback modal focused on the **Reviewer identifier** field (required for export). This identity is stored in browser `localStorage` and automatically populates export filenames and review metadata.
+
+### 2. One Concept: The Change
+
+The console has **no review mode and no toggle**. An edit only ever records a **change**; the console never writes the model. A change is **Unsent** until the file is exported; the only signal on the model views is the **Unsent** marker.
+
+| State | What it means | How it shows |
+| --- | --- | --- |
+| **Unsent** (blue) | You edited in the console. It lives only in this browser; the agent has not seen it. | The **Unsent** marker on the row and rail, the "Change recorded" toast, and the bottom counter. |
+| **Applied** | The engine wrote it into the model; every console generated from this domain now carries it. | A card in the **Changes** tab. |
+| **Not applied** | The engine could not apply it and reported the reason. | A muted **Not applied** card in the **Changes** tab. |
+
+Unsent changes are the only change signal on cards, tables, pips and the rail. Applied and Not applied changes appear only inside the **Changes** tab; they are card states, not badges. The internal terms "draft" and "changeset" name plumbing and are never shown.
+
+### 3. Annotating Elements and Fields
+Every knowledge unit is rendered as a **Ku** badge (element, value, section, field
+definition, matrix, document, source) with a single **`+`** button
+(`[data-ku-more]`) that opens a floating action flyout:
+- **Info** is always present and opens the unit panel (kind, nature, lives-in,
+  canonical address, location, editability and kind-specific facts).
+- **Edit** is always available on content and structure units. A content pencil
+  opens the shared edit modal for that element or field value; a structure pencil
+  opens the modal in comment-only mode with the structure warning.
+- An **inherited** concept-level value is labelled `inherited from <Concept>` on
+  element cards and is info-only; edit it from its concept section badge instead.
+
+Press **Enter** to save, **Shift+Enter** for a newline, and **Escape** (or Cancel) to discard and return focus. Each saved change records the element's current `hash` as `base_hash` and the unit's canonical address. Saving shows the **Change recorded** toast: it lives only in this console until you export it, then apply it to write it into the domain.
+
+### 4. Change Signals: the Unsent Marker and the Rail
+- Units with local (unsent) changes show a **change pip** beside the marker, keyed by
+  the unit's canonical address. The count equals the unsent changes for that unit;
+  activating it opens the unit's history.
+- Each row shows **one change signal**: an **Unsent** marker read from the browser's
+  unsent store. Applied and Not applied changes never decorate a model view; they
+  live in the **Changes** tab. There is no "Mark reviewed" toggle: a mark was local
+  state with no effect on the domain.
+- The concept rail shows `pending/total` per concept — the number of elements with an
+  unsent change over the concept's element count.
+- Reviewers cannot set a verdict from the console: Applied and Not applied come
+  from the domain's changesets, and Unsent is local until exported.
+
+### 5. Keyboard Access
+- `j` / `k` move focus to the next / previous visible element card.
+- `c` opens the shared modal for the focused element.
+
+Shortcuts are ignored while typing in an input, textarea or select, while a popover is open, or with Ctrl/Meta/Alt held. The popover traps Tab focus, and the change counter is announced through an `aria-live="polite"` region.
+
+### 6. Exporting the Change
+Click **Export changes** in the header banner. The modal shows a live **preview** of the document your unsent changes produce (one `## NN Change:` per change), and disables **Download** and **Copy change** until a reviewer identifier is entered. Download and copy always emit the **same bytes**. When the clipboard API is unavailable (e.g. a double-clicked `file://` page), copy falls back to selecting the preview for manual copy or `document.execCommand('copy')`, and reports the outcome.
+
+Give the exported file to the agent. The agent applies what it can and reports every change it could not apply, with the reason. To retry, export a new file containing only the skipped changes; the console regenerates automatically after an apply.
+
+Files are named `<model>_<reviewer-slug>_<YYYYMMDD-HHmmss>_changes_NN.md`. Each change carries `op`, `target` (the D5 address `model@element&field`), `from`/`to` or `notes`, and `author::`; changes never carry a `status` verdict.
+
+### 7. Where an Unsent Change Lives (margin note)
+This is plumbing and the UI never explains it. An unsent change is stored in `localStorage` under a single key, `innfo-console:v3:<storeKey>`, anchored by `element_id` plus `base_hash`. The `storeKey` is the console's stable store key only: the domain id for a domain console (`<folder>-<hash>`), or `<domain id>::view:<id>` for a standalone view export. The store records **no model or domain version**: staleness is **per change**, so one whose element hash drifted is flagged **target changed** and remains exportable, while a model version bump never invalidates unrelated changes. Legacy `reviewed` marks are ignored and dropped on the next write.
+
+### 8. Applying an Exported Change
+The reviewer gives the exported `_changes_NN.md` file to the agent; the agent applies it with `apply_change`, which validates and persists what it can and reports each skipped change with its reason. There is no separate feedback import: the change document is the only change record. A skipped change is retried by exporting a new file with only that change.
+
+---
+
+## Governance Review vs. Agent Review
+
+The interaction pattern described above — an artifact leaves the chat, opens in a side panel, feedback is anchored to the exact element or field, and the loop closes by feeding a change back — is the same one AI coding agents (OpenCode, Claude Code, Antigravity) offer when they surface a generated file for review. The pattern is not theirs: it is the comment model of Google Docs, Figma and GitHub pull requests. What separates this console from a generic review pane is not the surface, but the **contract behind it**.
+
+| Aspect | This console | Typical agent review |
+| --- | --- | --- |
+| Feedback consumer | The apply engine, through a changeset | The agent that regenerates, in-session |
+| Identity | Declared `Reviewer` identifier, required before export | Usually anonymous |
+| Persistence | A changeset under `changes/` — the only change record | Usually none |
+| Lifecycle | Unsent → Applied, or Not applied with a reason | Converges on "good enough" |
+| Verdict | Recorded by the apply engine, never set from the console | Implied by the next generation |
+| Staleness | Per-draft `base_hash`; a drifted draft reads `target changed` | Typically unnoticed |
+
+Three properties follow that make this governance rather than annotation:
+
+1. **Attribution.** Every draft is exported under a declared reviewer identity, which names the file (`<model>_<reviewer-slug>_<stamp>_changes_NN.md`) and is recorded on each change as `author::`. The review has a signer.
+2. **Provenance.** Each change carries its `author`, `notes` and `sources`, and is recorded as a changeset under `changes/`. The changeset is the only change record; no parallel ledger, change-log or reviewer JSON exists.
+3. **Propose / decide separation.** The console can only *propose*. The outcome (Applied, or Not applied with the engine's reason) and the model version transition are recorded on apply, by the engine. A reviewer cannot approve their own proposal from the UI.
+
+An agent-review comment steers a regeneration and is spent in the process; it leaves no approver and no base. A console review produces a durable, attributable and verifiable decision that the agent then executes. That is the difference that lets the same interface serve governance.
+
+> **Vocabulary note.** An earlier feedback model exported JSON items carrying a `pending` status. It is retired: changesets are the only change record, and the status vocabulary is now `proposed`, `applied`, `partially_applied`, `conflict`, `rejected`.
+
+<!-- end: reviewer-guide.md -->
+
+---
+
 <!-- begin: tags-and-taxonomy.md -->
 
 # Tags & Open Taxonomy
 
-cogNNitive models support open-ended tagging across all architectural layers. This document outlines the **Open Taxonomy with Progressive Enhancement** pattern, which combines lightweight ad-hoc labeling at the model level with structured, visually enhanced taxonomies defined at the workspace root.
+cogNNitive documents support open-ended tagging across all architectural layers. This document outlines the **Open Taxonomy** pattern: lightweight ad-hoc labeling that needs no upfront schema, rendered consistently by the Domain Console.
 
 ---
 
-## 1. Concepts: Tags vs. Markers vs. Releases
+## 1. Concepts: Tags, Fields, and Releases
 
-To maintain clean architectural boundaries, cogNNitive cleanly distinguishes three dimensions of classification:
+To keep clean architectural boundaries, cogNNitive distinguishes three dimensions of classification:
 
 | Mechanism | Purpose | Scope | Schema Requirement |
 | :--- | :--- | :--- | :--- |
-| **Tags (`tags::`)** | Cross-cutting categorization, ad-hoc taxonomy, and multi-dimensional view filtering (e.g. `strategy-a`, `enterprise`, `q4`). | Model Elements and Concepts | **None** (ad-hoc, open vocabulary). |
-| **Markers** | Quantitative evaluation, matrix intersections, and lifecycle scoring with formal widgets (`scale`, `cycle`, `boolean`). | Specific matrices and elements | **Mandatory** definition in Level 2 app (`spec_NN.md`). |
-| **Releases / Snapshots** | Immutable point-in-time milestones for frozen baselines, pipeline inputs, and public distribution. | Whole model repository | Defined via version tags (`V_1-0-0`) and git tags. |
+| **Tags (`tags::`)** | Cross-cutting categorization, ad-hoc taxonomy, and multi-dimensional view filtering (e.g. `strategy-a`, `enterprise`, `q4`). | Every Concept and Element | **None** (ad-hoc, open vocabulary). |
+| **Fields** | Quantitative evaluation and matrix intersections. A former flag "marker" is now just a value of the built-in `tags` field; a former valued "marker" is a normal Field. Matrix scales and cycles live directly on the `# NN Matrix Definition`. | Concepts, Elements, and Matrices | Defined in the Level 2 `spec_NN.md`. |
+| **Releases / Snapshots** | Immutable point-in-time milestones for frozen baselines, pipeline inputs, and public distribution. | Whole domain | Defined via `knowledge_version` frontmatter and git tags. |
 
 > [!TIP]
-> **CONCEPTS > CODE**: Use **Tags** to filter the dimensional space (what elements belong to which strategy); use **Releases** to freeze the timeline (a verified baseline of the whole model).
+> **CONCEPTS > CODE**: Use **Tags** to filter the dimensional space (what elements belong to which strategy); use **Releases** to freeze the timeline (a verified baseline of the whole domain).
+
+> [!NOTE]
+> The former `Marker` primitive (its definition heading, `item-markers` matrices, and the `set_marker` operation) was **removed** in iNNfo `V_0-5-0`. Attempts to use it fail with `MARKERS_REMOVED` / `UNKNOWN_OPERATION`. Flag markers became values on the built-in `tags` field; valued markers became normal Fields.
 
 ---
 
-## 2. Using Tags in Models (Ad-hoc / Open Vocabulary)
+## 2. Using Tags in Documents (Ad-hoc / Open Vocabulary)
 
-At the model level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring them upfront in your app:
+At the document level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring anything upfront in your blueprint:
 
 ```markdown
-# NN Oferta
+# NN Offering
 
-## NN Oferta: Enterprise Cloud Platform
+## NN Offering: Enterprise Cloud Platform
 tags:: strategy-growth, b2b, enterprise
-precio:: 12000
+price:: 12000
 status:: active
 
-## NN Oferta: Community Starter
+## NN Offering: Community Starter
 tags:: [strategy-plg, open-source]
-precio:: 0
+price:: 0
 status:: active
 
-## NN Oferta: Premium Onboarding
+## NN Offering: Premium Onboarding
 tags:: strategy-growth, strategy-plg
-precio:: 2500
+price:: 2500
 status:: optional
 ```
 
@@ -2161,56 +2461,36 @@ status:: optional
 
 ---
 
-## 3. The Workspace Catalog: Progressive Enhancement
+## 3. `tags` Is a Built-in Field
 
-While tags can be created on-the-fly, workspaces (`workspace_NN.md`) can provide a centralized **Tag Catalog** to give semantic meaning, standardized colors, and icons to common tags.
+In `V_0-5-0`, `tags` is the **built-in multi-valued `select` Field** present on every Concept and Element. There is no reserved `Tag` concept in a domaiNN, and no domain-root tag catalog:
 
-### Workspace Specification (`workspace_spec_NN.md`)
-The `workspace_spec` defines the `Tag` Concept and its fields:
-* `color`: Hex code (e.g. `#10b981`) or design token for badge styling.
-* `icon`: Lucide icon name (e.g. `rocket`, `layers`, `shield`).
-* `description`: Semantic definition and strategic intent.
-
-### Declaring Workspace Tags (`workspace_NN.md`)
-```markdown
-# NN Tag
-
-## NN Tag: strategy-growth
-color:: #10b981
-icon:: trending-up
-description:: Initiatives focused on enterprise revenue expansion and corporate accounts.
-
-## NN Tag: strategy-plg
-color:: #6366f1
-icon:: users
-description:: Product-Led Growth and community self-serve adoption.
-
-## NN Tag: enterprise
-color:: #f59e0b
-icon:: building
-description:: Mission-critical features required for Fortune 500 deployments.
-```
+* A tag is simply a value of the `tags` field — there is nothing to declare or register.
+* Tags are never validated against a closed list; an unknown tag is always valid.
+* Adding a tag is adding a value to the field, exactly like any other field value.
 
 ---
 
-## 4. Progressive Resolution in the Console & Procedures
+## 4. Tag Rendering in the Console
 
-When the domain console or an agent procedure encounters a tag:
+The Domain Console renders tags without any per-tag configuration:
 
-1. **Workspace Hit**: If the tag matches an entry in `workspace_NN.md`, it renders as an enriched badge with its designated color, icon, and a hover tooltip showing its description.
-2. **Graceful Fallback**: If the tag was created ad-hoc in the model and has no workspace entry, it renders as a neutral gray badge. It remains completely valid and never triggers validation warnings.
+1. **Deterministic colors**: Each tag chip's color is computed from the tag **name** with an FNV-1a 32-bit hash (`InnfoUI.tagSlot(name)`). The same tag always gets the same color, on every machine, with no catalog.
+2. **No catalog, no fallback**: Because color is hashed from the name, there is no "workspace hit vs. graceful fallback". A tag created ad-hoc in a document renders with the same deterministic chip as any other tag and never triggers a validation warning.
 
 ---
 
 ## 5. View Projection and Filtering
 
-In the domain console, the search and filter controls in the header narrow the view:
+In the Domain Console, the toolbar narrows the view through `FilterSelect` facets:
 
-* **Conceptos Tab**: Filters models by domain structure (e.g. show only `Offerings` or `Stakeholders`).
-* **Etiquetas Tab**: Displays all tags present in the workspace and active models.
-  * Toggling tags dynamically filters the view to show only elements matching the selected tags.
-  * Multi-tag filtering allows projecting specific strategic combinations (e.g., all offerings belonging to both `strategy-growth` AND `enterprise`).
-  * Convenient **Todas** and **Ninguna** buttons enable rapid filter switching.
+* **Models / Concepts**: Filter by document structure (e.g. show only `Offerings` or `Stakeholders`).
+* **Fields**: Filter by field presence or value.
+* **Tags**: Lists all tags present across the domain. Toggling a tag dynamically filters the view to show only elements carrying it.
+  * Multi-tag filtering projects specific combinations (e.g. all offerings belonging to both `strategy-growth` AND `enterprise`).
+* **Changes**: Filter by change status.
+
+The search box also accepts a `tags:<tag>` token to filter directly by tag.
 
 <!-- end: tags-and-taxonomy.md -->
 
@@ -2222,9 +2502,9 @@ In the domain console, the search and filter controls in the header narrow the v
 
 ## Overview
 
-iNNfo models are the system of record (SSOT). Git is a review-only layer: it carries
-branches and pull requests so humans can review workspace changes, but it never replaces
-model versions. The `/nn-domain-git` skill owns this workflow. It activates only via
+iNNfo kNNowledge documents are the system of record (SSOT). Git is a review-only layer: it carries
+branches and pull requests so humans can review domaiNN changes, but it never replaces
+document versions. The `/nn-domain-git` skill owns this workflow. It activates only via
 explicit invocation and aborts with zero side effects when Git or authentication is missing.
 
 ## Prerequisites
@@ -2236,18 +2516,17 @@ explicit invocation and aborts with zero side effects when Git or authentication
 
 ## Private-by-Default Repositories
 
-New workspace remotes default to **private**. If the host defaults to public, stop and flip
-visibility to private before pushing anything. Workspaces routinely contain drafts and
+New domaiNN remotes default to **private**. If the host defaults to public, stop and flip
+visibility to private before pushing anything. domaiNNs routinely contain drafts and
 source material that must not leak through a public default.
 
 ## Opinionated `.gitignore`
 
-The skill writes this `.gitignore` at the workspace root:
+The skill writes this `.gitignore` at the domaiNN root:
 
 ```gitignore
-# Workspace review layer — generated by /nn-domain-git
+# Domain review layer — generated by /nn-domain-git
 staging/
-original/
 specs/
 *.env
 *.token
@@ -2257,7 +2536,6 @@ secrets/
 ```
 
 - `staging/` — scratch review output, never reviewed.
-- `original/` — heavy source inputs stay local.
 - `specs/` — generated cache output, not reviewed.
 - `*.env`, `*.token`, `*.pem`, `*.key`, `secrets/` — credentials are never tracked.
 
@@ -2277,18 +2555,18 @@ or destructive operations.
 
 Open a pull request targeting `main`. The PR must pass BOTH gates before merge:
 
-- `validate` — model validation.
-- `check_workspace` — workspace integrity check.
+- `validate_knowledge` — kNNowledge document validation.
+- `check_domain` — domaiNN integrity check.
 
 `main` is protected and requires at least 1 approval. A PR missing any gate result or
 approval is blocked.
 
 ## Version Map (`V_x-y-z` vs Commit)
 
-Model versions (`V_x-y-z`) are the system of record. Git commits are a separate review
+Document versions (`V_x-y-z`) are the system of record. Git commits are a separate review
 layer. A version never equals a commit — the skill maintains an explicit map:
 
-| Model version | Git commit | Date |
+| Document version | Git commit | Date |
 |---------------|------------|------|
 | V_0-2-0 | `a1b2c3d` | 2026-09-09 |
 
@@ -2297,21 +2575,21 @@ and restates that the version is not the commit.
 
 ## Offline Backup
 
-Before any deep change, write a timestamped filesystem copy OUTSIDE the workspace:
+Before any deep change, write a timestamped filesystem copy OUTSIDE the domaiNN:
 
 ```bash
-node scripts/backup-workspace.js --workspace-dir <dir>
+node skills/nn-upgrade/scripts/backup-workspace.js --workspace-dir <dir>
 ```
 
-If automation fails, copy the whole workspace folder to a backups directory on disk
+If automation fails, copy the whole domaiNN folder to a backups directory on disk
 (e.g. `xcopy /E /I <dir> <dir>-backup-<timestamp>` on Windows) and confirm it exists
 before continuing. The backup must predate the first mutation. Never rely on Git alone.
 
 ## Boundary
 
-The Git workflow never touches `nn-innfo`, Level-2 apps, or spec canonical URLs.
-It reads models and writes only Git-layer artifacts (branches, PRs, map rows, backups).
-If a change needs an app or spec edit, that happens in the iNNfo workflow — not here.
+The Git workflow never touches `nn-innfo`, Level-2 bluepriNNts, or spec canonical URLs.
+It reads kNNowledge documents and writes only Git-layer artifacts (branches, PRs, map rows, backups).
+If a change needs a bluepriNNt or spec edit, that happens in the iNNfo workflow — not here.
 
 <!-- end: collaboration-git.md -->
 
@@ -2319,13 +2597,13 @@ If a change needs an app or spec edit, that happens in the iNNfo workflow — no
 
 <!-- begin: workspace-backups.md -->
 
-# Workspace Backup Strategies & Safety Model
+# Domain Backup Strategies & Safety Model
 
 ## Overview
 
-In the cogNNitive ecosystem, workspaces consist of plain-text Markdown kNNowledge documents (`kNNowledge/*_NN.md`), cognitivized sources, procedures, and specifications. Protecting user data against accidental corruption or breaking migrations is handled through a layered approach:
+In the cogNNitive ecosystem, domaiNNs consist of plain-text Markdown kNNowledge documents (`kNNowledge/*_NN.md`), cognitivized sources, procedures, and specifications. Protecting user data against accidental corruption or breaking migrations is handled through a layered approach:
 
-1. **User-Led Workspace Snapshots** (Primary baseline)
+1. **User-Led Domain Snapshots** (Primary baseline)
 2. **Automated Migration Out-of-Tree Backups** (`backup-workspace.js`)
 3. **Optional Git Collaboration Layer** (`/nn-domain-git` for technicians)
 
@@ -2333,12 +2611,12 @@ In the cogNNitive ecosystem, workspaces consist of plain-text Markdown kNNowledg
 
 ## 1. User-Led Session Backup Protocol
 
-The recommended and simplest safety practice is for the user to make a local copy of their workspace folder before initiating a major modeling or transformation session:
+The recommended and simplest safety practice is for the user to make a local copy of their domaiNN folder before initiating a major modeling or transformation session:
 
 ```text
 C:\Projects\
-├── my-workspace\                 <-- Active workspace
-└── my-workspace-backup-2026-09\   <-- Manual snapshot
+├── my-domain\                 <-- Active domaiNN
+└── my-domain-backup-2026-09\   <-- Manual snapshot
 ```
 
 ### Why this is the baseline
@@ -2349,23 +2627,20 @@ C:\Projects\
 
 ## 2. Automated Migration Backup (`backup-workspace.js`)
 
-For automated, potentially breaking schema migrations (such as upgrading models between template versions with `nn-upgrade`), cogNNitive provides an out-of-tree backup script:
+For automated, potentially breaking schema migrations (such as upgrading kNNowledge documents between blueprint versions with `nn-upgrade`), cogNNitive provides an out-of-tree backup script:
 
 - **Location**: `skills/nn-upgrade/scripts/backup-workspace.js`
 - **Execution**: `node backup-workspace.js --workspace-dir <dir>`
 
 ### Scope & Behavior
-- Selectively copies migration-relevant assets:
-  - `kNNowledge/`
-  - `specs/`
-  - `sources/import/` (and `sources/conversations/`)
-  - `procedures/`
-  - `domaiNN_NN.md`
-- Target directory is created as a timestamped sibling **outside** the workspace (e.g. `<workspace-dir>-backup-YYYY-MM-DD_HHMMSS`).
-- **"Never Half-Migrate" Guarantee**: If model validation fails during an automated template upgrade, `nn-upgrade` programmatically rolls back the workspace from this backup without requiring human intervention.
+- Performs a **full-tree recursive copy** of the entire domaiNN into a timestamped directory **outside** the domaiNN.
+- Excludes only the noise and generated directories: `.git`, `.staging`, `backups`, `archive`, `node_modules`, `dist`, and `coverage`.
+- Writes a `manifest.sha256` file listing the SHA-256 of every copied file, sorted by path.
+- Target directory defaults to a timestamped sibling (e.g. `<domaiNN-dir>-backup-YYYY-MM-DD_HHMMSS`); the target must be outside the domaiNN root (`isInside(target, ws)` check).
+- **"Never Half-Migrate" Guarantee**: If kNNowledge validation fails during an automated blueprint upgrade, `nn-upgrade` programmatically rolls back the domaiNN from this backup without requiring human intervention.
 
 > [!WARNING]
-> **Sandbox Boundary Note**: The automated backup script explicitly requires writing outside the workspace root (`isInside(target, ws)` check). In restricted execution environments or sandboxed AI agents confined strictly to the workspace directory, out-of-tree write operations require appropriate host filesystem permissions.
+> **Sandbox Boundary Note**: The automated backup script explicitly requires writing outside the domaiNN root (`isInside(target, ws)` check). In restricted execution environments or sandboxed AI agents confined strictly to the domaiNN directory, out-of-tree write operations require appropriate host filesystem permissions.
 
 ---
 
@@ -2373,20 +2648,20 @@ For automated, potentially breaking schema migrations (such as upgrading models 
 
 For technicians and engineering teams, the `/nn-domain-git` skill provides a gated review workflow:
 
-- **SSOT Boundary**: iNNfo models remain the single source of truth; Git serves solely as a review and branch/PR gating mechanism.
-- **Gated PRs**: Pull requests must pass `innfo-mcp_validate_model` and workspace integrity checks before merging.
+- **SSOT Boundary**: iNNfo kNNowledge documents remain the single source of truth; Git serves solely as a review and branch/PR gating mechanism.
+- **Gated PRs**: Pull requests must pass `nn-mcp` `validate_knowledge` and `check_domain` before merging.
 - **Offline Backup Fallback**: Step 3d in `nn-domain-git` triggers an out-of-tree backup before deep modifications.
 
 ---
 
-## 4. User Workspace vs Maintainer Infrastructure
+## 4. User Domain vs Maintainer Infrastructure
 
-To avoid architectural confusion, cogNNitive maintains a strict separation between user workspace tools and monorepo maintainer infrastructure:
+To avoid architectural confusion, cogNNitive maintains a strict separation between user domaiNN tools and monorepo maintainer infrastructure:
 
 | Mechanism | Target Audience | Scope |
 | :--- | :--- | :--- |
-| **Manual Folder Copy** | End Users & AI Sessions | Entire workspace snapshot prior to major edits |
-| **`backup-workspace.js`** | End Users / `nn-upgrade` | Automated recovery during template upgrades |
+| **Manual Folder Copy** | End Users & AI Sessions | Entire domaiNN snapshot prior to major edits |
+| **`backup-workspace.js`** | End Users / `nn-upgrade` | Automated recovery during blueprint upgrades |
 | **`nn-domain-git`** | Technicians (Alpha) | Branch & PR review workflows |
 | **Engram Persistent Memory** | Maintainer AI Agents | Internal session memory within the `cogNNitive` repo |
 | **Git Restore Points & Checkpoints** | Maintainer AI Agents | Monorepo branch hygiene (`nn-dev-development`) |
@@ -2397,9 +2672,9 @@ To avoid architectural confusion, cogNNitive maintains a strict separation betwe
 
 <!-- begin: manual-editing-risks.md -->
 
-# Editing Models by Hand
+# Editing kNNowledge by Hand
 
-iNNfo models are plain Markdown, so you *can* open a `_NN.md` file in a text editor and change it.
+iNNfo kNNowledge documents are plain Markdown, so you *can* open a `_NN.md` file in a text editor and change it.
 Nothing blocks that, but it is **unsupported for routine changes**: a hand edit bypasses the checks and
 the change record that every supported path keeps for you. You own that risk. This page says what can
 go wrong silently and what to do instead.
@@ -2408,13 +2683,13 @@ go wrong silently and what to do instead.
 
 | Hand edit | What happens |
 | :--- | :--- |
-| Copy-pasting an element section (`## NN Concept: Name`) | The copy repeats the original's immutable `slug::`. The validator reports `DUPLICATE_SLUG` as an **error**, so the model no longer validates, and nothing downstream can tell the two elements apart. |
-| Renaming an element or concept | List references, matrix entries and wikilinks that name it are not updated and dangle. In a model whose slugs are not frozen, the element also gets a new derived slug, so citations to it break. `apply_change` with `rename_element` updates the header, references, matrix entries and wikilinks in one transaction. |
+| Copy-pasting an element section (`## NN Concept: Name`) | The copy repeats the original's immutable `slug::`. The validator reports `DUPLICATE_SLUG` as an **error**, so the document no longer validates, and nothing downstream can tell the two elements apart. |
+| Renaming an element or concept | List references, matrix entries and wikilinks that name it are not updated and dangle. In a document whose slugs are not frozen, the element also gets a new derived slug, so citations to it break. `apply_change` with `rename_element` updates the header, references, matrix entries and wikilinks in one transaction. |
 | Changing a value | The element's content hash changes. A console built earlier is stale, a reviewer's *reviewed* mark turns into *changed*, and open review drafts are flagged *target changed*. No changeset records who changed what, or why, so the lineage History tab has nothing to show. |
 | Editing a source, a sidecar, or an older member of a write-once family | Sidecar `sha256` values no longer match the raw bytes, and writes that depend on them stop with `HASH_MISMATCH`. Sources are fingerprinted so that drift is detectable; hand-fixing the hash hides the drift instead of resolving it. |
 | Editing a changeset under `changes/` | A proposed changeset is sealed with `proposal_sha`. A tampered proposal is refused with `PROPOSAL_TAMPERED` and nothing is applied. |
 
-Several of these fail only later, when something else reads the model: a stale console, a dangling
+Several of these fail only later, when something else reads the document: a stale console, a dangling
 citation, or a rejected changeset. That distance between the edit and the symptom is the real hazard.
 
 ## What to do instead
@@ -2433,7 +2708,7 @@ afterwards:
 If you do edit by hand:
 
 - Never copy an element's `slug::` line. Delete it on the copy and give the copy a unique name.
-- Run `validate_knowledge` on the model straight afterwards, then `regenerate_console` so the console
+- Run `validate_knowledge` on the document straight afterwards, then `regenerate_console` so the console
   matches.
 - Review the Git diff before you commit; see [collaboration with Git](collaboration-git).
 - Leave sources, sidecars and `changes/` files alone: they are write-once.
@@ -2446,55 +2721,58 @@ For validator messages and how to resolve them, see the [validator behavior](val
 
 <!-- begin: templates.md -->
 
-# Templates (Apps) Overview
+# bluepriNNts (Level 2) Overview
 
-iNNfo templates (Level 2 Specifications) define domain-specific schemas, concepts, fields, and procedures for modeling structured knowledge in a cogNNitive workspace.
+iNNfo bluepriNNts (Level 2 Specifications) define domain-specific schemas, concepts, fields, and procedures for modeling structured knowledge in a cogNNitive domaiNN.
 
-All templates are validated against Level 1 (`iNNfo_V_0-2-1`) and are declared in the central catalog [`docs/innfo/templates/catalog.json`](https://github.com/cogNNitive/cogNNitive/blob/main/docs/innfo/templates/catalog.json).
+All bluepriNNts are validated against Level 1 (`iNNfo_V_0-5-0`) and are declared in the central catalog [`iNNfo/specs/bluepriNNts/catalog.json`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/catalog.json) (published with the docs as `innfo/blueprints/catalog.json`). Each bluepriNNt carries a `blueprint_version`.
 
 ---
 
-## Shipped Level 2 Templates
+## Shipped Level 2 bluepriNNts
 
-| Template / App | Adopted Version | Description & Scope | Source Spec |
+| bluepriNNt | Adopted Version | Description & Scope | Source Spec |
 |---|---|---|---|
-| **Video Script** | `V_0-1-0` | Native iNNfo video scripting: Scenes, Layers, Templates, TTS voiceover & talking avatars | [`specs/bluepriNNts/video-script/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md) |
-| **Business** | `V_0-2-5` | Composite template combining Business Model and Analysis | [`specs/bluepriNNts/business/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/spec_NN.md) |
-| **Business Model** | `V_0-2-3` | Value propositions, segments, and channels | [`specs/bluepriNNts/business-model/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md) |
-| **Analysis** | `V_0-2-1` | Strategic analysis, SWOT, and evaluable matrices | [`specs/bluepriNNts/analysis/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/spec_NN.md) |
-| **Documentation** | `V_0-2-1` | Technical specifications and manual authoring | [`specs/bluepriNNts/documentation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/documentation/spec_NN.md) |
-| **Design Presets** | `V_0-1-0` | Color palettes, typography presets, and visual styles | [`specs/bluepriNNts/design-presets/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/design-presets/spec_NN.md) |
-| **Procedures** | `V_0-2-2` | Step-by-step operational playbooks and workflows | [`specs/bluepriNNts/procedures/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md) |
-| **Projects** | `V_0-2-2` | Deliverables, milestones, tasks, and roadmaps | [`specs/bluepriNNts/projects/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md) |
-| **Organization** | `V_0-2-2` | Org charts, teams, roles, and responsibilities | [`specs/bluepriNNts/organization/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/spec_NN.md) |
-| **Innovation** | `V_0-2-1` | Ideas, research hypotheses, and experimentation | [`specs/bluepriNNts/innovation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/spec_NN.md) |
-| **Metrics** | `V_0-2-1` | Key Performance Indicators and quantitative tracking | [`specs/bluepriNNts/metrics/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/metrics/spec_NN.md) |
-| **Repository** | `V_0-1-1` | Source code repositories and package tracking | [`specs/bluepriNNts/repository/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/repository/spec_NN.md) |
-| **Sources** | `V_0-1-0` | External citations and reference catalogs | [`specs/bluepriNNts/sources/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md) |
-| **Workspace** | `V_0-6-0` | Top-level workspace layout and metadata | [`specs/bluepriNNts/workspace_spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md) |
-| **Blank** | `V_0-2-0` | Minimal starter schema | [`specs/bluepriNNts/blank/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md) |
-| **Visual Catalog** | `V_0-1-0` | Image-derived entries with witness evidence and traceability to normalized sources | [`specs/bluepriNNts/visual-catalog/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md) |
+| **Video Script** | `V_0-2-2` | Native iNNfo video scripting: Scenes, Layers, Templates, TTS voiceover & talking avatars | [`specs/bluepriNNts/video-script/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md) |
+| **Business** | `V_0-5-0` | Composite bluepriNNt combining Business Model and Analysis | [`specs/bluepriNNts/business/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business/spec_NN.md) |
+| **Business Model** | `V_0-4-0` | Value propositions, segments, and channels | [`specs/bluepriNNts/business-model/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md) |
+| **Analysis** | `V_0-4-0` | Strategic analysis, SWOT, and evaluable matrices | [`specs/bluepriNNts/analysis/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/analysis/spec_NN.md) |
+| **Documentation** | `V_0-4-0` | Technical specifications and manual authoring | [`specs/bluepriNNts/documentation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/documentation/spec_NN.md) |
+| **Design Presets** | `V_0-4-0` | Color palettes, typography presets, and visual styles | [`specs/bluepriNNts/design-presets/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/design-presets/spec_NN.md) |
+| **Procedures** | `V_0-5-0` | Step-by-step operational playbooks and workflows | [`specs/bluepriNNts/procedures/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md) |
+| **Projects** | `V_0-4-0` | Deliverables, milestones, tasks, and roadmaps | [`specs/bluepriNNts/projects/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md) |
+| **Organization** | `V_0-4-0` | Org charts, teams, roles, and responsibilities | [`specs/bluepriNNts/organization/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/organization/spec_NN.md) |
+| **Innovation** | `V_0-4-0` | Ideas, research hypotheses, and experimentation | [`specs/bluepriNNts/innovation/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/spec_NN.md) |
+| **Metrics** | `V_0-5-0` | Key Performance Indicators and quantitative tracking | [`specs/bluepriNNts/metrics/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/metrics/spec_NN.md) |
+| **Repository** | `V_0-3-0` | Source code repositories and package tracking | [`specs/bluepriNNts/repository/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/repository/spec_NN.md) |
+| **Sources** | `V_0-3-0` | External citations and reference catalogs | [`specs/bluepriNNts/sources/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md) |
+| **Sidecar** | `V_0-1-1` | Co-located `<file>.<ext>_sidecar_NN.md` records for imported sources | [`specs/bluepriNNts/sidecar/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md) |
+| **Artifacts** | `V_0-5-0` | Registry of exported, write-once artifacts under `artifacts/` | [`specs/bluepriNNts/artifacts/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/artifacts/spec_NN.md) |
+| **Changes** | `V_0-5-2` | Changesets, proposals, reviews, and version transitions under `changes/` | [`specs/bluepriNNts/changes/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md) |
+| **domaiNN** | `V_0-4-0` | Top-level domaiNN container (`domaiNN_NN.md`) layout and metadata | [`specs/bluepriNNts/domaiNN/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md) |
+| **Blank** | `V_0-4-0` | Minimal starter schema | [`specs/bluepriNNts/blank/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md) |
+| **Visual Catalog** | `V_0-3-0` | Image-derived entries with witness evidence and traceability to sidecar-backed sources | [`specs/bluepriNNts/visual-catalog/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md) |
 
 ---
 
-## Three-Pathway Authorship & Review Architecture
+## Two-Pathway Authorship & Review Architecture
 
-iNNfo supports three complementary pathways for knowledge modeling, curation, and asynchronous stakeholder review:
+iNNfo supports two complementary pathways for kNNowledge authoring, curation, and asynchronous stakeholder review:
 
 1. **Pathway 1: Conversational AI (Pair Programming & Agents)**
-   - Knowledge architects and developers converse with AI agents (Claude, Copilot, Antigravity) to generate, refine, and evolve Level 3 models from unstructured documentation, interviews, and source code.
-2. **Pathway 2: Direct App GUI (Visual Workspace Editor)**
-   - Interactive visual modeling through the Vue 3 workspace editor, allowing direct schema exploration, element graph manipulation, and rich data entry.
-3. **Pathway 3: Asynchronous Console Review (Three-Tier Consoles)**
-   - Domain experts and non-technical stakeholders review compiled standalone HTML consoles (`<Model>_V_<Version>_console.html`).
-   - Features zero-build offline `file://` execution, persistent reviewer identity (`localStorage['innfo_reviewer_name']`), visual review badges on cards/rails, and a Universal Review Tab.
-   - Stakeholders annotate in place and export a changeset (`<model>_<reviewer>_<timestamp>_changes_NN.md`) which the agent applies to the domain with `apply_change` for automated model updates.
+   - Knowledge architects and developers converse with AI agents (Claude, Copilot, Antigravity) to generate, refine, and evolve Level 3 kNNowledge from unstructured documentation, interviews, and source code.
+2. **Pathway 2: Asynchronous Console Review (Domain Console)**
+   - Domain experts and non-technical stakeholders review the compiled standalone `domaiNN_console.html`.
+   - Features zero-build offline `file://` execution and in-place annotation on cards and rails.
+   - Stakeholders annotate in place and export a changeset (`changes/<reviewer>_<timestamp>_changes_NN.md`) which the agent applies to the domain with `apply_change` (`propose_changeset` first when a preview is wanted).
+
+The former standalone Vue 3 editor was retired; the domain console is the single UI surface.
 
 ---
 
-## Detailed Template Guides
+## Detailed bluepriNNt Guides
 
-- [Video App & Voice/Avatar Catalog](template-video)
+- [Video Script Blueprint & Voice/Avatar Catalog](template-video)
 - [Reviewer Guide & Asynchronous Consoles](reviewer-guide)
 
 <!-- end: templates.md -->
@@ -2667,7 +2945,7 @@ node scripts/render-formats.mjs --master renders/{ref}/master_1080x1080.mp4 [--o
 
 A generated console is a **frozen snapshot**: an HTML shell plus two JSON slots
 (`#innfo-schema`, `#innfo-model`). The shell carries no inline runtime logic — a
-shared UMD bundle is loaded through **static `<script>` tags only**: no server, no
+shared bundle is loaded through **static `<script>` tags only**: no server, no
 `fetch()`, no `type="module"`. That is what lets a generated console run by
 double-clicking the file from `file://`.
 
@@ -2681,52 +2959,70 @@ double-clicking the file from `file://`.
 
    | Order | Source | Purpose |
    | :--- | :--- | :--- |
-   | 1 | `cdn.jsdelivr.net` pinned to tag `innfo-console-v0.1.0` | Primary |
-   | 2 | `raw.githubusercontent.com/…/main/…` | Mirror fallback |
-   | 3 | `./innfo-console.bundle.js` (vendored next to the artifact) | Offline fallback |
+   | 1 | `./nn-console.bundle.js` (vendored next to the artifact) | Local / offline |
+   | 2 | `cdn.jsdelivr.net` pinned to tag `nn-console-v0.26.0` | CDN fallback |
+   | 3 | `raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/…` | Mirror fallback |
 
-3. **Offline**, the two remote tags fail to load and the **vendored third tag is
-   what makes the double-click work**. Online, all three tags resolve and the
-   bundle can execute up to three times: `boot(doc)` has no idempotency guard, so
-   each execution re-runs it and re-attaches its `input` / `click` listeners
-   (only the download button is guarded, via `data-innfo-bound`). The tags are
+   The order is defined in `iNNfo/specs/bluepriNNts/console/artifact_shell.html`
+   (the three `<script src=…>` tags just after the JSON slots). The version in the
+   jsDelivr tag is derived from `iNNfo/specs/bluepriNNts/console/package.json`
+   (`scripts/lib/console-release-info.js`), so it moves with each console release.
+
+3. **Offline**, the local tag loads and the two remote tags fail silently, so the
+   double-click works. **Online**, the shell still tries the remote tags after the
+   local one, so the bundle can execute more than once. The tags are
    **fallbacks**, not a mechanism that guarantees a single boot — do not assume
    re-execution is a strict no-op.
 
-One shell is canonical: `console/artifact_shell.html`. It declares the two JSON
-slots (`#innfo-schema`, `#innfo-model`) and the DOM anchors
-`#innfo-banner` / `#innfo-rail` / `#innfo-search` / `#innfo-content` /
-`#innfo-matrices` / `#innfo-export-modal`. The retired
-`workspace/assets/model_console.html` shell and its `InnfoModelViewer` are gone:
-every console is the domain console, optionally scoped. The procedures stepper
+One shell is canonical: `console/artifact_shell.html`. It declares the JSON slots
+(`#innfo-config`, `#innfo-schema`, `#innfo-model`) and the DOM anchors
+`#innfo-domain-title` / `#innfo-view-tabs` / `#innfo-navbar-actions` /
+`#innfo-rail` / `#innfo-search` / `#innfo-filter-facets` /
+`#innfo-active-filters` / `#innfo-tab-explorer` / `#innfo-doc` /
+`#innfo-content` / `#innfo-matrices` / `#innfo-tab-review` /
+`#innfo-ref-dialog`. The former `#innfo-banner` and `#innfo-export-modal`
+anchors no longer exist (the shell test asserts their absence). Every console is the domain
+console (`domaiNN_console.html`), optionally scoped to one document. The procedures stepper
 is not a shell either: it is the registered `procedure` view
 (`procedures/assets/console-view-procedure.js`), which builds its own scoped
 DOM inside the view container and never uses global ids.
 
 ### What is in the bundle
 
-`console/innfo-console.bundle.js` is a single self-contained file built from four
-sources, concatenated in order:
+`console/nn-console.bundle.js` is a single self-contained file built by
+`scripts/lib/console-bundle.js` (driven by `npm run build:console`;
+`npm run check:console-bundle` verifies it is up to date). It concatenates
+**12 files**, in this order:
 
 | Order | Source | Global |
 | :--- | :--- | :--- |
-| 1 | `visuals.js` | `InnfoVisuals` |
-| 2 | `innfo-runtime.js` | `InnfoConsole` |
-| 3 | `render-procedure-stepper.js` | `InnfoProcedureStepper` |
+| 1 | `nn-slug.generated.js` | `InnfoSlug` |
+| 2 | `nn-address.generated.js` | `InnfoAddress` |
+| 3 | `vendor/preact.umd.js` | `preact` |
+| 4 | `vendor/htm.umd.js` | `htm` |
+| 5 | `nn-preact-init.js` | `InnfoPreact` |
+| 6 | `uplot.iife.min.js` | `uPlot` |
+| 7 | `visuals.js` | `InnfoVisuals` |
+| 8 | `nn-icons.js` | `InnfoIcons` |
+| 9 | `ui-kit.js` | `InnfoUI` |
+| 10 | `review.js` | `InnfoReview` |
+| 11 | `nn-runtime.js` | `InnfoConsole` |
+| 12 | `render-procedure-stepper.js` | `InnfoProcedureStepper` |
 
 ---
 
 ## The `file://` invariant is test-enforced
 
-`innfo-core/tests/console-shell.test.ts` pins the offline contract:
+`iNNfo/packages/nn-core/tests/console-shell.test.ts` pins the offline contract:
 
-- the shell contains **no** `type="module"` and **no** `fetch(`;
-- the UMD runtime and the single-file bundle keep the same no-fetch /
+- the shell contains **no** `type="module"` and **no** `fetch(`, and no longer
+  contains the `#innfo-banner` / `#innfo-export-modal` anchors;
+- the runtime source and the single-file bundle keep the same no-fetch /
   no-module hygiene;
-- the bundle **contains** all four globals (each asserted with `toContain`) and
-  matches the `0.1.0` version stamp. The concatenation order is fixed by
-  construction in `scripts/build-console-bundle.mjs`, but the test does **not**
-  assert order.
+- the bundle **contains** `InnfoPreact`, `InnfoVisuals`, `InnfoIcons`,
+  `InnfoConsole` and `InnfoProcedureStepper`, does **not** contain
+  `InnfoModelViewer`, and carries a `Version <declared>` stamp matching the console
+  package version. The test does **not** assert concatenation order.
 
 If a change reintroduces a module import or a network fetch into a shell or the
 bundle, this test fails.
@@ -2740,8 +3036,8 @@ manifest and pinned by both a **tag** (`ref`) and a **40-char commit**:
 
 | Artifact | Pins |
 | :--- | :--- |
-| `docs/use/manifest.md` (`console-assets`) | `version: "0.1.0"`, `ref: "innfo-console-v0.1.0"`, `commit`, and the raw `url` containing that commit |
-| `manifest/source.yaml` (`console_assets` + `channels.stable.refs`) | the same tag under the `innfo-console` ref key |
+| `docs/use/manifest.md` (`console-assets`) | the console `version`, `ref: "nn-console-v<version>"`, `commit`, and the raw `url` containing that commit |
+| `manifest/source.yaml` (`console_assets` + `channels.stable.refs`) | the same tag under the `nn-console` ref key |
 | `scripts/manifest/lib/manifest-rules.js` | resolves a manifest ref to the declared commit (`checkRefResolvesInDeclaredRepo`), checks that a pinned URL contains that commit (`checkMcpUrlPinned`), and validates console assets via `validateConsoleAsset` (release provenance through `checkReleaseProvenance`) |
 
 The stable channel requires a tag-shaped ref and verifies release provenance;
@@ -2749,31 +3045,19 @@ the preview channel tracks `main`.
 
 > **Convention, not enforcement.** Not editing a published bundle in place is a
 > **convention** applied by the release flow. The manifest rules validate that a
-> console pin resolves and carries release provenance; the content-coherence
-> check (`checkTemplateMainCoherence`) applies to **apps only**. None of
-> these enforce write-once immutability on the published artifact. Treat
-> immutability as a discipline, not a runtime guarantee.
+> console pin resolves and carries release provenance. None of these enforce
+> write-once immutability on the published artifact. Treat immutability as a
+> discipline, not a runtime guarantee.
 
 ---
 
-## Older reference assets use the pre-bundle runtime
+## The legacy model viewer is gone
 
-Not every HTML asset uses the three-tag bundle boot. The older reference shells
-still load the pre-bundle `innfo-runtime.js` from the CDN and the mirror **only**
-— no vendored third tag and no `innfo-console.bundle.js`:
-
-| Asset | Runtime loaded |
-| :--- | :--- |
-| `business/assets/model_viewer.html` | `innfo-runtime.js` (CDN + mirror) |
-
-Do not assume every artifact uses the bundle. `innfo-runtime.js` is a legacy
-per-shell runtime, **not** the canonical runtime.
-
-The legacy `business/assets/model_viewer.html` and the `Compile Model Viewer`
-procedure that targeted it (removed in `template_version` `V_0-2-6`) are frozen
-history. Model consultation now lives in the single console shell
-(`console/artifact_shell.html`), which renders origin-typed citation icons per
-field; there is no separate model console asset.
+The older `business/assets/model_viewer.html` shell (which loaded a pre-bundle
+runtime from the CDN) and the `Compile Model Viewer` procedure that targeted it
+are frozen history. Consultation of kNNowledge documents now lives in the single
+console shell (`console/artifact_shell.html`), which renders origin-typed
+citation icons per field; there is no separate per-document console asset.
 
 ---
 
@@ -2782,7 +3066,7 @@ field; there is no separate model console asset.
 - [Sources, Citations & Lineage](sources-citations-lineage) §5 — Git vs. the native
   semantic-versioning system: history/release anchors vs. the write-once
   per-artifact contract.
-- [Collaboration with Git](collaboration-git) — the workspace-to-Git review layer
+- [Collaboration with Git](collaboration-git) — the domaiNN-to-Git review layer
   and its version map.
 
 <!-- end: offline-consoles.md -->
@@ -2796,25 +3080,29 @@ field; there is no separate model console asset.
 What a generated console can do is **declared, not inferred**. A console opts into
 capabilities by listing them in `innfo-config.needs[]`; the shared runtime reads
 that list through `hasNeed()` and only wires the matching UI. Concept color and
-icon are a separate concern: they are **data from the active app**, not a
-hard-coded app palette.
+icon are a separate concern: they are **data from the active blueprint**, not a
+hard-coded palette.
 
 ---
 
-## Needs registry (v0.1.0)
+## Needs registry
 
-`console/needs-registry.json` declares the available needs and the runtime pins.
+`console/needs-registry.json` declares the available needs. Each entry carries a
+`description`, an `anchors` list of DOM hooks, and — when the need is not served
+by the core runtime — a `renderer` hint.
 
 | Need | What it enables |
 | :--- | :--- |
-| `feedback-export` | Reviewer suggest/edit drafts in `localStorage` plus the Export modal (identifier gate, instructions, agent prompt, timestamped JSON download). |
-| `concept-rail` | Left rail of app concepts with per-concept element counts. |
+| `charts` | uPlot chart renderer reading pure-data series from `innfo-model.series`; the x-axis months window comes from `meta.months` / `historyMonths` / `startMonth` / `startYear`. Carries `renderer: "innfo-runtime"`. |
+| `feedback-export` | Reviewer suggest/edit drafts in `localStorage` plus the Export modal (identifier gate, instructions, agent prompt) that produces the `_changes_NN.md` changeset. |
+| `concept-rail` | Left rail of blueprint concepts with per-concept element counts. |
 | `fulltext-search` | Search box filtering element names and field values. |
 | `matrix-grids` | Matrix sections rendered as rows-by-columns tables from the model slots. |
 | `hash-routing` | In-page relationship links resolving to element anchors via the location hash. |
 | `reference-popup` | `reference`-typed values render as pills that open a detail dialog. |
 | `document-view` | Generic readable-document renderer: builds a tree from parent/next fields and renders each root chain (root + steps with concept colors and step-type icons). |
 | `guided-procedure` | Guided procedure execution (fsm-stepper): navigable tree of root `Work` elements and their step chains, with condition guards, I/O, tools, and role assignment. Carries `renderer: "procedure-stepper"`. |
+| `timeline-grid` | Interactive monthly P&L and metrics timeline grid with growth rules, variable overrides, formula recalculation, and CSV export. Carries `renderer: "innfo-runtime"`. |
 
 ### Opt-in and gating
 
@@ -2837,7 +3125,8 @@ On a fresh load the console opens on the **Model Explorer** (the domain's primar
 content), not on the first registered view — a blueprint's `procedure` view would
 otherwise land first. Precedence is: a `--view`-scoped console opens on its scoped
 view; otherwise `#innfo-config.defaultView` if it names a real tab; otherwise
-`explorer`; otherwise the first tab. `defaultView` is a string tab id:
+`explorer`; otherwise the first tab. `defaultView` is a string tab id; a value
+that does not name a real tab is ignored.
 
 ---
 
@@ -2845,12 +3134,12 @@ view; otherwise `#innfo-config.defaultView` if it names a real tab; otherwise
 
 Two mismatches are worth stating plainly.
 
-- **The registry still pins pre-bundle files.** Its `runtime.cdn` / `fallback` /
-  `vendored` entries point at `innfo-runtime.js`, and `renderers.*` list
-  `render-procedure-stepper.js` and `visuals.js`
-  individually. The shipped shells, however, load the single
-  `innfo-console.bundle.js`. The registry is therefore **not** a literal manifest
-  of what the current shells load.
+- **The registry is a need catalog, not a manifest of loaded files.** It is a
+  flat map keyed by need name, each entry holding a `description`, an `anchors`
+  list of DOM hooks, and — for `charts`, `timeline-grid` and `guided-procedure` —
+  a `renderer` hint. It has **no** `runtime` key and never pins bundle filenames:
+  the shipped shells load the single `nn-console.bundle.js`, and the registry does
+  not list it.
 - **`guided-procedure` does not gate the stepper.** The stepper is the registered
   `procedure` view (`procedures/assets/console-view-procedure.js`, order 20): the
   view registry starts it through `InnfoProcedureStepper.mount(container, payload)`
@@ -2861,21 +3150,20 @@ Two mismatches are worth stating plainly.
 
 ---
 
-## App-driven visual identity
+## Blueprint-driven visual identity
 
-Concept color and icon come from the **active app's concept definitions**
-(`innfo-schema.concepts[].color` / `.icon`), never from the app's own palette. A
+Concept color and icon come from the **active blueprint's concept definitions**
+(`innfo-schema.concepts[].color` / `.icon`), never from a hard-coded palette. A
 color is stored as a name (for example `blue`) and translated to a hex value by
 the shared visuals module's `COLOR_HEX`.
 
 | Surface | Resolver | Source |
 | :--- | :--- | :--- |
-| Editor | `useConceptVisuals.ts` `getConceptMeta()` → `{ icon, color }`; `resolveColor()` maps via `getHexColor()` | effective metamodel's `concepts` |
 | Console (procedures) | `render-procedure-stepper.js` `conceptColor(name)` | `innfo-schema.concepts[]`, translated by `InnfoVisuals.getHexColor` |
-| Console (runtime) | `innfo-runtime.js` builds `conceptColorByName` from `concepts[]` | same schema slot |
+| Console (runtime) | `nn-runtime.js` builds `conceptColorByName` from `concepts[]` | same schema slot |
 
 A concept with no declared color falls back rather than erroring — the console
-uses `#171717`, the editor falls back to slate.
+uses `#171717`.
 
 ---
 
@@ -2889,9 +3177,10 @@ surface but not another.
   renders `STEP_TYPE_ICONS[step_type]` (`task`, `decision`, `event`) for step
   nodes. Concept color drives the concept rail and element tags, not the step
   icon.
-- **`visuals.js` is not the only palette.** The editor duplicates the palette as
-  `COLOR_HEX` in `useConceptVisuals.ts`; `visuals.js` mirrors the editor palette
-  but is not imported by every renderer.
+- **Each renderer resolves colors on its own.** `render-procedure-stepper.js` and
+  `nn-runtime.js` both translate a concept color name through
+  `InnfoVisuals.getHexColor`, but neither imports the palette directly — it is
+  shared through the bundle, not owned by a single renderer.
 
 <!-- end: console-needs-and-visuals.md -->
 
@@ -2903,12 +3192,13 @@ surface but not another.
 
 `ui-kit.js` is the single source of truth for console **design tokens** and
 **presentational components**. It is one UMD source in the console bundle
-(global `InnfoUI`) and ships **before** `innfo-runtime.js`, which consumes it
+(global `InnfoUI`) and ships **before** `nn-runtime.js`, which consumes it
 through UMD factory injection.
 
 - Tokens are injected once as `<style data-innfo-tokens="<VERSION>">`.
-- Theming is driven solely by `data-theme` on `<html>` (`light` / `dark` / absent
-  = follow the OS). There is no `.dark` class mechanism.
+- The token set is **light-only**: `setTheme(doc, 'light' | null)` sets or
+  removes `data-theme` on `<html>` and throws a `TypeError` for any other value.
+  There is no dark theme and no `.dark` class mechanism.
 - Components create DOM, keep no module state, and write text via `textContent`.
   No shadow DOM.
 
@@ -2917,24 +3207,34 @@ through UMD factory injection.
 ```js
 InnfoUI = {
   VERSION,
-  TOKEN_VALUES,          // { light: {...}, dark: {...} }
+  COPY,                  // user-facing strings
+  TOKEN_VALUES,          // { light: {...} } (light-only)
   TOKENS,                // token names
   generateTokenCss(values?) -> string,
   ensureTokens(doc?) -> HTMLStyleElement,
-  setTheme(doc, 'light' | 'dark' | null),
+  setTheme(doc, 'light' | null),
   icon(name, size?, cls?) -> string,
   slug(s) -> string,
   conceptSlot({ index, color? }) -> 1..12,
+  tagSlot(name) -> 1..12,   // FNV-1a hash of the lower-cased tag name
+  resolveConceptIconName(name) -> string,
   ORIGIN_VARIANTS,       // ['error','agent','human','reviewer','document']
   CITATION_ORIGIN_LABELS,
-  StatusBadge(data), CitationIcon(data, opts?),
+  STATUS_LABELS, statusLabel(status),
+  StatusBadge(data), CitationIcon(data, opts?), CitationIcons(data, opts?),
   Toast(data, opts?), RailProgress(data),
   describeUnit(kind, ref, index?) -> descriptor,
   Ku(kind, ref, opts?) -> span.innfo-ku-wrap,
   createKu({ doc, onAction }) -> { destroy },
-  KuInfoPanel(descriptor) -> dialog,
-  FieldRow(data, opts?), ElementCard(data, opts?),
-  DraftList(data, opts?), RelList(data, opts?),
+  setUnitChanges(...), KuInfoPanel(descriptor) -> dialog,
+  FieldRow(data, opts?), FieldValue(data, opts?), Markdown(text, opts?), safeHref(url),
+  ElementCard(data, opts?), ElementMini(data, opts?), ElementPreview(data, opts?),
+  TagRow, EditAnchor,
+  DraftList(data, opts?), RelList(data, opts?), ChangeHistory(data, opts?),
+  AnnotationPopover(data, opts?), EditModal(data, opts?), NewElementModal(data, opts?),
+  SankeyFlow(data, opts?),
+  FieldStringWidget, FieldNumberWidget, FieldBooleanWidget, FieldSelectWidget,
+  FieldMultiSelectWidget, FieldReferenceWidget, FieldMarkdownWidget,
   KpiGrid(data, opts?), defineCustomElements(doc?),
   DataTable(data, opts?), MatrixGrid(data, opts?), Timeline(data, opts?),
   FilterSelect(data, opts?),
@@ -2951,7 +3251,8 @@ Every component root carries `data-innfo-component="<kebab-name>"`. Invalid
 | `Ku(kind, ref, { variant?, body? })` | `span.innfo-ku-wrap` > `[data-innfo-component="ku-unit"]` | `data-ku-kind`, `data-ku-nature`, `data-ku-home`, `data-ku-address`; action cluster is a sibling `.innfo-ku-actions` |
 | `describeUnit(kind, ref, index?)` | pure descriptor | `{ kind, nature, home, address, label, slot, vtype?, editability, facts }` |
 | `KuInfoPanel(descriptor)` | `dialog[data-innfo-component="ku-info-panel"]` | focus moves to the heading; Escape restores focus |
-| `StatusBadge({ status, count?, label?, title? })` | `span` | `data-status` (`local`\|`proposed`\|`applied`\|`conflict`); `label` sets the visible word, `title` the tooltip |
+| `StatusBadge({ status, count?, label?, title? })` | `span` | `data-status` accepts **only** `local` (rendered as `Unsent`); any other value throws `TypeError`. `label` sets the visible word, `title` the tooltip |
+| `ChangeHistory({ changes, byId }, { onRevert?, onGoTo?, onCitation? })` | `ul` | `data-innfo-component="change-history"`; one card per `applied` change (with Revert for `update_field`) and one muted card per not-applied change (`conflict` / `rejected`) with the engine's reason |
 | `Toast({ title, body }, { onClose })` | `div.innfo-change-toast` | `data-innfo-component="toast"`, `role="status"`; dismiss control calls `onClose` |
 | `RailProgress({ total, pending })` | `span.innfo-rail-progress` | `data-total`, `data-pending`; text `pending/total` |
 | `CitationIcon({ variant, field }, { onOpen? })` | `button` | `data-origin`, `data-field`; click stops propagation |
@@ -2982,6 +3283,7 @@ tags) instead of hand-rolling a menu. It is a token-styled `<details>` facet:
   user toggle and quick action. The element also exposes `getSelection()` and
   `setSelection(values, silent?)` for programmatic control.
 
+
 ### Data surfaces: one grid, three façades
 
 `DataTable`, `MatrixGrid` and `Timeline` are the same object at three zoom levels — a
@@ -3011,6 +3313,7 @@ Domain views and the `table` scaffold template use these instead of
 hand-rolled `<table>` markup. When a view needs a legend, a filter toolbar or a
 summary line, it renders them as siblings above the returned surface.
 
+
 ### Declarative Web Components
 
 When running in browser contexts, `ui-kit.js` registers a legacy `<innfo-ku>`
@@ -3037,18 +3340,21 @@ per canonical address. Allowed kinds: `domain`, `document`, `section`, `element`
 `value`, `concept`, `field`, `matrix`, `source`. Every badge carries
 `data-ku-kind`, `data-ku-nature` (`container` / `structure` / `content`),
 `data-ku-home` (`domain` / `blueprint` / `knowledge` / `source`) and
-`data-ku-address` (parsed by `innfo-core`'s `parseUnitAddress`).
+`data-ku-address` (parsed by `nn-core`'s `parseUnitAddress`). There is one unified badge selector, `[data-innfo-component="ku-unit"]`; the former `ku-badge` and `concept-pill` selectors no longer exist.
 
 - `Ku(kind, ref, { variant?, body? })`: `ref` carries the identity facts
   (`model`, `family`, `id`, `concept`, `name`, `field`, `element`, `row`, `col`,
   `address`). Sections and definitions are prefixed with `concept:` / `matrix:`;
   element, value and cell addresses stay equal to changeset `target::`.
-- Visual grammar: container = double border, structure = dashed + mono, content =
-  solid, source = warm `--innfo-source-paper` fill, concept identity via slots.
-- The action cluster (`span.innfo-ku-actions`) is always OUTSIDE the badge root.
-  Info is always present; edit appears when `describeUnit(...).editability !== 'none'`.
-  CSS hides edit under `html:not([data-innfo-review=on])` and structure pencils
-  under `html:not([data-innfo-structure=on])`.
+- Visual grammar: container = `2px` solid border, structure = `1.5px` solid border
+  + mono type, content = borderless (tinted fill), source = warm
+  `--innfo-source-paper` fill, concept identity via slots.
+- One affordance sits beside each badge: a single `+` button
+  (`button[data-ku-more="true"]`, `aria-expanded`). It opens a floating flyout
+  (`span.innfo-ku-actions`) that is always OUTSIDE the badge root. Info is always
+  present; reveal, citations (when there are any) and edit (only when
+  `describeUnit(...).editability !== 'none'`) follow. There are no
+  `data-innfo-review` / `data-innfo-structure` CSS gates.
 - `createKu({ doc, onAction })` installs ONE delegated listener per document and
   forwards `(action, descriptor)`; the kit owns no review state.
 - A pending-change pip (`button[data-innfo-component="ku-change-pip"]`) sits beside
@@ -3113,21 +3419,24 @@ Anything else (tables, images, nested lists, HTML) is literal text, so nothing i
 
 ### Tags and the filter
 
-`ElementCard` renders `TagRow` from `element.tags` only when it is non-empty (the review
+`ElementCard` renders `TagRow` from the element's tags only when non-empty (the review
 controller adds its own row for "+ tag" on untagged cards). With `opts.onTag` each chip is a
-button; the runtime wires it to add `tag:<t>` to the active filter.
+button; the runtime wires it to add `tags:<t>` to the active filter.
 
-`element.tags` is the only tag source (a field merely named `tags` is not one). Filter facets
+In `iNNfo_V_0-5-0`, `tags` is the built-in multi-valued `select` Field present on every
+Concept and Element, not a separate property. Chip colors are not configured anywhere:
+`tagSlot(name)` hashes the lower-cased tag name with FNV-1a (32-bit) and maps it to one of
+the 12 `--innfo-concept-N` slots, so a tag has the same color in every console. Filter facets
 combine as follows:
 
 | Token | Meaning |
 |---|---|
-| `tag:a tag:b` | AND, exact and case-insensitive: the element carries both |
-| `tag-any:a tag-any:b` | OR group: the element carries at least one |
+| `tags:a tags:b` | AND, exact and case-insensitive: the element carries both |
+| `tags:a|b` | any-of inside one token: the element carries at least one of the listed tags |
 | `concept:` / `model:` (repeated) | OR within the facet |
 | different facets, text | AND |
 
-The search box tooltip states the asymmetry (tags narrow, concepts and models widen).
+The runtime treats `tags` as an ordinary Field facet; any-of lives inside a single token with `|`.
 
 ### Open original
 
@@ -3138,19 +3447,19 @@ for the file.
 
 ## Tokens
 
-`TOKEN_VALUES` holds a light and a dark value for every `--innfo-*` token:
+`TOKEN_VALUES` holds a (light-only) value for every `--innfo-*` token:
 surfaces (`--innfo-bg`/`-surface`/`-surface-2`), text (`--innfo-text`/`-muted`/
 `-border`), `--innfo-accent`/`-link`/`-focus`, 12 `--innfo-concept-N` plus a
 matching `--innfo-concept-N-bg` tint for tinted badge fills, status
-(`--innfo-status-{pending,applied,rejected,stale}` + `-bg`), origin
+(`--innfo-status-{pending,applied,rejected,stale,unsent}` + `-bg`), origin
 (`--innfo-origin-{agent,human,reviewer,document,error}`), radii, `--innfo-font`,
 `--innfo-mono`, `--innfo-shadow`. `generateTokenCss` is the only place the CSS is
 produced; nothing is hand-written twice.
 
-**Contrast**: status foregrounds meet WCAG AA (>= 4.5:1) against their own `-bg`
-in both themes, the allowed text pairs meet 4.5:1, and origin icons meet 3:1 on
+**Contrast**: status foregrounds meet WCAG AA (>= 4.5:1) against their own `-bg`,
+the allowed text pairs meet 4.5:1, and origin icons meet 3:1 on
 `--innfo-surface`. These are enforced by `console-ui-kit-contrast.test.ts` with an
-independent luminance function. Light `--innfo-muted` is **not** allowed on
+independent luminance function. `--innfo-muted` is **not** allowed on
 `--innfo-surface-2` (chips use `--innfo-text`).
 
 ## Build and check
@@ -3182,11 +3491,11 @@ never migrated to tokens, and are excluded from the shell guard (it skips
 - One card commit point per renderer: `InnfoConsole.refresh` -> `mountElementCards`
   and the viewer's `render()`.
 - Stable hooks: `[data-innfo-component=element-card][data-element-id]`,
-  `[data-innfo-component=ku-badge][data-ku-kind=field][data-field]` inside it,
-  `[data-innfo-component=concept-pill][data-concept-id]`, the `ku-actions` cluster
-  (`[data-ku-action]`), the change pip (`[data-innfo-component=ku-change-pip]`),
+  `[data-innfo-component=ku-unit][data-ku-kind=field][data-field]` inside it,
+  `[data-innfo-component=ku-unit][data-concept-id]`, the `ku-actions` cluster
+  (`[data-ku-action]`, inside the `+` flyout), the change pip (`[data-innfo-component=ku-change-pip]`),
   and the `.innfo-card-head` / `.innfo-card-body` containers.
-- `TOKEN_VALUES`, `TEXT_PAIRS`, `StatusBadge` (with `stale`) and the review
+- `TOKEN_VALUES`, `TEXT_PAIRS`, `StatusBadge` (only `local`), `ChangeHistory` and the review
   components are exported for the review UX layer.
 
 <!-- end: console-ui-kit.md -->
@@ -3206,8 +3515,8 @@ severities that decide whether a diagnostic fails the run.
 ## Deterministic diagnostics
 
 - A diagnostic carries a severity of `error`, `warning`, or `info`
-  (`innfo-core/src/types/validation.ts`).
-- `Diagnostics` (`innfo-core/src/diagnostics.ts`) routes each diagnostic into an
+  (`iNNfo/packages/nn-core/src/types/validation.ts`).
+- `Diagnostics` (`iNNfo/packages/nn-core/src/diagnostics.ts`) routes each diagnostic into an
   errors bucket or a warnings bucket by its severity. `info` lands in the warnings
   bucket but keeps `severity: 'info'` so reporters can tell it apart.
 - **Only `error` fails validation.** `warning` and `info` never affect the
@@ -3217,11 +3526,11 @@ severities that decide whether a diagnostic fails the run.
 
 ## Differential validation (`baseline_path`)
 
-Pass `baseline_path` to `validate_model` to compare the current run against a
+Pass `baseline_path` to `validate_knowledge` to compare the current run against a
 versioned baseline of known errors. Only **new** errors surface in the main
 output; known errors are suppressed and counted with a `backlog` link.
 
-The core logic is a pure module, `innfo-core/src/validator/baseline.ts`:
+The core logic is a pure module, `iNNfo/packages/nn-core/src/validator/baseline.ts`:
 
 | Export | Role |
 | :--- | :--- |
@@ -3247,49 +3556,42 @@ Behavior:
 
 ## Version inference at scaffold time
 
-`innfo-mcp/src/tools/init-model.ts` infers a new model's version from the resolved
-**parent app's own `spec_version`**:
+`iNNfo/packages/nn-mcp/src/tools/init-knowledge.ts` (the `init_knowledge` tool) infers a new kNNowledge document's version from the resolved **parent bluepriNNt**:
 
-- Omitting `knowledge_version` inherits the bluepriNNt's `spec_version`.
-- An explicit `knowledge_version` wins only when it does not contradict the inferred
-  one.
-- When both exist and differ, init refuses to write and returns
-  `VERSION_MISMATCH` instead of emitting a differing version.
+- Omitting `knowledge_version` inherits the bluepriNNt's `blueprint_version`, else its `spec_version`, else `V_0-1-0`.
+- An explicit `knowledge_version` is **accepted even when it differs** from the parent's version — there is no `VERSION_MISMATCH` rejection at scaffold time.
+- The id is `<name>_<blueprint>` and carries no version; the server drops any `_V_x-y-z` token and appends the blueprint suffix when missing.
 
-The document is validated before it is written. The write is gated on
-`templateErrors.length > 0 || (templateResolved && !doc.valid)`, so a schema
-failure aborts the write — **unless** the parent template could not be resolved
-(`templateResolved === false`), in which case the frontmatter-only document is
-still written and the failure is reported as a warning.
+`init_knowledge` is create-only and implemented as a one-change `add_model` changeset (written to `changes/` and applied). If the parent bluepriNNt **cannot be resolved, the call fails and writes nothing** — no frontmatter-only document is produced and there is no warning-only fallback. An existing id fails with `MODEL_EXISTS` and leaves the file untouched.
 
 ---
 
-## Resolver: workspace-first, temp writes
+## Resolver: domaiNN-first, temp writes
 
-`innfo-mcp/src/tools/resolver-node.ts` resolves a parent chain in a fixed order:
+`iNNfo/packages/nn-mcp/src/tools/resolver-node.ts` resolves a parent chain in a fixed order:
 
 1. **Direct local read** — when the parent URL is a local path or `file://`
-   URI, it is read directly.
-2. **4-tier package resolution** (`resolveTemplatePackage`) — Tier 1 workspace
-   package (`specs/bluepriNNts/<base>/<version>/`), Tier 2 workspace flat
-   (`specs/` + `templates/`), Tier 3 global cache, Tier 4 installed skills.
-   There is no standalone local-`specs/` step ahead of this: the workspace
-   `specs/` tree **is** Tier 2.
+   URI, it is read directly (confined to the domain root).
+2. **Local package resolution** (`resolveBlueprintPackage`, exported from `nn-core`) —
+   Tier 1 domaiNN package (`specs/bluepriNNts/<name>/spec_NN.md`, or the versioned
+   `specs/bluepriNNts/<name>/<version>/` directory), Tier 2 domaiNN flat
+   (`specs/`), Tier 3 global user cache (`~/.agents/bluepriNNts/`), Tier 4 installed
+   skills (`~/.agents/skills/<skill>/bluepriNNts/`).
 3. **OS temp cache** — a previous default run's fetched specs.
 4. **Network** — download and hydrate.
+5. **Built-in Canonical Fallback Registry** — the canonical bluepriNNts bundled with the server, used when nothing else resolves.
 
 Fetch-and-save writes go to the **OS temp directory by default**, not the
-workspace:
+domaiNN:
 
 - `defaultCacheDir()` returns `INNFO_CACHE_DIR` when set, otherwise
   `join(tmpdir(), 'innfo-specs')`.
 - Setting `in_place: true` restores in-tree writes under `specs/`.
 
-So a default run leaves the workspace tree clean; nothing is written into `specs/`
+So a default run leaves the domaiNN tree clean; nothing is written into `specs/`
 unless `in_place` is requested.
 
 ---
-
 ## Version numbers
 
 Do not copy version strings from `specifications.md` — it can lag the code. Read
@@ -3299,3 +3601,4 @@ the authoritative version from `catalog.json` or the artifact's own frontmatter
 <!-- end: validator-behavior.md -->
 
 ---
+
