@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { run } from './compile-site.mjs';
+import { run, MARKER_FILE, MARKER_TEXT } from './compile-site.mjs';
 import { loadSite } from './lib/site-model.mjs';
 
 const require = createRequire(import.meta.url);
@@ -68,6 +68,7 @@ function tree(dir) {
 }
 const read = (out, name) => fs.readFileSync(path.join(out, name), 'utf8');
 const navOf = (html) => /<nav[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
+const plainNav = (html) => navOf(html).replace(' aria-current="page"', '');
 
 // ---- 4.1 pages, shell, navigation ---------------------------------------------------------
 
@@ -77,7 +78,7 @@ test('writes a flat <slug>.html per Page with title, description and a relative 
   });
   const { code, out } = await compile(dir);
   assert.equal(code, 0);
-  assert.deepEqual(Object.keys(tree(out)).sort(), ['index.html', 'install.html', 'llms.txt', 'site.css', 'sitemap.xml']);
+  assert.deepEqual(Object.keys(tree(out)).sort(), [MARKER_FILE, 'index.html', 'install.html', 'llms.txt', 'site.css', 'sitemap.xml']);
   const html = read(out, 'install.html');
   assert.match(html, /<title>Install<\/title>/);
   assert.match(html, /<meta name="description" content="How to install\.">/);
@@ -108,7 +109,7 @@ test('navigation: fixed kind order, then order, then slug; empty groups omitted;
   const hrefs = [...nav.matchAll(/<a href="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(hrefs, ['index.html', 'tour.html', 'z-first.html', 'a.html', 'b.html', 'legal.html']);
   assert.doesNotMatch(nav, /Concepts|Reference/);
-  for (const f of ['tour.html', 'a.html', 'legal.html']) assert.equal(navOf(read(out, f)), nav);
+  for (const f of ['tour.html', 'a.html', 'legal.html']) assert.equal(plainNav(read(out, f)), plainNav(read(out, 'index.html')));
 });
 
 test('navigation entries show the title and the summary', async () => {
@@ -157,7 +158,7 @@ test('the seed domaiNN compiles: one file per Page plus css, sitemap and llms.tx
   const { code, out } = await compile(SEED);
   assert.equal(code, 0);
   const pages = loadSite(SEED).pages;
-  assert.equal(Object.keys(tree(out)).length, pages.length + 3);
+  assert.equal(Object.keys(tree(out)).length, pages.length + 4);
   for (const p of pages) assert.ok(fs.existsSync(path.join(out, `${p.slug}.html`)), p.slug);
   assert.ok(fs.existsSync(path.join(out, 'index.html')));
 });
@@ -301,6 +302,7 @@ test('only the given directory is removed; siblings and parents survive', async 
   fs.writeFileSync(path.join(parent, 'note.txt'), 'n');
   const out = path.join(parent, 'site');
   fs.mkdirSync(out);
+  fs.writeFileSync(path.join(out, MARKER_FILE), MARKER_TEXT);
   fs.writeFileSync(path.join(out, 'stale.txt'), 's');
   assert.equal((await compile(dir, out)).code, 0);
   assert.ok(!fs.existsSync(path.join(out, 'stale.txt')));
@@ -466,4 +468,77 @@ test('committed docs/next/ matches a fresh compile of site_NN/', async () => {
   for (const f of Object.keys(fresh)) {
     assert.equal(have[f], fresh[f], `docs/next/${f} is stale: run \`node scripts/site/compile-site.mjs\` and commit the result`);
   }
+});
+
+// ---- review follow-up: safe deletion, links, accessibility ---------------------------------
+
+test('refuses a non-empty outDir without the marker and leaves it untouched', async () => {
+  const dir = fixture();
+  const parent = tmp('docs');
+  fs.mkdirSync(path.join(parent, 'innfo'));
+  fs.writeFileSync(path.join(parent, 'innfo', 'x.txt'), 'x');
+  fs.writeFileSync(path.join(parent, 'manifest.md'), 'm');
+  const before = tree(parent);
+  const { code, text } = await compile(dir, parent);
+  assert.equal(code, 1);
+  assert.match(text, /outDir/);
+  assert.ok(text.includes(MARKER_FILE), text);
+  assert.deepEqual(tree(parent), before);
+});
+
+test('an empty or missing outDir is fine; a dir with the marker is replaced', async () => {
+  const dir = fixture();
+  const empty = tmp('empty');
+  assert.equal((await compile(dir, empty)).code, 0);
+  assert.equal(read(empty, MARKER_FILE), MARKER_TEXT);
+  const marked = tmp('marked');
+  fs.writeFileSync(path.join(marked, MARKER_FILE), MARKER_TEXT);
+  fs.writeFileSync(path.join(marked, 'old.html'), 'old');
+  assert.equal((await compile(dir, marked)).code, 0);
+  assert.ok(!fs.existsSync(path.join(marked, 'old.html')));
+  assert.ok(fs.existsSync(path.join(marked, 'index.html')));
+});
+
+test('an outDir that is a link is replaced by a real directory and the target survives', async () => {
+  const dir = fixture();
+  const target = tmp('target');
+  fs.writeFileSync(path.join(target, MARKER_FILE), MARKER_TEXT);
+  fs.writeFileSync(path.join(target, 'keep.txt'), 'keep');
+  const link = path.join(tmp('parent'), 'next');
+  fs.symlinkSync(target, link, 'junction');
+  const { code, text } = await compile(dir, link);
+  assert.equal(code, 0, text);
+  assert.ok(!fs.lstatSync(link).isSymbolicLink());
+  assert.ok(fs.existsSync(path.join(link, 'index.html')));
+  assert.equal(fs.readFileSync(path.join(target, 'keep.txt'), 'utf8'), 'keep');
+  assert.ok(!fs.existsSync(path.join(target, 'index.html')));
+});
+
+test('a multi-line summary cannot reach llms.txt: the continuation line is body, not summary', async () => {
+  const dir = fixture({
+    'pitch_site_NN.md': pageDoc('## NN Page: Home\nslug:: index\nkind:: pitch\norder:: 1\nsummary:: First line.\nSecond line.\n'),
+  });
+  const { code, out } = await compile(dir);
+  assert.equal(code, 0);
+  const txt = read(out, 'llms.txt');
+  assert.match(txt, /index\.html\): First line\.\n/);
+  assert.doesNotMatch(txt, /Second line/);
+  assert.equal(txt.split('\n').filter((l) => l.startsWith('- [')).length, 1);
+  assert.match(read(out, 'index.html'), /<p>Second line\.<\/p>/);
+});
+
+test('every page has a skip link to the main region', async () => {
+  const { out } = await compile(fixture());
+  const html = read(out, 'index.html');
+  assert.match(html, /<a href="#main" class="skip-link">Skip to content<\/a>/);
+  assert.match(html, /<main id="main">/);
+});
+
+test('only the active page carries aria-current in the navigation', async () => {
+  const dir = fixture({ 'guide_site_NN.md': pageDoc(page('Install', { slug: 'install', kind: 'guide' })) });
+  const { out } = await compile(dir);
+  const nav = navOf(read(out, 'install.html'));
+  assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1);
+  assert.match(nav, /<a href="install\.html" aria-current="page">Install<\/a>/);
+  assert.doesNotMatch(navOf(read(out, 'index.html')), /<a href="install\.html" aria-current/);
 });

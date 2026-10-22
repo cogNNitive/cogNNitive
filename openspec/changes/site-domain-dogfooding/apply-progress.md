@@ -163,3 +163,8 @@ Final: `node --test "scripts/site/**/*.test.mjs"` 89 pass, 0 fail (54 from 3a + 
 
 Created: `scripts/site/compile-site.mjs`, `scripts/site/compile-site.test.mjs`, `site_NN/specs/bluepriNNts/site/assets/{shell.html,site.css}`, `docs/next/**` (9 files, generated).
 Modified: `scripts/site/lib/markdown-subset.mjs` (export `esc`), `specs/site-compiler/spec.md` (slot list), `tasks.md` (4.1-4.9 ticked), this file. Protected paths untouched.
+
+### Review follow-up (Slice 3b)
+
+Fresh review fixes, tests first (the new tests failed on the missing `MARKER_FILE` export, then 41/41 green in `compile-site.test.mjs`):
+safe deletion (the compiler writes `.site-compiled` into every output and refuses to delete a non-empty `outDir` without it, so `outDir = docs/` is rejected and untouched; an empty or missing dir is fine; a marked dir is replaced); a link `outDir` is unlinked and replaced by a real directory while its target survives (junction test); page count comes from `ordered.length`; a multi-line summary is pinned (the continuation line becomes body, so `llms.txt` keeps one line per Page); skip link plus `main id="main"` in the shell; `aria-current="page"` on the active nav entry (navigation otherwise identical, spec reworded). The previously committed `docs/next/` had no marker, so it was deleted once by hand and regenerated; `findSourceOffenders` accepts the marker file (it only flags `.env*`, `node_modules` and root-forbidden names).
