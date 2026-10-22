@@ -96,3 +96,33 @@ Protected paths untouched.
 ### Review follow-up (Slice 2)
 
 Design, tasks 3.5 and the site-compiler spec now say lists are `1. ` only and the renderer rejects `- `/`* ` lines (also inside fences) with its own `file:line` error. Tutorial names the `business` bluepriNNt and links `[[Validate your domaiNN]]`; reference summary says "main folders". Spec kinds are read from the bluepriNNt `kind` select and the set of `*_site_NN.md` Page files must equal them (this guard was green on first run: the content already satisfied it; the tutorial and reference tests were RED first). Result: 32 tests pass; `node scripts/verify.js --fast` passes.
+
+## Batch 3: Slice 3a (parser and renderer)
+
+Status: complete. 8/8 Slice 3a tasks done (20/20 cumulative; Slices 3b-5 not started). Branch `session/site-domain-dogfooding-s3a`.
+
+### TDD cycle evidence
+
+| Task | Test file | Layer | RED | GREEN | Triangulate | Refactor |
+|------|-----------|-------|-----|-------|-------------|----------|
+| 3.1, 3.2, 3.2a | `scripts/site/site-model.test.mjs` | Unit | ERR_MODULE_NOT_FOUND for `lib/site-model.mjs` (module absent) | 21 tests green after first implementation (two test-side defects fixed: `bodyLine` vs heading line, a regex order) | one test per rejection (prose key::, in-fence key::, late field, dup name, dup slug, bad slug x2, no index, kind, order x3, base_url x3, missing field x6, 2nd Site x2, no Site, sources) plus positive cases | typecheck fix: `bodyLines` array vs `body` string |
+| 3.3, 3.4 | same | Agreement | agreement test written with the parser; mutation (upper-casing field values) turned it and 11 others red | green on first run: no divergence found, so 3.4 needed no parser change | compared name, concept, explicit slug, and raw field strings (`rawFields` minus `slug`) over all 7 seed documents | none |
+| (BOM) | same | Unit | mutation removing the BOM strip stayed green for the BOM+CRLF test (no teeth: frontmatter masks it); added a no-frontmatter BOM test, which fails under the mutation | green | n/a | n/a |
+| 3.5, 3.6 | `scripts/site/markdown-subset.test.mjs` | Unit + seed integration | ERR_MODULE_NOT_FOUND for `lib/markdown-subset.mjs` | 18 tests green, then 19 with the seed-render test | every supported construct and every rejection asserts `file:line` and message; all 6 seed Pages with a body render | none |
+| 3.7 | `npx eslint scripts/site/` (0 problems), `node scripts/verify.js --fast` (all pass) | Repo guards | first verify run failed on Typecheck Scripts (TS2322/TS2339 in `scripts/site/`) | fixed, rerun green | n/a | n/a |
+
+Final: `node --test "scripts/site/**/*.test.mjs"` 41 pass, 0 fail; `node scripts/verify.js --fast` all pre-checks passed.
+
+### Findings
+
+1. `node --test scripts/site/` (bare directory) reports a single failing "test" on Node 22.22.2 / Windows; the glob form `node --test "scripts/site/**/*.test.mjs"` works, and verify.js discovers the files on its own.
+2. The spec scenario "Supported constructs render" says `<ul>`; lists are `1. ` only, so the renderer emits `<ol>`. The spec wording should be reconciled to `<ol>`.
+3. nn-core `rawFields` keeps `sources` as the raw string; `loadSite` parses it into `{path, unit}` tokens (whitespace separated, `[path@unit]` only).
+4. `loadSite` model: `{ dir, site, pages }`; a Page carries `line` (heading) and `bodyLine` (first body line, the value `renderBody` takes as `line`). Errors are `SiteError` with `file` (domaiNN-relative, forward slashes) and `line`.
+5. `KEY_LINE` is exported from `site-model.mjs` and reused by the renderer, so both reject the same lines.
+6. The Write tool emitted literal U+FEFF/U+FFFD characters for `\uFEFF`/`\uFFFD` escapes in source; they were replaced by real escapes (eslint `no-irregular-whitespace` caught it).
+
+### Files
+
+Created: `scripts/site/lib/site-model.mjs`, `scripts/site/lib/markdown-subset.mjs`, `scripts/site/site-model.test.mjs`, `scripts/site/markdown-subset.test.mjs`.
+Modified: `tasks.md` (3.1-3.7 ticked), this file. Protected paths untouched.
