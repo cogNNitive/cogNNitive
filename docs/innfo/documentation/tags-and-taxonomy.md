@@ -18,7 +18,7 @@ To keep clean architectural boundaries, cogNNitive distinguishes three dimension
 > **CONCEPTS > CODE**: Use **Tags** to filter the dimensional space (what elements belong to which strategy); use **Releases** to freeze the timeline (a verified baseline of the whole domain).
 
 > [!NOTE]
-> The former `Marker` primitive (`# NN Marker Definition`, `item-markers` matrices, and the `set_marker` operation) was **removed** in iNNfo `V_0-5-0`. Attempts to use it fail with `MARKERS_REMOVED` / `UNKNOWN_OPERATION`. Flag markers became values on the built-in `tags` field; valued markers became normal Fields.
+> The former `Marker` primitive (its definition heading, `item-markers` matrices, and the `set_marker` operation) was **removed** in iNNfo `V_0-5-0`. Attempts to use it fail with `MARKERS_REMOVED` / `UNKNOWN_OPERATION`. Flag markers became values on the built-in `tags` field; valued markers became normal Fields.
 
 ---
 
@@ -55,7 +55,7 @@ status:: optional
 
 ## 3. `tags` Is a Built-in Field
 
-In `V_0-5-0`, `tags` is the **built-in multi-valued `select` Field** present on every Concept and Element. There is no `# NN Tag` concept in a domaiNN, and no domain-root tag catalog:
+In `V_0-5-0`, `tags` is the **built-in multi-valued `select` Field** present on every Concept and Element. There is no reserved `Tag` concept in a domaiNN, and no domain-root tag catalog:
 
 * A tag is simply a value of the `tags` field — there is nothing to declare or register.
 * Tags are never validated against a closed list; an unknown tag is always valid.

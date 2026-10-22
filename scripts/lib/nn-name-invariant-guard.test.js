@@ -75,11 +75,9 @@ function main() {
   }
   console.log('✔ a _V_ token in a new name fails');
 
-  // 4. Frozen carve-out: samples, use-cases, published specs, frozen blueprints, workspace procedures.
+  // 4. Frozen carve-out: published specs, frozen blueprints, workspace procedures.
   {
     const files = {
-      'docs/innfo/samples/x/Ghostbusters_Operations_V_1-0-0_NN.md': doc('business'),
-      'docs/cognitive_nn/use-cases/a/Client_NN.md': doc('business'),
       'iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-3_business_NN.md': doc('business'),
       'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures'),
       'iNNfo/specs/bluepriNNts/cogNNitive/samples/workspace_NN.md': doc('workspace_spec'),
@@ -89,6 +87,17 @@ function main() {
     assert.deepStrictEqual([...r.carvedOut].sort(), Object.keys(files).sort());
   }
   console.log('✔ frozen paths are carved out and reported, not failed');
+
+  // 4b. The samples and use-cases trees are no longer carved out: a retired name there is a violation.
+  {
+    const r = run({
+      'docs/innfo/samples/x/Ghostbusters_Operations_V_1-0-0_NN.md': doc('business'),
+      'docs/cognitive_nn/use-cases/a/Client_NN.md': doc('business'),
+    });
+    assert.strictEqual(r.ok, false, 'sample/use-case violations must fail once the carve-out is removed');
+    assert.strictEqual(r.carvedOut.length, 0, 'no sample/use-case path may be carved out');
+  }
+  console.log('✔ sample and use-case trees are guarded, not carved out');
 
   // 5. The carve-out names the workspace procedures folder explicitly; a sibling non-frozen procedure still fails.
   {

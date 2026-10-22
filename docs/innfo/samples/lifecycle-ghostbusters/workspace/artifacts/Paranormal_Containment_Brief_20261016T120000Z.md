@@ -1,7 +1,7 @@
 ---
 type: deliverable
-derived_from: [Ghostbusters_Operations_V_1-0-0_NN]
-exported_at: "2026-09-12T12:00:00Z"
+sources: [kNNowledge/Ghostbusters_Operations_business_NN.md]
+exported_at: "2026-10-16T12:00:00Z"
 author: "Dr. Peter Venkman"
 ---
 
