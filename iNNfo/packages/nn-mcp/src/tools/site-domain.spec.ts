@@ -91,6 +91,60 @@ describe('site domaiNN: local bluepriNNt resolution', () => {
   })
 })
 
+// Slice 2: seed Pages. One kNNowledge document per kind (<kind>_site_NN.md).
+const KINDS = ['tutorial', 'guide', 'concept', 'reference', 'pitch', 'legal'] as const
+const PAGE_RE = /^## NN Page: (.+)$/gm
+
+describe('site domaiNN: seed Pages', () => {
+  const docs = KINDS.map((kind) => ({ kind, rel: `kNNowledge/${kind}_site_NN.md` }))
+
+  it.each(docs)('validates the $kind seed document without errors', async ({ rel }) => {
+    const result = await validateDoc(await read(rel))
+    expect(result.errors).toEqual([])
+    expect(result.valid).toBe(true)
+  })
+
+  it.each(docs)('declares exactly one Page of kind $kind with slug, order and summary', async ({ kind, rel }) => {
+    const text = await read(rel)
+    expect([...text.matchAll(PAGE_RE)]).toHaveLength(1)
+    expect(text).toMatch(new RegExp(`^kind:: ${kind}$`, 'm'))
+    expect(text).toMatch(/^slug:: [a-z0-9]+(-[a-z0-9]+)*$/m)
+    expect(text).toMatch(/^order:: \d+$/m)
+    expect(text).toMatch(/^summary:: \S.*$/m)
+  })
+
+  it('uses unique slugs site-wide with exactly one index', async () => {
+    const slugs: string[] = []
+    for (const { rel } of docs) {
+      const m = (await read(rel)).match(/^slug:: (.+)$/m)
+      expect(m).not.toBeNull()
+      slugs.push(m![1])
+    }
+    expect(new Set(slugs).size).toBe(slugs.length)
+    expect(slugs.filter((s) => s === 'index')).toHaveLength(1)
+  })
+
+  it.each(docs)('keeps key:: lines out of the $kind body and uses no #/## headings in it', async ({ rel }) => {
+    const text = await read(rel)
+    const lines = text.split('\n')
+    const start = lines.findIndex((l) => /^## NN Page: /.test(l))
+    expect(start).toBeGreaterThan(-1)
+    let i = start + 1
+    while (i < lines.length && /^[\w-]+:: /.test(lines[i])) i++
+    const body = lines.slice(i)
+    expect(body.filter((l) => /^\s*[\w-]+::\s/.test(l))).toEqual([])
+    expect(body.filter((l) => /^#{1,2} /.test(l))).toEqual([])
+    expect(body.join('\n').trim().length).toBeGreaterThan(0)
+  })
+
+  it('ships a compile-site procedure naming the compiler script', async () => {
+    const proc = await read('specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md')
+    expect(proc).toContain('tool:: scripts/site/compile-site.mjs')
+    const result = await validateDoc(proc)
+    expect(result.errors).toEqual([])
+  })
+})
+
 describe('site domaiNN: bluepriNNt rules', () => {
   it('rejects an unknown kind', async () => {
     const page = (await read(PAGE_DOC)).replace(/^kind:: .*$/m, 'kind:: blog')
