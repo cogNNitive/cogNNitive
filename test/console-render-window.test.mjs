@@ -10,7 +10,7 @@ const repoRoot = join(here, '..')
 const require = createRequire(import.meta.url)
 const runtime = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/nn-runtime.js'))
 
-const PAGE = 150
+const PAGE = 100
 
 // nn-runtime's `el()` reads the global `document`; the console browser does too.
 function mountDoc() {

@@ -8878,7 +8878,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // whole (100k-node) DOM in one synchronous pass.
   // ponytail: cap + "show more", not full virtualization (no row-height math);
   // upgrade to windowing only if this measurably falls short.
-  var RENDER_PAGE = 150
+  var RENDER_PAGE = 100
   function chunked(host, items, renderSlice, page, buttonHost) {
     page = page || RENDER_PAGE
     buttonHost = buttonHost || host
