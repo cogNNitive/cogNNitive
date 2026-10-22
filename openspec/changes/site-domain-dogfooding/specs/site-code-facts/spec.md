@@ -49,7 +49,7 @@ files MAY be modified.
 The import MUST write each snapshot with
 `writeOnce(<domainDir>, { dir: 'sources/import/code-facts', key, ext: 'md' }, bytes)`
 followed by `cognitivize`, producing a member named `<key>_<YYYYMMDDTHHMMSSZ>[-n].md` and a
-sidecar (`<member>_sidecar_NN.md`) recording `sha256`, `size_bytes`, `source_format` and
+sidecar (`<member>.md_sidecar_NN.md`) recording `sha256`, `size_bytes`, `source_format` and
 `normalized_at`. The stamp MUST come from the injected `now` so tests are deterministic. It
 MUST NEVER overwrite an existing member or rewrite an existing sidecar. The CLI MUST load
 facts from the dist and `manifest/source.yaml`; `run` MUST accept injected `facts`.

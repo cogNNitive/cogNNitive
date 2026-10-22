@@ -219,7 +219,8 @@ This change MUST NOT add a `site` folder under `iNNfo/specs/bluepriNNts/`, MUST 
 The `site` bluepriNNt MUST ship `procedures/compile_site_procedures_NN.md` (the
 `compile-site` procedure, with `tool:: scripts/site/compile-site.mjs`, repo-relative) and
 `procedures/usage_procedures_NN.md`. It MUST also ship `assets/shell.html` (slots
-`{{title}} {{nav}} {{content}} {{sources}}`) and `assets/site.css`.
+`{{title}} {{description}} {{site}} {{tagline}} {{nav}} {{content}} {{sources}}`) and
+`assets/site.css`.
 
 #### Scenario: The procedure names an existing tool
 
@@ -231,7 +232,7 @@ The `site` bluepriNNt MUST ship `procedures/compile_site_procedures_NN.md` (the
 
 - GIVEN the `site` bluepriNNt folder
 - WHEN `assets/` is listed
-- THEN `shell.html` and `site.css` are present and the shell contains the four slots
+- THEN `shell.html` and `site.css` are present and the shell contains the seven slots
 
 #### Scenario: The usage procedure exists
 
