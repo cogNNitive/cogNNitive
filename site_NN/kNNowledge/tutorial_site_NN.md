@@ -35,10 +35,10 @@ Copy a raw file, such as meeting notes, into `sources/import/`. Ask the agent to
 
 ### Write the kNNowledge
 
-Ask the agent to model what the source says. It creates a kNNowledge document under `kNNowledge/` and cites the source for every statement.
+Ask the agent to model what the source says. Pick a bluepriNNt, for example business. The agent creates a kNNowledge document under `kNNowledge/` from it and cites the source.
 
 ### Check your work
 
 Ask the agent to validate the document and to check the domaiNN. The `validate_knowledge` and `check_domain` tools report errors, dangling citations and drift.
 
-The guide on validating a domaiNN explains how to read the results.
+[[Validate your domaiNN]] explains how to read the results.

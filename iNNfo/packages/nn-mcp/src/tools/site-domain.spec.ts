@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 import { join } from 'node:path'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { validateKnowledge } from './mutate'
 
@@ -92,10 +92,39 @@ describe('site domaiNN: local bluepriNNt resolution', () => {
 })
 
 // Slice 2: seed Pages. One kNNowledge document per kind (<kind>_site_NN.md).
-const KINDS = ['tutorial', 'guide', 'concept', 'reference', 'pitch', 'legal'] as const
+// The kinds are read from the bluepriNNt `kind` select, not hardcoded.
+async function blueprintKinds(): Promise<string[]> {
+  const spec = await read('specs/bluepriNNts/site/spec_NN.md')
+  const block = spec.split('## NN Field Definition: kind')[1]?.split(/\n#{1,2} /)[0] ?? ''
+  const m = block.match(/^options:: \[(.+)\]$/m)
+  expect(m).not.toBeNull()
+  return m![1].split(',').map((k) => k.trim())
+}
+const KINDS = ['tutorial', 'guide', 'concept', 'reference', 'pitch', 'legal'] // sanity pin, asserted equal below
 const PAGE_RE = /^## NN Page: (.+)$/gm
 
 describe('site domaiNN: seed Pages', () => {
+  it('reads the six kinds from the bluepriNNt and has one Page file per kind', async () => {
+    const kinds = await blueprintKinds()
+    expect([...kinds].sort()).toEqual([...KINDS].sort())
+    const files = (await readdir(join(domainDir, 'kNNowledge')))
+      .filter((f) => /_site_NN\.md$/.test(f) && f !== 'site_NN.md')
+      .map((f) => f.replace(/_site_NN\.md$/, ''))
+    expect(files.sort()).toEqual([...kinds].sort())
+  })
+
+  it('tutorial names a bluepriNNt, does not overclaim citations, and links the guide', async () => {
+    const t = await read('kNNowledge/tutorial_site_NN.md')
+    expect(t).toContain('for example business')
+    expect(t).not.toContain('every statement')
+    expect(t).toContain('[[Validate your domaiNN]]')
+  })
+
+  it('reference summary does not claim to list every folder', async () => {
+    const r = await read('kNNowledge/reference_site_NN.md')
+    expect(r).toMatch(/^summary:: .*main folders/m)
+  })
+
   const docs = KINDS.map((kind) => ({ kind, rel: `kNNowledge/${kind}_site_NN.md` }))
 
   it.each(docs)('validates the $kind seed document without errors', async ({ rel }) => {

@@ -88,7 +88,7 @@ The navigation order is `pitch, tutorial, guide, concept, reference, legal`, the
 The renderer supports:
 - Headings `###` and `####`.
 - Paragraphs, joined over consecutive lines.
-- Flat `- ` and `1. ` lists.
+- Flat `1. ` ordered lists only (see the note below).
 - Fenced ``` code blocks with an optional language. The content is HTML-escaped and indentation is kept.
 - Inline `` `code` ``, `**bold**`, `*em*`, `[text](https://… | relative)`.
 - `[[Page Name]]`, which becomes a link to that Page's `<slug>.html` and fails if the Page is unknown.
@@ -98,6 +98,7 @@ All text is HTML-escaped. Any other construct is rejected:
 - tables (`|`), blockquotes (`>`), raw HTML (`<`)
 - images (`![`), indented or nested list items, `javascript:` URLs
 - `key::` lines, inside fences too, because nn-core would read them as fields
+- `- ` and `* ` lines, inside fences too: nn-core rejects them in concept bodies (`format.body-element-markers`, `nn-core/src/validator/content.ts:397-415`), so the renderer rejects them first with its own `file:line` error. Lists are `1. ` only.
 
 ## Interfaces
 

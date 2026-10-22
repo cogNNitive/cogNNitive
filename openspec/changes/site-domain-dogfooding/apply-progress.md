@@ -92,3 +92,7 @@ Created: `site_NN/kNNowledge/{tutorial,guide,concept,reference,legal}_site_NN.md
 `site_NN/specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md`.
 Modified: `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts`, `tasks.md` (2.1-2.4 ticked).
 Protected paths untouched.
+
+### Review follow-up (Slice 2)
+
+Design, tasks 3.5 and the site-compiler spec now say lists are `1. ` only and the renderer rejects `- `/`* ` lines (also inside fences) with its own `file:line` error. Tutorial names the `business` bluepriNNt and links `[[Validate your domaiNN]]`; reference summary says "main folders". Spec kinds are read from the bluepriNNt `kind` select and the set of `*_site_NN.md` Page files must equal them (this guard was green on first run: the content already satisfied it; the tutorial and reference tests were RED first). Result: 32 tests pass; `node scripts/verify.js --fast` passes.

@@ -13,7 +13,7 @@ title: "Reference Pages"
 slug:: reference
 kind:: reference
 order:: 1
-summary:: The folders of a domaiNN and the MCP tools you will use first.
+summary:: The main folders of a domaiNN and the MCP tools you will use first.
 
 ### Folders
 
