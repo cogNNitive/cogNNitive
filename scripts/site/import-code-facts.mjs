@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';import { byText } from './lib/walk-files.mjs';
 
 const require = createRequire(import.meta.url);
 const { writeOnce, cognitivize } = require('../../skills/nn-sources/scripts/lib/nn-core.generated.cjs');
@@ -13,7 +13,6 @@ export const FACTS_DIR = 'sources/import/code-facts';
 /** Fact group -> key of `facts` holding its entries. */
 const GROUPS = { 'mcp-tools': 'tools', 'skill-commands': 'skills' };
 
-const byText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const oneLine = (s) => String(s).replace(/\s+/g, ' ').trim();
 
 function factLine(key, value) {
@@ -52,6 +51,8 @@ export async function run({ domainDir, facts, now }) {
   for (const [group, text] of rendered) {
     const written = await writeOnce(domainDir, { dir: FACTS_DIR, key: group, ext: 'md' }, text, now ? { now } : {});
     if (written.status === 'deduplicated') {
+      // Idempotent: restores a deleted sidecar, leaves an existing one untouched.
+      await cognitivize(domainDir, written.path, now ? { now } : {});
       groups[group] = { status: 'unchanged', path: written.path };
       continue;
     }

@@ -238,6 +238,17 @@ describe('site domaiNN: code-fact citations', () => {
     }
   })
 
+  it('cites every tool the Page body names in backticks', async () => {
+    const text = await read(REFERENCE_DOC)
+    const cited = (await referenceSites()).map((s) => s.value.slice(s.value.indexOf('@## ') + 4))
+    const members = await readdir(join(domainDir, 'sources/import/code-facts'))
+    const member = members.find((m) => /^mcp-tools_[0-9TZ]+\.md$/.test(m))!
+    const headings = [...(await read('sources/import/code-facts/' + member)).matchAll(/^## (\S+)$/gm)].map((m) => m[1]!)
+    const named = [...text.matchAll(/`([a-z]+(?:_[a-z]+)*)`/g)].map((m) => m[1]!).filter((n) => headings.includes(n))
+    expect(named.length).toBeGreaterThanOrEqual(8)
+    expect([...new Set(named)].sort()).toEqual([...new Set(named.filter((n) => cited.includes(n)))].sort())
+  })
+
   it('validateCitations accepts the citations the Page makes', async () => {
     const sites = await referenceSites()
     expect(sites.length).toBeGreaterThan(0)

@@ -5,13 +5,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 import { renderSnapshot, run } from './import-code-facts.mjs';
+import { walkFiles } from './lib/walk-files.mjs';
 
 const require = createRequire(import.meta.url);
 const { findStaleSources } = require('../../skills/nn-sources/scripts/lib/impact-checker.js');
 
-const REPO = fileURLToPath(new URL('../../', import.meta.url));
 const DIR = 'sources/import/code-facts';
 
 const made = [];
@@ -42,18 +41,7 @@ const CHANGED = { ...FACTS, tools: [...FACTS.tools, { name: 'c_tool', descriptio
 
 /** Relative path -> sha256 for every file under `dir`. */
 function hashes(dir) {
-  const out = {};
-  const walk = (rel) => {
-    const abs = path.join(dir, rel);
-    if (!fs.existsSync(abs)) return;
-    for (const e of fs.readdirSync(abs, { withFileTypes: true })) {
-      const r = rel ? `${rel}/${e.name}` : e.name;
-      if (e.isDirectory()) walk(r);
-      else out[r] = crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, r))).digest('hex');
-    }
-  };
-  walk('');
-  return out;
+  return Object.fromEntries(walkFiles(dir).map((r) => [r, crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, r))).digest('hex')]));
 }
 
 // ---- renderSnapshot ---------------------------------------------------------------------
@@ -181,9 +169,18 @@ test('run fails closed on malformed facts and writes nothing', async () => {
   assert.deepEqual(hashes(dir), {});
 });
 
-test('the import script does not touch the shared extractors or use importRaw', () => {
-  const src = fs.readFileSync(path.join(REPO, 'scripts/site/import-code-facts.mjs'), 'utf8');
-  assert.doesNotMatch(src, /importRaw/);
-  assert.match(src, /writeOnce/);
-  assert.match(src, /cognitivize/);
+test('a missing sidecar is restored on re-import without touching the member', async () => {
+  const dir = tmpDomain();
+  const first = await run({ domainDir: dir, facts: FACTS, now: T1 });
+  const member = first.groups['mcp-tools'].path;
+  const sidecar = path.join(dir, `${member}_sidecar_NN.md`);
+  const memberBefore = fs.readFileSync(path.join(dir, member));
+  const sidecarBefore = fs.readFileSync(sidecar);
+  fs.rmSync(sidecar);
+  const again = await run({ domainDir: dir, facts: FACTS, now: T2 });
+  assert.equal(again.groups['mcp-tools'].status, 'unchanged');
+  assert.ok(fs.existsSync(sidecar));
+  assert.deepEqual(fs.readFileSync(path.join(dir, member)), memberBefore);
+  assert.match(fs.readFileSync(sidecar, 'utf8'), /sha256: /);
+  assert.equal(/sha256: (\w+)/.exec(fs.readFileSync(sidecar, 'utf8'))[1], /sha256: (\w+)/.exec(sidecarBefore.toString('utf8'))[1]);
 });

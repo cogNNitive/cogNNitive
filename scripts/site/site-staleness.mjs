@@ -4,12 +4,11 @@
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { walkFiles } from './lib/walk-files.mjs';
+import { byText, walkFiles } from './lib/walk-files.mjs';
 
 const require = createRequire(import.meta.url);
 const { checkScanImpact, findStaleSources } = require('../../skills/nn-sources/scripts/lib/impact-checker.js');
 
-const byText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** @returns {{ superseded: object[], unresolved: object[], staleHashes: string[] }} */
 export function checkStaleness(domainDir) {

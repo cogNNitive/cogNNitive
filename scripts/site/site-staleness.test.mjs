@@ -141,3 +141,23 @@ test('a domaiNN with no sources is clean', () => {
   made.push(dir);
   assert.deepEqual(checkStaleness(dir), { superseded: [], unresolved: [], staleHashes: [] });
 });
+
+// ---- gate: the committed domaiNN must not carry stale citations --------------------------
+
+const REAL = fileURLToPath(new URL('../../site_NN/', import.meta.url));
+
+test('the committed site_NN/ has no unresolved_in_latest citation and no stale hash (superseded allowed)', () => {
+  const found = checkStaleness(REAL);
+  assert.deepEqual(found.unresolved, []);
+  assert.deepEqual(found.staleHashes, []);
+});
+
+test('the gate goes red on a copy of site_NN/ whose newest member no longer has the cited headings', async () => {
+  const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'site-gate-'));
+  made.push(copy);
+  fs.cpSync(REAL, copy, { recursive: true });
+  await importFacts({ domainDir: copy, facts: { tools: [{ name: 'only_tool', description: 'x' }], skills: SKILLS }, now: () => new Date('2099-01-01T00:00:00Z') });
+  const found = checkStaleness(copy);
+  assert.ok(found.unresolved.length >= 1);
+  assert.equal(run({ domainDir: copy, log: () => {} }), 1);
+});

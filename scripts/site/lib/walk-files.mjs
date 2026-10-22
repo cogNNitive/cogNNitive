@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const byText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+export const byText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 /** Sorted, forward-slash relative paths of every file under `root/rel` (empty when it does not exist). */
 export function walkFiles(root, rel = '') {
