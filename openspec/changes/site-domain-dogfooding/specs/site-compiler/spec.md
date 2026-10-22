@@ -95,9 +95,9 @@ inside fences. No markdown dependency MAY be added.
 
 #### Scenario: Supported constructs render
 
-- GIVEN a body with a `###` heading, a list, a fenced block and a link to `https://example.com`
+- GIVEN a body with a `###` heading, an ordered list, a fenced block and a link to `https://example.com`
 - WHEN the compiler runs
-- THEN the output contains `<h3>`, `<ul>`, `<pre><code>` and a matching `<a href>`
+- THEN the output contains `<h3>`, `<ol>`, `<pre><code>` and a matching `<a href>`
 
 #### Scenario: Code indentation is preserved
 

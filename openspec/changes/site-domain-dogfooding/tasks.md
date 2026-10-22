@@ -57,14 +57,14 @@ Chain strategy: stacked-to-main
 
 ## Slice 3a: Parser and renderer (PR 3)
 
-- [ ] 3.1 RED: `scripts/site/site-model.test.mjs` for `loadSite`: field block only, mid-prose and in-fence `key::` rejected, duplicate names, duplicate/malformed slug, missing or duplicate `index`, unknown kind, non-integer order, relative `base_url`, BOM+CRLF equals LF, U+FFFD fails, errors carry `file:line`.
-- [ ] 3.2 GREEN: `scripts/site/lib/site-model.mjs` (`loadSite`, `SiteError`).
-- [ ] 3.2a RED then GREEN: `loadSite` enforces what nn-core does not (BP): missing `tagline`/`base_url`/`kind`/`order`/`summary` named in the error, a second Site element, and a `sources` value that is not a `[path@unit]` token.
-- [ ] 3.3 RED: agreement test in the same file. `loadSite` vs nn-upgrade `parseKnowledge` on every seed document, comparing element names and field maps (SC: parser agreement).
-- [ ] 3.4 GREEN: fix any parser divergence found; the hand parser stays fail-closed.
-- [ ] 3.5 RED: `scripts/site/markdown-subset.test.mjs`. Supported: `###`/`####`, paragraphs, flat `1. ` lists only, fences keep indentation, inline code/bold/em, https and relative links, `[[Page]]`. Rejected, each with `file:line`: `#`/`##`, table, blockquote, image, raw HTML, nested list, `- `/`* ` lines (also inside fences; nn-core rejects them), unterminated fence, `javascript:` scheme, unknown `[[Nope]]`. HTML escaping.
-- [ ] 3.6 GREEN: `scripts/site/lib/markdown-subset.mjs` (`renderBody`).
-- [ ] 3.7 REFACTOR: run eslint on `scripts/site/`; `node scripts/verify.js --fast` is green.
+- [x] 3.1 RED: `scripts/site/site-model.test.mjs` for `loadSite`: field block only, mid-prose and in-fence `key::` rejected, duplicate names, duplicate/malformed slug, missing or duplicate `index`, unknown kind, non-integer order, relative `base_url`, BOM+CRLF equals LF, U+FFFD fails, errors carry `file:line`.
+- [x] 3.2 GREEN: `scripts/site/lib/site-model.mjs` (`loadSite`, `SiteError`).
+- [x] 3.2a RED then GREEN: `loadSite` enforces what nn-core does not (BP): missing `tagline`/`base_url`/`kind`/`order`/`summary` named in the error, a second Site element, and a `sources` value that is not a `[path@unit]` token.
+- [x] 3.3 RED: agreement test in the same file. `loadSite` vs nn-upgrade `parseKnowledge` on every seed document, comparing element names and field maps (SC: parser agreement).
+- [x] 3.4 GREEN: fix any parser divergence found; the hand parser stays fail-closed.
+- [x] 3.5 RED: `scripts/site/markdown-subset.test.mjs`. Supported: `###`/`####`, paragraphs, flat `1. ` lists only, fences keep indentation, inline code/bold/em, https and relative links, `[[Page]]`. Rejected, each with `file:line`: `#`/`##`, table, blockquote, image, raw HTML, nested list, `- `/`* ` lines (also inside fences; nn-core rejects them), unterminated fence, `javascript:` scheme, unknown `[[Nope]]`. HTML escaping.
+- [x] 3.6 GREEN: `scripts/site/lib/markdown-subset.mjs` (`renderBody`).
+- [x] 3.7 REFACTOR: run eslint on `scripts/site/`; `node scripts/verify.js --fast` is green.
 
 ## Slice 4: Compiler (PR 4)
 
