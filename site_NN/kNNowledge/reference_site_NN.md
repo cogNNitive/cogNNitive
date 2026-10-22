@@ -14,6 +14,7 @@ slug:: reference
 kind:: reference
 order:: 1
 summary:: The main folders of a domaiNN and the MCP tools you will use first.
+sources:: [sources/import/code-facts/mcp-tools_20261022T184940Z.md@## apply_change, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## check_domain, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## cognitivize, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## init_domain, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## init_knowledge, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## propose_changeset, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## sync_lineage, sources/import/code-facts/mcp-tools_20261022T184940Z.md@## validate_knowledge]
 
 ### Folders
 

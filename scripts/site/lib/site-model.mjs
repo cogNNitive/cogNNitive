@@ -12,7 +12,6 @@ export const KEY_LINE = /^\s*[\w-]+::(\s|$)/;
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const BASE_URL = /^https?:\/\/[^\s"'<>\\]+\/$/;
 const SECTION = /^#\s+(?:\d+|NN)\s+\w+\s*$/;
-const CITATION = /\[([^\]@]+)@([^\]]+)\]/y;
 
 export class SiteError extends Error {
   constructor(file, line, message) {
@@ -95,17 +94,20 @@ function requireFields(el, names) {
 function parseSources(el) {
   const value = el.fields.sources;
   if (value === undefined) return [];
+  // nn-core reads ONE bracketed, comma-separated list; separate brackets would corrupt the citations.
+  const bad = (why) => new SiteError(
+    el.file,
+    el.fieldLines.sources,
+    `sources must be one bracketed, comma-separated list of path@unit citations, e.g. [a.md@## x, b.md@## y]: ${why} (got "${value}")`,
+  );
+  const m = /^\[(.*)\]$/.exec(value.trim());
+  if (!m) throw bad('not a bracketed list');
   const out = [];
-  let pos = 0;
-  while (pos < value.length) {
-    if (value[pos] === ' ') { pos++; continue; }
-    CITATION.lastIndex = pos;
-    const m = CITATION.exec(value);
-    if (!m) throw new SiteError(el.file, el.fieldLines.sources, `sources must hold only [path@unit] tokens, got "${value}"`);
-    out.push({ path: m[1].trim(), unit: m[2].trim() });
-    pos = CITATION.lastIndex;
+  for (const part of m[1].split(',')) {
+    const c = /^([^@[\]]+)@(.+)$/.exec(part.trim());
+    if (!c || /[[\]]/.test(c[2])) throw bad(`"${part.trim()}" is not a path@unit citation`);
+    out.push({ path: c[1].trim(), unit: c[2].trim() });
   }
-  if (!out.length) throw new SiteError(el.file, el.fieldLines.sources, 'sources is empty');
   return out;
 }
 

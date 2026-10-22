@@ -159,7 +159,9 @@ test('a domaiNN with no Site is rejected', () => {
 test('sources holds only [path@unit] tokens', () => {
   fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide', sources: 'see the README' })) }), /sources.*see the README/);
   fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide', sources: '[a.md@## h] trailing' })) }), /sources/);
-  const m = loadSite(domain(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide', sources: '[sources/a.md@## foo] [sources/b.md@## bar baz]' })) })));
+  // nn-core reads ONE bracketed, comma-separated list; separate brackets would be read as one corrupt citation.
+  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide', sources: '[a.md@## h] [b.md@## k]' })) }), /sources.*comma/);
+  const m = loadSite(domain(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide', sources: '[sources/a.md@## foo,sources/b.md@## bar baz]' })) })));
   assert.deepEqual(m.pages[0].sources, [
     { path: 'sources/a.md', unit: '## foo' },
     { path: 'sources/b.md', unit: '## bar baz' },

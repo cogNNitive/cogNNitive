@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
 import { join } from 'node:path'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { createFsSourceResolver, validateCitations } from '@cognnitive/nn-core'
 import { validateKnowledge } from './mutate'
 
 // Slice 1 proof: the domaiNN-local `site` bluepriNNt (site_NN/specs/bluepriNNts/site/spec_NN.md)
@@ -210,5 +211,55 @@ describe('site domaiNN: bluepriNNt rules', () => {
     expect(page).toContain('sources:: see the README')
     const result = await validateDoc(page)
     expect(result.errors).toEqual([])
+  })
+})
+
+describe('site domaiNN: code-fact citations', () => {
+  const REFERENCE_DOC = 'kNNowledge/reference_site_NN.md'
+
+  async function referenceSites(doc?: string) {
+    const text = doc ?? (await read(REFERENCE_DOC))
+    const list = /^sources:: \[(.*)\]$/m.exec(text)?.[1] ?? ''
+    const values = list.split(',').map((v) => v.trim()).filter(Boolean)
+    return values.map((value) => ({
+      value,
+      referringPath: REFERENCE_DOC,
+      field: 'sources',
+      element: 'Domain layout and tools',
+    }))
+  }
+
+  it('the reference Page cites header units of a committed code-facts member', async () => {
+    const sites = await referenceSites()
+    expect(sites.length).toBeGreaterThan(0)
+    const members = await readdir(join(domainDir, 'sources/import/code-facts'))
+    for (const site of sites) {
+      expect(members).toContain(site.value.slice(site.value.lastIndexOf('/') + 1).split('@')[0])
+    }
+  })
+
+  it('cites every tool the Page body names in backticks', async () => {
+    const text = await read(REFERENCE_DOC)
+    const cited = (await referenceSites()).map((s) => s.value.slice(s.value.indexOf('@## ') + 4))
+    const members = await readdir(join(domainDir, 'sources/import/code-facts'))
+    const member = members.find((m) => /^mcp-tools_[0-9TZ]+\.md$/.test(m))!
+    const headings = [...(await read('sources/import/code-facts/' + member)).matchAll(/^## (\S+)$/gm)].map((m) => m[1]!)
+    const named = [...text.matchAll(/`([a-z]+(?:_[a-z]+)*)`/g)].map((m) => m[1]!).filter((n) => headings.includes(n))
+    expect(named.length).toBeGreaterThanOrEqual(8)
+    expect([...new Set(named)].sort()).toEqual([...new Set(named.filter((n) => cited.includes(n)))].sort())
+  })
+
+  it('validateCitations accepts the citations the Page makes', async () => {
+    const sites = await referenceSites()
+    expect(sites.length).toBeGreaterThan(0)
+    const diagnostics = validateCitations(sites, createFsSourceResolver(domainDir))
+    expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([])
+  })
+
+  it('validateCitations rejects a heading that does not exist (KU_UNKNOWN_SLUG)', async () => {
+    const [first] = await referenceSites()
+    const missing = { ...first!, value: first!.value.replace(/@## .*$/, '@## no_such_tool') }
+    const diagnostics = validateCitations([missing], createFsSourceResolver(domainDir))
+    expect(diagnostics.map((d) => d.code)).toContain('KU_UNKNOWN_SLUG')
   })
 })
