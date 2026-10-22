@@ -8,7 +8,7 @@ export const KINDS = ['pitch', 'tutorial', 'guide', 'concept', 'reference', 'leg
 
 const HEADING = /^##\s+(?:\d+|NN)\s+(\w+):\s*(.+?)\s*$/;
 const FIELD = /^([\w-]+)::\s*(.*?)\s*$/;
-const KEY_LINE = /^\s*[\w-]+::(\s|$)/;
+export const KEY_LINE = /^\s*[\w-]+::(\s|$)/;
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const BASE_URL = /^https?:\/\/\S+\/$/;
 const CITATION = /\[([^\]@]+)@([^\]]+)\]/y;
@@ -24,8 +24,8 @@ export class SiteError extends Error {
 
 /** Parse one document into raw elements. Throws on any ambiguity. */
 function parseDocument(file, raw) {
-  const text = raw.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
-  if (text.includes('�')) throw new SiteError(file, 0, 'contains U+FFFD (invalid UTF-8)');
+  const text = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  if (text.includes('\uFFFD')) throw new SiteError(file, 0, 'contains U+FFFD (invalid UTF-8)');
   const lines = text.split('\n');
   let i = lines[0] === '---' ? lines.indexOf('---', 1) + 1 : 0;
   const elements = [];
@@ -41,7 +41,7 @@ function parseDocument(file, raw) {
       current = null;
       if (!heading) continue;
       const [, concept, name] = heading;
-      current = { concept, name, file, line: n, fields: {}, fieldLines: {}, body: [], bodyLine: 0 };
+      current = { concept, name, file, line: n, fields: {}, fieldLines: {}, bodyLines: [], body: '', bodyLine: 0 };
       elements.push(current);
       fieldsOpen = true;
       continue;
@@ -55,13 +55,13 @@ function parseDocument(file, raw) {
     }
     fieldsOpen = false;
     if (KEY_LINE.test(line)) throw new SiteError(file, n, `key:: line outside the field block: "${line.trim()}"`);
-    if (!current.body.length && line.trim() === '') continue;
-    if (!current.body.length) current.bodyLine = n;
-    current.body.push(line);
+    if (!current.bodyLines.length && line.trim() === '') continue;
+    if (!current.bodyLines.length) current.bodyLine = n;
+    current.bodyLines.push(line);
   }
   for (const el of elements) {
-    while (el.body.length && el.body[el.body.length - 1].trim() === '') el.body.pop();
-    el.body = el.body.join('\n');
+    while (el.bodyLines.length && el.bodyLines[el.bodyLines.length - 1].trim() === '') el.bodyLines.pop();
+    el.body = el.bodyLines.join('\n');
   }
   const seen = new Map();
   for (const el of elements) {

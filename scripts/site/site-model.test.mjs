@@ -65,7 +65,7 @@ test('a key:: line in prose is rejected with file:line', () => {
   const dir = domain(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('Install', { slug: 'install', kind: 'guide' }, 'Hello.\n\nowner:: me')) }));
   const lines = fs.readFileSync(path.join(dir, 'kNNowledge/guide_site_NN.md'), 'utf8').split('\n');
   const n = lines.indexOf('owner:: me') + 1;
-  assert.throws(() => loadSite(dir), (e) => e.file === 'kNNowledge/guide_site_NN.md' && e.line === n && /key::/.test(e.message));
+  assert.throws(() => loadSite(dir), (e) => e instanceof SiteError && e.file === 'kNNowledge/guide_site_NN.md' && e.line === n && /key::/.test(e.message));
 });
 
 test('a key:: line inside a code fence is rejected', () => {
@@ -112,14 +112,14 @@ test('a relative or unterminated base_url is rejected', () => {
 test('BOM and CRLF input equals the LF input', () => {
   const files = valid({ 'guide_site_NN.md': doc('# NN Page\n', page('Install', { slug: 'install', kind: 'guide' }, 'Line one.\nLine two.')) });
   const plain = loadSite(domain(files));
-  const crlf = Object.fromEntries(Object.entries(files).map(([k, v]) => [k, `﻿${v.replace(/\n/g, '\r\n')}`]));
+  const crlf = Object.fromEntries(Object.entries(files).map(([k, v]) => [k, `\uFEFF${v.replace(/\n/g, '\r\n')}`]));
   const messy = loadSite(domain(crlf));
-  const strip = ({ dir, ...rest }) => rest;
+  const strip = (m) => ({ ...m, dir: null });
   assert.deepEqual(strip(messy), strip(plain));
 });
 
 test('U+FFFD in a document fails naming the file', () => {
-  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' }, 'bad � char')) }), /guide_site_NN\.md.*U\+FFFD/);
+  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' }, 'bad \uFFFD char')) }), /guide_site_NN\.md.*U\+FFFD/);
 });
 
 test('non-ASCII text survives', () => {
@@ -182,7 +182,8 @@ test('loadSite agrees with parseKnowledge on every seed document', () => {
     const parsed = parseKnowledge(fs.readFileSync(path.join(siteDir, 'kNNowledge', f), 'utf8'));
     for (const [, els] of parsed.elements.entries()) {
       for (const el of els) {
-        const { slug, ...fields } = el.rawFields;
+        const fields = { ...el.rawFields };
+        delete fields.slug;
         theirs.push([el.name, el.type, el.slugExplicit ? el.slug : null, fields]);
       }
     }
@@ -190,4 +191,12 @@ test('loadSite agrees with parseKnowledge on every seed document', () => {
   assert.ok(theirs.length >= 7);
   const key = (r) => `${r[1]}:${r[0]}`;
   assert.deepEqual([...mine].sort((a, b) => key(a).localeCompare(key(b))), theirs.sort((a, b) => key(a).localeCompare(key(b))));
+});
+
+test('a BOM before the very first heading is stripped (no frontmatter)', () => {
+  const bom = String.fromCharCode(0xfeff);
+  const bare = `## NN Page: Home\nslug:: index\nkind:: pitch\norder:: 1\nsummary:: S.\n`;
+  const m = loadSite(domain({ 'site_NN.md': doc(SITE), 'pitch_site_NN.md': bom + bare.replace(/\n/g, '\r\n') }));
+  assert.equal(m.pages[0].name, 'Home');
+  assert.equal(m.pages[0].summary, 'S.');
 });
