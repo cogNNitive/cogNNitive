@@ -17,8 +17,10 @@ test('the site_NN domain console exports', async () => {
     await writeConsole({ rootDir: root, open: false })
     const html = fs.readFileSync(path.join(root, 'domaiNN_console.html'), 'utf-8')
     const docs = fs.readdirSync(path.join(domainDir, 'kNNowledge')).filter((f) => f.endsWith('_NN.md'))
-    assert.ok(docs.length > 1)
-    for (const doc of docs) assert.ok(html.includes(doc), `console is missing ${doc}`)
+    assert.ok(docs.length >= 7, 'seed documents present')
+    for (const doc of docs) {
+      assert.match(html, new RegExp(`"filePath":\\s*"${doc}"`), `console is missing ${doc}`)
+    }
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true })
   }
