@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest'
 import { join } from 'node:path'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { validateKnowledge } from './mutate'
 
@@ -88,6 +88,89 @@ describe('site domaiNN: local bluepriNNt resolution', () => {
     expect(spec).toContain('## NN Field Definition: summary')
     expect(spec).not.toContain('## NN Field Definition: slug')
     expect(spec).not.toMatch(/## NN Concept Definition: (Section|Navigation)/)
+  })
+})
+
+// Slice 2: seed Pages. One kNNowledge document per kind (<kind>_site_NN.md).
+// The kinds are read from the bluepriNNt `kind` select, not hardcoded.
+async function blueprintKinds(): Promise<string[]> {
+  const spec = await read('specs/bluepriNNts/site/spec_NN.md')
+  const block = spec.split('## NN Field Definition: kind')[1]?.split(/\n#{1,2} /)[0] ?? ''
+  const m = block.match(/^options:: \[(.+)\]$/m)
+  expect(m).not.toBeNull()
+  return m![1].split(',').map((k) => k.trim())
+}
+const KINDS = ['tutorial', 'guide', 'concept', 'reference', 'pitch', 'legal'] // sanity pin, asserted equal below
+const PAGE_RE = /^## NN Page: (.+)$/gm
+
+describe('site domaiNN: seed Pages', () => {
+  it('reads the six kinds from the bluepriNNt and has one Page file per kind', async () => {
+    const kinds = await blueprintKinds()
+    expect([...kinds].sort()).toEqual([...KINDS].sort())
+    const files = (await readdir(join(domainDir, 'kNNowledge')))
+      .filter((f) => /_site_NN\.md$/.test(f) && f !== 'site_NN.md')
+      .map((f) => f.replace(/_site_NN\.md$/, ''))
+    expect(files.sort()).toEqual([...kinds].sort())
+  })
+
+  it('tutorial names a bluepriNNt, does not overclaim citations, and links the guide', async () => {
+    const t = await read('kNNowledge/tutorial_site_NN.md')
+    expect(t).toContain('for example business')
+    expect(t).not.toContain('every statement')
+    expect(t).toContain('[[Validate your domaiNN]]')
+  })
+
+  it('reference summary does not claim to list every folder', async () => {
+    const r = await read('kNNowledge/reference_site_NN.md')
+    expect(r).toMatch(/^summary:: .*main folders/m)
+  })
+
+  const docs = KINDS.map((kind) => ({ kind, rel: `kNNowledge/${kind}_site_NN.md` }))
+
+  it.each(docs)('validates the $kind seed document without errors', async ({ rel }) => {
+    const result = await validateDoc(await read(rel))
+    expect(result.errors).toEqual([])
+    expect(result.valid).toBe(true)
+  })
+
+  it.each(docs)('declares exactly one Page of kind $kind with slug, order and summary', async ({ kind, rel }) => {
+    const text = await read(rel)
+    expect([...text.matchAll(PAGE_RE)]).toHaveLength(1)
+    expect(text).toMatch(new RegExp(`^kind:: ${kind}$`, 'm'))
+    expect(text).toMatch(/^slug:: [a-z0-9]+(-[a-z0-9]+)*$/m)
+    expect(text).toMatch(/^order:: \d+$/m)
+    expect(text).toMatch(/^summary:: \S.*$/m)
+  })
+
+  it('uses unique slugs site-wide with exactly one index', async () => {
+    const slugs: string[] = []
+    for (const { rel } of docs) {
+      const m = (await read(rel)).match(/^slug:: (.+)$/m)
+      expect(m).not.toBeNull()
+      slugs.push(m![1])
+    }
+    expect(new Set(slugs).size).toBe(slugs.length)
+    expect(slugs.filter((s) => s === 'index')).toHaveLength(1)
+  })
+
+  it.each(docs)('keeps key:: lines out of the $kind body and uses no #/## headings in it', async ({ rel }) => {
+    const text = await read(rel)
+    const lines = text.split('\n')
+    const start = lines.findIndex((l) => /^## NN Page: /.test(l))
+    expect(start).toBeGreaterThan(-1)
+    let i = start + 1
+    while (i < lines.length && /^[\w-]+:: /.test(lines[i])) i++
+    const body = lines.slice(i)
+    expect(body.filter((l) => /^\s*[\w-]+::\s/.test(l))).toEqual([])
+    expect(body.filter((l) => /^#{1,2} /.test(l))).toEqual([])
+    expect(body.join('\n').trim().length).toBeGreaterThan(0)
+  })
+
+  it('ships a compile-site procedure naming the compiler script', async () => {
+    const proc = await read('specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md')
+    expect(proc).toContain('tool:: scripts/site/compile-site.mjs')
+    const result = await validateDoc(proc)
+    expect(result.errors).toEqual([])
   })
 })
 

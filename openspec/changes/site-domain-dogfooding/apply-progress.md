@@ -4,7 +4,7 @@ Mode: Strict TDD. Delivery: chained PRs, stacked-to-main (integration branch `de
 
 ## Batch 1: Slice 1 (local bluepriNNt resolution proof)
 
-Status: complete. 8/8 Slice 1 tasks done. Slices 2-5 not started.
+Status: complete. 8/8 Slice 1 tasks done.
 
 ### Gate result (task 1.7): PASSED
 
@@ -52,3 +52,47 @@ Created: `site_NN/domaiNN_NN.md`, `site_NN/specs/bluepriNNts/site/spec_NN.md`,
 `site_NN/specs/bluepriNNts/site/procedures/usage_procedures_NN.md`, `site_NN/kNNowledge/site_NN.md`,
 `site_NN/kNNowledge/pitch_site_NN.md`, `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts`.
 Modified: `openspec/changes/site-domain-dogfooding/tasks.md` (ticks, chain strategy).
+
+## Batch 2: Slice 2 (seed Pages)
+
+Status: complete. 4/4 Slice 2 tasks done (12/12 cumulative). Slices 3a-5 not started.
+
+### TDD cycle evidence
+
+| Task | Test file | Layer | RED | GREEN | Triangulate | Refactor |
+|------|-----------|-------|-----|-------|-------------|----------|
+| 2.1 | site-domain.spec.ts | Integration | 17 of 29 failed with ENOENT on the five missing `<kind>_site_NN.md` files and the procedure (right reason) | n/a | n/a | n/a |
+| 2.2 | same | Integration | covered by 2.1 | validate, one-Page-per-kind, unique slug and body-rule tests green | six kinds x (validate, shape, body rules) + site-wide unique slugs with one `index` | bullets replaced (finding 1) |
+| 2.3 | same | Integration | covered by 2.1 | procedure validates and names `scripts/site/compile-site.mjs` | extra `validateDoc` assertion on the procedure caught a dangling `tool::` (finding 2) | Tools element added |
+| 2.4 | `node scripts/verify.js --fast` | Repo guards | n/a | all pre-checks passed | n/a | n/a |
+
+Final: `npx vitest run src/tools/site-domain.spec.ts` (cwd `iNNfo/packages/nn-mcp`): 1 file, 29 tests passed.
+`node scripts/verify.js --fast` (worktree root): all deterministic pre-checks passed.
+
+### Findings (affect Slice 3a)
+
+1. nn-core rejects `- ` / `* ` bullets inside a `# NN <Concept>` section body
+   (`format.body-element-markers`, an error: "bullet(s) look like elements but must use ## NN
+   headings"). Page bodies therefore cannot use unordered lists. Seeds use numbered lists
+   (`1. `) and paragraphs. The markdown subset (task 3.5) must not promise `-` lists for
+   Page bodies; ordered lists are the supported flat list. The spec wording "flat lists" should
+   be read as ordered.
+2. `tool::` on a procedure Work element must equal an element name (dangling-reference check), not a
+   free path. The procedure keeps `tool:: scripts/site/compile-site.mjs` as required, backed by a
+   `# NN Tools` element with that exact name.
+3. Seed content: tutorial `first-domain`, guide `validate-domain`, concept `levels`, reference
+   `reference`, legal `legal`, existing pitch `index`. Facts come from `docs/use/index.html`
+   (install line), `docs/innfo/documentation/{domain-from-scratch,nn-mcp,vocabulary}.md`; the legal
+   Page links to the existing `legal.html` and `privacy.html` and copies no personal data. The
+   reference Page cites no Sources (Slice 4).
+
+### Files
+
+Created: `site_NN/kNNowledge/{tutorial,guide,concept,reference,legal}_site_NN.md`,
+`site_NN/specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md`.
+Modified: `iNNfo/packages/nn-mcp/src/tools/site-domain.spec.ts`, `tasks.md` (2.1-2.4 ticked).
+Protected paths untouched.
+
+### Review follow-up (Slice 2)
+
+Design, tasks 3.5 and the site-compiler spec now say lists are `1. ` only and the renderer rejects `- `/`* ` lines (also inside fences) with its own `file:line` error. Tutorial names the `business` bluepriNNt and links `[[Validate your domaiNN]]`; reference summary says "main folders". Spec kinds are read from the bluepriNNt `kind` select and the set of `*_site_NN.md` Page files must equal them (this guard was green on first run: the content already satisfied it; the tutorial and reference tests were RED first). Result: 32 tests pass; `node scripts/verify.js --fast` passes.

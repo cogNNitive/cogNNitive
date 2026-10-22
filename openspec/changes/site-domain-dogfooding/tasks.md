@@ -50,10 +50,10 @@ Chain strategy: stacked-to-main
 
 ## Slice 2: Seed Pages (PR 2)
 
-- [ ] 2.1 RED: extend `site-domain.spec.ts` to assert that all six kinds are present (BP: seed coverage) and that every seed document validates. Fails first.
-- [ ] 2.2 Write `site_NN/kNNowledge/{tutorial,guide,concept,reference,legal}_site_NN.md`, one Page each (the `pitch` document already exists), written for an end user who installs the skills and MCP. Each Page has `slug::`, `kind`, `order` and `summary`. The only `key::` lines are in the field block.
-- [ ] 2.3 Add `site_NN/specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md` with `tool:: scripts/site/compile-site.mjs` (the script lands in S3b).
-- [ ] 2.4 GREEN: vitest and `node scripts/verify.js --fast` pass. Protected paths (`iNNfo/specs/bluepriNNts/`, `manifest/source.yaml`, `catalog.json`) are untouched.
+- [x] 2.1 RED: extend `site-domain.spec.ts` to assert that all six kinds are present (BP: seed coverage) and that every seed document validates. Fails first.
+- [x] 2.2 Write `site_NN/kNNowledge/{tutorial,guide,concept,reference,legal}_site_NN.md`, one Page each (the `pitch` document already exists), written for an end user who installs the skills and MCP. Each Page has `slug::`, `kind`, `order` and `summary`. The only `key::` lines are in the field block.
+- [x] 2.3 Add `site_NN/specs/bluepriNNts/site/procedures/compile_site_procedures_NN.md` with `tool:: scripts/site/compile-site.mjs` (the script lands in S3b).
+- [x] 2.4 GREEN: vitest and `node scripts/verify.js --fast` pass. Protected paths (`iNNfo/specs/bluepriNNts/`, `manifest/source.yaml`, `catalog.json`) are untouched.
 
 ## Slice 3a: Parser and renderer (PR 3)
 
@@ -62,7 +62,7 @@ Chain strategy: stacked-to-main
 - [ ] 3.2a RED then GREEN: `loadSite` enforces what nn-core does not (BP): missing `tagline`/`base_url`/`kind`/`order`/`summary` named in the error, a second Site element, and a `sources` value that is not a `[path@unit]` token.
 - [ ] 3.3 RED: agreement test in the same file. `loadSite` vs nn-upgrade `parseKnowledge` on every seed document, comparing element names and field maps (SC: parser agreement).
 - [ ] 3.4 GREEN: fix any parser divergence found; the hand parser stays fail-closed.
-- [ ] 3.5 RED: `scripts/site/markdown-subset.test.mjs`. Supported: `###`/`####`, paragraphs, flat lists, fences keep indentation, inline code/bold/em, https and relative links, `[[Page]]`. Rejected, each with `file:line`: `#`/`##`, table, blockquote, image, raw HTML, nested list, unterminated fence, `javascript:` scheme, unknown `[[Nope]]`. HTML escaping.
+- [ ] 3.5 RED: `scripts/site/markdown-subset.test.mjs`. Supported: `###`/`####`, paragraphs, flat `1. ` lists only, fences keep indentation, inline code/bold/em, https and relative links, `[[Page]]`. Rejected, each with `file:line`: `#`/`##`, table, blockquote, image, raw HTML, nested list, `- `/`* ` lines (also inside fences; nn-core rejects them), unterminated fence, `javascript:` scheme, unknown `[[Nope]]`. HTML escaping.
 - [ ] 3.6 GREEN: `scripts/site/lib/markdown-subset.mjs` (`renderBody`).
 - [ ] 3.7 REFACTOR: run eslint on `scripts/site/`; `node scripts/verify.js --fast` is green.
 

@@ -82,13 +82,14 @@ omitted. Each nav entry MUST show the Page title and `summary`.
 ### Requirement: Fail-closed markdown subset
 
 The renderer (`renderBody(body, { file, line, pagesByName })`) MUST support only:
-`###` and `####` headings; paragraphs joined over consecutive lines; flat `- ` and `1. `
-lists; fenced code blocks with an optional language (content HTML-escaped, indentation
+`###` and `####` headings; paragraphs joined over consecutive lines; flat `1. `
+ordered lists only; fenced code blocks with an optional language (content HTML-escaped, indentation
 preserved); inline code, `**bold**`, `*em*`; links `[text](https://...)` or relative; and
 `[[Page Name]]`, which MUST become a link to that Page's `<slug>.html` and MUST fail if the
 Page is unknown. All text MUST be HTML-escaped. Any other construct MUST cause a non-zero
 exit with a message `file:line` and MUST write no output: `#` or `##` headings, tables,
-blockquotes, raw HTML, images, indented or nested list items, unterminated fences,
+blockquotes, raw HTML, images, indented or nested list items, `- ` and `* ` lines (including inside fences,
+because nn-core rejects them in concept bodies), unterminated fences,
 `javascript:` (and any other non-allowlisted scheme) URLs, and `key::` lines, including
 inside fences. No markdown dependency MAY be added.
 
@@ -118,7 +119,7 @@ inside fences. No markdown dependency MAY be added.
 
 #### Scenario: Unsupported constructs fail
 
-- GIVEN a body containing, in turn, a table, a blockquote, an image, a `##` heading, or nested list item
+- GIVEN a body containing, in turn, a table, a blockquote, an image, a `##` heading, a nested list item, or a `- ` line (also inside a fence)
 - WHEN the compiler runs
 - THEN each exits non-zero naming the file and line, and writes no output
 
