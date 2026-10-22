@@ -30,7 +30,7 @@ to `docs/next/` on the CLI.
 ### Requirement: One flat HTML file per Page
 
 For each Page the compiler MUST write `<outDir>/<slug>.html`, wrapped in the shell template
-(slots `{{title}}`, `{{nav}}`, `{{content}}`, `{{sources}}`) and linked to a single
+(slots `{{title}}`, `{{description}}`, `{{site}}`, `{{tagline}}`, `{{nav}}`, `{{content}}`, `{{sources}}`; every slot must appear and unknown slots fail) and linked to a single
 `<outDir>/site.css` copied from the bluepriNNt assets. The `index` Page is the home Page and
 MUST be written as `index.html`. Internal links MUST be relative so the output works from
 `file://`. Output MUST be UTF-8 and MUST NOT contain U+FFFD. The Page `<title>` MUST be the
