@@ -126,3 +126,8 @@ Final: `node --test "scripts/site/**/*.test.mjs"` 41 pass, 0 fail; `node scripts
 
 Created: `scripts/site/lib/site-model.mjs`, `scripts/site/lib/markdown-subset.mjs`, `scripts/site/site-model.test.mjs`, `scripts/site/markdown-subset.test.mjs`.
 Modified: `tasks.md` (3.1-3.7 ticked), this file. Protected paths untouched.
+
+### Review follow-up (Slice 3a)
+
+Fresh review fixes, each with a RED test first (14 new tests failed for the right reasons, then 54/54 green):
+href positive allowlist plus rejection of control/space/backslash characters (C0/C1 bypass, backslash and protocol-relative bypass, attribute breakout); malformed links (`](` left over, parentheses in URLs) fail closed; ordered lists must be numbered 1, 2, 3; stray `*` is not emphasis; `loadSite` rejects a level-1 heading inside a body, Page names that repeat site-wide, duplicate field keys, unterminated frontmatter, and a `base_url` containing quotes, angle brackets or backslashes; parser fence handling now matches the renderer (only a bare fence closes); weak test assertions made exact; site-compiler spec says `<ol>`. Hand-written lines now 682 (276 code, 406 tests).
