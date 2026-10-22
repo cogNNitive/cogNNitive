@@ -104,7 +104,7 @@ test('javascript: and other non-https schemes are rejected, naming the scheme', 
   rejects('[x](javascript:alert(1))', 10, /javascript/);
   rejects('[x](data:text/html,hi)', 10, /data/);
   rejects('[x](http://example.com)', 10, /http/);
-  rejects('[x](//evil.example.com)', 10, /protocol-relative|scheme/i);
+  rejects('[x](//evil.example.com)', 10, /not allowed/);
 });
 
 test('every seed Page body renders within the subset', async () => {
@@ -117,7 +117,58 @@ test('every seed Page body renders within the subset', async () => {
   assert.ok(withBody.length >= 5);
   for (const p of withBody) {
     const out = renderBody(p.body, { file: p.file, line: p.bodyLine, pagesByName: byName });
-    assert.ok(out.length > 0, p.slug);
-    assert.ok(!/<(script|img|table)/.test(out), p.slug);
+    const stripped = out
+      .replace(/<\/?(p|h3|h4|ol|li|pre|code|strong|em)( class="language-[\w+-]+")?>/g, '')
+      .replace(/<a href="[^"<>]*">|<\/a>/g, '');
+    assert.ok(out.includes('<p>') || out.includes('<h3>'), p.slug);
+    assert.ok(!/[<>]/.test(stripped), `${p.slug}: unexpected markup left: ${stripped.match(/.{0,20}[<>].{0,20}/)}`);
   }
+});
+
+const ch = (code) => String.fromCharCode(code);
+const CTRL = /control|invalid character/i;
+
+test('C0/C1 control characters before the scheme cannot smuggle a javascript: link', () => {
+  for (const code of [0x00, 0x01, 0x09, 0x7f, 0x85]) {
+    rejects(`[x](${ch(code)}javascript:alert(1))`, 10, CTRL);
+  }
+});
+
+test('backslash and absolute-path hrefs are rejected', () => {
+  rejects(`[x](${ch(92)}${ch(92)}evil.com)`, 10, CTRL);
+  rejects(`[x](/${ch(92)}evil.com)`, 10, CTRL);
+  rejects('[x](/abs/path.html)', 10, /not allowed/);
+  rejects('[x](//evil.com)', 10, /not allowed/);
+});
+
+test('hrefs are a positive allowlist: https, fragment, query, or a safe relative path', () => {
+  assert.equal(
+    render('[a](#top) [b](?q=1) [c](../x/y.html#z) [d](https://a.com/p?x=1&y=2)'),
+    '<p><a href="#top">a</a> <a href="?q=1">b</a> <a href="../x/y.html#z">c</a> <a href="https://a.com/p?x=1&amp;y=2">d</a></p>',
+  );
+  rejects('[x](vbscript:x)', 10, /not allowed/);
+  rejects('[x](java%0ascript:x)', 10, /not allowed/);
+});
+
+test('attribute breakout attempts are rejected or escaped', () => {
+  rejects('[x](https://a.com/"onmouseover=alert(1))', 10, /not allowed/);
+  assert.equal(render('[a"onmouseover=](https://a.com/)'), '<p><a href="https://a.com/">a&quot;onmouseover=</a></p>');
+});
+
+test('links outside the strict form fail closed', () => {
+  rejects('[x](https://a.com "title")', 10, CTRL);
+  rejects('[x](https://a.com/a_(b))', 10, /not allowed/);
+  rejects('see [y](unfinished', 10, /malformed link/);
+});
+
+test('ordered lists must be numbered 1, 2, 3 in sequence', () => {
+  rejects('1. a\n1. b', 11, /numbered 1, 2, 3/);
+  rejects('2. a', 10, /numbered 1, 2, 3/);
+  rejects('1. a\n2. b\n4. c', 12, /numbered 1, 2, 3/);
+  assert.equal(render('1. a\n2. b\n\n1. c'), '<ol>\n<li>a</li>\n<li>b</li>\n</ol>\n<ol>\n<li>c</li>\n</ol>');
+});
+
+test('stray asterisks are not emphasis', () => {
+  assert.equal(render('a * b * c and 2 * 3 * 4'), '<p>a * b * c and 2 * 3 * 4</p>');
+  assert.equal(render('*em* and **strong**'), '<p><em>em</em> and <strong>strong</strong></p>');
 });

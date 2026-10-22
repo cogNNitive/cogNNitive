@@ -5,23 +5,31 @@ import { KEY_LINE, SiteError } from './site-model.mjs';
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (s) => s.replace(/[&<>"']/g, (c) => ESC[c]);
 const BULLET = /^\s*[-*]\s/;
-const INLINE = /`([^`]+)`|\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)\s]+)\)|\*\*(.+?)\*\*|\*(.+?)\*/g;
+// Emphasis markers must touch non-space text, so "a * b * c" stays literal.
+const INLINE = /`([^`]+)`|\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]*)\)|\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*/g;
+// Positive allowlist: https URL, #fragment, ?query, or a relative path (no leading slash, no colon).
+const HREF_OK = /^(?:https:\/\/[^\s"'<>\\()]+|#[\w.~%-]*|\?[\w.~%=&/-]*|(?!\/)[\w.~/-]+(?:\?[\w.~%=&/-]*)?(?:#[\w.~%-]*)?)$/;
+const badChar = (c) => c <= 0x20 || (c >= 0x7f && c <= 0x9f) || c === 0x5c;
 
 export function renderBody(body, { file, line, pagesByName }) {
   const lines = body.split('\n');
   const fail = (i, msg) => { throw new SiteError(file, line + i, msg); };
 
   const checkHref = (href, i) => {
-    const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(href);
-    if (scheme && scheme[1].toLowerCase() !== 'https') fail(i, `link scheme "${scheme[1]}:" is not allowed (https or relative only)`);
-    if (href.startsWith('//')) fail(i, 'protocol-relative link is not allowed');
+    if ([...href].some((c) => badChar(c.charCodeAt(0)))) fail(i, 'invalid character (control, space or backslash) in link');
+    if (!HREF_OK.test(href)) fail(i, `link "${href}" is not allowed (https, #fragment, ?query or a relative path only)`);
+  };
+
+  const plain = (text, i) => {
+    if (text.includes('](')) fail(i, 'malformed link: use [text](https://...) with a plain URL');
+    return esc(text);
   };
 
   const inline = (text, i) => {
     let out = '';
     let last = 0;
     for (const m of text.matchAll(INLINE)) {
-      out += esc(text.slice(last, m.index));
+      out += plain(text.slice(last, m.index), i);
       last = m.index + m[0].length;
       if (m[1] !== undefined) out += `<code>${esc(m[1])}</code>`;
       else if (m[2] !== undefined) {
@@ -34,7 +42,7 @@ export function renderBody(body, { file, line, pagesByName }) {
       } else if (m[5] !== undefined) out += `<strong>${inline(m[5], i)}</strong>`;
       else out += `<em>${inline(m[6], i)}</em>`;
     }
-    return out + esc(text.slice(last));
+    return out + plain(text.slice(last), i);
   };
 
   const checkInline = (text, i) => {
@@ -80,13 +88,14 @@ export function renderBody(body, { file, line, pagesByName }) {
     if (l.startsWith('>')) fail(i, 'blockquotes are not supported');
     checkInline(l, i);
     const heading = /^(#{3,4})\s+(.+)$/.exec(l);
-    const item = /^\d+\.\s+(.+)$/.exec(l);
+    const item = /^(\d+)\.\s+(.+)$/.exec(l);
     if (heading) {
       flush();
       html.push(`<h${heading[1].length}>${inline(heading[2], i)}</h${heading[1].length}>`);
     } else if (item) {
       if (para.length) flush();
-      items.push([item[1], i]);
+      if (Number(item[1]) !== items.length + 1) fail(i, 'ordered list items must be numbered 1, 2, 3 in sequence');
+      items.push([item[2], i]);
     } else {
       if (items.length) flush();
       if (!para.length) paraStart = i;

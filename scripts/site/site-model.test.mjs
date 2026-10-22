@@ -90,7 +90,7 @@ test('a malformed slug is rejected', () => {
 });
 
 test('a missing index slug is rejected', () => {
-  fails({ 'site_NN.md': doc(SITE), 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' })) }, /index/);
+  fails({ 'site_NN.md': doc(SITE), 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' })) }, /no Page has slug "index"/);
 });
 
 test('an unknown kind is rejected', () => {
@@ -148,12 +148,12 @@ test('each missing required field is named in the error', () => {
 });
 
 test('a second Site element is a singleton violation, in the same or another document', () => {
-  fails({ ...valid(), 'site_NN.md': doc(SITE, '## NN Site: Two\ntagline:: T.\nbase_url:: https://e.com/\n') }, /singleton|second Site|exactly one Site/i);
-  fails(valid({ 'other_site_NN.md': doc(SITE) }), /singleton|second Site|exactly one Site/i);
+  fails({ ...valid(), 'site_NN.md': doc(SITE, '## NN Site: Two\ntagline:: T.\nbase_url:: https://e.com/\n') }, /site_NN\.md:\d+: Site is a singleton: second Site "Two"/);
+  fails(valid({ 'other_site_NN.md': doc(SITE) }), /kNNowledge\/site_NN\.md:\d+: Site is a singleton: second Site "Demo" \(first at kNNowledge\/other_site_NN\.md:\d+\)/);
 });
 
 test('a domaiNN with no Site is rejected', () => {
-  fails({ 'pitch_site_NN.md': doc('# NN Page\n', page('Home')) }, /exactly one Site|no Site/i);
+  fails({ 'pitch_site_NN.md': doc('# NN Page\n', page('Home')) }, /exactly one Site element is required, found none/);
 });
 
 test('sources holds only [path@unit] tokens', () => {
@@ -199,4 +199,34 @@ test('a BOM before the very first heading is stripped (no frontmatter)', () => {
   const m = loadSite(domain({ 'site_NN.md': doc(SITE), 'pitch_site_NN.md': bom + bare.replace(/\n/g, '\r\n') }));
   assert.equal(m.pages[0].name, 'Home');
   assert.equal(m.pages[0].summary, 'S.');
+});
+
+test('a level-1 heading inside a body fails instead of truncating the Page', () => {
+  const dir = domain(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' }, 'Before.\n\n# Surprise\n\nAfter.')) }));
+  const n = fs.readFileSync(path.join(dir, 'kNNowledge/guide_site_NN.md'), 'utf8').split('\n').indexOf('# Surprise') + 1;
+  assert.throws(() => loadSite(dir), (e) => e instanceof SiteError && e.file === 'kNNowledge/guide_site_NN.md' && e.line === n && /level-1 heading/.test(e.message));
+});
+
+test('Page names are unique site-wide', () => {
+  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('Home', { slug: 'x', kind: 'guide' })) }), /^(?=.*duplicate Page name "Home")(?=.*pitch_site_NN\.md)(?=.*guide_site_NN\.md)/s);
+});
+
+test('a duplicate field key fails instead of overwriting', () => {
+  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', '## NN Page: X\nslug:: x\nkind:: guide\nkind:: legal\norder:: 1\nsummary:: S.\n') }), /guide_site_NN\.md:\d+: duplicate field "kind"/);
+});
+
+test('base_url rejects quotes, angle brackets, and backslashes', () => {
+  for (const url of ['https://e.com/"x/', 'https://e.com/<x>/', `https://e.com/a${String.fromCharCode(92)}b/`]) {
+    fails({ ...valid(), 'site_NN.md': doc(`# NN Site\n\n## NN Site: Demo\ntagline:: T.\nbase_url:: ${url}\n`) }, /base_url must be absolute/);
+  }
+});
+
+test('unterminated frontmatter fails', () => {
+  fails({ ...valid(), 'bad_site_NN.md': '---\nlevel: 3\n\n## NN Page: X\nslug:: x\n' }, /bad_site_NN\.md.*frontmatter/i);
+});
+
+test('only a bare fence closes a fence, as in the renderer', () => {
+  // The "```js" line does not close the fence, so the fake heading and field stay body text and are rejected as key::.
+  const body = '```text\n```js\n## NN Page: Ghost\nslug:: ghost\n```';
+  fails(valid({ 'guide_site_NN.md': doc('# NN Page\n', page('X', { slug: 'x', kind: 'guide' }, body)) }), /key::/);
 });

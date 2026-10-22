@@ -10,7 +10,8 @@ const HEADING = /^##\s+(?:\d+|NN)\s+(\w+):\s*(.+?)\s*$/;
 const FIELD = /^([\w-]+)::\s*(.*?)\s*$/;
 export const KEY_LINE = /^\s*[\w-]+::(\s|$)/;
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const BASE_URL = /^https?:\/\/\S+\/$/;
+const BASE_URL = /^https?:\/\/[^\s"'<>\\]+\/$/;
+const SECTION = /^#\s+(?:\d+|NN)\s+\w+\s*$/;
 const CITATION = /\[([^\]@]+)@([^\]]+)\]/y;
 
 export class SiteError extends Error {
@@ -27,7 +28,11 @@ function parseDocument(file, raw) {
   const text = raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   if (text.includes('\uFFFD')) throw new SiteError(file, 0, 'contains U+FFFD (invalid UTF-8)');
   const lines = text.split('\n');
-  let i = lines[0] === '---' ? lines.indexOf('---', 1) + 1 : 0;
+  let i = 0;
+  if (lines[0] === '---') {
+    i = lines.indexOf('---', 1) + 1;
+    if (!i) throw new SiteError(file, 1, 'unterminated frontmatter');
+  }
   const elements = [];
   let inFence = false;
   let current = null;
@@ -35,9 +40,15 @@ function parseDocument(file, raw) {
   for (; i < lines.length; i++) {
     const line = lines[i];
     const n = i + 1;
-    if (/^\s*```/.test(line)) inFence = !inFence;
+    // Same fence rule as the renderer: a fence opens at column 0 and only a bare ``` closes it.
+    if (!inFence && line.startsWith('```')) inFence = true;
+    else if (inFence && /^```\s*$/.test(line)) inFence = false;
     const heading = inFence ? null : HEADING.exec(line);
-    if (heading || (!inFence && /^#\s/.test(line))) {
+    const section = !inFence && SECTION.test(line);
+    if (!heading && !section && !inFence && current && /^#\s/.test(line)) {
+      throw new SiteError(file, n, `level-1 heading inside a body: "${line.trim()}"`);
+    }
+    if (heading || section) {
       current = null;
       if (!heading) continue;
       const [, concept, name] = heading;
@@ -49,6 +60,9 @@ function parseDocument(file, raw) {
     if (!current) continue;
     const field = fieldsOpen ? FIELD.exec(line) : null;
     if (field) {
+      if (field[1] in current.fields) {
+        throw new SiteError(file, n, `duplicate field "${field[1]}" (first at line ${current.fieldLines[field[1]]})`);
+      }
       current.fields[field[1]] = field[2];
       current.fieldLines[field[1]] = n;
       continue;
@@ -100,7 +114,8 @@ function toSite(el) {
   if (!BASE_URL.test(el.fields.base_url)) {
     throw new SiteError(el.file, el.fieldLines.base_url, `base_url must be absolute and end with "/", got "${el.fields.base_url}"`);
   }
-  return { ...el.fields, name: el.name, concept: 'Site', fields: el.fields, file: el.file, line: el.line };
+  const { tagline, base_url: baseUrl, repository_url: repositoryUrl } = el.fields;
+  return { name: el.name, concept: 'Site', tagline, base_url: baseUrl, repository_url: repositoryUrl, fields: el.fields, file: el.file, line: el.line };
 }
 
 function toPage(el) {
@@ -140,10 +155,14 @@ export function loadSite(domainDir) {
   const site = toSite(sites[0]);
   const model = pages.map(toPage);
   const bySlug = new Map();
+  const byName = new Map();
   for (const p of model) {
     const prev = bySlug.get(p.slug);
     if (prev) throw new SiteError(p.file, p.line, `duplicate slug "${p.slug}" (also in ${prev.file}:${prev.line})`);
     bySlug.set(p.slug, p);
+    const same = byName.get(p.name.toLowerCase());
+    if (same) throw new SiteError(p.file, p.line, `duplicate Page name "${p.name}" (also in ${same.file}:${same.line})`);
+    byName.set(p.name.toLowerCase(), p);
   }
   if (!bySlug.has('index')) throw new SiteError('kNNowledge', 0, 'no Page has slug "index" (the home Page)');
   return { dir: domainDir, site, pages: model };
