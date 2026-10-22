@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { KINDS, loadSite, SiteError } from './lib/site-model.mjs';
 import { esc, renderBody } from './lib/markdown-subset.mjs';
+import { walkFiles } from './lib/walk-files.mjs';
 
 const require = createRequire(import.meta.url);
 const { auditModelCitations, checkScanImpact, findStaleSources } = require('../../skills/nn-sources/scripts/lib/impact-checker.js');
@@ -69,18 +70,6 @@ function checkOutDir(domainDir, outDir) {
   if (!marked && fs.readdirSync(out).length) {
     throw new SiteError('outDir', 0, `is not empty and has no ${MARKER_FILE} marker from a previous run; refusing to delete it`);
   }
-}
-
-function walkFiles(root, rel = '') {
-  const dir = path.join(root, rel);
-  if (!fs.existsSync(dir)) return [];
-  const out = [];
-  for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => byText(a.name, b.name))) {
-    const r = rel ? `${rel}/${e.name}` : e.name;
-    if (e.isDirectory()) out.push(...walkFiles(root, r));
-    else out.push(r);
-  }
-  return out;
 }
 
 /** Citation policy: audit errors, unresolved_in_latest and stale sidecar hashes fail; superseded warns. */
