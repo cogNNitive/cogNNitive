@@ -713,6 +713,50 @@ scenarioMonths:: 12
       assert.ok(concepts.has('Widget'), 'second model elements are embedded')
     })
 
+    it('surfaces the Sources and Artifacts catalogs as console models, but not the entrypoint or procedures catalog', async () => {
+      // The allowlisted core catalogs are role `catalog`; the exporter opts them in.
+      await writeFile(
+        join(tempDir, 'sources_NN.md'),
+        `---\ntitle: "Sources Catalog"\nlevel: 3\nparent_spec:\n  name: "sources"\n---\n\n# NN Source\n## NN Source: Report\n  slug:: report\n  format:: md\n`,
+        'utf-8',
+      )
+      await writeFile(
+        join(tempDir, 'artifacts_NN.md'),
+        `---\ntitle: "Artifacts Catalog"\nlevel: 3\nparent_spec:\n  name: "artifacts"\n---\n\n# NN Artifact\n## NN Artifact: Report\n  slug:: report\n  format:: model\n`,
+        'utf-8',
+      )
+      // Also role `catalog`, but NOT allowlisted: it must stay out of the model set.
+      await writeFile(
+        join(tempDir, 'procedures_NN.md'),
+        `---\ntitle: "Procedures Catalog"\nlevel: 3\nparent_spec:\n  name: "procedures"\n---\n\n# NN Procedure\n## NN Procedure: Run\n  slug:: run\n`,
+        'utf-8',
+      )
+      // The entrypoint carries structural, unslugged elements: it must stay excluded,
+      // or the frozen-slug gate would reject the whole export.
+      await writeFile(
+        join(tempDir, 'domaiNN_NN.md'),
+        `---\ntitle: "Domain"\nlevel: 3\nparent_spec:\n  name: "workspace"\n---\n\n# NN Workspace\n## NN Workspace: My Domain\nknowledge_dir:: kNNowledge/\n`,
+        'utf-8',
+      )
+
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const slot = await modelSlot()
+      assert.deepEqual(
+        slot.meta.models.map((m) => m.filePath).sort(),
+        ['artifacts_NN.md', 'business_V_1-0-0_NN.md', 'sources_NN.md'],
+        'only the allowlisted catalogs join the model set; the entrypoint and procedures catalog stay out',
+      )
+      assert.ok(
+        slot.elements.some((el) => el.concept === 'Source' && el.modelId === 'sources'),
+        'the Sources catalog elements are embedded as a model',
+      )
+      assert.ok(
+        slot.elements.some((el) => el.concept === 'Artifact' && el.modelId === 'artifacts'),
+        'the Artifacts catalog elements are embedded as a model',
+      )
+    })
+
     it('embeds the precomputed per-element history from the domain changesets', async () => {
       await mkdir(join(tempDir, 'changes'), { recursive: true })
       await writeFile(
