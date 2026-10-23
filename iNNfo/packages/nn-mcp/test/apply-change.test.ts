@@ -101,7 +101,11 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     models?: Record<string, { base_version: string; result_version: string }>
     changes: ChangeItem[]
   }): ChangesetDocument {
-    const sha = computeProposalSha(doc.changes)
+    // A change's evidence is mandatory; default it for the fixture changes.
+    const changes = doc.changes.map((c) =>
+      c.evidence === undefined ? { ...c, evidence: 'decision' } : c,
+    )
+    const sha = computeProposalSha(changes)
     return {
       frontmatter: {
         spec_version: 'V_0-4-0',
@@ -115,7 +119,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
         workspace_id: 'ws-1',
         models: doc.models,
       },
-      changes: doc.changes,
+      changes,
     }
   }
 

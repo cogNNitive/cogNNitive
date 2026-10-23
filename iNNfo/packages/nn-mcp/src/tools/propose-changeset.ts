@@ -88,6 +88,9 @@ function numberChanges(changes: ChangeItem[], author: string): ChangeItem[] {
     ...change,
     id: `c-${String(index + 1).padStart(2, '0')}`,
     author: change.author ?? author,
+    // D2: evidence is mandatory. A caller that provides none gets the honest `unknown`
+    // (accepted, flagged by validation); a provenance claim is never invented.
+    evidence: change.evidence ?? 'unknown',
   }))
 }
 

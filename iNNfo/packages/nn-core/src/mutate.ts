@@ -1605,9 +1605,9 @@ export function rewriteFieldCitation(
     delete element.rawFields[sourcesKey]
   }
 
-  // The citation this rewrite replaced (the field's previous origin), for the caller
-  // to record as the change's `replaced_sources::` annotation. `undefined` when the
-  // field had no prior citation (e.g. an added element).
+  // The citation this rewrite replaced (the field's previous origin), or `undefined`
+  // when the field had no prior citation (e.g. an added element). The apply engine no
+  // longer writes any companion citation (D20 removed): the change is the only provenance.
   return oldCitation
 }
 

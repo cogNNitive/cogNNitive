@@ -565,7 +565,22 @@ export async function executeChangesetApply(
     // writes nothing and releases the lock — the same all-or-nothing shape as PROPOSAL_TAMPERED.
     const citationResolver = createFsSourceResolver(rootDir)
     for (const change of csDoc.changes) {
-      if (!change.evidence) continue
+      // D2: evidence is mandatory on every change; a changeset with a change that carries
+      // none is rejected whole, naming the offending change id.
+      if (!change.evidence) {
+        return recordRejection(
+          [
+            {
+              path: `changes.${change.id}.evidence`,
+              message: `EVIDENCE_REQUIRED: change "${change.id}" carries no evidence`,
+              code: 'EVIDENCE_REQUIRED',
+            },
+          ],
+          change.id,
+          undefined,
+          false,
+        )
+      }
       if (change.evidence === 'decision' || change.evidence === 'unknown') continue
       const resolved = resolveCitation(
         change.evidence,
@@ -1285,9 +1300,16 @@ export async function executeChangesetApply(
     const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
     const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
 
+    const appliedAt = new Date().toISOString()
+    const batchId = displayStem(basename(resolvedChangesetPath))
     csDoc.frontmatter.status = overallStatus
-    csDoc.frontmatter.applied_at = new Date().toISOString()
+    csDoc.frontmatter.applied_at = appliedAt
     csDoc.frontmatter.models = modelsTransitionMap
+    // D5: denormalize the execution facts onto every change (excluded from the seal).
+    for (const change of csDoc.changes) {
+      change.applied_at = appliedAt
+      change.batch = batchId
+    }
 
     const serializedCs = serializeChangeset(csDoc)
     try {
