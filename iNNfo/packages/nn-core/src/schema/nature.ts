@@ -98,6 +98,7 @@ export const CORE_BLUEPRINT_NATURE: Readonly<Record<string, BlueprintNature>> = 
   sources: { structure: 'catalog', ownership: 'derived' },
   artifacts: { structure: 'catalog', ownership: 'derived' },
   procedures: { structure: 'catalog', ownership: 'derived' },
+  changes: { structure: 'members', ownership: 'derived' },
 }
 
 /** The nature a core blueprint declares, or `undefined` when it declares none. */

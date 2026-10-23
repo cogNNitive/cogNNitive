@@ -42,8 +42,11 @@ describe('natureOfBlueprint', () => {
     expect(natureOfBlueprint('procedures')).toEqual({ structure: 'catalog', ownership: 'derived' })
   })
 
+  it('declares the changes collection as members/derived', () => {
+    expect(natureOfBlueprint('changes')).toEqual({ structure: 'members', ownership: 'derived' })
+  })
+
   it('returns undefined for undeclared or domain-local blueprints', () => {
-    expect(natureOfBlueprint('changes')).toBeUndefined()
     expect(natureOfBlueprint('workspace')).toBeUndefined()
     expect(natureOfBlueprint('business')).toBeUndefined()
   })

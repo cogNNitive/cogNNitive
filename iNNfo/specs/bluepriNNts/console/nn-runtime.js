@@ -4301,7 +4301,9 @@
       var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
       return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
-    tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
+    // Change B: the bespoke `Changes` tab is retired — the `changes` collection now
+    // surfaces as an ordinary model (one unit per Change). The shell's review panel
+    // still hosts the changeset bar; it is no longer a tab.
 
     tabs.forEach(function (t) {
       if (t.id === 'explorer' || t.id === 'review') return
@@ -4653,7 +4655,7 @@
       var preferred = opts.config && opts.config.defaultView
       if (preferred && has(preferred)) return preferred
       if (has('explorer')) return 'explorer'
-      return tabs[0].id
+      return tabs.length > 0 ? tabs[0].id : ''
     }
 
     var onHashChange = function () {
