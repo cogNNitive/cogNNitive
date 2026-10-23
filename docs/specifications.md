@@ -108,5 +108,5 @@ Esta problemática ha sido validada empíricamente en el ecosistema de herramien
 
 ## Enlaces Relacionados
 
-- [Documentación del Motor iNNfo](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/docs/documentation/specifications.md)
+- [Documentación del Motor iNNfo](https://cognnitive.com/documentation/content/concepts/specifications)
 - [Especificación iNNfo V_0-2-1](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md)

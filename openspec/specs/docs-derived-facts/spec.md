@@ -93,14 +93,14 @@ fast with a clear error (not a silent fallback) if the built artifact is missing
 Generators introduced by this capability MUST write only to the specific
 generated files they own (e.g. the MCP tool facts file and the skills
 catalog file) and MUST NOT modify, regenerate, or overwrite
-`docs/innfo/documentation/_sidebar.md`, `specifications.md`, `templates.md`,
-`template-video.md`, or any file under `docs/innfo/documentation/assets/`,
+`docs/documentation/_sidebar.md`, `specifications.md`, `templates.md`,
+`template-video.md`, or any file under `docs/documentation/assets/`,
 even when those files are present as unrelated concurrent WIP in the same
 directory.
 
 #### Scenario: Generator runs alongside unrelated WIP
 
-- GIVEN `docs/innfo/documentation/_sidebar.md` and `specifications.md` contain uncommitted WIP changes from another session
+- GIVEN `docs/documentation/_sidebar.md` and `specifications.md` contain uncommitted WIP changes from another session
 - WHEN the docs-derived-facts generator runs
 - THEN those files are byte-identical before and after the run
 - AND only the tool-facts and skills-catalog generated files change

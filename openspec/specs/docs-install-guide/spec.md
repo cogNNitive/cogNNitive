@@ -24,7 +24,7 @@ currently duplicates install steps MUST instead link to this document.
 
 #### Scenario: Other surfaces link instead of duplicating
 
-- GIVEN `docs/skills/documentation/README.md` or any other former install-copy location
+- GIVEN `docs/documentation/content/skills/README.md` or any other former install-copy location
 - WHEN its install section is inspected after the change
 - THEN it contains a link to the canonical guide and no duplicated step-by-step install instructions
 

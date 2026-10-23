@@ -103,7 +103,7 @@ The `generate_docsify_suite_NN.md` procedure MUST be housed under `iNNfo/specs/t
 
 Root `docs/workspace_NN.md` MUST conform to `workspace_V_0-2-0_spec_NN.md`, and `npm run build:docs` MUST invoke the suite generator for both documentation sites.
 
-- `docs/innfo/documentation/documentation_NN.md` MUST conform to `documentation_V_0-2-0` and declare its navbar items.
+- `docs/documentation/documentation_NN.md` MUST conform to `documentation_V_0-2-0` and declare its navbar items.
 - `docs/actionn/documentation/documentation_NN.md` MUST be created, conforming to `documentation_V_0-2-0`, mapping its 7 documentation pages and navbar.
 
 #### Scenario: Build regenerates both documentation sites

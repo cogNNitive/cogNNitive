@@ -36,7 +36,7 @@ in `docs/`.
 
 - GIVEN the notice page
 - WHEN each internal `href` is mapped to a file under `docs/`
-- THEN the target exists (documentation pages are docsify hash routes backed by `docs/innfo/documentation/<page>.md`)
+- THEN the target exists (documentation pages are docsify hash routes backed by `docs/documentation/<page>.md`)
 
 #### Scenario: Replacement is explained
 

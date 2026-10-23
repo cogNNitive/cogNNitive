@@ -94,7 +94,7 @@ Three further drifts compound the confusion, all verified against the working tr
 | `iNNfo/specs/iNNfo_V_0-5-0_NN.md` | Modified | Type tables, Knowledge Fields prose, `type:: citation` example |
 | `iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md` | Modified | `bluepriNNts` concept and `path` field retyped; `blueprint_version` bumped |
 | `iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md` | Modified | `### Markers` prose removed; template example `model_version` → `knowledge_version`; `template_version` bumped |
-| `iNNfo/specs/vocabulary.json` + `docs/innfo/documentation/vocabulary.md` | Modified | `type:: model` retired identifier entry |
+| `iNNfo/specs/vocabulary.json` + `docs/documentation/content/concepts/vocabulary.md` | Modified | `type:: model` retired identifier entry |
 | `openspec/specs/**` (7 capabilities) | Modified | Delta specs re-point the vocabulary |
 | `manifest/source.yaml`, `catalog.json` | Regenerated | BluepriNNt version bumps via `npm run sync:versions` |
 

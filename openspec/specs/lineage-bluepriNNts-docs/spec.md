@@ -65,7 +65,7 @@ The artifacts catalog bluepriNNt (`iNNfo/specs/bluepriNNts/artifacts/`) MUST rem
 
 ### Requirement: Documentation describes the shipped system
 
-`docs/innfo/documentation/sources-citations-lineage.md` and `docs/skills/documentation/skills/citation-traceability.md` MUST be rewritten to cover: the `@` grammar, the three rules, record = view + journal, and the staleness principle. They MUST NOT contain OKF, "canonical view", or `sources/original/` references, and MUST use `@` (not `#slug`) in examples. Spec URL slugs MUST satisfy `check:spec-urls`.
+`docs/documentation/content/concepts/sources-citations-lineage.md` and `docs/documentation/content/concepts/sources-citations-lineage.md` MUST be rewritten to cover: the `@` grammar, the three rules, record = view + journal, and the staleness principle. They MUST NOT contain OKF, "canonical view", or `sources/original/` references, and MUST use `@` (not `#slug`) in examples. Spec URL slugs MUST satisfy `check:spec-urls`.
 
 #### Scenario: Forbidden terms absent
 - GIVEN the two rewritten pages

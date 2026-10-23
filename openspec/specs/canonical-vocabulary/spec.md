@@ -6,7 +6,7 @@ Pin a canonical term dictionary for the cogNNitive ecosystem, collapsing overlap
 ## Requirements
 ### Requirement: Canonical term dictionary is machine-readable and human-visible
 
-The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives console labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match. (Previously: the dictionary drove `innfo-editor` labels.)
+The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives console labels and skill copy, and a human-readable page under `docs/documentation/content/concepts/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match. (Previously: the dictionary drove `innfo-editor` labels.)
 
 #### Scenario: Dictionary consumed by console labels
 
@@ -17,7 +17,7 @@ The system MUST provide a canonical term dictionary in two forms: a machine-read
 #### Scenario: Dictionary rendered as docs page
 
 - GIVEN the canonical dictionary
-- WHEN `docs/innfo/documentation/vocabulary.md` is generated
+- WHEN `docs/documentation/content/concepts/vocabulary.md` is generated
 - THEN it lists every canonical term (`defiNNition`, `iNNfo`, `bluepriNNt`, `kNNowledge`, `domaiNN`) with its deprecated aliases and sense exclusions
 
 ### Requirement: `bluepriNNt` is canonical, `template` and `app` are explicit deprecated aliases
@@ -96,7 +96,7 @@ The unified backlog MUST gain a new work item recording the future mechanical id
 
 ### Requirement: `sidecar` and `cognitivize` are canonical terms
 
-`iNNfo/specs/vocabulary.json` MUST define `sidecar` (the co-located `<file>.<ext>_sidecar_NN.md` document that carries a file's hash, size, metadata, and, for binary files, a normalized body) and `cognitivize` (the operation that creates or refreshes a sidecar in place). `docs/innfo/documentation/vocabulary.md` MUST render both. The terms MUST be noted as concepts, not as new levels: a `sidecar` is a kNNowledge-level document that is never a model. The root and `iNNfo` `AGENTS.md` vocabulary blocks MUST stay consistent with the dictionary.
+`iNNfo/specs/vocabulary.json` MUST define `sidecar` (the co-located `<file>.<ext>_sidecar_NN.md` document that carries a file's hash, size, metadata, and, for binary files, a normalized body) and `cognitivize` (the operation that creates or refreshes a sidecar in place). `docs/documentation/content/concepts/vocabulary.md` MUST render both. The terms MUST be noted as concepts, not as new levels: a `sidecar` is a kNNowledge-level document that is never a model. The root and `iNNfo` `AGENTS.md` vocabulary blocks MUST stay consistent with the dictionary.
 
 #### Scenario: Dictionary entries exist
 - GIVEN `vocabulary.json`
@@ -124,7 +124,7 @@ The release notes for this change MUST list every renamed procedure file and the
 
 ### Requirement: Console is the user-facing UI term
 
-The canonical term dictionary (`iNNfo/specs/vocabulary.json`, `docs/innfo/documentation/vocabulary.md`) MUST define "console" as the user-facing term for the UI that shows and reviews a domaiNN: the domain console (`domaiNN_console.html`, one per domaiNN) whose specialized surfaces are views shown as tabs. "editor" and "hosted app" (the retired `cognnitive.com/innfo/app/` web application) MUST be listed as retired UI terms and MUST NOT be used in user-facing copy for that UI. This does not touch "app" as the deprecated alias of `bluepriNNt`, which keeps its existing entry.
+The canonical term dictionary (`iNNfo/specs/vocabulary.json`, `docs/documentation/content/concepts/vocabulary.md`) MUST define "console" as the user-facing term for the UI that shows and reviews a domaiNN: the domain console (`domaiNN_console.html`, one per domaiNN) whose specialized surfaces are views shown as tabs. "editor" and "hosted app" (the retired `cognnitive.com/innfo/app/` web application) MUST be listed as retired UI terms and MUST NOT be used in user-facing copy for that UI. This does not touch "app" as the deprecated alias of `bluepriNNt`, which keeps its existing entry.
 
 #### Scenario: The dictionary defines console
 - GIVEN `iNNfo/specs/vocabulary.json`
@@ -133,13 +133,13 @@ The canonical term dictionary (`iNNfo/specs/vocabulary.json`, `docs/innfo/docume
 - AND "editor" and "hosted app" are marked retired UI terms
 
 #### Scenario: Docs use console
-- GIVEN `docs/innfo/documentation/vocabulary.md`
+- GIVEN `docs/documentation/content/concepts/vocabulary.md`
 - WHEN it is read
 - THEN it names the domain console and its views, and not an editor or a hosted app
 
 ### Requirement: Marker Retired, Field and Tag Defined
 
-`iNNfo/specs/vocabulary.json` and the generated `docs/innfo/documentation/vocabulary.md` MUST list the L1 primitives as Concept, Field and Matrix, MUST NOT define `Marker Definition` as a live primitive, and MUST define `tag` as a value of the ordinary multi-valued `tags` Field. A `Marker` entry MAY remain only as a retired term pointing to `MARKERS_REMOVED`.
+`iNNfo/specs/vocabulary.json` and the generated `docs/documentation/content/concepts/vocabulary.md` MUST list the L1 primitives as Concept, Field and Matrix, MUST NOT define `Marker Definition` as a live primitive, and MUST define `tag` as a value of the ordinary multi-valued `tags` Field. A `Marker` entry MAY remain only as a retired term pointing to `MARKERS_REMOVED`.
 
 #### Scenario: Three primitives
 - GIVEN `vocabulary.json`
@@ -153,7 +153,7 @@ The canonical term dictionary (`iNNfo/specs/vocabulary.json`, `docs/innfo/docume
 
 ### Requirement: Retired distribution identifiers are recorded in the dictionary
 
-In the cleanup commit (after the first `nn-*` releases publish), `iNNfo/specs/vocabulary.json` MUST list the retired distribution identifiers in `retired_identifiers`, each with `id`, `old`, `new`, `kind` and `notes` in the existing entry shape. The entries MUST cover at least: the release keys and tag families `innfo-mcp` and `innfo-console` (new: `nn-mcp`, `nn-console`), the packages `@cognnitive/innfo-core`, `@cognnitive/innfo-mcp` and `@cognnitive/innfo-console` (new: `@cognnitive/nn-*`), the directories `iNNfo/packages/innfo-core` and `iNNfo/packages/innfo-mcp`, the MCP bin and server name `innfo-mcp`, the tool prefix `innfo-mcp_`, the console shell pin `@innfo-console-v`, and the console asset and generated file name prefix `innfo-` (new: `nn-`). The `notes` of each entry MUST state that existing git tags, published CDN files and stamped exports under the old name remain valid and are not renamed. `docs/innfo/documentation/vocabulary.md` MUST render the new entries.
+In the cleanup commit (after the first `nn-*` releases publish), `iNNfo/specs/vocabulary.json` MUST list the retired distribution identifiers in `retired_identifiers`, each with `id`, `old`, `new`, `kind` and `notes` in the existing entry shape. The entries MUST cover at least: the release keys and tag families `innfo-mcp` and `innfo-console` (new: `nn-mcp`, `nn-console`), the packages `@cognnitive/innfo-core`, `@cognnitive/innfo-mcp` and `@cognnitive/innfo-console` (new: `@cognnitive/nn-*`), the directories `iNNfo/packages/innfo-core` and `iNNfo/packages/innfo-mcp`, the MCP bin and server name `innfo-mcp`, the tool prefix `innfo-mcp_`, the console shell pin `@innfo-console-v`, and the console asset and generated file name prefix `innfo-` (new: `nn-`). The `notes` of each entry MUST state that existing git tags, published CDN files and stamped exports under the old name remain valid and are not renamed. `docs/documentation/content/concepts/vocabulary.md` MUST render the new entries.
 
 #### Scenario: Old names are recorded
 - GIVEN `vocabulary.json` after the cleanup commit
@@ -167,7 +167,7 @@ In the cleanup commit (after the first `nn-*` releases publish), `iNNfo/specs/vo
 - THEN they state that existing `innfo-mcp-v*` tags and CDN files remain resolvable
 
 #### Scenario: Docs page renders them
-- GIVEN the generated `docs/innfo/documentation/vocabulary.md`
+- GIVEN the generated `docs/documentation/content/concepts/vocabulary.md`
 - WHEN it is read after the cleanup commit
 - THEN the retired distribution identifiers are listed with their replacements
 

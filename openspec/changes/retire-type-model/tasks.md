@@ -38,14 +38,14 @@
 ## 5. Vocabulary
 
 - [ ] 5.1 Add the `type:: knowledge` canonical entry and the `type:: model` retired-identifier entry to `iNNfo/specs/vocabulary.json`
-- [ ] 5.2 Regenerate `docs/innfo/documentation/vocabulary.md`
+- [ ] 5.2 Regenerate `docs/documentation/content/concepts/vocabulary.md`
 - [ ] 5.3 Run the vocabulary consistency check (`npm run check:integrity` or the dedicated gate)
 
 ## 6. Doc-drift repairs
 
 - [ ] 6.1 Confirm no live spec or workspace file shows `sources/nn/` or `#slug` in a citation example for `type:: citation`
 - [ ] 6.2 Confirm no live file shows `model_version` outside frozen predecessors
-- [ ] 6.3 Update `docs/innfo/documentation/` pages that name `type:: model` as a live type
+- [ ] 6.3 Update `docs/documentation/` pages that name `type:: model` as a live type
 - [ ] 6.4 Confirm no live spec still describes `target_template` as the conformance property (the live key is `target_blueprint`)
 
 ## 7. OpenSpec bookkeeping

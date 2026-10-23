@@ -55,36 +55,40 @@ The template MUST declare Field Definitions (`# NN Field Definition` blocks) for
 
 ### Requirement: Dogfooding Model
 
-`docs/innfo/documentation/documentation_NN.md` MUST be a Level 3 instance conforming to the `documentation` template, with one `DocSite` (`iNNfo Documentation`, `base_path:: docs/innfo/documentation/`) and a single top-level `Page` parented directly to the DocSite (`Home`: `README.md`). It MUST organize the remaining technical documentation pages into three ordered sections, and relationship and usage guidance MUST live under `Guides`, not under `Architecture`:
+`docs/documentation/documentation_NN.md` MUST be a Level 3 instance conforming to the `documentation` blueprint, with one `DocSite` (`cogNNitive Documentation`, `base_path:: docs/documentation/`) and a single top-level `Page` parented directly to the DocSite (`Home`: `README.md`). It MUST organize the documentation into five ordered sections following the Diátaxis framework:
 
-- `Components` (`section_order:: 1`): `nn-core.md`, `nn-mcp.md`, `opencode-nn-agent.md`
-- `Architecture` (`section_order:: 2`): `ecosystem.md`, `specifications.md`, and `ecosystem.md#open-knowledge-format-compatibility` (OKF Compatibility)
-- `Guides` (`section_order:: 3`): `usage.md` (Usage), `relationships.md` (Relationships & Connections)
+- `Tutorials` (`section_order:: 1`): `content/tutorials/first-domain.md`, `content/tutorials/domain-from-scratch.md`
+- `How-To Guides` (`section_order:: 2`): task-oriented recipes under `content/how-to/`.
+- `Architecture & Concepts` (`section_order:: 3`): explanatory pages under `content/concepts/`.
+- `Reference` (`section_order:: 4`): `content/reference/mcp-tools.md`, `content/reference/blueprints.md`, `content/reference/cli.md`, `content/reference/glossary.md`
+- `Canonical Skills` (`section_order:: 5`): one Page per skill declared in `manifest/source.yaml` (`content/skills/<name>.md`).
 
-#### Scenario: Guidance pages sit under Guides
+This single model replaces the former `docs/innfo/documentation/` and `docs/skills/documentation/` sites.
+
+#### Scenario: Guidance pages sit under their Diátaxis section
 
 - **GIVEN** the dogfooding model
-- **WHEN** the `Usage` and `Relationships & Connections` pages are read
-- **THEN** their parent is the `Guides` section, not `Architecture`
+- **WHEN** the `collaborate-git` and `domain-console` pages are read
+- **THEN** their parent is the `How-To Guides` section, not `Architecture & Concepts`
 
 ### Requirement: Collaboration Git Guide Page
 
-The `documentation_NN.md` model MUST declare a new `Page` for Git collaboration: `source:: collaboration-git.md`, `parent:: [[Guides]]`, with the next free `order` after existing Guides pages. The page content MUST be English-only. The Guides sidebar MUST list the new page. The `source` file MUST exist on disk so sidebar generation validates.
+The `documentation_NN.md` model MUST declare a `Page` for Git collaboration: `source:: content/how-to/collaborate-git.md`, `parent:: [[How-To Guides]]`, with a unique `order` among the how-to pages. The page content MUST be English-only. The sidebar MUST list the page. The `source` file MUST exist on disk so suite generation validates.
 
-#### Scenario: Guide renders under Guides
+#### Scenario: Guide renders under How-To Guides
 
-- **GIVEN** the updated `documentation_NN.md` and existing `collaboration-git.md`
-- **WHEN** the Docs site renders the Guides section
-- **THEN** a Collaboration with Git entry appears linking to the new route
+- **GIVEN** the updated `documentation_NN.md` and existing `content/how-to/collaborate-git.md`
+- **WHEN** the Docs site renders the How-To Guides section
+- **THEN** a Collaborate with Git entry appears linking to the new route
 
-#### Scenario: Sidebar generation validates the source
+#### Scenario: Suite generation validates the source
 
 - **GIVEN** the new `Page` declaration
-- **WHEN** `generate-docsify-sidebar.mjs` runs
+- **WHEN** `generate-docsify-suite.mjs` runs
 - **THEN** it exits zero AND the sidebar contains the new entry
 
 #### Scenario: Missing source aborts generation
 
 - **GIVEN** the `Page` declaration without its `source` file on disk
-- **WHEN** `generate-docsify-sidebar.mjs` runs
+- **WHEN** `generate-docsify-suite.mjs` runs
 - **THEN** it aborts with a nonzero code

@@ -43,7 +43,7 @@ Define the Home bootstrap experience: a dual action surface (create vs. open a w
 - THEN the Bootstrap Modal opens with the directory handle preserved and a copiable bootstrap prompt
 
 ### R-ONB-04: Installing AI Agents Documentation
-- A comprehensive documentation page `docs/innfo/documentation/installing-ai-agents.md` SHALL be added to the documentation system.
+- A comprehensive documentation page `docs/documentation/installing-ai-agents.md` SHALL be added to the documentation system.
 - It MUST be registered in `_sidebar.md` under Guides.
 - It MUST detail software installation, CLI commands, and links for OpenCode, Claude Code, Antigravity, and Codex.
 

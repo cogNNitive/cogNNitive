@@ -80,11 +80,11 @@ served by any published site.
 ### Requirement: Unrelated Maintainer WIP Stays Untouched
 
 This change MUST NOT create, modify, or delete
-`docs/innfo/documentation/_sidebar.md`,
-`docs/innfo/documentation/specifications.md`,
-`docs/innfo/documentation/templates.md`,
-`docs/innfo/documentation/template-video.md`, or any file under
-`docs/innfo/documentation/assets/`. These are concurrent, unrelated WIP owned
+`docs/documentation/_sidebar.md`,
+`docs/documentation/specifications.md`,
+`docs/documentation/templates.md`,
+`docs/documentation/template-video.md`, or any file under
+`docs/documentation/assets/`. These are concurrent, unrelated WIP owned
 by another session and are out of scope in full.
 
 #### Scenario: Diff excludes the fenced paths

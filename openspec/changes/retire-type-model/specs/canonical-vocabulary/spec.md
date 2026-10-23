@@ -2,7 +2,7 @@
 
 ### Requirement: `type:: knowledge` is canonical and `type:: model` is a retired identifier
 
-`iNNfo/specs/vocabulary.json` and the generated `docs/innfo/documentation/vocabulary.md` MUST declare `type:: knowledge` as the canonical submodel-reference type and MUST record `type:: model` as a retired identifier, following the explicit, published, non-silent pattern established for the retired `Marker` primitive. A `model` declaration MUST remain resolvable as a temporary deprecated alias that normalizes to `knowledge` and MUST emit `FIELD_TYPE_MODEL_DEPRECATED`.
+`iNNfo/specs/vocabulary.json` and the generated `docs/documentation/content/concepts/vocabulary.md` MUST declare `type:: knowledge` as the canonical submodel-reference type and MUST record `type:: model` as a retired identifier, following the explicit, published, non-silent pattern established for the retired `Marker` primitive. A `model` declaration MUST remain resolvable as a temporary deprecated alias that normalizes to `knowledge` and MUST emit `FIELD_TYPE_MODEL_DEPRECATED`.
 
 #### Scenario: Canonical entry exists
 - GIVEN `iNNfo/specs/vocabulary.json`

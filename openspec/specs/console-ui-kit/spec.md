@@ -340,7 +340,7 @@ A kitchen-sink fixture MUST render every component, including the review compone
 
 ### Requirement: Reuse by Generated Consoles
 
-Token names, component signatures, and every `data-*` hook MUST be documented in `docs/innfo/documentation/console-ui-kit.md`, with no extension or plugin registry.
+Token names, component signatures, and every `data-*` hook MUST be documented in `docs/documentation/console-ui-kit.md`, with no extension or plugin registry.
 
 #### Scenario: Contract documented
 - GIVEN the documentation
