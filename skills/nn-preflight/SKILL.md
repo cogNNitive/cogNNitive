@@ -12,6 +12,8 @@ bundled_blueprints: []
 
 # nn-preflight
 
+<!-- docs-options: update=content/skills/nn-preflight, continue=content/skills/nn-preflight -->
+
 ## Canonical Activation Gate Protocol (MANDATORY)
 
 Every cogNNitive skill MUST execute this canonical activation gate before answering ANY user question or executing ANY task in the session.
@@ -129,3 +131,23 @@ Present exactly three sections, each a bullet list, followed by the language pre
 4. **Windows Network Resilience**: Do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git.
 5. **Zero Workspace Pollution**: Temporary checkouts or network cache files MUST be written to system temp (`$env:TEMP` / `~/.agents/tmp/`) and deleted immediately after use. Never clone git repositories into the user's workspace root.
 
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
+<!-- /generated:shared-rules -->

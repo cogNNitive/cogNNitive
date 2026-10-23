@@ -183,6 +183,17 @@ tags:: [docs, how-to, git, collaboration, review]
 
 Use Git as an optional review and collaboration layer on top of a private domaiNN.
 
+## NN Page: Execute a procedure
+slug:: execute-procedure
+title:: Execute a procedure
+source:: content/how-to/execute-procedure.md
+route:: content/how-to/execute-procedure.md
+order:: 90
+parent:: [[How-To Guides]]
+tags:: [docs, how-to, procedures, execution]
+
+Ask your agent to run a declared procedure and review its outputs.
+
 ## NN Page: The four levels
 slug:: levels
 title:: The four levels

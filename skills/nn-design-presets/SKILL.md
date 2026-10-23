@@ -12,6 +12,8 @@ bundled_blueprints: []
 
 # cogNNitive Design Presets
 
+<!-- docs-options: morado-nazareno=content/skills/nn-design-presets, sleek-dark=content/skills/nn-design-presets, glassmorphism=content/skills/nn-design-presets, neo-brutalism=content/skills/nn-design-presets, nordic-warm-editorial=content/skills/nn-design-presets -->
+
 ## 0. Activation Gate
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
@@ -59,3 +61,24 @@ Which visual design style would you like to apply to this artifact/component?
 - [`nn-shad-cn`](presets/nn-shad-cn.md) — Monochrome neutral (shadcn-inspired): black/white/gray only; color only for semantic meaning (success `#16A34A`, danger `#DC2626`, warning `#D97706`, info `#2563EB`)
 
 Browse the `presets/` directory for the full token specs. When a user or workflow creates a visual artifact, read the relevant preset and apply its CSS tokens.
+
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
+<!-- /generated:shared-rules -->

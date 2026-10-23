@@ -14,6 +14,7 @@
   - [Review changesets](content/how-to/review-changesets.md)
   - [Sync lineage and back up a domaiNN](content/how-to/sync-and-backup.md)
   - [Collaborate with Git](content/how-to/collaborate-git.md)
+  - [Execute a procedure](content/how-to/execute-procedure.md)
 
 - **💡 Architecture & Concepts**
   - [The four levels](content/concepts/levels.md)

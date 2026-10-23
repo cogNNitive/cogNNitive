@@ -42,18 +42,33 @@ export const SECTION_IDS = [
   'conversation-lifecycle',
   'citation-taxonomy',
   'informative-grace',
+  'menu-docs-links',
 ]
 
 /** Which rules each end-user skill renders. */
 export const SKILL_SECTION_MAP = {
-  nn: ['governance', 'conversation-lifecycle'],
-  'nn-innfo': ['governance', 'conversation-lifecycle', 'citation-taxonomy', 'informative-grace'],
+  nn: ['governance', 'conversation-lifecycle', 'menu-docs-links'],
+  'nn-innfo': [
+    'governance',
+    'conversation-lifecycle',
+    'citation-taxonomy',
+    'informative-grace',
+    'menu-docs-links',
+  ],
   'nn-sources': [
     'governance',
     'conversation-lifecycle',
     'citation-taxonomy',
     'informative-grace',
+    'menu-docs-links',
   ],
+  // Skills that present decision menus to the end user also carry the
+  // menu-docs-links rule, so every option renders its documentation link.
+  'nn-site-generator': ['menu-docs-links'],
+  'nn-preflight': ['menu-docs-links'],
+  'nn-upgrade': ['menu-docs-links'],
+  'nn-design-presets': ['menu-docs-links'],
+  'nn-skills-lifecycle': ['menu-docs-links'],
 }
 
 /**

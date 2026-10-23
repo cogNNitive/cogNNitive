@@ -13,6 +13,8 @@ bundled_blueprints: []
 
 # nn Front Controller
 
+<!-- docs-options: sources=content/how-to/import-sources, model=content/tutorials/domain-from-scratch, review=content/how-to/review-changesets, procedures=content/how-to/execute-procedure, help=content/reference/glossary, cancel -->
+
 The primary interactive entry point and front controller for the cogNNitive ecosystem.
 
 ---
@@ -141,6 +143,23 @@ and does not execute steps from its own text. Do not restate the protocol here.
    to the ISO 8601 completion timestamp.
 6. **Promote**: auto-promote the transcript to `sources/conversations/` (announce
    it; `[none]` opts out).
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
 <!-- /generated:shared-rules -->
 
 ### nn-specific additions

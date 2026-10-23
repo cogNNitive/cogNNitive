@@ -23,6 +23,8 @@ description: |
 
 # iNNfo Skill
 
+<!-- docs-options: create=content/tutorials/domain-from-scratch, edit=content/how-to/review-changesets, audit=content/how-to/validate-domain, export-console=content/how-to/domain-console, execute-procedure=content/how-to/execute-procedure, docs=content/reference/glossary, cancel -->
+
 ## 0. Activation Gate
 
 1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` in the current session, skip duplicate preflight execution.
@@ -89,6 +91,23 @@ Safe, standard, reversible actions proceed without a blocking confirmation.
 Announce the action in the user's active session language, then continue; the
 user may interrupt. Example (English): *"Proceeding with the standard {action}.
 If you'd prefer a different location or want to stop, tell me before I begin."*
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
 <!-- /generated:shared-rules -->
 
 ---

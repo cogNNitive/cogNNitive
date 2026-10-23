@@ -110,6 +110,17 @@ Summary (details, commands, verdict rules and expedientes in the catalog):
 | 10 | General code review (QA, bug hunt, easy refactors) — default OFF |
 | 11 | cogNNitive-web issue triage — advisory (delegated to `nn-dev-issue-tracking`) |
 
+### Group 8 — skill-flow ↔ docs coherence (on demand)
+
+`npm run audit:skill-docs` (run it yourself; it is not part of `verify.js`)
+checks that every option an end-user skill presents has a matching page in
+`docs/documentation/`, and that every documentation link a skill declares
+resolves. Run it after adding, renaming, or removing a menu option in a skill,
+or after adding/renaming a documentation page. The per-skill map lives in the
+`docs-options` HTML comment near the top of each `SKILL.md`; a `·` line means an
+option has no page yet (a coverage gap, not a failure); a `✖` line is a broken
+link and exits 1.
+
 ---
 
 ## 3. Report Format

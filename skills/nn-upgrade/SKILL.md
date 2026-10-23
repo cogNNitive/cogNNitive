@@ -12,6 +12,8 @@ bundled_blueprints: []
 
 # nn-upgrade
 
+<!-- docs-options: upgrade=content/skills/nn-upgrade, freeze-slugs=content/skills/nn-upgrade, migrate-domain=content/skills/nn-upgrade -->
+
 ## Canonical Activation Gate Protocol (MANDATORY)
 
 Every cogNNitive skill MUST execute the canonical activation gate defined in `nn-preflight`
@@ -110,3 +112,24 @@ This scaffolds a new domaiNN and copies the old tree byte-identically under the 
 4. **Zero workspace pollution**: All temporary checkouts and backups stay outside the working tree.
 5. **No in-place migration**: An old domain is imported as a Source into a new domain; nothing rewrites or deletes user data.
 6. **No retired paths here**: This skill never names retired layouts or keys. Legacy detail lives in the procedure `upgrade_and_migrate_legacy_workspace_NN.md`; keep it that way.
+
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
+<!-- /generated:shared-rules -->

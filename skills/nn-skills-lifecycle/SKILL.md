@@ -15,6 +15,8 @@ bundled_blueprints: []
 
 # nn Skills Lifecycle
 
+<!-- docs-options: install=content/skills/nn-skills-lifecycle, create=content/skills/nn-skills-lifecycle, audit=content/skills/nn-skills-lifecycle, maintenance=content/skills/nn-skills-lifecycle -->
+
 ## 0. Activation Gate
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
@@ -138,3 +140,24 @@ Requires a cogNNitive repository checkout; not runnable from an installed skill.
 - Never load alongside `skill-creator`, `skill-improver`, or `nnskills-organizer` in the same context
 - Always update `manifest/source.yaml` and sync version documentation after any create, move, rename, or delete
 - Never modify a `SKILL.md` directly — delegate to the specialist
+
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
+
+**Menu Documentation Links (MANDATORY)**
+
+Every decision menu or option set you present MUST carry, for each option that
+declares one, a deep link to the documentation page that explains it, so the
+user can read the option in depth (walkthroughs, examples, and videos live
+there).
+
+- The per-skill option→page map is declared in a `docs-options` HTML comment
+  whose body is `<id>=<route>, <id>, ...`. A bare `<id>` means the option has no
+  documentation page yet.
+- Render each declared link as
+  `https://cognnitive.com/documentation/#/<route>`, optionally with a short
+  `(docs)` label appended to the option line. Options with no declared route are
+  shown without a link.
+- When you add, rename, or remove a menu option, update its `docs-options`
+  marker in the same change. Run `npm run audit:skill-docs` to review coverage.
+<!-- /generated:shared-rules -->
