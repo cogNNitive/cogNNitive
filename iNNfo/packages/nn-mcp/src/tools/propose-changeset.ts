@@ -289,13 +289,15 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
   const citationResolver = createFsSourceResolver(rootDir)
   const futureChangesetPath = join(rootDir, 'changes', 'proposal_changes_NN.md')
   for (const [index, change] of operations.entries()) {
-    if (!change.sources) continue
-    const resolved = resolveCitation(change.sources, 'sources', citationResolver, futureChangesetPath)
+    if (!change.evidence) continue
+    // `decision` and `unknown` are not citations: accepted without resolution.
+    if (change.evidence === 'decision' || change.evidence === 'unknown') continue
+    const resolved = resolveCitation(change.evidence, 'evidence', citationResolver, futureChangesetPath)
     if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
       errors.push({
-        path: `operations[${index}].sources`,
+        path: `operations[${index}].evidence`,
         code: 'CITATION_UNRESOLVED',
-        message: `CITATION_UNRESOLVED: operations[${index}] cites "${change.sources}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
+        message: `CITATION_UNRESOLVED: operations[${index}] cites "${change.evidence}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
       })
     }
   }

@@ -667,9 +667,9 @@ scenarioMonths:: 12
       JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
 
     const changeset = (status, title) =>
-      `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: ${status}\ntitle: "${title}"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: Business Model@enterprise&tagline\nnotes:: "note"\nsources:: sources/brief.md@## Overview\nreplaced_sources:: sources/old.md@## Overview\n`
+      `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: ${status}\ntitle: "${title}"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: Business Model@enterprise&tagline\nnotes:: "note"\nevidence:: sources/brief.md@## Overview\n`
 
-    it('carries every changeset with sources/replaced_sources, and [] with no changes/', async () => {
+    it('carries every changeset with evidence, and [] with no changes/', async () => {
       // No changes/ directory: the collection is empty.
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       assert.deepEqual((await modelSlot()).changes, [])
@@ -682,11 +682,10 @@ scenarioMonths:: 12
       const model = await modelSlot()
       assert.equal(model.changes.length, 2)
       const change = model.changes[0].changes[0]
-      assert.equal(change.sources, 'sources/brief.md@## Overview')
-      assert.equal(change.replaced_sources, 'sources/old.md@## Overview')
+      assert.equal(change.evidence, 'sources/brief.md@## Overview')
       // Never written into a model.
       const modelFile = await readFile(join(tempDir, 'models', 'business_V_1-0-0_NN.md'), 'utf-8')
-      assert.doesNotMatch(modelFile, /replaced_sources/)
+      assert.doesNotMatch(modelFile, /evidence::/)
     })
   })
 
