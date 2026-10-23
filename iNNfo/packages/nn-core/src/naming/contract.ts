@@ -8,6 +8,8 @@
  * second `_NN.md` pattern appears elsewhere.
  */
 
+import { natureOfBlueprint } from '../schema/nature.js'
+
 export const ENTRYPOINT_FILENAME = 'domaiNN_NN.md'
 export const SPEC_FILENAME = 'spec_NN.md'
 export const SIDECAR_BLUEPRINT = 'sidecar'
@@ -245,18 +247,23 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
 }
 
 /**
- * The console's model notion: a `knowledge` model, OR a `procedures` model — a
- * Level-3 procedures catalog/stepper in the workspace that feeds the procedures
- * blueprint's Procedure view. The `procedures/` submodels (execution steppers
- * linked through `procedure_model`) are NOT console models: they are excluded by
- * their `procedures` directory segment. `list_knowledge`, discovery and the
- * lineage projection keep using `isModelCandidate` (knowledge only).
+ * The console's model notion: a `knowledge` model, a `procedures` model (a Level-3
+ * procedures catalog/stepper in the workspace that feeds the procedures blueprint's
+ * Procedure view), or any document whose blueprint declares a `nature` — a declared
+ * collection surfaces ("if you declare it, it shows", change A D5). The `procedures/`
+ * submodels (execution steppers linked through `procedure_model`) are NOT console
+ * models: they are excluded by their `procedures` directory segment. `list_knowledge`,
+ * discovery and the lineage projection keep using `isModelCandidate` (knowledge only).
  */
 export function isConsoleModel(f: { path: string; frontmatter: Record<string, unknown> }): boolean {
   if (isExcludedPath(f.path)) return false
-  const role = roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) })
+  const parentSpecName = parentSpecNameOf(f.frontmatter)
+  const role = roleOf({ path: f.path, parentSpecName })
   if (role === 'knowledge') return true
-  return role === 'procedure' && !segmentsOf(f.path).includes('procedures')
+  // A procedures model surfaces, but never a `procedures/` execution stepper (submodel).
+  if (role === 'procedure') return !segmentsOf(f.path).includes('procedures')
+  // Every other role surfaces only when its blueprint declares a nature (declared collection).
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== undefined
 }
 
 /** A published-spec style version token inside a stem: `_V_<major>-<minor>-<patch>`. */

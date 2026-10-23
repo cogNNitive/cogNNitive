@@ -59,6 +59,16 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
+// iNNfo/packages/nn-core/src/schema/nature.ts
+var CORE_BLUEPRINT_NATURE = {
+  sources: { structure: "catalog", ownership: "derived" },
+  artifacts: { structure: "catalog", ownership: "derived" },
+  procedures: { structure: "catalog", ownership: "derived" }
+};
+function natureOfBlueprint(blueprintName) {
+  return CORE_BLUEPRINT_NATURE[blueprintName];
+}
+
 // iNNfo/packages/nn-core/src/naming/contract.ts
 var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
 var SPEC_FILENAME = "spec_NN.md";
@@ -201,9 +211,11 @@ function isModelCandidate(f) {
 }
 function isConsoleModel(f) {
   if (isExcludedPath(f.path)) return false;
-  const role = roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) });
+  const parentSpecName = parentSpecNameOf(f.frontmatter);
+  const role = roleOf({ path: f.path, parentSpecName });
   if (role === "knowledge") return true;
-  return role === "procedure" && !segmentsOf(f.path).includes("procedures");
+  if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== void 0;
 }
 var VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i;
 var STRUCTURAL_STEM_RE = /^(?:iNNfo|defiNNition|defiNNe|meta-bluepriNNt)(?:_V_\d+-\d+-\d+)?$/i;

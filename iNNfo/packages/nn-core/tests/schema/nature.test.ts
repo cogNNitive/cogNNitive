@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseNature } from '../../src/schema/nature.js'
+import { parseNature, natureOfBlueprint } from '../../src/schema/nature.js'
 
 describe('parseNature', () => {
   it('returns no nature and no diagnostics when the block is absent', () => {
@@ -32,5 +32,19 @@ describe('parseNature', () => {
   it('flags a non-mapping nature', () => {
     const { diagnostics } = parseNature({ nature: 'members' })
     expect(diagnostics.map((d) => d.code)).toEqual(['NATURE_INVALID_SHAPE'])
+  })
+})
+
+describe('natureOfBlueprint', () => {
+  it('resolves the declared core collections', () => {
+    expect(natureOfBlueprint('sources')).toEqual({ structure: 'catalog', ownership: 'derived' })
+    expect(natureOfBlueprint('artifacts')).toEqual({ structure: 'catalog', ownership: 'derived' })
+    expect(natureOfBlueprint('procedures')).toEqual({ structure: 'catalog', ownership: 'derived' })
+  })
+
+  it('returns undefined for undeclared or domain-local blueprints', () => {
+    expect(natureOfBlueprint('changes')).toBeUndefined()
+    expect(natureOfBlueprint('workspace')).toBeUndefined()
+    expect(natureOfBlueprint('business')).toBeUndefined()
   })
 })

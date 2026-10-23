@@ -86,3 +86,21 @@ export function parseNature(frontmatter: Record<string, unknown>): ParsedNature 
     diagnostics,
   }
 }
+
+/**
+ * Compiled `blueprint -> nature` map for the core blueprints that declare a
+ * collection, mirroring each Level-2 blueprint's frontmatter `nature`. It is data,
+ * so the surfacing predicate stays pure and browser-safe. Domain-local blueprints
+ * are absent here: their nature is resolved at runtime by the blueprint resolver.
+ * `changes` is deliberately absent (surfacing it is change B, not this one).
+ */
+export const CORE_BLUEPRINT_NATURE: Readonly<Record<string, BlueprintNature>> = {
+  sources: { structure: 'catalog', ownership: 'derived' },
+  artifacts: { structure: 'catalog', ownership: 'derived' },
+  procedures: { structure: 'catalog', ownership: 'derived' },
+}
+
+/** The nature a core blueprint declares, or `undefined` when it declares none. */
+export function natureOfBlueprint(blueprintName: string): BlueprintNature | undefined {
+  return CORE_BLUEPRINT_NATURE[blueprintName]
+}

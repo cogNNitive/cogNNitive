@@ -7924,6 +7924,16 @@ function resolveJsonPointer(content, pointer) {
   return { ok: true, value: current };
 }
 
+// iNNfo/packages/nn-core/src/schema/nature.ts
+var CORE_BLUEPRINT_NATURE = {
+  sources: { structure: "catalog", ownership: "derived" },
+  artifacts: { structure: "catalog", ownership: "derived" },
+  procedures: { structure: "catalog", ownership: "derived" }
+};
+function natureOfBlueprint(blueprintName) {
+  return CORE_BLUEPRINT_NATURE[blueprintName];
+}
+
 // iNNfo/packages/nn-core/src/naming/contract.ts
 var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
 var SPEC_FILENAME = "spec_NN.md";
@@ -8039,9 +8049,11 @@ function parentSpecNameOf(frontmatter) {
 }
 function isConsoleModel(f) {
   if (isExcludedPath(f.path)) return false;
-  const role = roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) });
+  const parentSpecName = parentSpecNameOf(f.frontmatter);
+  const role = roleOf({ path: f.path, parentSpecName });
   if (role === "knowledge") return true;
-  return role === "procedure" && !segmentsOf(f.path).includes("procedures");
+  if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== void 0;
 }
 function isNNName(nameOrPath) {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath));
