@@ -6320,6 +6320,20 @@
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    // Change A: install the model-ownership resolver so a `derived` model's units
+    // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
+    var ownershipByModel = {}
+    var modelList = Array.isArray(meta.models) ? meta.models : []
+    modelList.forEach(function (mm) {
+      if (!mm) return
+      if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
+      if (mm.title != null) ownershipByModel[String(mm.title)] = mm.ownership || 'authored'
+    })
+    if (typeof UI.setModelOwnership === 'function') {
+      UI.setModelOwnership(function (id) {
+        return ownershipByModel[String(id)]
+      })
+    }
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
     var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {

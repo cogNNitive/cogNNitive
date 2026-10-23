@@ -37,4 +37,15 @@ describe('isConsoleModel (console model notion)', () => {
     ).toBe(false)
     expect(isConsoleModel({ path: 'archive/a_NN.md', frontmatter: fm('business') })).toBe(false)
   })
+
+  it('accepts documents whose blueprint declares a nature (declared collections)', () => {
+    expect(
+      isConsoleModel({ path: 'sources/report_sources_NN.md', frontmatter: fm('sources') }),
+    ).toBe(true)
+    expect(
+      isConsoleModel({ path: 'artifacts/out_artifacts_NN.md', frontmatter: fm('artifacts') }),
+    ).toBe(true)
+    // An undeclared catalog role (workspace) stays out — surfacing is by declaration.
+    expect(isConsoleModel({ path: 'kNNowledge/WS_NN.md', frontmatter: fm('workspace') })).toBe(false)
+  })
 })
