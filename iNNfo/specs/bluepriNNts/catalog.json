@@ -20,7 +20,7 @@
     },
     "artifacts": {
       "name": "artifacts",
-      "adopted": "V_0-5-0",
+      "adopted": "V_0-5-1",
       "tier": "core",
       "access": "public",
       "when_to_use": null,
@@ -28,7 +28,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-5-0",
+          "blueprint_version": "V_0-5-1",
           "spec_version": "V_0-5-0",
           "title": "Artifacts Catalog App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/artifacts/spec_NN.md"
@@ -275,7 +275,7 @@
     },
     "sources": {
       "name": "sources",
-      "adopted": "V_0-3-0",
+      "adopted": "V_0-3-1",
       "tier": "core",
       "access": "public",
       "when_to_use": null,
@@ -283,7 +283,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-3-0",
+          "blueprint_version": "V_0-3-1",
           "spec_version": "V_0-5-0",
           "title": "Sources Catalog App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md"
