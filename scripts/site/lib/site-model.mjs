@@ -116,8 +116,10 @@ function toSite(el) {
   if (!BASE_URL.test(el.fields.base_url)) {
     throw new SiteError(el.file, el.fieldLines.base_url, `base_url must be absolute and end with "/", got "${el.fields.base_url}"`);
   }
-  const { tagline, base_url: baseUrl, repository_url: repositoryUrl } = el.fields;
-  return { name: el.name, concept: 'Site', tagline, base_url: baseUrl, repository_url: repositoryUrl, fields: el.fields, file: el.file, line: el.line };
+  const { slug, ...fields } = el.fields;
+  if (slug !== undefined && !SLUG.test(slug)) throw new SiteError(el.file, el.fieldLines.slug, `malformed slug "${slug}"`);
+  const { tagline, base_url: baseUrl, repository_url: repositoryUrl } = fields;
+  return { name: el.name, concept: 'Site', slug, tagline, base_url: baseUrl, repository_url: repositoryUrl, fields, file: el.file, line: el.line };
 }
 
 function toPage(el) {

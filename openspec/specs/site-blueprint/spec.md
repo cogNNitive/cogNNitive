@@ -101,7 +101,10 @@ bluepriNNt MUST NOT declare `slug` as a Field. The slug MUST match
 `^[a-z0-9]+(-[a-z0-9]+)*$`, MUST be unique across the whole domaiNN, and exactly one Page
 MUST have the slug `index` (the home Page). `Page.order` MUST be an integer. Site-wide
 uniqueness and the single `index` MUST be enforced by the compiler (see `site-compiler`)
-because nn-core only enforces per-document uniqueness.
+because nn-core only enforces per-document uniqueness. The Site element MUST carry a
+frozen `slug::` (same pattern, reserved, never a Field) so the domain console
+(`scripts/export-console.mjs`) can export `site_NN/`; a test exports the console from a
+copy of the domaiNN.
 
 #### Scenario: A malformed slug is rejected
 
