@@ -111,10 +111,31 @@ export type Role =
 export const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set(['backups', 'archive', 'specs'])
 
 /**
- * Parent-spec names whose Level-3 documents are never models (any version,
- * any `_suffix`). Maps the leading token to the role those documents play.
+ * Compiled `blueprint -> Role` map for the core blueprints (declarative-blueprint-nature,
+ * change A). Replaces the former name regex `NON_KNOWLEDGE_BLUEPRINT_RE`. The `procedures`
+ * blueprint is resolved separately (a `procedures` catalog vs a `*_procedures` submodel);
+ * domain-local blueprints are absent and fall through to `knowledge`, exactly as before.
+ *
+ * The map is data, not code: it is the compiled projection of the core blueprints'
+ * identity, so `roleOf` stays pure and browser-safe (no filesystem, no regex).
  */
-const NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i
+export const CORE_BLUEPRINT_ROLE: Readonly<Record<string, Role>> = {
+  cognnitive: 'lineage-record',
+  sidecar: 'sidecar',
+  changes: 'changeset',
+  workspace: 'catalog',
+  sources: 'catalog',
+  artifacts: 'catalog',
+}
+
+/**
+ * Leading blueprint token of a `parent_spec` name: lower-cased, before the first `_`
+ * (`cognnitive_V_0-1-0` -> `cognnitive`, `sources` -> `sources`). Faithful to the former
+ * regex's leading-token semantics, including versioned and suffixed blueprint names.
+ */
+export function coreBlueprintKey(parentSpecName?: string): string {
+  return (parentSpecName ?? '').trim().toLowerCase().split('_')[0]
+}
 
 function segmentsOf(path: string): string[] {
   return path.replace(/\\/g, '/').split('/').filter((s) => s && s !== '.')
@@ -129,23 +150,11 @@ export function roleOf(i: { path: string; parentSpecName?: string; hasSidecar?: 
   const lower = base.toLowerCase()
   if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return 'entrypoint'
   if (lower === SPEC_FILENAME.toLowerCase()) return 'spec'
-  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? '').trim())?.[1].toLowerCase()
-  switch (bp) {
-    case 'cognnitive':
-      return 'lineage-record'
-    case 'sidecar':
-      return 'sidecar'
-    case 'changes':
-      return 'changeset'
-    case 'procedures':
-      return parsed.stem.toLowerCase() === 'procedures' ? 'catalog' : 'procedure'
-    case 'workspace':
-    case 'sources':
-    case 'artifacts':
-      return 'catalog'
-    default:
-      return 'knowledge'
+  const bp = coreBlueprintKey(i.parentSpecName)
+  if (bp === 'procedures') {
+    return parsed.stem.toLowerCase() === 'procedures' ? 'catalog' : 'procedure'
   }
+  return CORE_BLUEPRINT_ROLE[bp] ?? 'knowledge'
 }
 
 /** Scope rule (not a role): ignored roots, any `archive` or `staging` segment, any dot-prefixed segment. */

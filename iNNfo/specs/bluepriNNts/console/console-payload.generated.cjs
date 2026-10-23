@@ -7967,7 +7967,17 @@ function displayStem(basename5) {
   return basename5.replace(/\.md$/i, "");
 }
 var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
+var CORE_BLUEPRINT_ROLE = {
+  cognnitive: "lineage-record",
+  sidecar: "sidecar",
+  changes: "changeset",
+  workspace: "catalog",
+  sources: "catalog",
+  artifacts: "catalog"
+};
+function coreBlueprintKey(parentSpecName) {
+  return (parentSpecName ?? "").trim().toLowerCase().split("_")[0];
+}
 function segmentsOf(path2) {
   return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
 }
@@ -7979,23 +7989,11 @@ function roleOf(i) {
   const lower = base.toLowerCase();
   if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
   if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-  switch (bp) {
-    case "cognnitive":
-      return "lineage-record";
-    case "sidecar":
-      return "sidecar";
-    case "changes":
-      return "changeset";
-    case "procedures":
-      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-    case "workspace":
-    case "sources":
-    case "artifacts":
-      return "catalog";
-    default:
-      return "knowledge";
+  const bp = coreBlueprintKey(i.parentSpecName);
+  if (bp === "procedures") {
+    return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
   }
+  return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
 }
 function isExcludedPath(path2) {
   const segs = segmentsOf(path2);

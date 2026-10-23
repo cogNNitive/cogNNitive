@@ -27,6 +27,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // iNNfo/packages/nn-core/src/naming/index.ts
 var index_exports = {};
 __export(index_exports, {
+  CORE_BLUEPRINT_ROLE: () => CORE_BLUEPRINT_ROLE,
   ENTRYPOINT_FILENAME: () => ENTRYPOINT_FILENAME,
   IGNORED_DIRECTORIES: () => IGNORED_DIRECTORIES,
   SIDECAR_BLUEPRINT: () => SIDECAR_BLUEPRINT,
@@ -36,6 +37,7 @@ __export(index_exports, {
   checkNameInvariant: () => checkNameInvariant,
   checkPathBudget: () => checkPathBudget,
   compareMembers: () => compareMembers,
+  coreBlueprintKey: () => coreBlueprintKey,
   displayStem: () => displayStem,
   ensureNNFilename: () => ensureNNFilename,
   familyOf: () => familyOf,
@@ -113,7 +115,17 @@ function procedureIdOf(basename) {
   return displayStem(baseOf(basename)).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
 }
 var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
+var CORE_BLUEPRINT_ROLE = {
+  cognnitive: "lineage-record",
+  sidecar: "sidecar",
+  changes: "changeset",
+  workspace: "catalog",
+  sources: "catalog",
+  artifacts: "catalog"
+};
+function coreBlueprintKey(parentSpecName) {
+  return (parentSpecName ?? "").trim().toLowerCase().split("_")[0];
+}
 function segmentsOf(path) {
   return path.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
 }
@@ -125,23 +137,11 @@ function roleOf(i) {
   const lower = base.toLowerCase();
   if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
   if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-  switch (bp) {
-    case "cognnitive":
-      return "lineage-record";
-    case "sidecar":
-      return "sidecar";
-    case "changes":
-      return "changeset";
-    case "procedures":
-      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-    case "workspace":
-    case "sources":
-    case "artifacts":
-      return "catalog";
-    default:
-      return "knowledge";
+  const bp = coreBlueprintKey(i.parentSpecName);
+  if (bp === "procedures") {
+    return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
   }
+  return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
 }
 function isExcludedPath(path) {
   const segs = segmentsOf(path);

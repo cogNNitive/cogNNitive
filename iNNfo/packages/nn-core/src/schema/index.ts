@@ -36,3 +36,12 @@ export {
 } from './canonical-registry.js'
 export type { CanonicalBlueprint } from './canonical-registry.js'
 
+export { parseNature } from './nature.js'
+export type {
+  BlueprintNature,
+  BlueprintOwnership,
+  BlueprintStructure,
+  NatureDiagnostic,
+  ParsedNature,
+} from './nature.js'
+
