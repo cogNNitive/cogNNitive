@@ -9130,7 +9130,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-5-2", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-5-3", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/resolver.ts
@@ -10209,8 +10209,8 @@ function parseChangeset(rawContent) {
       case "notes":
         currentChange.notes = stripQuotes(rawVal);
         break;
-      case "sources":
-        currentChange.sources = stripQuotes(rawVal);
+      case "evidence":
+        currentChange.evidence = stripQuotes(rawVal);
         break;
       case "blueprint_name":
         currentChange.blueprint_name = stripQuotes(rawVal);
@@ -10221,8 +10221,11 @@ function parseChangeset(rawContent) {
       case "knowledge_version":
         currentChange.knowledge_version = stripQuotes(rawVal);
         break;
-      case "replaced_sources":
-        currentChange.replaced_sources = stripQuotes(rawVal);
+      case "applied_at":
+        currentChange.applied_at = stripQuotes(rawVal);
+        break;
+      case "batch":
+        currentChange.batch = stripQuotes(rawVal);
         break;
       case "status":
         if (!isChangeStatus(rawVal)) {
@@ -10574,8 +10577,9 @@ async function loadChangesetRecords(rootDir) {
         author: c.author,
         notes: c.notes,
         status: c.status,
-        sources: c.sources,
-        replaced_sources: c.replaced_sources,
+        evidence: c.evidence,
+        applied_at: c.applied_at,
+        batch: c.batch,
         from: c.from,
         to: c.to,
         concept: c.concept,
@@ -10600,11 +10604,10 @@ function attachChangesetHistory(elements, changesets) {
           id: change.id,
           op: change.op,
           author: change.author || cs.author,
-          timestamp: cs.appliedAt,
+          timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
-          sources: change.sources,
-          replaced_sources: change.replaced_sources
+          evidence: change.evidence
         };
         if (!el.history) el.history = [];
         el.history.push(item);

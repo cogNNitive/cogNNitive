@@ -237,25 +237,28 @@ notes:: Looks good, pending executive review
     expect(doc.frontmatter.level).toBe(3)
   })
 
-  it('round-trips sources:: and replaced_sources:: through parse and structural serialize', () => {
-    const withSources = sampleMarkdown.replace(
+  it('round-trips evidence:: (and per-change applied_at::/batch::) through parse and structural serialize', () => {
+    const withEvidence = sampleMarkdown.replace(
       'op:: update_field\ntarget:: strategy@vision&statement',
-      'op:: update_field\ntarget:: strategy@vision&statement\nsources:: sources/import/interview.md@## Needs',
+      'op:: update_field\ntarget:: strategy@vision&statement\nevidence:: sources/import/interview.md@## Needs',
     )
-    const doc = parseChangeset(withSources)
-    expect(doc.changes[0].sources).toBe('sources/import/interview.md@## Needs')
+    const doc = parseChangeset(withEvidence)
+    expect(doc.changes[0].evidence).toBe('sources/import/interview.md@## Needs')
 
     // Structural serialization (document built in memory, no rawContent)
     const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
-    expect(structural).toContain('sources:: sources/import/interview.md@## Needs')
+    expect(structural).toContain('evidence:: sources/import/interview.md@## Needs')
 
-    doc.changes[0].replaced_sources = 'sources/old.md@## Needs'
+    doc.changes[0].applied_at = '2026-10-23T10:00:00.000Z'
+    doc.changes[0].batch = 'ws_agent_1_changes_NN'
     const structural2 = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
-    expect(structural2).toContain('replaced_sources:: sources/old.md@## Needs')
+    expect(structural2).toContain('applied_at:: 2026-10-23T10:00:00.000Z')
+    expect(structural2).toContain('batch:: ws_agent_1_changes_NN')
 
     const reparsed = parseChangeset(structural2)
-    expect(reparsed.changes[0].sources).toBe('sources/import/interview.md@## Needs')
-    expect(reparsed.changes[0].replaced_sources).toBe('sources/old.md@## Needs')
+    expect(reparsed.changes[0].evidence).toBe('sources/import/interview.md@## Needs')
+    expect(reparsed.changes[0].applied_at).toBe('2026-10-23T10:00:00.000Z')
+    expect(reparsed.changes[0].batch).toBe('ws_agent_1_changes_NN')
   })
 })
 
@@ -281,7 +284,7 @@ blueprint_name:: business
 blueprint_url:: https://example.test/bluepriNNts/business/spec_NN.md
 name:: ACME Strategy
 knowledge_version:: V_0-1-0
-sources:: sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision
+evidence:: sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision
 author:: agent
 notes:: Migrated from the old domain
 `
@@ -297,7 +300,7 @@ notes:: Migrated from the old domain
       blueprint_url: 'https://example.test/bluepriNNts/business/spec_NN.md',
       name: 'ACME Strategy',
       knowledge_version: 'V_0-1-0',
-      sources: 'sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision',
+      evidence: 'sources/import/old/kNNowledge/strategy_NN.md@## NN Vision: Vision',
     })
     expect(serializeChangeset(doc)).toBe(raw)
   })

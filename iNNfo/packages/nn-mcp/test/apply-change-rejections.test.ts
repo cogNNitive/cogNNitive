@@ -338,7 +338,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.errors?.some((e) => /safe workspace-relative path/.test(e.message))).toBe(true)
   })
 
-  it('Citation Resolution: an unresolved sources:: rejects with CITATION_UNRESOLVED, returns the rejection without recording it, writes no model, releases the lock', async () => {
+  it('Evidence Resolution: an unresolved evidence:: rejects with CITATION_UNRESOLVED, returns the rejection without recording it, writes no model, releases the lock', async () => {
     const csFile = join(changesDir, 'ws_agent_citation_bad_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -347,7 +347,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
           op: 'comment',
           target: 'strategy@Vision&statement',
           notes: 'evidence-backed note',
-          sources: 'sources/import/missing.md@## Needs',
+          evidence: 'sources/import/missing.md@## Needs',
         },
       ],
     })
@@ -370,7 +370,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(live).toContain('Accelerate green energy')
   })
 
-  it('Citation Resolution: a resolving sources:: applies and the sources:: line is byte-identical after write-back', async () => {
+  it('Evidence Resolution: a resolving evidence:: applies and the evidence:: line is byte-identical after write-back', async () => {
     await mkdir(join(csRoot, 'sources', 'import'), { recursive: true })
     await writeFile(
       join(csRoot, 'sources', 'import', 'interview.md'),
@@ -386,7 +386,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
           op: 'comment',
           target: 'strategy@Vision&statement',
           notes: 'evidence-backed note',
-          sources: 'sources/import/interview.md@## Needs',
+          evidence: 'sources/import/interview.md@## Needs',
         },
       ],
     })
@@ -396,7 +396,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.success).toBe(true)
 
     const written = await readFile(csFile, 'utf-8')
-    expect(written).toContain('sources:: sources/import/interview.md@## Needs')
+    expect(written).toContain('evidence:: sources/import/interview.md@## Needs')
   })
 
   it('P0-3 regression: apply_change refuses to mutate a tool-owned lineage record and leaves it byte-identical', async () => {

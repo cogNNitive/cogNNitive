@@ -30,7 +30,7 @@ const BODY = [
   '## NN Change: c-01',
   'op:: update_field',
   'target:: strategy@vision&statement',
-  'sources:: sources/import/interview.md@## Needs',
+  'evidence:: sources/import/interview.md@## Needs',
   'from:: "Old statement"   ',
   'to:: "New statement"',
   'custom_unknown:: keep me',
@@ -56,7 +56,8 @@ function isVolatile(line: string): boolean {
     /^status::/.test(t) ||
     /^resolution::/.test(t) ||
     /^resolved_slug::/.test(t) ||
-    /^replaced_sources::/.test(t)
+    /^applied_at::/.test(t) ||
+    /^batch::/.test(t)
   )
 }
 
@@ -67,7 +68,8 @@ describe('Changeset Serializer — raw-text preservation', () => {
     doc.changes[0].status = 'applied'
     doc.changes[0].resolution = 'Applied cleanly'
     doc.changes[0].resolved_slug = 'customer-vision'
-    doc.changes[0].replaced_sources = 'sources/old.md@## Needs'
+    doc.changes[0].applied_at = '2026-10-23T10:00:00.000Z'
+    doc.changes[0].batch = 'ws_agent_1_changes_NN'
     doc.changes[1].status = 'applied'
 
     const out = serializeChangeset(doc)
@@ -81,7 +83,7 @@ describe('Changeset Serializer — raw-text preservation', () => {
     expect(outputRest).toEqual(inputRest)
 
     // The normative citation line is byte-identical.
-    expect(out).toContain('sources:: sources/import/interview.md@## Needs')
+    expect(out).toContain('evidence:: sources/import/interview.md@## Needs')
     // Trailing whitespace and an unrecognized line are copied verbatim.
     expect(out).toContain('from:: "Old statement"   ')
     expect(out).toContain('custom_unknown:: keep me')
@@ -91,16 +93,16 @@ describe('Changeset Serializer — raw-text preservation', () => {
     expect(out).toContain('status:: applied')
     expect(out).toContain('resolution:: Applied cleanly')
     expect(out).toContain('resolved_slug:: customer-vision')
-    expect(out).toContain('replaced_sources:: sources/old.md@## Needs')
+    expect(out).toContain('applied_at:: 2026-10-23T10:00:00.000Z')
   })
 
-  it('renders sources:: and replaced_sources:: structurally for an in-memory document', () => {
+  it('renders the evidence:: line structurally for an in-memory document', () => {
     const doc = parseChangeset(INPUT)
     const structural = serializeChangeset({
       frontmatter: doc.frontmatter,
       changes: doc.changes,
     })
-    expect(structural).toContain('sources:: sources/import/interview.md@## Needs')
+    expect(structural).toContain('evidence:: sources/import/interview.md@## Needs')
     expect(structural).toContain('level: 3')
     expect(structural).toContain('parent_spec:')
   })

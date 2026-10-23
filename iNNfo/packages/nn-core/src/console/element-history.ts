@@ -20,10 +20,8 @@ export interface ElementHistoryItem {
   timestamp?: string
   notes?: string
   status?: string
-  /** The evidence citation the change derives from (its proposal-time `sources`). */
-  sources?: string
-  /** The field citation this change replaced (the field's previous origin), if any. */
-  replaced_sources?: string
+  /** The evidence the change derives from (its proposal-time `evidence`). */
+  evidence?: string
 }
 
 interface ChangesetChangeRecord {
@@ -33,8 +31,9 @@ interface ChangesetChangeRecord {
   author?: string
   notes?: string
   status?: string
-  sources?: string
-  replaced_sources?: string
+  evidence?: string
+  applied_at?: string
+  batch?: string
   /** Card data for the Changes tab: the diff, the added fields and the reason. */
   from?: string
   to?: string
@@ -135,8 +134,9 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
         author: c.author,
         notes: c.notes,
         status: c.status,
-        sources: c.sources,
-        replaced_sources: c.replaced_sources,
+        evidence: c.evidence,
+        applied_at: c.applied_at,
+        batch: c.batch,
         from: c.from,
         to: c.to,
         concept: c.concept,
@@ -172,11 +172,10 @@ export function attachChangesetHistory(
           id: change.id,
           op: change.op,
           author: change.author || cs.author,
-          timestamp: cs.appliedAt,
+          timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
-          sources: change.sources,
-          replaced_sources: change.replaced_sources,
+          evidence: change.evidence,
         }
         if (!el.history) el.history = []
         el.history.push(item)

@@ -3,7 +3,7 @@ import type { ChangeItem, ChangesetDocument } from './types.js'
 
 /**
  * List of normative proposal property keys included in cryptographic proposal_sha.
- * Execution annotations (status, resolution, resolved_slug, replaced_sources) and the
+ * Execution annotations (status, resolution, resolved_slug, applied_at, batch) and the
  * frontmatter execution fields (applied_at, models) are strictly excluded.
  */
 export const PROPOSAL_KEYS = [
@@ -19,7 +19,7 @@ export const PROPOSAL_KEYS = [
   'author',
   'notes',
   'base_hash',
-  'sources',
+  'evidence',
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
