@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>cogNNitive Documentation (Zero-Build PoC)</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="description" content="cogNNitive Documentation powered by Docsify Zero-Build and DomaiNN metadata">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    :root {
+      --theme-color: #4D0E4E;
+      --base-background: #FFFFFF;
+      --textColor: #111112;
+      --sidebar-background: #FAFAFC;
+      --sidebar-border-color: #F2F2F7;
+      --code-background: #F6EEF6;
+      --code-color: #4D0E4E;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .app-name-link {
+      font-weight: 800;
+      color: var(--theme-color) !important;
+      font-size: 1.2rem;
+    }
+    .sidebar {
+      border-right: 1px solid var(--sidebar-border-color);
+      background-color: var(--sidebar-background);
+    }
+    .sidebar ul li a {
+      color: #636366;
+      font-size: 14px;
+    }
+    .sidebar ul li.active > a {
+      color: var(--theme-color);
+      font-weight: 700;
+      border-right: 2px solid var(--theme-color);
+    }
+    .markdown-section table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1.5rem 0;
+    }
+    .markdown-section th, .markdown-section td {
+      border: 1px solid #E5E5EA;
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .markdown-section th {
+      background-color: #FAFAFC;
+      font-weight: 600;
+    }
+    .markdown-section pre {
+      background: #FAFAFC;
+      border: 1px solid #F2F2F7;
+      border-radius: 8px;
+    }
+    .markdown-section blockquote {
+      border-left: 4px solid var(--theme-color);
+      background: #FAF5FA;
+      padding: 12px 18px;
+      border-radius: 0 8px 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">Loading documentation...</div>
+
+  <!-- Zero-Build DomaiNN Bridge Script -->
+  <script>
+    (function () {
+      const DOMAIN_CATALOG_URL = 'domain/site_docs_NN.md';
+
+      const KIND_HEADERS = {
+        tutorial: '🚀 Tutorials',
+        guide: '📖 How-To Guides',
+        concept: '💡 Architecture & Concepts',
+        reference: '🛠 Reference',
+        pitch: '🌟 Overview',
+        legal: '⚖️ Legal'
+      };
+
+      const KIND_ORDER = ['pitch', 'tutorial', 'guide', 'concept', 'reference', 'legal'];
+
+      async function generateSidebarFromDomain() {
+        try {
+          const res = await fetch(DOMAIN_CATALOG_URL);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = await res.text();
+
+          const pages = [];
+          const lines = text.split(/\r?\n/);
+          let current = null;
+
+          for (const line of lines) {
+            const pageMatch = line.match(/^##\s+NN\s+Page:\s*(.+)$/);
+            if (pageMatch) {
+              if (current) pages.push(current);
+              current = { title: pageMatch[1].trim(), fields: {} };
+              continue;
+            }
+            const fieldMatch = line.match(/^([a-z0-9_-]+)::\s*(.+)$/);
+            if (fieldMatch && current) {
+              current.fields[fieldMatch[1].trim()] = fieldMatch[2].trim();
+            }
+          }
+          if (current) pages.push(current);
+
+          const grouped = {};
+          for (const p of pages) {
+            const kind = p.fields.kind || 'guide';
+            if (!grouped[kind]) grouped[kind] = [];
+            grouped[kind].push(p);
+          }
+
+          let sidebarMd = '* [Home](README.md)\n\n';
+
+          for (const kind of KIND_ORDER) {
+            const list = grouped[kind];
+            if (!list || list.length === 0) continue;
+
+            sidebarMd += `* **${KIND_HEADERS[kind] || kind}**\n`;
+            list.sort((a, b) => parseInt(a.fields.order || 99) - parseInt(b.fields.order || 99));
+
+            for (const item of list) {
+              const route = item.fields.source || `content/${item.fields.slug}.md`;
+              sidebarMd += `  * [${item.title}](${route})\n`;
+            }
+            sidebarMd += '\n';
+          }
+
+          return sidebarMd;
+        } catch (err) {
+          console.error('Failed to parse domaiNN:', err);
+          return '* [Documentation](README.md)\n';
+        }
+      }
+
+      // Intercept fetch requests for _sidebar.md to serve dynamically generated sidebar
+      const originalFetch = window.fetch;
+      window.fetch = async function (...args) {
+        const url = args[0];
+        if (typeof url === 'string' && url.endsWith('_sidebar.md')) {
+          const sidebarContent = await generateSidebarFromDomain();
+          return new Response(sidebarContent, {
+            status: 200,
+            headers: { 'Content-Type': 'text/markdown; charset=utf-8' }
+          });
+        }
+        return originalFetch.apply(this, args);
+      };
+    })();
+  </script>
+
+  <!-- Docsify Configuration -->
+  <script>
+    window.$docsify = {
+      name: 'cogNNitive Docs',
+      repo: 'https://github.com/cogNNitive/cogNNitive',
+      loadSidebar: true,
+      auto2top: true,
+      homepage: 'content/first-domain.md',
+      subMaxLevel: 3,
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: 'Search documentation...',
+        noData: 'No results found',
+        depth: 3
+      },
+      markdown: {
+        renderer: {
+          code: function (code, lang) {
+            if (lang === 'mermaid') {
+              return '<div class="mermaid">' + code + '</div>';
+            }
+            return this.origin.code.apply(this, arguments);
+          }
+        }
+      },
+      plugins: [
+        function (hook, vm) {
+          hook.doneEach(function () {
+            if (typeof mermaid !== 'undefined') {
+              const elements = document.querySelectorAll('.mermaid:not([data-processed="true"])');
+              if (elements.length > 0) {
+                mermaid.run({ nodes: elements });
+              }
+            }
+          });
+        }
+      ]
+    };
+  </script>
+
+  <!-- Scripts -->
+  <script src="//cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+  </script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+</body>
+</html>
