@@ -12,16 +12,25 @@ import { join } from 'node:path'
 import { parseChangeset } from '../changeset/parser.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 
-/** One lineage entry as the console modal renders it (author • timestamp, notes). */
+/** One lineage entry as the console modal renders it (a change card). */
 export interface ElementHistoryItem {
   id: string
   op: string
+  /** The D5 target address the change touched. */
+  target?: string
   author?: string
   timestamp?: string
   notes?: string
   status?: string
   /** The evidence the change derives from (its proposal-time `evidence`). */
   evidence?: string
+  /** Diff / payload for the change card. */
+  from?: string
+  to?: string
+  concept?: string
+  name?: string
+  fields?: Record<string, string>
+  resolution?: string
 }
 
 interface ChangesetChangeRecord {
@@ -171,11 +180,18 @@ export function attachChangesetHistory(
         const item: ElementHistoryItem = {
           id: change.id,
           op: change.op,
+          target: change.target,
           author: change.author || cs.author,
           timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
           evidence: change.evidence,
+          from: change.from,
+          to: change.to,
+          concept: change.concept,
+          name: change.name,
+          fields: change.fields,
+          resolution: change.resolution,
         }
         if (!el.history) el.history = []
         el.history.push(item)

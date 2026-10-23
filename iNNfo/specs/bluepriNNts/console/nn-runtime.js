@@ -6734,6 +6734,28 @@
         schema: schema,
         getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
+        // Change C: clicking a change's evidence opens the in-domain unit it points
+        // at, or the citation dialog when it is an external file.
+        onEvidence: function (evidence) {
+          var ev = String(evidence || '').trim()
+          if (!ev || ev === 'decision' || ev === 'unknown') return
+          var at = ev.indexOf('@')
+          var target = at === -1 ? ev : ev.slice(0, at)
+          var list = Array.isArray(elements) ? elements : []
+          var match = null
+          for (var i = 0; i < list.length; i++) {
+            var cand = list[i]
+            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+              match = cand
+              break
+            }
+          }
+          if (match) {
+            focusElementCard(active, match.id)
+            return
+          }
+          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+        },
       })
     }
 

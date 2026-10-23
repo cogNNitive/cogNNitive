@@ -3409,7 +3409,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
-    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Lineage')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
@@ -3512,39 +3512,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
-    // History section
+    // Changes: the element's recorded change history, one change card per change. The
+    // change's `evidence` is the source linked on the card (the old per-field Citations
+    // section is gone).
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
-    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'History'))
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changes'))
     var historyItems = Array.isArray(data.history) ? data.history : []
     if (historyItems.length) {
+      var histList = makeEl(doc, 'ul', 'innfo-change-history flex flex-col gap-3 list-none p-0 m-0')
+      histList.setAttribute('data-innfo-component', 'change-history')
       historyItems.forEach(function (h) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var metaStr = (h.author ? 'Author: ' + h.author : '') + (h.timestamp ? ' \u2022 ' + h.timestamp : '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', metaStr))
-        if (h.notes) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', h.notes))
-        histSection.appendChild(item)
+        histList.appendChild(
+          changeCard(
+            {
+              stateKind: 'applied',
+              title: cardTitle(h.op, h),
+              stateText: h.status || 'applied',
+              diff: cardDiff(h.op, h),
+              author: h.author,
+              date: h.timestamp,
+              note: h.notes,
+              resolution: h.resolution,
+              sources: h.evidence ? [h.evidence] : [],
+            },
+            { doc: doc, onCitation: opts && opts.onEvidence },
+          ),
+        )
       })
+      histSection.appendChild(histList)
     } else {
-      histSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No recorded prior changesets.'))
+      histSection.appendChild(
+        makeEl(doc, 'div', 'innfo-history-empty', 'No recorded changes for this element.'),
+      )
     }
     panelHistory.appendChild(histSection)
-
-    // Citations section
-    var citeSection = makeEl(doc, 'div', 'innfo-history-section')
-    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Citations'))
-    var citeItems = Array.isArray(data.citations) ? data.citations : []
-    if (citeItems.length) {
-      citeItems.forEach(function (c) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var srcStr = (c.origin ? '[' + c.origin + '] ' : '') + (c.source || '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', srcStr))
-        if (c.quote) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', '"' + c.quote + '"'))
-        citeSection.appendChild(item)
-      })
-    } else {
-      citeSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No origin citations linked.'))
-    }
-    panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
     // Panel 3: Connections (Sankey-style relation flow)
@@ -5798,6 +5799,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           doc: doc,
+          onEvidence:
+            typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
             if (res.isComment || target.commentOnly) {
               // Defence in depth: the kit already blocks an empty comment.
@@ -13376,6 +13379,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         schema: schema,
         getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
+        // Change C: clicking a change's evidence opens the in-domain unit it points
+        // at, or the citation dialog when it is an external file.
+        onEvidence: function (evidence) {
+          var ev = String(evidence || '').trim()
+          if (!ev || ev === 'decision' || ev === 'unknown') return
+          var at = ev.indexOf('@')
+          var target = at === -1 ? ev : ev.slice(0, at)
+          var list = Array.isArray(elements) ? elements : []
+          var match = null
+          for (var i = 0; i < list.length; i++) {
+            var cand = list[i]
+            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+              match = cand
+              break
+            }
+          }
+          if (match) {
+            focusElementCard(active, match.id)
+            return
+          }
+          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+        },
       })
     }
 
