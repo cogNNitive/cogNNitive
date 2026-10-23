@@ -260,18 +260,17 @@ function frontmatterOf(content) {
 
 /**
  * Core-blueprint catalog documents the domain console surfaces as models for the
- * administrator: the Sources and Artifacts catalogs. Expressed as an EXPLICIT
- * allowlist on purpose — the core blueprint set is a stable product contract, so
- * we do not key off the `catalog` role (which would also drag in the procedures
- * catalog and workspace documents). Add a name here only when a new core
- * blueprint ships.
+ * administrator: the Sources, Artifacts and Procedures catalogs. Expressed as an
+ * EXPLICIT allowlist on purpose — the core blueprint set is a stable product
+ * contract, so we do not key off the `catalog` role (which would also drag in
+ * workspace documents). Add a name here only when a new core blueprint ships.
  *
  * The domain entrypoint (`domaiNN_NN.md`) is deliberately NOT included: its
  * structural elements (Workspace, Models) carry no `slug::`, and the console
  * model pipeline requires a frozen slug on every element — the same invariant
  * that governs every other model.
  */
-const CONSOLE_CORE_BLUEPRINTS = new Set(['sources', 'artifacts'])
+const CONSOLE_CORE_BLUEPRINTS = new Set(['sources', 'artifacts', 'procedures'])
 
 /** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z`. */
 function coreBlueprintOf(parentSpecName) {
@@ -287,8 +286,8 @@ function coreBlueprintOf(parentSpecName) {
  *
  * On top of that, the administrator's core-blueprint catalogs are surfaced too
  * (same console mechanism as any other model): the allowlisted `catalog`-role
- * documents (Sources, Artifacts). The core predicate filters these out by role,
- * so the console opts them back in here.
+ * documents (Sources, Artifacts, Procedures). The core predicate filters these
+ * out by role, so the console opts them back in here.
  */
 function isModelDocument(relPath, content) {
   const frontmatter = frontmatterOf(content)
