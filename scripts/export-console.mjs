@@ -258,10 +258,45 @@ function frontmatterOf(content) {
   return out
 }
 
-/** A console model is a `knowledge` model or a `procedures` model (never a
- * `procedures/` submodel). See `isConsoleModel` in the naming contract. */
+/**
+ * Core-blueprint catalog documents the domain console surfaces as models for the
+ * administrator: the Sources and Artifacts catalogs. Expressed as an EXPLICIT
+ * allowlist on purpose — the core blueprint set is a stable product contract, so
+ * we do not key off the `catalog` role (which would also drag in the procedures
+ * catalog and workspace documents). Add a name here only when a new core
+ * blueprint ships.
+ *
+ * The domain entrypoint (`domaiNN_NN.md`) is deliberately NOT included: its
+ * structural elements (Workspace, Models) carry no `slug::`, and the console
+ * model pipeline requires a frozen slug on every element — the same invariant
+ * that governs every other model.
+ */
+const CONSOLE_CORE_BLUEPRINTS = new Set(['sources', 'artifacts'])
+
+/** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z`. */
+function coreBlueprintOf(parentSpecName) {
+  return String(parentSpecName || '')
+    .trim()
+    .replace(/_V_\d+-\d+-\d+$/i, '')
+    .toLowerCase()
+}
+
+/**
+ * A console model is a `knowledge` model or a `procedures` model (never a
+ * `procedures/` submodel). See `isConsoleModel` in the naming contract.
+ *
+ * On top of that, the administrator's core-blueprint catalogs are surfaced too
+ * (same console mechanism as any other model): the allowlisted `catalog`-role
+ * documents (Sources, Artifacts). The core predicate filters these out by role,
+ * so the console opts them back in here.
+ */
 function isModelDocument(relPath, content) {
-  return payloadHelper.isConsoleModel({ path: relPath, frontmatter: frontmatterOf(content) })
+  const frontmatter = frontmatterOf(content)
+  if (payloadHelper.isConsoleModel({ path: relPath, frontmatter })) return true
+  const parentName = payloadHelper.parentSpecNameOf(frontmatter)
+  const role = payloadHelper.roleOf({ path: relPath, parentSpecName: parentName })
+  if (role === 'catalog') return CONSOLE_CORE_BLUEPRINTS.has(coreBlueprintOf(parentName))
+  return false
 }
 
 function isLevel3(content) {
