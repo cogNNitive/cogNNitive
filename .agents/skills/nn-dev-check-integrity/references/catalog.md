@@ -36,7 +36,7 @@ gh run view $runId --json jobs --jq '.jobs[] | select(.name=="deploy-pages") | {
 $env:GITHUB_TOKEN = (gh auth token).Trim()
 node scripts/manifest/validate-manifest.js
 # version bumps without a pushed tag
-git tag -l "v*" "innfo-mcp-v*" "skills-v*" "templates-v*" --sort=-creatordate | Select-Object -First 8
+git tag -l "v*" "nn-mcp-v*" "skills-v*" "blueprints-v*" --sort=-creatordate | Select-Object -First 8
 ```
 - ❌ uncommitted changes that belong to this change; unpushed commits; local `main` behind
   or ahead of `origin/main`; an open PR that still needs merge; latest `CI & Verify` run on
@@ -49,7 +49,7 @@ git tag -l "v*" "innfo-mcp-v*" "skills-v*" "templates-v*" --sort=-creatordate | 
 - ⚠️ for non-release changes: the Pages deploy and CDN/manifest legs are advisory only —
   report their status, never block on them.
 - ⚠️ a `package.json` / SKILL.md / template `version` was bumped in the diff but no matching
-  tag exists (`v<x>`, `innfo-mcp-v<x>`, `skills-v<x>`, `templates-v<x>`).
+  tag exists (`v<x>`, `nn-mcp-v<x>`, `skills-v<x>`, `blueprints-v<x>`).
 - ⚠️ if a version was released: reminder that the GitHub Pages deploy (`deploy-pages` job,
   reusing the `verify` docs artifact) and the CDN bundle/manifest produced by
   `npm run build:docs` are **separate** from tagging — confirm the release build ran.
@@ -85,7 +85,7 @@ Exception format (merge report line):
 **Expediente:** the same 2026-09-24 incident as `nn-dev-development` §4e — a
 skill directory rename plus `template_version` bumps across ~15 `spec_NN.md`
 files under `iNNfo/specs/templates/` were merged `dev → main` without cutting
-a new `skills-v*`/`templates-v*` tag or re-pinning `manifest/source.yaml` in
+a new `skills-v*`/`blueprints-v*` tag or re-pinning `manifest/source.yaml` in
 the same batch. `validate-manifest.js --channel stable` failed on CI
 afterward (reactive fix: `e1469d0`, cutting `skills-v2.1.0` +
 `templates-v0.13.0` and re-pinning).
@@ -140,7 +140,7 @@ gh variable get RELEASE_ENABLED
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo
 was at v0.2.4 (5 MCP tools missing in production).
 
-With single-source versioning (`sync-versions.mjs`), version declarations live in their primary files (`iNNfo/packages/innfo-mcp/package.json`, blueprint `spec_NN.md`, and skill `SKILL.md` frontmatter). `manifest/source.yaml` serves as an inventory list of components.
+With single-source versioning (`sync-versions.mjs`), version declarations live in their primary files (`iNNfo/packages/nn-mcp/package.json`, blueprint `spec_NN.md`, and skill `SKILL.md` frontmatter). `manifest/source.yaml` serves as an inventory list of components.
 
 Group 2 verifies:
 1. Version SSOT → `node scripts/sync-versions.mjs --check` verifies zero drift between packages and samples.
@@ -255,25 +255,25 @@ node scripts/blueprint-catalog.mjs --check # validates iNNfo/specs/bluepriNNts/c
 
 In order, stop on first failure:
 ```powershell
-npm --prefix iNNfo/packages/innfo-core run build      # ALWAYS first — kills stale dist
+npm --prefix iNNfo/packages/nn-core run build      # ALWAYS first — kills stale dist
 npm --prefix iNNfo run lint
 npm --prefix iNNfo run typecheck
-npm --prefix iNNfo/packages/innfo-core test
-npm --prefix iNNfo/packages/innfo-mcp run test:coverage
+npm --prefix iNNfo/packages/nn-core test
+npm --prefix iNNfo/packages/nn-mcp run test:coverage
 node scripts/verify.js            # dev mode: skips the live stable-manifest check (release-only)
 npm run build:docs
 npm --prefix iNNfo run check:spec-urls
 ```
 
 **Local automation & residual nonequivalence.** `node scripts/check-integrity.js --pre-push`
-automates the core of this list: `lint`, `typecheck`, `innfo-core test`,
-`innfo-mcp test:coverage`, `check:spec-urls`, plus the full
+automates the core of this list: `lint`, `typecheck`, `nn-core test`,
+`nn-mcp test:coverage`, `check:spec-urls`, plus the full
 `verify.js` suite (Groups 3/4/7). Two steps are deliberately **not** mirrored
 locally — they are documented gaps, not oversights, and the runner should not be
 widened to include them:
-- `innfo-core run build` — CI builds core before the tests to kill stale `dist/`
+- `nn-core run build` — CI builds core before the tests to kill stale `dist/`
   (expediente `innfo-core-dist-staleness-breaks-mcp-tests.md`). The local runner
-  expects a current build; if `innfo-mcp` tests throw `<fn> is not a function`,
+  expects a current build; if `nn-mcp` tests throw `<fn> is not a function`,
   run the core build manually before blaming the change.
 - `npm run build:docs` — excluded from the local gate on purpose: it is heavy and
   rewrites tracked generated docs, so running it would dirty the very tree the gate
@@ -299,7 +299,7 @@ git diff --name-only origin/main...HEAD
 - ⚠️ a new `src/**/*.ts` with no sibling `*.spec.ts` / `*.test.ts`.
 - ❌ `.only(` / `describe.only` / `it.only` left in any test file.
 - ⚠️ `.skip(` / `it.todo(` / `xit(` / `xdescribe(` left in the diff.
-- ⚠️ obsolete snapshots — run `npm --prefix iNNfo/packages/innfo-core test` and read
+- ⚠️ obsolete snapshots — run `npm --prefix iNNfo/packages/nn-core test` and read
   vitest's "obsolete snapshot" report; a `__snapshots__` file with no referencing test.
 - optional: `npm --prefix iNNfo run test:coverage` and compare to the threshold in each
   `vitest.config.ts` (or the previous run) — ⚠️ on a drop.
@@ -382,7 +382,7 @@ Ask for the scope before running:
 Alcance de la revisión de código:
   [1] Solo el diff vs origin/main
   [2] Módulos tocados + su blast radius (lo que importa lo que cambió)
-  [3] Repo completo (innfo-core · innfo-mcp · scripts · skills/)   · el más caro
+  [3] Repo completo (nn-core · nn-mcp · scripts · skills/)   · el más caro
 ```
 
 **10a — Deterministic QA sweep** (any scope):
@@ -397,7 +397,7 @@ Alcance de la revisión de código:
 
 **10b — Easy refactors** — delegate to the `simplify` skill (or the reuse/simplification/
 altitude axis of `code-review`) on the scope. Report **only** low-risk mechanical wins:
-dead code, redundant branches, a helper duplicated from `@cognnitive/innfo-core`, needless
+dead code, redundant branches, a helper duplicated from `@cognnitive/nn-core`, needless
 indirection. Each as `file:line → suggestion`. No edits.
 
 **10c — Bug hunt** — delegate to `code-review` at `high` / `max` effort on the scope

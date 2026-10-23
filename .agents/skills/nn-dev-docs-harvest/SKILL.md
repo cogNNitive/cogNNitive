@@ -110,9 +110,9 @@ and confirm the claim still holds today:
 
 | Claim about | Authoritative source |
 |-------------|----------------------|
-| Parsing / semantics | `iNNfo/packages/innfo-core/src/` |
-| Validation rules | validator in `innfo-core` |
-| MCP behavior / tools | `iNNfo/packages/innfo-mcp/src/server.ts` + tool handlers |
+| Parsing / semantics | `iNNfo/packages/nn-core/src/` |
+| Validation rules | validator in `nn-core` |
+| MCP behavior / tools | `iNNfo/packages/nn-mcp/src/server.ts` + tool handlers |
 | Format / templates | `iNNfo/specs/` (Level 1 spec, Level 2 templates) |
 | Console / runtime | console generator + runtime sources |
 
@@ -154,7 +154,7 @@ node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_N
    Sidebar-only refresh (the model path is required):
    `node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md --sidebar-only`.
    `npm run build:docs` also regenerates the suite, but it is a **heavier full build**: it
-   first builds innfo-core / innfo-mcp and restages the CDN bundle and
+   first builds nn-core / nn-mcp and restages the CDN bundle and
    template catalog before running the generator. Use it only when those artifacts need
    rebuilding.
 4. **NEVER hand-edit** `_sidebar.md`, `_navbar.md`, `llms.txt`, `ai-index.yaml` — they are

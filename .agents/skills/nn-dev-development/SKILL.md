@@ -59,7 +59,7 @@ node scripts/nn-session.mjs start --id <short-kebab-id>
 This creates the worktree `../cogNNitive-<id>` on branch `session/<id>` cut from
 `origin/dev`. When the worktree's `package-lock.json` SHA-256 matches the primary
 checkout's, it links `node_modules` (root + `skills/nn-sources`) via a directory
-junction — about 2s instead of ~90s — and builds `@cognnitive/innfo-core`. Pass
+junction — about 2s instead of ~90s — and builds `@cognnitive/nn-core`. Pass
 `--full-install` to force a clean `npm ci` when dependencies must be rebuilt, or
 `--no-install` only for docs-only work. Do all writes, commits and pushes from that
 worktree. If the tool environment refuses a worktree as `cwd`, keep the primary as `cwd`
@@ -307,8 +307,8 @@ When the maintainer says the accumulated `dev` work is ready:
    batch blocker. Also run `npm run check:versions`.
    - **`verify.js` env drift is not a batch failure.** A fresh/primary checkout can fail
      on missing setup, not code: run `npm ci --prefix skills/nn-sources` (its deps are
-     separate) and build the mcp artifact (`npm --workspace=@cognnitive/innfo-core run
-     build`, then `npm --workspace=@cognnitive/innfo-mcp run build` — **core first**, the
+     separate) and build the mcp artifact (`npm --workspace=@cognnitive/nn-core run
+     build`, then `npm --workspace=@cognnitive/nn-mcp run build` — **core first**, the
      bundle will not resolve `dist/index.js` otherwise). A **stale root `node_modules`**
      (e.g. a dep version that differs from the lockfile) also fails the license check and
      silently inflates locally built tracked bundles. `CI` is authoritative: confirm the
@@ -339,9 +339,9 @@ When the maintainer says the accumulated `dev` work is ready:
    - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
      until that tag's workflow concludes. See `nn-dev-release` §4/§4b.
 4. **Release tagging** (only for a version bump): run `nn-dev-release`
-   (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`, `innfo-console-v*`);
+   (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `nn-mcp-v*`, `nn-console-v*`);
    a red `main` blocks tagging.
-   - **A release prep is the mechanical bump only.** `innfo-mcp`/core + `innfo-console`
+   - **A release prep is the mechanical bump only.** `nn-mcp`/core + `nn-console`
      `package.json` versions + regenerated derived artifacts are enough — skill/blueprint
      version bumps are **not** required (`verify.js` "Check Version Parity", "Console
      Bundle Fresh", "Console Shells Fresh" all pass without them, 2026-10-16).
