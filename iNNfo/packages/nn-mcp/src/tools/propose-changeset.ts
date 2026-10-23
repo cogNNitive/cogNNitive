@@ -343,7 +343,7 @@ const STRING_KEYS = [
   'author',
   'notes',
   'base_hash',
-  'sources',
+  'evidence',
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
