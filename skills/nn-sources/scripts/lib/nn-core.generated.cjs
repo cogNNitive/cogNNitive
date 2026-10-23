@@ -7497,7 +7497,8 @@ function resolveJsonPointer(content, pointer) {
 var CORE_BLUEPRINT_NATURE = {
   sources: { structure: "catalog", ownership: "derived" },
   artifacts: { structure: "catalog", ownership: "derived" },
-  procedures: { structure: "catalog", ownership: "derived" }
+  procedures: { structure: "catalog", ownership: "derived" },
+  changes: { structure: "members", ownership: "derived" }
 };
 function natureOfBlueprint(blueprintName) {
   return CORE_BLUEPRINT_NATURE[blueprintName];
@@ -7649,7 +7650,7 @@ function isConsoleModel(f) {
   const role = roleOf({ path: f.path, parentSpecName });
   if (role === "knowledge") return true;
   if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
-  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== void 0;
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === "catalog";
 }
 var VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i;
 var STRUCTURAL_STEM_RE = /^(?:iNNfo|defiNNition|defiNNe|meta-bluepriNNt)(?:_V_\d+-\d+-\d+)?$/i;

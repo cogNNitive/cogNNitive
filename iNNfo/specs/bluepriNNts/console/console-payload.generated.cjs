@@ -7935,7 +7935,8 @@ function resolveJsonPointer(content, pointer) {
 var CORE_BLUEPRINT_NATURE = {
   sources: { structure: "catalog", ownership: "derived" },
   artifacts: { structure: "catalog", ownership: "derived" },
-  procedures: { structure: "catalog", ownership: "derived" }
+  procedures: { structure: "catalog", ownership: "derived" },
+  changes: { structure: "members", ownership: "derived" }
 };
 function natureOfBlueprint(blueprintName) {
   return CORE_BLUEPRINT_NATURE[blueprintName];
@@ -8060,7 +8061,7 @@ function isConsoleModel(f) {
   const role = roleOf({ path: f.path, parentSpecName });
   if (role === "knowledge") return true;
   if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
-  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== void 0;
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === "catalog";
 }
 function isNNName(nameOrPath) {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath));
@@ -9137,7 +9138,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-5-3", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-5-4", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/resolver.ts

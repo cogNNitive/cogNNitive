@@ -262,8 +262,9 @@ export function isConsoleModel(f: { path: string; frontmatter: Record<string, un
   if (role === 'knowledge') return true
   // A procedures model surfaces, but never a `procedures/` execution stepper (submodel).
   if (role === 'procedure') return !segmentsOf(f.path).includes('procedures')
-  // Every other role surfaces only when its blueprint declares a nature (declared collection).
-  return natureOfBlueprint(coreBlueprintKey(parentSpecName)) !== undefined
+  // A `catalog` declaration surfaces per document (each catalog doc is a model). A
+  // `members`/`projection` collection is materialized by the exporter, not discovered here.
+  return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === 'catalog'
 }
 
 /** A published-spec style version token inside a stem: `_V_<major>-<minor>-<patch>`. */

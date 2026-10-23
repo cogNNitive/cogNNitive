@@ -1069,6 +1069,65 @@ export async function writeConsole(opts = {}) {
     }
   }
 
+  // Change B: materialize the `changes` collection (structure: members) — one unit per
+  // `Change` across every batch document, the batch being the grouping. Read-only.
+  if (Array.isArray(changesets) && changesets.length > 0) {
+    const CHANGES_MODEL_ID = 'changes'
+    const CHANGES_MODEL_TITLE = 'Changes'
+    let changeUnitCount = 0
+    for (const cs of changesets) {
+      const batch = (String(cs.path).split('/').pop() || '').replace(/\.[^/.]+$/, '')
+      for (const c of cs.changes) {
+        const id = `${batch}#${c.id}`
+        const name = `${c.op} ${c.target}`
+        const description = c.notes || ''
+        const fields = { op: c.op, target: c.target }
+        if (c.from !== undefined) fields.from = c.from
+        if (c.to !== undefined) fields.to = c.to
+        if (c.author) fields.author = c.author
+        if (c.status) fields.status = c.status
+        if (c.evidence) fields.evidence = c.evidence
+        if (c.applied_at) fields.applied_at = c.applied_at
+        const markers = {}
+        allElements.push({
+          id,
+          slug: id,
+          concept: 'Change',
+          name,
+          description,
+          fields,
+          markers,
+          hash: payloadHelper.computeElementHash({ concept: 'Change', name, description, fields, markers }),
+          modelId: CHANGES_MODEL_ID,
+          modelTitle: CHANGES_MODEL_TITLE,
+          modelFile: '<changes>',
+          modelDir: 'changes',
+          ownership: 'derived',
+          location: `${batch}@## NN Change: ${c.id}`,
+        })
+        changeUnitCount++
+      }
+    }
+    if (changeUnitCount > 0) {
+      modelSummaries.push({
+        id: CHANGES_MODEL_ID,
+        title: CHANGES_MODEL_TITLE,
+        filePath: '<changes>',
+        blueprint: 'changes',
+        family: 'changes',
+        version: changesBlueprintVersion || null,
+        sha256: null,
+        citationsResolvedAt: null,
+        sources: [],
+        changeCount: changeUnitCount,
+        ownership: 'derived',
+        conceptNames: ['Change'],
+        elementCount: changeUnitCount,
+      })
+      scopeModelIds.push(CHANGES_MODEL_ID)
+    }
+  }
+
   // Change C: drift fingerprint — a field whose current value diverges from the `to` of
   // the last recorded change is reported here. The apply engine is the guard; this is
   // the detection of a hand/git edit made outside the change log.
