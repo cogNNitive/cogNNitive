@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "changes"
-blueprint_version: "V_0-5-4"
+blueprint_version: "V_0-5-5"
 title: "Changeset Blueprint"
 description: "Level-2 blueprint defining the normative document model for graph mutations, proposals, reviews, and version transitions in cogNNitive."
 nature:
@@ -45,7 +45,7 @@ description:: Mutation or review operation.
 
 ## NN Field Definition: target
 concept:: Change
-type:: string
+type:: address
 description:: Canonical D5 target address (model@element&field or model@matrix&row&col).
 
 ## NN Field Definition: from

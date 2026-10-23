@@ -191,6 +191,30 @@ export function validateElementFieldReferences(
       for (const fieldName of Object.keys(el.fields)) {
         const fieldDef = fieldDefs.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
 
+        // Change D: an `address` field value MUST be one `<target>@<unit>` address.
+        // A value that is not an address at all is an error; the change `target` (its
+        // core user) is additionally resolved against the workspace at apply time.
+        if (fieldDef?.type === 'address') {
+          const rawAddress = el.fields[fieldName]
+          if (rawAddress !== undefined && rawAddress !== null && rawAddress !== '') {
+            const address = String(rawAddress).trim()
+            // A bare target (a whole-document address, e.g. an `add_model` target) is
+            // valid; only an empty target or a dangling `@` (missing target/unit) is
+            // malformed. A unit MAY contain spaces (e.g. a matrix name).
+            if (address === '' || address.startsWith('@') || address.endsWith('@')) {
+              diagnostics.push({
+                path: `elements.${conceptName}.${el.name}.fields.${fieldName}`,
+                message: `Invalid address: field "${fieldName}" value "${address}" is not a <target>@<unit> address`,
+                severity: 'error',
+                code: 'ADDRESS_MALFORMED',
+                promptHint: 'Use "<target>@<unit>" (for example model@element&field).',
+                meta: { field: fieldName },
+              })
+            }
+          }
+          continue
+        }
+
         const isRef =
             (fieldDef && (fieldDef.type === 'reference' || fieldDef.type === 'knowledge')) ||
           IMPLICIT_REF_FIELDS.has(fieldName.toLowerCase())
