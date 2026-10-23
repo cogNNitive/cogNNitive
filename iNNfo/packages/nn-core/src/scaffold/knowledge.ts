@@ -49,7 +49,12 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
     for (const f of c.fields ?? []) {
       // References have no concrete target; number and boolean values are
       // type-checked, so a `<type>` placeholder would fail validation. Omit them.
-      if (f.type === 'reference' || f.type === 'number' || f.type === 'boolean') {
+      if (
+        f.type === 'reference' ||
+        f.type === 'number' ||
+        f.type === 'boolean' ||
+        f.type === 'address'
+      ) {
         continue
       }
       const hint =

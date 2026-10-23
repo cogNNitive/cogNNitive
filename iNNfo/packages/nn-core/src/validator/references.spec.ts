@@ -117,3 +117,41 @@ describe('submodel conformance coded warnings (validator-robustness Unit 2)', ()
     expect(diagnostics).toEqual([])
   })
 })
+
+describe('address field validation (change D)', () => {
+  function modelWithAddressField(value: string): {
+    model: ParsedKnowledge
+    templateConcepts: Concept[]
+  } {
+    const elements = new ElementsMap()
+    elements.set('Pricing', [
+      { type: 'Pricing', name: 'SKU', description: '', fields: { ref: value }, markers: {} },
+    ])
+    const model: ParsedKnowledge = {
+      frontmatter: { spec_version: 'V_0-5-0', spec_url: '', level: 3 } as ParsedKnowledge['frontmatter'],
+      taxonomy: [],
+      elements,
+      matrices: [],
+      nodeMarkers: {},
+      rawContent: '',
+    }
+    const templateConcepts: Concept[] = [
+      { name: 'Pricing', type: 'list', fields: [{ name: 'ref', type: 'address' }] },
+    ]
+    return { model, templateConcepts }
+  }
+
+  it('flags a malformed address (dangling @) as an error', () => {
+    const { model, templateConcepts } = modelWithAddressField('pricing@')
+    const diagnostics = validateElementFieldReferences(model, templateConcepts, {})
+    expect(diagnostics.map((d) => d.code)).toEqual(['ADDRESS_MALFORMED'])
+    expect(diagnostics[0].severity).toBe('error')
+  })
+
+  it('accepts a <target>@<unit> address and a bare whole-document target', () => {
+    for (const value of ['pricing@sku-42&precio', 'strategy']) {
+      const { model, templateConcepts } = modelWithAddressField(value)
+      expect(validateElementFieldReferences(model, templateConcepts, {})).toEqual([])
+    }
+  })
+})
