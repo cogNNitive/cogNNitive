@@ -121,4 +121,4 @@ Every Level 2 app and Level 3 sample in `iNNfo/specs/bluepriNNts/` MUST pass all
 3. **Verify Field Types:** Convert any `string` fields pointing to entities into `type:: reference` with `target_concepts:: [...]`.
 4. **Audit Concept Descriptions:** Ensure every concept has rich UI sidebar text.
 5. **Verify/Generate Ghostbusters Samples:** Audit existing samples or generate new L3 samples conforming to the Ghostbusters Inc. universe.
-6. **Validate with MCP:** Run `innfo-mcp_validate_template` and `innfo-mcp_validate_model` on all app and sample files.
+6. **Validate with MCP:** Run `nn-mcp_validate_blueprint` and `nn-mcp_validate_knowledge` on all app and sample files.
