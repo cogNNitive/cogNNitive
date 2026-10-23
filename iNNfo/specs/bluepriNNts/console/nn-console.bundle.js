@@ -142,7 +142,17 @@ var InnfoAddress = (() => {
       stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
     };
   }
-  var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
+  var CORE_BLUEPRINT_ROLE = {
+    cognnitive: "lineage-record",
+    sidecar: "sidecar",
+    changes: "changeset",
+    workspace: "catalog",
+    sources: "catalog",
+    artifacts: "catalog"
+  };
+  function coreBlueprintKey(parentSpecName) {
+    return (parentSpecName ?? "").trim().toLowerCase().split("_")[0];
+  }
   function roleOf(i) {
     const base = baseOf(i.path);
     const parsed = parseName(base);
@@ -151,23 +161,11 @@ var InnfoAddress = (() => {
     const lower = base.toLowerCase();
     if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
     if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-    const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-    switch (bp) {
-      case "cognnitive":
-        return "lineage-record";
-      case "sidecar":
-        return "sidecar";
-      case "changes":
-        return "changeset";
-      case "procedures":
-        return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-      case "workspace":
-      case "sources":
-      case "artifacts":
-        return "catalog";
-      default:
-        return "knowledge";
+    const bp = coreBlueprintKey(i.parentSpecName);
+    if (bp === "procedures") {
+      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
     }
+    return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
   }
 
   // iNNfo/packages/nn-core/src/sourceRef.ts
@@ -4505,6 +4503,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     source: 'content',
   }
 
+  // Change A: a unit's edit affordance derives from its model's declared
+  // `ownership` (not a kind table). The host installs a resolver mapping a model
+  // id to `'authored' | 'derived'`; a `derived` model offers no edit pencil. The
+  // apply engine remains the final guard.
+  var modelOwnership = null
+  function setModelOwnership(fn) {
+    modelOwnership = typeof fn === 'function' ? fn : null
+  }
+  function refModelId(ref) {
+    if (!ref) return ''
+    if (ref.model) return String(ref.model)
+    var address = ref.address || ''
+    if (!address || address.indexOf('specs/') === 0) return ''
+    var at = address.indexOf('@')
+    return at === -1 ? '' : address.slice(0, at)
+  }
+  function ownershipOfRef(ref) {
+    if (!modelOwnership) return null
+    var model = refModelId(ref)
+    if (!model) return null
+    try {
+      return modelOwnership(model)
+    } catch (e) {
+      return null
+    }
+  }
+
   function addrApi() {
     return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
   }
@@ -4606,6 +4631,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function unitEditability(kind, ref) {
+    // A `derived` model is read-only: no edit affordance regardless of kind.
+    if (ownershipOfRef(ref) === 'derived') return 'none'
     var nature = KU_NATURE[kind]
     if (nature === 'container' || kind === 'source') return 'none'
     if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
@@ -4979,6 +5006,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     describeUnit: describeUnit,
     createKu: createKu,
     setUnitChanges: setUnitChanges,
+    setModelOwnership: setModelOwnership,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
@@ -12934,6 +12962,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    // Change A: install the model-ownership resolver so a `derived` model's units
+    // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
+    var ownershipByModel = {}
+    var modelList = Array.isArray(meta.models) ? meta.models : []
+    modelList.forEach(function (mm) {
+      if (!mm) return
+      if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
+      if (mm.title != null) ownershipByModel[String(mm.title)] = mm.ownership || 'authored'
+    })
+    if (typeof UI.setModelOwnership === 'function') {
+      UI.setModelOwnership(function (id) {
+        return ownershipByModel[String(id)]
+      })
+    }
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
     var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {

@@ -1011,6 +1011,7 @@ export async function writeConsole(opts = {}) {
           (payload.model.meta && payload.model.meta.citationsResolvedAt) || null,
         sources: (payload.model.meta && payload.model.meta.sources) || [],
         changeCount: changeCount,
+        ownership: (payload.model.meta && payload.model.meta.ownership) || 'authored',
         conceptNames: Array.from(modelConcepts),
         elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
       })
