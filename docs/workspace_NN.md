@@ -21,14 +21,8 @@ The authoritative documentation and web delivery workspace for the cogNNitive ec
 
 # NN Models
 
-## NN Models: iNNfo Technical Documentation
-path:: innfo/documentation/documentation_NN.md
-template:: documentation_V_0-2-0
-status:: active
-author:: cogNNitive Maintainers
-
-## NN Models: Agent Skills Documentation
-path:: skills/documentation/documentation_NN.md
+## NN Models: cogNNitive Documentation
+path:: documentation/documentation_NN.md
 template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers

@@ -7,6 +7,6 @@
 Pages:
 - [Home](https://cognnitive.com/innfo/index.md): iNNfo landing page
 - [About](https://cognnitive.com/innfo/about.md): Architecture, app, packages, and specs
-- [Offline consoles](https://cognnitive.com/innfo/documentation/offline-consoles): Domain console docs
-- [innfo-core](https://cognnitive.com/innfo/documentation/innfo-core): Parser, resolver, validator library
-- [innfo-mcp](https://cognnitive.com/innfo/documentation/innfo-mcp): MCP server for AI agents
+- [Use the domain console](https://cognnitive.com/documentation/content/how-to/domain-console): Domain console docs
+- [Ecosystem architecture](https://cognnitive.com/documentation/content/concepts/ecosystem): Engine, MCP server, console
+- [MCP tools](https://cognnitive.com/documentation/content/reference/mcp-tools): MCP server for AI agents

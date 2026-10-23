@@ -81,14 +81,10 @@ if (fs.existsSync(manifestNextSrc)) {
 }
 
 
-// 4. Generate Docsify documentation suites from iNNfo models
+// 4. Generate the Docsify documentation suite from its iNNfo model
 run(
-  'node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md',
-  'Generate iNNfo Docsify documentation suite from iNNfo model'
-);
-run(
-  'node scripts/generate-docsify-suite.mjs docs/skills/documentation/documentation_NN.md',
-  'Generate Agent Skills Docsify documentation suite from iNNfo model'
+  'node scripts/generate-docsify-suite.mjs docs/documentation/documentation_NN.md',
+  'Generate the Docsify documentation suite from the iNNfo model'
 );
 
 console.log('\nðŸŽ‰ [cogNNitive Build Docs] All artifacts built and staged successfully.');

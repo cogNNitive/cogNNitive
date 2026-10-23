@@ -80,14 +80,14 @@ function buildFixtureRepo() {
     'utf-8',
   );
 
-  const skillsDocsDir = path.join(root, 'docs', 'skills', 'documentation');
-  fs.mkdirSync(skillsDocsDir, { recursive: true });
+  const skillsModelDir = path.join(root, 'docs', 'documentation');
+  fs.mkdirSync(skillsModelDir, { recursive: true });
   fs.writeFileSync(
-    path.join(skillsDocsDir, 'documentation_NN.md'),
+    path.join(skillsModelDir, 'documentation_NN.md'),
     [
       '---',
-      'title: Agent Skills Documentation',
-      'model_version: V_0-2-0',
+      'title: cogNNitive Documentation',
+      'knowledge_version: V_0-4-0',
       '---',
       '# NN Section',
       '## NN Section: Canonical Skills',
@@ -100,17 +100,19 @@ function buildFixtureRepo() {
     ].join('\n'),
     'utf-8',
   );
+  const skillsCatalogPath = path.join(root, 'docs', 'documentation', 'content', 'skills', 'README.md');
+  fs.mkdirSync(path.dirname(skillsCatalogPath), { recursive: true });
   fs.writeFileSync(
-    path.join(skillsDocsDir, 'README.md'),
+    skillsCatalogPath,
     ['# Skills Catalog', OPEN_SKILLS, 'placeholder', CLOSE_SKILLS, ''].join('\n'),
     'utf-8',
   );
 
-  const mcpDocsDir = path.join(root, 'docs', 'innfo', 'documentation');
+  const mcpDocsDir = path.join(root, 'docs', 'documentation', 'content', 'reference');
   fs.mkdirSync(mcpDocsDir, { recursive: true });
   fs.writeFileSync(
-    path.join(mcpDocsDir, 'nn-mcp.md'),
-    ['# nn-mcp', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
+    path.join(mcpDocsDir, 'mcp-tools.md'),
+    ['# MCP tools', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
     'utf-8',
   );
 
@@ -179,7 +181,7 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
+      const mcpPath = path.join(root, 'docs', 'documentation', 'content', 'reference', 'mcp-tools.md');
       const stale = fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools');
       fs.writeFileSync(mcpPath, stale, 'utf-8');
       commitChange(root, 'introduce stale region');
@@ -200,7 +202,7 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const llmsPath = path.join(root, 'docs', 'innfo', 'llms-full.txt');
+      const llmsPath = path.join(root, 'docs', 'documentation', 'llms-full.txt');
       fs.writeFileSync(llmsPath, 'nn-mcp exposes seven semantic tools today.\n', 'utf-8');
       commitChange(root, 'reintroduce a hand-typed tool count');
 
@@ -221,9 +223,9 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
+      const mcpPath = path.join(root, 'docs', 'documentation', 'content', 'reference', 'mcp-tools.md');
       fs.writeFileSync(mcpPath, fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools'), 'utf-8');
-      const llmsPath = path.join(root, 'docs', 'innfo', 'llms-full.txt');
+      const llmsPath = path.join(root, 'docs', 'documentation', 'llms-full.txt');
       fs.writeFileSync(llmsPath, 'nn-mcp exposes seven semantic tools today.\n', 'utf-8');
       // Deliberately no commit: both changes are uncommitted working-tree dirt.
 

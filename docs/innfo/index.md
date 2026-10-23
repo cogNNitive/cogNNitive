@@ -7,7 +7,7 @@ description: "Model, edit, and validate knowledge models with the domain console
 
 Model, edit, and query knowledge visually in your browser or conversationally with your AI coding agent of choice (OpenCode Desktop, Google Antigravity, Claude Code, Cursor, Codex).
 
-- [Explore Documentation](https://cognnitive.com/innfo/documentation/)
+- [Explore Documentation](https://cognnitive.com/documentation/)
 
 ---
 

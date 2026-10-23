@@ -49,12 +49,12 @@ function fixtureTree(opts = {}) {
     );
   }
 
-  const docsDir = path.join(root, 'docs', 'innfo', 'documentation');
+  const docsDir = path.join(root, 'docs', 'documentation', 'content', 'reference');
   fs.mkdirSync(docsDir, { recursive: true });
   const body = withMarkers
     ? ['# nn-mcp', '', '## Tools', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
     : ['# nn-mcp', '', '## Tools', '', '| Tool | Description |', '|------|-------------|', ''].join('\n');
-  fs.writeFileSync(path.join(docsDir, 'nn-mcp.md'), body, 'utf8');
+  fs.writeFileSync(path.join(docsDir, 'mcp-tools.md'), body, 'utf8');
 
   // The mcp-tools job also renders into the nn-innfo skill's own mcp-tools region (design D4).
   const nnInnfoDir = path.join(root, 'skills', 'nn-innfo');
@@ -73,15 +73,17 @@ function fixtureTree(opts = {}) {
     'utf8',
   );
 
-  const skillsDocsDir = path.join(root, 'docs', 'skills', 'documentation');
-  fs.mkdirSync(skillsDocsDir, { recursive: true });
+  const skillsModelPath = path.join(root, 'docs', 'documentation', 'documentation_NN.md');
+  fs.mkdirSync(path.dirname(skillsModelPath), { recursive: true });
   fs.writeFileSync(
-    path.join(skillsDocsDir, 'documentation_NN.md'),
-    '---\ntitle: Agent Skills Documentation\nmodel_version: V_0-2-0\n---\n# NN Section\n## NN Section: Canonical Skills\ntitle:: Canonical Skills\n# NN Page\n## NN Page: test-skill\ntitle:: Test Skill\nparent:: [[Canonical Skills]]\n',
+    skillsModelPath,
+    '---\ntitle: cogNNitive Documentation\nknowledge_version: V_0-4-0\n---\n# NN Section\n## NN Section: Canonical Skills\ntitle:: Canonical Skills\n# NN Page\n## NN Page: test-skill\ntitle:: Test Skill\nparent:: [[Canonical Skills]]\n',
     'utf8',
   );
+  const skillsCatalogPath = path.join(root, 'docs', 'documentation', 'content', 'skills', 'README.md');
+  fs.mkdirSync(path.dirname(skillsCatalogPath), { recursive: true });
   fs.writeFileSync(
-    path.join(skillsDocsDir, 'README.md'),
+    skillsCatalogPath,
     '# Skills Catalog\n<!-- generated:skills-catalog (source: manifest/source.yaml) -->\n**1** skills\n\n- `test-skill`: Test Skill Description\n<!-- /generated:skills-catalog -->\n',
     'utf8',
   );
@@ -94,7 +96,7 @@ function runCli(cwd, args = []) {
 }
 
 function readTarget(root) {
-  return fs.readFileSync(path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md'), 'utf8');
+  return fs.readFileSync(path.join(root, 'docs', 'documentation', 'content', 'reference', 'mcp-tools.md'), 'utf8');
 }
 
 function readSkillTarget(root) {

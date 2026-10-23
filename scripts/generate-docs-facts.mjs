@@ -5,9 +5,9 @@
  *
  * Derives two generated regions from their canonical sources (design
  * D1/D2/D3/D4/D5):
- *   - `mcp-tools` in docs/innfo/documentation/nn-mcp.md, from the built
- *     nn-mcp tool registry.
- *   - `skills-catalog` in docs/skills/documentation/README.md, from
+ *   - `mcp-tools` in docs/documentation/content/reference/mcp-tools.md, from
+ *     the built nn-mcp tool registry.
+ *   - `skills-catalog` in docs/documentation/content/skills/README.md, from
  *     manifest/source.yaml. Before rendering, this job also enforces that
  *     the iNNfo model's canonical-skills Page set equals the source.yaml
  *     skill set (design D1) — a mismatch is an input failure (exit 2), not
@@ -61,14 +61,17 @@ const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'ser
 // skill's own SKILL.md (design D4), so the skill ships an accurate tool
 // inventory instead of a hand-typed count.
 const MCP_TARGET_RELATIVE_PATHS = [
-  path.join('docs', 'innfo', 'documentation', 'nn-mcp.md'),
+  path.join('docs', 'documentation', 'content', 'reference', 'mcp-tools.md'),
   path.join('skills', 'nn-innfo', 'SKILL.md'),
 ];
 
 const SKILLS_CATALOG_REGION = 'skills-catalog';
 const SOURCE_YAML_RELATIVE_PATH = path.join('manifest', 'source.yaml');
-const KNOWLEDGE_RELATIVE_PATH = path.join('docs', 'skills', 'documentation', 'documentation_NN.md');
-const SKILLS_TARGET_RELATIVE_PATH = path.join('docs', 'skills', 'documentation', 'README.md');
+const KNOWLEDGE_RELATIVE_PATH = path.join('docs', 'documentation', 'documentation_NN.md');
+const SKILLS_TARGET_RELATIVE_PATH = path.join('docs', 'documentation', 'content', 'skills', 'README.md');
+// The skills catalog page sits in the same directory as the skill pages, so its
+// links are bare `<name>.md` rather than the flat-layout `skills/<name>.md`.
+const SKILLS_LINK_PREFIX = '';
 const CANONICAL_SKILLS_SECTION = 'Canonical Skills';
 
 /**
@@ -252,7 +255,7 @@ async function runSkillsCatalogJob(cwd, check, against, execFile, log, logError)
     return 2;
   }
 
-  const body = renderSkillsCatalogRegion(skills);
+  const body = renderSkillsCatalogRegion(skills, { linkPrefix: SKILLS_LINK_PREFIX });
 
   let rendered;
   try {

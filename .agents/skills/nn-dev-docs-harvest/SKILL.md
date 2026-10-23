@@ -1,7 +1,7 @@
 ---
 name: nn-dev-docs-harvest
 version: "0.1.0"
-description: Internal developer skill for cogNNitive maintainers. Turns scattered session rationale into verified public documentation — harvests recent Engram conversations, extracts the WHY behind product decisions, verifies every claim against current code (parser, validator, MCP, editor, spec), then writes and registers pages under docs/innfo/documentation/ in the Docsify suite. Read-only harvest before any write; user-facing why/how content only; every published claim verified; generated artifacts never hand-edited. Trigger: harvest docs, session rationale to docs, document decisions, why/how documentation, write docs from memory, turn memory into documentation.
+description: Internal developer skill for cogNNitive maintainers. Turns scattered session rationale into verified public documentation — harvests recent Engram conversations, extracts the WHY behind product decisions, verifies every claim against current code (parser, validator, MCP, editor, spec), then writes and registers pages under docs/documentation/ in the Docsify suite. Read-only harvest before any write; user-facing why/how content only; every published claim verified; generated artifacts never hand-edited. Trigger: harvest docs, session rationale to docs, document decisions, why/how documentation, write docs from memory, turn memory into documentation.
 ---
 
 # nn-dev-docs-harvest Skill (Session Rationale to Verified Docs)
@@ -12,7 +12,7 @@ description: Internal developer skill for cogNNitive maintainers. Turns scattere
 It closes the gap between what sessions decide and what the product documents: it
 harvests recent Engram conversations, extracts the **WHY** behind product decisions,
 **verifies each claim against the current code**, and writes/registers public pages
-under `docs/innfo/documentation/`.
+under `docs/documentation/`.
 
 The recurring failure it fixes: rationale lives in chat and Engram (why the validator
 infers a version, why consoles boot offline, why a field is optional) while the
@@ -46,7 +46,7 @@ Session-scoped: once per conversation.
 |-------|---------|---------|
 | `window_days` | `14` | How far back the Engram harvest looks. |
 | `project` | `cognnitive` | Engram project filter. |
-| `doc_root` | `docs/innfo/documentation/` | Where public pages live and are registered. |
+| `doc_root` | `docs/documentation/` | Where public pages live and are registered. |
 | `focus` | *(optional)* | Subsystem/topic to prioritize, e.g. `validator`, `offline consoles`. |
 
 State the resolved values in one line before harvesting.
@@ -131,7 +131,7 @@ it; every unverifiable claim removed or escalated.
 ## 4. Write + register in the Docsify suite
 
 1. Create or edit the page at `<doc_root><slug>.md`.
-2. Register a page block in `docs/innfo/documentation/documentation_NN.md` inside the
+2. Register a page block in `docs/documentation/documentation_NN.md` inside the
    correct `## NN Section:` (e.g. `Components`, `Architecture`, `Guides`,
    `Runtime & Internals`):
 
@@ -148,11 +148,11 @@ description:: <one line>
 3. Regenerate the suite — never hand-edit generated files. The docs-only command is:
 
 ```powershell
-node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md
+node scripts/generate-docsify-suite.mjs docs/documentation/documentation_NN.md
 ```
 
    Sidebar-only refresh (the model path is required):
-   `node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md --sidebar-only`.
+   `node scripts/generate-docsify-suite.mjs docs/documentation/documentation_NN.md --sidebar-only`.
    `npm run build:docs` also regenerates the suite, but it is a **heavier full build**: it
    first builds nn-core / nn-mcp and restages the CDN bundle and
    template catalog before running the generator. Use it only when those artifacts need
@@ -183,7 +183,7 @@ sidebar/index.
 3. **Every published claim verified** — cite the file/symbol that proves it; drop what you
    cannot verify.
 4. **Generated artifacts are never hand-edited** — regenerate via
-   `node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md`.
+   `node scripts/generate-docsify-suite.mjs docs/documentation/documentation_NN.md`.
 5. **Scratch under `temp/`** — throwaway notes/fixtures live in the gitignored repo-root
    `temp/`, never beside source.
 6. **Monorepo scope** — cogNNitive repository root only.

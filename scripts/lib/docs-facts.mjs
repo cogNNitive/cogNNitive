@@ -119,12 +119,15 @@ export function renderMcpToolsRegion(tools) {
  * its conventional doc page (`skills/<name>.md`), the same slug every
  * existing canonical-skill page already uses.
  * @param {Array<{ name: string, version: string, description: string }>} skills
+ * @param {{ linkPrefix?: string }} [options] - `linkPrefix` is prepended to each
+ *   skill's page link. Defaults to `skills/` (the flat layout); pass `''` when
+ *   the catalog page sits in the same directory as the skill pages.
  * @returns {string}
  */
-export function renderSkillsCatalogRegion(skills) {
+export function renderSkillsCatalogRegion(skills, { linkPrefix = 'skills/' } = {}) {
   const rows = skills.map(
     (skill) =>
-      `| [\`${skill.name}\`](skills/${skill.name}.md) | \`${skill.version}\` | ${escapeTableCell(skill.description)} |`,
+      `| [\`${skill.name}\`](${linkPrefix}${skill.name}.md) | \`${skill.version}\` | ${escapeTableCell(skill.description)} |`,
   );
   const lines = [
     `**${skills.length}** skills`,

@@ -134,8 +134,8 @@ function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null)
 }
 
 /**
- * Scans git-tracked docs source files under `docs/innfo/**` and
- * `docs/skills/**` (`.md`/`.txt`) at `ref` for hand-typed facts that must
+ * Scans git-tracked docs source files under `docs/documentation/**`
+ * (`.md`/`.txt`) at `ref` for hand-typed facts that must
  * instead be derived: a literal MCP tool count, or a registered skill name
  * paired with a literal version string (spec docs-derived-facts,
  * "CI Drift Guard").
@@ -179,7 +179,7 @@ function checkHandTypedFactsAtRef(repoRoot, ref, deps = {}) {
     "  return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf-8', input, maxBuffer: 64 * 1024 * 1024 });",
     '}',
     '',
-    "const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'docs/innfo', 'docs/skills']);",
+    "const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'docs/documentation']);",
     "const docPaths = listing.split(/\\r?\\n/).filter((p) => p && /\\.(md|txt)$/.test(p));",
     '',
     '// One batched read for every blob: ls-tree + cat-file are the only two git spawns.',

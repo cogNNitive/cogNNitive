@@ -7,8 +7,8 @@ description: "Modular agent skills that give AI agents specialized capabilities:
 
 Teach your AI agent domain capabilities: iNNfo model authoring, document transformation, site generation, design presets, and skills lifecycle governance.
 
-- [Read the docs](https://cognnitive.com/innfo/documentation/)
-- [Explore Skills Documentation](https://cognnitive.com/skills/documentation/)
+- [Read the docs](https://cognnitive.com/documentation/)
+- [Explore Skills Documentation](https://cognnitive.com/documentation/)
 
 ---
 
