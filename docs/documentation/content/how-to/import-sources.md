@@ -1,85 +1,51 @@
 # Import and cite sources
 
-A **Source** is a file that lives inside a domaiNN and can be cited. Sources enter through one folder, get a co-located sidecar, and are then addressed by a kNNowledge element using a precise pointer grammar.
+A **Source** is a file that lives inside your domaiNN and can be cited. You never place or format these files yourself: you tell your agent what to bring in, and the agent puts the file in the right place and makes it citable.
 
-## The two source trees
+## Tell your agent what to bring in
 
-`sources/` is the provenance root of a domaiNN. It holds the raw material:
+From the `nn` job loop this is the `[s] Sources` stage. You can also just say what you want:
 
-| Path | Holds | Notes |
-|---|---|---|
-| `sources/import/` | Raw files you bring in — the only raw-import location. | Copied verbatim; never moved, renamed, or rewritten. |
-| `sources/conversations/` | Promoted conversation transcripts. | Full verbatim transcripts, write-once. |
+> Add this folder of meeting notes to the domain.
 
-A co-located **sidecar** (`<file>.<ext>_sidecar_NN.md`) sits next to each raw file and records its hash and metadata. There is no mirror tree: the retired `sources/nn/` layout is never read or written, and the runtime derives everything from the raw file and its sidecar, not from folder names.
+> Bring in the PDF I just downloaded.
 
-> [!NOTE]
-> A citation path is domaiNN-relative and written in full. There is no implicit `sources/` prefix — `sources/import/notes.md@## Intro` is the whole address.
+> Import this page: https://example.com/report
 
-## 1. Drop a file into `sources/import/`
+The agent takes the file (or folder, or link), places it inside the domain, and makes it citable. You do not copy files or convert anything by hand.
 
-Copy the file into `sources/import/`. You may organize subfolders freely; the sidecar simply sits next to its raw file, so no structure is mirrored anywhere. Files placed by hand keep their names; files brought in by URL import or conversation promotion are written write-once with a UTC suffix (`<stem>_<YYYYMMDDTHHmmssZ>.<ext>`).
+## What "citable" means
 
-Formats the scanner converts directly include `txt`, `md`, `csv`, `json`, `html`, `docx`, `pdf`, and `xlsx`. Media such as `.png`, `.mp3`, and `.wav` is **not** converted: place a transcript or description as a text file and cognitivize that instead. Raw media is kept untouched.
+Once a file is in the domain, the agent makes it **citable** by writing a small companion document next to it — a **sidecar**. The original file is never changed, moved, or renamed: the sidecar records where the file came from, and the file itself stays exactly as you gave it. See [Cognitivize documents with sidecars](cognitivize.md).
 
-## 2. Cognitivize it
+Formats the agent handles directly include text, Markdown, CSV, JSON, HTML, Word, PDF, and Excel. Media like images and audio is not converted — instead, give the agent a transcript or a written description of it, and the agent makes that citable while leaving the media untouched.
 
-Run the scan, or cognitivize one file:
+## How a citation points at a heading
 
-```console
-$ node skills/nn-sources/scripts/index.js --scan --src Aurora
-$ node skills/nn-sources/scripts/index.js --cognitivize "sources/import/notes.md" --src Aurora
-```
+When the agent builds your model, each element records where its content came from as a **citation**. A citation is not a line number and not an opaque id: it points at a *named unit* inside the source, so it stays readable and survives edits above it.
 
-The MCP `cognitivize` tool does the same for `md`, `csv`, and `json`:
+- In a Markdown or text file, a citation points at a **heading** — for example, the section titled *Key Feedback*.
+- In a spreadsheet, it points at a **row** by its key, optionally at a single column.
+- In a JSON file, it points at a specific value.
+- A whole file can be cited as-is.
 
-```text
-cognitivize({ path: "sources/import/notes.md" })
-```
+Binary files (PDF, Word, Excel, images) are never cited directly — the agent cites their companion document instead, which holds the readable text.
 
-Either way, the raw file is untouched and a sidecar appears beside it. See [Cognitivize documents with sidecars](cognitivize.md).
+## The rules that keep citations honest
 
-## 3. Cite a heading
+The agent applies these automatically, but they explain why some references are refused:
 
-A kNNowledge element points at the exact unit it came from with a `sources::` field. `sources::` is always a bracketed list, even for one entry:
-
-```markdown
-## NN Stakeholders: Customer
-
-slug:: customer
-sources:: [sources/import/client_interview.md@## Key Feedback]
-The customer asked for a faster onboarding flow.
-```
-
-The unit grammar is chosen by the target file extension:
-
-| Target | Grammar | Example |
-|---|---|---|
-| Markdown heading | `<path>@<level><Heading>` | `sources/import/notes.md@## Key Points` |
-| CSV row / cell | `<path>@<row-id>` or `<path>@<row-id>&<column>` | `sources/import/metrics.csv@2026-09&churn_rate` |
-| JSON value | `<path>@/<pointer>` (RFC 6901) | `sources/import/data.json@/items/0/name` |
-| Whole file | bare `<path>` | `sources/import/notes.md` |
-
-Markdown units keep their heading level (`@#`, `@##`, `@###`) and slugify GitHub-style; the `Concept: Element` boundary stays visible as `--`. A CSV row id is the **explicit first-column value**, never a positional row number. Binary files cannot be cited directly — cite the sidecar, whose body holds the normalized Markdown:
-
-```markdown
-sources:: [sources/import/report_20261001T101500Z.pdf_sidecar_NN.md@## Findings]
-```
-
-## Rules that keep citations honest
-
-- **No line ranges.** `#L12-L45` is rejected as `KU_MALFORMED`.
-- **No `src-NNN` ids.** The old wrapper is retired; cite the real path.
-- **No queries.** A `path?filter=value` expression selects a set and is never a citation (`QU_NOT_PROVENANCE`).
-- **No `staging/`.** A citation into scratch space reports `KU_EXCLUDED_PATH`.
-- **No duplicates.** Do not repeat the same reference twice; if there is no real source, omit the field entirely.
-
-## The co-located sidecar
-
-For every cognitivized file, the sidecar carries origin metadata (`source_file`, `sha256`, `size_bytes`, `source_format`, `normalized_at`) and, for binaries, the normalized body. The `sha256` is the change-detection key: change the raw bytes and the sidecar is refreshed in place; the earlier bytes are never rewritten.
+- A citation names a real unit, never a line range.
+- It points at a file inside the domain — scratch folders are not citable.
+- It points at real content, never a query or a filter.
+- A source is cited once; if an element has no real source, the agent omits the citation entirely.
 
 ## See also
 
 - [Cognitivize documents with sidecars](cognitivize.md) — the sidecar in detail.
 - [Sources, citations and lineage](../concepts/sources-citations-lineage.md) — how the three provenance terms relate.
 - [Model a domain from scratch](../tutorials/domain-from-scratch.md) — the full walkthrough.
+
+## Under the hood
+
+The agent ingests through the `nn-sources` skill and the `nn-mcp` server; citations follow the `@` pointer grammar (`path@## Heading`, `csv@RowID&col`, `json@/pointer`). See [CLI and scripts](../reference/cli.md) and [MCP tools](../reference/mcp-tools.md).

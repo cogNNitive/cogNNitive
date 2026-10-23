@@ -1,109 +1,96 @@
 # Create your first domaiNN
 
 > [!NOTE]
-> This tutorial takes about five minutes. It walks the happy path from installing the ecosystem to a validated domaiNN with one source and one kNNowledge document. No prior knowledge of cogNNitive is required.
+> This tutorial takes about five minutes. You drive a local AI coding agent — Claude Code, OpenCode, Antigravity, or Cursor — that has the cogNNitive skills and the `nn-mcp` server installed. You express intent in plain language; the agent does the work, and you review the result in the console.
 
-A **domaiNN** is the container that holds your knowledge: kNNowledge documents, bluepriNNts, sources, procedures, and artifacts. In this tutorial you create one, feed it a single raw file, and turn that file into a cited kNNowledge document that passes validation.
+A **domaiNN** is the container that holds your knowledge: kNNowledge documents, bluepriNNts, sources, procedures, and artifacts. In this tutorial you create one, bring in a single raw file, and turn it into a cited kNNowledge document that passes validation — all by talking to your agent.
 
-## 1. Install the ecosystem
+> [!TIP]
+> The agent works in whatever language you write in. The prompts below are in English; use your own language and the agent answers and acts in it.
 
-You do not install cogNNitive by hand. You install it **through your AI coding agent**. Open your agent (Claude Code, OpenCode, Antigravity, or Cursor) in the folder where you want to work and paste this single instruction:
+## 1. Connect your agent
+
+Open your agent in the folder where you want to work and paste this single instruction:
+
+> I want to use https://cognnitive.com/use
+
+The agent fetches the bootstrap manifest, installs the cogNNitive skills, and registers the `nn-mcp` server. When it is ready, start the job loop by typing `/nn` — the agent greets you and offers the menu:
 
 ```text
-I want to use https://cognnitive.com/use
+[s] Sources  ·  [m] Model  ·  [r] Review & Deliverables  ·  [p] Procedures  ·  [h] Help  ·  [x] Cancel
 ```
 
-The agent fetches the bootstrap manifest, registers the `nn-mcp` server, and downloads the agent skills into your local agent environment. See [Install and connect an AI agent](../how-to/install-agent.md) for what happens behind the scenes.
-
-**Verify it worked:** ask the agent to list its tools. You should see tools such as `init_domain`, `cognitivize`, and `validate_knowledge` available through `nn-mcp`.
+**How you check it worked:** the agent lists its capabilities and shows the `nn` menu without errors. If something is missing, see [Install and connect an AI agent](../how-to/install-agent.md).
 
 ## 2. Create the domaiNN
 
-Ask the agent to initialize a new domain. The `init_domain` tool creates the canonical folder skeleton, the `domaiNN_NN.md` manifest, and a `.gitattributes` that pins raw-byte hashes:
+> Create a new domaiNN here called "My Domain".
 
-```text
-init_domain({ dir: "my-domain", name: "My Domain" })
-```
+The agent scaffolds the standard layout and announces what it created. You will see:
 
-This creates:
-
-| Path | Role |
+| Path | What it holds |
 |---|---|
 | `domaiNN_NN.md` | The domain manifest (itself a kNNowledge document). |
 | `kNNowledge/` | Your Level-3 kNNowledge documents. |
 | `sources/import/` | The drop box for raw files you bring in. |
 | `sources/conversations/` | Promoted conversation transcripts. |
-| `conversations/` | Raw session logs. |
 | `artifacts/` | Every generated or curated output. |
 | `procedures/` | Procedure definitions. |
-| `staging/` | Scratch space (never citable). |
 | `changes/` | Proposed and applied changesets. |
-| `.gitattributes` | Contains `* -text` so source hashes stay byte-stable. |
+| `staging/` | Scratch space (never citable). |
 
-`init_domain` refuses a directory that exists and is not empty.
+**How you approve:** building the standard layout is safe and reversible, so the agent proceeds without stopping you. It tells you where the domaiNN landed; if you wanted a different name or location, say so before it continues. It will not scaffold into a folder that already holds other work.
 
-## 3. Add a source
+## 3. Bring in a source
 
 Knowledge starts outside the tool. Save any text file — meeting notes, a short brief, a spec — into `sources/import/`:
 
 ```text
-my-domain/sources/import/meeting-notes.md
+My-Domain/sources/import/meeting-notes.md
 ```
 
-The file is stored **verbatim**. Nothing is moved, renamed, or rewritten. At this point it is bytes on disk, not yet a citable Source.
+Then tell your agent:
 
-## 4. Cognitivize the source
+> Import everything in `sources/import` and make it citable.
 
-Ask the agent to cognitivize the file, or call the tool directly:
+The agent scans the folder and, for each file, writes a **sidecar** next to it (`meeting-notes.md_sidecar_NN.md`) that records the file's hash and metadata. The raw file is never moved, renamed, or rewritten — it stays exactly as you saved it.
 
-```text
-cognitivize({ path: "sources/import/meeting-notes.md" })
-```
+**How you check it worked:** a sidecar appears beside each raw file, and the console's Sources view lists them as citable.
 
-This writes a **sidecar** next to the file — `meeting-notes.md_sidecar_NN.md` — carrying its SHA-256, size, format, and a normalized body for binary formats. The raw file is never modified. The sidecar is what makes every heading in the file a citable unit. See [Cognitivize documents with sidecars](../how-to/cognitivize.md).
+## 4. Create your first kNNowledge document
 
-**Verify it worked:** the sidecar appears next to the raw file, and its frontmatter `sha256` matches the file's bytes.
+A kNNowledge document is modeled from a **bluepriNNt** — a reusable domain schema. Ask your agent:
 
-## 5. Create your first kNNowledge document
+> Create a business kNNowledge document for My Domain, and model a customer element that cites the meeting notes.
 
-Create a Level-3 document from a blueprint. The `init_knowledge` tool scaffolds the frontmatter and a starter body, records the creation as an `add_model` change, and returns the canonical document id:
+The agent scaffolds the document from the `business` bluepriNNt, adds the element, and points its source at the exact heading the claim came from. It records the creation as a proposed change — never a silent edit.
 
-```text
-init_knowledge({
-  id: "My-Domain",
-  blueprint_name: "business",
-  blueprint_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md"
-})
-```
+**How you approve:** see the next step.
 
-The id is canonicalized to `<name>_<blueprint>` (for example `My-Domain_business`) and carries no version in the filename — the version lives in the `knowledge_version` frontmatter key. `init_knowledge` is create-only: an existing id fails with `MODEL_EXISTS` and the file is left untouched.
+## 5. Review and approve
 
-## 6. Cite a heading and validate
+Every change the agent makes to your knowledge is a **changeset**: proposed, reviewed, then applied. The agent writes the proposal, regenerates the domain console, and opens it.
 
-Add a citation from an element to the exact heading it came from, using the `@` grammar:
+**How you review:** the console shows the change as a diff you can inspect. Add comments or corrections there if you want. When it looks right, reply **OK** to your agent; it applies the change atomically, bumps the document's version once, and re-points the citation at the change that touched it. Nothing is applied until you approve. See [Review changesets](../how-to/review-changesets.md).
 
-```markdown
-## NN Stakeholders: Customer
+## 6. Validate
 
-slug:: customer
-sources:: [sources/import/meeting-notes.md@## Key Feedback]
-The customer asked for a faster onboarding flow.
-```
+Ask your agent to check the result:
 
-Then validate the document:
+> Validate the domaiNN and fix anything that is wrong.
 
-```text
-validate_knowledge({ id: "My-Domain_business" })
-```
-
-A clean document reports no errors and resolves every citation. If a heading was mistyped, you get a `KU_UNKNOWN_SLUG` warning; if the file moved, a `KU_DANGLING_FILE` error. See [Validate a domaiNN](../how-to/validate-domain.md) for the full diagnostic list.
+The agent reports in plain language. A clean domaiNN resolves every citation. If a heading was mistyped, it tells you which element and heading do not match and offers the closest match; if a file moved, it flags the broken link. You approve any fix as a new changeset.
 
 ## What you built
 
-You now have a domaiNN with a manifest, a cognitivized source, and a validated kNNowledge document that cites a heading of that source. That is the smallest complete cogNNitive unit: a claim, its evidence, and a container that tracks both.
+You now have a domaiNN with a manifest, a citable source, and a validated kNNowledge document that cites a heading of that source. That is the smallest complete cogNNitive unit: a claim, its evidence, and a container that tracks both.
 
 ## Next steps
 
 - [Model a domain from scratch](domain-from-scratch.md) — a longer walkthrough that adds an artifact, a change, and the lineage record.
 - [The four levels](../concepts/levels.md) — the concepts behind `defiNNition`, `iNNfo`, `bluepriNNt`, and `kNNowledge`.
 - [Import and cite sources](../how-to/import-sources.md) — the full citation grammar.
+
+## Under the hood
+
+The agent works through the `nn-mcp` server and the cogNNitive skills; you never call them yourself. For the exact tool and command surface behind these steps, see [MCP tools](../reference/mcp-tools.md) and the [CLI reference](../reference/cli.md).

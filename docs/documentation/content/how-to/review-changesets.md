@@ -1,102 +1,45 @@
 # Review changesets
 
-A **changeset** is the supported way to mutate a domaiNN. Every content change a human should review goes through one: it is proposed, sealed under `changes/`, reviewed in the console, and applied atomically.
+A **changeset** is how every meaningful change to your domaiNN happens: your agent proposes it, you review it in the console, you approve it, and the agent applies it — one recorded, reversible step. You never edit the domain's files by hand, and you never need to.
 
-## Why not edit files by hand
+## Why changes go through a changeset
 
-Hand-editing a `*_NN.md` file looks harmless and breaks the guarantees the domain is built on:
+Editing a file by hand looks harmless and quietly breaks the guarantees your domain rests on: it leaves no record of who changed what, it lets citations go stale, it skips the version bump, it can detach an element from its identity, and it makes the domain's internal map disagree with the files. A changeset avoids all of that: the change is recorded, validated before anything is written, applied in one atomic step, and checked again afterward.
 
-- **No audit trail.** The change leaves no record of who changed what, or why.
-- **Citations go stale.** A manual edit does not re-point the element's `sources::` at the change that touched it.
-- **Versions do not bump.** `knowledge_version` is a changeset operation; a text editor cannot bump it correctly.
-- **Slugs drift.** A renamed element edited by hand loses the immutable `slug::` link to its identity.
-- **The lineage record diverges.** The projected sections stop matching the files, and the drift gate reports `LINEAGE_DRIFT`.
+## The flow, from your seat
 
-A changeset avoids all of this. The engine synthesizes a sealed, recorded change, validates it, applies it in one atomic pass, and re-validates afterward.
+1. **You ask for a change.** Say what you want in your own words:
 
-## The flow
+   > Update the founding team's equity split to 50/50.
 
-1. **Propose.** Ask your agent to propose the change. It derives the operations and calls `propose_changeset`:
+   The agent works out the exact change, validates it, and writes a **proposal**. Nothing in your domain has changed yet.
 
-   ```text
-   propose_changeset({
-     operations: [
-       {
-         op: "update_field",
-         target: "Aurora_business@founding-team&relationship_model",
-         to: "Equal Co-founders (50/50)",
-         sources: "sources/import/discovery-call.md@## Founding team"
-       }
-     ],
-     title: "Confirm equity split"
-   })
-   ```
+2. **The console opens on the proposal.** The agent regenerates and opens the console, where the change appears as a diff you can inspect. You can also add your own drafts there — edit a field, leave a comment, or add a new element.
 
-   Validation runs before any write. An unknown document, an `add_model` on an existing document, or an operation missing required keys returns errors and writes nothing.
+3. **You approve.** Back in the chat, reply **OK**.
 
-2. **Review.** The tool writes a sealed changeset with `status: proposed` under `changes/`, regenerates the domain console, and opens it. The console shows the change as a diff you can inspect. You may add drafts there (edit a field, leave a comment, or add a new element) and export a changeset file from it.
-
-3. **Approve.** Reply **OK** to your agent. The agent calls `apply_change`:
-
-   ```text
-   apply_change({ changeset: "changes/Aurora_agent_<stamp>_changes_NN.md" })
-   ```
-
-4. **Apply.** `apply_change` validates, persists atomically, bumps each touched document's version exactly once, and re-points the mutated element's `sources::` at the change. After an applied or partially applied changeset the console is regenerated again to show the result.
+4. **The agent applies it.** The change is written atomically, each touched document's version is bumped once, and the citations are updated to point at the change. The console refreshes to show the result.
 
 > [!NOTE]
-> The result of `propose_changeset`, `apply_change`, and `regenerate_console` carries `next_steps`. Your agent must relay `next_steps.notice` verbatim — it lists the numbered steps and the OK shortcut. The console is static HTML and cannot call the MCP, so approval always returns through the agent.
+> The console is static and cannot call your agent on its own, so approval always comes back through the conversation. When the agent proposes or applies a change, it relays a short numbered notice telling you exactly what happened and what to do next.
 
-## Operation vocabulary
+## What you can change
 
-A change is one of these operations. `propose_changeset` takes a structured list; a bare `apply_change` call takes one `op` with `args`.
-
-| Operation | Mutates | Notes |
-|---|---|---|
-| `update_field` | An element field. | Args: `conceptName`, `elementName`, `fieldName`, `value`. |
-| `update_concept_field` | A concept-level field. | Args: `conceptName`, `fieldName`, `value`, `from`. |
-| `add_element` | A new element in a concept. | Initial content of an `add_model` change is `add_element` changes that target the new id. |
-| `remove_element` | An existing element. | Refused when the element is referenced (`REFERENCED_BY`). |
-| `rename_element` | An element's display name. | Preserves the immutable `slug::`. |
-| `rename_concept` | A concept name. | Rewrites WikiLinks, matrices, and cross-references deterministically. |
-| `update_concept_text` | Concept prose. | |
-| `update_matrix_cell` | One matrix cell. | |
-| `add_matrix` | A new matrix. | Args: `matrixName`, `source`, `targetConcept`, optional `columns`/`rows`. |
-| `remove_matrix` | A matrix. | |
-| `comment` | Nothing. | A review note carried in the changeset. |
-| `add_model` | A new Level-3 document. | Requires `blueprint_name` and `blueprint_url`; optional `knowledge_version`. |
-| `freeze_slugs` | Writes explicit `slug::` lines. | Targets a bare document id. |
-| `bump_version` | `knowledge_version`. | Level in `to`: `patch` (default), `minor`, or `major`. |
-
-Operations that mutate a Level-3 document are synthesized into a sealed, recorded changeset even when called as a bare operation. Only `generate_index` and the Level-2 bluepriNNt authoring operations (`add_concept`, `add_field`, `bump_version` on a bluepriNNt) write directly.
+You express changes as intent, and the agent turns them into the right operations. The kinds of change you can ask for include: updating an element field or a concept-level field, adding or removing an element, renaming an element or a concept, editing concept prose, adding, editing, or removing a matrix, leaving a comment for review, creating a whole new document, freezing element identities, and bumping a version. Some changes are refused when they would break a reference — the agent tells you why and offers an alternative.
 
 ## A changeset is itself a document
 
-The changeset written under `changes/` is a valid iNNfo Level-3 document:
+Every proposal is stored in the domain as a sealed, dated document under the changes area, carrying its status, its author, and the operations it contains. That record is the audit trail: because it already explains the change, a later commit or review does not need to restate the reasoning — it just links to it.
 
-```markdown
----
-level: 3
-parent_spec:
-  name: changes
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
-status: proposed
-title: Confirm equity split
-author: agent
----
-
-## NN Change: c-01
-op:: update_field
-target:: Aurora_business@founding-team&relationship_model
-from:: Co-founders & Equity Partners
-to:: Equal Co-founders (50/50)
-sources:: sources/import/discovery-call.md@## Founding team
-```
-
-For large, mechanical batches you may author this file yourself and apply it with `apply_change`; omit `proposal_sha` so the runtime seals it at intake. Prefer `propose_changeset` for interactive, review-driven changes.
+> [!NOTE]
+> For large, mechanical batches, the agent can prepare the change document directly and apply it once you approve. For day-to-day work, the propose-and-review flow above is the norm.
 
 ## See also
 
 - [Use the domain console](domain-console.md) — where the review happens.
 - [Validate a domaiNN](validate-domain.md) — the diagnostics a rejected change returns.
 - [Collaborate with Git](collaborate-git.md) — how changesets map onto commits.
+
+## Under the hood
+
+The agent proposes and applies changes through the `nn-mcp` server; the operation names and their parameters live in [MCP tools](../reference/mcp-tools.md).

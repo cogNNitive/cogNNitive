@@ -1,47 +1,33 @@
 # Collaborate with Git
 
-Git is an **optional** review and collaboration layer on top of a domaiNN. It carries branches and pull requests so humans can review changes, but it never replaces the document versions or the changesets. A domaiNN is the system of record; Git is transport.
+Git is an **optional** review and collaboration layer on top of your domaiNN. It carries branches and pull requests so people can review changes, but it never replaces the domain's own versions or changesets. Your domaiNN is the system of record; Git is transport.
 
-No cogNNitive skill owns this workflow. If you want it, use Git directly — the domain is ordinary files.
+No cogNNitive skill owns this workflow. If you want it, you use Git directly — a domain is ordinary files — or ask your agent to handle the Git steps for you.
 
 ## Private by default
 
-A domaiNN routinely contains drafts, raw sources, and conversation transcripts that must not leak. Treat every new remote as **private**:
+A domaiNN routinely holds drafts, raw sources, and conversation transcripts that must not leak. Treat every new remote as **private**:
 
-- If your host defaults new repositories to public, flip visibility to private **before** the first push.
-- Keep credentials out of the tree entirely (`*.env`, `*.token`, `*.pem`, `*.key`, and any `secrets/` folder).
-- Ignore scratch output such as `staging/` — it is never citable and never part of the record.
+- If your host defaults new repositories to public, make it private **before** the first upload.
+- Keep credentials out of the domain entirely.
+- Keep scratch folders out of the record — they are never citable.
 
-Verify with `git status`: ignored paths must never appear as staged.
+## Keep the bytes stable
 
-## Keep bytes stable with `.gitattributes`
-
-`init_domain` writes a `.gitattributes` containing:
-
-```gitattributes
-* -text
-```
-
-This is not cosmetic. A source's SHA-256 is its change-detection key, and the lineage drift gate compares the record byte for byte. If Git rewrote line endings on checkout, a hash would move even though the content did not, and the drift gate would fire on a clean machine. `* -text` pins the bytes so hashes and drift survive a checkout on any platform.
+Every domain ships with a small settings file that pins line endings. This is not cosmetic: a source's fingerprint is computed over its exact bytes, and the record is compared byte for byte. If Git rewrote line endings on checkout, a fingerprint would change even though the content did not, and the domain would look drifted on a clean machine. The pinned-line-endings setting prevents that.
 
 > [!NOTE]
-> Never remove `* -text` from a domaiNN's `.gitattributes`. If it is missing, `nn-preflight` reports a `text-policy-missing` warning.
+> Never remove the line-endings setting from a domain. If it goes missing, the agent's preflight reports a warning.
 
-## Branch-per-change and PR gates
+## Branch per change, review before merge
 
-Give each change its own branch, cut from a clean base:
+If you use Git, give each change its own branch and open a pull request rather than committing straight to the main branch. Before merging, have the change checked:
 
-```bash
-git checkout -b <change>/<short-slug>
-```
+- the touched document validates against its bluepriNNt,
+- the whole domain passes an integrity pass (which includes the drift gate),
+- the byte-policy settings file is still in place.
 
-Push only after the domain validates locally, and open a pull request targeting the protected branch. Require the PR to pass the checks you care about before merge:
-
-- **Document validation** — `validate_knowledge` on the touched document.
-- **Domain integrity** — `check_domain` over the whole domaiNN, which includes the `LINEAGE_DRIFT` gate.
-- **Byte policy** — confirm `.gitattributes` still contains `* -text`.
-
-Protect the main branch and require at least one approval so a change cannot land without review.
+Protect the main branch and require at least one approval, so a change cannot land unreviewed. You can ask your agent to run any of these checks for you.
 
 ## How changesets map onto commits
 
@@ -49,17 +35,17 @@ The changeset workflow and Git are complementary, not competing:
 
 | Layer | Unit | Role |
 |---|---|---|
-| cogNNitive | changeset under `changes/` | The semantic change: operations, evidence, version bump, audit trail. |
-| cogNNitive | `knowledge_version` | The system of record for a document's version. |
-| Git | commit / branch / PR | The transport and human review surface. |
+| cogNNitive | the changeset | The semantic change: what changed, the evidence, the version bump, the audit trail. |
+| cogNNitive | the document version | The system of record for a document's version. |
+| Git | commit / branch / pull request | The transport and human review surface. |
 
 A clean mapping is **one changeset per commit**:
 
-1. Propose the change with `propose_changeset`; it lands under `changes/` with `status: proposed`.
-2. Review it in the console, then apply it with `apply_change`. The applied changeset, the mutated documents, and the regenerated lineage record change together.
-3. Commit exactly those files on a branch. The commit message can name the changeset.
+1. Your agent proposes the change; it is recorded as a proposal.
+2. You review it in the console and approve it, and the agent applies it. The applied change, the mutated documents, and the refreshed record move together.
+3. Commit exactly those files on a branch, naming the changeset in the commit message.
 
-Because the changeset is already the audit record, the commit does not need to restate the reasoning — link to it. And because a document version (`knowledge_version`) is never equal to a commit hash, do not try to derive one from the other; keep the changeset as the source of truth.
+Because the changeset is already the audit record, the commit does not need to restate the reasoning — link to it. And because a document's version is never the same as a commit id, do not try to derive one from the other: the changeset stays the source of truth.
 
 ## See also
 

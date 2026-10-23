@@ -1,71 +1,38 @@
 # Use the domain console
 
-The **domain console** is a single, self-contained HTML file generated for a domaiNN. It is the user-facing surface for browsing kNNowledge and reviewing changesets — it replaces the retired Vue editor and hosted web app.
+The **domain console** is the window into your domaiNN: a single, self-contained page where you browse your kNNowledge and review proposed changes. It opens in your browser and needs no server, no network, and no install.
 
-## What it is
+## Ask your agent to open it
 
-The console is one file: `domaiNN_console.html`. Everything it needs — the UI bundle, the CSS, the registered views, and the kNNowledge payload — is inlined, so it opens from the filesystem with no server, no network, and no build step.
+You do not build or export the console. Ask your agent:
 
-There is no per-document console: every console is the domain console, optionally scoped to a subset of documents or a single view.
+> Open the console for Aurora.
 
-## Generate and open it
+> Show me my domain.
 
-**MCP tool** — regenerates and opens the console in a browser tab:
+The agent generates the page (or reports that it is already up to date) and opens it in a browser tab. The console is one file — `domaiNN_console.html` at the domain root — that carries everything it needs inside it, so it keeps working even after you archive it or move it to another machine.
 
-```text
-regenerate_console({ domain: "Aurora" })
-```
+## What you see
 
-`regenerate_console` is idempotent: an up-to-date console is reported as `unchanged`. It is also the retry path after an `apply_change` whose console regeneration failed. Pass `model` to scope the console to a single document, and `open: false` to skip opening the browser.
+- **Your kNNowledge** — every document in the domain, with its concepts and elements.
+- **Concept colors and icons** — each concept gets a stable color and icon, so the shape of a document is readable at a glance.
+- **A review view** — where a proposed change appears as a diff you can inspect before approving it.
 
-**CLI** — when you are running from a checkout or have the console assets installed:
+## What you do there
 
-```console
-$ node scripts/export-console.mjs Aurora --domain
-```
+The console is where the review half of every change happens. When your agent proposes a change, the console opens showing it as a diff. You read it, and you can add your own drafts — edit a field, leave a comment, or add a new element. When you are happy, you approve back in the chat with your agent (replying **OK**), and the agent applies the change. See [Review changesets](review-changesets.md).
 
-`--domain` (with no selection) writes one fixed-name file at the domain root:
+The console is **static**: it cannot talk back to your agent on its own, so approvals always travel through the conversation. That is what makes it safe to archive.
 
-```text
-Aurora/domaiNN_console.html
-```
+## Works offline
 
-A selection (`<ModelName>`, `--filter <pattern>`, `--all`, `--stale`) instead writes a stable file under `artifacts/`:
-
-```text
-Aurora/artifacts/<scope>_console/<scope>_console.html
-```
-
-Useful flags:
-
-| Flag | Effect |
-|---|---|
-| `--status` | Report whether the console is up to date. |
-| `--tree` | Print the console's view tree. |
-| `--list` | List consoles and views. |
-| `--no-open` | Write the file without opening a browser. |
-
-Both writers replace the file through a temporary file and a rename, and only when its bytes actually move.
-
-## What it shows
-
-- **kNNowledge browsing** — every Level-3 document in the domain, with its concepts and elements.
-- **Concept colors and icons** — each concept is rendered with a stable color and icon so the shape of a document is readable at a glance.
-- **Review views** — the changeset review surface, where a proposed change is shown as a diff you can inspect before approving.
-
-The console is **static**. It cannot call the MCP server, so approvals always come back through your agent: you review in the console, then reply to the agent, which calls `apply_change`. See [Review changesets](review-changesets.md).
-
-## Works offline from `file://`
-
-Because the console is self-contained, you can open it directly:
-
-```text
-file:///path/to/Aurora/domaiNN_console.html
-```
-
-No web server is required. This is what makes the console safe to archive: an exported console keeps working even with no toolchain installed.
+Because the page is self-contained, you can open it directly from disk — no web server required — and it keeps working with no toolchain installed. That is also what makes it a durable deliverable you can hand to someone else.
 
 ## See also
 
 - [Review changesets](review-changesets.md) — the workflow the review view serves.
 - [Agent skills overview](../skills/README.md) — the console skill and custom views.
+
+## Under the hood
+
+The agent compiles and opens the console through the `nn-mcp` server (or the console export script when running from a checkout). See [MCP tools](../reference/mcp-tools.md).
