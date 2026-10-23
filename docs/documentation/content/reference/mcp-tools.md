@@ -2,6 +2,9 @@
 
 `nn-mcp` is a **stdio MCP server** that wraps the `@cognnitive/nn-core` engine. An MCP client (OpenCode, Claude Code, or any MCP-compatible agent) starts it as a child process and talks to it over the standard input/output streams — there is no HTTP endpoint and no daemon. The server exposes the iNNfo operations an agent needs to read, validate, and mutate a domaiNN through structured tool calls instead of freeform file edits.
 
+> [!NOTE]
+> You normally never call these tools yourself — your agent does, driven by the cogNNitive skills. This page is the reference for what the agent runs behind the scenes (and for contributors wiring new tools). To get something done, start from the [How-To Guides](../how-to/install-agent.md).
+
 ## Tool inventory
 
 The table below is generated from the `nn-mcp` tool registry, so it always reflects the tools the built server actually exposes.

@@ -79,9 +79,9 @@ of the change block the citation anchors to. It never writes files.
 The **drift gate** is the consistency check that the managed view sections of the
 persisted lineage record equal a fresh projection computed from the filesystem. If a
 managed line is edited by hand, the gate reports `LINEAGE_DRIFT` naming the record and
-the section, and the record is left byte-identical (the check is read-only). It runs in
-`nn-sources --lineage --check`, in the repository's `node scripts/verify.js` gate, and in
-the `check_domain` tool. Regenerating the record with `--lineage` restores agreement.
+the section, and the record is left byte-identical (the check is read-only). Your agent
+runs it through the `nn-sources` lineage check and the domain check; the cogNNitive
+repository runs it in its own build gate. Regenerating the record restores agreement.
 
 ## See also
 

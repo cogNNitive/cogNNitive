@@ -60,9 +60,10 @@ and `knowledge_version` — never `blueprint_version` and never a version in its
 
 ## Why the URL is never hardcoded
 
-The `get_spec` and `get_blueprint` tools resolve a specification **from an explicit URL
+The engine resolves a specification **from an explicit URL
 or from a loaded document's `parent_spec.url`** — never from an internal constant, and
-never from a hardcoded blueprint name. This is deliberate:
+never from a hardcoded blueprint name (the `get_spec` and `get_blueprint` tools expose
+this to your agent). This is deliberate:
 
 - **The document is the authority.** The version a model was authored against is the
   version the engine resolves, so old documents keep validating against old schemas.

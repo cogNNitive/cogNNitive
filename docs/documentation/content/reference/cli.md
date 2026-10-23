@@ -2,6 +2,9 @@
 
 Reference for the command-line interfaces shipped with the ecosystem: the `nn-sources` ingestion CLI and the repository scripts that build, generate, and verify the project.
 
+> [!NOTE]
+> You normally never run these commands yourself — your agent does. This page is the reference for the command surface behind the agent-first guides (and for contributors). For everyday use, see the [How-To Guides](../how-to/import-sources.md).
+
 ## `nn-sources` CLI
 
 The ingestion CLI lives in the `nn-sources` skill at `skills/nn-sources/scripts/index.js`. It normalizes raw documents into citable sources and keeps the lineage record in sync. Run it from the repository root, or from the skill's own directory as `node scripts/index.js`.

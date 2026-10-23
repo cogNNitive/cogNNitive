@@ -3,8 +3,7 @@
 Knowledge in cogNNitive does not sit in one file. It moves through a defined path: raw
 input enters as a **Source**, is cognitivized, is modelled as **kNNowledge** that cites
 its sources, is changed through reviewed **changesets**, is exported as **artifacts**,
-and is traced end to end in a **lineage record**. This page follows that path and names
-the tools at each stage.
+and is traced end to end in a **lineage record**. This page follows that path and explains what happens at each stage.
 
 ## The problem
 
@@ -30,9 +29,9 @@ flowchart LR
 ## 1. Enter — import
 
 Raw files land in `sources/import/`. They arrive by hand (a file dropped in the folder),
-by `--import-url` (downloaded from the web), or by `--scan-external` (a watched folder).
-Imports are **write-once**: a changed external file lands as a new UTC-suffixed family
-member (`<stem>_<YYYYMMDDTHHmmssZ>.<ext>`), and identical bytes are deduplicated. The
+fetched from the web, or picked up from a watched folder. Imports are **write-once**: a
+changed external file lands as a new UTC-suffixed family member
+(`<stem>_<YYYYMMDDTHHmmssZ>.<ext>`), and identical bytes are deduplicated. The
 raw file is never moved or rewritten. See
 [Import and cite sources](../how-to/import-sources.md).
 

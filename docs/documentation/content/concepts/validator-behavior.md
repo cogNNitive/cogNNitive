@@ -79,20 +79,20 @@ claims to have looked. See [The specification chain](specifications.md).
 
 ## Two gates, two jobs
 
-It is important not to conflate the per-document validator with the repository gate:
+There are two validators, and it is important not to conflate them:
 
 - **The per-document validator** checks **one document** against its resolved parent and
-  returns diagnostics. It is what the MCP `validate_knowledge` and `validate_blueprint`
-  tools call, and what the console runs when it renders a model.
-- **`node scripts/verify.js`** is the **repository-wide deterministic gate**. It is
-  offline and runs many steps: blueprint inventory parity, drift guards between generated
-  artifacts and their sources, static type checking, license checks, the discovered test
-  suites, and the hand-typed-facts and lineage-drift guards. It exits non-zero if any step
-  fails.
+  returns diagnostics. This is the one your agent runs (through the `validate_knowledge`
+  and `validate_blueprint` tools) and the one the console runs when it renders a model.
+- **The repository gate** (`node scripts/verify.js`) is a contributor-facing check for the
+  cogNNitive source repository itself: blueprint inventory parity, drift guards between
+  generated artifacts and their sources, static type checking, license checks, the
+  discovered test suites, and the hand-typed-facts and lineage-drift guards. It is not part
+  of your domaiNN.
 
-The first answers "is this document valid?"; the second answers "is this repository
-internally consistent and buildable?". They share the engine underneath but serve
-different scopes.
+The first answers "is this document valid?"; the second answers "is the cogNNitive
+repository internally consistent and buildable?". They share the engine underneath but
+serve different scopes.
 
 ## See also
 

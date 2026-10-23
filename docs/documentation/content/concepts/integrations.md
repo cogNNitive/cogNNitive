@@ -23,8 +23,8 @@ cogNNitive uses **both, on purpose**:
   changesets, querying, cognitivizing — are exposed through the `nn-mcp` server, so an
   agent can call them with typed arguments. See [MCP tools](../reference/mcp-tools.md).
 - Its heavy ingestion and batch work — scanning a folder, converting a PDF, refreshing a
-  single source, curating a CSV — runs through the `nn-sources` CLI (`node scripts/index.js`),
-  where a long-running local process is the right tool. See
+  single source, curating a CSV — runs through the `nn-sources` CLI, where a long-running
+  local process is the right tool. See
   [CLI and scripts](../reference/cli.md).
 
 The same split applies to third-party tools. A media-generation or cloud service that
