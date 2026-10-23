@@ -47,6 +47,21 @@ price:: 5000
     expect(payload.model.meta.changesBlueprintVersion).toBe(shipped)
   })
 
+  it('carries the blueprint-declared ownership (derived for core catalogs)', () => {
+    const authored = buildConsolePayload({
+      content: sampleMarkdown,
+      path: 'kNNowledge/biz/Ghostbusters_NN.md',
+    })
+    expect(authored.model.meta.ownership).toBe('authored')
+
+    const derived = buildConsolePayload({
+      content:
+        '---\ntitle: "Report Source"\nknowledge_version: "V_1-0-0"\nparent_spec:\n  name: "sources"\n  url: "https://example.com/sources.md"\n---\n\n# NN Source\n## NN Source: Report\nslug:: report\n',
+      path: 'sources/import/Report_sources_NN.md',
+    })
+    expect(derived.model.meta.ownership).toBe('derived')
+  })
+
   it('builds canonical console payload with schema and model slots', () => {
     const payload = buildConsolePayload({
       content: sampleMarkdown,

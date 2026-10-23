@@ -10938,6 +10938,7 @@ function buildConsolePayload(options) {
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
   const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
   const sourceFile = normalizedSource.startsWith("kNNowledge/") ? normalizedSource : `kNNowledge/${normalizedSource}`;
+  const ownership = natureOfBlueprint(coreBlueprintKey(parentSpecNameOf(fm)))?.ownership ?? "authored";
   const meta = {
     modelId,
     title,
@@ -10945,7 +10946,8 @@ function buildConsolePayload(options) {
     sha256: rawSha256,
     sources: [sourceFile],
     generated: genTime,
-    changesBlueprintVersion: findCanonicalBlueprint("changes")?.version ?? ""
+    changesBlueprintVersion: findCanonicalBlueprint("changes")?.version ?? "",
+    ownership
   };
   if (template) {
     meta.template = template;

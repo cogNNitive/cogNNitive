@@ -10,7 +10,8 @@ import {
 } from '../index.js'
 import { computeSha256 } from '../validator/crypto.js'
 import { findCanonicalBlueprint } from '../schema/canonical-registry.js'
-import { displayStem } from '../naming/contract.js'
+import { natureOfBlueprint } from '../schema/nature.js'
+import { coreBlueprintKey, displayStem, parentSpecNameOf } from '../naming/contract.js'
 import type { SourceResolver } from '../index.js'
 import {
   resolveCitation,
@@ -92,6 +93,12 @@ export interface ConsolePayloadMeta {
    * (its `blueprint_version`, from the canonical registry).
    */
   changesBlueprintVersion: string
+  /**
+   * The blueprint's declared ownership: `derived` collections are read-only (no
+   * edit affordance), `authored` models are proposable. Defaults to `authored`
+   * when the blueprint declares no `nature` (change A).
+   */
+  ownership?: 'authored' | 'derived'
 }
 
 export interface ConsolePayload {
@@ -352,6 +359,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     : (fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : 'kNNowledge/Model_NN.md')
   const sourceFile = normalizedSource.startsWith('kNNowledge/') ? normalizedSource : `kNNowledge/${normalizedSource}`
 
+  const ownership = natureOfBlueprint(coreBlueprintKey(parentSpecNameOf(fm)))?.ownership ?? 'authored'
   const meta: ConsolePayloadMeta = {
     modelId,
     title,
@@ -360,6 +368,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     sources: [sourceFile],
     generated: genTime,
     changesBlueprintVersion: findCanonicalBlueprint('changes')?.version ?? '',
+    ownership,
   }
 
   if (template) {
