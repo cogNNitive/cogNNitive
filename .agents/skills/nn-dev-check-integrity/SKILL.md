@@ -143,8 +143,8 @@ One consolidated report; per group, per check, a line:
 1. **Never guess git state** — re-read `git status -sb` / `git fetch` right before reporting.
 2. **Optimistic by default** — announce the preset and run it; show the menu only on request.
    Never run the full battery (`[a]`) unprompted.
-3. **Build `innfo-core` first** — any group that runs tests starts with
-   `npm --prefix iNNfo/packages/innfo-core run build`.
+3. **Build `nn-core` first** — any group that runs tests starts with
+   `npm --prefix iNNfo/packages/nn-core run build`.
 4. **Changed files only for format** — never repo-wide `format` / `prettier --write`.
 5. **Read-only** — inspects and reports; never edits code, specs, SKILL.md, manifests or
    generated docs. It may suggest exact fix commands.

@@ -35,8 +35,8 @@ The monorepo defines four distinct release keys. Each release tag MUST match `<k
 |-------------|------------------|-------------------------|--------------------|
 | `skills` | Agent Skills suite | `skills/*/SKILL.md` (individual) | `skills[*]` |
 | `blueprints` | Domain templates & specs | `iNNfo/specs/bluepriNNts/*/spec_NN.md` | `templates[*]` |
-| `innfo-mcp` | MCP server & tools bundle | `iNNfo/packages/innfo-mcp/package.json` | `mcp` bundle |
-| `innfo-console` | Interactive blueprint console | `iNNfo/specs/bluepriNNts/console/package.json` | `console_assets` |
+| `nn-mcp` | MCP server & tools bundle | `iNNfo/packages/nn-mcp/package.json` | `mcp` bundle |
+| `nn-console` | Interactive blueprint console | `iNNfo/specs/bluepriNNts/console/package.json` | `console_assets` |
 
 ### Regenerating derived artifacts on a bump
 
@@ -44,12 +44,12 @@ A version bump is not just a `package.json` edit — it ripples into committed d
 artifacts. Regenerate them in the **same** commit, or the guards redden:
 
 ```powershell
-# innfo-mcp bump: innfo-core version + dep range (sync-versions) + both bundles (tsup inlines the version)
+# nn-mcp bump: nn-core version + dep range (sync-versions) + both bundles (tsup inlines the version)
 npm run sync:versions
-npm --workspace=@cognnitive/innfo-mcp run build
-npm --workspace=@cognnitive/innfo-mcp run build:bundle
+npm --workspace=@cognnitive/nn-mcp run build
+npm --workspace=@cognnitive/nn-mcp run build:bundle
 
-# innfo-console bump: the bundle banner + the CDN pin in generated console shells
+# nn-console bump: the bundle banner + the CDN pin in generated console shells
 node scripts/build-console-bundle.mjs        # banner derived from console/package.json
 node scripts/build-console-shells.mjs        # rewrites the @nn-console-v* pin in marked shells
 ```
@@ -59,7 +59,7 @@ them is generated from `console/package.json` and `node scripts/build-console-sh
 --check` (a `verify.js` step) fails a stale one. Never hand-edit the pin.
 
 > ⚠️ Session worktrees now use a real `npm ci` (no junctions), so generated files such as
-> `skills/nn-sources/scripts/lib/innfo-core.generated.cjs` regenerate canonically from a
+> `skills/nn-sources/scripts/lib/nn-core.generated.cjs` regenerate canonically from a
 > worktree. If a diff shows non-canonical `../<repo>/node_modules/...` paths, the worktree
 > predates that change: re-create it with `nn-session.mjs start`.
 
@@ -92,9 +92,9 @@ There is no "undo release". Run **all** of these before `git tag`:
    checks out the tag and runs `scripts/**` **from that commit** — a fix merged
    after the tag does NOT reach the tag's re-run. If you are about to tag the tip
    of `main`, confirm `main` already carries the release-script fixes.
-3. **Authored version matches (for `innfo-mcp` and `innfo-console`):**
-   - `innfo-mcp`: `version` in `iNNfo/packages/innfo-mcp/package.json` equals `<semver>`.
-   - `innfo-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
+3. **Authored version matches (for `nn-mcp` and `nn-console`):**
+   - `nn-mcp`: `version` in `iNNfo/packages/nn-mcp/package.json` equals `<semver>`.
+   - `nn-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
 4. **Strictly greater than existing tags:** `<semver>` MUST be greater than the
    highest existing tag for that `<key>` in BOTH the monorepo and
    `cogNNitive/cogNNitive-web`.
