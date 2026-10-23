@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-qa6tBTnpTAABLiEhkqPao+Jc9BMBF+MyGKT6ay29QjE=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-bUwFUXT+MKX4J1Ep8EwdaF2uEQzSOjQ8i+NSg0Ugzj4=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7631,6 +7631,26 @@ input[type="text"], input[type="search"], textarea, select {
   padding: 24px !important;
 }
 
+/* Large-result rendering: off-screen items skip layout/paint. Pairs with the
+   progressive window (RENDER_PAGE) in nn-runtime.js. */
+.innfo-element-table tbody tr,
+[data-innfo-component="element-card"].innfo-card,
+.innfo-element-minicards-grid > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
+.innfo-load-more {
+  margin: 16px 24px;
+}
+.innfo-element-minicards-grid > .innfo-load-more {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+.innfo-element-badges-wrap > .innfo-load-more {
+  flex-basis: 100%;
+}
+
 /* 13. Top Navbar Review Mode & Clean Header */
 #innfo-feedback-banner {
   display: none !important;
@@ -8766,7 +8786,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Functional classification of the procedure workflow.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8776,7 +8796,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Mandatory concise summary of the workflow intent and transformation steps.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8786,7 +8806,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "References to required Source or Model concepts consumed as inputs.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8796,7 +8816,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "References to expected Artifact concepts produced by the procedure.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8806,7 +8826,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Reference to responsible agent or functional role executing the procedure.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8816,7 +8836,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Link to concrete procedure definition or executable stepper model _NN.md.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8827,7 +8847,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Open vocabulary ad-hoc tags and classification labels.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8843,13 +8863,13 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Relative complexity score (0-100 scale, step 5).",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         }
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -8870,7 +8890,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8882,7 +8902,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8894,7 +8914,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8903,7 +8923,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8915,7 +8935,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8927,7 +8947,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8936,7 +8956,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8948,7 +8968,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8959,7 +8979,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Open vocabulary ad-hoc tags and classification labels.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -8975,13 +8995,13 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Relative complexity score (0-100 scale, step 5).",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         }
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -8999,7 +9019,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Open vocabulary ad-hoc tags and classification labels.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -9015,13 +9035,13 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Relative complexity score (0-100 scale, step 5).",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         }
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9039,7 +9059,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Open vocabulary ad-hoc tags and classification labels.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -9055,13 +9075,13 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Relative complexity score (0-100 scale, step 5).",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         }
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9081,7 +9101,7 @@ input[type="text"], input[type="search"], textarea, select {
           "scope": "concept",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -9092,7 +9112,7 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Open vocabulary ad-hoc tags and classification labels.",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         },
         {
@@ -9108,13 +9128,13 @@ input[type="text"], input[type="search"], textarea, select {
           "description": "Relative complexity score (0-100 scale, step 5).",
           "declaredBy": {
             "family": "procedures-app",
-            "version": "V_0-4-0"
+            "version": "V_0-5-0"
           }
         }
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     }
   ],
@@ -9357,7 +9377,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Functional classification of the procedure workflow.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9368,7 +9388,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Mandatory concise summary of the workflow intent and transformation steps.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9379,7 +9399,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "References to required Source or Model concepts consumed as inputs.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9390,7 +9410,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "References to expected Artifact concepts produced by the procedure.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9401,7 +9421,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Reference to responsible agent or functional role executing the procedure.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9412,7 +9432,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Link to concrete procedure definition or executable stepper model _NN.md.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9424,7 +9444,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Open vocabulary ad-hoc tags and classification labels.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9441,7 +9461,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Relative complexity score (0-100 scale, step 5).",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9456,7 +9476,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9469,7 +9489,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9482,7 +9502,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9492,7 +9512,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9505,7 +9525,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9518,7 +9538,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9528,7 +9548,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9541,7 +9561,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9553,7 +9573,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Open vocabulary ad-hoc tags and classification labels.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9570,7 +9590,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Relative complexity score (0-100 scale, step 5).",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9582,7 +9602,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Open vocabulary ad-hoc tags and classification labels.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9599,7 +9619,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Relative complexity score (0-100 scale, step 5).",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9611,7 +9631,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Open vocabulary ad-hoc tags and classification labels.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9628,7 +9648,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Relative complexity score (0-100 scale, step 5).",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9642,7 +9662,7 @@ input[type="text"], input[type="search"], textarea, select {
       "scope": "concept",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9654,7 +9674,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Open vocabulary ad-hoc tags and classification labels.",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9671,7 +9691,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Relative complexity score (0-100 scale, step 5).",
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     }
   ],
@@ -9706,7 +9726,7 @@ input[type="text"], input[type="search"], textarea, select {
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9719,7 +9739,7 @@ input[type="text"], input[type="search"], textarea, select {
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     },
     {
@@ -9735,7 +9755,7 @@ input[type="text"], input[type="search"], textarea, select {
       ],
       "declaredBy": {
         "family": "procedures-app",
-        "version": "V_0-4-0"
+        "version": "V_0-5-0"
       }
     }
   ],
@@ -9754,8 +9774,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-e1fc8d01",
-    "generated": "2026-10-21T13:46:59.287Z",
+    "domainId": "testlab-fa74e589",
+    "generated": "2026-10-22T17:26:51.237Z",
     "changesBlueprintVersion": "V_0-5-2",
     "models": [
       {
@@ -9766,7 +9786,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-21T13:46:59.248Z",
+        "citationsResolvedAt": "2026-10-22T17:26:51.155Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -19673,6 +19693,35 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return map
   }
 
+  // Progressive render window shared by every element view: render RENDER_PAGE
+  // items, then append the rest on demand, so a broad query never builds the
+  // whole (100k-node) DOM in one synchronous pass.
+  // ponytail: cap + "show more", not full virtualization (no row-height math);
+  // upgrade to windowing only if this measurably falls short.
+  var RENDER_PAGE = 100
+  function chunked(host, items, renderSlice, page, buttonHost) {
+    page = page || RENDER_PAGE
+    buttonHost = buttonHost || host
+    var shown = 0
+    var btn = null
+    function more() {
+      if (btn && btn.parentNode) btn.parentNode.removeChild(btn)
+      btn = null
+      var end = Math.min(items.length, shown + page)
+      var frag = renderSlice(items.slice(shown, end), shown)
+      if (frag) host.appendChild(frag)
+      shown = end
+      if (shown < items.length) {
+        btn = el('button', 'btn btn-ghost btn-sm innfo-load-more')
+        btn.setAttribute('type', 'button')
+        btn.textContent = '\u25be Show more (' + shown + ' of ' + items.length + ')'
+        btn.addEventListener('click', more)
+        buttonHost.appendChild(btn)
+      }
+    }
+    more()
+  }
+
   // Cards project live changes: a correction patches its field value, a new
   // element is projected, and deleted elements are styled. The change STATE is
   // painted by the review controller as ONE badge per row.
@@ -19697,7 +19746,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
 
-    projectedElements.forEach(function (element) {
+    var buildElementCard = function (element) {
       var fields = []
       var elCitations = element && isObject(element.citations) ? element.citations : {}
       var sourcesEntries = []
@@ -19848,8 +19897,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       }
 
-      content.appendChild(card)
-    })
+      return card
+    }
+
+    chunked(
+      content,
+      projectedElements,
+      function (pageElements) {
+        var frag = doc.createDocumentFragment()
+        pageElements.forEach(function (element) {
+          frag.appendChild(buildElementCard(element))
+        })
+        return frag
+      },
+      focusId != null ? projectedElements.length : RENDER_PAGE,
+    )
   }
 
   function mountElementBadges(doc, elements, drafts, concepts, refs, modelId) {
@@ -19859,30 +19921,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var wrap = el('div', 'innfo-element-badges-wrap')
     wrap.setAttribute('data-innfo-component', 'element-badges-view')
     var projectedElements = projectElements(elements, drafts)
-    projectedElements.forEach(function (element) {
-      var cMeta = conceptMetaOf(concepts, element.concept)
-      var pill = UI.Ku(
-        'element',
-        {
-          model: modelId || element.modelId || '',
-          id: element.id,
-          label: element.name || element.id || '',
-          concept: element.concept,
-          color: cMeta && cMeta.color,
-          index: cMeta && cMeta.index,
-        },
-        { doc: doc },
-      )
-      var pillBadge = pill.querySelector('[data-innfo-component="ku-unit"]')
-      if (pillBadge) {
-        pillBadge.setAttribute('role', 'button')
-        pillBadge.setAttribute('tabindex', '0')
-        pillBadge.addEventListener('click', function (ev) {
-          if (ev && ev.preventDefault) ev.preventDefault()
-          renderRefDialog(doc, element)
-        })
-      }
-      wrap.appendChild(pill)
+    chunked(wrap, projectedElements, function (pageElements) {
+      var frag = doc.createDocumentFragment()
+      pageElements.forEach(function (element) {
+        var cMeta = conceptMetaOf(concepts, element.concept)
+        var pill = UI.Ku(
+          'element',
+          {
+            model: modelId || element.modelId || '',
+            id: element.id,
+            label: element.name || element.id || '',
+            concept: element.concept,
+            color: cMeta && cMeta.color,
+            index: cMeta && cMeta.index,
+          },
+          { doc: doc },
+        )
+        var pillBadge = pill.querySelector('[data-innfo-component="ku-unit"]')
+        if (pillBadge) {
+          pillBadge.setAttribute('role', 'button')
+          pillBadge.setAttribute('tabindex', '0')
+          pillBadge.addEventListener('click', function (ev) {
+            if (ev && ev.preventDefault) ev.preventDefault()
+            renderRefDialog(doc, element)
+          })
+        }
+        frag.appendChild(pill)
+      })
+      return frag
     })
     content.appendChild(wrap)
   }
@@ -19894,26 +19960,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var grid = el('div', 'innfo-element-minicards-grid')
     grid.setAttribute('data-innfo-component', 'element-minicards-view')
     var projectedElements = projectElements(elements, drafts)
-    projectedElements.forEach(function (element) {
-      var cMeta = conceptMetaOf(concepts, element.concept)
-      var mini = UI.ElementMini(
-        {
-          id: element.id,
-          name: element.name || element.id || '',
-          conceptId: element.concept,
-          description: element.description,
-          fields: element.fields,
-        },
-        {
-          doc: doc,
-          modelId: modelId || element.modelId || '',
-          concept: cMeta,
-          onClick: function () {
-            renderRefDialog(doc, element)
+    chunked(grid, projectedElements, function (pageElements) {
+      var frag = doc.createDocumentFragment()
+      pageElements.forEach(function (element) {
+        var cMeta = conceptMetaOf(concepts, element.concept)
+        var mini = UI.ElementMini(
+          {
+            id: element.id,
+            name: element.name || element.id || '',
+            conceptId: element.concept,
+            description: element.description,
+            fields: element.fields,
           },
-        }
-      )
-      grid.appendChild(mini)
+          {
+            doc: doc,
+            modelId: modelId || element.modelId || '',
+            concept: cMeta,
+            onClick: function () {
+              renderRefDialog(doc, element)
+            },
+          }
+        )
+        frag.appendChild(mini)
+      })
+      return frag
     })
     content.appendChild(grid)
   }
@@ -20078,7 +20148,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       emptyTr.appendChild(emptyTd)
       tbody.appendChild(emptyTr)
     }
-    sorted.forEach(function (element) {
+    var buildRow = function (element) {
       var tr = el('tr')
       tr.setAttribute('data-element-id', String(element.id || ''))
       if (element._draft) tr.classList.add('innfo-element-table-draft')
@@ -20199,13 +20269,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (tags) tagsTd.setAttribute('title', tags)
       tr.appendChild(tagsTd)
 
-      tbody.appendChild(tr)
-    })
+      return tr
+    }
     table.appendChild(tbody)
 
     var wrap = el('div', 'innfo-element-table-wrap')
     wrap.appendChild(table)
     content.appendChild(wrap)
+
+    chunked(
+      tbody,
+      sorted,
+      function (pageElements) {
+        var frag = doc.createDocumentFragment()
+        pageElements.forEach(function (element) {
+          frag.appendChild(buildRow(element))
+        })
+        return frag
+      },
+      RENDER_PAGE,
+      wrap,
+    )
   }
 
   // Cards/Table toggle for the Model Explorer. Created once inside the explorer
