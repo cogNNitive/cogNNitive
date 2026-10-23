@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-6czoD5utx8gdbnoZOkeYIFzkAh9QUTNyxtJAUc/eXQQ=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vhkRn9ATH+L46BJnrrOH8/oJNdSN4wovryBe7fOAMss=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9774,9 +9774,9 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-1f9697eb",
-    "generated": "2026-10-23T18:03:35.074Z",
-    "changesBlueprintVersion": "V_0-5-2",
+    "domainId": "testlab-df6141ab",
+    "generated": "2026-10-23T20:06:30.043Z",
+    "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -9786,11 +9786,12 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-23T18:03:34.934Z",
+        "citationsResolvedAt": "2026-10-23T20:06:29.960Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
         "changeCount": 3,
+        "ownership": "authored",
         "conceptNames": [
           "Concept 1",
           "Concept 2",
@@ -9811,17 +9812,35 @@ input[type="text"], input[type="search"], textarea, select {
           "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
         ],
         "changeCount": 0,
+        "ownership": "derived",
         "conceptNames": [
           "Procedure",
           "Work"
         ],
         "elementCount": 9
+      },
+      {
+        "id": "changes",
+        "title": "Changes",
+        "filePath": "\u003cchanges>",
+        "blueprint": "changes",
+        "family": "changes",
+        "version": "V_0-5-5",
+        "sha256": null,
+        "citationsResolvedAt": null,
+        "sources": [],
+        "changeCount": 3,
+        "ownership": "derived",
+        "conceptNames": [
+          "Change"
+        ],
+        "elementCount": 3
       }
     ],
     "domain": {
       "title": "testlab Domain",
       "address": "domaiNN_NN.md",
-      "modelCount": 2,
+      "modelCount": 3,
       "sourceCount": 2
     }
   },
@@ -10692,6 +10711,67 @@ input[type="text"], input[type="search"], textarea, select {
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
       "modelDir": "kNNowledge",
       "location": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Copy the Changeset Prompt"
+    },
+    {
+      "id": "testlab_lucas_20261012T173127Z_changes_NN#fb-001",
+      "slug": "testlab_lucas_20261012T173127Z_changes_NN#fb-001",
+      "concept": "Change",
+      "name": "rename_element kNNowledge/TestLab_coverage_TestLab@element-1c",
+      "description": "",
+      "fields": {
+        "op": "rename_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+        "from": "Element 1C",
+        "status": "applied"
+      },
+      "markers": {},
+      "hash": "e6c713b92191c91a",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_lucas_20261012T173127Z_changes_NN@## NN Change: fb-001"
+    },
+    {
+      "id": "testlab_lucas_matrix_cell_changes_NN#fb-001",
+      "slug": "testlab_lucas_matrix_cell_changes_NN#fb-001",
+      "concept": "Change",
+      "name": "update_matrix_cell kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A",
+      "description": "",
+      "fields": {
+        "op": "update_matrix_cell",
+        "target": "kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A",
+        "from": "archived",
+        "to": "relevant"
+      },
+      "markers": {},
+      "hash": "6a460be80a1848f5",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_lucas_matrix_cell_changes_NN@## NN Change: fb-001"
+    },
+    {
+      "id": "testlab_reviewer_20261010T120000Z_changes_NN#fb-001",
+      "slug": "testlab_reviewer_20261010T120000Z_changes_NN#fb-001",
+      "concept": "Change",
+      "name": "comment TestLab Coverage Model@concept-1-element-1b&photo",
+      "description": "Review note: verify the changeset lineage for Element 1B.",
+      "fields": {
+        "op": "comment",
+        "target": "TestLab Coverage Model@concept-1-element-1b&photo"
+      },
+      "markers": {},
+      "hash": "bf46ac55ecce9309",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_reviewer_20261010T120000Z_changes_NN@## NN Change: fb-001"
     }
   ],
   "matrices": [
@@ -15323,6 +15403,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     source: 'content',
   }
 
+  // Change A: a unit's edit affordance derives from its model's declared
+  // `ownership` (not a kind table). The host installs a resolver mapping a model
+  // id to `'authored' | 'derived'`; a `derived` model offers no edit pencil. The
+  // apply engine remains the final guard.
+  var modelOwnership = null
+  function setModelOwnership(fn) {
+    modelOwnership = typeof fn === 'function' ? fn : null
+  }
+  function refModelId(ref) {
+    if (!ref) return ''
+    if (ref.model) return String(ref.model)
+    var address = ref.address || ''
+    if (!address || address.indexOf('specs/') === 0) return ''
+    var at = address.indexOf('@')
+    return at === -1 ? '' : address.slice(0, at)
+  }
+  function ownershipOfRef(ref) {
+    if (!modelOwnership) return null
+    var model = refModelId(ref)
+    if (!model) return null
+    try {
+      return modelOwnership(model)
+    } catch (e) {
+      return null
+    }
+  }
+
   function addrApi() {
     return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
   }
@@ -15424,6 +15531,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function unitEditability(kind, ref) {
+    // A `derived` model is read-only: no edit affordance regardless of kind.
+    if (ownershipOfRef(ref) === 'derived') return 'none'
     var nature = KU_NATURE[kind]
     if (nature === 'container' || kind === 'source') return 'none'
     if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
@@ -15797,6 +15906,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     describeUnit: describeUnit,
     createKu: createKu,
     setUnitChanges: setUnitChanges,
+    setModelOwnership: setModelOwnership,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
@@ -21733,7 +21843,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
       return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
-    tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
+    // Change B: the bespoke `Changes` tab is retired — the `changes` collection now
+    // surfaces as an ordinary model (one unit per Change). The shell's review panel
+    // still hosts the changeset bar; it is no longer a tab.
 
     tabs.forEach(function (t) {
       if (t.id === 'explorer' || t.id === 'review') return
@@ -22085,7 +22197,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var preferred = opts.config && opts.config.defaultView
       if (preferred && has(preferred)) return preferred
       if (has('explorer')) return 'explorer'
-      return tabs[0].id
+      return tabs.length > 0 ? tabs[0].id : ''
     }
 
     var onHashChange = function () {
@@ -23326,6 +23438,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
+    // C: every change carries mandatory evidence. A draft may name a citation; a
+    // reviewer correction that names none is an explicit `decision`.
+    lines.push('evidence:: ' + oneLine(d.evidence || d.source || 'decision'))
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
@@ -23752,6 +23867,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    // Change A: install the model-ownership resolver so a `derived` model's units
+    // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
+    var ownershipByModel = {}
+    var modelList = Array.isArray(meta.models) ? meta.models : []
+    modelList.forEach(function (mm) {
+      if (!mm) return
+      if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
+      if (mm.title != null) ownershipByModel[String(mm.title)] = mm.ownership || 'authored'
+    })
+    if (typeof UI.setModelOwnership === 'function') {
+      UI.setModelOwnership(function (id) {
+        return ownershipByModel[String(id)]
+      })
+    }
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
     var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {
