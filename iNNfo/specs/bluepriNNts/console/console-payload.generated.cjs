@@ -7,11 +7,7 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __commonJS = (cb, mod) => function __require() {
-  try {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  } catch (e) {
-    throw mod = 0, e;
-  }
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
   for (var name in all)
@@ -10611,11 +10607,18 @@ function attachChangesetHistory(elements, changesets) {
         const item = {
           id: change.id,
           op: change.op,
+          target: change.target,
           author: change.author || cs.author,
           timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
-          evidence: change.evidence
+          evidence: change.evidence,
+          from: change.from,
+          to: change.to,
+          concept: change.concept,
+          name: change.name,
+          fields: change.fields,
+          resolution: change.resolution
         };
         if (!el.history) el.history = [];
         el.history.push(item);

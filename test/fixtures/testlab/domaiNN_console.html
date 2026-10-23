@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vhkRn9ATH+L46BJnrrOH8/oJNdSN4wovryBe7fOAMss=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-vIy3sS5fk5upH+ZNMiNMidgc6f2+tpnjsEYLmR5SRsU=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -9774,8 +9774,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-df6141ab",
-    "generated": "2026-10-23T20:06:30.043Z",
+    "domainId": "testlab-bd7e0834",
+    "generated": "2026-10-23T20:41:58.444Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -9786,7 +9786,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-23T20:06:29.960Z",
+        "citationsResolvedAt": "2026-10-23T20:41:58.270Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -9986,9 +9986,14 @@ input[type="text"], input[type="search"], textarea, select {
         {
           "id": "fb-001",
           "op": "rename_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
           "author": "lucas",
           "timestamp": "2026-10-12T17:33:29.123Z",
-          "status": "applied"
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md",
+          "from": "Element 1C",
+          "name": "Element 1C (test)",
+          "resolution": "Applied successfully"
         }
       ],
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
@@ -10722,10 +10727,11 @@ input[type="text"], input[type="search"], textarea, select {
         "op": "rename_element",
         "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
         "from": "Element 1C",
-        "status": "applied"
+        "status": "applied",
+        "evidence": "sources/import/field-notes.md"
       },
       "markers": {},
-      "hash": "e6c713b92191c91a",
+      "hash": "068da3f8ec4d1400",
       "modelId": "changes",
       "modelTitle": "Changes",
       "modelFile": "\u003cchanges>",
@@ -10743,10 +10749,11 @@ input[type="text"], input[type="search"], textarea, select {
         "op": "update_matrix_cell",
         "target": "kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A",
         "from": "archived",
-        "to": "relevant"
+        "to": "relevant",
+        "evidence": "sources/import/dataset.csv"
       },
       "markers": {},
-      "hash": "6a460be80a1848f5",
+      "hash": "d93c574a4d28dfbe",
       "modelId": "changes",
       "modelTitle": "Changes",
       "modelFile": "\u003cchanges>",
@@ -10762,10 +10769,11 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Review note: verify the changeset lineage for Element 1B.",
       "fields": {
         "op": "comment",
-        "target": "TestLab Coverage Model@concept-1-element-1b&photo"
+        "target": "TestLab Coverage Model@concept-1-element-1b&photo",
+        "evidence": "decision"
       },
       "markers": {},
-      "hash": "bf46ac55ecce9309",
+      "hash": "eb9136e7e907c8d6",
       "modelId": "changes",
       "modelTitle": "Changes",
       "modelFile": "\u003cchanges>",
@@ -10856,7 +10864,8 @@ input[type="text"], input[type="search"], textarea, select {
           "id": "fb-001",
           "op": "comment",
           "target": "TestLab Coverage Model@concept-1-element-1b&photo",
-          "notes": "Review note: verify the changeset lineage for Element 1B."
+          "notes": "Review note: verify the changeset lineage for Element 1B.",
+          "evidence": "decision"
         }
       ]
     },
@@ -10870,6 +10879,7 @@ input[type="text"], input[type="search"], textarea, select {
           "id": "fb-001",
           "op": "update_matrix_cell",
           "target": "kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A",
+          "evidence": "sources/import/dataset.csv",
           "from": "archived",
           "to": "relevant"
         }
@@ -10887,6 +10897,7 @@ input[type="text"], input[type="search"], textarea, select {
           "op": "rename_element",
           "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
           "status": "applied",
+          "evidence": "sources/import/field-notes.md",
           "from": "Element 1C",
           "name": "Element 1C (test)",
           "resolution": "Applied successfully"
@@ -14309,7 +14320,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
-    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Lineage')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
@@ -14412,39 +14423,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
-    // History section
+    // Changes: the element's recorded change history, one change card per change. The
+    // change's `evidence` is the source linked on the card (the old per-field Citations
+    // section is gone).
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
-    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'History'))
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changes'))
     var historyItems = Array.isArray(data.history) ? data.history : []
     if (historyItems.length) {
+      var histList = makeEl(doc, 'ul', 'innfo-change-history flex flex-col gap-3 list-none p-0 m-0')
+      histList.setAttribute('data-innfo-component', 'change-history')
       historyItems.forEach(function (h) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var metaStr = (h.author ? 'Author: ' + h.author : '') + (h.timestamp ? ' \u2022 ' + h.timestamp : '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', metaStr))
-        if (h.notes) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', h.notes))
-        histSection.appendChild(item)
+        histList.appendChild(
+          changeCard(
+            {
+              stateKind: 'applied',
+              title: cardTitle(h.op, h),
+              stateText: h.status || 'applied',
+              diff: cardDiff(h.op, h),
+              author: h.author,
+              date: h.timestamp,
+              note: h.notes,
+              resolution: h.resolution,
+              sources: h.evidence ? [h.evidence] : [],
+            },
+            { doc: doc, onCitation: opts && opts.onEvidence },
+          ),
+        )
       })
+      histSection.appendChild(histList)
     } else {
-      histSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No recorded prior changesets.'))
+      histSection.appendChild(
+        makeEl(doc, 'div', 'innfo-history-empty', 'No recorded changes for this element.'),
+      )
     }
     panelHistory.appendChild(histSection)
-
-    // Citations section
-    var citeSection = makeEl(doc, 'div', 'innfo-history-section')
-    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Citations'))
-    var citeItems = Array.isArray(data.citations) ? data.citations : []
-    if (citeItems.length) {
-      citeItems.forEach(function (c) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var srcStr = (c.origin ? '[' + c.origin + '] ' : '') + (c.source || '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', srcStr))
-        if (c.quote) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', '"' + c.quote + '"'))
-        citeSection.appendChild(item)
-      })
-    } else {
-      citeSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No origin citations linked.'))
-    }
-    panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
     // Panel 3: Connections (Sankey-style relation flow)
@@ -16698,6 +16710,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           doc: doc,
+          onEvidence:
+            typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
             if (res.isComment || target.commentOnly) {
               // Defence in depth: the kit already blocks an empty comment.
@@ -24276,6 +24290,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         schema: schema,
         getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
+        // Change C: clicking a change's evidence opens the in-domain unit it points
+        // at, or the citation dialog when it is an external file.
+        onEvidence: function (evidence) {
+          var ev = String(evidence || '').trim()
+          if (!ev || ev === 'decision' || ev === 'unknown') return
+          var at = ev.indexOf('@')
+          var target = at === -1 ? ev : ev.slice(0, at)
+          var list = Array.isArray(elements) ? elements : []
+          var match = null
+          for (var i = 0; i < list.length; i++) {
+            var cand = list[i]
+            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+              match = cand
+              break
+            }
+          }
+          if (match) {
+            focusElementCard(active, match.id)
+            return
+          }
+          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+        },
       })
     }
 

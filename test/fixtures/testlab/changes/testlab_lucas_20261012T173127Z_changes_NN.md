@@ -28,6 +28,7 @@ models:
 ## NN Change: fb-001
 op:: rename_element
 target:: kNNowledge/TestLab_coverage_TestLab@element-1c
+evidence:: sources/import/field-notes.md
 from:: Element 1C
 name:: Element 1C (test)
 status:: applied

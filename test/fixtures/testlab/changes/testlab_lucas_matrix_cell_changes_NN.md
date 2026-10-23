@@ -22,5 +22,6 @@ author: "lucas"
 ## NN Change: fb-001
 op:: update_matrix_cell
 target:: kNNowledge/TestLab_coverage_TestLab@Concept 1-Concept 2 Matrix&Element 1B&Element 2A
+evidence:: sources/import/dataset.csv
 from:: archived
 to:: relevant

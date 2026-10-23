@@ -102,6 +102,7 @@ describe('console element history (changeset lineage)', () => {
       {
         id: 'c-01',
         op: 'comment',
+        target: 'Domain@concept-1-element-1a&__description',
         author: 'lucas',
         timestamp: '2026-10-10T17:20:19.500Z',
         notes: 'A comment',
@@ -135,7 +136,15 @@ describe('console element history (changeset lineage)', () => {
     })
     const el = payload.model.elements.find((e) => e.name === 'Element 1A')!
     expect(el.history).toEqual([
-      { id: 'fb-001', op: 'comment', author: 'lucas', timestamp: 'T', notes: 'nota', status: 'applied' },
+      {
+        id: 'fb-001',
+        op: 'comment',
+        target: 'Domain@element-1a&__description',
+        author: 'lucas',
+        timestamp: 'T',
+        notes: 'nota',
+        status: 'applied',
+      },
     ])
     expect(JSON.stringify(payload.schema)).not.toContain('fb-001')
   })

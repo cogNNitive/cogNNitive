@@ -20,9 +20,9 @@ describe('console vocabulary', () => {
     }
   })
 
-  it('labels the element modal tab "Lineage"', () => {
+  it('labels the element modal tab "Changes"', () => {
     const ui = readFileSync(join(consoleDir, 'ui-kit.js'), 'utf-8')
-    assert.match(ui, /'Lineage'/)
+    assert.match(ui, /'Changes'/)
     assert.doesNotMatch(ui, /History & Provenance/)
   })
 })
