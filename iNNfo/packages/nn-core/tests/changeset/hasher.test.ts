@@ -15,7 +15,7 @@ const SEALED_KEY_SPEC = [
   'author',
   'notes',
   'base_hash',
-  'sources',
+  'evidence',
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
@@ -156,29 +156,29 @@ describe('Proposal Hasher', () => {
     expect(verifyProposalSha(doc)).toBe(true)
   })
 
-  it('seals the evidence citation (sources) into proposal_sha', () => {
-    const withSource: ChangeItem[] = [
-      { ...sampleChanges[0], sources: 'sources/import/interview.md@## Needs' },
+  it('seals the evidence into proposal_sha', () => {
+    const withEvidence: ChangeItem[] = [
+      { ...sampleChanges[0], evidence: 'sources/import/interview.md@## Needs' },
       sampleChanges[1],
     ]
-    const withoutSource = computeProposalSha(sampleChanges)
-    const withSourceSha = computeProposalSha(withSource)
+    const withoutEvidence = computeProposalSha(sampleChanges)
+    const withEvidenceSha = computeProposalSha(withEvidence)
 
-    expect(withSourceSha).not.toBe(withoutSource)
+    expect(withEvidenceSha).not.toBe(withoutEvidence)
 
-    // Changing only the citation value changes the seal
-    const otherSource: ChangeItem[] = [
-      { ...sampleChanges[0], sources: 'sources/import/other.md@## Needs' },
+    // Changing only the evidence value changes the seal
+    const otherEvidence: ChangeItem[] = [
+      { ...sampleChanges[0], evidence: 'sources/import/other.md@## Needs' },
       sampleChanges[1],
     ]
-    expect(computeProposalSha(otherSource)).not.toBe(withSourceSha)
+    expect(computeProposalSha(otherEvidence)).not.toBe(withEvidenceSha)
   })
 
-  it('excludes replaced_sources from the seal alongside the other annotations', () => {
+  it('excludes the per-change execution facts (applied_at, batch) from the seal', () => {
     const baseSha = computeProposalSha(sampleChanges)
     const annotated: ChangeItem[] = [
-      { ...sampleChanges[0], replaced_sources: 'sources/old.md@## Needs' },
-      { ...sampleChanges[1], replaced_sources: 'sources/legacy.md@## Context' },
+      { ...sampleChanges[0], applied_at: '2026-10-23T10:00:00.000Z', batch: 'ws_agent_1_changes_NN' },
+      { ...sampleChanges[1], applied_at: '2026-10-23T10:00:00.000Z', batch: 'ws_agent_1_changes_NN' },
     ]
     expect(computeProposalSha(annotated)).toBe(baseSha)
   })

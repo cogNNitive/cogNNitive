@@ -147,8 +147,8 @@ describe('proposal validation before write', () => {
     await nothingWritten()
   })
 
-  it('an unresolved sources citation is rejected at propose time and writes nothing', async () => {
-    const result = await propose([{ ...UPDATE, sources: 'sources/import/missing.md@## Needs' }])
+  it('an unresolved evidence citation is rejected at propose time and writes nothing', async () => {
+    const result = await propose([{ ...UPDATE, evidence: 'sources/import/missing.md@## Needs' }])
     expect(result.success).toBe(false)
     expect(result.errors?.[0].code).toBe('CITATION_UNRESOLVED')
     expect(result.errors?.[0].message).toContain('missing.md')

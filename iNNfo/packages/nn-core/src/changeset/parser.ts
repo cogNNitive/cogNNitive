@@ -180,8 +180,8 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
       case 'notes':
         currentChange.notes = stripQuotes(rawVal)
         break
-      case 'sources':
-        currentChange.sources = stripQuotes(rawVal)
+      case 'evidence':
+        currentChange.evidence = stripQuotes(rawVal)
         break
       case 'blueprint_name':
         currentChange.blueprint_name = stripQuotes(rawVal)
@@ -192,8 +192,11 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
       case 'knowledge_version':
         currentChange.knowledge_version = stripQuotes(rawVal)
         break
-      case 'replaced_sources':
-        currentChange.replaced_sources = stripQuotes(rawVal)
+      case 'applied_at':
+        currentChange.applied_at = stripQuotes(rawVal)
+        break
+      case 'batch':
+        currentChange.batch = stripQuotes(rawVal)
         break
       case 'status':
         if (!isChangeStatus(rawVal)) {

@@ -7385,6 +7385,9 @@ __export(index_exports, {
   computeSha256: () => computeSha256,
   consoleOutputPath: () => consoleOutputPath,
   createFsSourceResolver: () => createFsSourceResolver,
+  deriveFieldOrigin: () => deriveFieldOrigin,
+  deriveValueHistory: () => deriveValueHistory,
+  detectUnrecordedEdits: () => detectUnrecordedEdits,
   displayStem: () => displayStem,
   extractExcerpt: () => extractExcerpt,
   findEnclosingChangeBlock: () => findEnclosingChangeBlock,
@@ -9134,7 +9137,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-5-2", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-5-3", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/resolver.ts
@@ -10213,8 +10216,8 @@ function parseChangeset(rawContent) {
       case "notes":
         currentChange.notes = stripQuotes(rawVal);
         break;
-      case "sources":
-        currentChange.sources = stripQuotes(rawVal);
+      case "evidence":
+        currentChange.evidence = stripQuotes(rawVal);
         break;
       case "blueprint_name":
         currentChange.blueprint_name = stripQuotes(rawVal);
@@ -10225,8 +10228,11 @@ function parseChangeset(rawContent) {
       case "knowledge_version":
         currentChange.knowledge_version = stripQuotes(rawVal);
         break;
-      case "replaced_sources":
-        currentChange.replaced_sources = stripQuotes(rawVal);
+      case "applied_at":
+        currentChange.applied_at = stripQuotes(rawVal);
+        break;
+      case "batch":
+        currentChange.batch = stripQuotes(rawVal);
         break;
       case "status":
         if (!isChangeStatus(rawVal)) {
@@ -10578,8 +10584,9 @@ async function loadChangesetRecords(rootDir) {
         author: c.author,
         notes: c.notes,
         status: c.status,
-        sources: c.sources,
-        replaced_sources: c.replaced_sources,
+        evidence: c.evidence,
+        applied_at: c.applied_at,
+        batch: c.batch,
         from: c.from,
         to: c.to,
         concept: c.concept,
@@ -10604,11 +10611,10 @@ function attachChangesetHistory(elements, changesets) {
           id: change.id,
           op: change.op,
           author: change.author || cs.author,
-          timestamp: cs.appliedAt,
+          timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
-          sources: change.sources,
-          replaced_sources: change.replaced_sources
+          evidence: change.evidence
         };
         if (!el.history) el.history = [];
         el.history.push(item);
@@ -10969,6 +10975,90 @@ function buildConsolePayload(options) {
   };
 }
 
+// iNNfo/packages/nn-core/src/console/provenance.ts
+function changeFieldPart(target) {
+  const { elementPart } = parseChangesetTarget(target);
+  const amp = String(target).indexOf("&");
+  if (amp === -1) return null;
+  const field = String(target).slice(amp + 1);
+  if (field.includes("&")) return null;
+  if (!elementPart || !field) return null;
+  return { elementPart, field };
+}
+function hopAppliedAt(change, cs) {
+  return change.applied_at || cs.appliedAt || "";
+}
+function deriveValueHistory(changes, target) {
+  const wanted = changeFieldPart(target);
+  if (!wanted) return [];
+  const key = `${normalizeAddressKey(wanted.elementPart)}\0${wanted.field.toLowerCase()}`;
+  const hops = [];
+  for (const cs of changes) {
+    for (const change of cs.changes) {
+      const part = changeFieldPart(change.target);
+      if (!part) continue;
+      if (`${normalizeAddressKey(part.elementPart)}\0${part.field.toLowerCase()}` !== key) continue;
+      hops.push({
+        changeId: change.id,
+        batch: change.batch,
+        op: change.op,
+        author: change.author || cs.author,
+        evidence: change.evidence,
+        appliedAt: hopAppliedAt(change, cs),
+        from: change.from,
+        to: change.to
+      });
+    }
+  }
+  hops.sort((a, b) => a.appliedAt < b.appliedAt ? -1 : a.appliedAt > b.appliedAt ? 1 : 0);
+  return hops;
+}
+function deriveFieldOrigin(changes, element, field) {
+  const hops = deriveValueHistory(changes, `${element}@${element}&${field}`);
+  if (hops.length === 0) return null;
+  const last = hops[hops.length - 1];
+  return {
+    changeId: last.changeId,
+    batch: last.batch,
+    author: last.author,
+    evidence: last.evidence,
+    appliedAt: last.appliedAt,
+    from: last.from,
+    to: last.to
+  };
+}
+function detectUnrecordedEdits(elements, changes) {
+  const lastTo = /* @__PURE__ */ new Map();
+  for (const cs of changes) {
+    for (const change of cs.changes) {
+      if (change.status !== "applied") continue;
+      if (change.to === void 0) continue;
+      const part = changeFieldPart(change.target);
+      if (!part) continue;
+      const key = `${normalizeAddressKey(part.elementPart)}\0${part.field.toLowerCase()}`;
+      lastTo.set(key, change.to);
+    }
+  }
+  const out = [];
+  for (const el of elements) {
+    if (!el.fields) continue;
+    for (const [field, current] of Object.entries(el.fields)) {
+      const key = `${normalizeAddressKey(el.id)}\0${field.toLowerCase()}`;
+      if (!lastTo.has(key)) continue;
+      const expected = lastTo.get(key);
+      if (String(current ?? "") !== String(expected ?? "")) {
+        out.push({
+          code: "EDITED_WITHOUT_RECORD",
+          severity: "warning",
+          path: `${el.id}&${field}`,
+          message: `field "${field}" of "${el.id}" is "${String(current ?? "")}" but the last recorded change sets it to "${expected}"; record the change or revert`
+        });
+      }
+    }
+  }
+  return out;
+}
+
 // iNNfo/packages/nn-core/src/console/schema-resolution.ts
 var import_node_path3 = require("node:path");
 var import_node_fs3 = require("node:fs");
@@ -11325,6 +11415,9 @@ function unitHome(address) {
   computeSha256,
   consoleOutputPath,
   createFsSourceResolver,
+  deriveFieldOrigin,
+  deriveValueHistory,
+  detectUnrecordedEdits,
   displayStem,
   extractExcerpt,
   findEnclosingChangeBlock,

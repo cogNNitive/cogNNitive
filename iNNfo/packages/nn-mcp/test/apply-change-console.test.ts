@@ -53,6 +53,10 @@ statement:: Accelerate green energy
 
 async function writeChangeset(changes: ChangeItem[]): Promise<string> {
   const name = 'console_changes_NN.md'
+  // A change's evidence is mandatory; default it for the fixture changes.
+  const withEvidence = changes.map((c) =>
+    c.evidence === undefined ? { ...c, evidence: 'decision' } : c,
+  )
   const doc = {
     frontmatter: {
       spec_version: 'V_0-4-0',
@@ -60,9 +64,9 @@ async function writeChangeset(changes: ChangeItem[]): Promise<string> {
       parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
       blueprint_version: '0.1.0',
       status: 'proposed' as const,
-      proposal_sha: computeProposalSha(changes),
+      proposal_sha: computeProposalSha(withEvidence),
     },
-    changes,
+    changes: withEvidence,
   }
   await writeFile(join(changesDir, name), serializeChangeset(doc), 'utf-8')
   return 'changes/' + name

@@ -61,11 +61,12 @@ export interface ChangeItem {
   author?: string
   notes?: string
   /**
-   * Evidence citation written by the proposer at proposal time, in the shared
-   * citation grammar (`<path>@## <Heading>`, `<csv>@<row>`, `<json>@/<pointer>`,
-   * or a bare path). Sealed into `proposal_sha`; apply never writes it.
+   * Evidence the change derives from — the ONLY provenance of the mutation — in the
+   * shared citation grammar (`<path>@## <Heading>`, `<csv>@<row>`, `<json>@/<pointer>`,
+   * a bare path, or the literal tokens `decision` / `unknown`). Mandatory at apply
+   * intake; sealed into `proposal_sha`. Replaces the former `sources`.
    */
-  sources?: string
+  evidence?: string
   /**
    * `add_model` only: the parent bluepriNNt of the model to create (name and immutable
    * URL) and its optional initial `knowledge_version`. Sealed into `proposal_sha`.
@@ -77,8 +78,10 @@ export interface ChangeItem {
   status?: ChangeStatus
   resolution?: string
   resolved_slug?: string
-  /** Citations this change replaced, recorded at apply time (excluded from proposal_sha) */
-  replaced_sources?: string
+  /** Per-change execution fact: when the change was applied, UTC (excluded from proposal_sha). */
+  applied_at?: string
+  /** Per-change execution fact: the batch identity, the changeset stem (excluded from proposal_sha). */
+  batch?: string
 }
 
 export interface ModelVersionTransition {

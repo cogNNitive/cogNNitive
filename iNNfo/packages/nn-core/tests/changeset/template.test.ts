@@ -44,13 +44,13 @@ describe('changes blueprint — Level 3 template', () => {
     expect(errors.find((c) => c.id === 'fm-parent')).toBeUndefined()
   })
 
-  it('the Change concept declares sources of type citation', () => {
+  it('the Change concept declares evidence of type citation', () => {
     const composed = resolveBlueprintSchema(changesSpec, () => null)
     const change = composed.schema.concepts.find((c) => c.name === 'Change')
     expect(change).toBeDefined()
-    const sources = change!.fields.find((f) => f.name === 'sources')
-    expect(sources).toBeDefined()
-    expect(sources!.type).toBe('citation')
+    const evidence = change!.fields.find((f) => f.name === 'evidence')
+    expect(evidence).toBeDefined()
+    expect(evidence!.type).toBe('citation')
   })
 
   it('validates a changeset holding update_concept_field and remove_matrix without invalid-op diagnostics', () => {

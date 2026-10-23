@@ -40,6 +40,10 @@ function makeChangeset(doc: {
   models?: Record<string, { base_version: string; result_version: string }>
   changes: ChangeItem[]
 }): ChangesetDocument {
+  // A change's evidence is mandatory; default it for the fixture changes.
+  const changes = doc.changes.map((c) =>
+    c.evidence === undefined ? { ...c, evidence: 'decision' } : c,
+  )
   return {
     frontmatter: {
       spec_version: 'V_0-4-0',
@@ -47,13 +51,13 @@ function makeChangeset(doc: {
       parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
       blueprint_version: '0.1.0',
       status: doc.status ?? 'proposed',
-      proposal_sha: computeProposalSha(doc.changes),
+      proposal_sha: computeProposalSha(changes),
       title: 'Test Changeset',
       author: 'agent-writer',
       workspace_id: 'ws-1',
       models: doc.models,
     },
-    changes: doc.changes,
+    changes,
   }
 }
 
@@ -338,7 +342,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.errors?.some((e) => /safe workspace-relative path/.test(e.message))).toBe(true)
   })
 
-  it('Citation Resolution: an unresolved sources:: rejects with CITATION_UNRESOLVED, returns the rejection without recording it, writes no model, releases the lock', async () => {
+  it('Evidence Resolution: an unresolved evidence:: rejects with CITATION_UNRESOLVED, returns the rejection without recording it, writes no model, releases the lock', async () => {
     const csFile = join(changesDir, 'ws_agent_citation_bad_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -347,7 +351,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
           op: 'comment',
           target: 'strategy@Vision&statement',
           notes: 'evidence-backed note',
-          sources: 'sources/import/missing.md@## Needs',
+          evidence: 'sources/import/missing.md@## Needs',
         },
       ],
     })
@@ -370,7 +374,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(live).toContain('Accelerate green energy')
   })
 
-  it('Citation Resolution: a resolving sources:: applies and the sources:: line is byte-identical after write-back', async () => {
+  it('Evidence Resolution: a resolving evidence:: applies and the evidence:: line is byte-identical after write-back', async () => {
     await mkdir(join(csRoot, 'sources', 'import'), { recursive: true })
     await writeFile(
       join(csRoot, 'sources', 'import', 'interview.md'),
@@ -386,7 +390,7 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
           op: 'comment',
           target: 'strategy@Vision&statement',
           notes: 'evidence-backed note',
-          sources: 'sources/import/interview.md@## Needs',
+          evidence: 'sources/import/interview.md@## Needs',
         },
       ],
     })
@@ -396,7 +400,39 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.success).toBe(true)
 
     const written = await readFile(csFile, 'utf-8')
-    expect(written).toContain('sources:: sources/import/interview.md@## Needs')
+    expect(written).toContain('evidence:: sources/import/interview.md@## Needs')
+  })
+
+  it('Evidence Required: a change with no evidence rejects with EVIDENCE_REQUIRED naming the change id', async () => {
+    const csFile = join(changesDir, 'ws_agent_no_evidence_changes_NN.md')
+    const change: ChangeItem = {
+      id: 'c-01',
+      op: 'comment',
+      target: 'strategy@Vision&statement',
+      notes: 'no evidence provided',
+    }
+    const doc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: '0.1.0',
+        status: 'proposed',
+        proposal_sha: computeProposalSha([change]),
+      },
+      changes: [change],
+    }
+    const serialized = serializeChangeset(doc)
+    await writeFile(csFile, serialized, 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_no_evidence_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(
+      res.errors?.some((e) => e.code === 'EVIDENCE_REQUIRED' && /c-01/.test(e.message)),
+    ).toBe(true)
+    // The file stays byte-identical; no model is written.
+    expect(await readFile(csFile, 'utf-8')).toBe(serialized)
   })
 
   it('P0-3 regression: apply_change refuses to mutate a tool-owned lineage record and leaves it byte-identical', async () => {
