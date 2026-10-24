@@ -1089,6 +1089,14 @@ export async function writeConsole(opts = {}) {
         if (c.evidence) fields.evidence = c.evidence
         if (c.applied_at) fields.applied_at = c.applied_at
         const markers = {}
+        // Resolve `evidence` (a citation) so the display shows the value plus the
+        // clickable citation icon through the standard field renderer.
+        const citations = {}
+        if (c.evidence && resolver && payloadHelper.resolveCitation) {
+          citations.evidence = [
+            payloadHelper.resolveCitation(c.evidence, 'evidence', resolver, `changes/${batch}.md`),
+          ]
+        }
         allElements.push({
           id,
           slug: id,
@@ -1097,6 +1105,7 @@ export async function writeConsole(opts = {}) {
           description,
           fields,
           markers,
+          ...(Object.keys(citations).length ? { citations } : {}),
           hash: payloadHelper.computeElementHash({ concept: 'Change', name, description, fields, markers }),
           modelId: CHANGES_MODEL_ID,
           modelTitle: CHANGES_MODEL_TITLE,
