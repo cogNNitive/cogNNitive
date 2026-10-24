@@ -18,6 +18,7 @@ const nodeRequire = createRequire(import.meta.url)
 
 type ResolvedCitation = {
   path: string
+  href?: string
   anchor?: string
   exists: boolean
   origin?: 'agent' | 'human' | 'reviewer' | 'document'
@@ -156,6 +157,36 @@ describe('nn-runtime.js — renderCitationDialog', () => {
     // No dt/dd pair should render an empty dd for a field that was never set.
     const dds = [...document.querySelectorAll('.nn-ref-fields dd')]
     dds.forEach((dd) => expect(dd.textContent?.trim()).not.toBe(''))
+  })
+
+  it('renders an "Open original" link when the resolved entry carries an href', () => {
+    const api = loadRuntime()
+    api.renderCitationDialog(document, 'evidence', [
+      {
+        path: 'sources/import/report.md',
+        href: 'sources/import/report.md',
+        anchor: 'Findings',
+        exists: true,
+        origin: 'document',
+        excerpt: 'A finding.',
+      },
+    ])
+
+    const link = document.querySelector('a.innfo-cite-open')
+    expect(link).not.toBeNull()
+    expect(link!.textContent).toContain('Open original')
+    expect(link!.getAttribute('href')).toContain('sources/import/report.md')
+  })
+
+  it('renders a literal "decision" evidence entry honestly, with no Open original link', () => {
+    const api = loadRuntime()
+    api.renderCitationDialog(document, 'evidence', [
+      { path: 'decision', exists: true, origin: 'human' },
+    ])
+
+    const text = document.getElementById('innfo-citation-dialog')!.textContent ?? ''
+    expect(text).toContain('decision')
+    expect(document.querySelectorAll('a.innfo-cite-open')).toHaveLength(0)
   })
 
   it('all citation text renders through textContent — an <img onerror> payload in an excerpt stays inert', () => {
