@@ -15,3 +15,6 @@
 
 - **Samples**
   - [Sample Workflows](sample-workflows.md)
+
+- **Trust & Safety**
+  - [Installing Third-Party Skills](skills/installing-third-party-skills.md)

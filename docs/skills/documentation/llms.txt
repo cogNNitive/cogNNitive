@@ -14,3 +14,4 @@
 - [nn-design-presets](skills/nn-design-presets.md)
 - [nn-upgrade](skills/nn-upgrade.md)
 - [Sample Workflows](sample-workflows.md)
+- [Installing Third-Party Skills](skills/installing-third-party-skills.md)

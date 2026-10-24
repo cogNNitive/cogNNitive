@@ -1111,6 +1111,40 @@ agent-bootstrap:
   }
 }
 
+// External-skill install notice: keep it calm, minimal and contextual. It must
+// name the provenance and link the trust guidance — not recite attack types.
+{
+  const { buildExternalSkillNotice, THIRD_PARTY_SKILL_DOC_URL } = require('./lib/skills-commands.js');
+
+  const pinned = buildExternalSkillNotice({
+    name: 'widget',
+    repo: 'acme/skills',
+    path: 'skills/widget',
+    commit: 'a'.repeat(40),
+    sha256: 'b'.repeat(64),
+  });
+  assert.ok(/Third-party skill — not from cogNNitive/.test(pinned), 'notice must name the non-affiliation');
+  assert.ok(/acme\/skills\/skills\/widget @ aaaaaaa/.test(pinned), 'notice must show the source and shortened pin');
+  assert.ok(/pinned and verified against the author's sha256/.test(pinned), 'a sha256 pin reads as verified');
+  assert.ok(pinned.includes(THIRD_PARTY_SKILL_DOC_URL), 'notice must link the trust guidance page');
+  assert.ok(/\[a\] Install anyway\s+\[b\] Skip/.test(pinned), 'notice must keep the consent options');
+  // Design decision: the notice informs, it does not frighten. No threat catalogue.
+  assert.ok(
+    !/injection|exfiltration|credential|malicious/i.test(pinned),
+    'notice must stay calm — no threat catalogue',
+  );
+
+  const unpinned = buildExternalSkillNotice({
+    name: 'widget',
+    repo: 'acme/skills',
+    path: 'skills/widget',
+    commit: 'c'.repeat(40),
+  });
+  assert.ok(/pinned by commit only \(no sha256 to verify\)/.test(unpinned), 'a commit-only pin reads as unverified');
+
+  console.log('✔ external-skill install notice test passed');
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 
