@@ -14,7 +14,12 @@ artifacts, then the canonical corpus.
 |---|---|
 | Only file names are already `nn-`; the code surface is `innfo-*` | `nn-ui.css` / `nn-runtime.js` / `nn-icons.js` ship `nn-` names; `grep -c innfo` on the 14 sources |
 | Console surface size | 2788 occurrences: `ui-kit.js` 1141, `nn-ui.css` 826, `nn-runtime.js` 521, `artifact_shell.html` 213, `review.js` 73, `render-procedure-stepper.js` 14 |
-| Token kinds | 63 custom properties `--innfo-*`, 324 classes `.innfo-*`, 20 `data-innfo-*` attributes, 10 JS globals `Innfo*`, 375 quoted `'innfo-*'` literals |
+| Token kinds | 63 custom properties `--innfo-*`, 324 classes `.innfo-*`, **280** `data-innfo*` attributes (**226** suffixed + **54** bare `data-innfo`), 10 JS globals `Innfo*`, 375 quoted `'innfo-*'` literals |
+| Not identifiers — localStorage | `review.js:14` `STORE_PREFIX = 'innfo-console:v3:'`; the key is `STORE_PREFIX + modelId`; 9 occurrences; pinned by `console-review-math.test.ts:86` |
+| Not identifiers — custom events | `innfo:rendered` dispatched at `nn-runtime.js:6669` and `ui-kit.js:1974`, listened at `review.js:1477/1551`; `innfo:theme-change` as a `message` type at `ui-kit.js:3657`; 7 occurrences |
+| Not identifiers — provenance | `nn-runtime.js:6019` `viewer: 'innfo-console@' + CONSOLE_VERSION` |
+| Log/error prefixes | `'innfo-console: …'` at `nn-runtime.js:126,175,180,183,3064,3068,3080,3133,6964` (cosmetic) |
+| The store namespace is versioned by design | `console-review-store.test.ts:128` asserts it **never** reads `innfo-console:v2:*` |
 | JS globals | `InnfoUI`, `InnfoIcons`, `InnfoConsole`, `InnfoAddress`, `InnfoSlug`, `InnfoReview`, `InnfoKu`, `InnfoVisuals`, `InnfoPreact`, `InnfoProcedureStepper` |
 | The vendored bundles carry none | `htm.umd.js`, `preact.umd.js`, `uplot.iife.min.js`, `nn-icons.js`, `nn-address.generated.js`, `nn-slug.generated.js`, `visuals.js`: 0 occurrences |
 | The guard is a bare-substring scan | `test/console-ku-guard.test.mjs`: `if (text.includes(token))` |
@@ -34,6 +39,8 @@ artifacts, then the canonical corpus.
 | D4 Migration shape | one atomic rename per file, no aliases | dual-emit both names for a release | An alias period reintroduces the ambiguity D1 removes; the repo's precedent is a hard rename (`model_id` → `knowledge_id`) |
 | D5 Generated artifacts | regenerate, never hand-edit | edit the bundle | The bundle is a concatenation and the fixture an export; hand edits desync on the next build |
 | D6 PR shape | chained (A+B / C+D / E) | one PR | Unit C alone is ~2800 replacements |
+| D7 What the prefix covers | identifier names only | every `innfo` string | A persisted namespace, an event channel and a provenance string are contracts, not names; renaming one without a migration drops data or breaks listeners |
+| D8 Residual check and the contracts | the "no `innfo`" guard carries an explicit allowlist for any contract kept by Q5–Q7 | a bare substring ban | The ban must not be satisfiable by an alias, but it also must not silently force a data-losing rename |
 
 ## Naming map
 

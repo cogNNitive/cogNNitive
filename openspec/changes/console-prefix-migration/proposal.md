@@ -43,6 +43,13 @@ scanned (it only reads `.js`).
   the ambiguity this change removes.
 - **Generated artifacts are regenerated, never hand-edited**: the console bundle
   (concatenation, not esbuild), the testlab fixture, and the shells.
+- **Identifiers are renamed; data/API contracts are decided separately.** The
+  console also carries three names that are not identifiers: the localStorage
+  namespace (`innfo-console:v3:`), the custom events (`innfo:rendered`,
+  `innfo:theme-change`) and the `viewer` provenance string
+  (`innfo-console@<version>`). A blind substitution would silently orphan every
+  unsent draft and break third-party listeners, so each is an explicit question
+  (Q5–Q7).
 
 ## Capabilities
 
@@ -149,6 +156,9 @@ unit C:
 | Q2 | Does the JS global `InnfoUI` become `Nn*`? | Yes, so `NnUI`, `NnIcons`, `NnConsole`… match the prefix | Keeps a public API name; the shells then keep reading `window.InnfoUI` |
 | Q3 | `Nn*` or `NN*` for the PascalCase globals? | `Nn*` — reads as the prefix, not as an acronym | `NN*` matches the `cogNNitive` capitalisation but reads as an initialism |
 | Q4 | Does the 99-spec corpus sweep land in this change or a follow-up? | Follow-up — this change defines the contract and the sources | One very wide PR (~99 spec files) mixed with the console work |
+| Q5 | Does the localStorage namespace `innfo-console:` become `nn-console:`? | Yes, as a **version bump** (`nn-console:v4:`) with no read of the old key — the repo's own precedent (`never reads … innfo-console:v2:*`) | Keeping it leaves one `innfo-` string in the sources, and the residual check in unit A must then carry an allowlist. Renaming **without** bumping would keep reading keys an old artifact wrote |
+| Q6 | Do the custom events become `nn:rendered` / `nn:theme-change`? | Yes — the shells are regenerated with the kit | Any third-party listener on the old event name stops firing; keeping it leaves one `innfo:` contract behind |
+| Q7 | Does the `viewer` string `innfo-console@<v>` become `nn-console@<v>`? | Yes — it is the console's own identity, versioned by `CONSOLE_VERSION` | Historical proposals keep the old viewer string; persistence was not confirmed in this audit |
 
 ## Review Workload Forecast
 

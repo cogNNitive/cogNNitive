@@ -10,7 +10,9 @@ Strict TDD. Units A–E are separate commits; unit C is one commit per file.
 - [ ] 1.3 [GREEN] `test/console-ku-guard.test.mjs`: match `LEGACY` entries as whole identifiers, not substrings.
 - [ ] 1.4 [RED] Test: a retired identifier inside a `.css` file is reported.
 - [ ] 1.5 [GREEN] Extend the guard's scan to `consoleDir/**/*.css`.
-- [ ] 1.6 Confirm the existing suite is green and the previously dead `.innfo-ku-badge` block is now reported (it must be fixed in unit C).
+- [ ] 1.6 [RED] Test: the console sources contain no `innfo` occurrence outside the allowlist decided by Q5–Q7.
+- [ ] 1.7 Note: the whole-identifier rule does **not** report the dead `.innfo-ku-badge` block (its `ku-badge` is preceded by `-`); tasks 1.6 and 3.2 are what force it out.
+- [ ] 1.8 Confirm the existing suite is green.
 
 ## 2. Contract (unit B)
 
@@ -25,6 +27,10 @@ Strict TDD. Units A–E are separate commits; unit C is one commit per file.
 - [ ] 3.4 `review.js`: rename `[data-ku-kind="value"][data-field]` / `[data-innfo-component=element-card]` selectors and the `UI.*` calls.
 - [ ] 3.5 `render-procedure-stepper.js` and `artifact_shell.html`: rename.
 - [ ] 3.6 After each file: `node --test test/console-*.test.mjs` green.
+- [ ] 3.7 Per Q5: bump the store namespace to `nn-console:v4:`; keep the "never read the previous namespace" test and add one for the new version.
+- [ ] 3.8 Per Q6: rename the custom events to `nn:rendered` / `nn:theme-change` in the dispatcher, both listeners and the tests.
+- [ ] 3.9 Per Q7: rename the `viewer` string; record whether it is persisted before landing.
+- [ ] 3.10 Rename the identifiers the tests pin (72 test files reference a console name).
 
 ## 4. Regenerate (unit D)
 
