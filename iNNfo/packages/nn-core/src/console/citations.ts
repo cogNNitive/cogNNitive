@@ -32,6 +32,8 @@ export const KNOWN_AGENT_TOOL_IDS: readonly string[] = ['agent', 'ClaudeCode', '
 
 export interface ResolvedCitation {
   path: string
+  /** Workspace-relative path of the original file, for an "Open original" link. */
+  href?: string
   anchor?: string
   exists: boolean
   field: string
@@ -233,7 +235,7 @@ export function resolveCitation(
 
   const content = resolved.content
   if (!content) {
-    return { path: ref.filePath, anchor, exists: true, field, origin: 'document' }
+    return { path: ref.filePath, href: ref.filePath, anchor, exists: true, field, origin: 'document' }
   }
 
   const fm = parseFrontmatter(content) as
@@ -288,6 +290,7 @@ export function resolveCitation(
 
   return {
     path: ref.filePath,
+    href: ref.filePath,
     anchor,
     exists: true,
     field,
@@ -298,6 +301,26 @@ export function resolveCitation(
     ...(mediaSha256 ? { media_sha256: mediaSha256 } : {}),
     ...(version ? { version } : {}),
   }
+}
+
+/**
+ * Resolve a change's `evidence` into a citation entry for display. The literal tokens
+ * `decision` (a human decision with no artifact) and `unknown` (an untraceable origin)
+ * are not files: they yield a minimal, honest entry instead of a dangling citation.
+ */
+export function resolveEvidenceCitation(
+  evidence: string,
+  resolver: SourceResolver,
+  basePath: string = '',
+): ResolvedCitation {
+  const ev = String(evidence ?? '').trim()
+  if (ev === 'decision') {
+    return { path: 'decision', exists: true, field: 'evidence', origin: 'human' }
+  }
+  if (ev === 'unknown') {
+    return { path: 'unknown', exists: true, field: 'evidence', origin: 'document' }
+  }
+  return resolveCitation(ev, 'evidence', resolver, basePath)
 }
 
 /**

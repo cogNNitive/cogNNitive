@@ -1092,9 +1092,9 @@ export async function writeConsole(opts = {}) {
         // Resolve `evidence` (a citation) so the display shows the value plus the
         // clickable citation icon through the standard field renderer.
         const citations = {}
-        if (c.evidence && resolver && payloadHelper.resolveCitation) {
+        if (c.evidence && resolver && payloadHelper.resolveEvidenceCitation) {
           citations.evidence = [
-            payloadHelper.resolveCitation(c.evidence, 'evidence', resolver, `changes/${batch}.md`),
+            payloadHelper.resolveEvidenceCitation(c.evidence, resolver, `changes/${batch}.md`),
           ]
         }
         allElements.push({

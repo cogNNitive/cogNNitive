@@ -1098,8 +1098,15 @@
         if (seen[v]) return
         seen[v] = true
         if (variants.indexOf(v) === -1) return
+        var entry = null
+        for (var i = 0; i < citations.length; i++) {
+          if (originVariantOf(citations[i]) === v) {
+            entry = citations[i]
+            break
+          }
+        }
         wrap.appendChild(
-          CitationIcon({ variant: v, field: d.name, value: d.value }, {
+          CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -2646,7 +2653,14 @@
             name: 'evidence',
             value: String(h.evidence),
             type: 'citation',
-            citations: [{ origin: 'document', source: String(h.evidence) }],
+            citations: [
+              h.evidenceCitation || {
+                origin: 'document',
+                path: String(h.evidence),
+                exists: true,
+                field: 'evidence',
+              },
+            ],
           })
         }
         pushField('applied_at', h.timestamp)
@@ -2664,12 +2678,7 @@
             {
               doc: doc,
               collapsible: false,
-              onCite:
-                opts && typeof opts.onEvidence === 'function'
-                  ? function (citeData) {
-                      opts.onEvidence(citeData && citeData.value)
-                    }
-                  : undefined,
+              onCite: opts && typeof opts.onEvidence === 'function' ? opts.onEvidence : undefined,
             },
           ),
         )

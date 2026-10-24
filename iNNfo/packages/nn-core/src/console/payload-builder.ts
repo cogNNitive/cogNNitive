@@ -17,6 +17,7 @@ import {
   resolveCitation,
   groupCitationsByField,
   citationFieldsFor,
+  resolveEvidenceCitation,
 } from './citations.js'
 import type { ResolvedCitation } from './citations.js'
 import { canonicalJsonStringify, computeElementHash } from './element-hash.js'
@@ -351,7 +352,13 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   )
   // Attach changeset lineage AFTER the schema slot so the schema is unaffected by
   // history (only the model slot carries it).
-  attachChangesetHistory(elements, changesets)
+  attachChangesetHistory(
+    elements,
+    changesets,
+    resolver
+      ? (evidence: string) => resolveEvidenceCitation(evidence, resolver, modelPath || '')
+      : undefined,
+  )
   const genTime = generated || new Date().toISOString()
 
   const normalizedSource = modelPath
