@@ -68,7 +68,7 @@ const sampleElements: ElementLike[] = [
 ]
 
 describe('parseConfig / hasNeed (needs[] capability gating)', () => {
-  it('parses needs[] and runtime pins from innfo-config JSON', () => {
+  it('parses needs[] and runtime pins from nn-config JSON', () => {
     const config = loadCore().parseConfig(
       JSON.stringify({ needs: ['feedback-export'], runtime: { cdn: 'https://cdn/x.js' } }),
     )

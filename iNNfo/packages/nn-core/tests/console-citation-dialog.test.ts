@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 import { installDialogStub } from './helpers/dialog-stub'
 
 /**
- * C4 — the `innfo-citation-dialog` in `nn-runtime.js`. jsdom does not
+ * C4 — the `nn-citation-dialog` in `nn-runtime.js`. jsdom does not
  * implement `HTMLDialogElement.showModal`, so `installDialogStub` adds it.
  */
 
@@ -45,13 +45,13 @@ function loadKit(): UiKitApi {
   return nodeRequire(uiKitPath) as UiKitApi
 }
 
-describe('InnfoUI.icon citation entries', () => {
+describe('nnUI.icon citation entries', () => {
   it('returns non-empty markup for every citation icon name', () => {
     const ui = loadKit()
     for (const name of ['cite-agent', 'cite-human', 'cite-reviewer', 'cite-document', 'cite-error']) {
       const svg = ui.icon(name, 14)
       expect(svg).toContain('<svg')
-      expect(svg).toContain('innfo-icon')
+      expect(svg).toContain('nn-icon')
     }
   })
 
@@ -71,15 +71,15 @@ describe('nn-runtime.js — renderCitationDialog', () => {
     document.documentElement.innerHTML = '<body></body>'
   })
 
-  it('creates #innfo-citation-dialog and appends it to body when the shell lacks it', () => {
-    expect(document.getElementById('innfo-citation-dialog')).toBeNull()
+  it('creates #nn-citation-dialog and appends it to body when the shell lacks it', () => {
+    expect(document.getElementById('nn-citation-dialog')).toBeNull()
     const api = loadRuntime()
 
     api.renderCitationDialog(document, 'sources', [
       { path: 'sources/a.md', exists: true, origin: 'document' },
     ])
 
-    const dialog = document.getElementById('innfo-citation-dialog')
+    const dialog = document.getElementById('nn-citation-dialog')
     expect(dialog).not.toBeNull()
     expect(dialog!.parentElement).toBe(document.body)
   })
@@ -97,7 +97,7 @@ describe('nn-runtime.js — renderCitationDialog', () => {
       },
     ])
 
-    const dialog = document.getElementById('innfo-citation-dialog') as HTMLDialogElement
+    const dialog = document.getElementById('nn-citation-dialog') as HTMLDialogElement
     expect(dialog.open).toBe(true)
     const text = dialog.textContent ?? ''
     expect(text).toContain('sources/import/conversations/s1_source.md')
@@ -117,7 +117,7 @@ describe('nn-runtime.js — renderCitationDialog', () => {
       },
     ])
 
-    const excerptNode = document.querySelector('.innfo-cite-excerpt')!
+    const excerptNode = document.querySelector('.nn-cite-excerpt')!
     expect(excerptNode.textContent).toContain('capped excerpt text')
     expect(excerptNode.textContent).toMatch(/truncat/i)
   })
@@ -150,11 +150,11 @@ describe('nn-runtime.js — renderCitationDialog', () => {
       },
     ])
 
-    const text = document.getElementById('innfo-citation-dialog')!.textContent ?? ''
+    const text = document.getElementById('nn-citation-dialog')!.textContent ?? ''
     expect(text).toContain('DANGLING_FILE')
-    expect(document.querySelectorAll('.innfo-cite-excerpt')).toHaveLength(0)
+    expect(document.querySelectorAll('.nn-cite-excerpt')).toHaveLength(0)
     // No dt/dd pair should render an empty dd for a field that was never set.
-    const dds = [...document.querySelectorAll('.innfo-ref-fields dd')]
+    const dds = [...document.querySelectorAll('.nn-ref-fields dd')]
     dds.forEach((dd) => expect(dd.textContent?.trim()).not.toBe(''))
   })
 
@@ -170,7 +170,7 @@ describe('nn-runtime.js — renderCitationDialog', () => {
     ])
 
     expect((window as unknown as { __pwned?: boolean }).__pwned).toBeUndefined()
-    expect(document.querySelectorAll('.innfo-cite-excerpt img')).toHaveLength(0)
-    expect(document.querySelector('.innfo-cite-excerpt')!.textContent).toContain('<img src=x onerror=')
+    expect(document.querySelectorAll('.nn-cite-excerpt img')).toHaveLength(0)
+    expect(document.querySelector('.nn-cite-excerpt')!.textContent).toContain('<img src=x onerror=')
   })
 })

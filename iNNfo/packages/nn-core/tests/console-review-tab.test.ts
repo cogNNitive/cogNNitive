@@ -33,7 +33,7 @@ const APPLIED = [
 function renderTab(state: any, onRefresh?: () => void): HTMLElement {
   const { Console } = env.loadConsole()
   Console.renderReviewTab(env.document, state, { needs: [] }, onRefresh)
-  return env.document.getElementById('innfo-tab-review') as HTMLElement
+  return env.document.getElementById('nn-tab-review') as HTMLElement
 }
 
 function addDraft(store: any) {
@@ -49,7 +49,7 @@ function addDraft(store: any) {
 
 describe('console-review-tab (one Changes tab)', () => {
   beforeEach(() => {
-    env.setup('<!doctype html><html><body><div id="innfo-tab-review"></div></body></html>')
+    env.setup('<!doctype html><html><body><div id="nn-tab-review"></div></body></html>')
     env.localStorage.clear()
   })
 
@@ -58,13 +58,13 @@ describe('console-review-tab (one Changes tab)', () => {
     vi.restoreAllMocks()
   })
 
-  it('artifact_shell.html no longer carries legacy .innfo-review-* CSS rules', () => {
+  it('artifact_shell.html no longer carries legacy .nn-review-* CSS rules', () => {
     const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
     const styleBlocks = shell.match(/<style[\s\S]*?<\/style>/gi) || []
     const css = styleBlocks.join('\n')
-    expect(css.includes('.innfo-review-item')).toBe(false)
-    expect(css.includes('.innfo-review-stat')).toBe(false)
-    expect(css.includes('.innfo-review-list')).toBe(false)
+    expect(css.includes('.nn-review-item')).toBe(false)
+    expect(css.includes('.nn-review-stat')).toBe(false)
+    expect(css.includes('.nn-review-list')).toBe(false)
   })
 
   it('renders the heading "Changes" and both sections through the kit', () => {
@@ -75,11 +75,11 @@ describe('console-review-tab (one Changes tab)', () => {
     expect(tab.querySelector('h2')!.textContent).toBe('Changes')
     // Unsent is above Applied.
     const sections = tab.querySelectorAll('section')
-    const unsent = tab.querySelector('.innfo-changes-unsent') as HTMLElement
-    const applied = tab.querySelector('.innfo-changes-applied') as HTMLElement
+    const unsent = tab.querySelector('.nn-changes-unsent') as HTMLElement
+    const applied = tab.querySelector('.nn-changes-applied') as HTMLElement
     expect(unsent.compareDocumentPosition(applied) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(unsent.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
-    expect(applied.querySelector('[data-innfo-component="change-history"]')).not.toBeNull()
+    expect(unsent.querySelector('[data-nn-component="draft-list"]')).not.toBeNull()
+    expect(applied.querySelector('[data-nn-component="change-history"]')).not.toBeNull()
     expect(sections.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -88,10 +88,10 @@ describe('console-review-tab (one Changes tab)', () => {
     const store = Review.createDraftStore(env.localStorage, 'm1')
     addDraft(store)
     const tab = renderTab({ store, elements: ELEMENTS, changes: [] })
-    const unsent = tab.querySelector('.innfo-changes-unsent')!
-    const banner = unsent.querySelector('[data-innfo="publication-banner"]')!
+    const unsent = tab.querySelector('.nn-changes-unsent')!
+    const banner = unsent.querySelector('[data-nn="publication-banner"]')!
     expect(banner).not.toBeNull()
-    const list = unsent.querySelector('[data-innfo-component="draft-list"]')!
+    const list = unsent.querySelector('[data-nn-component="draft-list"]')!
     expect(banner.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(banner.textContent).toContain('every console generated from this domain')
   })
@@ -100,10 +100,10 @@ describe('console-review-tab (one Changes tab)', () => {
     const { Review } = env.loadConsole()
     const store = Review.createDraftStore(env.localStorage, 'm1')
     const tab = renderTab({ store, elements: ELEMENTS, changes: [] })
-    const note = tab.querySelector('[data-innfo="publication-note"]')!
+    const note = tab.querySelector('[data-nn="publication-note"]')!
     expect(note).not.toBeNull()
     expect(note.textContent).toContain('every console generated from this domain')
-    expect(tab.querySelector('[data-innfo="publication-banner"]')).toBeNull()
+    expect(tab.querySelector('[data-nn="publication-banner"]')).toBeNull()
   })
 
   it('renders the applied history newest first and an empty state per section', () => {
@@ -126,11 +126,11 @@ describe('console-review-tab (one Changes tab)', () => {
       ],
     }
     const tab = renderTab({ store, elements: ELEMENTS, changes: [newer, older] })
-    const diffs = Array.from(tab.querySelectorAll('.innfo-change-card-diff')).map(
+    const diffs = Array.from(tab.querySelectorAll('.nn-change-card-diff')).map(
       (n) => n.textContent,
     )
     expect(diffs).toEqual(['X \u2192 Y', 'A \u2192 B'])
-    expect(tab.querySelector('.innfo-review-empty')).not.toBeNull()
+    expect(tab.querySelector('.nn-review-empty')).not.toBeNull()
   })
 
   it('Revert adds one unsent update_field with the current hash and value', () => {
@@ -140,7 +140,7 @@ describe('console-review-tab (one Changes tab)', () => {
     const tab = renderTab({ store, elements: ELEMENTS, changes: APPLIED }, () => {
       refreshed++
     })
-    ;(tab.querySelector('.innfo-change-revert') as HTMLButtonElement).click()
+    ;(tab.querySelector('.nn-change-revert') as HTMLButtonElement).click()
     expect(refreshed).toBe(1)
     const draft = store.drafts()[0]
     expect(draft).toMatchObject({
@@ -167,7 +167,7 @@ describe('console-review-tab (one Changes tab)', () => {
       },
     ]
     const tab = renderTab({ store, elements: ELEMENTS, changes: added })
-    ;(tab.querySelector('.innfo-change-revert') as HTMLButtonElement).click()
+    ;(tab.querySelector('.nn-change-revert') as HTMLButtonElement).click()
     expect(store.drafts()[0]).toMatchObject({
       element_id: 'e1',
       field: 'owner',
@@ -181,7 +181,7 @@ describe('console-review-tab (one Changes tab)', () => {
     const { Review } = env.loadConsole()
     const store = Review.createDraftStore(env.localStorage, 'm1')
     const dialog = env.document.createElement('dialog') as any
-    dialog.id = 'innfo-citation-dialog'
+    dialog.id = 'nn-citation-dialog'
     dialog.showModal = vi.fn()
     env.document.body.appendChild(dialog)
     const cited = [
@@ -203,14 +203,14 @@ describe('console-review-tab (one Changes tab)', () => {
       },
     ]
     const tab = renderTab({ store, elements: ELEMENTS, changes: cited })
-    ;(tab.querySelector('.innfo-change-card-source .cite-icon') as HTMLButtonElement).click()
+    ;(tab.querySelector('.nn-change-card-source .cite-icon') as HTMLButtonElement).click()
     expect(dialog.showModal).toHaveBeenCalledTimes(1)
     // The source splits into a path and an anchor; nothing was checked, so no status is claimed.
     const labels = Array.from(dialog.querySelectorAll('dt')).map((n: any) => n.textContent)
     const values = Array.from(dialog.querySelectorAll('dd')).map((n: any) => n.textContent)
     expect(labels).toEqual(['Anchor', 'Path'])
     expect(values).toEqual(['p3', 'sources/report.pdf'])
-    expect(dialog.querySelector('.innfo-cite-status')).toBeNull()
+    expect(dialog.querySelector('.nn-cite-status')).toBeNull()
     expect(dialog.textContent).not.toContain('resolved')
   })
 
@@ -225,8 +225,8 @@ describe('console-review-tab (one Changes tab)', () => {
     }
     env.document.body.appendChild(card)
     const tab = renderTab({ store, elements: ELEMENTS, changes: APPLIED })
-    ;(tab.querySelector('.innfo-change-goto') as HTMLButtonElement).click()
+    ;(tab.querySelector('.nn-change-goto') as HTMLButtonElement).click()
     expect(scrolled).toBe(true)
-    expect(card.classList.contains('innfo-highlight')).toBe(true)
+    expect(card.classList.contains('nn-highlight')).toBe(true)
   })
 })

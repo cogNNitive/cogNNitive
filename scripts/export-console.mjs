@@ -7,7 +7,7 @@
  * Scans a workspace for iNNfo Level-3 models and compiles ONE self-contained
  * console (bundle, CSS, views and JSON slots inlined) against the canonical
  * console shell (`iNNfo/specs/bluepriNNts/console/artifact_shell.html`), filling
- * the `innfo-config` / `innfo-schema` / `innfo-model` slots from a direct model
+ * the `nn-config` / `innfo-schema` / `innfo-model` slots from a direct model
  * scan (no runtime dependency on nn-core, whose raw `dist/` barrel is not
  * ESM-importable). There is no per-model console: every console is the domain
  * console, optionally scoped to a model subset or a single view.
@@ -114,7 +114,7 @@ function loadPayloadHelper(consoleDir) {
 async function ensureAssets() {
   const consoleDir = resolveConsoleDir()
   const shellPath = findShell(consoleDir) || join(consoleDir, SHELL_FILENAME)
-  const bundlePath = ['nn-console.bundle.js', 'innfo-console.bundle.js']
+  const bundlePath = ['nn-console.bundle.js', 'nn-console.bundle.js']
     .map((name) => join(consoleDir, name))
     .find((p) => existsSync(p)) || join(consoleDir, 'nn-console.bundle.js')
   if (!existsSync(shellPath)) {
@@ -475,7 +475,7 @@ function injectSlots(shell, config, schema, model) {
       (_m, open, close) => `${open}\n${serialize(json)}\n${close}`,
     )
   return slot(
-    slot(slot(shell, 'innfo-config', config), 'innfo-schema', schema),
+    slot(slot(shell, 'nn-config', config), 'innfo-schema', schema),
     'innfo-model',
     model,
   )
@@ -795,7 +795,7 @@ export async function writeConsole(opts = {}) {
   const packagesDir =
     process.env.INNFO_BLUEPRINTS_DIR ||
     (consoleDir === repoConsoleDir ? dirname(consoleDir) : join(homedir(), '.agents', 'bluepriNNts'))
-  const uiCssPath = ['nn-ui.css', 'innfo-ui.css']
+  const uiCssPath = ['nn-ui.css', 'nn-ui.css']
     .map((name) => join(consoleDir, name))
     .find((p) => existsSync(p)) || join(consoleDir, 'nn-ui.css')
   if (!existsSync(uiCssPath)) {
@@ -1377,7 +1377,7 @@ export async function scaffoldConsoleView({ rootDir, slug, template = 'table', b
   let code
   if (template === 'kpi' || template === 'dashboard') {
     code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${viewTitle} dashboard
-   Declarative dashboard view using InnfoUI.KpiGrid with canonical KU badges. */
+   Declarative dashboard view using nnUI.KpiGrid with canonical KU badges. */
 registerView({
   title: '${viewTitle}',
   icon: 'dashboard',
@@ -1387,7 +1387,7 @@ registerView({
     var doc = ctx.container.ownerDocument
     var elements = (ctx.payload && ctx.payload.model && ctx.payload.model.elements) || []
 
-    var grid = InnfoUI.KpiGrid(
+    var grid = nnUI.KpiGrid(
       {
         items: [
           { label: 'Total', value: elements.length, hint: 'Elementos en este dominio' },
@@ -1418,7 +1418,7 @@ registerView({
   } else {
     // Default: 'table'
     code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${viewTitle} table view
-   Declarative table view using InnfoUI.DataTable with canonical KU badges. */
+   Declarative table view using nnUI.DataTable with canonical KU badges. */
 registerView({
   title: '${viewTitle}',
   icon: 'layers',
@@ -1428,7 +1428,7 @@ registerView({
     var doc = ctx.container.ownerDocument
     var elements = (ctx.payload && ctx.payload.model && ctx.payload.model.elements) || []
 
-    var table = InnfoUI.DataTable(
+    var table = nnUI.DataTable(
       {
         columns: [
           { key: 'name', label: 'Nombre', kind: 'element' },

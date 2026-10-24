@@ -52,14 +52,14 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(typeof def.mount, 'function')
   })
 
-  it('hands the shared payload to InnfoProcedureStepper.mount', () => {
+  it('hands the shared payload to nnProcedureStepper.mount', () => {
     const def = loadView()
     const calls = []
-    global.InnfoProcedureStepper = { mount: (c, p) => calls.push({ c, p }) }
+    global.nnProcedureStepper = { mount: (c, p) => calls.push({ c, p }) }
     try {
       def.mount({ container, payload: payload() })
     } finally {
-      delete global.InnfoProcedureStepper
+      delete global.nnProcedureStepper
     }
     assert.equal(calls.length, 1)
     assert.equal(calls[0].c, container)
@@ -76,22 +76,22 @@ describe('procedure view (bluepriNNt)', () => {
     const stepper = createRequire(import.meta.url)(stepperPath)
     const handle = stepper.mount(container, payload())
     assert.equal(handle.ok, true)
-    assert.ok(container.querySelector('.innfo-procedure-view'), 'built inside the container')
+    assert.ok(container.querySelector('.nn-procedure-view'), 'built inside the container')
 
     // No global shell ids / no collision with the runtime's feedback modal, and
     // no id at all inside the mounted view (container-scoped DOM only).
-    for (const id of ['innfo-export-modal', 'audit-log-container', 'run-timer', 'doc-title', 'proc-tabs']) {
+    for (const id of ['nn-export-modal', 'audit-log-container', 'run-timer', 'doc-title', 'proc-tabs']) {
       assert.equal(doc.getElementById(id), null, `must not create the global id #${id}`)
     }
     assert.equal(container.querySelectorAll('[id]').length, 0, 'no element in the view carries an id')
 
-    // The execution-log dialog is created inside the container, not as #innfo-export-modal.
+    // The execution-log dialog is created inside the container, not as #nn-export-modal.
     const exportBtn = container.querySelector('.btn-export-log')
     assert.ok(exportBtn, 'export-log button rendered')
     exportBtn.click()
     const dialog = container.querySelector('dialog.export-dialog')
     assert.ok(dialog, 'a scoped dialog was created inside the container')
-    assert.notEqual(dialog.id, 'innfo-export-modal')
+    assert.notEqual(dialog.id, 'nn-export-modal')
 
     handle.unmount()
     assert.equal(container.innerHTML, '')
@@ -109,7 +109,7 @@ describe('procedure view (bluepriNNt)', () => {
       { id: 'usage', name: 'Getting started', path: 'procedures/usage_procedures_NN.md' },
     ]
     const handle = stepper.mount(container, p)
-    const list = container.querySelector('[data-innfo-procedures="blueprint"]')
+    const list = container.querySelector('[data-nn-procedures="blueprint"]')
     assert.ok(list, 'blueprint procedures list rendered')
     const items = [...list.querySelectorAll('.proc-blueprint-item')]
     assert.equal(items.length, 2)
@@ -122,7 +122,7 @@ describe('procedure view (bluepriNNt)', () => {
   it('renders no blueprint list when the schema carries no procedures', () => {
     const stepper = createRequire(import.meta.url)(stepperPath)
     const handle = stepper.mount(container, payload())
-    assert.equal(container.querySelector('[data-innfo-procedures="blueprint"]'), null)
+    assert.equal(container.querySelector('[data-nn-procedures="blueprint"]'), null)
     handle.unmount()
   })
 })

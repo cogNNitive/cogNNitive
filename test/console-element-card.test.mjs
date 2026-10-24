@@ -10,9 +10,9 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
+global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
 const UI = require(join(consoleDir, 'ui-kit.js'))
-const InnfoReview = require(join(consoleDir, 'review.js'))
+const nnReview = require(join(consoleDir, 'review.js'))
 
 describe('Element Card Redesign Contract', () => {
   let document
@@ -59,7 +59,7 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('img'), null)
       assert.equal(card.querySelector('[data-tag]').textContent, hostile)
       const empty = UI.ElementCard({ id: 'e', name: 'E', tags: [] }, { doc: document })
-      assert.equal(empty.querySelector('[data-innfo-component="tag-row"]'), null)
+      assert.equal(empty.querySelector('[data-nn-component="tag-row"]'), null)
     })
 
     it('a chip calls onTag with its tag; without onTag chips are not interactive', () => {
@@ -76,28 +76,28 @@ describe('Element Card Redesign Contract', () => {
       const card = UI.ElementCard({ id: 'u', name: 'U', fields: [{ name: 'f', value: 'v' }] }, { doc: document, domId: 'el-u' })
       document.body.appendChild(card)
       const elements = [{ id: 'u', concept: 'C', name: 'U', fields: { f: 'v' }, tags: [], hash: '0123456789abcdef' }]
-      const store = InnfoReview.createDraftStore(null, 'm')
-      const ctl = InnfoReview.createReviewController(document, {
+      const store = nnReview.createDraftStore(null, 'm')
+      const ctl = nnReview.createReviewController(document, {
         elements,
         store,
         meta: { modelId: 'ghostbusters' },
       })
       ctl.enable()
-      assert.ok(card.querySelector('[data-innfo-ctl="tag-add"]'), 'tag add on an untagged card')
+      assert.ok(card.querySelector('[data-nn-ctl="tag-add"]'), 'tag add on an untagged card')
       ctl.disable()
-      assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null, 'the helper row goes away with review mode')
+      assert.equal(card.querySelector('[data-nn-component="tag-row"]'), null, 'the helper row goes away with review mode')
     })
 
     it('renders path footer, tag row and relation list', () => {
       const card = fullCard()
       document.body.appendChild(card)
       assert.match(
-        card.querySelector('.innfo-card-path').textContent,
+        card.querySelector('.nn-card-path').textContent,
         /ghostbusters \/ fleet-vehicles \/ ecto-1/,
       )
-      const tags = card.querySelectorAll('[data-innfo-component="tag-row"] .innfo-tag')
+      const tags = card.querySelectorAll('[data-nn-component="tag-row"] .nn-tag')
       assert.equal(tags.length, 2)
-      const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
+      const rel = card.querySelector('[data-nn-component="rel-list"] .nn-rel-row')
       assert.ok(rel)
       assert.equal(rel.getAttribute('data-rel-field'), 'parked-at')
       assert.match(
@@ -112,10 +112,10 @@ describe('Element Card Redesign Contract', () => {
         { doc: document },
       )
       document.body.appendChild(card)
-      assert.equal(card.querySelector('[data-innfo-component="qud-chip"]'), null)
-      assert.equal(card.querySelector('.innfo-card-path'), null)
-      assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null)
-      assert.equal(card.querySelector('[data-innfo-component="rel-list"]'), null)
+      assert.equal(card.querySelector('[data-nn-component="qud-chip"]'), null)
+      assert.equal(card.querySelector('.nn-card-path'), null)
+      assert.equal(card.querySelector('[data-nn-component="tag-row"]'), null)
+      assert.equal(card.querySelector('[data-nn-component="rel-list"]'), null)
       const value = card.querySelector('[data-ku-kind="value"]')
       assert.equal(value.getAttribute('data-field'), 'f')
       assert.match(value.textContent, /f[\s\S]*v/)
@@ -126,7 +126,7 @@ describe('Element Card Redesign Contract', () => {
         { id: 'e1a', name: 'Element 1A', conceptId: 'Concept 1', concept: { index: 0, slot: 1 } },
         { doc: document },
       )
-      const thumb1 = card1.querySelector('.innfo-card-thumb.innfo-card-thumb--concept')
+      const thumb1 = card1.querySelector('.nn-card-thumb.nn-card-thumb--concept')
       assert.ok(thumb1, 'concept icon thumb rendered for Concept 1')
       assert.equal(thumb1.getAttribute('data-concept-icon'), 'box')
       assert.ok(thumb1.querySelector('svg'), 'SVG icon rendered inside concept thumb')
@@ -135,14 +135,14 @@ describe('Element Card Redesign Contract', () => {
         { id: 'probe', name: 'Probe', conceptId: 'Edge Cases', concept: { index: 2, slot: 3 } },
         { doc: document },
       )
-      const thumbEdge = cardEdge.querySelector('.innfo-card-thumb.innfo-card-thumb--concept')
+      const thumbEdge = cardEdge.querySelector('.nn-card-thumb.nn-card-thumb--concept')
       assert.ok(thumbEdge, 'concept icon thumb rendered for Edge Cases')
       assert.equal(thumbEdge.getAttribute('data-concept-icon'), 'flask-conical')
     })
 
     it('lazy-mounts the card body only when opened', () => {
       const card = fullCard()
-      assert.ok(card.querySelector('.innfo-card-body'), 'open card has body immediately')
+      assert.ok(card.querySelector('.nn-card-body'), 'open card has body immediately')
 
       const collapsed = UI.ElementCard(
         {
@@ -155,12 +155,12 @@ describe('Element Card Redesign Contract', () => {
         { doc: document, open: false, collapsible: true, lazy: true },
       )
       document.body.appendChild(collapsed)
-      assert.equal(collapsed.querySelector('.innfo-card-body'), null, 'collapsed card has no body in DOM')
-      assert.equal(collapsed.querySelector('.innfo-card-path'), null, 'collapsed card has no footer in DOM')
+      assert.equal(collapsed.querySelector('.nn-card-body'), null, 'collapsed card has no body in DOM')
+      assert.equal(collapsed.querySelector('.nn-card-path'), null, 'collapsed card has no footer in DOM')
 
       collapsed.setOpen(true)
-      assert.ok(collapsed.querySelector('.innfo-card-body'), 'opening mounts the card body')
-      assert.ok(collapsed.querySelector('.innfo-card-path'), 'opening mounts the footer')
+      assert.ok(collapsed.querySelector('.nn-card-body'), 'opening mounts the card body')
+      assert.ok(collapsed.querySelector('.nn-card-path'), 'opening mounts the footer')
     })
   })
 
@@ -189,8 +189,8 @@ describe('Element Card Redesign Contract', () => {
           hash: '0123456789abcdef',
         },
       ]
-      const store = InnfoReview.createDraftStore(null, 'ghostbusters')
-      const ctl = InnfoReview.createReviewController(document, {
+      const store = nnReview.createDraftStore(null, 'ghostbusters')
+      const ctl = nnReview.createReviewController(document, {
         elements,
         store,
         meta: { modelId: 'ghostbusters' },
@@ -202,41 +202,41 @@ describe('Element Card Redesign Contract', () => {
     it('adds name/desc pencils and tag/relation controls', () => {
       const { card } = decorated()
       assert.equal(
-        card.querySelector('[data-innfo-ctl="edit-toggle"]'),
+        card.querySelector('[data-nn-ctl="edit-toggle"]'),
         null,
         'no per-card edit toggle',
       )
       assert.equal(
-        card.querySelector('[data-innfo-ctl="name-anchor"]'),
+        card.querySelector('[data-nn-ctl="name-anchor"]'),
         null,
         'no permanent name pencil: editing lives in the badge flyout',
       )
       assert.equal(
-        card.querySelector('[data-innfo-ctl="desc-anchor"]'),
+        card.querySelector('[data-nn-ctl="desc-anchor"]'),
         null,
         'no permanent description pencil',
       )
-      assert.ok(card.querySelector('.innfo-ku-more'), 'the badge carries the + affordance')
+      assert.ok(card.querySelector('.nn-ku-more'), 'the badge carries the + affordance')
       assert.equal(
-        card.querySelector('[data-innfo-ctl="marker-anchor"]'),
+        card.querySelector('[data-nn-ctl="marker-anchor"]'),
         null,
         'no marker pencil (the Marker primitive is gone)',
       )
       assert.equal(
-        card.querySelectorAll('[data-innfo-ctl="tag-remove"]').length,
+        card.querySelectorAll('[data-nn-ctl="tag-remove"]').length,
         2,
         'one remove per tag',
       )
-      assert.ok(card.querySelector('[data-innfo-ctl="tag-add"]'), 'tag add')
-      assert.ok(card.querySelector('[data-innfo-ctl="rel-retarget"]'), 'relation retarget')
-      assert.ok(card.querySelector('[data-innfo-ctl="rel-unlink"]'), 'relation unlink')
-      assert.ok(card.querySelector('[data-innfo-ctl="rel-add"]'), 'relation add')
+      assert.ok(card.querySelector('[data-nn-ctl="tag-add"]'), 'tag add')
+      assert.ok(card.querySelector('[data-nn-ctl="rel-retarget"]'), 'relation retarget')
+      assert.ok(card.querySelector('[data-nn-ctl="rel-unlink"]'), 'relation unlink')
+      assert.ok(card.querySelector('[data-nn-ctl="rel-add"]'), 'relation add')
     })
 
     it('tag remove records a correction on tags with the full new array', () => {
       const { store, card } = decorated()
       card
-        .querySelector('[data-innfo-ctl="tag-remove"]')
+        .querySelector('[data-nn-ctl="tag-remove"]')
         .dispatchEvent(new window.Event('click', { bubbles: true }))
       const drafts = store.drafts()
       assert.equal(drafts.length, 1)
@@ -247,15 +247,15 @@ describe('Element Card Redesign Contract', () => {
 
     it('the badge carries the + flyout, and openEdit opens the KU modal', () => {
       const { card, ctl } = decorated()
-      const wrap = card.querySelector('.innfo-card-head [data-ku-kind="element"]').closest('.innfo-ku-wrap')
-      assert.ok(wrap.querySelector('.innfo-ku-more'), 'the + affordance sits beside the badge')
+      const wrap = card.querySelector('.nn-card-head [data-ku-kind="element"]').closest('.nn-ku-wrap')
+      assert.ok(wrap.querySelector('.nn-ku-more'), 'the + affordance sits beside the badge')
       assert.ok(wrap.querySelector('[data-ku-action="edit"]'), 'the flyout carries the edit action')
       // This fixture wires a bare controller with no Ku delegation, so the entry point
       // under test is the controller API (the runtime's delegated listener is covered
       // by console-ku-actions).
       assert.equal(typeof ctl.openEdit, 'function')
       assert.equal(ctl.openEdit({ elementId: 'ecto-1', field: '__name' }), true)
-      const modal = document.querySelector('[data-innfo-component="edit-modal"]')
+      const modal = document.querySelector('[data-nn-component="edit-modal"]')
       assert.ok(modal, 'KU modal opens')
       assert.match(modal.querySelector('h2').textContent, /Ecto-1/)
     })
@@ -274,18 +274,18 @@ describe('Element Card Redesign Contract', () => {
           hash: '0123456789abcdef',
         },
       ]
-      const store = InnfoReview.createDraftStore(null, 'ghostbusters')
+      const store = nnReview.createDraftStore(null, 'ghostbusters')
       // No meta.modelId: canPropose is false, so the proposal anchors are withheld.
-      const ctl = InnfoReview.createReviewController(document, { elements, store })
+      const ctl = nnReview.createReviewController(document, { elements, store })
       ctl.enable()
-      assert.equal(card.querySelector('[data-innfo-ctl="tag-remove"]'), null, 'no tag remove')
-      assert.equal(card.querySelector('[data-innfo-ctl="tag-add"]'), null, 'no tag add')
-      assert.equal(card.querySelector('[data-innfo-ctl="rel-retarget"]'), null, 'no relation anchors')
+      assert.equal(card.querySelector('[data-nn-ctl="tag-remove"]'), null, 'no tag remove')
+      assert.equal(card.querySelector('[data-nn-ctl="tag-add"]'), null, 'no tag add')
+      assert.equal(card.querySelector('[data-nn-ctl="rel-retarget"]'), null, 'no relation anchors')
       // State decoration is capability-free: the + flyout remains; there is no
       // reviewed mark any more (the console only records changes).
-      assert.ok(card.querySelector('.innfo-ku-more'), 'the badge keeps its + affordance')
+      assert.ok(card.querySelector('.nn-ku-more'), 'the badge keeps its + affordance')
       assert.equal(
-        card.querySelector('[data-innfo-component="reviewed-toggle"]'),
+        card.querySelector('[data-nn-component="reviewed-toggle"]'),
         null,
         'no reviewed mark is rendered',
       )
@@ -329,7 +329,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
         `$1${JSON.stringify(model)}$2`,
       )
       .replace(
-        /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+        /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
         '$1{"needs":["concept-rail","fulltext-search"]}$2',
       )
       .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -341,18 +341,18 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     global.location = dom.window.location
     global.CustomEvent = dom.window.CustomEvent
     global.Event = dom.window.Event
-    global.InnfoUI = UI
-    global.InnfoReview = InnfoReview
-    const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
-    InnfoConsole.boot(global.document)
+    global.nnUI = UI
+    global.nnReview = nnReview
+    const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
+    nnConsole.boot(global.document)
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
     card.setOpen(true)
     assert.match(
-      card.querySelector('.innfo-card-path').textContent,
+      card.querySelector('.nn-card-path').textContent,
       /ghostbusters_NN\.md/,
     )
-    const rel = card.querySelector('[data-innfo-component="rel-list"] .innfo-rel-row')
+    const rel = card.querySelector('[data-nn-component="rel-list"] .nn-rel-row')
     assert.ok(rel, 'structured relation list (no legacy .rel-list)')
     assert.match(
       rel.querySelector('[data-ku-kind="element"]').getAttribute('data-ku-address'),
@@ -360,7 +360,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     )
     assert.equal(card.querySelector('.rel-list'), null, 'legacy relation markup gone')
     assert.equal(
-      card.querySelector('[data-innfo-component="tag-row"]'),
+      card.querySelector('[data-nn-component="tag-row"]'),
       null,
       'no tag row without payload tags',
     )

@@ -7,7 +7,7 @@ const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const uiKitPath = join(consoleDir, 'ui-kit.js')
 
-type InnfoUI = {
+type nnUI = {
   VERSION: string
   TOKEN_VALUES: { light: Record<string, string> }
   TOKENS: string[]
@@ -16,12 +16,12 @@ type InnfoUI = {
   setTheme: (doc: Document, theme: 'light' | null) => void
 }
 
-function loadKit(): InnfoUI {
-  return req(uiKitPath) as InnfoUI
+function loadKit(): nnUI {
+  return req(uiKitPath) as nnUI
 }
 
 const STATUSES = ['pending', 'applied', 'rejected', 'stale']
-const STATUS_PREFIX = '--innfo-status-'
+const STATUS_PREFIX = '--nn-status-'
 
 describe('console ui-kit tokens', () => {
   const UI = loadKit()
@@ -43,15 +43,15 @@ describe('console ui-kit tokens', () => {
     expect(css).not.toContain('prefers-color-scheme: dark')
   })
 
-  it('injects exactly one style[data-innfo-tokens] as the first child of <head> and pins data-theme="light"', () => {
+  it('injects exactly one style[data-nn-tokens] as the first child of <head> and pins data-theme="light"', () => {
     const doc = document.implementation.createHTMLDocument('t')
     const s1 = UI.ensureTokens(doc)
     const s2 = UI.ensureTokens(doc)
     expect(s1).toBe(s2)
-    const all = doc.querySelectorAll('style[data-innfo-tokens]')
+    const all = doc.querySelectorAll('style[data-nn-tokens]')
     expect(all.length).toBe(1)
     expect(doc.head.firstElementChild).toBe(s1)
-    expect(s1.getAttribute('data-innfo-tokens')).toBe(UI.VERSION)
+    expect(s1.getAttribute('data-nn-tokens')).toBe(UI.VERSION)
     expect(doc.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
@@ -60,12 +60,12 @@ describe('console ui-kit tokens', () => {
     const s1 = UI.ensureTokens(doc as unknown as Document)
     const before = s1.textContent
     UI.ensureTokens(doc as unknown as Document)
-    expect(doc.querySelectorAll('style[data-innfo-tokens]').length).toBe(1)
+    expect(doc.querySelectorAll('style[data-nn-tokens]').length).toBe(1)
     expect(s1.textContent).toBe(before)
-    s1.setAttribute('data-innfo-tokens', 'stale-version')
+    s1.setAttribute('data-nn-tokens', 'stale-version')
     s1.textContent = 'STALE'
     UI.ensureTokens(doc as unknown as Document)
-    expect(doc.querySelectorAll('style[data-innfo-tokens]').length).toBe(1)
+    expect(doc.querySelectorAll('style[data-nn-tokens]').length).toBe(1)
     expect(s1.textContent).not.toBe('STALE')
     expect(s1.textContent).toBe(before)
   })
@@ -97,9 +97,9 @@ describe('console ui-kit tokens', () => {
     })
   })
 
-  describe('innfo:theme-change message handler', () => {
-    it('always pins light theme on innfo:theme-change messages', () => {
-      const kitEvent = new MessageEvent('message', { data: { type: 'innfo:theme-change', theme: 'dark' } })
+  describe('nn:theme-change message handler', () => {
+    it('always pins light theme on nn:theme-change messages', () => {
+      const kitEvent = new MessageEvent('message', { data: { type: 'nn:theme-change', theme: 'dark' } })
       globalThis.dispatchEvent(kitEvent)
       expect(document.documentElement.getAttribute('data-theme')).toBe('light')
       expect(document.documentElement.classList.contains('dark')).toBe(false)

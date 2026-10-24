@@ -62,7 +62,7 @@ describe('Changes view (--domain)', () => {
   it('inlines no built-in console-view-changes view', async () => {
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
     assert.doesNotMatch(html, /console-view-changes/, 'the changes blueprint view is not inlined')
-    const header = html.match(/<!-- innfo-views[\s\S]*?-->/)
+    const header = html.match(/<!-- nn-views[\s\S]*?-->/)
     if (header) {
       assert.doesNotMatch(header[0], /console-view-changes/, 'the header lists no Changes view')
     }

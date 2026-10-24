@@ -14,7 +14,7 @@ const PAGE = 100
 
 // nn-runtime's `el()` reads the global `document`; the console browser does too.
 function mountDoc() {
-  const dom = new JSDOM('<!doctype html><html><body><div id="innfo-content"></div></body></html>')
+  const dom = new JSDOM('<!doctype html><html><body><div id="nn-content"></div></body></html>')
   globalThis.window = dom.window
   globalThis.document = dom.window.document
   return dom.window.document
@@ -44,30 +44,30 @@ describe('console progressive render window', () => {
       'm',
     )
 
-    const rows = () => doc.querySelectorAll('.innfo-element-table tbody tr').length
+    const rows = () => doc.querySelectorAll('.nn-element-table tbody tr').length
     assert.equal(rows(), PAGE, 'first pass renders exactly one page')
 
-    const more = doc.querySelector('.innfo-load-more')
+    const more = doc.querySelector('.nn-load-more')
     assert.ok(more, 'a "show more" control is offered')
     more.click()
 
     assert.equal(rows(), total, 'second pass appends the remainder')
-    assert.equal(doc.querySelector('.innfo-load-more'), null, 'control disappears once complete')
+    assert.equal(doc.querySelector('.nn-load-more'), null, 'control disappears once complete')
   })
 
   it('a result smaller than one page renders whole with no control', () => {
     const doc = mountDoc()
     runtime.mountElementBadges(doc, elements(10), [], [], {}, 'm')
-    assert.equal(doc.querySelectorAll('[data-innfo-component="ku-unit"]').length, 10)
-    assert.equal(doc.querySelector('.innfo-load-more'), null)
+    assert.equal(doc.querySelectorAll('[data-nn-component="ku-unit"]').length, 10)
+    assert.equal(doc.querySelector('.nn-load-more'), null)
   })
 
   it('badges view also windows a broad result', () => {
     const doc = mountDoc()
     const total = PAGE + 5
     runtime.mountElementBadges(doc, elements(total), [], [], {}, 'm')
-    assert.equal(doc.querySelectorAll('[data-innfo-component="ku-unit"]').length, PAGE)
-    doc.querySelector('.innfo-load-more').click()
-    assert.equal(doc.querySelectorAll('[data-innfo-component="ku-unit"]').length, total)
+    assert.equal(doc.querySelectorAll('[data-nn-component="ku-unit"]').length, PAGE)
+    doc.querySelector('.nn-load-more').click()
+    assert.equal(doc.querySelectorAll('[data-nn-component="ku-unit"]').length, total)
   })
 })

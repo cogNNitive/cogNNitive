@@ -87,11 +87,11 @@ level: 3
     const htmlContent = await readFile(htmlPath, 'utf-8')
     assert.equal(/<script[^>]*\ssrc=/.test(htmlContent), false, 'self-contained: no external script')
     assert.ok(htmlContent.includes('single-file console runtime'), 'bundle inlined')
-    assert.match(htmlContent, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
-    assert.match(htmlContent, /<script type="application\/json" id="innfo-config">/)
+    assert.match(htmlContent, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
+    assert.match(htmlContent, /<script type="application\/json" id="nn-config">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-schema">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-model">/)
-    assert.match(htmlContent, /id="innfo-tab-review"/)
+    assert.match(htmlContent, /id="nn-tab-review"/)
   })
 
   it('hydrates Level 1 primitives and Review tab offline in JSDOM without remote network requests', async () => {
@@ -123,32 +123,32 @@ level: 3
     dom.window.eval('var matchMedia = window.matchMedia;' + bundleJs)
 
     const doc = dom.window.document
-    dom.window.InnfoConsole.boot(doc)
+    dom.window.nnConsole.boot(doc)
 
     // Verify the navbar identity (single model -> the model title) and reviewer chip
-    const titleEl = doc.getElementById('innfo-domain-title')
+    const titleEl = doc.getElementById('nn-domain-title')
     assert.ok(titleEl, 'navbar identity title rendered')
     assert.equal(titleEl.textContent, 'Offline Business Model')
-    const banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
+    const banner = doc.getElementById('nn-feedback-banner') || doc.getElementById('nn-banner')
     assert.ok(banner)
-    const reviewerChip = banner.querySelector('.innfo-reviewer-chip')
+    const reviewerChip = banner.querySelector('.nn-reviewer-chip')
     assert.ok(reviewerChip, 'Reviewer profile chip rendered in banner')
     assert.match(reviewerChip.textContent, /Reviewer/)
 
     // Verify concept rail
-    const rail = doc.getElementById('innfo-rail')
+    const rail = doc.getElementById('nn-rail')
     assert.ok(rail)
-    const railItems = rail.querySelectorAll('.innfo-rail-item')
+    const railItems = rail.querySelectorAll('.nn-rail-item')
     assert.ok(railItems.length >= 2, 'Concept rail rendered concept items')
 
     // Verify element cards
-    const content = doc.getElementById('innfo-content')
+    const content = doc.getElementById('nn-content')
     assert.ok(content)
-    const cards = content.querySelectorAll('.innfo-card')
+    const cards = content.querySelectorAll('.nn-card')
     assert.ok(cards.length >= 2, 'Element cards rendered')
 
     // Verify tabs navigation
-    const tabsNav = doc.getElementById('innfo-view-tabs')
+    const tabsNav = doc.getElementById('nn-view-tabs')
     assert.ok(tabsNav)
     const reviewTabBtn = tabsNav.querySelector('[data-tab="review"]')
     assert.equal(reviewTabBtn, null, 'Review is reached from the floating review dock, not the tab strip')
@@ -406,7 +406,7 @@ level: 3
       assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'no script src')
       assert.equal(/<link[^>]*stylesheet/.test(html), false, 'no stylesheet link')
       assert.equal(html.split(await banner()).length - 1, 1, 'one bundle copy')
-      assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
+      assert.match(html, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
     })
 
     it('lists every view in the header and tags its script', async () => {
@@ -416,14 +416,14 @@ level: 3
       const res = await runCli([tempDir, '--domain'])
       assert.equal(res.code, 0, res.stderr)
       const html = await readFile(domainFile(), 'utf-8')
-      const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
+      const header = html.match(/<!-- nn-views[\s\S]*?-->/)[0]
       assert.match(header, /^pipeline domaiNN domaiNN:consoles\/views\/pipeline\.js sha256:[0-9a-f]{12}$/m)
       assert.match(
         header,
         /^timeline bluepriNNt bluepriNNt:metrics\/assets\/console-view-timeline\.js sha256:[0-9a-f]{12}$/m,
       )
-      assert.ok(html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'))
-      assert.ok(html.includes('data-innfo-view="timeline"'))
+      assert.ok(html.includes('data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles/views/pipeline.js"'))
+      assert.ok(html.includes('data-nn-view="timeline"'))
     })
 
     it('lists the metrics model in meta.models[] without a projection (view-derived)', async () => {
@@ -524,15 +524,15 @@ scenarioMonths:: 12
       })
       await new Promise((ok) => dom.window.addEventListener('load', ok))
       const doc = dom.window.document
-      const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
+      const tabs = [...doc.querySelectorAll('#nn-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.ok(tabs.includes('timeline'), JSON.stringify(tabs))
       assert.equal(tabs.includes('canonical'), false)
       assert.equal(tabs.includes('studio'), false)
       assert.equal(tabs.includes('review'), false, 'Changes lives in the review dock, not the tab strip')
-      doc.querySelector('#innfo-view-tabs [data-tab="timeline"]').click()
-      const panel = doc.getElementById('innfo-tab-timeline')
-      assert.ok(panel.querySelector('.innfo-timeline-table'), 'timeline grid rendered into its own panel')
-      assert.equal(doc.getElementById('innfo-timeline-grid'), null, 'no global timeline host id')
+      doc.querySelector('#nn-view-tabs [data-tab="timeline"]').click()
+      const panel = doc.getElementById('nn-tab-timeline')
+      assert.ok(panel.querySelector('.nn-timeline-table'), 'timeline grid rendered into its own panel')
+      assert.equal(doc.getElementById('nn-timeline-grid'), null, 'no global timeline host id')
     })
 
     it('boots under jsdom, registers each view with id == slug and opens the model explorer', async () => {
@@ -555,13 +555,13 @@ scenarioMonths:: 12
       })
       await new Promise((ok) => dom.window.addEventListener('load', ok))
       const doc = dom.window.document
-      const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
+      const tabs = [...doc.querySelectorAll('#nn-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.ok(tabs.indexOf('pipeline') >= 0 && tabs.indexOf('other') > tabs.indexOf('pipeline'), 'tabs come from the registry, ordered')
       assert.ok(tabs.indexOf('explorer') < tabs.indexOf('pipeline'), 'core tabs precede domain custom tabs')
-      assert.equal(doc.getElementById('innfo-view-errors'), null, 'no registration errors')
-      assert.equal(doc.querySelector('#innfo-view-tabs .innfo-view-tab.active').dataset.tab, 'explorer')
-      doc.querySelector('#innfo-view-tabs [data-tab="pipeline"]').click()
-      assert.match(doc.getElementById('innfo-tab-pipeline').textContent, /pipeline mounted with 2 elements/)
+      assert.equal(doc.getElementById('nn-view-errors'), null, 'no registration errors')
+      assert.equal(doc.querySelector('#nn-view-tabs .nn-view-tab.active').dataset.tab, 'explorer')
+      doc.querySelector('#nn-view-tabs [data-tab="pipeline"]').click()
+      assert.match(doc.getElementById('nn-tab-pipeline').textContent, /pipeline mounted with 2 elements/)
     })
 
     it('fails before writing when a view is not a classic script', async () => {

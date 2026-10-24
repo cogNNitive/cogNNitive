@@ -7,11 +7,11 @@ const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const uiKitPath = join(consoleDir, 'ui-kit.js')
 
-type InnfoUI = {
+type nnUI = {
   TOKEN_VALUES: { light: Record<string, string>; dark: Record<string, string> }
 }
 
-const UI = req(uiKitPath) as InnfoUI
+const UI = req(uiKitPath) as nnUI
 
 // Independent WCAG relative-luminance implementation (never imports the kit's).
 function srgbToLinear(c: number): number {
@@ -41,10 +41,10 @@ const ORIGINS = ['agent', 'human', 'reviewer', 'document', 'error']
 // Allowed text pairs per the design (TEXT_PAIRS). Light muted is NOT allowed on
 // surface-2 (4.39 < 4.5); only these pairs are enumerated.
 const TEXT_PAIRS: Array<[string, string]> = [
-  ['--innfo-text', '--innfo-bg'],
-  ['--innfo-muted', '--innfo-surface'],
-  ['--innfo-muted', '--innfo-bg'],
-  ['--innfo-link', '--innfo-surface'],
+  ['--nn-text', '--nn-bg'],
+  ['--nn-muted', '--nn-surface'],
+  ['--nn-muted', '--nn-bg'],
+  ['--nn-link', '--nn-surface'],
 ]
 
 describe('console ui-kit contrast', () => {
@@ -52,7 +52,7 @@ describe('console ui-kit contrast', () => {
     for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (const s of STATUSES) {
-        const r = ratio(v[`--innfo-status-${s}`], v[`--innfo-status-${s}-bg`])
+        const r = ratio(v[`--nn-status-${s}`], v[`--nn-status-${s}-bg`])
         expect(r, `status "${s}" in "${theme}" is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
       }
     }
@@ -68,11 +68,11 @@ describe('console ui-kit contrast', () => {
     }
   })
 
-  it('origin icons (UI graphics) meet >= 3 against --innfo-surface in both themes', () => {
+  it('origin icons (UI graphics) meet >= 3 against --nn-surface in both themes', () => {
     for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (const o of ORIGINS) {
-        const r = ratio(v[`--innfo-origin-${o}`], v['--innfo-surface'])
+        const r = ratio(v[`--nn-origin-${o}`], v['--nn-surface'])
         expect(r, `origin "${o}" in "${theme}" is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3)
       }
     }
@@ -82,9 +82,9 @@ describe('console ui-kit contrast', () => {
     for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (let slot = 1; slot <= 12; slot++) {
-        const tint = v[`--innfo-concept-${slot}-bg`]
-        expect(tint, `--innfo-concept-${slot}-bg in "${theme}" must exist`).toBeTruthy()
-        const r = ratio(v['--innfo-text'], tint)
+        const tint = v[`--nn-concept-${slot}-bg`]
+        expect(tint, `--nn-concept-${slot}-bg in "${theme}" must exist`).toBeTruthy()
+        const r = ratio(v['--nn-text'], tint)
         expect(r, `text on concept-${slot}-bg in "${theme}" is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
       }
     }

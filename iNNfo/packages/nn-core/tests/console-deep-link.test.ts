@@ -41,7 +41,7 @@ function renderShell(model: unknown = buildModel()): void {
       `$1${JSON.stringify(model)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -58,7 +58,7 @@ function boot() {
 }
 
 function searchBox(): HTMLInputElement {
-  return env.document.getElementById('innfo-search') as HTMLInputElement
+  return env.document.getElementById('nn-search') as HTMLInputElement
 }
 
 describe('console deep links (#el-<id>)', () => {

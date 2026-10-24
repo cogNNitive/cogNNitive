@@ -6,7 +6,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -136,7 +136,7 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
   })
 
   function bootExport() {
-    const registry = InnfoConsole.createViewRegistry()
+    const registry = nnConsole.createViewRegistry()
     let ctx
     registry.register({
       id: 'probe',
@@ -149,14 +149,14 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
       },
     })
     const booted = bootConsole({ registry, model: model_, schema })
-    booted.document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
+    booted.document.querySelector('.nn-view-tab[data-tab="probe"]').click()
     const idOf = (name) => model_.elements.find((e) => e.name === name).id
     return { ...booted, ctx, idOf, controller: booted.res.controller }
   }
 
   it('renders declared select values as pills in the cards', () => {
     const { document } = bootExport()
-    const pills = [...document.querySelectorAll('.innfo-field-select')].map((n) => n.textContent)
+    const pills = [...document.querySelectorAll('.nn-field-select')].map((n) => n.textContent)
     assert.ok(pills.includes('active'), 'Vehicle.status renders as a select pill')
     assert.ok(pills.includes('free'), 'Ghost.status renders as a select pill')
   })
@@ -164,7 +164,7 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
   it('opens the modal with each concept\'s own definition for a shared field name', () => {
     const { document, controller, idOf } = bootExport()
     const optionsOf = () =>
-      [...document.querySelectorAll('.innfo-edit-modal select[data-innfo-widget="select"] option')].map(
+      [...document.querySelectorAll('.nn-edit-modal select[data-nn-widget="select"] option')].map(
         (o) => o.value,
       )
     assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
@@ -176,6 +176,6 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
   it('opens an undeclared numeric field as a number input', () => {
     const { document, controller, idOf } = bootExport()
     assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'mileage' }), true)
-    assert.ok(document.querySelector('.innfo-edit-modal input[type="number"]'))
+    assert.ok(document.querySelector('.nn-edit-modal input[type="number"]'))
   })
 })

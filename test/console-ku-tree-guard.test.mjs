@@ -18,15 +18,15 @@ const { parseUnitAddress, unitHome } = require(
 let document
 
 before(() => {
-  global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
-  const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
+  global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
+  const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
   const html = readFileSync(join(root, 'test', 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
   const dom = new JSDOM(html, { url: 'http://localhost' })
   global.window = dom.window
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  InnfoConsole.boot(dom.window.document)
+  nnConsole.boot(dom.window.document)
   document = dom.window.document
 })
 
@@ -43,7 +43,7 @@ describe('Ku jsdom tree guard (testlab console)', () => {
   it('every data-ku-address parses and its kind matches the descriptor', () => {
     const kindsByAddress = new Map()
     const failures = []
-    for (const unit of document.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]')) {
+    for (const unit of document.querySelectorAll('[data-nn-component="ku-unit"][data-ku-address]')) {
       const address = unit.getAttribute('data-ku-address')
       const kind = unit.getAttribute('data-ku-kind')
       const parsed = parseUnitAddress(address)
@@ -61,7 +61,7 @@ describe('Ku jsdom tree guard (testlab console)', () => {
 
   it('parity: unitHome(address) equals the badge home', () => {
     const failures = []
-    for (const unit of document.querySelectorAll('[data-innfo-component="ku-unit"][data-ku-address]')) {
+    for (const unit of document.querySelectorAll('[data-nn-component="ku-unit"][data-ku-address]')) {
       const address = unit.getAttribute('data-ku-address')
       const home = unit.getAttribute('data-ku-home')
       if (unitHome(address) !== home) failures.push(`${address}: unitHome=${unitHome(address)} badge=${home}`)
@@ -71,8 +71,8 @@ describe('Ku jsdom tree guard (testlab console)', () => {
 
   it('carries no review-mode or structure gating rule for the edit action', () => {
     const css = [...document.querySelectorAll('style')].map((s) => s.textContent).join('\n')
-    assert.doesNotMatch(css, /html:not\(\[data-innfo-review=on\]\)[^{]*\[data-ku-action=edit\]/)
-    assert.doesNotMatch(css, /html:not\(\[data-innfo-structure=on\]\)[^{]*\[data-ku-structure=true\]/)
-    assert.equal(document.documentElement.getAttribute('data-innfo-review'), null)
+    assert.doesNotMatch(css, /html:not\(\[data-nn-review=on\]\)[^{]*\[data-ku-action=edit\]/)
+    assert.doesNotMatch(css, /html:not\(\[data-nn-structure=on\]\)[^{]*\[data-ku-structure=true\]/)
+    assert.equal(document.documentElement.getAttribute('data-nn-review'), null)
   })
 })

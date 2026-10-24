@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { bootConsole, InnfoConsole } from './helpers/console-boot.mjs'
+import { bootConsole, nnConsole } from './helpers/console-boot.mjs'
 
 const MODEL = {
   meta: { title: 'Rail Lab', modelId: 'rail-lab', modelVersion: 'V_1-0-0' },
@@ -18,11 +18,11 @@ describe('console rail concept filter is multi-select (OR)', () => {
       model: MODEL,
       schema: { concepts: [{ name: 'Alpha' }, { name: 'Beta' }, { name: 'Gamma' }] },
     })
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     const cards = () =>
-      document.querySelectorAll('#innfo-content [data-innfo-component="element-card"]').length
+      document.querySelectorAll('#nn-content [data-nn-component="element-card"]').length
     const rail = (name) =>
-      [...document.querySelectorAll('#innfo-rail [data-concept]')].find(
+      [...document.querySelectorAll('#nn-rail [data-concept]')].find(
         (a) => a.getAttribute('data-concept') === name,
       )
 
@@ -46,7 +46,7 @@ describe('rail and facets render knowledge units', () => {
       model: MODEL,
       schema: { concepts: [{ name: 'Alpha' }, { name: 'Beta' }] },
     })
-    const railBadge = document.querySelector('#innfo-rail [data-ku-kind="section"]')
+    const railBadge = document.querySelector('#nn-rail [data-ku-kind="section"]')
     assert.ok(railBadge, 'rail concept is a Ku section badge')
     assert.match(railBadge.getAttribute('data-ku-address'), /rail-lab@concept:alpha/i)
     assert.equal(railBadge.getAttribute('data-ku-home'), 'knowledge')
@@ -62,11 +62,11 @@ describe('rail and facets render knowledge units', () => {
         ],
       },
     })
-    const railBadge = document.querySelector('#innfo-rail [data-ku-kind="section"]')
-    const icon = railBadge.querySelector('.innfo-ku-icon svg')
+    const railBadge = document.querySelector('#nn-rail [data-ku-kind="section"]')
+    const icon = railBadge.querySelector('.nn-ku-icon svg')
     assert.ok(icon, 'the rail concept badge renders the concept icon')
     assert.equal(
-      document.querySelector('#innfo-rail .innfo-rail-concept-pill'),
+      document.querySelector('#nn-rail .nn-rail-concept-pill'),
       null,
       'the dead rail-concept-pill markup is gone',
     )
@@ -75,7 +75,7 @@ describe('rail and facets render knowledge units', () => {
 
 describe('field facet: tags: is exact membership (AND), | is any-of', () => {
   const el = (id, tags, fields = {}) => ({ id, concept: 'C', name: id, fields: { ...fields, tags } })
-  const ids = (list, q) => InnfoConsole.filterElements(list, q).map((e) => e.id)
+  const ids = (list, q) => nnConsole.filterElements(list, q).map((e) => e.id)
 
   it('repeated tags: tokens narrow with AND', () => {
     const list = [el('A', ['ai', 'pricing']), el('B', ['ai'])]
@@ -134,7 +134,7 @@ describe('field facet: tags: is exact membership (AND), | is any-of', () => {
 
 describe('element and dynamic field qualifiers', () => {
   const el = (id, name, fields = {}, relations = []) => ({ id, name, concept: 'Device', fields, relations })
-  const ids = (list, q) => InnfoConsole.filterElements(list, q).map((e) => e.id)
+  const ids = (list, q) => nnConsole.filterElements(list, q).map((e) => e.id)
 
   const items = [
     el('ecto-1', 'Ghost Mobile', { role: 'Interceptor', priority: 5, year: '1984' }),
@@ -197,13 +197,13 @@ describe('filter help and field facet values (S4/U4)', () => {
     }
     const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
     const { document } = bootConsole({ model: MODEL, schema })
-    const toolbar = document.querySelector('.innfo-toolbar')
+    const toolbar = document.querySelector('.nn-toolbar')
     const host = document.createElement('div')
-    host.id = 'innfo-filter-facets'
+    host.id = 'nn-filter-facets'
     toolbar.appendChild(host)
 
     // Two tokens so an AND/OR connector is rendered between them.
-    InnfoConsole.renderFilterBar(
+    nnConsole.renderFilterBar(
       document,
       { meta: MODEL.meta, elements: MODEL.elements, schema },
       () => {},
@@ -213,17 +213,17 @@ describe('filter help and field facet values (S4/U4)', () => {
     // The explanation is NOT visible UI any more. It lives on the AND/OR connector's
     // tooltip (a segmented control, asserted in the dedicated test below where two
     // clauses make the connector render).
-    assert.equal(document.querySelector('[data-innfo-filter-help]'), null, 'no visible help block')
+    assert.equal(document.querySelector('[data-nn-filter-help]'), null, 'no visible help block')
     assert.doesNotMatch(toolbar.textContent || '', /combine with AND/, 'the sentence is out of the UI')
 
     // Level 1: only the FIELD name. Its values appear only after choosing it.
-    const fieldsWrap = Array.from(host.querySelectorAll('.innfo-facet-dropdown')).find((w) =>
+    const fieldsWrap = Array.from(host.querySelectorAll('.nn-facet-dropdown')).find((w) =>
       /Fields/.test(w.textContent),
     )
     assert.ok(fieldsWrap, 'the Fields facet dropdown')
-    const fieldsBtn = fieldsWrap.querySelector('.innfo-facet-btn')
+    const fieldsBtn = fieldsWrap.querySelector('.nn-facet-btn')
     fieldsBtn.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
-    const firstField = fieldsWrap.querySelector('.innfo-facet-menu .innfo-facet-item')
+    const firstField = fieldsWrap.querySelector('.nn-facet-menu .nn-facet-item')
     assert.ok(firstField, 'a field row in the first step')
     assert.match(firstField.textContent, /tags/)
     assert.doesNotMatch(host.textContent, /pricing/, 'values are not listed before picking the field')
@@ -242,19 +242,19 @@ describe('filter help and field facet values (S4/U4)', () => {
     }
     const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
     const { document } = bootConsole({ model: MODEL, schema })
-    const toolbar = document.querySelector('.innfo-toolbar')
+    const toolbar = document.querySelector('.nn-toolbar')
     // The connector and the addressed pills live in the active-filters host, which
     // the shell provides but this minimal DOM does not: create it so the connector
     // path (rendered only with >= 2 clauses) runs.
     const facets = document.createElement('div')
-    facets.id = 'innfo-filter-facets'
+    facets.id = 'nn-filter-facets'
     toolbar.appendChild(facets)
     const active = document.createElement('div')
-    active.id = 'innfo-active-filters'
+    active.id = 'nn-active-filters'
     toolbar.appendChild(active)
 
     let nextQuery = null
-    InnfoConsole.renderFilterBar(
+    nnConsole.renderFilterBar(
       document,
       { meta: MODEL.meta, elements: MODEL.elements, schema },
       (q) => {
@@ -264,8 +264,8 @@ describe('filter help and field facet values (S4/U4)', () => {
       'tags:ai role:Interceptor',
     )
 
-    const toggle = active.querySelector('.innfo-op-toggle')
-    assert.ok(toggle, 'the connector is a segmented control (.innfo-op-toggle)')
+    const toggle = active.querySelector('.nn-op-toggle')
+    assert.ok(toggle, 'the connector is a segmented control (.nn-op-toggle)')
     assert.equal(toggle.getAttribute('role'), 'group', 'the connector is a labelled group')
     assert.match(
       toggle.getAttribute('title') || '',
@@ -274,9 +274,9 @@ describe('filter help and field facet values (S4/U4)', () => {
     )
     assert.doesNotMatch(active.textContent || '', /combine with AND/i, 'and not in the visible text')
 
-    const buttons = Array.from(toggle.querySelectorAll('.innfo-op-btn'))
+    const buttons = Array.from(toggle.querySelectorAll('.nn-op-btn'))
     assert.equal(buttons.length, 2, 'one button per connector value')
-    assert.equal(toggle.querySelector('.innfo-op-btn.active').textContent, 'AND')
+    assert.equal(toggle.querySelector('.nn-op-btn.active').textContent, 'AND')
 
     const orBtn = buttons.find((b) => b.textContent === 'OR')
     orBtn.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))

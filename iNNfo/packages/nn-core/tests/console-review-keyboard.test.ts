@@ -32,7 +32,7 @@ function renderModelConsole(): void {
       `$1${JSON.stringify(sampleModel)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -95,9 +95,9 @@ describe('console-review-keyboard (j/k/c + a11y)', () => {
     focusCard('a')
     pressKey('c')
     // The card annotate popover was retired; `c` opens the one KU modal.
-    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]')
     expect(modal).not.toBeNull()
-    expect(modal!.querySelector('.innfo-edit-form-comment')).not.toBeNull()
+    expect(modal!.querySelector('.nn-edit-form-comment')).not.toBeNull()
   })
 
   it('keystrokes are ignored while typing in a textarea', () => {
@@ -122,7 +122,7 @@ describe('console-review-keyboard (j/k/c + a11y)', () => {
     const mods = env.loadConsole()
     const res = mods.Console.boot(env.document)
     if (res && res.controller) controllers.push(res.controller)
-    const counter = env.document.querySelector('[data-innfo="draft-count"]') as HTMLElement
+    const counter = env.document.querySelector('[data-nn="draft-count"]') as HTMLElement
     expect(counter).not.toBeNull()
     expect(counter.getAttribute('role')).toBe('status')
     expect(counter.getAttribute('aria-live')).toBe('polite')

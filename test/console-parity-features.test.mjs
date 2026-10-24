@@ -7,7 +7,7 @@ import { bootConsole, consoleDir } from './helpers/console-boot.mjs'
 
 const require = createRequire(import.meta.url)
 const UI = require(join(consoleDir, 'ui-kit.js'))
-const InnfoReview = require(join(consoleDir, 'review.js'))
+const nnReview = require(join(consoleDir, 'review.js'))
 
 function click(node) {
   node.dispatchEvent(new node.ownerDocument.defaultView.Event('click', { bubbles: true }))
@@ -29,9 +29,9 @@ describe('SankeyFlow (KU modal Connections)', () => {
       outgoing: [{ label: 'Venkman', field: 'driver' }],
     })
     document.body.appendChild(flow)
-    assert.ok(flow.classList.contains('innfo-sankey'))
-    assert.equal(flow.querySelectorAll('.innfo-sankey-node').length, 3)
-    assert.equal(flow.querySelectorAll('.innfo-sankey-link').length, 2)
+    assert.ok(flow.classList.contains('nn-sankey'))
+    assert.equal(flow.querySelectorAll('.nn-sankey-node').length, 3)
+    assert.equal(flow.querySelectorAll('.nn-sankey-link').length, 2)
     assert.match(flow.textContent, /Ecto-1/)
     assert.match(flow.textContent, /HQ/)
     assert.match(flow.textContent, /Venkman/)
@@ -41,8 +41,8 @@ describe('SankeyFlow (KU modal Connections)', () => {
     const document = dom()
     const flow = UI.SankeyFlow({ incoming: [], outgoing: [] })
     document.body.appendChild(flow)
-    assert.ok(flow.querySelector('.innfo-sankey-empty'))
-    assert.equal(flow.querySelectorAll('.innfo-sankey-node').length, 0)
+    assert.ok(flow.querySelector('.nn-sankey-empty'))
+    assert.equal(flow.querySelectorAll('.nn-sankey-node').length, 0)
   })
 
   it('EditModal exposes a Connections tab wired to the flow', () => {
@@ -52,9 +52,9 @@ describe('SankeyFlow (KU modal Connections)', () => {
       connections: { center: 'Ecto-1', incoming: [{ label: 'HQ', field: 'parked-at' }], outgoing: [] },
     })
     document.body.appendChild(modal)
-    const tab = [...modal.querySelectorAll('.innfo-modal-tab-btn')].find((b) => b.textContent === 'Connections')
+    const tab = [...modal.querySelectorAll('.nn-modal-tab-btn')].find((b) => b.textContent === 'Connections')
     assert.ok(tab, 'Connections tab button exists')
-    assert.ok(modal.querySelector('.innfo-sankey'), 'flow mounted in the modal')
+    assert.ok(modal.querySelector('.nn-sankey'), 'flow mounted in the modal')
     tab.dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
     const panel = modal.querySelector('[data-tab="connections"]')
     assert.equal(panel.style.display, 'block')
@@ -84,12 +84,12 @@ describe('SankeyFlow (KU modal Connections)', () => {
         relations: [{ field: 'houses', target: 'a', targetLabel: 'Ecto-1' }],
       },
     ]
-    const store = InnfoReview.createDraftStore(null, 'fleet')
-    const ctl = InnfoReview.createReviewController(document, { elements, store })
+    const store = nnReview.createDraftStore(null, 'fleet')
+    const ctl = nnReview.createReviewController(document, { elements, store })
     assert.equal(ctl.openEdit({ elementId: 'a', field: 'role' }), true)
-    const modal = document.querySelector('[data-innfo-component="edit-modal"]')
+    const modal = document.querySelector('[data-nn-component="edit-modal"]')
     assert.ok(modal, 'modal opened')
-    const flow = modal.querySelector('.innfo-sankey')
+    const flow = modal.querySelector('.nn-sankey')
     assert.ok(flow, 'sankey rendered from relations')
     assert.match(flow.textContent, /HQ Garage/)
     assert.match(flow.textContent, /Ecto-1/)
@@ -122,15 +122,15 @@ describe('Concept guidance sidebar', () => {
 
   it('is absent until a single concept is in focus', () => {
     const { document } = bootConsole({ model: MODEL, schema: SCHEMA })
-    assert.equal(document.getElementById('innfo-concept-guide'), null)
+    assert.equal(document.getElementById('nn-concept-guide'), null)
   })
 
   it('renders description, fields, matrices and element count for the filtered concept', () => {
     const { document } = bootConsole({ model: MODEL, schema: SCHEMA })
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     search.value = 'concept:Fleet'
     search.dispatchEvent(new document.defaultView.Event('input', { bubbles: true }))
-    const guide = document.getElementById('innfo-concept-guide')
+    const guide = document.getElementById('nn-concept-guide')
     assert.ok(guide, 'guide sidebar created')
     assert.match(guide.textContent, /Vehicles in the fleet\./)
     assert.match(guide.textContent, /role/)
@@ -143,13 +143,13 @@ describe('Concept guidance sidebar', () => {
 
   it('disappears when the concept filter is cleared', () => {
     const { document } = bootConsole({ model: MODEL, schema: SCHEMA })
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     search.value = 'concept:Fleet'
     search.dispatchEvent(new document.defaultView.Event('input', { bubbles: true }))
-    assert.ok(document.getElementById('innfo-concept-guide'))
+    assert.ok(document.getElementById('nn-concept-guide'))
     search.value = ''
     search.dispatchEvent(new document.defaultView.Event('input', { bubbles: true }))
-    assert.equal(document.getElementById('innfo-concept-guide'), null)
+    assert.equal(document.getElementById('nn-concept-guide'), null)
   })
 })
 
@@ -169,23 +169,23 @@ describe('Media lightbox', () => {
 
   it('opens a dialog from the card thumbnail with all element images', () => {
     const { document } = bootConsole({ model: MODEL })
-    const thumb = document.querySelector('#innfo-content .innfo-card-thumb')
+    const thumb = document.querySelector('#nn-content .nn-card-thumb')
     assert.ok(thumb && thumb.tagName === 'IMG', 'image chip present')
     click(thumb)
-    const dialog = document.getElementById('innfo-media-dialog')
+    const dialog = document.getElementById('nn-media-dialog')
     assert.ok(dialog, 'media dialog created')
-    assert.equal(dialog.querySelector('.innfo-media-image').getAttribute('src'), './a.png')
-    assert.ok(dialog.querySelectorAll('.innfo-media-nav').length >= 2 || dialog.querySelector('.innfo-media-count'))
-    assert.equal(dialog.querySelector('.innfo-media-count').textContent, '1 / 2')
+    assert.equal(dialog.querySelector('.nn-media-image').getAttribute('src'), './a.png')
+    assert.ok(dialog.querySelectorAll('.nn-media-nav').length >= 2 || dialog.querySelector('.nn-media-count'))
+    assert.equal(dialog.querySelector('.nn-media-count').textContent, '1 / 2')
   })
 
   it('advances to the next image', () => {
     const { document } = bootConsole({ model: MODEL })
-    click(document.querySelector('#innfo-content .innfo-card-thumb'))
-    const dialog = document.getElementById('innfo-media-dialog')
-    const next = [...dialog.querySelectorAll('.innfo-media-nav')].find((b) => b.textContent === '›')
+    click(document.querySelector('#nn-content .nn-card-thumb'))
+    const dialog = document.getElementById('nn-media-dialog')
+    const next = [...dialog.querySelectorAll('.nn-media-nav')].find((b) => b.textContent === '›')
     click(next)
-    assert.equal(dialog.querySelector('.innfo-media-image').getAttribute('src'), './b.jpg')
-    assert.equal(dialog.querySelector('.innfo-media-count').textContent, '2 / 2')
+    assert.equal(dialog.querySelector('.nn-media-image').getAttribute('src'), './b.jpg')
+    assert.equal(dialog.querySelector('.nn-media-count').textContent, '2 / 2')
   })
 })

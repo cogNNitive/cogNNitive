@@ -24,7 +24,7 @@ import {
   evaluateSizeBudget,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
-import { InnfoConsole, consoleDir } from './helpers/console-boot.mjs'
+import { nnConsole, consoleDir } from './helpers/console-boot.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"
 
@@ -86,7 +86,7 @@ describe('console-views lib', () => {
     const runtimeSource = readFileSync(join(consoleDir, 'nn-runtime.js'), 'utf8')
     const accepted = (id) => {
       try {
-        InnfoConsole.createViewRegistry().register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        nnConsole.createViewRegistry().register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
         return true
       } catch {
         return false
@@ -410,7 +410,7 @@ describe('console-views lib', () => {
     })
 
     describe('script data double-escaped state', () => {
-      const registrar = '<script>window.InnfoConsole = { viewRegistrar: () => (def) => { window.__view = def } }</script>'
+      const registrar = '<script>window.nnConsole = { viewRegistrar: () => (def) => { window.__view = def } }</script>'
       const parse = async (markup) => {
         const dom = new JSDOM(markup, { runScripts: 'dangerously' })
         await new Promise((ok) => dom.window.addEventListener('load', ok))
@@ -467,19 +467,19 @@ describe('console-views lib', () => {
 
     it('wraps a view with the registrar for its slug and tags the script', () => {
       const out = wrapView({ ...view, code: "var s = '</script>'\n// tail" })
-      assert.match(out, /^<script data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles\/views\/pipeline\.js">/)
-      assert.ok(out.includes("InnfoConsole.viewRegistrar(\"pipeline\", \"domaiNN:consoles/views/pipeline.js\")"))
+      assert.match(out, /^<script data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles\/views\/pipeline\.js">/)
+      assert.ok(out.includes("nnConsole.viewRegistrar(\"pipeline\", \"domaiNN:consoles/views/pipeline.js\")"))
       assert.equal(out.match(/<\/script/gi).length, 1, 'only the closing tag survives')
-      assert.match(out, /\/\/ tail\n\}\)\(InnfoConsole/, 'a trailing line comment cannot swallow the closing')
+      assert.match(out, /\/\/ tail\n\}\)\(nnConsole/, 'a trailing line comment cannot swallow the closing')
     })
 
     it('escapes attribute values', () => {
-      assert.ok(wrapView({ ...view, source: 'a"b<c&d' }).includes('data-innfo-view-source="a&quot;b&lt;c&amp;d"'))
+      assert.ok(wrapView({ ...view, source: 'a"b<c&d' }).includes('data-nn-view-source="a&quot;b&lt;c&amp;d"'))
     })
 
     it('header lists id, origin, source and a 12 hex digest per view, with -- sanitized', () => {
       const h = viewsHeader([view, { ...view, id: 'x--y', source: 'domaiNN:a--b.js' }])
-      assert.match(h, /^<!-- innfo-views \(trusted code, full page access\)\n/)
+      assert.match(h, /^<!-- nn-views \(trusted code, full page access\)\n/)
       assert.ok(h.includes('pipeline domaiNN domaiNN:consoles/views/pipeline.js sha256:abababababab\n'))
       const body = h.slice(4, -3)
       assert.equal(body.includes('--'), false)
@@ -511,8 +511,8 @@ describe('console-views lib', () => {
       assert.equal(out.split('/*BUNDLE*/').length - 1, 1)
       assert.equal(out.includes('nn:console-shell'), false)
       assert.ok(out.includes('<style>.a{}</style>'))
-      assert.ok(out.indexOf('innfo-views') > out.indexOf('name="viewport"'))
-      assert.ok(out.indexOf('/*BUNDLE*/') < out.indexOf('data-innfo-view="p"'), 'views run after the bundle')
+      assert.ok(out.indexOf('nn-views') > out.indexOf('name="viewport"'))
+      assert.ok(out.indexOf('/*BUNDLE*/') < out.indexOf('data-nn-view="p"'), 'views run after the bundle')
     })
 
     it('fails when the shell lacks an expected anchor', () => {
@@ -598,7 +598,7 @@ describe('allowInlineScripts', () => {
         '<script type="application/json" id="d">{"a":1}</script>' +
         '<script src="https://cdn.jsdelivr.net/x.js"></script>' +
         '<script>\nrun()\n</script>' +
-        '<script data-innfo-view="v">view()</script>',
+        '<script data-nn-view="v">view()</script>',
     )
     const policy = policyOf(allowInlineScripts(html))
     assert.ok(policy.includes(sha('\nrun()\n')))
@@ -622,8 +622,8 @@ describe('allowInlineScripts', () => {
 
   it('inlineConsoleAssets authorizes the inlined bundle and views', () => {
     const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
-    const out = inlineConsoleAssets(shell, { bundle: 'window.InnfoConsole = {}', css: 'a{}', views: [] })
-    assert.ok(policyOf(out).includes(sha('\nwindow.InnfoConsole = {}\n')))
+    const out = inlineConsoleAssets(shell, { bundle: 'window.nnConsole = {}', css: 'a{}', views: [] })
+    assert.ok(policyOf(out).includes(sha('\nwindow.nnConsole = {}\n')))
   })
 })
 

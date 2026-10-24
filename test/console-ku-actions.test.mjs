@@ -23,13 +23,13 @@ describe('delegated Ku actions', () => {
     const edit = document.querySelector('[data-ku-action="edit"]')
     assert.ok(edit, 'edit control is emitted')
     assert.equal(
-      document.documentElement.getAttribute('data-innfo-review'),
+      document.documentElement.getAttribute('data-nn-review'),
       null,
       'no review-mode attribute: the pencil is not gated by a mode',
     )
     edit.click()
     assert.ok(
-      document.querySelector('[data-innfo-component="edit-modal"]'),
+      document.querySelector('[data-nn-component="edit-modal"]'),
       'the pencil is live: it proposes a draft',
     )
   })
@@ -39,7 +39,7 @@ describe('delegated Ku actions', () => {
     /* no review mode: edits are live */
     const edit = document.querySelector('[data-ku-action="edit"]')
     edit.click()
-    assert.ok(document.querySelector('[data-innfo-component="edit-modal"]'), 'modal opened')
+    assert.ok(document.querySelector('[data-nn-component="edit-modal"]'), 'modal opened')
   })
 })
 
@@ -47,11 +47,11 @@ describe('no Edit structure switch', () => {
   it('has no switch and no structure attribute', () => {
     const { document } = boot()
     assert.equal(
-      document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]'),
+      document.querySelector('#nn-review-dock [data-nn="structure-switch"]'),
       null,
       'the switch is gone: the edit modal warns instead',
     )
-    assert.equal(document.documentElement.getAttribute('data-innfo-structure'), null)
+    assert.equal(document.documentElement.getAttribute('data-nn-structure'), null)
   })
 })
 
@@ -63,7 +63,7 @@ describe('address-keyed pips', () => {
     const address = badge.getAttribute('data-ku-address')
     // The review controller's store is reachable from the runtime state, but the
     // public contract is the address on the badge and the pip beside it.
-    const wrap = badge.closest('.innfo-ku-wrap')
+    const wrap = badge.closest('.nn-ku-wrap')
     assert.ok(wrap, 'badge lives in a ku-wrap')
     assert.ok(address.includes('slimer'), 'address is canonical')
   })

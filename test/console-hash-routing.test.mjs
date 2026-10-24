@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const view = {
   id: 'pipeline',
@@ -17,21 +17,21 @@ async function until(cond, ms = 2000) {
 }
 
 function boot(url) {
-  const registry = InnfoConsole.createViewRegistry()
+  const registry = nnConsole.createViewRegistry()
   registry.register(view)
   const booted = bootConsole({ registry, url })
   const { dom, document } = booted
   return {
     ...booted,
     hash: () => dom.window.location.hash,
-    tab: (id) => document.querySelector(`.innfo-view-tab[data-tab="${id}"]`),
-    active: (id) => document.getElementById(`innfo-tab-${id}`).classList.contains('active'),
+    tab: (id) => document.querySelector(`.nn-view-tab[data-tab="${id}"]`),
+    active: (id) => document.getElementById(`nn-tab-${id}`).classList.contains('active'),
     search(value) {
-      const box = document.getElementById('innfo-search')
+      const box = document.getElementById('nn-search')
       box.value = value
       box.dispatchEvent(new dom.window.Event('input'))
     },
-    query: () => document.getElementById('innfo-search').value,
+    query: () => document.getElementById('nn-search').value,
   }
 }
 

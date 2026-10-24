@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 const UI = require(join(consoleDir, 'ui-kit.js'))
-const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
+const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
 
 // Mounts UI.EditModal in a fresh jsdom document and returns the capture helpers.
 // The global window/document/localStorage mirror the pattern in
@@ -37,13 +37,13 @@ function mount(data) {
 
   const save = () =>
     modal
-      .querySelector('.innfo-edit-btn-save')
+      .querySelector('.nn-edit-btn-save')
       .dispatchEvent(new window.Event('click', { bubbles: true }))
 
-  const widget = () => modal.querySelector('[data-innfo-widget]')
+  const widget = () => modal.querySelector('[data-nn-widget]')
   const proposeButton = () =>
-    [...modal.querySelectorAll('.innfo-edit-mode-btn')].find((b) => /propose/i.test(b.textContent))
-  const errorBox = () => modal.querySelector('.innfo-edit-error')
+    [...modal.querySelectorAll('.nn-edit-mode-btn')].find((b) => /propose/i.test(b.textContent))
+  const errorBox = () => modal.querySelector('.nn-edit-error')
 
   return {
     dom,
@@ -86,7 +86,7 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
   describe('select', () => {
     it('contains a blank option and preserves an unknown current value on an unchanged save', () => {
       const t = mount({ type: 'select', value: 'legacy', options: ['a', 'b'] })
-      const select = t.modal.querySelector('select[data-innfo-widget="select"]')
+      const select = t.modal.querySelector('select[data-nn-widget="select"]')
       const values = [...select.querySelectorAll('option')].map((o) => o.value)
       assert.equal(values[0], '', 'the blank option is first')
       assert.ok(values.includes('legacy'), 'the unknown current value has its own option')
@@ -99,7 +99,7 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
 
     it('preserves a blank current value on an unchanged save', () => {
       const t = mount({ type: 'select', value: '', options: ['a', 'b'] })
-      const select = t.modal.querySelector('select[data-innfo-widget="select"]')
+      const select = t.modal.querySelector('select[data-nn-widget="select"]')
       assert.equal(select.value, '')
       t.save()
       assert.equal(t.getSaved().proposed, '')
@@ -109,7 +109,7 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
   describe('array and object values', () => {
     it('opens comment-only for an array with Propose disabled and no value input', () => {
       const t = mount({ type: 'string', value: ['a', 'b'] })
-      assert.equal(t.modal.querySelector('.innfo-edit-form-propose').style.display, 'none')
+      assert.equal(t.modal.querySelector('.nn-edit-form-propose').style.display, 'none')
       const propose = t.proposeButton()
       assert.ok(propose, 'the Propose control is present')
       assert.equal(propose.disabled, true, 'the Propose control is disabled')
@@ -122,8 +122,8 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
 
     it('never turns an object into "[object Object]"', () => {
       const t = mount({ type: 'string', value: { w: 1 } })
-      assert.equal(t.modal.querySelector('.innfo-edit-form-propose').style.display, 'none')
-      const ta = t.modal.querySelector('.innfo-edit-form-comment textarea')
+      assert.equal(t.modal.querySelector('.nn-edit-form-propose').style.display, 'none')
+      const ta = t.modal.querySelector('.nn-edit-form-comment textarea')
       ta.value = 'structured value needs review'
       t.save()
       const saved = t.getSaved()
@@ -161,7 +161,7 @@ describe('Edit Modal Value Type Safety (S3b P0-2)', () => {
       const proposed = t.getSaved().proposed
       assert.equal(typeof proposed, 'number', 'the modal proposes a number end to end')
 
-      const res = InnfoConsole.composeChangesetExport(
+      const res = nnConsole.composeChangesetExport(
         {
           modelTitle: 'BusinessModel',
           meta: { changesBlueprintVersion: 'V_0-3-0' },
@@ -210,11 +210,11 @@ describe('Markdown and reference widgets (S3b groups 10-11)', () => {
     t.save()
     assert.equal(t.getSaved().proposed, '[[Ana]]')
     const changed = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
-    changed.modal.querySelector('.innfo-edit-reference input').value = 'Ben'
+    changed.modal.querySelector('.nn-edit-reference input').value = 'Ben'
     changed.save()
     assert.equal(changed.getSaved().proposed, '[[Ben]]')
     const blank = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
-    blank.modal.querySelector('.innfo-edit-reference input').value = ''
+    blank.modal.querySelector('.nn-edit-reference input').value = ''
     blank.save()
     assert.equal(blank.getSaved().proposed, '')
   })
@@ -224,7 +224,7 @@ describe('Markdown and reference widgets (S3b groups 10-11)', () => {
     const candidates = [{ id: 'ana', name: 'Ana', concept: 'Person' }, { id: 'ben', name: 'Ben', concept: 'Person' }]
     const typed = (text) => {
       const t = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
-      t.modal.querySelector('.innfo-edit-reference input').value = text
+      t.modal.querySelector('.nn-edit-reference input').value = text
       t.save()
       return t
     }

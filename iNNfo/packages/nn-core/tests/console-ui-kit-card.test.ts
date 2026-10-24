@@ -8,11 +8,11 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 const uiKitPath = join(consoleDir, 'ui-kit.js')
 
 const UI = req(uiKitPath) as any
-const comp = (root: HTMLElement) => root.getAttribute('data-innfo-component')
+const comp = (root: HTMLElement) => root.getAttribute('data-nn-component')
 
 const field = (name: string, value: string, extra: any = {}) => ({ name, value, ...extra })
 
-describe('InnfoUI.ElementCard', () => {
+describe('nnUI.ElementCard', () => {
   it('renders a card with head, name and 3 field rows', () => {
     const card = UI.ElementCard(
       {
@@ -26,9 +26,9 @@ describe('InnfoUI.ElementCard', () => {
     expect(comp(card)).toBe('element-card')
     expect(card.getAttribute('data-element-id')).toBe('slimer')
     expect(card.getAttribute('data-concept-id')).toBe('paranormal-threat')
-    expect(card.querySelector('.innfo-card-head [data-ku-kind=element]')!.textContent).toBe('Slimer')
+    expect(card.querySelector('.nn-card-head [data-ku-kind=element]')!.textContent).toBe('Slimer')
     expect(card.querySelectorAll('[data-ku-kind=value]').length).toBe(3)
-    expect(card.querySelector('.innfo-card-desc')!.textContent).toBe('A gluttonous ghost')
+    expect(card.querySelector('.nn-card-desc')!.textContent).toBe('A gluttonous ghost')
   })
 
   it('renders an empty fields list without throwing', () => {
@@ -48,7 +48,7 @@ describe('InnfoUI.ElementCard', () => {
     expect(value).toBeTruthy()
     expect(value.getAttribute('data-ku-address')).toMatch(/@concept:/)
     expect(card.textContent).toMatch(/inherited from Threat/)
-    const valueWrap = value.closest('.innfo-ku-wrap') as HTMLElement
+    const valueWrap = value.closest('.nn-ku-wrap') as HTMLElement
     expect(valueWrap.querySelector('[data-ku-action=edit]')).toBeNull()
   })
 
@@ -60,22 +60,22 @@ describe('InnfoUI.ElementCard', () => {
       fields: [],
     } as any)
     expect(card.querySelector('[data-marker-id]')).toBeNull()
-    expect(card.querySelector('[data-innfo-component="marker-chip"]')).toBeNull()
+    expect(card.querySelector('[data-nn-component="marker-chip"]')).toBeNull()
   })
 
-  it('places opts.head in .innfo-card-head and opts.body in .innfo-card-body', () => {
+  it('places opts.head in .nn-card-head and opts.body in .nn-card-body', () => {
     const head = document.createElement('span')
     head.textContent = 'extra-head'
     const body = document.createElement('span')
     body.textContent = 'extra-body'
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [] }, { head: [head], body: [body] })
-    expect(card.querySelector('.innfo-card-head')!.contains(head)).toBe(true)
-    expect(card.querySelector('.innfo-card-body')!.contains(body)).toBe(true)
+    expect(card.querySelector('.nn-card-head')!.contains(head)).toBe(true)
+    expect(card.querySelector('.nn-card-body')!.contains(body)).toBe(true)
   })
 
   it('toggles open with a collapsible control and aria-expanded', () => {
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [] }, { collapsible: true })
-    const toggle = card.querySelector('button.innfo-card-toggle') as HTMLButtonElement
+    const toggle = card.querySelector('button.nn-card-toggle') as HTMLButtonElement
     expect(toggle).toBeTruthy()
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     toggle.click()
@@ -95,12 +95,12 @@ describe('InnfoUI.ElementCard', () => {
         field('notes', 'x'),
       ],
     })
-    const img = card.querySelector('.innfo-card-head img.innfo-card-thumb') as HTMLImageElement
+    const img = card.querySelector('.nn-card-head img.nn-card-thumb') as HTMLImageElement
     expect(img).toBeTruthy()
     expect(img.getAttribute('src')).toBe('sources/ecto-1.png')
-    expect(card.querySelector('.innfo-card-facts')).toBeNull()
-    expect(card.querySelector('.innfo-card-count')!.textContent).toBe('5 fields')
-    const bodyFieldNames = [...card.querySelectorAll('.innfo-card-body [data-ku-kind="value"]')].map((n) =>
+    expect(card.querySelector('.nn-card-facts')).toBeNull()
+    expect(card.querySelector('.nn-card-count')!.textContent).toBe('5 fields')
+    const bodyFieldNames = [...card.querySelectorAll('.nn-card-body [data-ku-kind="value"]')].map((n) =>
       n.getAttribute('data-field'),
     )
     expect(bodyFieldNames).toEqual(['photo', 'status', 'owner', 'notes'])
@@ -108,14 +108,14 @@ describe('InnfoUI.ElementCard', () => {
 
   it('falls back to a dashed placeholder when no field value looks like an image', () => {
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [field('status', 'draft')] })
-    expect(card.querySelector('.innfo-card-head img.innfo-card-thumb')).toBeNull()
-    expect(card.querySelector('.innfo-card-thumb--empty')).toBeTruthy()
+    expect(card.querySelector('.nn-card-head img.nn-card-thumb')).toBeNull()
+    expect(card.querySelector('.nn-card-thumb--empty')).toBeTruthy()
   })
 
   it('renders collapsed with open:false and opens from the toggle', () => {
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [field('a', 'b')] }, { open: false })
     expect(card.getAttribute('data-open')).toBe('false')
-    const toggle = card.querySelector('button.innfo-card-toggle') as HTMLButtonElement
+    const toggle = card.querySelector('button.nn-card-toggle') as HTMLButtonElement
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     toggle.click()
     expect(card.getAttribute('data-open')).toBe('true')
@@ -128,7 +128,7 @@ describe('InnfoUI.ElementCard', () => {
   })
 })
 
-describe('InnfoUI.CitationIcon', () => {
+describe('nnUI.CitationIcon', () => {
   it('renders data-origin/data-field, an aria-label and stops propagation on click', () => {
     const onOpen = vi.fn()
     const parentHandler = vi.fn()
@@ -146,7 +146,7 @@ describe('InnfoUI.CitationIcon', () => {
   })
 })
 
-describe('InnfoUI.FieldRow', () => {
+describe('nnUI.FieldRow', () => {
   it('renders dt/dd, one CitationIcon per distinct origin in canonical order', () => {
     const row = UI.FieldRow({
       name: 'owner',
@@ -157,11 +157,11 @@ describe('InnfoUI.FieldRow', () => {
         { origin: 'human', field: 'owner' },
       ],
     })
-    const badge = row.querySelector('[data-innfo-component=ku-unit]')!
+    const badge = row.querySelector('[data-nn-component=ku-unit]')!
     expect(badge.getAttribute('data-ku-kind')).toBe('value')
     expect(badge.getAttribute('data-field')).toBe('owner')
-    expect(row.querySelector('.innfo-ku-label')!.textContent).toContain('owner')
-    const icons = [...row.querySelectorAll('[data-innfo-component=citation-icon]')]
+    expect(row.querySelector('.nn-ku-label')!.textContent).toContain('owner')
+    const icons = [...row.querySelectorAll('[data-nn-component=citation-icon]')]
     expect(icons.map((i) => (i as HTMLElement).getAttribute('data-origin'))).toEqual(['agent', 'human'])
   })
 
@@ -171,7 +171,7 @@ describe('InnfoUI.FieldRow', () => {
       value: 'v',
       citations: [{ origin: 'document', field: 'x' }, { error: 'boom', field: 'x' }],
     })
-    const icons = [...row.querySelectorAll('[data-innfo-component=citation-icon]')]
+    const icons = [...row.querySelectorAll('[data-nn-component=citation-icon]')]
     expect((icons[0] as HTMLElement).getAttribute('data-origin')).toBe('error')
   })
 

@@ -39,7 +39,7 @@ function renderModelConsole(): void {
       `$1${JSON.stringify(sampleModel)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -72,17 +72,17 @@ describe('console-review-popover (annotation)', () => {
 
   it('cards expose no annotate anchor; tag proposals open a correction-only popover', () => {
     enableReview()
-    const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
+    const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The card-level annotate anchor was retired: element edits/comments go
     // through the one KU modal.
-    expect(card.querySelector('[data-innfo-ctl="card-anchor"]')).toBeNull()
-    const anchor = card.querySelector('[data-innfo-ctl="tag-add"]') as HTMLElement
+    expect(card.querySelector('[data-nn-ctl="card-anchor"]')).toBeNull()
+    const anchor = card.querySelector('[data-nn-ctl="tag-add"]') as HTMLElement
     expect(anchor).not.toBeNull()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
+    const pop = env.document.querySelector('[data-nn-component="annotation-popover"]')!
     expect(pop).not.toBeNull()
-    const kinds = Array.from(pop.querySelectorAll('.innfo-popover-kind')).map((b) =>
+    const kinds = Array.from(pop.querySelectorAll('.nn-popover-kind')).map((b) =>
       b.getAttribute('data-kind'),
     )
     // A tag proposal is a `correction` on the `tags` Field (applied as update_field).
@@ -109,14 +109,14 @@ describe('console-review-popover (annotation)', () => {
     ).toBe(true)
 
     // Field edits moved from the inline annotation popover to the edit modal.
-    expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).toBeNull()
-    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]')!
     expect(modal).not.toBeNull()
-    const modes = Array.from(modal.querySelectorAll('.innfo-edit-mode-btn')).map((b) =>
+    const modes = Array.from(modal.querySelectorAll('.nn-edit-mode-btn')).map((b) =>
       b.textContent,
     )
     expect(modes).toEqual(['Propose value', 'Comment'])
-    const input = modal.querySelector('.innfo-edit-fields input, .innfo-edit-fields textarea') as
+    const input = modal.querySelector('.nn-edit-fields input, .nn-edit-fields textarea') as
       | HTMLInputElement
       | HTMLTextAreaElement
     expect(input.value).toBe('A')
@@ -139,16 +139,16 @@ describe('console-review-popover (annotation)', () => {
       }),
     ).toBe(true)
 
-    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]')!
     const input = modal.querySelector(
-      '.innfo-edit-fields input, .innfo-edit-fields textarea',
+      '.nn-edit-fields input, .nn-edit-fields textarea',
     ) as HTMLInputElement
     input.value = 'B'
-    ;(modal.querySelector('.innfo-edit-btn-save') as HTMLElement).dispatchEvent(
+    ;(modal.querySelector('.nn-edit-btn-save') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
 
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
     expect(raw.drafts).toHaveLength(1)
     const d = raw.drafts[0]
     expect(d.element_id).toBe('threat-slimer')
@@ -165,15 +165,15 @@ describe('console-review-popover (annotation)', () => {
     enableReview()
     const ctl = controllers[controllers.length - 1]
     expect(ctl.openEdit({ elementId: 'threat-slimer', comment: true })).toBe(true)
-    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]')!
     expect(modal).not.toBeNull()
-    const ta = modal.querySelector('.innfo-edit-form-comment textarea') as HTMLTextAreaElement
+    const ta = modal.querySelector('.nn-edit-form-comment textarea') as HTMLTextAreaElement
     ta.value = 'looks fine'
-    ;(modal.querySelector('.innfo-edit-btn-save') as HTMLElement).dispatchEvent(
+    ;(modal.querySelector('.nn-edit-btn-save') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
 
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
     expect(raw.drafts).toHaveLength(1)
     expect(raw.drafts[0].field).toBeUndefined()
     expect(raw.drafts[0].comment).toBe('looks fine')
@@ -181,21 +181,21 @@ describe('console-review-popover (annotation)', () => {
 
   it('Escape closes the popover without saving and restores focus to the anchor', () => {
     enableReview()
-    const card = env.document.querySelector('[data-innfo-component="element-card"]') as HTMLElement
+    const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The tag row lives in the card body, which starts collapsed; expand it so
     // the anchor is focusable (focus restoration is what this test checks).
-    const toggle = card.querySelector('.innfo-card-toggle') as HTMLElement
+    const toggle = card.querySelector('.nn-card-toggle') as HTMLElement
     if (toggle) toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-    const anchor = card.querySelector('[data-innfo-ctl="tag-add"]') as HTMLElement
+    const anchor = card.querySelector('[data-nn-ctl="tag-add"]') as HTMLElement
     anchor.focus()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
+    const pop = env.document.querySelector('[data-nn-component="annotation-popover"]')!
     pop.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 
-    expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
     expect(env.document.activeElement).toBe(anchor)
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
     expect(raw.drafts || []).toHaveLength(0)
   })
 
@@ -204,7 +204,7 @@ describe('console-review-popover (annotation)', () => {
     files.forEach((f) => {
       const src = readFileSync(join(consoleDir, f), 'utf8')
       expect(src.includes('prompt('), `${f} must not call prompt(`).toBe(false)
-      expect(src.includes('innfo-review-status-select'), `${f} must not render a status select`).toBe(false)
+      expect(src.includes('nn-review-status-select'), `${f} must not render a status select`).toBe(false)
     })
   })
 })

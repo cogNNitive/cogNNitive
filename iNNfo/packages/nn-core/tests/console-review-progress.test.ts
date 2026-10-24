@@ -39,7 +39,7 @@ function renderModelConsole(): void {
       `$1${JSON.stringify(sampleModel)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -57,7 +57,7 @@ function boot() {
 
 function changeBadge(elId: string): HTMLElement | null {
   return env.document.querySelector(
-    `[data-element-id="${elId}"] [data-innfo-change-state] [data-innfo-component="status-badge"]`,
+    `[data-element-id="${elId}"] [data-nn-change-state] [data-nn-component="status-badge"]`,
   ) as HTMLElement | null
 }
 
@@ -77,8 +77,8 @@ describe('console-review-progress (change state + rail progress, no reviewed mar
 
   it('renders no reviewed toggle anywhere', () => {
     boot()
-    expect(env.document.querySelector('[data-innfo-component="reviewed-toggle"]')).toBeNull()
-    expect(env.document.querySelector('[data-innfo="changed-filter"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-component="reviewed-toggle"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn="changed-filter"]')).toBeNull()
   })
 
   it('records a local change and paints ONE Unsent state badge on its row', () => {
@@ -93,29 +93,29 @@ describe('console-review-progress (change state + rail progress, no reviewed mar
     expect(badge.getAttribute('data-status')).toBe('local')
     expect(badge.textContent).toBe('Unsent')
     expect(badge.getAttribute('title')).toContain('1 unsent')
-    expect(card.querySelectorAll('[data-innfo-component="status-badge"]').length).toBe(1)
+    expect(card.querySelectorAll('[data-nn-component="status-badge"]').length).toBe(1)
   })
 
   it('shows the Change recorded toast when a change is saved, and dismisses it', () => {
     const ctl = boot()
     ctl.propose({ elementId: 'equip-trap' }, { kind: 'comment', comment: 'x' })
 
-    const toast = env.document.querySelector('[data-innfo-component="toast"]') as HTMLElement
+    const toast = env.document.querySelector('[data-nn-component="toast"]') as HTMLElement
     expect(toast).not.toBeNull()
-    expect(toast.querySelector('.innfo-change-toast-title')!.textContent).toBe('Change recorded')
-    expect(toast.querySelector('.innfo-change-toast-text')!.textContent).toContain(
+    expect(toast.querySelector('.nn-change-toast-title')!.textContent).toBe('Change recorded')
+    expect(toast.querySelector('.nn-change-toast-text')!.textContent).toContain(
       'It lives only in this console',
     )
-    ;(toast.querySelector('.innfo-change-toast-close') as HTMLElement).dispatchEvent(
+    ;(toast.querySelector('.nn-change-toast-close') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
-    expect(env.document.querySelector('[data-innfo-component="toast"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-component="toast"]')).toBeNull()
   })
 
   it('the change toast body describes the export-and-agent flow, not cogNNitive', () => {
     const ctl = boot()
     ctl.propose({ elementId: 'equip-trap' }, { kind: 'comment', comment: 'x' })
-    const body = env.document.querySelector('.innfo-change-toast-text')!
+    const body = env.document.querySelector('.nn-change-toast-text')!
     expect(body.textContent).toContain('export it')
     expect(body.textContent).not.toContain('from cogNNitive')
   })
@@ -124,7 +124,7 @@ describe('console-review-progress (change state + rail progress, no reviewed mar
     const ctl = boot()
     ctl.propose({ elementId: 'threat-slimer' }, { kind: 'comment', comment: 'x' })
 
-    const progress = env.document.querySelectorAll('[data-innfo-component="rail-progress"]')
+    const progress = env.document.querySelectorAll('[data-nn-component="rail-progress"]')
     expect(progress.length).toBeGreaterThan(0)
     const threat = Array.from(progress).find(
       (p) => (p as HTMLElement).getAttribute('data-total') === '2',
@@ -137,12 +137,12 @@ describe('console-review-progress (change state + rail progress, no reviewed mar
   it('persists the local change across a reload', () => {
     const ctl = boot()
     ctl.propose({ elementId: 'equip-trap' }, { kind: 'comment', comment: 'x' })
-    const persisted = env.localStorage.getItem('innfo-console:v3:ghostbusters-model')
+    const persisted = env.localStorage.getItem('nn-console:v4:ghostbusters-model')
 
     controllers.forEach((c) => c.destroy && c.destroy())
     controllers = []
     renderModelConsole()
-    env.localStorage.setItem('innfo-console:v3:ghostbusters-model', persisted as string)
+    env.localStorage.setItem('nn-console:v4:ghostbusters-model', persisted as string)
     boot()
 
     const badge = changeBadge('equip-trap')!

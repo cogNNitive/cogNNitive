@@ -15,8 +15,8 @@ let root: string
 let outside: string
 
 beforeEach(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-cognitivize-'))
-  outside = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-cognitivize-ext-'))
+  root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-cognitivize-'))
+  outside = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-cognitivize-ext-'))
 })
 
 afterEach(() => {

@@ -7,9 +7,9 @@ import { createRequire } from 'node:module'
 const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const UI = req(join(consoleDir, 'ui-kit.js')) as any
-const comp = (root: HTMLElement) => root.getAttribute('data-innfo-component')
+const comp = (root: HTMLElement) => root.getAttribute('data-nn-component')
 
-describe('InnfoUI.DraftList', () => {
+describe('nnUI.DraftList', () => {
   const byId = { 'el-a': { id: 'el-a', hash: 'h1' }, 'el-b': { id: 'el-b', hash: 'h2' } }
   const drafts = [
     {
@@ -39,13 +39,13 @@ describe('InnfoUI.DraftList', () => {
     const rows = list.querySelectorAll('li[data-draft-id]')
     expect(rows.length).toBe(2)
     expect(rows[0].getAttribute('data-change-state')).toBe('unsent')
-    expect(rows[0].querySelector('.innfo-change-card-title')!.textContent).toContain('Comment')
-    expect(rows[0].querySelector('.innfo-change-card-note')!.textContent).toBe('still valid')
-    expect(rows[1].querySelector('.innfo-change-card-title')!.textContent).toContain('Edit')
-    expect(rows[1].querySelector('.innfo-change-card-diff')!.textContent).toBe('A \u2192 new')
+    expect(rows[0].querySelector('.nn-change-card-title')!.textContent).toContain('Comment')
+    expect(rows[0].querySelector('.nn-change-card-note')!.textContent).toBe('still valid')
+    expect(rows[1].querySelector('.nn-change-card-title')!.textContent).toContain('Edit')
+    expect(rows[1].querySelector('.nn-change-card-diff')!.textContent).toBe('A \u2192 new')
     expect(list.querySelector('select')).toBeNull()
-    expect(list.querySelector('[data-innfo-component="status-badge"]')).not.toBeNull()
-    const dis = rows[0].querySelector('.innfo-change-discard') as HTMLButtonElement
+    expect(list.querySelector('[data-nn-component="status-badge"]')).not.toBeNull()
+    const dis = rows[0].querySelector('.nn-change-discard') as HTMLButtonElement
     dis.click()
     expect(onDelete).toHaveBeenCalledWith('fb-001')
   })
@@ -57,13 +57,13 @@ describe('InnfoUI.DraftList', () => {
       ],
       byId,
     })
-    expect(list.querySelector('[data-innfo-component="citation-icon"]')).toBeNull()
-    expect(list.querySelector('.innfo-change-card-source')!.textContent).toBe('sources/a.md')
+    expect(list.querySelector('[data-nn-component="citation-icon"]')).toBeNull()
+    expect(list.querySelector('.nn-change-card-source')!.textContent).toBe('sources/a.md')
   })
 
   it('renders no Discard control without onDelete (the export preview)', () => {
     const list = UI.DraftList({ drafts, byId })
-    expect(list.querySelector('.innfo-change-discard')).toBeNull()
+    expect(list.querySelector('.nn-change-discard')).toBeNull()
     expect(list.querySelectorAll('li[data-draft-id]').length).toBe(2)
   })
 
@@ -72,7 +72,7 @@ describe('InnfoUI.DraftList', () => {
     const rows = list.querySelectorAll('li[data-draft-id]')
     expect(rows[0].hasAttribute('data-target-changed')).toBe(false)
     expect(rows[1].hasAttribute('data-target-changed')).toBe(true)
-    expect(rows[1].querySelector('.innfo-change-card-stale')!.textContent).toBe('target changed')
+    expect(rows[1].querySelector('.nn-change-card-stale')!.textContent).toBe('target changed')
 
     const missing = UI.DraftList({
       drafts: [{ id: 'fb-003', element_id: 'gone', kind: 'comment', base_hash: 'x', comment: 'c' }],
@@ -99,7 +99,7 @@ describe('InnfoUI.DraftList', () => {
   })
 })
 
-describe('InnfoUI.ChangeHistory', () => {
+describe('nnUI.ChangeHistory', () => {
   const byId = { 'goal-1': { id: 'goal-1', name: 'Goal 1', hash: 'h' } }
   const changes = [
     {
@@ -133,31 +133,31 @@ describe('InnfoUI.ChangeHistory', () => {
 
   it('renders Applied and Not applied cards, skips other blocks, no StatusBadge', () => {
     const history = UI.ChangeHistory({ changes, byId }, {})
-    const cards = history.querySelectorAll('li[data-innfo-component="change-card"]')
+    const cards = history.querySelectorAll('li[data-nn-component="change-card"]')
     expect(cards.length).toBe(2)
     expect(cards[0].getAttribute('data-change-state')).toBe('applied')
-    expect(cards[0].querySelector('.innfo-change-card-state')!.textContent).toBe('Applied')
-    expect(cards[0].querySelector('.innfo-change-card-title')!.textContent).toBe(
+    expect(cards[0].querySelector('.nn-change-card-state')!.textContent).toBe('Applied')
+    expect(cards[0].querySelector('.nn-change-card-title')!.textContent).toBe(
       'Edit `owner` of `Goal 1`',
     )
-    expect(cards[0].querySelector('.innfo-change-card-state')!.getAttribute('title')).toBe(
+    expect(cards[0].querySelector('.nn-change-card-state')!.getAttribute('title')).toBe(
       'Recorded in the domain.',
     )
-    expect(cards[0].querySelector('.innfo-change-card-diff')!.textContent).toBe('Ana \u2192 Bea')
-    expect(cards[0].querySelector('.innfo-change-card-context')!.textContent).toBe(
+    expect(cards[0].querySelector('.nn-change-card-diff')!.textContent).toBe('Ana \u2192 Bea')
+    expect(cards[0].querySelector('.nn-change-card-context')!.textContent).toBe(
       'ana · 2026-10-02T12:00:00Z · Applied',
     )
     expect(cards[1].getAttribute('data-change-state')).toBe('not-applied')
-    expect(cards[1].querySelector('.innfo-change-card-state')!.textContent).toBe('Not applied')
-    expect(cards[1].querySelector('.innfo-change-card-resolution')!.textContent).toContain(
+    expect(cards[1].querySelector('.nn-change-card-state')!.textContent).toBe('Not applied')
+    expect(cards[1].querySelector('.nn-change-card-resolution')!.textContent).toContain(
       'PRECONDITION_FAILED',
     )
-    expect(history.querySelector('[data-innfo-component="status-badge"]')).toBeNull()
+    expect(history.querySelector('[data-nn-component="status-badge"]')).toBeNull()
   })
 
   it('falls back to the slug in the title when the element is unknown', () => {
     const history = UI.ChangeHistory({ changes, byId: {} }, {})
-    expect(history.querySelector('.innfo-change-card-title')!.textContent).toBe(
+    expect(history.querySelector('.nn-change-card-title')!.textContent).toBe(
       'Edit `owner` of `goal-1`',
     )
   })
@@ -182,10 +182,10 @@ describe('InnfoUI.ChangeHistory', () => {
     ]
     const history = UI.ChangeHistory({ changes: withSource, byId }, { onCitation })
     const cite = history.querySelector(
-      '.innfo-change-card-source [data-innfo-component="citation-icon"]',
+      '.nn-change-card-source [data-nn-component="citation-icon"]',
     ) as HTMLButtonElement
     expect(cite).not.toBeNull()
-    expect(history.querySelector('.innfo-change-card-source')!.textContent).toContain(
+    expect(history.querySelector('.nn-change-card-source')!.textContent).toContain(
       'sources/report.pdf#p3',
     )
     cite.click()
@@ -201,7 +201,7 @@ describe('InnfoUI.ChangeHistory', () => {
       },
       { onCitation: onDraftCitation },
     )
-    ;(list.querySelector('[data-innfo-component="citation-icon"]') as HTMLButtonElement).click()
+    ;(list.querySelector('[data-nn-component="citation-icon"]') as HTMLButtonElement).click()
     expect(onDraftCitation).toHaveBeenCalledWith('sources/a.md')
   })
 
@@ -219,7 +219,7 @@ describe('InnfoUI.ChangeHistory', () => {
       },
       {},
     )
-    expect(history.querySelector('.innfo-change-card-resolution')!.textContent).toContain(
+    expect(history.querySelector('.nn-change-card-resolution')!.textContent).toContain(
       'VALIDATION_FAILED',
     )
   })
@@ -227,7 +227,7 @@ describe('InnfoUI.ChangeHistory', () => {
   it('offers Revert only for an applied update_field block', () => {
     const onRevert = vi.fn()
     const history = UI.ChangeHistory({ changes, byId }, { onRevert })
-    const reverts = history.querySelectorAll('.innfo-change-revert')
+    const reverts = history.querySelectorAll('.nn-change-revert')
     expect(reverts.length).toBe(1)
     ;(reverts[0] as HTMLButtonElement).click()
     expect(onRevert).toHaveBeenCalledWith(changes[0].changes[0])
@@ -244,13 +244,13 @@ describe('InnfoUI.ChangeHistory', () => {
       },
       { onRevert },
     )
-    expect(other.querySelector('.innfo-change-revert')).toBeNull()
+    expect(other.querySelector('.nn-change-revert')).toBeNull()
   })
 
   it('Go to element calls onGoTo and hostile text stays inert', () => {
     const onGoTo = vi.fn()
     const history = UI.ChangeHistory({ changes, byId }, { onGoTo })
-    const go = history.querySelector('.innfo-change-goto') as HTMLButtonElement
+    const go = history.querySelector('.nn-change-goto') as HTMLButtonElement
     go.click()
     expect(onGoTo).toHaveBeenCalledWith('goal-1')
 
@@ -280,7 +280,7 @@ describe('InnfoUI.ChangeHistory', () => {
   })
 })
 
-describe('InnfoUI.AnnotationPopover', () => {
+describe('nnUI.AnnotationPopover', () => {
   it('is a modal dialog with the requested kind options only', () => {
     const p = UI.AnnotationPopover({ label: 'owner', kinds: ['comment', 'delete'] }, {})
     expect(comp(p)).toBe('annotation-popover')
@@ -296,7 +296,7 @@ describe('InnfoUI.AnnotationPopover', () => {
       {},
     )
     expect(p.querySelector('[data-kind=correction]')).toBeTruthy()
-    const original = p.querySelector('.innfo-popover-original') as HTMLElement
+    const original = p.querySelector('.nn-popover-original') as HTMLElement
     expect(original.textContent).toBe('A')
     expect(p.querySelector('textarea')).toBeTruthy()
   })
@@ -309,7 +309,7 @@ describe('InnfoUI.AnnotationPopover', () => {
     )
     const ta = p.querySelector('textarea') as HTMLTextAreaElement
     ta.value = 'B'
-    ;(p.querySelector('.innfo-popover-save') as HTMLButtonElement).click()
+    ;(p.querySelector('.nn-popover-save') as HTMLButtonElement).click()
     expect(onSave).toHaveBeenCalledTimes(1)
     expect(onSave.mock.calls[0][0]).toMatchObject({ kind: 'correction', proposed: 'B' })
   })
@@ -342,7 +342,7 @@ describe('InnfoUI.AnnotationPopover', () => {
   })
 })
 
-describe('InnfoUI.StatusBadge', () => {
+describe('nnUI.StatusBadge', () => {
   it('shows a bare count by default and a human label when asked', () => {
     const count = UI.StatusBadge({ status: 'local', count: 2 })
     expect(comp(count)).toBe('status-badge')
@@ -365,9 +365,9 @@ describe('InnfoUI.StatusBadge', () => {
   it('ships no styling for the retired statuses', () => {
     const source = readFileSync(join(consoleDir, 'ui-kit.js'), 'utf8')
     expect(source).not.toMatch(
-      /innfo-status-badge\[data-status=(pending|applied|rejected|stale|conflict|proposed)\]/,
+      /nn-status-badge\[data-status=(pending|applied|rejected|stale|conflict|proposed)\]/,
     )
-    expect(source).toContain('innfo-status-badge[data-status=local]')
+    expect(source).toContain('nn-status-badge[data-status=local]')
   })
 
   it('rejects the retired statuses', () => {
@@ -377,7 +377,7 @@ describe('InnfoUI.StatusBadge', () => {
   })
 })
 
-describe('InnfoUI.ElementCard applied history', () => {
+describe('nnUI.ElementCard applied history', () => {
   it('renders no lineage pill and no meta strip', () => {
     const card = UI.ElementCard({
       id: 'e',
@@ -385,8 +385,8 @@ describe('InnfoUI.ElementCard applied history', () => {
       fields: [],
       history: [{ id: 'c-01', author: 'ana', status: 'applied' }],
     })
-    expect(card.querySelector('.innfo-lineage-pill')).toBeNull()
-    expect(card.querySelector('.innfo-card-meta-strip')).toBeNull()
+    expect(card.querySelector('.nn-lineage-pill')).toBeNull()
+    expect(card.querySelector('.nn-card-meta-strip')).toBeNull()
   })
 
   it('renders the applied history in the modal Changes tab as element sheets (newest first)', () => {
@@ -404,25 +404,25 @@ describe('InnfoUI.ElementCard applied history', () => {
       },
     ]
     const card = UI.ElementCard({ id: 'e', name: 'E', fields: [], history })
-    expect(card.querySelector('.innfo-lineage-pill')).toBeNull()
+    expect(card.querySelector('.nn-lineage-pill')).toBeNull()
 
     // The review controller opens the modal with the element's history, on the Changes tab.
     const modal = UI.EditModal(
       { title: 'E', fieldName: 'owner', type: 'string', value: 'Bea', history, startTab: 'history' },
       {},
     )
-    const changes = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]') as HTMLElement
+    const changes = modal.querySelector('.nn-modal-tab-panel[data-tab="history"]') as HTMLElement
     expect(changes.style.display).toBe('block')
     // One standard element sheet per recorded change, reusing ElementCard.
-    expect(changes.querySelectorAll('article[data-innfo-component="element-card"]').length).toBe(1)
+    expect(changes.querySelectorAll('article[data-nn-component="element-card"]').length).toBe(1)
     expect(changes.textContent).toContain('ana')
     expect(changes.textContent).toContain('Bea')
     expect(changes.textContent).toContain('Ana')
-    expect(modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')).not.toBeNull()
+    expect(modal.querySelector('.nn-modal-tab-panel[data-tab="edit"]')).not.toBeNull()
   })
 })
 
-describe('InnfoUI.RailProgress', () => {
+describe('nnUI.RailProgress', () => {
   it('shows pending/total and carries the counts as attributes', () => {
     const p = UI.RailProgress({ total: 4, pending: 2 })
     expect(comp(p)).toBe('rail-progress')
@@ -439,15 +439,15 @@ describe('InnfoUI.RailProgress', () => {
   })
 })
 
-describe('InnfoUI.Toast', () => {
+describe('nnUI.Toast', () => {
   it('renders a dismissable, temp card with a title and a body', () => {
     const onClose = vi.fn()
     const t = UI.Toast({ title: 'Change recorded', body: 'Not applied yet.' }, { doc: document, onClose })
     expect(comp(t)).toBe('toast')
     expect(t.getAttribute('role')).toBe('status')
-    expect(t.querySelector('.innfo-change-toast-title')!.textContent).toBe('Change recorded')
-    expect(t.querySelector('.innfo-change-toast-text')!.textContent).toBe('Not applied yet.')
-    ;(t.querySelector('.innfo-change-toast-close') as HTMLButtonElement).click()
+    expect(t.querySelector('.nn-change-toast-title')!.textContent).toBe('Change recorded')
+    expect(t.querySelector('.nn-change-toast-text')!.textContent).toBe('Not applied yet.')
+    ;(t.querySelector('.nn-change-toast-close') as HTMLButtonElement).click()
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
@@ -464,7 +464,7 @@ describe('review components purity', () => {
   })
 })
 
-describe('InnfoUI.FieldRow citation value', () => {
+describe('nnUI.FieldRow citation value', () => {
   it('renders the citation icon as part of the value, not as a row sibling', () => {
     const row = UI.FieldRow(
       {
@@ -475,11 +475,11 @@ describe('InnfoUI.FieldRow citation value', () => {
       },
       {},
     )
-    const icon = row.querySelector('[data-innfo-component="citation-icon"]')
+    const icon = row.querySelector('[data-nn-component="citation-icon"]')
     expect(icon).not.toBeNull()
     // The icon lives inside the value slot (inside the badge), not beside the badge.
-    expect(icon.closest('.innfo-ku-value')).not.toBeNull()
-    expect(icon.closest('.innfo-ku')).not.toBeNull()
+    expect(icon.closest('.nn-ku-value')).not.toBeNull()
+    expect(icon.closest('.nn-ku')).not.toBeNull()
   })
 
   it('opens the citation through onCite with the field and value', () => {
@@ -493,7 +493,7 @@ describe('InnfoUI.FieldRow citation value', () => {
       },
       { onCite },
     )
-    const icon = row.querySelector('[data-innfo-component="citation-icon"]') as HTMLElement
+    const icon = row.querySelector('[data-nn-component="citation-icon"]') as HTMLElement
     icon.dispatchEvent(new Event('click', { bubbles: true }))
     expect(onCite).toHaveBeenCalled()
     expect(onCite.mock.calls[0][0]).toMatchObject({ field: 'evidence', value: 'sources/a.md@## H' })

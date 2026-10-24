@@ -10,7 +10,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -133,19 +133,19 @@ describe('export-console asset rebasing (S3b review follow-ups)', () => {
   })
 
   it('a draft original is the document text, not the rebased display value', () => {
-    const registry = InnfoConsole.createViewRegistry()
+    const registry = nnConsole.createViewRegistry()
     let ctx
     registry.register({ id: 'probe', title: 'probe', icon: 'chart', order: 20, kind: 'editable', mount: (c) => (ctx = c) })
     const { document, res } = bootConsole({ registry, model: deep, schema })
-    document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
+    document.querySelector('.nn-view-tab[data-tab="probe"]').click()
     const window = document.defaultView
     const id = el(deep, 'Plain').id
     assert.equal(ctx.modal, undefined, 'views cannot reach the modal slot')
     assert.equal(res.controller.openEdit({ elementId: id, field: 'demo' }), true)
-    const modal = document.querySelector('.innfo-edit-modal')
+    const modal = document.querySelector('.nn-edit-modal')
     assert.equal(modal.querySelector('input').value, 'sources/plain.mp4', 'the editor shows the document text')
     modal.querySelector('input').value = 'sources/other.mp4'
-    modal.querySelector('.innfo-edit-btn-save').dispatchEvent(new window.Event('click', { bubbles: true }))
+    modal.querySelector('.nn-edit-btn-save').dispatchEvent(new window.Event('click', { bubbles: true }))
     const stored = Object.keys(window.localStorage).map((k) => window.localStorage.getItem(k)).join('|')
     assert.ok(stored.includes('"original":"sources/plain.mp4"'), 'draft original matches the file')
     assert.ok(!stored.includes('../../sources/plain.mp4'), 'the rebased value never reaches the draft')

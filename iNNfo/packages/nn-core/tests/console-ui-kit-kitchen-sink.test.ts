@@ -45,7 +45,7 @@ describe('console ui-kit kitchen sink', () => {
     expect(offenders).toEqual([])
   })
 
-  it('renders every implemented data-innfo-component under both themes', () => {
+  it('renders every implemented data-nn-component under both themes', () => {
     for (const theme of ['light', 'dark'] as const) {
       const root = document.createElement('main')
       root.setAttribute('data-theme', theme)
@@ -67,7 +67,7 @@ describe('console ui-kit kitchen sink', () => {
       root.appendChild(UI.Markdown('## Title\n\n- **bold** and [safe](https://example.com)'))
       for (const name of IMPLEMENTED) {
         expect(
-          root.querySelector(`[data-innfo-component=${name}]`),
+          root.querySelector(`[data-nn-component=${name}]`),
           `${name} must render under data-theme="${theme}"`,
         ).toBeTruthy()
       }

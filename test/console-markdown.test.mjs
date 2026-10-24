@@ -20,7 +20,7 @@ function render(text) {
   return node
 }
 
-describe('InnfoUI.Markdown (safe subset)', () => {
+describe('nnUI.Markdown (safe subset)', () => {
   it('renders the subset as structure', () => {
     const root = render('## Goal\n\n- **fast**\n- *cheap*\n\n1. one\n2. two\n\nplain `code` and _em_')
     assert.equal(root.querySelector('h2').textContent, 'Goal')

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const def = (id, over = {}) => ({
   id,
@@ -15,7 +15,7 @@ const def = (id, over = {}) => ({
 // Boots a console with the given views, each capturing its ctx, and mounts
 // them all by clicking their tabs.
 function bootViews(defs, opts = {}) {
-  const registry = InnfoConsole.createViewRegistry()
+  const registry = nnConsole.createViewRegistry()
   const ctxs = {}
   defs.forEach((d) => {
     const mount = d.mount
@@ -29,7 +29,7 @@ function bootViews(defs, opts = {}) {
   })
   const booted = bootConsole({ registry, ...opts })
   defs.forEach((d) =>
-    booted.document.querySelector(`.innfo-view-tab[data-tab="${d.id}"]`).click(),
+    booted.document.querySelector(`.nn-view-tab[data-tab="${d.id}"]`).click(),
   )
   const controller = booted.res.controller
   // Views no longer receive ctx.modal; the shared modal slot is the controller's.
@@ -41,7 +41,7 @@ function bootViews(defs, opts = {}) {
 }
 
 const noticeText = (document) => {
-  const n = document.getElementById('innfo-view-errors')
+  const n = document.getElementById('nn-view-errors')
   return n ? n.textContent : ''
 }
 
@@ -101,7 +101,7 @@ describe('S2b shared mount context', () => {
 
   it('the controller opens a single modal slot', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
-    const modals = () => document.querySelectorAll('.innfo-edit-modal')
+    const modals = () => document.querySelectorAll('.nn-edit-modal')
     assert.equal(modals().length, 0)
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     assert.equal(modals().length, 1)
@@ -116,22 +116,22 @@ describe('S2b shared mount context', () => {
   it('a comment modal save lands one comment draft in the shared store', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.innfo-edit-modal')
-    modal.querySelector('.innfo-edit-form-comment textarea').value = 'needs a source'
-    modal.querySelector('.innfo-edit-btn-save').click()
+    const modal = document.querySelector('.nn-edit-modal')
+    modal.querySelector('.nn-edit-form-comment textarea').value = 'needs a source'
+    modal.querySelector('.nn-edit-btn-save').click()
     const drafts = ctxs.beta.store.drafts()
     assert.equal(drafts.length, 1)
     assert.equal(drafts[0].kind, 'comment')
     assert.equal(drafts[0].comment, 'needs a source')
-    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 0, 'slot freed after save')
+    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 0, 'slot freed after save')
   })
 
   it('an edit modal save lands a correction for the chosen field', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    const modal = document.querySelector('.innfo-edit-modal')
-    modal.querySelector('.innfo-edit-form-propose input, .innfo-edit-form-propose textarea').value = 'Hearse'
-    modal.querySelector('.innfo-edit-btn-save').click()
+    const modal = document.querySelector('.nn-edit-modal')
+    modal.querySelector('.nn-edit-form-propose input, .nn-edit-form-propose textarea').value = 'Hearse'
+    modal.querySelector('.nn-edit-btn-save').click()
     const [draft] = ctxs.alpha.store.drafts()
     assert.equal(draft.kind, 'correction')
     assert.equal(draft.field, 'role')
@@ -154,9 +154,9 @@ describe('S2b live draft count from a view', () => {
     const { document, ctxs, res } = bootViews([def('alpha')])
     res.controller.enable()
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
-    assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
+    assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(document.querySelector('.nn-review-count').textContent, /^1 pending change/)
   })
 })
 
@@ -264,7 +264,7 @@ describe('S2b editable views never hold an iframe', () => {
     assert.equal(ctxs.bad.container.querySelectorAll('iframe').length, 0)
     assert.match(noticeText(document), /bad/)
     assert.ok(ctxs.good, 'the other view still mounted')
-    assert.match(document.querySelector('#innfo-tab-bad .innfo-view-error').textContent, /bad/)
+    assert.match(document.querySelector('#nn-tab-bad .nn-view-error').textContent, /bad/)
   })
 
   it('a readonly view keeps its iframe and raises no notice', async () => {
@@ -281,34 +281,34 @@ describe('S2b review follow-up: comment-only modal', () => {
   it('a comment-only target has no mode toggle to flip into Propose value', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.innfo-edit-modal')
+    const modal = document.querySelector('.nn-edit-modal')
     assert.ok(modal)
-    assert.equal(modal.querySelector('.innfo-edit-mode-selector'), null)
-    assert.equal(modal.querySelector('.innfo-edit-mode-btn'), null)
+    assert.equal(modal.querySelector('.nn-edit-mode-selector'), null)
+    assert.equal(modal.querySelector('.nn-edit-mode-btn'), null)
   })
 
   it('an empty comment is rejected with a visible message and no draft', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.innfo-edit-modal')
-    modal.querySelector('.innfo-edit-form-comment textarea').value = '   '
-    modal.querySelector('.innfo-edit-btn-save').click()
+    const modal = document.querySelector('.nn-edit-modal')
+    modal.querySelector('.nn-edit-form-comment textarea').value = '   '
+    modal.querySelector('.nn-edit-btn-save').click()
     assert.equal(ctxs.alpha.store.drafts().length, 0)
-    const err = document.querySelector('.innfo-edit-modal .innfo-edit-error')
+    const err = document.querySelector('.nn-edit-modal .nn-edit-error')
     assert.ok(err, 'validation message rendered in the modal')
     assert.equal(err.style.display, 'block')
     assert.match(err.textContent, /comment/i)
-    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 1, 'modal stays open')
+    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 1, 'modal stays open')
   })
 
   it('a field comment modal also rejects an empty comment but keeps the toggle', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1', field: 'role' })
-    const modal = document.querySelector('.innfo-edit-modal')
-    assert.ok(modal.querySelector('.innfo-edit-mode-selector'), 'field targets may still propose')
-    modal.querySelector('.innfo-edit-btn-save').click()
+    const modal = document.querySelector('.nn-edit-modal')
+    assert.ok(modal.querySelector('.nn-edit-mode-selector'), 'field targets may still propose')
+    modal.querySelector('.nn-edit-btn-save').click()
     assert.equal(ctxs.alpha.store.drafts().length, 0)
-    assert.equal(modal.querySelector('.innfo-edit-error').style.display, 'block')
+    assert.equal(modal.querySelector('.nn-edit-error').style.display, 'block')
   })
 })
 
@@ -362,7 +362,7 @@ describe('S2b review follow-up: draft change listeners', () => {
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'first' })
     assert.ok(calls <= 3, `listener ran ${calls} times`)
     const n = ctxs.alpha.store.drafts().length
-    assert.equal(document.querySelector('.innfo-banner-drafts').textContent.trim(), `unsent: ${n}`)
+    assert.equal(document.querySelector('.nn-banner-drafts').textContent.trim(), `unsent: ${n}`)
   })
 
   it('a listener that removes inside onChange also terminates', () => {
@@ -397,7 +397,7 @@ describe('S2b review follow-up: draft change listeners', () => {
     const old = ctxs.alpha
     let calls = 0
     old.store.onChange(() => calls++)
-    InnfoConsole.boot(document, { registry })
+    nnConsole.boot(document, { registry })
     assert.notEqual(ctxs.alpha, old, 're-boot mounted a fresh ctx')
     old.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
     assert.equal(calls, 0)
@@ -408,12 +408,12 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
   it('an invalid call leaves an open modal untouched', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    const open = document.querySelector('.innfo-edit-modal')
+    const open = document.querySelector('.nn-edit-modal')
     assert.equal(editSlot.edit({ elementId: 'nope', field: 'role' }), false)
     assert.equal(editSlot.edit({ elementId: 'ecto-1' }), false, 'no field and no comment mode')
     assert.equal(editSlot.comment({ elementId: 'nope' }), false)
-    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 1)
-    assert.equal(document.querySelector('.innfo-edit-modal'), open, 'same modal node survives')
+    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 1)
+    assert.equal(document.querySelector('.nn-edit-modal'), open, 'same modal node survives')
   })
 
   it('cancel restores focus to the element focused when the view opened the modal', () => {
@@ -424,10 +424,10 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     opener.focus()
     assert.equal(document.activeElement, opener)
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
+    document.querySelector('.nn-edit-modal textarea, .nn-edit-modal input').focus()
     assert.notEqual(document.activeElement, opener)
-    document.querySelector('.innfo-edit-btn-cancel').click()
-    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 0)
+    document.querySelector('.nn-edit-btn-cancel').click()
+    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 0)
     assert.equal(document.activeElement, opener)
   })
 
@@ -437,9 +437,9 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     ctxs.alpha.container.appendChild(opener)
     opener.focus()
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
+    document.querySelector('.nn-edit-modal textarea, .nn-edit-modal input').focus()
     editSlot.comment({ elementId: 'ecto-1' })
-    document.querySelector('.innfo-edit-btn-cancel').click()
+    document.querySelector('.nn-edit-btn-cancel').click()
     assert.equal(document.activeElement, opener)
   })
 })
@@ -516,14 +516,14 @@ describe('S2b review follow-up: embedding guard hardening', () => {
       def('doc', { kind: 'readonly', order: 30, mount: (ctx) => void ctx.mountHtml('<p>x</p>') }),
     ])
     await tick()
-    assert.equal(document.querySelectorAll('#innfo-tab-doc iframe').length, 1)
+    assert.equal(document.querySelectorAll('#nn-tab-doc iframe').length, 1)
     assert.equal(noticeText(document), '')
   })
 })
 
 describe('S2b review follow-up: remove refreshes decorations and counts', () => {
   const pending = (document) => {
-    const p = document.querySelector('[data-innfo-component="rail-progress"]')
+    const p = document.querySelector('[data-nn-component="rail-progress"]')
     return p ? p.getAttribute('data-pending') : null
   }
 
@@ -542,12 +542,12 @@ describe('S2b review follow-up: remove refreshes decorations and counts', () => 
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'y' })
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*1/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
-    assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
+    assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*1/)
+    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(document.querySelector('.nn-review-count').textContent, /^1 pending change/)
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
-    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /unsent:\s*0/)
-    assert.match(document.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*0/)
+    assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*0/)
+    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*0/)
   })
 })
 
@@ -569,7 +569,7 @@ describe('global filter and view reactivity', () => {
       events.push({ count: els.length, q })
     })
 
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     search.value = 'ecto'
     search.dispatchEvent(new dom.window.Event('input'))
 
@@ -605,7 +605,7 @@ describe('global filter and view reactivity', () => {
       }),
     ])
 
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     search.value = 'ecto'
     search.dispatchEvent(new dom.window.Event('input'))
 
@@ -616,17 +616,17 @@ describe('global filter and view reactivity', () => {
 
   it('keeps toolbar visible on tab switch and typing does not switch away from active tab', () => {
     const { dom, document } = bootViews([def('alpha'), def('beta')])
-    const betaTab = document.querySelector('.innfo-view-tab[data-tab="beta"]')
+    const betaTab = document.querySelector('.nn-view-tab[data-tab="beta"]')
     betaTab.click()
 
-    const toolbar = document.querySelector('.innfo-toolbar')
+    const toolbar = document.querySelector('.nn-toolbar')
     assert.notEqual(toolbar.style.display, 'none', 'toolbar is visible in beta tab')
 
-    const search = document.getElementById('innfo-search')
+    const search = document.getElementById('nn-search')
     search.value = 'role:Interceptor'
     search.dispatchEvent(new dom.window.Event('input'))
 
-    const activeTab = document.querySelector('.innfo-view-tab.active')
+    const activeTab = document.querySelector('.nn-view-tab.active')
     assert.equal(activeTab.dataset.tab, 'beta', 'typing in omnibar preserves the active tab')
   })
 })

@@ -8,11 +8,11 @@ import { fileURLToPath } from 'node:url'
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const runtimePath = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-runtime.js')
-const InnfoConsole = require(runtimePath)
+const nnConsole = require(runtimePath)
 
 describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
   test('filterElements matches by model:, file:, tags:, and text tokens', () => {
-    assert.ok(InnfoConsole, 'InnfoConsole module loaded')
+    assert.ok(nnConsole, 'nnConsole module loaded')
 
     const elements = [
       {
@@ -36,31 +36,31 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     ]
 
     // Match by model facet
-    const byModel = InnfoConsole.filterElements(elements, 'model:business')
+    const byModel = nnConsole.filterElements(elements, 'model:business')
     assert.equal(byModel.length, 1)
     assert.equal(byModel[0].id, 'el-1')
 
     // Match by file facet
-    const byFile = InnfoConsole.filterElements(elements, 'file:analysis.md')
+    const byFile = nnConsole.filterElements(elements, 'file:analysis.md')
     assert.equal(byFile.length, 1)
     assert.equal(byFile[0].id, 'el-2')
 
     // Match by tag facet (tags is an ordinary Field, exact membership)
-    const byTag = InnfoConsole.filterElements(elements, 'tags:paranormal')
+    const byTag = nnConsole.filterElements(elements, 'tags:paranormal')
     assert.equal(byTag.length, 1)
     assert.equal(byTag[0].id, 'el-2')
 
     // Combined multi-facet query (AND between facets; tags: is AND, model: is OR)
-    const combined = InnfoConsole.filterElements(elements, 'model:business tags:executive')
+    const combined = nnConsole.filterElements(elements, 'model:business tags:executive')
     assert.equal(combined.length, 1)
     assert.equal(combined[0].id, 'el-1')
 
     // Multi-model OR filtering
-    const multiModel = InnfoConsole.filterElements(elements, 'model:business model:analysis')
+    const multiModel = nnConsole.filterElements(elements, 'model:business model:analysis')
     assert.equal(multiModel.length, 2)
 
     // Non-matching facet
-    const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tags:executive')
+    const noMatch = nnConsole.filterElements(elements, 'model:analysis tags:executive')
     assert.equal(noMatch.length, 0)
 
     // Quoted facet value with spaces after colon (e.g. concept:"Concept 1" or model:"Business Model")
@@ -76,11 +76,11 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
         fields: { tags: [] },
       },
     ]
-    const byQuotedConcept = InnfoConsole.filterElements(withSpaces, 'concept:"Concept 1"')
+    const byQuotedConcept = nnConsole.filterElements(withSpaces, 'concept:"Concept 1"')
     assert.equal(byQuotedConcept.length, 1)
     assert.equal(byQuotedConcept[0].id, 'el-3')
 
-    const byQuotedModel = InnfoConsole.filterElements(withSpaces, 'model:"Business Model"')
+    const byQuotedModel = nnConsole.filterElements(withSpaces, 'model:"Business Model"')
     assert.equal(byQuotedModel.length, 1)
     assert.equal(byQuotedModel[0].id, 'el-1')
   })
@@ -90,10 +90,10 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
       `<!doctype html>
       <html>
         <body>
-          <div class="innfo-toolbar">
-            <input id="innfo-search" type="search" />
-            <div id="innfo-filter-facets"></div>
-            <div id="innfo-active-filters"></div>
+          <div class="nn-toolbar">
+            <input id="nn-search" type="search" />
+            <div id="nn-filter-facets"></div>
+            <div id="nn-active-filters"></div>
           </div>
         </body>
       </html>`,
@@ -116,7 +116,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     }
 
     let emittedQuery = null
-    InnfoConsole.renderFilterBar(
+    nnConsole.renderFilterBar(
       document,
       state,
       (q) => {
@@ -125,8 +125,8 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
       'model:business-model',
     )
 
-    const host = document.getElementById('innfo-filter-facets')
-    const dropdowns = host.querySelectorAll('.innfo-facet-dropdown')
+    const host = document.getElementById('nn-filter-facets')
+    const dropdowns = host.querySelectorAll('.nn-facet-dropdown')
     assert.equal(dropdowns.length, 2, 'renders 2 dropdowns (models, concepts)')
 
     // Check that model:business-model checkbox is checked
@@ -147,8 +147,8 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
       `<!doctype html>
       <html>
         <body>
-          <div id="innfo-layout">
-            <nav id="innfo-rail"></nav>
+          <div id="nn-layout">
+            <nav id="nn-rail"></nav>
           </div>
         </body>
       </html>`,
@@ -173,7 +173,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     }
 
     let selectedFilter = null
-    InnfoConsole.renderRail(
+    nnConsole.renderRail(
       document,
       concepts,
       counts,
@@ -184,7 +184,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
       state,
     )
 
-    const rail = document.getElementById('innfo-rail')
+    const rail = document.getElementById('nn-rail')
     const modelItems = rail.querySelectorAll('[data-model]')
     assert.equal(modelItems.length, 2, 'renders 2 model rail items')
 
@@ -211,15 +211,15 @@ describe('Hostile text renders as text, never as markup', () => {
   }
 
   test('model title and concept name in the rail are inert', () => {
-    const document = boot('<nav id="innfo-rail"></nav>')
+    const document = boot('<nav id="nn-rail"></nav>')
     const hostileConcept = '<script>x()</script>'
     const state = {
       meta: { models: [{ id: 'm1', title: HOSTILE_IMG, filePath: 'm1.md', elementCount: 1 }, { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1 }] },
       elements: [{ id: 'e1', concept: hostileConcept, modelId: 'm1' }],
     }
-    InnfoConsole.renderRail(document, [{ name: hostileConcept }], { [hostileConcept]: 1 }, {}, () => {}, state)
+    nnConsole.renderRail(document, [{ name: hostileConcept }], { [hostileConcept]: 1 }, {}, () => {}, state)
 
-    const rail = document.getElementById('innfo-rail')
+    const rail = document.getElementById('nn-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('script'), null)
     assert.ok(rail.textContent.includes(HOSTILE_IMG), 'model title appears literally')
@@ -227,16 +227,16 @@ describe('Hostile text renders as text, never as markup', () => {
   })
 
   test('hostile concept color and element count cannot break out of the style attribute', () => {
-    const document = boot('<nav id="innfo-rail"></nav>')
+    const document = boot('<nav id="nn-rail"></nav>')
     const state = {
       // Two models: the hierarchical rail (the one that paints inline dot colors) only renders from 2 models up.
       meta: { models: [{ id: 'm1', title: 'One', filePath: 'm1.md', elementCount: '1</span><img src=x onerror=1>' }, { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1 }] },
       elements: [{ id: 'e1', concept: 'Risks', modelId: 'm1' }, { id: 'e2', concept: 'Risks', modelId: 'm2' }],
     }
     const color = 'red"><img src=x onerror=1>'
-    InnfoConsole.renderRail(document, [{ name: 'Risks', color }], { Risks: 1 }, {}, () => {}, state)
+    nnConsole.renderRail(document, [{ name: 'Risks', color }], { Risks: 1 }, {}, () => {}, state)
 
-    const rail = document.getElementById('innfo-rail')
+    const rail = document.getElementById('nn-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('[onerror]'), null)
     assert.ok(rail.querySelector('[data-ku-kind="section"]'), 'concept badge still rendered')
@@ -244,10 +244,10 @@ describe('Hostile text renders as text, never as markup', () => {
   })
 
   test('search token and operator value in the filter pills are inert', () => {
-    const document = boot('<input id="innfo-search" /><div id="innfo-filter-facets"></div><div id="innfo-active-filters"></div>')
-    InnfoConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tags:<b>x</b>`)
+    const document = boot('<input id="nn-search" /><div id="nn-filter-facets"></div><div id="nn-active-filters"></div>')
+    nnConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tags:<b>x</b>`)
 
-    const pills = document.getElementById('innfo-active-filters')
+    const pills = document.getElementById('nn-active-filters')
     assert.ok(pills.children.length > 0, 'pills rendered')
     assert.equal(pills.querySelector('svg'), null)
     assert.equal(pills.querySelector('b'), null)
@@ -255,10 +255,10 @@ describe('Hostile text renders as text, never as markup', () => {
   })
 
   test('validation error strings are inert', () => {
-    const document = boot('<dialog id="innfo-feedback-modal"><div data-innfo="errors"></div></dialog>')
-    InnfoConsole.renderErrors(document, [HOSTILE_IMG])
+    const document = boot('<dialog id="nn-feedback-modal"><div data-nn="errors"></div></dialog>')
+    nnConsole.renderErrors(document, [HOSTILE_IMG])
 
-    const box = document.querySelector('[data-innfo="errors"]')
+    const box = document.querySelector('[data-nn="errors"]')
     assert.equal(box.querySelector('img'), null)
     assert.ok(box.textContent.includes(HOSTILE_IMG))
   })

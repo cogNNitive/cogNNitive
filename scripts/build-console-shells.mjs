@@ -3,7 +3,7 @@
  * scripts/build-console-shells.mjs
  *
  * Regenerates the *generated* console shells: every shell marked with the
- * `nn:console-shell` block has the `@innfo-console-v<version>` token in its
+ * `nn:console-shell` block has the `@nn-console-v<version>` token in its
  * jsDelivr script tag rewritten to the current console release version (derived
  * from `iNNfo/specs/bluepriNNts/console/package.json`). The rewrite is surgical —
  * only the version token changes; each shell keeps its own CDN path.
