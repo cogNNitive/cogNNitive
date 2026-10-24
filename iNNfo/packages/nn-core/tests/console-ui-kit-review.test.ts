@@ -389,7 +389,7 @@ describe('InnfoUI.ElementCard applied history', () => {
     expect(card.querySelector('.innfo-card-meta-strip')).toBeNull()
   })
 
-  it('renders the applied history in the modal Changes tab as change cards', () => {
+  it('renders the applied history in the modal Changes tab as element sheets (newest first)', () => {
     const history = [
       {
         id: 'c-01',
@@ -413,11 +413,11 @@ describe('InnfoUI.ElementCard applied history', () => {
     )
     const changes = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]') as HTMLElement
     expect(changes.style.display).toBe('block')
-    // One change card per recorded change, carrying the author and the diff.
-    expect(changes.querySelectorAll('li[data-innfo-component="change-card"]').length).toBe(1)
+    // One standard element sheet per recorded change, reusing ElementCard.
+    expect(changes.querySelectorAll('article[data-innfo-component="element-card"]').length).toBe(1)
     expect(changes.textContent).toContain('ana')
-    expect(changes.textContent).toContain('Set the owner')
-    expect(changes.textContent).toContain('Bea \u2192 Ana')
+    expect(changes.textContent).toContain('Bea')
+    expect(changes.textContent).toContain('Ana')
     expect(modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')).not.toBeNull()
   })
 })

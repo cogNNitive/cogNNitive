@@ -447,13 +447,13 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.equal(tabEdit.style.display, 'none')
       assert.equal(tabHistory.style.display !== 'none', true)
 
-      // The Changes tab renders the change history as change cards (the old per-field
-      // Citations section is gone: the change's evidence is the source now).
+      // The Changes tab renders the change history as standard element sheets (one
+      // ElementCard per change; the old per-field Citations section is gone).
       assert.match(tabHistory.textContent, /Jane Doe/)
       assert.match(tabHistory.textContent, /Initial definition/)
       assert.ok(
-        tabHistory.querySelector('li[data-innfo-component="change-card"]'),
-        'a change card is rendered per history entry',
+        tabHistory.querySelector('article[data-innfo-component="element-card"]'),
+        'an element sheet is rendered per history entry',
       )
     })
   })
