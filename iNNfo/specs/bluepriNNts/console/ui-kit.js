@@ -241,6 +241,21 @@
     '.innfo-ku[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
     '.innfo-ku .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
     '.innfo-ku .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
+    // Field pairs read as TWO badges: the field NAME as its own chip and the VALUE
+    // as its own chip. Only `FieldRow` marks its unit `data-ku-pair=field`; every
+    // other `value` unit passes its text as the label and keeps the single badge.
+    // Field edits belong to the admin/agent, not the console, so the name chip
+    // carries no affordance of its own — the value badge keeps the `+` flyout.
+    // `[data-ku-kind=value]` is repeated to out-specify the nature rules that
+    // `ensureKuCss` injects in a later sheet at equal specificity.
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]{background:transparent;border:0;gap:.3em;padding:0;align-items:center;min-width:0}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-family:var(--innfo-mono);font-size:.76rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-icon{display:none}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-value{min-width:0;color:var(--innfo-text);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-empty=true]>.innfo-ku-value{display:none}',
+    // Long values (markdown / long_description) wrap instead of truncating.
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-wide=true]{align-items:flex-start}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-wide=true]>.innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
@@ -1273,8 +1288,12 @@
     return String(value)
   }
 
-  // A field VALUE on an element: one `value` knowledge unit. The field's
+  // A field PAIR on an element: the field NAME and its VALUE, each rendered as
+  // its own badge (a name chip + the `value` knowledge unit). The field's
   // definition unit lives in the table header / concept section, never here.
+  // The unit is marked `data-ku-pair=field` so the two-badge grammar applies
+  // here only: every other `value` unit (table cells, guide/doc fields, matrix
+  // cells) passes its TEXT as `label`, so it must keep the single-badge look.
   function FieldRow(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
     var doc = resolveDoc(opts)
@@ -1282,7 +1301,8 @@
     var inherited = data.inherited && data.inherited.from ? data.inherited : null
     var model = data.model || (opts && (opts.modelId || opts.model)) || 'model'
     var element = data.element || (opts && opts.element) || data.elementId || 'unit'
-    var valueNode = hasRef ? null : FieldValue(data, opts)
+    var typedValue = hasRef ? null : FieldValue(data, opts)
+    var valueNode = typedValue
     if (!valueNode) {
       valueNode = makeEl(doc, 'span', 'innfo-ku-value-text', fieldValueText(data.value))
     }
@@ -1331,11 +1351,18 @@
     )
     var badge = wrap.querySelector('[data-innfo-component="ku-unit"]')
     if (badge) {
+      badge.setAttribute('data-ku-pair', 'field')
       badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
       if (inherited) {
         badge.setAttribute('data-ku-inherited', String(inherited.from))
         badge.setAttribute('aria-label', 'content, inherited from ' + inherited.from + ': ' + label)
       }
+      var hasValue =
+        hasRef ||
+        !!typedValue ||
+        (Array.isArray(data.citations) && data.citations.length > 0) ||
+        fieldValueText(data.value) !== ''
+      if (!hasValue) badge.setAttribute('data-field-empty', 'true')
       var ftype = String(data.type || '').toLowerCase()
       if (
         ftype === 'markdown' ||
