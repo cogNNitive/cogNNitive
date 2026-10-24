@@ -172,7 +172,7 @@ describe('nn-runtime.js — renderCitationDialog', () => {
       },
     ])
 
-    const link = document.querySelector('a.innfo-cite-open')
+    const link = document.querySelector('a.nn-cite-open')
     expect(link).not.toBeNull()
     expect(link!.textContent).toContain('Open original')
     expect(link!.getAttribute('href')).toContain('sources/import/report.md')
@@ -184,9 +184,9 @@ describe('nn-runtime.js — renderCitationDialog', () => {
       { path: 'decision', exists: true, origin: 'human' },
     ])
 
-    const text = document.getElementById('innfo-citation-dialog')!.textContent ?? ''
+    const text = document.getElementById('nn-citation-dialog')!.textContent ?? ''
     expect(text).toContain('decision')
-    expect(document.querySelectorAll('a.innfo-cite-open')).toHaveLength(0)
+    expect(document.querySelectorAll('a.nn-cite-open')).toHaveLength(0)
   })
 
   it('all citation text renders through textContent — an <img onerror> payload in an excerpt stays inert', () => {
