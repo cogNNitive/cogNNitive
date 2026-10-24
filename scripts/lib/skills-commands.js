@@ -964,6 +964,50 @@ async function cmdInstall(args) {
   console.log(`\nInstalled ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} template(s), ${toInstallConsole.length} console asset(s), and ${toInstallMcp.length} MCP server(s).`);
 }
 
+/** Third-party agent-skill security scanner suggested in the install notice. */
+const SECURITY_SCANNER_HINT = 'plainsight';
+
+/**
+ * Builds the consent notice shown before installing a *referenced* external
+ * skill. It states the non-affiliation and the deliberately bounded guarantee
+ * explicitly, and points the user at a security scanner, because a pin proves
+ * the skill is unmodified — not that it is safe. Pure and exported so it can be
+ * unit-tested and kept in sync with the bundled skills-manager.
+ * @param {{ name: string, repo: string, path: string, commit: string, sha256?: string, installDir?: string }} args
+ * @returns {string}
+ */
+function buildExternalSkillNotice({ name, repo, path: skillPath, commit, sha256, installDir }) {
+  const shortCommit = String(commit).slice(0, 7);
+  const integrity = sha256
+    ? 'verified (sha256 tree digest matches the pin)'
+    : 'commit pin only — no sha256 digest to verify';
+  const scanTarget = installDir || `~/.agents/skills/${name}`;
+  return (
+    `THIRD-PARTY SKILL — NOT AFFILIATED WITH cogNNitive\n` +
+    `\n` +
+    `  name:      ${name}\n` +
+    `  source:    ${repo}/${skillPath}\n` +
+    `  pin:       ${shortCommit}\n` +
+    `  integrity: ${integrity}\n` +
+    `\n` +
+    `This skill is authored and published by a third party. cogNNitive has not\n` +
+    `reviewed its content and does not vouch for its author. The only guarantee\n` +
+    `is bounded: it is the exact revision the author published at the pin above.\n` +
+    `\n` +
+    `A skill runs with your agent's permissions. A pin proves the content is\n` +
+    `UNMODIFIED — it does NOT prove it is SAFE. It can still carry prompt\n` +
+    `injection, hidden instructions, credential access, or data exfiltration.\n` +
+    `\n` +
+    `Prudent step: review the skill, then scan it with an agent-skill security\n` +
+    `scanner before trusting it. For example (third-party tool, not affiliated\n` +
+    `with cogNNitive):\n` +
+    `\n` +
+    `    npx ${SECURITY_SCANNER_HINT} scan ${scanTarget}\n` +
+    `\n` +
+    `[a] Install anyway   [b] Skip\n`
+  );
+}
+
 /**
  * Installs a single *referenced* external skill (declared in a bluepriNNt
  * frontmatter `skills:` array) from its upstream repo at its pinned commit,
@@ -985,12 +1029,14 @@ async function cmdInstallExternal(args) {
   const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;
   const state = loadState(args.stateFile);
 
-  const integrity = args.sha256 ? 'verified via sha256' : 'NOT pinned (commit only)';
-  const menu =
-    `Referenced external skill (third-party, NOT curated by cogNNitive):\n` +
-    `  - ${name}  ${repo}/${skillPath} @ ${String(commit).slice(0, 7)}\n` +
-    `  integrity: ${integrity}\n` +
-    `\n[a] Install\n[b] Skip\n`;
+  const menu = buildExternalSkillNotice({
+    name,
+    repo,
+    path: skillPath,
+    commit,
+    sha256: args.sha256,
+    installDir: path.join(skillsDir, name),
+  });
   const proceed = await consentOrAbort(`install external skill ${name}`, [`external-skill:${name}`], menu, args.yes);
   if (!proceed) return;
 
@@ -1740,6 +1786,8 @@ module.exports = {
   cmdStatus,
   cmdInstall,
   cmdInstallExternal,
+  buildExternalSkillNotice,
+  SECURITY_SCANNER_HINT,
   cmdInstallBlueprint,
   loadBlueprintCatalog,
   findCatalogEntry,

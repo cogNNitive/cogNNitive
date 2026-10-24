@@ -1111,6 +1111,40 @@ agent-bootstrap:
   }
 }
 
+// External-skill install notice: the third-party disclaimer and the security
+// recommendation must survive verbatim in the shipped message.
+{
+  const { buildExternalSkillNotice, SECURITY_SCANNER_HINT } = require('./lib/skills-commands.js');
+
+  const pinned = buildExternalSkillNotice({
+    name: 'widget',
+    repo: 'acme/skills',
+    path: 'skills/widget',
+    commit: 'a'.repeat(40),
+    sha256: 'b'.repeat(64),
+    installDir: '/tmp/skills/widget',
+  });
+  assert.ok(/NOT AFFILIATED WITH cogNNitive/.test(pinned), 'notice must state the non-affiliation');
+  assert.ok(/acme\/skills\/skills\/widget/.test(pinned), 'notice must show the upstream source');
+  assert.ok(/aaaaaaa/.test(pinned), 'notice must show the shortened pin');
+  assert.ok(/verified \(sha256 tree digest matches the pin\)/.test(pinned), 'a sha256 pin reads as verified');
+  assert.ok(/does not vouch for its author/.test(pinned), 'notice must disclaim authorship');
+  assert.ok(/UNMODIFIED — it does NOT prove it is SAFE/.test(pinned), 'notice must separate fidelity from safety');
+  assert.ok(new RegExp(`npx ${SECURITY_SCANNER_HINT} scan /tmp/skills/widget`).test(pinned), 'notice must give a runnable scan command on the install dir');
+  assert.ok(/\[a\] Install anyway\s+\[b\] Skip/.test(pinned), 'notice must keep the consent options');
+
+  const unpinned = buildExternalSkillNotice({
+    name: 'widget',
+    repo: 'acme/skills',
+    path: 'skills/widget',
+    commit: 'c'.repeat(40),
+  });
+  assert.ok(/commit pin only — no sha256 digest to verify/.test(unpinned), 'a commit-only pin reads as unverified');
+  assert.ok(/~\/\.agents\/skills\/widget/.test(unpinned), 'notice falls back to the default install dir for the scan hint');
+
+  console.log('✔ external-skill install notice test passed');
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 
