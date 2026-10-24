@@ -11,6 +11,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseChangeset } from '../changeset/parser.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
+import type { ResolvedCitation } from './citations.js'
 
 /** One lineage entry as the console modal renders it (a change card). */
 export interface ElementHistoryItem {
@@ -24,6 +25,8 @@ export interface ElementHistoryItem {
   status?: string
   /** The evidence the change derives from (its proposal-time `evidence`). */
   evidence?: string
+  /** The evidence resolved to a citation entry (for the icon's dialog), when a resolver ran. */
+  evidenceCitation?: ResolvedCitation
   /** Diff / payload for the change card. */
   from?: string
   to?: string
@@ -168,6 +171,7 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
 export function attachChangesetHistory(
   elements: HistoryBearingElement[],
   changesets: ChangesetRecord[] | undefined,
+  resolveEvidence?: (evidence: string) => ResolvedCitation,
 ): void {
   if (!Array.isArray(changesets) || changesets.length === 0) return
   for (const cs of changesets) {
@@ -186,6 +190,9 @@ export function attachChangesetHistory(
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
           evidence: change.evidence,
+          ...(change.evidence && resolveEvidence
+            ? { evidenceCitation: resolveEvidence(change.evidence) }
+            : {}),
           from: change.from,
           to: change.to,
           concept: change.concept,

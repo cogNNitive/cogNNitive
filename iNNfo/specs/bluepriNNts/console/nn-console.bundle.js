@@ -2039,8 +2039,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (seen[v]) return
         seen[v] = true
         if (variants.indexOf(v) === -1) return
+        var entry = null
+        for (var i = 0; i < citations.length; i++) {
+          if (originVariantOf(citations[i]) === v) {
+            entry = citations[i]
+            break
+          }
+        }
         wrap.appendChild(
-          CitationIcon({ variant: v, field: d.name, value: d.value }, {
+          CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -3599,7 +3606,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             name: 'evidence',
             value: String(h.evidence),
             type: 'citation',
-            citations: [{ origin: 'document', source: String(h.evidence) }],
+            citations: [
+              h.evidenceCitation || {
+                origin: 'document',
+                path: String(h.evidence),
+                exists: true,
+                field: 'evidence',
+              },
+            ],
           })
         }
         pushField('applied_at', h.timestamp)
@@ -3617,12 +3631,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             {
               doc: doc,
               collapsible: false,
-              onCite:
-                opts && typeof opts.onEvidence === 'function'
-                  ? function (citeData) {
-                      opts.onEvidence(citeData && citeData.value)
-                    }
-                  : undefined,
+              onCite: opts && typeof opts.onEvidence === 'function' ? opts.onEvidence : undefined,
             },
           ),
         )
@@ -9140,6 +9149,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           onCite: function (citeData) {
             var fName = citeData && citeData.field
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
+            if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
           },
         },
@@ -13468,25 +13478,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         onDraftsChanged: refreshDraftCounts,
         // Change C: clicking a change's evidence opens the in-domain unit it points
         // at, or the citation dialog when it is an external file.
-        onEvidence: function (evidence) {
-          var ev = String(evidence || '').trim()
-          if (!ev || ev === 'decision' || ev === 'unknown') return
+        onEvidence: function (citeData) {
+          var entry = citeData && citeData.entry ? citeData.entry : null
+          var ev = String(
+            entry ? entry.path || '' : typeof citeData === 'string' ? citeData : (citeData && citeData.value) || '',
+          ).trim()
           var at = ev.indexOf('@')
           var target = at === -1 ? ev : ev.slice(0, at)
           var list = Array.isArray(elements) ? elements : []
           var match = null
-          for (var i = 0; i < list.length; i++) {
-            var cand = list[i]
-            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
-              match = cand
-              break
+          if (target) {
+            for (var i = 0; i < list.length; i++) {
+              var cand = list[i]
+              if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+                match = cand
+                break
+              }
             }
           }
           if (match) {
             focusElementCard(active, match.id)
             return
           }
-          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+          renderCitationDialog(active, 'evidence', [
+            entry || { origin: 'document', path: ev, exists: true, field: 'evidence', ...(ev ? { href: ev } : {}) },
+          ])
         },
       })
     }

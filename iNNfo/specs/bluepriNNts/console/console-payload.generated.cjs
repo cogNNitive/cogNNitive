@@ -7411,6 +7411,7 @@ __export(index_exports, {
   readChangeAuthor: () => readChangeAuthor,
   resolveCitation: () => resolveCitation,
   resolveConsoleSchema: () => resolveConsoleSchema,
+  resolveEvidenceCitation: () => resolveEvidenceCitation,
   roleOf: () => roleOf,
   serializeConsoleSlot: () => serializeConsoleSlot,
   unitAddress: () => unitAddress,
@@ -10439,7 +10440,7 @@ function resolveCitation(raw, field, resolver, modelPath = "") {
   }
   const content = resolved.content;
   if (!content) {
-    return { path: ref.filePath, anchor, exists: true, field, origin: "document" };
+    return { path: ref.filePath, href: ref.filePath, anchor, exists: true, field, origin: "document" };
   }
   const fm = parseFrontmatter(content);
   const sha256 = fm?.sha256;
@@ -10481,6 +10482,7 @@ function resolveCitation(raw, field, resolver, modelPath = "") {
   const classified = classifyOrigin(content, fm, ref);
   return {
     path: ref.filePath,
+    href: ref.filePath,
     anchor,
     exists: true,
     field,
@@ -10491,6 +10493,16 @@ function resolveCitation(raw, field, resolver, modelPath = "") {
     ...mediaSha256 ? { media_sha256: mediaSha256 } : {},
     ...version ? { version } : {}
   };
+}
+function resolveEvidenceCitation(evidence, resolver, basePath = "") {
+  const ev = String(evidence ?? "").trim();
+  if (ev === "decision") {
+    return { path: "decision", exists: true, field: "evidence", origin: "human" };
+  }
+  if (ev === "unknown") {
+    return { path: "unknown", exists: true, field: "evidence", origin: "document" };
+  }
+  return resolveCitation(ev, "evidence", resolver, basePath);
 }
 function groupCitationsByField(citations) {
   const grouped = {};
@@ -10599,7 +10611,7 @@ async function loadChangesetRecords(rootDir) {
   }
   return records;
 }
-function attachChangesetHistory(elements, changesets) {
+function attachChangesetHistory(elements, changesets, resolveEvidence) {
   if (!Array.isArray(changesets) || changesets.length === 0) return;
   for (const cs of changesets) {
     for (const change of cs.changes) {
@@ -10617,6 +10629,7 @@ function attachChangesetHistory(elements, changesets) {
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
           evidence: change.evidence,
+          ...change.evidence && resolveEvidence ? { evidenceCitation: resolveEvidence(change.evidence) } : {},
           from: change.from,
           to: change.to,
           concept: change.concept,
@@ -10952,7 +10965,11 @@ function buildConsolePayload(options) {
     options.procedures,
     parsed.conceptFields
   );
-  attachChangesetHistory(elements, changesets);
+  attachChangesetHistory(
+    elements,
+    changesets,
+    resolver ? (evidence) => resolveEvidenceCitation(evidence, resolver, modelPath || "") : void 0
+  );
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
   const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
   const sourceFile = normalizedSource.startsWith("kNNowledge/") ? normalizedSource : `kNNowledge/${normalizedSource}`;
@@ -11449,6 +11466,7 @@ function unitHome(address) {
   readChangeAuthor,
   resolveCitation,
   resolveConsoleSchema,
+  resolveEvidenceCitation,
   roleOf,
   serializeConsoleSlot,
   unitAddress,

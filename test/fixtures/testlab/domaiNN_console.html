@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-CZies1/oQp0gGdJMTwkAYUugO2JqSelU4WnJ6rCmz4w=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-BAD9z3A9QiWcNjc9CukyB3b8v2r03ysy8NGxeHcfZsM=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10144,8 +10144,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-492f4f66",
-    "generated": "2026-10-24T07:59:51.640Z",
+    "domainId": "testlab-363d4fd1",
+    "generated": "2026-10-24T09:35:29.655Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10156,7 +10156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-24T07:59:51.524Z",
+        "citationsResolvedAt": "2026-10-24T09:35:29.390Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -10382,6 +10382,13 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-12T17:33:29.123Z",
           "status": "applied",
           "evidence": "sources/import/field-notes.md",
+          "evidenceCitation": {
+            "path": "sources/import/field-notes.md",
+            "href": "sources/import/field-notes.md",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document"
+          },
           "from": "Element 1C",
           "name": "Element 1C (test)",
           "resolution": "Applied successfully"
@@ -10876,6 +10883,15 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/dataset.csv@m-001",
+          "evidenceCitation": {
+            "path": "sources/import/dataset.csv",
+            "href": "sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-001,capture_rate,0.94"
+          },
           "from": "Baseline element of the intake model, created by the administrator from the CSV dataset.",
           "to": "Reviewer description: the intake baseline was written up from the CSV dataset during the review pass.",
           "resolution": "Applied successfully"
@@ -10980,6 +10996,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-20T09:00:00.000Z",
           "status": "applied",
           "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "sources/import/report.pdf_sidecar_NN.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
+            "sha256": "testlab-placeholder-report"
+          },
           "concept": "Modification Cases",
           "name": "Modification cases",
           "fields": {
@@ -11004,6 +11030,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "Modification cases",
           "name": "Modification cases (reviewed)",
           "resolution": "Applied successfully"
@@ -11016,6 +11048,15 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/field-notes.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/field-notes.md",
+            "href": "sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          },
           "from": "Initial string value",
           "to": "Reviewed string value",
           "resolution": "Applied successfully"
@@ -11028,6 +11069,15 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/dataset.csv@m-001",
+          "evidenceCitation": {
+            "path": "sources/import/dataset.csv",
+            "href": "sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-001,capture_rate,0.94"
+          },
           "from": "0",
           "to": "42",
           "resolution": "Applied successfully"
@@ -11040,6 +11090,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "false",
           "to": "true",
           "resolution": "Applied successfully"
@@ -11052,6 +11108,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "draft",
           "to": "reviewed",
           "resolution": "Applied successfully"
@@ -11064,6 +11126,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "sources/import/report.pdf_sidecar_NN.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
+            "sha256": "testlab-placeholder-report"
+          },
           "from": "[[Intake owner]]",
           "to": "[[Intake backup owner]]",
           "resolution": "Applied successfully"
@@ -11076,6 +11148,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/photo.png_sidecar_NN.md@## Caption",
+          "evidenceCitation": {
+            "path": "sources/import/photo.png_sidecar_NN.md",
+            "href": "sources/import/photo.png_sidecar_NN.md",
+            "anchor": "caption",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Caption\n\nWorkbench photo: three labeled trays (intake, active, done) and a wall clock showing the handover minute.\n",
+            "sha256": "testlab-placeholder-photo"
+          },
           "to": "test/fixtures/testlab/sources/import/photo.png",
           "resolution": "Applied successfully"
         },
@@ -11087,6 +11169,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "test/fixtures/testlab/sources/import/manual.txt",
           "to": "test/fixtures/testlab/sources/import/report.pdf",
           "resolution": "Applied successfully"
@@ -11099,6 +11187,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/demo.mp4_sidecar_NN.md@## Transcript",
+          "evidenceCitation": {
+            "path": "sources/import/demo.mp4_sidecar_NN.md",
+            "href": "sources/import/demo.mp4_sidecar_NN.md",
+            "anchor": "transcript",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Transcript\n\nDownloaded walkthrough video (02:41). Narrator: \"Tray one is intake, tray two is active, tray three is done. If it is not in a tray, it does not exist.\"\n",
+            "sha256": "testlab-placeholder-demo"
+          },
           "to": "test/fixtures/testlab/sources/import/demo.mp4",
           "resolution": "Applied successfully"
         },
@@ -11110,6 +11208,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/interview.mp3_sidecar_NN.md@## Transcript",
+          "evidenceCitation": {
+            "path": "sources/import/interview.mp3_sidecar_NN.md",
+            "href": "sources/import/interview.mp3_sidecar_NN.md",
+            "anchor": "transcript",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Transcript\n\nTranscribed audio interview (11:05). Operator: \"Nobody reads the long manual. Everybody trusts the photo log. The handover note is the only text that matters.\"\n",
+            "sha256": "testlab-placeholder-interview"
+          },
           "to": "test/fixtures/testlab/sources/import/interview.mp3",
           "resolution": "Applied successfully"
         },
@@ -11121,6 +11229,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "https://example.com/initial",
           "to": "https://example.com/reviewed",
           "resolution": "Applied successfully"
@@ -11133,6 +11247,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "Initial **inline** markdown.",
           "to": "Reviewed **inline** markdown.",
           "resolution": "Applied successfully"
@@ -11145,6 +11265,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "test/fixtures/testlab/sources/import/field-notes.md",
           "to": "test/fixtures/testlab/sources/import/manual.txt",
           "resolution": "Applied successfully"
@@ -11157,6 +11283,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "to": "kNNowledge/TestLab_coverage_TestLab_NN.md",
           "resolution": "Applied successfully"
         },
@@ -11168,6 +11300,12 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          },
           "from": "TestLab_intake_TestLab@intake-element",
           "to": "TestLab_intake_TestLab@intake-owner",
           "resolution": "Applied successfully"
@@ -11180,6 +11318,16 @@ input[type="text"], input[type="search"], textarea, select {
           "timestamp": "2026-10-21T14:30:00.000Z",
           "status": "applied",
           "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "sources/import/report.pdf_sidecar_NN.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
+            "sha256": "testlab-placeholder-report"
+          },
           "to": "[test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings]",
           "resolution": "Applied successfully"
         }
@@ -11469,13 +11617,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
-            "sha256": "testlab-placeholder-report",
-            "href": "./sources/import/report.pdf_sidecar_NN.md"
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -11506,12 +11654,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -11542,12 +11690,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.json",
+            "href": "./sources/import/dataset.json",
             "anchor": "/items/0/name",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "intake-form",
-            "href": "./sources/import/dataset.json"
+            "excerpt": "intake-form"
           }
         ]
       },
@@ -11578,13 +11726,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
-            "sha256": "testlab-placeholder-report",
-            "href": "./sources/import/report.pdf_sidecar_NN.md"
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -11615,13 +11763,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
-            "sha256": "testlab-placeholder-report",
-            "href": "./sources/import/report.pdf_sidecar_NN.md"
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -11653,12 +11801,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -11690,12 +11838,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -11725,10 +11873,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "href": "./sources/import/field-notes.md"
+            "origin": "document"
           }
         ]
       },
@@ -11758,10 +11906,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "href": "./sources/import/dataset.csv"
+            "origin": "document"
           }
         ]
       },
@@ -11789,10 +11937,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -11824,10 +11972,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -11860,12 +12008,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -11898,12 +12046,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n",
-            "href": "./sources/import/field-notes.md"
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
           }
         ]
       },
@@ -11936,12 +12084,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -11974,10 +12122,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12010,10 +12158,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12046,13 +12194,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
-            "sha256": "testlab-placeholder-report",
-            "href": "./sources/import/report.pdf_sidecar_NN.md"
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -12084,13 +12232,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/photo.png_sidecar_NN.md",
+            "href": "./sources/import/photo.png_sidecar_NN.md",
             "anchor": "caption",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Caption\n\nWorkbench photo: three labeled trays (intake, active, done) and a wall clock showing the handover minute.\n",
-            "sha256": "testlab-placeholder-photo",
-            "href": "./sources/import/photo.png_sidecar_NN.md"
+            "sha256": "testlab-placeholder-photo"
           }
         ]
       },
@@ -12126,10 +12274,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12161,13 +12309,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/demo.mp4_sidecar_NN.md",
+            "href": "./sources/import/demo.mp4_sidecar_NN.md",
             "anchor": "transcript",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Transcript\n\nDownloaded walkthrough video (02:41). Narrator: \"Tray one is intake, tray two is active, tray three is done. If it is not in a tray, it does not exist.\"\n",
-            "sha256": "testlab-placeholder-demo",
-            "href": "./sources/import/demo.mp4_sidecar_NN.md"
+            "sha256": "testlab-placeholder-demo"
           }
         ]
       },
@@ -12199,13 +12347,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/interview.mp3_sidecar_NN.md",
+            "href": "./sources/import/interview.mp3_sidecar_NN.md",
             "anchor": "transcript",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Transcript\n\nTranscribed audio interview (11:05). Operator: \"Nobody reads the long manual. Everybody trusts the photo log. The handover note is the only text that matters.\"\n",
-            "sha256": "testlab-placeholder-interview",
-            "href": "./sources/import/interview.mp3_sidecar_NN.md"
+            "sha256": "testlab-placeholder-interview"
           }
         ]
       },
@@ -12238,10 +12386,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12274,10 +12422,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12310,10 +12458,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12345,10 +12493,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12381,10 +12529,10 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "decision",
-            "exists": false,
+            "exists": true,
             "field": "evidence",
-            "origin": "document",
-            "error": "DANGLING_FILE"
+            "origin": "human",
+            "href": "./decision"
           }
         ]
       },
@@ -12416,13 +12564,13 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
             "exists": true,
             "field": "evidence",
             "origin": "document",
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
-            "sha256": "testlab-placeholder-report",
-            "href": "./sources/import/report.pdf_sidecar_NN.md"
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -12455,12 +12603,12 @@ input[type="text"], input[type="search"], textarea, select {
         "evidence": [
           {
             "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
             "exists": true,
             "field": "evidence",
             "origin": "document",
-            "excerpt": "m-001,capture_rate,0.94",
-            "href": "./sources/import/dataset.csv"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -15049,8 +15197,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (seen[v]) return
         seen[v] = true
         if (variants.indexOf(v) === -1) return
+        var entry = null
+        for (var i = 0; i < citations.length; i++) {
+          if (originVariantOf(citations[i]) === v) {
+            entry = citations[i]
+            break
+          }
+        }
         wrap.appendChild(
-          CitationIcon({ variant: v, field: d.name, value: d.value }, {
+          CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -16609,7 +16764,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             name: 'evidence',
             value: String(h.evidence),
             type: 'citation',
-            citations: [{ origin: 'document', source: String(h.evidence) }],
+            citations: [
+              h.evidenceCitation || {
+                origin: 'document',
+                path: String(h.evidence),
+                exists: true,
+                field: 'evidence',
+              },
+            ],
           })
         }
         pushField('applied_at', h.timestamp)
@@ -16627,12 +16789,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             {
               doc: doc,
               collapsible: false,
-              onCite:
-                opts && typeof opts.onEvidence === 'function'
-                  ? function (citeData) {
-                      opts.onEvidence(citeData && citeData.value)
-                    }
-                  : undefined,
+              onCite: opts && typeof opts.onEvidence === 'function' ? opts.onEvidence : undefined,
             },
           ),
         )
@@ -22150,6 +22307,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           onCite: function (citeData) {
             var fName = citeData && citeData.field
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
+            if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
           },
         },
@@ -26478,25 +26636,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         onDraftsChanged: refreshDraftCounts,
         // Change C: clicking a change's evidence opens the in-domain unit it points
         // at, or the citation dialog when it is an external file.
-        onEvidence: function (evidence) {
-          var ev = String(evidence || '').trim()
-          if (!ev || ev === 'decision' || ev === 'unknown') return
+        onEvidence: function (citeData) {
+          var entry = citeData && citeData.entry ? citeData.entry : null
+          var ev = String(
+            entry ? entry.path || '' : typeof citeData === 'string' ? citeData : (citeData && citeData.value) || '',
+          ).trim()
           var at = ev.indexOf('@')
           var target = at === -1 ? ev : ev.slice(0, at)
           var list = Array.isArray(elements) ? elements : []
           var match = null
-          for (var i = 0; i < list.length; i++) {
-            var cand = list[i]
-            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
-              match = cand
-              break
+          if (target) {
+            for (var i = 0; i < list.length; i++) {
+              var cand = list[i]
+              if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+                match = cand
+                break
+              }
             }
           }
           if (match) {
             focusElementCard(active, match.id)
             return
           }
-          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+          renderCitationDialog(active, 'evidence', [
+            entry || { origin: 'document', path: ev, exists: true, field: 'evidence', ...(ev ? { href: ev } : {}) },
+          ])
         },
       })
     }
