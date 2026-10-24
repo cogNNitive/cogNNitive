@@ -16,6 +16,9 @@ describe('TestLab coverage domain fixtures', () => {
       'kNNowledge/TestLab_coverage_TestLab_NN.md',
       'kNNowledge/TestLab_procedures_TestLab_procedures_NN.md',
       'changes/testlab_reviewer_20261010T120000Z_changes_NN.md',
+      'kNNowledge/TestLab_intake_TestLab_NN.md',
+      'changes/testlab_admin_intake_changes_NN.md',
+      'changes/testlab_reviewer_intake_changes_NN.md',
       'domaiNN_console.html',
       'sources/import/field-notes.md',
       'sources/import/dataset.csv',
@@ -59,7 +62,7 @@ describe('TestLab coverage domain fixtures', () => {
 
   it('exercises every field type declared by the blueprint', () => {
     const spec = read('specs/TestLab_V_0-1-0_spec_NN.md')
-    for (const t of ['string', 'markdown_inline', 'markdown_file', 'image', 'file', 'video', 'audio', 'reference', 'select']) {
+    for (const t of ['string', 'number', 'boolean', 'select', 'reference', 'image', 'file', 'video', 'audio', 'url', 'markdown_inline', 'markdown_file', 'knowledge', 'address', 'citation']) {
       assert.match(spec, new RegExp(`type:: ${t}`), `blueprint missing type ${t}`)
     }
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
@@ -121,5 +124,32 @@ describe('TestLab coverage domain fixtures', () => {
     // The seeded changeset is embedded as Element 1B's changeset lineage.
     assert.match(console, /concept-1-element-1b/)
     assert.match(console, /fb-001/)
+  })
+
+  it('narrates the admin -> reviewer intake chain with every modification case', () => {
+    const model = read('kNNowledge/TestLab_intake_TestLab_NN.md')
+    const FIELDS = ['string_field', 'number_field', 'boolean_field', 'select_field', 'reference_field', 'image_field', 'file_field', 'video_field', 'audio_field', 'url_field', 'markdown_inline_field', 'markdown_file_field', 'knowledge_field', 'address_field', 'citation_field']
+    for (const f of FIELDS) assert.match(model, new RegExp(`${f}::`), `intake model missing ${f}`)
+    // The reviewer renamed the element.
+    assert.match(model, /Modification cases \(reviewed\)/)
+
+    const admin = read('changes/testlab_admin_intake_changes_NN.md')
+    const reviewer = read('changes/testlab_reviewer_intake_changes_NN.md')
+    // The admin created the model from the PDF, CSV and JSON sources.
+    assert.match(admin, /op:: add_model/)
+    for (const src of ['report\\.pdf_sidecar_NN\\.md@## Findings', 'dataset\\.csv@m-001', 'dataset\\.json@/items/0/name']) {
+      assert.match(admin, new RegExp(src), `admin chain missing evidence ${src}`)
+    }
+    // The reviewer covers rename, description, one field of each type, and a matrix cell.
+    assert.match(reviewer, /op:: rename_element/)
+    assert.match(reviewer, /op:: update_matrix_cell/)
+    for (const f of FIELDS) assert.match(reviewer, new RegExp(`&${f}\\b`), `reviewer never edits ${f}`)
+
+    // Every change in both chain sets attributes its mandatory evidence.
+    for (const cs of [admin, reviewer]) {
+      const changes = (cs.match(/## NN Change:/g) ?? []).length
+      const evidence = (cs.match(/^evidence:: /gm) ?? []).length
+      assert.equal(evidence, changes, 'each change carries evidence')
+    }
   })
 })

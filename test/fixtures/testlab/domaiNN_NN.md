@@ -28,6 +28,13 @@ status:: active
 author:: TestLab crew
 Synthetic coverage model: Concept 1 elements 1A/1B/1C, Concept 2 elements 2A/2B, and literal edge-case probes for image, multi-node, review, video, audio, PDF, very-long-description, file, artifact-as-source, broken-reference, and sourceless cases.
 
+## NN Models: TestLab Intake Model
+path:: kNNowledge/TestLab_intake_TestLab_NN.md
+template:: testlab
+status:: active
+author:: admin
+Intake model created by the administrator from a PDF report, a CSV dataset and a JSON payload, then reviewed: a rename, a description, one field of every Level-1 field type, and a matrix cell. Its change chain is changes/testlab_admin_intake_changes_NN.md (admin) and changes/testlab_reviewer_intake_changes_NN.md (reviewer).
+
 ## NN Models: TestLab Verification Procedures
 path:: kNNowledge/TestLab_procedures_TestLab_procedures_NN.md
 template:: procedures
