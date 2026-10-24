@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
-blueprint_version: "V_0-1-0"
+blueprint_version: "V_0-1-1"
 title: "TestLab Coverage App"
 relationship_types:
   hierarchy:
@@ -27,6 +27,7 @@ relationship_types:
 * [[Concept 1]]
 * [[Concept 2]]
 * [[Edge Cases]]
+* [[Modification Cases]]
 
 # NN Concept Definition
 
@@ -50,6 +51,13 @@ type:: list
 color:: amber
 weight:: 80
 description:: Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.
+
+## NN Concept Definition: Modification Cases
+icon:: git-pull-request
+type:: list
+color:: violet
+weight:: 70
+description:: One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.
 
 # NN Field Definition
 
@@ -135,6 +143,84 @@ description:: Image attached to the edge-case element.
 concept:: Edge Cases
 type:: file
 description:: Generic file attached to the edge-case element.
+
+## NN Field Definition: string_field
+concept:: Modification Cases
+type:: string
+description:: A string field, one of the modification cases.
+
+## NN Field Definition: number_field
+concept:: Modification Cases
+type:: number
+description:: A number field, one of the modification cases.
+
+## NN Field Definition: boolean_field
+concept:: Modification Cases
+type:: boolean
+description:: A boolean field, one of the modification cases.
+
+## NN Field Definition: select_field
+concept:: Modification Cases
+type:: select
+options:: [draft, reviewed, published]
+description:: A select field, one of the modification cases.
+
+## NN Field Definition: reference_field
+concept:: Modification Cases
+type:: reference
+target_concepts:: [Concept 2]
+description:: A reference field, one of the modification cases.
+
+## NN Field Definition: image_field
+concept:: Modification Cases
+type:: image
+description:: An image field, one of the modification cases.
+
+## NN Field Definition: file_field
+concept:: Modification Cases
+type:: file
+description:: A file field, one of the modification cases.
+
+## NN Field Definition: video_field
+concept:: Modification Cases
+type:: video
+description:: A video field, one of the modification cases.
+
+## NN Field Definition: audio_field
+concept:: Modification Cases
+type:: audio
+description:: An audio field, one of the modification cases.
+
+## NN Field Definition: url_field
+concept:: Modification Cases
+type:: url
+description:: A URL field, one of the modification cases.
+
+## NN Field Definition: markdown_inline_field
+concept:: Modification Cases
+type:: markdown_inline
+description:: A markdown_inline field, one of the modification cases.
+
+## NN Field Definition: markdown_file_field
+concept:: Modification Cases
+type:: markdown_file
+description:: A markdown_file field, one of the modification cases.
+
+## NN Field Definition: knowledge_field
+concept:: Modification Cases
+type:: knowledge
+target_blueprint:: TestLab
+description:: A knowledge field, one of the modification cases.
+
+## NN Field Definition: address_field
+concept:: Modification Cases
+type:: address
+description:: An address field, one of the modification cases.
+
+## NN Field Definition: citation_field
+concept:: Modification Cases
+type:: citation
+description:: A citation field, one of the modification cases.
 
 ## NN Field Definition: tags
 concept:: *
