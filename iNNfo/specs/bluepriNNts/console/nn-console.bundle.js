@@ -1139,6 +1139,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku[data-ku-kind=element]{font-size:.9rem}',
     '.innfo-ku .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-field-citation{display:inline-flex;align-items:center;gap:.3em;min-width:0}',
     '.innfo-ku .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
     // Content badges: NO border; the concept colour rides on the label/value and on
     // the concept icon (the icon of the concept the unit belongs to).
@@ -1953,11 +1954,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // FIELD_RENDERERS is keyed by the declared field type — the L1 set
   // (iNNfo_V_0-4-0 §Field Definition: string, select, reference, markdown_inline,
   // markdown_file, image, file, video, audio, url, knowledge, citation) plus the
-  // legacy aliases older payloads still emit. reference/citation have no entry:
-  // FieldRow resolves them to Ku / CitationIcon from data.ref and
-  // data.citations. Value-shape renderers (boolean / list / object / url) and
-  // shape heuristics (image / asset path) run regardless of the declared type,
-  // matching the console's runtime-detected payloads.
+  // legacy aliases older payloads still emit. `reference` is resolved by FieldRow to
+  // a Ku from data.ref; a field carrying resolved citations (`data.citations`) is
+  // rendered by the citation value renderer (renderFieldCitation) — value plus the
+  // clickable icon, as part of the VALUE. Value-shape renderers (boolean / list /
+  // object / url) and shape heuristics (image / asset path) run regardless of the
+  // declared type, matching the console's runtime-detected payloads.
   var FIELD_RENDERERS = {
     boolean: renderFieldBoolean,
     select: renderFieldSelect,
@@ -1995,6 +1997,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     a.setAttribute('target', '_blank')
     a.setAttribute('rel', 'noopener noreferrer')
     return a
+  }
+
+  // A citation field's VALUE: the value text plus the clickable citation icon(s),
+  // rendered as PART OF THE VALUE (inside the badge), not bolted onto the row. The
+  // icon opens the citation through `onCite`. Driven by the resolved `citations`
+  // (the export resolves every citation-typed field, including the reserved
+  // `sources`), so it is a standard value renderer, not a per-case special.
+  function renderFieldCitation(d, doc, opts) {
+    var wrap = makeEl(doc, 'span', 'innfo-field-citation')
+    var text = fieldValueText(d.value)
+    if (text) wrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-text', text))
+    var citations = Array.isArray(d.citations) ? d.citations : []
+    if (citations.length) {
+      var seen = {}
+      var variants = citations.map(originVariantOf)
+      ;['error', 'agent', 'human', 'reviewer', 'document'].forEach(function (v) {
+        if (seen[v]) return
+        seen[v] = true
+        if (variants.indexOf(v) === -1) return
+        wrap.appendChild(
+          CitationIcon({ variant: v, field: d.name, value: d.value }, {
+            onOpen: opts && opts.onCite ? opts.onCite : undefined,
+          }),
+        )
+      })
+    }
+    return wrap
   }
 
   function renderFieldCode(d, doc) {
@@ -2128,14 +2157,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return renderFieldUrl(d, doc)
     }
 
-    // 2. Declared-type renderer.
+    // 2. A field carrying resolved citations is a citation: the value plus the
+    // clickable citation icon(s), rendered as part of the value.
+    if (Array.isArray(d.citations) && d.citations.length) {
+      return renderFieldCitation(d, doc, opts)
+    }
+
+    // 3. Declared-type renderer.
     var byType = FIELD_RENDERERS[type]
     if (byType) {
       var typed = byType(d, doc, opts)
       if (typed) return typed
     }
 
-    // 3. Shape heuristics for values with no declared (or recognized) type.
+    // 4. Shape heuristics for values with no declared (or recognized) type.
     if (typeof value === 'string') {
       if (d.name !== 'sources' && looksLikeImageValue(value)) return renderFieldImage(d, doc)
       if (isAssetPath(value)) return renderFieldFile(d, doc)
@@ -2227,20 +2262,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ) {
         badge.setAttribute('data-field-wide', 'true')
       }
-    }
-    if (Array.isArray(data.citations) && data.citations.length) {
-      var seen = {}
-      var variants = data.citations.map(originVariantOf)
-      ;['error', 'agent', 'human', 'reviewer', 'document'].forEach(function (v) {
-        if (seen[v]) return
-        seen[v] = true
-        if (variants.indexOf(v) === -1) return
-        wrap.appendChild(
-          CitationIcon({ variant: v, field: data.name }, {
-            onOpen: opts && opts.onCite ? opts.onCite : undefined,
-          }),
-        )
-      })
     }
     return wrap
   }
@@ -3536,7 +3557,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         pushField('name', h.name)
         pushField('author', h.author)
         pushField('status', h.status)
-        pushField('evidence', h.evidence)
+        // Evidence is a citation: render it with the standard citation value widget
+        // (value + clickable icon) so the icon opens the citation/unit.
+        if (h.evidence) {
+          changeFields.push({
+            name: 'evidence',
+            value: String(h.evidence),
+            type: 'citation',
+            citations: [{ origin: 'document', source: String(h.evidence) }],
+          })
+        }
         pushField('applied_at', h.timestamp)
         pushField('notes', h.notes)
         pushField('resolution', h.resolution)
@@ -3549,7 +3579,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               name: cardTitle(h.op, h),
               fields: changeFields,
             },
-            { doc: doc, collapsible: false },
+            {
+              doc: doc,
+              collapsible: false,
+              onCite:
+                opts && typeof opts.onEvidence === 'function'
+                  ? function (citeData) {
+                      opts.onEvidence(citeData && citeData.value)
+                    }
+                  : undefined,
+            },
           ),
         )
       })

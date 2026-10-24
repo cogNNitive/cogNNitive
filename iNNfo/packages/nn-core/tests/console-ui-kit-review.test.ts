@@ -463,3 +463,39 @@ describe('review components purity', () => {
     }
   })
 })
+
+describe('InnfoUI.FieldRow citation value', () => {
+  it('renders the citation icon as part of the value, not as a row sibling', () => {
+    const row = UI.FieldRow(
+      {
+        name: 'evidence',
+        value: 'sources/import/report.pdf_sidecar_NN.md@## Findings',
+        type: 'citation',
+        citations: [{ origin: 'document', source: 'sources/import/report.pdf_sidecar_NN.md' }],
+      },
+      {},
+    )
+    const icon = row.querySelector('[data-innfo-component="citation-icon"]')
+    expect(icon).not.toBeNull()
+    // The icon lives inside the value slot (inside the badge), not beside the badge.
+    expect(icon.closest('.innfo-ku-value')).not.toBeNull()
+    expect(icon.closest('.innfo-ku')).not.toBeNull()
+  })
+
+  it('opens the citation through onCite with the field and value', () => {
+    const onCite = vi.fn()
+    const row = UI.FieldRow(
+      {
+        name: 'evidence',
+        value: 'sources/a.md@## H',
+        type: 'citation',
+        citations: [{ origin: 'document', source: 'sources/a.md' }],
+      },
+      { onCite },
+    )
+    const icon = row.querySelector('[data-innfo-component="citation-icon"]') as HTMLElement
+    icon.dispatchEvent(new Event('click', { bubbles: true }))
+    expect(onCite).toHaveBeenCalled()
+    expect(onCite.mock.calls[0][0]).toMatchObject({ field: 'evidence', value: 'sources/a.md@## H' })
+  })
+})
