@@ -221,6 +221,7 @@
     '.innfo-ku[data-ku-kind=element]{font-size:.9rem}',
     '.innfo-ku .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-field-citation{display:inline-flex;align-items:center;gap:.3em;min-width:0}',
     '.innfo-ku .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
     // Content badges: NO border; the concept colour rides on the label/value and on
     // the concept icon (the icon of the concept the unit belongs to).
@@ -240,6 +241,21 @@
     '.innfo-ku[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
     '.innfo-ku .innfo-ku-values{display:inline-flex;flex-wrap:wrap;gap:.25em}',
     '.innfo-ku .innfo-ku-value-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:999px;padding:0 .5em;font-size:.85em}',
+    // Field pairs read as TWO badges: the field NAME as its own chip and the VALUE
+    // as its own chip. Only `FieldRow` marks its unit `data-ku-pair=field`; every
+    // other `value` unit passes its text as the label and keeps the single badge.
+    // Field edits belong to the admin/agent, not the console, so the name chip
+    // carries no affordance of its own — the value badge keeps the `+` flyout.
+    // `[data-ku-kind=value]` is repeated to out-specify the nature rules that
+    // `ensureKuCss` injects in a later sheet at equal specificity.
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]{background:transparent;border:0;gap:.3em;padding:0;align-items:center;min-width:0}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-family:var(--innfo-mono);font-size:.76rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-icon{display:none}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-value{min-width:0;color:var(--innfo-text);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-empty=true]>.innfo-ku-value{display:none}',
+    // Long values (markdown / long_description) wrap instead of truncating.
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-wide=true]{align-items:flex-start}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-wide=true]>.innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
     '.innfo-ku[data-ku-changes]{border-style:dashed}',
     '.innfo-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}',
     '.innfo-kpi-card{background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--innfo-shadow)}',
@@ -1035,11 +1051,12 @@
   // FIELD_RENDERERS is keyed by the declared field type — the L1 set
   // (iNNfo_V_0-4-0 §Field Definition: string, select, reference, markdown_inline,
   // markdown_file, image, file, video, audio, url, knowledge, citation) plus the
-  // legacy aliases older payloads still emit. reference/citation have no entry:
-  // FieldRow resolves them to Ku / CitationIcon from data.ref and
-  // data.citations. Value-shape renderers (boolean / list / object / url) and
-  // shape heuristics (image / asset path) run regardless of the declared type,
-  // matching the console's runtime-detected payloads.
+  // legacy aliases older payloads still emit. `reference` is resolved by FieldRow to
+  // a Ku from data.ref; a field carrying resolved citations (`data.citations`) is
+  // rendered by the citation value renderer (renderFieldCitation) — value plus the
+  // clickable icon, as part of the VALUE. Value-shape renderers (boolean / list /
+  // object / url) and shape heuristics (image / asset path) run regardless of the
+  // declared type, matching the console's runtime-detected payloads.
   var FIELD_RENDERERS = {
     boolean: renderFieldBoolean,
     select: renderFieldSelect,
@@ -1077,6 +1094,33 @@
     a.setAttribute('target', '_blank')
     a.setAttribute('rel', 'noopener noreferrer')
     return a
+  }
+
+  // A citation field's VALUE: the value text plus the clickable citation icon(s),
+  // rendered as PART OF THE VALUE (inside the badge), not bolted onto the row. The
+  // icon opens the citation through `onCite`. Driven by the resolved `citations`
+  // (the export resolves every citation-typed field, including the reserved
+  // `sources`), so it is a standard value renderer, not a per-case special.
+  function renderFieldCitation(d, doc, opts) {
+    var wrap = makeEl(doc, 'span', 'innfo-field-citation')
+    var text = fieldValueText(d.value)
+    if (text) wrap.appendChild(makeEl(doc, 'span', 'innfo-ku-value-text', text))
+    var citations = Array.isArray(d.citations) ? d.citations : []
+    if (citations.length) {
+      var seen = {}
+      var variants = citations.map(originVariantOf)
+      ;['error', 'agent', 'human', 'reviewer', 'document'].forEach(function (v) {
+        if (seen[v]) return
+        seen[v] = true
+        if (variants.indexOf(v) === -1) return
+        wrap.appendChild(
+          CitationIcon({ variant: v, field: d.name, value: d.value }, {
+            onOpen: opts && opts.onCite ? opts.onCite : undefined,
+          }),
+        )
+      })
+    }
+    return wrap
   }
 
   function renderFieldCode(d, doc) {
@@ -1210,14 +1254,20 @@
       return renderFieldUrl(d, doc)
     }
 
-    // 2. Declared-type renderer.
+    // 2. A field carrying resolved citations is a citation: the value plus the
+    // clickable citation icon(s), rendered as part of the value.
+    if (Array.isArray(d.citations) && d.citations.length) {
+      return renderFieldCitation(d, doc, opts)
+    }
+
+    // 3. Declared-type renderer.
     var byType = FIELD_RENDERERS[type]
     if (byType) {
       var typed = byType(d, doc, opts)
       if (typed) return typed
     }
 
-    // 3. Shape heuristics for values with no declared (or recognized) type.
+    // 4. Shape heuristics for values with no declared (or recognized) type.
     if (typeof value === 'string') {
       if (d.name !== 'sources' && looksLikeImageValue(value)) return renderFieldImage(d, doc)
       if (isAssetPath(value)) return renderFieldFile(d, doc)
@@ -1238,8 +1288,12 @@
     return String(value)
   }
 
-  // A field VALUE on an element: one `value` knowledge unit. The field's
+  // A field PAIR on an element: the field NAME and its VALUE, each rendered as
+  // its own badge (a name chip + the `value` knowledge unit). The field's
   // definition unit lives in the table header / concept section, never here.
+  // The unit is marked `data-ku-pair=field` so the two-badge grammar applies
+  // here only: every other `value` unit (table cells, guide/doc fields, matrix
+  // cells) passes its TEXT as `label`, so it must keep the single-badge look.
   function FieldRow(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
     var doc = resolveDoc(opts)
@@ -1247,7 +1301,8 @@
     var inherited = data.inherited && data.inherited.from ? data.inherited : null
     var model = data.model || (opts && (opts.modelId || opts.model)) || 'model'
     var element = data.element || (opts && opts.element) || data.elementId || 'unit'
-    var valueNode = hasRef ? null : FieldValue(data, opts)
+    var typedValue = hasRef ? null : FieldValue(data, opts)
+    var valueNode = typedValue
     if (!valueNode) {
       valueNode = makeEl(doc, 'span', 'innfo-ku-value-text', fieldValueText(data.value))
     }
@@ -1296,11 +1351,18 @@
     )
     var badge = wrap.querySelector('[data-innfo-component="ku-unit"]')
     if (badge) {
+      badge.setAttribute('data-ku-pair', 'field')
       badge.setAttribute('data-field', String(data.name == null ? '' : data.name))
       if (inherited) {
         badge.setAttribute('data-ku-inherited', String(inherited.from))
         badge.setAttribute('aria-label', 'content, inherited from ' + inherited.from + ': ' + label)
       }
+      var hasValue =
+        hasRef ||
+        !!typedValue ||
+        (Array.isArray(data.citations) && data.citations.length > 0) ||
+        fieldValueText(data.value) !== ''
+      if (!hasValue) badge.setAttribute('data-field-empty', 'true')
       var ftype = String(data.type || '').toLowerCase()
       if (
         ftype === 'markdown' ||
@@ -1309,20 +1371,6 @@
       ) {
         badge.setAttribute('data-field-wide', 'true')
       }
-    }
-    if (Array.isArray(data.citations) && data.citations.length) {
-      var seen = {}
-      var variants = data.citations.map(originVariantOf)
-      ;['error', 'agent', 'human', 'reviewer', 'document'].forEach(function (v) {
-        if (seen[v]) return
-        seen[v] = true
-        if (variants.indexOf(v) === -1) return
-        wrap.appendChild(
-          CitationIcon({ variant: v, field: data.name }, {
-            onOpen: opts && opts.onCite ? opts.onCite : undefined,
-          }),
-        )
-      })
     }
     return wrap
   }
@@ -2618,7 +2666,16 @@
         pushField('name', h.name)
         pushField('author', h.author)
         pushField('status', h.status)
-        pushField('evidence', h.evidence)
+        // Evidence is a citation: render it with the standard citation value widget
+        // (value + clickable icon) so the icon opens the citation/unit.
+        if (h.evidence) {
+          changeFields.push({
+            name: 'evidence',
+            value: String(h.evidence),
+            type: 'citation',
+            citations: [{ origin: 'document', source: String(h.evidence) }],
+          })
+        }
         pushField('applied_at', h.timestamp)
         pushField('notes', h.notes)
         pushField('resolution', h.resolution)
@@ -2631,7 +2688,16 @@
               name: cardTitle(h.op, h),
               fields: changeFields,
             },
-            { doc: doc, collapsible: false },
+            {
+              doc: doc,
+              collapsible: false,
+              onCite:
+                opts && typeof opts.onEvidence === 'function'
+                  ? function (citeData) {
+                      opts.onEvidence(citeData && citeData.value)
+                    }
+                  : undefined,
+            },
           ),
         )
       })
