@@ -208,7 +208,7 @@ function testFindHandTypedFacts() {
   // 2. Triangulation: a numeric count on a different line/file is also flagged (proves it is a real regex, not a literal string match on "seven").
   {
     const violations = findHandTypedFacts([
-      { path: 'docs/innfo/about.md', content: 'Line one is safe.\ninnfo-mcp exposes 9 MCP tools today.' },
+      { path: 'docs/innfo/example.md', content: 'Line one is safe.\ninnfo-mcp exposes 9 MCP tools today.' },
     ]);
     assert.strictEqual(violations.length, 1, 'exactly one violation for the numeric count');
     assert.strictEqual(violations[0].line, 2, 'line number matches the offending line, not the file start');
@@ -224,14 +224,14 @@ function testFindHandTypedFacts() {
       '| Tool | Description |',
       '<!-- /generated:mcp-tools -->',
     ].join('\n');
-    const violations = findHandTypedFacts([{ path: 'docs/innfo/documentation/nn-mcp.md', content }]);
+    const violations = findHandTypedFacts([{ path: 'docs/innfo/example.md', content }]);
     assert.strictEqual(violations.length, 0, 'generated region content is excluded from the scan');
   }
 
   // 4. A registered skill name paired with a version literal on the same line is flagged.
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/skills/documentation/README.md', content: 'nn is pinned at V_1-2-0 in this doc.' }],
+      [{ path: 'docs/skills/example.md', content: 'nn is pinned at V_1-2-0 in this doc.' }],
       { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 1, 'skill name + version literal is flagged when skillNames is provided');
@@ -241,7 +241,7 @@ function testFindHandTypedFacts() {
   // 5. A version literal with NO registered skill name on the line is not flagged (avoids false positives on unrelated V_x-y-z text).
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/skills/documentation/README.md', content: 'The spec pins V_1-2-0 for an unrelated reason.' }],
+      [{ path: 'docs/skills/example.md', content: 'The spec pins V_1-2-0 for an unrelated reason.' }],
       { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 0, 'version literal alone (no skill name on the line) is not a violation');
@@ -250,7 +250,7 @@ function testFindHandTypedFacts() {
   // 6. A short skill name like "nn" does not match substrings inside words like "innovation" or "cogNNitive".
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/innfo/documentation/specifications.md', content: '| **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/innovation_V_0-2-0_NN.md) |' }],
+      [{ path: 'docs/innfo/example.md', content: '| **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/innovation_V_0-2-0_NN.md) |' }],
       { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 0, 'short skill name "nn" does not match substrings in innovation or cogNNitive');

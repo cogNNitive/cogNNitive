@@ -247,7 +247,7 @@ function checkHandTypedFactsAtRef(repoRoot, ref, deps = {}) {
 
 /**
  * Step 7e: Docs-Derived Facts Drift Guard (spec docs-derived-facts,
- * "CI Drift Guard"). Runs both generated-region/twin freshness checks and the
+ * "CI Drift Guard"). Runs the generated-region freshness check and the
  * hand-typed-fact repo scan, all against a committed git ref rather than the
  * working tree (design D5) — CI's `build:docs` step already ran write mode
  * before `verify.js` runs, so a working-tree check could never see drift.
@@ -264,8 +264,7 @@ function checkDocsFactsDriftAtRef(repoRoot, ref, deps = {}) {
   const failures = [];
 
   const generatorChecks = [
-    ['generate-docs-facts.mjs', 'MCP tool facts / skills catalog regions'],
-    ['generate-about-twin.mjs', 'about.md twin'],
+    ['generate-docs-facts.mjs', 'MCP tool facts region'],
   ];
 
   for (const [scriptName, label] of generatorChecks) {

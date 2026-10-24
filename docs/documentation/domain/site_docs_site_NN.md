@@ -36,3 +36,10 @@ kind:: reference
 order:: 1
 summary:: Complete dictionary of exposed agent tools and diagnostics.
 source:: content/mcp-tools.md
+
+## NN Page: Vocabulary
+slug:: vocabulary
+kind:: reference
+order:: 2
+summary:: Canonical terms, level hierarchy, retired identifiers and aliases.
+source:: content/vocabulary.md

@@ -33,7 +33,7 @@ function fixtureTree(opts = {}) {
       { name: 'list_models', description: 'Scan the models directory and list all iNNfo models' },
       { name: 'read_model', description: "Parse and return an iNNfo model's full structure by its id" },
     ],
-    targetBody = 'STALE HAND-TYPED TABLE',
+    targetBody = 'STALE HAND-TYPED SKILL TOOLS',
     withMarkers = true,
   } = opts;
 
@@ -49,42 +49,13 @@ function fixtureTree(opts = {}) {
     );
   }
 
-  const docsDir = path.join(root, 'docs', 'innfo', 'documentation');
-  fs.mkdirSync(docsDir, { recursive: true });
-  const body = withMarkers
-    ? ['# nn-mcp', '', '## Tools', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
-    : ['# nn-mcp', '', '## Tools', '', '| Tool | Description |', '|------|-------------|', ''].join('\n');
-  fs.writeFileSync(path.join(docsDir, 'nn-mcp.md'), body, 'utf8');
-
-  // The mcp-tools job also renders into the nn-innfo skill's own mcp-tools region (design D4).
+  // The mcp-tools job renders into the nn-innfo skill's own mcp-tools region (design D4).
   const nnInnfoDir = path.join(root, 'skills', 'nn-innfo');
   fs.mkdirSync(nnInnfoDir, { recursive: true });
   const skillBody = withMarkers
-    ? ['# nn-innfo', '', OPEN_MARKER, 'STALE HAND-TYPED SKILL TOOLS', CLOSE_MARKER, ''].join('\n')
+    ? ['# nn-innfo', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
     : ['# nn-innfo', '', '17 deterministic tools', ''].join('\n');
   fs.writeFileSync(path.join(nnInnfoDir, 'SKILL.md'), skillBody, 'utf8');
-
-  // Populate skills catalog fixture files
-  const manifestDir = path.join(root, 'manifest');
-  fs.mkdirSync(manifestDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(manifestDir, 'source.yaml'),
-    'skills:\n  - name: test-skill\n    description: Test Skill Description\n',
-    'utf8',
-  );
-
-  const skillsDocsDir = path.join(root, 'docs', 'skills', 'documentation');
-  fs.mkdirSync(skillsDocsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(skillsDocsDir, 'documentation_NN.md'),
-    '---\ntitle: Agent Skills Documentation\nmodel_version: V_0-2-0\n---\n# NN Section\n## NN Section: Canonical Skills\ntitle:: Canonical Skills\n# NN Page\n## NN Page: test-skill\ntitle:: Test Skill\nparent:: [[Canonical Skills]]\n',
-    'utf8',
-  );
-  fs.writeFileSync(
-    path.join(skillsDocsDir, 'README.md'),
-    '# Skills Catalog\n<!-- generated:skills-catalog (source: manifest/source.yaml) -->\n**1** skills\n\n- `test-skill`: Test Skill Description\n<!-- /generated:skills-catalog -->\n',
-    'utf8',
-  );
 
   return root;
 }
@@ -94,10 +65,6 @@ function runCli(cwd, args = []) {
 }
 
 function readTarget(root) {
-  return fs.readFileSync(path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md'), 'utf8');
-}
-
-function readSkillTarget(root) {
   return fs.readFileSync(path.join(root, 'skills', 'nn-innfo', 'SKILL.md'), 'utf8');
 }
 
@@ -121,7 +88,7 @@ function main() {
 
   // 2. `--check` against a stale fixture (on-disk body does not match the registry) exits 1.
   {
-    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED TABLE' });
+    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED SKILL TOOLS' });
     try {
       const res = runCli(root, ['--check']);
       assert.strictEqual(res.status, 1, `expected exit 1 (drift), got ${res.status}: ${res.stderr}`);
@@ -133,7 +100,7 @@ function main() {
 
   // 3. Triangulation: `--check` succeeds (exit 0) once the file already matches the registry render.
   {
-    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED TABLE' });
+    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED SKILL TOOLS' });
     try {
       const write = runCli(root);
       assert.strictEqual(write.status, 0, `write mode must succeed, got ${write.status}: ${write.stderr}`);
@@ -146,7 +113,7 @@ function main() {
 
   // 4. Write mode is byte-identical on a second run with no upstream change (determinism, design "Regeneration is deterministic").
   {
-    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED TABLE' });
+    const root = fixtureTree({ targetBody: 'STALE HAND-TYPED SKILL TOOLS' });
     try {
       const first = runCli(root);
       assert.strictEqual(first.status, 0, `first write must succeed: ${first.stderr}`);
@@ -192,13 +159,13 @@ function main() {
     }
   }
 
-  // 7. The mcp-tools job also renders into skills/nn-innfo/SKILL.md's own region (design D4).
+  // 7. The mcp-tools job renders into skills/nn-innfo/SKILL.md's own region (design D4).
   {
     const root = fixtureTree();
     try {
       const res = runCli(root);
       assert.strictEqual(res.status, 0, `write must succeed: ${res.stderr}`);
-      const skill = readSkillTarget(root);
+      const skill = readTarget(root);
       assert.ok(skill.includes('**2** tools'), 'the skill region reflects the registry tool count');
       assert.ok(skill.includes('| `list_models` |'), 'the skill region lists the registered tools');
       assert.ok(!skill.includes('STALE HAND-TYPED SKILL TOOLS'), 'the stale skill body is replaced');

@@ -143,7 +143,6 @@ const DISTRIBUTION_ALLOWLIST = [
   'scripts/build-console-shells.mjs', // documents the legacy pin the shell guard also reads
   'scripts/lib/publish-web-tree.test.js', // asserts legacy CDN files survive a Pages push
   'scripts/lib/docs-facts.test.mjs', // fixtures that use the retired name as arbitrary content
-  'scripts/generate-about-twin.test.mjs', // fixture mirrors the deferred about.html prose
   'skills/nn-skills-lifecycle/scripts/skills-manager.js', // generated D10 bundle
   SELF,
 ]
@@ -295,9 +294,9 @@ describe('retired names appear nowhere outside their allowlists', () => {
  * the generated core mirror. `git ls-files` is read directly, so the row goes red the
  * moment one of those paths comes back.
  *
- * Deliberately narrow: the CDN bundle file name, the wrapper scripts and the three
- * public doc files still carry an `innfo-*` name on purpose until PR 3 retires them,
- * so this row matches the package directories and the generated mirror, not every
+ * Deliberately narrow: the CDN bundle file name and the wrapper scripts still
+ * carry an `innfo-*` name on purpose until PR 3 retires them, so this row
+ * matches the package directories and the generated mirror, not every
  * `innfo-*` path.
  */
 const RETIRED_PATH_STEMS = [
@@ -305,7 +304,6 @@ const RETIRED_PATH_STEMS = [
   /(^|\/)innfo-core\.generated\.cjs$/, // the generated core mirror
   /(^|\/)scripts\/innfo-mcp\.(sh|ps1|cmd)$/, // pre-cutover wrapper scripts (PR 3)
   /(^|\/)iNNfo\/packages\/nn-mcp\/bin\/innfo-mcp\.bundle\.js$/, // pre-cutover MCP bundle (PR 3)
-  /(^|\/)docs\/innfo\/documentation\/(innfo-core|innfo-mcp|opencode-innfo-agent)\.md$/, // pre-cutover public docs (PR 3)
 ]
 
 /** Paths whose old names are expected at this point of the cutover. */
@@ -334,7 +332,6 @@ describe('the renamed package and generated paths stay retired', () => {
       'skills/nn-sources/scripts/lib/innfo-core.generated.cjs',
       'scripts/innfo-mcp.sh',
       'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js',
-      'docs/innfo/documentation/innfo-mcp.md',
     ]) {
       assert.deepEqual(retiredPathHits([planted]), [planted], `${planted} must be flagged`)
     }
@@ -376,7 +373,7 @@ describe('the retired editor and hosted app', () => {
   it('the allowlist admits write-once specs and the notice page, and nothing broader', () => {
     assert.ok(editorAllowed('iNNfo/specs/iNNfo_V_0-3-0_NN.md'))
     assert.ok(editorAllowed('docs/innfo/app/index.html'))
-    assert.ok(!editorAllowed('docs/innfo/index.html'))
+    assert.ok(!editorAllowed('docs/innfo/mcp-setup.md'))
     assert.ok(!editorAllowed('docs/innfo/app/other.html'))
     assert.ok(!editorAllowed('iNNfo/specs/bluepriNNts/business/spec_NN.md'))
     assert.ok(!editorAllowed('skills/nn-innfo/SKILL.md'))
@@ -457,7 +454,6 @@ describe('the workspace hub is deleted', () => {
     'iNNfo/specs/bluepriNNts/workspace/assets/workspace_hub.html',
     'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md',
     '_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
-    'docs/innfo/documentation/workspace-console-hub.md',
     'iNNfo/packages/nn-core/tests/workspace-hub.test.ts',
   ]
   it('requires every hub file to be deleted', () => {

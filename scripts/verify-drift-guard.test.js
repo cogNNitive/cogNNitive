@@ -6,12 +6,11 @@
  * Plain-node tests for the Docs-Derived Facts Drift Guard added to
  * scripts/verify.js as step 7e (`checkDocsFactsDriftAtRef` /
  * `checkHandTypedFactsAtRef`). Builds a disposable git repo fixture, runs the
- * real generate-docs-facts.mjs / generate-about-twin.mjs CLIs in write mode
- * to produce a genuinely clean committed state (exactly the way
- * build-docs.mjs does before verify.js ever runs), then asserts the guard is
- * compared against `git show HEAD:<path>` — never the working tree (design
- * D5) — for both generated-region drift and reintroduced hand-typed facts
- * (spec docs-derived-facts, "CI Drift Guard").
+ * real generate-docs-facts.mjs CLI in write mode to produce a genuinely clean
+ * committed state (exactly the way build-docs.mjs does before verify.js ever
+ * runs), then asserts the guard is compared against `git show HEAD:<path>` —
+ * never the working tree (design D5) — for both generated-region drift and
+ * reintroduced hand-typed facts (spec docs-derived-facts, "CI Drift Guard").
  */
 
 const assert = require('node:assert');
@@ -23,31 +22,9 @@ const { checkDocsFactsDriftAtRef } = require('./verify.js');
 
 const SCRIPTS_DIR = __dirname;
 const GENERATE_DOCS_FACTS = path.join(SCRIPTS_DIR, 'generate-docs-facts.mjs');
-const GENERATE_ABOUT_TWIN = path.join(SCRIPTS_DIR, 'generate-about-twin.mjs');
 
 const OPEN_MCP = '<!-- generated:mcp-tools (source: nn-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->';
 const CLOSE_MCP = '<!-- /generated:mcp-tools -->';
-const OPEN_SKILLS = '<!-- generated:skills-catalog (source: manifest/source.yaml) -->';
-const CLOSE_SKILLS = '<!-- /generated:skills-catalog -->';
-
-const ABOUT_HTML = [
-  '<!doctype html>',
-  '<html lang="en">',
-  '  <head>',
-  '    <title>About — Fixture</title>',
-  '    <meta name="description" content="Fixture about page." />',
-  '    <link rel="canonical" href="https://example.com/about" />',
-  '    <meta name="generator" content="https://example.com/skills/nn-design-presets" />',
-  '  </head>',
-  '  <body>',
-  '    <main>',
-  '      <h1>About Fixture</h1>',
-  '      <p>Fixture body text.</p>',
-  '    </main>',
-  '  </body>',
-  '</html>',
-  '',
-].join('\n');
 
 function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf-8' });
@@ -55,10 +32,9 @@ function git(cwd, args) {
 
 /**
  * Builds a disposable git repo fixture with a genuinely clean committed
- * generated state: dist/manifest/model inputs plus both target docs, seeded
- * via the real generators' own write mode (never hand-crafted region bodies,
- * so this fixture cannot silently drift from what the generators actually
- * produce).
+ * generated state: the dist input plus the mcp-tools target doc, seeded via
+ * the generator's own write mode (never hand-crafted region bodies, so this
+ * fixture cannot silently drift from what the generator actually produces).
  * @returns {string} the fixture repo root
  */
 function buildFixtureRepo() {
@@ -72,51 +48,15 @@ function buildFixtureRepo() {
     'utf-8',
   );
 
-  const manifestDir = path.join(root, 'manifest');
-  fs.mkdirSync(manifestDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(manifestDir, 'source.yaml'),
-    'skills:\n  - name: fixture-skill\n    description: Fixture skill description\n',
-    'utf-8',
-  );
+  // The hand-typed-fact scan reads docs/innfo + docs/skills; keep the scanned
+  // tree present with safe content so the fixture mirrors the real repo layout.
+  const innfoDir = path.join(root, 'docs', 'innfo');
+  fs.mkdirSync(innfoDir, { recursive: true });
+  fs.writeFileSync(path.join(innfoDir, 'llms-full.txt'), 'No hand-typed tool counts here.\n', 'utf-8');
 
-  const skillsDocsDir = path.join(root, 'docs', 'skills', 'documentation');
-  fs.mkdirSync(skillsDocsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(skillsDocsDir, 'documentation_NN.md'),
-    [
-      '---',
-      'title: Agent Skills Documentation',
-      'model_version: V_0-2-0',
-      '---',
-      '# NN Section',
-      '## NN Section: Canonical Skills',
-      'title:: Canonical Skills',
-      '# NN Page',
-      '## NN Page: fixture-skill',
-      'title:: Fixture Skill',
-      'parent:: [[Canonical Skills]]',
-      '',
-    ].join('\n'),
-    'utf-8',
-  );
-  fs.writeFileSync(
-    path.join(skillsDocsDir, 'README.md'),
-    ['# Skills Catalog', OPEN_SKILLS, 'placeholder', CLOSE_SKILLS, ''].join('\n'),
-    'utf-8',
-  );
-
-  const mcpDocsDir = path.join(root, 'docs', 'innfo', 'documentation');
-  fs.mkdirSync(mcpDocsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(mcpDocsDir, 'nn-mcp.md'),
-    ['# nn-mcp', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
-    'utf-8',
-  );
-
-  // design D4: the mcp-tools region is ALSO rendered into the nn-innfo skill's
-  // own SKILL.md, so the skill ships an accurate tool inventory. The fixture
-  // must pre-create that target with its region markers, as the real skill has.
+  // design D4: the mcp-tools region is rendered into the nn-innfo skill's own
+  // SKILL.md, so the skill ships an accurate tool inventory. The fixture must
+  // pre-create that target with its region markers, as the real skill has.
   const nnInnfoSkillDir = path.join(root, 'skills', 'nn-innfo');
   fs.mkdirSync(nnInnfoSkillDir, { recursive: true });
   fs.writeFileSync(
@@ -125,14 +65,9 @@ function buildFixtureRepo() {
     'utf-8',
   );
 
-  const aboutDir = path.join(root, 'docs', 'innfo');
-  fs.mkdirSync(aboutDir, { recursive: true });
-  fs.writeFileSync(path.join(aboutDir, 'about.html'), ABOUT_HTML, 'utf-8');
-
   // Write mode: produce a genuinely-correct generated state, the same way
   // build-docs.mjs does before verify.js ever runs (design D5).
   execFileSync(process.execPath, [GENERATE_DOCS_FACTS], { cwd: root, encoding: 'utf-8' });
-  execFileSync(process.execPath, [GENERATE_ABOUT_TWIN], { cwd: root, encoding: 'utf-8' });
 
   git(root, ['init', '-q']);
   git(root, ['config', 'user.email', 'fixture@example.com']);
@@ -152,9 +87,9 @@ function commitChange(root, message) {
 /**
  * The guard's own script paths and the target repo being scanned are
  * deliberately independent (see verify.js's `scriptsDir` doc comment): this
- * fixture never duplicates generate-docs-facts.mjs / lib/docs-facts.mjs /
- * generate-manifest.js, it just points the guard at the real, unmodified
- * ones while checking the disposable fixture repo.
+ * fixture never duplicates generate-docs-facts.mjs / lib/docs-facts.mjs, it
+ * just points the guard at the real, unmodified ones while checking the
+ * disposable fixture repo.
  */
 function checkFixture(root, ref) {
   return checkDocsFactsDriftAtRef(root, ref, { scriptsDir: SCRIPTS_DIR });
@@ -179,9 +114,9 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
-      const stale = fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools');
-      fs.writeFileSync(mcpPath, stale, 'utf-8');
+      const skillPath = path.join(root, 'skills', 'nn-innfo', 'SKILL.md');
+      const stale = fs.readFileSync(skillPath, 'utf-8').replace('**2** tools', '**99** tools');
+      fs.writeFileSync(skillPath, stale, 'utf-8');
       commitChange(root, 'introduce stale region');
 
       const result = checkFixture(root, 'HEAD');
@@ -221,8 +156,8 @@ function main() {
   {
     const root = buildFixtureRepo();
     try {
-      const mcpPath = path.join(root, 'docs', 'innfo', 'documentation', 'nn-mcp.md');
-      fs.writeFileSync(mcpPath, fs.readFileSync(mcpPath, 'utf-8').replace('**2** tools', '**99** tools'), 'utf-8');
+      const skillPath = path.join(root, 'skills', 'nn-innfo', 'SKILL.md');
+      fs.writeFileSync(skillPath, fs.readFileSync(skillPath, 'utf-8').replace('**2** tools', '**99** tools'), 'utf-8');
       const llmsPath = path.join(root, 'docs', 'innfo', 'llms-full.txt');
       fs.writeFileSync(llmsPath, 'nn-mcp exposes seven semantic tools today.\n', 'utf-8');
       // Deliberately no commit: both changes are uncommitted working-tree dirt.

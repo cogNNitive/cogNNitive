@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>cogNNitive — Knowledge Evolution Framework</title>
   <meta name="description" content="Leverage ideas, information and data scattered through brains and computer files into a living knowledge base powered by AI that constantly evolves.">
-  <meta name="generator" content="https://cognnitive.com/skills/nn-design-presets">
+  <meta name="generator" content="https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-design-presets">
   <link rel="alternate" type="text/markdown" href="index.md" title="cogNNitive — Markdown source">
   <link rel="icon" type="image/svg+xml" href="logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -179,6 +179,25 @@
     }
     .card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
     .card p { font-size: 15px; color: var(--ink-muted); line-height: 1.5; }
+
+    /* Console screenshot */
+    .console-shot {
+      margin: 0 auto 40px;
+      max-width: 980px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--canvas);
+      box-shadow: 0 24px 60px -24px rgba(77, 14, 78, 0.28);
+    }
+    .console-shot img { display: block; width: 100%; height: auto; }
+    .console-shot figcaption {
+      font-size: 12.5px;
+      color: var(--ink-muted);
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
 
     /* Diagram Card Container */
     .diagram-card {
@@ -1068,8 +1087,6 @@
       <nav class="nav">
         <a href="https://cognnitive.com" class="nav-link active">cogNNitive</a>
         <a href="use-cases.html" class="nav-link">Use Cases</a>
-        <a href="https://cognnitive.com/innfo" class="nav-link">iNNfo</a>
-        <a href="https://cognnitive.com/skills" class="nav-link">Skills</a>
         <a href="https://cognnitive.com/documentation/" target="_blank" rel="noopener noreferrer" class="nav-link">Docs</a>
         <a href="contact.html" class="nav-link">Contact</a>
       </nav>
@@ -1091,7 +1108,7 @@
           <a href="#how-to-use" class="btn-primary">🚀 Getting Started &rarr;</a>
           <a href="contact.html" class="btn-secondary">💬 Contact Us</a>
           <a href="https://cognnitive.com/documentation/" class="btn-secondary">Read the docs</a>
-          <a href="https://cognnitive.com/skills" class="btn-secondary">Explore Skills</a>
+          <a href="#agent-skills" class="btn-secondary">Explore Skills</a>
         </div>
 
         <!-- The Living Knowledge Pipeline (Hero Showcase) -->
@@ -1450,6 +1467,81 @@ flowchart LR
               <h4>Enjoy Living Knowledge</h4>
               <p>Your agent automatically installs the skills, configures tools, and presents your interactive workflow menu.</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent Skills: Modular powers for your AI agent -->
+    <section id="agent-skills">
+      <div class="container">
+        <div class="section-title">
+          <span class="badge-pill">🤖 Agent Skills</span>
+          <h2>Give your AI agent specialized powers</h2>
+          <p>cogNNitive ships as modular skills that extend any AI coding agent — Claude Code, Cursor, Antigravity, Codex, or OpenCode Desktop.</p>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-icon">🧭</div>
+            <h3>nn</h3>
+            <p>The router. Reads your intent and hands off to the right skill or workflow.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">📚</div>
+            <h3>nn-sources</h3>
+            <p>Bootstrap, scan and cognitivize your files into citable sources with provenance.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🧠</div>
+            <h3>nn-innfo</h3>
+            <p>Author, validate and review iNNfo kNNowledge and bluepriNNts.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛡️</div>
+            <h3>nn-preflight</h3>
+            <p>Environment readiness and integrity checks before you model.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🎨</div>
+            <h3>nn-design-presets</h3>
+            <p>Design system and presets for building sites and Docsify documentation.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔄</div>
+            <h3>nn-upgrade</h3>
+            <p>Guided upgrades for domaiNN workspaces and bluepriNNt versions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Domain Console: the interface over your kNNowledge -->
+    <section style="background: var(--canvas-inert);">
+      <div class="container">
+        <div class="section-title">
+          <span class="badge-pill">🖥️ Domain Console</span>
+          <h2>Your knowledge base, made navigable</h2>
+          <p>One self-contained HTML file per domaiNN, generated locally. It runs offline — no server, no account.</p>
+        </div>
+        <figure class="console-shot">
+          <img src="assets/domain-console.png" alt="The Domain Console showing a kNNowledge model: model tree, concepts, elements, fields and source citations." loading="lazy" />
+          <figcaption>The Domain Console — model tree, concepts, elements and fields, with every assertion cited back to its source.</figcaption>
+        </figure>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-icon">🌲</div>
+            <h3>Visual Modeling</h3>
+            <p>Explore your kNNowledge as interactive graph trees, matrices and diagrams.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">✅</div>
+            <h3>Automatic Validation</h3>
+            <p>Catch broken links, missing properties and outdated specs as you edit.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">🤖</div>
+            <h3>AI &amp; Web Editing</h3>
+            <p>Edit visually in the console, or ask your AI agent to create and update kNNowledge for you.</p>
           </div>
         </div>
       </div>
