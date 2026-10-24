@@ -66,4 +66,4 @@ All agents MUST adhere to the canonical iNNfo level nomenclature and vocabulary:
 
 Authoritative sources:
 - Machine-readable dictionary: [`iNNfo/specs/vocabulary.json`](iNNfo/specs/vocabulary.json)
-- Rendered vocabulary & alias guide: [`docs/innfo/documentation/vocabulary.md`](docs/innfo/documentation/vocabulary.md)
+- Rendered vocabulary & alias guide: [`docs/documentation/content/vocabulary.md`](docs/documentation/content/vocabulary.md)

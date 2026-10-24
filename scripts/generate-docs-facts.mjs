@@ -3,73 +3,49 @@
 /**
  * scripts/generate-docs-facts.mjs
  *
- * Derives two generated regions from their canonical sources (design
- * D1/D2/D3/D4/D5):
- *   - `mcp-tools` in docs/innfo/documentation/nn-mcp.md, from the built
- *     nn-mcp tool registry.
- *   - `skills-catalog` in docs/skills/documentation/README.md, from
- *     manifest/source.yaml. Before rendering, this job also enforces that
- *     the iNNfo model's canonical-skills Page set equals the source.yaml
- *     skill set (design D1) — a mismatch is an input failure (exit 2), not
- *     a rendering concern.
+ * Derives one generated region from its canonical source (design
+ * D2/D3/D4/D5):
+ *   - `mcp-tools` in skills/nn-innfo/SKILL.md, from the built nn-mcp tool
+ *     registry, so the skill ships an accurate tool inventory instead of a
+ *     hand-typed count.
  *
  * CLI contract:
  *   node scripts/generate-docs-facts.mjs [--check] [--against <git-ref>]
- *     (no flags)            write mode: regenerate and write both regions
- *     --check               compare each render against its on-disk file, do not write
- *     --check --against X   compare each render against `git show X:<path>` instead
+ *     (no flags)            write mode: regenerate and write the region
+ *     --check               compare the render against its on-disk file, do not write
+ *     --check --against X   compare the render against `git show X:<path>` instead
  *                            of the working tree (used by CI, which runs write mode
  *                            in build:docs first — see design D5)
  *
- *     exit 0  both jobs wrote (or --check: both targets are up to date)
- *     exit 1  --check: at least one target differs from its generated render
- *             (and no job hit an input failure)
- *     exit 2  input failure in at least one job: missing built dist, missing
- *             region markers, a page-set mismatch, or a bad --against ref
+ *     exit 0  the job wrote (or --check: the target is up to date)
+ *     exit 1  --check: the target differs from its generated render
+ *             (and the job did not hit an input failure)
+ *     exit 2  input failure: missing built dist, missing region markers, or a
+ *             bad --against ref
  *
- * Each render is a pure function of its own canonical source: no timestamp,
- * no generator version, no run id. Regeneration with no upstream change is
- * byte-identical (design "Regeneration is deterministic"). The two jobs are
- * independent — a failure in one does not skip the other, so both bodies of
- * drift are always reported and (in write mode) written together.
+ * The render is a pure function of its canonical source: no timestamp, no
+ * generator version, no run id. Regeneration with no upstream change is
+ * byte-identical (design "Regeneration is deterministic").
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { createRequire } from 'node:module';
 import {
   replaceRegion,
   renderMcpToolsRegion,
-  renderSkillsCatalogRegion,
-  checkSkillPageSet,
   normalizeOutput,
 } from './lib/docs-facts.mjs';
-import { parseNNModel } from './generate-docsify-suite.mjs';
-
-const require = createRequire(import.meta.url);
-// Reused, not reimplemented (design D2): the manifest generator already
-// parses manifest/source.yaml with the repo's own zero-dependency YAML
-// reader. Requiring it here keeps the skills catalog and the bootstrap
-// manifest reading the exact same skill list.
-const { parseSourceYaml } = require('./manifest/generate-manifest.js');
 
 const MCP_TOOLS_REGION = 'mcp-tools';
 const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'server.js');
-// The mcp-tools region is rendered into the docs page and into the nn-innfo
-// skill's own SKILL.md (design D4), so the skill ships an accurate tool
-// inventory instead of a hand-typed count.
+// The mcp-tools region is rendered into the nn-innfo skill's own SKILL.md
+// (design D4), so the skill ships an accurate tool inventory instead of a
+// hand-typed count.
 const MCP_TARGET_RELATIVE_PATHS = [
-  path.join('docs', 'innfo', 'documentation', 'nn-mcp.md'),
   path.join('skills', 'nn-innfo', 'SKILL.md'),
 ];
-
-const SKILLS_CATALOG_REGION = 'skills-catalog';
-const SOURCE_YAML_RELATIVE_PATH = path.join('manifest', 'source.yaml');
-const KNOWLEDGE_RELATIVE_PATH = path.join('docs', 'skills', 'documentation', 'documentation_NN.md');
-const SKILLS_TARGET_RELATIVE_PATH = path.join('docs', 'skills', 'documentation', 'README.md');
-const CANONICAL_SKILLS_SECTION = 'Canonical Skills';
 
 /**
  * @param {string[]} argv
@@ -206,78 +182,9 @@ async function runMcpToolsJob(cwd, check, against, execFile, log, logError) {
 }
 
 /**
- * Job: derive the `skills-catalog` region from `manifest/source.yaml`,
- * guarded by the iNNfo model's canonical-skills Page set (design D1). The
- * model and `source.yaml` are always read from the working tree — they are
- * this job's canonical inputs, not the target being drift-checked; only the
- * target file honors `--against` (design D5).
- * @returns {Promise<number>} exit code for this job alone
- */
-async function runSkillsCatalogJob(cwd, check, against, execFile, log, logError) {
-  const sourceYamlPath = path.join(cwd, SOURCE_YAML_RELATIVE_PATH);
-  let skills;
-  try {
-    skills = parseSourceYaml(fs.readFileSync(sourceYamlPath, 'utf-8')).skills;
-  } catch (err) {
-    logError(`FAIL: could not read/parse ${sourceYamlPath}: ${err.message}`);
-    return 2;
-  }
-
-  const modelPath = path.join(cwd, KNOWLEDGE_RELATIVE_PATH);
-  let pages;
-  try {
-    pages = parseNNModel(fs.readFileSync(modelPath, 'utf-8')).pages;
-  } catch (err) {
-    logError(`FAIL: could not read/parse ${modelPath}: ${err.message}`);
-    return 2;
-  }
-
-  const pageNames = pages.filter((page) => page.fields.parent === CANONICAL_SKILLS_SECTION).map((page) => page.id);
-  const skillNames = skills.map((skill) => skill.name);
-  const guard = checkSkillPageSet(pageNames, skillNames);
-  if (!guard.ok) {
-    if (guard.missingPages.length > 0) {
-      logError(`FAIL: skill(s) declared in ${sourceYamlPath} with no matching Page in ${modelPath}: ${guard.missingPages.join(', ')}`);
-    }
-    if (guard.extraPages.length > 0) {
-      logError(`FAIL: Page(s) in ${modelPath} with no matching skill in ${sourceYamlPath}: ${guard.extraPages.join(', ')}`);
-    }
-    return 2;
-  }
-
-  const targetPath = path.join(cwd, SKILLS_TARGET_RELATIVE_PATH);
-  const current = readCurrentContent(cwd, targetPath, against, execFile);
-  if ('error' in current) {
-    logError(`FAIL: ${current.error}`);
-    return 2;
-  }
-
-  const body = renderSkillsCatalogRegion(skills);
-
-  let rendered;
-  try {
-    rendered = normalizeOutput(replaceRegion(current.content, SKILLS_CATALOG_REGION, body));
-  } catch (err) {
-    logError(`FAIL: ${err.message} in ${against ? `${targetPath} at ref '${against}'` : targetPath}`);
-    return 2;
-  }
-
-  return writeOrCheck({
-    targetPath,
-    currentContent: current.content,
-    rendered,
-    check,
-    log,
-    logError,
-    describeCount: `${skills.length} skills`,
-  });
-}
-
-/**
  * @param {string[]} argv
  * @param {{ cwd?: string, log?: (msg: string) => void, logError?: (msg: string) => void, execFile?: Function }} [options]
- * @returns {Promise<number>} the most severe exit code across both jobs (2 > 1 > 0);
- *   both jobs always run, so a failure in one never hides drift in the other.
+ * @returns {Promise<number>} the job's exit code (2 > 1 > 0).
  */
 export async function run(argv, options = {}) {
   const {
@@ -294,10 +201,7 @@ export async function run(argv, options = {}) {
     return 2;
   }
 
-  const mcpExitCode = await runMcpToolsJob(cwd, check, against, execFile, log, logError);
-  const skillsExitCode = await runSkillsCatalogJob(cwd, check, against, execFile, log, logError);
-
-  return Math.max(mcpExitCode, skillsExitCode);
+  return runMcpToolsJob(cwd, check, against, execFile, log, logError);
 }
 
 async function main() {

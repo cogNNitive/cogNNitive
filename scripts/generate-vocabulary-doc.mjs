@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
 const VOCAB_JSON_PATH = path.join(REPO_ROOT, 'iNNfo', 'specs', 'vocabulary.json');
-const VOCAB_MD_PATH = path.join(REPO_ROOT, 'docs', 'innfo', 'documentation', 'vocabulary.md');
+const VOCAB_MD_PATH = path.join(REPO_ROOT, 'docs', 'documentation', 'content', 'vocabulary.md');
 
 export function renderVocabularyDoc(vocab) {
   const lines = [];

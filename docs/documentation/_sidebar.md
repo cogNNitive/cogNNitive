@@ -11,3 +11,4 @@
 
 * **🛠 Reference**
   * [MCP Tools Reference](content/mcp-tools.md)
+  * [Vocabulary](content/vocabulary.md)
