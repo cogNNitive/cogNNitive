@@ -1166,8 +1166,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // carries no affordance of its own — the value badge keeps the `+` flyout.
     // `[data-ku-kind=value]` is repeated to out-specify the nature rules that
     // `ensureKuCss` injects in a later sheet at equal specificity.
-    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]{background:transparent;border:0;gap:.3em;padding:0;align-items:center;min-width:0}',
-    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-family:var(--innfo-mono);font-size:.76rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]{flex:1 1 auto;background:transparent;border:0;gap:.3em;padding:0;align-items:center;min-width:0}',
+    // The name chip is a FIXED column so every value in the sheet starts on the
+    // same x. A name longer than the column ellipsizes; the chip keeps the `title`
+    // `Ku` already set, so the full name stays reachable.
+    '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-label{box-sizing:content-box;flex:0 0 var(--innfo-field-name-w,17ch);width:var(--innfo-field-name-w,17ch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--innfo-mono);font-size:.76rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
     '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-icon{display:none}',
     '.innfo-ku[data-ku-pair=field][data-ku-kind=value]>.innfo-ku-value{min-width:0;color:var(--innfo-text);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:.35em;padding:.1em .45em}',
     '.innfo-ku[data-ku-pair=field][data-ku-kind=value][data-field-empty=true]>.innfo-ku-value{display:none}',
@@ -1320,6 +1323,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-card-meta-strip{display:flex;align-items:center;justify-content:space-between;gap:.5em;flex-wrap:wrap;padding:6px 10px;margin:.55em 0;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:6px}',
     '.innfo-lineage-pill{display:inline-flex;align-items:center;gap:.3em;font-family:var(--innfo-mono);font-size:.73rem;color:var(--innfo-muted);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:5px;padding:2px 7px}',
     '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-direction:column;gap:0;align-items:stretch;margin:.6em 0 0;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);overflow:hidden;background:var(--innfo-surface)}',
+    // One field per row: a hairline divides the rows and the padding gives the
+    // list room to breathe (the container itself carried `gap:0` since the rows
+    // used to draw their own separator, which no longer matched).
+    '[data-innfo-component=element-card] .innfo-card-fields>.innfo-ku-wrap{display:flex;align-items:flex-start;gap:.7em;padding:.6em .9em;border-bottom:1px solid var(--innfo-border)}',
+    '[data-innfo-component=element-card] .innfo-card-fields>.innfo-ku-wrap:last-child{border-bottom:0}',
     // ElementMini (collection item): accent stripe + small thumb + name + optional meta. No fields.
     '.innfo-mini{display:flex;align-items:center;gap:.5em;background:var(--innfo-surface);border:1px solid var(--innfo-border);border-left:1px solid var(--innfo-border);border-radius:8px;padding:.32em .55em .32em .45em;min-width:0;max-width:100%;text-align:left}',
     'button.innfo-mini,a.innfo-mini{font:inherit;color:inherit;cursor:pointer;text-decoration:none}',
