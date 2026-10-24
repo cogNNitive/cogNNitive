@@ -51,27 +51,4 @@ describe('console review modal citations', () => {
     expect(Review.flattenCitations({ sources: 'nope' })).toEqual([])
   })
 
-  it('the edit modal renders the flattened citations under "Citations"', () => {
-    const { Review, UI } = env.loadConsole()
-    const citations = Review.flattenCitations({
-      sources: [
-        {
-          path: 'sources/a.md',
-          anchor: 'findings',
-          exists: true,
-          origin: 'document',
-          excerpt: 'body text',
-        },
-      ],
-    })
-    const modal = UI.EditModal(
-      { title: 'Element 1A', fieldName: 'sources', type: 'string', value: 'v', citations },
-      { doc: env.document },
-    )
-    const text = modal.textContent || ''
-    expect(text).toContain('Citations')
-    expect(text).toContain('sources/a.md')
-    expect(text).toContain('body text')
-    expect(text).not.toContain('No origin citations linked.')
-  })
 })

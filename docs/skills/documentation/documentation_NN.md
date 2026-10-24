@@ -44,6 +44,11 @@ title:: Samples
 section_order:: 3
 parent:: [[Agent Skills Documentation]]
 
+## NN Section: Trust
+title:: Trust & Safety
+section_order:: 4
+parent:: [[Agent Skills Documentation]]
+
 # NN Page
 
 ## NN Page: Home
@@ -156,6 +161,16 @@ parent:: [[Samples]]
 tags:: [docs, samples, recipes]
 
 Ready-to-run sample transformation recipes and demonstrations.
+
+## NN Page: Installing Third-Party Skills
+title:: Installing Third-Party Skills
+source:: skills/installing-third-party-skills.md
+route:: skills/installing-third-party-skills.md
+order:: 10
+parent:: [[Trust]]
+tags:: [docs, skills, trust, third-party, security]
+
+What a third-party skill is, the bounded guarantee cogNNitive gives it, and how to check one before trusting it.
 
 # NN NavbarItem
 

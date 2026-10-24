@@ -12,18 +12,25 @@ import { join } from 'node:path'
 import { parseChangeset } from '../changeset/parser.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 
-/** One lineage entry as the console modal renders it (author • timestamp, notes). */
+/** One lineage entry as the console modal renders it (a change card). */
 export interface ElementHistoryItem {
   id: string
   op: string
+  /** The D5 target address the change touched. */
+  target?: string
   author?: string
   timestamp?: string
   notes?: string
   status?: string
-  /** The evidence citation the change derives from (its proposal-time `sources`). */
-  sources?: string
-  /** The field citation this change replaced (the field's previous origin), if any. */
-  replaced_sources?: string
+  /** The evidence the change derives from (its proposal-time `evidence`). */
+  evidence?: string
+  /** Diff / payload for the change card. */
+  from?: string
+  to?: string
+  concept?: string
+  name?: string
+  fields?: Record<string, string>
+  resolution?: string
 }
 
 interface ChangesetChangeRecord {
@@ -33,8 +40,9 @@ interface ChangesetChangeRecord {
   author?: string
   notes?: string
   status?: string
-  sources?: string
-  replaced_sources?: string
+  evidence?: string
+  applied_at?: string
+  batch?: string
   /** Card data for the Changes tab: the diff, the added fields and the reason. */
   from?: string
   to?: string
@@ -135,8 +143,9 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
         author: c.author,
         notes: c.notes,
         status: c.status,
-        sources: c.sources,
-        replaced_sources: c.replaced_sources,
+        evidence: c.evidence,
+        applied_at: c.applied_at,
+        batch: c.batch,
         from: c.from,
         to: c.to,
         concept: c.concept,
@@ -171,12 +180,18 @@ export function attachChangesetHistory(
         const item: ElementHistoryItem = {
           id: change.id,
           op: change.op,
+          target: change.target,
           author: change.author || cs.author,
-          timestamp: cs.appliedAt,
+          timestamp: change.applied_at || cs.appliedAt,
           notes: stripWrappingQuotes(change.notes),
           status: change.status || cs.status,
-          sources: change.sources,
-          replaced_sources: change.replaced_sources,
+          evidence: change.evidence,
+          from: change.from,
+          to: change.to,
+          concept: change.concept,
+          name: change.name,
+          fields: change.fields,
+          resolution: change.resolution,
         }
         if (!el.history) el.history = []
         el.history.push(item)

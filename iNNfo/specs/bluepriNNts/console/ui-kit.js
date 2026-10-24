@@ -2491,7 +2491,7 @@
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
-    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Lineage')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
@@ -2594,39 +2594,53 @@
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
-    // History section
+    // Changes: the element's recorded change history, rendered as standard element
+    // sheets (one ElementCard per change, newest first) so the modal matches the
+    // central model view. The change's `evidence` is shown as a field.
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
-    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'History'))
-    var historyItems = Array.isArray(data.history) ? data.history : []
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changes'))
+    var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    historyItems.sort(function (a, b) {
+      return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
+    })
     if (historyItems.length) {
       historyItems.forEach(function (h) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var metaStr = (h.author ? 'Author: ' + h.author : '') + (h.timestamp ? ' \u2022 ' + h.timestamp : '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', metaStr))
-        if (h.notes) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', h.notes))
-        histSection.appendChild(item)
+        var changeFields = []
+        var pushField = function (name, value) {
+          if (value === undefined || value === null || value === '') return
+          changeFields.push({ name: name, value: String(value) })
+        }
+        pushField('op', h.op)
+        pushField('target', h.target)
+        if (h.from !== undefined) changeFields.push({ name: 'from', value: String(h.from) })
+        if (h.to !== undefined) changeFields.push({ name: 'to', value: String(h.to) })
+        pushField('concept', h.concept)
+        pushField('name', h.name)
+        pushField('author', h.author)
+        pushField('status', h.status)
+        pushField('evidence', h.evidence)
+        pushField('applied_at', h.timestamp)
+        pushField('notes', h.notes)
+        pushField('resolution', h.resolution)
+        histSection.appendChild(
+          ElementCard(
+            {
+              id: h.id,
+              conceptId: 'Change',
+              concept: 'Change',
+              name: cardTitle(h.op, h),
+              fields: changeFields,
+            },
+            { doc: doc, collapsible: false },
+          ),
+        )
       })
     } else {
-      histSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No recorded prior changesets.'))
+      histSection.appendChild(
+        makeEl(doc, 'div', 'innfo-history-empty', 'No recorded changes for this element.'),
+      )
     }
     panelHistory.appendChild(histSection)
-
-    // Citations section
-    var citeSection = makeEl(doc, 'div', 'innfo-history-section')
-    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Citations'))
-    var citeItems = Array.isArray(data.citations) ? data.citations : []
-    if (citeItems.length) {
-      citeItems.forEach(function (c) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var srcStr = (c.origin ? '[' + c.origin + '] ' : '') + (c.source || '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', srcStr))
-        if (c.quote) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', '"' + c.quote + '"'))
-        citeSection.appendChild(item)
-      })
-    } else {
-      citeSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No origin citations linked.'))
-    }
-    panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
     // Panel 3: Connections (Sankey-style relation flow)
@@ -3585,6 +3599,33 @@
     source: 'content',
   }
 
+  // Change A: a unit's edit affordance derives from its model's declared
+  // `ownership` (not a kind table). The host installs a resolver mapping a model
+  // id to `'authored' | 'derived'`; a `derived` model offers no edit pencil. The
+  // apply engine remains the final guard.
+  var modelOwnership = null
+  function setModelOwnership(fn) {
+    modelOwnership = typeof fn === 'function' ? fn : null
+  }
+  function refModelId(ref) {
+    if (!ref) return ''
+    if (ref.model) return String(ref.model)
+    var address = ref.address || ''
+    if (!address || address.indexOf('specs/') === 0) return ''
+    var at = address.indexOf('@')
+    return at === -1 ? '' : address.slice(0, at)
+  }
+  function ownershipOfRef(ref) {
+    if (!modelOwnership) return null
+    var model = refModelId(ref)
+    if (!model) return null
+    try {
+      return modelOwnership(model)
+    } catch (e) {
+      return null
+    }
+  }
+
   function addrApi() {
     return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
   }
@@ -3686,6 +3727,8 @@
   }
 
   function unitEditability(kind, ref) {
+    // A `derived` model is read-only: no edit affordance regardless of kind.
+    if (ownershipOfRef(ref) === 'derived') return 'none'
     var nature = KU_NATURE[kind]
     if (nature === 'container' || kind === 'source') return 'none'
     if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
@@ -4059,6 +4102,7 @@
     describeUnit: describeUnit,
     createKu: createKu,
     setUnitChanges: setUnitChanges,
+    setModelOwnership: setModelOwnership,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,

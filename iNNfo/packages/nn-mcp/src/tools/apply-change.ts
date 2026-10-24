@@ -14,7 +14,6 @@ import {
   verifyProposalSha,
   parseChangeset,
   serializeChangeset,
-  rewriteFieldCitation,
   resolveBatchSlugs,
   evaluateBatchDeleteImpact,
   partitionChangeset,
@@ -213,7 +212,7 @@ async function persistAtomic(stagingPath: string, livePath: string): Promise<voi
 }
 
 /** Execution annotation keys: the only per-change lines apply may rewrite. */
-const ANNOTATION_LINE_RE = /^(status|resolution|resolved_slug|replaced_sources)::/
+const ANNOTATION_LINE_RE = /^(status|resolution|resolved_slug|applied_at|batch)::/
 
 /**
  * The normative lines of every `## NN Change` block: the heading and every non-blank,
@@ -339,7 +338,7 @@ function findElementInModel(
  * Execute a two-phase apply of a changeset file: an in-memory compute/validate
  * phase (no writes) followed by a persist phase that rewrites each touched model
  * through an atomic rename. No snapshot of the prior model is kept: history is the
- * changeset chain plus each change's `replaced_sources`. Mutual exclusion is
+ * ordered change chain (by `target` and `applied_at`). Mutual exclusion is
  * guaranteed via changes/.lock. Persistence is not atomic across models — a
  * mid-phase failure leaves earlier models updated and later ones untouched, and
  * the changeset is not annotated, so it is not recorded as applied.
@@ -559,16 +558,33 @@ export async function executeChangesetApply(
       }
     }
 
-    // 4b. Proposal-time evidence citation (D3): a change's `sources` is written by the
-    // proposer and sealed with the proposal; apply only verifies that every citation
-    // resolves. One unresolved citation rejects the whole changeset, writes nothing and
-    // releases the lock — the same all-or-nothing shape as PROPOSAL_TAMPERED.
+    // 4b. Proposal-time evidence (D1/D2): a change's evidence is written by the proposer
+    // and sealed with the proposal; apply only verifies that every evidence that names an
+    // artifact resolves. The literal tokens `decision` and `unknown` are not citations and
+    // are accepted without resolution. One unresolved evidence rejects the whole changeset,
+    // writes nothing and releases the lock — the same all-or-nothing shape as PROPOSAL_TAMPERED.
     const citationResolver = createFsSourceResolver(rootDir)
     for (const change of csDoc.changes) {
-      if (!change.sources) continue
+      // D2: evidence is mandatory on every change; a changeset with a change that carries
+      // none is rejected whole, naming the offending change id.
+      if (!change.evidence) {
+        return recordRejection(
+          [
+            {
+              path: `changes.${change.id}.evidence`,
+              message: `EVIDENCE_REQUIRED: change "${change.id}" carries no evidence`,
+              code: 'EVIDENCE_REQUIRED',
+            },
+          ],
+          change.id,
+          undefined,
+          false,
+        )
+      }
+      if (change.evidence === 'decision' || change.evidence === 'unknown') continue
       const resolved = resolveCitation(
-        change.sources,
-        'sources',
+        change.evidence,
+        'evidence',
         citationResolver,
         resolvedChangesetPath,
       )
@@ -576,9 +592,9 @@ export async function executeChangesetApply(
         return recordRejection(
           [
             {
-              path: `changes.${change.id}.sources`,
+              path: `changes.${change.id}.evidence`,
               message:
-                `CITATION_UNRESOLVED: change "${change.id}" cites "${change.sources}" ` +
+                `CITATION_UNRESOLVED: change "${change.id}" cites "${change.evidence}" ` +
                 `which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
               code: 'CITATION_UNRESOLVED',
             },
@@ -1114,21 +1130,9 @@ export async function executeChangesetApply(
         change.resolution = 'Applied successfully'
       }
 
-      // Citation rewriting per D20
-      const citationRef = `${relChangesetPath}@## NN Change: ${change.id}`
-      if (change.op === 'update_field') {
-        const elIdent = parts[0]
-        const fieldIdent = parts.length > 1 ? parts[1] : ''
-        const found = findElementInModel(entry.model, change.concept, elIdent)
-        if (found) {
-          const replaced = rewriteFieldCitation(found.element, fieldIdent, citationRef)
-          // D3: keep the replaced citation in the change's execution annotation so the
-          // lineage walk reaches the field's previous origin without a model snapshot.
-          if (replaced !== undefined) {
-            change.replaced_sources = replaced
-          }
-        }
-      } else if (change.op === 'add_element') {
+      // D20 removed: apply no longer writes a companion citation on the model (the change
+      // is the only provenance). `add_element` still records the resolved slug.
+      if (change.op === 'add_element') {
         const conceptName = (mutationArgs.conceptName as string) || change.concept
         if (conceptName) {
           const list = entry.model.elements.get(conceptName)
@@ -1137,7 +1141,6 @@ export async function executeChangesetApply(
             if (addedEl.slug) {
               change.resolved_slug = addedEl.slug
             }
-            rewriteFieldCitation(addedEl, 'sources', citationRef)
           }
         }
       }
@@ -1297,9 +1300,16 @@ export async function executeChangesetApply(
     const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
     const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
 
+    const appliedAt = new Date().toISOString()
+    const batchId = displayStem(basename(resolvedChangesetPath))
     csDoc.frontmatter.status = overallStatus
-    csDoc.frontmatter.applied_at = new Date().toISOString()
+    csDoc.frontmatter.applied_at = appliedAt
     csDoc.frontmatter.models = modelsTransitionMap
+    // D5: denormalize the execution facts onto every change (excluded from the seal).
+    for (const change of csDoc.changes) {
+      change.applied_at = appliedAt
+      change.batch = batchId
+    }
 
     const serializedCs = serializeChangeset(csDoc)
     try {

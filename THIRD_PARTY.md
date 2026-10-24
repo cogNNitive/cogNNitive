@@ -82,7 +82,7 @@ tooling is not distributed and is not listed.
 | iconv-lite | 0.7.3 | MIT | allow | nn-mcp | Copyright (c) 2011 Alexander Shtuchkin |
 | immediate | 3.0.6 | MIT | allow | nn-sources | Copyright (c) 2012 Barnesandnoble.com, llc, Donavon West, Domenic Denicola, Brian Cavalier |
 | inherits | 2.0.4 | ISC | allow | nn-mcp, nn-sources | Copyright (c) Isaac Z. Schlueter |
-| ip-address | 10.7.3 | MIT | allow | nn-mcp | Copyright (C) 2011 by Beau Gunderson |
+| ip-address | 10.7.4 | MIT | allow | nn-mcp | Copyright (C) 2011 by Beau Gunderson |
 | ipaddr.js | 1.9.1 | MIT | allow | nn-mcp | Copyright (C) 2011-2017 whitequark <whitequark@whitequark.org> |
 | is-promise | 4.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Forbes Lindesay |
 | isarray | 1.0.0 | MIT | allow | nn-sources | (see package) |
@@ -241,7 +241,7 @@ SOFTWARE.
 
 ### @xmldom/xmldom@0.8.15, function-bind@1.1.2, iconv-lite@0.7.3 and 6 more
 
-Applies to: @xmldom/xmldom@0.8.15, function-bind@1.1.2, iconv-lite@0.7.3, immediate@3.0.6, ip-address@10.7.3, ipaddr.js@1.9.1, is-promise@4.0.0, setimmediate@1.0.5, underscore@1.13.8.
+Applies to: @xmldom/xmldom@0.8.15, function-bind@1.1.2, iconv-lite@0.7.3, immediate@3.0.6, ip-address@10.7.4, ipaddr.js@1.9.1, is-promise@4.0.0, setimmediate@1.0.5, underscore@1.13.8.
 
 ```text
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:

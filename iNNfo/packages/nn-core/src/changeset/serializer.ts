@@ -2,7 +2,7 @@ import { stringify as stringifyYaml } from 'yaml'
 import type { ChangesetDocument, ChangesetFrontmatter, ChangeItem } from './types.js'
 
 /** Execution annotation keys — the only per-change lines the raw path rewrites. */
-const ANNOTATION_RE = /^(status|resolution|resolved_slug|replaced_sources)::/
+const ANNOTATION_RE = /^(status|resolution|resolved_slug|applied_at|batch)::/
 const CHANGE_HEADING_RE = /^##\s+NN\s+Change:\s*(.+)$/i
 
 function detectEol(text: string): string {
@@ -29,8 +29,11 @@ function annotationLines(item: ChangeItem): string[] {
   if (item.resolved_slug !== undefined) {
     lines.push(`resolved_slug:: ${item.resolved_slug}`)
   }
-  if (item.replaced_sources !== undefined) {
-    lines.push(`replaced_sources:: ${formatPropertyValue(item.replaced_sources)}`)
+  if (item.applied_at !== undefined) {
+    lines.push(`applied_at:: ${formatPropertyValue(item.applied_at)}`)
+  }
+  if (item.batch !== undefined) {
+    lines.push(`batch:: ${formatPropertyValue(item.batch)}`)
   }
   return lines
 }
@@ -77,9 +80,9 @@ function formatChangeItem(item: ChangeItem): string {
   if (item.notes !== undefined) {
     lines.push(`notes:: ${formatPropertyValue(item.notes)}`)
   }
-  // Normative evidence citation (sealed with the proposal)
-  if (item.sources !== undefined) {
-    lines.push(`sources:: ${formatPropertyValue(item.sources)}`)
+  // Normative evidence citation (mandatory, sealed with the proposal)
+  if (item.evidence !== undefined) {
+    lines.push(`evidence:: ${formatPropertyValue(item.evidence)}`)
   }
 
   // Execution annotations
@@ -257,7 +260,7 @@ function serializeStructural(doc: ChangesetDocument): string {
  * When the document carries the `rawContent` it was parsed from, every byte is copied
  * verbatim except the frontmatter execution keys (`status`, `resolution`, `applied_at`, `models`) and
  * the per-change execution annotation lines (`status::`, `resolution::`, `resolved_slug::`,
- * `replaced_sources::`). A document built in memory is rendered structurally.
+ * `applied_at::`, `batch::`). A document built in memory is rendered structurally.
  */
 export function serializeChangeset(doc: ChangesetDocument): string {
   if (doc.rawContent !== undefined) {

@@ -964,6 +964,41 @@ async function cmdInstall(args) {
   console.log(`\nInstalled ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} template(s), ${toInstallConsole.length} console asset(s), and ${toInstallMcp.length} MCP server(s).`);
 }
 
+/** Third-party skill trust guidance, linked from the install notice when it matters. */
+const THIRD_PARTY_SKILL_DOC_URL =
+  'https://cognnitive.com/skills/documentation/#/skills/installing-third-party-skills';
+
+/**
+ * Builds the consent notice shown before installing a *referenced* external
+ * skill. Deliberately brief and contextual: it names only this skill's
+ * provenance and points at the trust guidance, without reciting attack types or
+ * otherwise alarming the user. The full explanation lives in the linked page;
+ * the why-now rationale belongs to the agent conversation, not this line.
+ * Pure and exported so it can be unit-tested and kept in sync with the bundled
+ * skills-manager.
+ * @param {{ name: string, repo: string, path: string, commit: string, sha256?: string }} args
+ * @returns {string}
+ */
+function buildExternalSkillNotice({ name, repo, path: skillPath, commit, sha256 }) {
+  const shortCommit = String(commit).slice(0, 7);
+  const integrity = sha256
+    ? "pinned and verified against the author's sha256"
+    : 'pinned by commit only (no sha256 to verify)';
+  return (
+    `Third-party skill — not from cogNNitive\n` +
+    `\n` +
+    `  name:      ${name}\n` +
+    `  source:    ${repo}/${skillPath} @ ${shortCommit}\n` +
+    `  integrity: ${integrity}\n` +
+    `\n` +
+    `cogNNitive has not reviewed this content. Before trusting a skill from a\n` +
+    `third party, it is worth having a security skill check it first — a quick,\n` +
+    `routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}\n` +
+    `\n` +
+    `[a] Install anyway   [b] Skip\n`
+  );
+}
+
 /**
  * Installs a single *referenced* external skill (declared in a bluepriNNt
  * frontmatter `skills:` array) from its upstream repo at its pinned commit,
@@ -985,12 +1020,13 @@ async function cmdInstallExternal(args) {
   const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;
   const state = loadState(args.stateFile);
 
-  const integrity = args.sha256 ? 'verified via sha256' : 'NOT pinned (commit only)';
-  const menu =
-    `Referenced external skill (third-party, NOT curated by cogNNitive):\n` +
-    `  - ${name}  ${repo}/${skillPath} @ ${String(commit).slice(0, 7)}\n` +
-    `  integrity: ${integrity}\n` +
-    `\n[a] Install\n[b] Skip\n`;
+  const menu = buildExternalSkillNotice({
+    name,
+    repo,
+    path: skillPath,
+    commit,
+    sha256: args.sha256,
+  });
   const proceed = await consentOrAbort(`install external skill ${name}`, [`external-skill:${name}`], menu, args.yes);
   if (!proceed) return;
 
@@ -1740,6 +1776,8 @@ module.exports = {
   cmdStatus,
   cmdInstall,
   cmdInstallExternal,
+  buildExternalSkillNotice,
+  THIRD_PARTY_SKILL_DOC_URL,
   cmdInstallBlueprint,
   loadBlueprintCatalog,
   findCatalogEntry,

@@ -152,7 +152,7 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
   })
 })
 
-describe('Replaced-citation lineage walk (no model snapshot)', () => {
+describe('Change-chain lineage (no model snapshot)', () => {
   const dir = join(process.cwd(), 'tmp-history-walk-test')
 
   beforeEach(async () => {
@@ -188,27 +188,28 @@ describe('Replaced-citation lineage walk (no model snapshot)', () => {
     return serializeChangeset(doc)
   }
 
-  it('history entries expose sources and replaced_sources so the walk reaches the original Source', async () => {
+  it('history entries expose the change evidence and per-change facts along the chain', async () => {
     await writeFile(
       join(dir, 'changes', 'ws_agent_1_changes_NN.md'),
-      appliedChangeset({ sources: 'sources/interview.md@## Vision' }),
+      appliedChangeset({ evidence: 'sources/interview.md@## Vision' }),
       'utf-8',
     )
     await writeFile(
       join(dir, 'changes', 'ws_agent_2_changes_NN.md'),
-      appliedChangeset({ replaced_sources: 'changes/ws_agent_1_changes_NN.md@## NN Change: c-01' }),
+      appliedChangeset({ applied_at: '2026-10-23T10:00:00.000Z', batch: 'ws_agent_2_changes_NN' }),
       'utf-8',
     )
 
     const records = await loadChangesetRecords(dir)
     const byPath = (p: string) => records.find((r) => r.path === p)!
 
-    // cs2's change records the citation it replaced.
+    // cs2's change carries its own execution facts, not a back-pointer.
     const c2 = byPath('changes/ws_agent_2_changes_NN.md').changes[0]
-    expect(c2.replaced_sources).toBe('changes/ws_agent_1_changes_NN.md@## NN Change: c-01')
+    expect(c2.applied_at).toBe('2026-10-23T10:00:00.000Z')
+    expect(c2.batch).toBe('ws_agent_2_changes_NN')
 
-    // Following replaced_sources reaches cs1's change, whose sources reaches the Source.
+    // The earliest change carries the evidence that reaches the Source.
     const c1 = byPath('changes/ws_agent_1_changes_NN.md').changes[0]
-    expect(c1.sources).toBe('sources/interview.md@## Vision')
+    expect(c1.evidence).toBe('sources/interview.md@## Vision')
   })
 })

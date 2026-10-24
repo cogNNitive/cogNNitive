@@ -142,7 +142,17 @@ var InnfoAddress = (() => {
       stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
     };
   }
-  var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
+  var CORE_BLUEPRINT_ROLE = {
+    cognnitive: "lineage-record",
+    sidecar: "sidecar",
+    changes: "changeset",
+    workspace: "catalog",
+    sources: "catalog",
+    artifacts: "catalog"
+  };
+  function coreBlueprintKey(parentSpecName) {
+    return (parentSpecName ?? "").trim().toLowerCase().split("_")[0];
+  }
   function roleOf(i) {
     const base = baseOf(i.path);
     const parsed = parseName(base);
@@ -151,23 +161,11 @@ var InnfoAddress = (() => {
     const lower = base.toLowerCase();
     if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
     if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-    const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-    switch (bp) {
-      case "cognnitive":
-        return "lineage-record";
-      case "sidecar":
-        return "sidecar";
-      case "changes":
-        return "changeset";
-      case "procedures":
-        return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-      case "workspace":
-      case "sources":
-      case "artifacts":
-        return "catalog";
-      default:
-        return "knowledge";
+    const bp = coreBlueprintKey(i.parentSpecName);
+    if (bp === "procedures") {
+      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
     }
+    return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
   }
 
   // iNNfo/packages/nn-core/src/sourceRef.ts
@@ -3411,7 +3409,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
     var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
-    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Lineage')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
@@ -3514,39 +3512,53 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
-    // History section
+    // Changes: the element's recorded change history, rendered as standard element
+    // sheets (one ElementCard per change, newest first) so the modal matches the
+    // central model view. The change's `evidence` is shown as a field.
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
-    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'History'))
-    var historyItems = Array.isArray(data.history) ? data.history : []
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changes'))
+    var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    historyItems.sort(function (a, b) {
+      return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
+    })
     if (historyItems.length) {
       historyItems.forEach(function (h) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var metaStr = (h.author ? 'Author: ' + h.author : '') + (h.timestamp ? ' \u2022 ' + h.timestamp : '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', metaStr))
-        if (h.notes) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', h.notes))
-        histSection.appendChild(item)
+        var changeFields = []
+        var pushField = function (name, value) {
+          if (value === undefined || value === null || value === '') return
+          changeFields.push({ name: name, value: String(value) })
+        }
+        pushField('op', h.op)
+        pushField('target', h.target)
+        if (h.from !== undefined) changeFields.push({ name: 'from', value: String(h.from) })
+        if (h.to !== undefined) changeFields.push({ name: 'to', value: String(h.to) })
+        pushField('concept', h.concept)
+        pushField('name', h.name)
+        pushField('author', h.author)
+        pushField('status', h.status)
+        pushField('evidence', h.evidence)
+        pushField('applied_at', h.timestamp)
+        pushField('notes', h.notes)
+        pushField('resolution', h.resolution)
+        histSection.appendChild(
+          ElementCard(
+            {
+              id: h.id,
+              conceptId: 'Change',
+              concept: 'Change',
+              name: cardTitle(h.op, h),
+              fields: changeFields,
+            },
+            { doc: doc, collapsible: false },
+          ),
+        )
       })
     } else {
-      histSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No recorded prior changesets.'))
+      histSection.appendChild(
+        makeEl(doc, 'div', 'innfo-history-empty', 'No recorded changes for this element.'),
+      )
     }
     panelHistory.appendChild(histSection)
-
-    // Citations section
-    var citeSection = makeEl(doc, 'div', 'innfo-history-section')
-    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Citations'))
-    var citeItems = Array.isArray(data.citations) ? data.citations : []
-    if (citeItems.length) {
-      citeItems.forEach(function (c) {
-        var item = makeEl(doc, 'div', 'innfo-history-item')
-        var srcStr = (c.origin ? '[' + c.origin + '] ' : '') + (c.source || '')
-        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', srcStr))
-        if (c.quote) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', '"' + c.quote + '"'))
-        citeSection.appendChild(item)
-      })
-    } else {
-      citeSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No origin citations linked.'))
-    }
-    panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
     // Panel 3: Connections (Sankey-style relation flow)
@@ -4505,6 +4517,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     source: 'content',
   }
 
+  // Change A: a unit's edit affordance derives from its model's declared
+  // `ownership` (not a kind table). The host installs a resolver mapping a model
+  // id to `'authored' | 'derived'`; a `derived` model offers no edit pencil. The
+  // apply engine remains the final guard.
+  var modelOwnership = null
+  function setModelOwnership(fn) {
+    modelOwnership = typeof fn === 'function' ? fn : null
+  }
+  function refModelId(ref) {
+    if (!ref) return ''
+    if (ref.model) return String(ref.model)
+    var address = ref.address || ''
+    if (!address || address.indexOf('specs/') === 0) return ''
+    var at = address.indexOf('@')
+    return at === -1 ? '' : address.slice(0, at)
+  }
+  function ownershipOfRef(ref) {
+    if (!modelOwnership) return null
+    var model = refModelId(ref)
+    if (!model) return null
+    try {
+      return modelOwnership(model)
+    } catch (e) {
+      return null
+    }
+  }
+
   function addrApi() {
     return typeof window !== 'undefined' && window.InnfoAddress ? window.InnfoAddress : null
   }
@@ -4606,6 +4645,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function unitEditability(kind, ref) {
+    // A `derived` model is read-only: no edit affordance regardless of kind.
+    if (ownershipOfRef(ref) === 'derived') return 'none'
     var nature = KU_NATURE[kind]
     if (nature === 'container' || kind === 'source') return 'none'
     if (kind === 'concept' || kind === 'field' || kind === 'matrix') return 'structure'
@@ -4979,6 +5020,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     describeUnit: describeUnit,
     createKu: createKu,
     setUnitChanges: setUnitChanges,
+    setModelOwnership: setModelOwnership,
     Ku: Ku,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
@@ -5770,6 +5812,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           doc: doc,
+          onEvidence:
+            typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
             if (res.isComment || target.commentOnly) {
               // Defence in depth: the kit already blocks an empty comment.
@@ -10915,7 +10959,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
       return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
-    tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
+    // Change B: the bespoke `Changes` tab is retired — the `changes` collection now
+    // surfaces as an ordinary model (one unit per Change). The shell's review panel
+    // still hosts the changeset bar; it is no longer a tab.
 
     tabs.forEach(function (t) {
       if (t.id === 'explorer' || t.id === 'review') return
@@ -11267,7 +11313,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var preferred = opts.config && opts.config.defaultView
       if (preferred && has(preferred)) return preferred
       if (has('explorer')) return 'explorer'
-      return tabs[0].id
+      return tabs.length > 0 ? tabs[0].id : ''
     }
 
     var onHashChange = function () {
@@ -12508,6 +12554,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
+    // C: every change carries mandatory evidence. A draft may name a citation; a
+    // reviewer correction that names none is an explicit `decision`.
+    lines.push('evidence:: ' + oneLine(d.evidence || d.source || 'decision'))
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
@@ -12934,6 +12983,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    // Change A: install the model-ownership resolver so a `derived` model's units
+    // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
+    var ownershipByModel = {}
+    var modelList = Array.isArray(meta.models) ? meta.models : []
+    modelList.forEach(function (mm) {
+      if (!mm) return
+      if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
+      if (mm.title != null) ownershipByModel[String(mm.title)] = mm.ownership || 'authored'
+    })
+    if (typeof UI.setModelOwnership === 'function') {
+      UI.setModelOwnership(function (id) {
+        return ownershipByModel[String(id)]
+      })
+    }
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
     var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {
@@ -13329,6 +13392,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         schema: schema,
         getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
+        // Change C: clicking a change's evidence opens the in-domain unit it points
+        // at, or the citation dialog when it is an external file.
+        onEvidence: function (evidence) {
+          var ev = String(evidence || '').trim()
+          if (!ev || ev === 'decision' || ev === 'unknown') return
+          var at = ev.indexOf('@')
+          var target = at === -1 ? ev : ev.slice(0, at)
+          var list = Array.isArray(elements) ? elements : []
+          var match = null
+          for (var i = 0; i < list.length; i++) {
+            var cand = list[i]
+            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+              match = cand
+              break
+            }
+          }
+          if (match) {
+            focusElementCard(active, match.id)
+            return
+          }
+          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+        },
       })
     }
 

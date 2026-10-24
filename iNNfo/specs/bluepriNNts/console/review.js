@@ -744,6 +744,8 @@
         },
         {
           doc: doc,
+          onEvidence:
+            typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
             if (res.isComment || target.commentOnly) {
               // Defence in depth: the kit already blocks an empty comment.

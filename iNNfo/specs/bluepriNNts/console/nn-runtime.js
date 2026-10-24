@@ -4301,7 +4301,9 @@
       var rb = TONE_RANK[b.tone] == null ? 2 : TONE_RANK[b.tone]
       return ra - rb || a.order - b.order || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
     })
-    tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
+    // Change B: the bespoke `Changes` tab is retired — the `changes` collection now
+    // surfaces as an ordinary model (one unit per Change). The shell's review panel
+    // still hosts the changeset bar; it is no longer a tab.
 
     tabs.forEach(function (t) {
       if (t.id === 'explorer' || t.id === 'review') return
@@ -4653,7 +4655,7 @@
       var preferred = opts.config && opts.config.defaultView
       if (preferred && has(preferred)) return preferred
       if (has('explorer')) return 'explorer'
-      return tabs[0].id
+      return tabs.length > 0 ? tabs[0].id : ''
     }
 
     var onHashChange = function () {
@@ -5894,6 +5896,9 @@
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
+    // C: every change carries mandatory evidence. A draft may name a citation; a
+    // reviewer correction that names none is an explicit `decision`.
+    lines.push('evidence:: ' + oneLine(d.evidence || d.source || 'decision'))
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
@@ -6320,6 +6325,20 @@
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    // Change A: install the model-ownership resolver so a `derived` model's units
+    // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
+    var ownershipByModel = {}
+    var modelList = Array.isArray(meta.models) ? meta.models : []
+    modelList.forEach(function (mm) {
+      if (!mm) return
+      if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
+      if (mm.title != null) ownershipByModel[String(mm.title)] = mm.ownership || 'authored'
+    })
+    if (typeof UI.setModelOwnership === 'function') {
+      UI.setModelOwnership(function (id) {
+        return ownershipByModel[String(id)]
+      })
+    }
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
     var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {
@@ -6715,6 +6734,28 @@
         schema: schema,
         getReviewer: getReviewerName,
         onDraftsChanged: refreshDraftCounts,
+        // Change C: clicking a change's evidence opens the in-domain unit it points
+        // at, or the citation dialog when it is an external file.
+        onEvidence: function (evidence) {
+          var ev = String(evidence || '').trim()
+          if (!ev || ev === 'decision' || ev === 'unknown') return
+          var at = ev.indexOf('@')
+          var target = at === -1 ? ev : ev.slice(0, at)
+          var list = Array.isArray(elements) ? elements : []
+          var match = null
+          for (var i = 0; i < list.length; i++) {
+            var cand = list[i]
+            if (cand && (cand.modelFile === target || cand.modelId === target || cand.canonicalUnit === target)) {
+              match = cand
+              break
+            }
+          }
+          if (match) {
+            focusElementCard(active, match.id)
+            return
+          }
+          renderCitationDialog(active, 'evidence', [{ origin: 'document', source: ev }])
+        },
       })
     }
 

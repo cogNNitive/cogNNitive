@@ -101,7 +101,11 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     models?: Record<string, { base_version: string; result_version: string }>
     changes: ChangeItem[]
   }): ChangesetDocument {
-    const sha = computeProposalSha(doc.changes)
+    // A change's evidence is mandatory; default it for the fixture changes.
+    const changes = doc.changes.map((c) =>
+      c.evidence === undefined ? { ...c, evidence: 'decision' } : c,
+    )
+    const sha = computeProposalSha(changes)
     return {
       frontmatter: {
         spec_version: 'V_0-4-0',
@@ -115,7 +119,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
         workspace_id: 'ws-1',
         models: doc.models,
       },
-      changes: doc.changes,
+      changes,
     }
   }
 
@@ -261,7 +265,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(updatedCs.changes[0].resolution).toBeDefined()
   })
 
-  it('Field Citation Rewriting (D20): touched fields cite changes/<cs>@## NN Change: <id>, untouched retain old citations', async () => {
+  it('D20 removed: apply writes NO companion citation on the model and no replaced_sources', async () => {
     const csFile = join(changesDir, 'ws_agent_d20_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -280,18 +284,21 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(res.success).toBe(true)
 
     const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
-    // Touched field has rewritten citation
-    expect(liveContent).toContain('statement_source:: changes/ws_agent_d20_changes_NN.md@## NN Change: c-01')
-    // Untouched field retains previous citation
+    // The mutation is written...
+    expect(liveContent).toContain('New Vision Statement')
+    // ...but the field gains no companion citation pointing at the change.
+    expect(liveContent).not.toContain('statement_source:: changes/')
+    // An untouched field keeps its previous citation.
     expect(liveContent).toContain('target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline')
 
-    // D3: the replaced citation is recorded on the change (an annotation, unsealed).
-    const updatedCs = parseChangeset(await readFile(csFile, 'utf-8'))
-    expect(updatedCs.changes[0].replaced_sources).toBe('sources/interview.md@## Vision')
+    // No replaced_sources annotation is written anywhere.
+    const written = await readFile(csFile, 'utf-8')
+    expect(written).not.toContain('replaced_sources::')
+    const updatedCs = parseChangeset(written)
     expect(verifyProposalSha(updatedCs)).toBe(true)
   })
 
-  it('Replaced Citation Recording: add_element writes no replaced_sources', async () => {
+  it('add_element writes no companion citation and no replaced_sources annotation', async () => {
     const csFile = join(changesDir, 'ws_agent_add_changes_NN.md')
     const csDoc = makeChangeset({
       changes: [
@@ -309,8 +316,9 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     const res = await applyChange(csRoot, 'changes/ws_agent_add_changes_NN.md')
     expect(res.success).toBe(true)
 
-    const updatedCs = parseChangeset(await readFile(csFile, 'utf-8'))
-    expect(updatedCs.changes[0].replaced_sources).toBeUndefined()
+    const written = await readFile(csFile, 'utf-8')
+    expect(written).not.toContain('replaced_sources::')
+    expect(written).not.toContain('sources::')
   })
 
   it('Idempotent Replay: re-applying an applied changeset writes no file at all', async () => {

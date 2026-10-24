@@ -28,6 +28,10 @@ export const FIELD_TYPES = [
   'markdown_file',
   'knowledge',
   'model',
+  // A validated structural pointer `<target>@<unit>` to an existing unit. It is the
+  // base of the address grammar: `citation` is an `address` that additionally asserts
+  // derivation (evidence), and `knowledge` is an `address` that is traversed. Change D.
+  'address',
   // A path PLUS an addressable knowledge unit, subject to the `KU_*` integrity
   // checks. Distinct from `file` ("a path") and `markdown_file` ("a content
   // body"): only `citation` asserts provenance, and only it is validated as

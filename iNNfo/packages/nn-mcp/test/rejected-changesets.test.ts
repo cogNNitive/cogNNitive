@@ -73,7 +73,7 @@ describe('a rejected changeset is persisted', () => {
   it('an unresolved citation is returned as rejected but the file stays proposed and can be retried', async () => {
     const written = await writeProposedChangeset(root, {
       changes: [
-        { id: 'c-01', op: 'update_field', target: 'strategy@Vision&statement', to: 'x', sources: 'sources/import/missing.md' },
+        { id: 'c-01', op: 'update_field', target: 'strategy@Vision&statement', to: 'x', evidence: 'sources/import/missing.md' },
       ],
     })
     const before = await readFile(written.absolutePath, 'utf-8')

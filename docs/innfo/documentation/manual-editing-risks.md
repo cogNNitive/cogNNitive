@@ -18,6 +18,18 @@ go wrong silently and what to do instead.
 Several of these fail only later, when something else reads the model: a stale console, a dangling
 citation, or a rejected changeset. That distance between the edit and the symptom is the real hazard.
 
+## Detected, not just discouraged
+
+The change is the only provenance of a mutation. Every change carries a **mandatory `evidence`**
+(the document, conversation or another change it derives from, a kNNowledge element, or the explicit
+tokens `decision` / `unknown`), and a field's origin and history are **derived** from the changes whose
+`target` points at it, ordered by `applied_at`. There is no companion citation to maintain by hand.
+
+A hand edit that changes a value without recording a change is therefore **detected**: the validator
+reports `EDITED_WITHOUT_RECORD` when a field's current value differs from the `to` of the last applied
+change targeting it, and the console export surfaces the same fingerprint. A field with no recorded
+change is left alone (it was authored directly, not derived).
+
 ## What to do instead
 
 Route every graph change through a changeset, which is validated before it is written and recorded

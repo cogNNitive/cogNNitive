@@ -389,20 +389,35 @@ describe('InnfoUI.ElementCard applied history', () => {
     expect(card.querySelector('.innfo-card-meta-strip')).toBeNull()
   })
 
-  it('keeps the applied history in the modal Lineage tab', () => {
-    const history = [{ author: 'ana', timestamp: '2026-10-02T12:00:00Z', notes: 'Set the owner' }]
+  it('renders the applied history in the modal Changes tab as element sheets (newest first)', () => {
+    const history = [
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'E@e&owner',
+        from: 'Bea',
+        to: 'Ana',
+        author: 'ana',
+        timestamp: '2026-10-02T12:00:00Z',
+        notes: 'Set the owner',
+        status: 'applied',
+      },
+    ]
     const card = UI.ElementCard({ id: 'e', name: 'E', fields: [], history })
     expect(card.querySelector('.innfo-lineage-pill')).toBeNull()
 
-    // The review controller opens the modal with the element's history, on the Lineage tab.
+    // The review controller opens the modal with the element's history, on the Changes tab.
     const modal = UI.EditModal(
       { title: 'E', fieldName: 'owner', type: 'string', value: 'Bea', history, startTab: 'history' },
       {},
     )
-    const lineage = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]') as HTMLElement
-    expect(lineage.style.display).toBe('block')
-    expect(lineage.textContent).toContain('Author: ana')
-    expect(lineage.textContent).toContain('Set the owner')
+    const changes = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]') as HTMLElement
+    expect(changes.style.display).toBe('block')
+    // One standard element sheet per recorded change, reusing ElementCard.
+    expect(changes.querySelectorAll('article[data-innfo-component="element-card"]').length).toBe(1)
+    expect(changes.textContent).toContain('ana')
+    expect(changes.textContent).toContain('Bea')
+    expect(changes.textContent).toContain('Ana')
     expect(modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')).not.toBeNull()
   })
 })

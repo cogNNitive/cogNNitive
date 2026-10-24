@@ -88,6 +88,9 @@ function numberChanges(changes: ChangeItem[], author: string): ChangeItem[] {
     ...change,
     id: `c-${String(index + 1).padStart(2, '0')}`,
     author: change.author ?? author,
+    // D2: evidence is mandatory. A caller that provides none gets the honest `unknown`
+    // (accepted, flagged by validation); a provenance claim is never invented.
+    evidence: change.evidence ?? 'unknown',
   }))
 }
 
@@ -286,13 +289,15 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
   const citationResolver = createFsSourceResolver(rootDir)
   const futureChangesetPath = join(rootDir, 'changes', 'proposal_changes_NN.md')
   for (const [index, change] of operations.entries()) {
-    if (!change.sources) continue
-    const resolved = resolveCitation(change.sources, 'sources', citationResolver, futureChangesetPath)
+    if (!change.evidence) continue
+    // `decision` and `unknown` are not citations: accepted without resolution.
+    if (change.evidence === 'decision' || change.evidence === 'unknown') continue
+    const resolved = resolveCitation(change.evidence, 'evidence', citationResolver, futureChangesetPath)
     if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
       errors.push({
-        path: `operations[${index}].sources`,
+        path: `operations[${index}].evidence`,
         code: 'CITATION_UNRESOLVED',
-        message: `CITATION_UNRESOLVED: operations[${index}] cites "${change.sources}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
+        message: `CITATION_UNRESOLVED: operations[${index}] cites "${change.evidence}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
       })
     }
   }
@@ -338,7 +343,7 @@ const STRING_KEYS = [
   'author',
   'notes',
   'base_hash',
-  'sources',
+  'evidence',
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
