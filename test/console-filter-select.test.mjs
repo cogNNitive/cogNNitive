@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
+global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
 const UI = require(join(consoleDir, 'ui-kit.js'))
 
 describe('FilterSelect (shared multi-select facet)', () => {
@@ -37,19 +37,19 @@ describe('FilterSelect (shared multi-select facet)', () => {
 
   it('renders a details facet with one checkbox per option', () => {
     const node = build({ label: 'Estado', options: [{ value: 'active', label: 'active' }, { value: 'paused', label: 'paused' }] })
-    assert.equal(node.getAttribute('data-innfo-component'), 'filter-select')
+    assert.equal(node.getAttribute('data-nn-component'), 'filter-select')
     assert.equal(node.tagName, 'DETAILS')
-    assert.equal(node.querySelectorAll('.innfo-filter-option input[type=checkbox]').length, 2)
-    assert.equal(node.querySelector('.innfo-filter-summary').textContent, 'Estado: ninguno')
+    assert.equal(node.querySelectorAll('.nn-filter-option input[type=checkbox]').length, 2)
+    assert.equal(node.querySelector('.nn-filter-summary').textContent, 'Estado: ninguno')
   })
 
   it('summarises all, none, one and many selections', () => {
     const all = build({ label: 'Mes', options: [{ value: 'a', label: 'a', selected: true }, { value: 'b', label: 'b', selected: true }] })
-    assert.equal(all.querySelector('.innfo-filter-summary').textContent, 'Mes: todos (2)')
+    assert.equal(all.querySelector('.nn-filter-summary').textContent, 'Mes: todos (2)')
     const one = build({ label: 'Mes', options: [{ value: 'a', label: 'a', selected: true }, { value: 'b', label: 'b' }] })
-    assert.equal(one.querySelector('.innfo-filter-summary').textContent, 'Mes: a')
+    assert.equal(one.querySelector('.nn-filter-summary').textContent, 'Mes: a')
     const many = build({ label: 'Mes', options: [{ value: 'a', label: 'a', selected: true }, { value: 'b', label: 'b', selected: true }, { value: 'c', label: 'c' }] })
-    assert.equal(many.querySelector('.innfo-filter-summary').textContent, 'Mes: 2/3')
+    assert.equal(many.querySelector('.nn-filter-summary').textContent, 'Mes: 2/3')
   })
 
   it('accepts a selected map or array', () => {
@@ -66,7 +66,7 @@ describe('FilterSelect (shared multi-select facet)', () => {
     boxes[0].checked = true
     boxes[0].dispatchEvent(new window.Event('change', { bubbles: true }))
     assert.deepEqual(seen, [['active']])
-    assert.equal(node.querySelector('.innfo-filter-summary').textContent, 'Estado: active')
+    assert.equal(node.querySelector('.nn-filter-summary').textContent, 'Estado: active')
     boxes[1].checked = true
     boxes[1].dispatchEvent(new window.Event('change', { bubbles: true }))
     assert.deepEqual(seen[1], ['active', 'paused'])
@@ -86,13 +86,13 @@ describe('FilterSelect (shared multi-select facet)', () => {
       },
       { onChange: (values) => seen.push(values) },
     )
-    const buttons = node.querySelectorAll('.innfo-filter-quick button')
+    const buttons = node.querySelectorAll('.nn-filter-quick button')
     assert.deepEqual([...buttons].map((b) => b.textContent), ['Todos', 'Ninguno', '2026'])
     buttons[1].dispatchEvent(new window.Event('click', { bubbles: true }))
     assert.deepEqual(seen[0], [])
     buttons[0].dispatchEvent(new window.Event('click', { bubbles: true }))
     assert.deepEqual(seen[1], ['2026-01', '2026-02', '2026-03'])
-    assert.equal(node.querySelector('.innfo-filter-summary').textContent, 'Mes: todos (3)')
+    assert.equal(node.querySelector('.nn-filter-summary').textContent, 'Mes: todos (3)')
   })
 
   it('supports programmatic setSelection without notifying when silent', () => {
@@ -101,7 +101,7 @@ describe('FilterSelect (shared multi-select facet)', () => {
     node.setSelection(['a'], true)
     assert.deepEqual(node.getSelection(), ['a'])
     assert.equal(seen.length, 0)
-    assert.equal(node.querySelector('.innfo-filter-summary').textContent, 'X: a')
+    assert.equal(node.querySelector('.nn-filter-summary').textContent, 'X: a')
   })
 
   it('rejects invalid data', () => {

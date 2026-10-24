@@ -13,7 +13,7 @@ const TARGET = { dir: 'artifacts', key: 'report', ext: 'md' }
 let root: string
 
 beforeEach(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-writeonce-'))
+  root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-writeonce-'))
 })
 
 afterEach(() => {

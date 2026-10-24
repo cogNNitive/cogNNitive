@@ -73,7 +73,7 @@ function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
       `$1${JSON.stringify(modelToUse)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       overrideConfig ? `$1${JSON.stringify(overrideConfig)}$2` : '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -85,10 +85,10 @@ function loadRuntime(): ConsoleApi {
   delete req.cache[req.resolve(join(consoleDir, 'nn-runtime.js'))]
   const api = req(join(consoleDir, 'nn-runtime.js')) as ConsoleApi
   const ui = req(join(consoleDir, 'ui-kit.js'))
-  ;(globalThis as any).InnfoConsole = api
-  ;(window as any).InnfoConsole = api
-  ;(globalThis as any).InnfoUI = ui
-  ;(window as any).InnfoUI = ui
+  ;(globalThis as any).nnConsole = api
+  ;(window as any).nnConsole = api
+  ;(globalThis as any).nnUI = ui
+  ;(window as any).nnUI = ui
   return api
 }
 
@@ -103,7 +103,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     vi.restoreAllMocks()
   })
 
-  it('injects single [data-innfo-feedback-root] and #innfo-feedback-open when evaluated twice', () => {
+  it('injects single [data-nn-feedback-root] and #nn-feedback-open when evaluated twice', () => {
     renderModelConsole()
 
     // First evaluation
@@ -114,25 +114,25 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api2 = loadRuntime()
     api2.boot(document)
 
-    const roots = document.querySelectorAll('[data-innfo-feedback-root]')
+    const roots = document.querySelectorAll('[data-nn-feedback-root]')
     expect(roots.length).toBe(1)
 
-    const openBtns = document.querySelectorAll('#innfo-feedback-open')
+    const openBtns = document.querySelectorAll('#nn-feedback-open')
     expect(openBtns.length).toBe(1)
 
-    const modals = document.querySelectorAll('#innfo-feedback-modal')
+    const modals = document.querySelectorAll('#nn-feedback-modal')
     expect(modals.length).toBe(1)
   })
 
-  it('calls showModal once per click on #innfo-feedback-open', () => {
+  it('calls showModal once per click on #nn-feedback-open', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.boot(document)
 
-    const modal = document.getElementById('innfo-feedback-modal') as HTMLDialogElement
+    const modal = document.getElementById('nn-feedback-modal') as HTMLDialogElement
     const showModalSpy = vi.spyOn(modal, 'showModal')
 
-    const openBtn = document.getElementById('innfo-feedback-open')!
+    const openBtn = document.getElementById('nn-feedback-open')!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(showModalSpy).toHaveBeenCalledTimes(1)
@@ -143,7 +143,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    const storeKey = 'innfo-console:v3:ghostbusters-model'
+    const storeKey = 'nn-console:v4:ghostbusters-model'
     const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":4,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
     existing.drafts.push({
       id: 'fb-001',
@@ -176,26 +176,26 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    expect(document.querySelector('[data-innfo-feedback-root]')).toBeNull()
-    expect(document.getElementById('innfo-feedback-open')).toBeNull()
-    expect(document.getElementById('innfo-feedback-modal')).toBeNull()
+    expect(document.querySelector('[data-nn-feedback-root]')).toBeNull()
+    expect(document.getElementById('nn-feedback-open')).toBeNull()
+    expect(document.getElementById('nn-feedback-modal')).toBeNull()
   })
 
-  it('coexists with procedure stepper #innfo-export-modal', () => {
+  it('coexists with procedure stepper #nn-export-modal', () => {
     renderModelConsole()
 
     // Simulate procedure stepper modal already on the page
     const stepperModal = document.createElement('dialog')
-    stepperModal.id = 'innfo-export-modal'
+    stepperModal.id = 'nn-export-modal'
     stepperModal.className = 'stepper-dialog'
     document.body.appendChild(stepperModal)
 
     const api = loadRuntime()
     api.boot(document)
 
-    expect(document.getElementById('innfo-export-modal')).toBe(stepperModal)
-    expect(document.getElementById('innfo-feedback-modal')).not.toBeNull()
-    expect(document.getElementById('innfo-feedback-modal')).not.toBe(stepperModal)
+    expect(document.getElementById('nn-export-modal')).toBe(stepperModal)
+    expect(document.getElementById('nn-feedback-modal')).not.toBeNull()
+    expect(document.getElementById('nn-feedback-modal')).not.toBe(stepperModal)
   })
 
   it('never shows a store-level staleness banner, whatever the persisted store holds', () => {
@@ -204,7 +204,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     // hash has since moved: staleness is per draft, surfaced in the review tab,
     // never by the banner.
     localStorage.setItem(
-      'innfo-console:v3:ghostbusters-model',
+      'nn-console:v4:ghostbusters-model',
       JSON.stringify({
         v: 4,
         modelId: 'ghostbusters-model',
@@ -224,21 +224,21 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     )
     const api = loadRuntime()
     api.boot(document)
-    expect(document.querySelector('#innfo-feedback-banner .innfo-banner-stale')).toBeNull()
-    expect(document.querySelector('[data-innfo="stale-feedback"]')).toBeNull()
+    expect(document.querySelector('#nn-feedback-banner .nn-banner-stale')).toBeNull()
+    expect(document.querySelector('[data-nn="stale-feedback"]')).toBeNull()
   })
 
   it('the export modal describes the real flow and never mentions sealing', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.boot(document)
-    const modal = document.getElementById('innfo-feedback-modal')!
+    const modal = document.getElementById('nn-feedback-modal')!
     expect(modal.textContent).not.toContain('Sealed')
     expect(modal.textContent).not.toContain('proposal_sha')
     expect(modal.textContent).not.toContain('PROPOSAL_TAMPERED')
     expect(modal.textContent).toContain('give it to the agent')
     // The full flow paragraph: export, hand over, what the agent reports, how to retry.
-    const exportFlow = (globalThis as any).InnfoUI.COPY.exportFlow as string
+    const exportFlow = (globalThis as any).nnUI.COPY.exportFlow as string
     expect(modal.textContent).toContain(exportFlow)
     expect(exportFlow).toContain('Export the file and give it to the agent.')
     expect(exportFlow).toContain('reports every skipped change and its reason')
@@ -250,9 +250,9 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
     document
-      .getElementById('innfo-feedback-open')!
+      .getElementById('nn-feedback-open')!
       .dispatchEvent(new Event('click', { bubbles: true }))
-    const prompt = document.querySelector('#innfo-feedback-modal [data-innfo="agent-prompt"]')!
+    const prompt = document.querySelector('#nn-feedback-modal [data-nn="agent-prompt"]')!
     const lower = (prompt.textContent || '').toLowerCase()
     expect(lower).toContain('apply')
     expect(lower).toContain('skipped')
@@ -263,9 +263,9 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.boot(document)
-    const banner = document.getElementById('innfo-feedback-banner')
+    const banner = document.getElementById('nn-feedback-banner')
     expect(banner).not.toBeNull()
-    expect(banner!.querySelector('.innfo-banner-needs')).toBeNull()
+    expect(banner!.querySelector('.nn-banner-needs')).toBeNull()
     expect(banner!.textContent).not.toContain('needs:')
   })
 
@@ -273,10 +273,10 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     renderModelConsole()
     const api = loadRuntime()
     api.renderNavbarIdentity(document, { generated: '2026-10-11T16:56:22.123Z' })
-    const popover = document.querySelector('.innfo-navbar-info-popover')!
+    const popover = document.querySelector('.nn-navbar-info-popover')!
     expect(popover).not.toBeNull()
     expect(popover.textContent).toContain('Generated: 2026-10-11 16:56:22 UTC')
-    const host = document.getElementById('innfo-navbar-extra')!
+    const host = document.getElementById('nn-navbar-extra')!
     expect(host).not.toBeNull()
     expect(host.textContent).toBe('')
   })

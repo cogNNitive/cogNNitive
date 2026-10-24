@@ -38,7 +38,7 @@ function renderModelConsole(): void {
       `$1${JSON.stringify(sampleModel)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -62,7 +62,7 @@ function seedDraft(overrides: any = {}) {
     ...overrides,
   }
   env.localStorage.setItem(
-    'innfo-console:v3:ghostbusters-model',
+    'nn-console:v4:ghostbusters-model',
     JSON.stringify({ v: 4, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
   )
 }
@@ -74,7 +74,7 @@ function boot() {
 }
 
 function openModal() {
-  ;(env.document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
+  ;(env.document.getElementById('nn-feedback-open') as HTMLElement).dispatchEvent(
     new env.window.Event('click', { bubbles: true }),
   )
 }
@@ -107,12 +107,12 @@ describe('console-review-export (preview + clipboard)', () => {
     }
     mods.Console.boot(env.document)
     const dialog = env.document.createElement('dialog') as any
-    dialog.id = 'innfo-citation-dialog'
+    dialog.id = 'nn-citation-dialog'
     dialog.showModal = vi.fn()
     env.document.body.appendChild(dialog)
     openModal()
     const icon = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="preview"] .innfo-change-card-source .cite-icon',
+      '#nn-feedback-modal [data-nn="preview"] .nn-change-card-source .cite-icon',
     ) as HTMLButtonElement
     expect(icon).not.toBeNull()
     icon.click()
@@ -124,9 +124,9 @@ describe('console-review-export (preview + clipboard)', () => {
     seedDraft()
     boot()
     openModal()
-    const preview = env.document.querySelector('#innfo-feedback-modal [data-innfo="preview"]')
+    const preview = env.document.querySelector('#nn-feedback-modal [data-nn="preview"]')
     expect(preview).not.toBeNull()
-    expect(preview!.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
+    expect(preview!.querySelector('[data-nn-component="draft-list"]')).not.toBeNull()
   })
 
   it('an empty identifier disables download and copy', () => {
@@ -134,10 +134,10 @@ describe('console-review-export (preview + clipboard)', () => {
     boot()
     openModal()
     const download = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="download-changeset"]',
+      '#nn-feedback-modal [data-nn="download-changeset"]',
     ) as HTMLButtonElement
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
+      '#nn-feedback-modal [data-nn="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     expect(download.disabled).toBe(true)
     expect(copy.disabled).toBe(true)
@@ -151,13 +151,13 @@ describe('console-review-export (preview + clipboard)', () => {
 
     openModal()
     const idInput = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="identifier"]',
+      '#nn-feedback-modal [data-nn="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
+      '#nn-feedback-modal [data-nn="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
@@ -165,7 +165,7 @@ describe('console-review-export (preview + clipboard)', () => {
     const text = writeText.mock.calls[0][0]
     expect(text).toContain('## NN Change: fb-001')
     expect(text).not.toContain('"base_hash"')
-    const status = env.document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!
+    const status = env.document.querySelector('#nn-feedback-modal [data-nn="copy-status"]')!
     expect(status.getAttribute('role')).toBe('status')
   })
 
@@ -178,24 +178,24 @@ describe('console-review-export (preview + clipboard)', () => {
 
     openModal()
     const idInput = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="identifier"]',
+      '#nn-feedback-modal [data-nn="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
+      '#nn-feedback-modal [data-nn="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     expect(() => copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))).not.toThrow()
     expect(execCommand).toHaveBeenCalled()
     expect(
-      env.document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!.textContent,
+      env.document.querySelector('#nn-feedback-modal [data-nn="copy-status"]')!.textContent,
     ).toBeTruthy()
   })
 
   function setIdentifier(value: string) {
     const idInput = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="identifier"]',
+      '#nn-feedback-modal [data-nn="identifier"]',
     ) as HTMLInputElement
     idInput.value = value
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
@@ -204,14 +204,14 @@ describe('console-review-export (preview + clipboard)', () => {
   function previewText(): string {
     return (
       env.document.querySelector(
-        '#innfo-feedback-modal [data-innfo="changeset-preview"]',
+        '#nn-feedback-modal [data-nn="changeset-preview"]',
       ) as HTMLTextAreaElement
     ).value
   }
 
   it('every exported change block carries author:: with the identifier', () => {
     env.localStorage.setItem(
-      'innfo-console:v3:ghostbusters-model',
+      'nn-console:v4:ghostbusters-model',
       JSON.stringify({
         v: 4,
         modelId: 'ghostbusters-model',
@@ -304,13 +304,13 @@ describe('console-review-export (preview + clipboard)', () => {
     boot()
     openModal()
     const idInput = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="identifier"]',
+      '#nn-feedback-modal [data-nn="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const textarea = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="changeset-preview"]',
+      '#nn-feedback-modal [data-nn="changeset-preview"]',
     ) as HTMLTextAreaElement
     expect(textarea.value).toContain('level: 3')
     expect(textarea.value).toContain('parent_spec:')

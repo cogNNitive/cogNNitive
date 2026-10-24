@@ -25,9 +25,37 @@ const LEGACY = [
   'KuActions',
 ]
 
-function consoleSources() {
+// Identifiers that still carry the retired `innfo` prefix. These two are NOT
+// console identifiers: they are the payload slot ids, produced by
+// `nn-core/src/console/schema-resolution.ts` ("MUST obtain the `innfo-schema`
+// slot from this single function") and read back out of a written artifact by
+// `nn-core/src/lineage/project.ts`, which parses `<script id="innfo-model">` from
+// committed HTML. Renaming them needs a backward-compatible read over persisted
+// artifacts, so it is tracked separately
+// (openspec/changes/console-prefix-migration). Everything else carries `nn-`.
+const PREFIX_ALLOWLIST = ['innfo-schema', 'innfo-model']
+
+// A retired name is only reported when it stands alone. A prefixed name must not
+// trip on the suffix it carries: `nn-field-row` contains `field-row`.
+function wholeIdentifier(token) {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?<![A-Za-z0-9_-])${escaped}(?![A-Za-z0-9_-])`)
+}
+
+// The LEGACY scan covers scripts: a retired builder id is a JS concern, and the
+// stale selectors it would also find in the stylesheet (`concept-pill`,
+// `element-pill`, `ku-badge`) are CSS hygiene, tracked separately.
+function consoleScripts() {
   return readdirSync(consoleDir)
     .filter((f) => f.endsWith('.js') && f !== 'nn-console.bundle.js')
+    .map((f) => join(consoleDir, f))
+}
+
+// The prefix check covers scripts AND stylesheets: a class renamed in the kit but
+// left in the stylesheet is exactly how a dead block survives.
+function consoleSources() {
+  return readdirSync(consoleDir)
+    .filter((f) => (f.endsWith('.js') || f.endsWith('.css')) && f !== 'nn-console.bundle.js')
     .map((f) => join(consoleDir, f))
 }
 
@@ -51,19 +79,57 @@ function viewSources() {
 describe('Ku static guard', () => {
   it('has no legacy builders or component ids in console sources or repo views', () => {
     const offenders = []
-    for (const file of [...consoleSources(), ...viewSources()]) {
+    for (const file of [...consoleScripts(), ...viewSources()]) {
       const text = readFileSync(file, 'utf8')
       for (const token of LEGACY) {
-        if (text.includes(token)) offenders.push(`${file}: ${token}`)
+        if (wholeIdentifier(token).test(text)) offenders.push(`${file}: ${token}`)
       }
     }
     assert.deepEqual(offenders, [])
   })
 
+  it('reports a retired name only as a whole identifier', () => {
+    assert.ok(wholeIdentifier('field-row').test('class="field-row"'), 'bare name is reported')
+    assert.ok(wholeIdentifier('ku-badge').test('.ku-badge{'), 'bare class is reported')
+    assert.equal(
+      wholeIdentifier('field-row').test('class="nn-field-row"'),
+      false,
+      'a prefixed name is clean',
+    )
+    assert.equal(
+      wholeIdentifier('ku-badge').test('.nn-ku-badge{'),
+      false,
+      'a prefixed class is clean',
+    )
+  })
+
+  it('scans the console stylesheets too', () => {
+    const sources = consoleSources()
+    assert.ok(
+      sources.some((f) => f.endsWith('nn-ui.css')),
+      'nn-ui.css is scanned by the prefix check',
+    )
+  })
+
+  it('has no retired innfo prefix outside the payload slot allowlist', () => {
+    // Identifier forms only: `innfo-…`, `innfo:…` or an `Innfo…` global. A path
+    // or URL segment (`docs/innfo/`, `cognnitive.com/innfo/`) is not an
+    // identifier and is deliberately out of scope, as is a retired DISTRIBUTION
+    // package name cited as data by the repo-wide guards.
+    const RETIRED = /(?<![A-Za-z0-9_-])innfo[-:]|\bInnfo/
+    const offenders = []
+    for (const file of consoleSources()) {
+      let text = readFileSync(file, 'utf8')
+      for (const token of PREFIX_ALLOWLIST) text = text.split(token).join('')
+      if (RETIRED.test(text)) offenders.push(file)
+    }
+    assert.deepEqual(offenders, [], 'console sources must carry the nn- prefix only')
+  })
+
   it('pins data-ku-exempt to the frozen reason set', () => {
     const reasons = ['metamodel-svg', 'chart', 'numeric-aggregate', 'csv-subunit-label']
     const seen = new Set()
-    for (const file of [...consoleSources(), ...viewSources()]) {
+    for (const file of [...consoleScripts(), ...viewSources()]) {
       const text = readFileSync(file, 'utf8')
       const re = /data-ku-exempt=["']([^"']+)["']/g
       let m

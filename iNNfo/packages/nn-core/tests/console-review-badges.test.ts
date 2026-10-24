@@ -46,7 +46,7 @@ function renderModelConsole(model = buildModel()): void {
       `$1${JSON.stringify(model)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -64,7 +64,7 @@ function boot() {
 
 function seedDrafts(drafts: any[]) {
   env.localStorage.setItem(
-    'innfo-console:v3:ghostbusters-model',
+    'nn-console:v4:ghostbusters-model',
     JSON.stringify({ v: 4, modelId: 'ghostbusters-model', drafts, reviewed: {} }),
   )
 }
@@ -72,7 +72,7 @@ function seedDrafts(drafts: any[]) {
 function changeBadges(): HTMLElement[] {
   return Array.from(
     env.document.querySelectorAll(
-      '[data-innfo-change-state] [data-innfo-component="status-badge"]',
+      '[data-nn-change-state] [data-nn-component="status-badge"]',
     ),
   ) as HTMLElement[]
 }
@@ -108,7 +108,7 @@ describe('console-review-badges (Unsent-only, from the draft store)', () => {
       }),
     )
     boot()
-    expect(env.document.querySelector('[data-innfo-change-state]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-change-state]')).toBeNull()
     expect(changeBadges()).toEqual([])
   })
 

@@ -68,7 +68,7 @@ function fillShell(modelToUse: any, overrideConfig?: any): string {
       `$1${JSON.stringify(modelToUse)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       overrideConfig
         ? `$1${JSON.stringify(overrideConfig)}$2`
         : '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
@@ -82,7 +82,7 @@ function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
 }
 
 function cards(doc: Document): Element[] {
-  return Array.from(doc.querySelectorAll('#innfo-content [data-innfo-component="element-card"]'))
+  return Array.from(doc.querySelectorAll('#nn-content [data-nn-component="element-card"]'))
 }
 
 describe('console-review (no mode, always-on decoration)', () => {
@@ -111,9 +111,9 @@ describe('console-review (no mode, always-on decoration)', () => {
   it('renders no review-mode toggle and sets no review-mode attribute', () => {
     renderModelConsole()
     bootConsole()
-    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
-    expect(env.document.querySelector('.innfo-review-toggle')).toBeNull()
-    expect(env.document.documentElement.getAttribute('data-innfo-review')).toBeNull()
+    expect(env.document.querySelector('[data-nn="review-toggle"]')).toBeNull()
+    expect(env.document.querySelector('.nn-review-toggle')).toBeNull()
+    expect(env.document.documentElement.getAttribute('data-nn-review')).toBeNull()
   })
 
   it('decorates every card and the edit anchors at boot, with no mode to enter', () => {
@@ -122,11 +122,11 @@ describe('console-review (no mode, always-on decoration)', () => {
     const viewerCards = cards(env.document)
     expect(viewerCards.length).toBeGreaterThan(0)
     viewerCards.forEach((card) => {
-      expect(card.querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
+      expect(card.querySelectorAll('[data-nn-review-ctl]').length).toBeGreaterThan(0)
     })
     // No permanent pencil in a value row any more: editing lives in the badge flyout.
-    expect(env.document.querySelector('[data-innfo-ctl="field-anchor"]')).toBeNull()
-    expect(env.document.querySelector('.innfo-ku-more')).not.toBeNull()
+    expect(env.document.querySelector('[data-nn-ctl="field-anchor"]')).toBeNull()
+    expect(env.document.querySelector('.nn-ku-more')).not.toBeNull()
   })
 
   it('gates the edit anchors on canPropose while state decoration always runs', () => {
@@ -144,15 +144,15 @@ describe('console-review (no mode, always-on decoration)', () => {
     env.setup(fillShell(model, { needs: ['feedback-export', 'concept-rail', 'fulltext-search'] }))
     bootConsole()
 
-    expect(env.document.querySelectorAll('[data-innfo-ctl="tag-add"]').length).toBe(0)
-    expect(env.document.querySelectorAll('[data-innfo-ctl="rel-add"]').length).toBe(0)
+    expect(env.document.querySelectorAll('[data-nn-ctl="tag-add"]').length).toBe(0)
+    expect(env.document.querySelectorAll('[data-nn-ctl="rel-add"]').length).toBe(0)
     // No export surface either: canReview is false.
-    expect(env.document.querySelector('[data-innfo="changed-filter"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn="changed-filter"]')).toBeNull()
 
     expect(cards(env.document).length).toBeGreaterThan(0)
     // The reviewed toggle is gone; the rail progress now reads the change.
-    expect(env.document.querySelector('[data-innfo-component="reviewed-toggle"]')).toBeNull()
-    const rail = env.document.querySelector('[data-innfo-component="rail-progress"]') as HTMLElement
+    expect(env.document.querySelector('[data-nn-component="reviewed-toggle"]')).toBeNull()
+    const rail = env.document.querySelector('[data-nn-component="rail-progress"]') as HTMLElement
     expect(rail).not.toBeNull()
     expect(rail.getAttribute('data-total')).toBeTruthy()
     expect(rail.getAttribute('data-pending')).toBe('0')
@@ -161,20 +161,20 @@ describe('console-review (no mode, always-on decoration)', () => {
   it('decorates the edit anchors when the domain is proposable', () => {
     renderModelConsole()
     bootConsole()
-    expect(env.document.querySelectorAll('[data-innfo-ctl="tag-add"]').length).toBeGreaterThan(0)
+    expect(env.document.querySelectorAll('[data-nn-ctl="tag-add"]').length).toBeGreaterThan(0)
   })
 
   it('renders no Edit-structure switch', () => {
     renderModelConsole()
     bootConsole()
-    expect(env.document.querySelector('#innfo-review-dock [data-innfo="structure-switch"]')).toBeNull()
-    expect(env.document.documentElement.getAttribute('data-innfo-structure')).toBeNull()
+    expect(env.document.querySelector('#nn-review-dock [data-nn="structure-switch"]')).toBeNull()
+    expect(env.document.documentElement.getAttribute('data-nn-structure')).toBeNull()
   })
 
   it('keeps the changeset bar hidden while there are no drafts', () => {
     renderModelConsole()
     bootConsole()
-    const dock = env.document.getElementById('innfo-review-dock')
+    const dock = env.document.getElementById('nn-review-dock')
     expect(dock).not.toBeNull()
     expect(dock!.getAttribute('data-visible')).toBeNull()
     expect((dock as HTMLElement).style.display).toBe('none')
@@ -184,12 +184,12 @@ describe('console-review (no mode, always-on decoration)', () => {
     renderModelConsole()
     bootConsole()
 
-    const search = env.document.getElementById('innfo-search') as HTMLInputElement
+    const search = env.document.getElementById('nn-search') as HTMLInputElement
     search.value = 'slimer'
     search.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const visibleCards = cards(env.document)
     expect(visibleCards.length).toBe(1)
-    expect(visibleCards[0].querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
+    expect(visibleCards[0].querySelectorAll('[data-nn-review-ctl]').length).toBeGreaterThan(0)
   })
 })

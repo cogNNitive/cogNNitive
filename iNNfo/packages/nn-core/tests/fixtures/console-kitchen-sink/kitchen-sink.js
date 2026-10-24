@@ -1,11 +1,11 @@
-/* global InnfoUI, module */
+/* global nnUI, module */
 // Offline kitchen sink: renders every implemented component under both themes.
 // No fetch, no module system — double-click / jsdom friendly.
 ;(function () {
   'use strict'
 
-  var UI = typeof InnfoUI !== 'undefined' ? InnfoUI : null
-  if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
+  var UI = typeof nnUI !== 'undefined' ? nnUI : null
+  if (!UI) throw new Error('nnUI missing: load ui-kit.js first')
 
   function build(doc, root) {
     if (!root) return

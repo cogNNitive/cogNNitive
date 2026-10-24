@@ -42,7 +42,7 @@ describe('describeUnit', () => {
 describe('Ku', () => {
   it('renders a ku-unit with kind/nature/home/address and an aria-label', () => {
     const wrap = UI.Ku('element', KINDS[6][1])
-    const badge = wrap.querySelector('[data-innfo-component="ku-unit"]')!
+    const badge = wrap.querySelector('[data-nn-component="ku-unit"]')!
     expect(badge.getAttribute('data-ku-kind')).toBe('element')
     expect(badge.getAttribute('data-ku-nature')).toBe('content')
     expect(badge.getAttribute('data-ku-home')).toBe('knowledge')
@@ -63,15 +63,15 @@ describe('Ku', () => {
 
   it('keeps the action cluster outside the badge root', () => {
     const wrap = UI.Ku('element', KINDS[6][1])
-    const badge = wrap.querySelector('[data-innfo-component="ku-unit"]')!
+    const badge = wrap.querySelector('[data-nn-component="ku-unit"]')!
     expect(badge.querySelector('[data-ku-action]')).toBeNull()
-    expect(wrap.querySelector('.innfo-ku-actions [data-ku-action="info"]')).toBeTruthy()
+    expect(wrap.querySelector('.nn-ku-actions [data-ku-action="info"]')).toBeTruthy()
   })
 
   it('renders a block variant', () => {
     const body = document.createElement('pre')
     const wrap = UI.Ku('value', KINDS[7][1], { variant: 'block', body })
-    const badge = wrap.querySelector('[data-innfo-component="ku-unit"]')!
+    const badge = wrap.querySelector('[data-nn-component="ku-unit"]')!
     expect(badge.getAttribute('data-ku-variant')).toBe('block')
     expect(badge.contains(body)).toBe(true)
   })
@@ -103,16 +103,16 @@ describe('setUnitChanges', () => {
   it('paints and clears address-keyed pips without re-rendering the badge', () => {
     const wrap = UI.Ku('value', { model: 'm', element: 'slimer', field: 'owner', value: 'Egon' })
     document.body.appendChild(wrap)
-    const badge = wrap.querySelector('[data-innfo-component="ku-unit"]') as HTMLElement
+    const badge = wrap.querySelector('[data-nn-component="ku-unit"]') as HTMLElement
     const address = badge.getAttribute('data-ku-address')!
 
     UI.setUnitChanges(document, { [address]: 2 })
     expect(badge.getAttribute('data-ku-changes')).toBe('2')
-    expect(wrap.querySelector('[data-innfo-component="ku-change-pip"]')!.textContent).toBe('2')
+    expect(wrap.querySelector('[data-nn-component="ku-change-pip"]')!.textContent).toBe('2')
 
     UI.setUnitChanges(document, {})
     expect(badge.getAttribute('data-ku-changes')).toBeNull()
-    expect(wrap.querySelector('[data-innfo-component="ku-change-pip"]')).toBeNull()
+    expect(wrap.querySelector('[data-nn-component="ku-change-pip"]')).toBeNull()
 
     wrap.remove()
   })

@@ -2,8 +2,8 @@
 //
 // SCS S3.3: the runtime (single shell) owns the citation-icon contract the
 // retired model viewer used to render. Header-level icons come from `opts.head`
-// (`InnfoUI.CitationIcons`); field-row icons from `FieldRow`'s `CitationIcon`.
-// The old suite required `render-model-viewer.js`; this one boots `InnfoConsole`
+// (`nnUI.CitationIcons`); field-row icons from `FieldRow`'s `CitationIcon`.
+// The old suite required `render-model-viewer.js`; this one boots `nnConsole`
 // against `artifact_shell.html` (same helper the other console suites use).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -30,7 +30,7 @@ function renderShell(): void {
       `$1${JSON.stringify(modelFixture)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -74,7 +74,7 @@ describe('single shell — citation icons (backward compatibility)', () => {
       matrices: [],
     }
     boot()
-    expect(env.document.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)
+    expect(env.document.querySelectorAll('[data-nn-component=citation-icon]')).toHaveLength(0)
   })
 
   it('renders citations via the kit; clicking is inert without a dialog API', () => {
@@ -92,7 +92,7 @@ describe('single shell — citation icons (backward compatibility)', () => {
       matrices: [],
     }
     boot()
-    const icons = env.document.querySelectorAll('[data-innfo-component=citation-icon]')
+    const icons = env.document.querySelectorAll('[data-nn-component=citation-icon]')
     expect(icons.length).toBe(1)
     expect(() =>
       (icons[0] as HTMLElement).dispatchEvent(new env.window.Event('click', { bubbles: true })),
@@ -119,8 +119,8 @@ describe('single shell — citation icons (origin-typed)', () => {
     }
     boot()
 
-    const head = env.document.querySelector('[data-element-id="problems-x"] .innfo-card-head')!
-    const icons = head.querySelectorAll('[data-innfo-component=citation-icon][data-origin=document]')
+    const head = env.document.querySelector('[data-element-id="problems-x"] .nn-card-head')!
+    const icons = head.querySelectorAll('[data-nn-component=citation-icon][data-origin=document]')
     expect(icons).toHaveLength(1)
   })
 
@@ -144,14 +144,14 @@ describe('single shell — citation icons (origin-typed)', () => {
 
     const precioRow = env.document
       .querySelector('[data-ku-kind=value][data-field=precio]')!
-      .closest('.innfo-ku-wrap')
+      .closest('.nn-ku-wrap')
     const precioSourceRow = env.document
       .querySelector('[data-ku-kind=value][data-field=precio_source]')!
-      .closest('.innfo-ku-wrap')
+      .closest('.nn-ku-wrap')
 
-    expect(precioRow!.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)
+    expect(precioRow!.querySelectorAll('[data-nn-component=citation-icon]')).toHaveLength(0)
     expect(
-      precioSourceRow!.querySelectorAll('[data-innfo-component=citation-icon][data-origin=agent]'),
+      precioSourceRow!.querySelectorAll('[data-nn-component=citation-icon][data-origin=agent]'),
     ).toHaveLength(1)
   })
 
@@ -176,7 +176,7 @@ describe('single shell — citation icons (origin-typed)', () => {
     }
     boot()
 
-    const icons = env.document.querySelectorAll('[data-innfo-component=citation-icon]')
+    const icons = env.document.querySelectorAll('[data-nn-component=citation-icon]')
     expect(icons).toHaveLength(1)
     expect((icons[0] as HTMLElement).getAttribute('data-origin')).toBe('human')
   })
@@ -202,7 +202,7 @@ describe('single shell — citation icons (origin-typed)', () => {
     }
     boot()
 
-    const icons = [...env.document.querySelectorAll('[data-innfo-component=citation-icon]')]
+    const icons = [...env.document.querySelectorAll('[data-nn-component=citation-icon]')]
     expect(icons.map((i) => (i as HTMLElement).getAttribute('data-origin'))).toEqual([
       'error',
       'human',
@@ -228,7 +228,7 @@ describe('single shell — citation icons (origin-typed)', () => {
     boot()
 
     const icons = env.document.querySelectorAll(
-      '[data-innfo-component=citation-icon][data-origin=document]',
+      '[data-nn-component=citation-icon][data-origin=document]',
     )
     expect(icons).toHaveLength(1)
   })
@@ -253,7 +253,7 @@ describe('single shell — citation icons (origin-typed)', () => {
 
     const card = env.document.querySelector('[data-element-id="problems-x"]') as HTMLElement
     const openBefore = card.getAttribute('data-open')
-    const icon = env.document.querySelector('[data-innfo-component=citation-icon]') as HTMLElement
+    const icon = env.document.querySelector('[data-nn-component=citation-icon]') as HTMLElement
     expect(() => icon.dispatchEvent(new env.window.Event('click', { bubbles: true }))).not.toThrow()
     expect(card.getAttribute('data-open')).toBe(openBefore)
   })

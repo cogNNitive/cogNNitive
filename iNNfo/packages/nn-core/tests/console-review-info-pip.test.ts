@@ -39,7 +39,7 @@ function boot(withReview: boolean) {
       `$1${JSON.stringify(model)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -64,14 +64,14 @@ describe('console review info action + change pip', () => {
 
   it('shows an info action on a unit badge, with no toggle and decoration always on', () => {
     boot(false)
-    const badge = env.document.querySelector('.innfo-card-head [data-ku-kind="element"]') as HTMLElement
+    const badge = env.document.querySelector('.nn-card-head [data-ku-kind="element"]') as HTMLElement
     expect(badge).not.toBeNull()
-    const actions = badge.parentElement!.querySelector('.innfo-ku-actions')
+    const actions = badge.parentElement!.querySelector('.nn-ku-actions')
     expect(actions).not.toBeNull()
     expect(actions!.querySelector('[data-ku-action="info"]')).not.toBeNull()
     // No mode: no toggle exists, and the review controls are decorated from boot.
-    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
-    expect(env.document.querySelector('[data-innfo-review-ctl]')).not.toBeNull()
+    expect(env.document.querySelector('[data-nn="review-toggle"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-review-ctl]')).not.toBeNull()
   })
 
   it('adds a count pip to the targeted unit badge when a draft exists', () => {
@@ -79,10 +79,10 @@ describe('console review info action + change pip', () => {
     const c = controllers[0]
     c.propose({ elementId: 'threat-slimer', field: '__name' }, { kind: 'correction', proposed: 'Z' })
     c.refresh()
-    const badge = env.document.querySelector('.innfo-card-head [data-ku-kind="element"]') as HTMLElement
+    const badge = env.document.querySelector('.nn-card-head [data-ku-kind="element"]') as HTMLElement
     expect(badge.getAttribute('data-ku-changes')).toBe('1')
     expect(
-      badge.parentElement!.querySelector('[data-innfo-component="ku-change-pip"]')!.textContent,
+      badge.parentElement!.querySelector('[data-nn-component="ku-change-pip"]')!.textContent,
     ).toBe('1')
   })
 })

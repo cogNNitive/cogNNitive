@@ -11,7 +11,7 @@ const runtime = req(join(consoleDir, 'nn-runtime.js')) as any
 // element and value units through Ku, addressed by canonical address.
 describe('renderDocument Ku migration', () => {
   beforeEach(() => {
-    document.body.innerHTML = '<div id="innfo-doc"></div>'
+    document.body.innerHTML = '<div id="nn-doc"></div>'
   })
 
   it('renders the document element and its fields as addressed Ku units', () => {
@@ -31,10 +31,10 @@ describe('renderDocument Ku migration', () => {
       ],
       { modelId: 'lab' },
     )
-    const element = document.querySelector('#innfo-doc [data-ku-kind="element"]')!
+    const element = document.querySelector('#nn-doc [data-ku-kind="element"]')!
     expect(element).toBeTruthy()
     expect(element.getAttribute('data-ku-address')).toBe('lab@root')
-    const values = [...document.querySelectorAll('#innfo-doc [data-ku-kind="value"]')]
+    const values = [...document.querySelectorAll('#nn-doc [data-ku-kind="value"]')]
     expect(values.length).toBeGreaterThan(0)
     for (const v of values) {
       expect((v as HTMLElement).getAttribute('data-ku-address')).toMatch(/^lab@(root|step)&/)

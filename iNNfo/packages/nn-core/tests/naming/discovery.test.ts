@@ -79,7 +79,7 @@ describe('list_models and ## NN Models agree', () => {
     `---\nlevel: ${level}\nparent_spec:\n  name: ${parent}\n  url: https://example.com/${parent}_NN.md\n---\n# Doc\n`
 
   it('never lists a seeded sidecar and both discovery paths return the same set', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'innfo-discovery-'))
+    const root = await mkdtemp(join(tmpdir(), 'nn-discovery-'))
     dirs.push(root)
     const files: Record<string, string> = {
       'kNNowledge/Client_business_NN.md': doc('business'),

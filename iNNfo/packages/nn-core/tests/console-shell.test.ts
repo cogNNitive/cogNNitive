@@ -19,9 +19,9 @@ describe('artifact_shell.html (console shell)', () => {
     expect(readShell().toLowerCase()).toContain('<!doctype html>')
   })
 
-  it('declares exactly the innfo-config block plus innfo-schema and innfo-model slots', () => {
+  it('declares exactly the nn-config block plus innfo-schema and innfo-model slots', () => {
     const html = readShell()
-    expect(html).toContain('id="innfo-config"')
+    expect(html).toContain('id="nn-config"')
     expect(html).toContain('id="innfo-schema"')
     expect(html).toContain('id="innfo-model"')
     const schemaSlots = (html.match(/id="innfo-schema"/g) ?? []).length
@@ -30,7 +30,7 @@ describe('artifact_shell.html (console shell)', () => {
     expect(modelSlots).toBe(1)
   })
 
-  it('declares needs[] inside innfo-config', () => {
+  it('declares needs[] inside nn-config', () => {
     const html = readShell()
     expect(html).toContain('"needs"')
   })
@@ -44,8 +44,8 @@ describe('artifact_shell.html (console shell)', () => {
 
   it('does not contain hardcoded review banner or export modal (bundle-injected)', () => {
     const html = readShell()
-    expect(html).not.toContain('id="innfo-banner"')
-    expect(html).not.toContain('id="innfo-export-modal"')
+    expect(html).not.toContain('id="nn-banner"')
+    expect(html).not.toContain('id="nn-export-modal"')
   })
 })
 
@@ -78,7 +78,7 @@ describe('needs-registry.json (capability pins)', () => {
 describe('nn-runtime.js (module hygiene)', () => {
   it('ships as UMD with no fetch() and no type=module', () => {
     const source = readFileSync(runtimePath, 'utf8')
-    expect(source).toContain('InnfoConsole')
+    expect(source).toContain('nnConsole')
     expect(source).not.toContain('fetch(')
     expect(source).not.toContain('type=module')
   })
@@ -90,12 +90,12 @@ describe('nn-console.bundle.js (single-file distribution)', () => {
   it('exists and embeds console globals in order', () => {
     expect(existsSync(bundlePath)).toBe(true)
     const bundle = readFileSync(bundlePath, 'utf8')
-    expect(bundle).toContain('InnfoPreact')
-    expect(bundle).toContain('InnfoVisuals')
-    expect(bundle).toContain('InnfoIcons')
-    expect(bundle).toContain('InnfoConsole')
-    expect(bundle).not.toContain('InnfoModelViewer')
-    expect(bundle).toContain('InnfoProcedureStepper')
+    expect(bundle).toContain('nnPreact')
+    expect(bundle).toContain('nnVisuals')
+    expect(bundle).toContain('nnIcons')
+    expect(bundle).toContain('nnConsole')
+    expect(bundle).not.toContain('nnModelViewer')
+    expect(bundle).toContain('nnProcedureStepper')
   })
 
   it('keeps the no-fetch / no-module hygiene of the runtime', () => {

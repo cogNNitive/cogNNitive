@@ -8,8 +8,8 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 
 function loadReview(): any {
   delete req.cache[req.resolve(join(consoleDir, 'review.js'))]
-  ;(globalThis as any).InnfoUI = req(join(consoleDir, 'ui-kit.js'))
-  delete (globalThis as any).InnfoReview
+  ;(globalThis as any).nnUI = req(join(consoleDir, 'ui-kit.js'))
+  delete (globalThis as any).nnReview
   return req(join(consoleDir, 'review.js'))
 }
 
@@ -22,7 +22,7 @@ const elements = [
 
 describe('console-review-math', () => {
   afterEach(() => {
-    delete (globalThis as any).InnfoReview
+    delete (globalThis as any).nnReview
   })
 
   it('progressByConcept counts total elements and pending (unsent) changes per concept', () => {
@@ -81,8 +81,8 @@ describe('console-review-math', () => {
     expect(Review.changeTooltip).toBeUndefined()
   })
 
-  it('STORE_PREFIX is innfo-console:v3:', () => {
+  it('STORE_PREFIX is nn-console:v4:', () => {
     const Review = loadReview()
-    expect(Review.STORE_PREFIX).toBe('innfo-console:v3:')
+    expect(Review.STORE_PREFIX).toBe('nn-console:v4:')
   })
 })

@@ -27,7 +27,7 @@ function boot() {
 describe('console matrix cell review editing', () => {
   it('renders the matrix definition, headers and cells as Ku units', () => {
     const { document } = boot()
-    const section = document.querySelector('.innfo-matrix')
+    const section = document.querySelector('.nn-matrix')
     assert.ok(section, 'matrix section rendered')
     assert.ok(section.querySelector('[data-ku-kind="matrix"]'), 'matrix definition badge')
     assert.ok(section.querySelector('th [data-ku-kind="element"]'), 'header element badge')
@@ -49,28 +49,28 @@ describe('console matrix cell review editing', () => {
     // No review mode: decoration follows the render event. Re-dispatch it so the
     // already-rendered tree gets its anchors.
     document.dispatchEvent(
-      new dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+      new dom.window.Event('nn:rendered', { detail: { root: document.getElementById('nn-content') || document } }),
     )
 
-    const anchor = td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]')
+    const anchor = td.querySelector('[data-nn-ctl="matrix-cell-anchor"]')
     assert.ok(anchor, 'cell edit anchor appears in review mode')
     anchor.click()
 
-    const modal = document.querySelector('[data-innfo-component="edit-modal"]')
+    const modal = document.querySelector('[data-nn-component="edit-modal"]')
     assert.ok(modal, 'edit modal opens')
-    const input = modal.querySelector('.innfo-edit-input')
+    const input = modal.querySelector('.nn-edit-input')
     assert.equal(input.value, 'old', 'modal pre-fills the current cell value')
     input.value = 'NEW VALUE'
-    modal.querySelector('.innfo-edit-btn-save').click()
+    modal.querySelector('.nn-edit-btn-save').click()
 
     assert.equal(document.querySelectorAll('[data-draft-id]').length, 1, 'one draft recorded')
 
-    document.getElementById('innfo-feedback-open').click()
-    const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    document.getElementById('nn-feedback-open').click()
+    const identifier = document.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     identifier.value = 'tester'
     identifier.dispatchEvent(new Ev('input', { bubbles: true }))
 
-    const changeset = document.querySelector('#innfo-feedback-modal [data-innfo="changeset-preview"]')
+    const changeset = document.querySelector('#nn-feedback-modal [data-nn="changeset-preview"]')
     assert.match(changeset.value, /op:: update_matrix_cell/)
     assert.match(changeset.value, /target:: matrix-lab@Coverage&r1&c1/)
     assert.match(changeset.value, /to:: "NEW VALUE"/)
@@ -104,18 +104,18 @@ describe('console matrix cell review editing', () => {
     // No review mode: decoration follows the render event. Re-dispatch it so the
     // already-rendered tree gets its anchors.
     document.dispatchEvent(
-      new dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+      new dom.window.Event('nn:rendered', { detail: { root: document.getElementById('nn-content') || document } }),
     )
-    td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]').click()
-    const modal = document.querySelector('[data-innfo-component="edit-modal"]')
-    modal.querySelector('.innfo-edit-input').value = 'relevant'
-    modal.querySelector('.innfo-edit-btn-save').click()
+    td.querySelector('[data-nn-ctl="matrix-cell-anchor"]').click()
+    const modal = document.querySelector('[data-nn-component="edit-modal"]')
+    modal.querySelector('.nn-edit-input').value = 'relevant'
+    modal.querySelector('.nn-edit-btn-save').click()
 
-    document.getElementById('innfo-feedback-open').click()
-    const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    document.getElementById('nn-feedback-open').click()
+    const identifier = document.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     identifier.value = 'tester'
     identifier.dispatchEvent(new Ev('input', { bubbles: true }))
-    const changeset = document.querySelector('#innfo-feedback-modal [data-innfo="changeset-preview"]')
+    const changeset = document.querySelector('#nn-feedback-modal [data-nn="changeset-preview"]')
     // Never `matrix-lab@...` (the domain id): apply_change resolves the model part.
     assert.match(changeset.value, /target:: kNNowledge\/Coverage@Coverage&r1&c1/)
   })
@@ -137,13 +137,13 @@ function editCell(env, matrixName, row, col) {
   // No review mode: decoration follows the render event. Re-dispatch it so the
   // already-rendered tree gets its anchors.
   document.dispatchEvent(
-    new env.dom.window.Event('innfo:rendered', { detail: { root: document.getElementById('innfo-content') || document } }),
+    new env.dom.window.Event('nn:rendered', { detail: { root: document.getElementById('nn-content') || document } }),
   )
   const td = document.querySelector(
     `td[data-matrix="${matrixName}"][data-row="${row}"][data-col="${col}"]`,
   )
-  td.querySelector('[data-innfo-ctl="matrix-cell-anchor"]').click()
-  return document.querySelector('[data-innfo-component="edit-modal"]')
+  td.querySelector('[data-nn-ctl="matrix-cell-anchor"]').click()
+  return document.querySelector('[data-nn-component="edit-modal"]')
 }
 
 describe('constrained matrix cell editor', () => {
@@ -153,12 +153,12 @@ describe('constrained matrix cell editor', () => {
       { matrices: [{ name: 'journey map', widgetType: 'set', values: ['Max', 'High', 'Low'] }] },
     )
     const modal = editCell(env, 'Journey map', 'r1', 'c1')
-    const select = modal.querySelector('select[data-innfo-widget="select"]')
+    const select = modal.querySelector('select[data-nn-widget="select"]')
     assert.ok(select, 'a select replaces the free-text input')
     assert.deepEqual([...select.options].map((o) => o.value), ['', 'Max', 'High', 'Low'])
     assert.equal(select.value, 'High', 'the current value is preselected')
     select.value = 'Low'
-    modal.querySelector('.innfo-edit-btn-save').click()
+    modal.querySelector('.nn-edit-btn-save').click()
     assert.equal(env.document.querySelectorAll('[data-draft-id]').length, 1)
   })
 
@@ -167,7 +167,7 @@ describe('constrained matrix cell editor', () => {
       { name: 'Journey map', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'Odd' } } },
       { matrices: [{ name: 'Journey map', widgetType: 'scale', values: ['Max', 'Low'] }] },
     )
-    const select = editCell(env, 'Journey map', 'r1', 'c1').querySelector('select[data-innfo-widget="select"]')
+    const select = editCell(env, 'Journey map', 'r1', 'c1').querySelector('select[data-nn-widget="select"]')
     assert.equal(select.value, 'Odd')
   })
 
@@ -177,15 +177,15 @@ describe('constrained matrix cell editor', () => {
       { matrices: [{ name: 'Flags', widgetType: 'boolean' }] },
     )
     const modal = editCell(env, 'Flags', 'r1', 'active')
-    const cb = modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]')
+    const cb = modal.querySelector('input[type="checkbox"][data-nn-widget="boolean"]')
     assert.ok(cb, 'a checkbox is offered')
     cb.checked = true
-    modal.querySelector('.innfo-edit-btn-save').click()
-    env.document.getElementById('innfo-feedback-open').click()
-    const id = env.document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    modal.querySelector('.nn-edit-btn-save').click()
+    env.document.getElementById('nn-feedback-open').click()
+    const id = env.document.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     id.value = 'tester'
     id.dispatchEvent(new env.dom.window.Event('input', { bubbles: true }))
-    const cs = env.document.querySelector('#innfo-feedback-modal [data-innfo="changeset-preview"]')
+    const cs = env.document.querySelector('#nn-feedback-modal [data-nn="changeset-preview"]')
     assert.match(cs.value, /to:: true/)
   })
 
@@ -195,7 +195,7 @@ describe('constrained matrix cell editor', () => {
       { matrices: [{ name: 'Coverage' }, { name: 'Other', widgetType: 'text', values: ['a'] }] },
     )
     const modal = editCell(env, 'Coverage', 'r1', 'c1')
-    assert.ok(modal.querySelector('.innfo-edit-input'))
+    assert.ok(modal.querySelector('.nn-edit-input'))
     assert.equal(modal.querySelector('select'), null)
   })
 
@@ -204,7 +204,7 @@ describe('constrained matrix cell editor', () => {
       { name: 'Coverage', rows: ['r1'], cols: ['c1'], cells: { r1: { c1: 'old' } } },
       {},
     )
-    assert.ok(editCell(env, 'Coverage', 'r1', 'c1').querySelector('.innfo-edit-input'))
+    assert.ok(editCell(env, 'Coverage', 'r1', 'c1').querySelector('.nn-edit-input'))
   })
 })
 
@@ -215,6 +215,6 @@ describe('a matrix targeting markers is not special', () => {
       { markers: [{ name: 'Active', widgetType: 'boolean' }] },
     )
     const modal = editCell(env, 'Flags', 'r1', 'active')
-    assert.equal(modal.querySelector('input[type="checkbox"][data-innfo-widget="boolean"]'), null)
+    assert.equal(modal.querySelector('input[type="checkbox"][data-nn-widget="boolean"]'), null)
   })
 })

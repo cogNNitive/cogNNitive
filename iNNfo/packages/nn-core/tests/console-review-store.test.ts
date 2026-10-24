@@ -15,9 +15,9 @@ type DraftStore = {
 
 function loadReview(): any {
   delete req.cache[req.resolve(join(consoleDir, 'review.js'))]
-  ;(globalThis as any).InnfoUI = req(join(consoleDir, 'ui-kit.js'))
-  ;(globalThis as any).InnfoReview = undefined
-  delete (globalThis as any).InnfoReview
+  ;(globalThis as any).nnUI = req(join(consoleDir, 'ui-kit.js'))
+  ;(globalThis as any).nnReview = undefined
+  delete (globalThis as any).nnReview
   return req(join(consoleDir, 'review.js'))
 }
 
@@ -33,14 +33,14 @@ function memoryStorage(seed?: Record<string, string>) {
 
 describe('console-review-store (draft store v3)', () => {
   beforeEach(() => {
-    ;(globalThis as any).InnfoUI = undefined
+    ;(globalThis as any).nnUI = undefined
   })
 
   afterEach(() => {
-    delete (globalThis as any).InnfoReview
+    delete (globalThis as any).nnReview
   })
 
-  it('keys drafts on innfo-console:v3:<modelId>, the stable store key only', () => {
+  it('keys drafts on nn-console:v4:<modelId>, the stable store key only', () => {
     const Review = loadReview()
     const storage = memoryStorage()
     const store = Review.createDraftStore(storage, 'ghostbusters-model') as DraftStore
@@ -54,8 +54,8 @@ describe('console-review-store (draft store v3)', () => {
       comment: 'hi',
     })
 
-    expect(storage._map.has('innfo-console:v3:ghostbusters-model')).toBe(true)
-    const raw = JSON.parse(storage.getItem('innfo-console:v3:ghostbusters-model') as string)
+    expect(storage._map.has('nn-console:v4:ghostbusters-model')).toBe(true)
+    const raw = JSON.parse(storage.getItem('nn-console:v4:ghostbusters-model') as string)
     expect(raw.v).toBe(4)
     expect(raw.modelId).toBe('ghostbusters-model')
     expect(raw.drafts).toHaveLength(1)
@@ -74,7 +74,7 @@ describe('console-review-store (draft store v3)', () => {
       kind: 'comment',
       comment: 'hi',
     })
-    const raw = JSON.parse(storage.getItem('innfo-console:v3:m1') as string)
+    const raw = JSON.parse(storage.getItem('nn-console:v4:m1') as string)
     expect('modelVersion' in raw).toBe(false)
   })
 
@@ -99,7 +99,7 @@ describe('console-review-store (draft store v3)', () => {
   it('reads as empty a store persisted with the previous STORE_VERSION', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({
+      'nn-console:v4:m1': JSON.stringify({
         v: 2,
         modelId: 'm1',
         modelVersion: 'V_0-1-0',
@@ -113,7 +113,7 @@ describe('console-review-store (draft store v3)', () => {
   it('discards a persisted v3 store whose drafts carry the old model_id key', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({
+      'nn-console:v4:m1': JSON.stringify({
         v: 3,
         modelId: 'm1',
         drafts: [{ id: 'fb-001', element_id: 'e1', model_id: 'old-doc', base_hash: 'abcdef0123456789' }],
@@ -125,7 +125,7 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.drafts()).toEqual([])
   })
 
-  it('never reads the previous-version key namespace innfo-console:v2:*', () => {
+  it('never reads the previous-version key namespace nn-console:v3:*', () => {
     const Review = loadReview()
     const old = JSON.stringify({
       v: 2,
@@ -133,7 +133,7 @@ describe('console-review-store (draft store v3)', () => {
       modelVersion: 'V_0-1-0',
       drafts: [{ id: 'fb-001', element_id: 'e1', concept: 'C', element: 'E1', base_hash: 'abcdef0123456789' }],
     })
-    const storage = memoryStorage({ 'innfo-console:v2:m1': old })
+    const storage = memoryStorage({ 'nn-console:v3:m1': old })
 
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     store.addDraft({
@@ -146,13 +146,13 @@ describe('console-review-store (draft store v3)', () => {
     })
 
     // The old store is untouched (not migrated, not cleared) and never read.
-    expect(storage.getItem('innfo-console:v2:m1')).toBe(old)
+    expect(storage.getItem('nn-console:v3:m1')).toBe(old)
     expect(store.drafts().map((d) => d.element_id)).toEqual(['e2'])
   })
 
   it('returns empty drafts for corrupted JSON', () => {
     const Review = loadReview()
-    const storage = memoryStorage({ 'innfo-console:v3:m1': '{not json' })
+    const storage = memoryStorage({ 'nn-console:v4:m1': '{not json' })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
   })
@@ -160,7 +160,7 @@ describe('console-review-store (draft store v3)', () => {
   it('returns empty when the stored modelId does not match', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({ v: 4, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
+      'nn-console:v4:m1': JSON.stringify({ v: 4, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
     })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
@@ -169,7 +169,7 @@ describe('console-review-store (draft store v3)', () => {
   it('drops unknown fields on read', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({
+      'nn-console:v4:m1': JSON.stringify({
         v: 4,
         modelId: 'm1',
         drafts: [
@@ -255,7 +255,7 @@ describe('console-review-store (draft store v3)', () => {
   it('drops a legacy reviewed map on the next write', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v3:m1': JSON.stringify({
+      'nn-console:v4:m1': JSON.stringify({
         v: 4,
         modelId: 'm1',
         drafts: [],
@@ -264,7 +264,7 @@ describe('console-review-store (draft store v3)', () => {
     })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     store.addDraft(draftInput('e1'))
-    const raw = JSON.parse(storage.getItem('innfo-console:v3:m1') as string)
+    const raw = JSON.parse(storage.getItem('nn-console:v4:m1') as string)
     expect('reviewed' in raw).toBe(false)
   })
 
@@ -287,7 +287,7 @@ describe('console-review-store (draft store v3)', () => {
     const b = tabB.addDraft(draftInput('e2'))
     tabA.addDraft(draftInput('e3'))
 
-    const ids = JSON.parse(storage.getItem('innfo-console:v3:m1') as string).drafts.map(
+    const ids = JSON.parse(storage.getItem('nn-console:v4:m1') as string).drafts.map(
       (d: any) => d.element_id,
     )
     expect(ids).toEqual(['e1', 'e2', 'e3'])
@@ -318,7 +318,7 @@ describe('console-review-store (draft store v3)', () => {
     tabB.addDraft(draftInput('e9'))
 
     expect(tabA.drafts()).toHaveLength(0)
-    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v3:m1' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'nn-console:v4:m1' }))
     expect(tabA.drafts().map((d) => d.element_id)).toEqual(['e9'])
     expect(notified).toBe(1)
 
@@ -326,7 +326,7 @@ describe('console-review-store (draft store v3)', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated' }))
     expect(notified).toBe(1)
     tabA.destroy()
-    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v3:m1' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'nn-console:v4:m1' }))
     expect(notified).toBe(1)
   })
 
@@ -366,7 +366,7 @@ describe('console-review-store (draft store v3)', () => {
     expect(store.drafts().map((d) => d.element_id)).toEqual(['e2', 'e3'])
     store.clearDrafts()
     expect(store.drafts()).toEqual([])
-    expect(JSON.parse(storage.getItem('innfo-console:v3:m1') as string).drafts).toEqual([])
+    expect(JSON.parse(storage.getItem('nn-console:v4:m1') as string).drafts).toEqual([])
   })
 
   describe('new element drafts', () => {

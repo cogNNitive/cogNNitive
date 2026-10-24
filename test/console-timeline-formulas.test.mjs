@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 // Renders the Timeline grid for the given rows and returns, per row label,
 // the text of its monthly numeric cells.
@@ -8,7 +8,7 @@ function renderRows(rows, months = 2) {
   const { document } = bootConsole()
   const container = document.createElement('div')
   document.body.appendChild(container)
-  InnfoConsole.renderTimelineGrid(container, { rows }, { months })
+  nnConsole.renderTimelineGrid(container, { rows }, { months })
   const out = {}
   container.querySelectorAll('tbody tr').forEach((tr) => {
     const label = tr.querySelector('td')?.textContent || ''
@@ -87,12 +87,12 @@ function renderGrid(rows, { months = 4, chartLabel, meta = { slug: 'tl' } } = {}
   const { document } = bootConsole()
   const container = document.createElement('div')
   document.body.appendChild(container)
-  InnfoConsole.renderTimelineGrid(container, { rows }, { months })
+  nnConsole.renderTimelineGrid(container, { rows }, { months })
   if (chartLabel) {
     const tr = [...container.querySelectorAll('tbody tr')].find(
       (t) => (t.querySelector('td')?.textContent || '').trim().startsWith(chartLabel),
     )
-    tr.querySelector('.innfo-chart-btn').click()
+    tr.querySelector('.nn-chart-btn').click()
   }
   return { container, document }
 }
@@ -110,7 +110,7 @@ function captureCsv(container) {
   URL.createObjectURL = () => 'about:blank'
   URL.revokeObjectURL = () => {}
   try {
-    container.querySelector('.innfo-btn-csv').click()
+    container.querySelector('.nn-btn-csv').click()
   } finally {
     globalThis.Blob = origBlob
     URL.createObjectURL = origCreate
@@ -145,11 +145,11 @@ describe('timeline NaN handling (unresolved operands)', () => {
 
   it('keeps chart range, heights and colours sane for a row with some NaN months', () => {
     const { result } = captureWarnings(() => renderGrid(MIXED_ROWS, { chartLabel: 'Mixed' }))
-    const chart = result.container.querySelector('tr.innfo-timeline-chart-row')
+    const chart = result.container.querySelector('tr.nn-timeline-chart-row')
     assert.ok(chart, 'chart row rendered')
-    const range = chart.querySelector('.innfo-chart-range').textContent
+    const range = chart.querySelector('.nn-chart-range').textContent
     assert.equal(range, 'Range: 10 .. 20')
-    const bars = [...chart.querySelectorAll('.innfo-mini-bar')]
+    const bars = [...chart.querySelectorAll('.nn-mini-bar')]
     assert.equal(bars.length, 4)
     const heights = bars.map((b) => b.style.height)
     assert.deepEqual(heights, ['50%', '100%', '4%', '4%'])
@@ -162,8 +162,8 @@ describe('timeline NaN handling (unresolved operands)', () => {
   it('renders an all-NaN chart row without NaN leaking', () => {
     const rows = [{ id: 'm1', label: 'Broken', formula: 'missing thing', growth: { mode: 'fixed', factor: 0 } }]
     const { result } = captureWarnings(() => renderGrid(rows, { chartLabel: 'Broken' }))
-    const chart = result.container.querySelector('tr.innfo-timeline-chart-row')
+    const chart = result.container.querySelector('tr.nn-timeline-chart-row')
     assert.ok(!/NaN/.test(chart.textContent))
-    assert.ok(![...chart.querySelectorAll('.innfo-mini-bar')].some((b) => /NaN/.test(b.getAttribute('style') || '')))
+    assert.ok(![...chart.querySelectorAll('.nn-mini-bar')].some((b) => /NaN/.test(b.getAttribute('style') || '')))
   })
 })

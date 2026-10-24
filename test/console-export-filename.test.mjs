@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole, MODEL, bootConsole, addCommentDraft } from './helpers/console-boot.mjs'
+import { nnConsole, MODEL, bootConsole, addCommentDraft } from './helpers/console-boot.mjs'
 
 describe('S1c: export filename uses the model slug', () => {
   it('composeExport succeeds for a model with a human title', () => {
@@ -23,7 +23,7 @@ describe('S1c: export filename uses the model slug', () => {
         ],
       },
     }
-    const res = InnfoConsole.composeExport(state, 'jane')
+    const res = nnConsole.composeExport(state, 'jane')
     assert.equal(res.ok, true, JSON.stringify(res.errors))
     assert.match(res.changesetFilename, /^ghost-busters-model_jane_/)
     assert.equal(res.filename, undefined, 'no feedback JSON filename exists')
@@ -37,7 +37,7 @@ describe('S1c: export filename uses the model slug', () => {
       meta: { changesBlueprintVersion: 'V_0-3-0' },
       store: { drafts: () => [] },
     }
-    const res = InnfoConsole.composeExport(state, 'jane')
+    const res = nnConsole.composeExport(state, 'jane')
     assert.equal(res.ok, true, JSON.stringify(res.errors))
     assert.match(res.changesetFilename, /^ghost-busters_jane_/)
   })
@@ -52,8 +52,8 @@ describe('S1c: export filename uses the model slug', () => {
   const modelPart = (res) => res.changesetFilename.split('_')[0]
 
   it('gives different non-Latin titles different valid filenames', () => {
-    const a = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
-    const b = InnfoConsole.composeExport(stateFor('موديل'), 'jane')
+    const a = nnConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    const b = nnConsole.composeExport(stateFor('موديل'), 'jane')
     assert.equal(a.ok, true, JSON.stringify(a.errors))
     assert.equal(b.ok, true, JSON.stringify(b.errors))
     assert.match(modelPart(a), /^[A-Za-z0-9-]+$/)
@@ -63,8 +63,8 @@ describe('S1c: export filename uses the model slug', () => {
   })
 
   it('is deterministic for the same non-Latin title', () => {
-    const a = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
-    const b = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    const a = nnConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    const b = nnConsole.composeExport(stateFor('幕府モデル'), 'jane')
     assert.equal(modelPart(a), modelPart(b))
     assert.match(modelPart(a), /^model-[0-9a-f]{8}$/)
   })
@@ -86,11 +86,11 @@ describe('S1c: boot maps meta.knowledge_slug to state.modelSlug', () => {
       dom.window.URL.revokeObjectURL = () => {}
       globalThis.URL.createObjectURL = () => 'blob:test'
       globalThis.URL.revokeObjectURL = () => {}
-      document.getElementById('innfo-feedback-open').click()
-      const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+      document.getElementById('nn-feedback-open').click()
+      const identifier = document.querySelector('#nn-feedback-modal [data-nn="identifier"]')
       identifier.value = 'jane'
       identifier.dispatchEvent(new dom.window.Event('input'))
-      document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]').click()
+      document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]').click()
       assert.equal(downloads.length, 1, 'one file downloaded')
       assert.match(downloads[0], /^ghost-busters-slug_jane_[0-9-]+_changes_NN\.md$/)
     } finally {

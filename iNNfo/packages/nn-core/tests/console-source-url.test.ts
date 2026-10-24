@@ -58,7 +58,7 @@ describe('renderNavbarIdentity sourceUrl', () => {
   it('renders a safe sourceUrl as a link', () => {
     const doc = freshDoc()
     loadRuntime().renderNavbarIdentity(doc, { title: 'T', sourceUrl: 'https://example.com/doc' })
-    const a = doc.querySelector('#innfo-navbar-extra a.innfo-source-link')
+    const a = doc.querySelector('#nn-navbar-extra a.nn-source-link')
     expect(a).not.toBeNull()
     expect(a!.getAttribute('href')).toBe('https://example.com/doc')
     expect(a!.textContent).toBe('source')
@@ -67,8 +67,8 @@ describe('renderNavbarIdentity sourceUrl', () => {
   it('renders an unsafe sourceUrl as plain text, never a link', () => {
     const doc = freshDoc()
     loadRuntime().renderNavbarIdentity(doc, { title: 'T', sourceUrl: 'javascript:alert(1)' })
-    expect(doc.querySelector('#innfo-navbar-extra a')).toBeNull()
-    expect(doc.querySelector('#innfo-navbar-extra b')).toBeNull()
-    expect(doc.getElementById('innfo-navbar-extra')!.textContent).toContain('javascript:alert(1)')
+    expect(doc.querySelector('#nn-navbar-extra a')).toBeNull()
+    expect(doc.querySelector('#nn-navbar-extra b')).toBeNull()
+    expect(doc.getElementById('nn-navbar-extra')!.textContent).toContain('javascript:alert(1)')
   })
 })

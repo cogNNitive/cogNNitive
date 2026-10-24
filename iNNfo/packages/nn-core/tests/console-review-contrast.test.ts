@@ -30,9 +30,9 @@ function ratio(fg: string, bg: string): number {
 
 // C14: the review-surface token pairs used by the console review UI.
 const C14_TEXT_PAIRS: Array<[string, string]> = [
-  ['--innfo-text', '--innfo-surface'],
-  ['--innfo-text', '--innfo-surface-2'],
-  ['--innfo-status-stale', '--innfo-status-stale-bg'],
+  ['--nn-text', '--nn-surface'],
+  ['--nn-text', '--nn-surface-2'],
+  ['--nn-status-stale', '--nn-status-stale-bg'],
 ]
 
 describe('console-review-contrast (C14)', () => {
@@ -49,7 +49,7 @@ describe('console-review-contrast (C14)', () => {
   it('focus ring meets >= 3 against surface in both themes', () => {
     for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
-      const r = ratio(v['--innfo-focus'], v['--innfo-surface'])
+      const r = ratio(v['--nn-focus'], v['--nn-surface'])
       expect(r, `focus ring in "${theme}" is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(3)
     }
   })

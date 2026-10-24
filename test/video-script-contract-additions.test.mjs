@@ -26,7 +26,7 @@ import { CacheManager } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-
 
 function model({ scenes = [], layers = [] } = {}) {
   return {
-    version: 'innfo-read-knowledge@1',
+    version: 'nn-read-knowledge@1',
     frontmatter: { title: 'Contract' },
     elements: {
       Video: [{ type: 'Video', name: 'Contract', slug: 'contract', fields: { title: 'Contract' } }],

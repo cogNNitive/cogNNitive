@@ -23,7 +23,7 @@ console.log('Running console-shell-guard unit tests...');
   const valid = {
     'concept-rail': {
       description: 'Left rail of template concepts',
-      anchors: [['innfo-rail'], ['rail']],
+      anchors: [['nn-rail'], ['rail']],
     },
     'hash-routing': {
       description: 'In-page relationship links',
@@ -63,13 +63,13 @@ console.log('Running console-shell-guard unit tests...');
 {
   const html = `
     <div id="main-wrap">
-      <header id='innfo-banner'></header>
+      <header id='nn-banner'></header>
       <input id="search" type="search" />
     </div>
   `;
   const ids = extractDomIds(html);
   assert.strictEqual(ids.has('main-wrap'), true);
-  assert.strictEqual(ids.has('innfo-banner'), true);
+  assert.strictEqual(ids.has('nn-banner'), true);
   assert.strictEqual(ids.has('search'), true);
   assert.strictEqual(ids.has('nonexistent'), false);
   console.log('✔ extractDomIds extracts element IDs from HTML');
@@ -78,7 +78,7 @@ console.log('Running console-shell-guard unit tests...');
 // 3. extractShellConfig
 {
   const validHtml = `
-    <script id="innfo-config" type="application/json">
+    <script id="nn-config" type="application/json">
       { "needs": ["concept-rail", "fulltext-search"] }
     </script>
   `;
@@ -86,7 +86,7 @@ console.log('Running console-shell-guard unit tests...');
   assert.deepStrictEqual(res.config, { needs: ['concept-rail', 'fulltext-search'] });
 
   const invalidHtml = `
-    <script id="innfo-config" type="application/json">
+    <script id="nn-config" type="application/json">
       { invalid json }
     </script>
   `;
@@ -144,7 +144,7 @@ console.log('Running console-shell-guard unit tests...');
 // 7. findRootColorDeclarations: flags hard-coded colors in :root, allows layout vars
 {
   const fs = require('node:fs');
-  const clean = `:root { --sidebar-w: 280px; --innfo-bg: var(--innfo-surface); }`;
+  const clean = `:root { --sidebar-w: 280px; --nn-bg: var(--nn-surface); }`;
   assert.deepStrictEqual(findRootColorDeclarations(clean), []);
 
   const hexRoot = `:root { --accent: #1f2937; }`;

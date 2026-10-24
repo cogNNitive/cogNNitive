@@ -9,7 +9,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { InnfoConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -174,7 +174,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
   })
 
   function boot(extra = {}) {
-    const registry = InnfoConsole.createViewRegistry()
+    const registry = nnConsole.createViewRegistry()
     let ctx
     registry.register({
       id: 'probe',
@@ -187,7 +187,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       },
     })
     const booted = bootConsole({ registry, model: model_, schema, ...extra })
-    booted.document.querySelector('.innfo-view-tab[data-tab="probe"]').click()
+    booted.document.querySelector('.nn-view-tab[data-tab="probe"]').click()
     const idOf = (name) => model_.elements.find((e) => e.name === name).id
     return { ...booted, ctx, idOf, controller: booted.res.controller }
   }
@@ -196,12 +196,12 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     it('a declared select renders a pill and edits through a select with no free-text input', () => {
       const { document, controller, idOf } = boot()
       assert.ok(
-        [...document.querySelectorAll('.innfo-field-select')].some((n) => n.textContent === 'build'),
+        [...document.querySelectorAll('.nn-field-select')].some((n) => n.textContent === 'build'),
         'stage renders as a pill',
       )
       assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'stage' }), true)
-      const modal = document.querySelector('.innfo-edit-modal')
-      assert.ok(modal.querySelector('select[data-innfo-widget="select"]'))
+      const modal = document.querySelector('.nn-edit-modal')
+      assert.ok(modal.querySelector('select[data-nn-widget="select"]'))
       assert.equal(modal.querySelector('input[type="text"]'), null, 'no free-text input for a select')
     })
 
@@ -209,12 +209,12 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       const { document, controller, idOf } = boot()
       const window = document.defaultView
       assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'owner' }), true)
-      const modal = document.querySelector('.innfo-edit-modal')
+      const modal = document.querySelector('.nn-edit-modal')
       const names = [...modal.querySelectorAll('datalist option')].map((o) => o.value).sort()
       assert.deepEqual(names, ['Ana', 'Ben'], 'Person elements of the same model only')
-      const input = modal.querySelector('.innfo-edit-reference input')
+      const input = modal.querySelector('.nn-edit-reference input')
       input.value = 'Ben'
-      modal.querySelector('.innfo-edit-btn-save').dispatchEvent(new window.Event('click', { bubbles: true }))
+      modal.querySelector('.nn-edit-btn-save').dispatchEvent(new window.Event('click', { bubbles: true }))
       const stored = Object.keys(window.localStorage).map((k) => window.localStorage.getItem(k)).join('|')
       assert.ok(stored.includes('[[Ben]]'), 'the draft proposes [[Ben]]')
     })
@@ -222,14 +222,14 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     it('a reference with no declared targets offers the same model and no other', () => {
       const { document, controller, idOf } = boot()
       assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'peer' }), true)
-      const names = [...document.querySelectorAll('.innfo-edit-modal datalist option')].map((o) => o.value)
+      const names = [...document.querySelectorAll('.nn-edit-modal datalist option')].map((o) => o.value)
       assert.ok(['Alpha', 'Beta', 'Ana', 'Ben'].every((n) => names.includes(n)))
       assert.ok(!names.includes('Zed') && !names.includes('Retail'), 'no element of the other model')
     })
 
     it('a declared video renders a player, and so does a remote declared video', () => {
       const { document } = boot()
-      const srcs = [...document.querySelectorAll('video.innfo-field-media')].map((v) => v.getAttribute('src'))
+      const srcs = [...document.querySelectorAll('video.nn-field-media')].map((v) => v.getAttribute('src'))
       assert.ok(srcs.includes('./sources/demo.mp4'))
       assert.ok(srcs.includes('https://example.com/v.mp4'))
     })
@@ -238,7 +238,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
   describe('group 11: markdown through the booted console', () => {
     it('a markdown_inline field renders structure and the unsafe link stays text', () => {
       const { document } = boot()
-      const md = document.querySelector('.innfo-field-markdown')
+      const md = document.querySelector('.nn-field-markdown')
       assert.ok(md, 'markdown field rendered through the safe renderer')
       assert.equal(md.querySelector('strong').textContent, 'bold')
       assert.equal(md.querySelector('a'), null, 'javascript: link is not an anchor')
@@ -247,17 +247,17 @@ describe('S3b parity (groups 9-12) on a real export', () => {
 
   describe('group 12: tag row, knowledge click-through, open original', () => {
     const cards = (document) =>
-      [...document.querySelectorAll('#innfo-content [data-innfo-component="element-card"]')].map((c) =>
+      [...document.querySelectorAll('#nn-content [data-nn-component="element-card"]')].map((c) =>
         c.getAttribute('data-element-id'),
       )
-    const cardOf = (document, id) => document.querySelector(`#innfo-content article[data-element-id="${id}"]`)
+    const cardOf = (document, id) => document.querySelector(`#nn-content article[data-element-id="${id}"]`)
 
     it('shows the tag chips from effective tags and none when empty', () => {
       const { document, idOf } = boot()
-      const chips = [...cardOf(document, idOf('Alpha')).querySelectorAll('[data-innfo-component="tag-row"] [data-tag]')]
+      const chips = [...cardOf(document, idOf('Alpha')).querySelectorAll('[data-nn-component="tag-row"] [data-tag]')]
       assert.deepEqual(chips.map((c) => c.getAttribute('data-tag')), ['ai', 'pricing', 'core'])
       assert.equal(
-        cardOf(document, idOf('Ana')).querySelector('[data-innfo-component="tag-row"] [data-tag]'),
+        cardOf(document, idOf('Ana')).querySelector('[data-nn-component="tag-row"] [data-tag]'),
         null,
         'no tag chips for an element with no tags',
       )
@@ -266,7 +266,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     it('clicking a chip adds tags:<t> to the filter and filters', () => {
       const { document, idOf } = boot()
       cardOf(document, idOf('Alpha')).querySelector('[data-tag="pricing"]').click()
-      assert.match(document.getElementById('innfo-search').value, /tags:pricing/)
+      assert.match(document.getElementById('nn-search').value, /tags:pricing/)
       assert.deepEqual(cards(document), [idOf('Alpha')])
     })
 
@@ -282,7 +282,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       assert.equal(pill.getAttribute('data-knowledge-bound'), 'true')
       pill.click()
       const pricingId = model_.meta.models.find((m) => m.filePath === 'pricing_NN.md').id
-      assert.equal(document.getElementById('innfo-search').value, `model:${pricingId}`)
+      assert.equal(document.getElementById('nn-search').value, `model:${pricingId}`)
       assert.ok(cards(document).length > 0)
       assert.ok(cards(document).every((id) => model_.elements.find((e) => e.id === id).modelId === pricingId))
     })
@@ -291,10 +291,10 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       const { document, idOf } = boot()
       const pill = cardOf(document, idOf('Beta')).querySelector('[data-field-type="knowledge"]')
       assert.equal(pill.getAttribute('data-knowledge-bound'), null)
-      const before = document.getElementById('innfo-search').value
+      const before = document.getElementById('nn-search').value
       assert.doesNotThrow(() => pill.click())
-      assert.equal(document.getElementById('innfo-search').value, before)
-      assert.equal(document.querySelector('[data-innfo-ctl="knowledge-create"], [data-innfo-ctl="knowledge-bind"]'), null)
+      assert.equal(document.getElementById('nn-search').value, before)
+      assert.equal(document.querySelector('[data-nn-ctl="knowledge-create"], [data-nn-ctl="knowledge-bind"]'), null)
     })
 
     it('the citation dialog offers Open original for a resolved entry', () => {
@@ -303,7 +303,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
         this.setAttribute('open', '')
       }
       cardOf(document, idOf('Alpha')).querySelector('.cite-icons .cite-icon').click()
-      const link = document.getElementById('innfo-citation-dialog').querySelector('a.innfo-cite-open')
+      const link = document.getElementById('nn-citation-dialog').querySelector('a.nn-cite-open')
       assert.ok(link, 'Open original link')
       assert.equal(link.getAttribute('href'), './sources/nn/interview.md')
       assert.equal(link.getAttribute('target'), '_blank')
@@ -332,7 +332,7 @@ describe('Open original: unsafe and unresolved entries get no link', () => {
       this.setAttribute('open', '')
     }
     document.querySelector('.cite-icons .cite-icon').click()
-    const dialog = document.getElementById('innfo-citation-dialog')
+    const dialog = document.getElementById('nn-citation-dialog')
     assert.ok(dialog, 'dialog opened')
     assert.equal(dialog.querySelector('a'), null)
   })

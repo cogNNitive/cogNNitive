@@ -52,7 +52,7 @@ describe('lineage record — changesets as lineage nodes', () => {
   let tempDir: string
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-lineage-changeset-'))
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-lineage-changeset-'))
     fs.mkdirSync(path.join(tempDir, 'changes'), { recursive: true })
     fs.mkdirSync(path.join(tempDir, 'kNNowledge'), { recursive: true })
     fs.writeFileSync(path.join(tempDir, 'changes', CHANGESET_FILENAME), CHANGESET)
