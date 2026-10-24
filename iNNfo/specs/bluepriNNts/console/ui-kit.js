@@ -2594,34 +2594,47 @@
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
 
-    // Changes: the element's recorded change history, one change card per change. The
-    // change's `evidence` is the source linked on the card (the old per-field Citations
-    // section is gone).
+    // Changes: the element's recorded change history, rendered as standard element
+    // sheets (one ElementCard per change, newest first) so the modal matches the
+    // central model view. The change's `evidence` is shown as a field.
     var histSection = makeEl(doc, 'div', 'innfo-history-section')
     histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changes'))
-    var historyItems = Array.isArray(data.history) ? data.history : []
+    var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    historyItems.sort(function (a, b) {
+      return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
+    })
     if (historyItems.length) {
-      var histList = makeEl(doc, 'ul', 'innfo-change-history flex flex-col gap-3 list-none p-0 m-0')
-      histList.setAttribute('data-innfo-component', 'change-history')
       historyItems.forEach(function (h) {
-        histList.appendChild(
-          changeCard(
+        var changeFields = []
+        var pushField = function (name, value) {
+          if (value === undefined || value === null || value === '') return
+          changeFields.push({ name: name, value: String(value) })
+        }
+        pushField('op', h.op)
+        pushField('target', h.target)
+        if (h.from !== undefined) changeFields.push({ name: 'from', value: String(h.from) })
+        if (h.to !== undefined) changeFields.push({ name: 'to', value: String(h.to) })
+        pushField('concept', h.concept)
+        pushField('name', h.name)
+        pushField('author', h.author)
+        pushField('status', h.status)
+        pushField('evidence', h.evidence)
+        pushField('applied_at', h.timestamp)
+        pushField('notes', h.notes)
+        pushField('resolution', h.resolution)
+        histSection.appendChild(
+          ElementCard(
             {
-              stateKind: 'applied',
-              title: cardTitle(h.op, h),
-              stateText: h.status || 'applied',
-              diff: cardDiff(h.op, h),
-              author: h.author,
-              date: h.timestamp,
-              note: h.notes,
-              resolution: h.resolution,
-              sources: h.evidence ? [h.evidence] : [],
+              id: h.id,
+              conceptId: 'Change',
+              concept: 'Change',
+              name: cardTitle(h.op, h),
+              fields: changeFields,
             },
-            { doc: doc, onCitation: opts && opts.onEvidence },
+            { doc: doc, collapsible: false },
           ),
         )
       })
-      histSection.appendChild(histList)
     } else {
       histSection.appendChild(
         makeEl(doc, 'div', 'innfo-history-empty', 'No recorded changes for this element.'),
