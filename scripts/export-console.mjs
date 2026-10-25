@@ -7,7 +7,7 @@
  * Scans a workspace for iNNfo Level-3 models and compiles ONE self-contained
  * console (bundle, CSS, views and JSON slots inlined) against the canonical
  * console shell (`iNNfo/specs/bluepriNNts/console/artifact_shell.html`), filling
- * the `nn-config` / `innfo-schema` / `innfo-model` slots from a direct model
+ * the `nn-config` / `nn-schema` / `nn-model` slots from a direct model
  * scan (no runtime dependency on nn-core, whose raw `dist/` barrel is not
  * ESM-importable). There is no per-model console: every console is the domain
  * console, optionally scoped to a model subset or a single view.
@@ -271,8 +271,10 @@ function isLevel3(content) {
 }
 
 function extractModelMetaFromHtml(htmlContent) {
+  // Dual read: a console exported before the `nn-` prefix migration carries
+  // `id="innfo-model"`.
   const match = htmlContent.match(
-    /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+    /<script type="application\/json" id="(?:innfo|nn)-model">([\s\S]*?)<\/script>/,
   )
   if (!match) return null
   try {
@@ -475,8 +477,8 @@ function injectSlots(shell, config, schema, model) {
       (_m, open, close) => `${open}\n${serialize(json)}\n${close}`,
     )
   return slot(
-    slot(slot(shell, 'nn-config', config), 'innfo-schema', schema),
-    'innfo-model',
+    slot(slot(shell, 'nn-config', config), 'nn-schema', schema),
+    'nn-model',
     model,
   )
 }

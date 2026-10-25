@@ -142,7 +142,12 @@ export function extractDeclaredCitations(file: FileSnapshot): CitationSite[] {
       for (const raw of splitSourceFieldValue(fm.sources)) push(raw, 'sources')
     }
   } else if (ext === 'html' || ext === 'htm') {
-    const modelMatch = file.content.match(/<script[^>]+id=["']innfo-model["'][^>]*>([\s\S]*?)<\/script>/i)
+    // Dual read: artifacts written before the `nn-` prefix migration carry
+    // `id="innfo-model"`, and the stamped console exports keep that historical
+    // id. The writer emits `nn-model` now; both must resolve.
+    const modelMatch = file.content.match(
+      /<script[^>]+id=["'](?:innfo|nn)-model["'][^>]*>([\s\S]*?)<\/script>/i,
+    )
     if (modelMatch) {
       try {
         const parsed = JSON.parse(modelMatch[1].trim())

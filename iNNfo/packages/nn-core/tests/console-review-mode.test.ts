@@ -60,11 +60,11 @@ const sampleModel = {
 function fillShell(modelToUse: any, overrideConfig?: any): string {
   return readFileSync(shellPath, 'utf8')
     .replace(
-      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(modelToUse)}$2`,
     )
     .replace(

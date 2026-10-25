@@ -89,8 +89,8 @@ level: 3
     assert.ok(htmlContent.includes('single-file console runtime'), 'bundle inlined')
     assert.match(htmlContent, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
     assert.match(htmlContent, /<script type="application\/json" id="nn-config">/)
-    assert.match(htmlContent, /<script type="application\/json" id="innfo-schema">/)
-    assert.match(htmlContent, /<script type="application\/json" id="innfo-model">/)
+    assert.match(htmlContent, /<script type="application\/json" id="nn-schema">/)
+    assert.match(htmlContent, /<script type="application\/json" id="nn-model">/)
     assert.match(htmlContent, /id="nn-tab-review"/)
   })
 
@@ -181,8 +181,8 @@ level: 3
     const htmlPath = consoleHtml(tempDir, 'xss_V_1-0-0')
     const htmlContent = await readFile(htmlPath, 'utf-8')
 
-    // Inside the script tag for innfo-model, there must be no literal </script> or <script> or <div>
-    const modelScriptMatch = htmlContent.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)
+    // Inside the script tag for nn-model, there must be no literal </script> or <script> or <div>
+    const modelScriptMatch = htmlContent.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
     assert.ok(modelScriptMatch)
     const slotBody = modelScriptMatch[1]
     assert.equal(slotBody.includes('<script>'), false)
@@ -346,7 +346,7 @@ level: 3
 
     const domainPath = join(tempDir, 'domaiNN_console.html')
     const content = await readFile(domainPath, 'utf-8')
-    assert.ok(content.includes('id="innfo-model"'))
+    assert.ok(content.includes('id="nn-model"'))
     assert.ok(content.includes('Domain'))
   })
 
@@ -464,7 +464,7 @@ scenarioMonths:: 12
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const html = await readFile(domainFile(), 'utf-8')
-      const slot = JSON.parse(html.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const slot = JSON.parse(html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)[1])
       const summary = slot.meta.models.find((s) => s.blueprint === 'metrics')
       assert.ok(summary, JSON.stringify(slot.meta.models))
       assert.equal(summary.projection, undefined, 'projection is view-derived, not exporter-derived')
@@ -664,7 +664,7 @@ scenarioMonths:: 12
   describe('Changes collection in the domain payload', () => {
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const modelSlot = async () =>
-      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
 
     const changeset = (status, title) =>
       `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: ${status}\ntitle: "${title}"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: Business Model@enterprise&tagline\nnotes:: "note"\nevidence:: sources/brief.md@## Overview\n`
@@ -692,7 +692,7 @@ scenarioMonths:: 12
   describe('D14 remainder: every model, history, source index, embed threshold, size budget', () => {
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const modelSlot = async () =>
-      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
 
     it('embeds every model of the domaiNN in the domain payload', async () => {
       await writeFile(
@@ -757,7 +757,7 @@ scenarioMonths:: 12
       )
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const html = await readFile(domainFile(), 'utf-8')
-      const slot = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const slot = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
       const cite = slot.elements.find((e) => e.slug === 'big').citations.sources[0]
       assert.equal(cite.truncated, true, 'a heavy source is truncated')
       assert.equal(cite.excerpt.length, 500, 'the excerpt is capped, not the whole body')
@@ -831,11 +831,11 @@ parent_spec:
   })
   after(() => rm(root, { recursive: true, force: true }))
 
-  it('exports markers and matrices with widgetType and values in the domain innfo-schema slot', async () => {
+  it('exports markers and matrices with widgetType and values in the domain nn-schema slot', async () => {
     const res = await runCli([root, '--domain'])
     assert.equal(res.code, 0, res.stderr)
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
-    const m = html.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)
+    const m = html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)
     const schema = JSON.parse(m[1])
     assert.deepEqual(
       schema.matrices.map((x) => [x.name, x.widgetType, x.values]),

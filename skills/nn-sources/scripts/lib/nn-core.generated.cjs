@@ -9164,7 +9164,9 @@ function extractDeclaredCitations(file) {
       for (const raw of splitSourceFieldValue(fm.sources)) push(raw, "sources");
     }
   } else if (ext === "html" || ext === "htm") {
-    const modelMatch = file.content.match(/<script[^>]+id=["']innfo-model["'][^>]*>([\s\S]*?)<\/script>/i);
+    const modelMatch = file.content.match(
+      /<script[^>]+id=["'](?:innfo|nn)-model["'][^>]*>([\s\S]*?)<\/script>/i
+    );
     if (modelMatch) {
       try {
         const parsed = JSON.parse(modelMatch[1].trim());

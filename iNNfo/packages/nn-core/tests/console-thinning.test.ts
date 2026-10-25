@@ -52,10 +52,10 @@ describe.each([['shell', assets.shell]])('%s console asset', (_name, path) => {
 })
 
 describe('artifact_shell slot payloads', () => {
-  it('keeps the #innfo-schema and #innfo-model slots', () => {
+  it('keeps the #nn-schema and #nn-model slots', () => {
     const html = readAsset(assets.shell)
-    expect(html).toContain('id="innfo-schema"')
-    expect(html).toContain('id="innfo-model"')
+    expect(html).toContain('id="nn-schema"')
+    expect(html).toContain('id="nn-model"')
   })
 })
 
@@ -65,8 +65,8 @@ describe('artifact_shell slot payloads', () => {
 describe('single shell + kit citation styling', () => {
   it('keeps the shared slots and the ref dialog, without legacy cite-icon rules', () => {
     const html = readAsset(assets.shell)
-    expect(html).toContain('id="innfo-schema"')
-    expect(html).toContain('id="innfo-model"')
+    expect(html).toContain('id="nn-schema"')
+    expect(html).toContain('id="nn-model"')
     expect(html).toContain('id="nn-ref-dialog"')
     expect(html).not.toContain('.cite-icon.cite-agent')
   })

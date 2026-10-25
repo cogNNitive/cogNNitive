@@ -87,14 +87,14 @@ describe('export-console asset rebasing (S3b review follow-ups)', () => {
     await writeFile(join(root, 'sources', 'plain.mp4'), 'x', 'utf-8')
     await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
-    schema = slotOf(html, 'innfo-schema')
-    atRoot = slotOf(html, 'innfo-model')
+    schema = slotOf(html, 'nn-schema')
+    atRoot = slotOf(html, 'nn-model')
     await execFileAsync(process.execPath, [scriptPath, root, 'roadmap', '--no-open'])
     const { readdir } = await import('node:fs/promises')
     const files = await readdir(join(root, 'artifacts'), { recursive: true })
     const page = files.find((f) => String(f).endsWith('.html'))
     assert.ok(page, 'a scoped console was written under artifacts/')
-    deep = slotOf(await readFile(join(root, 'artifacts', page), 'utf-8'), 'innfo-model')
+    deep = slotOf(await readFile(join(root, 'artifacts', page), 'utf-8'), 'nn-model')
   })
 
   after(() => rm(root, { recursive: true, force: true }))
@@ -199,7 +199,7 @@ describe('export-console element-relative image assets (#182)', () => {
     await writeFile(join(root, 'kNNowledge', 'gallery_NN.md'), IMG_MODEL, 'utf-8')
     await writeFile(join(root, 'kNNowledge', 'assets', 'foto-uno', 'evidence', 'foo.jpg'), 'x', 'utf-8')
     await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
-    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'innfo-model')
+    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'nn-model')
   })
 
   after(() => rm(root, { recursive: true, force: true }))
@@ -237,7 +237,7 @@ describe('export-console isInsideRoot follows symlinks (#171 item 6)', () => {
     await writeFile(join(outside, 'secret.jpg'), 'x', 'utf-8')
     await symlink(outside, join(root, 'linked'), 'junction')
     await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
-    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'innfo-model')
+    model = slotOf(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'), 'nn-model')
   })
 
   after(async () => {

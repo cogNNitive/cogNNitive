@@ -25,15 +25,11 @@ const LEGACY = [
   'KuActions',
 ]
 
-// Identifiers that still carry the retired `innfo` prefix. These two are NOT
-// console identifiers: they are the payload slot ids, produced by
-// `nn-core/src/console/schema-resolution.ts` ("MUST obtain the `innfo-schema`
-// slot from this single function") and read back out of a written artifact by
-// `nn-core/src/lineage/project.ts`, which parses `<script id="innfo-model">` from
-// committed HTML. Renaming them needs a backward-compatible read over persisted
-// artifacts, so it is tracked separately
-// (openspec/changes/console-prefix-migration). Everything else carries `nn-`.
-const PREFIX_ALLOWLIST = ['innfo-schema', 'innfo-model']
+// Empty: the payload slot ids were the last `innfo` identifiers and now carry
+// `nn-` too. The readers of artifacts that were already written keep a dual read
+// (`nn-core/src/lineage/project.ts`, `scripts/export-console.mjs`), so the
+// allowlist is no longer needed.
+const PREFIX_ALLOWLIST = []
 
 // A retired name is only reported when it stands alone. A prefixed name must not
 // trip on the suffix it carries: `nn-field-row` contains `field-row`.
@@ -51,11 +47,17 @@ function consoleScripts() {
     .map((f) => join(consoleDir, f))
 }
 
-// The prefix check covers scripts AND stylesheets: a class renamed in the kit but
-// left in the stylesheet is exactly how a dead block survives.
+// The prefix check covers scripts, stylesheets AND the shell HTML: a class or
+// slot renamed in the kit but left in the stylesheet or the shell is exactly how
+// a dead reference survives. The shell was the gap that let `artifact_shell.html`
+// slip past while only `.js`/`.css` were scanned.
 function consoleSources() {
   return readdirSync(consoleDir)
-    .filter((f) => (f.endsWith('.js') || f.endsWith('.css')) && f !== 'nn-console.bundle.js')
+    .filter(
+      (f) =>
+        (f.endsWith('.js') || f.endsWith('.css') || f.endsWith('.html')) &&
+        f !== 'nn-console.bundle.js',
+    )
     .map((f) => join(consoleDir, f))
 }
 
@@ -108,6 +110,14 @@ describe('Ku static guard', () => {
     assert.ok(
       sources.some((f) => f.endsWith('nn-ui.css')),
       'nn-ui.css is scanned by the prefix check',
+    )
+  })
+
+  it('scans the console shell HTML too', () => {
+    const sources = consoleSources()
+    assert.ok(
+      sources.some((f) => f.endsWith('artifact_shell.html')),
+      'artifact_shell.html is scanned by the prefix check',
     )
   })
 

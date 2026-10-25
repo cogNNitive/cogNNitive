@@ -2,7 +2,7 @@
  * Shared console schema resolution.
  *
  * Both console producers — the export CLI (`scripts/export-console.mjs`) and the
- * MCP console payload mirror — MUST obtain the `innfo-schema` slot from
+ * MCP console payload mirror — MUST obtain the `nn-schema` slot from
  * this single function so their schema slots are byte-identical by construction.
  *
  * Resolution owns both steps: (1) resolve the model's Level-2 blueprint through
