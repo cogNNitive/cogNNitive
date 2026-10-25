@@ -496,14 +496,14 @@ The `ChangeOp` set MUST gain `update_concept_field {conceptName, fieldName, valu
 
 ### Requirement: An empty `to` clears the field
 
-`update_field` with an empty `to` (a `to::` line with no value, or the empty string through
-`apply_change`) MUST remove the field line from the element. On a field the element does
-not have, it MUST be an applied no-op. The empty value MUST NOT be checked against the
-field's declared type. The `from` precondition is unchanged: a `from` that differs from the
-current value (an absent field reads as no value) makes the change a conflict. Clearing is
-subject to the same whole-file validation as any other change: if the resulting model is
-invalid against its bluepriNNt, the whole apply MUST fail with `VALIDATION_FAILED` and
-nothing MUST be written, including any otherwise-valid change in the same file. Every
+`update_field` with an empty `to` MUST remove the field line from the element. The empty `to`
+is a `to::` line with no value, or the empty string through `apply_change`. On a field the
+element does not have, it MUST be an applied no-op. The empty value MUST NOT be checked
+against the field's declared type. The `from` precondition is unchanged: a `from` that differs
+from the current value (an absent field reads as no value) makes the change a conflict.
+Clearing is subject to the same whole-file validation as any other change: if the resulting
+model is invalid against its bluepriNNt, the whole apply MUST fail with `VALIDATION_FAILED`
+and nothing MUST be written, including any otherwise-valid change in the same file. Every
 untouched field MUST keep its raw text byte-for-byte. `propose_changeset` MUST accept an
 empty `to` for `update_field` and MUST still reject a missing `to`.
 
