@@ -173,10 +173,10 @@ In the cleanup commit (after the first `nn-*` releases publish), `iNNfo/specs/vo
 
 ### Requirement: Rename scope exclusions are never recorded as retired
 
-`retired_identifiers` MUST NOT contain the iNNfo term, the Level-1 name `iNNfo`, the skill `nn-innfo`, the `docs/innfo/` URL base (`cognnitive.com/innfo/`), the `InnfoConsole` and `InnfoSlug` globals, the `--innfo-*` CSS tokens, the `innfo-config`, `innfo-model` and `innfo-schema` slot ids, the `innfo-console:v3:` storage key, `__INNFO_MCP_VERSION__` or the `INNFO_*` environment variables. The vocabulary consistency check MUST fail if any of them is added.
+`retired_identifiers` MUST NOT contain the iNNfo term, the Level-1 name `iNNfo`, the skill `nn-innfo`, the `docs/innfo/` URL base (`cognnitive.com/innfo/`), the `nnConsole` and `nnSlug` globals, the `--nn-*` CSS tokens, the `nn-config`, `nn-model` and `nn-schema` slot ids, the `nn-console:v4:` storage key, `__INNFO_MCP_VERSION__` or the `INNFO_*` environment variables. The vocabulary consistency check MUST fail if any of them is added.
 
 #### Scenario: Excluded name added by mistake
-- GIVEN a `retired_identifiers` entry whose `old` is `nn-innfo` or `InnfoConsole`
+- GIVEN a `retired_identifiers` entry whose `old` is `nn-innfo` or `nnConsole`
 - WHEN the vocabulary consistency check runs
 - THEN it fails and names the entry
 

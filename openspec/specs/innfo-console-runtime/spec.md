@@ -2,17 +2,17 @@
 
 ## Purpose
 
-One shared versioned runtime (`innfo-runtime.js`) plus a thin console shell (`artifact_shell.html`) for all HTML console artifacts. Eliminates inline runtime duplication across template assets while preserving `file://` double-click with zero build.
+One shared versioned runtime (`nn-runtime.js`) plus a thin console shell (`artifact_shell.html`) for all HTML console artifacts. Eliminates inline runtime duplication across template assets while preserving `file://` double-click with zero build.
 ## Requirements
 ### Requirement: Shared UMD/IIFE Runtime
 
-The system MUST ship a single versioned `nn-runtime.js` as a UMD/IIFE global (`window.InnfoConsole`). The bundle MUST include `ui-kit.js` (`window.InnfoUI`), `nn-address.generated.js` (`window.InnfoAddress`), ordered before any module that consumes them.
+The system MUST ship a single versioned `nn-runtime.js` as a UMD/IIFE global (`window.nnConsole`). The bundle MUST include `ui-kit.js` (`window.nnUI`), `nn-address.generated.js` (`window.nnAddress`), ordered before any module that consumes them.
 
 The runtime MUST instantiate `createKu({ index, onAction })` once at boot and expose the builder as `ctx.ui.Ku`. All console renderers (cards, tables, matrices, rail, facets, guide, timeline, stepper, dialogs) MUST render knowledge units exclusively via `ctx.ui.Ku`.
 
 The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the runtime context; views MUST NOT attempt to invoke modal editors directly. All unit edits and review actions flow through `onAction(action, descriptor)`.
 
-(Previously: the runtime file was `innfo-runtime.js` and the address file `innfo-address.generated.js`; the globals are unchanged.)
+(Previously: the runtime file was `innfo-runtime.js` and the address file `innfo-address.generated.js`; the globals were `window.InnfoConsole` and `window.InnfoAddress`.)
 
 #### Scenario: Ku exposed on runtime context
 - GIVEN a booted console runtime
@@ -22,9 +22,9 @@ The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the
 - AND `ctx.modal.comment` is undefined
 
 #### Scenario: Renderers consume Ku
-- GIVEN table and matrix views rendered by `InnfoConsole`
+- GIVEN table and matrix views rendered by `nnConsole`
 - WHEN the DOM is inspected
-- THEN cells and headers carry `data-innfo-component="ku-unit"`
+- THEN cells and headers carry `data-nn-component="ku-unit"`
 - AND no legacy `.chip` or unbadged unit text exists
 
 #### Scenario: Edit action dispatches through onAction
@@ -35,11 +35,11 @@ The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the
 #### Scenario: Renamed sources keep the same global
 - GIVEN the runtime built from `nn-runtime.js` and `nn-address.generated.js`
 - WHEN the page loads
-- THEN `window.InnfoConsole` and `window.InnfoAddress` are defined
+- THEN `window.nnConsole` and `window.nnAddress` are defined
 
 ### Requirement: Console Shell with Config and JSON Slots
 
-`artifact_shell.html` MUST declare an `innfo-config` block with a `needs[]` capability list and exactly two JSON slots: `innfo-schema` and `innfo-model`. Generated consoles MUST declare only `needs[]` plus slot payloads, MUST NOT inline runtime code, and MUST NOT supply feedback UI markup.
+`artifact_shell.html` MUST declare an `nn-config` block with a `needs[]` capability list and exactly two JSON slots: `nn-schema` and `nn-model`. Generated consoles MUST declare only `needs[]` plus slot payloads, MUST NOT inline runtime code, and MUST NOT supply feedback UI markup.
 (Previously: did not forbid feedback markup, which the runtime needed as anchors.)
 
 #### Scenario: Thin console renders from slots
@@ -81,7 +81,7 @@ The legacy methods `ctx.modal.edit` and `ctx.modal.comment` are DELETED from the
 
 ### Requirement: Bundle-Injected Feedback UI
 
-When `needs[]` declares `changeset-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-changeset-root]` with `#innfo-changeset-banner`, `#innfo-changeset-open` and `#innfo-changeset-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with any other dialog in the page: the procedure view's step-log dialog MUST be scoped to its own container and MUST NOT use `#innfo-export-modal`. Styling MUST be minimal CSS classes.
+When `needs[]` declares `changeset-export`, `nnConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-nn-changeset-root]` with `#innfo-changeset-banner`, `#innfo-changeset-open` and `#innfo-changeset-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#nn-banner`, `#nn-export-open` and `#nn-export-modal` markup and CSS MUST be removed from `artifact_shell.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with any other dialog in the page: the procedure view's step-log dialog MUST be scoped to its own container and MUST NOT use `#nn-export-modal`. Styling MUST be minimal CSS classes.
 (Previously: the first scenario used `model_console.html`.)
 
 #### Scenario: Shell gains feedback with no markup
@@ -98,7 +98,7 @@ When `needs[]` declares `changeset-export`, `InnfoConsole` MUST inject the banne
 - GIVEN a domaiNN console whose `procedure` view has a step-log dialog
 - WHEN the feedback UI is injected
 - THEN both dialogs coexist with distinct ids and no id appears twice in the document
-- AND the log dialog does not use `#innfo-export-modal`
+- AND the log dialog does not use `#nn-export-modal`
 
 ### Requirement: Needs Registry Without Feedback Anchors
 
@@ -233,7 +233,7 @@ element card's image thumbnail MUST open it when the element has image fields.
 #### Scenario: Open from the thumbnail
 - GIVEN a card whose element has two image fields
 - WHEN the thumbnail is clicked
-- THEN `#innfo-media-dialog` shows the first image and a `1 / 2` counter
+- THEN `#nn-media-dialog` shows the first image and a `1 / 2` counter
 
 #### Scenario: Advance
 - GIVEN the open lightbox
@@ -243,13 +243,13 @@ element card's image thumbnail MUST open it when the element has image fields.
 ### Requirement: Field Detail Dialog
 
 The runtime MUST provide `renderFieldDetailDialog(doc, field)` opening a
-read-only `<dialog>` that renders one field's full value through `InnfoUI.FieldValue`.
+read-only `<dialog>` that renders one field's full value through `nnUI.FieldValue`.
 In Table mode, double-clicking a field cell MUST open it for that cell.
 
 #### Scenario: Double-click a cell
 - GIVEN Table mode
 - WHEN a field cell is double-clicked
-- THEN `#innfo-field-dialog` opens with the field name and its typed value
+- THEN `#nn-field-dialog` opens with the field name and its typed value
 
 ### Requirement: Incoming Relations On Cards
 
@@ -261,11 +261,11 @@ relations. Incoming relations are derived by scanning every element's
 #### Scenario: Referenced element
 - GIVEN element B whose relation targets element A
 - WHEN A's card renders
-- THEN it contains `.innfo-card-incoming` labelled `Referenced by (1)` linking to B
+- THEN it contains `.nn-card-incoming` labelled `Referenced by (1)` linking to B
 
 ### Requirement: Concept Guidance Panel
 
-The runtime MUST provide a right-hand concept guide (`#innfo-concept-guide`) that
+The runtime MUST provide a right-hand concept guide (`#nn-concept-guide`) that
 appears when a single concept is in focus (a `concept:` filter) and shows the
 concept's description, field schema (including each field's widget and whether it is multi-valued), concept-level field values, associated matrices and element
 count; it MUST be removed when no single concept is in focus. It MUST NOT show a Markers section.
@@ -274,7 +274,7 @@ count; it MUST be removed when no single concept is in focus. It MUST NOT show a
 #### Scenario: Concept in focus
 - GIVEN a `concept:Fleet` filter and a Fleet concept with a description
 - WHEN the explorer refreshes
-- THEN `#innfo-concept-guide` renders the description, fields, matrices and element count
+- THEN `#nn-concept-guide` renders the description, fields, matrices and element count
 
 #### Scenario: Concept-level values shown
 - GIVEN a concept with `tags:: [core]`
@@ -288,7 +288,7 @@ count; it MUST be removed when no single concept is in focus. It MUST NOT show a
 #### Scenario: Focus cleared
 - GIVEN the guide is shown
 - WHEN the concept filter is cleared
-- THEN `#innfo-concept-guide` is removed
+- THEN `#nn-concept-guide` is removed
 
 ### Requirement: Scope semantics are distinct from view scope
 
@@ -311,7 +311,7 @@ The navbar MUST show the model identity from the payload: `meta.title` as the do
 #### Scenario: Single-model scoped console shows identity
 - GIVEN a payload scoped to one model with `title` `Acme Pricing`, template `business`, `modelVersion` `V_1-2-0` and a `generated` timestamp
 - WHEN the console boots in jsdom
-- THEN `#innfo-domain-title` reads `Acme Pricing`
+- THEN `#nn-domain-title` reads `Acme Pricing`
 - AND the meta line contains `business`, `V_1-2-0` and the generated date
 
 #### Scenario: Missing field is omitted
@@ -396,7 +396,7 @@ The runtime MUST derive the draft-store key from the payload `meta.domainId`, wh
 
 ### Requirement: Re-pointed console suites boot the single shell and can fail
 
-Every console test suite MUST boot `artifact_shell.html` through `InnfoConsole` and MUST NOT reference `model_console.html`, `render-model-viewer.js` or `InnfoModelViewer`. Each re-pointed or rewritten suite MUST be demonstrably able to fail: a recorded mutation check MUST show that deliberately breaking the behavior under test turns the suite red. A suite MUST NOT pass when it renders zero cards or finds none of the nodes it asserts on.
+Every console test suite MUST boot `artifact_shell.html` through `nnConsole` and MUST NOT reference `model_console.html`, `render-model-viewer.js` or `InnfoModelViewer`. Each re-pointed or rewritten suite MUST be demonstrably able to fail: a recorded mutation check MUST show that deliberately breaking the behavior under test turns the suite red. A suite MUST NOT pass when it renders zero cards or finds none of the nodes it asserts on.
 
 #### Scenario: No viewer references in suites
 - GIVEN the console test suites after this change
@@ -420,13 +420,13 @@ The runtime SHALL resolve a field's declared definition (`type`, `options`, `tar
 #### Scenario: Same field name, different concepts
 - GIVEN `schema.fields` declares (`Task`, `status`) as `select` with options `[open, closed]` and (`Note`, `status`) as `string`
 - WHEN a `Task` element and a `Note` element with `status` values render and their `status` edit modals open
-- THEN the `Task` value is an `.innfo-field-select` pill and its modal offers a `select`
+- THEN the `Task` value is an `.nn-field-select` pill and its modal offers a `select`
 - AND the `Note` value is plain text and its modal offers a text input (today the first name match wins for both)
 
 #### Scenario: A real export reaches the renderers (regression)
 - GIVEN a fixture domaiNN whose bluepriNNt declares a `select` field on concept `Initiative`
 - WHEN it is exported with `export-console.mjs --domain` and the console boots in jsdom
-- THEN at least one `.innfo-field-select` node exists for an `Initiative` element (today none does in any exported console)
+- THEN at least one `.nn-field-select` node exists for an `Initiative` element (today none does in any exported console)
 
 #### Scenario: Undeclared field falls back to shape
 - GIVEN an element field `order: 3` with no declared definition
@@ -472,7 +472,7 @@ The citation detail dialog SHALL show, for every entry that carries an `href` (s
 
 ### Requirement: Field Facet Matching
 
-The filter MUST support `<field>:<value>` for any declared Field, generalising the existing generic field filter. For a multi-valued Field (or any array value) the match MUST be exact, case-insensitive membership in the element's effective values (own plus inherited); substring matching MUST NOT be used for array membership. Matching MUST be type-aware: an array value uses exact `valueKey` membership, a scalar `select` uses exact case-insensitive equality, and other types use substring; numeric comparators are unchanged. Repeated `<field>:<value>` tokens, for the same or different fields, MUST combine with AND. Any-of is written with `|` inside one token, `<field>:a|b`, and matches an element carrying at least one of the listed values; each such token is one OR group. Every token and every other facet MUST combine with AND. Scalar Fields keep the existing generic matching. Model and concept facets keep their OR semantics; the asymmetry MUST be stated on the AND/OR connector's tooltip (`title`), not as visible filter-bar text. No dedicated `tag:` or `tag-any:` branch or alias remains. A facet rail or add-facet menu MUST list each `select` Field's values through a TWO-STEP facet: first the Field NAME, then, only after a Field is chosen, its values, drawing on the declared `options` vocabulary when the Field declares one and falling back to the observed values otherwise. No value MUST be listed before its Field is chosen. The AND/OR connector between clauses MUST be a segmented control (`.innfo-op-toggle` with `.innfo-op-btn` buttons and `role="group"`), not a native `<select>`, and activating the opposite option MUST rewrite the active query. (Previously: the facet listed every value directly and the AND/OR connector was a native `<select>` with the help as visible text.)
+The filter MUST support `<field>:<value>` for any declared Field, generalising the existing generic field filter. For a multi-valued Field (or any array value) the match MUST be exact, case-insensitive membership in the element's effective values (own plus inherited); substring matching MUST NOT be used for array membership. Matching MUST be type-aware: an array value uses exact `valueKey` membership, a scalar `select` uses exact case-insensitive equality, and other types use substring; numeric comparators are unchanged. Repeated `<field>:<value>` tokens, for the same or different fields, MUST combine with AND. Any-of is written with `|` inside one token, `<field>:a|b`, and matches an element carrying at least one of the listed values; each such token is one OR group. Every token and every other facet MUST combine with AND. Scalar Fields keep the existing generic matching. Model and concept facets keep their OR semantics; the asymmetry MUST be stated on the AND/OR connector's tooltip (`title`), not as visible filter-bar text. No dedicated `tag:` or `tag-any:` branch or alias remains. A facet rail or add-facet menu MUST list each `select` Field's values through a TWO-STEP facet: first the Field NAME, then, only after a Field is chosen, its values, drawing on the declared `options` vocabulary when the Field declares one and falling back to the observed values otherwise. No value MUST be listed before its Field is chosen. The AND/OR connector between clauses MUST be a segmented control (`.nn-op-toggle` with `.nn-op-btn` buttons and `role="group"`), not a native `<select>`, and activating the opposite option MUST rewrite the active query. (Previously: the facet listed every value directly and the AND/OR connector was a native `<select>` with the help as visible text.)
 
 #### Scenario: Values narrow with AND
 - GIVEN elements A `tags: [ai, pricing]` and B `tags: [ai]`

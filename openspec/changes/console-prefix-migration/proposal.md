@@ -61,17 +61,14 @@ scanned (it only reads `.js`).
 
 ### Modified Capabilities
 
-Deferred until the open questions below are answered, because each one changes
-which canonical requirements are rewritten:
+Landed with unit E. The corpus sweep (token substitution) updates the 14 specs whose requirement text only names a renamed identifier; the two requirements that state the opposite contract are superseded by deltas under `specs/`:
 
-- `console-ui-kit`: the "Semantic Token Injection" requirement names
-  `--innfo-*` tokens and the `InnfoUI` global; "InnfoUI Component Contract"
-  names the global itself.
-- `innfo-console-runtime`, `console-architecture`, `console-scope`,
-  `console-export-cli`, `console-view-registry`, `innfo-console-feedback`:
-  reference the same names.
-- The wider corpus: **99** files under `openspec/specs/*/spec.md` match
-  `innfo`/`Innfo`.
+- `console-ui-kit`: the "Semantic Token Injection" requirement named `--innfo-*` tokens and the `InnfoUI` global; "InnfoUI Component Contract" named the global itself. Naming updated by the sweep.
+- `console-architecture`, `console-scope`, `console-export-cli`, `console-view-registry`, `innfo-console-feedback`: referenced the same names. Updated by the sweep.
+- `innfo-console-runtime`: *"Internal console identifiers are unchanged by the rename"* pinned the pre-rename globals, tokens, ids, slots and store key — renamed and rewritten as a delta.
+- `console-export-slots-and-standalone-pin`: *"Embedded slot ids are not part of the rename"* — renamed and rewritten as a delta.
+- `canonical-vocabulary`: the "Rename scope exclusions are never recorded as retired" list — corrected in place.
+- The wider corpus: 17 files under `openspec/specs/*/spec.md` renamed by the sweep.
 
 ## Impact
 
