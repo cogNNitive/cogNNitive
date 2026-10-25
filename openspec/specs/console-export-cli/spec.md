@@ -49,12 +49,12 @@ The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and pos
 
 ### Requirement: Export uses the core payload builder
 
-`export-console.mjs` MUST obtain payloads from innfo-core `buildConsolePayload` and MUST NOT scan models independently. Exported consoles MUST contain `innfo-model.meta.sources` when the model has citations.
+`export-console.mjs` MUST obtain payloads from innfo-core `buildConsolePayload` and MUST NOT scan models independently. Exported consoles MUST contain `nn-model.meta.sources` when the model has citations.
 
 #### Scenario: Meta sources present
 - GIVEN a model with one citation
 - WHEN its console is exported
-- THEN the embedded `innfo-model.meta.sources` lists that citation
+- THEN the embedded `nn-model.meta.sources` lists that citation
 
 #### Scenario: No private scanner
 - GIVEN `scripts/export-console.mjs`

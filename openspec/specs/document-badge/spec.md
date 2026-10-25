@@ -28,7 +28,7 @@ Canonical specification templates, tools, and fixtures MUST NOT reference the re
 
 ### Requirement: Serializer and Generator Badge Emission
 
-The `innfo-core` serializers (`src/parser/serializer.ts`, `src/changeset/serializer.ts`), the shared knowledge scaffold (`src/scaffold/knowledge.ts`), the `canonical-registry.ts` embedded templates, and the console changeset export (`innfo-runtime.js` `serializeChangesetMarkdown`) MUST emit the canonical badge of this capability. Rebuilt bundles (`innfo-mcp.bundle.js`, the console bundle) MUST reflect it. (Previously: the emitters linked `https://cognnitive.com/innfo/app/` and the requirement named a removed `init-model.ts`.)
+The `innfo-core` serializers (`src/parser/serializer.ts`, `src/changeset/serializer.ts`), the shared knowledge scaffold (`src/scaffold/knowledge.ts`), the `canonical-registry.ts` embedded templates, and the console changeset export (`nn-runtime.js` `serializeChangesetMarkdown`) MUST emit the canonical badge of this capability. Rebuilt bundles (`innfo-mcp.bundle.js`, the console bundle) MUST reflect it. (Previously: the emitters linked `https://cognnitive.com/innfo/app/` and the requirement named a removed `init-model.ts`.)
 
 #### Scenario: Serializer emits the canonical badge
 - GIVEN a `ParsedModel` instance without existing custom raw header text

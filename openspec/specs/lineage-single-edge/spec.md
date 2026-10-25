@@ -14,7 +14,7 @@ A file that derives from another file MUST declare its origin through a single `
 |---|---|
 | kNNowledge document | body field `sources::` on the deriving element |
 | Markdown artifact | frontmatter key `sources:` |
-| Console HTML | `innfo-model.meta.sources` (inside the embedded `innfo-model.meta` JSON) |
+| Console HTML | `nn-model.meta.sources` (inside the embedded `nn-model.meta` JSON) |
 | CSV artifact | a `sources` column, one value per row |
 | JSON artifact | a `sources` field, one value per record |
 
@@ -64,7 +64,7 @@ For CSV artifacts the `sources` column (header matched with normalized name) and
 The system MUST NOT read, write, or infer lineage from the `export-meta` convention, the artifact `model` / `model_name` + `knowledge_version` fallback, or the domaiNN `kNNowledge.derived_from` field. The folder `export/` MUST NOT be read as an artifact location; `artifacts/` is the artifact folder.
 
 #### Scenario: `export-meta` is ignored
-- GIVEN an HTML artifact with an `export-meta` block and no `innfo-model.meta.sources`
+- GIVEN an HTML artifact with an `export-meta` block and no `nn-model.meta.sources`
 - WHEN the projection runs
 - THEN the artifact has no upstream edges
 

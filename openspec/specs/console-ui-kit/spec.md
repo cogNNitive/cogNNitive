@@ -2,27 +2,27 @@
 
 ## Purpose
 
-Defines the shared semantic design tokens and the `InnfoUI` component layer that every console renderer composes, so the same concept renders identically in every console and works offline via `file://`. Includes the presentational review components consumed by change C (`2026-10-01-console-review-ux`); review state and controller behavior are NOT part of this capability.
+Defines the shared semantic design tokens and the `nnUI` component layer that every console renderer composes, so the same concept renders identically in every console and works offline via `file://`. Includes the presentational review components consumed by change C (`2026-10-01-console-review-ux`); review state and controller behavior are NOT part of this capability.
 ## Requirements
 ### Requirement: Semantic Token Injection
 
-The bundle MUST inject exactly one `<style data-innfo-tokens>` element carrying
-`--innfo-surface`, `--innfo-text`, `--innfo-accent`, `--innfo-concept-1` through
-`--innfo-concept-12`, a matching `--innfo-concept-1-bg` through
-`--innfo-concept-12-bg` tint per concept, and
-`--innfo-status-{pending,applied,rejected,stale}` plus a matching `-bg` token per
+The bundle MUST inject exactly one `<style data-nn-tokens>` element carrying
+`--nn-surface`, `--nn-text`, `--nn-accent`, `--nn-concept-1` through
+`--nn-concept-12`, a matching `--nn-concept-1-bg` through
+`--nn-concept-12-bg` tint per concept, and
+`--nn-status-{pending,applied,rejected,stale}` plus a matching `-bg` token per
 status. Injection MUST be idempotent. The CSS MUST be generated from
-`InnfoUI.TOKEN_VALUES` (`{ light, dark }`), which MUST be exposed on the global.
+`nnUI.TOKEN_VALUES` (`{ light, dark }`), which MUST be exposed on the global.
 Shells MUST NOT define color tokens.
 
 #### Scenario: Tokens injected once
 - GIVEN a console whose bundle boots twice in one document
-- WHEN `document.querySelectorAll('style[data-innfo-tokens]')` is evaluated
+- WHEN `document.querySelectorAll('style[data-nn-tokens]')` is evaluated
 - THEN exactly one element is found
-- AND `--innfo-accent` resolves to a non-empty value
+- AND `--nn-accent` resolves to a non-empty value
 
 #### Scenario: TOKEN_VALUES is the source of the CSS
-- GIVEN `InnfoUI.TOKEN_VALUES.dark['--innfo-status-pending']`
+- GIVEN `nnUI.TOKEN_VALUES.dark['--nn-status-pending']`
 - WHEN the injected style text is read
 - THEN the style contains that exact value for the dark theme
 
@@ -33,12 +33,12 @@ Shells MUST NOT define color tokens.
 
 #### Scenario: Every concept has a tint token
 - GIVEN `TOKEN_VALUES`
-- WHEN resolving `--innfo-concept-1-bg` through `--innfo-concept-12-bg` in light and in dark
+- WHEN resolving `--nn-concept-1-bg` through `--nn-concept-12-bg` in light and in dark
 - THEN each theme yields twelve non-empty values
 
 ### Requirement: Status Color Contrast Floor
 
-Every status foreground token MUST meet a WCAG contrast ratio of at least 4.5:1 against its matching `-bg` token, in both the light and dark themes. The ratio MUST be computed in a test from `TOKEN_VALUES` with an independent WCAG luminance implementation, not from hard-coded expected ratios. The shipped light foregrounds MUST be the contrast-checked values `pending #92400e`, `applied #166534`, `rejected #b91c1c`, `stale #4b5563` (on `-bg` `#fef3c7`, `#dcfce7`, `#fee2e2`, `#f3f4f6`); the dark values are `#fbbf24`, `#4ade80`, `#f87171`, `#94a3b8` (on `#451a03`, `#052e16`, `#450a0a`, `#1e293b`). The test MUST also assert the allowed text pairs at 4.5:1 and the origin icon tokens (`--innfo-origin-*`) against `--innfo-surface` at 3:1.
+Every status foreground token MUST meet a WCAG contrast ratio of at least 4.5:1 against its matching `-bg` token, in both the light and dark themes. The ratio MUST be computed in a test from `TOKEN_VALUES` with an independent WCAG luminance implementation, not from hard-coded expected ratios. The shipped light foregrounds MUST be the contrast-checked values `pending #92400e`, `applied #166534`, `rejected #b91c1c`, `stale #4b5563` (on `-bg` `#fef3c7`, `#dcfce7`, `#fee2e2`, `#f3f4f6`); the dark values are `#fbbf24`, `#4ade80`, `#f87171`, `#94a3b8` (on `#451a03`, `#052e16`, `#450a0a`, `#1e293b`). The test MUST also assert the allowed text pairs at 4.5:1 and the origin icon tokens (`--nn-origin-*`) against `--nn-surface` at 3:1.
 
 #### Scenario: All eight pairs pass
 - GIVEN the four statuses in two themes
@@ -67,9 +67,9 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 - GIVEN no `data-theme` attribute and a dark OS preference
 - THEN dark values apply
 
-### Requirement: InnfoUI Component Contract
+### Requirement: nnUI Component Contract
 
-`console/ui-kit.js` MUST expose a UMD global `InnfoUI` whose components are pure functions `(data, opts) -> HTMLElement`, each marked with `data-innfo-component`, whose values are kebab-case: `ku-unit`, `ku-info-panel`, `element-card`, `status-badge`, `citation-icon`, `draft-list`, `annotation-popover`, `rail-progress`, `toast`. The legacy component ids `concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, `reviewed-toggle`, and `field-row` are deleted without aliases or delegating wrappers. Components MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state through `data-*` attributes, and MUST render user text via text nodes (no `innerHTML` with data). Invalid `data` or an unknown kind MUST throw a `TypeError` naming the component or kind.
+`console/ui-kit.js` MUST expose a UMD global `nnUI` whose components are pure functions `(data, opts) -> HTMLElement`, each marked with `data-nn-component`, whose values are kebab-case: `ku-unit`, `ku-info-panel`, `element-card`, `status-badge`, `citation-icon`, `draft-list`, `annotation-popover`, `rail-progress`, `toast`. The legacy component ids `concept-pill`, `element-pill`, `marker-chip`, `qud-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`, `reviewed-toggle`, and `field-row` are deleted without aliases or delegating wrappers. Components MUST NOT use shadow DOM, `fetch(`, `type=module`, or global state, MUST expose state through `data-*` attributes, and MUST render user text via text nodes (no `innerHTML` with data). Invalid `data` or an unknown kind MUST throw a `TypeError` naming the component or kind.
 (Previously: the contract listed `concept-pill`, `element-pill`, `marker-chip`, `ku-badge`, `ku-actions`, `ku-change-pip`.)
 
 #### Scenario: Purity and no shadow DOM
@@ -94,7 +94,7 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: ConceptPill
 
-`InnfoUI.ConceptPill({ id, label, index, color?, count? })` MUST return `data-innfo-component="concept-pill"` with `data-concept-id` and `data-concept-slot` in 1..12. The optional `color` (palette name, in token order: blue, violet, teal, amber, pink, green, orange, indigo, red, yellow, purple, gray; `grey` maps to gray) MUST select the slot; an unknown name falls back to `(index mod 12)+1`. The optional `count` MUST render a count suffix. `opts.onSelect` is optional: when given the root is a `button` and calls it on click, otherwise a `span`.
+`nnUI.ConceptPill({ id, label, index, color?, count? })` MUST return `data-nn-component="concept-pill"` with `data-concept-id` and `data-concept-slot` in 1..12. The optional `color` (palette name, in token order: blue, violet, teal, amber, pink, green, orange, indigo, red, yellow, purple, gray; `grey` maps to gray) MUST select the slot; an unknown name falls back to `(index mod 12)+1`. The optional `count` MUST render a count suffix. `opts.onSelect` is optional: when given the root is a `button` and calls it on click, otherwise a `span`.
 
 #### Scenario: Named color selects the slot
 - GIVEN `{ id: "c1", label: "Revenue", index: 5, color: "violet" }`
@@ -118,7 +118,7 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: ElementPill
 
-`InnfoUI.ElementPill({ id, label, origin? }, { href?, onSelect? })` MUST render `data-innfo-component="element-pill"` with `data-element-id`, and one origin icon with `data-origin` only when `origin` is provided. `origin` is one of `error`, `agent`, `human`, `reviewer`, `document`. The root is an `a` when `opts.href` is given, a `button` when `opts.onSelect` is given, otherwise a `span`.
+`nnUI.ElementPill({ id, label, origin? }, { href?, onSelect? })` MUST render `data-nn-component="element-pill"` with `data-element-id`, and one origin icon with `data-origin` only when `origin` is provided. `origin` is one of `error`, `agent`, `human`, `reviewer`, `document`. The root is an `a` when `opts.href` is given, a `button` when `opts.onSelect` is given, otherwise a `span`.
 
 #### Scenario: Origin icon present
 - GIVEN `origin: "agent"`
@@ -130,11 +130,11 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: ElementCard
 
-`InnfoUI.ElementCard({ id, name, conceptId?, description?, fields }, opts)` MUST return `data-innfo-component="element-card"` with `data-element-id`.
-- The element name in `.innfo-card-head` MUST render as a `Ku` badge of kind `element`.
+`nnUI.ElementCard({ id, name, conceptId?, description?, fields }, opts)` MUST return `data-nn-component="element-card"` with `data-element-id`.
+- The element name in `.nn-card-head` MUST render as a `Ku` badge of kind `element`.
 - Each field MUST render as a `Ku` badge of kind `value` (or `Ku` block variant for complex types) with actions outside.
 - An inherited concept-level field value MUST render labelled `"inherited from <Concept>"` and MUST have editability `none` (info only).
-- `.innfo-card-head` MUST NOT contain `marker-chip` or legacy pill components.
+- `.nn-card-head` MUST NOT contain `marker-chip` or legacy pill components.
 - The card MUST NOT render a hover preview and MUST NOT render an info icon: `ElementMini` MUST be mounted without `preview` and `ElementCard` MUST NOT mount `ElementPreview`.
 - The element name and description MUST NOT carry permanent pencils (`name-anchor` / `desc-anchor`); editing lives only in the unit badge's borderless `+` flyout (`editability !== 'none'`).
 (Previously: the card accepted `markers` and rendered `marker-chip` elements in the head; it also mounted ElementPreview from a `preview` flag and exposed permanent name/description pencils.)
@@ -142,8 +142,8 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 #### Scenario: Element name and fields rendered via Ku
 - GIVEN an element with name `"Slimer"` and two fields
 - WHEN `ElementCard` renders
-- THEN `.innfo-card-head` contains `[data-innfo-component="ku-unit"][data-ku-kind="element"]`
-- AND field values render as `[data-innfo-component="ku-unit"][data-ku-kind="value"]`
+- THEN `.nn-card-head` contains `[data-nn-component="ku-unit"][data-ku-kind="element"]`
+- AND field values render as `[data-nn-component="ku-unit"][data-ku-kind="value"]`
 
 #### Scenario: Inherited value is info-only on element card
 - GIVEN a card displaying an inherited concept-level value `"core"` from concept `"Threat"`
@@ -155,8 +155,8 @@ The default theme MUST follow `prefers-color-scheme`. `data-theme="light"` or `d
 
 ### Requirement: StatusBadge
 
-`InnfoUI.StatusBadge({ status, count?, label?, title? })` MUST accept only `local`, render
-`data-innfo-component="status-badge"` with `data-status`, and color it from the unsent
+`nnUI.StatusBadge({ status, count?, label?, title? })` MUST accept only `local`, render
+`data-nn-component="status-badge"` with `data-status`, and color it from the unsent
 status tokens. Any other value, including `applied`, `proposed` and `conflict`, MUST throw a
 `TypeError`. When `count` is provided (and no `label`) the visible text MUST be the count;
 when `label` is provided it MUST be the visible text; otherwise the status string is shown.
@@ -179,19 +179,19 @@ MUST also be conveyed by text, never by color alone.
 
 ### Requirement: CitationIcon and FieldRow
 
-`InnfoUI.CitationIcon({ variant, field }, { onOpen })` (a `button` with `data-origin=<variant>`, `data-field` and `aria-label "<Label>: <field>"`; click stops propagation) MUST keep its contract. `InnfoUI.FieldRow({ name, value,
+`nnUI.CitationIcon({ variant, field }, { onOpen })` (a `button` with `data-origin=<variant>`, `data-field` and `aria-label "<Label>: <field>"`; click stops propagation) MUST keep its contract. `nnUI.FieldRow({ name, value,
 citations?, ref? }, { onRef?, onCite? })` MUST return a `ku-unit` badge of kind `field`
 (with `data-ku-kind="field"` and `data-field=<name>`), and MUST preserve the
 origin-typed behavior of `console-field-citations`: one `CitationIcon` per distinct
 origin variant present among its citations, in the order `error, agent, human,
 reviewer, document`; when `ref` is given the value renders as an
-`ElementPill`/`reference` badge. `InnfoUI.icon(name, size?, cls?)` MUST be exported
+`ElementPill`/`reference` badge. `nnUI.icon(name, size?, cls?)` MUST be exported
 by the kit and MUST NOT remain in the runtime; an unknown name MUST fall back to a
 generic SVG (never throw).
 
 #### Scenario: Field row with citations
 - GIVEN a field with two citations of different origins (`agent`, `human`)
-- THEN the row is `data-innfo-component="ku-unit"` with `data-ku-kind="field"` and `data-field`, contains the name and value, and two `citation-icon` children, one per origin
+- THEN the row is `data-nn-component="ku-unit"` with `data-ku-kind="field"` and `data-field`, contains the name and value, and two `citation-icon` children, one per origin
 
 #### Scenario: Same origin collapses
 - GIVEN a field with two citations of the same origin
@@ -203,7 +203,7 @@ generic SVG (never throw).
 
 ### Requirement: Knowledge-Unit Badge Presentation
 
-`.innfo-ku` MUST express NATURE in its border, never by colour alone:
+`.nn-ku` MUST express NATURE in its border, never by colour alone:
 - `container` (domain, document, section): ONE border, `2px` solid — twice the base line width. A double border MUST NOT be used.
 - `structure` (concept / field / matrix definition): a SOLID border in the concept colour (`--c`) plus a monospace face. A dashed border MUST NOT be used.
 - `content` (element, own value, matrix cell): NO border; the concept colour carries on the label, the value and the concept icon.
@@ -211,7 +211,7 @@ generic SVG (never throw).
 
 A content badge MUST carry the ICON of the concept the unit belongs to, tinted with that concept's colour. `--c` / `--cb` MUST be derived from the unit's `data-concept-slot`.
 
-The actions MUST NOT sit beside the badge: ONE borderless `+` toggle (`.innfo-ku-more`) MUST be the only inline affordance, and the action cluster (`.innfo-ku-actions`) MUST float BELOW the badge on demand (`position: fixed`, anchored to the badge's bounding rect when the flyout opens and clamped to the viewport so an ancestor's `overflow` cannot clip it; hidden until the wrap carries `data-ku-open="true"`), taking no layout space and never shifting a neighbour. The order MUST be `info`, `reveal`, `citations` (only when the unit has citations), `edit` (only when `editability` is not `none`). No review-mode or structure-switch CSS gate may exist.
+The actions MUST NOT sit beside the badge: ONE borderless `+` toggle (`.nn-ku-more`) MUST be the only inline affordance, and the action cluster (`.nn-ku-actions`) MUST float BELOW the badge on demand (`position: fixed`, anchored to the badge's bounding rect when the flyout opens and clamped to the viewport so an ancestor's `overflow` cannot clip it; hidden until the wrap carries `data-ku-open="true"`), taking no layout space and never shifting a neighbour. The order MUST be `info`, `reveal`, `citations` (only when the unit has citations), `edit` (only when `editability` is not `none`). No review-mode or structure-switch CSS gate may exist.
 
 #### Scenario: Content is borderless and tinted
 - GIVEN a `value` badge whose concept sits in slot 2
@@ -247,7 +247,7 @@ MUST NOT read storage, and MUST emit changes only through callbacks in `opts`.
   shows `original` read-only and a `proposed` input.
 - `RailProgress({ total, pending })`: shows the literal text `pending/total` and a `title`
   naming unsent changes; `data-total`, `data-pending` attributes.
-- `Toast({ title, body }, { onClose })`: `div[data-innfo-component="toast"][role=status]`
+- `Toast({ title, body }, { onClose })`: `div[data-nn-component="toast"][role=status]`
   with a title, a body text and a dismiss control; it holds no timer (the caller owns
   dismissal) and emits nothing but `onClose`. Its copy is supplied by the caller.
 
@@ -330,7 +330,7 @@ A kitchen-sink fixture MUST render every component, including the review compone
 
 #### Scenario: Fixture covers all components
 - GIVEN the fixture
-- WHEN queried for each `data-innfo-component` value in the contract
+- WHEN queried for each `data-nn-component` value in the contract
 - THEN each appears under both `data-theme="light"` and `data-theme="dark"`
 
 #### Scenario: Tests can go red
@@ -348,7 +348,7 @@ Token names, component signatures, and every `data-*` hook MUST be documented in
 
 ### Requirement: Knowledge-Unit Badge Family
 
-The kit MUST provide a pure descriptor generator `describeUnit(kind, ref, index)` and a single DOM builder `Ku(kind, ref, opts)` returning a wrapper element (`span.innfo-ku-wrap`, `data-innfo-component="ku-unit"`). Every unit is rendered across two orthogonal axes:
+The kit MUST provide a pure descriptor generator `describeUnit(kind, ref, index)` and a single DOM builder `Ku(kind, ref, opts)` returning a wrapper element (`span.nn-ku-wrap`, `data-nn-component="ku-unit"`). Every unit is rendered across two orthogonal axes:
 - **nature**: `container` (domain, document, section), `structure` (concept definition, field definition, matrix definition), or `content` (element, value, matrix cell, source unit).
 - **home**: `domain`, `blueprint`, `knowledge`, or `source` (derived via `unitHome`).
 
@@ -356,7 +356,7 @@ Visual grammar:
 - Container units use a double border.
 - Structure units use a dashed border and monospace typography.
 - Content units use a solid border.
-- Source units use a warm paper background token (`--innfo-source-paper`, with contrast-tested light and dark variants).
+- Source units use a warm paper background token (`--nn-source-paper`, with contrast-tested light and dark variants).
 - Concept identity is encoded via the concept color token.
 - Badges carry `aria-label` spelling out nature and home (e.g., `"structure, lives in bluepriNNt: Field owner"`).
 
@@ -372,7 +372,7 @@ No action control MUST be nested inside the badge root.
 
 #### Scenario: Every kind renders nature, home, and address
 - GIVEN `describeUnit` and `Ku` called with valid units for each of the nine kinds
-- THEN each returns `data-innfo-component="ku-unit"` with matching `data-ku-kind`, `data-ku-nature`, `data-ku-home`, and `data-ku-address`
+- THEN each returns `data-nn-component="ku-unit"` with matching `data-ku-kind`, `data-ku-nature`, `data-ku-home`, and `data-ku-address`
 - AND `aria-label` describes both nature and home
 
 #### Scenario: Block variant for structured values
@@ -392,14 +392,14 @@ No action control MUST be nested inside the badge root.
 
 ### Requirement: Unit Action Cluster
 
-`Ku` MUST render the unit's action controls immediately outside the badge root, in a sibling container (`span.innfo-ku-actions`).
+`Ku` MUST render the unit's action controls immediately outside the badge root, in a sibling container (`span.nn-ku-actions`).
 - Action cluster inline width MUST be reserved inside cell or row padding to ensure zero layout shift when revealing controls.
-- Action icons MUST reveal on `:hover` or `:focus-within` of `.innfo-ku-wrap`, and remain visible while pointer is over the cluster until Escape or blur.
+- Action icons MUST reveal on `:hover` or `:focus-within` of `.nn-ku-wrap`, and remain visible while pointer is over the cluster until Escape or blur.
 - Under `@media (hover: none)`, action controls MUST remain permanently visible in normal static flow.
 - Every action button MUST meet WCAG 2.2 AA 2.5.8 target size (minimum 24x24 px).
 - The **info** button (`[data-ku-action="info"]`) MUST be present for EVERY kind, opening `KuInfoPanel`.
 - The **edit** button (`[data-ku-action="edit"]`, pencil) MUST be emitted whenever `editability !== 'none'`.
-- There is no review-mode or structure-switch CSS gate: no `html[data-innfo-review]` or `html[data-innfo-structure]` selector may hide the edit button.
+- There is no review-mode or structure-switch CSS gate: no `html[data-nn-review]` or `html[data-nn-structure]` selector may hide the edit button.
 - Keyboard navigation within any `[data-ku-group]` (card, table row, matrix row) MUST use a single tab stop with roving `tabindex`. Arrow keys move between units and action buttons.
 
 (Previously: `KuActions` was a standalone component that was omitted when callbacks were absent.)
@@ -407,10 +407,10 @@ No action control MUST be nested inside the badge root.
 #### Scenario: Action width reserved with no layout shift
 - GIVEN a table cell rendering a `Ku` badge
 - WHEN hovered or focused
-- THEN `.innfo-ku-actions` becomes visible without shifting adjacent text or badges
+- THEN `.nn-ku-actions` becomes visible without shifting adjacent text or badges
 
 #### Scenario: Target size satisfies WCAG 2.5.8
-- GIVEN rendered action buttons in `.innfo-ku-actions`
+- GIVEN rendered action buttons in `.nn-ku-actions`
 - WHEN their bounding box is evaluated
 - THEN every target is at least 24x24 px
 
@@ -421,13 +421,13 @@ No action control MUST be nested inside the badge root.
 #### Scenario: Mobile touch keeps actions visible
 - GIVEN `@media (hover: none)`
 - WHEN `Ku` renders
-- THEN `.innfo-ku-actions` is statically positioned and visible without hover
+- THEN `.nn-ku-actions` is statically positioned and visible without hover
 
 ---
 
 ### Requirement: Pending-Change Pip
 
-`Ku` MUST render a pending-change pip (`button[data-innfo-component="ku-change-pip"]`) beside the badge whenever pending changes exist for that unit's address:
+`Ku` MUST render a pending-change pip (`button[data-nn-component="ku-change-pip"]`) beside the badge whenever pending changes exist for that unit's address:
 - Pip count MUST equal the pending draft count for `data-ku-address`.
 - The pip MUST carry `aria-label="<n> pending changes on <unit-label>"`.
 - Activating the pip MUST trigger the changes action for that address.
@@ -475,7 +475,7 @@ branch fired because declared types never reached the console.)
 
 #### Scenario: Declared select renders a pill
 - GIVEN `FieldValue({ name: 'stage', value: 'build', type: 'select' })`
-- THEN an `.innfo-field-select` node with `data-value="build"` is returned
+- THEN an `.nn-field-select` node with `data-value="build"` is returned
 
 #### Scenario: Undeclared type stays plain
 - GIVEN `FieldValue({ name: 'note', value: 'hello', type: '' })`
@@ -538,12 +538,12 @@ The `EditModal` MUST NOT change the type of the value it edits. A `number` value
 
 ### Requirement: Select Field View and Edit
 
-A field declared `select` MUST render its non-empty value as a pill (`.innfo-field-select`, `data-value`) and an empty value as nothing (no pill, no `null` text). The edit modal for a declared `select` field MUST offer exactly the declared `options` plus the blank option and the preserved current value of "Edit Modal Value Type Safety", so a value outside the options can only be proposed when it was already the current value. (S3b P1-5.)
+A field declared `select` MUST render its non-empty value as a pill (`.nn-field-select`, `data-value`) and an empty value as nothing (no pill, no `null` text). The edit modal for a declared `select` field MUST offer exactly the declared `options` plus the blank option and the preserved current value of "Edit Modal Value Type Safety", so a value outside the options can only be proposed when it was already the current value. (S3b P1-5.)
 
 #### Scenario: Declared select edits through a select
 - GIVEN an element of concept `Initiative` with `stage: build` and `stage` declared `select` with options `[idea, build, run]`
 - WHEN the reviewer opens the edit modal on `stage`
-- THEN the widget is `select[data-innfo-widget=select]` with options `""`, `idea`, `build`, `run` and `build` selected
+- THEN the widget is `select[data-nn-widget=select]` with options `""`, `idea`, `build`, `run` and `build` selected
 
 #### Scenario: Free text cannot be proposed for a select (regression)
 - GIVEN the same field
@@ -552,11 +552,11 @@ A field declared `select` MUST render its non-empty value as a pill (`.innfo-fie
 
 #### Scenario: Empty select renders nothing
 - GIVEN `FieldValue({ value: '', type: 'select' })`
-- THEN no `.innfo-field-select` node is produced
+- THEN no `.nn-field-select` node is produced
 
 ### Requirement: Markdown Inline View and Edit
 
-The kit MUST provide `InnfoUI.Markdown(text, opts)`, a renderer for a safe markdown subset that builds DOM nodes only (`createElement`, `textContent`, `setAttribute`): paragraphs and line breaks, headings, `-`/`*`/`1.` lists, `**strong**`, `*em*`/`_em_`, inline code, block quotes (including `> [!NOTE]`-style callouts) and links. A link MUST render as an `a` only when its target is an `http:`/`https:` URL or a relative path (the scheme allowlist of `innfo-console-runtime` "Source URL link with a safe-scheme allowlist"), with `target="_blank"` and `rel="noopener noreferrer"`; any other target MUST render as plain text. Any other syntax, including raw HTML, MUST render as literal text. The renderer MUST NOT assign any part of its input through `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `document.write`. `FieldValue` MUST use it for `markdown` and `markdown_inline`; `markdown_file` stays a path pill. The edit modal for a declared `markdown`/`markdown_inline` field MUST use a `textarea` and propose its text verbatim. The XSS scenarios MUST run under jsdom. (S3b P1-6.)
+The kit MUST provide `nnUI.Markdown(text, opts)`, a renderer for a safe markdown subset that builds DOM nodes only (`createElement`, `textContent`, `setAttribute`): paragraphs and line breaks, headings, `-`/`*`/`1.` lists, `**strong**`, `*em*`/`_em_`, inline code, block quotes (including `> [!NOTE]`-style callouts) and links. A link MUST render as an `a` only when its target is an `http:`/`https:` URL or a relative path (the scheme allowlist of `innfo-console-runtime` "Source URL link with a safe-scheme allowlist"), with `target="_blank"` and `rel="noopener noreferrer"`; any other target MUST render as plain text. Any other syntax, including raw HTML, MUST render as literal text. The renderer MUST NOT assign any part of its input through `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `document.write`. `FieldValue` MUST use it for `markdown` and `markdown_inline`; `markdown_file` stays a path pill. The edit modal for a declared `markdown`/`markdown_inline` field MUST use a `textarea` and propose its text verbatim. The XSS scenarios MUST run under jsdom. (S3b P1-6.)
 
 #### Scenario: Subset renders as structure
 - GIVEN `Markdown('## Goal\n\n- **fast**\n- *cheap*')`
@@ -593,7 +593,7 @@ The kit MUST provide `InnfoUI.Markdown(text, opts)`, a renderer for a safe markd
 #### Scenario: Tags show on the card
 - GIVEN an element whose effective `tags` are `["pricing", "ai"]`
 - WHEN its card renders
-- THEN a `[data-innfo-component=tag-row]` holds chips with `data-tag="pricing"` and `data-tag="ai"`
+- THEN a `[data-nn-component=tag-row]` holds chips with `data-tag="pricing"` and `data-tag="ai"`
 
 #### Scenario: Inherited tag shows on the card
 - GIVEN an element with no own `tags` whose concept carries `tags:: [core]`
@@ -656,7 +656,7 @@ A tag chip color MUST be derived deterministically from the tag name: one export
 
 ### Requirement: KuInfoPanel
 
-The kit MUST provide `InnfoUI.KuInfoPanel(descriptor)` rendering an accessible dialog (`dialog[data-innfo-component="ku-info-panel"][role="dialog"]`) displaying unit metadata for any unit kind:
+The kit MUST provide `nnUI.KuInfoPanel(descriptor)` rendering an accessible dialog (`dialog[data-nn-component="ku-info-panel"][role="dialog"]`) displaying unit metadata for any unit kind:
 - Header containing the unit label, nature, and home.
 - Rows for: kind, nature, Lives in, canonical address (with a Copy Address button), Location (human header form or file URL), and editability with human reason.
 - Kind-specific facts:

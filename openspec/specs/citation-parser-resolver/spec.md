@@ -99,7 +99,7 @@ innfo-core MAY parse `path#slug` citations solely to keep write-once specs and f
 
 ### Requirement: Artifact frontmatter and console meta citations are validated
 
-`validateWorkspaceSources` MUST validate citations in markdown artifact frontmatter `sources:` and in console `innfo-model.meta.sources`, with the same diagnostics as kNNowledge body `sources::`.
+`validateWorkspaceSources` MUST validate citations in markdown artifact frontmatter `sources:` and in console `nn-model.meta.sources`, with the same diagnostics as kNNowledge body `sources::`.
 
 #### Scenario: Dangling artifact citation
 - GIVEN `artifacts/report_20261002T101500Z.md` with frontmatter `sources: [sources/import/missing.md@## Intro]` and no such file
@@ -107,7 +107,7 @@ innfo-core MAY parse `path#slug` citations solely to keep write-once specs and f
 - THEN a `KU_DANGLING_FILE` error is reported for the artifact
 
 #### Scenario: Console meta citation validated
-- GIVEN a console whose `innfo-model.meta.sources` cites a missing heading
+- GIVEN a console whose `nn-model.meta.sources` cites a missing heading
 - WHEN `validateWorkspaceSources` runs
 - THEN an anchor-resolution diagnostic is reported
 
