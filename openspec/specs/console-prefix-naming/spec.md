@@ -1,11 +1,8 @@
 # console-prefix-naming Specification
 
 ## Purpose
-
-One naming contract for the console artifact's identifier surface — classes, `data-*` attributes, CSS custom properties, JS globals and DOM ids — plus the static guard that keeps retired names retired and the rules that make a rename land atomically.
-
-## ADDED Requirements
-
+TBD - created by archiving change console-prefix-migration. Update Purpose after archive.
+## Requirements
 ### Requirement: One console prefix
 
 Every console identifier MUST carry the `nn-` prefix, and no `innfo-*` identifier MUST remain in the console sources or in the markup they emit.
@@ -18,7 +15,7 @@ Every console identifier MUST carry the `nn-` prefix, and no `innfo-*` identifie
 #### Scenario: Each identifier kind carries the prefix
 - GIVEN a class, a `data-*` attribute, a CSS custom property, a JS global or a DOM id emitted by the kit
 - WHEN its name is read
-- THEN it starts with `nn-`, `data-nn-`, `--nn-` or the `Nn` global prefix, respectively
+- THEN it starts with `nn-`, `data-nn-`, `--nn-` or the `nn` global prefix, respectively
 
 ### Requirement: Whole-identifier guard matching
 
@@ -70,3 +67,4 @@ A prefix migration MUST NOT change the rendered console: the same data MUST prod
 - GIVEN the testlab fixture rendered before and after the migration
 - WHEN the two renders are compared
 - THEN they are equivalent
+

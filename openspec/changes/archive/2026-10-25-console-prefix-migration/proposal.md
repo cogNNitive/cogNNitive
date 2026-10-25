@@ -150,8 +150,8 @@ unit C:
 | # | Question | Recommended | Consequence if answered the other way |
 |---|---|---|---|
 | Q1 | Do the CSS custom properties become `--nn-*`? | Yes — they are the same surface, and they are undocumented | Any `--innfo-*` override in a domain preset or shell must migrate with it |
-| Q2 | Does the JS global `InnfoUI` become `Nn*`? | Yes, so `NnUI`, `NnIcons`, `NnConsole`… match the prefix | Keeps a public API name; the shells then keep reading `window.InnfoUI` |
-| Q3 | `Nn*` or `NN*` for the PascalCase globals? | `Nn*` — reads as the prefix, not as an acronym | `NN*` matches the `cogNNitive` capitalisation but reads as an initialism |
+| Q2 | Does the JS global `InnfoUI` become `nn*`? | Yes, so `nnUI`, `nnIcons`, `nnConsole`… match the prefix | Keeps a public API name; the shells then keep reading `window.InnfoUI` |
+| Q3 | `Nn*` or `NN*` for the PascalCase globals? | `nn*` — reads as the prefix, not as an acronym | `NN*` matches the `cogNNitive` capitalisation but reads as an initialism |
 | Q4 | Does the 99-spec corpus sweep land in this change or a follow-up? | Follow-up — this change defines the contract and the sources | One very wide PR (~99 spec files) mixed with the console work |
 | Q5 | Does the localStorage namespace `innfo-console:` become `nn-console:`? | Yes, as a **version bump** (`nn-console:v4:`) with no read of the old key — the repo's own precedent (`never reads … innfo-console:v2:*`) | Keeping it leaves one `innfo-` string in the sources, and the residual check in unit A must then carry an allowlist. Renaming **without** bumping would keep reading keys an old artifact wrote |
 | Q6 | Do the custom events become `nn:rendered` / `nn:theme-change`? | Yes — the shells are regenerated with the kit | Any third-party listener on the old event name stops firing; keeping it leaves one `innfo:` contract behind |

@@ -5,38 +5,38 @@ Strict TDD. Units A–E are separate commits; unit C is one commit per file.
 
 ## 1. Guard (unit A) — unblocks nothing on its own, but makes the rename testable
 
-- [ ] 1.1 [RED] Test: a console source containing a bare retired identifier (`field-row`) is reported.
-- [ ] 1.2 [RED] Test: the same identifier carrying the prefix (`nn-field-row`) is **not** reported.
-- [ ] 1.3 [GREEN] `test/console-ku-guard.test.mjs`: match `LEGACY` entries as whole identifiers, not substrings.
-- [ ] 1.4 [RED] Test: a retired identifier inside a `.css` file is reported.
-- [ ] 1.5 [GREEN] Extend the guard's scan to `consoleDir/**/*.css`.
-- [ ] 1.6 [RED] Test: the console sources contain no `innfo` occurrence outside the allowlist decided by Q5–Q7.
-- [ ] 1.7 Note: the whole-identifier rule does **not** report the dead `.innfo-ku-badge` block (its `ku-badge` is preceded by `-`); tasks 1.6 and 3.2 are what force it out.
-- [ ] 1.8 Confirm the existing suite is green.
+- [x] 1.1 [RED] Test: a console source containing a bare retired identifier (`field-row`) is reported.
+- [x] 1.2 [RED] Test: the same identifier carrying the prefix (`nn-field-row`) is **not** reported.
+- [x] 1.3 [GREEN] `test/console-ku-guard.test.mjs`: match `LEGACY` entries as whole identifiers, not substrings.
+- [x] 1.4 [RED] Test: a retired identifier inside a `.css` file is reported.
+- [x] 1.5 [GREEN] Extend the guard's scan to `consoleDir/**/*.css`.
+- [x] 1.6 [RED] Test: the console sources contain no `innfo` occurrence outside the allowlist decided by Q5–Q7.
+- [x] 1.7 Note: the whole-identifier rule does **not** report the dead `.innfo-ku-badge` block (its `ku-badge` is preceded by `-`); tasks 1.6 and 3.2 are what force it out.
+- [x] 1.8 Confirm the existing suite is green.
 
 ## 2. Contract (unit B)
 
-- [ ] 2.1 Land `specs/console-prefix-naming/spec.md` (this change).
-- [ ] 2.2 Answer Q1–Q4 and record them in `design.md`'s naming map.
+- [x] 2.1 Land `specs/console-prefix-naming/spec.md` (this change).
+- [x] 2.2 Answer Q1–Q4 and record them in `design.md`'s naming map.
 
 ## 3. Sources (unit C) — one file per commit
 
-- [ ] 3.1 `ui-kit.js`: rename classes, `data-innfo-*`, `--innfo-*`, the `InnfoUI` global and id literals.
-- [ ] 3.2 `nn-ui.css`: rename everything; delete the dead `.innfo-ku-badge` block.
-- [ ] 3.3 `nn-runtime.js`: rename selectors and attribute reads.
-- [ ] 3.4 `review.js`: rename `[data-ku-kind="value"][data-field]` / `[data-innfo-component=element-card]` selectors and the `UI.*` calls.
-- [ ] 3.5 `render-procedure-stepper.js` and `artifact_shell.html`: rename.
-- [ ] 3.6 After each file: `node --test test/console-*.test.mjs` green.
-- [ ] 3.7 Per Q5: bump the store namespace to `nn-console:v4:`; keep the "never read the previous namespace" test and add one for the new version.
-- [ ] 3.8 Per Q6: rename the custom events to `nn:rendered` / `nn:theme-change` in the dispatcher, both listeners and the tests.
-- [ ] 3.9 Per Q7: rename the `viewer` string; record whether it is persisted before landing.
-- [ ] 3.10 Rename the identifiers the tests pin (72 test files reference a console name).
+- [x] 3.1 `ui-kit.js`: rename classes, `data-innfo-*`, `--innfo-*`, the `InnfoUI` global and id literals.
+- [x] 3.2 `nn-ui.css`: rename everything; delete the dead `.innfo-ku-badge` block.
+- [x] 3.3 `nn-runtime.js`: rename selectors and attribute reads.
+- [x] 3.4 `review.js`: rename `[data-ku-kind="value"][data-field]` / `[data-innfo-component=element-card]` selectors and the `UI.*` calls.
+- [x] 3.5 `render-procedure-stepper.js` and `artifact_shell.html`: rename.
+- [x] 3.6 After each file: `node --test test/console-*.test.mjs` green.
+- [x] 3.7 Per Q5: bump the store namespace to `nn-console:v4:`; keep the "never read the previous namespace" test and add one for the new version.
+- [x] 3.8 Per Q6: rename the custom events to `nn:rendered` / `nn:theme-change` in the dispatcher, both listeners and the tests.
+- [x] 3.9 Per Q7: rename the `viewer` string; record whether it is persisted before landing.
+- [x] 3.10 Rename the identifiers the tests pin (72 test files reference a console name).
 
 ## 4. Regenerate (unit D)
 
-- [ ] 4.1 `node scripts/build-console-bundle.mjs`.
-- [ ] 4.2 `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`.
-- [ ] 4.3 `node scripts/verify.js --only=Console` — "Console Bundle Fresh" and "Console Shells Fresh" green.
+- [x] 4.1 `node scripts/build-console-bundle.mjs`.
+- [x] 4.2 `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`.
+- [x] 4.3 `node scripts/verify.js --only=Console` — "Console Bundle Fresh" and "Console Shells Fresh" green.
 - [ ] 4.4 Render the testlab fixture in a browser and confirm the sheet still renders (the rename is name-only, so the pixels must not move).
 
 ## 5. Corpus sweep (unit E) — subject to Q4
@@ -48,7 +48,7 @@ Strict TDD. Units A–E are separate commits; unit C is one commit per file.
 
 ## 6. Verify
 
-- [ ] 6.1 Residual guard: no `innfo` occurrence in the 14 console sources.
-- [ ] 6.2 `node scripts/verify.js --fast` green.
-- [ ] 6.3 Full `node scripts/verify.js` + CI green on `dev`.
-- [ ] 6.4 Confirm `nn-field-row` / `nn-ku-badge` are now usable names (the guard reports neither).
+- [x] 6.1 Residual guard: no `innfo` occurrence in the 14 console sources.
+- [x] 6.2 `node scripts/verify.js --fast` green.
+- [x] 6.3 Full `node scripts/verify.js` + CI green on `dev`.
+- [x] 6.4 Confirm `nn-field-row` / `nn-ku-badge` are now usable names (the guard reports neither).
