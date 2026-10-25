@@ -47,11 +47,17 @@ function consoleScripts() {
     .map((f) => join(consoleDir, f))
 }
 
-// The prefix check covers scripts AND stylesheets: a class renamed in the kit but
-// left in the stylesheet is exactly how a dead block survives.
+// The prefix check covers scripts, stylesheets AND the shell HTML: a class or
+// slot renamed in the kit but left in the stylesheet or the shell is exactly how
+// a dead reference survives. The shell was the gap that let `artifact_shell.html`
+// slip past while only `.js`/`.css` were scanned.
 function consoleSources() {
   return readdirSync(consoleDir)
-    .filter((f) => (f.endsWith('.js') || f.endsWith('.css')) && f !== 'nn-console.bundle.js')
+    .filter(
+      (f) =>
+        (f.endsWith('.js') || f.endsWith('.css') || f.endsWith('.html')) &&
+        f !== 'nn-console.bundle.js',
+    )
     .map((f) => join(consoleDir, f))
 }
 
@@ -104,6 +110,14 @@ describe('Ku static guard', () => {
     assert.ok(
       sources.some((f) => f.endsWith('nn-ui.css')),
       'nn-ui.css is scanned by the prefix check',
+    )
+  })
+
+  it('scans the console shell HTML too', () => {
+    const sources = consoleSources()
+    assert.ok(
+      sources.some((f) => f.endsWith('artifact_shell.html')),
+      'artifact_shell.html is scanned by the prefix check',
     )
   })
 
