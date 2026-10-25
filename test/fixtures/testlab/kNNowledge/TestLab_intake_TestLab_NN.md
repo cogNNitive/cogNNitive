@@ -51,7 +51,7 @@ markdown_inline_field:: Reviewed **inline** markdown.
 markdown_file_field:: test/fixtures/testlab/sources/import/manual.txt
 knowledge_field:: kNNowledge/TestLab_coverage_TestLab_NN.md
 address_field:: TestLab_intake_TestLab@intake-owner
-citation_field:: [test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings]
+citation_field:: [sources/import/report.pdf_sidecar_NN.md@## Findings]
 Modification cases carries one field of every Level-1 field type; the reviewer edited one field of each type on this element.
 
 # NN matrices: Concept 1-Concept 2 Matrix
