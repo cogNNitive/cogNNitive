@@ -425,9 +425,9 @@ notes:: "Please review the tagline"
       const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const configMatch = htmlContent.match(
-        /<script type="application\/json" id="innfo-config">([\s\S]*?)<\/script>/,
+        /<script type="application\/json" id="nn-config">([\s\S]*?)<\/script>/,
       )
-      assert.ok(configMatch, 'innfo-config slot exists in HTML')
+      assert.ok(configMatch, 'nn-config slot exists in HTML')
       const config = JSON.parse(configMatch[1])
 
       const bundle = await readFile(
@@ -626,9 +626,9 @@ notes:: "Please review the tagline"
       )
       const banner = bundle.match(/nn-console\.bundle\.js — single-file console runtime/)[0]
       assert.equal(html.split(banner).length - 1, 1, 'bundle inlined once')
-      assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
+      assert.match(html, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
       assert.ok(
-        html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'),
+        html.includes('data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles/views/pipeline.js"'),
         'domain view present',
       )
     }
@@ -682,7 +682,7 @@ notes:: "Please review the tagline"
       await assertWholeConsole(html)
       assert.ok(
         html.includes(
-          'data-innfo-view="timeline" data-innfo-view-source="bluepriNNt:metrics/assets/console-view-timeline.js"',
+          'data-nn-view="timeline" data-nn-view-source="bluepriNNt:metrics/assets/console-view-timeline.js"',
         ),
       )
       assert.doesNotMatch(stderr, /no bluepriNNt package/)
@@ -694,7 +694,7 @@ notes:: "Please review the tagline"
       await install(dir)
       await setUpViews(join(home, '.agents', 'bluepriNNts'))
       await runInstalled(dir, ['--domain'], { HOME: home, USERPROFILE: home, INNFO_BLUEPRINTS_DIR: '' })
-      assert.ok((await domainHtml()).includes('data-innfo-view="timeline"'))
+      assert.ok((await domainHtml()).includes('data-nn-view="timeline"'))
     })
 
     it('warns on stderr, and still exports, when the bluepriNNt package cannot be found', async () => {

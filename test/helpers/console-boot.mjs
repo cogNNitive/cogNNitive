@@ -9,8 +9,8 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const consoleDir = join(here, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
 globalThis.__innfoNoAutoBoot = true
-global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
-export const InnfoConsole = require(join(consoleDir, 'nn-runtime.js'))
+global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
+export const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
 
 export const MODEL = {
   meta: { title: 'Ghost Busters Model', modelId: 'ghost-busters', modelVersion: 'V_1-0-0', changesBlueprintVersion: 'V_0-3-0' },
@@ -39,17 +39,17 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
   const configSlot = config || { needs: ['feedback-export'] }
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
-      <div id="innfo-layout">
-        <nav id="innfo-rail"></nav>
-        <header id="innfo-feedback-banner"></header>
+      <div id="nn-layout">
+        <nav id="nn-rail"></nav>
+        <header id="nn-feedback-banner"></header>
         <main>
-          <div class="innfo-toolbar"><input id="innfo-search" type="search" /></div>
-          <div id="innfo-doc"></div>
-          <div id="innfo-content"></div>
-          <div id="innfo-matrices"></div>
+          <div class="nn-toolbar"><input id="nn-search" type="search" /></div>
+          <div id="nn-doc"></div>
+          <div id="nn-content"></div>
+          <div id="nn-matrices"></div>
         </main>
       </div>
-      <script type="application/json" id="innfo-config">${JSON.stringify(configSlot)}</script>
+      <script type="application/json" id="nn-config">${JSON.stringify(configSlot)}</script>
       <script type="application/json" id="innfo-schema">${JSON.stringify(schemaSlot)}</script>
       <script type="application/json" id="innfo-model">${JSON.stringify(model)}</script>
     </body></html>`,
@@ -60,12 +60,12 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
   if (before) before(dom.window.document)
-  const res = InnfoConsole.boot(dom.window.document, registry ? { registry } : undefined)
+  const res = nnConsole.boot(dom.window.document, registry ? { registry } : undefined)
   return { dom, document: dom.window.document, res }
 }
 
-// Boots the console from the REAL artifact shell, where #innfo-matrices already
-// sits inside #innfo-tab-explorer. Scripts are stripped (the runtime is loaded
+// Boots the console from the REAL artifact shell, where #nn-matrices already
+// sits inside #nn-tab-explorer. Scripts are stripped (the runtime is loaded
 // above) and the model/schema slots are filled with the test model.
 export function bootConsoleFromShell() {
   const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
@@ -84,7 +84,7 @@ export function bootConsoleFromShell() {
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  const res = InnfoConsole.boot(dom.window.document)
+  const res = nnConsole.boot(dom.window.document)
   return { dom, document: dom.window.document, res }
 }
 
@@ -93,10 +93,10 @@ export function bootConsoleFromShell() {
 export function addCommentDraft(document) {
   const Ev = document.defaultView.Event
   document
-    .querySelector('[data-innfo-ctl="tag-add"]')
+    .querySelector('[data-nn-ctl="tag-add"]')
     .dispatchEvent(new Ev('click', { bubbles: true }))
-  const pop = document.querySelector('.innfo-popover-comment')
+  const pop = document.querySelector('.nn-popover-comment')
   pop.value = 'looks wrong'
-  document.querySelector('.innfo-popover-save').dispatchEvent(new Ev('click', { bubbles: true }))
+  document.querySelector('.nn-popover-save').dispatchEvent(new Ev('click', { bubbles: true }))
 }
 

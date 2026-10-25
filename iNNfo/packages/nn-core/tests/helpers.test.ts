@@ -7,7 +7,7 @@ import { listKnowledge } from '../src/index'
 const tempDirs: string[] = []
 
 async function makeRoot(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'innfo-listmodels-'))
+  const dir = await mkdtemp(join(tmpdir(), 'nn-listmodels-'))
   tempDirs.push(dir)
   return dir
 }

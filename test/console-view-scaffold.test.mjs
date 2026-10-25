@@ -59,7 +59,7 @@ describe('scaffoldConsoleView (--new-view)', () => {
     assert.equal(existsSync(targetFile), true)
     const code = await readFile(targetFile, 'utf8')
     assert.match(code, /title: 'Resumen de Programas'/)
-    assert.match(code, /InnfoUI\.DataTable/)
+    assert.match(code, /nnUI\.DataTable/)
 
     // Export domain console and verify new view is recognized and inlined
     const exportRes = await execFileAsync(process.execPath, [scriptPath, tmp, '--domain', '--no-open'], {
@@ -88,7 +88,7 @@ describe('scaffoldConsoleView (--new-view)', () => {
     const targetFile = join(tmp, 'specs', 'bluepriNNts', 'metrics', 'assets', `console-view-${slug}.js`)
     assert.equal(existsSync(targetFile), true)
     const code = await readFile(targetFile, 'utf8')
-    assert.match(code, /InnfoUI\.KpiGrid/)
+    assert.match(code, /nnUI\.KpiGrid/)
   })
 
   it('--status reports domain console as stale when bundle is newer than the console file', async () => {

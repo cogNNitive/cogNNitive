@@ -29,7 +29,7 @@ describe('metrics timeline view (bluepriNNt)', () => {
     container = doc.getElementById('c')
     gridCalls = []
     edits = []
-    global.InnfoConsole = {
+    global.nnConsole = {
       renderTimelineGrid: (host, model, meta, hooks) => {
         gridCalls.push({ host, model, meta, hooks })
       },
@@ -37,7 +37,7 @@ describe('metrics timeline view (bluepriNNt)', () => {
   })
 
   afterEach(() => {
-    delete global.InnfoConsole
+    delete global.nnConsole
   })
 
   it('declares an editable view with order 10, and no self-declared id (the registrar injects it)', () => {
@@ -70,7 +70,7 @@ describe('metrics timeline view (bluepriNNt)', () => {
     assert.equal(gridCalls[0].model.rows[0].id, 'metrics-revenue')
     assert.deepEqual(gridCalls[0].meta, { months: 36 })
     assert.equal(gridCalls[0].hooks, undefined, 'onEditRow was deleted')
-    assert.equal(container.querySelector('.innfo-edit-btn'), null)
+    assert.equal(container.querySelector('.nn-edit-btn'), null)
   })
 
   it('shows an empty state when no model carries a projection, without calling the renderer', () => {

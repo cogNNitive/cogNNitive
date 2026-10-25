@@ -256,11 +256,11 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.equal(existsSync(domainFile()), false, 'no domain file')
       assert.deepEqual((await readdir(join(root, 'artifacts'))).sort(), ['alpha_view'], 'no per-model console')
       const html = await readFile(outputs[0], 'utf-8')
-      assert.equal(html.match(/data-innfo-view="/g).length, 1)
-      assert.ok(html.includes('data-innfo-view="alpha"'))
+      assert.equal(html.match(/data-nn-view="/g).length, 1)
+      assert.ok(html.includes('data-nn-view="alpha"'))
       assert.equal(html.includes('Beta'), false, 'the other view is not embedded')
       assert.equal(html.match(/nn-console\.bundle\.js — single-file console runtime/g).length, 1)
-      const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
+      const header = html.match(/<!-- nn-views[\s\S]*?-->/)[0]
       assert.equal(header.split('\n').filter((l) => /sha256:/.test(l)).length, 1)
       assert.match(header, /^alpha domaiNN domaiNN:consoles\/views\/alpha\.js sha256:[0-9a-f]{12}$/m)
       assert.doesNotMatch(header, /beta/)
@@ -274,11 +274,11 @@ describe('export-console size budget and --view (S2c2)', () => {
 
       const scoped = await boot(await readFile((await viewOutputs('beta'))[0], 'utf-8'))
       const doc = scoped.window.document
-      const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
+      const tabs = [...doc.querySelectorAll('#nn-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.deepEqual(tabs, ['beta'], 'no built-in tab, only the scoped view')
-      assert.equal(doc.getElementById('innfo-tab-explorer')?.classList.contains('active') ?? false, false)
-      assert.match(doc.getElementById('innfo-tab-beta').textContent, /Beta mounted/)
-      assert.equal(doc.getElementById('innfo-view-errors'), null)
+      assert.equal(doc.getElementById('nn-tab-explorer')?.classList.contains('active') ?? false, false)
+      assert.match(doc.getElementById('nn-tab-beta').textContent, /Beta mounted/)
+      assert.equal(doc.getElementById('nn-view-errors'), null)
       assert.deepEqual(modelOf(scoped).meta.consoleScope, { view: 'beta' })
 
       const ctx = scoped.window.__ctx
@@ -298,7 +298,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       // opens on the model explorer, so activate the view tab to mount it.
       const domain = await boot(await readFile(domainFile(), 'utf-8'))
       assert.equal(modelOf(domain).meta.consoleScope, undefined)
-      domain.window.document.querySelector('#innfo-view-tabs [data-tab="beta"]').click()
+      domain.window.document.querySelector('#nn-view-tabs [data-tab="beta"]').click()
       domain.window.__ctx.store.propose({ kind: 'comment', elementId: modelOf(domain).elements[0].id, comment: 'domain note' })
       const domainKeys = Object.keys(domain.window.localStorage)
       assert.equal(domainKeys.length, 1)
@@ -307,7 +307,7 @@ describe('export-console size budget and --view (S2c2)', () => {
   })
 
   describe('scoped runtime hides explorer-only UI', () => {
-    const EXPLORER_ONLY = ['#innfo-rail', '.innfo-toolbar', '#innfo-search']
+    const EXPLORER_ONLY = ['#nn-rail', '.nn-toolbar', '#nn-search']
 
     it('renders no toolbar, rail or stats bar, and search-related entry points are inert', async () => {
       await addView('beta', editableView('Beta'))
@@ -318,17 +318,17 @@ describe('export-console size budget and --view (S2c2)', () => {
       for (const sel of EXPLORER_ONLY) assert.equal(doc.querySelector(sel), null, sel)
 
       // A search query in the URL never moves a scoped console to the hidden explorer.
-      const active = [...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab)
+      const active = [...doc.querySelectorAll('.nn-view-tab.active')].map((b) => b.dataset.tab)
       assert.deepEqual(active, ['beta'])
       scoped.window.location.hash = '#q=Other'
       scoped.window.dispatchEvent(new scoped.window.Event('hashchange'))
-      assert.deepEqual([...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
+      assert.deepEqual([...doc.querySelectorAll('.nn-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
 
       // Focusing an element card has nothing to focus in a scoped console.
       const id = modelOf(scoped).elements[0].id
-      assert.doesNotThrow(() => scoped.window.InnfoConsole.focusElementCard(doc, id))
-      assert.equal(doc.querySelector('.innfo-highlight'), null)
-      assert.deepEqual([...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
+      assert.doesNotThrow(() => scoped.window.nnConsole.focusElementCard(doc, id))
+      assert.equal(doc.querySelector('.nn-highlight'), null)
+      assert.deepEqual([...doc.querySelectorAll('.nn-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
     })
 
     it('keeps the export feedback and the changeset working', async () => {
@@ -337,9 +337,9 @@ describe('export-console size budget and --view (S2c2)', () => {
       const scoped = await boot(await readFile((await viewOutputs('beta'))[0], 'utf-8'))
       const doc = scoped.window.document
       scoped.window.__ctx.store.propose({ kind: 'comment', elementId: modelOf(scoped).elements[0].id, comment: 'keep me' })
-      doc.getElementById('innfo-feedback-open').click()
-      assert.match(doc.querySelector('#innfo-feedback-modal [data-innfo="instructions"]').textContent, /Review 1 unsent/)
-      assert.match(doc.querySelector('.innfo-banner-drafts').textContent, /unsent: 1/)
+      doc.getElementById('nn-feedback-open').click()
+      assert.match(doc.querySelector('#nn-feedback-modal [data-nn="instructions"]').textContent, /Review 1 unsent/)
+      assert.match(doc.querySelector('.nn-banner-drafts').textContent, /unsent: 1/)
       assert.equal(scoped.window.__ctx.changeset.compose('tester').ok, true)
     })
 
@@ -349,10 +349,10 @@ describe('export-console size budget and --view (S2c2)', () => {
       const domain = await boot(await readFile(domainFile(), 'utf-8'), '#q=Enterprise')
       const doc = domain.window.document
       for (const sel of EXPLORER_ONLY) assert.ok(doc.querySelector(sel), sel)
-      assert.equal(doc.querySelector('#innfo-view-tabs [data-tab="explorer"]').classList.contains('active'), true)
+      assert.equal(doc.querySelector('#nn-view-tabs [data-tab="explorer"]').classList.contains('active'), true)
       const id = modelOf(domain).elements[0].id
-      domain.window.InnfoConsole.focusElementCard(doc, id)
-      assert.ok(doc.querySelector('.innfo-highlight'), 'the explorer card is highlighted')
+      domain.window.nnConsole.focusElementCard(doc, id)
+      assert.ok(doc.querySelector('.nn-highlight'), 'the explorer card is highlighted')
     })
   })
 
@@ -377,7 +377,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       const domain = await boot(await readFile(domainFile(), 'utf-8'))
       const win = domain.window
       const elementId = modelOf(domain).elements[0].id
-      for (const id of ['alpha', 'beta']) win.document.querySelector(`#innfo-view-tabs [data-tab="${id}"]`).click()
+      for (const id of ['alpha', 'beta']) win.document.querySelector(`#nn-view-tabs [data-tab="${id}"]`).click()
       const byTitle = (title) => win.__ctxs.filter((c) => c.title === title).pop().ctx
 
       // Two views, one console: both drafts land in the same store and the same changeset.
@@ -395,8 +395,8 @@ describe('export-console size budget and --view (S2c2)', () => {
       const scopedDoc = async (id) => {
         const html = await readFile((await viewOutputs(id))[0], 'utf-8')
         const doc = new win.DOMParser().parseFromString(html, 'text/html')
-        assert.equal(win.InnfoConsole.boot(doc).ok, true)
-        doc.querySelector(`#innfo-view-tabs [data-tab="${id}"]`).click()
+        assert.equal(win.nnConsole.boot(doc).ok, true)
+        doc.querySelector(`#nn-view-tabs [data-tab="${id}"]`).click()
         return win.__ctxs.filter((c) => c.ctx.container.ownerDocument === doc).pop().ctx
       }
       const alphaCtx = await scopedDoc('alpha')

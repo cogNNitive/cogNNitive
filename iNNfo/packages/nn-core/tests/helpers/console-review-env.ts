@@ -25,7 +25,7 @@ const iNNfoDir = join(import.meta.dirname!, '..', '..', '..', '..')
 export const consoleDir = join(iNNfoDir, 'specs', 'bluepriNNts', 'console')
 export const blueprintsDir = join(iNNfoDir, 'specs', 'bluepriNNts')
 // SCS: one shell, no model viewer. Every suite boots `artifact_shell.html`
-// through `InnfoConsole.boot`; the retired `model_console.html` /
+// through `nnConsole.boot`; the retired `model_console.html` /
 // `render-model-viewer.js` are gone.
 export const shellPath = join(consoleDir, 'artifact_shell.html')
 
@@ -68,7 +68,7 @@ export function createConsoleEnv() {
     g.HTMLElement = dom.window.HTMLElement
     g.HTMLDialogElement = dom.window.HTMLDialogElement
     g.Node = dom.window.Node
-    // The UMD runtime auto-boots when it sees an #innfo-config slot. These suites
+    // The UMD runtime auto-boots when it sees an #nn-config slot. These suites
     // boot explicitly, so suppress the module-level auto-boot: without this the
     // document gets TWO controllers (auto + explicit), each registering its own
     // keydown listener, so `j`/`k` advance two cards per press.
@@ -89,9 +89,9 @@ export function createConsoleEnv() {
     delete g.window
     delete g.document
     delete g.localStorage
-    delete g.InnfoUI
-    delete g.InnfoReview
-    delete g.InnfoConsole
+    delete g.nnUI
+    delete g.nnReview
+    delete g.nnConsole
     delete g.__innfoNoAutoBoot
     env = null
   }
@@ -99,17 +99,17 @@ export function createConsoleEnv() {
   /** Require the three console sources against the current document. */
   function loadConsole() {
     const g = globalThis as any
-    delete g.InnfoUI
-    delete g.InnfoReview
-    delete g.InnfoConsole
+    delete g.nnUI
+    delete g.nnReview
+    delete g.nnConsole
     clearCache()
-    g.InnfoUI = req(join(consoleDir, 'ui-kit.js'))
-    g.InnfoReview = req(join(consoleDir, 'review.js'))
-    g.InnfoConsole = req(join(consoleDir, 'nn-runtime.js'))
+    g.nnUI = req(join(consoleDir, 'ui-kit.js'))
+    g.nnReview = req(join(consoleDir, 'review.js'))
+    g.nnConsole = req(join(consoleDir, 'nn-runtime.js'))
     return {
-      UI: g.InnfoUI,
-      Review: g.InnfoReview,
-      Console: g.InnfoConsole,
+      UI: g.nnUI,
+      Review: g.nnReview,
+      Console: g.nnConsole,
     }
   }
 

@@ -17,9 +17,9 @@ const timelineView = join(templatesDir, 'metrics', 'assets', 'console-view-timel
 // Static <script src="...nn-runtime.js"> tags are REQUIRED (not markers).
 const INLINE_RUNTIME_MARKERS = [
   'INNFO_RUNTIME_INLINE',
-  'innfo-runtime-inline',
-  'window.InnfoConsole=',
-  'window.InnfoConsole =',
+  'nn-runtime-inline',
+  'window.nnConsole=',
+  'window.nnConsole =',
 ]
 
 function readAsset(path: string): string {
@@ -27,10 +27,10 @@ function readAsset(path: string): string {
 }
 
 describe.each([['shell', assets.shell]])('%s console asset', (_name, path) => {
-  it('declares an innfo-config block with a needs[] capability list', () => {
+  it('declares an nn-config block with a needs[] capability list', () => {
     const html = readAsset(path)
-    expect(html).toContain('id="innfo-config"')
-    const match = html.match(/<script[^>]*id="innfo-config"[^>]*>([\s\S]*?)<\/script>/)
+    expect(html).toContain('id="nn-config"')
+    const match = html.match(/<script[^>]*id="nn-config"[^>]*>([\s\S]*?)<\/script>/)
     expect(match).not.toBe(null)
     const config = JSON.parse((match as RegExpMatchArray)[1]) as { needs: string[] }
     expect(Array.isArray(config.needs)).toBe(true)
@@ -60,21 +60,21 @@ describe('artifact_shell slot payloads', () => {
 })
 
 // The single shell (artifact_shell.html) keeps the shared slots and the ref
-// dialog; the runtime creates #innfo-citation-dialog on demand and the
+// dialog; the runtime creates #nn-citation-dialog on demand and the
 // citation-icon colour rules live in the kit (data-origin driven).
 describe('single shell + kit citation styling', () => {
   it('keeps the shared slots and the ref dialog, without legacy cite-icon rules', () => {
     const html = readAsset(assets.shell)
     expect(html).toContain('id="innfo-schema"')
     expect(html).toContain('id="innfo-model"')
-    expect(html).toContain('id="innfo-ref-dialog"')
+    expect(html).toContain('id="nn-ref-dialog"')
     expect(html).not.toContain('.cite-icon.cite-agent')
   })
 
-  it('ships origin tokens and rules in InnfoUI', () => {
+  it('ships origin tokens and rules in nnUI', () => {
     const kit = readAsset(join(templatesDir, 'console', 'ui-kit.js'))
     for (const origin of ['agent', 'human', 'reviewer', 'document', 'error']) {
-      expect(kit).toContain(`--innfo-origin-${origin}`)
+      expect(kit).toContain(`--nn-origin-${origin}`)
     }
     expect(kit).toContain('[data-origin=agent]')
   })

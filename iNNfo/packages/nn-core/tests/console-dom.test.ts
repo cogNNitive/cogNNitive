@@ -97,37 +97,37 @@ describe('nn-console — rendered DOM', () => {
   it('paints the banner, concept rail and one card per element from the slots', () => {
     bootConsole()
 
-    const banner = (document.getElementById('innfo-feedback-banner') || document.getElementById('innfo-banner'))!.textContent ?? ''
+    const banner = (document.getElementById('nn-feedback-banner') || document.getElementById('nn-banner'))!.textContent ?? ''
     expect(banner).toContain('Acme')
     expect(banner).toContain('V_0-1-0')
 
-    const rail = [...document.querySelectorAll('.innfo-rail-item')].map((n) => n.textContent ?? '')
+    const rail = [...document.querySelectorAll('.nn-rail-item')].map((n) => n.textContent ?? '')
     expect(rail.join(' ')).toContain('Goal')
     expect(rail.join(' ')).toContain('Metric')
 
-    const titles = [...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)
+    const titles = [...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)
     expect(titles).toEqual(['Grow', 'Churn'])
   })
 
   it('filters the rendered cards as the reviewer types, and restores them when cleared', () => {
     bootConsole()
 
-    typeInto('#innfo-search', 'grow')
-    expect([...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
+    typeInto('#nn-search', 'grow')
+    expect([...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
       'Grow',
     ])
 
     // Matching runs over description text too, not just the element name.
-    typeInto('#innfo-search', 'monthly logo')
-    expect([...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
+    typeInto('#nn-search', 'monthly logo')
+    expect([...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
       'Churn',
     ])
 
-    typeInto('#innfo-search', 'zzz-no-match')
-    expect(document.querySelectorAll('.innfo-card')).toHaveLength(0)
+    typeInto('#nn-search', 'zzz-no-match')
+    expect(document.querySelectorAll('.nn-card')).toHaveLength(0)
 
-    typeInto('#innfo-search', '')
-    expect(document.querySelectorAll('.innfo-card')).toHaveLength(2)
+    typeInto('#nn-search', '')
+    expect(document.querySelectorAll('.nn-card')).toHaveLength(2)
   })
 })
 
@@ -160,22 +160,22 @@ describe('nn-console — export gate', () => {
   it('refuses to emit a file until an identifier is entered', () => {
     bootConsole()
 
-    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]') || document.querySelector('#innfo-export-modal [data-innfo="download-changeset"]'))!
+    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') || document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
 
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
 
     // Whitespace is not an identifier either.
-    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', '   ')
+    typeInto('#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]', '   ')
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
   })
 
   it('emits a changeset named by the changeset contract once an identifier is entered', () => {
     localStorage.setItem(
-      'innfo-console:v3:acme',
+      'nn-console:v4:acme',
       JSON.stringify({
         v: 4,
         modelId: 'acme',
@@ -195,10 +195,10 @@ describe('nn-console — export gate', () => {
     )
     bootConsole()
 
-    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
-    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]') || document.querySelector('#innfo-export-modal [data-innfo="download-changeset"]'))!
+    typeInto('#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]', 'Reviewer, primera revisión')
+    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') || document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
     download.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(downloads).toHaveLength(1)
@@ -209,7 +209,7 @@ describe('nn-console — export gate', () => {
 
   it('reports the unsent change count in the modal instructions', () => {
     localStorage.setItem(
-      'innfo-console:v3:acme',
+      'nn-console:v4:acme',
       JSON.stringify({
         v: 4,
         modelId: 'acme',
@@ -222,12 +222,12 @@ describe('nn-console — export gate', () => {
     )
     bootConsole()
 
-    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
-    const modal = (document.getElementById('innfo-feedback-modal') || document.getElementById('innfo-export-modal'))!
+    const modal = (document.getElementById('nn-feedback-modal') || document.getElementById('nn-export-modal'))!
     expect(
-      modal.querySelector('[data-innfo="instructions"]')!.textContent,
+      modal.querySelector('[data-nn="instructions"]')!.textContent,
     ).toContain('2 unsent change(s)')
   })
 })

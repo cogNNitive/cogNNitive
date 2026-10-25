@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // SCS S1.7: header-level `sources` citation icons. An element whose `citations`
-// carry the `sources` family renders a `CitationIcon` in `.innfo-card-head`
+// carry the `sources` family renders a `CitationIcon` in `.nn-card-head`
 // (parity with the retired model viewer). `opts.head` carries it there.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -41,7 +41,7 @@ function renderShell(): void {
       `$1${JSON.stringify(buildModel())}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-config">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
@@ -68,10 +68,10 @@ describe('header-level sources icons', () => {
     const mods = env.loadConsole()
     const res = mods.Console.boot(env.document)
     if (res && res.controller) controllers.push(res.controller)
-    const head = env.document.querySelector('[data-element-id="t1"] .innfo-card-head')
+    const head = env.document.querySelector('[data-element-id="t1"] .nn-card-head')
     expect(head).not.toBeNull()
     expect(
-      head!.querySelectorAll('[data-innfo-component="citation-icon"]').length,
+      head!.querySelectorAll('[data-nn-component="citation-icon"]').length,
     ).toBeGreaterThanOrEqual(1)
   })
 })

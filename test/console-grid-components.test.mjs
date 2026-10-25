@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-global.InnfoIcons = require(join(consoleDir, 'nn-icons.js'))
+global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
 const UI = require(join(consoleDir, 'ui-kit.js'))
 
 describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () => {
@@ -43,10 +43,10 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
     it('renders a data-table with headers, element badge and field text', () => {
       const node = UI.DataTable({ columns, rows, emptyText: 'none' }, { doc: document })
       document.body.appendChild(node)
-      assert.equal(node.getAttribute('data-innfo-component'), 'data-table')
+      assert.equal(node.getAttribute('data-nn-component'), 'data-table')
       const ths = [...node.querySelectorAll('thead th')].map((t) => t.textContent)
       assert.deepEqual(ths, ['Name', 'Role'])
-      assert.ok(node.querySelector('[data-innfo-component="ku-unit"][data-element-id="ecto-1"]'))
+      assert.ok(node.querySelector('[data-nn-component="ku-unit"][data-element-id="ecto-1"]'))
       assert.equal(node.querySelector('tbody [data-col="role"]').textContent, 'Interceptor')
     })
 
@@ -71,7 +71,7 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
     it('renders the empty state when there are no rows', () => {
       const node = UI.DataTable({ columns, rows: [], emptyText: 'No hay elementos' }, { doc: document })
       document.body.appendChild(node)
-      const empty = node.querySelector('.innfo-grid-empty')
+      const empty = node.querySelector('.nn-grid-empty')
       assert.equal(empty.textContent, 'No hay elementos')
       assert.equal(empty.colSpan, 2)
     })
@@ -108,10 +108,10 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
     it('renders a pinned matrix-grid with a corner header and row headers', () => {
       const node = matrix()
       document.body.appendChild(node)
-      assert.equal(node.getAttribute('data-innfo-component'), 'matrix-grid')
+      assert.equal(node.getAttribute('data-nn-component'), 'matrix-grid')
       assert.equal(node.getAttribute('data-pin-first'), 'true')
-      assert.equal(node.querySelector('.innfo-grid-corner').textContent, 'Provider')
-      const heads = [...node.querySelectorAll('tbody .innfo-grid-rowhead')].map((h) => h.textContent)
+      assert.equal(node.querySelector('.nn-grid-corner').textContent, 'Provider')
+      const heads = [...node.querySelectorAll('tbody .nn-grid-rowhead')].map((h) => h.textContent)
       assert.deepEqual(heads, ['AWS', 'GCP'])
       assert.equal(node.querySelector('tbody tr[data-row="aws"] [data-col="2026-01"]').textContent, '📄')
       assert.equal(node.querySelector('tbody tr[data-row="gcp"] [data-col="2026-02"]').textContent, '⚠')
@@ -128,7 +128,7 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
         { doc: document },
       )
       document.body.appendChild(node)
-      assert.ok(node.querySelector('tbody .innfo-grid-rowhead strong'))
+      assert.ok(node.querySelector('tbody .nn-grid-rowhead strong'))
       assert.equal(node.querySelector('img'), null)
       assert.equal(node.querySelector('tbody [data-col="c"]').textContent, '<img src=x onerror=alert(1)>')
     })
@@ -158,9 +158,9 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
         { doc: document },
       )
       document.body.appendChild(node)
-      assert.equal(node.getAttribute('data-innfo-component'), 'timeline')
+      assert.equal(node.getAttribute('data-nn-component'), 'timeline')
       assert.equal(node.getAttribute('data-pin-first'), 'true')
-      assert.ok(node.querySelector('.innfo-grid-cell--center'))
+      assert.ok(node.querySelector('.nn-grid-cell--center'))
       assert.equal(node.querySelector('tbody tr[data-row="build"] [data-col="q1"]').textContent, 'done')
     })
 
@@ -176,17 +176,17 @@ describe('Data surfaces: Table / MatrixGrid / Timeline (shared grid core)', () =
       const m = UI.MatrixGrid({ columns: [{ key: 'n', label: 'N' }], rows: [] }, { doc: document })
       const l = UI.Timeline({ periods: [{ key: 'n', label: 'N' }], lanes: [] }, { doc: document })
       for (const surface of [t, m, l]) {
-        assert.ok(surface.classList.contains('innfo-grid-scroll'))
-        assert.equal(surface.querySelectorAll('table.innfo-grid').length, 1)
+        assert.ok(surface.classList.contains('nn-grid-scroll'))
+        assert.equal(surface.querySelectorAll('table.nn-grid').length, 1)
       }
     })
 
     it('owns a self-contained horizontal scroll port (no Tailwind dependency)', () => {
       const node = UI.MatrixGrid({ columns: [{ key: 'c', label: 'C' }], rows: [] }, { doc: document })
       document.body.appendChild(node)
-      const style = document.head.querySelector('style[data-innfo-tokens]')
+      const style = document.head.querySelector('style[data-nn-tokens]')
       assert.ok(style, 'token style injected')
-      assert.match(style.textContent, /\.innfo-grid-scroll\{[^}]*overflow:auto/)
+      assert.match(style.textContent, /\.nn-grid-scroll\{[^}]*overflow:auto/)
     })
   })
 })

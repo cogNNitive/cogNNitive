@@ -64,12 +64,12 @@ describe('organization org-chart view (bluepriNNt)', () => {
       modal: { edit: (a) => edits.push(a) },
     }
     def.mount(ctx)
-    const cards = container.querySelectorAll('.innfo-org-position')
+    const cards = container.querySelectorAll('.nn-org-position')
     assert.equal(cards.length, 1)
     assert.match(cards[0].textContent, /Chief Scientist/)
     assert.match(cards[0].textContent, /Dr\. Egon Spengler/)
     assert.ok(cards[0].querySelector('[data-ku-kind="element"]'), 'positions render as element Ku badges')
-    assert.equal(container.querySelector('.innfo-edit-anchor'), null, 'no un-gated view-mode edit anchor')
+    assert.equal(container.querySelector('.nn-edit-anchor'), null, 'no un-gated view-mode edit anchor')
   })
 
   it('shows an empty state with no organization elements', () => {
@@ -124,13 +124,13 @@ describe('projects roadmap view (bluepriNNt)', () => {
       modal: { edit: (a) => edits.push(a) },
     }
     def.mount(ctx)
-    const columns = container.querySelectorAll('.innfo-roadmap-milestone')
+    const columns = container.querySelectorAll('.nn-roadmap-milestone')
     assert.equal(columns.length, 1)
     assert.match(columns[0].textContent, /Full Grid Signoff/)
     assert.match(columns[0].textContent, /backlog/)
     assert.match(columns[0].textContent, /critical/)
     assert.ok(columns[0].querySelector('[data-ku-kind="element"]'), 'milestones render as element Ku badges')
-    assert.equal(container.querySelector('.innfo-edit-anchor'), null, 'no un-gated view-mode edit anchor')
+    assert.equal(container.querySelector('.nn-edit-anchor'), null, 'no un-gated view-mode edit anchor')
   })
 
   it('shows an empty state with no project elements', () => {

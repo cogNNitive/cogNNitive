@@ -119,7 +119,7 @@ describe('TestLab coverage domain fixtures', () => {
     assert.match(console, /TestLab_coverage_TestLab_NN\.md/)
     assert.match(console, /TestLab_procedures_TestLab_procedures_NN\.md/)
     // The procedures blueprint's Procedure view is inlined and fed the guided steps.
-    assert.match(console, /data-innfo-view="procedure"/)
+    assert.match(console, /data-nn-view="procedure"/)
     assert.match(console, /TestLab Guided Verification/)
     // The seeded changeset is embedded as Element 1B's changeset lineage.
     assert.match(console, /concept-1-element-1b/)

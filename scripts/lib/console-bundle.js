@@ -11,18 +11,18 @@ const path = require('node:path');
 const { getConsoleReleaseInfo } = require('./console-release-info.js');
 
 const SOURCES = [
-  ['nn-slug.generated.js', 'InnfoSlug'],
-  ['nn-address.generated.js', 'InnfoAddress'],
+  ['nn-slug.generated.js', 'nnSlug'],
+  ['nn-address.generated.js', 'nnAddress'],
   ['vendor/preact.umd.js', 'preact'],
   ['vendor/htm.umd.js', 'htm'],
-  ['nn-preact-init.js', 'InnfoPreact'],
+  ['nn-preact-init.js', 'nnPreact'],
   ['uplot.iife.min.js', 'uPlot'],
-  ['visuals.js', 'InnfoVisuals'],
-  ['nn-icons.js', 'InnfoIcons'],
-  ['ui-kit.js', 'InnfoUI'],
-  ['review.js', 'InnfoReview'],
-  ['nn-runtime.js', 'InnfoConsole'],
-  ['render-procedure-stepper.js', 'InnfoProcedureStepper'],
+  ['visuals.js', 'nnVisuals'],
+  ['nn-icons.js', 'nnIcons'],
+  ['ui-kit.js', 'nnUI'],
+  ['review.js', 'nnReview'],
+  ['nn-runtime.js', 'nnConsole'],
+  ['render-procedure-stepper.js', 'nnProcedureStepper'],
 ];
 
 /**

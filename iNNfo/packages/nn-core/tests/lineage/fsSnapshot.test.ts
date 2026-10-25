@@ -10,7 +10,7 @@ describe('readLineageSnapshot', () => {
   let tempDir: string
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-snapshot-test-'))
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-snapshot-test-'))
   })
 
   afterEach(() => {

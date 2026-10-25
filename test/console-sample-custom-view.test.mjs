@@ -85,18 +85,18 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
   }
 
   it('is exported by --domain and listed in the header', () => {
-    const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
+    const header = html.match(/<!-- nn-views[\s\S]*?-->/)[0]
     assert.match(header, new RegExp(`^${VIEW_ID} domaiNN domaiNN:consoles/views/${VIEW_ID}\\.js sha256:[0-9a-f]{12}$`, 'm'))
   })
 
   it('registers under its file slug and lists elements without a description', async () => {
     const dom = await boot()
     const doc = dom.window.document
-    assert.equal(doc.getElementById('innfo-view-errors'), null, 'registered without errors')
-    const tab = doc.querySelector(`#innfo-view-tabs [data-tab="${VIEW_ID}"]`)
+    assert.equal(doc.getElementById('nn-view-errors'), null, 'registered without errors')
+    const tab = doc.querySelector(`#nn-view-tabs [data-tab="${VIEW_ID}"]`)
     assert.ok(tab, 'tab present')
     tab.click()
-    const rows = doc.querySelectorAll(`#innfo-tab-${VIEW_ID} [data-element-id]`)
+    const rows = doc.querySelectorAll(`#nn-tab-${VIEW_ID} [data-element-id]`)
     assert.ok(rows.length > 0, 'lists elements')
     const model = JSON.parse(doc.getElementById('innfo-model').textContent)
     const missing = model.elements.filter((e) => !String(e.description ?? '').trim())
@@ -120,24 +120,24 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     dom.window.HTMLAnchorElement.prototype.click = function () {
       if (this.download) downloads[downloads.length - 1].filename = this.download
     }
-    doc.getElementById('innfo-feedback-open').click()
-    const identifier = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    doc.getElementById('nn-feedback-open').click()
+    const identifier = doc.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     identifier.value = 'tester'
     identifier.dispatchEvent(new dom.window.Event('input'))
-    doc.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]').click()
+    doc.querySelector('#nn-feedback-modal [data-nn="download-changeset"]').click()
     return downloads
   }
 
   it('proposes a description in the scoped console and exports it in the single changeset', async () => {
     const dom = await boot(scopedHtml)
     const doc = dom.window.document
-    assert.equal(doc.getElementById('innfo-view-errors'), null)
-    const row = doc.querySelector(`#innfo-tab-${VIEW_ID} [data-element-id]`)
+    assert.equal(doc.getElementById('nn-view-errors'), null)
+    const row = doc.querySelector(`#nn-tab-${VIEW_ID} [data-element-id]`)
     const id = row.dataset.elementId
     row.querySelector('input').value = 'A proposed description.'
     row.querySelector('button').click()
 
-    assert.match(doc.querySelector('#innfo-review-dock .innfo-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(doc.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
     const downloads = exportChangeset(dom)
     assert.equal(downloads.length, 1, 'a single changeset')
     const [{ text, filename }] = downloads
@@ -152,8 +152,8 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
   it('locks a proposed row so repeated clicks cannot stack duplicate proposals', async () => {
     const dom = await boot()
     const doc = dom.window.document
-    doc.querySelector(`#innfo-view-tabs [data-tab="${VIEW_ID}"]`).click()
-    const row = doc.querySelector(`#innfo-tab-${VIEW_ID} [data-element-id]`)
+    doc.querySelector(`#nn-view-tabs [data-tab="${VIEW_ID}"]`).click()
+    const row = doc.querySelector(`#nn-tab-${VIEW_ID} [data-element-id]`)
     const input = row.querySelector('input')
     const button = row.querySelector('button')
     input.value = 'First.'

@@ -184,7 +184,7 @@ describe('record helpers', () => {
 describe('readLineageRecord', () => {
   let tempDir: string
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-record-test-'))
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-record-test-'))
   })
   afterEach(() => {
     fs.rmSync(tempDir, { recursive: true, force: true })

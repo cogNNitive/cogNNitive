@@ -10,7 +10,7 @@
  * 3. Shell needs are valid subset of needs-registry.
  * 4. Required DOM anchors are present for declared capabilities.
  * 5. Script tag pins match manifest/source.yaml nn-console version without floating refs.
- * 6. Dead `runtime` key rejected in `innfo-config`.
+ * 6. Dead `runtime` key rejected in `nn-config`.
  * 7. Generated shells (marked `nn:console-shell`) carry the CURRENT console pin — a
  *    release bump must regenerate them, else they drift. Authored shells (no marker)
  *    are pinned but not force-regenerated.
@@ -85,12 +85,12 @@ function extractDomIds(html) {
 }
 
 /**
- * Extracts JSON config from `<script type="application/json" id="innfo-config">`.
+ * Extracts JSON config from `<script type="application/json" id="nn-config">`.
  * @param {string} html
  * @returns {{ config: any, raw: string, error?: string } | null}
  */
 function extractShellConfig(html) {
-  const configMatch = /<script[^>]*id=["']innfo-config["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
+  const configMatch = /<script[^>]*id=["']nn-config["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
   if (!configMatch) return null;
   try {
     const config = JSON.parse(configMatch[1]);
@@ -126,7 +126,7 @@ function discoverConsoleShells(repoRoot) {
         walk(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.html')) {
         const content = fs.readFileSync(fullPath, 'utf8');
-        if (content.includes('id="innfo-config"') || content.includes("id='innfo-config'") || content.includes('nn-console.bundle.js')) {
+        if (content.includes('id="nn-config"') || content.includes("id='nn-config'") || content.includes('nn-console.bundle.js')) {
           results.push(relPosix);
         }
       }
@@ -168,7 +168,7 @@ function getExpectedConsoleVersion(repoRoot) {
  * including inside an `@media`). Layout custom properties (e.g. `--sidebar-w:
  * 280px`) and token indirections (`var(...)`) are allowed; hex / rgb() / hsl()
  * / named-ish color literals on a `:root` custom property are flagged. Shells
- * must consume `var(--innfo-*)` tokens instead of inventing colors.
+ * must consume `var(--nn-*)` tokens instead of inventing colors.
  *
  * @param {string} html
  * @returns {Array<{ line: number, selector: string, declaration: string }>}
@@ -248,12 +248,12 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
     const parsed = extractShellConfig(content);
 
     if (!parsed) {
-      errors.push(`Shell ${shellPath} is missing an #innfo-config script tag`);
+      errors.push(`Shell ${shellPath} is missing an #nn-config script tag`);
       continue;
     }
 
     if (parsed.error) {
-      errors.push(`Shell ${shellPath} has invalid JSON in #innfo-config: ${parsed.error}`);
+      errors.push(`Shell ${shellPath} has invalid JSON in #nn-config: ${parsed.error}`);
       continue;
     }
 
@@ -261,7 +261,7 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
 
     // Requirement: Dead runtime key rejected
     if (config && 'runtime' in config) {
-      errors.push(`Shell ${shellPath} contains forbidden "runtime" key in innfo-config`);
+      errors.push(`Shell ${shellPath} contains forbidden "runtime" key in nn-config`);
     }
 
     const needs = Array.isArray(config?.needs) ? config.needs : [];
@@ -305,14 +305,14 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
       errors.push(`Shell ${shellPath} does not load the nn-console bundle via CDN script tag`);
     }
 
-    // Requirement: shells must consume var(--innfo-*) tokens, never :root color
+    // Requirement: shells must consume var(--nn-*) tokens, never :root color
     // literals (all discovered shells; options.enforcedRootShells is a test seam).
     const enforced = options.enforcedRootShells || shells;
     if (enforced.indexOf(shellPath) !== -1) {
       for (const finding of findRootColorDeclarations(content)) {
         errors.push(
           `${shellPath}:${finding.line} declares a hard-coded color in "${finding.selector}" ` +
-            `(${finding.declaration}); use var(--innfo-*) tokens`,
+            `(${finding.declaration}); use var(--nn-*) tokens`,
         );
       }
     }
