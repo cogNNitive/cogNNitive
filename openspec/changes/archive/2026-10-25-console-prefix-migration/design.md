@@ -49,7 +49,7 @@ artifacts, then the canonical corpus.
 | Custom property | `--innfo-surface` | `--nn-surface` | Q1; 63 names |
 | Class | `.innfo-ku` | `.nn-ku` | 324 names |
 | Data attribute | `data-innfo-component` | `data-nn-component` | 20 names |
-| JS global | `InnfoUI` | `NnUI` | Q2/Q3; 10 names |
+| JS global | `InnfoUI` | `nnUI` | Q2/Q3; 10 names. The shipped answer kept the lowercase `nn` prefix the other kinds use; the `Nn*` PascalCase reading recorded earlier was not implemented |
 | DOM id | `innfo-field-dialog` | `nn-field-dialog` | 375 literals |
 | File name | `nn-ui.css` | — | already done |
 
