@@ -712,6 +712,61 @@ scenarioMonths:: 12
       assert.ok(concepts.has('Widget'), 'second model elements are embedded')
     })
 
+    it('surfaces the Sources, Artifacts and Procedures catalogs as console models, but never the entrypoint or changesets', async () => {
+      // The allowlisted core catalogs are role `catalog`; the exporter opts them in.
+      await writeFile(
+        join(tempDir, 'sources_NN.md'),
+        `---\ntitle: "Sources Catalog"\nlevel: 3\nparent_spec:\n  name: "sources"\n---\n\n# NN Source\n## NN Source: Report\n  slug:: report\n  format:: md\n`,
+        'utf-8',
+      )
+      await writeFile(
+        join(tempDir, 'artifacts_NN.md'),
+        `---\ntitle: "Artifacts Catalog"\nlevel: 3\nparent_spec:\n  name: "artifacts"\n---\n\n# NN Artifact\n## NN Artifact: Report\n  slug:: report\n  format:: model\n`,
+        'utf-8',
+      )
+      await writeFile(
+        join(tempDir, 'procedures_NN.md'),
+        `---\ntitle: "Procedures Catalog"\nlevel: 3\nparent_spec:\n  name: "procedures"\n---\n\n# NN Procedure\n## NN Procedure: Run\n  slug:: run\n`,
+        'utf-8',
+      )
+      // The entrypoint carries structural, unslugged elements: it must stay excluded,
+      // or the frozen-slug gate would reject the whole export.
+      await writeFile(
+        join(tempDir, 'domaiNN_NN.md'),
+        `---\ntitle: "Domain"\nlevel: 3\nparent_spec:\n  name: "workspace"\n---\n\n# NN Workspace\n## NN Workspace: My Domain\nknowledge_dir:: kNNowledge/\n`,
+        'utf-8',
+      )
+      // Changesets are role `changeset` (a collection, never a model): they must stay
+      // out of the model set, and their presence must not break the export.
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'changes', 'c1_changes_NN.md'),
+        `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: applied\ntitle: "C"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: business@enterprise\nnotes:: "a note"\n`,
+        'utf-8',
+      )
+
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const slot = await modelSlot()
+      assert.deepEqual(
+        slot.meta.models.map((m) => m.filePath).sort(),
+        ['<changes>', 'artifacts_NN.md', 'business_V_1-0-0_NN.md', 'procedures_NN.md', 'sources_NN.md'],
+        'the allowlisted catalogs join the model set; the changes collection is a model while the entrypoint and the changeset document stay out',
+      )
+      assert.ok(
+        slot.elements.some((el) => el.concept === 'Source' && el.modelId === 'sources'),
+        'the Sources catalog elements are embedded as a model',
+      )
+      assert.ok(
+        slot.elements.some((el) => el.concept === 'Artifact' && el.modelId === 'artifacts'),
+        'the Artifacts catalog elements are embedded as a model',
+      )
+      assert.ok(
+        slot.elements.some((el) => el.concept === 'Procedure' && el.modelId === 'procedures'),
+        'the Procedures catalog elements are embedded as a model',
+      )
+    })
+
     it('embeds the precomputed per-element history from the domain changesets', async () => {
       await mkdir(join(tempDir, 'changes'), { recursive: true })
       await writeFile(
