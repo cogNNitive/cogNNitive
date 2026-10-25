@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-Af5Q0vlQ8p3YS1c2i9xHKmxYoyuES+/9hpEFapZvofA=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-fWBET/YHkFlfK0If2KR/PG0ZAHLvHV5Uy3IRebnDnPc=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -22,8 +22,8 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
 
     Generating agents MUST only:
       1. Declare capabilities in the nn-config needs[] list below.
-      2. Paste the Schema JSON Contract into #innfo-schema.
-      3. Paste the Model JSON Contract into #innfo-model.
+      2. Paste the Schema JSON Contract into #nn-schema.
+      3. Paste the Model JSON Contract into #nn-model.
     The shared runtime (nn-runtime.js, window.nnConsole) renders the rail
     cards, search, facets, cards, matrices, drafts and export modal.
     Do NOT inline runtime code here.
@@ -8516,7 +8516,7 @@ input[type="text"], input[type="search"], textarea, select {
   }
 }
 </script>
-    <script type="application/json" id="innfo-schema">
+    <script type="application/json" id="nn-schema">
 {
   "concepts": [
     {
@@ -10138,14 +10138,14 @@ input[type="text"], input[type="search"], textarea, select {
   ]
 }
 </script>
-    <script type="application/json" id="innfo-model">
+    <script type="application/json" id="nn-model">
 {
   "meta": {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-492f4f66",
-    "generated": "2026-10-24T09:51:15.419Z",
+    "domainId": "testlab-909a6b0b",
+    "generated": "2026-10-25T08:55:44.279Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10156,7 +10156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-24T09:51:15.298Z",
+        "citationsResolvedAt": "2026-10-25T08:55:44.179Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -20071,12 +20071,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     try {
       schema = JSON.parse(String(schemaRaw || '').trim() || '{}')
     } catch {
-      throw new Error('nn-console: innfo-schema slot holds corrupt JSON')
+      throw new Error('nn-console: nn-schema slot holds corrupt JSON')
     }
     try {
       model = JSON.parse(String(modelRaw || '').trim() || '{}')
     } catch {
-      throw new Error('nn-console: innfo-model slot holds corrupt JSON')
+      throw new Error('nn-console: nn-model slot holds corrupt JSON')
     }
     if (!isObject(schema) || !isObject(model)) {
       throw new Error('nn-console: slots must decode to JSON objects')
@@ -20595,7 +20595,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // ---- Charts (shared console capability) ----
   // The runtime renders charts from pure-data series only: `compileChartSeries`
-  // maps innfo-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
+  // maps nn-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
   // never executes slot JavaScript. `monthAxis` derives the x-axis month window
   // from meta.months / historyMonths / startMonth / startYear. Missing series
   // for a declared chartId degrade to a console warning (chart skipped); the
@@ -26221,7 +26221,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
     var config = parseConfig(slotText(active, 'nn-config'))
-    var slots = parseSlots(slotText(active, 'innfo-schema'), slotText(active, 'innfo-model'))
+    var slots = parseSlots(slotText(active, 'nn-schema'), slotText(active, 'nn-model'))
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}

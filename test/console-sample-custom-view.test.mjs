@@ -98,7 +98,7 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     tab.click()
     const rows = doc.querySelectorAll(`#nn-tab-${VIEW_ID} [data-element-id]`)
     assert.ok(rows.length > 0, 'lists elements')
-    const model = JSON.parse(doc.getElementById('innfo-model').textContent)
+    const model = JSON.parse(doc.getElementById('nn-model').textContent)
     const missing = model.elements.filter((e) => !String(e.description ?? '').trim())
     assert.equal(rows.length, missing.length, 'exactly the elements without a description')
   })

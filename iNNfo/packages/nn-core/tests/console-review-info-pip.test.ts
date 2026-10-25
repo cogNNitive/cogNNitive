@@ -31,11 +31,11 @@ let controllers: any[] = []
 function boot(withReview: boolean) {
   const html = readFileSync(shellPath, 'utf8')
     .replace(
-      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(model)}$2`,
     )
     .replace(

@@ -112,8 +112,8 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
     const res = await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
     stderr = res.stderr
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
-    schema = slotOf(html, 'innfo-schema')
-    model_ = slotOf(html, 'innfo-model')
+    schema = slotOf(html, 'nn-schema')
+    model_ = slotOf(html, 'nn-model')
   })
 
   after(() => rm(root, { recursive: true, force: true }))

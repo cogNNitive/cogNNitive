@@ -227,9 +227,9 @@ Transcribe it.
       const expectedHash = computeHash(sourceContent)
 
       const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
       )
-      assert.ok(jsonMatch, 'innfo-model script slot exists in HTML')
+      assert.ok(jsonMatch, 'nn-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
       assert.equal(modelJson.meta.models[0].filePath, 'business_V_0-2-5_NN.md')
@@ -254,9 +254,9 @@ Transcribe it.
       const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
       )
-      assert.ok(jsonMatch, 'innfo-model script slot exists in HTML')
+      assert.ok(jsonMatch, 'nn-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
       const element = modelJson.elements.find((e) => e.fields.tagline)
@@ -299,9 +299,9 @@ notes:: "Please review the tagline"
       assert.equal(res.code, 0)
       const htmlContent = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
       const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
       )
-      assert.ok(jsonMatch, 'innfo-model slot exists')
+      assert.ok(jsonMatch, 'nn-model slot exists')
       const modelJson = JSON.parse(jsonMatch[1])
       const element = modelJson.elements.find((e) => e.name === 'Enterprise Customer')
       assert.ok(element, 'fixture element exists')
@@ -377,7 +377,7 @@ notes:: "Please review the tagline"
       const members = await readdir(join(tempDir, 'artifacts', families[0]))
       assert.equal(members.length, 1)
       const html = await readFile(join(tempDir, 'artifacts', families[0], members[0]), 'utf-8')
-      const model = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const model = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
       assert.equal(model.meta.consoleScope.models.length, 3)
       assert.deepEqual(
         model.meta.models.map((m) => m.filePath).sort(),
@@ -732,7 +732,7 @@ notes:: "Please review the tagline"
       await install(dir)
       await runInstalled(dir, ['business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const model = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const model = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
       assert.deepEqual(model.meta.consoleScope.models, ['models/business_V_0-2-5'])
     })
   })
@@ -783,14 +783,14 @@ notes:: "Please review the tagline"
       const dirFiles = await readdir(join(tempDir, 'artifacts', 'business_V_0-2-5_console'))
       assert.deepEqual(dirFiles, ['business_V_0-2-5_console.html'], 'no stamped console, bundle or tmp file')
       const html = await readFile(stable, 'utf-8')
-      const meta = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1]).meta
+      const meta = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]).meta
       assert.equal(meta.models[0].sha256, computeHash(await readFile(file, 'utf-8')))
     })
 
     it('embeds per-model meta.sources from the core payload builder', async () => {
       await runCli([tempDir, 'business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const meta = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1]).meta
+      const meta = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]).meta
       const sources = meta.models[0].sources
       assert.ok(Array.isArray(sources) && sources.length > 0)
       assert.ok(sources[0].endsWith('business_V_0-2-5_NN.md'))
@@ -959,7 +959,7 @@ level: 3
       const res = await runCli([tempDir, '--domain'])
       assert.equal(res.code, 0, res.stderr)
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
-      return JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      return JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
     }
 
     it('qualifies element ids with the model id and remaps relations to them', async () => {
@@ -1031,7 +1031,7 @@ metricValue:: 56
       const htmlPath = consoleHtml(tempDir, 'matrix_V_0-1-0')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const modelJson = JSON.parse(
-        htmlContent.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1],
+        htmlContent.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)[1],
       )
 
       assert.equal(modelJson.matrices.length, 2, 'both ordinary matrices serialized')
@@ -1050,7 +1050,7 @@ metricValue:: 56
   })
 
   describe('Phase 8: Declared field definitions in schema slot and element inheritance', () => {
-    it('aggregates declared field definitions in innfo-schema slot and element fields in innfo-model slot', async () => {
+    it('aggregates declared field definitions in nn-schema slot and element fields in nn-model slot', async () => {
       const docWithTags = `---
 title: "Goals Model"
 knowledge_version: "V_1-0-0"
@@ -1073,13 +1073,13 @@ health:: critical
       assert.equal(res.code, 0)
 
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
-      const schemaMatch = html.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)
-      assert.ok(schemaMatch, 'innfo-schema script tag found')
+      const schemaMatch = html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)
+      assert.ok(schemaMatch, 'nn-schema script tag found')
       const schemaJson = JSON.parse(schemaMatch[1])
       assert.ok(Array.isArray(schemaJson.fields), 'schema.fields is an array')
 
-      const modelMatch = html.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)
-      assert.ok(modelMatch, 'innfo-model script tag found')
+      const modelMatch = html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
+      assert.ok(modelMatch, 'nn-model script tag found')
       const modelJson = JSON.parse(modelMatch[1])
       assert.ok(Array.isArray(modelJson.elements), 'model.elements is an array')
 

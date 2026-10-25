@@ -19,13 +19,13 @@ describe('artifact_shell.html (console shell)', () => {
     expect(readShell().toLowerCase()).toContain('<!doctype html>')
   })
 
-  it('declares exactly the nn-config block plus innfo-schema and innfo-model slots', () => {
+  it('declares exactly the nn-config block plus nn-schema and nn-model slots', () => {
     const html = readShell()
     expect(html).toContain('id="nn-config"')
-    expect(html).toContain('id="innfo-schema"')
-    expect(html).toContain('id="innfo-model"')
-    const schemaSlots = (html.match(/id="innfo-schema"/g) ?? []).length
-    const modelSlots = (html.match(/id="innfo-model"/g) ?? []).length
+    expect(html).toContain('id="nn-schema"')
+    expect(html).toContain('id="nn-model"')
+    const schemaSlots = (html.match(/id="nn-schema"/g) ?? []).length
+    const modelSlots = (html.match(/id="nn-model"/g) ?? []).length
     expect(schemaSlots).toBe(1)
     expect(modelSlots).toBe(1)
   })

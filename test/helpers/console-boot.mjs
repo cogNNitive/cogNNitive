@@ -50,8 +50,8 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
         </main>
       </div>
       <script type="application/json" id="nn-config">${JSON.stringify(configSlot)}</script>
-      <script type="application/json" id="innfo-schema">${JSON.stringify(schemaSlot)}</script>
-      <script type="application/json" id="innfo-model">${JSON.stringify(model)}</script>
+      <script type="application/json" id="nn-schema">${JSON.stringify(schemaSlot)}</script>
+      <script type="application/json" id="nn-model">${JSON.stringify(model)}</script>
     </body></html>`,
     runScripts ? { url, runScripts } : { url },
   )
@@ -72,11 +72,11 @@ export function bootConsoleFromShell() {
   const html = shell
     .replace(/<script\s+src=[^>]*><\/script>/g, '')
     .replace(
-      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
       (_m, open, close) => open + JSON.stringify(MODEL) + close,
     )
     .replace(
-      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+      /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       (_m, open, close) => open + JSON.stringify({ concepts: [{ name: 'Fleet' }] }) + close,
     )
   const dom = new JSDOM(html, { url: 'http://localhost' })

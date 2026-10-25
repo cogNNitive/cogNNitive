@@ -100,7 +100,7 @@ describe('export-console size budget and --view (S2c2)', () => {
     await new Promise((ok) => dom.window.addEventListener('load', ok))
     return dom
   }
-  const modelOf = (dom) => JSON.parse(dom.window.document.getElementById('innfo-model').textContent)
+  const modelOf = (dom) => JSON.parse(dom.window.document.getElementById('nn-model').textContent)
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'nn-view-'))
@@ -200,7 +200,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       const members = (await readdir(dir)).map((n) => join(dir, n))
       assert.equal(members.length, 1)
       const model = JSON.parse(
-        (await readFile(members[0], 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1],
+        (await readFile(members[0], 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1],
       )
       assert.equal(model.meta.consoleScope.view, 'alpha')
       assert.equal(model.meta.consoleScope.models.length, 1)

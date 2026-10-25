@@ -25,15 +25,11 @@ const LEGACY = [
   'KuActions',
 ]
 
-// Identifiers that still carry the retired `innfo` prefix. These two are NOT
-// console identifiers: they are the payload slot ids, produced by
-// `nn-core/src/console/schema-resolution.ts` ("MUST obtain the `innfo-schema`
-// slot from this single function") and read back out of a written artifact by
-// `nn-core/src/lineage/project.ts`, which parses `<script id="innfo-model">` from
-// committed HTML. Renaming them needs a backward-compatible read over persisted
-// artifacts, so it is tracked separately
-// (openspec/changes/console-prefix-migration). Everything else carries `nn-`.
-const PREFIX_ALLOWLIST = ['innfo-schema', 'innfo-model']
+// Empty: the payload slot ids were the last `innfo` identifiers and now carry
+// `nn-` too. The readers of artifacts that were already written keep a dual read
+// (`nn-core/src/lineage/project.ts`, `scripts/export-console.mjs`), so the
+// allowlist is no longer needed.
+const PREFIX_ALLOWLIST = []
 
 // A retired name is only reported when it stands alone. A prefixed name must not
 // trip on the suffix it carries: `nn-field-row` contains `field-row`.

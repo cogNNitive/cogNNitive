@@ -6913,12 +6913,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     try {
       schema = JSON.parse(String(schemaRaw || '').trim() || '{}')
     } catch {
-      throw new Error('nn-console: innfo-schema slot holds corrupt JSON')
+      throw new Error('nn-console: nn-schema slot holds corrupt JSON')
     }
     try {
       model = JSON.parse(String(modelRaw || '').trim() || '{}')
     } catch {
-      throw new Error('nn-console: innfo-model slot holds corrupt JSON')
+      throw new Error('nn-console: nn-model slot holds corrupt JSON')
     }
     if (!isObject(schema) || !isObject(model)) {
       throw new Error('nn-console: slots must decode to JSON objects')
@@ -7437,7 +7437,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // ---- Charts (shared console capability) ----
   // The runtime renders charts from pure-data series only: `compileChartSeries`
-  // maps innfo-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
+  // maps nn-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
   // never executes slot JavaScript. `monthAxis` derives the x-axis month window
   // from meta.months / historyMonths / startMonth / startYear. Missing series
   // for a declared chartId degrade to a console warning (chart skipped); the
@@ -13063,7 +13063,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
     var config = parseConfig(slotText(active, 'nn-config'))
-    var slots = parseSlots(slotText(active, 'innfo-schema'), slotText(active, 'innfo-model'))
+    var slots = parseSlots(slotText(active, 'nn-schema'), slotText(active, 'nn-model'))
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}

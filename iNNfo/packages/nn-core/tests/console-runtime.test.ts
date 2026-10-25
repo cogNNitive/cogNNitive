@@ -88,7 +88,7 @@ describe('parseConfig / hasNeed (needs[] capability gating)', () => {
   })
 })
 
-describe('parseSlots (innfo-schema / innfo-model hydration input)', () => {
+describe('parseSlots (nn-schema / nn-model hydration input)', () => {
   it('parses populated schema and model slots', () => {
     const { schema, model } = loadCore().parseSlots(
       JSON.stringify({ concepts: [{ name: 'Problems' }] }),
