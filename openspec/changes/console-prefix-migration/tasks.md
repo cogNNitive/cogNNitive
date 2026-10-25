@@ -41,9 +41,10 @@ Strict TDD. Units A–E are separate commits; unit C is one commit per file.
 
 ## 5. Corpus sweep (unit E) — subject to Q4
 
-- [ ] 5.1 Rename the console names inside the 99 `openspec/specs/*/spec.md` files (token substitution only, no requirement semantics).
-- [ ] 5.2 Rename the same names in `iNNfo/specs/**` and `docs/**` prose.
-- [ ] 5.3 `npm run check:spec-urls` green (the `spec-integrity` CI job).
+- [x] 5.1 Rename the console names inside `openspec/specs/*/spec.md` (token substitution only, no requirement semantics). Done: **17 files**, a curated old→new map validated against the shipped console sources (not a blanket `innfo`→`nn`). Excluded on purpose: paths (`docs/innfo/`, `iNNfo/`), the product name `iNNfo`, the `nn-innfo` skill, the retired distribution names (`innfo-core`/`innfo-mcp`/`innfo-editor`), the legacy artifact names (`innfo-console.bundle.js`, `innfo-ui.css`), spec capability ids (`innfo-console-runtime`, `innfo-console-feedback`) and the pre-migration store key (`innfo-console:v3:`). Adjudicated historical/negative lines and left them alone: the `(Previously: …)` notes, the legacy `/app/innfo-doc` endpoints in `document-badge`, and the stale-path scenario in `manifest-governance`.
+- [x] 5.2 Rename the same names in `iNNfo/specs/**` and `docs/**` prose. Measured: no renamable console identifier remains there (only paths, `iNNfo`, the `nn-innfo` skill and the retired distribution names); **no edit needed**.
+- [x] 5.3 `npm run check:spec-urls` green (the `spec-integrity` CI job).
+- [x] 5.4 The three requirements that contradicted the shipped rename are reconciled. The 14 specs whose requirement text only **names** a renamed identifier are covered by the token sweep above. The two requirements that state the opposite contract are superseded by deltas in this change (`specs/innfo-console-runtime/spec.md` and `specs/console-export-slots-and-standalone-pin/spec.md`, each `RENAMED` + `MODIFIED`): *"Internal console identifiers are unchanged by the rename"* becomes *"Console identifiers carry the nn prefix with a dual read"*, and *"Embedded slot ids are not part of the rename"* becomes *"Embedded slot ids carry the nn prefix with a legacy read"*. Their living text deliberately keeps the original heading and body so the archive's `RENAMED` step still finds its source; `canonical-vocabulary`'s exclusion list is corrected in place (naming only, no delta). `openspec validate console-prefix-migration --strict` is green.
 
 ## 6. Verify
 

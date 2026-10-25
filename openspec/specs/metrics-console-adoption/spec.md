@@ -6,7 +6,7 @@ The `metrics` bluepriNNt ships its Timeline console as a **registered console vi
 (`assets/console-view-timeline.js`, `registerView`). The shared runtime mounts it
 inside the domaiNN console; the view derives the timeline grid from the shared
 payload's metrics elements. The old single-model stack — a standalone
-`*_console.html` artifact, an `innfo-model` `meta`+`rows`+`series` snapshot, a
+`*_console.html` artifact, an `nn-model` `meta`+`rows`+`series` snapshot, a
 `verify.harness.js` gate, and a `Create Timeline` generation procedure — is
 **retired**. Console generation is the domain exporter's job; views are its
 specialization.
@@ -16,7 +16,7 @@ specialization.
 The `metrics` bluepriNNt MUST ship its Timeline console as a registered view: a
 classic script at `assets/console-view-timeline.js` that calls `registerView` and
 derives its grid from `ctx.payload`. It MUST NOT depend on a standalone console
-artifact, an `innfo-model` `rows`/`series` snapshot, or a verify harness. The view
+artifact, an `nn-model` `rows`/`series` snapshot, or a verify harness. The view
 MUST work in the whole-domaiNN console, in a model-scoped console and as a
 view-scoped console (`--view timeline`), reading only the models present in the
 scoped payload.

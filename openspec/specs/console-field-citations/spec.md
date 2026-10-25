@@ -39,7 +39,7 @@ An element compiled without a `citations` payload MUST render exactly as it did 
 
 ### Requirement: Origin-typed citation icons
 
-The runtime card renderer (`InnfoUI.ElementCard`, driven by `InnfoConsole`) MUST place one icon per citation-typed field with resolved citations, as follows:
+The runtime card renderer (`nnUI.ElementCard`, driven by `nnConsole`) MUST place one icon per citation-typed field with resolved citations, as follows:
 
 - For `sources`-family fields, the icon MUST be placed on the element header.
 - For any other citation-typed field, the icon MUST be placed on that field's row.
@@ -76,22 +76,22 @@ The header-level placement MUST hold in a runtime-rendered card even when the `s
 
 ### Requirement: Native citation detail dialog
 
-Clicking a citation icon MUST open a native `<dialog id="innfo-citation-dialog">` via `showModal()`.
+Clicking a citation icon MUST open a native `<dialog id="nn-citation-dialog">` via `showModal()`.
 
 Inside the dialog, each cited source MUST be rendered as a knowledge-unit badge using `Ku` with kind `'source'`. The Source badge:
-- Displays the warm paper background token (`--innfo-source-paper`).
+- Displays the warm paper background token (`--nn-source-paper`).
 - Displays nature as `container` when it is a bare path, or `content` when it points to a specific subunit anchor (`path@unit`).
 - Exposes an info button (`[data-ku-action="info"]`) opening `KuInfoPanel` with source metadata (path, anchor, version, sha256, exists flag).
 - MUST NOT expose an edit pencil affordance (`editability === 'none'`).
 
-Each cited source MUST render as ONE card (`article.innfo-cite-card`) whose left edge carries the provenance (`data-origin`), so a reader can tell where one citation ends and the next begins. The card holds, in order: the Source badge, a provenance chip (the origin icon plus its label, e.g. `Human author`), a `resolved`/`unresolved` status chip, a metadata list carrying ONLY the fields that exist (anchor, version, sha256, error, path), the excerpt with a visible truncation mark when capped, and an "Open original" link (`a.innfo-cite-open`, `target="_blank"`, `rel="noopener noreferrer"`) that MUST NOT render for an entry with `error` set. Missing optional fields MUST be omitted rather than replaced with placeholders.
+Each cited source MUST render as ONE card (`article.nn-cite-card`) whose left edge carries the provenance (`data-origin`), so a reader can tell where one citation ends and the next begins. The card holds, in order: the Source badge, a provenance chip (the origin icon plus its label, e.g. `Human author`), a `resolved`/`unresolved` status chip, a metadata list carrying ONLY the fields that exist (anchor, version, sha256, error, path), the excerpt with a visible truncation mark when capped, and an "Open original" link (`a.nn-cite-open`, `target="_blank"`, `rel="noopener noreferrer"`) that MUST NOT render for an entry with `error` set. Missing optional fields MUST be omitted rather than replaced with placeholders.
 
 (Previously: citations in the dialog were rendered as unbadged plain text with separate link elements; the entries were then a flat list of siblings — badge, fields, link and excerpt one after another — with no per-entry grouping.)
 
 #### Scenario: Opening dialog renders Source badge
 - GIVEN a citation icon clicked for field `"pricing"`
-- WHEN `<dialog id="innfo-citation-dialog">` opens
-- THEN each citation renders a `[data-innfo-component="ku-unit"][data-ku-kind="source"]` badge
+- WHEN `<dialog id="nn-citation-dialog">` opens
+- THEN each citation renders a `[data-nn-component="ku-unit"][data-ku-kind="source"]` badge
 - AND each Source badge carries its canonical citation address
 
 #### Scenario: Source badge has info action and no edit pencil
@@ -103,34 +103,34 @@ Each cited source MUST render as ONE card (`article.innfo-cite-card`) whose left
 #### Scenario: One card per cited source
 - GIVEN a dialog entry list with three resolved sources of different origins
 - WHEN the dialog renders
-- THEN three `article.innfo-cite-card` elements exist, each carrying its own `data-origin`
+- THEN three `article.nn-cite-card` elements exist, each carrying its own `data-origin`
 
 #### Scenario: An errored entry offers no link
 - GIVEN an entry with `error` set
 - WHEN the dialog renders
-- THEN its card carries the `unresolved` status and no `a.innfo-cite-open`
+- THEN its card carries the `unresolved` status and no `a.nn-cite-open`
 
 #### Scenario: Absent optional fields are omitted
 - GIVEN an entry with only `path` and `exists`
 - WHEN its card renders
 - THEN the metadata list has no empty `dd` for anchor, version, sha256 or error
 
-### Requirement: Consoles emit `innfo-model.meta.sources`
+### Requirement: Consoles emit `nn-model.meta.sources`
 
-The console payload builder (single source of `innfo-model.meta`, inherited by `export-console`) MUST set `innfo-model.meta.sources` to a single FILE-LEVEL citation of the kNNowledge document the console was compiled from, e.g. `["kNNowledge/Client_NN.md"]` (bare path, no anchor). It MUST NOT copy or union that document's element-level citations; the kNNowledge-to-Source edges are already written once in the kNNowledge body. The file-level hop is staleness-checked by `meta.sha256`. The `export-meta` convention MUST be deleted: nothing MAY emit or read it. The contract example MUST show an `@` citation.
+The console payload builder (single source of `nn-model.meta`, inherited by `export-console`) MUST set `nn-model.meta.sources` to a single FILE-LEVEL citation of the kNNowledge document the console was compiled from, e.g. `["kNNowledge/Client_NN.md"]` (bare path, no anchor). It MUST NOT copy or union that document's element-level citations; the kNNowledge-to-Source edges are already written once in the kNNowledge body. The file-level hop is staleness-checked by `meta.sha256`. The `export-meta` convention MUST be deleted: nothing MAY emit or read it. The contract example MUST show an `@` citation.
 (Previously: also named the MCP `build_console_payload` tool as an inheritor, and carried a scenario for a pre-export console lacking `meta.sources`; greenfield, no compatibility scenario is kept.)
 
 #### Scenario: Compiled console cites its kNNowledge document
 - GIVEN a kNNowledge document `kNNowledge/Client_NN.md` whose elements cite `sources/nn/interview.md@## Clients`
 - WHEN the console is compiled
-- THEN `innfo-model.meta.sources` equals `["kNNowledge/Client_NN.md"]`
+- THEN `nn-model.meta.sources` equals `["kNNowledge/Client_NN.md"]`
 - AND it does not contain `sources/nn/interview.md@## Clients`
 - AND the lineage projection reads it as the console's single upstream edge
 
 #### Scenario: Console with no element citations still cites its document
 - GIVEN a kNNowledge document with no `sources::` anywhere
 - WHEN the console is compiled
-- THEN `innfo-model.meta.sources` is still `["kNNowledge/<document>_NN.md"]`
+- THEN `nn-model.meta.sources` is still `["kNNowledge/<document>_NN.md"]`
 
 #### Scenario: Chain resolves through the document
 - GIVEN a console citing `kNNowledge/Client_NN.md`
@@ -144,7 +144,7 @@ The console payload builder (single source of `innfo-model.meta`, inherited by `
 
 ### Requirement: Console runtime slug parity with core
 
-The console runtime `slugify` in `iNNfo/specs/bluepriNNts/console/innfo-runtime.js` MUST produce identical output to the innfo-core slug algorithm for the same input, and MUST be shared from core through the existing payload mirror rather than re-implemented.
+The console runtime `slugify` in `iNNfo/specs/bluepriNNts/console/nn-runtime.js` MUST produce identical output to the innfo-core slug algorithm for the same input, and MUST be shared from core through the existing payload mirror rather than re-implemented.
 
 #### Scenario: Slug parity on a heading corpus
 - GIVEN a corpus including accents, punctuation, `NN Concept: Element` headings, and repeated spaces

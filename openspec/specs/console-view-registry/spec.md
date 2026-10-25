@@ -44,7 +44,7 @@ The view context MUST NOT expose `ctx.modal.edit` or `ctx.modal.comment` (both a
 #### Scenario: Blueprint view renders units via Ku
 - GIVEN the `procedures` stepper or `projects` roadmap view
 - WHEN it renders elements or references
-- THEN all rendered units carry `data-innfo-component="ku-unit"`
+- THEN all rendered units carry `data-nn-component="ku-unit"`
 
 ### Requirement: Tabs mounted from the registry
 

@@ -31,7 +31,7 @@ Tabs SHALL come from the view registry (`console-view-registry`) on boot. The ru
 - THEN the domain tab is selected by default
 
 #### R3: Tab Navigation & State Preservation
-Switching tabs SHALL toggle display visibility of the corresponding panels: one per registered view, plus `#innfo-tab-explorer` and `#innfo-tab-matrices`. Switching tabs SHALL NOT reset input values, variable overrides, or scroll states. The URL hash SHALL update upon tab switch (e.g. `#timeline`, `#explorer`, `#matrices`) and support browser back/forward navigation.
+Switching tabs SHALL toggle display visibility of the corresponding panels: one per registered view, plus `#nn-tab-explorer` and `#nn-tab-matrices`. Switching tabs SHALL NOT reset input values, variable overrides, or scroll states. The URL hash SHALL update upon tab switch (e.g. `#timeline`, `#explorer`, `#matrices`) and support browser back/forward navigation.
 
 ##### Scenario: Hash opens Matrices
 - GIVEN a model with matrices
@@ -44,18 +44,18 @@ Switching tabs SHALL toggle display visibility of the corresponding panels: one 
 - THEN the value is unchanged
 
 #### R4: Layout Separation
-In the `Timeline & Projections` view the content SHALL contain the Timeline & P&L Projection Table (`.innfo-timeline-table`), Interactive Growth Selectors and Variable Overrides, and the scenario studio; charts (`#innfo-charts`) are retired from the domain console with the legacy `timeline.html` shell. In the `kNNowledge` tab it SHALL contain the Concept Rail (`#innfo-rail`), the search toolbar (`.innfo-toolbar`) and the element cards list (`#innfo-content`). The `Matrices` tab SHALL have its own panel `#innfo-tab-matrices` containing the relational matrix grids (`#innfo-matrices`), as a sibling of the explorer panel and not nested in it.
+In the `Timeline & Projections` view the content SHALL contain the Timeline & P&L Projection Table (`.nn-timeline-table`), Interactive Growth Selectors and Variable Overrides, and the scenario studio; charts (`#nn-charts`) are retired from the domain console with the legacy `timeline.html` shell. In the `kNNowledge` tab it SHALL contain the Concept Rail (`#nn-rail`), the search toolbar (`.nn-toolbar`) and the element cards list (`#nn-content`). The `Matrices` tab SHALL have its own panel `#nn-tab-matrices` containing the relational matrix grids (`#nn-matrices`), as a sibling of the explorer panel and not nested in it.
 
 ##### Scenario: Matrices render in own panel
 - GIVEN a model with a non-empty matrix
 - WHEN the Matrices tab is activated
-- THEN `#innfo-tab-matrices` exists as a sibling of `#innfo-tab-explorer`
+- THEN `#nn-tab-matrices` exists as a sibling of `#nn-tab-explorer`
 - AND the matrix grid renders inside it
 
 #### R5: Grid Ergonomics & Sticky Positioning
 - The table header row (`thead th`) SHALL remain sticky at the top when scrolling vertically (`position: sticky; top: 0; z-index: 10`).
 - The metric identification column (`.td-sticky`, `.th-sticky`) SHALL remain sticky at the left when scrolling horizontally (`position: sticky; left: 0; z-index: 5`).
-- The scroll container `.innfo-timeline-table-wrap` SHALL have `max-height: calc(100vh - 220px); overflow: auto;` to allow both horizontal and vertical scrolling with sticky boundaries.
+- The scroll container `.nn-timeline-table-wrap` SHALL have `max-height: calc(100vh - 220px); overflow: auto;` to allow both horizontal and vertical scrolling with sticky boundaries.
 
 ##### Scenario: Sticky header and column while scrolling
 - GIVEN the `Timeline & Projections` grid is taller and wider than the viewport
@@ -63,7 +63,7 @@ In the `Timeline & Projections` view the content SHALL contain the Timeline & P&
 - THEN the header row stays at the top and the metric column stays at the left
 
 #### R6: Row Pinning (Freeze Rows) & Inline Charts
-- Each metric row SHALL include a pin/freeze action button (📌). Clicking it toggles the row in a sticky/pinned section (`#innfo-pinned-rows` or top of table), ensuring key metrics stay in view.
+- Each metric row SHALL include a pin/freeze action button (📌). Clicking it toggles the row in a sticky/pinned section (`#nn-pinned-rows` or top of table), ensuring key metrics stay in view.
 - Each metric row SHALL include an inline chart action button (📈). Clicking it expands an inline monthly visual chart row directly beneath the metric row, mapping values across the month columns.
 
 ##### Scenario: Pin and inline chart actions
@@ -78,7 +78,7 @@ The `kNNowledge` SHALL offer a Cards/Table toggle. In Table mode it SHALL render
 ##### Scenario: Toggle to table
 - GIVEN a model with elements
 - WHEN Table mode is selected
-- THEN `#innfo-content` contains `.innfo-element-table` with one row per element and one column per field key
+- THEN `#nn-content` contains `.nn-element-table` with one row per element and one column per field key
 
 ##### Scenario: Sort by header
 - GIVEN Table mode
@@ -86,12 +86,12 @@ The `kNNowledge` SHALL offer a Cards/Table toggle. In Table mode it SHALL render
 - THEN the rows reorder and the header carries `aria-sort` (`ascending` then `descending`)
 
 #### R8: domaiNN View
-A built-in `domaiNN` tab SHALL be registered when the schema declares concepts. It SHALL render concepts as circular nodes and matrices as labelled edges, as inline SVG with no external dependency, and its panel (`#innfo-tab-metamodel`) SHALL be created by the tab shell like the other built-ins.
+A built-in `domaiNN` tab SHALL be registered when the schema declares concepts. It SHALL render concepts as circular nodes and matrices as labelled edges, as inline SVG with no external dependency, and its panel (`#nn-tab-metamodel`) SHALL be created by the tab shell like the other built-ins.
 
 ##### Scenario: domaiNN tab
 - GIVEN a schema with concepts
 - WHEN the console boots
-- THEN a `.innfo-view-tab[data-tab="metamodel"]` exists and `#innfo-tab-metamodel` contains an SVG with one node per concept
+- THEN a `.nn-view-tab[data-tab="metamodel"]` exists and `#nn-tab-metamodel` contains an SVG with one node per concept
 
 #### R9: View Tones
 Each view tab SHALL carry a tone that sets its accent: `core` for the three built-in tabs (`domaiNN`, `kNNowledge`, `Matrices`), `blueprint` for a registered view whose definition lives under a `bluepriNNts/` path, and `custom` otherwise. The tone SHALL be exposed as a `tone-<tone>` class on the tab button so core, blueprint and custom views are visually distinguishable.

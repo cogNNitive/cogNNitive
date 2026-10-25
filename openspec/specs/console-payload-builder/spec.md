@@ -83,7 +83,7 @@ The payload MUST emit citations as the per-field map `el.citations: { "<citation
 
 #### Scenario: Runtime consumes builder output
 - GIVEN a payload built with a resolver for an element with a `sources` field
-- WHEN `InnfoConsole` renders it
+- WHEN `nnConsole` renders it
 - THEN the origin icon appears, with no shape conversion
 
 #### Scenario: No resolver
@@ -200,7 +200,7 @@ The system MUST NOT expose a `build_console_payload` MCP tool, MUST NOT ship a `
 #### Scenario: Domain export carries the declared fields (regression)
 - GIVEN a fixture domaiNN of two models whose bluepriNNts declare typed fields
 - WHEN `export-console.mjs --domain` exports it
-- THEN the `innfo-schema` slot's `fields` is a non-empty array whose entries each carry `concept`, `name` and `type`
+- THEN the `nn-schema` slot's `fields` is a non-empty array whose entries each carry `concept`, `name` and `type`
 - AND it is not an object keyed by field name (today it is `{}`)
 
 #### Scenario: Duplicate definition across models keeps the first
@@ -241,5 +241,5 @@ Every payload element MUST carry its own field values in `fields` (the only valu
 #### Scenario: A real export carries field values (regression)
 - GIVEN a fixture domaiNN whose elements carry `tags::`
 - WHEN `export-console.mjs --domain` exports it
-- THEN those elements carry non-empty `fields.tags` in the `innfo-model` slot
+- THEN those elements carry non-empty `fields.tags` in the `nn-model` slot
 

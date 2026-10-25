@@ -4,12 +4,12 @@
 Defines how the console exporter emits embedded JSON slots verbatim, runs as a standalone script, and ships on its own release channels.
 ## Requirements
 ### Requirement: Verbatim Model JSON Slot Emission (R-EXP-01)
-`scripts/export-console.mjs` MUST emit all embedded JSON script slots (`innfo-config`, `innfo-schema`, `innfo-model`) verbatim without interpreting `$` character sequences (`$1`, `$2`, `$&`, `$$`) in model content as capture group replacement patterns.
+`scripts/export-console.mjs` MUST emit all embedded JSON script slots (`nn-config`, `nn-schema`, `nn-model`) verbatim without interpreting `$` character sequences (`$1`, `$2`, `$&`, `$$`) in model content as capture group replacement patterns.
 
 #### Scenario: Exporting model containing currency and dollar patterns
 - GIVEN a Level 3 iNNfo model containing fields with `$1M`, `$250`, or regex dollar characters
 - WHEN `export-console.mjs` compiles the model to HTML
-- THEN the `innfo-model` script slot in the generated HTML MUST be valid JSON containing the literal `$1M` and `$250` strings
+- THEN the `nn-model` script slot in the generated HTML MUST be valid JSON containing the literal `$1M` and `$250` strings
 - AND `JSON.parse()` of the slot content MUST succeed without error.
 
 ### Requirement: Standalone Exporter Single-File Execution Contract (R-EXP-02)

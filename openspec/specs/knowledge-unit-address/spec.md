@@ -5,7 +5,7 @@ TBD - created by archiving change unified-knowledge-unit-badges. Update Purpose 
 ## Requirements
 ### Requirement: Canonical Unit Address Grammar and Builders
 
-`innfo-core` MUST export `unitAddress` (in `innfo-core/src/console/unit-address.ts`, also mirrored to the browser as `innfo-address.generated.js`) exposing pure address builder functions for every kind of knowledge unit:
+`innfo-core` MUST export `unitAddress` (in `innfo-core/src/console/unit-address.ts`, also mirrored to the browser as `nn-address.generated.js`) exposing pure address builder functions for every kind of knowledge unit:
 - `unitAddress.domain()`: returns `"domaiNN_NN.md"`
 - `unitAddress.document(modelId: string)`: returns `<modelId>`
 - `unitAddress.section(modelId: string, conceptName: string)`: returns `<modelId>@concept:<concept-slug>` where `<concept-slug>` is `slugifyHeading(conceptName)`

@@ -9,12 +9,12 @@ A domain console MUST be able to carry `meta.consoleScope = { view?, models?, la
 
 #### Scenario: Whole-domaiNN console has no scope
 - GIVEN an export with no scope option
-- WHEN `innfo-model.meta` is read
+- WHEN `nn-model.meta` is read
 - THEN `meta.consoleScope` is absent and every discovered model is present in `meta.models`
 
 #### Scenario: Model subset descriptor
 - GIVEN an export scoped to models A and B
-- WHEN `innfo-model.meta` is read
+- WHEN `nn-model.meta` is read
 - THEN `meta.consoleScope.models` lists exactly A and B and `meta.consoleScope.label` is non-empty
 
 #### Scenario: Invalid descriptor rejected

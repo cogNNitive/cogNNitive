@@ -2,19 +2,19 @@
 
 ## Purpose
 
-Human review flow inside generated consoles, rendered by `InnfoConsole`: always-on proposals (no review mode), inline annotation, one change-state signal per row, rail progress over unsent changes, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `RailProgress`, `Toast`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
+Human review flow inside generated consoles, rendered by `nnConsole`: always-on proposals (no review mode), inline annotation, one change-state signal per row, rail progress over unsent changes, keyboard access. Consumes the kit (`nnUI`: `AnnotationPopover`, `RailProgress`, `Toast`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`nnReview`).
 
 The console has ONE concept: the CHANGE, with three states — **Unsent** (a local edit that lives only in the browser), **Proposed** (submitted; a document the engine can apply) and **Applied** (the engine wrote it into the model) — plus `conflict` (a terminal state that needs a decision). The internal terms "draft" and "changeset" are NOT user-facing vocabulary; "mark reviewed" is gone (it was local state with no effect on the domain).
 ## Requirements
 ### Requirement: No Review Mode — Always-On Proposals
 
-There is NO review mode and no toggle. An edit only ever creates a DRAFT, never a direct write, so the edit affordance is always emitted and always live: the console MUST NOT set `html[data-innfo-review]`, MUST NOT render a review-mode toggle, and MUST NOT gate the edit pencil behind CSS.
+There is NO review mode and no toggle. An edit only ever creates a DRAFT, never a direct write, so the edit affordance is always emitted and always live: the console MUST NOT set `html[data-nn-review]`, MUST NOT render a review-mode toggle, and MUST NOT gate the edit pencil behind CSS.
 
 The capability is split by what each condition protects:
 - `canPropose` (`meta.modelId` present AND every element carries a `hash`) gates the edit ANCHORS. It deliberately does NOT require the export surface: a draft is local, and applying it lives outside the console (the MCP owns `propose_changeset` / `apply_change`).
 - `canReview` (= `canPropose` AND `changeset-export` declared) gates the EXPORT surface: the "changed" filter, "+ New element", and the changeset bar's export. The controller MUST be created when either holds.
 
-The changeset bar (`#innfo-review-dock`) MUST be STATE-driven: it shows only while the draft store holds at least one draft and hides at zero. It is not a mode and MUST NOT offer a mode exit; its controls are the reviewer identity, the draft count, the jump to the Changes tab, the export, and a "Hide" that only hides the bar.
+The changeset bar (`#nn-review-dock`) MUST be STATE-driven: it shows only while the draft store holds at least one draft and hides at zero. It is not a mode and MUST NOT offer a mode exit; its controls are the reviewer identity, the draft count, the jump to the Changes tab, the export, and a "Hide" that only hides the bar.
 
 A proposal that could not be APPLIED MUST warn inside the edit modal instead of hiding the affordance: an element without a `hash` renders a `role="alert"` banner stating that the apply engine cannot verify the `base_hash` precondition.
 
@@ -27,7 +27,7 @@ State decoration is capability-free and always runs: the single change-state bad
 #### Scenario: No toggle, no mode attribute
 - GIVEN a freshly loaded console
 - WHEN it renders
-- THEN no review-mode toggle exists and `html[data-innfo-review]` is absent
+- THEN no review-mode toggle exists and `html[data-nn-review]` is absent
 
 #### Scenario: The pencil is live
 - GIVEN a proposable domain
@@ -37,7 +37,7 @@ State decoration is capability-free and always runs: the single change-state bad
 #### Scenario: The bar is state-driven
 - GIVEN a console with no drafts
 - WHEN it renders
-- THEN `#innfo-review-dock` is hidden
+- THEN `#nn-review-dock` is hidden
 - AND WHEN a draft is saved
 - THEN the bar is visible with its count
 - AND WHEN the drafts are cleared
@@ -123,7 +123,7 @@ The rail MUST show, per concept, the number of elements that carry an unsent loc
 
 #### Scenario: No reviewed mark exists
 - GIVEN any rendered console
-- THEN no `[data-innfo-component="reviewed-toggle"]` and no `[data-innfo="changed-filter"]` exists
+- THEN no `[data-nn-component="reviewed-toggle"]` and no `[data-nn="changed-filter"]` exists
 
 ### Requirement: Change Recorded Toast
 
@@ -156,7 +156,7 @@ appear on saving an edit and on adding or removing a tag or relation, MUST NOT m
 #### Scenario: Both themes
 - GIVEN `data-theme="light"` and then `"dark"`
 - WHEN review controls render
-- THEN they use `--innfo-*` tokens only and their text/status pairs pass the kit contrast test
+- THEN they use `--nn-*` tokens only and their text/status pairs pass the kit contrast test
 
 ### Requirement: Offline Invariant
 
@@ -169,7 +169,7 @@ The review flow MUST work from a double-clicked `file://` page: no `fetch(`, no 
 
 ### Requirement: Unit Info And Edit Entry Points
 
-Every knowledge-unit badge MUST expose an **info** action (`[data-ku-action="info"]`, in a sibling `span.innfo-ku-actions` cluster outside the badge root, always present) opening `KuInfoPanel`.
+Every knowledge-unit badge MUST expose an **info** action (`[data-ku-action="info"]`, in a sibling `span.nn-ku-actions` cluster outside the badge root, always present) opening `KuInfoPanel`.
 
 An **edit** pencil affordance (`[data-ku-action="edit"]`) MUST be emitted for units whose editability is not `none`:
 - Sources (`home === 'source'`) and containers (`nature === 'container'`: domain, document, section) MUST NEVER display an edit pencil.
@@ -202,7 +202,7 @@ The badge's `+` flyout is the ONLY edit entry point: an element card MUST NOT ca
 
 ### Requirement: Pending-Change Indicator
 
-A unit badge whose canonical address (`data-ku-address`) has one or more local drafts MUST show a count pip (`button[data-innfo-component="ku-change-pip"]`) and set `data-ku-changes="<n>"`.
+A unit badge whose canonical address (`data-ku-address`) has one or more local drafts MUST show a count pip (`button[data-nn-component="ku-change-pip"]`) and set `data-ku-changes="<n>"`.
 
 The pip count is the number of drafts targeting that unit's canonical address. The badge border MUST reflect the aggregate draft status using status tokens. Activating the pip MUST open the shared modal on the Changes/History tab. The indicator MUST be visible in both review modes and MUST update whenever drafts are added or removed.
 
@@ -317,7 +317,7 @@ The edit modal for a field declared `reference` (and the relation retarget ancho
 
 ### Requirement: Constrained Matrix Cell Editor
 
-When a matrix cell's governing definition declares a `widget` and `values` (the matrix definition of a free matrix), the cell edit modal MUST constrain the proposal to that definition: `set`, `scale` and `cycle` MUST offer a select over `values` plus the blank option and the preserved current value of `console-ui-kit` "Edit Modal Value Type Safety"; `boolean` MUST offer a checkbox proposing `true` or `false`; `text` or no declared widget keeps the string input. The domain `innfo-schema` slot MUST carry the matrix definitions (`widgetType`, `values`) this needs. Whether the engine additionally rejects an out-of-`values` cell on apply is decided by the S3b matrix spike and recorded in `design.md`; the console constraint MUST NOT depend on it. (S3b P1-11.)
+When a matrix cell's governing definition declares a `widget` and `values` (the matrix definition of a free matrix), the cell edit modal MUST constrain the proposal to that definition: `set`, `scale` and `cycle` MUST offer a select over `values` plus the blank option and the preserved current value of `console-ui-kit` "Edit Modal Value Type Safety"; `boolean` MUST offer a checkbox proposing `true` or `false`; `text` or no declared widget keeps the string input. The domain `nn-schema` slot MUST carry the matrix definitions (`widgetType`, `values`) this needs. Whether the engine additionally rejects an out-of-`values` cell on apply is decided by the S3b matrix spike and recorded in `design.md`; the console constraint MUST NOT depend on it. (S3b P1-11.)
 (Previously: the governing definition could also be the column Marker of the reserved `item-markers matrix`, which no longer exists.)
 
 #### Scenario: Set widget offers only its values
@@ -338,7 +338,7 @@ When a matrix cell's governing definition declares a `widget` and `values` (the 
 #### Scenario: Definitions reach the domain console (regression)
 - GIVEN a fixture domaiNN whose bluepriNNt declares a matrix with `widget: set` and `values`
 - WHEN it is exported with `export-console.mjs --domain`
-- THEN the `innfo-schema` slot carries that definition's `widgetType` and `values` (today the domain slot carries only `concepts`, `fields` and `procedures`)
+- THEN the `nn-schema` slot carries that definition's `widgetType` and `values` (today the domain slot carries only `concepts`, `fields` and `procedures`)
 
 ### Requirement: Widget-Aware Field Editor
 
@@ -367,7 +367,7 @@ The field edit modal MUST honor the declared Field: `boolean` offers a checkbox,
 
 ### Requirement: Structure-Change Warning
 
-There MUST be no "Edit structure" switch and no `html[data-innfo-structure]` attribute. The edit pencil for a structure unit (concept definition, field definition, matrix definition) MUST be emitted like any other editable unit; activating it opens `EditModal` in comment-only mode (blueprint writes are not supported yet), producing an `op: "comment"` draft.
+There MUST be no "Edit structure" switch and no `html[data-nn-structure]` attribute. The edit pencil for a structure unit (concept definition, field definition, matrix definition) MUST be emitted like any other editable unit; activating it opens `EditModal` in comment-only mode (blueprint writes are not supported yet), producing an `op: "comment"` draft.
 
 Because that is a different KIND of act, the modal MUST carry a `role="alert"` banner at the top stating that the change targets the STRUCTURE of the domain (the bluepriNNt), that it affects every element that uses the definition, and that it is filed as a comment for the blueprint maintainer and will not be applied automatically.
 
@@ -375,7 +375,7 @@ Because that is a different KIND of act, the modal MUST carry a `role="alert"` b
 
 #### Scenario: No switch, no attribute
 - GIVEN a rendered console
-- THEN no `[data-innfo="structure-switch"]` exists and `html[data-innfo-structure]` is absent
+- THEN no `[data-nn="structure-switch"]` exists and `html[data-nn-structure]` is absent
 
 #### Scenario: Structure pencil warns instead of hiding
 - GIVEN a structure unit badge

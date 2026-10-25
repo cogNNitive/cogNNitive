@@ -56,10 +56,10 @@ The lineage record MUST be named `<project>_cogNNitive_NN.md` (satisfying the `n
 
 ### Requirement: Consoles and artifacts appear with real upstream lineage
 
-A console whose `innfo-model.meta.sources` is non-empty MUST appear in `# NN Artifacts` with those citations as its upstream lineage. An artifact MUST NOT get an empty `derived_from` solely because the generator could not scrape it.
+A console whose `nn-model.meta.sources` is non-empty MUST appear in `# NN Artifacts` with those citations as its upstream lineage. An artifact MUST NOT get an empty `derived_from` solely because the generator could not scrape it.
 
 #### Scenario: Console lineage is populated
-- GIVEN a sample console embedding `innfo-model.meta.sources` with one citation
+- GIVEN a sample console embedding `nn-model.meta.sources` with one citation
 - WHEN the record is regenerated
 - THEN the console entry in `# NN Artifacts` lists that citation as upstream
 
