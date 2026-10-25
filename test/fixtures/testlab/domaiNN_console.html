@@ -10145,7 +10145,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-909a6b0b",
-    "generated": "2026-10-25T08:55:44.279Z",
+    "generated": "2026-10-25T09:15:25.423Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10155,8 +10155,8 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "family": "testlab",
         "version": "V_0-1-1",
-        "sha256": "cdb87a824376a14ade1eccb55c44446c3413f33a57c9ec6f8a8bf19c8a9c9508",
-        "citationsResolvedAt": "2026-10-25T08:55:44.179Z",
+        "sha256": "a0f7961b76715571dad1c8d67854aab72001742a6391c02cd89a3602a7580204",
+        "citationsResolvedAt": "2026-10-25T09:15:25.232Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -10176,7 +10176,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "family": "testlab",
         "version": "V_0-1-1",
-        "sha256": "87bb5653fc4ab19caecf868a92a77c732e82149a29cfdc54b4da59d6066d1590",
+        "sha256": "c71996e42964c3be71c4fd47666d96c86665f49ec419a1b80f6d8e0ead367287",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_intake_TestLab_NN.md"
@@ -10244,7 +10244,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Element 1A is the intake baseline. It is cited by the weekly report and referenced back from Concept 2.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+          "sources/import/field-notes.md@## Findings"
         ],
         "summary": "Intake tray baseline element.",
         "long_description": "Baseline element with a short description. It cites the field notes findings section.",
@@ -10253,7 +10253,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "draft"
       },
       "markers": {},
-      "hash": "490b604b688590ad",
+      "hash": "19a616d1bfaa187c",
       "relations": [
         {
           "field": "sibling",
@@ -10264,11 +10264,12 @@ input[type="text"], input[type="search"], textarea, select {
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "findings",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
           }
         ]
       },
@@ -10286,8 +10287,8 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Element 1B is the review target. See the console feedback item fb-001 in artifacts/testlab-review.json.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points",
-          "test/fixtures/testlab/sources/import/dataset.csv@m-001"
+          "sources/import/field-notes.md@## Key Points",
+          "sources/import/dataset.csv@m-001"
         ],
         "summary": "Photo log element with image and file fields.",
         "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
@@ -10302,7 +10303,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "reviewed"
       },
       "markers": {},
-      "hash": "063854d37ba2c2e0",
+      "hash": "75c92176dd578f12",
       "relations": [
         {
           "field": "sibling",
@@ -10313,18 +10314,20 @@ input[type="text"], input[type="search"], textarea, select {
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "key-points",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Key Points\n\nIntake, photo log, handover note. In that order of trust.\n"
           },
           {
-            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "m-001,capture_rate,0.94"
           }
         ]
       },
@@ -10346,7 +10349,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Element 1C closes the Concept 1 triangle.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/dataset.json@/items/0/name"
+          "sources/import/dataset.json@/items/0/name"
         ],
         "summary": "Multi-node traceability source element.",
         "long_description": "Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.",
@@ -10354,7 +10357,7 @@ input[type="text"], input[type="search"], textarea, select {
         "status": "published"
       },
       "markers": {},
-      "hash": "548850acd333bb47",
+      "hash": "0e7438b6ad201987",
       "relations": [
         {
           "field": "sibling",
@@ -10365,11 +10368,12 @@ input[type="text"], input[type="search"], textarea, select {
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/dataset.json",
+            "path": "sources/import/dataset.json",
+            "href": "./sources/import/dataset.json",
             "anchor": "/items/0/name",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "intake-form"
           }
         ]
       },
@@ -10408,14 +10412,14 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Element 2A owns the intake baseline and is the first crossing of the Concept 1-Concept 2 matrix.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+          "sources/import/field-notes.md@## Findings"
         ],
         "summary": "Shift owner element.",
         "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1A]]"
       },
       "markers": {},
-      "hash": "d184aba09be2d1ba",
+      "hash": "e8651c6b2bac1e89",
       "relations": [
         {
           "field": "owner",
@@ -10426,11 +10430,12 @@ input[type="text"], input[type="search"], textarea, select {
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "findings",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
           }
         ]
       },
@@ -10451,14 +10456,14 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Element 2B owns the multi-node element and is the second crossing of the Concept 1-Concept 2 matrix.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/dataset.csv@m-002"
+          "sources/import/dataset.csv@m-002"
         ],
         "summary": "Handover owner element.",
         "attachment": "./sources/import/manual.txt",
         "owner": "[[Element 1C (test)]]"
       },
       "markers": {},
-      "hash": "30c37c1db93b49af",
+      "hash": "e409617a7425543d",
       "relations": [
         {
           "field": "owner",
@@ -10469,11 +10474,12 @@ input[type="text"], input[type="search"], textarea, select {
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-002",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "m-002,handover_delay_min,12"
           }
         ]
       },
@@ -10494,7 +10500,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Image traceability passes only via the sidecar path.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/photo.png_sidecar_NN.md@## Caption"
+          "sources/import/photo.png_sidecar_NN.md@## Caption"
         ],
         "summary": "Probe that image traceability resolves through the sidecar.",
         "long_description": "This probe cites the photo sidecar caption, never the binary. A resolver that accepts a direct photo.png citation without the sidecar is wrong.",
@@ -10507,15 +10513,17 @@ input[type="text"], input[type="search"], textarea, select {
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "c95581dd147c89f6",
+      "hash": "d8d8f6fb6696c896",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/photo.png_sidecar_NN.md",
+            "path": "sources/import/photo.png_sidecar_NN.md",
+            "href": "./sources/import/photo.png_sidecar_NN.md",
             "anchor": "caption",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Caption\n\nWorkbench photo: three labeled trays (intake, active, done) and a wall clock showing the handover minute.\n",
+            "sha256": "testlab-placeholder-photo"
           }
         ]
       },
@@ -10537,37 +10545,40 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Multi-node traceability converges here.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Findings",
-          "test/fixtures/testlab/sources/import/dataset.csv@m-001",
-          "test/fixtures/testlab/sources/import/dataset.json@/items/0/name"
+          "sources/import/field-notes.md@## Findings",
+          "sources/import/dataset.csv@m-001",
+          "sources/import/dataset.json@/items/0/name"
         ],
         "summary": "Probe that three source families resolve on one element.",
         "long_description": "Markdown plus CSV row plus JSON pointer on a single element. If any one of the three fails to resolve, the probe fails as a whole."
       },
       "markers": {},
-      "hash": "bce4c13de369a22e",
+      "hash": "3344286c823bff84",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "findings",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
           },
           {
-            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
             "anchor": "m-001",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "m-001,capture_rate,0.94"
           },
           {
-            "path": "test/fixtures/testlab/sources/import/dataset.json",
+            "path": "sources/import/dataset.json",
+            "href": "./sources/import/dataset.json",
             "anchor": "/items/0/name",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "intake-form"
           }
         ]
       },
@@ -10585,21 +10596,22 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Review traceability closes the artifact loop.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/artifacts/testlab-report.md@## Result"
+          "artifacts/testlab-report.md@## Result"
         ],
         "summary": "Probe that an artifact works as a second-hop source.",
         "long_description": "This probe cites the generated weekly report result section. The report itself derives from Concept 1 elements, so the lineage is artifact to model to source. Dropping the upstream section must break this probe loudly."
       },
       "markers": {},
-      "hash": "34c0ef1cc1f496d4",
+      "hash": "23eadf3f2b4238c4",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/artifacts/testlab-report.md",
+            "path": "artifacts/testlab-report.md",
+            "href": "./artifacts/testlab-report.md",
             "anchor": "result",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Result\n\nCoverage model verified this week: Concept 1 elements 1A/1B/1C cite field notes and the CSV row m-001, Concept 2 elements cite the JSON pointer and the manual, edge cases cite the transcribed PDF, the photo sidecar, the video transcript, and the audio transcript. Next step is the review pass on Element 1B.\n"
           }
         ]
       },
@@ -10617,21 +10629,23 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Video probe covers the video field path end to end.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/demo.mp4_sidecar_NN.md@## Transcript"
+          "sources/import/demo.mp4_sidecar_NN.md@## Transcript"
         ],
         "summary": "Probe that a downloaded video resolves through its transcript sidecar.",
         "long_description": "The video binary is never cited. The transcript section of the sidecar is the citable unit. Players render demo_video below while the citation points at the transcript."
       },
       "markers": {},
-      "hash": "276f6b04879ea87d",
+      "hash": "cd3e20655118caeb",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/demo.mp4_sidecar_NN.md",
+            "path": "sources/import/demo.mp4_sidecar_NN.md",
+            "href": "./sources/import/demo.mp4_sidecar_NN.md",
             "anchor": "transcript",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Transcript\n\nDownloaded walkthrough video (02:41). Narrator: \"Tray one is intake, tray two is active, tray three is done. If it is not in a tray, it does not exist.\"\n",
+            "sha256": "testlab-placeholder-demo"
           }
         ]
       },
@@ -10649,21 +10663,23 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Audio probe covers the audio field path end to end.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/interview.mp3_sidecar_NN.md@## Transcript"
+          "sources/import/interview.mp3_sidecar_NN.md@## Transcript"
         ],
         "summary": "Probe that downloaded audio resolves through its transcription sidecar.",
         "long_description": "The audio binary is never cited. The transcript section carries the operator quote about the manual being ignored and the photo log being trusted."
       },
       "markers": {},
-      "hash": "7027df474857f5d2",
+      "hash": "eddc5a34fbeee46a",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/interview.mp3_sidecar_NN.md",
+            "path": "sources/import/interview.mp3_sidecar_NN.md",
+            "href": "./sources/import/interview.mp3_sidecar_NN.md",
             "anchor": "transcript",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Transcript\n\nTranscribed audio interview (11:05). Operator: \"Nobody reads the long manual. Everybody trusts the photo log. The handover note is the only text that matters.\"\n",
+            "sha256": "testlab-placeholder-interview"
           }
         ]
       },
@@ -10681,21 +10697,23 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "PDF probe covers the binary-to-sidecar rule.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings"
+          "sources/import/report.pdf_sidecar_NN.md@## Findings"
         ],
         "summary": "Probe that a downloaded PDF resolves through its normalized sidecar.",
         "long_description": "The PDF binary is never cited because binaries are not citation targets. The sidecar findings section holds the normalized markdown and is the only valid pointer."
       },
       "markers": {},
-      "hash": "51c23dc8af34da50",
+      "hash": "e759fa1c3de2e0be",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md",
+            "path": "sources/import/report.pdf_sidecar_NN.md",
+            "href": "./sources/import/report.pdf_sidecar_NN.md",
             "anchor": "findings",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
+            "sha256": "testlab-placeholder-report"
           }
         ]
       },
@@ -10713,7 +10731,7 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Length is the feature being tested here.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points"
+          "sources/import/field-notes.md@## Key Points"
         ],
         "summary": "Probe with a very long inline description field.",
         "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
@@ -10721,15 +10739,16 @@ input[type="text"], input[type="search"], textarea, select {
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "340c95ea6a876c7f",
+      "hash": "4ec664f60997901a",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "key-points",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Key Points\n\nIntake, photo log, handover note. In that order of trust.\n"
           }
         ]
       },
@@ -10751,22 +10770,23 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "File field probe stays deliberately plain.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points"
+          "sources/import/field-notes.md@## Key Points"
         ],
         "summary": "Probe for the generic file field type.",
         "long_description": "The attachment field points at the plain-text manual stand-in. It exercises the file type path without involving image, video, or audio rendering.",
         "attachment": "./sources/import/manual.txt"
       },
       "markers": {},
-      "hash": "820960c5dedb38b9",
+      "hash": "b242a8332f5f94f2",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "key-points",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Key Points\n\nIntake, photo log, handover note. In that order of trust.\n"
           }
         ]
       },
@@ -10787,21 +10807,22 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "The artifact is a source, not just an output.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/artifacts/testlab-report.md@## Result"
+          "artifacts/testlab-report.md@## Result"
         ],
         "summary": "Probe for the modify-and-reuse artifact cycle.",
         "long_description": "Edit artifacts/testlab-report.md, keep the Result heading stable, and this probe keeps passing. Rename or delete that heading and this probe must fail, proving the artifact is a live source and not a dead copy."
       },
       "markers": {},
-      "hash": "c26ff661b2c83646",
+      "hash": "7226fca0fbed7900",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/artifacts/testlab-report.md",
+            "path": "artifacts/testlab-report.md",
+            "href": "./artifacts/testlab-report.md",
             "anchor": "result",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Result\n\nCoverage model verified this week: Concept 1 elements 1A/1B/1C cite field notes and the CSV row m-001, Concept 2 elements cite the JSON pointer and the manual, edge cases cite the transcribed PDF, the photo sidecar, the video transcript, and the audio transcript. Next step is the review pass on Element 1B.\n"
           }
         ]
       },
@@ -10819,21 +10840,22 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Broken by design, quarantined by name.",
       "fields": {
         "sources": [
-          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+          "sources/import/field-notes.md@## Findings"
         ],
         "summary": "Probe with a deliberately dangling reference (expected validation warning).",
         "long_description": "This probe points at an element that does not exist. Validators must flag it while every other element stays green, so tests can assert the broken case in isolation."
       },
       "markers": {},
-      "hash": "da6c48b45e7cd63c",
+      "hash": "8d274968610c0c36",
       "citations": {
         "sources": [
           {
-            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
             "anchor": "findings",
-            "exists": false,
+            "exists": true,
             "origin": "document",
-            "error": "DANGLING_FILE"
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
           }
         ]
       },
@@ -10975,11 +10997,11 @@ input[type="text"], input[type="search"], textarea, select {
         "knowledge_field": "kNNowledge/TestLab_coverage_TestLab_NN.md",
         "address_field": "TestLab_intake_TestLab@intake-owner",
         "citation_field": [
-          "test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings"
+          "sources/import/report.pdf_sidecar_NN.md@## Findings"
         ]
       },
       "markers": {},
-      "hash": "fefc060e665e2bcf",
+      "hash": "ff4268dbb23e1191",
       "relations": [
         {
           "field": "reference_field",
