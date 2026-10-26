@@ -219,6 +219,17 @@ function runMutation(
     if (!handler) {
       return { success: false, errors: [{ path: '', message: `Unknown operation: ${op}` }] }
     }
+    if (model.frontmatter.read_only === true) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter.read_only',
+            message: `Document is a read-only imported snapshot from "${model.frontmatter.imported_from ?? 'origin'}". Direct mutations are prohibited; edit at the origin domain.`,
+          },
+        ],
+      }
+    }
     if (LEVEL2_ONLY_OPS.has(op) && model.frontmatter.level !== 2) {
       return {
         success: false,

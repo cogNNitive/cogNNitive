@@ -38,3 +38,19 @@ Currently, all knowledge units and references are strictly contained within a si
 | 7 | **Deterministic Filter** | Import query uses `nn-core` address query: `from:: inbox>noticias@concept:noticias?categoria=A`. |
 | 8 | **Explicit Scans Only** | Triggered only via explicit command or startup menu; no background watch or polling. |
 | 9 | **Snapshot Location** | Stored at `kNNowledge/imports/<alias>/<import-name>_NN.md` under canonical knowledge directory. |
+
+## Ponytail Ceilings & Future Enhancements (Tag: potential-enhancement)
+
+### Ceilings in This Change
+- **Local relative paths only**: External domains must reside on the local filesystem (`path:: ../inbox`). Remote git repositories and URLs are excluded to prevent network flakiness and credential complexity.
+  - *Upgrade condition*: When teams require cross-repository domain federation across distinct Git remotes.
+- **Single flat snapshot file**: Each import writes one static markdown file (`kNNowledge/imports/<alias>/<import-name>_NN.md`), rather than multi-file projections or live virtualized proxies.
+  - *Upgrade condition*: When single imports exceed 10,000 units and file I/O becomes a measurable bottleneck.
+- **Explicit on-demand refresh only**: Scans occur only when invoked by the user or script. Background file watchers and automated polling are deliberately omitted.
+  - *Upgrade condition*: When an interactive authoring environment demands zero-latency background synchronization.
+
+### Potential Future Enhancements
+- `future: remote-domain-imports`: Support HTTPS and Git remote URLs in `path::` (e.g. `path:: https://github.com/org/domain.git`) with shallow cloning and credential management.
+- `future: transitive-domain-imports`: Support multi-hop domain imports with cycle detection and cascading snapshot refreshes.
+- `future: background-watch-sync`: File system watcher sidecar service for continuous real-time synchronization between local domains.
+

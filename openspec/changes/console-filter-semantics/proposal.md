@@ -75,3 +75,16 @@ Each slice is its own revertible commit set on `dev`. Reverting slice 1 restores
 ## Proposal question round
 
 Not run: D1–D5 were already settled with the maintainer and are recorded as binding. Remaining open (for design, not product): whether slice 2 extracts a pure predicate instead of calling `runQuery`.
+
+## Ponytail Ceilings & Future Enhancements (Tag: potential-enhancement)
+
+### Ceilings in This Change
+- **Flat boolean model (D3)**: Query expressions are strictly flat AND of OR clauses (`(a OR b) AND (c OR d)`). Nested logical trees like `((a AND b) OR c)` are rejected or simplified without full AST recursion.
+  - *Upgrade condition*: Reopen only if a real user workflow demonstrates a strict need for nested non-DNF boolean expressions.
+- **Exact field equality over regex/wildcards**: Field values use exact normalized matching (`canonicalFilterValue`), leaving substring only to free-text queries.
+  - *Upgrade condition*: When complex pattern matching or range queries beyond numeric comparisons are requested.
+
+### Potential Future Enhancements
+- `future: console-filter-ast`: Full recursive boolean expression AST parser with support for arbitrarily nested parenthesis groups, operator precedence rules, and visual expression tree builders in the UI.
+- `future: console-filter-regex`: Regex and fuzzy token matching operators (e.g. `title:/draft-.*/` or `title:~fuzzy`).
+
