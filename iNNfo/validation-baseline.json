@@ -13,16 +13,6 @@
       "fingerprint": "docs/skills/templates/workflow/V_0-1-0/samples/example_V_1-0-0_workflow_NN.md::elements.ArtifactType::::Slug collision: \"video-script\" is shared by elements: Video Script. Element names must be unique across the whole model"
     },
     {
-      "path": "docs/workspace_NN.md",
-      "code": "",
-      "fingerprint": "docs/workspace_NN.md::elements.Models::::Concept \"Models\" is not defined in template"
-    },
-    {
-      "path": "docs/workspace_NN.md",
-      "code": "",
-      "fingerprint": "docs/workspace_NN.md::elements.Tag::::Concept \"Tag\" is not defined in template"
-    },
-    {
       "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
       "code": "",
       "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"

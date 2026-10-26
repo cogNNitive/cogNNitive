@@ -13,6 +13,7 @@
  */
 
 const { spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 const { FRESHNESS_GUARDS } = require('./lib/freshness-guards.js');
 
@@ -41,10 +42,12 @@ if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fai
 const generate = [
   ...FRESHNESS_GUARDS.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],
+  ['scripts/generate-vocabulary-doc.mjs'],
 ];
 const check = [
   ...FRESHNESS_GUARDS.map((g) => [g.script, ...g.args]),
   ['scripts/generate-docs-facts.mjs', '--check'],
+  ['scripts/generate-vocabulary-doc.mjs', '--check'],
 ];
 
 for (let pass = 1; pass <= 3; pass++) {
@@ -58,6 +61,19 @@ for (let pass = 1; pass <= 3; pass++) {
   const results = check.map((args) => ({ args, ...exec(process.execPath, args, true) }));
   const stale = results.filter((r) => r.status !== 0);
   if (stale.length === 0) {
+    // Sync staged docs copies of catalog.json and manifest-next.md
+    const catalogSrc = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
+    const catalogDst = path.join(repoRoot, 'docs', 'innfo', 'blueprints', 'catalog.json');
+    if (fs.existsSync(catalogSrc)) {
+      fs.mkdirSync(path.dirname(catalogDst), { recursive: true });
+      fs.copyFileSync(catalogSrc, catalogDst);
+    }
+    const manifestNextSrc = path.join(repoRoot, 'docs', 'use', 'manifest-next.md');
+    const manifestNextDst = path.join(repoRoot, 'docs', 'update', 'manifest-next.md');
+    if (fs.existsSync(manifestNextSrc)) {
+      fs.mkdirSync(path.dirname(manifestNextDst), { recursive: true });
+      fs.copyFileSync(manifestNextSrc, manifestNextDst);
+    }
     // Keep testlab domain console fixture synchronized with fresh console bundle
     exec(process.execPath, ['scripts/export-console.mjs', '--domain', '--no-open'], true);
     console.log(`regen: all derived artifacts fresh (pass ${pass}). Review with: git status --short`);
