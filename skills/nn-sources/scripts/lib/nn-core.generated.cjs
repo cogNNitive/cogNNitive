@@ -8487,6 +8487,48 @@ function parseKnowledgeQuery(input) {
   return { path: resolved.filePath, ...conceptSlug ? { conceptSlug } : {}, filters, projection };
 }
 
+// iNNfo/packages/nn-core/src/types/parser.ts
+var ElementsMap = class {
+  _map = /* @__PURE__ */ new Map();
+  set(key, nodes) {
+    this._map.set(key.toLowerCase(), { key, nodes });
+  }
+  delete(key) {
+    return this._map.delete(key.toLowerCase());
+  }
+  has(key) {
+    return this._map.has(key.toLowerCase());
+  }
+  get(key) {
+    return this._map.get(key.toLowerCase())?.nodes;
+  }
+  keys() {
+    return Array.from(this._map.values()).map((e) => e.key);
+  }
+  entries() {
+    return Array.from(this._map.values()).map((e) => [e.key, e.nodes]);
+  }
+  forEach(fn) {
+    for (const { key, nodes } of this._map.values()) {
+      fn(nodes, key);
+    }
+  }
+  get size() {
+    return this._map.size;
+  }
+  [Symbol.iterator]() {
+    return this.entries()[Symbol.iterator]();
+  }
+  /** JSON serialization support — serializes as a plain record */
+  toJSON() {
+    const obj = {};
+    for (const [key, nodes] of this.entries()) {
+      obj[key] = nodes;
+    }
+    return obj;
+  }
+};
+
 // iNNfo/packages/nn-core/src/parser/yaml.ts
 var import_yaml = __toESM(require_dist(), 1);
 
@@ -8906,48 +8948,6 @@ function getSectionType(rawTitle) {
 
 // iNNfo/packages/nn-core/src/parser/serializer.ts
 var import_yaml3 = __toESM(require_dist(), 1);
-
-// iNNfo/packages/nn-core/src/types/parser.ts
-var ElementsMap = class {
-  _map = /* @__PURE__ */ new Map();
-  set(key, nodes) {
-    this._map.set(key.toLowerCase(), { key, nodes });
-  }
-  delete(key) {
-    return this._map.delete(key.toLowerCase());
-  }
-  has(key) {
-    return this._map.has(key.toLowerCase());
-  }
-  get(key) {
-    return this._map.get(key.toLowerCase())?.nodes;
-  }
-  keys() {
-    return Array.from(this._map.values()).map((e) => e.key);
-  }
-  entries() {
-    return Array.from(this._map.values()).map((e) => [e.key, e.nodes]);
-  }
-  forEach(fn) {
-    for (const { key, nodes } of this._map.values()) {
-      fn(nodes, key);
-    }
-  }
-  get size() {
-    return this._map.size;
-  }
-  [Symbol.iterator]() {
-    return this.entries()[Symbol.iterator]();
-  }
-  /** JSON serialization support — serializes as a plain record */
-  toJSON() {
-    const obj = {};
-    for (const [key, nodes] of this.entries()) {
-      obj[key] = nodes;
-    }
-    return obj;
-  }
-};
 
 // iNNfo/packages/nn-core/src/parser/core.ts
 function deriveElementSlugs(elements) {
