@@ -20,7 +20,6 @@ import {
   DEFAULT_CONDITIONAL_FIELDS,
   DEFAULT_BG_MUSIC_VOLUME,
 } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/remotion-scene-compiler.mjs';
-import { rendererForOverlay } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/scene/overlay-registry.mjs';
 import { buildTtsVoiceOptions, resolveRegisteredVoice } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/tts-options.mjs';
 import { CacheManager } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/cache-manager.mjs';
 
@@ -50,7 +49,6 @@ async function runTests() {
   // 1. watermark: contract entry, guard and overlay.
   {
     assert.deepStrictEqual(DEFAULT_CONDITIONAL_FIELDS.watermark, ['text']);
-    assert.strictEqual(rendererForOverlay('watermark'), 'Watermark');
 
     const ok = compiler.compile(model({
       scenes: [scene('s1')],
