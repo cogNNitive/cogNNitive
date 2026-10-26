@@ -27,6 +27,7 @@ import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { DEFAULT_MODELS, resolveModelId } from './asset-cost-estimator.mjs';
+import { resolveEngineModel } from './lib/model-cascade.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
@@ -243,7 +244,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
     // 1. TTS synthesis
     if (sc.narration && sc.narration.trim().length > 0) {
       const voiceOptions = buildTtsVoiceOptions(sc, models);
-      const ttsModel = resolveModelId(sc.properties?.scene_tts_model, models.tts || DEFAULT_MODELS.tts);
+      const ttsModel = resolveModelId(resolveEngineModel('tts', { cliModel: models.tts, sceneModel: sc.properties?.scene_tts_model, defaultModel: DEFAULT_MODELS.tts }), DEFAULT_MODELS.tts);
       onProgress({ phase: 'tts-start', done: ttsDone, total: ttsScenes.length, scene: sc.id, model: ttsModel });
       const ttsRes = await synthesizer.synthesizeTTS(sc.narration, voiceOptions, { ref: sc.id, model: ttsModel });
       if (!ttsRes.dryRun) {
@@ -275,7 +276,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
         accentColor: '#ef4444',
       };
       if (models.image) mediaOptions.modelOverride = models.image;
-      const imageModel = normalizeModelId(models.image || DEFAULT_MODELS.image);
+      const imageModel = normalizeModelId(resolveEngineModel('image', { cliModel: models.image, defaultModel: DEFAULT_MODELS.image }));
       const ref = `${sc.id}/${layer.name}`;
       onProgress({ phase: 'media-start', done: mediaDone, total: mediaTotal, scene: sc.id, model: imageModel });
       const mediaRes = await synthesizer.resolveMedia(prompt, mediaOptions, { ref, model: imageModel });
@@ -409,7 +410,7 @@ export async function compileVideo(options) {
     parsed,
     scriptDir,
     cacheManager: new CacheManager({ baseDir: cacheDir, readOnly: true }),
-    resolveModel: (prop) => resolveModelId(prop, models.avatar || DEFAULT_MODELS.avatar),
+    resolveModel: (prop) => resolveModelId(resolveEngineModel('avatar', { cliModel: models.avatar, layerModel: prop, defaultModel: DEFAULT_MODELS.avatar }), DEFAULT_MODELS.avatar),
     audioFor: (sc) => audioAssets[sc.id]?.assetPath,
   });
   // A clip kept raw because ffmpeg was missing or failed is retried here once ffmpeg is available.

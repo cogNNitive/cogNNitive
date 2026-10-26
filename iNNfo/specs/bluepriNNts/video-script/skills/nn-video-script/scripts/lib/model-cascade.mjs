@@ -40,3 +40,28 @@ export function resolveModels({ kinds, scope = {} } = {}) {
   for (const kind of kinds) out[kind] = resolveModel({ kind, scope });
   return out;
 }
+
+/**
+ * Convenience for the engine: resolves one kind from the concrete inputs a
+ * compile/estimate run has, so the plan (estimator) and the execution
+ * (compile/synthesize) pick the SAME model id and stay in lockstep.
+ * @param {'tts'|'image'|'avatar'} kind
+ * @param {{ cliModel?, layerModel?, sceneModel?, videoModel?, seriesModel?, workspaceModel?, defaultModel? }} opts
+ * @returns {string | null}
+ */
+export function resolveEngineModel(kind, opts = {}) {
+  const bag = (v) => ({ [kind]: v });
+  return resolveModel({
+    kind,
+    scope: {
+      cli: bag(opts.cliModel),
+      layer: bag(opts.layerModel),
+      scene: bag(opts.sceneModel),
+      video: bag(opts.videoModel),
+      series: bag(opts.seriesModel),
+      workspace: bag(opts.workspaceModel),
+      blueprint: bag(opts.defaultModel),
+    },
+  }).id;
+}
+
