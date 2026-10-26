@@ -72,7 +72,7 @@ export interface SourceRef {
 
 export type Citation = SourceRef & { legacyHash?: true }
 
-const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
+export const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
 /**
  * A model id: the `<stem>` of `kNNowledge/<stem>_NN.md`. Stems keep their case
@@ -539,6 +539,43 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
   }
   const [unitRaw, ...subunits] = decoded
   if (!/\.(md|csv|json)$/i.test(resolved.filePath)) {
+    if (unitRaw.startsWith('concept:')) {
+      const slug = unitRaw.slice('concept:'.length)
+      if (!new RegExp(`^${SLUG}$`).test(slug)) return null
+      const unit: HeaderUnit = {
+        kind: 'header',
+        level: 1,
+        text: slug,
+        slug,
+      }
+      return {
+        filePath: resolved.filePath,
+        fileName: basename(resolved.filePath),
+        slug,
+        kind: 'model',
+        unit,
+        subunits,
+        raw: clean,
+      }
+    }
+    if (unitRaw.startsWith('matrix:')) {
+      const slug = unitRaw.slice('matrix:'.length)
+      if (!new RegExp(`^${SLUG}$`).test(slug)) return null
+      const unit: MatrixUnit = {
+        kind: 'matrix',
+        matrixSlug: slug,
+        ...(subunits.length === 2 ? { rowSlug: subunits[0], colSlug: subunits[1] } : {}),
+      }
+      return {
+        filePath: resolved.filePath,
+        fileName: basename(resolved.filePath),
+        slug,
+        kind: 'model',
+        unit,
+        subunits,
+        raw: clean,
+      }
+    }
     if (!new RegExp(`^${SLUG}$`).test(unitRaw)) return null
     if (subunits.length === 2) {
       const unit: MatrixUnit = {
@@ -546,21 +583,6 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
         matrixSlug: unitRaw,
         rowSlug: subunits[0],
         colSlug: subunits[1],
-      }
-      return {
-        filePath: resolved.filePath,
-        fileName: basename(resolved.filePath),
-        slug: unitRaw,
-        kind: 'model',
-        unit,
-        subunits,
-        raw: clean,
-      }
-    }
-    if (subunits.length === 0 && /(?:^matrix-|-matrix$)/i.test(unitRaw)) {
-      const unit: MatrixUnit = {
-        kind: 'matrix',
-        matrixSlug: unitRaw,
       }
       return {
         filePath: resolved.filePath,

@@ -33,6 +33,20 @@ describe('parseKnowledgeQuery grammar', () => {
     ])
   })
 
+  it('parses concept-scoped queries and extracts conceptSlug', () => {
+    const q = parseKnowledgeQuery('sources/import/g.md@concept:stakeholders?tags=vip')
+    expect(q).toMatchObject({
+      path: 'sources/import/g.md',
+      conceptSlug: 'stakeholders',
+      filters: [{ name: 'tags', value: 'vip' }],
+    })
+  })
+
+  it('rejects bare element targets combined with ?', () => {
+    expect(parseKnowledgeQuery('sources/import/g.md@dana-barrett?tags=vip')).toBeNull()
+    expect(parseKnowledgeQuery('sources/import/g.md@matrix:journey-map?tags=vip')).toBeNull()
+  })
+
   it.each([
     'sources/import/m.csv',
     'sources/import/m.csv?',
@@ -108,6 +122,17 @@ describe('runQuery over Markdown sections', () => {
     const q = parseKnowledgeQuery('sources/import/g.md?tags=vip&relationship_model')!
     const result = runQuery(q, files)
     expect(result.values).toEqual(['Anchor Commercial Client'])
+  })
+
+  it('scopes matching to the requested concept', () => {
+    const qStakeholders = parseKnowledgeQuery('sources/import/g.md@concept:stakeholders?tags=vip')!
+    expect(runQuery(qStakeholders, files).uris).toEqual(['sources/import/g.md@## NN Stakeholders: Dana Barrett'])
+
+    const qPersonVip = parseKnowledgeQuery('sources/import/g.md@concept:person?tags=vip')!
+    expect(runQuery(qPersonVip, files).uris).toEqual([])
+
+    const qPersonFounder = parseKnowledgeQuery('sources/import/g.md@concept:person?tags=founder')!
+    expect(runQuery(qPersonFounder, files).uris).toEqual(['sources/import/g.md@## NN Person: Dr. Egon Spengler'])
   })
 
   it('never matches prose outside key:: fields', () => {

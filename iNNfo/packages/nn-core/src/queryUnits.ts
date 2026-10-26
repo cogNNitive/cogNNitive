@@ -3,6 +3,7 @@ import {
   resolveUnitPath,
   serializeKnowledgeUnitRef,
   type KnowledgeUnit,
+  SLUG,
 } from './sourceRef.js'
 import { parseCsvTable } from './csvTable.js'
 import { scanSections } from './querySections.js'
@@ -16,6 +17,8 @@ export interface KnowledgeQueryFilter {
 export interface KnowledgeQuery {
   /** Workspace-relative file path (taken as written, never prefixed). */
   path: string
+  /** Optional concept slug for concept-scoped queries (e.g. model@concept:<slug>?...). */
+  conceptSlug?: string
   filters: KnowledgeQueryFilter[]
   /** Optional trailing bare segment: project one column/field over the matches. */
   projection?: string
@@ -50,10 +53,28 @@ function canonicalFilterValue(value: string): string {
 export function parseKnowledgeQuery(input: string): KnowledgeQuery | null {
   if (!input || typeof input !== 'string') return null
   const clean = input.trim()
-  if (clean.includes('@')) return null
   const q = clean.indexOf('?')
   if (q === -1) return null
-  const resolved = resolveUnitPath(clean.slice(0, q))
+
+  const target = clean.slice(0, q)
+  let filePathPart = target
+  let conceptSlug: string | undefined
+
+  if (target.includes('@')) {
+    const at = target.indexOf('@')
+    filePathPart = target.slice(0, at)
+    const unitPart = target.slice(at + 1)
+    if (!unitPart.startsWith('concept:') || unitPart.slice('concept:'.length).includes('@')) {
+      return null
+    }
+    const slug = unitPart.slice('concept:'.length).trim()
+    if (!slug || !new RegExp(`^${SLUG}$`).test(slug)) {
+      return null
+    }
+    conceptSlug = slug
+  }
+
+  const resolved = resolveUnitPath(filePathPart)
   if (!resolved) return null
   const rest = clean.slice(q + 1)
   if (!rest.trim()) return null
@@ -87,7 +108,7 @@ export function parseKnowledgeQuery(input: string): KnowledgeQuery | null {
     filters.push({ name, value })
   }
   if (filters.length === 0) return null
-  return { path: resolved.filePath, filters, projection }
+  return { path: resolved.filePath, ...(conceptSlug ? { conceptSlug } : {}), filters, projection }
 }
 
 /**
@@ -128,6 +149,9 @@ function unknownNameError(
 }
 
 function runCsvQuery(parsed: KnowledgeQuery, file: FileSnapshot): QueryResult {
+  if (parsed.conceptSlug) {
+    return { uris: [], truncated: false, diagnostics: [] }
+  }
   const diagnostics: ReferenceDiagnostic[] = []
   const fileName = file.path.split('/').pop() ?? file.path
   const table = parseCsvTable(file.content)
@@ -181,9 +205,12 @@ function runCsvQuery(parsed: KnowledgeQuery, file: FileSnapshot): QueryResult {
 function runMarkdownQuery(parsed: KnowledgeQuery, file: FileSnapshot): QueryResult {
   const diagnostics: ReferenceDiagnostic[] = []
   const fileName = file.path.split('/').pop() ?? file.path
-  const sections = scanSections(file.content)
+  const allSections = scanSections(file.content)
+  const sections = parsed.conceptSlug
+    ? allSections.filter((s) => s.conceptSlug === parsed.conceptSlug)
+    : allSections
   const knownFields = new Set<string>()
-  for (const s of sections) for (const name of s.fields.keys()) knownFields.add(name)
+  for (const s of allSections) for (const name of s.fields.keys()) knownFields.add(name)
   const wanted = [
     ...parsed.filters.map((f) => f.name),
     ...(parsed.projection ? [parsed.projection] : []),

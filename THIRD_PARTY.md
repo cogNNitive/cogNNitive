@@ -36,6 +36,7 @@ tooling is not distributed and is not listed.
 | ajv-formats | 3.0.1 | MIT | allow | nn-mcp | Copyright (c) 2020 Evgeny Poberezkin |
 | argparse | 1.0.10 | MIT | allow | nn-sources | Copyright (C) 2012 by Vitaly Puzrin |
 | base64-js | 1.5.1 | MIT | allow | nn-sources | Copyright (c) 2014 Jameson Little |
+| bluebird | 3.4.7 | MIT | allow | nn-sources | Copyright (c) 2013-2015 Petka Antonov |
 | body-parser | 2.3.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | bytes | 3.1.2 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2015 Jed Watson <jed.watson@me.com> |
 | call-bind-apply-helpers | 1.0.2 | MIT | allow | nn-mcp | Copyright (c) 2024 Jordan Harband |
@@ -48,6 +49,7 @@ tooling is not distributed and is not listed.
 | core-util-is | 1.0.3 | MIT | allow | nn-sources | (see package) |
 | cors | 2.8.6 | MIT | allow | nn-mcp | Copyright (c) 2013 Troy Goode <troygoode@gmail.com> |
 | cross-spawn | 7.0.6 | MIT | allow | nn-mcp | Copyright (c) 2018 Made With MOXY Lda <hello@moxy.studio> |
+| debug | 3.2.7 | MIT | allow | nn-sources | Copyright (c) 2014 TJ Holowaychuk <tj@vision-media.ca> |
 | debug | 4.4.3 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 TJ Holowaychuk <tj@vision-media.ca>; Copyright (c) 2018-2021 Josh Junon |
 | depd | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014-2018 Douglas Christopher Wilson |
 | dingbat-to-unicode | 1.0.1 | BSD-2-Clause | allow | nn-sources | (see package) |
@@ -92,14 +94,14 @@ tooling is not distributed and is not listed.
 | kleur | 3.0.3 | MIT | allow | nn-sources | Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com) |
 | lie | 3.3.0 | MIT | allow | nn-sources | (see package) |
 | lop | 0.4.2 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
-| mammoth | 1.13.0 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
+| mammoth | 1.12.0 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
 | math-intrinsics | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2024 ECMAScript Shims |
 | media-typer | 1.1.1 | MIT | allow | nn-mcp | Copyright (c) 2014-2017 Douglas Christopher Wilson |
 | merge-descriptors | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) Jonathan Ong <me@jongleberry.com>; Copyright (c) Douglas Christopher Wilson <doug@somethingdoug.com>; Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com) |
 | mime-db | 1.54.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015-2022 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | mime-types | 3.0.2 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | minimist | 1.2.8 | MIT | allow | nn-sources | (see package) |
-| ms | 2.1.3 | MIT | allow | nn-mcp | Copyright (c) 2020 Vercel, Inc. |
+| ms | 2.1.3 | MIT | allow | nn-mcp, nn-sources | Copyright (c) 2020 Vercel, Inc. |
 | negotiator | 1.1.0 | MIT | allow | nn-mcp | Copyright (c) 2012-2014 Federico Romero; Copyright (c) 2012-2014 Isaac Z. Schlueter; Copyright (c) 2014-2015 Douglas Christopher Wilson |
 | node-ensure | 0.0.0 | MIT | allow | nn-sources | (see package) |
 | object-assign | 4.1.1 | MIT | allow | nn-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
@@ -109,9 +111,10 @@ tooling is not distributed and is not listed.
 | option | 0.2.4 | BSD-2-Clause | allow | nn-sources | Copyright (c) 2013, Michael Williamson |
 | pako | 1.0.11 | (MIT AND Zlib) | allow | nn-sources | Copyright (C) 2014-2017 by Vitaly Puzrin and Andrei Tuputcyn |
 | parseurl | 1.3.3 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2014-2017 Douglas Christopher Wilson <doug@somethingdoug.com> |
+| path-is-absolute | 1.0.1 | MIT | allow | nn-sources | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
 | path-key | 3.1.1 | MIT | allow | nn-mcp | Copyright (c) Sindre Sorhus <sindresorhus@gmail.com> (sindresorhus.com) |
 | path-to-regexp | 8.4.2 | MIT | allow | nn-mcp | Copyright (c) 2014 Blake Embrey (hello@blakeembrey.com) |
-| pdf-parse | 1.1.4 | MIT | allow | nn-sources | Copyright (c) 2017 Mehmet Kozan |
+| pdf-parse | 1.1.1 | MIT | allow | nn-sources | Copyright (c) 2017 Mehmet Kozan |
 | pkce-challenge | 5.0.1 | MIT | allow | nn-mcp | Copyright (c) 2019 |
 | process-nextick-args | 2.0.1 | MIT | allow | nn-sources | (see package) |
 | prompts | 2.4.2 | MIT | allow | nn-sources | Copyright (c) 2018 Terkel Gjervig Nielsen |
@@ -183,9 +186,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### accepts@2.0.0, body-parser@2.3.0, bytes@3.1.2 and 29 more
+### accepts@2.0.0, body-parser@2.3.0, bytes@3.1.2 and 30 more
 
-Applies to: accepts@2.0.0, body-parser@2.3.0, bytes@3.1.2, content-disposition@1.1.0, content-type@1.0.5, content-type@2.1.0, cookie@0.7.2, cookie-signature@1.2.2, cors@2.8.6, debug@4.4.3, depd@2.0.0, encodeurl@2.0.0, escape-html@1.0.3, etag@1.8.1, express@5.2.1, finalhandler@2.1.1, forwarded@0.2.0, fresh@2.0.0, media-typer@1.1.1, mime-db@1.54.0, mime-types@3.0.2, negotiator@1.1.0, on-finished@2.4.1, parseurl@1.3.3, proxy-addr@2.0.8, range-parser@1.3.0, router@2.2.0, send@1.2.1, serve-static@2.2.1, type-is@2.1.0, unpipe@1.0.0, vary@1.1.2.
+Applies to: accepts@2.0.0, body-parser@2.3.0, bytes@3.1.2, content-disposition@1.1.0, content-type@1.0.5, content-type@2.1.0, cookie@0.7.2, cookie-signature@1.2.2, cors@2.8.6, debug@3.2.7, debug@4.4.3, depd@2.0.0, encodeurl@2.0.0, escape-html@1.0.3, etag@1.8.1, express@5.2.1, finalhandler@2.1.1, forwarded@0.2.0, fresh@2.0.0, media-typer@1.1.1, mime-db@1.54.0, mime-types@3.0.2, negotiator@1.1.0, on-finished@2.4.1, parseurl@1.3.3, proxy-addr@2.0.8, range-parser@1.3.0, router@2.2.0, send@1.2.1, serve-static@2.2.1, type-is@2.1.0, unpipe@1.0.0, vary@1.1.2.
 
 ```text
 (The MIT License)
@@ -210,9 +213,9 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-### ajv@8.20.0, base64-js@1.5.1, cross-spawn@7.0.6 and 13 more
+### ajv@8.20.0, base64-js@1.5.1, bluebird@3.4.7 and 15 more
 
-Applies to: ajv@8.20.0, base64-js@1.5.1, cross-spawn@7.0.6, ee-first@1.1.1, http-errors@2.0.1, jose@6.2.12, kleur@3.0.3, ms@2.1.3, object-assign@4.1.1, path-to-regexp@8.4.2, pdf-parse@1.1.4, raw-body@3.0.2, require-from-string@2.0.2, safe-buffer@5.1.2, statuses@2.0.2, xmlbuilder@10.1.1.
+Applies to: ajv@8.20.0, base64-js@1.5.1, bluebird@3.4.7, cross-spawn@7.0.6, ee-first@1.1.1, http-errors@2.0.1, jose@6.2.12, kleur@3.0.3, ms@2.1.3, object-assign@4.1.1, path-is-absolute@1.0.1, path-to-regexp@8.4.2, pdf-parse@1.1.1, raw-body@3.0.2, require-from-string@2.0.2, safe-buffer@5.1.2, statuses@2.0.2, xmlbuilder@10.1.1.
 
 ```text
 The MIT License (MIT)
@@ -268,9 +271,9 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-### duck@0.1.12, lop@0.4.2, mammoth@1.13.0 and 1 more
+### duck@0.1.12, lop@0.4.2, mammoth@1.12.0 and 1 more
 
-Applies to: duck@0.1.12, lop@0.4.2, mammoth@1.13.0, option@0.2.4.
+Applies to: duck@0.1.12, lop@0.4.2, mammoth@1.12.0, option@0.2.4.
 
 ```text
 All rights reserved.
