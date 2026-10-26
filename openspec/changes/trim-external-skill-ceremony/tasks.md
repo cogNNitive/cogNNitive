@@ -26,8 +26,9 @@
 - [ ] 4.2 `npm run verify:fast` / `node scripts/verify.js` (needs installed workspace deps)
 - [ ] 4.3 `openspec validate trim-external-skill-ceremony --strict`
 
-## 5. Deferred (own work unit, needs a build env)
+## 5. Parser/discovery prune (`nn-core` + `nn-mcp`)
 
-- [ ] 5.1 Prune tolerant `ref`/`sha256`/`distribution` from `nn-core` `parser.ts` + `parser/yaml.ts`
-- [ ] 5.2 Prune the passthrough in `nn-mcp` `src/tools/spec.ts`; update the Vitest specs
-- [ ] 5.3 Run `npm --workspace=@cognnitive/nn-core test` and the nn-mcp suite
+- [x] 5.1 Drop `ref`/`distribution` from `nn-core` `types/parser.ts` (`TemplateSkill`) and `parser/yaml.ts`
+- [x] 5.2 Drop the `ref`/`distribution` passthrough in `nn-mcp` `src/tools/spec.ts`
+- [x] 5.3 `sha256` kept as an optional, unenforced field (general install machinery)
+- [ ] 5.4 Vitest suites verified by CI `quality` job (`npm --workspace=@cognnitive/nn-core test` + nn-mcp)

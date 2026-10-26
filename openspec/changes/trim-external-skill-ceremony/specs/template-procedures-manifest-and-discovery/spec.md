@@ -14,7 +14,8 @@ and `version`/`description` come from the SKILL.md frontmatter.
 The frontmatter `skills:` array MUST remain the mechanism for external skills only,
 and its entries MUST NOT carry `embedded: true`. An external entry MUST carry the pin
 and governance fields `{ name, repo, path, commit, license }` and MAY carry
-`source_template`; discovery MUST return `commit` and `license` for an external entry.
+`{ sha256, source_template }`; discovery MUST return `commit` and `license`, and MAY
+return `sha256` when declared, for an external entry.
 Discovery is read-only and MUST NOT fetch or install an external skill. Entries MUST be
 deduplicated by `name`, and an on-disk embedded entry MUST win over a same-name
 external entry.

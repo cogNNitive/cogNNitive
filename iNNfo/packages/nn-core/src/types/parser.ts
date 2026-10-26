@@ -71,14 +71,10 @@ export interface TemplateSkill {
   path: string
   /** Pinned commit SHA (40-hex). Immutability locator for a referenced external skill. */
   commit?: string
-  /** Declared tag/branch the commit resolves to; verified at pin time. */
-  ref?: string
-  /** Canonical SHA-256 tree digest (see skill-tree-digest). Strong integrity anchor. */
+  /** Optional, unenforced SHA-256 tree digest; preserved for round-trip only. */
   sha256?: string
   /** SPDX license identifier. Required for a referenced external skill. */
   license?: string
-  /** 'referenced' (default, fetched upstream at install) | 'vendored' (shipped). */
-  distribution?: 'referenced' | 'vendored'
   source_template?: string
 }
 
