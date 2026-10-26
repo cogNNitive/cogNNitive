@@ -54,7 +54,7 @@ describe('buildBlueprintSchemaResolverFromCache', () => {
     expect(schema).not.toBeNull()
     expect(schema!.concepts[0]!.name).toBe('Startup')
     expect(schema!.concepts[0]!.fields?.[0]!.name).toBe('business_model')
-    expect(schema!.concepts[0]!.fields?.[0]!.type).toBe('model')
+    expect(schema!.concepts[0]!.fields?.[0]!.type).toBe('knowledge')
   })
 
   it("returns null when the node's parent_spec.name is not present in the cache (unknown template)", async () => {
