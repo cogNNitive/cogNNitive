@@ -172,7 +172,7 @@ export function buildScript(reviewed, draft, config) {
     '---',
     '',
     '> [!NOTE]',
-    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
+    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/).',
     '',
     '# NN Video',
     '',
