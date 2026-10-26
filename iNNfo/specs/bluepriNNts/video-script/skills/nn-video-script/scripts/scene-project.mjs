@@ -21,6 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { sceneTransitionFragment } from './scene-transition.mjs';
+import { overlayHostMarkup } from './overlay-blocks.mjs';
 
 export const HYPERFRAMES_PIN = '0.8.192';
 export const OVERLAY_HOST_ANCHOR = '<!-- nn-overlay-host -->';
@@ -66,6 +67,7 @@ export function buildProject(manifest, plan = {}) {
   const compositionId = String(manifest.compositionId || 'composition');
   const scenes = manifest?.tracks?.scenes || [];
   const audio = manifest?.tracks?.audio || [];
+  const overlays = manifest?.tracks?.overlays || [];
   const assets = [];
 
   const compositions = scenes.map((scene) => {
@@ -74,6 +76,19 @@ export function buildProject(manifest, plan = {}) {
     const layers = drawableLayers(scene);
     layers.forEach((l) => assets.push(String(l.layer_asset_source)));
     const layerHtml = layers.map((l, i) => layerMarkup(l, scene.durationInFrames, fps, i + 1)).join('\n      ');
+    const sceneOverlays = overlays.filter(
+      (o) => o.fromFrame >= scene.fromFrame && o.fromFrame < scene.fromFrame + scene.durationInFrames,
+    );
+    const overlayHtml = sceneOverlays
+      .map((o, i) =>
+        overlayHostMarkup(o, scene.fromFrame, fps, {
+          seriesFrame: plan.seriesFrame,
+          sceneBlock: plan.sceneBlock,
+          trackIndex: 10 + i,
+        }),
+      )
+      .filter(Boolean)
+      .join('\n      ');
     const transition = sceneTransitionFragment(scene.transition, fps);
     const tween = transition ? `      ${transition.js}` : '';
     const html = `<template>
@@ -83,6 +98,7 @@ export function buildProject(manifest, plan = {}) {
   </style>
   <div id="root" data-width="${width}" data-height="${height}" data-duration="${dur}">
       ${layerHtml}
+      ${overlayHtml}
       ${OVERLAY_HOST_ANCHOR}
   </div>
   <script>
@@ -127,7 +143,7 @@ ${tween}
   <body>
     <div id="root" data-composition-id="${esc(compositionId)}" data-start="0" data-duration="${total}" data-width="${width}" data-height="${height}" data-fps="${fps}">
 ${sceneHosts}
-${audioEls}
+${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="captions" data-start="0" data-duration="${total}" data-track-index="900"></div>\n` : ''}${audioEls}
     </div>
   </body>
 </html>
