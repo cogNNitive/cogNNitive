@@ -122,12 +122,13 @@ export function validateFormatContent(
 
   // ── Frontmatter ────────────────────────────────────────────────
 
-  // 1. level
-  const levelOk = fm.level === 3
+  // 1. level (level 2 blueprint or level 3 model)
+  const isLevel2 = fm.level === 2
+  const levelOk = fm.level === 3 || isLevel2
   checks.push({
     id: 'fm-level',
-    label: 'Model level is 3',
-    description: 'iNNfo models must declare level: 3',
+    label: isLevel2 ? 'Blueprint level is 2' : 'Model level is 3',
+    description: isLevel2 ? 'iNNfo blueprints must declare level: 2' : 'iNNfo models must declare level: 3',
     category: 'frontmatter',
     severity: 'error',
     passed: levelOk,
@@ -135,7 +136,7 @@ export function validateFormatContent(
       ? undefined
       : fm.level === undefined
         ? 'Missing level field'
-        : `Expected level 3, got ${fm.level}`,
+        : `Expected level 2 or 3, got ${fm.level}`,
   })
 
   // 1b. R-IE-03: No inline schema in level 3 models
@@ -344,29 +345,35 @@ export function validateFormatContent(
           : undefined,
     })
 
-    // Check for retired type:: model keyword
+    // Check for deprecated type:: model keyword
     if (isV030 || fm.level === 2) {
-      const retiredModelTypes: string[] = []
       for (const el of parsed.elements.get(CONCEPT_DEFINITION) ?? []) {
         if (el.fields['type'] === 'model') {
-          retiredModelTypes.push(`Concept Definition: ${el.name}`)
+          checks.push({
+            id: 'FIELD_TYPE_MODEL_DEPRECATED',
+            label: 'Deprecated type:: model',
+            description: 'type:: model is a deprecated alias of type:: knowledge',
+            category: 'body',
+            severity: 'warning',
+            passed: false,
+            message: `Concept "${el.name}" uses deprecated "type:: model". Replace with "type:: knowledge".`,
+            promptHint: 'Replace "type:: model" with "type:: knowledge"',
+          })
         }
       }
       for (const el of parsed.elements.get('Field Definition') ?? []) {
         if (el.fields['type'] === 'model') {
-          retiredModelTypes.push(`Field Definition: ${el.name}`)
+          checks.push({
+            id: 'FIELD_TYPE_MODEL_DEPRECATED',
+            label: 'Deprecated type:: model',
+            description: 'type:: model is a deprecated alias of type:: knowledge',
+            category: 'body',
+            severity: 'warning',
+            passed: false,
+            message: `Field "${el.name}" uses deprecated "type:: model". Replace with "type:: knowledge".`,
+            promptHint: 'Replace "type:: model" with "type:: knowledge"',
+          })
         }
-      }
-      if (retiredModelTypes.length > 0) {
-        checks.push({
-          id: 'body-type-model-retired',
-          label: 'No retired type:: model',
-          description: 'type:: model is retired in V_0-3-0; use type:: knowledge',
-          category: 'body',
-          severity: 'error',
-          passed: false,
-          message: `Retired keyword "type:: model" used in: ${retiredModelTypes.join(', ')}. Expected "type:: knowledge".`,
-        })
       }
     }
   }

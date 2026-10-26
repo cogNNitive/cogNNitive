@@ -8,6 +8,7 @@ export const CONCEPT_TYPES = [
   'steps',
   'sequence',
   'knowledge',
+  // Deprecated alias for 'knowledge'. Normalizes to 'knowledge' at intake.
   'model',
 ] as const
 export type ConceptType = (typeof CONCEPT_TYPES)[number]
@@ -27,6 +28,7 @@ export const FIELD_TYPES = [
   'markdown_inline',
   'markdown_file',
   'knowledge',
+  // Deprecated alias for 'knowledge'. Normalizes to 'knowledge' at intake.
   'model',
   // A validated structural pointer `<target>@<unit>` to an existing unit. It is the
   // base of the address grammar: `citation` is an `address` that additionally asserts
@@ -39,6 +41,18 @@ export const FIELD_TYPES = [
   'citation',
 ] as const
 export type FieldType = (typeof FIELD_TYPES)[number]
+
+/** Normalize deprecated concept type aliases (e.g. 'model' -> 'knowledge'). */
+export function normalizeConceptType(type: string): string {
+  if (type === 'model') return 'knowledge'
+  return type
+}
+
+/** Normalize deprecated field type aliases (e.g. 'model' -> 'knowledge'). */
+export function normalizeFieldType(type: string): string {
+  if (type === 'model') return 'knowledge'
+  return type
+}
 
 export type SpecLevel = 0 | 1 | 2 | 3
 

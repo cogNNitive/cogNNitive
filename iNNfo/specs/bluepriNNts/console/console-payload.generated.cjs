@@ -7421,6 +7421,14 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // iNNfo/packages/nn-core/src/types/parser.ts
+function normalizeConceptType(type) {
+  if (type === "model") return "knowledge";
+  return type;
+}
+function normalizeFieldType(type) {
+  if (type === "model") return "knowledge";
+  return type;
+}
 var ElementsMap = class {
   _map = /* @__PURE__ */ new Map();
   set(key, nodes) {
@@ -8676,7 +8684,7 @@ function extractBlueprintSchema(parsed) {
     const concept = {
       name: el.name,
       parent,
-      type: asString(el.fields["type"]) ?? "text",
+      type: normalizeConceptType(asString(el.fields["type"]) ?? "text"),
       icon: asString(el.fields["icon"]),
       color: asString(el.fields["color"]),
       weight: asNumber(el.fields["weight"])
@@ -8715,7 +8723,7 @@ function extractBlueprintSchema(parsed) {
     const widgetConfig = asObject(el.fields["widget_config"]);
     const field = {
       name: el.name,
-      type: asString(el.fields["type"]) ?? "string",
+      type: normalizeFieldType(asString(el.fields["type"]) ?? "string"),
       options: asStringArray(el.fields["options"]),
       target_concepts: asStringArray(el.fields["target_concepts"]),
       target_blueprint: targetBlueprint,

@@ -171,3 +171,14 @@ confined to `nn-core` internals plus specification and documentation text.
 - Chained PRs recommended: No (one reviewable unit; all three land on `dev` together).
 - 400-line budget risk: Low-Medium. The bulk is documentation text.
 - Decision needed before apply: No.
+
+## Ponytail Ceilings & Future Enhancements (Tag: potential-enhancement)
+
+### Ceilings in This Change
+- **Soft deprecation seam over hard deletion**: `type:: model` is normalized to `knowledge` at parser intake with a non-fatal warning (`FIELD_TYPE_MODEL_DEPRECATED`) rather than hard removal from valid types.
+  - *Upgrade condition*: When all legacy workspaces and external domains have been audited and no occurrences of `type:: model` remain in active use.
+
+### Potential Future Enhancements
+- `future: hard-retire-model-keyword`: Remove `model` entirely from `VALID_FIELD_TYPES` and `VALID_CONCEPT_TYPES` arrays in `nn-core/src/types/parser.ts`, making `type:: model` a fatal parse/validation error instead of a deprecation warning.
+- `future: automated-type-model-migration`: Add `nn-upgrade` migration codemod to automatically rewrite `type:: model` -> `type:: knowledge` across all workspace `.md` files in a repository.
+

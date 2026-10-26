@@ -6,6 +6,7 @@ import type {
   ParsedKnowledge,
   TaxonomyEdge,
 } from '../types/index.js'
+import { normalizeConceptType, normalizeFieldType } from '../types/parser.js'
 import { parseKnowledge } from '../parser/index.js'
 
 /**
@@ -86,7 +87,7 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     const concept: Concept = {
       name: el.name,
       parent,
-      type: (asString(el.fields['type']) as Concept['type']) ?? 'text',
+      type: (normalizeConceptType(asString(el.fields['type']) ?? 'text') as Concept['type']),
       icon: asString(el.fields['icon']),
       color: asString(el.fields['color']),
       weight: asNumber(el.fields['weight']),
@@ -132,7 +133,7 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     const widgetConfig = asObject(el.fields['widget_config'])
     const field: ConceptField = {
       name: el.name,
-      type: (asString(el.fields['type']) as ConceptField['type']) ?? 'string',
+      type: (normalizeFieldType(asString(el.fields['type']) ?? 'string') as ConceptField['type']),
       options: asStringArray(el.fields['options']),
       target_concepts: asStringArray(el.fields['target_concepts']),
       target_blueprint: targetBlueprint,
