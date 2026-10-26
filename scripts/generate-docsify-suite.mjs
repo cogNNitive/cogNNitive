@@ -10,10 +10,13 @@ const repoRoot = path.resolve(__dirname, '..');
 function printUsage() {
   console.log(`
 Usage:
-  node scripts/generate-docsify-suite.mjs <model-path> [options]
+  node scripts/generate-docsify-suite.mjs <knowledge-path> [options]
+
+  Reads a documentation_NN.md kNNowledge document (or domaiNN_NN.md) and emits
+  _sidebar.md, _navbar.md, llms.txt, and ai-index.yaml.
 
 Options:
-  --output-dir, -o <dir>  Target output directory (default: model directory)
+  --output-dir, -o <dir>  Target output directory (default: kNNowledge document directory)
   --sidebar-only          Generate only _sidebar.md
   --navbar-only           Generate only _navbar.md
   --llms-only             Generate only llms.txt and ai-index.yaml

@@ -14,8 +14,8 @@ on a machine is recorded per-machine in `~/.agents/bootstrap-state.json` (like l
 
 1. Fetch the manifest — each skill carries a pinned `commit` and `version`.
 2. Ask the user for the target installation scope, recommending their User Profile by default:
-   - **Global User Profile (Default/Recommended)**: `~/.agents/skills/`, `~/.agents/templates/`, and `~/.agents/mcp/` (on Windows: `%USERPROFILE%\.agents\`, on Linux/macOS: `$HOME/.agents/`).
-   - **Local Workspace**: `./.agents/skills/`, `./specs/bluepriNNts/`, and `./.agents/mcp/`.
+   - **Global User Profile (Default/Recommended)**: `~/.agents/skills/`, `~/.agents/bluepriNNts/`, and `~/.agents/mcp/` (on Windows: `%USERPROFILE%\.agents\`, on Linux/macOS: `$HOME/.agents/`).
+   - **Local DomaiNN**: `./.agents/skills/`, `./specs/bluepriNNts/`, and `./.agents/mcp/`.
 3. Run the check: `node scripts/skills-manager.js status` from a cogNNitive checkout
    (or ask the agent to run it) to compare installed commits (recorded in
    `~/.agents/bootstrap-state.json`) against the pins.
@@ -24,14 +24,14 @@ on a machine is recorded per-machine in `~/.agents/bootstrap-state.json` (like l
 5. If any skill is outdated, show the diff preview and ask before updating:
    `node scripts/skills-manager.js update`. Never silently update, and never report
    "installed and up to date" without having run the check.
-6. For each skill that declares `mcp[]`, download the bundle `url` into `{target}/mcp/{name}.bundle.js` (default: `~/.agents/mcp/{name}.bundle.js`) and register it in your agent MCP config (e.g. `opencode.jsonc`, `antigravity.json`, or workspace config).
-7. For each template declared in `templates:`, `nn-mcp` resolves and hydrates versioned packages using 4-tier lookup:
-   - Workspace Package Directory: `./specs/bluepriNNts/<name>/<version>/`
-   - Workspace Flat Fallback: `./templates/<name>_V_<version>_NN.md` or `./specs/`
-   - Global User Cache: `~/.agents/templates/<name>/<version>/`
-   - Installed Skills Directory: `~/.agents/skills/*/templates/<name>/<version>/`
-   Hydration into workspace `./specs/bluepriNNts/<name>/<version>/` is atomic and write-once immutable.
-8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in template frontmatter are dynamically discovered up to depth 10 via `list_blueprint_procedures` and `list_blueprint_skills`. Skills embedded in a package (`skills/<name>/SKILL.md`) are listed with `embedded: true` and a resolved `path`.
+6. For each skill that declares `mcp[]`, download the bundle `url` into `{target}/mcp/{name}.bundle.js` (default: `~/.agents/mcp/{name}.bundle.js`) and register it in your agent MCP config (e.g. `opencode.jsonc`, `antigravity.json`, or domaiNN config).
+7. For each iNNfo bluepriNNt declared in `blueprints:`, `nn-mcp` resolves and hydrates versioned packages using 4-tier lookup:
+   - DomaiNN Package Directory: `./specs/bluepriNNts/<name>/<version>/`
+   - DomaiNN Flat Fallback: `./specs/bluepriNNts/<name>/spec_NN.md` or `./specs/`
+   - Global User Cache: `~/.agents/bluepriNNts/<name>/<version>/`
+   - Installed Skills Directory: `~/.agents/skills/*/specs/bluepriNNts/<name>/<version>/`
+   Hydration into the domaiNN `./specs/bluepriNNts/<name>/<version>/` is atomic and write-once immutable.
+8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in bluepriNNt frontmatter are dynamically discovered up to depth 10 via `list_blueprint_procedures` and `list_blueprint_skills`. Skills embedded in a package (`skills/<name>/SKILL.md`) are listed with `embedded: true` and a resolved `path`.
 9. Present the `workflows[]` as a menu and hand over to the chosen skill.
 
 ## For an agent that already has `agent-web-bootstrap`

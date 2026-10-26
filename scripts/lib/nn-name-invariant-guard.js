@@ -10,7 +10,6 @@
  * validator warning (`NN_NAME_INVARIANT`); here a violation is an ERROR.
  *
  * Carve-out (frozen content is reported, never failed, never renamed):
- *   - `docs/innfo/samples/**`, `docs/cognitive_nn/use-cases/**`
  *   - published specs `iNNfo/specs/**` whose name carries `_V_`
  *   - the folder of every blueprint in `manifest/source.yaml` `frozen_blueprints`
  *   - `iNNfo/specs/bluepriNNts/workspace/procedures/**`, named explicitly because
@@ -32,8 +31,6 @@ const MANIFEST_PATH = 'manifest/source.yaml';
 
 /** Fixed carve-out prefixes (posix, repo-relative). */
 const FROZEN_PREFIXES = [
-  'docs/innfo/samples/',
-  'docs/cognitive_nn/use-cases/',
   'iNNfo/specs/bluepriNNts/workspace/procedures/',
 ];
 
