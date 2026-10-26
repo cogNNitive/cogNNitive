@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { sceneTransitionFragment } from './scene-transition.mjs';
-import { overlayHostMarkup } from './overlay-blocks.mjs';
+import { renderOverlay } from './overlay-blocks.mjs';
 
 export const HYPERFRAMES_PIN = '0.8.192';
 export const OVERLAY_HOST_ANCHOR = '<!-- nn-overlay-host -->';
@@ -81,10 +81,13 @@ export function buildProject(manifest, plan = {}) {
     );
     const overlayHtml = sceneOverlays
       .map((o, i) =>
-        overlayHostMarkup(o, scene.fromFrame, fps, {
+        renderOverlay(o, scene.fromFrame, fps, {
           seriesFrame: plan.seriesFrame,
           sceneBlock: plan.sceneBlock,
           trackIndex: 10 + i,
+          width,
+          height,
+          zIndex: 200 + i,
         }),
       )
       .filter(Boolean)
