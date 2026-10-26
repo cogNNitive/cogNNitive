@@ -319,6 +319,37 @@ test('stop tolerates a deregistered, empty leftover dir without crashing', () =>
   }
 })
 
+test('start cuts the session branch from origin/dev, not a stale local dev', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const origin = join(base, 'origin.git')
+  const other = join(base, 'other')
+  const target = join(dirname(repo), 'cogNNitive-b1')
+  try {
+    git(['init', '--bare', '-b', 'dev', origin], base)
+    git(['remote', 'add', 'origin', origin], repo)
+    git(['push', 'origin', 'dev'], repo)
+    // Another clone advances origin/dev; the primary's local dev stays behind.
+    git(['clone', origin, other], base)
+    git(['config', 'user.email', 't@test'], other)
+    git(['config', 'user.name', 't'], other)
+    writeFileSync(join(other, 'newer.txt'), 'n')
+    git(['add', '-A'], other)
+    git(['commit', '-m', 'newer'], other)
+    git(['push', 'origin', 'dev'], other)
+    const tip = git(['rev-parse', 'HEAD'], other)
+    assert.notEqual(git(['rev-parse', 'dev'], repo), tip, 'precondition: local dev is behind')
+
+    const s = run(['start', '--id', 'b1', '--root', repo, '--no-install'])
+    assert.equal(s.code, 0)
+    assert.equal(git(['rev-parse', 'HEAD'], target), tip, 'session HEAD is the fetched origin/dev tip')
+    assert.ok(existsSync(join(target, 'newer.txt')), 'worktree has the commit local dev lacks')
+  } finally {
+    run(['stop', '--id', 'b1', '--root', repo])
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('start leaves an existing worktree alone (no reinstall)', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

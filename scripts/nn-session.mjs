@@ -162,12 +162,23 @@ function removeNodeModulesLinks(dir) {
   }
 }
 
+/**
+ * Base ref for a new session: `origin/dev` after a best-effort fetch, so a stale
+ * local `dev` in the primary never becomes the session's starting point. Falls
+ * back to local `dev` only when `origin/dev` does not exist (no remote).
+ */
+function sessionBase(root) {
+  tryGit(['fetch', 'origin'], root) // best-effort; offline is fine
+  return tryGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/dev'], root).ok ? 'origin/dev' : 'dev'
+}
+
 function start(argv) {
   const root = repoRoot(argv)
   const id = sessionId(argv)
   const target = worktreePath(root, id)
   if (!existsSync(target)) {
-    git(['worktree', 'add', '-b', `session/${id}`, target, 'dev'], root)
+    // --no-track: a session branch must not track origin/dev (a bare `git push` would target dev).
+    git(['worktree', 'add', '--no-track', '-b', `session/${id}`, target, sessionBase(root)], root)
     if (!argv.includes('--no-install')) {
       hydrateDependencies(target, root, argv.includes('--full-install'))
       buildCore(target)
