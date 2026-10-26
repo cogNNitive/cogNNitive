@@ -1,9 +1,9 @@
 # cross-domain-imports Specification
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Origin Domain and Import Declaration
-A domaiNN entrypoint (`domaiNN_NN.md`) MAY declare imported domains using relative filesystem paths, and declare imports scoped to a model or concept with deterministic query filters:
+A domaiNN entrypoint (`domaiNN_NN.md`) MUST support declaring imported domains using relative filesystem paths, and declaring imports scoped to a model or concept with deterministic query filters:
 - Origin domain section: `## NN Imported Domain: <alias>` followed by `path:: <relative-path>`.
 - Import section: `## NN Import: <import-name>` followed by `from:: <alias>><model>[@concept:<slug>][?<filters>]`.
 Absolute paths, URLs, and paths containing `..` escaping above authorized workspace boundaries MUST be rejected.
