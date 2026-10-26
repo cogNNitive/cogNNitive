@@ -1,6 +1,6 @@
 # knowledge-unit-address Specification Delta
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Citation Parser Prefix Parity
 The citation parser in `sourceRef.ts` (`parseKnowledgeUnitRef`) MUST recognise canonical unit prefixes `concept:` and `matrix:` to match `unit-address.ts`:

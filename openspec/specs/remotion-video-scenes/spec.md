@@ -3,7 +3,6 @@
 ## Purpose
 
 Define the Remotion component pipeline that renders video scenes (chapter title cards, parallax image motion, and sequence composition) plus the cogNNitive video-script metamodel extension that feeds it. Motion MUST be subpixel and deterministic across preview and headless renders.
-
 ## Requirements
 
 ### FR-001: Chapter Title Card Component (`ChapterTitle.tsx`)
@@ -59,6 +58,26 @@ The video-script metamodel extension MUST satisfy the following:
 - GIVEN a video-script markdown file with a scene block
 - WHEN it is parsed
 - THEN `scene_type`, `motion_direction`, `chapter_number`, `chapter_title`, `image` and `audio` attributes are honored
+
+### Requirement: Scene Pipeline Renders Through HyperFrames
+
+The scene pipeline MUST render through the emitted HyperFrames project, not Remotion. Scene
+durations MUST equal `Math.ceil(audioSeconds * fps)`, all audio MUST be a root-level HyperFrames
+element, and no React component runtime MUST be required. Motion MUST remain deterministic:
+every frame renders identically in the HyperFrames preview and headless render.
+
+#### Scenario: Deterministic preview and headless parity
+
+- GIVEN a scene pipeline with per-scene audio durations
+- WHEN the same project is inspected in the HyperFrames preview and rendered headless
+- THEN each scene's duration equals `Math.ceil(audioSeconds * fps)`
+- AND frame `n` renders identically in both
+
+#### Scenario: No Remotion artefact remains
+
+- GIVEN the skill directory
+- WHEN it is inspected
+- THEN no `remotion-*.tsx`/`.mjs`, no `ChapterTitle`/`ParallaxPanScene`/`VideoSequence` and no `@remotion/*` import is present
 
 ## Non-Functional Requirements
 
