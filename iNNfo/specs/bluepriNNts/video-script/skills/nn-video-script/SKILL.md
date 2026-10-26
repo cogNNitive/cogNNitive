@@ -132,6 +132,8 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
 | `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, parameterized by a series config (`video.series.json`). |
+| `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from config). |
+| `scripts/thumbnail-v1.mjs` | Series-parameterized thumbnail V1 compositor (SVG + Sharp). |
 
 Run any script with no arguments (or a bad one) to see its usage banner.
 See `references/thumbnail-and-asset-pipeline.md` for visual preproduction guidelines.

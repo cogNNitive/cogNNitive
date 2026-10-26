@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveModel, resolveModels, SCOPE_ORDER } from '../scripts/lib/model-cascade.mjs';
+import { resolveModel, resolveModels, resolveEngineModel, SCOPE_ORDER } from '../scripts/lib/model-cascade.mjs';
 
 test('the scope order is the documented chain', () => {
   assert.deepEqual(SCOPE_ORDER, ['cli', 'layer', 'scene', 'video', 'series', 'workspace', 'blueprint']);
@@ -43,4 +43,10 @@ test('resolveModels resolves several kinds', () => {
   const r = resolveModels({ kinds: ['tts', 'avatar'], scope: { series: { tts: 's-tts', avatar: 's-av' } } });
   assert.equal(r.tts.id, 's-tts');
   assert.equal(r.avatar.id, 's-av');
+});
+
+test('resolveEngineModel keeps plan and execution in lockstep and honors cli > scene', () => {
+  assert.equal(resolveEngineModel('tts', { cliModel: 'cli', sceneModel: 'scene', defaultModel: 'bp' }), 'cli');
+  assert.equal(resolveEngineModel('tts', { sceneModel: 'scene', defaultModel: 'bp' }), 'scene');
+  assert.equal(resolveEngineModel('image', { defaultModel: 'bp' }), 'bp');
 });
