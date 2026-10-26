@@ -1,10 +1,12 @@
-import { extractHeadings, normalizeName, splitBracketList } from './sourceRef.js'
+import { extractHeadings, normalizeName, slugifyHeading, splitBracketList } from './sourceRef.js'
 import { FIELD_LINE, sectionOwnLines } from './unitResolve.js'
 
 export interface SectionFields {
   slug: string
   level: number
   text: string
+  concept?: string
+  conceptSlug?: string
   /** Normalized field name → matchable item values. */
   fields: Map<string, string[]>
   /** Normalized field name → raw trimmed value (for projection). */
@@ -19,7 +21,18 @@ export interface SectionFields {
 export function scanSections(content: string): SectionFields[] {
   const headings = extractHeadings(content)
   const lines = content.split('\n')
+  let currentH1Concept: string | undefined
+
   return headings.map((h) => {
+    if (h.level === 1) {
+      const match = h.text.match(/^NN\s+([^:\n]+)/i)
+      currentH1Concept = match ? match[1].trim() : undefined
+    }
+    const conceptName = h.concept
+      ? h.concept.replace(/^NN\s+/i, '').trim()
+      : (h.level > 1 ? currentH1Concept : undefined)
+    const conceptSlug = conceptName ? slugifyHeading(conceptName) : undefined
+
     // Nearest-section ownership (shared with validation): a parent Concept
     // never matches its Elements' fields.
     const owned = sectionOwnLines(content, h.slug) ?? []
@@ -34,6 +47,6 @@ export function scanSections(content: string): SectionFields[] {
       fields.set(name, splitBracketList(raw))
       rawFields.set(name, raw)
     }
-    return { slug: h.slug, level: h.level, text: h.text, fields, rawFields }
+    return { slug: h.slug, level: h.level, text: h.text, concept: conceptName, conceptSlug, fields, rawFields }
   })
 }

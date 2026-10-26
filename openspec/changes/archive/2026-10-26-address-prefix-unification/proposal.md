@@ -32,3 +32,13 @@ An earlier proposal to replace this with a hierarchical syntax (`model@concept/e
    - `sourceRef.parseKnowledgeUnitRef` parses prefixes explicitly. Any slug without a prefix is treated as an element, eliminating collisions on slugs containing `matrix`.
 2. **Lift `@`/`?` Exclusivity**:
    - In `queryUnits.ts`, split at `?` first, then validate the path/target. If the target contains `@`, parse it with unit address parser. If it points to a concept (`@concept:<slug>`), scope markdown and CSV querying to elements belonging to that concept.
+
+## Ponytail Ceilings & Future Enhancements (Tag: potential-enhancement)
+
+- **Element-Scoped Query Addressing (`model@element?subfield`)**:
+  - *Ceiling*: Querying sub-elements or property values directly via URI query string is intentionally disallowed. Bare element targets with `?` are rejected.
+  - *Why deferred*: Overengineering with no active consumer; cross-domain imports only require scoping by model or concept.
+  - *Activation trigger*: A real use-case emerges requiring intra-element multi-property filtering without reading the full element node.
+- **Arbitrary Hierarchical Path Resolution (`model@concept/element/field`)**:
+  - *Ceiling*: Retained explicit prefix dialect (`@concept:<slug>`, `@matrix:<slug>`, bare element) rather than deep recursive path grammars.
+  - *Activation trigger*: Cross-domain deep traversal across nested concept graphs requiring filesystem-like URI nesting.

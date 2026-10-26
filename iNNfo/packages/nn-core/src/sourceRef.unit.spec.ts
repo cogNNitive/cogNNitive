@@ -96,6 +96,37 @@ describe('parseKnowledgeUnitRef grammar', () => {
   it('rejects a lone percent sign (must be authored as %25)', () => {
     expect(parseKnowledgeUnitRef('sources/import/notes.md@## 100%')).toBeNull()
   })
+
+  it('parses explicit concept and matrix prefixes and treats unprefixed matrix-named slugs as elements', () => {
+    const elem = parseKnowledgeUnitRef('strategy@risk-matrix')
+    expect(elem).toMatchObject({
+      filePath: 'strategy',
+      slug: 'risk-matrix',
+      unit: { kind: 'element', slug: 'risk-matrix' },
+    })
+
+    const section = parseKnowledgeUnitRef('strategy@concept:risk-matrix')
+    expect(section).toMatchObject({
+      filePath: 'strategy',
+      slug: 'risk-matrix',
+      unit: { kind: 'header', slug: 'risk-matrix' },
+    })
+
+    const matrix = parseKnowledgeUnitRef('strategy@matrix:risk-matrix')
+    expect(matrix).toMatchObject({
+      filePath: 'strategy',
+      slug: 'risk-matrix',
+      unit: { kind: 'matrix', matrixSlug: 'risk-matrix' },
+    })
+
+    const cell = parseKnowledgeUnitRef('strategy@matrix:risk-matrix&r1&c1')
+    expect(cell).toMatchObject({
+      filePath: 'strategy',
+      slug: 'risk-matrix',
+      unit: { kind: 'matrix', matrixSlug: 'risk-matrix', rowSlug: 'r1', colSlug: 'c1' },
+      subunits: ['r1', 'c1'],
+    })
+  })
 })
 
 describe('slugifyHeading flat cases (mirrored by the trannsform parity test)', () => {
