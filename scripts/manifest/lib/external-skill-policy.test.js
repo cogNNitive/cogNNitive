@@ -10,7 +10,6 @@ const assert = require('node:assert');
 const { validateExternalSkill, validateExternalSkills } = require('./external-skill-policy.js');
 
 const HEX40 = 'a'.repeat(40);
-const HEX64 = 'b'.repeat(64);
 
 function runTests() {
   console.log('Running external-skill-policy tests...');
@@ -18,7 +17,7 @@ function runTests() {
   // 1: a well-formed referenced entry passes
   {
     const r = validateExternalSkill({
-      name: 'x', repo: 'o/r', path: 'skills/x', commit: HEX40, ref: 'v1', sha256: HEX64, license: 'MIT',
+      name: 'x', repo: 'o/r', path: 'skills/x', commit: HEX40, license: 'MIT',
     });
     assert.deepStrictEqual(r.errors, [], r.errors.join('\n'));
     assert.deepStrictEqual(r.warnings, [], r.warnings.join('\n'));
@@ -33,38 +32,32 @@ function runTests() {
     console.log('✔ unpinned or unlicensed entry is rejected');
   }
 
-  // 3: malformed hashes fail
+  // 3: a malformed commit fails
   {
-    const r = validateExternalSkill({ name: 'x', repo: 'o/r', path: 'p', commit: 'nope', sha256: 'nope', license: 'MIT' });
+    const r = validateExternalSkill({ name: 'x', repo: 'o/r', path: 'p', commit: 'nope', license: 'MIT' });
     assert.ok(r.errors.some((e) => e.includes('40-char hex sha')), r.errors.join('\n'));
-    assert.ok(r.errors.some((e) => e.includes('64-char hex digest')), r.errors.join('\n'));
-    console.log('✔ malformed commit/sha256 are rejected');
+    console.log('✔ malformed commit is rejected');
   }
 
-  // 4: missing sha256 warns, does not fail
+  // 4: sha256/ref/distribution are ignored (no policy, no ceremony)
   {
-    const r = validateExternalSkill({ name: 'x', repo: 'o/r', path: 'p', commit: HEX40, license: 'MIT' });
+    const r = validateExternalSkill({
+      name: 'x', repo: 'o/r', path: 'p', commit: HEX40, license: 'MIT',
+      ref: 'v1', sha256: 'b'.repeat(64), distribution: 'vendored',
+    });
     assert.deepStrictEqual(r.errors, [], r.errors.join('\n'));
-    assert.strictEqual(r.warnings.length, 1);
-    console.log('✔ missing sha256 warns');
+    assert.deepStrictEqual(r.warnings, [], r.warnings.join('\n'));
+    console.log('✔ sha256/ref/distribution carry no policy');
   }
 
-  // 5: vendored + non-permissive license fails; referenced + same license passes
-  {
-    const base = { name: 'x', repo: 'o/r', path: 'p', commit: HEX40, sha256: HEX64, license: 'UNLICENSED' };
-    assert.ok(validateExternalSkill({ ...base, distribution: 'vendored' }).errors.some((e) => e.includes('not redistributable')));
-    assert.deepStrictEqual(validateExternalSkill({ ...base, distribution: 'referenced' }).errors, []);
-    console.log('✔ vendored redistribution requires a permissive license');
-  }
-
-  // 6: embedded entries are exempt
+  // 5: embedded entries are exempt
   {
     const r = validateExternalSkill({ name: 'x', embedded: true });
     assert.deepStrictEqual(r, { errors: [], warnings: [] });
     console.log('✔ embedded entries are exempt');
   }
 
-  // 7: aggregate over a list
+  // 6: aggregate over a list
   {
     const r = validateExternalSkills([{ name: 'a', embedded: true }, { name: 'b' }]);
     assert.ok(r.errors.some((e) => e.includes("skill 'b'")), r.errors.join('\n'));

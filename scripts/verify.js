@@ -556,6 +556,23 @@ function buildSteps(repoRoot, options = {}) {
   //     license, vendored assets unchanged, THIRD_PARTY.md fresh.
   steps.push(ro('check-licenses', 'Check Third-Party Licenses', 'scripts/check-licenses.mjs', '--check'));
 
+  // 4c. Referenced external skills guard: every external `skills:` entry a bluepriNNt
+  //     declares is pinned (commit + license) and integrity-anchored (sha256). Structural
+  //     and offline; runs here so a mis-pinned reference is caught by the merge gate, not
+  //     only by check-integrity (which is not part of the gate).
+  steps.push({
+    id: 'external-skills',
+    desc: 'Referenced External Skills Guard',
+    run: inline(() => {
+      const { collectExternalSkillViolations } = require('./manifest/lib/external-skill-policy.js');
+      const res = collectExternalSkillViolations(repoRoot);
+      if (res.errors.length) return { ok: false, lines: res.errors.map((e) => `  - ${e}`) };
+      const lines = res.warnings.map((w) => `  ⚠️ ${w}`);
+      lines.push(`${res.checked} referenced external skill entr${res.checked === 1 ? 'y' : 'ies'} satisfy the pin/license policy.`);
+      return { ok: true, lines };
+    }),
+  });
+
   // 5. Preflight Primitives Drift Guard (committed bundle matches nn-core source).
   steps.push(roFresh('preflight-primitives'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.

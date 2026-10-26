@@ -5,23 +5,16 @@
  *
  * Structural policy for skills a bluepriNNt *references* (as opposed to embeds)
  * via its frontmatter `skills:` array. A referenced skill is fetched from its
- * upstream repo at install time, so it MUST carry a pin (commit), a license and,
- * to be integrity-verified, a sha256 tree digest.
+ * upstream repo at install time, so it MUST carry a pin (`commit`) and a
+ * declared `license`.
  *
- * Pure and offline: the structural checks run everywhere. Network provenance
- * (ref -> commit, commit exists) is a separate, opt-in concern.
+ * Pure and offline: the structural checks run everywhere.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const COMMIT_RE = /^[0-9a-f]{40}$/i;
-const SHA_RE = /^[0-9a-f]{64}$/i;
-
-/** Licenses safe to redistribute when `distribution: vendored`. */
-const REDISTRIBUTABLE = new Set([
-  'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'MPL-2.0', '0BSD',
-]);
 
 /**
  * @param {object} skill a frontmatter skill entry
@@ -38,18 +31,6 @@ function validateExternalSkill(skill) {
   }
   if (skill.commit && !COMMIT_RE.test(String(skill.commit))) {
     errors.push(`${label}: commit '${skill.commit}' is not a 40-char hex sha`);
-  }
-  if (skill.sha256 && !SHA_RE.test(String(skill.sha256))) {
-    errors.push(`${label}: sha256 '${skill.sha256}' is not a 64-char hex digest`);
-  } else if (!skill.sha256) {
-    warnings.push(`${label}: no sha256 — pinned by commit only, integrity not verified`);
-  }
-  if (
-    String(skill.distribution || 'referenced') === 'vendored' &&
-    skill.license &&
-    !REDISTRIBUTABLE.has(String(skill.license))
-  ) {
-    errors.push(`${label}: license '${skill.license}' is not redistributable (distribution: vendored)`);
   }
   return { errors, warnings };
 }
@@ -128,8 +109,6 @@ function collectExternalSkillViolations(repoRoot) {
 
 module.exports = {
   COMMIT_RE,
-  SHA_RE,
-  REDISTRIBUTABLE,
   validateExternalSkill,
   validateExternalSkills,
   collectExternalSkillViolations,

@@ -96,9 +96,12 @@ test('read-only guards are pool-eligible; mutating and in-process steps stay ser
     for (const id of READ_ONLY_IDS) {
       assert.equal(byId[id]?.parallel, true, `${id} should carry parallel: true`);
     }
-    for (const id of ['blueprint-inventory', 'console-shell', 'line-count', 'skill-script-refs']) {
+    for (const id of ['blueprint-inventory', 'console-shell', 'line-count', 'skill-script-refs', 'external-skills']) {
       assert.equal(byId[id]?.parallel, undefined, `${id} should stay serial`);
     }
+    // The referenced-external-skills guard runs in-process so a mis-pinned entry fails
+    // the merge gate (verify.js), not only check-integrity.
+    assert.equal(typeof byId['external-skills']?.run, 'function');
     // docs-facts-drift must be a child-process step (never an in-process run).
     assert.equal(typeof byId['docs-facts-drift'].run, 'undefined');
     assert.ok(Array.isArray(byId['docs-facts-drift'].args));
