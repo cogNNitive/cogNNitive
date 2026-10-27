@@ -9,14 +9,16 @@
  * outputs a production-ready thumbnail (default 2560x1440).
  *
  * Usage:
- *   node render-thumbnail.mjs --base <path> --title <str> [--subtitle <str>] [--badge <str>] --out <path>
+ *   node render-thumbnail.mjs --base <path> --title <str> [--subtitle <str>] [--badge <str>] --out <path> [--series <dir>]
  *
  * Options:
  *   --base <path>        Path to clean 16:9 base image (required)
  *   --title <str>        Main innovation/video title (required)
- *   --subtitle <str>     Secondary title, creator, or year (optional)
- *   --badge <str>        Brand pill text (default: 'iNNtrevistas')
+ *   --subtitle <str>     Secondary title, creator, or year (default: the Series title)
+ *   --badge <str>        Brand pill text (default: the Series title, else 'iNNtrevistas')
  *   --out <path>         Output image destination path (required)
+ *   --series <dir>       Series folder whose `series_NN.md` supplies the default
+ *                        subtitle/badge; otherwise the cascade walks from --out's folder
  *   --width <number>     Target width in pixels (default: 2560)
  *   --height <number>    Target height in pixels (default: 1440)
  */
@@ -25,6 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { loadSeriesFor } from './build-script-from-draft.mjs';
 
 /**
  * Escapes special XML/SVG characters.
@@ -39,6 +42,43 @@ export function escapeXml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+/**
+ * Resolves the Series `title` for a thumbnail: an explicit `--series <dir>` wins,
+ * otherwise the parameter cascade walks from `--out`'s folder to the nearest
+ * series document. Returns undefined when no series is found — the series default
+ * is optional here.
+ * @param {object} [options]
+ * @param {string} [options.outputPath]
+ * @param {string} [options.seriesDir]
+ * @returns {string|undefined}
+ */
+export function resolveSeriesTitle({ outputPath, seriesDir } = {}) {
+  try {
+    const inputDir = outputPath ? path.dirname(path.resolve(outputPath)) : process.cwd();
+    const series = loadSeriesFor(inputDir, seriesDir);
+    return series && series.title ? series.title : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Pure: resolves the effective subtitle and badge. Explicit values win; otherwise
+ * both fall back to the Series `title`, and the badge alone falls back to the
+ * brand pill when no series is found.
+ * @param {object} [options]
+ * @param {string} [options.subtitle]
+ * @param {string} [options.badge]
+ * @param {string} [options.seriesTitle]
+ * @returns {{ subtitle: string|undefined, badge: string }}
+ */
+export function resolveThumbnailText({ subtitle, badge, seriesTitle } = {}) {
+  return {
+    subtitle: subtitle || seriesTitle,
+    badge: badge || seriesTitle || 'iNNtrevistas',
+  };
 }
 
 /**
@@ -217,6 +257,7 @@ export function generateThumbnailSvg({
  * @param {string} options.title
  * @param {string} [options.subtitle]
  * @param {string} [options.badge]
+ * @param {string} [options.seriesDir]
  * @param {string} options.outputPath
  * @param {number} [options.width=2560]
  * @param {number} [options.height=1440]
@@ -225,7 +266,8 @@ export async function renderThumbnail({
   basePath,
   title,
   subtitle,
-  badge = 'iNNtrevistas',
+  badge,
+  seriesDir,
   outputPath,
   width = 2560,
   height = 1440,
@@ -246,13 +288,17 @@ export async function renderThumbnail({
     fs.mkdirSync(outDir, { recursive: true });
   }
 
+  // Subtitle/badge default to the Series title (explicit flags win).
+  const seriesTitle = resolveSeriesTitle({ outputPath, seriesDir });
+  const text = resolveThumbnailText({ subtitle, badge, seriesTitle });
+
   // Generate SVG typographic overlay
   const svgMarkup = generateThumbnailSvg({
     width,
     height,
     title,
-    subtitle,
-    badge,
+    subtitle: text.subtitle,
+    badge: text.badge,
   });
 
   const svgBuffer = Buffer.from(svgMarkup, 'utf8');
@@ -306,6 +352,8 @@ export function parseCliArgs(argv) {
       args.badge = argv[++i];
     } else if (arg === '--out' && argv[i + 1]) {
       args.outputPath = argv[++i];
+    } else if (arg === '--series' && argv[i + 1]) {
+      args.seriesDir = argv[++i];
     } else if (arg === '--width' && argv[i + 1]) {
       args.width = parseInt(argv[++i], 10);
     } else if (arg === '--height' && argv[i + 1]) {
@@ -328,14 +376,15 @@ if (isMain) {
   if (args.help || !args.basePath || !args.title || !args.outputPath) {
     console.log(`
 Usage:
-  node render-thumbnail.mjs --base <path> --title <str> [--subtitle <str>] [--badge <str>] --out <path>
+  node render-thumbnail.mjs --base <path> --title <str> [--subtitle <str>] [--badge <str>] --out <path> [--series <dir>]
 
 Options:
   --base <path>        Path to clean 16:9 base image (required)
   --title <str>        Main title text (required)
-  --subtitle <str>     Secondary line / subtitle / year (optional)
-  --badge <str>        Brand pill text (default: 'iNNtrevistas')
+  --subtitle <str>     Secondary line / subtitle / year (default: the Series title)
+  --badge <str>        Brand pill text (default: the Series title, else 'iNNtrevistas')
   --out <path>         Output image destination path (required)
+  --series <dir>       Series folder supplying the default subtitle/badge from series_NN.md
   --width <num>        Width in pixels (default: 2560)
   --height <num>       Height in pixels (default: 1440)
 `);

@@ -2,7 +2,7 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script.
-version: "V_0-15-1"
+version: "V_0-15-2"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -104,8 +104,9 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    *Post-process over the square master (NOT a re-render): emits `<slug>_1080x1080.mp4` (stream copy), `<slug>_1080x1920.mp4` and `<slug>_1920x1080.mp4`, each showing the square WHOLE, centered, over a Gaussian-blurred fill, audio copied and `+faststart` applied. `--dry-run` prints the ffmpeg filter graphs. If the master is already named `<slug>_1080x1080.mp4`, the square copy is skipped (never overwrites its own input).*
 7. **Compose Video Thumbnail**:
    ```bash
-   node scripts/render-thumbnail.mjs --base <path> --title <title> --out <out>
+   node scripts/render-thumbnail.mjs --base <path> --title <title> --out <out> [--series <series-dir>]
    ```
+   *`render-thumbnail.mjs` is the only Phase B thumbnail tool. When `--series <dir>` is passed (or a series is found by walking from `--out`), the subtitle and badge default to the Series `title`; explicit `--subtitle`/`--badge` win.*
 8. **Finalize**:
    ```bash
    node scripts/finalize-video.mjs --video-dir <video-dir> [--ref <r>] [--force-thumbnail]
@@ -137,11 +138,10 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
 | `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`) and headless rendering (`render`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
 | `scripts/render-formats.mjs` | Format-variant post-process: square master → `_1080x1080` (copy) / `_1080x1920` / `_1920x1080` with the square whole over a Gaussian-blurred fill (`+faststart`). |
-| `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |
+| `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. `--series <dir>` (or the cascade from `--out`) fills subtitle/badge from the Series `title`. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
 | `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, reading series values through the parameter cascade (`series_NN.md` → domain Video Defaults → package Video Defaults). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. The script frontmatter is copied from the series document and the filename uses the Series slug. |
 | `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from the `series_NN.md` document). |
-| `scripts/thumbnail-v1.mjs` | Series-parameterized thumbnail V1 compositor (SVG + Sharp). |
 
 Run any script with no arguments (or a bad one) to see its usage banner.
 See `references/thumbnail-and-asset-pipeline.md` for visual preproduction guidelines.
