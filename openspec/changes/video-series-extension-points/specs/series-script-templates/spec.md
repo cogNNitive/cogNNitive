@@ -6,15 +6,7 @@ Scope: where a series and a domain keep their documents, components, sounds and 
 
 ### Requirement: Series, Domain And Episode Extension Folders
 
-A series folder MAY contain one `series_NN.md` (the `series` cascade level). The domain root MAY
-contain one `video-defaults_NN.md` (the `domain` level) and MUST NOT be treated as a series. The
-episode, series and domain folders MAY each contain `components/<name>.html`,
-`sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or
-slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback,
-by a nearest-folder walk from the script's folder; a nearer file MUST win. All folders and
-documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the
-package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series
-writes its own `series_NN.md`.
+A series folder MAY contain one `series_NN.md` (the `series` cascade level); the domain root MUST NOT be treated as a series. The domain root MAY contain one `video-defaults_NN.md` (the `domain` level). The episode, series and domain folders MAY each contain `components/<name>.html`, `sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. All folders and documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series writes its own `series_NN.md`.
 
 #### Scenario: Episode file beats series file
 
