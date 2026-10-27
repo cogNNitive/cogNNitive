@@ -1124,6 +1124,10 @@ agent-bootstrap:
     const names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'video-script', commit: 'e2e' }, state);
     assert.deepStrictEqual(names, ['nn-video-script'], 'the real video-script package projects exactly nn-video-script');
     assert.strictEqual(state.skills['nn-video-script'].source_blueprint, 'video-script');
+    assert.ok(
+      state.skills['nn-video-script'].files && Object.keys(state.skills['nn-video-script'].files).includes('SKILL.md'),
+      'install records a per-file content hash (excludes node_modules/.bak-*)',
+    );
 
     const projected = path.join(skillsDir, 'nn-video-script');
     const cli = path.join(projected, 'scripts', 'finalize-video.mjs');
@@ -1175,6 +1179,52 @@ agent-bootstrap:
   assert.ok(/pinned by commit only \(no sha256 to verify\)/.test(unpinned), 'a commit-only pin reads as unverified');
 
   console.log('✔ external-skill install notice test passed');
+}
+
+// depends_on reader + validator (blueprint-dependency-lifecycle, template-skill-bundling)
+{
+  const { readDependsOn, validateDependsOn } = require('./lib/skills-commands.js');
+
+  const text = [
+    '---',
+    'name: demo',
+    'depends_on:',
+    '  cli:',
+    '    - name: hyperframes',
+    '      agent_skills: true',
+    '  env:',
+    '    - name: WAVESPEED_API_KEY',
+    '      purpose: TTS',
+    '      required: true',
+    '  binaries: [ffmpeg]',
+    '  node: ">=22"',
+    '  optional_mcp: [wavespeed]',
+    '---',
+    '# demo',
+  ].join('\n');
+  const dep = readDependsOn(text);
+  assert.ok(dep && dep.cli && dep.cli[0].name === 'hyperframes', 'reader preserves the nested cli entry');
+  assert.deepStrictEqual(dep.binaries, ['ffmpeg'], 'reader preserves sequence scalars');
+
+  const pkg = { dependencies: { hyperframes: '0.8.192' } };
+  assert.deepStrictEqual(validateDependsOn(dep, pkg), [], 'a well-formed depends_on validates');
+  assert.ok(
+    validateDependsOn({ cli: [{ name: 'hyperframes', version: '0.8.192' }] }, pkg).some((e) => /version belongs in package.json/.test(e)),
+    'a version field in a cli entry is rejected',
+  );
+  assert.ok(
+    validateDependsOn({ cli: [{ name: 'hyperframes' }] }, { dependencies: {} }).some((e) => /not in package.json/.test(e)),
+    'a cli package absent from package.json is rejected',
+  );
+  assert.ok(
+    validateDependsOn({ cli: [{ name: 'hyperframes' }] }, { dependencies: { hyperframes: '^0.8.0' } }).some((e) => /pinned exactly/.test(e)),
+    'a ranged cli pin is rejected',
+  );
+  assert.ok(
+    validateDependsOn({ npm: {} }, pkg).some((e) => /unknown depends_on key: npm/.test(e)),
+    'an unknown key is rejected',
+  );
+  console.log('✔ depends_on reader + validator');
 }
 
 console.log('All skills-manager unit tests passed successfully!');

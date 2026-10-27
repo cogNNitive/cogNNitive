@@ -305,6 +305,67 @@ var require_skill_tree_digest = __commonJS({
   }
 });
 
+// scripts/lib/skill-content-hash.js
+var require_skill_content_hash = __commonJS({
+  "scripts/lib/skill-content-hash.js"(exports2, module2) {
+    var crypto = require("crypto");
+    var fs = require("fs");
+    var path2 = require("path");
+    function isExcluded(relPosix) {
+      const parts = relPosix.split("/");
+      return parts.includes("node_modules") || parts.some((p) => p.startsWith(".bak-"));
+    }
+    function walk(dir, rel, out) {
+      let entries;
+      try {
+        entries = fs.readdirSync(path2.join(dir, rel), { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const relPosix = rel ? `${rel}/${entry.name}` : entry.name;
+        if (isExcluded(relPosix)) continue;
+        if (entry.isDirectory()) walk(dir, relPosix, out);
+        else if (entry.isFile()) out.push(relPosix);
+      }
+    }
+    function hashSkillDir(dir) {
+      const files = {};
+      if (!fs.existsSync(dir)) return files;
+      const list = [];
+      walk(dir, "", list);
+      for (const rel of list.sort()) {
+        try {
+          files[rel] = crypto.createHash("sha256").update(fs.readFileSync(path2.join(dir, rel))).digest("hex");
+        } catch {
+        }
+      }
+      return files;
+    }
+    function diffSkillDir(dir, recorded) {
+      const current = hashSkillDir(dir);
+      const rec = recorded || {};
+      const changed = [];
+      const added = [];
+      const removed = [];
+      for (const [rel, hash] of Object.entries(current)) {
+        if (!(rel in rec)) added.push(rel);
+        else if (rec[rel] !== hash) changed.push(rel);
+      }
+      for (const rel of Object.keys(rec)) {
+        if (!(rel in current)) removed.push(rel);
+      }
+      return {
+        modified: changed.length + added.length + removed.length > 0,
+        changed: changed.sort(),
+        added: added.sort(),
+        removed: removed.sort()
+      };
+    }
+    module2.exports = { hashSkillDir, diffSkillDir };
+  }
+});
+
 // scripts/lib/github-client.js
 var require_github_client = __commonJS({
   "scripts/lib/github-client.js"(exports2, module2) {
@@ -604,6 +665,149 @@ var require_yaml_parser = __commonJS({
   }
 });
 
+// skills/nn-preflight/scripts/lib/yaml-lite.js
+var require_yaml_lite = __commonJS({
+  "skills/nn-preflight/scripts/lib/yaml-lite.js"(exports2, module2) {
+    function parseScalar(text) {
+      const t = text.trim();
+      if (t === "") return null;
+      if (t.startsWith("[") && t.endsWith("]")) {
+        return t.slice(1, -1).split(",").map((p) => p.trim()).filter((p) => p !== "").map((p) => parseScalar(p));
+      }
+      if (t === "true") return true;
+      if (t === "false") return false;
+      if (t === "null") return null;
+      if (t.startsWith('"') && t.endsWith('"') || t.startsWith("'") && t.endsWith("'")) {
+        return t.slice(1, -1);
+      }
+      return t;
+    }
+    function parseMappingItem(lines, pos, indent) {
+      const line = lines[pos];
+      const match = line.text.match(/^([A-Za-z0-9_.\-]+)\s*:\s*(.*)$/);
+      if (!match) return [null, null, pos + 1];
+      const key = match[1];
+      const rest = match[2];
+      let next = pos + 1;
+      let value;
+      if (rest === "") {
+        if (next < lines.length && lines[next].indent > indent) {
+          [value, next] = parseBlock(lines, next, lines[next].indent);
+        } else {
+          value = null;
+        }
+      } else {
+        value = parseScalar(rest);
+      }
+      return [key, value, next];
+    }
+    function parseSequence(lines, pos, indent) {
+      const arr = [];
+      while (pos < lines.length && lines[pos].indent === indent && lines[pos].text.startsWith("- ")) {
+        const rest = lines[pos].text.slice(2).trim();
+        let next = pos + 1;
+        let item;
+        if (rest === "") {
+          if (next < lines.length && lines[next].indent > indent) {
+            [item, next] = parseBlock(lines, next, lines[next].indent);
+          } else {
+            item = null;
+          }
+        } else {
+          const mapMatch = rest.match(/^([A-Za-z0-9_.\-]+)\s*:\s*(.*)$/);
+          if (mapMatch) {
+            item = {};
+            const key = mapMatch[1];
+            const value = mapMatch[2];
+            if (value === "") {
+              if (next < lines.length && lines[next].indent > indent) {
+                [item[key], next] = parseBlock(lines, next, lines[next].indent);
+              } else {
+                item[key] = null;
+              }
+            } else {
+              item[key] = parseScalar(value);
+            }
+            if (next < lines.length && lines[next].indent > indent) {
+              const itemIndent = lines[next].indent;
+              while (next < lines.length && lines[next].indent === itemIndent && !lines[next].text.startsWith("- ")) {
+                const [k, v, after] = parseMappingItem(lines, next, itemIndent);
+                if (k === null) break;
+                item[k] = v;
+                next = after;
+              }
+            }
+          } else {
+            item = parseScalar(rest);
+          }
+        }
+        arr.push(item);
+        pos = next;
+      }
+      return [arr, pos];
+    }
+    function parseBlock(lines, pos, indent) {
+      if (pos >= lines.length) return [{}, pos];
+      if (lines[pos].text.startsWith("- ")) {
+        return parseSequence(lines, pos, indent);
+      }
+      const obj = {};
+      while (pos < lines.length && lines[pos].indent === indent && !lines[pos].text.startsWith("- ")) {
+        const [key, value, next] = parseMappingItem(lines, pos, indent);
+        if (key === null) break;
+        obj[key] = value;
+        pos = next;
+      }
+      return [obj, pos];
+    }
+    function parseFocusedYaml(text) {
+      const lines = text.split(/\r?\n/).map((raw) => ({ indent: raw.match(/^[ \t]*/)[0].length, text: raw.trim() })).filter((l) => l.text !== "" && !l.text.startsWith("#"));
+      const result = {};
+      let pos = 0;
+      while (pos < lines.length) {
+        const [key, value, next] = parseMappingItem(lines, pos, 0);
+        if (key === null) {
+          pos++;
+          continue;
+        }
+        result[key] = value;
+        pos = next;
+      }
+      return result;
+    }
+    function parseFrontmatter(text) {
+      const lines = text.split(/\r?\n/);
+      const open = lines.findIndex((l) => l.trim() === "---");
+      let close = -1;
+      for (let i = open + 1; i < lines.length; i++) {
+        if (lines[i].trim() === "---") {
+          close = i;
+          break;
+        }
+      }
+      if (open === -1 || close === -1) {
+        throw new Error("no YAML frontmatter (--- delimiters) found");
+      }
+      return lines.slice(open + 1, close).join("\n");
+    }
+    module2.exports = {
+      parseScalar,
+      parseMappingItem,
+      parseSequence,
+      parseBlock,
+      parseFocusedYaml,
+      parseFrontmatter
+    };
+  }
+});
+
+// scripts/lib/yaml-lite.js
+var require_yaml_lite2 = __commonJS({
+  "scripts/lib/yaml-lite.js"(exports2, module2) {
+    module2.exports = require_yaml_lite();
+  }
+});
+
 // scripts/lib/mcp-config-adapter.js
 var require_mcp_config_adapter = __commonJS({
   "scripts/lib/mcp-config-adapter.js"(exports2, module2) {
@@ -809,6 +1013,7 @@ var require_skills_commands = __commonJS({
       hashTree
     } = require_projection();
     var { skillTreeDigest } = require_skill_tree_digest();
+    var { hashSkillDir } = require_skill_content_hash();
     var {
       fetchString,
       fetchJson,
@@ -817,6 +1022,7 @@ var require_skills_commands = __commonJS({
     var {
       parseManifest
     } = require_yaml_parser();
+    var { parseFocusedYaml, parseFrontmatter } = require_yaml_lite2();
     var { registerMcpAuto } = require_mcp_config_adapter();
     var DEFAULT_MANIFEST_URL = "https://cognnitive.com/use/manifest.md";
     var FALLBACK_MANIFEST_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md";
@@ -850,7 +1056,7 @@ var require_skills_commands = __commonJS({
       return url.startsWith("https:") ? https.request : http.request;
     }
     function emptyState() {
-      return { manifest: getManifestUrl(), skills: {}, blueprints: {}, mcp: {}, console: {}, projections: {} };
+      return { manifest: getManifestUrl(), skills: {}, blueprints: {}, mcp: {}, console: {}, projections: {}, cli: {} };
     }
     function migrateLegacyMcpState(state, mcpDir) {
       let changed = false;
@@ -889,7 +1095,8 @@ var require_skills_commands = __commonJS({
             blueprints: data.blueprints || {},
             mcp: data.mcp || {},
             console: data.console || {},
-            projections: data.projections || {}
+            projections: data.projections || {},
+            cli: data.cli || {}
           };
           migrateLegacyMcpState(state);
           return state;
@@ -909,7 +1116,8 @@ var require_skills_commands = __commonJS({
             blueprints: {},
             mcp: {},
             console: {},
-            projections: {}
+            projections: {},
+            cli: {}
           };
           saveState(file, state);
           return state;
@@ -1008,6 +1216,29 @@ ${RETIRED_REPO_NOTICE}`);
         return "(diff preview unavailable)";
       }
     }
+    function ensureSkillNodeModules(skillDir) {
+      const pkgPath = path2.join(skillDir, "package.json");
+      if (!fs.existsSync(pkgPath)) return;
+      let pkg;
+      try {
+        pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+      } catch (_) {
+        return;
+      }
+      const deps = Object.keys(pkg.dependencies || {});
+      const nodeModulesDir = path2.join(skillDir, "node_modules");
+      const needsInstall = deps.length > 0 && (!fs.existsSync(nodeModulesDir) || deps.some((d) => !fs.existsSync(path2.join(nodeModulesDir, d))));
+      if (!needsInstall) return;
+      try {
+        spawnSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], {
+          cwd: skillDir,
+          encoding: "utf-8",
+          shell: true,
+          timeout: 6e4
+        });
+      } catch (_) {
+      }
+    }
     async function installSkillAtCommit(skill, skillsDir, state) {
       const tmpRoot = fs.mkdtempSync(path2.join(os.tmpdir(), "actioNN-skills-"));
       try {
@@ -1050,34 +1281,72 @@ ${RETIRED_REPO_NOTICE}`);
           } catch (_) {
           }
         }
-        const pkgPath = path2.join(dest, "package.json");
-        if (fs.existsSync(pkgPath)) {
-          try {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-            const deps = Object.keys(pkg.dependencies || {});
-            const nodeModulesDir = path2.join(dest, "node_modules");
-            const needsInstall = deps.length > 0 && (!fs.existsSync(nodeModulesDir) || deps.some((d) => !fs.existsSync(path2.join(nodeModulesDir, d))));
-            if (needsInstall) {
-              try {
-                spawnSync("npm", ["install", "--omit=dev", "--no-audit", "--no-fund"], {
-                  cwd: dest,
-                  encoding: "utf-8",
-                  shell: true,
-                  timeout: 6e4
-                });
-              } catch (_) {
-              }
-            }
-          } catch (_) {
-          }
-        }
+        ensureSkillNodeModules(dest);
         state.skills[skill.name] = {
           commit: skill.commit,
           version: skill.version,
-          updated_at: (/* @__PURE__ */ new Date()).toISOString()
+          updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+          files: hashSkillDir(dest)
         };
       } finally {
         fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    }
+    function readDependsOn(skillText) {
+      try {
+        const fm = parseFocusedYaml(parseFrontmatter(skillText));
+        return fm.depends_on || null;
+      } catch (_) {
+        return null;
+      }
+    }
+    var DEPENDS_ON_KEYS = /* @__PURE__ */ new Set(["cli", "env", "binaries", "node", "optional_mcp"]);
+    function validateDependsOn(dependsOn, pkg) {
+      const errors = [];
+      if (dependsOn == null) return errors;
+      if (typeof dependsOn !== "object" || Array.isArray(dependsOn)) return ["depends_on must be a mapping"];
+      for (const key of Object.keys(dependsOn)) {
+        if (!DEPENDS_ON_KEYS.has(key)) errors.push(`unknown depends_on key: ${key}`);
+      }
+      const deps = pkg && pkg.dependencies || {};
+      for (const entry of dependsOn.cli || []) {
+        if (!entry || !entry.name) {
+          errors.push("cli entry missing name");
+          continue;
+        }
+        if (Object.prototype.hasOwnProperty.call(entry, "version")) {
+          errors.push(`cli '${entry.name}': version belongs in package.json only`);
+        }
+        const pinned = deps[entry.name];
+        if (pinned === void 0) {
+          errors.push(`cli '${entry.name}' is not in package.json dependencies`);
+        } else if (!/^\d+\.\d+\.\d+([-+].*)?$/.test(String(pinned))) {
+          errors.push(`cli '${entry.name}' must be pinned exactly in package.json (got '${pinned}')`);
+        }
+      }
+      return errors;
+    }
+    function recordCliDeliveredSkills(dependsOn, skillDir, skillName, state) {
+      const cliEntries = dependsOn && dependsOn.cli || [];
+      for (const item of cliEntries) {
+        if (!item || !item.name || !item.agent_skills) continue;
+        const binPosix = path2.join(skillDir, "node_modules", ".bin", item.name);
+        const binWin = `${binPosix}.cmd`;
+        const exe = process.platform === "win32" && fs.existsSync(binWin) ? binWin : binPosix;
+        if (fs.existsSync(binPosix) || fs.existsSync(binWin)) {
+          try {
+            spawnSync(exe, ["skills", "update"], { cwd: skillDir, encoding: "utf-8", shell: true, timeout: 6e4 });
+          } catch (_) {
+          }
+        }
+        let version;
+        try {
+          version = JSON.parse(fs.readFileSync(path2.join(skillDir, "node_modules", item.name, "package.json"), "utf8")).version;
+        } catch (_) {
+          version = void 0;
+        }
+        state.cli = state.cli || {};
+        state.cli[item.name] = { version, source_skill: skillName, updated_at: (/* @__PURE__ */ new Date()).toISOString() };
       }
     }
     function installEmbeddedSkills(pkgDir, skillsDir, template, state) {
@@ -1094,13 +1363,17 @@ ${RETIRED_REPO_NOTICE}`);
           fs.mkdirSync(skillsDir, { recursive: true });
           if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
           else copyDirAtomic(src, dest);
-          const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, "utf8"));
+          const skillText = fs.readFileSync(skillFile, "utf8");
+          const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(skillText);
           const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
+          ensureSkillNodeModules(dest);
+          recordCliDeliveredSkills(readDependsOn(skillText), dest, entry.name, state);
           state.skills[entry.name] = {
             commit: template.commit,
             version: versionMatch ? versionMatch[1] : void 0,
             source_blueprint: template.name,
-            updated_at: (/* @__PURE__ */ new Date()).toISOString()
+            updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            files: hashSkillDir(dest)
           };
           names.push(entry.name);
         }
@@ -2114,6 +2387,10 @@ Projected skills to agent directories:`);
       installSkillAtCommit,
       installBlueprintAtCommit,
       installEmbeddedSkills,
+      ensureSkillNodeModules,
+      recordCliDeliveredSkills,
+      readDependsOn,
+      validateDependsOn,
       installMcpAtCommit,
       installConsoleAssetAtCommit,
       projectSkillsToAgents,
