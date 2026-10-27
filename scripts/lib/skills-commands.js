@@ -30,7 +30,7 @@ const {
 } = require('../../skills/nn-preflight/scripts/lib/projection.js');
 
 const { skillTreeDigest } = require('./skill-tree-digest.js');
-const { hashSkillDir } = require('./skill-content-hash.js');
+const { hashSkillDir, diffSkillDir } = require('./skill-content-hash.js');
 
 const {
   fetchString,
@@ -842,7 +842,7 @@ async function consentOrAbort(label, names, menu, yes) {
 
 /**
  * Executes status command comparing installed commits against pinned commits.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, catalogPath?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdStatus(args) {
@@ -857,6 +857,7 @@ async function cmdStatus(args) {
   const outdatedBlueprints = [];
   const outdatedConsoleAssets = [];
   const outdatedMcp = [];
+  const modifiedSkills = [];
 
   for (const skill of skills) {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
@@ -869,6 +870,15 @@ async function cmdStatus(args) {
     } else {
       status = entry ? 'dir-missing' : 'missing';
     }
+    let modified = false;
+    if (dirPresent && entry && entry.files) {
+      try {
+        modified = diffSkillDir(path.join(args.skillsDir, skill.name), entry.files).modified;
+      } catch (_) {
+        modified = false;
+      }
+    }
+    if (modified && status === 'up-to-date') status = 'modified locally';
     rows.push({
       type: 'skill',
       name: skill.name,
@@ -877,6 +887,7 @@ async function cmdStatus(args) {
       status,
     });
     if (status === 'outdated') outdatedSkills.push(skill);
+    if (modified) modifiedSkills.push(skill.name);
   }
 
   for (const template of blueprints) {
@@ -947,6 +958,32 @@ async function cmdStatus(args) {
     if (status === 'outdated') outdatedConsoleAssets.push(asset);
   }
 
+  // Installed catalog bluepriNNts not covered by the manifest: compare to the catalog.
+  let catalog = null;
+  try {
+    catalog = await loadBlueprintCatalog(args.catalogPath);
+  } catch (_) {
+    catalog = null;
+  }
+  const manifestNames = new Set(blueprints.map((t) => t.name));
+  for (const [name, entry] of Object.entries(state.blueprints || {})) {
+    if (manifestNames.has(name)) continue;
+    const catalogEntry = findCatalogEntry(catalog, name);
+    const installedTag = entry && entry.commit;
+    let status;
+    if (!catalogEntry) status = 'unknown';
+    else if (!catalogEntry.release_tag) status = 'unreleased';
+    else if (installedTag === catalogEntry.release_tag) status = 'up-to-date';
+    else status = 'outdated';
+    rows.push({
+      type: 'catalog',
+      name,
+      pinned: catalogEntry && catalogEntry.release_tag ? String(catalogEntry.release_tag).slice(0, 7) : '-',
+      installed: installedTag ? String(installedTag).slice(0, 7) : '-',
+      status,
+    });
+  }
+
   printStatusTable(rows);
 
   if (outdatedSkills.length > 0 || outdatedBlueprints.length > 0 || outdatedConsoleAssets.length > 0 || outdatedMcp.length > 0) {
@@ -959,6 +996,10 @@ async function cmdStatus(args) {
       const installed = state.blueprints[template.name].commit;
       console.log(`  template ${template.name}: ${await fetchCompareSummary(template, installed)}`);
     }
+  }
+
+  if (modifiedSkills.length > 0) {
+    console.log(`\nmodified locally (hand-edited copy, version unchanged): ${modifiedSkills.join(', ')}`);
   }
 }
 
