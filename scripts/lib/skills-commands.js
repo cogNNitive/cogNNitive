@@ -1260,6 +1260,54 @@ function findCatalogEntry(catalog, name) {
 }
 
 /**
+ * Fetches + extracts a blueprint package once and summarizes what installing it
+ * would bring (embedded skills, npm deps, CLI, env, binaries), for one consent
+ * menu. Best-effort: returns null on failure so the caller falls back to the
+ * catalog-derived menu.
+ * @param {object} template
+ * @returns {Promise<{ skills: string[], npmDeps: string[], cli: string[], env: string[], binaries: string[] } | null>}
+ */
+async function describeBlueprintPackage(template) {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-bp-menu-'));
+  try {
+    const tarball = await fetchRepoCommitTarball(template);
+    const extractDir = path.join(tmpRoot, 'x');
+    extractTarball(tarball, extractDir);
+    const repoRoot = findRepoRoot(extractDir);
+    const pkgDir = path.join(repoRoot, path.dirname(template.path));
+    const out = { skills: [], npmDeps: [], cli: [], env: [], binaries: [] };
+    const skillsDir = path.join(pkgDir, 'skills');
+    if (fs.existsSync(skillsDir)) {
+      for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        const skillFile = path.join(skillsDir, entry.name, 'SKILL.md');
+        if (!fs.existsSync(skillFile)) continue;
+        out.skills.push(entry.name);
+        const dep = readDependsOn(fs.readFileSync(skillFile, 'utf8'));
+        if (dep) {
+          for (const c of dep.cli || []) if (c && c.name) out.cli.push(c.name);
+          for (const e of dep.env || []) if (e && e.name) out.env.push(e.name);
+          for (const b of dep.binaries || []) out.binaries.push(b);
+          const pkgJsonPath = path.join(skillsDir, entry.name, 'package.json');
+          if (fs.existsSync(pkgJsonPath)) {
+            try {
+              out.npmDeps.push(...Object.keys(JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')).dependencies || {}));
+            } catch (_) {
+              // ignore an unreadable package.json
+            }
+          }
+        }
+      }
+    }
+    return out;
+  } catch (_) {
+    return null;
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+}
+
+/**
  * Installs a single optional catalog bluepriNNt on demand
  * (`skills-manager.js install --blueprint <name>`) from its catalog release pin
  * into the blueprints directory, projecting any embedded `<name>/skills/*` into
@@ -1303,11 +1351,20 @@ async function cmdInstallBlueprint(args) {
     commit: ref,
   };
 
+  const summary = await describeBlueprintPackage(template);
+  const summaryMenu = summary
+    ? (summary.skills.length ? `  embedded skills: ${summary.skills.join(', ')}\n` : '') +
+      (summary.cli.length ? `  CLI: ${summary.cli.join(', ')} (agent skills)\n` : '') +
+      (summary.npmDeps.length ? `  npm deps: ${summary.npmDeps.join(', ')}\n` : '') +
+      (summary.binaries.length ? `  binaries: ${summary.binaries.join(', ')}\n` : '') +
+      (summary.env.length ? `  env keys: ${summary.env.join(', ')}\n` : '')
+    : (embedded.length ? `  embedded skills: ${embedded.join(', ')}\n` : '');
+
   const menu =
     `Optional catalog blueprint (on demand):\n` +
     `  - ${entryName} (${version}) from ${repo} @ ${ref}\n` +
     `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}\n` +
-    (embedded.length ? `  embedded skills: ${embedded.join(', ')}\n` : '') +
+    summaryMenu +
     `\n[a] Install\n[b] Skip\n`;
   const proceed = await consentOrAbort(`install catalog blueprint ${entryName}`, [`blueprint:${entryName}`], menu, args.yes);
   if (!proceed) return;

@@ -1863,6 +1863,44 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
       }
       return null;
     }
+    async function describeBlueprintPackage(template) {
+      const tmpRoot = fs.mkdtempSync(path2.join(os.tmpdir(), "actioNN-bp-menu-"));
+      try {
+        const tarball = await fetchRepoCommitTarball(template);
+        const extractDir = path2.join(tmpRoot, "x");
+        extractTarball(tarball, extractDir);
+        const repoRoot = findRepoRoot(extractDir);
+        const pkgDir = path2.join(repoRoot, path2.dirname(template.path));
+        const out = { skills: [], npmDeps: [], cli: [], env: [], binaries: [] };
+        const skillsDir = path2.join(pkgDir, "skills");
+        if (fs.existsSync(skillsDir)) {
+          for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+            if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+            const skillFile = path2.join(skillsDir, entry.name, "SKILL.md");
+            if (!fs.existsSync(skillFile)) continue;
+            out.skills.push(entry.name);
+            const dep = readDependsOn(fs.readFileSync(skillFile, "utf8"));
+            if (dep) {
+              for (const c of dep.cli || []) if (c && c.name) out.cli.push(c.name);
+              for (const e of dep.env || []) if (e && e.name) out.env.push(e.name);
+              for (const b of dep.binaries || []) out.binaries.push(b);
+              const pkgJsonPath = path2.join(skillsDir, entry.name, "package.json");
+              if (fs.existsSync(pkgJsonPath)) {
+                try {
+                  out.npmDeps.push(...Object.keys(JSON.parse(fs.readFileSync(pkgJsonPath, "utf8")).dependencies || {}));
+                } catch (_) {
+                }
+              }
+            }
+          }
+        }
+        return out;
+      } catch (_) {
+        return null;
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    }
     async function cmdInstallBlueprint(args) {
       const name = args.blueprint;
       if (!name) throw new Error("install --blueprint requires a blueprint name");
@@ -1892,11 +1930,18 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
         ref,
         commit: ref
       };
+      const summary = await describeBlueprintPackage(template);
+      const summaryMenu = summary ? (summary.skills.length ? `  embedded skills: ${summary.skills.join(", ")}
+` : "") + (summary.cli.length ? `  CLI: ${summary.cli.join(", ")} (agent skills)
+` : "") + (summary.npmDeps.length ? `  npm deps: ${summary.npmDeps.join(", ")}
+` : "") + (summary.binaries.length ? `  binaries: ${summary.binaries.join(", ")}
+` : "") + (summary.env.length ? `  env keys: ${summary.env.join(", ")}
+` : "") : embedded.length ? `  embedded skills: ${embedded.join(", ")}
+` : "";
       const menu = `Optional catalog blueprint (on demand):
   - ${entryName} (${version}) from ${repo} @ ${ref}
   tier: ${entry.tier || "free"} \xB7 access: ${entry.access || "public"}
-` + (embedded.length ? `  embedded skills: ${embedded.join(", ")}
-` : "") + `
+` + summaryMenu + `
 [a] Install
 [b] Skip
 `;
