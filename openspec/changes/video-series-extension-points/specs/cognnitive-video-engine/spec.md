@@ -1,19 +1,22 @@
 # Delta for cognnitive-video-engine
 
-Scope: slot and sound resolution, sound events, authored-animation mounting and duration
-exposure, regeneration guard; b-roll zoom-in and the guard `defaults` block are removed. The
-engine names no concrete component, sound, default value or series-language value.
+Scope: component, sound and frame resolution, sound events, authored-animation mounting and
+duration exposure, regeneration guard, package-defaults lookup; b-roll zoom-in, the guard
+`defaults` block and the `elevenlabs`/`edge-tts` providers are removed. The engine names no
+concrete component, sound, frame, default value or series-language value.
 
 ## ADDED Requirements
 
 ### Requirement: Names Are Parameters, Files Are Found By Walk
 
-Which component mounts for a slot and which sound plays for an event MUST be a cascade value (a
-name; see video-script-model "Universal Parameter Cascade"). The engine MUST locate the file for
-a name as `components/<name>.html` or `sounds/<name>.*` by a nearest-folder walk from the
-script's folder up to the domain root (episode, then series, then domain), then the skill's
-`components/` fallback. A sound name whose file is not found MUST be silent and MUST emit one
-warning naming it; an event with no resolved name MUST be silent without warning.
+Which component mounts for a slot, which sound plays for an event and which frame applies MUST
+be a cascade value (a name; see video-script-model "Universal Parameter Cascade"). The engine
+MUST locate the file for a name as `components/<name>.html`, `sounds/<name>.*` or
+`frames/<name>.md` by one nearest-folder walk from the script's folder up to the domain root
+(episode, then series, then domain), then the skill's `components/` or `frames/` fallback. There
+MUST be no other frame discovery (no nearest `frame.md`). A sound name whose file is not found
+MUST be silent and MUST emit one warning naming it; an event with no resolved name MUST be
+silent without warning. A frame name with no file at any level MUST fail with a named error.
 
 #### Scenario: Nearest component file wins
 
@@ -21,9 +24,22 @@ warning naming it; an event with no resolved name MUST be silent without warning
 - WHEN the project is emitted
 - THEN the mounted component is the episode file
 
+#### Scenario: Frame resolved by name
+
+- GIVEN the series sets `frame:: brand` and `frames/brand.md` exists only at the domain root
+- WHEN the project is emitted
+- THEN overlays receive the tokens of the domain `frames/brand.md`
+- AND a `frame.md` in the series folder is ignored
+
+#### Scenario: Dry run names the resolved frame
+
+- GIVEN a script whose frame resolves to `frames/brand.md` from the series level
+- WHEN `compile --dry-run` runs
+- THEN it prints the frame name, its path and source `series`
+
 #### Scenario: Blueprint default sound with a series file
 
-- GIVEN the defaults declare `scene-boundary=whoosh` and the series folder holds `sounds/whoosh.mp3`
+- GIVEN the blueprint Video Defaults declares `scene-boundary=whoosh` and the series folder holds `sounds/whoosh.mp3`
 - WHEN a scene boundary occurs
 - THEN that file plays and engine code contains no `whoosh` literal
 
@@ -35,16 +51,29 @@ warning naming it; an event with no resolved name MUST be silent without warning
 
 ### Requirement: Slot Contract
 
-The engine MUST pass `font` and `accent` frame tokens and the overlay's
+The engine MUST pass the resolved frame's `font` and `accent` tokens and the overlay's
 `text`/`src`/`position`/`enter`/`exit` (plus `fit` for `b-roll`) as variable values. A resolved
 component that does not declare every variable of its slot's fallback MUST fail emission with
 `SlotContractError` naming the slot and the missing variables.
 
 #### Scenario: Frame tokens reach the component
 
-- GIVEN a `frame.md` declaring `font` and `accent`
+- GIVEN the resolved frame document declares a body font and a primary color
 - WHEN an overlay is mounted
-- THEN the component receives both as variable values
+- THEN the component receives them as the `font` and `accent` variable values
+
+### Requirement: Blueprint Defaults Are Read From The Package
+
+The engine MUST read the `blueprint` cascade level from the installed bluepriNNt package's
+`defaults/video-defaults_NN.md`, located from the skill's own folder for the repository,
+global and workspace install layouts. When no package is found the engine MUST fail with a
+named error listing every path tried. It MUST NOT write any Video Defaults document.
+
+#### Scenario: Package not found
+
+- GIVEN a skill copy with no `video-script` package at any known location
+- WHEN `compile` runs
+- THEN it fails before any spend with an error listing the paths tried
 
 ### Requirement: Sound Effects Bound To Engine Events
 
@@ -187,8 +216,9 @@ inside the safe area at any output size.
 ### Requirement: Stable TTS cache key
 
 The TTS cache key MUST depend only on the narration text and the cascaded `voice` and
-`tts_model`. Changing a presenter Layer's `avatar_model::` MUST NOT change the TTS cache key.
-(Previously: the presenter field was `model::`; voice/model fallbacks were private to `tts-options.mjs`.)
+`tts_model`, and MUST be unchanged by the Field rename from `model` to `tts_model` for an equal
+value. Changing a presenter Layer's `avatar_model::` MUST NOT change the TTS cache key.
+(Previously: the fields were `model::`; voice/model fallbacks were private to `tts-options.mjs`, with an `elevenlabs` fallback.)
 
 #### Scenario: Avatar model change does not re-bill TTS
 
@@ -196,12 +226,30 @@ The TTS cache key MUST depend only on the narration text and the cascaded `voice
 - WHEN the presenter's `avatar_model::` changes and the Scene is recompiled
 - THEN the TTS step is a cache hit (zero spend) for an unchanged narration
 
+#### Scenario: Template field rename does not re-bill TTS
+
+- GIVEN a Scene cached with a Template declaring `model:: minimax/speech-2.8-hd`
+- WHEN the Template is migrated to `tts_model:: minimax/speech-2.8-hd` and the Scene is recompiled
+- THEN the TTS step is a cache hit
+
+### Requirement: Only Implemented Providers Exist
+
+The engine MUST name only providers it has a request path for (WaveSpeed and Replicate) plus
+the offline `local`/`mock` modes. `elevenlabs`, `edge-tts` and `ELEVENLABS_API_KEY` MUST NOT
+appear in the skill's scripts, tests or docs.
+
+#### Scenario: No phantom provider
+
+- GIVEN the skill tree
+- WHEN it is searched for `elevenlabs`, `edge-tts` or `ELEVENLABS_API_KEY` (case-insensitive)
+- THEN nothing is found
+
 ### Requirement: Spend Guard Is Gate-Only
 
 The spend guard (`video-guard.json` + `SpendGuard`) MUST gate spend: it decides whether a resolved
 model is allowed and whether the run fits the budget and daily cap. It MUST NOT select a model id
 and MUST NOT supply any cascade level.
-(Previously: an optional `defaults` block MAY supply the `workspace` scope, with scenario "Workspace default participates in the cascade"; never implemented. Migration: move such values to the domain-root `series_NN.md`.)
+(Previously: an optional `defaults` block MAY supply the `workspace` scope, with scenario "Workspace default participates in the cascade"; never implemented. Migration: move such values to the domain-root `video-defaults_NN.md`.)
 
 #### Scenario: Blocked resolved model is refused before spend
 

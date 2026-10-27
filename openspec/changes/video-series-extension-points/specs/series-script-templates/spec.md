@@ -1,19 +1,20 @@
 # Delta for series-script-templates
 
-Scope: where a series keeps its Series document, components and sounds; the domain root as a
-shared level.
+Scope: where a series and a domain keep their documents, components, sounds and frames.
 
 ## ADDED Requirements
 
 ### Requirement: Series, Domain And Episode Extension Folders
 
 A series folder MAY contain one `series_NN.md` (the `series` cascade level). The domain root MAY
-contain one `series_NN.md` (the `domain` level). The episode, series and domain folders MAY each
-contain `components/<name>.html` and `sounds/<name>.*`, where `<name>` is a cascade value, never
-an event or slot convention. File lookup MUST be episode, then series, then domain, then the
-skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. All
-folders and documents are optional. No scaffolder creates them; a new series copies the skill's
-`defaults/series_NN.md`.
+contain one `video-defaults_NN.md` (the `domain` level) and MUST NOT be treated as a series. The
+episode, series and domain folders MAY each contain `components/<name>.html`,
+`sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or
+slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback,
+by a nearest-folder walk from the script's folder; a nearer file MUST win. All folders and
+documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the
+package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series
+writes its own `series_NN.md`.
 
 #### Scenario: Episode file beats series file
 
@@ -35,6 +36,6 @@ folders and documents are optional. No scaffolder creates them; a new series cop
 
 #### Scenario: Folders are optional
 
-- GIVEN a series with no `series_NN.md`, `components/` or `sounds/`
+- GIVEN a domain with no `video-defaults_NN.md` and a series with no `series_NN.md`, `components/`, `sounds/` or `frames/`
 - WHEN a video in it is rendered
-- THEN rendering succeeds using the shipped defaults and fallbacks
+- THEN rendering succeeds using the package defaults and the skill fallbacks

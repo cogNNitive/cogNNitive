@@ -11,7 +11,8 @@ Scheduling is unchanged.
 Each overlay MUST render by mounting, as a root-level host with global times, the component
 whose name the cascade resolves for its slot (`title`, `lower-third`, `caption`, `quote`,
 `watermark`, `b-roll`; key of the `components` parameter), passing the overlay's
-`text`/`src`/`position`/`enter`/`exit` and the frame tokens `font`/`accent` as variable values.
+`text`/`src`/`position`/`enter`/`exit` and the `font`/`accent` tokens of the cascaded `frame` as
+variable values.
 The engine MUST NOT emit overlay markup or overlay CSS of its own. The emitted project MUST pass
 `hyperframes check` with no errors.
 

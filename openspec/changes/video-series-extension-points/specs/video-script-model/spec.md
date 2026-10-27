@@ -1,7 +1,8 @@
 # Delta for video-script-model
 
-Scope: one universal parameter cascade, a minimal `Series` Concept, `type:: animation`, and the
-presenter `model::` renamed `avatar_model::`.
+Scope: one universal parameter cascade whose baseline is blueprint data, the `Video Defaults`
+and `Series` Concepts, parameter-specific model names, the `frame` parameter, `type:: animation`
+and the Template `tool` options.
 
 ## ADDED Requirements
 
@@ -14,28 +15,35 @@ with the precedence, most specific first:
 cli  >  layer  >  scene  >  video  >  series  >  domain  >  blueprint
 ```
 
-The parameter MUST carry the same Field name at every level. A parameter is overridable at a
-level only when the blueprint defines a Field Definition of that name for that level's Concept.
-Default values MUST be blueprint data (the skill's `defaults/series_NN.md`), never engine code.
-The resolver MUST report the level that supplied the value. `cli` applies only to model ids and,
-when used, MUST be recorded in the plan. List parameters (`components`, `sounds`) hold
-`key=name` items and MUST resolve per key.
+`series` is the episode's `Series` document; `domain` is the domain-root `Video Defaults`
+document; `blueprint` is the `Video Defaults` document shipped in the bluepriNNt package. The
+parameter MUST carry the same Field name at every level, and a level MUST be overridable only
+when that parameter's Field Definition lists the level's Concept. Default values MUST be
+blueprint data, never engine code. The resolver MUST report the level that supplied the value.
+`cli` applies only to model ids and, when used, MUST be recorded in the plan. List parameters
+(`components`, `sounds`) hold `key=name` items and MUST resolve per key.
 
 #### Scenario: Most specific level wins and is named
 
-- GIVEN `music_volume` set in the series document and in the domain document
+- GIVEN `music_volume` set in the series document and in the domain Video Defaults
 - WHEN the resolver runs for a Scene that does not set it
 - THEN it returns the series value with source `series`
 
+#### Scenario: Domain Video Defaults overrides the blueprint
+
+- GIVEN the domain Video Defaults declares `music_volume:: 0.3` and no series sets it
+- WHEN a Scene with no `music_volume::` is compiled
+- THEN its music volume is `0.3` with source `domain`
+
 #### Scenario: Blueprint default applies
 
-- GIVEN no level sets `fit` for a b-roll Layer
+- GIVEN no level above `blueprint` sets `fit` for a b-roll Layer
 - WHEN the resolver runs
-- THEN it returns the value from `defaults/series_NN.md` with source `blueprint`
+- THEN it returns the package Video Defaults value with source `blueprint`
 
 #### Scenario: Keyed list resolves per key
 
-- GIVEN the series sets `sounds:: [overlay-enter.title=click]` and the defaults set `sounds:: [scene-boundary=whoosh]`
+- GIVEN the series sets `sounds:: [overlay-enter.title=click]` and the blueprint sets `sounds:: [scene-boundary=whoosh]`
 - WHEN `overlay-enter.title` and `scene-boundary` are resolved
 - THEN they return `click` (series) and `whoosh` (blueprint)
 
@@ -43,7 +51,7 @@ when used, MUST be recorded in the plan. List parameters (`components`, `sounds`
 
 - GIVEN the engine and draft-tool scripts
 - WHEN they are searched for default values of cascade parameters
-- THEN none is found outside the defaults document
+- THEN none is found
 
 #### Scenario: CLI override is auditable
 
@@ -51,13 +59,33 @@ when used, MUST be recorded in the plan. List parameters (`components`, `sounds`
 - WHEN the plan is produced
 - THEN the resolved avatar model is X with source `cli`
 
+### Requirement: Video Defaults Concept
+
+The blueprint MUST define a top-level `Video Defaults` Concept carrying every cascade parameter:
+`template`, `voice`, `tts_model`, `image_model`, `avatar_model`, `music`, `music_volume`,
+`transition`, `fit`, `frame`, `components`, `sounds`. The bluepriNNt package MUST ship one
+instance at `defaults/video-defaults_NN.md` holding every baseline value. A domain MAY hold one
+instance at its root, `video-defaults_NN.md`; when absent, the `domain` level is skipped.
+Changing the package instance MUST bump `blueprint_version`.
+
+#### Scenario: Missing domain document falls through
+
+- GIVEN a domain with no `video-defaults_NN.md` at its root
+- WHEN a parameter set only in the package Video Defaults is resolved
+- THEN it returns that value with source `blueprint`
+
+#### Scenario: Editing package defaults requires a bump
+
+- GIVEN a change to `defaults/video-defaults_NN.md` without a `blueprint_version` bump
+- WHEN `guard-template-immutability` runs
+- THEN it fails naming the owning `spec_NN.md`
+
 ### Requirement: Series Concept
 
-The blueprint MUST define a top-level `Series` Concept with only these Fields: `title`,
-`template`, `voice`, `tts_model`, `image_model`, `avatar_model`, `music`, `music_volume`,
-`transition`, `fit`, `components`, `sounds`, `presenter_asset`, `intro_asset`. A series folder
-MUST hold at most one `series_NN.md`; a `series_NN.md` at the domain root MUST act as the
-`domain` level. `Video` MUST gain `components` and `sounds`.
+The blueprint MUST define a top-level `Series` Concept for real series only, carrying the
+cascade parameters of `Video Defaults` plus `title`, `presenter_asset`, `intro_asset`. A series
+folder MUST hold at most one `series_NN.md`. The series level MUST come only from a series root
+strictly below the domain root; an episode outside a series folder MUST have no series level.
 
 #### Scenario: Series document supplies the series level
 
@@ -65,11 +93,35 @@ MUST hold at most one `series_NN.md`; a `series_NN.md` at the domain root MUST a
 - WHEN a Scene in that series without `transition::` is compiled
 - THEN its transition is `fade` with source `series`
 
-#### Scenario: Domain document supplies the domain level
+#### Scenario: Episode outside a series has no series level
 
-- GIVEN `series_NN.md` only at the domain root declaring `music_volume:: 0.3`
-- WHEN a Scene with no `music_volume::` is compiled
-- THEN its music volume is `0.3` with source `domain`
+- GIVEN a script directly under the domain root (or in a folder with no series marker below it) and a domain Video Defaults declaring `transition:: fade`
+- WHEN a Scene without `transition::` is compiled
+- THEN its transition is `fade` with source `domain`, never `series`
+
+### Requirement: Shared Field Definitions
+
+Each cascade parameter MUST have exactly one Field Definition whose `concept::` lists every
+Concept where it is settable (see the design's parameter table). `Video` MUST gain `frame`,
+`components` and `sounds`; `Scene` MUST gain `frame`.
+
+#### Scenario: One definition reaches every listed Concept
+
+- GIVEN the Field Definition `music_volume` with `concept:: [Scene, Series, Video Defaults]`
+- WHEN the blueprint schema is resolved
+- THEN `Scene`, `Series` and `Video Defaults` carry `music_volume` and `Layer` does not
+
+### Requirement: Frame Parameter
+
+`frame:: <name>` MUST be a cascade parameter settable at scene, video, series and domain, with
+a blueprint default. It names a frame document located at `frames/<name>.md` (see
+cognnitive-video-engine "Names Are Parameters, Files Are Found By Walk").
+
+#### Scenario: Scene overrides the series frame
+
+- GIVEN the series sets `frame:: brand` and one Scene sets `frame:: night`
+- WHEN that Scene's overlays are mounted
+- THEN they receive the tokens of `frames/night.md`
 
 ## MODIFIED Requirements
 
@@ -115,9 +167,36 @@ text. A `presenter` Layer's model override MUST be the Field `avatar_model::`.
 - WHEN the script is validated
 - THEN validation fails for the missing `asset::`
 
+### Requirement: Template Concept and `template::` Reference
+
+The blueprint MUST define a `Template` Concept whose instances carry `tool` (`wavespeed` or
+`replicate`), `voice` and `tts_model`, and live in an L3 document shipped by a Series. A
+`Scene` or the `Video` MAY reference a Template instance through `template::`. A `Video`-level
+reference MUST apply to every Scene of that Video unless a Scene overrides it. A Template's
+`voice` and `tts_model` MUST enter the cascade at the level of the element that references it.
+(Previously: the TTS model Field was `model`; `tool` also allowed `elevenlabs` and `edge-tts`.)
+
+#### Scenario: Scene resolves its template
+
+- GIVEN a Scene with a `template::` reference to a Template instance
+- WHEN the reference is resolved
+- THEN the Template's `voice` and `tts_model` supply the scene level
+
+#### Scenario: Video-level template applies to all scenes
+
+- GIVEN a Video with a `template::` and a Scene without one
+- WHEN the Scene resolves its template
+- THEN it inherits the Video-level Template instance
+
+#### Scenario: Scene template overrides the video template
+
+- GIVEN a Video with a `template::` and a Scene with a different `template::`
+- WHEN the Scene resolves its template
+- THEN the Scene's own Template instance wins
+
 ## REMOVED Requirements
 
 ### Requirement: Model Selection Cascade
 
-(Reason: generalized into "Universal Parameter Cascade"; the `workspace guard defaults` level is replaced by the `domain` Series document.)
-(Migration: move any model default to `tts_model`/`image_model`/`avatar_model` in a `series_NN.md`.)
+(Reason: generalized into "Universal Parameter Cascade"; the `workspace guard defaults` level is replaced by the domain `Video Defaults` document.)
+(Migration: move any model default to `tts_model`/`image_model`/`avatar_model` in the domain `video-defaults_NN.md`.)
