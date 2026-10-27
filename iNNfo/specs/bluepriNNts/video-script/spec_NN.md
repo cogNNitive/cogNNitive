@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-11-0"
+blueprint_version: "V_0-12-0"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -29,6 +29,7 @@ validation:
     caption: [text]
     brand: [asset]
     watermark: [text]
+    animation: [asset]
 ---
 
 > [!NOTE]
@@ -152,13 +153,13 @@ description:: Series-level intro asset reused by its videos. Optional; Series-on
 ## NN Field Definition: type
 concept:: Layer
 type:: select
-options:: [presenter, background, b-roll, title, lower-third, caption, brand, quote, watermark]
-description:: Required Layer discriminator. Allowed fields are conditional on this value. `watermark` renders a small persistent text notice (e.g. an AI-disclosure line).
+options:: [presenter, background, b-roll, title, lower-third, caption, brand, quote, watermark, animation]
+description:: Required Layer discriminator. Allowed fields are conditional on this value. `watermark` renders a small persistent text notice (e.g. an AI-disclosure line). `animation` mounts an authored HyperFrames project as a sub-composition.
 
 ## NN Field Definition: asset
 concept:: Layer
 type:: file
-description:: Source media file for a Layer (image or video). Required for presenter, background, brand, and b-roll.
+description:: Source media file for a Layer (image or video), or the directory of an authored HyperFrames project for an `animation` Layer. Required for presenter, background, brand, b-roll, and animation.
 
 ## NN Field Definition: prompt
 concept:: Layer
@@ -291,6 +292,7 @@ value → the required Field names) and enforced by the engine's pre-compile gua
 | `caption` | `text` |
 | `brand` | `asset` |
 | `watermark` | `text` |
+| `animation` | `asset` |
 
 `caption` defaults to the owning Scene's body prose when `text` is omitted at the
 guard's discretion.
@@ -366,7 +368,7 @@ A child of a Scene, discriminated by a required `type::` select.
 
 In Level-3 video script documents, each `Layer` element is authored as a nested `### NN Layer: <name>` heading directly inside its enclosing `## NN Scene:` element. The nested heading establishes syntactic ownership, automatically setting `parentSlug` to the parent Scene slug. Separate top-level `# NN Layer` sections are deprecated for new scripts (flat H2 sections remain supported for legacy backward compatibility).
 
-The required `type::` selects one of `presenter`, `background`, `b-roll`, `title`, `lower-third`, `caption`, `brand`, or `quote`; any other value is rejected. The fields a Layer accepts are conditional on `type::` per the Conditional Fields contract.
+The required `type::` selects one of `presenter`, `background`, `b-roll`, `title`, `lower-third`, `caption`, `brand`, `quote`, `watermark`, or `animation`; any other value is rejected. The fields a Layer accepts are conditional on `type::` per the Conditional Fields contract. An `animation` Layer carries an `asset::` pointing at an authored HyperFrames project and MUST NOT carry overlay text.
 
 ### Methodologies
 

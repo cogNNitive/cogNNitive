@@ -118,14 +118,25 @@ export function buildScript(reviewed, draft, options = {}) {
       }
       return lines.join('\n');
     }
-    if (choice && (choice.type === 'media' || choice.type === 'animation')) {
-      const asset = choice.type === 'animation' ? 'media/' + scene.slug + '_animacion_1080x1080.mp4' : choice.asset;
+    if (choice && choice.type === 'media') {
       return [
         head + humanName(scene.name) + ' Visual',
         'slug:: ' + scene.slug + '-visual',
         'type:: background',
-        'asset:: ' + asset,
+        'asset:: ' + choice.asset,
         'position:: center',
+      ].join('\n');
+    }
+    // An animation choice points at an authored HyperFrames project directory
+    // (design D7); the engine mounts it as a sub-composition, so no overlay text
+    // or position is written.
+    if (choice && choice.type === 'animation') {
+      const asset = choice.asset || 'media/' + scene.slug;
+      return [
+        head + humanName(scene.name) + ' Animation',
+        'slug:: ' + scene.slug + '-animation',
+        'type:: animation',
+        'asset:: ' + asset,
       ].join('\n');
     }
     return null;
