@@ -97,7 +97,7 @@ export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKI
  * fallback. A component that declares fewer variables than its slot throws
  * `SlotContractError` before anything is spent.
  * @param {{ slots: string[], bags: object, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
- * @returns {Record<string, { name: string, path: string }>}
+ * @returns {Record<string, { name: string, path: string, noTimeline: boolean }>}
  */
 export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
   const resolved = {};
@@ -114,8 +114,12 @@ export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skill
     }
     const contractPath = path.join(skillDir, 'components', `${slot}.html`);
     const contractHtml = fs.existsSync(contractPath) ? fs.readFileSync(contractPath, 'utf8') : '';
-    assertSlotContract(slot, { path: compPath, html: fs.readFileSync(compPath, 'utf8'), contractHtml });
-    resolved[slot] = { name, path: compPath };
+    const compHtml = fs.readFileSync(compPath, 'utf8');
+    assertSlotContract(slot, { path: compPath, html: compHtml, contractHtml });
+    // A component whose root declares `data-no-timeline` is static: it never
+    // registers a sub-composition timeline, so the emitted host must say so too
+    // (otherwise HyperFrames waits its 45s readiness timeout on every render).
+    resolved[slot] = { name, path: compPath, noTimeline: /data-no-timeline/.test(compHtml) };
   }
   return resolved;
 }

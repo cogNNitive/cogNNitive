@@ -119,15 +119,17 @@ ${tween}
   });
 
   const overlayHosts = overlays
-    .map((o, i) =>
-      overlayMount(o, {
-        componentName: componentMap[SLOT_OF[o.type]]?.name || SLOT_OF[o.type],
+    .map((o, i) => {
+      const comp = componentMap[SLOT_OF[o.type]] || {};
+      return overlayMount(o, {
+        componentName: comp.name || SLOT_OF[o.type],
+        noTimeline: comp.noTimeline === true,
         fps,
         frame,
         trackIndex: 10 + i,
         zIndex: 200 + i,
-      }),
-    )
+      });
+    })
     .filter(Boolean)
     .join('\n');
 
