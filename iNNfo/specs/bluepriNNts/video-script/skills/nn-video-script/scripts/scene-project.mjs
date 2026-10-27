@@ -59,7 +59,7 @@ function drawableLayers(scene) {
     .sort((a, b) => Number(a.layer_level ?? 0) - Number(b.layer_level ?? 0));
 }
 
-function layerMarkup(layer, sceneDurationFrames, fps, trackBase) {
+function layerMarkup(layer, sceneDurationFrames, fps, trackBase, sceneSlug) {
   const name = String(layer.layer_asset_source);
   const dur = frameSeconds(sceneDurationFrames, fps);
   const z = Number(layer.layer_level ?? 0);
@@ -68,8 +68,11 @@ function layerMarkup(layer, sceneDurationFrames, fps, trackBase) {
     tag === 'video'
       ? `muted playsinline data-has-audio="false"`
       : '';
+  // A stable per-layer `id` gives HyperFrames Studio a target for its timeline and
+  // canvas controls (an id-less clip triggers a lint warning).
+  const id = `media-${esc(sceneSlug || 'scene')}-${trackBase}`;
   return (
-    `<${tag} class="clip nn-media" data-start="0" data-duration="${dur}" ` +
+    `<${tag} id="${id}" class="clip nn-media" data-start="0" data-duration="${dur}" ` +
     `data-track-index="${trackBase}" ${mediaAttrs} src="assets/${esc(name)}" ` +
     `style="z-index:${Number.isFinite(z) ? z : 0}"></${tag}>`
   );
@@ -94,7 +97,7 @@ export function buildProject(manifest, plan = {}) {
     const dur = frameSeconds(scene.durationInFrames, fps);
     const layers = drawableLayers(scene);
     layers.forEach((l) => assets.push(String(l.layer_asset_source)));
-    const layerHtml = layers.map((l, i) => layerMarkup(l, scene.durationInFrames, fps, i + 1)).join('\n      ');
+    const layerHtml = layers.map((l, i) => layerMarkup(l, scene.durationInFrames, fps, i + 1, slug)).join('\n      ');
     const transition = sceneTransitionFragment(scene.transition, fps);
     const tween = transition ? `      ${transition.js}` : '';
     const html = `<template>
