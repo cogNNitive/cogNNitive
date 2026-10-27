@@ -71,6 +71,19 @@ function testManifestAllowlist() {
   console.log('PASS: allowlisted manifests permitted, non-allowlisted flagged');
 }
 
+function testDefaultAllowlistCoversVideoScriptSkill() {
+  const root = mkTree({
+    'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/package.json': '{"name":"nn-video-script"}',
+    'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/package-lock.json': '{"lock":true}',
+  });
+
+  // Default allowlist, no override: the video-script skill manifest is a
+  // declared runtime dependency surface, like the console one.
+  const offenders = findSourceOffenders(root, ['iNNfo/specs/bluepriNNts/video-script']);
+  assert.deepStrictEqual(offenders, []);
+  console.log('PASS: default allowlist covers the video-script skill manifest');
+}
+
 function testAllowlistDoesNotRelaxNodeModules() {
   const root = mkTree({
     'skills/nn-sources/package.json': '{"name":"allowed"}',
@@ -120,6 +133,7 @@ function runAll() {
     testEnvFiles();
     testRootForbidden();
     testManifestAllowlist();
+    testDefaultAllowlistCoversVideoScriptSkill();
     testAllowlistDoesNotRelaxNodeModules();
     testSingleFileSurface();
     testAssertNoSourceThrows();
