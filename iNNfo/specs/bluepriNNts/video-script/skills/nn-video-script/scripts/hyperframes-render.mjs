@@ -13,6 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { emitHyperframesProject, HYPERFRAMES_PIN } from './scene-project.mjs';
 
 /** Quotes one argument so a shell passes it through as a single literal token. */
@@ -79,11 +80,32 @@ export async function tryHyperframesRender(input, deps = {}) {
     return { rendered: false, reason: `emit-failed: ${err?.message || String(err)}` };
   }
 
-  // Attempt the render directly: `npx --yes hyperframes@<pin>` installs the pinned
-  // CLI on demand. A failure (missing network, CLI error) is returned as a reason and
-  // the caller raises a loud named error; there is no FFmpeg fallback.
+  // Resolve the pinned CLI from this skill's node_modules/.bin. A missing CLI or a
+  // version different from the pin is returned as a named reason — never a silent
+  // `npx` install. The caller raises a loud named error; there is no FFmpeg fallback.
+  const skillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const binName = process.platform === 'win32' ? 'hyperframes.cmd' : 'hyperframes';
+  const injectedCli = deps.cliPath !== undefined;
+  const cliPath = deps.cliPath || path.join(skillDir, 'node_modules', '.bin', binName);
+  const installedPkgPath = path.join(skillDir, 'node_modules', 'hyperframes', 'package.json');
+  let installedPin = deps.installedPin !== undefined ? deps.installedPin : null;
+  // An injected runner (tests) owns CLI resolution; otherwise verify the real pin.
+  if (!injectedCli && !deps.run) {
+    if (!fs.existsSync(cliPath) || !fs.existsSync(installedPkgPath)) {
+      return { rendered: false, reason: 'hyperframes-missing' };
+    }
+    try {
+      installedPin = JSON.parse(fs.readFileSync(installedPkgPath, 'utf8')).version;
+    } catch (_) {
+      installedPin = null;
+    }
+  }
+  if (installedPin && installedPin !== pin) {
+    return { rendered: false, reason: `hyperframes-version-mismatch: ${installedPin}≠${pin}` };
+  }
+
   const extra = (input.extraArgs || []).map(String);
-  const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath), ...extra]];
+  const cmd = [cliPath, ['render', projectDir, '--output', path.resolve(outputPath), ...extra]];
   try {
     const res = await run(cmd[0], cmd[1], { cwd: projectDir });
     // Keep the CLI's own words: the exit code alone says nothing about why it failed.

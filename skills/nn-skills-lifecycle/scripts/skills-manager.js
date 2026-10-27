@@ -1217,6 +1217,7 @@ ${RETIRED_REPO_NOTICE}`);
       }
     }
     function ensureSkillNodeModules(skillDir) {
+      if (process.env.SM_SKIP_NPM_INSTALL === "1") return;
       const pkgPath = path2.join(skillDir, "package.json");
       if (!fs.existsSync(pkgPath)) return;
       let pkg;

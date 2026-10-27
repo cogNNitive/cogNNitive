@@ -115,8 +115,8 @@ async function runTests() {
     });
 
     assert.ok(ran, 'the HyperFrames runner must be invoked');
-    assert.strictEqual(ran.cmd, 'npx');
-    assert.ok(ran.args.some((a) => String(a).startsWith('hyperframes@')), 'the pinned HyperFrames CLI is used');
+    assert.notStrictEqual(ran.cmd, 'npx', 'the render must resolve the local pinned CLI, never npx');
+    assert.ok(/hyperframes(\.cmd)?$/.test(String(ran.cmd)), 'the resolved command is the local hyperframes binary');
     assert.match(ran.args.join(' '), /render/);
     assert.ok(fs.existsSync(videoPath));
     assert.strictEqual(result.outputVideoPath, videoPath);

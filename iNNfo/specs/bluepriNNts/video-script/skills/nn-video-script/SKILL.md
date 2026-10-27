@@ -2,22 +2,23 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports clip assembly and thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script, assemble video, concat clips.
-version: "V_0-5-2"
+version: "V_0-6-0"
 last_updated: 2026-10-27
 license: MIT
-engine:
-  package: "hyperframes"
-  version: "0.8.192"
 depends_on:
-  providers:
-    - name: wavespeed
-      env: WAVESPEED_API_KEY
-      purpose: TTS and image/video media synthesis
-    - name: replicate
-      env: REPLICATE_API_TOKEN
-      purpose: Fallback media synthesis
+  cli:
     - name: hyperframes
-      purpose: HTML to MP4 renderer (pinned CLI)
+      agent_skills: true
+  env:
+    - name: WAVESPEED_API_KEY
+      purpose: TTS and image/video media synthesis
+      required: true
+    - name: REPLICATE_API_TOKEN
+      purpose: Fallback media synthesis
+      required: false
+  binaries:
+    - ffmpeg
+  node: ">=22"
   optional_mcp:
     - wavespeed
 metadata:
@@ -27,7 +28,7 @@ metadata:
 
 # cogNNitive Video Script Engine Skill
 
-Provides end-to-end video script authoring, deterministic TTS/media asset synthesis, Remotion scene compilation, and headless rendering for cogNNitive.
+Provides end-to-end video script authoring, deterministic TTS/media asset synthesis, HyperFrames scene compilation, and headless rendering for cogNNitive.
 
 ## 0. Activation Gate
 

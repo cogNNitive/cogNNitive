@@ -392,6 +392,7 @@ async function fetchCompareSummary(item, installedCommit) {
  * @returns {void}
  */
 function ensureSkillNodeModules(skillDir) {
+  if (process.env.SM_SKIP_NPM_INSTALL === '1') return;
   const pkgPath = path.join(skillDir, 'package.json');
   if (!fs.existsSync(pkgPath)) return;
   let pkg;
