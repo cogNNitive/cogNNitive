@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-4SKOuHzwnOfDJW9/B96k/x5/oZaejadTEnd3rXrAtv8=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-bWhkbRolBcxyO7r1rVbmao/+8wcLIZuO0PWV/6mvsuw=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10144,8 +10144,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-f39fb033",
-    "generated": "2026-10-26T12:21:43.965Z",
+    "domainId": "testlab-32442737",
+    "generated": "2026-10-27T16:03:52.136Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10156,7 +10156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "a0f7961b76715571dad1c8d67854aab72001742a6391c02cd89a3602a7580204",
-        "citationsResolvedAt": "2026-10-26T12:21:43.829Z",
+        "citationsResolvedAt": "2026-10-27T16:03:52.025Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -20167,6 +20167,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       .toLowerCase()
   }
 
+  // ponytail: flat boolean model by design. Reopen if someone needs (a AND b) OR c.
   function parseFilterQuery(query) {
     var raw = String(query == null ? '' : query).trim()
     if (!raw) return { textTokens: [], operators: [], groups: [] }
@@ -21487,6 +21488,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ? parsed.groups
         : [parsed.operators.concat(parsed.textTokens.map(function (t) { return { type: 'text', val: t } }))]
 
+      // ponytail: flat boolean model by design. Clauses join with AND, atoms with OR.
       function serializeGroups(groups) {
         return groups.map(function (clause) {
           var clauseStr = clause.map(function (atom) {
@@ -21587,6 +21589,47 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return key + ':' + (s.indexOf(' ') !== -1 ? '"' + s + '"' : s)
   }
 
+  // Flattens the domaiNN's models into rail entries grouped by blueprint, so the
+  // Knowledge rail is never a flat dump of every model. The key is the payload's own
+  // `blueprint` (derived from each model's parent_spec, so it always exists); nothing
+  // here knows about a specific domaiNN. A title entry is emitted only when the
+  // domaiNN has more than one blueprint, so a single-blueprint console keeps today's
+  // flat list. `menu-title` is the design system's own section label — no new CSS.
+  // ponytail: one grouping level only. Ceiling — a domaiNN whose models all share one
+  // blueprint still renders one long group; upgrade = a second nested axis (concept or
+  // path) or a registered custom view.
+  function flattenBlueprintGroups(models) {
+    var input = Array.isArray(models) ? models : []
+    var order = []
+    var byKey = {}
+    input.forEach(function (m) {
+      var key = String((m && (m.blueprint || m.family)) || '').trim()
+      if (!key) key = 'Other'
+      if (!byKey[key]) {
+        byKey[key] = []
+        order.push(key)
+      }
+      byKey[key].push(m)
+    })
+    if (order.length <= 1) {
+      return input.map(function (m) {
+        return { kind: 'model', model: m }
+      })
+    }
+    order.sort(function (a, b) {
+      if (byKey[b].length !== byKey[a].length) return byKey[b].length - byKey[a].length
+      return a < b ? -1 : a > b ? 1 : 0
+    })
+    var out = []
+    order.forEach(function (key) {
+      out.push({ kind: 'title', label: key, count: byKey[key].length })
+      byKey[key].forEach(function (m) {
+        out.push({ kind: 'model', model: m })
+      })
+    })
+    return out
+  }
+
   function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect, state, activeQuery) {
     var rail = doc.getElementById('nn-rail')
     if (!rail) return
@@ -21649,7 +21692,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })[0]
         return (def && def.color) || null
       }
-      models.forEach(function (m) {
+      flattenBlueprintGroups(models).forEach(function (entry) {
+        if (entry.kind === 'title') {
+          var groupTitle = mk('li')
+          if (groupTitle) {
+            groupTitle.className = 'menu-title'
+            groupTitle.textContent = entry.label + ' (' + entry.count + ')'
+          }
+          list.appendChild(groupTitle)
+          return
+        }
+        var m = entry.model
         var mid = String(m.id || m.filePath)
         var li = mk('li')
         var details = mk('details')

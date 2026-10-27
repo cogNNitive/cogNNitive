@@ -8409,6 +8409,47 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return key + ':' + (s.indexOf(' ') !== -1 ? '"' + s + '"' : s)
   }
 
+  // Flattens the domaiNN's models into rail entries grouped by blueprint, so the
+  // Knowledge rail is never a flat dump of every model. The key is the payload's own
+  // `blueprint` (derived from each model's parent_spec, so it always exists); nothing
+  // here knows about a specific domaiNN. A title entry is emitted only when the
+  // domaiNN has more than one blueprint, so a single-blueprint console keeps today's
+  // flat list. `menu-title` is the design system's own section label — no new CSS.
+  // ponytail: one grouping level only. Ceiling — a domaiNN whose models all share one
+  // blueprint still renders one long group; upgrade = a second nested axis (concept or
+  // path) or a registered custom view.
+  function flattenBlueprintGroups(models) {
+    var input = Array.isArray(models) ? models : []
+    var order = []
+    var byKey = {}
+    input.forEach(function (m) {
+      var key = String((m && (m.blueprint || m.family)) || '').trim()
+      if (!key) key = 'Other'
+      if (!byKey[key]) {
+        byKey[key] = []
+        order.push(key)
+      }
+      byKey[key].push(m)
+    })
+    if (order.length <= 1) {
+      return input.map(function (m) {
+        return { kind: 'model', model: m }
+      })
+    }
+    order.sort(function (a, b) {
+      if (byKey[b].length !== byKey[a].length) return byKey[b].length - byKey[a].length
+      return a < b ? -1 : a > b ? 1 : 0
+    })
+    var out = []
+    order.forEach(function (key) {
+      out.push({ kind: 'title', label: key, count: byKey[key].length })
+      byKey[key].forEach(function (m) {
+        out.push({ kind: 'model', model: m })
+      })
+    })
+    return out
+  }
+
   function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect, state, activeQuery) {
     var rail = doc.getElementById('nn-rail')
     if (!rail) return
@@ -8471,7 +8512,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })[0]
         return (def && def.color) || null
       }
-      models.forEach(function (m) {
+      flattenBlueprintGroups(models).forEach(function (entry) {
+        if (entry.kind === 'title') {
+          var groupTitle = mk('li')
+          if (groupTitle) {
+            groupTitle.className = 'menu-title'
+            groupTitle.textContent = entry.label + ' (' + entry.count + ')'
+          }
+          list.appendChild(groupTitle)
+          return
+        }
+        var m = entry.model
         var mid = String(m.id || m.filePath)
         var li = mk('li')
         var details = mk('details')
