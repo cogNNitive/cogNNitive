@@ -30,6 +30,7 @@ const {
 } = require('../../skills/nn-preflight/scripts/lib/projection.js');
 
 const { skillTreeDigest } = require('./skill-tree-digest.js');
+const { hashSkillDir } = require('./skill-content-hash.js');
 
 const {
   fetchString,
@@ -40,6 +41,8 @@ const {
 const {
   parseManifest,
 } = require('./yaml-parser.js');
+
+const { parseFocusedYaml, parseFrontmatter } = require('./yaml-lite.js');
 
 const { registerMcpAuto } = require('./mcp-config-adapter.js');
 
@@ -106,7 +109,7 @@ function requestFor(url) {
  * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
  */
 function emptyState() {
-  return { manifest: getManifestUrl(), skills: {}, blueprints: {}, mcp: {}, console: {}, projections: {} };
+  return { manifest: getManifestUrl(), skills: {}, blueprints: {}, mcp: {}, console: {}, projections: {}, cli: {} };
 }
 
 /**
@@ -167,6 +170,7 @@ function loadState(file) {
         mcp: data.mcp || {},
         console: data.console || {},
         projections: data.projections || {},
+        cli: data.cli || {},
       };
       migrateLegacyMcpState(state);
       return state;
@@ -190,6 +194,7 @@ function loadState(file) {
         mcp: {},
         console: {},
         projections: {},
+        cli: {},
       };
       saveState(file, state);
       return state;
@@ -378,6 +383,41 @@ async function fetchCompareSummary(item, installedCommit) {
  * @param {object} state
  * @returns {Promise<void>}
  */
+/**
+ * Ensures an installed skill's npm dependencies are present. Spawns
+ * `npm install --omit=dev` only when a declared dependency is missing, so it is
+ * a no-op (fast) for an already-provisioned skill. Best-effort: a failure leaves
+ * the skill in place and the consuming stage fails fast on the missing dep.
+ * @param {string} skillDir
+ * @returns {void}
+ */
+function ensureSkillNodeModules(skillDir) {
+  const pkgPath = path.join(skillDir, 'package.json');
+  if (!fs.existsSync(pkgPath)) return;
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  } catch (_) {
+    return;
+  }
+  const deps = Object.keys(pkg.dependencies || {});
+  const nodeModulesDir = path.join(skillDir, 'node_modules');
+  const needsInstall =
+    deps.length > 0 &&
+    (!fs.existsSync(nodeModulesDir) || deps.some((d) => !fs.existsSync(path.join(nodeModulesDir, d))));
+  if (!needsInstall) return;
+  try {
+    spawnSync('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], {
+      cwd: skillDir,
+      encoding: 'utf-8',
+      shell: true,
+      timeout: 60000,
+    });
+  } catch (_) {
+    // best-effort
+  }
+}
+
 async function installSkillAtCommit(skill, skillsDir, state) {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-skills-'));
   try {
@@ -427,36 +467,97 @@ async function installSkillAtCommit(skill, skillsDir, state) {
       } catch (_) {}
     }
 
-    const pkgPath = path.join(dest, 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        const deps = Object.keys(pkg.dependencies || {});
-        const nodeModulesDir = path.join(dest, 'node_modules');
-        const needsInstall =
-          deps.length > 0 &&
-          (!fs.existsSync(nodeModulesDir) ||
-            deps.some((d) => !fs.existsSync(path.join(nodeModulesDir, d))));
-        if (needsInstall) {
-          try {
-            spawnSync('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], {
-              cwd: dest,
-              encoding: 'utf-8',
-              shell: true,
-              timeout: 60000,
-            });
-          } catch (_) {}
-        }
-      } catch (_) {}
-    }
+    ensureSkillNodeModules(dest);
 
     state.skills[skill.name] = {
       commit: skill.commit,
       version: skill.version,
       updated_at: new Date().toISOString(),
+      files: hashSkillDir(dest),
     };
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Reads a skill's top-level `depends_on` frontmatter (nested shape) or null.
+ * @param {string} skillText
+ * @returns {object | null}
+ */
+function readDependsOn(skillText) {
+  try {
+    const fm = parseFocusedYaml(parseFrontmatter(skillText));
+    return fm.depends_on || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+const DEPENDS_ON_KEYS = new Set(['cli', 'env', 'binaries', 'node', 'optional_mcp']);
+
+/** External skill frontmatter `depends_on` validation. Returns error strings. */
+function validateDependsOn(dependsOn, pkg) {
+  const errors = [];
+  if (dependsOn == null) return errors;
+  if (typeof dependsOn !== 'object' || Array.isArray(dependsOn)) return ['depends_on must be a mapping'];
+
+  for (const key of Object.keys(dependsOn)) {
+    if (!DEPENDS_ON_KEYS.has(key)) errors.push(`unknown depends_on key: ${key}`);
+  }
+
+  const deps = (pkg && pkg.dependencies) || {};
+  for (const entry of dependsOn.cli || []) {
+    if (!entry || !entry.name) {
+      errors.push('cli entry missing name');
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(entry, 'version')) {
+      errors.push(`cli '${entry.name}': version belongs in package.json only`);
+    }
+    const pinned = deps[entry.name];
+    if (pinned === undefined) {
+      errors.push(`cli '${entry.name}' is not in package.json dependencies`);
+    } else if (!/^\d+\.\d+\.\d+([-+].*)?$/.test(String(pinned))) {
+      errors.push(`cli '${entry.name}' must be pinned exactly in package.json (got '${pinned}')`);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Records the CLI-delivered agent skills for a projected skill: for each
+ * `depends_on.cli` entry with `agent_skills: true`, run the pinned CLI's
+ * `<bin> skills update` and record `state.cli[name]` (the pin covers it).
+ * Best-effort: a missing binary or a failed update is skipped.
+ * @param {object|null} dependsOn
+ * @param {string} skillDir
+ * @param {string} skillName
+ * @param {object} state
+ * @returns {void}
+ */
+function recordCliDeliveredSkills(dependsOn, skillDir, skillName, state) {
+  const cliEntries = (dependsOn && dependsOn.cli) || [];
+  for (const item of cliEntries) {
+    if (!item || !item.name || !item.agent_skills) continue;
+    const binPosix = path.join(skillDir, 'node_modules', '.bin', item.name);
+    const binWin = `${binPosix}.cmd`;
+    const exe = process.platform === 'win32' && fs.existsSync(binWin) ? binWin : binPosix;
+    if (fs.existsSync(binPosix) || fs.existsSync(binWin)) {
+      try {
+        spawnSync(exe, ['skills', 'update'], { cwd: skillDir, encoding: 'utf-8', shell: true, timeout: 60000 });
+      } catch (_) {
+        // best-effort
+      }
+    }
+    let version;
+    try {
+      version = JSON.parse(fs.readFileSync(path.join(skillDir, 'node_modules', item.name, 'package.json'), 'utf8')).version;
+    } catch (_) {
+      version = undefined;
+    }
+    state.cli = state.cli || {};
+    state.cli[item.name] = { version, source_skill: skillName, updated_at: new Date().toISOString() };
   }
 }
 
@@ -487,13 +588,24 @@ function installEmbeddedSkills(pkgDir, skillsDir, template, state) {
       if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
       else copyDirAtomic(src, dest);
 
-      const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, 'utf8'));
+      const skillText = fs.readFileSync(skillFile, 'utf8');
+      const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(skillText);
       const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
+
+      // Make sure the embedded skill's npm deps are present (self-heal); the
+      // declared `depends_on` is validated by preflight, not at install, so a
+      // package mid-migration never blocks a projection.
+      ensureSkillNodeModules(dest);
+      // CLI-delivered agent skills (e.g. `hyperframes skills`) come with the
+      // pinned CLI; record them under the pin in state.
+      recordCliDeliveredSkills(readDependsOn(skillText), dest, entry.name, state);
+
       state.skills[entry.name] = {
         commit: template.commit,
         version: versionMatch ? versionMatch[1] : undefined,
         source_blueprint: template.name,
         updated_at: new Date().toISOString(),
+        files: hashSkillDir(dest),
       };
       names.push(entry.name);
     }
@@ -1791,6 +1903,10 @@ module.exports = {
   installSkillAtCommit,
   installBlueprintAtCommit,
   installEmbeddedSkills,
+  ensureSkillNodeModules,
+  recordCliDeliveredSkills,
+  readDependsOn,
+  validateDependsOn,
   installMcpAtCommit,
   installConsoleAssetAtCommit,
   projectSkillsToAgents,
