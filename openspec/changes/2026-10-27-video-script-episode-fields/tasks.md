@@ -13,14 +13,16 @@
 
 ## 2. Blueprint (`video-script`)
 
-- [ ] 2.1 Add the seven Field Definitions to the `Video` concept: `slug`, `description`, `status`,
-      `script`, `master`, `thumbnail`, `voice_id`. Update the field table, the Concept Guidance for
-      `Video` and the `# NN index` taxonomy.
-- [ ] 2.2 Bump `blueprint_version` to `V_0-13-7` (the convention increments the last digit per
-      change: `V_0-13-2` → `-3` → `-4` → `-5` → `-6`), and update the `adopted` field in
-      `iNNfo/specs/bluepriNNts/catalog.json` plus its `docs/innfo/blueprints/catalog.json` mirror.
-      There is **no** `manifest/source.yaml` entry for `video-script`: it is distributed on demand.
-- [ ] 2.3 Update the Ghostbusters sample and `_samples_nn` so samples stay valid.
+- [x] 2.1 Added the six Field Definitions to the `Video` concept: `description`, `status`, `script`,
+      `master`, `thumbnail`, `voice_id`. `slug` is the reserved iNNfo identity property and is not
+      redeclared. The `## Video` Concept Guidance now documents the record and the derived-variant
+      rule. `# NN index` lists concepts only, so it does not change.
+- [x] 2.2 Bumped `blueprint_version` to `V_0-13-7` and regenerated
+      `iNNfo/specs/bluepriNNts/catalog.json` with `node scripts/blueprint-catalog.mjs` (2 lines:
+      `adopted` and `versions[0].blueprint_version`); `--check` is green. There is no
+      `manifest/source.yaml` entry for `video-script`.
+- [x] 2.3 **No-op.** `video-script` ships no `samples/` directory and has no `SAMPLE_MAPPINGS` entry,
+      so `samples-version-coherence` has nothing to check.
 
 ## 3. Capability delta
 

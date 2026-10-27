@@ -16,8 +16,9 @@ delivery fields on it, it *is* the episode. The retired blueprint's role is abso
 
 ## What Changes
 
-- `video-script`'s `Video` concept gains seven fields: `slug`, `description`, `status`, `script`,
-  `master`, `thumbnail`, `voice_id`.
+- `video-script`'s `Video` concept gains six fields: `description`, `status`, `script`, `master`,
+  `thumbnail`, `voice_id`. `slug` is the reserved iNNfo identity property, not a Field Definition of
+  this blueprint, so it is not declared.
 - Blueprint version bump (`V_0-13-7` — the convention increments the last digit per change) and the
   `adopted` field in `iNNfo/specs/bluepriNNts/catalog.json` plus its
   `docs/innfo/blueprints/catalog.json` mirror, released as a `blueprints-v*` tag. `video-script` is
@@ -56,7 +57,7 @@ delivery fields on it, it *is* the episode. The retired blueprint's role is abso
 
 ## Impact
 
-- One concept gains seven fields; nothing is removed and no engine behavior changes.
+- One concept gains six fields; nothing is removed and no engine behavior changes.
 - Affects the four `video_NN` series models, plus any other domain still built on the retired
   blueprint.
 - Needs a release: the fields only reach consumers through a `blueprints-v*` tag.
