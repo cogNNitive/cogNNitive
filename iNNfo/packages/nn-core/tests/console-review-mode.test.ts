@@ -150,12 +150,11 @@ describe('console-review (no mode, always-on decoration)', () => {
     expect(env.document.querySelector('[data-nn="changed-filter"]')).toBeNull()
 
     expect(cards(env.document).length).toBeGreaterThan(0)
-    // The reviewed toggle is gone; the rail progress now reads the change.
+    // The reviewed toggle is gone; the rail progress reads the change. With nothing
+    // pending the readout is dropped instead of reading `0/<total>`, which only
+    // repeated the count badge beside it.
     expect(env.document.querySelector('[data-nn-component="reviewed-toggle"]')).toBeNull()
-    const rail = env.document.querySelector('[data-nn-component="rail-progress"]') as HTMLElement
-    expect(rail).not.toBeNull()
-    expect(rail.getAttribute('data-total')).toBeTruthy()
-    expect(rail.getAttribute('data-pending')).toBe('0')
+    expect(env.document.querySelector('[data-nn-component="rail-progress"]')).toBeNull()
   })
 
   it('decorates the edit anchors when the domain is proposable', () => {
