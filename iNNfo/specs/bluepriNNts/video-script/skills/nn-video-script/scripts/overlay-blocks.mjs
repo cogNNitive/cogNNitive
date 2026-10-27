@@ -9,6 +9,8 @@
  * Pure module (no HyperFrames import), unit-testable without the renderer.
  */
 
+import { frameCss } from './lib/frame-tokens.mjs';
+
 /** `type` (manifest) → default registry block id. */
 export const DEFAULT_OVERLAY_BLOCKS = {
   kineticTitle: 'text-stagger',
@@ -80,6 +82,11 @@ export function renderOverlay(overlay, sceneFromFrame, fps, opts = {}) {
   const cfg = overlay.config || {};
   const k = (Number(opts.width) || 1080) / 1080;
   const px = (n) => Math.round(n * k);
+  // The Series frame is truth for color and type: its accent replaces the built-in
+  // violet and its body face replaces the implicit browser serif.
+  const frame = frameCss(opts.seriesFrame?.tokens);
+  const accent = frame.accent || '#7c3aed';
+  const fontDecl = frame.fontCss;
   const base = `position:absolute; z-index:${opts.zIndex ?? 200}; overflow:hidden;`;
   let style = base;
   let inner = '';
@@ -90,7 +97,7 @@ export function renderOverlay(overlay, sceneFromFrame, fps, opts = {}) {
       inner = esc(cfg.text || '');
       break;
     case 'lowerThird':
-      style += `left:${px(56)}px; bottom:${px(110)}px; max-width:70%; background:rgba(0,0,0,0.72); border-left:${px(6)}px solid #7c3aed; padding:${px(12)}px ${px(20)}px; font-size:${px(40)}px; font-weight:800; color:#fff;`;
+      style += `left:${px(56)}px; bottom:${px(110)}px; max-width:70%; background:rgba(0,0,0,0.72); border-left:${px(6)}px solid ${accent}; padding:${px(12)}px ${px(20)}px; font-size:${px(40)}px; font-weight:800; color:#fff;`;
       inner = esc(cfg.title || cfg.text || '');
       break;
     case 'kineticTitle':
@@ -118,6 +125,10 @@ export function renderOverlay(overlay, sceneFromFrame, fps, opts = {}) {
     default:
       return null;
   }
+
+  // Brand typeface for every painted text overlay; the geometry above is the
+  // engine's decision, the face is the Series'.
+  if (fontDecl && overlay.type !== 'broll') style += `; ${fontDecl}`;
 
   return (
     `<div id="${esc(overlay.id)}" class="clip nn-overlay" data-block="${esc(resolved.blockId)}" ` +
