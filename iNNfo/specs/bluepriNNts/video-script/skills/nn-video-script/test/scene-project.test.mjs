@@ -72,6 +72,15 @@ test('scene layers are emitted in paint order by z-index', () => {
   assert.match(intro, /<img[^>]*src="assets\/bg_intro_abc\.jpg"/);
 });
 
+test('every media layer carries a stable id (HyperFrames Studio edit target)', () => {
+  const { compositions } = buildProject(fixture());
+  const intro = compositions.find((c) => c.slug === 'intro').html;
+  assert.match(intro, /<img id="media-intro-1"[^>]*src="assets\/bg_intro_abc\.jpg"/);
+  assert.match(intro, /<img id="media-intro-2"[^>]*src="assets\/avatar_lucas_def\.png"/);
+  const body = compositions.find((c) => c.slug === 'body').html;
+  assert.match(body, /<video id="media-body-1"/);
+});
+
 test('a declared transition is emitted on the wrapper; none emits none', () => {
   const { compositions } = buildProject(fixture());
   const intro = compositions.find((c) => c.slug === 'intro').html;

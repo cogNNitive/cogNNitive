@@ -533,7 +533,9 @@ describe('S2b review follow-up: remove refreshes decorations and counts', () => 
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
     assert.equal(pending(document), '1')
     ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
-    assert.equal(pending(document), '0', 'decoration is not left stale')
+    // The readout reports a change, not a total: once nothing is pending it is dropped
+    // rather than left reading `0/<total>`, which only repeated the count badge.
+    assert.equal(pending(document), null, 'decoration is not left stale')
   })
 
   it('after store.remove banner, Review badge and pending text follow', () => {

@@ -194,8 +194,103 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const conceptItems = rail.querySelectorAll('[data-concept]')
     assert.equal(conceptItems.length, 2, 'renders 2 concept rail items')
 
+    // A concept row is scoped to the model it hangs off.
     conceptItems[1].click()
-    assert.equal(selectedFilter, 'concept:Risks')
+    assert.equal(selectedFilter, 'model:analysis concept:Risks')
+  })
+
+  test('renderRail groups models by blueprint when the domaiNN has more than one', () => {
+    const dom = new JSDOM(
+      `<!doctype html>
+      <html>
+        <body>
+          <div id="nn-layout">
+            <nav id="nn-rail"></nav>
+          </div>
+        </body>
+      </html>`,
+    )
+    const { document } = dom.window
+    global.window = dom.window
+    global.document = document
+
+    const state = {
+      meta: {
+        models: [
+          { id: 'a1', title: 'Episode A', filePath: 'a1.md', elementCount: 2, blueprint: 'video-script' },
+          { id: 'b1', title: 'Series B', filePath: 'b1.md', elementCount: 1, blueprint: 'video' },
+          { id: 'a2', title: 'Episode B', filePath: 'a2.md', elementCount: 3, blueprint: 'video-script' },
+        ],
+      },
+      elements: [],
+    }
+
+    nnConsole.renderRail(document, [], {}, {}, () => {}, state)
+    const rail = document.getElementById('nn-rail')
+
+    // One accordion section per blueprint, biggest group first, all collapsed.
+    const sections = Array.from(rail.querySelectorAll('details[name="nn-rail-blueprint"]'))
+    assert.deepEqual(
+      sections.map((d) => d.querySelector('summary').textContent),
+      ['video-script (2)', 'video (1)'],
+    )
+    assert.deepEqual(
+      sections.map((d) => d.open),
+      [false, false],
+      'blueprint sections start collapsed',
+    )
+    assert.deepEqual(
+      sections.map((d) => d.getAttribute('name')),
+      ['nn-rail-blueprint', 'nn-rail-blueprint'],
+      'a named details group keeps one blueprint open at a time',
+    )
+
+    // Grouping adds a level; it never drops a model.
+    assert.equal(rail.querySelectorAll('[data-model]').length, 3)
+
+    // A model nested inside a group still drives the model: facet.
+    let selectedFilter = null
+    nnConsole.renderRail(document, [], {}, {}, (v) => {
+      selectedFilter = v
+    }, state)
+    const items = document.getElementById('nn-rail').querySelectorAll('[data-model]')
+    items[0].click()
+    assert.equal(selectedFilter, 'model:a1')
+    items[2].click()
+    assert.equal(selectedFilter, 'model:b1')
+  })
+
+  test('renderRail keeps the flat list when every model shares one blueprint', () => {
+    const dom = new JSDOM(
+      `<!doctype html>
+      <html>
+        <body>
+          <nav id="nn-rail"></nav>
+        </body>
+      </html>`,
+    )
+    const { document } = dom.window
+    global.window = dom.window
+    global.document = document
+
+    const state = {
+      meta: {
+        models: [
+          { id: 'm1', title: 'One', filePath: 'm1.md', elementCount: 1, blueprint: 'business-model' },
+          { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1, blueprint: 'business-model' },
+        ],
+      },
+      elements: [],
+    }
+
+    nnConsole.renderRail(document, [], {}, {}, () => {}, state)
+    const rail = document.getElementById('nn-rail')
+    assert.equal(
+      rail.querySelectorAll('details[name="nn-rail-blueprint"]').length,
+      0,
+      'no accordion section for a lone blueprint',
+    )
+    assert.equal(rail.querySelectorAll('[data-model]').length, 2)
   })
 })
 
@@ -224,6 +319,37 @@ describe('Hostile text renders as text, never as markup', () => {
     assert.equal(rail.querySelector('script'), null)
     assert.ok(rail.textContent.includes(HOSTILE_IMG), 'model title appears literally')
     assert.ok(rail.textContent.includes(hostileConcept), 'concept name appears literally')
+  })
+
+  test('blueprint group label in the rail is inert', () => {
+    const dom = new JSDOM(
+      `<!doctype html>
+      <html>
+        <body>
+          <nav id="nn-rail"></nav>
+        </body>
+      </html>`,
+    )
+    const document = dom.window.document
+    global.window = dom.window
+    global.document = document
+
+    const state = {
+      meta: {
+        models: [
+          { id: 'm1', title: 'One', filePath: 'm1.md', elementCount: 1, blueprint: HOSTILE_IMG },
+          { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1, blueprint: 'video' },
+        ],
+      },
+      elements: [],
+    }
+
+    nnConsole.renderRail(document, [], {}, {}, () => {}, state)
+
+    const rail = document.getElementById('nn-rail')
+    assert.equal(rail.querySelector('img'), null)
+    assert.equal(rail.querySelector('[onerror]'), null)
+    assert.ok(rail.textContent.includes(HOSTILE_IMG), 'hostile blueprint name appears literally')
   })
 
   test('hostile concept color and element count cannot break out of the style attribute', () => {
