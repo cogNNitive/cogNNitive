@@ -29,7 +29,7 @@ tooling is not distributed and is not listed.
 | Package | Version | License | Policy | Used by | Copyright |
 |---|---|---|---|---|---|
 | @hono/node-server | 2.1.3 | MIT | allow | nn-mcp | Copyright (c) 2022 - present, Yusuke Wada and Hono contributors |
-| @modelcontextprotocol/sdk | 1.32.1 | MIT | allow | nn-mcp | Copyright (c) 2024 Anthropic, PBC |
+| @modelcontextprotocol/sdk | 1.32.2 | MIT | allow | nn-mcp | Copyright (c) 2024 Anthropic, PBC |
 | @xmldom/xmldom | 0.8.15 | MIT | allow | nn-sources | Copyright 2019 - present Christopher J. Brody and other contributors, as listed in: https://github.com/xmldom/xmldom/graphs/contributors; Copyright 2012 - 2017 @jindw <jindw@xidea.org> and other contributors, as listed in: https://github.com/jindw/xmldom/graphs/contributors |
 | accepts | 2.0.0 | MIT | allow | nn-mcp | Copyright (c) 2014 Jonathan Ong <me@jongleberry.com>; Copyright (c) 2015 Douglas Christopher Wilson <doug@somethingdoug.com> |
 | ajv | 8.20.0 | MIT | allow | nn-mcp | Copyright (c) 2015-2021 Evgeny Poberezkin |
@@ -157,9 +157,9 @@ tooling is not distributed and is not listed.
 Each distinct license text shipped by the packages above, listed once with the packages that use it.
 Copyright lines are in the table above and in each package.
 
-### @hono/node-server@2.1.3, @modelcontextprotocol/sdk@1.32.1, ajv-formats@3.0.1 and 32 more
+### @hono/node-server@2.1.3, @modelcontextprotocol/sdk@1.32.2, ajv-formats@3.0.1 and 32 more
 
-Applies to: @hono/node-server@2.1.3, @modelcontextprotocol/sdk@1.32.1, ajv-formats@3.0.1, call-bind-apply-helpers@1.0.2, call-bound@1.0.4, dunder-proto@1.0.1, es-define-property@1.0.1, es-errors@1.3.0, es-object-atoms@1.1.2, eventsource-parser@3.1.1, express-rate-limit@8.7.1, fast-deep-equal@3.1.3, get-intrinsic@1.3.0, get-proto@1.0.1, gopd@1.2.0, has-symbols@1.1.0, hasown@2.0.4, hono@4.13.13, json-schema-traverse@1.0.0, math-intrinsics@1.1.0, merge-descriptors@2.0.0, object-inspect@1.13.4, path-key@3.1.1, pkce-challenge@5.0.1, prompts@2.4.2, safer-buffer@2.1.2, shebang-command@2.0.0, shebang-regex@3.0.0, side-channel@1.1.1, side-channel-list@1.0.1, side-channel-map@1.0.1, side-channel-weakmap@1.0.2, sisteransi@1.0.5, toidentifier@1.0.1, zod@3.25.76.
+Applies to: @hono/node-server@2.1.3, @modelcontextprotocol/sdk@1.32.2, ajv-formats@3.0.1, call-bind-apply-helpers@1.0.2, call-bound@1.0.4, dunder-proto@1.0.1, es-define-property@1.0.1, es-errors@1.3.0, es-object-atoms@1.1.2, eventsource-parser@3.1.1, express-rate-limit@8.7.1, fast-deep-equal@3.1.3, get-intrinsic@1.3.0, get-proto@1.0.1, gopd@1.2.0, has-symbols@1.1.0, hasown@2.0.4, hono@4.13.13, json-schema-traverse@1.0.0, math-intrinsics@1.1.0, merge-descriptors@2.0.0, object-inspect@1.13.4, path-key@3.1.1, pkce-challenge@5.0.1, prompts@2.4.2, safer-buffer@2.1.2, shebang-command@2.0.0, shebang-regex@3.0.0, side-channel@1.1.1, side-channel-list@1.0.1, side-channel-map@1.0.1, side-channel-weakmap@1.0.2, sisteransi@1.0.5, toidentifier@1.0.1, zod@3.25.76.
 
 ```text
 MIT License
