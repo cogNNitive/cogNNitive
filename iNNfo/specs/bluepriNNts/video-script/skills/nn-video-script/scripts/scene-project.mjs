@@ -8,21 +8,21 @@
  * files.
  *
  * Layout:
- *   <projectDir>/index.html            root: one scene host per Scene + all audio
+ *   <projectDir>/index.html            root: one scene host per Scene + overlay hosts + all audio
  *   <projectDir>/compositions/<s>.html one Sub-composition per Scene
  *   <projectDir>/hyperframes.json      project config
  *
  * Audio (narration + music) lives at the ROOT with global times: nested media
  * with a non-zero start basis inside a Sub-composition has ambiguous timing.
- * Each Scene Sub-composition leaves a stable `<!-- nn-overlay-host -->` anchor
- * for the overlays change to fill.
+ * Overlay hosts also live at the ROOT (design D4) so their times are global and
+ * they mount their slot component from `components/` in one nesting level.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sceneTransitionFragment } from './scene-transition.mjs';
-import { renderOverlay } from './overlay-blocks.mjs';
+import { overlayMount, SLOT_OF } from './overlay-blocks.mjs';
 import { writeGuarded } from './lib/emit-guard.mjs';
 
 /**
@@ -40,7 +40,6 @@ export const HYPERFRAMES_PIN = (() => {
     return '0.0.0';
   }
 })();
-export const OVERLAY_HOST_ANCHOR = '<!-- nn-overlay-host -->';
 
 const roundMs = (seconds) => Math.round(seconds * 1000) / 1000;
 const frameSeconds = (frames, fps) => roundMs((frames || 0) / fps);
@@ -85,6 +84,8 @@ export function buildProject(manifest, plan = {}) {
   const audio = manifest?.tracks?.audio || [];
   const overlays = manifest?.tracks?.overlays || [];
   const assets = [];
+  const componentMap = plan.components || manifest?.metadata?.components || {};
+  const frame = plan.frame || manifest?.metadata?.frame || null;
 
   const compositions = scenes.map((scene) => {
     const slug = sceneSlug(scene);
@@ -92,33 +93,15 @@ export function buildProject(manifest, plan = {}) {
     const layers = drawableLayers(scene);
     layers.forEach((l) => assets.push(String(l.layer_asset_source)));
     const layerHtml = layers.map((l, i) => layerMarkup(l, scene.durationInFrames, fps, i + 1)).join('\n      ');
-    const sceneOverlays = overlays.filter(
-      (o) => o.fromFrame >= scene.fromFrame && o.fromFrame < scene.fromFrame + scene.durationInFrames,
-    );
-    const overlayHtml = sceneOverlays
-      .map((o, i) =>
-        renderOverlay(o, scene.fromFrame, fps, {
-          seriesFrame: plan.seriesFrame,
-          sceneBlock: plan.sceneBlock,
-          trackIndex: 10 + i,
-          width,
-          height,
-          zIndex: 200 + i,
-        }),
-      )
-      .filter(Boolean)
-      .join('\n      ');
     const transition = sceneTransitionFragment(scene.transition, fps);
     const tween = transition ? `      ${transition.js}` : '';
     const html = `<template>
   <style>
-    #root { position: absolute; inset: 0; overflow: hidden; background: #0b0b0f; }
+    #root { position: absolute; inset: 0; overflow: hidden; }
     .nn-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   </style>
   <div id="root" data-composition-id="${esc(slug)}" data-width="${width}" data-height="${height}" data-duration="${dur}">
       ${layerHtml}
-      ${overlayHtml}
-      ${OVERLAY_HOST_ANCHOR}
   </div>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
   <script>
@@ -132,6 +115,19 @@ ${tween}
 `;
     return { slug, html };
   });
+
+  const overlayHosts = overlays
+    .map((o, i) =>
+      overlayMount(o, {
+        componentName: componentMap[SLOT_OF[o.type]]?.name || SLOT_OF[o.type],
+        fps,
+        frame,
+        trackIndex: 10 + i,
+        zIndex: 200 + i,
+      }),
+    )
+    .filter(Boolean)
+    .join('\n');
 
   const sceneHosts = scenes
     .map((scene) => {
@@ -164,6 +160,7 @@ ${tween}
   <body>
     <div id="root" data-composition-id="${esc(compositionId)}" data-start="0" data-duration="${total}" data-width="${width}" data-height="${height}" data-fps="${fps}">
 ${sceneHosts}
+${overlayHosts}
 ${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="captions" data-start="0" data-duration="${total}" data-track-index="900"></div>\n` : ''}${audioEls}
     </div>
     <script>window.__timelines[${JSON.stringify(compositionId)}] = gsap.timeline({ paused: true });</script>
@@ -188,7 +185,7 @@ ${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="c
  * Writes the project to `plan.projectDir` through the regeneration guard.
  * Returns the written paths.
  * @param {object} manifest
- * @param {{ projectDir: string, pin?: string, seriesFrame?: object, sceneBlock?: object, narrationCaptions?: boolean }} plan
+ * @param {{ projectDir: string, pin?: string, components?: Record<string, { name: string, path: string }>, frame?: object, narrationCaptions?: boolean }} plan
  */
 export function emitHyperframesProject(manifest, plan = {}) {
   if (!plan.projectDir) throw new Error('emitHyperframesProject: plan.projectDir is required');

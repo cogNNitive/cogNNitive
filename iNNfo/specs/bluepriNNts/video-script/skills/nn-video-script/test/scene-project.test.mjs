@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildProject, emitHyperframesProject, OVERLAY_HOST_ANCHOR } from '../scripts/scene-project.mjs';
+import { buildProject, emitHyperframesProject } from '../scripts/scene-project.mjs';
 
 function fixture() {
   return {
@@ -79,11 +79,6 @@ test('a declared transition is emitted on the wrapper; none emits none', () => {
   assert.match(intro, /window\.__timelines\["intro"\]/);
   assert.match(intro, /tl\.fromTo\('#root'.*opacity/s);
   assert.doesNotMatch(body, /tl\.fromTo/);
-});
-
-test('each Sub-composition leaves the overlay host anchor', () => {
-  const { compositions } = buildProject(fixture());
-  for (const c of compositions) assert.match(c.html, new RegExp(OVERLAY_HOST_ANCHOR));
 });
 
 test('emission is deterministic (same manifest, byte-identical files)', () => {

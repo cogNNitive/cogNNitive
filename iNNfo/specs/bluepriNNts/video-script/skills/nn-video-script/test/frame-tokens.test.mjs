@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { parseFrameTokens, loadFrame, frameCss } from '../scripts/lib/frame-tokens.mjs';
-import { renderOverlay } from '../scripts/overlay-blocks.mjs';
+import { overlayMount } from '../scripts/overlay-blocks.mjs';
 
 const FRAME = `---
 version: alpha
@@ -65,8 +65,8 @@ test('frameCss exposes only type and accent, never layout', () => {
   assert.equal(frameCss(null).fontCss, '');
 });
 
-test('an overlay inherits the frame typeface and accent, keeping its own layout', () => {
-  const seriesFrame = { tokens: parseFrameTokens(FRAME) };
+test('an overlay host carries the frame typeface and accent as variable values', () => {
+  const frame = { tokens: parseFrameTokens(FRAME) };
   const overlay = {
     id: 'o1',
     type: 'lowerThird',
@@ -75,17 +75,16 @@ test('an overlay inherits the frame typeface and accent, keeping its own layout'
     config: { title: 'Lucas' },
   };
 
-  const html = renderOverlay(overlay, 0, 30, { width: 1080, seriesFrame });
+  const html = overlayMount(overlay, { componentName: 'lower-third', fps: 30, frame });
 
-  assert.match(html, /font-family:'Inter'/);
-  assert.match(html, /border-left:\d+px solid #1e2bfa/);
-  assert.match(html, /left:\d+px/, 'geometry stays the engine default');
-  assert.match(html, /Lucas/);
+  assert.match(html, /"font":"Inter"/);
+  assert.match(html, /"accent":"#1e2bfa"/);
+  assert.match(html, /"text":"Lucas"/);
 });
 
-test('without a frame the emitter keeps its built-in defaults', () => {
+test('without a frame the host keeps empty font and accent values', () => {
   const overlay = { id: 'o1', type: 'lowerThird', fromFrame: 0, durationInFrames: 30, config: { text: 'x' } };
-  const html = renderOverlay(overlay, 0, 30, { width: 1080 });
-  assert.match(html, /border-left:\d+px solid #7c3aed/);
-  assert.doesNotMatch(html, /font-family/);
+  const html = overlayMount(overlay, { componentName: 'lower-third', fps: 30 });
+  assert.match(html, /"font":""/);
+  assert.match(html, /"accent":""/);
 });
