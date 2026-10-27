@@ -615,40 +615,8 @@ export interface HydrateBlueprintResult {
   targetPath: string
   source: string
   message?: string
-  /** Embedded skills projected into the skills directory during hydration. */
-  projectedSkills?: Array<{ name: string; path: string }>
-}
-
-/**
- * Project a fetched package's embedded `skills/` payload into the canonical
- * skills directory. Payload keys are relative to `skills/`
- * (e.g. `nn-domain-helper/SKILL.md`); each top-level folder becomes one skill.
- */
-async function projectEmbeddedSkills(
-  skillsDir: string,
-  skills: Record<string, string> | undefined,
-): Promise<Array<{ name: string; path: string }>> {
-  if (!skills) return []
-  const bySkill = new Map<string, Record<string, string>>()
-  for (const [rel, content] of Object.entries(skills)) {
-    const slash = rel.indexOf('/')
-    const dirName = slash === -1 ? rel : rel.slice(0, slash)
-    const rest = slash === -1 ? rel : rel.slice(slash + 1)
-    if (!bySkill.has(dirName)) bySkill.set(dirName, {})
-    bySkill.get(dirName)![rest] = content
-  }
-  const projected: Array<{ name: string; path: string }> = []
-  for (const [name, files] of bySkill) {
-    const skillPath = join(skillsDir, name)
-    await mkdir(skillPath, { recursive: true })
-    for (const [rel, content] of Object.entries(files)) {
-      const dest = join(skillPath, rel)
-      await mkdir(join(dest, '..'), { recursive: true })
-      await writeFile(dest, content, 'utf-8')
-    }
-    projected.push({ name, path: skillPath })
-  }
-  return projected
+  /** Exact command to install an uninstalled catalog blueprint (single writer). */
+  installCommand?: string
 }
 
 export async function hydrateBlueprint(
@@ -755,51 +723,22 @@ export async function hydrateBlueprint(
   })
 
   if (!location) {
-    // On-demand hydration: a blueprint that is neither workspace-resident nor
-    // installed globally can still be fetched from its catalog release pin,
-    // optionally authenticated, then cached under ~/.agents/bluepriNNts/ with
-    // its embedded skills projected into the skills directory.
+    // On-demand hydration is owned by the skills-manager CLI: it is the single
+    // writer of bluepriNNt packages and their embedded skills. This tool fetches
+    // nothing, projects nothing and writes no state — it returns the exact command
+    // for the user to run. Once installed, the global-cache tier resolves it.
     const catalog = await loadCatalog(rootDir, opts)
     const entry = catalogEntryFor(catalog, parsed.base)
-    if (entry && entry.release_tag) {
-      const version = parsed.version ?? entry.adopted
-      const token = opts?.token ?? resolveAuthToken() ?? undefined
-      try {
-        const payload = await fetchBlueprintPackageFromRemote(entry.name, version, {
-          repo: opts?.repo,
-          ref: opts?.ref ?? entry.release_tag,
-          token,
-          access: entry.access,
-        })
-        const pkgDir = await hydrateBlueprintPackageAtomically(
-          rootDir,
-          entry.name,
-          version,
-          payload,
-          { baseDir: globalBlueprintsDir },
-        )
-        const projected = await projectEmbeddedSkills(skillsDir, payload.skills)
-        return {
-          success: true,
-          templateName,
-          targetPath: pkgDir,
-          source: 'catalog',
-          projectedSkills: projected,
-          message:
-            `Hydrated blueprint ${entry.name} (${version}) on demand from ` +
-            `${entry.release_tag} to ${pkgDir}` +
-            (projected.length ? ` and projected ${projected.length} embedded skill(s)` : ''),
-        }
-      } catch (err) {
-        // A missing/invalid token is actionable on its own; every other failure
-        // gets the offline guidance the spec requires.
-        if (err instanceof BlueprintAuthError) throw err
-        const detail = err instanceof Error ? err.message : String(err)
-        throw new Error(
-          `Failed to hydrate "${entry.name}" from catalog: ${detail}. ` +
-            `Connect to the network, or pre-install with ` +
-            `\`skills-manager.js install --blueprint ${entry.name}\`.`,
-        )
+    if (entry) {
+      const installCommand = `node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint ${entry.name}`
+      return {
+        success: false,
+        templateName,
+        targetPath: '',
+        source: 'catalog',
+        installCommand,
+        message:
+          `Blueprint "${entry.name}" is not installed. Install it with:\n  ${installCommand}`,
       }
     }
 
