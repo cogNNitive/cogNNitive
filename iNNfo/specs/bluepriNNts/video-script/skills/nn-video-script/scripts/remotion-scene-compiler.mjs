@@ -300,6 +300,9 @@ export class RemotionSceneCompiler {
         accept: (v) => v !== undefined && v !== null && String(v).trim() !== '' && Number.isFinite(Number(v)),
       }).value;
       const transition = resolve('transition', sceneBags).value;
+      // `frame` is a cascade parameter resolved per scene (design D18); the file
+      // for the resolved name is located by the caller's nearest-folder walk.
+      const frame = resolve('frame', sceneBags);
       // The resolved template's `tts_model`/`voice` fill the referencing
       // element's bag (design D10/D20); the rest of the cascade supplies the
       // value. Engine code names no model.
@@ -332,6 +335,7 @@ export class RemotionSceneCompiler {
         template: resolve('template', sceneBags).value || null,
         resolvedTemplate,
         transition: transition || null,
+        frame: { value: frame.value, source: frame.source },
         music: music || null,
         properties,
         layers,
@@ -345,6 +349,7 @@ export class RemotionSceneCompiler {
       height: options.height || this.height,
       videoTemplate,
       videoProps: {},
+      frame: resolve('frame', { ...bags, video: videoEl.fields || {} }),
       scenes,
     };
   }

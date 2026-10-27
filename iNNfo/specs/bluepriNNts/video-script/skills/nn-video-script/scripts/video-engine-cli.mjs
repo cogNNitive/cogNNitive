@@ -27,15 +27,18 @@ import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { loadCascadeBags, resolve } from './lib/cascade.mjs';
-import { findSeriesRoot } from './lib/nearest.mjs';
+import { findNearest, findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
-import { loadFrameTokens } from './lib/frame-tokens.mjs';
+import { loadFrame } from './lib/frame-tokens.mjs';
+import { checkMissingAsset } from './lib/missing-asset.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 import { tryHyperframesRender } from './hyperframes-render.mjs';
 
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url));
+/** The skill's own folder: the fallback anchor for the nearest-folder walker. */
+const SKILL_DIR = path.resolve(SCRIPTS_DIR, '..');
 
 /**
  * Named error raised when the renderer cannot render and no mock was requested. Callers
@@ -53,6 +56,36 @@ export class VideoRenderError extends Error {
 function isInside(root, target) {
   const rel = path.relative(path.resolve(root), path.resolve(target));
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/**
+ * Resolves the `frame` cascade value to its `frames/<name>.md` document (design
+ * D18/D21). Every distinct name the compiler resolved (video level and each
+ * scene) is walked episode > series > domain > skill; a miss follows D21 — a
+ * user-level name throws `MissingAssetError`, a blueprint-only name warns once
+ * and is skipped. The first resolved document is the primary frame.
+ * @param {{ entries: Array<{ value: unknown, source: string | null }>, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
+ * @returns {{ name: string, source: string, path: string, tokens: object | null } | null}
+ */
+export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+  const seen = new Set();
+  let primary = null;
+  for (const entry of entries || []) {
+    if (!entry || entry.value === null || entry.value === undefined || String(entry.value).trim() === '') continue;
+    const name = String(entry.value);
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const { path: framePath, searched } = findNearest(scriptDir, `frames/${name}.md`, {
+      stopDir: workspaceRoot,
+      fallbackDir: skillDir,
+    });
+    if (!framePath) {
+      checkMissingAsset({ kind: 'frame', name, source: entry.source, searched });
+      continue;
+    }
+    if (!primary) primary = { name, source: entry.source, ...loadFrame(framePath) };
+  }
+  return primary;
 }
 
 /**
@@ -328,6 +361,14 @@ export async function compileVideo(options) {
   if (!guard.ok) throw new ScriptValidationError(guard.errors);
   const templates = options.templates || loadTemplateModels(scriptDir);
   const parsed = compiler.lowerKnowledgeModel(model, { templates, bags, fps: options.fps, width: options.width, height: options.height });
+  // Resolve the frame cascade value to its document BEFORE any synthesis or
+  // render (design D18/D21): a user-level name with no file fails here, with
+  // nothing spent; a blueprint-only name is skipped with one warning.
+  const frameInfo = resolveFrame({
+    entries: [parsed.frame, ...parsed.scenes.map((sc) => sc.frame)],
+    scriptDir,
+    workspaceRoot: loaded.root,
+  });
   let audioAssets = {};
   let cachedAssetsUsed = 0;
   let newAssetsSynthesized = 0;
@@ -359,6 +400,7 @@ export async function compileVideo(options) {
           dailySpentUsd: planGuard.dailySpentUsd,
           withinBudget: planGuard.plannedTotalUsd <= loaded.config.budgetPerRunUsd,
           approval: checkNow(),
+          frame: frameInfo ? { name: frameInfo.name, path: frameInfo.path, source: frameInfo.source } : null,
         },
       };
     }
@@ -423,11 +465,11 @@ export async function compileVideo(options) {
   const staging = resolveMediaLayers(manifest, { scriptDir, publicDir, seriesRoot: findSeriesRoot(scriptDir, resolveWorkspace(scriptDir).root) });
   manifest.metadata.publicDir = publicDir;
 
-  // A Series `frame.md` (palette + type) becomes the manifest's frame contract so the
-  // emitter styles overlays from brand tokens instead of hardcoded values. Absent a
-  // frame, the manifest carries nothing and the emitter keeps its own defaults.
-  const frame = loadFrameTokens(scriptDir);
-  if (frame) manifest.metadata.frame = { path: frame.path, tokens: frame.tokens };
+  // The resolved frame (palette + type) becomes the manifest's frame contract so
+  // the emitter styles overlays from brand tokens instead of hardcoded values.
+  // Absent a frame, the manifest carries nothing and the emitter keeps its own
+  // defaults.
+  if (frameInfo) manifest.metadata.frame = { path: frameInfo.path, tokens: frameInfo.tokens };
 
   // Keep the human-visible local audio staging dir next to the script (developer aid).
   const localAudioDir = path.join(scriptDir, 'audio');
@@ -623,6 +665,7 @@ function cliReporter(e) {
 function printDryRun(result) {
   const { plan } = result;
   console.log('Dry run: nothing was synthesized, spent or written.');
+  if (plan.frame) console.log('   frame ' + plan.frame.name + ': ' + plan.frame.path + ' (' + plan.frame.source + ')');
   console.log('   Cached assets (free): ' + result.cachedAssetsUsed);
   console.log('   Uncached billable calls: ' + plan.items.length);
   for (const item of plan.items) {

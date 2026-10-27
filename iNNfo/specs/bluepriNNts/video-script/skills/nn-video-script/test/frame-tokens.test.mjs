@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { parseFrameTokens, loadFrameTokens, frameCss } from '../scripts/lib/frame-tokens.mjs';
+import { parseFrameTokens, loadFrame, frameCss } from '../scripts/lib/frame-tokens.mjs';
 import { renderOverlay } from '../scripts/overlay-blocks.mjs';
 
 const FRAME = `---
@@ -45,16 +45,16 @@ test('parseFrameTokens returns null without a frontmatter palette', () => {
   assert.equal(parseFrameTokens('---\nname: x\n---\n'), null);
 });
 
-test('loadFrameTokens walks up to the nearest frame.md', () => {
+test('loadFrame reads and parses one frame document', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-frame-'));
-  const nested = path.join(root, 'series', 'episode');
-  fs.mkdirSync(nested, { recursive: true });
-  fs.writeFileSync(path.join(root, 'series', 'frame.md'), FRAME, 'utf8');
+  const file = path.join(root, 'brand.md');
+  fs.writeFileSync(file, FRAME, 'utf8');
 
-  const found = loadFrameTokens(nested);
-  assert.ok(found);
-  assert.equal(found.tokens.colors.primary, '#1e2bfa');
-  assert.equal(loadFrameTokens(path.join(root, 'elsewhere')), null);
+  const loaded = loadFrame(file);
+  assert.equal(loaded.path, file);
+  assert.equal(loaded.tokens.colors.primary, '#1e2bfa');
+  assert.equal(loadFrame(path.join(root, 'missing.md')).tokens, null);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test('frameCss exposes only type and accent, never layout', () => {
