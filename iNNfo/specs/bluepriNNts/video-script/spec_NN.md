@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-13-6"
+blueprint_version: "V_0-13-7"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -100,6 +100,40 @@ description:: Open vocabulary ad-hoc tags and classification labels.
 concept:: [Video, Series]
 type:: string
 description:: Human title of the Video or the Series. The engine derives the manifest compositionId from the Video's title.
+
+<!-- Video record: the episode's catalogue and delivery. One L3 document of this blueprint is
+     both the episode's record and its script. `slug` is the reserved identity, not declared here. -->
+
+## NN Field Definition: description
+concept:: Video
+type:: markdown_inline
+description:: What the episode is about, in one or two sentences.
+
+## NN Field Definition: status
+concept:: Video
+type:: select
+options:: [draft, scripting, rendering, published, archived]
+description:: Lifecycle position of the episode.
+
+## NN Field Definition: script
+concept:: Video
+type:: file
+description:: The episode's script document, resolved under the owning model's directory.
+
+## NN Field Definition: master
+concept:: Video
+type:: video
+description:: The episode's rendered master, resolved under the owning model's directory. The vertical and horizontal variants are derived from it by the render-formats naming convention and MUST NOT be modelled as fields.
+
+## NN Field Definition: thumbnail
+concept:: Video
+type:: image
+description:: The episode's cover image, resolved under the owning model's directory.
+
+## NN Field Definition: voice_id
+concept:: Video
+type:: string
+description:: Identifier of the voice that narrates the episode.
 
 ## NN Field Definition: template
 concept:: [Video, Scene, Series, Video Defaults]
@@ -318,22 +352,30 @@ this blueprint.
 
 ### Summary
 
-The root Concept: exactly one Video element per script document, carrying the video `title`.
+The root Concept: exactly one Video element per script document, carrying the video `title` and the
+episode's record — status, script, master, thumbnail and voice.
 
 ### Description
 
-One `## NN Video: <name>` element models one video. Its `slug::` is the stable identity the
-engine uses to name the output. The `title` feeds the derived manifest composition id. A
+One `## NN Video: <name>` element models one episode. Its `slug::` is the stable identity the
+engine uses to name the output. The `title` feeds the derived manifest composition id. The record
+fields — `description`, `status`, `script`, `master`, `thumbnail` and `voice_id` — make the same
+document both the episode's catalogue entry and its script, so an episode is modelled once. A
 second Video element in the same document violates the one-video-per-script constraint.
 
 ### Methodologies
 
 - Keep exactly one Video element; it is the single entry point of the document.
 - Never add ordering, duration, or timing fields to the Video.
+- Point `script`, `master` and `thumbnail` at one file each, resolved under the owning model's
+  directory.
+- Never model a format variant: the vertical and horizontal masters and thumbnails are derived
+  from `master` by the render-formats naming convention.
 
 ### Prompts
 
 - "Create a `Video` named `<title>` for this script."
+- "Set `status` of `<video>` to `published` and point `master` at its rendered file."
 
 ## Scene
 

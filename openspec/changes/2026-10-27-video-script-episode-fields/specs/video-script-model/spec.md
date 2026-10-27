@@ -8,7 +8,7 @@ blueprint's role is absorbed here; derived format variants stay computed, never 
 
 ### Requirement: The Video Concept Carries The Episode Record
 
-The `video-script` blueprint's `Video` concept MUST also declare the episode's catalogue and delivery fields `slug` (string), `description` (markdown_inline), `status` (select of `draft`/`scripting`/`rendering`/`published`/`archived`), `script` (file), `master` (video), `thumbnail` (image) and `voice_id` (string), so that one L3 document of the blueprint is both the episode's record and its script.
+The `video-script` blueprint's `Video` concept MUST also declare the episode's catalogue and delivery fields `description` (markdown_inline), `status` (select of `draft`/`scripting`/`rendering`/`published`/`archived`), `script` (file), `master` (video), `thumbnail` (image) and `voice_id` (string), so that one L3 document of the blueprint is both the episode's record and its script; `slug` is the reserved iNNfo identity property and MUST NOT be redeclared as a Field Definition of this blueprint.
 
 Each file-backed field MUST hold exactly one filename resolved under the owning model's directory, and a `Video` element MUST NOT carry a field for a derived format variant: the vertical and horizontal masters and thumbnails are derived from `master` by the `render-formats.mjs` naming convention and are never stored.
 
