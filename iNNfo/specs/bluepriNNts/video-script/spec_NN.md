@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-5-0"
+blueprint_version: "V_0-6-0"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -39,6 +39,8 @@ validation:
 * [[Video]]
   * [[Scene]]
     * [[Layer]]
+* [[Series]]
+* [[Video Defaults]]
 * [[Template]]
 
 # NN Concept Definition
@@ -71,6 +73,20 @@ type:: list
 color:: green
 weight:: 70
 
+## NN Concept Definition: Series
+slug:: series
+icon:: layers
+type:: list
+color:: teal
+weight:: 60
+
+## NN Concept Definition: Video Defaults
+slug:: video-defaults
+icon:: sliders-horizontal
+type:: list
+color:: gray
+weight:: 50
+
 # NN Field Definition
 
 ## NN Field Definition: tags
@@ -80,37 +96,58 @@ multiple:: true
 description:: Open vocabulary ad-hoc tags and classification labels.
 
 ## NN Field Definition: title
-concept:: Video
+concept:: [Video, Series]
 type:: string
-description:: Human title of the video. The engine derives the manifest compositionId from it.
+description:: Human title of the Video or the Series. The engine derives the manifest compositionId from the Video's title.
 
 ## NN Field Definition: template
-concept:: Video
+concept:: [Video, Scene, Series, Video Defaults]
 type:: reference
 target_concepts:: [Template]
-description:: Optional default Template instance for the whole Video. Every Scene inherits it unless the Scene (or, for avatars, a Layer) declares its own. See the Model Selection Cascade (cli > layer > scene > video > series > workspace > blueprint).
-
-## NN Field Definition: template
-concept:: Scene
-type:: reference
-target_concepts:: [Template]
-description:: Reference to a Template instance (tool, voice, model) shipped by the Series' L3 Template-data document, e.g. [[My Series :: Presenter Full]]. Optional.
+description:: Reference to a Template instance (tool, voice, tts_model) shipped by the Series' L3 Template-data document, e.g. [[My Series :: Presenter Full]]. Settable at Video, Scene, Series and Video Defaults; the most specific level that sets it wins (see the Universal Parameter Cascade). Optional.
 
 ## NN Field Definition: music
-concept:: Scene
+concept:: [Scene, Series, Video Defaults]
 type:: file
 description:: Scene-level background music file. Music is a Scene field and MUST NOT be modeled as a Layer.
 
 ## NN Field Definition: music_volume
-concept:: Scene
+concept:: [Scene, Series, Video Defaults]
 type:: string
-description:: Optional background-music volume for the Scene's `music::` track (a number 0–1, e.g. `0.1`). Defaults to the engine value when absent.
+description:: Background-music volume for the resolved `music::` track (a number 0–1, e.g. `0.1`). Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: transition
-concept:: Scene
+concept:: [Scene, Series, Video Defaults]
 type:: select
 options:: [fade, slide-left, slide-right, wipe, none]
-description:: Transition into the Scene. Optional.
+description:: Transition into the Scene. Resolves through the Universal Parameter Cascade. Optional.
+
+## NN Field Definition: frame
+concept:: [Video, Scene, Series, Video Defaults]
+type:: string
+description:: Name of the frame document (`frames/<name>.md`) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
+
+## NN Field Definition: components
+concept:: [Video, Series, Video Defaults]
+type:: select
+multiple:: true
+description:: Keyed list of slot→component-name bindings (`slot=name`, e.g. `[lower-third=pill]`). Resolves per key through the Universal Parameter Cascade. Engine code names no component.
+
+## NN Field Definition: sounds
+concept:: [Video, Series, Video Defaults]
+type:: select
+multiple:: true
+description:: Keyed list of engine-event→sound-name bindings (`event=name`, e.g. `[scene-boundary=whoosh]`). Resolves per key through the Universal Parameter Cascade. Engine code names no sound.
+
+## NN Field Definition: presenter_asset
+concept:: Series
+type:: file
+description:: Series-level presenter asset reused by its videos. Optional; Series-only, never cascaded.
+
+## NN Field Definition: intro_asset
+concept:: Series
+type:: file
+description:: Series-level intro asset reused by its videos. Optional; Series-only, never cascaded.
 
 ## NN Field Definition: type
 concept:: Layer
@@ -159,6 +196,11 @@ concept:: Layer
 type:: string
 description:: Optional provider model override for a `presenter` Layer (the avatar/lip-sync model id, e.g. `wavespeed-ai/infinitetalk`). Other Layer types ignore it.
 
+## NN Field Definition: avatar_model
+concept:: [Layer, Series, Video Defaults]
+type:: string
+description:: Avatar/lip-sync model id for a `presenter` Layer, or a series/domain default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade.
+
 ## NN Field Definition: avatar_resolution
 concept:: Layer
 type:: select
@@ -166,10 +208,10 @@ options:: [480p, 720p, 768p]
 description:: Optional output resolution for a `presenter` avatar clip. The engine validates it against the model (Pruna accepts 480p/768p; InfiniTalk also 720p) and falls back to a model-appropriate default. Ignored by other Layer types.
 
 ## NN Field Definition: fit
-concept:: Layer
+concept:: [Layer, Series, Video Defaults]
 type:: select
 options:: [cover, contain]
-description:: How a media Layer (background, b-roll) fits its box. `cover` fills and crops; `contain` shows the whole asset with margins. Optional; defaults to `cover`.
+description:: How a media Layer (background, b-roll) fits its box. `cover` fills and crops; `contain` shows the whole asset with margins. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: tool
 concept:: Template
@@ -178,14 +220,24 @@ options:: [wavespeed, replicate]
 description:: Media provider used to synthesize the assets bound to this Template.
 
 ## NN Field Definition: voice
-concept:: Template
+concept:: [Template, Series, Video Defaults]
 type:: string
-description:: Registered voice name or system voice used for TTS synthesis.
+description:: Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade.
 
 ## NN Field Definition: model
 concept:: Template
 type:: string
 description:: Provider model id used for TTS synthesis.
+
+## NN Field Definition: tts_model
+concept:: [Template, Series, Video Defaults]
+type:: string
+description:: Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity.
+
+## NN Field Definition: image_model
+concept:: [Series, Video Defaults]
+type:: string
+description:: Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade.
 
 ## NN Field Definition: speed
 concept:: Template
@@ -224,6 +276,12 @@ and schedule are derived by the engine from synthesized media.
 - **Template** — top-level Concept. Instances live in the Series' L3 Template-data document
   and carry `tool`, `voice`, `model`, and optional `speed`/`emotion` delivery. A Scene
   references one through `template::`.
+- **Series** — a top-level Concept for a real series. The episode's nearest ancestor holding a
+  `series_NN.md` supplies the `series` cascade level, plus `title`, `presenter_asset` and
+  `intro_asset`. An episode outside a series folder has no `series` level.
+- **Video Defaults** — a top-level Concept carrying every cascade parameter's baseline. The
+  package ships one at `defaults/video-defaults_NN.md` (the `blueprint` level); a domain MAY
+  copy it to its root as `video-defaults_NN.md` (the `domain` level).
 
 ## Conditional Fields
 
@@ -353,3 +411,47 @@ the Series' L3 Template-data document, not in the script. A Scene references one
 ### Prompts
 
 - "Set `template::` of `<scene>` to `[[<series> :: <template>]]`."
+
+## Series
+
+### Summary
+
+A real series: the source of the `series` cascade level and of `title`, `presenter_asset` and `intro_asset`.
+
+### Description
+
+The episode's nearest ancestor holding a `series_NN.md` is its series root. That document's
+fields supply the `series` level of the Universal Parameter Cascade; an episode outside a
+series folder (or a marker at the domain root) has no `series` level. A series folder holds at
+most one `series_NN.md`.
+
+### Methodologies
+
+- Keep series-wide values in `series_NN.md`, not copy-pasted into every Scene.
+- Never treat the domain root as a series.
+
+### Prompts
+
+- "Create a `Series` named `<name>` with its default `transition::` and `template::`."
+
+## Video Defaults
+
+### Summary
+
+The `Video Defaults` document: the `blueprint` and `domain` levels of the cascade.
+
+### Description
+
+One `## NN Video Defaults:` element carries every cascade parameter's baseline. The package
+ships one at `defaults/video-defaults_NN.md` (the `blueprint` level). A domain MAY hold one at
+its root as `video-defaults_NN.md` (the `domain` level); when absent the `domain` level is
+skipped. Changing the package instance MUST bump `blueprint_version`.
+
+### Methodologies
+
+- Adopt the domain copy by copying the package document unchanged, then tune the copy.
+- Never hardcode a default in engine code; it lives here.
+
+### Prompts
+
+- "Copy the package `defaults/video-defaults_NN.md` to the domain root and tune it."

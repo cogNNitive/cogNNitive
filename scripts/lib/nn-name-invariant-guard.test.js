@@ -108,6 +108,16 @@ function main() {
   }
   console.log('✔ non-frozen procedures are not carved out');
 
+  // 5b. Blueprint package `defaults/` baseline documents are carved out: they are named
+  //     by the blueprint spec (`video-defaults_NN.md`), not by the `_NN` invariant.
+  {
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md', []), true);
+    const r = run({ 'iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md': doc('video-script') });
+    assert.strictEqual(r.ok, true, r.errors.join('; '));
+    assert.deepStrictEqual(r.carvedOut, ['iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md']);
+  }
+  console.log('✔ blueprint package defaults/ documents are carved out');
+
   // 6. frozen_blueprints is read from the manifest; its folder is carved out.
   {
     // A folder spec carves out its folder; a flat entry carves out only that file (its folder holds live blueprints).

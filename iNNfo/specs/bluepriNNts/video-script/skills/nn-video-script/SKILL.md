@@ -2,7 +2,7 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports clip assembly and thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script, assemble video, concat clips.
-version: "V_0-7-0"
+version: "V_0-8-0"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -47,6 +47,20 @@ The video engine operates headlessly through programmatic modules:
 - **Runtime Provisioner (`scripts/ensure-hyperframes.mjs`)**: Idempotent, consent-gated verification of the pinned HyperFrames CLI (`0.8.192`) and its agent skills.
 - **Render Driver (`scripts/hyperframes-render.mjs`)**: emits the project and renders it via the pinned CLI; HyperFrames is the only renderer.
 - **Video Engine CLI (`scripts/video-engine-cli.mjs`)**: Headless CLI providing `compile`, `render`, and `preview` commands.
+
+## 1b. Domain Setup (adopt the blueprint)
+
+When a domain adopts the `video-script` bluepriNNt, its root carries a Video Defaults document
+(the `domain` cascade level). If `<domain root>/video-defaults_NN.md` is absent, copy the
+package's `defaults/video-defaults_NN.md` there unchanged:
+
+```bash
+cp <bluepriNNt package>/defaults/video-defaults_NN.md <domain root>/video-defaults_NN.md
+```
+
+Domain tuning is an EDIT of that copy (voice, models, `music_volume`, `transition`, `fit`,
+`frame`, `components`, `sounds`). No script creates it; when it is absent the `domain` level is
+simply skipped and the package defaults apply.
 
 ## 2. Scope of This Skill in the Authoring Workflow
 
