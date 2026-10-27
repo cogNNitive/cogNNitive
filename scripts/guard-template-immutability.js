@@ -23,7 +23,8 @@
  *     one-time path migration — it only has to carry a valid `blueprint_version`,
  *     not increment one.
  *   - status D (deleted): always passes (history lives in git tags).
- *   - embedded skills: any A/M/D/R under `<bluepriNNt>/skills/**` requires the
+ *   - embedded skills and package defaults: any A/M/D/R under
+ *     `<bluepriNNt>/skills/**` or `<bluepriNNt>/defaults/**` requires the
  *     owning `<bluepriNNt>/spec_NN.md` to carry a `blueprint_version` strictly
  *     greater than its base version (a base-less owner only needs a valid one),
  *     even when the owner spec itself is unchanged.
@@ -101,19 +102,20 @@ function templateVersionOf(content) {
 function isCanonicalBlueprint(relPath) {
   const p = relPath.replace(/\\/g, '/');
   if (!/\.md$/i.test(p)) return false;
-  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/') || p.includes('/skills/')) return false;
+  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/') || p.includes('/skills/') || p.includes('/defaults/')) return false;
   const base = path.basename(p);
   // Level-2 template specs: `spec_NN.md`, `<name>_spec_NN.md`, `<name>_NN.md`.
   return /^(spec_NN|.*_spec_NN|.*_NN)\.md$/i.test(base);
 }
 
 /**
- * Owning spec of a file embedded under `<...>/bluepriNNts/<bp>/skills/...`, or null.
- * Anchored on the FIRST `bluepriNNts/<bp>/skills/` segment (lazy prefix), so a nested lookalike
- * path cannot redirect the owner. Pure path mapping: `.../bluepriNNts/video/skills/x/SKILL.md` -> `.../bluepriNNts/video/spec_NN.md`.
+ * Owning spec of a file embedded under `<...>/bluepriNNts/<bp>/(skills|defaults)/...`, or null.
+ * Anchored on the FIRST `bluepriNNts/<bp>/` segment (lazy prefix), so a nested lookalike
+ * path cannot redirect the owner. Pure path mapping: `.../bluepriNNts/video/skills/x/SKILL.md` and
+ * `.../bluepriNNts/video/defaults/video-defaults_NN.md` both -> `.../bluepriNNts/video/spec_NN.md`.
  */
 function ownerSpecOf(relPath) {
-  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/skills\/.+/);
+  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults)\/.+/);
   return m ? `${m[1]}${m[2]}/spec_NN.md` : null;
 }
 
