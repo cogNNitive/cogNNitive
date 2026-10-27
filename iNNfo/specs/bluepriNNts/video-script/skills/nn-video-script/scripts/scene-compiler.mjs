@@ -64,23 +64,24 @@ import { resolve } from './lib/cascade.mjs';
  */
 
 /**
- * `type::` → renderer binding (design table). `kind` says whether the Layer is a
- * drawable scene layer or an ephemeral overlay; `manifest` is the emitted kind.
+ * `type::` → manifest binding. `kind` says whether the Layer is a drawable
+ * scene layer, an ephemeral overlay, or an authored animation; `manifest` is the
+ * emitted kind.
  */
 export const TYPE_RENDERERS = {
-  presenter: { kind: 'layer', renderer: 'AvatarFrame', manifest: 'talking_avatar' },
-  background: { kind: 'layer', renderer: 'layer-primitive', manifest: 'background' },
-  'b-roll': { kind: 'overlay', renderer: 'Broll', manifest: 'broll' },
-  title: { kind: 'overlay', renderer: 'KineticTitle', manifest: 'kineticTitle' },
-  'lower-third': { kind: 'overlay', renderer: 'LowerThird', manifest: 'lowerThird' },
-  caption: { kind: 'overlay', renderer: 'Captions', manifest: 'captions' },
-  brand: { kind: 'layer', renderer: 'layer-primitive', manifest: 'image' },
-  quote: { kind: 'overlay', renderer: 'Quote', manifest: 'quote' },
-  watermark: { kind: 'overlay', renderer: 'Watermark', manifest: 'watermark' },
+  presenter: { kind: 'layer', manifest: 'talking_avatar' },
+  background: { kind: 'layer', manifest: 'background' },
+  'b-roll': { kind: 'overlay', manifest: 'broll' },
+  title: { kind: 'overlay', manifest: 'kineticTitle' },
+  'lower-third': { kind: 'overlay', manifest: 'lowerThird' },
+  caption: { kind: 'overlay', manifest: 'captions' },
+  brand: { kind: 'layer', manifest: 'image' },
+  quote: { kind: 'overlay', manifest: 'quote' },
+  watermark: { kind: 'overlay', manifest: 'watermark' },
   // An authored HyperFrames project mounted as a ROOT sub-composition (design
   // D7): `kind: 'animation'` keeps it out of both the drawable-layer path
   // (staged as media) and the overlay path; the pre-pass and the emitter own it.
-  animation: { kind: 'animation', renderer: 'AuthoredProject', manifest: 'animation' },
+  animation: { kind: 'animation', manifest: 'animation' },
 };
 
 /**
@@ -480,7 +481,6 @@ export class SceneCompiler {
       exitAnimation,
       config: {
         title: props.title || '',
-        subtitle: props.subtitle || '',
         position: props.position || 'bottom-left',
       },
     };
@@ -511,8 +511,6 @@ export class SceneCompiler {
       exitAnimation,
       config: {
         heading: props.heading || '',
-        subheading: props.subheading || '',
-        theme: 'dark',
         anchor: props.position || 'center',
       },
     };
@@ -528,9 +526,6 @@ export class SceneCompiler {
       exitAnimation,
       config: {
         text: props.text || narration || '',
-        style: 'tiktok',
-        size: 80,
-        highlight: '#39E508',
       },
     };
   }
@@ -631,17 +626,13 @@ export class SceneCompiler {
         sourceDir: a.sourceDir,
       }));
 
-      // 2. Scene type from declared layer kinds (no invented scene_type field).
-      let sceneType = 'image_motion';
-      if (sc.layers.some((l) => l.type === 'title')) sceneType = 'kinetic_text';
-
-      // 3. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
+      // 2. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
       let transition;
       if (sc.transition && sc.transition !== 'none') {
-        transition = { type: sc.transition, durationInFrames: Math.round(fps * 0.5), easing: 'bezier(0.16,1,0.3,1)' };
+        transition = { type: sc.transition, durationInFrames: Math.round(fps * 0.5) };
       }
 
-      // 4. Drawable layers (scene background / avatar / brand).
+      // 3. Drawable layers (scene background / avatar / brand).
       const drawable = sc.layers
         .filter((l) => l.kind === 'layer')
         .map((l) => ({ name: l.name, ...l.properties, effects: l.effects || [] }));
@@ -655,7 +646,6 @@ export class SceneCompiler {
 
       sceneTracks.push({
         id: sceneId,
-        sceneType,
         fromFrame,
         durationInFrames,
         props: sceneProps,

@@ -143,7 +143,6 @@ async function runTests() {
     assert.deepStrictEqual(manifest.tracks.scenes[0].transition, {
       type: 'slide-left',
       durationInFrames: 15,
-      easing: 'bezier(0.16,1,0.3,1)',
     });
     console.log('✔ transition:: is carried into the scene track');
   }

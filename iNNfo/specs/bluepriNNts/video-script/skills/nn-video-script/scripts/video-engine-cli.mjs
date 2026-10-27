@@ -858,12 +858,6 @@ function cliReporter(e) {
     case 'media-done':
       console.log(`🖼️ Media ${tag(e.done, e.total)} escena ${e.scene} con ${e.model} — ${e.fromCache ? 'cache' : 'generado'} ${money(e.itemCostUsd)} (acumulado ${money(e.spentUsd)})`);
       break;
-    case 'bundle-start':
-      console.log('📦 Bundleando composición Remotion...');
-      break;
-    case 'bundle-done':
-      console.log('📦 Bundle listo, resolviendo composición...');
-      break;
     case 'render-start':
       console.log(`🎬 Renderizando${e.frames ? ` ${e.frames} frames` : ''}...`);
       break;
