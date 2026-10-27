@@ -37,8 +37,7 @@ test('resolveInstalledCli returns null when node_modules carries no CLI', () => 
   assert.equal(resolveInstalledCli(), null);
 });
 
-test('the provisioner never references npx or Remotion', () => {
+test('the provisioner never shells out to a package runner', () => {
   const src = fs.readFileSync(SCRIPT, 'utf8');
   assert.ok(!/\bnpx\b/.test(src), 'the provisioner must not shell out to npx');
-  assert.ok(!/@remotion/.test(src), 'the provisioner must not reference Remotion');
 });

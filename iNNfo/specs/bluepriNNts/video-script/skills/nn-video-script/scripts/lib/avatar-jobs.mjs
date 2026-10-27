@@ -10,7 +10,7 @@
  * image. A cached clip is applied by rewriting the layer to `layer_type: video`,
  * `layer_asset_source: <cached mp4>` and `layer_muted: true` (the narration Audio track is
  * bound separately, so the clip's own audio would echo it). compile stages the mp4 into the
- * Remotion public dir like any other media layer.
+ * project public dir like any other media layer.
  *
  * Zero external dependencies. ESM module.
  */

@@ -3,15 +3,13 @@
 /**
  * nn-video-script/scripts/video-engine-cli.mjs
  *
- * Headless CLI and programmatic engine for Remotion compilation, rendering,
- * and preview server initialization.
+ * Headless CLI and programmatic engine for video compilation and rendering.
  *
  * Commands:
  *   compile <script.md> [--output <manifest.json>] [--fps <n>] [--cache-dir <dir>]
  *           [--dry-run] [--allow-model <name>]... [--approval <approved.json>]
  *           [--image-model <m>] [--tts-model <m>] [--avatar-model <m>]
  *   render  <script.md|manifest.json> --output <master.mp4> [--fps <n>] [--concurrency <n>]
- *   preview <script.md|manifest.json> [--port <3000>]
  *
  * Zero external mandatory runtime dependencies for compilation. ESM module.
  */
@@ -20,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { RemotionSceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './remotion-scene-compiler.mjs';
+import { SceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './scene-compiler.mjs';
 import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
@@ -251,8 +249,8 @@ export async function resolveSounds({ manifest, files, scriptDir, publicDir, pro
 }
 
 /**
- * Resolves a media source against the script directory and stages it into a
- * Remotion-served public directory, returning the bundle-relative name. The name
+ * Resolves a media source against the script directory and stages it into the
+ * project's public directory, returning the bundle-relative name. The name
  * is `<basename>_<sha256-prefix><ext>` so two sources that share a basename (an
  * in-dir `assets/x.mp4` and an out-of-dir `../shared/x.mp4`) never collide, and
  * the same source referenced twice stages once.
@@ -289,7 +287,7 @@ export function stageAsset(src, scriptDir, publicDir) {
  * Sources are resolved against `scriptDir` — NOT the current working directory —
  * so both in-dir (`assets/…`) and out-of-dir (`../shared/…`) paths resolve.
  * A referenced source that cannot be resolved is collected into `missing`; the
- * caller decides how to fail. Pure filesystem work: imports no Remotion module,
+ * caller decides how to fail. Pure filesystem work: imports no renderer module,
  * so it is the test seam.
  *
  * @param {object} manifest
@@ -371,12 +369,11 @@ export function resolveMediaLayers(manifest, opts) {
  * @property {number} [concurrency=4]
  * @property {number} [quality=80]
  * @property {string} [cacheDir]
- * @property {boolean} [allowMock=false] Write a mock MP4 when Remotion is unavailable.
+ * @property {boolean} [allowMock=false] Write a mock MP4 when the renderer is unavailable.
  * @property {string[]} [allowModels] See VideoCompileOptions (used when rendering from a script).
  * @property {string} [approvalPath] See VideoCompileOptions.
  * @property {{ image?: string, tts?: string, avatar?: string }} [models] See VideoCompileOptions.
- * @property {(id: string) => Promise<object|null>} [loadModule] Remotion module loader seam.
- * @property {(e: object) => void} [onProgress] See VideoCompileOptions (also covers bundle/render phases).
+ * @property {(e: object) => void} [onProgress] See VideoCompileOptions (also covers render phases).
  */
 
 /**
@@ -478,12 +475,12 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
 }
 
 /**
- * Compiles a video script into a Remotion Composition Manifest, synthesizing and caching
+ * Compiles a video script into a Composition Manifest, synthesizing and caching
  * TTS/media assets. Billable work is planned first (no spend, no writes) and the WHOLE run
  * is refused before the first charge when it is unapproved, uses a blocked model, or would
  * pass the per-run or 24h cap. With `dryRun` it only returns that plan.
  * @param {VideoCompileOptions} options
- * @returns {Promise<{ manifest: import('./remotion-scene-compiler.mjs').RemotionCompositionManifest | null, cachedAssetsUsed: number, newAssetsSynthesized: number, dryRun?: boolean, plan?: any }>}
+ * @returns {Promise<{ manifest: import('./scene-compiler.mjs').CompositionManifest | null, cachedAssetsUsed: number, newAssetsSynthesized: number, dryRun?: boolean, plan?: any }>}
  */
 export async function compileVideo(options) {
   const scriptPath = path.resolve(options.scriptPath);
@@ -510,7 +507,7 @@ export async function compileVideo(options) {
   const makeGuard = (dryRun) =>
     new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: checkNow });
 
-  const compiler = new RemotionSceneCompiler({
+  const compiler = new SceneCompiler({
     fps: options.fps,
     width: options.width,
     height: options.height,
@@ -654,7 +651,7 @@ export async function compileVideo(options) {
     scriptSource: scriptPath,
   });
 
-  // Stage every media reference (layers + audio) into a Remotion-served public
+  // Stage every media reference (layers + audio) into a project public
   // dir next to the script, and rewrite the manifest to bundle-relative names.
   // Sources resolve against the script dir, not the cwd, so in-dir (`assets/…`)
   // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud
@@ -825,22 +822,6 @@ function writeMockMp4(outputPath) {
 }
 
 /**
- * Previews a video composition in Remotion Web Studio / preview server.
- * @param {Object} options
- * @param {string} [options.scriptPath]
- * @param {string} [options.manifestPath]
- * @param {number} [options.port=3000]
- */
-export async function previewVideo(options) {
-  const port = options.port || 3000;
-  console.log(`🎬 [video-engine-cli] Starting HyperFrames Studio preview on port ${port}...`);
-  return {
-    previewUrl: `http://localhost:${port}`,
-    port,
-  };
-}
-
-/**
  * Human progress reporter: plan totals + model + estimated cost first, then one
  * `[i/N]` line per asset with its cost and the accumulated spend.
  * @param {object} e Progress event (see `onProgress` in VideoCompileOptions).
@@ -857,12 +838,6 @@ function cliReporter(e) {
       break;
     case 'media-done':
       console.log(`🖼️ Media ${tag(e.done, e.total)} escena ${e.scene} con ${e.model} — ${e.fromCache ? 'cache' : 'generado'} ${money(e.itemCostUsd)} (acumulado ${money(e.spentUsd)})`);
-      break;
-    case 'bundle-start':
-      console.log('📦 Bundleando composición Remotion...');
-      break;
-    case 'bundle-done':
-      console.log('📦 Bundle listo, resolviendo composición...');
       break;
     case 'render-start':
       console.log(`🎬 Renderizando${e.frames ? ` ${e.frames} frames` : ''}...`);
@@ -897,7 +872,7 @@ function printDryRun(result) {
 const FLAG_SPEC = {
   boolean: ['dry-run', 'allow-mock'],
   value: [
-    'output', 'out', 'script', 'manifest', 'fps', 'width', 'height', 'format', 'concurrency', 'port',
+    'output', 'out', 'script', 'manifest', 'fps', 'width', 'height', 'format', 'concurrency',
     'cache-dir', 'approval', 'image-model', 'tts-model', 'avatar-model',
   ],
   repeatable: ['allow-model'],
@@ -923,14 +898,13 @@ export function resolveFormatSize(flags) {
 }
 
 const USAGE = [
-  'Usage: node video-engine-cli.mjs <compile|render|preview> [options]',
+  'Usage: node video-engine-cli.mjs <compile|render> [options]',
   '  compile <script.md> [--output manifest.json] [--fps n] [--width n] [--height n] [--format 16:9|9:16|1:1] [--cache-dir dir]',
   '          [--dry-run] [--approval approved.json] [--allow-model name]...',
   '          [--image-model id] [--tts-model id] [--avatar-model id]',
   '  render  <script.md|manifest.json> --output master.mp4 [--fps n] [--width n] [--height n] [--format 16:9|9:16|1:1] [--concurrency n] [--cache-dir dir]',
   '          [--allow-mock] [--approval approved.json] [--allow-model name]... [--image-model id] [--tts-model id] [--avatar-model id]',
   '          [-- <hyperframes render flags>]   e.g. -- --workers 2 --low-memory-mode (forwarded verbatim)',
-  '  preview <script.md|manifest.json> [--port n]',
   '  --dry-run (compile only): list uncached billable work and the estimated total; spends and writes nothing.',
   '  --approval: approved plan (default <script dir>/asset_plan.approved.json); --allow-model unlocks a blocked',
   '  model only if a human recorded it in that approval. Values may also be given as --flag=value.',
@@ -968,7 +942,7 @@ async function main() {
   }
 
   if (args['dry-run'] && command !== 'compile') {
-    console.error(`❌ [video-engine-cli] --dry-run is only supported by compile (render and preview would execute).`);
+    console.error(`❌ [video-engine-cli] --dry-run is only supported by compile (render would execute).`);
     process.exit(1);
   }
 
@@ -1033,16 +1007,8 @@ async function main() {
       });
       console.log(`✅ [video-engine-cli] Rendered ${result.outputVideoPath}`);
       console.log(`   Duration: ${result.totalDurationSeconds}s (${result.totalFrames} frames) in ${result.renderTimeMs}ms, Spent: $${result.spentUsd.toFixed(4)}`);
-    } else if (command === 'preview') {
-      const target = args._[1];
-      const result = await previewVideo({
-        scriptPath: target?.endsWith('.md') ? target : undefined,
-        manifestPath: target?.endsWith('.json') ? target : undefined,
-        port: args.port ? Number(args.port) : 3000,
-      });
-      console.log(`✅ [video-engine-cli] Preview server ready at ${result.previewUrl}`);
     } else {
-      console.error(`Unknown command: ${command}`);
+      console.error(`Unknown command: ${command}\n${USAGE}`);
       process.exit(1);
     }
   } catch (err) {

@@ -1,7 +1,7 @@
 /**
  * nn-video-script/scripts/lib/faststart.mjs
  *
- * WaveSpeed MP4 outputs carry the moov atom at the end, which breaks the Remotion proxy.
+ * WaveSpeed MP4 outputs carry the moov atom at the end, which breaks the HyperFrames proxy.
  * When ffmpeg is on PATH this remuxes with `-c copy -movflags +faststart` (no re-encode),
  * through an ASYNC spawn with a timeout so it never blocks polling workers. If ffmpeg is
  * missing, times out or fails, the raw (already billed) clip is kept, a clear warning is
@@ -67,7 +67,7 @@ export async function applyFaststart(buffer, { run, warn = (m) => console.warn(m
     fs.writeFileSync(input, buffer);
     const result = await exec(['-y', '-v', 'error', '-i', input, '-c', 'copy', '-movflags', '+faststart', output]);
     if (result?.error?.code === 'ENOENT') {
-      warn('ffmpeg was not found on PATH: keeping the raw clip, which may not play in the Remotion proxy (moov atom at the end). Install ffmpeg; compile will retry.');
+      warn('ffmpeg was not found on PATH: keeping the raw clip, which may not play in the HyperFrames proxy (moov atom at the end). Install ffmpeg; compile will retry.');
       return { buffer, applied: false };
     }
     if (result?.error || result?.status !== 0 || !fs.existsSync(output)) {

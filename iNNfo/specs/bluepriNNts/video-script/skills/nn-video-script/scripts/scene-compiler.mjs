@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * nn-video-script/scripts/remotion-scene-compiler.mjs
+ * nn-video-script/scripts/scene-compiler.mjs
  *
- * Lowers the structured iNNfo video-script model into a typed Remotion
+ * Lowers the structured iNNfo video-script model into a typed
  * Composition Manifest. The model comes from innfo-core `read_knowledge` (or the
  * equivalent structural reader in `lib/knowledge-model.mjs`); this module NEVER
  * parses script markdown and NEVER invokes a bespoke script parser.
@@ -40,23 +40,48 @@ import { resolve } from './lib/cascade.mjs';
  */
 
 /**
- * `type::` → renderer binding (design table). `kind` says whether the Layer is a
- * drawable scene layer or an ephemeral overlay; `manifest` is the emitted kind.
+ * @typedef {Object} SceneTrack
+ * @property {string} id
+ * @property {number} fromFrame
+ * @property {number} durationInFrames
+ * @property {object} props
+ * @property {{ type: string, durationInFrames: number }} [transition]
+ * @property {Array<object>} [animations]
+ * @property {number} [narrationDurationInFrames]
+ */
+
+/**
+ * @typedef {Object} CompositionManifest
+ * @property {string} version
+ * @property {string} compositionId
+ * @property {number} fps
+ * @property {number} width
+ * @property {number} height
+ * @property {number} totalDurationInFrames
+ * @property {number} totalDurationInSeconds
+ * @property {{ scenes: SceneTrack[], audio: Array<object>, overlays: Array<object> }} tracks
+ * @property {object} metadata
+ */
+
+/**
+ * `type::` → manifest binding. `kind` says whether the Layer is a drawable
+ * scene layer, an ephemeral overlay, or an authored animation; `manifest` is the
+ * emitted kind.
  */
 export const TYPE_RENDERERS = {
-  presenter: { kind: 'layer', renderer: 'AvatarFrame', manifest: 'talking_avatar' },
-  background: { kind: 'layer', renderer: 'layer-primitive', manifest: 'background' },
-  'b-roll': { kind: 'overlay', renderer: 'Broll', manifest: 'broll' },
-  title: { kind: 'overlay', renderer: 'KineticTitle', manifest: 'kineticTitle' },
-  'lower-third': { kind: 'overlay', renderer: 'LowerThird', manifest: 'lowerThird' },
-  caption: { kind: 'overlay', renderer: 'Captions', manifest: 'captions' },
-  brand: { kind: 'layer', renderer: 'layer-primitive', manifest: 'image' },
-  quote: { kind: 'overlay', renderer: 'Quote', manifest: 'quote' },
-  watermark: { kind: 'overlay', renderer: 'Watermark', manifest: 'watermark' },
+  presenter: { kind: 'layer', manifest: 'talking_avatar' },
+  background: { kind: 'layer', manifest: 'background' },
+  'b-roll': { kind: 'overlay', manifest: 'broll' },
+  title: { kind: 'overlay', manifest: 'kineticTitle' },
+  'lower-third': { kind: 'overlay', manifest: 'lowerThird' },
+  caption: { kind: 'overlay', manifest: 'captions' },
+  brand: { kind: 'layer', manifest: 'image' },
+  quote: { kind: 'overlay', manifest: 'quote' },
+  watermark: { kind: 'overlay', manifest: 'watermark' },
   // An authored HyperFrames project mounted as a ROOT sub-composition (design
   // D7): `kind: 'animation'` keeps it out of both the drawable-layer path
   // (staged as media) and the overlay path; the pre-pass and the emitter own it.
-  animation: { kind: 'animation', renderer: 'AuthoredProject', manifest: 'animation' },
+  animation: { kind: 'animation', manifest: 'animation' },
 };
 
 /**
@@ -239,7 +264,7 @@ export function assignLayersToScenes(sceneElements, layerElements) {
   return buckets;
 }
 
-export class RemotionSceneCompiler {
+export class SceneCompiler {
   /**
    * @param {Object} [options]
    * @param {number} [options.fps=30]
@@ -261,7 +286,7 @@ export class RemotionSceneCompiler {
   /** Records a non-fatal warning and keeps it for inspection by callers/tests. */
   warn(message) {
     this.warnings.push(message);
-    console.warn(`[remotion-scene-compiler] ${message}`);
+    console.warn(`[scene-compiler] ${message}`);
   }
 
   /**
@@ -456,7 +481,6 @@ export class RemotionSceneCompiler {
       exitAnimation,
       config: {
         title: props.title || '',
-        subtitle: props.subtitle || '',
         position: props.position || 'bottom-left',
       },
     };
@@ -487,8 +511,6 @@ export class RemotionSceneCompiler {
       exitAnimation,
       config: {
         heading: props.heading || '',
-        subheading: props.subheading || '',
-        theme: 'dark',
         anchor: props.position || 'center',
       },
     };
@@ -504,9 +526,6 @@ export class RemotionSceneCompiler {
       exitAnimation,
       config: {
         text: props.text || narration || '',
-        style: 'tiktok',
-        size: 80,
-        highlight: '#39E508',
       },
     };
   }
@@ -537,7 +556,7 @@ export class RemotionSceneCompiler {
 
   /**
    * Compiles a structured iNNfo model (or an already-lowered `{ scenes[] }`
-   * object) into a RemotionCompositionManifest. A raw markdown string is
+   * object) into a CompositionManifest. A raw markdown string is
    * rejected: the compiler never re-parses script markdown.
    * @param {object | string} input Structured model or lowered object
    * @param {Object} [options]
@@ -545,7 +564,7 @@ export class RemotionSceneCompiler {
     * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
     * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
    * @param {string} [options.scriptSource="script.model"]
-   * @returns {object} RemotionCompositionManifest
+   * @returns {CompositionManifest}
    */
   compile(input, options = {}) {
     const scriptSource = options.scriptSource || 'script.model';
@@ -607,17 +626,13 @@ export class RemotionSceneCompiler {
         sourceDir: a.sourceDir,
       }));
 
-      // 2. Scene type from declared layer kinds (no invented scene_type field).
-      let sceneType = 'image_motion';
-      if (sc.layers.some((l) => l.type === 'title')) sceneType = 'kinetic_text';
-
-      // 3. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
+      // 2. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
       let transition;
       if (sc.transition && sc.transition !== 'none') {
-        transition = { type: sc.transition, durationInFrames: Math.round(fps * 0.5), easing: 'bezier(0.16,1,0.3,1)' };
+        transition = { type: sc.transition, durationInFrames: Math.round(fps * 0.5) };
       }
 
-      // 4. Drawable layers (scene background / avatar / brand).
+      // 3. Drawable layers (scene background / avatar / brand).
       const drawable = sc.layers
         .filter((l) => l.kind === 'layer')
         .map((l) => ({ name: l.name, ...l.properties, effects: l.effects || [] }));
@@ -631,7 +646,6 @@ export class RemotionSceneCompiler {
 
       sceneTracks.push({
         id: sceneId,
-        sceneType,
         fromFrame,
         durationInFrames,
         props: sceneProps,
@@ -762,7 +776,7 @@ export class RemotionSceneCompiler {
 async function main() {
   const target = process.argv[2];
   if (!target) {
-    console.error('Usage: node remotion-scene-compiler.mjs <model.json|script_NN.md> [--out <manifest.json>]');
+    console.error('Usage: node scene-compiler.mjs <model.json|script_NN.md> [--out <manifest.json>]');
     process.exit(1);
   }
   const outIdx = process.argv.indexOf('--out');
@@ -773,17 +787,17 @@ async function main() {
     const resolved = path.resolve(target);
     const model = loadKnowledgeModel(resolved);
     const templates = loadTemplateModels(path.dirname(resolved));
-    const compiler = new RemotionSceneCompiler();
+    const compiler = new SceneCompiler();
     const manifest = compiler.compile(model, { templates, scriptSource: target });
     const jsonStr = JSON.stringify(manifest, null, 2);
     if (outPath) {
       fs.writeFileSync(path.resolve(outPath), jsonStr, 'utf8');
-      console.log(`✅ [remotion-scene-compiler] Manifest written to ${outPath}`);
+      console.log(`✅ [scene-compiler] Manifest written to ${outPath}`);
     } else {
       console.log(jsonStr);
     }
   } catch (err) {
-    console.error(`❌ [remotion-scene-compiler] ${err.message}`);
+    console.error(`❌ [scene-compiler] ${err.message}`);
     process.exit(1);
   }
 }

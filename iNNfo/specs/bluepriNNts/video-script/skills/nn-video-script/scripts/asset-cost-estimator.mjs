@@ -12,7 +12,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
+import { SceneCompiler, ScriptValidationError } from './scene-compiler.mjs';
 import { loadKnowledgeModel, loadTemplateModels, parseKnowledgeDocument } from './lib/knowledge-model.mjs';
 import { fileURLToPath } from 'node:url';
 import { computePlanHash, formatStamp } from './lib/plan-approval.mjs';
@@ -261,7 +261,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
     scriptContent = fs.readFileSync(scriptContentOrPath, 'utf8');
   }
 
-  const compiler = new RemotionSceneCompiler(options);
+  const compiler = new SceneCompiler(options);
   const model = isPath ? loadKnowledgeModel(scriptContentOrPath) : parseKnowledgeDocument(String(scriptContent));
   const guard = compiler.checkScript(model, options);
   if (!guard.ok) throw new ScriptValidationError(guard.errors);

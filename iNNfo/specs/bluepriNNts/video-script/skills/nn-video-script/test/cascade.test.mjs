@@ -18,7 +18,7 @@ import {
   findBlueprintPackage,
   BlueprintPackageNotFoundError,
 } from '../scripts/lib/cascade.mjs';
-import { RemotionSceneCompiler } from '../scripts/remotion-scene-compiler.mjs';
+import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 
 function tmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'nn-cascade-'));
@@ -170,7 +170,7 @@ test('lowerKnowledgeModel resolves template, music, music_volume, transition and
   const bags = {
     series: { template: '[[Series :: Full]]', transition: 'fade', music: 'loop.m4a', music_volume: '0.4', fit: 'contain' },
   };
-  const lowered = new RemotionSceneCompiler().lowerKnowledgeModel(model, { templates, bags });
+  const lowered = new SceneCompiler().lowerKnowledgeModel(model, { templates, bags });
   const sc = lowered.scenes[0];
   assert.equal(sc.resolvedTemplate.name, 'Full');
   assert.equal(sc.transition, 'fade');
@@ -190,7 +190,7 @@ test('a domain-level value overrides the blueprint and loses to a scene value', 
     },
   });
   const bags = { domain: { transition: 'wipe' }, blueprint: { transition: 'none' } };
-  const compiler = new RemotionSceneCompiler();
+  const compiler = new SceneCompiler();
   assert.equal(compiler.lowerKnowledgeModel(model({}), { bags }).scenes[0].transition, 'wipe');
   assert.equal(compiler.lowerKnowledgeModel(model({ transition: 'slide-left' }), { bags }).scenes[0].transition, 'slide-left');
 });

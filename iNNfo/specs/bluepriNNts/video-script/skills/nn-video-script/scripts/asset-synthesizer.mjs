@@ -741,13 +741,13 @@ export class AssetSynthesizer {
           ✦ SYNTHESIZED SCENE LAYER • 1920x1080 HD BITMAP • CONTENT-DERIVED CACHE ✦
         </text>
         <text x="960" y="680" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" fill="#94a3b8" text-anchor="middle">
-          Layer Asset Source: layers/ • Optimized for Remotion Compositing &amp; FFmpeg H.264
+          Layer Asset Source: layers/ • Optimized for HyperFrames Compositing &amp; FFmpeg H.264
         </text>
       </g>
 
       <!-- Bottom Watermark -->
       <text x="960" y="1000" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="500" fill="#64748b" text-anchor="middle">
-        cogNNitive Video • WaveSpeed &amp; Remotion Unified Pipeline
+        cogNNitive Video • WaveSpeed &amp; HyperFrames Unified Pipeline
       </text>
     </svg>`;
 

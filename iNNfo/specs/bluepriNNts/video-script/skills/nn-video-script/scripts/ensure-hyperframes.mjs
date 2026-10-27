@@ -7,7 +7,7 @@
  * dependency of this skill and is installed by the skills manager
  * (`skills-manager.js update video-script`); this script only VERIFIES that the
  * pinned version resolves from `<skill>/node_modules`. It never installs and never
- * shells out to a package runner. No Remotion.
+ * shells out to a package runner.
  *
  *   node ensure-hyperframes.mjs [--check]
  *

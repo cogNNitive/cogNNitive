@@ -13,12 +13,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { RemotionSceneCompiler } from '../scripts/remotion-scene-compiler.mjs';
+import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 import { loadTemplateModels } from '../scripts/lib/knowledge-model.mjs';
 import { buildTtsVoiceOptions } from '../scripts/lib/tts-options.mjs';
 import { CacheManager } from '../scripts/cache-manager.mjs';
 
-const compiler = new RemotionSceneCompiler({ fps: 30, width: 1920, height: 1080 });
+const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
 
 /**
  * A script directory nested deep enough that `loadTemplateModels`' four-level
