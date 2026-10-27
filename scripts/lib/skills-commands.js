@@ -1337,7 +1337,7 @@ async function cmdInstallBlueprint(args) {
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string, catalogPath?: string, repo?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString();
@@ -1393,7 +1393,49 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     selectedMcp = (mcp || []).filter(m => (args.positional.includes(m.name) || args.positional.includes('mcp')) && isOutdatedMcp(m));
   }
 
-  if (selectedSkills.length === 0 && selectedBlueprints.length === 0 && selectedConsole.length === 0 && selectedMcp.length === 0) {
+  // Installed catalog bluepriNNts (not in the manifest) whose recorded commit
+  // differs from the catalog release_tag. An unreleased/unknown entry is skipped.
+  let catalog = null;
+  try {
+    catalog = await loadBlueprintCatalog(args.catalogPath);
+  } catch (_) {
+    catalog = null;
+  }
+  const manifestNames = new Set(blueprints.map((t) => t.name));
+  const selectedCatalog = [];
+  for (const [name, entry] of Object.entries(state.blueprints || {})) {
+    if (manifestNames.has(name)) continue;
+    if (args.positional.length > 0 && !args.positional.includes(name)) continue;
+    const catalogEntry = findCatalogEntry(catalog, name);
+    if (!catalogEntry || !catalogEntry.release_tag) continue;
+    if (entry && entry.commit === catalogEntry.release_tag) continue;
+    selectedCatalog.push({ name, catalogEntry });
+  }
+
+  // Locally modified skills: name the differing files for the consent prompt.
+  const modifiedSkills = selectedSkills
+    .map((skill) => {
+      const entry = state.skills[skill.name];
+      const dir = path.join(args.skillsDir, skill.name);
+      if (!entry || !entry.files || !fs.existsSync(dir)) return null;
+      let diff;
+      try {
+        diff = diffSkillDir(dir, entry.files);
+      } catch (_) {
+        diff = null;
+      }
+      if (!diff || !diff.modified) return null;
+      return { name: skill.name, files: [...diff.changed, ...diff.added, ...diff.removed] };
+    })
+    .filter(Boolean);
+
+  if (
+    selectedSkills.length === 0 &&
+    selectedBlueprints.length === 0 &&
+    selectedConsole.length === 0 &&
+    selectedMcp.length === 0 &&
+    selectedCatalog.length === 0
+  ) {
     console.log('All skills, templates, and console assets up to date.');
     projectSkillsToAgents({
       canonicalSkillsDir: args.skillsDir,
@@ -1411,20 +1453,44 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     ...selectedBlueprints.map(t => `template:${t.name}`),
     ...selectedConsole.map(a => `console:${path.basename(a.file || a.url)}`),
     ...selectedMcp.map(m => `mcp:${m.name}`),
+    ...selectedCatalog.map(c => `catalog:${c.name}`),
   ];
+
+  const modifiedMenu =
+    modifiedSkills.length > 0
+      ? `\nLocally modified (overwritten only with consent):\n` +
+        modifiedSkills.map((m) => `  - ${m.name}: ${m.files.join(', ')}`).join('\n') +
+        '\n'
+      : '';
 
   const proceed = await consentOrAbort(
     'update skills, templates, console assets, and MCP servers',
     names,
-    `Updating ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), and ${selectedMcp.length} MCP server(s).\n\n[a] Update all listed (Recommended)\n[b] Skip\n`,
+    `Updating ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), ${selectedMcp.length} MCP server(s), and ${selectedCatalog.length} catalog blueprint(s).\n` +
+      modifiedMenu +
+      `\n[a] Update all listed (Recommended)\n[b] Skip\n`,
     args.yes
   );
   if (!proceed) return;
 
+  // A locally modified skill is overwritten only with explicit consent that names
+  // the modified files; declining leaves that skill untouched.
+  const skipSkills = new Set();
+  for (const m of modifiedSkills) {
+    const ok = await consentOrAbort(
+      `overwrite modified skill ${m.name}`,
+      [`skill:${m.name}`],
+      `Skill ${m.name} was edited by hand (version unchanged):\n  ${m.files.join('\n  ')}\n\nOverwrite with the catalog copy?\n\n[a] Overwrite\n[b] Keep my changes\n`,
+      args.yes
+    );
+    if (!ok) skipSkills.add(m.name);
+  }
+  const skillsToUpdate = selectedSkills.filter((s) => !skipSkills.has(s.name));
+
   let failures = 0;
   const embeddedSkillNames = [];
 
-  for (const skill of selectedSkills) {
+  for (const skill of skillsToUpdate) {
     try {
       await installSkillAtCommit(skill, args.skillsDir, state);
       console.log(`  updated skill ${skill.name} -> ${skill.version} (${skill.commit.slice(0, 7)})`);
@@ -1442,6 +1508,26 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
       failures++;
       if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
       console.error(`  FAIL template ${template.name}: ${err.message}`);
+    }
+  }
+
+  for (const { name, catalogEntry } of selectedCatalog) {
+    const entryName = catalogEntry.name || name;
+    const template = {
+      name: entryName,
+      repo: args.repo || DEFAULT_BLUEPRINT_REPO,
+      path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
+      version: catalogEntry.adopted,
+      ref: catalogEntry.release_tag,
+      commit: catalogEntry.release_tag,
+    };
+    try {
+      embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
+      console.log(`  updated catalog blueprint ${name} -> ${catalogEntry.adopted} (${catalogEntry.release_tag})`);
+    } catch (err) {
+      failures++;
+      if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
+      console.error(`  FAIL catalog blueprint ${name}: ${err.message}`);
     }
   }
 
@@ -1487,7 +1573,7 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     console.error(`\n${failures} item(s) failed to update.`);
     process.exit(1);
   }
-  console.log(`\nUpdated ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), and ${selectedMcp.length} MCP server(s).`);
+  console.log(`\nUpdated ${skillsToUpdate.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), ${selectedMcp.length} MCP server(s), and ${selectedCatalog.length} catalog blueprint(s).`);
 }
 
 /**

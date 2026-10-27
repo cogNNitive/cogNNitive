@@ -1965,7 +1965,36 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
         selectedConsole = (consoleAssets || []).filter((a) => args.positional.includes(path2.basename(a.file || a.url)) && isOutdatedConsole(a));
         selectedMcp = (mcp || []).filter((m) => (args.positional.includes(m.name) || args.positional.includes("mcp")) && isOutdatedMcp(m));
       }
-      if (selectedSkills.length === 0 && selectedBlueprints.length === 0 && selectedConsole.length === 0 && selectedMcp.length === 0) {
+      let catalog = null;
+      try {
+        catalog = await loadBlueprintCatalog(args.catalogPath);
+      } catch (_) {
+        catalog = null;
+      }
+      const manifestNames = new Set(blueprints.map((t) => t.name));
+      const selectedCatalog = [];
+      for (const [name, entry] of Object.entries(state.blueprints || {})) {
+        if (manifestNames.has(name)) continue;
+        if (args.positional.length > 0 && !args.positional.includes(name)) continue;
+        const catalogEntry = findCatalogEntry(catalog, name);
+        if (!catalogEntry || !catalogEntry.release_tag) continue;
+        if (entry && entry.commit === catalogEntry.release_tag) continue;
+        selectedCatalog.push({ name, catalogEntry });
+      }
+      const modifiedSkills = selectedSkills.map((skill) => {
+        const entry = state.skills[skill.name];
+        const dir = path2.join(args.skillsDir, skill.name);
+        if (!entry || !entry.files || !fs.existsSync(dir)) return null;
+        let diff;
+        try {
+          diff = diffSkillDir(dir, entry.files);
+        } catch (_) {
+          diff = null;
+        }
+        if (!diff || !diff.modified) return null;
+        return { name: skill.name, files: [...diff.changed, ...diff.added, ...diff.removed] };
+      }).filter(Boolean);
+      if (selectedSkills.length === 0 && selectedBlueprints.length === 0 && selectedConsole.length === 0 && selectedMcp.length === 0 && selectedCatalog.length === 0) {
         console.log("All skills, templates, and console assets up to date.");
         projectSkillsToAgents({
           canonicalSkillsDir: args.skillsDir,
@@ -1981,22 +2010,44 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
         ...selectedSkills.map((s) => `skill:${s.name}`),
         ...selectedBlueprints.map((t) => `template:${t.name}`),
         ...selectedConsole.map((a) => `console:${path2.basename(a.file || a.url)}`),
-        ...selectedMcp.map((m) => `mcp:${m.name}`)
+        ...selectedMcp.map((m) => `mcp:${m.name}`),
+        ...selectedCatalog.map((c) => `catalog:${c.name}`)
       ];
+      const modifiedMenu = modifiedSkills.length > 0 ? `
+Locally modified (overwritten only with consent):
+` + modifiedSkills.map((m) => `  - ${m.name}: ${m.files.join(", ")}`).join("\n") + "\n" : "";
       const proceed = await consentOrAbort(
         "update skills, templates, console assets, and MCP servers",
         names,
-        `Updating ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), and ${selectedMcp.length} MCP server(s).
-
+        `Updating ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), ${selectedMcp.length} MCP server(s), and ${selectedCatalog.length} catalog blueprint(s).
+` + modifiedMenu + `
 [a] Update all listed (Recommended)
 [b] Skip
 `,
         args.yes
       );
       if (!proceed) return;
+      const skipSkills = /* @__PURE__ */ new Set();
+      for (const m of modifiedSkills) {
+        const ok = await consentOrAbort(
+          `overwrite modified skill ${m.name}`,
+          [`skill:${m.name}`],
+          `Skill ${m.name} was edited by hand (version unchanged):
+  ${m.files.join("\n  ")}
+
+Overwrite with the catalog copy?
+
+[a] Overwrite
+[b] Keep my changes
+`,
+          args.yes
+        );
+        if (!ok) skipSkills.add(m.name);
+      }
+      const skillsToUpdate = selectedSkills.filter((s) => !skipSkills.has(s.name));
       let failures = 0;
       const embeddedSkillNames = [];
-      for (const skill of selectedSkills) {
+      for (const skill of skillsToUpdate) {
         try {
           await installSkillAtCommit(skill, args.skillsDir, state);
           console.log(`  updated skill ${skill.name} -> ${skill.version} (${skill.commit.slice(0, 7)})`);
@@ -2013,6 +2064,25 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
           failures++;
           if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
           console.error(`  FAIL template ${template.name}: ${err.message}`);
+        }
+      }
+      for (const { name, catalogEntry } of selectedCatalog) {
+        const entryName = catalogEntry.name || name;
+        const template = {
+          name: entryName,
+          repo: args.repo || DEFAULT_BLUEPRINT_REPO,
+          path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
+          version: catalogEntry.adopted,
+          ref: catalogEntry.release_tag,
+          commit: catalogEntry.release_tag
+        };
+        try {
+          embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
+          console.log(`  updated catalog blueprint ${name} -> ${catalogEntry.adopted} (${catalogEntry.release_tag})`);
+        } catch (err) {
+          failures++;
+          if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
+          console.error(`  FAIL catalog blueprint ${name}: ${err.message}`);
         }
       }
       for (const asset of selectedConsole) {
@@ -2055,7 +2125,7 @@ ${failures} item(s) failed to update.`);
         process.exit(1);
       }
       console.log(`
-Updated ${selectedSkills.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), and ${selectedMcp.length} MCP server(s).`);
+Updated ${skillsToUpdate.length} skill(s), ${selectedBlueprints.length} template(s), ${selectedConsole.length} console asset(s), ${selectedMcp.length} MCP server(s), and ${selectedCatalog.length} catalog blueprint(s).`);
     }
     async function cmdSync(args) {
       const localSkillsDir = args.localSkillsDir || path2.resolve(__dirname, "../../skills");
