@@ -3,9 +3,9 @@
  * nn-video-script/scripts/build-script-from-draft.mjs
  *
  * Generates the final iNNfo Level-3 `video-script` document from a reviewed draft.
- * The reviewed JSON carries the decisions + narrations; the draft JSON carries the
- * scene structure (including fixed scenes such as the intro bumper). One Scene per
- * single visual.
+ * The reviewed JSON is the single source of truth for per-scene decisions (narration,
+ * choice, overlays); the draft JSON only supplies the scene structure (including fixed
+ * scenes such as the intro bumper). One Scene per single visual.
  *
  * Series-parameterized: every series-specific value (template names, music default,
  * filenames, avatar/intro assets) is read from a `video.series.json` config, never
@@ -109,9 +109,10 @@ export function buildScript(reviewed, draft, config) {
 
   const CATALOG = (rev.overlays && rev.overlays.length ? rev.overlays : d.overlays) || [];
 
-  function sceneOverlayLayers(scene) {
+  // `assigned` = the reviewed scene's overlays (the decision); the draft scene's apply only when no reviewed scene exists.
+  function sceneOverlayLayers(scene, assigned) {
     const cat = Object.fromEntries(CATALOG.map((o) => [o.id, o]));
-    const listed = scene.overlays || [];
+    const listed = assigned ?? scene.overlays ?? [];
     const rows = [];
     const seen = new Set();
     for (const o of listed) {
@@ -151,7 +152,7 @@ export function buildScript(reviewed, draft, config) {
     lines.push('', narration, '');
     const layers = layersFor(scene, r ? r.choice : null);
     if (layers) lines.push(layers);
-    const ovls = scene.kind === 'fixed' ? '' : sceneOverlayLayers(scene);
+    const ovls = scene.kind === 'fixed' ? '' : sceneOverlayLayers(scene, r ? r.overlays || [] : undefined);
     if (ovls) lines.push(ovls);
     return lines.join('\n');
   }

@@ -2,8 +2,8 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports clip assembly and thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script, assemble video, concat clips.
-version: "V_0-5-0"
-last_updated: 2026-10-26
+version: "V_0-5-2"
+last_updated: 2026-10-27
 license: MIT
 engine:
   package: "hyperframes"
@@ -39,6 +39,7 @@ The video engine operates headlessly through programmatic modules:
 - **Scene Compiler (`scripts/remotion-scene-compiler.mjs`)**: lowers the structured iNNfo video-script model (a Level-3 kNNowledge document adopting the `video-script` blueprint) into a deterministic, tool-agnostic Composition Manifest with sequence tracks, transitions, lower-thirds (`lowerThird`), and kinetic titles (`kineticTitle`). It reads the model structurally and never re-parses markdown.
 - **Project Emitter (`scripts/scene-project.mjs`)**: lowers the manifest into a deterministic HyperFrames project (root `index.html` + one Sub-composition per Scene + `hyperframes.json`), with all audio at the root and a stable overlay-host anchor per scene.
 - **Scene Transitions (`scripts/scene-transition.mjs`)**: resolves `transition::` into a GSAP tween on the scene wrapper (`#root`).
+- **Frame Tokens (`scripts/lib/frame-tokens.mjs`)**: reads a Series' `frame.md` (HyperFrames frame layer: palette + typography) into the manifest's `metadata.frame`, so overlays take the brand typeface and accent instead of hardcoded values. The frame is truth for color and type, never for layout.
 - **Media Duration (`scripts/lib/media-duration.mjs`)**: ffprobe duration with a provider-reported fallback.
 - **Deterministic Asset Cache (`scripts/cache-manager.mjs`)**: Content-addressed SHA-256 cache under `.cognnitive/cache/video/` with isolated subdirectories (`tts/`, `images/`, `temp/`).
 - **Asset Synthesizer (`scripts/asset-synthesizer.mjs` / `scripts/tts-generator.mjs`)**: Synthesizes TTS voiceover tracks and image/motion assets.
@@ -81,7 +82,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/video-engine-cli.mjs render renders/{ref}-vertical/manifest.json --output renders/{ref}-vertical/master_vertical.mp4
    # cheap fallback only (burned-in captions may crop): node scripts/render-vertical.mjs --source renders/{ref}/master.mp4 --out renders/{ref}/master_vertical.mp4
    ```
-   *A HyperFrames failure is a loud, non-zero error — there is no FFmpeg fallback. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
+   *A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr (stdout if empty) — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render` (e.g. `render <manifest> --output <mp4> -- --workers 2 --low-memory-mode`); environment variables are inherited by the CLI. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
 6b. **Assemble Master from Clips (optional)** — when some segments are pass-through or produced outside Remotion:
    ```bash
    node scripts/assemble-video.mjs <clip1> <clip2> ... --out renders/{ref}/master.mp4
@@ -131,7 +132,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/assemble-video.mjs` | Final-assembly layer: joins already-produced clips into one master via the FFmpeg concat demuxer (`-f concat -c copy`, +faststart) with an ffprobe consistency precheck. Assembly only — no scene effects. |
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
-| `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, parameterized by a series config (`video.series.json`). |
+| `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, parameterized by a series config (`video.series.json`). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. |
 | `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from config). |
 | `scripts/thumbnail-v1.mjs` | Series-parameterized thumbnail V1 compositor (SVG + Sharp). |
 
