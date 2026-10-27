@@ -59,3 +59,28 @@ test('loadSeriesConfig falls back to neutral defaults', () => {
   assert.equal(c.series, DEFAULT_SERIES_CONFIG.series);
   assert.equal(c.templateFull, DEFAULT_SERIES_CONFIG.templateFull);
 });
+
+// A draft scene carries its own proposed overlays; the reviewed scene is the decision.
+const withOverlays = (scenes) => ({ ...reviewed, overlays: [], scenes });
+const reviewedOvl = withOverlays([
+  { slug: '00-gancho', name: '00 Gancho', narration: 'Hook words here', choice: { type: 'avatar', model: 'm', quality: 'ALTA' }, overlays: [{ id: 'kept', type: 'caption', text: 'reviewed text', position: 'top' }] },
+  { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
+  { slug: '02-noticia', name: '02 Noticia', kind: 'scene', narration: 'Body words here', choice: { type: 'animation' }, overlays: [] },
+]);
+const draftOvl = {
+  scenes: [
+    { slug: '00-gancho', name: '00 Gancho', overlays: [{ id: 'proposed', type: 'caption', text: 'draft text', position: 'bottom' }] },
+    { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
+    { slug: '02-noticia', name: '02 Noticia', overlays: [{ id: 'proposed2', type: 'caption', text: 'draft only', position: 'bottom' }] },
+  ],
+};
+
+test('with --draft, per-scene overlays come from the reviewed scene, not the draft', () => {
+  const md = buildScript(reviewedOvl, draftOvl, cfg);
+  assert.match(md, /text:: reviewed text/);
+  assert.doesNotMatch(md, /draft text|draft only/);
+});
+
+test('overlay output is identical with and without --draft', () => {
+  assert.equal(buildScript(reviewedOvl, draftOvl, cfg), buildScript(reviewedOvl, null, cfg));
+});
