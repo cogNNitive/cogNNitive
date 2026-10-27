@@ -189,8 +189,8 @@ description:: Provider model id used for TTS synthesis.
 
 ## NN Field Definition: speed
 concept:: Template
-type:: number
-description:: Playback rate the provider synthesizes the narration at (e.g. `1.1` for 10% faster). Optional; when omitted the provider default applies. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
+type:: string
+description:: Playback rate the provider synthesizes the narration at (a number, e.g. `1.1` for 10% faster). Optional; when omitted the provider default applies. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
 
 ## NN Field Definition: emotion
 concept:: Template
