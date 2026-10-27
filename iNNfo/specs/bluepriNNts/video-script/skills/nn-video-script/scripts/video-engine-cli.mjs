@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { RemotionSceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './remotion-scene-compiler.mjs';
+import { SceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './scene-compiler.mjs';
 import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
@@ -483,7 +483,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
  * is refused before the first charge when it is unapproved, uses a blocked model, or would
  * pass the per-run or 24h cap. With `dryRun` it only returns that plan.
  * @param {VideoCompileOptions} options
- * @returns {Promise<{ manifest: import('./remotion-scene-compiler.mjs').RemotionCompositionManifest | null, cachedAssetsUsed: number, newAssetsSynthesized: number, dryRun?: boolean, plan?: any }>}
+ * @returns {Promise<{ manifest: import('./scene-compiler.mjs').CompositionManifest | null, cachedAssetsUsed: number, newAssetsSynthesized: number, dryRun?: boolean, plan?: any }>}
  */
 export async function compileVideo(options) {
   const scriptPath = path.resolve(options.scriptPath);
@@ -510,7 +510,7 @@ export async function compileVideo(options) {
   const makeGuard = (dryRun) =>
     new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: checkNow });
 
-  const compiler = new RemotionSceneCompiler({
+  const compiler = new SceneCompiler({
     fps: options.fps,
     width: options.width,
     height: options.height,

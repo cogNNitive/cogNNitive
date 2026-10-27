@@ -9,7 +9,7 @@
  */
 
 import assert from 'node:assert';
-import { RemotionSceneCompiler } from '../scripts/remotion-scene-compiler.mjs';
+import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 import { buildProject } from '../scripts/scene-project.mjs';
 
 /** Builds a read_knowledge-shaped model for the test. */
@@ -27,7 +27,7 @@ function model({ scenes = [], layers = [] } = {}) {
 
 async function runTests() {
   console.log('Running scene-transition ease tests...');
-  const compiler = new RemotionSceneCompiler({ fps: 30 });
+  const compiler = new SceneCompiler({ fps: 30 });
 
   const manifest = compiler.compile(model({
     scenes: [{ type: 'Scene', name: 'Fade', slug: 'fade', description: 'hello world', fields: { transition: 'fade' } }],

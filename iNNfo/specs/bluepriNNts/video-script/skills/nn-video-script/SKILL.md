@@ -37,7 +37,7 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
 ## 1. Engine Architecture & HyperFrames Pipeline
 
 The video engine operates headlessly through programmatic modules:
-- **Scene Compiler (`scripts/remotion-scene-compiler.mjs`)**: lowers the structured iNNfo video-script model (a Level-3 kNNowledge document adopting the `video-script` blueprint) into a deterministic, tool-agnostic Composition Manifest with sequence tracks, transitions, lower-thirds (`lowerThird`), and kinetic titles (`kineticTitle`). It reads the model structurally and never re-parses markdown.
+- **Scene Compiler (`scripts/scene-compiler.mjs`)**: lowers the structured iNNfo video-script model (a Level-3 kNNowledge document adopting the `video-script` blueprint) into a deterministic, tool-agnostic Composition Manifest with sequence tracks, transitions, lower-thirds (`lowerThird`), and kinetic titles (`kineticTitle`). It reads the model structurally and never re-parses markdown.
 - **Project Emitter (`scripts/scene-project.mjs`)**: lowers the manifest into a deterministic HyperFrames project (root `index.html` + one Sub-composition per Scene + `hyperframes.json`), with all audio and every overlay host at the root. Each overlay mounts, with global times, the slot component named by the `components` cascade (`components/<name>.html`, staged into the project by the render driver); the slot's fallback in `components/` defines the variable contract (see `references/overlay-slots.md`).
 - **Scene Transitions (`scripts/scene-transition.mjs`)**: resolves `transition::` into a GSAP tween on the scene wrapper (`#root`).
 - **Frame Tokens (`scripts/lib/frame-tokens.mjs`)**: reads the frame document named by the `frame::` cascade parameter (`frames/<name>.md`, found episode > series > domain > skill fallback) into the manifest's `metadata.frame`, so overlays take the brand typeface and accent instead of hardcoded values. The frame is truth for color and type, never for layout. The skill ships `frames/neutral.md` as the blueprint default.
@@ -124,7 +124,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 
 | Script | Purpose |
 |---|---|
-| `scripts/remotion-scene-compiler.mjs` | Lowers video scripts into tool-agnostic composition manifests with calculated frame timings and overlay configs. |
+| `scripts/scene-compiler.mjs` | Lowers video scripts into tool-agnostic composition manifests with calculated frame timings and overlay configs. |
 | `scripts/scene-project.mjs` | Emits a deterministic HyperFrames project from the manifest (root + Sub-compositions + `hyperframes.json`). |
 | `scripts/scene-transition.mjs` | Resolves `transition::` into a GSAP tween on the scene wrapper. |
 | `scripts/hyperframes-render.mjs` | Emits the project and renders it via the pinned HyperFrames CLI. |

@@ -619,7 +619,7 @@ describe('video-script blueprint embedded skill discovery (real package)', () =>
     expect(skill.embedded).toBe(true)
     expect(skill.source_blueprint).toBe('video-script')
     expect(existsSync(join(skill.path, 'SKILL.md'))).toBe(true)
-    expect(existsSync(join(skill.path, 'scripts', 'remotion-scene-compiler.mjs'))).toBe(true)
+    expect(existsSync(join(skill.path, 'scripts', 'scene-compiler.mjs'))).toBe(true)
     expect(skill.version).toMatch(/^V_\d+-\d+-\d+$/)
     expect(skill.description).toBeTruthy()
   })

@@ -16,9 +16,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  RemotionSceneCompiler,
+  SceneCompiler,
   DEFAULT_CONDITIONAL_FIELDS,
-} from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/remotion-scene-compiler.mjs';
+} from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/scene-compiler.mjs';
 import { buildTtsVoiceOptions, resolveRegisteredVoice } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/tts-options.mjs';
 import { CacheManager } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/cache-manager.mjs';
 
@@ -40,7 +40,7 @@ const layer = (slug, parentSlug, fields) => ({
   type: 'Layer', name: slug, slug, parentElement: 'Scene', parentSlug, fields,
 });
 
-const compiler = new RemotionSceneCompiler({ fps: 30, width: 1920, height: 1080 });
+const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
 
 // The blueprint `Video Defaults` level, injected as the compiler receives it at
 // runtime (the cascade sources every default from bags, never from engine code).

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * nn-video-script/scripts/remotion-scene-compiler.mjs
+ * nn-video-script/scripts/scene-compiler.mjs
  *
  * Lowers the structured iNNfo video-script model into a typed Remotion
  * Composition Manifest. The model comes from innfo-core `read_knowledge` (or the
@@ -37,6 +37,30 @@ import { resolve } from './lib/cascade.mjs';
  * @property {string} [enterAnimation]
  * @property {string} [exitAnimation]
  * @property {Record<string, unknown>} config
+ */
+
+/**
+ * @typedef {Object} SceneTrack
+ * @property {string} id
+ * @property {number} fromFrame
+ * @property {number} durationInFrames
+ * @property {object} props
+ * @property {{ type: string, durationInFrames: number }} [transition]
+ * @property {Array<object>} [animations]
+ * @property {number} [narrationDurationInFrames]
+ */
+
+/**
+ * @typedef {Object} CompositionManifest
+ * @property {string} version
+ * @property {string} compositionId
+ * @property {number} fps
+ * @property {number} width
+ * @property {number} height
+ * @property {number} totalDurationInFrames
+ * @property {number} totalDurationInSeconds
+ * @property {{ scenes: SceneTrack[], audio: Array<object>, overlays: Array<object> }} tracks
+ * @property {object} metadata
  */
 
 /**
@@ -239,7 +263,7 @@ export function assignLayersToScenes(sceneElements, layerElements) {
   return buckets;
 }
 
-export class RemotionSceneCompiler {
+export class SceneCompiler {
   /**
    * @param {Object} [options]
    * @param {number} [options.fps=30]
@@ -537,7 +561,7 @@ export class RemotionSceneCompiler {
 
   /**
    * Compiles a structured iNNfo model (or an already-lowered `{ scenes[] }`
-   * object) into a RemotionCompositionManifest. A raw markdown string is
+   * object) into a CompositionManifest. A raw markdown string is
    * rejected: the compiler never re-parses script markdown.
    * @param {object | string} input Structured model or lowered object
    * @param {Object} [options]
@@ -545,7 +569,7 @@ export class RemotionSceneCompiler {
     * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
     * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
    * @param {string} [options.scriptSource="script.model"]
-   * @returns {object} RemotionCompositionManifest
+   * @returns {CompositionManifest}
    */
   compile(input, options = {}) {
     const scriptSource = options.scriptSource || 'script.model';
@@ -762,7 +786,7 @@ export class RemotionSceneCompiler {
 async function main() {
   const target = process.argv[2];
   if (!target) {
-    console.error('Usage: node remotion-scene-compiler.mjs <model.json|script_NN.md> [--out <manifest.json>]');
+    console.error('Usage: node scene-compiler.mjs <model.json|script_NN.md> [--out <manifest.json>]');
     process.exit(1);
   }
   const outIdx = process.argv.indexOf('--out');
@@ -773,7 +797,7 @@ async function main() {
     const resolved = path.resolve(target);
     const model = loadKnowledgeModel(resolved);
     const templates = loadTemplateModels(path.dirname(resolved));
-    const compiler = new RemotionSceneCompiler();
+    const compiler = new SceneCompiler();
     const manifest = compiler.compile(model, { templates, scriptSource: target });
     const jsonStr = JSON.stringify(manifest, null, 2);
     if (outPath) {

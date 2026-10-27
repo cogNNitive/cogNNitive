@@ -6,7 +6,7 @@ import path from 'node:path';
 
 import { loadTemplateModels } from '../scripts/lib/knowledge-model.mjs';
 import { buildTtsVoiceOptions } from '../scripts/lib/tts-options.mjs';
-import { RemotionSceneCompiler } from '../scripts/remotion-scene-compiler.mjs';
+import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 
 const TEMPLATES_DOC = `---
 version: nn-read-knowledge@1
@@ -63,7 +63,7 @@ test('loadTemplateModels carries speed and emotion from the Template element', (
 
 test('buildTtsVoiceOptions puts speed and emotion into the TTS cache key', () => {
   const templates = loadTemplateModels(writeTemplates());
-  const lowered = new RemotionSceneCompiler().lowerKnowledgeModel(sceneModel('Presenter Full'), { templates });
+  const lowered = new SceneCompiler().lowerKnowledgeModel(sceneModel('Presenter Full'), { templates });
 
   const voiceOptions = buildTtsVoiceOptions(lowered.scenes[0], {});
 
@@ -73,7 +73,7 @@ test('buildTtsVoiceOptions puts speed and emotion into the TTS cache key', () =>
 
 test('buildTtsVoiceOptions omits delivery the template does not declare', () => {
   const templates = loadTemplateModels(writeTemplates());
-  const lowered = new RemotionSceneCompiler().lowerKnowledgeModel(sceneModel('Plain'), { templates });
+  const lowered = new SceneCompiler().lowerKnowledgeModel(sceneModel('Plain'), { templates });
 
   const voiceOptions = buildTtsVoiceOptions(lowered.scenes[0], {});
 
@@ -83,7 +83,7 @@ test('buildTtsVoiceOptions omits delivery the template does not declare', () => 
 
 test('the compiled manifest carries the template delivery for the synthesizer', () => {
   const templates = loadTemplateModels(writeTemplates());
-  const lowered = new RemotionSceneCompiler().lowerKnowledgeModel(sceneModel('Presenter Full'), { templates });
+  const lowered = new SceneCompiler().lowerKnowledgeModel(sceneModel('Presenter Full'), { templates });
 
   assert.equal(lowered.scenes[0].resolvedTemplate.speed, 1.1);
   assert.equal(lowered.scenes[0].resolvedTemplate.emotion, 'happy');

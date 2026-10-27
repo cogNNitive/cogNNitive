@@ -3,7 +3,7 @@
 /**
  * nn-video-script/test/scene-compiler.test.mjs
  *
- * Unit tests for RemotionSceneCompiler against the structured iNNfo model:
+ * Unit tests for SceneCompiler against the structured iNNfo model:
  * - accurate frame math (frames = ceil(durationInSeconds * fps))
  * - timeline continuity without gaps
  * - `type::` → overlay/layer mapping and frame offsets
@@ -12,7 +12,7 @@
  */
 
 import assert from 'node:assert';
-import { RemotionSceneCompiler, assignLayersToScenes } from '../scripts/remotion-scene-compiler.mjs';
+import { SceneCompiler, assignLayersToScenes } from '../scripts/scene-compiler.mjs';
 
 /** Builds a read_knowledge-shaped model for tests. */
 function model({ title = 'Test Video', scenes = [], layers = [] } = {}) {
@@ -37,7 +37,7 @@ function layer(name, slug, fields = {}) {
 
 async function runTests() {
   console.log('Running Remotion Scene Compiler unit tests...');
-  const compiler = new RemotionSceneCompiler({ fps: 30, width: 1920, height: 1080 });
+  const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
 
   // Test 1: compile into a typed manifest.
   {
@@ -70,7 +70,7 @@ async function runTests() {
         scene('Three', 'three', 'a b c'),
       ],
     });
-    const manifest = new RemotionSceneCompiler({ fps: 30, wordsPerSecond: 5 }).compile(m);
+    const manifest = new SceneCompiler({ fps: 30, wordsPerSecond: 5 }).compile(m);
     const [s1, s2, s3] = manifest.tracks.scenes;
     // 10 words / 5 wps = 2s -> max(3,2)=3s -> 90 frames.
     assert.strictEqual(s1.fromFrame, 0);
