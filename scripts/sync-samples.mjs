@@ -28,11 +28,11 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_business_NN.md',
-    target: path.join('business', 'samples', 'Ghostbusters_V_0-5-0_business_NN.md')
+    target: path.join('business', 'samples', 'Ghostbusters_V_0-5-1_business_NN.md')
   },
   {
     source: 'Ghostbusters_business-model_NN.md',
-    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-4-0_business-model_NN.md')
+    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-4-1_business-model_NN.md')
   },
   {
     source: 'Ghostbusters_documentation_NN.md',
