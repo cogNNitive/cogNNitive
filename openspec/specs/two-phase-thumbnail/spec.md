@@ -27,12 +27,13 @@ The `render-thumbnail.mjs` tool MUST be the only Phase B tool in the skill. It M
      read through the parameter cascade (walking from `--out`'s folder, or `--series <dir>`).
    - `--width <number>` (Optional, default: 2560), `--height <number>` (Optional, default: 1440).
 2. Render bold sans-serif typography with a high-contrast stroke or drop shadow and a translucent
-   brand pill badge.
-3. Render the design as SVG vector templating composed over the base image via `sharp`.
+   brand pill badge; font and accent come from the resolved `frame` tokens.
+3. Render the design as a one-frame HyperFrames composition through the pinned HyperFrames CLI.
+   The skill MUST NOT depend on `sharp`.
 4. Scale and fit the base image without distortion (cover).
 5. Output a valid JPEG or PNG matching the `--out` extension.
 (Previously: SVG composed over the base via `sharp`; `thumbnail-v1.mjs` was a second compositor;
-subtitle/badge had no series default.)
+subtitle/badge had no series default; no frame tokens.)
 
 #### Scenario: Typography render
 
@@ -51,4 +52,11 @@ subtitle/badge had no series default.)
 - GIVEN no `--title`
 - WHEN the tool runs
 - THEN it exits non-zero with its usage line and writes nothing
+
+#### Scenario: No sharp
+
+- GIVEN the skill's package manifest and its thumbnail renderer
+- WHEN they are inspected
+- THEN the manifest declares no `sharp` dependency
+- AND the thumbnail renderer imports no `sharp`
 

@@ -2,7 +2,7 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script.
-version: "V_0-15-4"
+version: "V_0-15-5"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -138,7 +138,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
 | `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`) and headless rendering (`render`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
 | `scripts/render-formats.mjs` | Format-variant post-process: square master → `_1080x1080` (copy) / `_1080x1920` / `_1920x1080` with the square whole over a Gaussian-blurred fill (`+faststart`). |
-| `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. `--series <dir>` (or the cascade from `--out`) fills subtitle/badge from the Series `title`. |
+| `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor: renders a one-frame HyperFrames composition (base image + typography + brand pill) through the pinned CLI. `--series <dir>` (or the cascade from `--out`) fills subtitle/badge from the Series `title`; font/accent come from the resolved `frame` tokens. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
 | `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, reading series values through the parameter cascade (`series_NN.md` → domain Video Defaults → package Video Defaults). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. The script frontmatter is copied from the series document and the filename uses the Series slug. |
 | `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from the `series_NN.md` document). |
