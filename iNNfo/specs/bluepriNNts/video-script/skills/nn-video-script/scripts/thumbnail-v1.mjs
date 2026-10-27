@@ -3,21 +3,21 @@
  * nn-video-script/scripts/thumbnail-v1.mjs
  *
  * Series-parameterized thumbnail V1 compositor: a big concept title bottom-left,
- * a subtitle and a top-left badge pill. The subtitle/badge text come from a
- * `video.series.json` config (or --subtitle/--badge); nothing is series-hardcoded.
+ * a subtitle and a top-left badge pill. The subtitle/badge text come from the
+ * `series_NN.md` document (or --subtitle/--badge); nothing is series-hardcoded.
  * Typography scales with the width, so the same style fits any size.
  *
  * Usage:
  *   node thumbnail-v1.mjs --base <base.png> --title <str> --out <png>
  *     [--subtitle <str>] [--badge <str>] [--w 2560] [--h 1440]
- *     [--series <dir> | --config <video.series.json>]
+ *     [--series <dir>]
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { loadSeriesConfig } from './build-script-from-draft.mjs';
+import { loadSeriesDocument } from './build-script-from-draft.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -53,8 +53,9 @@ async function main() {
     console.error('usage: node thumbnail-v1.mjs --base <png> --title <str> --out <png> [--subtitle <str>] [--badge <str>] [--w 2560] [--h 1440] [--series <dir>]');
     process.exit(1);
   }
-  const cfg = loadSeriesConfig(argv);
-  const seriesTitle = cfg.seriesTitle || cfg.series || 'Series';
+  const seriesDir = argValue(argv, 'series');
+  const series = seriesDir ? loadSeriesDocument(path.resolve(seriesDir)) : null;
+  const seriesTitle = (series && series.title) || 'Series';
   const W = Number(argValue(argv, 'w')) || 2560;
   const H = Number(argValue(argv, 'h')) || 1440;
   const subtitle = argValue(argv, 'subtitle') || seriesTitle;

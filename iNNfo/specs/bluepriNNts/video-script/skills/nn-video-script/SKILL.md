@@ -2,7 +2,7 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports clip assembly and thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script, assemble video, concat clips.
-version: "V_0-10-0"
+version: "V_0-11-0"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -147,8 +147,8 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/assemble-video.mjs` | Final-assembly layer: joins already-produced clips into one master via the FFmpeg concat demuxer (`-f concat -c copy`, +faststart) with an ffprobe consistency precheck. Assembly only — no scene effects. |
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
-| `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, parameterized by a series config (`video.series.json`). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. |
-| `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from config). |
+| `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, reading series values through the parameter cascade (`series_NN.md` → domain Video Defaults → package Video Defaults). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. The script frontmatter is copied from the series document and the filename uses the Series slug. |
+| `scripts/build-draft-html.mjs` | Generates the self-contained review HTML from a draft JSON (base64 thumbnails; series title from the `series_NN.md` document). |
 | `scripts/thumbnail-v1.mjs` | Series-parameterized thumbnail V1 compositor (SVG + Sharp). |
 
 Run any script with no arguments (or a bad one) to see its usage banner.
