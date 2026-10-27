@@ -11,7 +11,7 @@ under `iNNfo/specs/bluepriNNts/<template-name>/`:
 - The primary Level 2 specification MUST be named `spec_NN.md` (the root workspace template is `workspace_spec_NN.md`).
 - `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/console-view-timeline.js`) MUST also use unversioned filenames.
 - A package MAY embed agent skills as `skills/<skill-name>/SKILL.md`, together with that skill's own scripts, references, tests and vendored data. An embedded skill is part of the package and MUST be versioned only through the package `blueprint_version`/`template_version`.
-- A package MAY instead *reference* an external skill in its frontmatter `skills:` array, pinned to a commit SHA with a `sha256` digest and a declared `license`. A referenced skill is NOT part of the package source and MUST NOT be copied into the repository.
+- A package MAY instead *reference* an external skill in its frontmatter `skills:` array, pinned to a commit SHA with a declared `license`. A referenced skill is NOT part of the package source and MUST NOT be copied into the repository.
 - Source paths MUST NOT encode a semantic version. The authoritative version MUST be declared in frontmatter as `template_version` (`V_x-y-z` or dotted `x.y.z`).
 
 (Previously: the skill model had one tier — an embedded `skills/<name>/SKILL.md`;
@@ -29,7 +29,7 @@ external frontmatter skills were not described.)
 - THEN the skill folder is treated as package content with no versioned path segment
 
 #### Scenario: Package references an external skill without vendoring it
-- GIVEN a blueprint whose frontmatter `skills:` declares a third-party skill with `commit`, `sha256` and `license`
+- GIVEN a blueprint whose frontmatter `skills:` declares a third-party skill with `commit` and `license`
 - WHEN the package layout is inspected
 - THEN no folder for that skill exists under the package's `skills/`
 - AND the reference is the only source of truth
@@ -156,14 +156,14 @@ distinction MUST be surfaced to the user:
 - **`embedded`** — vendored inside the package, curated by the maintainer; the
   package version guarantees it.
 - **`referenced`** — declared in frontmatter and fetched at install time from its
-  upstream repo; the guarantee is bounded to *reproducible (pinned commit), unmodified
-  since the pin (digest) and license-declared*. cogNNitive MUST NOT claim it vouches
-  for a referenced skill's author.
+  upstream repo; the guarantee is bounded to *reproducible (pinned commit) and
+  license-declared*. cogNNitive MUST NOT claim it vouches for a referenced skill's
+  author.
 
 #### Scenario: Referenced tier is documented as bounded
 - GIVEN the package documentation
 - WHEN it describes referenced external skills
-- THEN it states the guarantee is pinned commit + verified digest + declared license
+- THEN it states the guarantee is pinned commit + declared license
 - AND it does not claim the maintainer reviewed or vouches for the skill
 
 #### Scenario: Embedded tier keeps the full guarantee

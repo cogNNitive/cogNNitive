@@ -24,7 +24,7 @@
 
 - [x] 4.1 `node scripts/verify.js --only=external-skills` green
 - [x] 4.2 CI `verify` job green on the session branch (`node scripts/verify.js`)
-- [ ] 4.3 `openspec validate trim-external-skill-ceremony --strict` (openspec CLI not available in this env; change mirrors the existing format)
+- [x] 4.3 `openspec validate trim-external-skill-ceremony --strict` (green once the openspec CLI was available; archived)
 
 ## 5. Parser/discovery prune (`nn-core` + `nn-mcp`)
 
