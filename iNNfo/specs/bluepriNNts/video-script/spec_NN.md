@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-4-0"
+blueprint_version: "V_0-5-0"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -174,7 +174,7 @@ description:: How a media Layer (background, b-roll) fits its box. `cover` fills
 ## NN Field Definition: tool
 concept:: Template
 type:: select
-options:: [wavespeed, replicate, elevenlabs, edge-tts]
+options:: [wavespeed, replicate]
 description:: Media provider used to synthesize the assets bound to this Template.
 
 ## NN Field Definition: voice

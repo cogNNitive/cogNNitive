@@ -279,6 +279,30 @@ Changed body.`));
       console.log('✔ *_NN.md files inside skills/ are not treated as bluepriNNt specs');
     }
 
+    // 8c. Package `defaults/` documents: any A/M/D/R under `<bluepriNNt>/defaults/**` requires the
+    //     owning spec_NN.md to bump blueprint_version, and a `*_NN.md` there is NOT itself read as
+    //     a canonical blueprint (so it needs no blueprint_version of its own).
+    {
+      const defaultsFile = 'iNNfo/specs/bluepriNNts/video3/defaults/video-defaults_NN.md';
+      const defaultsContent = '---\nlevel: 3\ntitle: "Video Defaults"\n---\n\n# Video Defaults\n';
+      writeBase('video3/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      writeWork('video3/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      writeWork('video3/defaults/video-defaults_NN.md', defaultsContent);
+
+      const fx = writeFixture([`A\t${defaultsFile}`], 'defaults-A.txt');
+      const res = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(res.status, 1, 'a defaults/ change without an owner bump must exit 1');
+      assert.ok(res.stdout.includes('video3/spec_NN.md'), 'names the owning package spec');
+      assert.ok(res.stdout.includes('defaults/video-defaults_NN.md'), 'names the changed defaults file');
+      console.log('✔ defaults/ change without an owner blueprint_version bump fails');
+
+      // The defaults doc has no blueprint_version of its own; with the owner bumped it must pass.
+      writeWork('video3/spec_NN.md', tpl('V_0-8-0', 'Owner body.'));
+      const okRes = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(okRes.status, 0, `owner bump must satisfy the guard. stdout: ${okRes.stdout}`);
+      console.log('✔ defaults/ change with an owner bump passes; the defaults doc is not a canonical blueprint');
+    }
+
     // 9. Release-tag build: HEAD is an exact tag that is an ANCESTOR of a
     //    moved-on origin/main (the v0.7.2 re-run failure). The guard must diff
     //    against the merge-base (the tag itself), not origin/main, or it reports

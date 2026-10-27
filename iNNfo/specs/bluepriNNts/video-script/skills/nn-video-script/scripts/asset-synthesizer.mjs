@@ -4,7 +4,7 @@
  * nn-video-script/scripts/asset-synthesizer.mjs
  *
  * Deterministic TTS and media asset synthesis with content-addressed caching.
- * Adapts ElevenLabs, Edge-TTS, and Replicate media providers with graceful local fallbacks.
+ * Adapts the WaveSpeed and Replicate media providers with graceful local fallbacks.
  * Measures audio duration via ffprobe (with a provider-reported duration fallback).
  *
  * Zero external mandatory runtime dependencies. ESM module.
@@ -101,9 +101,8 @@ export class AssetSynthesizer {
   /**
    * @param {Object} [options]
    * @param {CacheManager} [options.cacheManager]
-   * @param {string} [options.ttsProvider="local"] "elevenlabs" | "edge-tts" | "local" | "mock"
+   * @param {string} [options.ttsProvider="local"] TTS provider hint.
    * @param {string} [options.mediaProvider="local"] "replicate" | "local" | "mock"
-   * @param {string} [options.elevenLabsApiKey]
    * @param {SpendGuard} [options.guard] Spend guard. Without one the synthesizer FAILS CLOSED: billable calls are refused.
    * @param {{ image?: string, tts?: string, avatar?: string }} [options.defaultModels] Models used when a call names no provider model.
    * @param {Record<string, string | undefined>} [options.env] Environment seam (defaults to process.env).
@@ -121,7 +120,6 @@ export class AssetSynthesizer {
     this.cacheManager = options.cacheManager || new CacheManager();
     this.ttsProvider = options.ttsProvider || this.env.TTS_PROVIDER || 'local';
     this.mediaProvider = options.mediaProvider || this.env.MEDIA_PROVIDER || 'local';
-    this.elevenLabsApiKey = options.elevenLabsApiKey || this.env.ELEVENLABS_API_KEY;
     const chosen = Object.fromEntries(Object.entries(options.defaultModels || {}).filter(([, v]) => v));
     this.defaultModels = { ...DEFAULT_MODELS, ...chosen };
     if (options.guard) {
@@ -164,7 +162,7 @@ export class AssetSynthesizer {
   _useMiniMax() {
     return (
       this.ttsProvider.includes('minimax') ||
-      (!this.elevenLabsApiKey && Boolean(this.env.WAVESPEED_API_KEY || this.env.REPLICATE_API_TOKEN))
+      Boolean(this.env.WAVESPEED_API_KEY || this.env.REPLICATE_API_TOKEN)
     );
   }
 
