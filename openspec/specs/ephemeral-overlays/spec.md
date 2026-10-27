@@ -47,42 +47,38 @@ that renders the overlay.
 - WHEN the overlay track is emitted
 - THEN it carries the configured `enter_animation` and `exit_animation`
 
-### Requirement: Overlays Render Through HyperFrames Blocks
+### Requirement: Overlays Render By Mounting A Slot Component
 
-Overlay rendering MUST be delegated to HyperFrames. For each overlay `type::` the renderer MUST
-instantiate a HyperFrames **registry block** by default, parameterized with the overlay's text or
-asset as variables, inside the owning Scene's `<!-- nn-overlay-host -->`. The engine MUST NOT ship
-its own overlay HTML as the default path. The emitted overlay MUST be lint-clean
-(`hyperframes check` with no errors).
+Each overlay MUST render by mounting, as a root-level host with global times, the component
+whose name the cascade resolves for its slot (`title`, `lower-third`, `caption`, `quote`,
+`watermark`, `b-roll`; key of the `components` parameter), passing the overlay's
+`text`/`src`/`position`/`enter`/`exit` and the `font`/`accent` tokens of the cascaded `frame` as
+variable values.
+The engine MUST NOT emit overlay markup or overlay CSS of its own. The emitted project MUST pass
+`hyperframes check` with no errors.
 
-#### Scenario: Default block per overlay type
+#### Scenario: Overlay mounts its slot component
 
-- GIVEN a Scene with a `lower-third` and a `b-roll` Layer
+- GIVEN a Scene with a `lower-third` Layer declaring text and position, and no `components` override
 - WHEN the project is emitted
-- THEN each overlay is rendered by its default HyperFrames registry block
+- THEN a root host mounts `components/lower-third.html` with those values as variable values
 - AND the project passes `hyperframes check` with no errors
 
-### Requirement: Series And Scene Block Escape
+#### Scenario: Series picks another component name
 
-A Series or a scene MUST be able to override the default block for an overlay `type::`. Resolution
-precedence MUST be `sceneBlock > seriesFrame > registry default`. An override that names a block
-which does not resolve MUST fail loudly with a named error before render.
+- GIVEN the series sets `components:: [lower-third=pill]` and holds `components/pill.html`
+- WHEN a `lower-third` overlay is emitted
+- THEN `pill.html` is mounted for it
 
-#### Scenario: A series frame overrides a default block
+#### Scenario: Declared animations reach the component
 
-- GIVEN a series frame declaring a custom block for `lower-third`
-- WHEN an overlay of `type:: lower-third` is emitted
-- THEN the series block is used instead of the registry default
-
-#### Scenario: A scene override wins
-
-- GIVEN both a series frame and a scene block for the same `type::`
-- WHEN the overlay is emitted
-- THEN the scene block wins
-
-#### Scenario: An unknown override fails loudly
-
-- GIVEN a series frame referencing a block id that does not resolve
+- GIVEN an overlay Layer declaring `enter_animation` and `exit_animation`
 - WHEN the project is emitted
-- THEN the system fails with a named, non-zero error before render
+- THEN the mounted component receives them as the `enter` and `exit` variable values
+
+#### Scenario: Component lacks a required variable
+
+- GIVEN a resolved component that does not accept a variable its slot declares
+- WHEN the project is emitted
+- THEN emission fails with `SlotContractError` naming the slot and the missing variable
 
