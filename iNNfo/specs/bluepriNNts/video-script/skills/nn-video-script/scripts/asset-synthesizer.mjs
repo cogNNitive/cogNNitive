@@ -17,7 +17,6 @@ import { CacheManager } from './cache-manager.mjs';
 import { SpendGuard, loadGuard, isSystemVoice } from './lib/video-guard.mjs';
 import { resolveRegisteredVoice } from './lib/tts-options.mjs';
 import { buildAvatarRequest } from './lib/avatar-request.mjs';
-import { markNeedsFaststart } from './lib/faststart.mjs';
 import { estimateCallUsd, resolveModelId } from './asset-cost-estimator.mjs';
 import { resolve } from './lib/cascade.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
@@ -470,7 +469,6 @@ export class AssetSynthesizer {
   /**
    * @param {{ ref?: string, cacheKey?: string, durationSeconds?: number, resumeTaskId?: string, windowMs?: number,
    *   intervalMs?: number, backoff?: { factor: number, maxMs: number }, warn?: (m: string) => void,
-   *   postProcess?: (b: Buffer) => Promise<{ buffer: Buffer, applied: boolean }>,
    *   pending?: { onSubmitting?: Function, onSubmitted?: Function, onResult?: Function } }} meta
    *   A `cacheKey` marks a managed job (synthesize-avatar): it is never replaced by an offline placeholder.
    * @private
@@ -543,7 +541,7 @@ export class AssetSynthesizer {
         const peek = raw.subarray(0, 120).toString('utf8').replace(/[^\x20-\x7e]+/g, ' ').trim();
         throw new BillingFailureError('Avatar task ' + track.taskId + ' returned something that is not an MP4 (no ftyp box; starts with: ' + peek + '). Nothing was cached; resume to download it again.', { taskId: track.taskId, retryable: true });
       }
-      // The raw clip is cached FIRST (tmp+rename); faststart then improves a copy of it.
+      // The raw clip is cached FIRST (tmp+rename).
       assetPath = await this.cacheManager.put(sha256, 'mp4', raw, 'temp');
     } catch (err) {
       const wrapped =
@@ -555,16 +553,6 @@ export class AssetSynthesizer {
     }
     settle('ok'); // only after the clip is safely in the cache
     meta.pending?.onResult?.('completed');
-    if (meta.postProcess) {
-      try {
-        const out = await meta.postProcess(raw);
-        if (out?.applied) await this.cacheManager.put(sha256, 'mp4', out.buffer, 'temp');
-        else markNeedsFaststart(assetPath);
-      } catch (e) {
-        markNeedsFaststart(assetPath);
-        (meta.warn || ((m) => console.warn(m)))('faststart failed (' + e.message + '); the raw clip is cached and marked .needs-faststart.');
-      }
-    }
     return { assetPath, sha256, fromCache: false, fileSizeBytes: fs.statSync(assetPath).size };
   }
 
