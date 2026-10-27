@@ -15,9 +15,23 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { emitHyperframesProject, HYPERFRAMES_PIN } from './scene-project.mjs';
 
+/** Quotes one argument so a shell passes it through as a single literal token. */
+export function quoteArg(arg, platform = process.platform) {
+  const a = String(arg);
+  if (/^[\w@%+=:,./-]+$/.test(a)) return a;
+  if (platform === 'win32') return `"${a.replace(/"/g, '\\"')}"`;
+  return `'${a.replace(/'/g, "'\\''")}'`;
+}
+
 /** Default runner: `npx` on PATH. */
 function defaultRun(cmd, args, opts = {}) {
-  const res = spawnSync(cmd, args, { shell: true, encoding: 'utf8', ...opts });
+  // `shell: true` is needed for the npx .cmd shim on Windows, so quote every arg ourselves.
+  const res = spawnSync(cmd, args.map((a) => quoteArg(a)), {
+    shell: true,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    ...opts,
+  });
   return { status: res.status, stdout: res.stdout || '', stderr: res.stderr || '', error: res.error };
 }
 
@@ -70,9 +84,12 @@ export async function tryHyperframesRender(input, deps = {}) {
   const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath), ...extra]];
   try {
     const res = await run(cmd[0], cmd[1], { cwd: projectDir });
+    // Keep the CLI's own words: the exit code alone says nothing about why it failed.
+    const detail = res ? outputTail(res.stderr) || outputTail(res.stdout) : '';
+    if (res?.error) {
+      return { rendered: false, reason: `error: ${res.error.message || String(res.error)}`, ...(detail && { detail }) };
+    }
     if (res && typeof res.status === 'number' && res.status !== 0) {
-      // Keep the CLI's own words: the exit code alone says nothing about why it failed.
-      const detail = outputTail(res.stderr) || outputTail(res.stdout);
       return { rendered: false, reason: `hyperframes-exit-${res.status}`, ...(detail && { detail }) };
     }
   } catch (err) {

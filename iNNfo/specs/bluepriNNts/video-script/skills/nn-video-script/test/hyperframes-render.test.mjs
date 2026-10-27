@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { tryHyperframesRender } from '../scripts/hyperframes-render.mjs';
+import { tryHyperframesRender, quoteArg } from '../scripts/hyperframes-render.mjs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { renderVideo, splitPassthrough } from '../scripts/video-engine-cli.mjs';
 
 const manifest = {
@@ -104,4 +106,33 @@ test('splitPassthrough separates everything after a literal --', () => {
     passthrough: ['--workers', '2'],
   });
   assert.deepEqual(splitPassthrough(['render', 'm.json']), { argv: ['render', 'm.json'], passthrough: [] });
+});
+
+test('a spawn error (status null) is reported as error: <msg> with the output tail', async () => {
+  const dir = tmp();
+  const res = await tryHyperframesRender(
+    { manifest, outputPath: path.join(dir, 'out.mp4') },
+    { run: async () => ({ status: null, error: new Error('ENOBUFS'), stderr: 'x' }) },
+  );
+  assert.equal(res.rendered, false);
+  assert.equal(res.reason, 'error: ENOBUFS');
+  assert.equal(res.detail, 'x');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('quoteArg keeps spaces and shell metacharacters inside a single literal argument', () => {
+  assert.equal(quoteArg('a b', 'win32'), '"a b"');
+  assert.equal(quoteArg('a&b', 'win32'), '"a&b"');
+  assert.equal(quoteArg('say "hi"', 'win32'), '"say \\"hi\\""');
+  assert.equal(quoteArg('--workers', 'win32'), '--workers');
+  assert.equal(quoteArg('a b', 'linux'), "'a b'");
+  assert.equal(quoteArg('a&b', 'linux'), "'a&b'");
+  assert.equal(quoteArg("it's", 'linux'), String.raw`'it'\''s'`);
+  assert.equal(quoteArg('--workers', 'linux'), '--workers');
+});
+
+test('a passthrough after -- is warned about and ignored when the command is not render', () => {
+  const cli = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'video-engine-cli.mjs');
+  const res = spawnSync('node', [cli, 'bogus', '--', '--workers', '2'], { encoding: 'utf8' });
+  assert.match(res.stderr, /ignored.*--workers 2|--workers 2.*ignored/);
 });

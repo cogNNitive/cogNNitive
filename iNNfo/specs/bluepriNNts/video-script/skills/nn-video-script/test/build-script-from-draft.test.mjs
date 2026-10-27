@@ -84,3 +84,11 @@ test('with --draft, per-scene overlays come from the reviewed scene, not the dra
 test('overlay output is identical with and without --draft', () => {
   assert.equal(buildScript(reviewedOvl, draftOvl, cfg), buildScript(reviewedOvl, null, cfg));
 });
+
+test('a reviewed scene without an overlays key yields no overlays, with or without --draft', () => {
+  const rev = withOverlays([{ slug: '02-noticia', name: '02 Noticia', narration: 'Body', choice: { type: 'animation' } }]);
+  const dr = { scenes: [{ slug: '02-noticia', name: '02 Noticia', overlays: [{ id: 'p', type: 'caption', text: 'draft proposal', position: 'bottom' }] }] };
+  const md = buildScript(rev, dr, cfg);
+  assert.doesNotMatch(md, /draft proposal/);
+  assert.equal(md, buildScript(rev, null, cfg));
+});

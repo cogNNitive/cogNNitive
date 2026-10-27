@@ -32,6 +32,7 @@ test('a missing thumbnail is skipped, not fatal', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+// Coupling: the export logic is inline in the template, so we slice buildReviewed out by text markers; keep them in sync.
 // The export logic lives inline in the template; evaluate just `buildReviewed` against stub state.
 function loadBuildReviewed() {
   const html = fs.readFileSync(TEMPLATE, 'utf8');

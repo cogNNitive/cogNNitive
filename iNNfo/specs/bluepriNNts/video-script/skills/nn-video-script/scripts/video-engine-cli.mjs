@@ -702,6 +702,9 @@ async function main() {
   const { argv, passthrough } = splitPassthrough(process.argv.slice(2));
   const args = parseCliArgs(argv);
   const command = args._[0];
+  if (passthrough.length > 0 && command !== 'render') {
+    console.warn(`⚠️ [video-engine-cli] Arguments after "--" are ignored (only render forwards them): ${passthrough.join(' ')}`);
+  }
 
   if (!command) {
     console.error(USAGE);

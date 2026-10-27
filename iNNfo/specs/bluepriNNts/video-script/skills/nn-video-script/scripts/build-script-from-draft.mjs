@@ -109,7 +109,7 @@ export function buildScript(reviewed, draft, config) {
 
   const CATALOG = (rev.overlays && rev.overlays.length ? rev.overlays : d.overlays) || [];
 
-  // `assigned` = the reviewed scene's overlays (the decision); the draft scene's are only a fallback.
+  // `assigned` = the reviewed scene's overlays (the decision); the draft scene's apply only when no reviewed scene exists.
   function sceneOverlayLayers(scene, assigned) {
     const cat = Object.fromEntries(CATALOG.map((o) => [o.id, o]));
     const listed = assigned ?? scene.overlays ?? [];
@@ -152,7 +152,7 @@ export function buildScript(reviewed, draft, config) {
     lines.push('', narration, '');
     const layers = layersFor(scene, r ? r.choice : null);
     if (layers) lines.push(layers);
-    const ovls = scene.kind === 'fixed' ? '' : sceneOverlayLayers(scene, r?.overlays);
+    const ovls = scene.kind === 'fixed' ? '' : sceneOverlayLayers(scene, r ? r.overlays || [] : undefined);
     if (ovls) lines.push(ovls);
     return lines.join('\n');
   }
