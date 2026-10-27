@@ -21,6 +21,13 @@ function defaultRun(cmd, args, opts = {}) {
   return { status: res.status, stdout: res.stdout || '', stderr: res.stderr || '', error: res.error };
 }
 
+const DETAIL_MAX = 2000;
+
+/** Last `DETAIL_MAX` chars of a captured stream, trimmed; '' when there is nothing. */
+function outputTail(text) {
+  return String(text || '').trim().slice(-DETAIL_MAX);
+}
+
 /** Emit the project and copy the compiled public assets into `<project>/assets/`. */
 export function buildHyperframesProject(manifest, projectDir) {
   const built = emitHyperframesProject(manifest, { projectDir });
@@ -37,9 +44,10 @@ export function buildHyperframesProject(manifest, projectDir) {
 }
 
 /**
- * @param {{ manifest: object, outputPath: string, projectDir?: string, concurrency?: number, pin?: string }} input
+ * `extraArgs` are forwarded verbatim to `hyperframes render` (e.g. `--workers 2`).
+ * @param {{ manifest: object, outputPath: string, projectDir?: string, concurrency?: number, pin?: string, extraArgs?: string[] }} input
  * @param {{ run?: (cmd: string, args: string[], opts?: object) => any }} [deps]
- * @returns {Promise<{ rendered: true } | { rendered: false, reason: string }>}
+ * @returns {Promise<{ rendered: true } | { rendered: false, reason: string, detail?: string }>}
  */
 export async function tryHyperframesRender(input, deps = {}) {
   const { manifest, outputPath } = input;
@@ -58,11 +66,14 @@ export async function tryHyperframesRender(input, deps = {}) {
   // Attempt the render directly: `npx --yes hyperframes@<pin>` installs the pinned
   // CLI on demand. A failure (missing network, CLI error) is returned as a reason and
   // the caller raises a loud named error; there is no FFmpeg fallback.
-  const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath)]];
+  const extra = (input.extraArgs || []).map(String);
+  const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath), ...extra]];
   try {
     const res = await run(cmd[0], cmd[1], { cwd: projectDir });
     if (res && typeof res.status === 'number' && res.status !== 0) {
-      return { rendered: false, reason: `hyperframes-exit-${res.status}` };
+      // Keep the CLI's own words: the exit code alone says nothing about why it failed.
+      const detail = outputTail(res.stderr) || outputTail(res.stdout);
+      return { rendered: false, reason: `hyperframes-exit-${res.status}`, ...(detail && { detail }) };
     }
   } catch (err) {
     return { rendered: false, reason: `error: ${err?.message || String(err)}` };

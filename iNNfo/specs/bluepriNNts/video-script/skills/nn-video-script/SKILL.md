@@ -81,7 +81,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/video-engine-cli.mjs render renders/{ref}-vertical/manifest.json --output renders/{ref}-vertical/master_vertical.mp4
    # cheap fallback only (burned-in captions may crop): node scripts/render-vertical.mjs --source renders/{ref}/master.mp4 --out renders/{ref}/master_vertical.mp4
    ```
-   *A HyperFrames failure is a loud, non-zero error — there is no FFmpeg fallback. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
+   *A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr (stdout if empty) — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render` (e.g. `render <manifest> --output <mp4> -- --workers 2 --low-memory-mode`); environment variables are inherited by the CLI. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
 6b. **Assemble Master from Clips (optional)** — when some segments are pass-through or produced outside Remotion:
    ```bash
    node scripts/assemble-video.mjs <clip1> <clip2> ... --out renders/{ref}/master.mp4
