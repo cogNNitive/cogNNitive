@@ -4,8 +4,8 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | ~1,550 (excl. generated bundle); per slice 150-350 |
-| 400-line budget risk | Medium (each slice <=400; total High) |
+| Estimated changed lines | ~1,680 (excl. generated bundle); per slice 150-400 |
+| 400-line budget risk | Medium (each slice <=400, slice 2 at the limit; total High) |
 | Chained PRs recommended | Yes |
 | Suggested split | PR 1 -> PR 2 -> PR 3 -> PR 4 -> PR 5 -> PR 6 |
 | Delivery strategy | ask-on-risk |
@@ -22,11 +22,11 @@ Chain strategy: pending
 |------|------|-----------|-------|
 | 0 | Archive `trim-external-skill-ceremony` | PR 0 (or first commit of PR 1) | Prerequisite; docs-only |
 | 1 | Catalog `release_tag` + URL fallback | PR 1 | ~220; base = main/tracker |
-| 2 | Single install path | PR 2 | ~350; base = PR 1 |
-| 3 | status/update catalog coverage | PR 3 | ~250; base = PR 2 |
+| 2 | Single install path + content-hash record | PR 2 | ~400; base = PR 1 |
+| 3 | status/update catalog coverage + `modified locally` | PR 3 | ~290; base = PR 2 |
 | 4 | video-script pin + render | PR 4 | ~280; independent of 2-3 except `depends_on` reader |
 | 5 | MCP single writer | PR 5 | ~150; independent |
-| 6 | Preflight + docs | PR 6 | ~300; needs 2, 4 |
+| 6 | Preflight + docs | PR 6 | ~340; needs 2, 4 |
 
 Cross-change sequencing: `video-series-extension-points` also bumps video-script (blueprint V_0-4-0, skill V_0-6-0). Whichever change lands first owns those bumps; the second rebases and bumps to the next free version at apply time (guard-template-immutability). Slice 4 is the only slice here that touches video-script files.
 
@@ -51,12 +51,16 @@ Rules for all slices: strict TDD (RED test, GREEN, refactor); tests stub npm and
 - [ ] 2.2 GREEN: extract `ensureSkillNodeModules` (L430-L451), call from `installEmbeddedSkills`; reader on shared yaml-lite; `cli: {}` in `loadState`/`emptyState`.
 - [ ] 2.3 RED/GREEN: `agent_skills` CLI step runs `<skill>/node_modules/.bin/hyperframes skills update`, records `state.cli`.
 - [ ] 2.4 RED/GREEN: consent prefetch (tarball to tmp; menu lists skills, npm deps, CLI, env, binaries; one prompt).
-- [ ] 2.5 Regenerate bundle.
+- [ ] 2.5 RED: `scripts/lib/skill-content-hash` test (temp dir): `hashSkillDir` is stable, ignores `node_modules` and `.bak-*` at any depth, `diffSkillDir` lists changed/added/removed paths; install and update write `state.skills[<name>].files`.
+- [ ] 2.6 GREEN: create `scripts/lib/skill-content-hash.js`; record the hashes in `installEmbeddedSkills` after the skill is written.
+- [ ] 2.7 Regenerate bundle.
 
 ## Slice 3: status/update (PR 3)
 
 - [ ] 3.1 RED: `cmdStatus`/`cmdUpdate` rows for `state.blueprints` minus manifest: `outdated`, `unreleased`, current; update repairs drifted `nn-video-script`.
-- [ ] 3.2 GREEN: `catalogTemplate(entry, repo)` and catalog rows in `scripts/lib/skills-commands.js`; regenerate bundle.
+- [ ] 3.2 GREEN: `catalogTemplate(entry, repo)` and catalog rows in `scripts/lib/skills-commands.js`.
+- [ ] 3.3 RED: `status` shows `modified locally` for a hand-edited skill with an unchanged version (exit code unchanged), ignores `node_modules`/`.bak-*`, and does not flag a skill with no recorded hash; `update` on a modified skill prompts naming the modified files, overwrites on consent and leaves it untouched on decline.
+- [ ] 3.4 GREEN: use `diffSkillDir` in `cmdStatus`; route `cmdUpdate` through the existing consent prompt with the modified paths listed; regenerate bundle.
 
 ## Slice 4: video-script (PR 4)
 
@@ -72,8 +76,8 @@ Rules for all slices: strict TDD (RED test, GREEN, refactor); tests stub npm and
 
 ## Slice 6: Preflight + docs (PR 6)
 
-- [ ] 6.1 RED: `preflight-check.test.js`: catalog rows, wrong CLI version, binary missing, Node below floor, env warns without changing `exitCode`, optional MCP silent.
-- [ ] 6.2 GREEN: `skills/nn-preflight/scripts/preflight-check.js`; re-run tests with empty `HOME`/`USERPROFILE`; bump nn-preflight skill version if guarded.
+- [ ] 6.1 RED: `preflight-check.test.js`: catalog rows, wrong CLI version, binary missing, Node below floor, env warns without changing `exitCode`, optional MCP silent, hand-edited installed skill reported `modified locally` naming the file without changing `exitCode`.
+- [ ] 6.2 GREEN: `skills/nn-preflight/scripts/preflight-check.js` (reuse `diffSkillDir`); re-run tests with empty `HOME`/`USERPROFILE`; bump nn-preflight skill version if guarded.
 - [ ] 6.3 Delete dead `metadata.depends_on` in `skills/nn-sources/SKILL.md`, `skills/nn-console/SKILL.md` (bump versions).
 - [ ] 6.4 `docs/documentation/content/how-to/install-agent.md`: junctions/symlinks with copy fallback.
 - [ ] 6.5 Final: full verify, check-integrity, bundle drift (step 5b).

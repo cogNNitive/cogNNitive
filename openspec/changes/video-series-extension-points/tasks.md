@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | ~2,300 (S0 ~0, S1 ~330, S2 ~380, S3 ~280, S4 ~150, S5 ~250, S6 ~380, S7 ~250, S8 ~300) |
+| Estimated changed lines | ~2,350 (S0 ~0, S1 ~330, S2 ~380, S3 ~280, S4 ~200, S5 ~250, S6 ~390, S7 ~220, S8 ~300) |
 | 400-line budget risk | High |
 | Chained PRs recommended | Yes |
 | Suggested split | S0 spike (no PR) -> PR 1 ... PR 8 |
@@ -76,8 +76,8 @@ Each slice is revertible alone (revert its commits; S1 bumps stay valid).
 
 ## Slice 4: Frame (spec: model Frame Parameter; engine Names Are Parameters, Slot Contract frame scenario; design D18, D14)
 
-- [ ] 4.1 RED: `frame` resolves per scene; `frames/<name>.md` found episode>series>domain>skill; a series `frame.md` is ignored; unknown frame name fails naming it; dry-run prints `frame <name>: <path> (<source>)`.
-- [ ] 4.2 GREEN: create `SKILL/frames/neutral.md`; `lib/frame-tokens.mjs` keeps `parseFrameTokens`/`frameCss`, deletes `FRAME_FILE` and the `loadFrameTokens` walk (a `loadFrame(path)` reader replaces it); callers use `resolve('frame')` + `findNearest`.
+- [ ] 4.1 RED: `frame` resolves per scene; `frames/<name>.md` found episode>series>domain>skill; a series `frame.md` is ignored; dry-run prints `frame <name>: <path> (<source>)`. Missing-file rule (D21): a frame name with source `scene|video|series|domain` and no file throws `MissingAssetError` pre-compile naming the name, the level and every path searched, with nothing spent; a frame name with source `blueprint` and no file warns once and is skipped.
+- [ ] 4.2 GREEN: create `SKILL/frames/neutral.md`; `lib/frame-tokens.mjs` keeps `parseFrameTokens`/`frameCss`, deletes `FRAME_FILE` and the `loadFrameTokens` walk (a `loadFrame(path)` reader replaces it); callers use `resolve('frame')` + `findNearest`. Add the shared D21 check (`findNearest*` returns the paths tried on a miss; `MissingAssetError`; error-vs-warn by `source`) and run it in `compile` before any synthesis; S6 and S7 reuse it.
 - [ ] 4.3 Re-run catalog and guard; `node scripts/verify.js --only=video`.
 
 ## Slice 5: Draft tools (spec: skill Blueprint-Ships Draft Authoring Tools)
@@ -89,7 +89,7 @@ Each slice is revertible alone (revert its commits; S1 bumps stay valid).
 
 ## Slice 6: Slots + deletions (spec: ephemeral-overlays, engine Slot Contract, B-roll, Watermark; design D1, D4, D5)
 
-- [ ] 6.1 RED `overlay-emission.test.mjs`: root host mounts the component named by `components`; enter/exit and frame tokens reach it; `SlotContractError` names slot and variables; series `components:: [lower-third=pill]` mounts `pill.html`.
+- [ ] 6.1 RED `overlay-emission.test.mjs`: root host mounts the component named by `components`; enter/exit and frame tokens reach it; `SlotContractError` names slot and variables; series `components:: [lower-third=pill]` mounts `pill.html`; a user-level component name with no file fails pre-compile via the D21 check (name, level, paths searched).
 - [ ] 6.2 Create neutral fallbacks `SKILL/components/{title,lower-third,caption,quote,watermark,b-roll}.html` (b-roll honors `fit`, no motion).
 - [ ] 6.3 GREEN rewrite `scripts/overlay-blocks.mjs`; delete `DEFAULT_OVERLAY_BLOCKS`, `resolveOverlayBlock`, `overlayHostMarkup`, `renderOverlay`, `data-block`.
 - [ ] 6.4 Root overlay hosts in `scene-project.mjs`; drop `OVERLAY_HOST_ANCHOR`, `seriesFrame`/`sceneBlock`, `#0b0b0f`.
@@ -100,7 +100,7 @@ Each slice is revertible alone (revert its commits; S1 bumps stay valid).
 
 ## Slice 7: Sounds (spec: engine Sound Effects Bound To Engine Events, Names Are Parameters; design D6, D12)
 
-- [ ] 7.1 RED `sound-events.test.mjs`: each key's time (`video-start` 0, `video-end` = total minus probed length, boundaries skip scene 0, overlay enter/exit, `layer-enter.<type>`); per-slot key; unresolved key silent without warning; missing file silent with one warning; no `data-duration`.
+- [ ] 7.1 RED `sound-events.test.mjs`: each key's time (`video-start` 0, `video-end` = total minus probed length, boundaries skip scene 0, overlay enter/exit, `layer-enter.<type>`); per-slot key; unresolved key silent without warning; D21 for sounds: a name with a user-level source and no file throws `MissingAssetError` pre-compile with nothing spent (name, level, paths searched), a name with source `blueprint` and no file is skipped with one warning and the render succeeds; no `data-duration`.
 - [ ] 7.2 GREEN add `kind:'sfx'` tracks with `resolveKeyed('sounds', ...)` + `findNearestByStem` + `stageAsset` in `video-engine-cli.mjs`; conditional `data-duration` in `scene-project.mjs`.
 - [ ] 7.3 Grep test: no sound name in `SKILL/scripts/`.
 - [ ] 7.4 Re-run catalog and guard; `node scripts/verify.js --only=video`.

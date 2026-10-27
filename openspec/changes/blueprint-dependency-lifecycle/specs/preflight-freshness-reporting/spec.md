@@ -22,6 +22,16 @@ For each installed catalog bluepriNNt, `preflight-check.js` MUST evaluate its `d
 - WHEN `preflight-check.js` runs
 - THEN it reports the floor and the detected version
 
+### Requirement: Preflight Reports Locally Modified Installed Skills
+
+`preflight-check.js` MUST recompute the content hashes of each installed skill that has a recorded hash in `bootstrap-state.json` (same exclusions as `skills-manager.js`) and report a differing skill as `modified locally`, naming the differing files. The report MUST be a warning and MUST NOT by itself change `exitCode`.
+
+#### Scenario: Modified skill is a warning
+- GIVEN an installed skill with a hand-edited file and an unchanged version
+- WHEN `preflight-check.js` runs
+- THEN it reports `modified locally` naming the file
+- AND `exitCode` is unchanged
+
 ## MODIFIED Requirements
 
 ### Requirement: Uninstalled Optional Catalog Blueprints Are Ignored in Preflight

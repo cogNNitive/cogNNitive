@@ -16,7 +16,7 @@ write goes through one guarded writer. `SKILL` = `iNNfo/specs/bluepriNNts/video-
 |---|---|---|---|---|
 | D1 | Slot contract | The fallback `components/<slot>.html`'s `data-composition-variables` IS the contract; a resolved component must declare a superset, else `SlotContractError: slot "lower-third": <path> missing variables: accent, exit` | `slots.json` schema | One source of truth |
 | D2 | Walker | `SKILL/scripts/lib/nearest.mjs`: `findNearest(startDir, rel, {stopDir, fallbackDir})`, `findNearestByStem`, `findSeriesRoot(startDir, domainRoot)` (moved from `video-engine-cli.mjs:63`) | Walker per concern | Components, sounds, frames, series doc: one walker |
-| D3 | Walk bounds | Files: script dir up to `resolveWorkspace(scriptDir).root` inclusive, then skill fallback (components, frames) or silence (sounds). Series root: nearest ancestor holding `series_NN.md`, `series_rules.md` or `script_template.md`, **strictly below** the domain root | Unbounded series walk (today) | An episode outside a series folder, or a marker at the domain root, never yields a series level |
+| D3 | Walk bounds | Files: script dir up to `resolveWorkspace(scriptDir).root` inclusive, then skill fallback (components, frames); a miss is judged by D21. Series root: nearest ancestor holding `series_NN.md`, `series_rules.md` or `script_template.md`, **strictly below** the domain root | Unbounded series walk (today) | An episode outside a series folder, or a marker at the domain root, never yields a series level |
 | D4 | Mount location | Overlay and animation hosts in the root `index.html` with global `data-start` | Inside scene sub-compositions | One nesting level; global times |
 | D5 | Staging | Components to `<project>/components/<name>.html`, authored projects to `<project>/authored/<slug>/` (skip `.hyperframes/`); sounds via `stageAsset` | Collapsing the triple copy | Non-goal; no `..` in any `src` |
 | D6 | Sound events | CLI appends `kind:'sfx'` entries to `manifest.tracks.audio` (times in D12); no `data-duration` | New emitter path | Reuses `audioEls` |
@@ -34,6 +34,7 @@ write goes through one guarded writer. `SKILL` = `iNNfo/specs/bluepriNNts/video-
 | D18 | Frame | `frame` is a cascade parameter; `frames/<name>.md` via D2/D3; `frame-tokens.mjs` keeps `parseFrameTokens`/`frameCss`, loses `FRAME_FILE` and the `loadFrameTokens` walk | Keep nearest `frame.md` | One resolution path |
 | D19 | Providers | Delete `elevenlabs`/`edge-tts`: Template `tool` options `[wavespeed, replicate]`; `_useMiniMax` drops the ElevenLabs key test; `'elevenlabs'` fallback and comments go | Keep as aliases | Phantom: no request path exists |
 | D20 | TTS cache identity | `voiceOptions` keeps its internal key `model` holding the cascaded `tts_model`; the Template `tool` is no longer a model fallback | Rename the hash key | Renaming `model::`→`tts_model::` must not re-bill cached narration |
+| D21 | Missing named file | The D10 `resolve`/`resolveKeyed` result already carries `source`. After the walk, a name with no file and `source !== 'blueprint'` throws `MissingAssetError: sound "whoosh" (set by series) not found; searched: <every path>`; with `source === 'blueprint'` it is skipped with one warning. `findNearest*` returns the paths it tried on a miss. The check runs for every resolved component, sound and frame in `compile` before any synthesis or render | Warn for all (field failure: render aborted mid-way); error for all (breaks a fresh install, which ships no sound files) | Severity follows who asked for the name: a user-level name is a promise, a blueprint default is a hint |
 
 ### Cascade parameters (one shared Field Definition each)
 
@@ -57,7 +58,7 @@ Series-only (not cascaded): `title` (`concept:: [Video, Series]`), `presenter_as
 ```
 scriptDir ─findSeriesRoot→ series_NN.md ─ <root>/video-defaults_NN.md ─ PKG/defaults/video-defaults_NN.md
                       └────────── cascade.resolve(param, bags) ──────────┘
-names → findNearest(components/<n>.html | sounds/<n>.* | frames/<n>.md) → contract → stage
+names → findNearest(components/<n>.html | sounds/<n>.* | frames/<n>.md) → D21 (source) → contract → stage
 compile(values, animationDurations) → manifest(+sfx) → buildProject → writeGuarded → render
 ```
 
@@ -96,7 +97,7 @@ Strict TDD, `node --test` under `SKILL/test/`, RED before GREEN.
 
 | Layer | What | Approach |
 |---|---|---|
-| Unit | precedence/source/keyed; walker bounds incl. no-series episode; locator; contract diff; guard; event times; `max()`; collisions; immutability `defaults/` | Temp-dir fixtures |
+| Unit | precedence/source/keyed; D21 error vs warning by source, searched paths listed; walker bounds incl. no-series episode; locator; contract diff; guard; event times; `max()`; collisions; immutability `defaults/` | Temp-dir fixtures |
 | Integration | byte-identical emission; no `..`; grep: no sound name, default literal, `elevenlabs`, `edge-tts`, `00-gancho` in `SKILL/scripts/` | Extend suites; migrate `model-cascade.test.mjs` |
 | Manual | `hyperframes check --json` = 0 errors | Maintainer, pin 0.8.192 |
 

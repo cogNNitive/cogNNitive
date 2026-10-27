@@ -26,6 +26,37 @@ A bluepriNNt skill MAY declare top-level frontmatter `depends_on` with these key
 - WHEN validation runs
 - THEN it fails naming the key
 
+### Requirement: Locally Modified Installed Skills Are Detected
+
+When installing or updating a skill, `skills-manager.js` MUST record in `bootstrap-state.json` a SHA-256 content hash of every file of the installed skill directory, excluding `node_modules` and `.bak-*` entries. `status` MUST recompute the hashes and report a skill whose files differ from the record (changed, added or removed) as `modified locally`, independently of version or tag equality. The report MUST be a warning and MUST NOT change the exit code. `update` MUST NOT overwrite a modified skill without consent: it MUST use the existing consent prompt, which MUST name the modified files; declining MUST leave that skill untouched. A skill with no recorded hash MUST NOT be reported as modified. No additional flag is introduced.
+
+#### Scenario: Patched skill with an unchanged version
+- GIVEN `nn-video-script` is installed and a file in it is edited by hand, version unchanged
+- WHEN `skills-manager.js status` runs
+- THEN the skill shows `modified locally`
+- AND the exit code is unchanged
+
+#### Scenario: Excluded paths are ignored
+- GIVEN an installed skill whose `node_modules` content changes and a `.bak-20261027` entry is added
+- WHEN `status` runs
+- THEN the skill is not reported as modified
+
+#### Scenario: Update asks before overwriting a modified skill
+- GIVEN a modified installed skill whose catalog version is newer
+- WHEN `skills-manager.js update` runs
+- THEN the consent prompt names the modified files
+- AND the skill is overwritten only if the user consents, otherwise left untouched
+
+#### Scenario: Install records the hashes
+- GIVEN a skill is installed or updated
+- WHEN `bootstrap-state.json` is read
+- THEN it holds one hash per installed file, none for `node_modules` or `.bak-*`
+
+#### Scenario: No recorded hash is not a modification
+- GIVEN a skill installed before this change, with no recorded hash
+- WHEN `status` runs
+- THEN it is not reported as `modified locally`
+
 ## MODIFIED Requirements
 
 ### Requirement: Unified Skill and Template Lifecycle Management

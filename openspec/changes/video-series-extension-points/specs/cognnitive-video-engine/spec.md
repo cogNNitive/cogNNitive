@@ -14,9 +14,13 @@ be a cascade value (a name; see video-script-model "Universal Parameter Cascade"
 MUST locate the file for a name as `components/<name>.html`, `sounds/<name>.*` or
 `frames/<name>.md` by one nearest-folder walk from the script's folder up to the domain root
 (episode, then series, then domain), then the skill's `components/` or `frames/` fallback. There
-MUST be no other frame discovery (no nearest `frame.md`). A sound name whose file is not found
-MUST be silent and MUST emit one warning naming it; an event with no resolved name MUST be
-silent without warning. A frame name with no file at any level MUST fail with a named error.
+MUST be no other frame discovery (no nearest `frame.md`). When no file is found for a
+component, sound or frame name, the outcome MUST depend on the cascade level that supplied the
+name. A name set at any user level (layer, scene, video, series, domain Video Defaults) MUST
+fail before any render or spend (pre-compile) with a named `MissingAssetError` giving the name,
+the level and every path searched. A name supplied only by the blueprint Video Defaults MUST be
+skipped with one warning naming it, so a fresh install still renders. An event with no resolved
+name MUST be silent without warning.
 
 #### Scenario: Nearest component file wins
 
@@ -43,11 +47,24 @@ silent without warning. A frame name with no file at any level MUST fail with a 
 - WHEN a scene boundary occurs
 - THEN that file plays and engine code contains no `whoosh` literal
 
-#### Scenario: Missing sound file warns and is silent
+#### Scenario: Blueprint-only name with no file warns and is skipped
 
-- GIVEN `scene-boundary` resolves to `whoosh` and no `sounds/whoosh.*` exists at any level
-- WHEN the project is emitted
+- GIVEN `scene-boundary` resolves to `whoosh` with source `blueprint` and no `sounds/whoosh.*` exists at any level
+- WHEN `compile` runs
 - THEN no sound is emitted, one warning names `whoosh`, and rendering succeeds
+
+#### Scenario: User-level name with no file fails before spend
+
+- GIVEN the series sets `sounds:: [overlay-enter.title=click]` and no `sounds/click.*` exists at any level
+- WHEN `compile` runs
+- THEN it fails before any synthesis or render with `MissingAssetError` naming `click`, level `series` and every path searched
+- AND nothing is spent
+
+#### Scenario: Unknown frame name set by the user fails
+
+- GIVEN a scene sets `frame:: night` and no `frames/night.md` exists at any level
+- WHEN `compile` runs
+- THEN it fails pre-compile naming `night`, level `scene` and every path searched
 
 ### Requirement: Slot Contract
 

@@ -16,6 +16,7 @@ A user who adopts `video-script` gets machine-global dependencies (embedded skil
 | 6 | Two install paths: MCP hydration writes no state, no junctions | `iNNfo/packages/nn-mcp/src/tools/spec.ts` L627-L652 |
 | 7 | Catalog path is repo-relative, so installed manager fails | `skills-commands.js` L1050 |
 | 8 | Docs say "copies, never symlinks"; code creates junctions | `docs/documentation/content/how-to/install-agent.md` L27; `skills-commands.js` L1635 |
+| 9 | Version/tag comparison cannot see a hand-patched installed skill that keeps its version, so a session debugged a local fork believing it was the distributed engine | Field incident, `nn-video-script` in the innteresante domain (out of repo) |
 
 ## Lifecycle
 
@@ -32,6 +33,7 @@ A user who adopts `video-script` gets machine-global dependencies (embedded skil
 - One `depends_on` shape (cli pins, env, binaries, node floor, optional_mcp); npm deps stay in `package.json`; external skills stay in the bluepriNNt `skills:` contract.
 - One install path for embedded skills, with state recording, junctions, and npm self-heal.
 - status/update/preflight cover installed catalog bluepriNNts and their embedded skills and declarations.
+- Local modification detection: install records a per-file content hash of each installed skill (excluding `node_modules` and `.bak-*`); status and preflight report `modified locally` (warning, not blocking); `update` does not overwrite a modified skill without the existing consent prompt, which names the modified files. No new flag.
 - `release_tag` names a ref that contains the entry's content.
 - CLI pin enforced, with no silent `npx --yes` install.
 - The catalog falls back to the published URL.
@@ -51,10 +53,10 @@ A user who adopts `video-script` gets machine-global dependencies (embedded skil
 ### Modified Capabilities
 - `blueprint-external-skills`: HyperFrames skills declared and installed through it.
 - `on-demand-blueprint-hydration`: single writer; MCP stops projecting skills.
-- `preflight-freshness-reporting`: catalog entries and `depends_on` checks.
+- `preflight-freshness-reporting`: catalog entries, `depends_on` checks and `modified locally` reporting.
 - `skills-manager-node-modules-preservation`: self-heal applies to embedded skills.
 - `video-skill-dependency-bundling`: HyperFrames pin, env, ffmpeg, Node floor.
-- `template-skill-bundling`: `depends_on` shape; update covers catalog bluepriNNts.
+- `template-skill-bundling`: `depends_on` shape; update covers catalog bluepriNNts; content hash recorded at install, `modified locally` in status, consented overwrite on update.
 
 ## Dependencies
 - Archive `openspec/changes/trim-external-skill-ceremony` first. Its code is applied; only the spec sync (task 4.3) is pending.
@@ -66,6 +68,7 @@ A user who adopts `video-script` gets machine-global dependencies (embedded skil
 | Changing `release_tag` derivation touches the release flow | Med | Design picks the stamp point; keep `--check` deterministic |
 | MCP users lose auto-projection | Med | Hydration returns the exact install command |
 | Stricter pin breaks existing renders | Low | Preflight names the fix |
+| Skills installed before this change have no recorded hash | Med | Reported as unknown, never as modified; re-running `update` records one (no migration code) |
 
 ## Rollback Plan
 Revert the change commits. No data migration; state entries are additive.
@@ -74,8 +77,10 @@ Revert the change commits. No data migration; state entries are additive.
 - [ ] Drifted `nn-video-script` copies show `outdated` in `status`, and `update` fixes them.
 - [ ] Installing `video-script` from an installed manager fetches content matching `adopted`.
 - [ ] A wrong HyperFrames version or a missing key is reported by preflight; render never self-installs.
+- [ ] A hand-patched installed skill with an unchanged version shows `modified locally` in `status` and preflight, and `update` asks consent naming the modified files before overwriting it.
 
 ## Resolved assumptions (orchestrator defaults, pending maintainer review)
 1. HyperFrames agent skills count as delivered by the pinned CLI (`hyperframes@<pin> skills update`). One pin covers the CLI and its skills, and the install records them in state under that pin. Declaring them also as external `skills:` git entries would duplicate HyperFrames' own delivery channel and add a second version to track (YAGNI).
 2. Missing required env keys: preflight warns only. The stage that needs the key fails fast.
 3. One consent prompt per bluepriNNt, listing every item it will install.
+4. Local-modification detection is maintainer-approved. The existing consent prompt is enough for overwrite protection; no `--force`/`--keep-local` flag (YAGNI).

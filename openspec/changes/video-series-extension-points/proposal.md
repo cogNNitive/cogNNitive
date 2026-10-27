@@ -23,6 +23,7 @@ stop regeneration from destroying human edits.
 | Series settings are a side JSON (`video.series.json`) with a Spanish scene slug hardcoded (`00-gancho`) | `build-script-from-draft.mjs:22-68` |
 | `frame.md` has its own nearest-file discovery, separate from every other setting | `lib/frame-tokens.mjs` (prerequisite branch) |
 | B-roll zoom-in is required by spec but implemented nowhere (Remotion-era, 50633fac) | `openspec/specs/cognnitive-video-engine/spec.md:168-180` |
+| A missing sound file is silent, so a field render ran (and spent) then aborted mid-way with `audio_processing_failed: Source not found for audio element nn-sfx-whoosh-0` when the series lacked the SFX file | Field render, innteresante domain (out of repo) |
 
 ## Scope
 
@@ -33,7 +34,7 @@ stop regeneration from destroying human edits.
 4. **Parameter-specific names**: `tts_model`, `image_model`, `avatar_model` at every level. Template `model` becomes `tts_model`; Layer `model` becomes `avatar_model`.
 5. **`frame` parameter**: `frame:: <name>` at scene, video, series, domain; the walk locates `frames/<name>.md`. Replaces `frame.md` discovery.
 6. **Slot contracts** for `title`, `lower-third`, `caption`, `quote`, `watermark`, `b-roll`: the fallback's `data-composition-variables` is the contract; violations raise `SlotContractError`.
-7. **Files vs parameters**: WHICH component/sound/frame is a cascade value (a name); one folder walk locates `components/<name>.html`, `sounds/<name>.*`, `frames/<name>.md`: episode > series > domain > skill fallback. A missing sound file is silence plus one warning.
+7. **Files vs parameters**: WHICH component/sound/frame is a cascade value (a name); one folder walk locates `components/<name>.html`, `sounds/<name>.*`, `frames/<name>.md`: episode > series > domain > skill fallback. A missing file is judged by the level that set the name: a name set at any user level (layer, scene, video, series, domain Video Defaults) with no file found fails at pre-compile, before any render or spend, naming the name, the level and every path searched; a name that comes only from the blueprint Video Defaults and has no file is skipped with a warning, so a fresh install still renders. Applies to components, sounds and frames.
 8. **Sound events**: `video-start`, `video-end`, `scene-boundary`, `overlay-enter.<slot>`, `overlay-exit.<slot>` (text slots), `layer-enter.<b-roll|animation|presenter>`.
 9. **Layer `type:: animation`**: authored HyperFrames project mounted as a sub-composition with its own audio; scene = `max(narration, animation)`; target durations exposed.
 10. **Regeneration guard**: `.nn-emit.json` hash record; edited files refuse regeneration and are listed.
@@ -109,6 +110,7 @@ Reinstall the clean skill and drop the engine patches. Copy the package's `defau
 | 11 | `elevenlabs` and `edge-tts` are deleted; defaults use MiniMax | Maintainer-confirmed |
 | 12 | `transition` default `none` | Maintainer-confirmed |
 | 13 | The domain Video Defaults copy is made by an agent step in SKILL.md, not by code | Design default, pending review |
+| 14 | Missing-file severity follows the cascade `source`: user-level name = pre-compile error; blueprint-only name = warning and skip | Maintainer-confirmed |
 
 ## Success Criteria
 
@@ -118,4 +120,5 @@ Reinstall the clean skill and drop the engine patches. Copy the package's `defau
 - [ ] An episode component/frame file overrides the series one, which overrides the fallback.
 - [ ] An `animation` Layer renders with its own audio and no playback-rate retime.
 - [ ] Regeneration refuses a hand-edited file and names it.
+- [ ] A user-level name with no file fails before any spend naming the name, level and paths searched; a blueprint-only name with no file warns and renders.
 - [ ] No `elevenlabs`/`edge-tts`/`ELEVENLABS_API_KEY`, series-language, sound name or cascade default value in engine code. `node scripts/verify.js` is green.

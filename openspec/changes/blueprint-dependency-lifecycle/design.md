@@ -20,6 +20,8 @@ Reuse the machinery that already exists and make it the only path. `cmdInstallBl
 | MCP hydration | Delete `projectEmbeddedSkills` and the catalog fetch branch in `hydrateBlueprint` (`spec.ts` L627-L652, L757-L804). Return `{success:false, source:'catalog', installCommand:'node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint <name>', message}` | MCP keeps writing and also writes state | Single writer. Once installed, the existing `global-cache` tier resolves it |
 | Render pin | `hyperframes-render.mjs` resolves `<skillDir>/node_modules/.bin/hyperframes`. If it is missing, or `node_modules/hyperframes/package.json` version ≠ pin, return `{rendered:false, reason:'hyperframes-missing'│'hyperframes-version-mismatch: <found>≠<pin>'}`. `ensure-hyperframes.mjs` becomes check-only and prints the fix (`skills-manager.js update video-script`) | Keep `npx --yes` | No silent install. A wrong version is detected, not just a missing one (L48-L52 accept any version) |
 | Env keys | Preflight warns only; the consuming stage fails fast | Block | Resolved assumption 2 |
+| Local modification | At install/update, record `state.skills[<name>].files = { "<posix rel path>": "<sha256 hex>" }`, one SHA-256 per file, over the installed directory excluding `node_modules/` and `.bak-*` entries at any depth. `status` and preflight re-walk the directory with the same helper and diff against the record: any changed, added or removed file makes the skill `modified locally` (a warning; exit code unchanged). `update` on a modified skill goes through the existing consent prompt, which lists the differing paths; declining skips that skill. No new flag | One directory-level digest (cannot name files); mtime/size (changes on copy); git diff against the tag (needs network and a repo); a `--force` flag (YAGNI) | Version/tag equality cannot see an in-place patch. A per-file map names the modified files for the prompt and is the only record needed. Hashing at install time costs one read of files just written |
+| Skills with no recorded hash | Report no modification status (unknown); never `modified locally` | Treat as modified | Pre-existing installs get a record on their next `update`; no migration code |
 
 ## Data Flow
 
@@ -39,7 +41,8 @@ Reuse the machinery that already exists and make it the only path. `cmdInstallBl
 | `scripts/blueprint-catalog.mjs` | Modify | Per-entry `resolveReleaseTag` via `git ls-tree` |
 | `scripts/build-docs.mjs` | Modify | Spawn the generator into `docs/innfo/blueprints/` |
 | `iNNfo/packages/nn-mcp/src/tools/spec.ts` | Modify | Delete projection/fetch, return `installCommand` |
-| `skills/nn-preflight/scripts/preflight-check.js` | Modify | Catalog-bluepriNNt rows. Per-skill `depends_on`: env (warn), binaries on PATH, node floor, CLI version vs package.json |
+| `scripts/lib/skill-content-hash.js` | Create | `hashSkillDir(dir)` and `diffSkillDir(dir, recorded)` per the Local modification decision; shared by the manager and preflight like `yaml-lite` |
+| `skills/nn-preflight/scripts/preflight-check.js` | Modify | Catalog-bluepriNNt rows. Per-skill `depends_on`: env (warn), binaries on PATH, node floor, CLI version vs package.json. `modified locally` warning via `diffSkillDir` |
 | `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/{package.json (Create), SKILL.md, scripts/scene-project.mjs, ensure-hyperframes.mjs, hyperframes-render.mjs}` | Modify | Pin, new frontmatter (drop `engine:`/`providers:`), fix "Remotion" text |
 | `skills/nn-sources/SKILL.md`, `skills/nn-console/SKILL.md` | Modify | Remove dead `depends_on` |
 | `docs/documentation/content/how-to/install-agent.md` | Modify | Junctions/symlinks with copy fallback |
@@ -48,7 +51,7 @@ Reuse the machinery that already exists and make it the only path. `cmdInstallBl
 
 | Layer | What | Harness |
 |---|---|---|
-| Unit | Self-heal on embedded install, `state.cli`, catalog rows outdated/unreleased, URL fallback order, consent menu content | `scripts/skills-manager.test.js` (existing node runner), fixtures with temp dirs + injected `fetchString`/spawn |
+| Unit | Self-heal on embedded install, `state.cli`, catalog rows outdated/unreleased, URL fallback order, consent menu content, hash record at install, `modified locally` in status, consent on update names modified files | `scripts/skills-manager.test.js` (existing node runner), fixtures with temp dirs + injected `fetchString`/spawn |
 | Unit | `release_tag` per entry (temp git repo, two tags, one changed entry) | `scripts/blueprint-catalog` test via node |
 | Unit | `hydrateBlueprint` returns `installCommand` and writes nothing | nn-mcp vitest (`spec.spec.ts`) |
 | Unit | Render refuses on missing/mismatched pin and never calls `npx`; ensure check-only | `nn-video-script/test/*.test.mjs` with injected `run`/fs |
@@ -56,14 +59,14 @@ Reuse the machinery that already exists and make it the only path. `cmdInstallBl
 
 No `npm install` from the worktree: node_modules are junctions into the primary checkout. Stub npm in tests.
 
-## Rollout / Slices (≈1,450 changed lines excluding the generated bundle)
+## Rollout / Slices (≈1,680 changed lines excluding the generated bundle)
 
 1. Catalog: `release_tag` + URL fallback + build-docs (~220).
-2. Single install path: self-heal, `depends_on` reader, `state.cli`, consent prefetch (~350).
-3. status/update catalog coverage (~250).
+2. Single install path: self-heal, `depends_on` reader, `state.cli`, consent prefetch, content-hash helper and install-time record (~400).
+3. status/update catalog coverage, `modified locally`, consented overwrite (~290).
 4. video-script pin + render/ensure + frontmatter migration (~280).
 5. MCP hydration single-writer (~150).
-6. Preflight + docs (~300).
+6. Preflight + docs, `modified locally` warning (~340).
 
 No migration: re-running `update` repairs drifted copies.
 
