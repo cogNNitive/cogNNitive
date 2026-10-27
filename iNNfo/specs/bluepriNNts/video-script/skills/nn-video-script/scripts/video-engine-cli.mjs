@@ -26,13 +26,14 @@ import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
-import { loadCascadeBags, resolve } from './lib/cascade.mjs';
+import { loadCascadeBags, resolve, resolveKeyed } from './lib/cascade.mjs';
 import { findNearest, findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
 import { checkMissingAsset } from './lib/missing-asset.mjs';
+import { assertSlotContract } from './overlay-blocks.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 import { tryHyperframesRender } from './hyperframes-render.mjs';
 
@@ -86,6 +87,37 @@ export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKI
     if (!primary) primary = { name, source: entry.source, ...loadFrame(framePath) };
   }
   return primary;
+}
+
+/**
+ * Resolves the slot components an overlay set mounts (design D1/D5/D21). For each
+ * slot, the `components` cascade gives a name, the nearest-folder walk finds
+ * `components/<name>.html` (episode > series > domain > skill fallback), the D21
+ * rule judges a miss, and the slot contract is asserted against the skill's
+ * fallback. A component that declares fewer variables than its slot throws
+ * `SlotContractError` before anything is spent.
+ * @param {{ slots: string[], bags: object, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
+ * @returns {Record<string, { name: string, path: string }>}
+ */
+export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+  const resolved = {};
+  for (const slot of slots || []) {
+    const { value: name, source } = resolveKeyed('components', slot, bags || {});
+    if (!name) continue;
+    const { path: compPath, searched } = findNearest(scriptDir, `components/${name}.html`, {
+      stopDir: workspaceRoot,
+      fallbackDir: skillDir,
+    });
+    if (!compPath) {
+      checkMissingAsset({ kind: 'component', name, source, searched });
+      continue;
+    }
+    const contractPath = path.join(skillDir, 'components', `${slot}.html`);
+    const contractHtml = fs.existsSync(contractPath) ? fs.readFileSync(contractPath, 'utf8') : '';
+    assertSlotContract(slot, { path: compPath, html: fs.readFileSync(compPath, 'utf8'), contractHtml });
+    resolved[slot] = { name, path: compPath };
+  }
+  return resolved;
 }
 
 /**
@@ -369,6 +401,15 @@ export async function compileVideo(options) {
     scriptDir,
     workspaceRoot: loaded.root,
   });
+  // Resolve every slot component an overlay uses BEFORE any synthesis (design
+  // D1/D21): a user-level name with no file fails here, with nothing spent, and a
+  // component that breaks its slot contract fails before the render.
+  const overlaySlots = [
+    ...new Set(
+      parsed.scenes.flatMap((sc) => (Array.isArray(sc.layers) ? sc.layers : []).filter((l) => l.kind === 'overlay').map((l) => l.type)),
+    ),
+  ];
+  const components = resolveComponents({ slots: overlaySlots, bags, scriptDir, workspaceRoot: loaded.root });
   let audioAssets = {};
   let cachedAssetsUsed = 0;
   let newAssetsSynthesized = 0;
@@ -470,6 +511,10 @@ export async function compileVideo(options) {
   // Absent a frame, the manifest carries nothing and the emitter keeps its own
   // defaults.
   if (frameInfo) manifest.metadata.frame = { path: frameInfo.path, tokens: frameInfo.tokens };
+
+  // The resolved slot components ride on the manifest so the emitter mounts the
+  // right file and the render driver stages it into `<project>/components/`.
+  manifest.metadata.components = components;
 
   // Keep the human-visible local audio staging dir next to the script (developer aid).
   const localAudioDir = path.join(scriptDir, 'audio');

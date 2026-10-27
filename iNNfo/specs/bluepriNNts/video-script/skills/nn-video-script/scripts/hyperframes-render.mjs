@@ -15,6 +15,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { emitHyperframesProject, HYPERFRAMES_PIN } from './scene-project.mjs';
+import { SLOT_OF } from './overlay-blocks.mjs';
 
 /** Quotes one argument so a shell passes it through as a single literal token. */
 export function quoteArg(arg, platform = process.platform) {
@@ -45,9 +46,7 @@ function outputTail(text) {
 
 /** Emit the project and copy the compiled public assets into `<project>/assets/`. */
 export function buildHyperframesProject(manifest, projectDir) {
-  // A Series `frame.md` (palette + type) rides on the manifest so the emitter can
-  // style overlays without re-reading the workspace.
-  const built = emitHyperframesProject(manifest, { projectDir, seriesFrame: manifest?.metadata?.frame });
+  const built = emitHyperframesProject(manifest, { projectDir });
   const publicDir = manifest?.metadata?.publicDir;
   const assetsDir = path.join(projectDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
@@ -57,7 +56,31 @@ export function buildHyperframesProject(manifest, projectDir) {
       if (fs.statSync(src).isFile()) fs.copyFileSync(src, path.join(assetsDir, entry));
     }
   }
+  stageComponents(manifest, projectDir);
   return built;
+}
+
+/**
+ * Stages each resolved slot component into `<project>/components/<name>.html`
+ * (design D5), so no `src` in the emitted tree climbs (`..`). A manifest that
+ * carries no resolved component map (a raw manifest.json) falls back to the
+ * skill's neutral fallback for every slot its overlays use.
+ */
+function stageComponents(manifest, projectDir) {
+  const overlays = manifest?.tracks?.overlays || [];
+  const resolved = manifest?.metadata?.components || {};
+  const slots = new Set(overlays.map((o) => SLOT_OF[o.type]).filter(Boolean));
+  if (slots.size === 0) return;
+  const componentsDir = path.join(projectDir, 'components');
+  fs.mkdirSync(componentsDir, { recursive: true });
+  const skillDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  for (const slot of slots) {
+    const entry = resolved[slot];
+    const name = entry?.name || slot;
+    const src = entry?.path || path.join(skillDir, 'components', `${name}.html`);
+    if (!fs.existsSync(src)) continue;
+    fs.copyFileSync(src, path.join(componentsDir, `${name}.html`));
+  }
 }
 
 /**
