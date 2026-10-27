@@ -19,6 +19,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { isKnowledgeModel, slugify } from './lib/knowledge-model.mjs';
+import { resolve } from './lib/cascade.mjs';
 
 /**
  * @typedef {Object} LowerThirdProps
@@ -37,9 +38,6 @@ import { isKnowledgeModel, slugify } from './lib/knowledge-model.mjs';
  * @property {string} [exitAnimation]
  * @property {Record<string, unknown>} config
  */
-
-/** Background music volume when a scene declares `music::`. */
-export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 
 /**
  * `type::` → renderer binding (design table). `kind` says whether the Layer is a
@@ -272,7 +270,7 @@ export class RemotionSceneCompiler {
    * Lowers a structured iNNfo model into the internal
    * `{ title, fps, width, height, scenes[] }` shape.
    * @param {object} model read_knowledge-shaped model
-   * @param {{ templates?: Record<string, { tool?: string, voice?: string, model?: string }>, fps?: number, width?: number, height?: number }} [options]
+   * @param {{ templates?: Record<string, { tool?: string, voice?: string, model?: string }>, bags?: Record<string, Record<string, unknown>>, fps?: number, width?: number, height?: number }} [options]
    */
   lowerKnowledgeModel(model, options = {}) {
     const elements = model?.elements || {};
@@ -280,23 +278,32 @@ export class RemotionSceneCompiler {
     const sceneElements = elements.Scene || [];
     const layerElements = elements.Layer || [];
     const templates = options.templates || {};
+    const bags = options.bags || {};
     const buckets = assignLayersToScenes(sceneElements, layerElements);
     const videoEl = videos[0] || {};
-    const videoRefName = templateRefName(videoEl.fields?.template);
+    const videoTemplateRef = resolve('template', { ...bags, video: videoEl.fields || {} }).value;
+    const videoRefName = templateRefName(videoTemplateRef);
     const videoTemplate = videoRefName && templates[videoRefName] ? { name: videoRefName, ...templates[videoRefName] } : null;
 
     const scenes = sceneElements.map((sc, i) => {
       const slug = sc.slug || slugify(sc.name);
       const sceneId = `scene_${slug}`;
       const fields = sc.fields || {};
-      const refName = templateRefName(fields.template);
+      // The scene bag is the most specific element level; `video` is the
+      // enclosing Video element. `series`/`domain`/`blueprint` ride in `bags`.
+      const sceneBags = { ...bags, video: videoEl.fields || {}, scene: fields };
+      const refName = templateRefName(resolve('template', sceneBags).value);
       const resolvedTemplate =
         (refName && templates[refName] ? { name: refName, ...templates[refName] } : null) || videoTemplate;
+      const music = resolve('music', sceneBags).value;
+      const musicVolume = resolve('music_volume', sceneBags, {
+        accept: (v) => v !== undefined && v !== null && String(v).trim() !== '' && Number.isFinite(Number(v)),
+      }).value;
+      const transition = resolve('transition', sceneBags).value;
       const properties = {};
-      if (fields.music) properties.scene_background_audio = fields.music;
-      if (fields.music_volume !== undefined && String(fields.music_volume).trim() !== '') {
-        const mv = Number(fields.music_volume);
-        if (Number.isFinite(mv)) properties.scene_music_volume = mv;
+      if (music) properties.scene_background_audio = music;
+      if (musicVolume !== null) {
+        properties.scene_music_volume = Number(musicVolume);
       }
       // Carry the resolved template's model/voice so downstream pricing + TTS
       // agree without reading any script-declared voice/model field.
@@ -305,16 +312,16 @@ export class RemotionSceneCompiler {
         if (resolvedTemplate.voice) properties.scene_voice = resolvedTemplate.voice;
       }
 
-      const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j));
+      const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
       return {
         id: sceneId,
         name: sc.name,
         slug,
         narration: String(sc.description || '').trim(),
-        template: fields.template || null,
+        template: resolve('template', sceneBags).value || null,
         resolvedTemplate,
-        transition: fields.transition || null,
-        music: fields.music || null,
+        transition: transition || null,
+        music: music || null,
         properties,
         layers,
       };
@@ -332,10 +339,11 @@ export class RemotionSceneCompiler {
   }
 
   /** Lowers one Layer element into the internal layer shape. */
-  lowerLayer(layer, sceneId, index) {
+  lowerLayer(layer, sceneId, index, bags = {}) {
     const fields = layer.fields || {};
     const declared = fields.type;
     const binding = TYPE_RENDERERS[declared] || { kind: 'layer', manifest: declared };
+    const fit = resolve('fit', { ...bags, layer: fields }).value;
     const properties = {
       layer_type: internalLayerType(declared, fields.asset),
       layer_asset_source: fields.asset,
@@ -345,7 +353,7 @@ export class RemotionSceneCompiler {
       layer_position: fields.position,
       layer_avatar_model: fields.model,
       layer_avatar_resolution: fields.avatar_resolution,
-      layer_fit: fields.fit,
+      layer_fit: fit,
     };
     for (const key of Object.keys(properties)) {
       if (properties[key] === undefined) delete properties[key];
@@ -451,7 +459,7 @@ export class RemotionSceneCompiler {
       durationInFrames,
       enterAnimation,
       exitAnimation,
-      config: { assetPath: props.assetPath || '', fit: props.fit || 'cover', position: props.position || 'center' },
+      config: { assetPath: props.assetPath || '', fit: props.fit, position: props.position || 'center' },
     };
   }
 
@@ -569,6 +577,7 @@ export class RemotionSceneCompiler {
         if (path.isAbsolute(sc.music) || /^[A-Za-z]:[\\/]/.test(sc.music) || /^[a-z]+:\/\//i.test(sc.music)) {
           throw new Error(`Invalid music "${sc.music}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
         }
+        const musicVolume = sc.properties?.scene_music_volume;
         audioTracks.push({
           id: `bgmusic_${sceneId}`,
           sceneId,
@@ -576,7 +585,7 @@ export class RemotionSceneCompiler {
           assetPath: sc.music,
           fromFrame,
           durationInFrames,
-          volume: Number.isFinite(sc.properties?.scene_music_volume) ? sc.properties.scene_music_volume : DEFAULT_BG_MUSIC_VOLUME,
+          ...(Number.isFinite(musicVolume) ? { volume: musicVolume } : {}),
           loop: true,
           sha256: crypto.createHash('sha256').update(`bgmusic:${sc.music}`).digest('hex'),
         });

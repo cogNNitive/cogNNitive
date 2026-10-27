@@ -27,7 +27,7 @@ import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { DEFAULT_MODELS, resolveModelId } from './asset-cost-estimator.mjs';
-import { resolveEngineModel } from './lib/model-cascade.mjs';
+import { resolveEngineModel } from './lib/cascade.mjs';
 import { findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';

@@ -18,7 +18,6 @@ import path from 'node:path';
 import {
   RemotionSceneCompiler,
   DEFAULT_CONDITIONAL_FIELDS,
-  DEFAULT_BG_MUSIC_VOLUME,
 } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/remotion-scene-compiler.mjs';
 import { buildTtsVoiceOptions, resolveRegisteredVoice } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/tts-options.mjs';
 import { CacheManager } from '../iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/cache-manager.mjs';
@@ -42,6 +41,10 @@ const layer = (slug, parentSlug, fields) => ({
 });
 
 const compiler = new RemotionSceneCompiler({ fps: 30, width: 1920, height: 1080 });
+
+// The blueprint `Video Defaults` level, injected as the compiler receives it at
+// runtime (the cascade sources every default from bags, never from engine code).
+const BLUEPRINT_BAGS = { blueprint: { fit: 'cover', music_volume: '0.2' } };
 
 async function runTests() {
   console.log('Running video-script contract-additions tests...');
@@ -93,12 +96,12 @@ async function runTests() {
         layer('contain', 's1', { type: 'b-roll', asset: 'media/a.png', fit: 'contain' }),
         layer('plain', 's1', { type: 'b-roll', asset: 'media/b.png' }),
       ],
-    }));
+    }), { bags: BLUEPRINT_BAGS });
     const broll = manifest.tracks.overlays.filter((o) => o.type === 'broll');
     assert.strictEqual(broll.length, 2);
     assert.strictEqual(broll[0].config.fit, 'contain');
     assert.strictEqual(broll[1].config.fit, 'cover');
-    console.log('✔ b-roll fit:: contain is carried; the default stays cover');
+    console.log('✔ b-roll fit:: contain is carried; the blueprint default stays cover');
   }
 
   // 4. Scene `music_volume`.
@@ -109,12 +112,12 @@ async function runTests() {
         scene('default', 'One two three.', { music: 'audio/bed.mp3' }),
         scene('junk', 'One two three.', { music: 'audio/bed.mp3', music_volume: 'loud' }),
       ],
-    }));
+    }), { bags: BLUEPRINT_BAGS });
     const vol = (id) => manifest.tracks.audio.find((t) => t.id === 'bgmusic_scene_' + id).volume;
     assert.strictEqual(vol('quiet'), 0.06);
-    assert.strictEqual(vol('default'), DEFAULT_BG_MUSIC_VOLUME);
-    assert.strictEqual(vol('junk'), DEFAULT_BG_MUSIC_VOLUME);
-    console.log('✔ music_volume sets the scene music track volume; absent/invalid falls back to the default');
+    assert.strictEqual(vol('default'), 0.2);
+    assert.strictEqual(vol('junk'), 0.2);
+    console.log('✔ music_volume sets the scene music track volume; absent/invalid falls back to the blueprint default');
   }
 
   // 5. The TTS cache key does not depend on the avatar model.
