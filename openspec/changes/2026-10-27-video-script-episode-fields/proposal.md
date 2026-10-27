@@ -1,47 +1,47 @@
 ## Why
 
 The `video` blueprint — the one that gave an episode its catalogue record (`slug`, `status`,
-`script`, `master`, `thumbnail`, `voice_id`) — was torn down by `1378a150a` ("tear down VUS parser
-package, mirror and old video blueprint"). It is no longer shipped and has no entry in
-`manifest/source.yaml`; the only `## NN Concept Definition: Video` left in the repository is the one
-in `video-script`.
+`script`, `master`, `thumbnail`, `voice_id`) — was torn down by `1378a150a` and no longer exists; the
+living `video-blueprint` spec already records that. The survivor, `video-script`, models the *script*
+(`Video` → `Scene` → `Layer`) and declares none of those fields, so `video_NN/series/*` still builds
+four series models on a blueprint that is gone. Their elements use `slug`, `title`, `description`,
+`status`, `script`, `master`, `master_vertical`, `thumbnail`, `thumbnail_vertical` and `voice_id`; of
+those only `title` exists in `video-script`. The domain's own `plan_alineacion_video.md` records the
+symptom — 19 models pin a local `spec_NN.md` instead of a canonical versioned blueprint.
 
-The survivor models only the *script* (`Video` → `Scene` → `Layer`) and declares none of the
-catalogue fields. So `video_NN/series/*` still builds four series models on a blueprint that no
-longer exists: `Cosicah_V_0-1-0_video_NN.md`, `INNteresante_video_NN.md`,
-`INNtrevistas_V_0-1-0_video_NN.md` and `VillabotijosToday_video_NN.md`. Their elements use `slug`,
-`title`, `description`, `status`, `script`, `master`, `master_vertical`, `thumbnail`,
-`thumbnail_vertical` and `voice_id`; of those, only `title` exists in `video-script`. The domain's
-own `plan_alineacion_video.md` already records the symptom — 19 models pin a local `spec_NN.md`
-instead of a canonical versioned blueprint.
-
-Two concepts named `Video` coexisted because of that split: the catalogue entry and the script root.
-One `concept:Video` facet merged them, so a single video counted more than once. Retiring the
-catalogue blueprint and folding its fields onto the survivor's `Video` concept removes the ambiguity
-**without a rename** — the surviving concept is already called `Video`, and with the delivery fields
-on it, it *is* the episode.
+Two concepts named `Video` coexisted because of that split, so one `concept:Video` facet merged the
+episode record and the script root. Folding the catalogue fields onto the survivor's `Video` concept
+removes the ambiguity **without a rename**: the concept is already called `Video`, and with the
+delivery fields on it, it *is* the episode. The retired blueprint's role is absorbed.
 
 ## What Changes
 
-- `video-script` gains the episode's catalogue and delivery fields on its `Video` concept: `slug`,
-  `description`, `status`, `script`, `master`, `thumbnail`, `voice_id`, plus the vertical
-  deliverables the domain already uses (`master_vertical`, `thumbnail_vertical`).
-- Blueprint version bump, `manifest/source.yaml`, catalog and version-parity regeneration, released
-  as a `blueprints-v*` tag.
-- `video_NN`'s four series models re-parent to `video-script` from the retired blueprint. Their
-  `## NN Video:` headings do not change: both blueprints name the concept `Video`.
-- No field is removed and no concept is renamed. The engine path is untouched — it writes
+- `video-script`'s `Video` concept gains seven fields: `slug`, `description`, `status`, `script`,
+  `master`, `thumbnail`, `voice_id`.
+- Blueprint version bump (`V_0-13-7` — the convention increments the last digit per change) and the
+  `adopted` field in `iNNfo/specs/bluepriNNts/catalog.json` plus its
+  `docs/innfo/blueprints/catalog.json` mirror, released as a `blueprints-v*` tag. `video-script` is
+  distributed on demand: it has no `manifest/source.yaml` entry.
+- `video_NN`'s four series models re-parent to `video-script`. Their `## NN Video:` headings do not
+  change: both blueprints name the concept `Video`.
+- No field is removed, no concept renamed, and the engine path is untouched — it writes
   `# NN Video` (`build-script-from-draft.mjs`) and reads the script root (`scene-compiler.mjs`).
 
-## Open Decisions (task 1)
+## Decisions (resolved, task 1)
 
-- Whether `master_vertical` / `thumbnail_vertical` belong in the blueprint at all, or stay
-  engine-level formats (`render-vertical.mjs`, `render-formats.mjs`).
-- Whether the domain's `series:` frontmatter block (procedure, script_template, rules, shared_assets,
-  config) maps onto `video-script`'s `Series` concept, or stays a frontmatter convention to be
-  specified.
-- Which capability owns the retired blueprint's record — `video-blueprint`, `video-template` or a new
-  one.
+- **Format variants are engine-level, not modelled.** `render-formats.mjs` derives variants from the
+  square master by convention (`slugFromMaster()` strips the `_<W>x<H>` suffix; `variantName()` →
+  `` `${slug}_${width}x${height}.mp4` ``; `FORMAT_PRESETS.vertical` is 1080x1920). `master_vertical`
+  and `thumbnail_vertical` are therefore **not** added: the variant path is computable from `master`.
+  Consequence: the four series models lose those two fields and the console stops showing them; the
+  files stay on disk. The information was duplicated, not lost.
+- **The `series:` frontmatter block needs no blueprint change.** The engine locates a series by
+  convention — `nearest.mjs` `SERIES_MARKERS = ['series_NN.md', 'series_rules.md',
+  'script_template.md']`, and the `series-script-templates` spec already allows one `series_NN.md` as
+  the `series` cascade level. The frontmatter block was the retired blueprint's AD1 convention; its
+  keys map to files the engine already finds by name, so this is domain work, not blueprint work.
+- **No delta for the retirement.** `openspec/specs/video-blueprint/spec.md` already states that the
+  retired `video` blueprint no longer exists.
 
 ## Capabilities
 
@@ -51,14 +51,14 @@ on it, it *is* the episode.
 
 ### Modified Capabilities
 
-- `video-script-model`: the `Video` concept also carries the episode's catalogue and delivery fields.
-- `video-blueprint` (or `video-template`): the catalogue blueprint is retired and its role is
-  absorbed by `video-script`.
+- `video-script-model`: the `Video` concept also carries the episode's catalogue and delivery fields,
+  and derived format variants are never modelled.
 
 ## Impact
 
-- One blueprint gains fields; nothing is removed and no engine behavior changes.
+- One concept gains seven fields; nothing is removed and no engine behavior changes.
 - Affects the four `video_NN` series models, plus any other domain still built on the retired
   blueprint.
 - Needs a release: the fields only reach consumers through a `blueprints-v*` tag.
-- The domain migration is a separate changeset path (re-parent + validate), not a repo change.
+- The domain migration is its own changeset path (re-parent, add the `series_NN.md` documents, drop
+  the frontmatter `series:` block).
