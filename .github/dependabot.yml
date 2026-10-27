@@ -50,3 +50,8 @@ updates:
       actions:
         patterns:
           - "*"
+    ignore:
+      # Major upgrades need a migration pass, not an automated PR (see #331).
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
