@@ -3,10 +3,10 @@
 /**
  * nn-video-script/test/knowledge-model-compile.test.mjs
  *
- * Proves the re-pointed engine compiles an L3 guion to a Remotion composition
+ * Proves the re-pointed engine compiles an L3 guion to a composition
  * manifest from the STRUCTURED iNNfo model only (a generic inline fixture — the
  * repo ships no series/episode content):
- *  - one RemotionSceneTrack per Scene, in list order;
+ *  - one SceneTrack per Scene, in list order;
  *  - overlay text from the Layer `text::` field, never the layer name;
  *  - `template::` resolves from the Series L3 Template document;
  *  - quote/lower-third/b-roll overlays scheduled sequentially, no collision;

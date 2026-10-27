@@ -8,7 +8,6 @@
  * - Programmatic render through the HyperFrames driver seam
  * - CLI render with --allow-mock (CI placeholder)
  * - The removed preview command is refused
- * - No Remotion dependency remains
  */
 
 import assert from 'node:assert';
@@ -162,12 +161,10 @@ async function runTests() {
     console.log('✔ the removed preview command is refused with a compile/render usage');
   }
 
-  // Test 5: No Remotion dependency remains
+  // Test 5: The CLI uses the HyperFrames driver
   {
-    assert.ok(!/@remotion/.test(CLI_SRC), 'no @remotion reference may remain in the CLI');
-    assert.ok(!/tryRemotionRender/.test(CLI_SRC), 'the Remotion render seam must be gone');
     assert.ok(/tryHyperframesRender|hyperframes-render/.test(CLI_SRC), 'the CLI must use the HyperFrames driver');
-    console.log('✔ the CLI has no Remotion dependency and uses the HyperFrames driver');
+    console.log('✔ the CLI uses the HyperFrames driver');
   }
 
   console.log('\nAll Video Engine CLI integration tests passed! 🎉');

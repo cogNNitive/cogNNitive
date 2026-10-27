@@ -36,7 +36,7 @@ function layer(name, slug, fields = {}) {
 }
 
 async function runTests() {
-  console.log('Running Remotion Scene Compiler unit tests...');
+  console.log('Running Scene Compiler unit tests...');
   const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
 
   // Test 1: compile into a typed manifest.
@@ -57,7 +57,7 @@ async function runTests() {
     assert.strictEqual(manifest.compositionId, 'quantum-computing-explained');
     assert.strictEqual(manifest.tracks.scenes.length, 3);
     assert.strictEqual(manifest.metadata.generator, 'cogNNitive Video Engine');
-    console.log('✔ Compiles a multi-scene model into a typed Remotion composition manifest');
+    console.log('✔ Compiles a multi-scene model into a typed composition manifest');
   }
 
   // Test 2: frame calculations and timeline continuity.
