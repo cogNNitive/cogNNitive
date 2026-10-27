@@ -14,6 +14,8 @@ The `render-thumbnail.mjs` tool MUST be the only Phase B tool in the skill. It M
    - `--base <path>` (Required): Path to clean base image.
    - `--title <string>` (Required): Primary headline.
    - `--out <path>` (Required): Target output path for the composed image.
+   - `--series <dir>` (Optional): Series folder whose `series_NN.md` supplies the default
+     subtitle/badge; otherwise the cascade walks from `--out`'s folder.
    - `--subtitle <string>`, `--badge <string>` (Optional): each defaults to the Series `title`
      read through the parameter cascade (walking from `--out`'s folder, or `--series <dir>`).
    - `--width <number>` (Optional, default: 2560), `--height <number>` (Optional, default: 1440).

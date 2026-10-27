@@ -59,11 +59,11 @@ Each slice is revertible alone (revert its commits; the bumps stay valid). S3 an
 
 ## Slice 4: One thumbnail tool (S4a always; S4b spike-gated; spec: two-phase-thumbnail REQ-2, skill Blueprint-Ships Draft Authoring Tools; design D5)
 
-- [ ] 4.1 S4a GREEN: fold `thumbnail-v1.mjs` (series-title default) into `render-thumbnail.mjs` as `--series`; delete `thumbnail-v1.mjs` + its test; update `SKILL.md` rows and the `two-phase-thumbnail` requirement text.
-- [ ] 4.2 S4a RED->GREEN test: with `--series <dir>` and no `--subtitle`/`--badge`, both read the Series `title`; `render-thumbnail.mjs` is the only Phase B tool. Covers "One thumbnail tool" and "Series title fills subtitle and badge".
+- [x] 4.1 S4a GREEN: fold `thumbnail-v1.mjs` (series-title default) into `render-thumbnail.mjs` as `--series`; delete `thumbnail-v1.mjs` + its test; update `SKILL.md` rows and the `two-phase-thumbnail` requirement text.
+- [x] 4.2 S4a RED->GREEN test: with `--series <dir>` and no `--subtitle`/`--badge`, both read the Series `title`; `render-thumbnail.mjs` is the only Phase B tool. Covers "One thumbnail tool" and "Series title fills subtitle and badge".
 - [ ] 4.3 Spike per design "S4 (still)": try `hyperframes snapshot`, else a 1-frame render + `ffmpeg -frames:v 1`. PASS = exact size, crisp text at 320px, byte-identical on two runs, under 20 s. Record the verdict under "Spike Outcome".
 - [ ] 4.4 S4b PASS: rewrite `render-thumbnail.mjs` to emit and render a one-frame composition through the pinned CLI; drop `sharp` from the skill `package.json` (after the lifecycle change) and root `devDependencies`; `npm install --package-lock-only`; keep `scripts/types/transform.d.ts` (design D7). FAIL: revert delta item 3 to the previous wording and drop the "No sharp" scenario.
-- [ ] 4.5 Bump + `node scripts/blueprint-catalog.mjs`; `node scripts/verify.js --only=video`; full `node scripts/verify.js`.
+- [x] 4.5 Bump + `node scripts/blueprint-catalog.mjs`; `node scripts/verify.js --only=video`; full `node scripts/verify.js`.
 
 ## Success Criteria (from proposal)
 
