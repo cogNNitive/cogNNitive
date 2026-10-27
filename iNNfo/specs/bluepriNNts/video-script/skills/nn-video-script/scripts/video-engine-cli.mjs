@@ -249,8 +249,8 @@ export async function resolveSounds({ manifest, files, scriptDir, publicDir, pro
 }
 
 /**
- * Resolves a media source against the script directory and stages it into a
- * Remotion-served public directory, returning the bundle-relative name. The name
+ * Resolves a media source against the script directory and stages it into the
+ * project's public directory, returning the bundle-relative name. The name
  * is `<basename>_<sha256-prefix><ext>` so two sources that share a basename (an
  * in-dir `assets/x.mp4` and an out-of-dir `../shared/x.mp4`) never collide, and
  * the same source referenced twice stages once.
@@ -287,7 +287,7 @@ export function stageAsset(src, scriptDir, publicDir) {
  * Sources are resolved against `scriptDir` — NOT the current working directory —
  * so both in-dir (`assets/…`) and out-of-dir (`../shared/…`) paths resolve.
  * A referenced source that cannot be resolved is collected into `missing`; the
- * caller decides how to fail. Pure filesystem work: imports no Remotion module,
+ * caller decides how to fail. Pure filesystem work: imports no renderer module,
  * so it is the test seam.
  *
  * @param {object} manifest
@@ -369,12 +369,11 @@ export function resolveMediaLayers(manifest, opts) {
  * @property {number} [concurrency=4]
  * @property {number} [quality=80]
  * @property {string} [cacheDir]
- * @property {boolean} [allowMock=false] Write a mock MP4 when Remotion is unavailable.
+ * @property {boolean} [allowMock=false] Write a mock MP4 when the renderer is unavailable.
  * @property {string[]} [allowModels] See VideoCompileOptions (used when rendering from a script).
  * @property {string} [approvalPath] See VideoCompileOptions.
  * @property {{ image?: string, tts?: string, avatar?: string }} [models] See VideoCompileOptions.
- * @property {(id: string) => Promise<object|null>} [loadModule] Remotion module loader seam.
- * @property {(e: object) => void} [onProgress] See VideoCompileOptions (also covers bundle/render phases).
+ * @property {(e: object) => void} [onProgress] See VideoCompileOptions (also covers render phases).
  */
 
 /**
@@ -476,7 +475,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
 }
 
 /**
- * Compiles a video script into a Remotion Composition Manifest, synthesizing and caching
+ * Compiles a video script into a Composition Manifest, synthesizing and caching
  * TTS/media assets. Billable work is planned first (no spend, no writes) and the WHOLE run
  * is refused before the first charge when it is unapproved, uses a blocked model, or would
  * pass the per-run or 24h cap. With `dryRun` it only returns that plan.
@@ -652,7 +651,7 @@ export async function compileVideo(options) {
     scriptSource: scriptPath,
   });
 
-  // Stage every media reference (layers + audio) into a Remotion-served public
+  // Stage every media reference (layers + audio) into a project public
   // dir next to the script, and rewrite the manifest to bundle-relative names.
   // Sources resolve against the script dir, not the cwd, so in-dir (`assets/…`)
   // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud

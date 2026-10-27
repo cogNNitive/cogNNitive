@@ -95,10 +95,9 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/video-engine-cli.mjs render renders/{ref}/manifest.json --output renders/{ref}/master.mp4
    node scripts/video-engine-cli.mjs compile <script_NN.md> --output renders/{ref}-vertical/manifest.json --format 9:16
    node scripts/video-engine-cli.mjs render renders/{ref}-vertical/manifest.json --output renders/{ref}-vertical/master_vertical.mp4
-   # cheap fallback only (burned-in captions may crop): node scripts/render-vertical.mjs --source renders/{ref}/master.mp4 --out renders/{ref}/master_vertical.mp4
    ```
    *A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr (stdout if empty) — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render` (e.g. `render <manifest> --output <mp4> -- --workers 2 --low-memory-mode`); environment variables are inherited by the CLI. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
-6b. **Assemble Master from Clips (optional)** — when some segments are pass-through or produced outside Remotion:
+6b. **Assemble Master from Clips (optional)** — when some segments are pass-through or produced outside the HyperFrames pipeline:
    ```bash
    node scripts/assemble-video.mjs <clip1> <clip2> ... --out renders/{ref}/master.mp4
    ```
@@ -142,7 +141,6 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/voice-clone.mjs` | Clone a voice once (pending reservation under a lock, atomic registry write, ledgered); refuses re-cloning without `--force`. |
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
 | `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`) and headless rendering (`render`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
-| `scripts/render-vertical.mjs` | Cheap ffmpeg 16:9 → 9:16 reframe fallback (blur bg + header + title). Prefer native `--format 9:16`. |
 | `scripts/render-formats.mjs` | Format-variant post-process: square master → `_1080x1080` (copy) / `_1080x1920` / `_1920x1080` with the square whole over a Gaussian-blurred fill (`+faststart`). |
 | `scripts/assemble-video.mjs` | Final-assembly layer: joins already-produced clips into one master via the FFmpeg concat demuxer (`-f concat -c copy`, +faststart) with an ffprobe consistency precheck. Assembly only — no scene effects. |
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |

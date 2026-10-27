@@ -3,7 +3,7 @@
 /**
  * nn-video-script/scripts/scene-compiler.mjs
  *
- * Lowers the structured iNNfo video-script model into a typed Remotion
+ * Lowers the structured iNNfo video-script model into a typed
  * Composition Manifest. The model comes from innfo-core `read_knowledge` (or the
  * equivalent structural reader in `lib/knowledge-model.mjs`); this module NEVER
  * parses script markdown and NEVER invokes a bespoke script parser.
@@ -286,7 +286,7 @@ export class SceneCompiler {
   /** Records a non-fatal warning and keeps it for inspection by callers/tests. */
   warn(message) {
     this.warnings.push(message);
-    console.warn(`[remotion-scene-compiler] ${message}`);
+    console.warn(`[scene-compiler] ${message}`);
   }
 
   /**
@@ -792,12 +792,12 @@ async function main() {
     const jsonStr = JSON.stringify(manifest, null, 2);
     if (outPath) {
       fs.writeFileSync(path.resolve(outPath), jsonStr, 'utf8');
-      console.log(`✅ [remotion-scene-compiler] Manifest written to ${outPath}`);
+      console.log(`✅ [scene-compiler] Manifest written to ${outPath}`);
     } else {
       console.log(jsonStr);
     }
   } catch (err) {
-    console.error(`❌ [remotion-scene-compiler] ${err.message}`);
+    console.error(`❌ [scene-compiler] ${err.message}`);
     process.exit(1);
   }
 }
