@@ -40,6 +40,63 @@ describe('console rail concept filter is multi-select (OR)', () => {
   })
 })
 
+describe('rail concept rows are scoped to their own model', () => {
+  const TWO_MODELS = {
+    meta: {
+      title: 'Rail Lab',
+      modelId: 'rail-lab',
+      modelVersion: 'V_1-0-0',
+      models: [
+        { id: 'series/a/one_video-script', title: 'One', filePath: 'one.md', elementCount: 2, blueprint: 'video-script' },
+        { id: 'series/b/two_video-script', title: 'Two', filePath: 'two.md', elementCount: 3, blueprint: 'video-script' },
+      ],
+    },
+    elements: [
+      { id: 'a1', concept: 'Video', name: 'A video', modelId: 'series/a/one_video-script', fields: {}, hash: '0'.repeat(16) },
+      { id: 'a2', concept: 'Scene', name: 'A scene', modelId: 'series/a/one_video-script', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b1', concept: 'Video', name: 'B video 1', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b2', concept: 'Video', name: 'B video 2', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b3', concept: 'Video', name: 'B video 3', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
+    ],
+    matrices: [],
+  }
+
+  it('reports the model-local count and filters by model, not the whole domaiNN', () => {
+    const { document } = bootConsole({
+      model: TWO_MODELS,
+      schema: { concepts: [{ name: 'Video' }, { name: 'Scene' }] },
+    })
+    const search = document.getElementById('nn-search')
+    const cards = () =>
+      document.querySelectorAll('#nn-content [data-nn-component="element-card"]').length
+    const rowFor = (model, concept) => {
+      const summary = [...document.querySelectorAll('#nn-rail summary[data-model]')].find(
+        (s) => s.getAttribute('data-model') === model,
+      )
+      return [...summary.parentNode.querySelectorAll('ul [data-concept]')].find(
+        (a) => a.getAttribute('data-concept') === concept,
+      )
+    }
+    const countOf = (model, concept) =>
+      rowFor(model, concept).querySelector('.nn-rail-count').textContent
+
+    // The row counts THIS model's elements, not the domaiNN-wide total for the concept.
+    assert.equal(countOf('series/a/one_video-script', 'Video'), '1')
+    assert.equal(countOf('series/a/one_video-script', 'Scene'), '1')
+    assert.equal(countOf('series/b/two_video-script', 'Video'), '3')
+
+    // Clicking narrows to the row's own model, so the sibling model's Videos stay out.
+    rowFor('series/a/one_video-script', 'Video').click()
+    assert.equal(search.value, 'model:series/a/one_video-script concept:Video')
+    assert.equal(cards(), 1, "only model A's Video")
+
+    // Re-clicking removes both facets again.
+    rowFor('series/a/one_video-script', 'Video').click()
+    assert.equal(search.value, '')
+    assert.equal(cards(), 5, 'every element is back')
+  })
+})
+
 describe('rail and facets render knowledge units', () => {
   it('paints rail items and concept facet entries as addressed section badges', () => {
     const { document } = bootConsole({

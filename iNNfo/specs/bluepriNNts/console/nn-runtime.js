@@ -1728,14 +1728,21 @@
     function mk(tag) {
       return doc.createElement ? doc.createElement(tag) : el(tag)
     }
-    function conceptNamesForModel(m) {
+    // Per-model concept view: which concepts this model declares, and how many of its
+    // own elements carry each one. The rail rows under a model must report that model's
+    // numbers — the domaiNN-wide totals belong to the facet dropdown, not to a row that
+    // hangs off one model.
+    function conceptDataForModel(m) {
       var mid = String(m.id || m.filePath)
+      var counts = {}
       var seen = {}
       var out = []
       ;(state && Array.isArray(state.elements) ? state.elements : []).forEach(function (e) {
         if (!e) return
         if (String(e.modelId || e.modelFile || '') !== mid) return
-        if (e.concept && !seen[e.concept]) {
+        if (!e.concept) return
+        counts[e.concept] = (counts[e.concept] || 0) + 1
+        if (!seen[e.concept]) {
           seen[e.concept] = true
           out.push(e.concept)
         }
@@ -1748,7 +1755,7 @@
           }
         })
       }
-      return out
+      return { names: out, counts: counts }
     }
 
     var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
@@ -1820,7 +1827,9 @@
         details.appendChild(summary)
 
         var sub = mk('ul')
-        var names = conceptNamesForModel(m)
+        var modelConceptData = conceptDataForModel(m)
+        var names = modelConceptData.names
+        var modelConceptCounts = modelConceptData.counts
         var modelSet = {}
         names.forEach(function (n) {
           modelSet[n] = true
@@ -1834,12 +1843,19 @@
             }
           })
         }
+        var midLower = String(mid).toLowerCase()
         names.forEach(function (name) {
           var cli = mk('li')
           var a = mk('a')
           if (a) {
             a.setAttribute('data-concept', String(name))
-            var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+            // A concept row hangs off ONE model, so it counts and filters WITHIN that
+            // model. Reading the domaiNN-wide total here (and setting a bare
+            // `concept:` facet on click) made every row show the same number and light
+            // up every model's matching concept.
+            var isActive =
+              activeConcepts.indexOf(String(name).toLowerCase()) !== -1 &&
+              (activeModels.length === 0 || activeModels.indexOf(midLower) !== -1)
             a.className = 'nn-rail-item' + (isActive ? ' active' : '')
             var cMeta = conceptMetaOf(globalConcepts, name)
             var color = cMeta.hexColor
@@ -1853,11 +1869,13 @@
               ),
             )
             a.appendChild(
-              el('span', 'nn-rail-count badge badge-ghost badge-xs', String(Number(counts && counts[name]) || 0)),
+              el('span', 'nn-rail-count badge badge-ghost badge-xs', String(Number(modelConceptCounts[name]) || 0)),
             )
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
-              if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
+              if (typeof onSelect === 'function') {
+                onSelect(formatFacetToken('model', mid) + ' ' + formatFacetToken('concept', name))
+              }
             })
           }
           cli.appendChild(a)
@@ -6525,30 +6543,42 @@
     // Rail selections accumulate (OR), matching the facet checkboxes: clicking a
     // concept/model toggles it in the query instead of replacing the whole filter,
     // so activating more than one concept unions the results.
+    //
+    // A rail token may carry MORE than one facet: a concept row nested under a model
+    // submits `model:<id> concept:<name>`, so the row narrows to its own model instead
+    // of filtering the whole domaiNN by that concept alone. Each facet toggles on its
+    // own, so re-clicking the row removes both.
     function selectRailToken(token) {
       var search = active.getElementById('nn-search')
       var current = activeSearchQuery !== undefined ? activeSearchQuery : search ? search.value : ''
-      var m = /^([!]?[a-z]+):(.*)$/.exec(String(token || ''))
-      if (!m) {
+      // Same operator grammar parseFilterQuery tokenizes with, kept as raw text so the
+      // value's case survives into the search box.
+      var incoming = String(token == null ? '' : token).match(
+        /[^\s"':]+:(?:"[^"]*"|'[^']*'|[^\s()]+)/g,
+      )
+      if (!incoming || !incoming.length) {
         if (search) {
           search.value = token
           refresh(token)
         }
         return
       }
-      var key = m[1]
-      var val = m[2].replace(/^["']|["']$/g, '')
       var parsed = parseFilterQuery(current)
       var ops = parsed.operators.slice()
-      var at = -1
-      for (var i = 0; i < ops.length; i++) {
-        if (ops[i].key === key && String(ops[i].val).toLowerCase() === val.toLowerCase()) {
-          at = i
-          break
+      incoming.forEach(function (raw) {
+        var at = raw.indexOf(':')
+        var key = raw.slice(0, at).toLowerCase()
+        var val = raw.slice(at + 1).replace(/^["']|["']$/g, '')
+        var found = -1
+        for (var i = 0; i < ops.length; i++) {
+          if (ops[i].key === key && String(ops[i].val).toLowerCase() === val.toLowerCase()) {
+            found = i
+            break
+          }
         }
-      }
-      if (at !== -1) ops.splice(at, 1)
-      else ops.push({ key: key, val: val })
+        if (found !== -1) ops.splice(found, 1)
+        else ops.push({ key: key, val: val, raw: raw })
+      })
       var queryParts = parsed.textTokens.map(function (t) {
         return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
       })

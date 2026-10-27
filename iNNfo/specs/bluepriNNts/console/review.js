@@ -1310,19 +1310,41 @@
 
     function decorateRailProgress() {
       if (!doc.querySelectorAll || !store) return
-      // The rail readout is the change, not a review mark: pending drafts per concept.
-      var progress = progressByConcept(elements, store.drafts())
+      // The rail readout is the change, not a review mark: pending drafts per concept
+      // WITHIN the model the row belongs to. A row nested in a model's <details> must
+      // report that model's elements, never the domaiNN-wide total.
+      // ponytail: a draft addressed only by concept (no element binding) still counts
+      // in every model declaring that concept; scope by element_id when that shows.
+      var drafts = store.drafts()
+      var global = progressByConcept(elements, drafts)
+      var byModel = {}
       Array.prototype.forEach.call(
         doc.querySelectorAll('.nn-rail-item, [data-key]'),
         function (btn) {
           var key = btn.getAttribute('data-concept') || btn.getAttribute('data-key')
-          if (!key || key === '__all' || !progress[key]) return
+          if (!key || key === '__all') return
+          var entry = global[key]
+          var owner = btn.closest ? btn.closest('details') : null
+          var summary = owner ? owner.querySelector('summary[data-model]') : null
+          var mid = summary ? summary.getAttribute('data-model') : null
+          if (mid) {
+            if (!Object.prototype.hasOwnProperty.call(byModel, mid)) {
+              byModel[mid] = progressByConcept(
+                (Array.isArray(elements) ? elements : []).filter(function (el) {
+                  return el && String(el.modelId || el.modelFile || '') === mid
+                }),
+                drafts,
+              )
+            }
+            entry = byModel[mid][key]
+          }
+          if (!entry) return
           var existing = btn.querySelector('[data-nn-component="rail-progress"]')
           if (existing) existing.parentNode.removeChild(existing)
           btn.appendChild(
             UI.RailProgress({
-              total: progress[key].total,
-              pending: progress[key].pending,
+              total: entry.total,
+              pending: entry.pending,
             }),
           )
         },

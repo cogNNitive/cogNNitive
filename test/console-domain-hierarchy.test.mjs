@@ -194,8 +194,9 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const conceptItems = rail.querySelectorAll('[data-concept]')
     assert.equal(conceptItems.length, 2, 'renders 2 concept rail items')
 
+    // A concept row is scoped to the model it hangs off.
     conceptItems[1].click()
-    assert.equal(selectedFilter, 'concept:Risks')
+    assert.equal(selectedFilter, 'model:analysis concept:Risks')
   })
 
   test('renderRail groups models by blueprint when the domaiNN has more than one', () => {
