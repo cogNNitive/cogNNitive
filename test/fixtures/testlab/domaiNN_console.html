@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-Z1wmFJv/zxb/29POriNVyQQFPLH12sV4NQqMTOf8s0Y=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-ePPkiSWSuoti33ANhZO3oXBLCUPZn/qRGOhmFFVIfjw=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10145,7 +10145,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-32442737",
-    "generated": "2026-10-27T16:43:14.598Z",
+    "generated": "2026-10-27T16:55:51.899Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10156,7 +10156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "a0f7961b76715571dad1c8d67854aab72001742a6391c02cd89a3602a7580204",
-        "citationsResolvedAt": "2026-10-27T16:43:14.491Z",
+        "citationsResolvedAt": "2026-10-27T16:55:51.788Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -21614,9 +21614,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // Flattens the domaiNN's models into rail entries grouped by blueprint, so the
   // Knowledge rail is never a flat dump of every model. The key is the payload's own
   // `blueprint` (derived from each model's parent_spec, so it always exists); nothing
-  // here knows about a specific domaiNN. A title entry is emitted only when the
+  // here knows about a specific domaiNN. A group entry is emitted only when the
   // domaiNN has more than one blueprint, so a single-blueprint console keeps today's
-  // flat list. `menu-title` is the design system's own section label — no new CSS.
+  // flat list.
   // ponytail: one grouping level only. Ceiling — a domaiNN whose models all share one
   // blueprint still renders one long group; upgrade = a second nested axis (concept or
   // path) or a registered custom view.
@@ -21644,7 +21644,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
     var out = []
     order.forEach(function (key) {
-      out.push({ kind: 'title', label: key, count: byKey[key].length })
+      out.push({ kind: 'group', label: key, count: byKey[key].length })
       byKey[key].forEach(function (m) {
         out.push({ kind: 'model', model: m })
       })
@@ -21721,14 +21721,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })[0]
         return (def && def.color) || null
       }
+      // Each blueprint is an accordion section: collapsed at first, and (where the
+      // browser honors <details name>) opening one closes the others, so a single
+      // blueprint is on screen at a time. Without that support each section still
+      // opens and closes on its own.
+      var host = list
       flattenBlueprintGroups(models).forEach(function (entry) {
-        if (entry.kind === 'title') {
-          var groupTitle = mk('li')
-          if (groupTitle) {
-            groupTitle.className = 'menu-title'
-            groupTitle.textContent = entry.label + ' (' + entry.count + ')'
+        if (entry.kind === 'group') {
+          var groupLi = mk('li')
+          var groupDetails = mk('details')
+          if (groupDetails) {
+            groupDetails.className = 'collapse collapse-arrow'
+            if (groupDetails.setAttribute) groupDetails.setAttribute('name', 'nn-rail-blueprint')
+            groupDetails.open = false
+            var groupSummary = mk('summary')
+            if (groupSummary) {
+              groupSummary.className = 'collapse-title min-h-0 py-2 pr-8'
+              groupSummary.textContent = entry.label + ' (' + entry.count + ')'
+            }
+            groupDetails.appendChild(groupSummary)
+            var groupList = mk('ul')
+            if (groupList) groupList.className = 'menu menu-xs p-2 w-full'
+            groupDetails.appendChild(groupList)
+            groupLi.appendChild(groupDetails)
+            list.appendChild(groupLi)
+            host = groupList
           }
-          list.appendChild(groupTitle)
           return
         }
         var m = entry.model
@@ -21834,7 +21852,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         details.appendChild(sub)
 
         li.appendChild(details)
-        list.appendChild(li)
+        host.appendChild(li)
       })
       rail.appendChild(list)
       return

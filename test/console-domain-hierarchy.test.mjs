@@ -228,9 +228,22 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     nnConsole.renderRail(document, [], {}, {}, () => {}, state)
     const rail = document.getElementById('nn-rail')
 
-    // One section label per blueprint, biggest group first.
-    const titles = Array.from(rail.querySelectorAll('.menu-title')).map((n) => n.textContent)
-    assert.deepEqual(titles, ['video-script (2)', 'video (1)'])
+    // One accordion section per blueprint, biggest group first, all collapsed.
+    const sections = Array.from(rail.querySelectorAll('details[name="nn-rail-blueprint"]'))
+    assert.deepEqual(
+      sections.map((d) => d.querySelector('summary').textContent),
+      ['video-script (2)', 'video (1)'],
+    )
+    assert.deepEqual(
+      sections.map((d) => d.open),
+      [false, false],
+      'blueprint sections start collapsed',
+    )
+    assert.deepEqual(
+      sections.map((d) => d.getAttribute('name')),
+      ['nn-rail-blueprint', 'nn-rail-blueprint'],
+      'a named details group keeps one blueprint open at a time',
+    )
 
     // Grouping adds a level; it never drops a model.
     assert.equal(rail.querySelectorAll('[data-model]').length, 3)
@@ -272,7 +285,11 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
 
     nnConsole.renderRail(document, [], {}, {}, () => {}, state)
     const rail = document.getElementById('nn-rail')
-    assert.equal(rail.querySelectorAll('.menu-title').length, 0, 'no section label for a lone blueprint')
+    assert.equal(
+      rail.querySelectorAll('details[name="nn-rail-blueprint"]').length,
+      0,
+      'no accordion section for a lone blueprint',
+    )
     assert.equal(rail.querySelectorAll('[data-model]').length, 2)
   })
 })

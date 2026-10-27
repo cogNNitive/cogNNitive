@@ -1671,9 +1671,9 @@
   // Flattens the domaiNN's models into rail entries grouped by blueprint, so the
   // Knowledge rail is never a flat dump of every model. The key is the payload's own
   // `blueprint` (derived from each model's parent_spec, so it always exists); nothing
-  // here knows about a specific domaiNN. A title entry is emitted only when the
+  // here knows about a specific domaiNN. A group entry is emitted only when the
   // domaiNN has more than one blueprint, so a single-blueprint console keeps today's
-  // flat list. `menu-title` is the design system's own section label — no new CSS.
+  // flat list.
   // ponytail: one grouping level only. Ceiling — a domaiNN whose models all share one
   // blueprint still renders one long group; upgrade = a second nested axis (concept or
   // path) or a registered custom view.
@@ -1701,7 +1701,7 @@
     })
     var out = []
     order.forEach(function (key) {
-      out.push({ kind: 'title', label: key, count: byKey[key].length })
+      out.push({ kind: 'group', label: key, count: byKey[key].length })
       byKey[key].forEach(function (m) {
         out.push({ kind: 'model', model: m })
       })
@@ -1778,14 +1778,32 @@
         })[0]
         return (def && def.color) || null
       }
+      // Each blueprint is an accordion section: collapsed at first, and (where the
+      // browser honors <details name>) opening one closes the others, so a single
+      // blueprint is on screen at a time. Without that support each section still
+      // opens and closes on its own.
+      var host = list
       flattenBlueprintGroups(models).forEach(function (entry) {
-        if (entry.kind === 'title') {
-          var groupTitle = mk('li')
-          if (groupTitle) {
-            groupTitle.className = 'menu-title'
-            groupTitle.textContent = entry.label + ' (' + entry.count + ')'
+        if (entry.kind === 'group') {
+          var groupLi = mk('li')
+          var groupDetails = mk('details')
+          if (groupDetails) {
+            groupDetails.className = 'collapse collapse-arrow'
+            if (groupDetails.setAttribute) groupDetails.setAttribute('name', 'nn-rail-blueprint')
+            groupDetails.open = false
+            var groupSummary = mk('summary')
+            if (groupSummary) {
+              groupSummary.className = 'collapse-title min-h-0 py-2 pr-8'
+              groupSummary.textContent = entry.label + ' (' + entry.count + ')'
+            }
+            groupDetails.appendChild(groupSummary)
+            var groupList = mk('ul')
+            if (groupList) groupList.className = 'menu menu-xs p-2 w-full'
+            groupDetails.appendChild(groupList)
+            groupLi.appendChild(groupDetails)
+            list.appendChild(groupLi)
+            host = groupList
           }
-          list.appendChild(groupTitle)
           return
         }
         var m = entry.model
@@ -1891,7 +1909,7 @@
         details.appendChild(sub)
 
         li.appendChild(details)
-        list.appendChild(li)
+        host.appendChild(li)
       })
       rail.appendChild(list)
       return
