@@ -6492,6 +6492,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (!entry) return
           var existing = btn.querySelector('[data-nn-component="rail-progress"]')
           if (existing) existing.parentNode.removeChild(existing)
+          // The readout reports a change, not a total: with nothing pending it would
+          // only repeat the count badge beside it (`Video 1` followed by `0/1`), so it
+          // is dropped entirely while there is nothing to show.
+          if (!entry.pending) return
           btn.appendChild(
             UI.RailProgress({
               total: entry.total,
@@ -6518,9 +6522,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function applyDecorations() {
-      // State decoration is capability-free: the change-state badge, the change
-      // pips and the rail progress reflect state, not proposals, and are always
-      // shown (there is no mode).
+      // State decoration is capability-free: the change-state badge and the change
+      // pips reflect state, not proposals, and are always shown (there is no mode).
+      // The rail progress readout is the exception — it only appears while a row has
+      // something pending, because it reports a change and not a total.
       decorateChangeState()
       decorateChangePips()
       syncChangesetBar()

@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-bLSSHtJpqyB5lctRyvOpQPR3yYBvrsi9WnLxZhur+7Q=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-YUy3OurlaVrrOPsPPrgPbaCEjcTRo57yWglPFIdsgYU=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10159,7 +10159,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-32442737",
-    "generated": "2026-10-27T17:00:07.325Z",
+    "generated": "2026-10-27T17:04:24.528Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10170,7 +10170,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "a0f7961b76715571dad1c8d67854aab72001742a6391c02cd89a3602a7580204",
-        "citationsResolvedAt": "2026-10-27T17:00:07.201Z",
+        "citationsResolvedAt": "2026-10-27T17:04:24.410Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -19686,6 +19686,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (!entry) return
           var existing = btn.querySelector('[data-nn-component="rail-progress"]')
           if (existing) existing.parentNode.removeChild(existing)
+          // The readout reports a change, not a total: with nothing pending it would
+          // only repeat the count badge beside it (`Video 1` followed by `0/1`), so it
+          // is dropped entirely while there is nothing to show.
+          if (!entry.pending) return
           btn.appendChild(
             UI.RailProgress({
               total: entry.total,
@@ -19712,9 +19716,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function applyDecorations() {
-      // State decoration is capability-free: the change-state badge, the change
-      // pips and the rail progress reflect state, not proposals, and are always
-      // shown (there is no mode).
+      // State decoration is capability-free: the change-state badge and the change
+      // pips reflect state, not proposals, and are always shown (there is no mode).
+      // The rail progress readout is the exception — it only appears while a row has
+      // something pending, because it reports a change and not a total.
       decorateChangeState()
       decorateChangePips()
       syncChangesetBar()
