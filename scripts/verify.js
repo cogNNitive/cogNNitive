@@ -609,6 +609,10 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('procedures-version', 'Check Procedures Version Coherence', 'scripts/check-procedures-version.mjs'));
   // 7c-quater. Usage procedure convention: every procedure-bearing blueprint declares a `usage` procedure.
   steps.push(ro('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
+  // 4d. OpenSpec delta guard: offline mirror of the `openspec validate` delta rules.
+  //     The CLI is a global tool, not a CI gate, so an invalid delta used to commit
+  //     silently and only fail when a maintainer ran validate by hand.
+  steps.push(ro('openspec-deltas', 'Check OpenSpec Delta Specs', 'scripts/check-openspec-deltas.mjs'));
   // 7d. Version SSOT Drift Guard (manifest/source.yaml vs specs and SKILL.md).
   steps.push(roFresh('version-parity'));
 

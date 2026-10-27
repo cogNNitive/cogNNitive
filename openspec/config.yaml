@@ -64,6 +64,12 @@ rules:
   specs:
     - Use Given/When/Then for behavioral scenarios where applicable.
     - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+    - Keep each requirement's normative sentence on ONE physical line. The validator
+      (openspec 1.2.0) inspects only the first line after "### Requirement:" for
+      SHALL/MUST, so a wrapped paragraph fails with a misleading "must contain
+      SHALL or MUST". Run `npm run check:openspec` to catch it before validate.
+    - Do not save delta specs with a UTF-8 BOM; it hides every "##" header from the
+      parser and the whole change reports "No delta sections found".
     - Detail exact schema changes or skill triggers.
   design:
     - Document data structures, API/MCP contracts, and skill frontmatter diffs.
