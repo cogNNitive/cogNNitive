@@ -11,7 +11,12 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MANIFEST_ALLOWLIST = ['skills/nn-sources', 'skills/nn-upgrade', 'iNNfo/specs/bluepriNNts/console'];
+const MANIFEST_ALLOWLIST = [
+  'skills/nn-sources',
+  'skills/nn-upgrade',
+  'iNNfo/specs/bluepriNNts/console',
+  'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script',
+];
 
 const ROOT_FORBIDDEN = new Set([
   'src',
