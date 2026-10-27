@@ -53,6 +53,10 @@ export const TYPE_RENDERERS = {
   brand: { kind: 'layer', renderer: 'layer-primitive', manifest: 'image' },
   quote: { kind: 'overlay', renderer: 'Quote', manifest: 'quote' },
   watermark: { kind: 'overlay', renderer: 'Watermark', manifest: 'watermark' },
+  // An authored HyperFrames project mounted as a ROOT sub-composition (design
+  // D7): `kind: 'animation'` keeps it out of both the drawable-layer path
+  // (staged as media) and the overlay path; the pre-pass and the emitter own it.
+  animation: { kind: 'animation', renderer: 'AuthoredProject', manifest: 'animation' },
 };
 
 /**
@@ -71,6 +75,7 @@ export const DEFAULT_CONDITIONAL_FIELDS = {
   caption: ['text'],
   brand: ['asset'],
   watermark: ['text'],
+  animation: ['asset'],
 };
 
 /**
