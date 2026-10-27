@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
+import { RemotionSceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './remotion-scene-compiler.mjs';
 import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
@@ -34,6 +34,7 @@ import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
 import { checkMissingAsset } from './lib/missing-asset.mjs';
+import { resolveAnimations, assertAnimationIds } from './lib/animations.mjs';
 import { assertSlotContract, SLOT_OF } from './overlay-blocks.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 import { tryHyperframesRender } from './hyperframes-render.mjs';
@@ -540,6 +541,17 @@ export async function compileVideo(options) {
     ),
   ];
   const components = resolveComponents({ slots: overlaySlots, bags, scriptDir, workspaceRoot: loaded.root });
+  // Resolve every authored animation project BEFORE any synthesis (design D7/D8):
+  // a missing project fails loudly with nothing spent, and an id that would
+  // collide with a scene slug, the root composition id, a component id or another
+  // animation fails naming both.
+  const animations = resolveAnimations({ scenes: parsed.scenes, scriptDir });
+  assertAnimationIds({
+    animations,
+    sceneSlugs: parsed.scenes.map((sc) => sc.slug),
+    rootId: compositionIdOf(parsed.title),
+    componentIds: Object.entries(components).flatMap(([slot, c]) => [slot, c.name]),
+  });
   // Resolve and D21-check every sound name BEFORE any synthesis (design D6/D21):
   // a user-level name with no file fails here, with nothing spent; a blueprint-only
   // name is skipped with one warning. The times are computed after the manifest.
@@ -562,6 +574,15 @@ export async function compileVideo(options) {
     const planned = await synthesizeScriptAssets(structuredClone(parsed), planSynth, models, () => {}, new Map(), bags);
 
     if (options.dryRun) {
+      // Each scene's target duration (design D14): `measured` when narration
+      // audio exists, `estimated` from the word count otherwise; an authored
+      // animation extends it to `max(narration, animation)`.
+      const scenes = computeSceneDurations(parsed.scenes, {
+        wordsPerSecond: compiler.wordsPerSecond,
+        defaultSceneDuration: compiler.defaultSceneDuration,
+        audioAssets,
+        animations,
+      }).map((d) => ({ slug: d.slug, seconds: d.seconds, measured: d.measured }));
       return {
         dryRun: true,
         manifest: null,
@@ -576,6 +597,7 @@ export async function compileVideo(options) {
           withinBudget: planGuard.plannedTotalUsd <= loaded.config.budgetPerRunUsd,
           approval: checkNow(),
           frame: frameInfo ? { name: frameInfo.name, path: frameInfo.path, source: frameInfo.source } : null,
+          scenes,
         },
       };
     }
@@ -625,6 +647,7 @@ export async function compileVideo(options) {
 
   const manifest = compiler.compile(parsed, {
     audioAssets,
+    animations,
     fps: options.fps,
     width: options.width,
     height: options.height,
@@ -857,6 +880,9 @@ function printDryRun(result) {
   const { plan } = result;
   console.log('Dry run: nothing was synthesized, spent or written.');
   if (plan.frame) console.log('   frame ' + plan.frame.name + ': ' + plan.frame.path + ' (' + plan.frame.source + ')');
+  for (const scene of plan.scenes || []) {
+    console.log('   scene ' + scene.slug + ': ' + scene.seconds + 's (' + (scene.measured ? 'measured' : 'estimated') + ')');
+  }
   console.log('   Cached assets (free): ' + result.cachedAssetsUsed);
   console.log('   Uncached billable calls: ' + plan.items.length);
   for (const item of plan.items) {

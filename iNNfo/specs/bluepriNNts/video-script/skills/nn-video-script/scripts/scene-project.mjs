@@ -43,6 +43,8 @@ export const HYPERFRAMES_PIN = (() => {
 
 const roundMs = (seconds) => Math.round(seconds * 1000) / 1000;
 const frameSeconds = (frames, fps) => roundMs((frames || 0) / fps);
+/** Non-fatal emission warning (design D14: animation/narration mismatch). */
+const warn = (message) => console.warn(`[scene-project] ${message}`);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const sceneSlug = (scene) => String(scene.slug || scene.id || 'scene').replace(/^scene_/, '') || 'scene';
@@ -129,6 +131,33 @@ ${tween}
     .filter(Boolean)
     .join('\n');
 
+  // Authored-animation hosts (design D4/D7): ROOT-level sub-compositions with
+  // global times, mounted from `authored/<id>/index.html` (staged by the render
+  // driver). The host duration is the SCENE duration so a shorter animation holds
+  // its last frame; no `muted`, no playback-rate — the animation plays its own
+  // audio at its authored level. A mismatch of more than one frame warns.
+  let animationTrackIndex = 500;
+  const animationHosts = scenes
+    .map((scene) => {
+      const anims = scene.animations || [];
+      if (anims.length === 0) return '';
+      const start = frameSeconds(scene.fromFrame, fps);
+      const dur = frameSeconds(scene.durationInFrames, fps);
+      const narrationFrames = scene.narrationDurationInFrames;
+      return anims
+        .map((a) => {
+          if (Number.isFinite(narrationFrames) && Math.abs((Number(a.durationInFrames) || 0) - narrationFrames) > 1) {
+            warn(
+              `scene "${sceneSlug(scene)}": animation ${frameSeconds(a.durationInFrames, fps)}s differs from narration ${frameSeconds(narrationFrames, fps)}s`,
+            );
+          }
+          return `  <div id="animation-${esc(a.id)}" class="clip" data-composition-id="${esc(a.id)}" data-composition-src="authored/${esc(a.id)}/index.html" data-start="${start}" data-duration="${dur}" data-track-index="${animationTrackIndex++}" data-track-kind="graphics"></div>`;
+        })
+        .join('\n');
+    })
+    .filter(Boolean)
+    .join('\n');
+
   const sceneHosts = scenes
     .map((scene) => {
       const slug = sceneSlug(scene);
@@ -163,6 +192,7 @@ ${tween}
     <div id="root" data-composition-id="${esc(compositionId)}" data-start="0" data-duration="${total}" data-width="${width}" data-height="${height}" data-fps="${fps}">
 ${sceneHosts}
 ${overlayHosts}
+${animationHosts}
 ${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="captions" data-start="0" data-duration="${total}" data-track-index="900"></div>\n` : ''}${audioEls}
     </div>
     <script>window.__timelines[${JSON.stringify(compositionId)}] = gsap.timeline({ paused: true });</script>

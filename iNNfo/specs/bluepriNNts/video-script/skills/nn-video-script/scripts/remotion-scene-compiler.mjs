@@ -146,6 +146,56 @@ function internalLayerType(declared, asset) {
   }
 }
 
+/** The manifest `compositionId` derived from the Video title (one slug source). */
+export function compositionIdOf(title) {
+  return String(title || 'composition')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Computes each scene's target duration (design D7/D14). Narration is measured
+ * when its audio exists (`audioDurations`/`audioAssets`) and estimated from the
+ * word count otherwise; an authored `animation` longer than the narration extends
+ * the scene (`max`). `measured` says whether the narration length was measured.
+ * @param {Array<{ id: string, slug?: string, narration?: string }>} scenes
+ * @param {{ fps?: number, wordsPerSecond?: number, defaultSceneDuration?: number, audioDurations?: Record<string, number>, audioAssets?: Record<string, { durationSeconds?: number }>, animations?: Record<string, Array<{ durationSeconds?: number }>> }} [options]
+ * @returns {Array<{ sceneId: string, slug: string | undefined, seconds: number, narrationSeconds: number, animationSeconds: number, measured: boolean }>}
+ */
+export function computeSceneDurations(scenes, options = {}) {
+  const wordsPerSecond = options.wordsPerSecond || 2.5;
+  const defaultSceneDuration = options.defaultSceneDuration || 5;
+  const audioDurations = options.audioDurations || {};
+  const audioAssets = options.audioAssets || {};
+  const animations = options.animations || {};
+  const animFor = (id) => (animations instanceof Map ? animations.get(id) : animations?.[id]) || [];
+  return (scenes || []).map((sc) => {
+    const sceneId = sc.id;
+    let narrationSeconds = defaultSceneDuration;
+    let measured = false;
+    if (audioDurations[sceneId] !== undefined) {
+      narrationSeconds = audioDurations[sceneId];
+      measured = true;
+    } else if (audioAssets[sceneId]?.durationSeconds !== undefined) {
+      narrationSeconds = audioAssets[sceneId].durationSeconds;
+      measured = true;
+    } else if (sc.narration && sc.narration.trim().length > 0) {
+      const words = sc.narration.trim().split(/\s+/).length;
+      narrationSeconds = Math.max(3, words / wordsPerSecond);
+    }
+    const animationSeconds = animFor(sceneId).reduce((m, a) => Math.max(m, Number(a?.durationSeconds) || 0), 0);
+    return {
+      sceneId,
+      slug: sc.slug,
+      seconds: Math.max(narrationSeconds, animationSeconds),
+      narrationSeconds,
+      animationSeconds,
+      measured,
+    };
+  });
+}
+
 /**
  * Assigns Layers to Scenes. The L3 `# NN index` cannot carry element nesting
  * (the validator rejects element entries), so ownership is derived from the
@@ -521,11 +571,20 @@ export class RemotionSceneCompiler {
     const height = options.height || parsed.height || this.height;
     const audioDurations = options.audioDurations || {};
     const audioAssets = options.audioAssets || {};
+    const animations = options.animations || {};
+    const animFor = (id) => (animations instanceof Map ? animations.get(id) : animations?.[id]) || [];
 
-    const compositionId = (parsed.title || 'composition')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    const compositionId = compositionIdOf(parsed.title);
+
+    // Per-scene target durations (design D7/D14): narration measured/estimated,
+    // extended to `max(narration, animation)` when an authored animation is longer.
+    const durations = computeSceneDurations(parsed.scenes, {
+      wordsPerSecond: this.wordsPerSecond,
+      defaultSceneDuration: this.defaultSceneDuration,
+      audioDurations,
+      audioAssets,
+      animations,
+    });
 
     const sceneTracks = [];
     const audioTracks = [];
@@ -536,18 +595,17 @@ export class RemotionSceneCompiler {
       const sc = parsed.scenes[i];
       const sceneId = sc.id || `scene_${i + 1}`;
 
-      // 1. Duration: measured audio/media only — never declared.
-      let durationInSeconds = this.defaultSceneDuration;
-      if (audioDurations[sceneId] !== undefined) {
-        durationInSeconds = audioDurations[sceneId];
-      } else if (audioAssets[sceneId]?.durationSeconds !== undefined) {
-        durationInSeconds = audioAssets[sceneId].durationSeconds;
-      } else if (sc.narration && sc.narration.trim().length > 0) {
-        const words = sc.narration.trim().split(/\s+/).length;
-        durationInSeconds = Math.max(3, words / this.wordsPerSecond);
-      }
+      // 1. Duration: measured audio/media only — never declared. An authored
+      //    animation longer than the narration extends the scene (design D7).
+      const durationInSeconds = durations[i].seconds;
+      const narrationDurationInFrames = Math.max(1, Math.ceil(durations[i].narrationSeconds * fps));
       const durationInFrames = Math.max(1, Math.ceil(durationInSeconds * fps));
       const fromFrame = currentFrame;
+      const sceneAnimations = animFor(sceneId).map((a) => ({
+        id: a.id,
+        durationInFrames: Math.max(1, Math.ceil((Number(a.durationSeconds) || 0) * fps)),
+        sourceDir: a.sourceDir,
+      }));
 
       // 2. Scene type from declared layer kinds (no invented scene_type field).
       let sceneType = 'image_motion';
@@ -578,6 +636,7 @@ export class RemotionSceneCompiler {
         durationInFrames,
         props: sceneProps,
         ...(transition ? { transition } : {}),
+        ...(sceneAnimations.length > 0 ? { animations: sceneAnimations, narrationDurationInFrames } : {}),
       });
 
       // 5. Narration audio binding.

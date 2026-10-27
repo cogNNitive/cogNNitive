@@ -57,7 +57,37 @@ export function buildHyperframesProject(manifest, projectDir) {
     }
   }
   stageComponents(manifest, projectDir);
+  stageAuthoredProjects(manifest, projectDir);
   return built;
+}
+
+/**
+ * Copies each authored animation project into `<project>/authored/<id>/` (design
+ * D5/D7) so its root `index.html` and relative assets resolve in place. The
+ * project's own `.hyperframes/` cache is skipped — it is machine state, not
+ * source. Idempotent: a missing source directory is skipped.
+ * @param {object} manifest
+ * @param {string} projectDir
+ */
+export function stageAuthoredProjects(manifest, projectDir) {
+  const scenes = manifest?.tracks?.scenes || [];
+  const entries = scenes.flatMap((scene) => scene.animations || []);
+  for (const entry of entries) {
+    if (!entry?.id || !entry?.sourceDir || !fs.existsSync(entry.sourceDir)) continue;
+    copyDir(entry.sourceDir, path.join(projectDir, 'authored', entry.id), new Set(['.hyperframes']));
+  }
+}
+
+/** Recursive copy that skips any directory whose name is in `skip`. */
+function copyDir(src, dest, skip) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (skip.has(entry.name)) continue;
+    const from = path.join(src, entry.name);
+    const to = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDir(from, to, skip);
+    else if (entry.isFile()) fs.copyFileSync(from, to);
+  }
 }
 
 /**
