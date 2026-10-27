@@ -59,7 +59,7 @@ const reviewed = {
   scenes: [
     { slug: '00-gancho', name: '00 Gancho', narration: 'Hook words here', choice: { type: 'avatar', model: 'pruna-ai/p-video-2-pro/avatar', quality: 'ALTA' } },
     { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
-    { slug: '02-noticia', name: '02 Noticia', narration: 'Body words here', choice: { type: 'animation' } },
+    { slug: '02-noticia', name: '02 Noticia', narration: 'Body words here', choice: { type: 'animation', asset: 'media/anim-demo' } },
   ],
 };
 const draft = {
@@ -130,9 +130,23 @@ test('the default watermark overlay applies to non-fixed scenes', () => {
   assert.match(body, /text:: generated with AI/);
 });
 
-test('an animation scene references its media clip', () => {
+test('an animation choice emits a type:: animation Layer with the authored project asset', () => {
   const md = build();
-  assert.match(md, /asset:: media\/02-noticia_animacion_1080x1080\.mp4/);
+  const body = md.split('## NN Scene: 02 Noticia')[1];
+  assert.match(body, /type:: animation/);
+  assert.match(body, /asset:: media\/anim-demo/);
+  assert.doesNotMatch(md, /_animacion_/);
+});
+
+test('an animation choice without an asset falls back to a media/<slug> project directory', () => {
+  const rev = {
+    ...reviewed,
+    scenes: [{ slug: '03-outro', name: '03 Outro', narration: 'Bye', choice: { type: 'animation' } }],
+  };
+  const md = build(rev, null);
+  const body = md.split('## NN Scene: 03 Outro')[1];
+  assert.match(body, /type:: animation/);
+  assert.match(body, /asset:: media\/03-outro/);
 });
 
 test('without --draft the reviewed scenes stand alone and no template is invented', () => {
@@ -187,7 +201,7 @@ test('loadSeriesDocument reads the slug, title and frontmatter from series_NN.md
 
 test('no side config or hardcoded series leaks into the engine scripts', () => {
   const scriptsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
-  const forbidden = /video\.series\.json|DEFAULT_SERIES_CONFIG|loadSeriesConfig|applySeriesTokens|00-gancho|--config/;
+  const forbidden = /video\.series\.json|DEFAULT_SERIES_CONFIG|loadSeriesConfig|applySeriesTokens|00-gancho|--config|_animacion_/;
   const offenders = [];
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
