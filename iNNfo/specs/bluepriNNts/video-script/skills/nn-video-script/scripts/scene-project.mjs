@@ -23,6 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sceneTransitionFragment } from './scene-transition.mjs';
 import { renderOverlay } from './overlay-blocks.mjs';
+import { writeGuarded } from './lib/emit-guard.mjs';
 
 /**
  * The pinned HyperFrames CLI version, read from this skill's `package.json` (the
@@ -176,29 +177,29 @@ ${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="c
     2,
   ) + '\n';
 
-  return { indexHtml, compositions, hyperframesJson, compositionId, total, assets };
+  /** @type {Record<string, string>} */
+  const files = { 'index.html': indexHtml, 'hyperframes.json': hyperframesJson };
+  for (const c of compositions) files[`compositions/${c.slug}.html`] = c.html;
+
+  return { indexHtml, compositions, hyperframesJson, compositionId, total, assets, files };
 }
 
 /**
- * Writes the project to `plan.projectDir`. Returns the written paths.
+ * Writes the project to `plan.projectDir` through the regeneration guard.
+ * Returns the written paths.
  * @param {object} manifest
- * @param {{ projectDir: string, pin?: string }} plan
+ * @param {{ projectDir: string, pin?: string, seriesFrame?: object, sceneBlock?: object, narrationCaptions?: boolean }} plan
  */
 export function emitHyperframesProject(manifest, plan = {}) {
   if (!plan.projectDir) throw new Error('emitHyperframesProject: plan.projectDir is required');
   const built = buildProject(manifest, plan);
   const dir = path.resolve(plan.projectDir);
-  const compDir = path.join(dir, 'compositions');
-  fs.mkdirSync(compDir, { recursive: true });
+  writeGuarded(dir, built.files);
 
-  const indexHtml = path.join(dir, 'index.html');
-  fs.writeFileSync(indexHtml, built.indexHtml, 'utf8');
-  fs.writeFileSync(path.join(dir, 'hyperframes.json'), built.hyperframesJson, 'utf8');
-  const compositions = built.compositions.map((c) => {
-    const p = path.join(compDir, `${c.slug}.html`);
-    fs.writeFileSync(p, c.html, 'utf8');
-    return p;
-  });
-
-  return { projectDir: dir, indexHtml, compositions, assets: built.assets };
+  return {
+    projectDir: dir,
+    indexHtml: path.join(dir, 'index.html'),
+    compositions: built.compositions.map((c) => path.join(dir, 'compositions', `${c.slug}.html`)),
+    assets: built.assets,
+  };
 }

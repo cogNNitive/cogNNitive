@@ -24,10 +24,11 @@ import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-c
 import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
-import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId } from './lib/video-guard.mjs';
+import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { DEFAULT_MODELS, resolveModelId } from './asset-cost-estimator.mjs';
 import { resolveEngineModel } from './lib/model-cascade.mjs';
+import { findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
@@ -53,22 +54,6 @@ export class VideoRenderError extends Error {
 function isInside(root, target) {
   const rel = path.relative(path.resolve(root), path.resolve(target));
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-}
-
-/**
- * The series folder that owns a script: the nearest ancestor (inclusive) holding
- * `series_rules.md` or `script_template.md`. Undefined for scripts outside a series.
- * @param {string} startDir
- * @returns {string | undefined}
- */
-export function findSeriesRoot(startDir) {
-  let dir = path.resolve(startDir);
-  for (;;) {
-    if (fs.existsSync(path.join(dir, 'series_rules.md')) || fs.existsSync(path.join(dir, 'script_template.md'))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
-  }
 }
 
 /**
@@ -431,7 +416,7 @@ export async function compileVideo(options) {
   // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud
   // failure — never a silently dropped layer.
   const publicDir = path.join(scriptDir, 'public');
-  const staging = resolveMediaLayers(manifest, { scriptDir, publicDir, seriesRoot: findSeriesRoot(scriptDir) });
+  const staging = resolveMediaLayers(manifest, { scriptDir, publicDir, seriesRoot: findSeriesRoot(scriptDir, resolveWorkspace(scriptDir).root) });
   manifest.metadata.publicDir = publicDir;
 
   // A Series `frame.md` (palette + type) becomes the manifest's frame contract so the
