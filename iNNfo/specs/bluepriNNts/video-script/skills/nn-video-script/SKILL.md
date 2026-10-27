@@ -2,7 +2,7 @@
 name: nn-video-script
 description: |
   iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script.
-version: "V_0-15-3"
+version: "V_0-15-4"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -88,7 +88,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/synthesize-avatar.mjs <script_NN.md> [--scene <id>]... [--dry-run] [--resume <task-id>] [--force-resubmit] [--poll-window <min>] [--allow-model <name>] [--approval <file>] [--cache-dir <dir>]
    node scripts/video-engine-cli.mjs compile <script_NN.md> --output renders/{ref}/manifest.json   # picks the clips up, zero extra spend
    ```
-   *Needs the narration audio that the first `compile` staged (`audio/<sceneId>_voiceover.mp3`), `WAVESPEED_API_KEY` and the human-approved plan. The price is per second of that audio (measured first; unmeasurable audio is refused), the default and only allowed model is `wavespeed-ai/infinitetalk-fast`, and the whole batch is refused before the first charge. A job takes minutes: the task id is journaled in `.cognnitive/pending-predictions.jsonl` before polling, and a re-run is REFUSED while the journal shows an outstanding job for the same scene (use the printed `--resume` command; `--force-resubmit` costs money). On a timeout or recoverable failure the script exits 3 with one complete resume command per task (resume never re-submits). Avatar images must be real files (prompt-only avatar layers need the image generated first by compile); stale staged audio is refused (re-run compile). Billing is ceil(seconds), capped by `maxAvatarSeconds` Outputs get `-movflags +faststart` when ffmpeg is on PATH. The second `compile` rewrites each cached avatar layer to a muted `video` layer.*
+   *Needs the narration audio that the first `compile` staged (`audio/<sceneId>_voiceover.mp3`), `WAVESPEED_API_KEY` and the human-approved plan. The price is per second of that audio (measured first; unmeasurable audio is refused), the default and only allowed model is `wavespeed-ai/infinitetalk-fast`, and the whole batch is refused before the first charge. A job takes minutes: the task id is journaled in `.cognnitive/pending-predictions.jsonl` before polling, and a re-run is REFUSED while the journal shows an outstanding job for the same scene (use the printed `--resume` command; `--force-resubmit` costs money). On a timeout or recoverable failure the script exits 3 with one complete resume command per task (resume never re-submits). Avatar images must be real files (prompt-only avatar layers need the image generated first by compile); stale staged audio is refused (re-run compile). Billing is ceil(seconds), capped by `maxAvatarSeconds`. The second `compile` rewrites each cached avatar layer to a muted `video` layer.*
 
 6. **Render Master Video (dual-master: horizontal + vertical)**:
    ```bash
@@ -132,7 +132,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/lib/file-lock.mjs` | Cross-process lock files (ledger, voice registry, avatar slots). |
 | `scripts/lib/cli-args.mjs` | Strict argv parser shared by the CLIs (`--flag=value`, missing-value errors). |
 | `scripts/approve-plan.mjs` | HUMAN approval of a cost plan. Default flow is in-chat: the user replies with `approve the plan <hash>`; the agent relays it via `--delegated "<phrase>"`. Also supports an interactive TTY (`--yes`-free). Writes `asset_plan.approved.json` that `compile` requires for billable work. |
-| `scripts/synthesize-avatar.mjs` | Guarded talking-avatar synthesis (budget, daily cap, approval, ledger, cross-process slot, pending-task journal, `--resume`, faststart). The ONLY allowed way to produce avatars. |
+| `scripts/synthesize-avatar.mjs` | Guarded talking-avatar synthesis (budget, daily cap, approval, ledger, cross-process slot, pending-task journal, `--resume`). The ONLY allowed way to produce avatars. |
 | `scripts/lib/avatar-jobs.mjs` | Avatar job definition shared by synthesize-avatar and compile: layer predicate, audio source, content-addressed cache key, cached-clip pickup. |
 | `scripts/voice-clone.mjs` | Clone a voice once (pending reservation under a lock, atomic registry write, ledgered); refuses re-cloning without `--force`. |
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |

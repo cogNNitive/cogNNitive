@@ -37,7 +37,6 @@ import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { LOCKS_RELATIVE_DIR, SpendGuard, loadGuard, resolveDefaultCacheDir } from './lib/video-guard.mjs';
 import { assertAudioFresh, collectAvatarJobs } from './lib/avatar-jobs.mjs';
 import { appendPending, findOutstanding, latestPending } from './lib/pending-predictions.mjs';
-import { applyFaststart } from './lib/faststart.mjs';
 import { acquireLock } from './lib/file-lock.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 
@@ -99,7 +98,7 @@ function buildResumeCommand(o, sceneIds, taskId) {
  * @param {number} [o.pollWindowMs] Bounded polling window (default 20 min).
  * @param {object} [o.probeDeps] Test seams for the real duration probe (run, providerSeconds).
  * @param {Function} [o.onPreflightPassed] Test seam: awaited after pre-flight, before the first submit.
- * @param {Record<string, string | undefined>} [o.env] Test seams: env, fetch, sleep, now, measureDuration, ffmpegRun, warn.
+ * @param {Record<string, string | undefined>} [o.env] Test seams: env, fetch, sleep, now, measureDuration, warn.
  */
 export async function synthesizeAvatars(o) {
   if (o.dryRun && o.resume) throw new Error('--dry-run cannot be combined with --resume (resume performs a real poll).');
@@ -248,7 +247,7 @@ export async function synthesizeAvatars(o) {
     now: o.now,
     defaultModels: models,
   });
-  const postProcess = (buf) => applyFaststart(buf, { run: o.ffmpegRun, warn });
+  });
 
   function outstandingMessage(blocked) {
     return blocked
@@ -301,7 +300,6 @@ export async function synthesizeAvatars(o) {
           windowMs,
           intervalMs: 5000,
           backoff: { factor: 1.5, maxMs: 30000 },
-          postProcess,
           warn,
           pending,
         },

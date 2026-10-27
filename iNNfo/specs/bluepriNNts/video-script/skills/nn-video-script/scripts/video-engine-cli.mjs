@@ -27,7 +27,6 @@ import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { loadCascadeBags, resolve, resolveKeyed } from './lib/cascade.mjs';
 import { findNearest, findNearestByStem, findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
-import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
@@ -354,7 +353,6 @@ export function resolveMediaLayers(manifest, opts) {
  * @property {string[]} [allowModels] Models explicitly unlocked past the guard blocklist/allowlist (--allow-model).
  * @property {string} [approvalPath] Approved-plan artifact (defaults to <scriptDir>/asset_plan.approved.json).
  * @property {{ image?: string, tts?: string, avatar?: string }} [models] Chosen models, as passed to the cost estimator (part of plan_hash).
- * @property {Function} [ffmpegRun] Test seam for the faststart retry on marked avatar clips.
  * @property {(file: string) => Promise<{ seconds?: number }>} [soundProbe] Test seam for the `video-end` sound-length probe.
  * @property {Record<string, unknown>} [synthesizerOptions] Extra AssetSynthesizer options (test seam: env, fetch, sleep).
  * @property {(e: object) => void} [onProgress] Progress listener: `plan` (totals + estimated USD)
@@ -643,8 +641,6 @@ export async function compileVideo(options) {
     cacheManager: new CacheManager({ baseDir: cacheDir, readOnly: true }),
     audioFor: (sc) => audioAssets[sc.id]?.assetPath,
   });
-  // A clip kept raw because ffmpeg was missing or failed is retried here once ffmpeg is available.
-  for (const clip of avatarVideos.clips) await refreshFaststart(clip, { run: options.ffmpegRun });
 
   const manifest = compiler.compile(parsed, {
     audioAssets,
