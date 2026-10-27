@@ -76,10 +76,10 @@ Rules for all slices: strict TDD (RED test, GREEN, refactor); tests stub npm and
 
 ## Slice 6: Preflight + docs (PR 6)
 
-- [ ] 6.1 RED: `preflight-check.test.js`: catalog rows, wrong CLI version, binary missing, Node below floor, env warns without changing `exitCode`, optional MCP silent, hand-edited installed skill reported `modified locally` naming the file without changing `exitCode`.
-- [ ] 6.2 GREEN: `skills/nn-preflight/scripts/preflight-check.js` (reuse `diffSkillDir`); re-run tests with empty `HOME`/`USERPROFILE`; bump nn-preflight skill version if guarded.
-- [ ] 6.3 Delete dead `metadata.depends_on` in `skills/nn-sources/SKILL.md`, `skills/nn-console/SKILL.md` (bump versions).
-- [ ] 6.4 `docs/documentation/content/how-to/install-agent.md`: junctions/symlinks with copy fallback.
+- [x] 6.1 RED: `preflight-check.test.js`: catalog rows, wrong CLI version, binary missing, Node below floor, env warns without changing `exitCode`, optional MCP silent, hand-edited installed skill reported `modified locally` naming the file without changing `exitCode`.
+- [x] 6.2 GREEN: `skills/nn-preflight/scripts/preflight-check.js` (reuse `diffSkillDir`); re-run tests with empty `HOME`/`USERPROFILE`; bump nn-preflight skill version if guarded.
+- [x] 6.3 Delete dead `metadata.depends_on` in `skills/nn-sources/SKILL.md`, `skills/nn-console/SKILL.md` (bump versions).
+- [x] 6.4 `docs/documentation/content/how-to/install-agent.md`: junctions/symlinks with copy fallback.
 - [ ] 6.5 Final: full verify, check-integrity, bundle drift (step 5b).
 
 ## Open items (from design)
