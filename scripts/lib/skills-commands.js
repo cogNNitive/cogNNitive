@@ -1048,20 +1048,42 @@ async function cmdInstallExternal(args) {
 
 const DEFAULT_BLUEPRINT_REPO = 'cogNNitive/cogNNitive-web';
 const DEFAULT_CATALOG_PATH = path.join(__dirname, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
+const DEFAULT_CATALOG_URL = 'https://cognnitive.com/innfo/blueprints/catalog.json';
+const FALLBACK_CATALOG_URL =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/catalog.json';
+
+const isUrl = (value) => /^https?:\/\//i.test(String(value));
+
+/** Reads + parses a catalog from a filesystem path or an http(s) URL. */
+async function readCatalog(source) {
+  const raw = isUrl(source) ? await fetchString(source) : fs.readFileSync(source, 'utf-8');
+  return JSON.parse(raw);
+}
 
 /**
- * Loads the Level-2 blueprint catalog (`catalog.json`). Resolution order:
- * an explicit path, the `COGNNITIVE_CATALOG` / `SM_CATALOG` env override, then
- * the in-repo copy. Returns null when no catalog is readable.
+ * Loads the Level-2 blueprint catalog (`catalog.json`). Resolution order: an
+ * explicit path/URL, the `COGNNITIVE_CATALOG` / `SM_CATALOG` override, the
+ * in-repo copy when present, then the published Pages URL and its raw GitHub
+ * fallback. Throws naming the URL when none resolves, so an installed manager
+ * outside the repository can still `install --blueprint`.
  * @param {string} [override]
- * @returns {object | null}
+ * @returns {Promise<object>}
  */
-function loadBlueprintCatalog(override) {
-  const candidate = override || process.env.COGNNITIVE_CATALOG || process.env.SM_CATALOG || DEFAULT_CATALOG_PATH;
+async function loadBlueprintCatalog(override) {
+  const explicit = override || process.env.COGNNITIVE_CATALOG || process.env.SM_CATALOG;
+  if (explicit) return readCatalog(explicit);
+  if (fs.existsSync(DEFAULT_CATALOG_PATH)) return readCatalog(DEFAULT_CATALOG_PATH);
   try {
-    return JSON.parse(fs.readFileSync(candidate, 'utf-8'));
-  } catch (_) {
-    return null;
+    return await readCatalog(DEFAULT_CATALOG_URL);
+  } catch (primaryErr) {
+    try {
+      return await readCatalog(FALLBACK_CATALOG_URL);
+    } catch (fallbackErr) {
+      throw new Error(
+        `blueprint catalog unreachable: ${DEFAULT_CATALOG_URL} (${primaryErr.message}); ` +
+          `fallback ${FALLBACK_CATALOG_URL} (${fallbackErr.message})`,
+      );
+    }
   }
 }
 
@@ -1097,13 +1119,16 @@ async function cmdInstallBlueprint(args) {
   if (!name) throw new Error('install --blueprint requires a blueprint name');
 
   const catalogPath = args.catalogPath;
-  const catalog = loadBlueprintCatalog(catalogPath);
+  const catalog = await loadBlueprintCatalog(catalogPath);
   const entry = findCatalogEntry(catalog, name);
   if (!entry) {
     throw new Error(
       `blueprint '${name}' is not in the catalog (${catalogPath || DEFAULT_CATALOG_PATH}); ` +
         'check the name or refresh catalog.json',
     );
+  }
+  if (!entry.release_tag) {
+    throw new Error(`blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`);
   }
 
   const blueprintsDir = args.blueprintsDir || DEFAULT_BLUEPRINTS_DIR;

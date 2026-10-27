@@ -1517,12 +1517,27 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
     }
     var DEFAULT_BLUEPRINT_REPO = "cogNNitive/cogNNitive-web";
     var DEFAULT_CATALOG_PATH = path2.join(__dirname, "..", "..", "iNNfo", "specs", "bluepriNNts", "catalog.json");
-    function loadBlueprintCatalog(override) {
-      const candidate = override || process.env.COGNNITIVE_CATALOG || process.env.SM_CATALOG || DEFAULT_CATALOG_PATH;
+    var DEFAULT_CATALOG_URL = "https://cognnitive.com/innfo/blueprints/catalog.json";
+    var FALLBACK_CATALOG_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/catalog.json";
+    var isUrl = (value) => /^https?:\/\//i.test(String(value));
+    async function readCatalog(source) {
+      const raw = isUrl(source) ? await fetchString(source) : fs.readFileSync(source, "utf-8");
+      return JSON.parse(raw);
+    }
+    async function loadBlueprintCatalog(override) {
+      const explicit = override || process.env.COGNNITIVE_CATALOG || process.env.SM_CATALOG;
+      if (explicit) return readCatalog(explicit);
+      if (fs.existsSync(DEFAULT_CATALOG_PATH)) return readCatalog(DEFAULT_CATALOG_PATH);
       try {
-        return JSON.parse(fs.readFileSync(candidate, "utf-8"));
-      } catch (_) {
-        return null;
+        return await readCatalog(DEFAULT_CATALOG_URL);
+      } catch (primaryErr) {
+        try {
+          return await readCatalog(FALLBACK_CATALOG_URL);
+        } catch (fallbackErr) {
+          throw new Error(
+            `blueprint catalog unreachable: ${DEFAULT_CATALOG_URL} (${primaryErr.message}); fallback ${FALLBACK_CATALOG_URL} (${fallbackErr.message})`
+          );
+        }
       }
     }
     function findCatalogEntry(catalog, name) {
@@ -1540,12 +1555,15 @@ routine step. Why and how: ${THIRD_PARTY_SKILL_DOC_URL}
       const name = args.blueprint;
       if (!name) throw new Error("install --blueprint requires a blueprint name");
       const catalogPath = args.catalogPath;
-      const catalog = loadBlueprintCatalog(catalogPath);
+      const catalog = await loadBlueprintCatalog(catalogPath);
       const entry = findCatalogEntry(catalog, name);
       if (!entry) {
         throw new Error(
           `blueprint '${name}' is not in the catalog (${catalogPath || DEFAULT_CATALOG_PATH}); check the name or refresh catalog.json`
         );
+      }
+      if (!entry.release_tag) {
+        throw new Error(`blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`);
       }
       const blueprintsDir = args.blueprintsDir || DEFAULT_BLUEPRINTS_DIR;
       const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;

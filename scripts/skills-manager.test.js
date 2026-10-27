@@ -1009,7 +1009,7 @@ agent-bootstrap:
     fs.cpSync(fixtureRoot, destDir, { recursive: true });
   };
   delete require.cache[commandsPath];
-  const { cmdInstallBlueprint } = require('./lib/skills-commands.js');
+  const { cmdInstallBlueprint, loadBlueprintCatalog } = require('./lib/skills-commands.js');
 
   const saveEnv = (keys) => Object.fromEntries(keys.map((k) => [k, process.env[k]]));
   const restoreEnv = (saved) => {
@@ -1058,6 +1058,38 @@ agent-bootstrap:
       await cmdInstallBlueprint({ blueprint: 'nope', catalogPath, blueprintsDir, skillsDir, stateFile, yes: true });
     } catch (err) { caught = err; }
     assert.ok(caught && /not in the catalog/.test(caught.message), 'unknown blueprint must be rejected');
+
+    // Unreleased entry (release_tag: null) is refused before any download.
+    const unreleasedPath = path.join(tmpDir, 'catalog-unreleased.json');
+    fs.writeFileSync(
+      unreleasedPath,
+      JSON.stringify({
+        blueprints: { organization: { name: 'organization', adopted: 'V_0-4-0', release_tag: null, embedded_skills: ['nn-org'] } },
+      }),
+      'utf-8',
+    );
+    const downloadsBefore = downloads.length;
+    caught = null;
+    try {
+      await cmdInstallBlueprint({ blueprint: 'organization', catalogPath: unreleasedPath, repo: 'o/r', blueprintsDir, skillsDir, stateFile, yes: true });
+    } catch (err) { caught = err; }
+    assert.ok(caught && /not yet released/.test(caught.message), 'unreleased blueprint must be refused');
+    assert.strictEqual(downloads.length, downloadsBefore, 'unreleased blueprint must not download');
+
+    // Catalog resolution: a URL override is fetched (not the in-repo file).
+    const served = await serveManifestOnce(
+      JSON.stringify({ blueprints: { x: { name: 'x', release_tag: 'blueprints-v1.0.0' } } }),
+    );
+    const savedCatalogEnv = process.env.COGNNITIVE_CATALOG;
+    try {
+      process.env.COGNNITIVE_CATALOG = served.url;
+      const fromUrl = await loadBlueprintCatalog();
+      assert.strictEqual(fromUrl.blueprints.x.release_tag, 'blueprints-v1.0.0', 'catalog resolves from an explicit URL');
+    } finally {
+      if (savedCatalogEnv === undefined) delete process.env.COGNNITIVE_CATALOG;
+      else process.env.COGNNITIVE_CATALOG = savedCatalogEnv;
+      await served.close();
+    }
 
     console.log('✔ on-demand catalog blueprint install + skill projection test passed');
   } finally {

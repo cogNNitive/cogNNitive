@@ -56,7 +56,9 @@ if (!fs.existsSync(catalogSrc)) {
   process.exit(1);
 }
 fs.mkdirSync(catalogTargetDir, { recursive: true });
-fs.copyFileSync(catalogSrc, path.join(catalogTargetDir, 'catalog.json'));
+// Generate in place (not copy) so `release_tag` is computed per entry from the
+// tags available at build time (CI `site` checks out with fetch-depth: 0).
+run(`node scripts/blueprint-catalog.mjs --out "${path.join(catalogTargetDir, 'catalog.json')}"`, 'Generate and stage the blueprint catalog');
 console.log('âœ… Staged docs/innfo/blueprints/catalog.json');
 
 // 3c. Derive docs-facts generated regions (the MCP tool facts in
