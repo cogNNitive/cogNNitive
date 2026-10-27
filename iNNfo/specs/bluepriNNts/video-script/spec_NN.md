@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-6-0"
+blueprint_version: "V_0-7-0"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -191,11 +191,6 @@ concept:: Layer
 type:: string
 description:: Paint order of the Layer as a numeric string (higher renders on top). Optional.
 
-## NN Field Definition: model
-concept:: Layer
-type:: string
-description:: Optional provider model override for a `presenter` Layer (the avatar/lip-sync model id, e.g. `wavespeed-ai/infinitetalk`). Other Layer types ignore it.
-
 ## NN Field Definition: avatar_model
 concept:: [Layer, Series, Video Defaults]
 type:: string
@@ -223,11 +218,6 @@ description:: Media provider used to synthesize the assets bound to this Templat
 concept:: [Template, Series, Video Defaults]
 type:: string
 description:: Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade.
-
-## NN Field Definition: model
-concept:: Template
-type:: string
-description:: Provider model id used for TTS synthesis.
 
 ## NN Field Definition: tts_model
 concept:: [Template, Series, Video Defaults]
@@ -274,7 +264,7 @@ and schedule are derived by the engine from synthesized media.
 - **Layer** — child of a Scene, never of the Video. Discriminated by a required `type::`
   select. The allowed fields depend on `type::` (see Conditional Fields).
 - **Template** — top-level Concept. Instances live in the Series' L3 Template-data document
-  and carry `tool`, `voice`, `model`, and optional `speed`/`emotion` delivery. A Scene
+  and carry `tool`, `voice`, `tts_model`, and optional `speed`/`emotion` delivery. A Scene
   references one through `template::`.
 - **Series** — a top-level Concept for a real series. The episode's nearest ancestor holding a
   `series_NN.md` supplies the `series` cascade level, plus `title`, `presenter_asset` and
@@ -310,7 +300,7 @@ guard's discretion.
 - Provide a valid Level-2 blueprint usable as `parent_spec` for video scripts at Level 3.
 - Model one Video per document, its ordered Scenes, and each Scene's Layers.
 - Keep narration as the Scene prose body, never as a Field or Concept.
-- Keep the script tool-agnostic by resolving tool/voice/model through `template::`.
+- Keep the script tool-agnostic by resolving tool/voice/tts_model through `template::`.
 - Derive duration and timing from synthesized media; declare none.
 
 ## Reserved Identity
@@ -397,7 +387,7 @@ A tool-agnostic instance of provider configuration shipped by a Series' L3 Templ
 
 ### Description
 
-One `## NN Template: <name>` element carries `tool`, `voice`, `model`, and optional
+One `## NN Template: <name>` element carries `tool`, `voice`, `tts_model`, and optional
 `speed`/`emotion` delivery. Instances live in
 the Series' L3 Template-data document, not in the script. A Scene references one through the
 `template::` reference field using the qualified cross-knowledge form

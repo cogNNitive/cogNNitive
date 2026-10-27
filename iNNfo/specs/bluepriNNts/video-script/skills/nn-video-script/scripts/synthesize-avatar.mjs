@@ -29,7 +29,8 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { AssetSynthesizer, BillingFailureError, probeAudioDurationDetailed } from './asset-synthesizer.mjs';
 import { CacheManager } from './cache-manager.mjs';
-import { DEFAULT_MODELS, estimateCallUsd, resolveModelId } from './asset-cost-estimator.mjs';
+import { estimateCallUsd } from './asset-cost-estimator.mjs';
+import { loadCascadeBags } from './lib/cascade.mjs';
 import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
 import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
@@ -114,6 +115,10 @@ export async function synthesizeAvatars(o) {
   const windowMs = o.pollWindowMs ?? DEFAULT_POLL_WINDOW_MS;
   const scriptContent = fs.readFileSync(scriptPath, 'utf8');
   const scriptDir = path.dirname(scriptPath);
+  const bags = {
+    ...(o.bags || loadCascadeBags(scriptDir)),
+    cli: { tts_model: models.tts, image_model: models.image, avatar_model: models.avatar },
+  };
   const loaded = loadGuard(scriptDir);
   const cacheDir = o.cacheDir || resolveDefaultCacheDir(scriptDir);
   const approvalPath = o.approvalPath ? path.resolve(o.approvalPath) : path.join(scriptDir, APPROVAL_FILENAME);
@@ -126,7 +131,7 @@ export async function synthesizeAvatars(o) {
   const model = o.model || loadKnowledgeModel(scriptPath, { model: o.model, modelPath: o.modelPath });
   const scriptGuard = compiler.checkScript(model, o);
   if (!scriptGuard.ok) throw new ScriptValidationError(scriptGuard.errors);
-  const parsed = compiler.lowerKnowledgeModel(model, { templates: o.templates || loadTemplateModels(scriptDir) });
+  const parsed = compiler.lowerKnowledgeModel(model, { templates: o.templates || loadTemplateModels(scriptDir), bags });
   const sceneFilter = o.scenes?.length ? [...new Set(o.scenes)] : undefined;
   if (sceneFilter) {
     const unknown = sceneFilter.filter((id) => !parsed.scenes.some((s) => s.id === id));
@@ -140,13 +145,12 @@ export async function synthesizeAvatars(o) {
     scriptDir,
     cacheManager: readCache,
     sceneIds: sceneFilter,
-    resolveModel: (prop) => resolveModelId(prop, models.avatar || DEFAULT_MODELS.avatar),
   });
   if (problems.length) throw new Error(problems.join('\n'));
   if (raw.length === 0) throw new Error('No talking-avatar layers (layer_type: talking_avatar) found in ' + scriptPath + (sceneFilter ? ' for the selected scenes.' : '.'));
   for (const j of raw) {
     const sc = parsed.scenes.find((s) => s.id === j.sceneId);
-    assertAudioFresh({ sc, audioPath: j.audioPath, cacheManager: readCache, config: loaded.config, models });
+    assertAudioFresh({ sc, audioPath: j.audioPath, cacheManager: readCache, config: loaded.config, models, bags });
   }
 
   const byKey = new Map();

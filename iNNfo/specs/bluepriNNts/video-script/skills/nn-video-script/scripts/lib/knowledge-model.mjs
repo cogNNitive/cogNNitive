@@ -260,7 +260,11 @@ export function loadTemplateModels(startDir) {
       const model = parseKnowledgeDocument(fs.readFileSync(path.join(d, f), 'utf8'));
       for (const t of model.elements.Template || []) {
         const fields = t.fields || {};
-        const entry = { tool: fields.tool, voice: fields.voice, model: fields.model };
+        // The Template's TTS model is the `tts_model` Field. `model` is accepted
+        // as the pre-rename spelling so migrating a Template does not re-bill a
+        // cached narration (design D20); the internal key stays `model`.
+        const ttsModel = fields.tts_model !== undefined ? fields.tts_model : fields.model;
+        const entry = { tool: fields.tool, voice: fields.voice, model: ttsModel };
         // Delivery travels with the template: an undeclared field stays absent
         // so the provider defaults never enter the TTS cache key.
         const speed = Number(fields.speed);

@@ -103,7 +103,7 @@ title: "Demo Series"
 slug:: presenter-full
 tool:: wavespeed
 voice:: demo-voice
-model:: minimax/speech-2.8-hd
+tts_model:: minimax/speech-2.8-hd
 `;
 
 /** Writes the generic fixture into a temp dir and returns its paths. */

@@ -7,8 +7,8 @@
  * guarded by the Template Immutability Guard (any change demands a blueprint_version bump).
  *
  * Guards the video-script contract additions: the `watermark` Layer type, the Layer fields
- * `model` / `fit`, the Scene field `music_volume`, and the TTS cache key staying independent
- * of the avatar model.
+ * `avatar_model` / `fit`, the Scene field `music_volume`, and the TTS cache key staying
+ * independent of the avatar model.
  */
 
 import assert from 'node:assert';
@@ -78,7 +78,7 @@ async function runTests() {
     const lowered = compiler.lowerKnowledgeModel(model({
       scenes: [scene('s1')],
       layers: [
-        layer('a', 's1', { type: 'presenter', asset: 'a.png', model: 'wavespeed-ai/infinitetalk' }),
+        layer('a', 's1', { type: 'presenter', asset: 'a.png', avatar_model: 'wavespeed-ai/infinitetalk' }),
         layer('b', 's1', { type: 'presenter', asset: 'b.png' }),
       ],
     }));
@@ -128,7 +128,7 @@ async function runTests() {
       const keyFor = (avatarModel, narration = 'Same narration.') => {
         const lowered = compiler.lowerKnowledgeModel(model({
           scenes: [scene('s1', narration, { template: '[[Series :: Voice]]' })],
-          layers: [layer('p', 's1', { type: 'presenter', asset: 'p.png', ...(avatarModel ? { model: avatarModel } : {}) })],
+          layers: [layer('p', 's1', { type: 'presenter', asset: 'p.png', ...(avatarModel ? { avatar_model: avatarModel } : {}) })],
         }), { templates: { Voice: { tool: 'wavespeed', voice: 'Ana' } } });
         const sc = lowered.scenes[0];
         const options = resolveRegisteredVoice(buildTtsVoiceOptions(sc, { tts: 'minimax/speech' }), { voices: {} });
