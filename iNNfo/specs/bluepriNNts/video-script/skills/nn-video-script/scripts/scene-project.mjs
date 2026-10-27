@@ -141,12 +141,14 @@ ${tween}
   const audioEls = audio
     .map((track, i) => {
       const start = frameSeconds(track.fromFrame, fps);
-      const dur = frameSeconds(track.durationInFrames, fps);
       assets.push(String(track.assetPath));
       const loop = track.loop === true ? ' loop' : '';
       const kind = track.kind ? ` data-kind="${esc(track.kind)}"` : '';
       const vol = track.volume !== undefined ? ` data-volume="${track.volume}"` : '';
-      return `  <audio id="${esc(track.id)}"${kind} data-start="${start}" data-duration="${dur}" data-track-index="${100 + i}"${vol}${loop} src="assets/${esc(track.assetPath)}"></audio>`;
+      // A sound effect (kind sfx) rides the root audio track with no data-duration
+      // (design D6); narration and music keep theirs.
+      const dur = track.kind === 'sfx' ? '' : ` data-duration="${frameSeconds(track.durationInFrames, fps)}"`;
+      return `  <audio id="${esc(track.id)}"${kind} data-start="${start}"${dur} data-track-index="${100 + i}"${vol}${loop} src="assets/${esc(track.assetPath)}"></audio>`;
     })
     .join('\n');
 

@@ -27,13 +27,14 @@ import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { loadCascadeBags, resolve, resolveKeyed } from './lib/cascade.mjs';
-import { findNearest, findSeriesRoot } from './lib/nearest.mjs';
+import { findNearest, findNearestByStem, findSeriesRoot } from './lib/nearest.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
+import { probeDuration } from './lib/media-duration.mjs';
 import { checkMissingAsset } from './lib/missing-asset.mjs';
-import { assertSlotContract } from './overlay-blocks.mjs';
+import { assertSlotContract, SLOT_OF } from './overlay-blocks.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 import { tryHyperframesRender } from './hyperframes-render.mjs';
 
@@ -118,6 +119,134 @@ export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skill
     resolved[slot] = { name, path: compPath };
   }
   return resolved;
+}
+
+/** Overlay slots that carry enter/exit sound events (b-roll is a layer event). */
+export const SOUND_OVERLAY_SLOTS = ['title', 'lower-third', 'caption', 'quote', 'watermark'];
+/** Layer types that carry a `layer-enter` sound event. */
+export const SOUND_LAYER_TYPES = ['b-roll', 'animation', 'presenter'];
+
+/**
+ * Every sound key the engine supports (design D12): video start/end, every scene
+ * boundary after the first, each overlay slot's enter/exit, and each layer type's
+ * enter. The engine names events, never concrete sounds.
+ */
+export const SUPPORTED_SOUND_KEYS = [
+  'video-start',
+  'video-end',
+  'scene-boundary',
+  ...SOUND_OVERLAY_SLOTS.map((s) => `overlay-enter.${s}`),
+  ...SOUND_OVERLAY_SLOTS.map((s) => `overlay-exit.${s}`),
+  ...SOUND_LAYER_TYPES.map((t) => `layer-enter.${t}`),
+];
+
+/** Manifest `layer_type` -> the `layer-enter.<type>` sound key it fires. */
+const LAYER_ENTER_TYPE_OF = { animation: 'animation', talking_avatar: 'presenter' };
+
+/**
+ * Times every sound event from a manifest (design D12). Returns a map of key to
+ * the frames where it fires: `video-start` at 0, `video-end` at the video's end
+ * frame (the caller subtracts the probed sound length), `scene-boundary` at every
+ * scene after the first, overlay enter/exit at the overlay's start/end, and
+ * `layer-enter.<type>` at the layer's scene start. A key with no event is absent.
+ * @param {object} manifest
+ * @returns {Map<string, number[]>}
+ */
+export function soundEventFrames(manifest) {
+  const fps = Number(manifest?.fps) || 30;
+  const scenes = manifest?.tracks?.scenes || [];
+  const overlays = manifest?.tracks?.overlays || [];
+  const totalFrames =
+    Number(manifest?.totalDurationInFrames) ||
+    Math.round((Number(manifest?.totalDurationInSeconds) || 0) * fps);
+  /** @type {Map<string, number[]>} */
+  const frames = new Map();
+  const add = (key, frame) => {
+    if (!frames.has(key)) frames.set(key, []);
+    frames.get(key).push(frame);
+  };
+
+  add('video-start', 0);
+  add('video-end', totalFrames);
+  for (let i = 1; i < scenes.length; i++) add('scene-boundary', scenes[i].fromFrame || 0);
+  for (const overlay of overlays) {
+    const slot = SLOT_OF[overlay.type];
+    if (!slot) continue;
+    if (SOUND_OVERLAY_SLOTS.includes(slot)) {
+      add(`overlay-enter.${slot}`, overlay.fromFrame || 0);
+      add(`overlay-exit.${slot}`, (overlay.fromFrame || 0) + (overlay.durationInFrames || 0));
+    }
+    if (slot === 'b-roll') add('layer-enter.b-roll', overlay.fromFrame || 0);
+  }
+  for (const scene of scenes) {
+    for (const layer of scene?.props?.layers || []) {
+      const type = LAYER_ENTER_TYPE_OF[layer.layer_type];
+      if (type) add(`layer-enter.${type}`, scene.fromFrame || 0);
+    }
+  }
+  return frames;
+}
+
+/**
+ * Resolves every supported sound key through the cascade and the nearest-folder
+ * walk (design D2/D6/D21), before any synthesis so a user-level miss spends
+ * nothing. A name with no file follows D21: a user level throws
+ * `MissingAssetError`, the blueprint default is skipped with one warning.
+ * @param {{ bags?: object, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
+ * @returns {Record<string, { name: string, source: string, path: string }>}
+ */
+export function resolveSoundFiles({ bags, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+  const files = {};
+  for (const key of SUPPORTED_SOUND_KEYS) {
+    const { value: name, source } = resolveKeyed('sounds', key, bags || {});
+    if (!name) continue;
+    const { path: soundPath, searched } = findNearestByStem(scriptDir, 'sounds', name, {
+      stopDir: workspaceRoot,
+      fallbackDir: skillDir,
+    });
+    if (!soundPath) {
+      checkMissingAsset({ kind: 'sound', name, source, searched });
+      continue;
+    }
+    files[key] = { name, source, path: soundPath };
+  }
+  return files;
+}
+
+/**
+ * Builds the root `kind:'sfx'` audio tracks for every resolved sound key that
+ * fires an event (design D6/D12). Each file is staged into `publicDir`; the
+ * `video-end` sound is placed at `total - probeDuration(sound)` (never negative).
+ * @param {{ manifest: object, files: Record<string, { path: string }>, scriptDir: string, publicDir: string, probe?: (file: string) => Promise<{ seconds?: number }> }} params
+ * @returns {Promise<Array<{ id: string, kind: 'sfx', assetPath: string, fromFrame: number }>>}
+ */
+export async function resolveSounds({ manifest, files, scriptDir, publicDir, probe = probeDuration }) {
+  const fps = Number(manifest?.fps) || 30;
+  const totalFrames =
+    Number(manifest?.totalDurationInFrames) ||
+    Math.round((Number(manifest?.totalDurationInSeconds) || 0) * fps);
+  const framesByKey = soundEventFrames(manifest);
+  const tracks = [];
+  let index = 0;
+
+  for (const [key, frames] of framesByKey) {
+    const file = files?.[key];
+    if (!file) continue;
+    const staged = stageAsset(file.path, scriptDir, publicDir);
+    if (!staged) continue;
+
+    let occurrences = frames;
+    if (key === 'video-end') {
+      const probed = await probe(file.path);
+      const soundFrames = Math.max(0, Math.round((Number(probed?.seconds) || 0) * fps));
+      occurrences = [Math.max(0, totalFrames - soundFrames)];
+    }
+    const idBase = key.replace(/[^a-z0-9]+/gi, '_');
+    for (const fromFrame of occurrences) {
+      tracks.push({ id: `sfx_${idBase}_${index++}`, kind: 'sfx', assetPath: staged.name, fromFrame });
+    }
+  }
+  return tracks;
 }
 
 /**
@@ -223,6 +352,7 @@ export function resolveMediaLayers(manifest, opts) {
  * @property {string} [approvalPath] Approved-plan artifact (defaults to <scriptDir>/asset_plan.approved.json).
  * @property {{ image?: string, tts?: string, avatar?: string }} [models] Chosen models, as passed to the cost estimator (part of plan_hash).
  * @property {Function} [ffmpegRun] Test seam for the faststart retry on marked avatar clips.
+ * @property {(file: string) => Promise<{ seconds?: number }>} [soundProbe] Test seam for the `video-end` sound-length probe.
  * @property {Record<string, unknown>} [synthesizerOptions] Extra AssetSynthesizer options (test seam: env, fetch, sleep).
  * @property {(e: object) => void} [onProgress] Progress listener: `plan` (totals + estimated USD)
  *   first, then `tts-start`/`tts-done` and `media-start`/`media-done` with `[done/total]`,
@@ -410,6 +540,10 @@ export async function compileVideo(options) {
     ),
   ];
   const components = resolveComponents({ slots: overlaySlots, bags, scriptDir, workspaceRoot: loaded.root });
+  // Resolve and D21-check every sound name BEFORE any synthesis (design D6/D21):
+  // a user-level name with no file fails here, with nothing spent; a blueprint-only
+  // name is skipped with one warning. The times are computed after the manifest.
+  const soundFiles = resolveSoundFiles({ bags, scriptDir, workspaceRoot: loaded.root });
   let audioAssets = {};
   let cachedAssetsUsed = 0;
   let newAssetsSynthesized = 0;
@@ -515,6 +649,18 @@ export async function compileVideo(options) {
   // The resolved slot components ride on the manifest so the emitter mounts the
   // right file and the render driver stages it into `<project>/components/`.
   manifest.metadata.components = components;
+
+  // Sound effects (design D6/D12): every resolved key that fires an event becomes a
+  // root `kind:'sfx'` audio track at its event time, staged into the same public
+  // dir. Appended after `resolveMediaLayers` so its own staging is not re-walked.
+  const sfxTracks = await resolveSounds({
+    manifest,
+    files: soundFiles,
+    scriptDir,
+    publicDir,
+    probe: options.soundProbe,
+  });
+  manifest.tracks.audio.push(...sfxTracks);
 
   // Keep the human-visible local audio staging dir next to the script (developer aid).
   const localAudioDir = path.join(scriptDir, 'audio');
