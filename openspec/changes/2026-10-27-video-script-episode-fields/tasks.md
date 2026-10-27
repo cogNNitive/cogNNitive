@@ -16,7 +16,10 @@
 - [ ] 2.1 Add the seven Field Definitions to the `Video` concept: `slug`, `description`, `status`,
       `script`, `master`, `thumbnail`, `voice_id`. Update the field table, the Concept Guidance for
       `Video` and the `# NN index` taxonomy.
-- [ ] 2.2 Bump `blueprint_version`; update `manifest/source.yaml`, the catalog and version parity.
+- [ ] 2.2 Bump `blueprint_version` to `V_0-13-7` (the convention increments the last digit per
+      change: `V_0-13-2` → `-3` → `-4` → `-5` → `-6`), and update the `adopted` field in
+      `iNNfo/specs/bluepriNNts/catalog.json` plus its `docs/innfo/blueprints/catalog.json` mirror.
+      There is **no** `manifest/source.yaml` entry for `video-script`: it is distributed on demand.
 - [ ] 2.3 Update the Ghostbusters sample and `_samples_nn` so samples stay valid.
 
 ## 3. Capability delta

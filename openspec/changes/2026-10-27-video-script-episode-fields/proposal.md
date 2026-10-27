@@ -18,8 +18,10 @@ delivery fields on it, it *is* the episode. The retired blueprint's role is abso
 
 - `video-script`'s `Video` concept gains seven fields: `slug`, `description`, `status`, `script`,
   `master`, `thumbnail`, `voice_id`.
-- Blueprint version bump, `manifest/source.yaml`, catalog and version-parity regeneration, released
-  as a `blueprints-v*` tag.
+- Blueprint version bump (`V_0-13-7` — the convention increments the last digit per change) and the
+  `adopted` field in `iNNfo/specs/bluepriNNts/catalog.json` plus its
+  `docs/innfo/blueprints/catalog.json` mirror, released as a `blueprints-v*` tag. `video-script` is
+  distributed on demand: it has no `manifest/source.yaml` entry.
 - `video_NN`'s four series models re-parent to `video-script`. Their `## NN Video:` headings do not
   change: both blueprints name the concept `Video`.
 - No field is removed, no concept renamed, and the engine path is untouched — it writes
