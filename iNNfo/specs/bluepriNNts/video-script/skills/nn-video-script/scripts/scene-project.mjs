@@ -20,10 +20,25 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { sceneTransitionFragment } from './scene-transition.mjs';
 import { renderOverlay } from './overlay-blocks.mjs';
 
-export const HYPERFRAMES_PIN = '0.8.192';
+/**
+ * The pinned HyperFrames CLI version, read from this skill's `package.json` (the
+ * single source of truth). npm installs and pins it; the render driver resolves
+ * the local binary.
+ */
+export const HYPERFRAMES_PIN = (() => {
+  try {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'),
+    );
+    return (pkg.dependencies && pkg.dependencies.hyperframes) || '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+})();
 export const OVERLAY_HOST_ANCHOR = '<!-- nn-overlay-host -->';
 
 const roundMs = (seconds) => Math.round(seconds * 1000) / 1000;

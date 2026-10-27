@@ -131,6 +131,25 @@ test('quoteArg keeps spaces and shell metacharacters inside a single literal arg
   assert.equal(quoteArg('--workers', 'linux'), '--workers');
 });
 
+test('a missing pinned CLI is a named reason, never an npx install', async () => {
+  const dir = tmp();
+  const res = await tryHyperframesRender({ manifest, outputPath: path.join(dir, 'out.mp4') });
+  assert.equal(res.rendered, false);
+  assert.equal(res.reason, 'hyperframes-missing');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('a version different from the pin is a named reason', async () => {
+  const dir = tmp();
+  const res = await tryHyperframesRender(
+    { manifest, outputPath: path.join(dir, 'out.mp4') },
+    { cliPath: '/fake/hyperframes', installedPin: '9.9.9' },
+  );
+  assert.equal(res.rendered, false);
+  assert.match(res.reason, /^hyperframes-version-mismatch: 9\.9\.9≠/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('a passthrough after -- is warned about and ignored when the command is not render', () => {
   const cli = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'video-engine-cli.mjs');
   const res = spawnSync('node', [cli, 'bogus', '--', '--workers', '2'], { encoding: 'utf8' });

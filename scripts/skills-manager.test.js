@@ -1121,7 +1121,15 @@ agent-bootstrap:
   try {
     const skillsDir = path.join(e2eDir, 'skills');
     const state = { skills: {} };
-    const names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'video-script', commit: 'e2e' }, state);
+    const savedSkip = process.env.SM_SKIP_NPM_INSTALL;
+    process.env.SM_SKIP_NPM_INSTALL = '1';
+    let names;
+    try {
+      names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'video-script', commit: 'e2e' }, state);
+    } finally {
+      if (savedSkip === undefined) delete process.env.SM_SKIP_NPM_INSTALL;
+      else process.env.SM_SKIP_NPM_INSTALL = savedSkip;
+    }
     assert.deepStrictEqual(names, ['nn-video-script'], 'the real video-script package projects exactly nn-video-script');
     assert.strictEqual(state.skills['nn-video-script'].source_blueprint, 'video-script');
     assert.ok(
