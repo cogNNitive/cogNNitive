@@ -21,7 +21,7 @@ title: "Demo Series"
 slug:: presenter-full
 tool:: wavespeed
 voice:: demo-voice
-model:: minimax/speech-2.8-hd
+tts_model:: minimax/speech-2.8-hd
 speed:: 1.1
 emotion:: happy
 
@@ -29,7 +29,7 @@ emotion:: happy
 slug:: plain
 tool:: wavespeed
 voice:: demo-voice
-model:: minimax/speech-2.8-hd
+tts_model:: minimax/speech-2.8-hd
 `;
 
 function writeTemplates() {

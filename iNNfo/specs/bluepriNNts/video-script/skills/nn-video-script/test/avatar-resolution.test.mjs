@@ -30,7 +30,7 @@ test('the compiler lowers avatar_resolution onto the layer', () => {
     elements: {
       Video: [{ type: 'Video', name: 'v', slug: 'v', fields: { title: 'v' } }],
       Scene: [{ type: 'Scene', name: 's', slug: 's', description: 'x', fields: {} }],
-      Layer: [{ type: 'Layer', name: 'p', slug: 'p', parentSlug: 's', fields: { type: 'presenter', asset: 'a.png', model: PRUNA, avatar_resolution: '768p' } }],
+      Layer: [{ type: 'Layer', name: 'p', slug: 'p', parentSlug: 's', fields: { type: 'presenter', asset: 'a.png', avatar_model: PRUNA, avatar_resolution: '768p' } }],
     },
   };
   const lowered = new RemotionSceneCompiler().lowerKnowledgeModel(model);
@@ -57,7 +57,7 @@ test('collectAvatarJobs honors the layer resolution and keys differ by resolutio
         },
       ],
     };
-    const { jobs } = collectAvatarJobs({ parsed, scriptDir: dir, cacheManager, resolveModel: (m) => m || PRUNA, audioFor: () => aud });
+    const { jobs } = collectAvatarJobs({ parsed, scriptDir: dir, cacheManager, audioFor: () => aud });
     assert.equal(jobs.length, 2);
     assert.equal(jobs[0].resolution, '768p');
     assert.equal(jobs[1].resolution, '480p');

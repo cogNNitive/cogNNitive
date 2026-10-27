@@ -300,17 +300,28 @@ export class RemotionSceneCompiler {
         accept: (v) => v !== undefined && v !== null && String(v).trim() !== '' && Number.isFinite(Number(v)),
       }).value;
       const transition = resolve('transition', sceneBags).value;
+      // The resolved template's `tts_model`/`voice` fill the referencing
+      // element's bag (design D10/D20); the rest of the cascade supplies the
+      // value. Engine code names no model.
+      const elementBags = resolvedTemplate
+        ? {
+            ...sceneBags,
+            scene: {
+              ...fields,
+              ...(resolvedTemplate.model !== undefined ? { tts_model: resolvedTemplate.model } : {}),
+              ...(resolvedTemplate.voice !== undefined ? { voice: resolvedTemplate.voice } : {}),
+            },
+          }
+        : sceneBags;
+      const ttsModel = resolve('tts_model', elementBags).value;
+      const voice = resolve('voice', elementBags).value;
       const properties = {};
       if (music) properties.scene_background_audio = music;
       if (musicVolume !== null) {
         properties.scene_music_volume = Number(musicVolume);
       }
-      // Carry the resolved template's model/voice so downstream pricing + TTS
-      // agree without reading any script-declared voice/model field.
-      if (resolvedTemplate) {
-        if (resolvedTemplate.model || resolvedTemplate.tool) properties.scene_tts_model = resolvedTemplate.model || resolvedTemplate.tool;
-        if (resolvedTemplate.voice) properties.scene_voice = resolvedTemplate.voice;
-      }
+      if (ttsModel !== null && ttsModel !== undefined) properties.scene_tts_model = ttsModel;
+      if (voice !== null && voice !== undefined) properties.scene_voice = voice;
 
       const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
       return {
@@ -344,6 +355,7 @@ export class RemotionSceneCompiler {
     const declared = fields.type;
     const binding = TYPE_RENDERERS[declared] || { kind: 'layer', manifest: declared };
     const fit = resolve('fit', { ...bags, layer: fields }).value;
+    const avatarModel = resolve('avatar_model', { ...bags, layer: fields }).value;
     const properties = {
       layer_type: internalLayerType(declared, fields.asset),
       layer_asset_source: fields.asset,
@@ -351,7 +363,7 @@ export class RemotionSceneCompiler {
       layer_text_content: fields.text,
       layer_level: fields.level !== undefined ? Number(fields.level) : undefined,
       layer_position: fields.position,
-      layer_avatar_model: fields.model,
+      layer_avatar_model: avatarModel ?? undefined,
       layer_avatar_resolution: fields.avatar_resolution,
       layer_fit: fit,
     };

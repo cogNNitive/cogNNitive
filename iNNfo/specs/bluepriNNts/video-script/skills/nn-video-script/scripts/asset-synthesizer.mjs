@@ -18,7 +18,8 @@ import { SpendGuard, loadGuard, isSystemVoice } from './lib/video-guard.mjs';
 import { resolveRegisteredVoice } from './lib/tts-options.mjs';
 import { buildAvatarRequest } from './lib/avatar-request.mjs';
 import { markNeedsFaststart } from './lib/faststart.mjs';
-import { estimateCallUsd, resolveModelId, DEFAULT_MODELS } from './asset-cost-estimator.mjs';
+import { estimateCallUsd, resolveModelId } from './asset-cost-estimator.mjs';
+import { resolve } from './lib/cascade.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
 import { defaultResolutionFor } from './lib/avatar-jobs.mjs';
 
@@ -105,6 +106,7 @@ export class AssetSynthesizer {
    * @param {string} [options.mediaProvider="local"] "replicate" | "local" | "mock"
    * @param {SpendGuard} [options.guard] Spend guard. Without one the synthesizer FAILS CLOSED: billable calls are refused.
    * @param {{ image?: string, tts?: string, avatar?: string }} [options.defaultModels] Models used when a call names no provider model.
+   * @param {Record<string, Record<string, unknown>>} [options.bags] Cascade bags supplying the fallback model ids (design D10).
    * @param {Record<string, string | undefined>} [options.env] Environment seam (defaults to process.env).
    * @param {typeof fetch} [options.fetch] HTTP seam for tests.
    * @param {(ms: number) => Promise<void>} [options.sleep] Poll-delay seam for tests.
@@ -121,7 +123,14 @@ export class AssetSynthesizer {
     this.ttsProvider = options.ttsProvider || this.env.TTS_PROVIDER || 'local';
     this.mediaProvider = options.mediaProvider || this.env.MEDIA_PROVIDER || 'local';
     const chosen = Object.fromEntries(Object.entries(options.defaultModels || {}).filter(([, v]) => v));
-    this.defaultModels = { ...DEFAULT_MODELS, ...chosen };
+    // Fallback defaults come from the cascade (design D10), never a constant:
+    // the caller passes resolved bags, and an explicit `defaultModels` wins.
+    const bags = options.bags || {};
+    this.defaultModels = {
+      image: chosen.image || resolve('image_model', bags).value || undefined,
+      tts: chosen.tts || resolve('tts_model', bags).value || undefined,
+      avatar: chosen.avatar || resolve('avatar_model', bags).value || undefined,
+    };
     if (options.guard) {
       this.guard = options.guard;
     } else {

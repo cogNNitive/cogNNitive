@@ -161,25 +161,3 @@ export function loadCascadeBags(scriptDir, options = {}) {
   bags.blueprint = documentFields(path.join(pkg, 'defaults', 'video-defaults_NN.md'), 'Video Defaults') || {};
   return bags;
 }
-
-/**
- * Convenience for the engine: resolves one model kind from the concrete inputs
- * a compile/estimate run has, so the plan (estimator) and the execution pick
- * the SAME model id. Superseded by `resolve` in a later slice.
- * @param {'tts'|'image'|'avatar'} kind
- * @param {{ cliModel?, layerModel?, sceneModel?, videoModel?, seriesModel?, domainModel?, defaultModel? }} opts
- * @returns {string | null}
- */
-export function resolveEngineModel(kind, opts = {}) {
-  const bag = (v) => (v === undefined ? undefined : { [kind]: v });
-  const r = resolve(kind, {
-    cli: bag(opts.cliModel),
-    layer: bag(opts.layerModel),
-    scene: bag(opts.sceneModel),
-    video: bag(opts.videoModel),
-    series: bag(opts.seriesModel),
-    domain: bag(opts.domainModel),
-    blueprint: bag(opts.defaultModel),
-  });
-  return r.value === null ? null : String(r.value);
-}
