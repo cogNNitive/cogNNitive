@@ -39,6 +39,7 @@ function walk(dir, rel, out) {
  * @returns {Record<string, string>}
  */
 function hashSkillDir(dir) {
+  /** @type {Record<string, string>} */
   const files = {};
   if (!fs.existsSync(dir)) return files;
   const list = [];
@@ -61,6 +62,7 @@ function hashSkillDir(dir) {
  */
 function diffSkillDir(dir, recorded) {
   const current = hashSkillDir(dir);
+  /** @type {Record<string, string>} */
   const rec = recorded || {};
   const changed = [];
   const added = [];

@@ -106,7 +106,7 @@ function requestFor(url) {
 
 /**
  * Initializes a new empty skill manager state structure.
- * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any>, cli: Record<string, any> }}
  */
 function emptyState() {
   return { manifest: getManifestUrl(), skills: {}, blueprints: {}, mcp: {}, console: {}, projections: {}, cli: {} };
@@ -156,7 +156,7 @@ function migrateLegacyMcpState(state, mcpDir) {
 /**
   * Loads the current machine skill state from JSON file, supporting legacy migrations.
   * @param {string} file
-  * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
+  * @returns {{ manifest: string, skills: Record<string, any>, blueprints: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any>, cli: Record<string, any> }}
   */
 function loadState(file) {
   if (fs.existsSync(file)) {
