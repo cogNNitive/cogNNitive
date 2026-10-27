@@ -305,9 +305,9 @@ var require_skill_tree_digest = __commonJS({
   }
 });
 
-// scripts/lib/skill-content-hash.js
+// skills/nn-preflight/scripts/lib/skill-content-hash.js
 var require_skill_content_hash = __commonJS({
-  "scripts/lib/skill-content-hash.js"(exports2, module2) {
+  "skills/nn-preflight/scripts/lib/skill-content-hash.js"(exports2, module2) {
     var crypto = require("crypto");
     var fs = require("fs");
     var path2 = require("path");
@@ -363,6 +363,13 @@ var require_skill_content_hash = __commonJS({
       };
     }
     module2.exports = { hashSkillDir, diffSkillDir };
+  }
+});
+
+// scripts/lib/skill-content-hash.js
+var require_skill_content_hash2 = __commonJS({
+  "scripts/lib/skill-content-hash.js"(exports2, module2) {
+    module2.exports = require_skill_content_hash();
   }
 });
 
@@ -1013,7 +1020,7 @@ var require_skills_commands = __commonJS({
       hashTree
     } = require_projection();
     var { skillTreeDigest } = require_skill_tree_digest();
-    var { hashSkillDir, diffSkillDir } = require_skill_content_hash();
+    var { hashSkillDir, diffSkillDir } = require_skill_content_hash2();
     var {
       fetchString,
       fetchJson,
