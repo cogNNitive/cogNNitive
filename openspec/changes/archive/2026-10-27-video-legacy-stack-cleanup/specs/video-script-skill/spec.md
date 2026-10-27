@@ -38,18 +38,6 @@ A scene transition MUST be emitted with a GSAP ease name. The compiler MUST NOT 
 - THEN the scene tween carries `ease: 'power2.out'`
 - AND no emitted file contains `bezier(`
 
-### Requirement: Provider Clips Are Cached As Delivered
-
-The skill MUST cache provider video clips as delivered, with no `+faststart` remux and no `.needs-faststart` marker. Final deliverables MAY still be remuxed by `render-formats.mjs`.
-
-(Note for the applier: S3 spike PASS only. On FAIL, delete this requirement from the delta before archive.)
-
-#### Scenario: Avatar clip is not remuxed
-
-- GIVEN a synthesized avatar clip
-- WHEN it is cached and later compiled
-- THEN no ffmpeg remux runs and no `.needs-faststart` file exists
-
 ## MODIFIED Requirements
 
 ### Requirement: Render Step Uses The HyperFrames Pipeline

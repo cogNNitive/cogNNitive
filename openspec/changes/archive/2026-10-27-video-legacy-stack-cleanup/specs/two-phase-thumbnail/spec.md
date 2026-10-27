@@ -1,9 +1,10 @@
 # Delta for two-phase-thumbnail
 
 Scope: one Phase B tool. `thumbnail-v1.mjs` folds into `render-thumbnail.mjs` (slice S4a, always).
-Item 3 depends on the S4 spike: the **PASS** text below ships with S4b; on **FAIL**, replace item 3
-with the previous wording ("SVG vector templating composed over the base image via `sharp`") and
-drop the "No sharp" scenario before archive.
+Item 3 depends on the S4 spike: the **PASS** text below ships with S4b; on **FAIL**, item 3 keeps
+the previous SVG-over-base-via-`sharp` wording and the "No sharp" scenario is dropped. This delta
+records the **FAIL** outcome: S4b did not ship (the spike could not run offline), so the tool keeps
+its SVG+`sharp` rendering path and the skill keeps `sharp`.
 
 ## MODIFIED Requirements
 
@@ -20,13 +21,12 @@ The `render-thumbnail.mjs` tool MUST be the only Phase B tool in the skill. It M
      read through the parameter cascade (walking from `--out`'s folder, or `--series <dir>`).
    - `--width <number>` (Optional, default: 2560), `--height <number>` (Optional, default: 1440).
 2. Render bold sans-serif typography with a high-contrast stroke or drop shadow and a translucent
-   brand pill badge; font and accent come from the resolved `frame` tokens.
-3. Render the design as a one-frame HyperFrames composition through the pinned HyperFrames CLI.
-   The skill MUST NOT depend on `sharp`.
+   brand pill badge.
+3. Render the design as SVG vector templating composed over the base image via `sharp`.
 4. Scale and fit the base image without distortion (cover).
 5. Output a valid JPEG or PNG matching the `--out` extension.
 (Previously: SVG composed over the base via `sharp`; `thumbnail-v1.mjs` was a second compositor;
-subtitle/badge had no series default; no frame tokens.)
+subtitle/badge had no series default.)
 
 #### Scenario: Typography render
 
@@ -45,9 +45,3 @@ subtitle/badge had no series default; no frame tokens.)
 - GIVEN no `--title`
 - WHEN the tool runs
 - THEN it exits non-zero with its usage line and writes nothing
-
-#### Scenario: No sharp
-
-- GIVEN the skill's scripts and package manifest
-- WHEN they are inspected
-- THEN no `sharp` import or dependency is present
