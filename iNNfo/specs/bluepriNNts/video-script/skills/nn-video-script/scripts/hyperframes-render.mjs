@@ -15,10 +15,31 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { emitHyperframesProject, HYPERFRAMES_PIN } from './scene-project.mjs';
 
+/** Quotes one argument so a shell passes it through as a single literal token. */
+export function quoteArg(arg, platform = process.platform) {
+  const a = String(arg);
+  if (/^[\w@%+=:,./-]+$/.test(a)) return a;
+  if (platform === 'win32') return `"${a.replace(/"/g, '\\"')}"`;
+  return `'${a.replace(/'/g, "'\\''")}'`;
+}
+
 /** Default runner: `npx` on PATH. */
 function defaultRun(cmd, args, opts = {}) {
-  const res = spawnSync(cmd, args, { shell: true, encoding: 'utf8', ...opts });
+  // `shell: true` is needed for the npx .cmd shim on Windows, so quote every arg ourselves.
+  const res = spawnSync(cmd, args.map((a) => quoteArg(a)), {
+    shell: true,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    ...opts,
+  });
   return { status: res.status, stdout: res.stdout || '', stderr: res.stderr || '', error: res.error };
+}
+
+const DETAIL_MAX = 2000;
+
+/** Last `DETAIL_MAX` chars of a captured stream, trimmed; '' when there is nothing. */
+function outputTail(text) {
+  return String(text || '').trim().slice(-DETAIL_MAX);
 }
 
 /** Emit the project and copy the compiled public assets into `<project>/assets/`. */
@@ -39,9 +60,10 @@ export function buildHyperframesProject(manifest, projectDir) {
 }
 
 /**
- * @param {{ manifest: object, outputPath: string, projectDir?: string, concurrency?: number, pin?: string }} input
+ * `extraArgs` are forwarded verbatim to `hyperframes render` (e.g. `--workers 2`).
+ * @param {{ manifest: object, outputPath: string, projectDir?: string, concurrency?: number, pin?: string, extraArgs?: string[] }} input
  * @param {{ run?: (cmd: string, args: string[], opts?: object) => any }} [deps]
- * @returns {Promise<{ rendered: true } | { rendered: false, reason: string }>}
+ * @returns {Promise<{ rendered: true } | { rendered: false, reason: string, detail?: string }>}
  */
 export async function tryHyperframesRender(input, deps = {}) {
   const { manifest, outputPath } = input;
@@ -60,11 +82,17 @@ export async function tryHyperframesRender(input, deps = {}) {
   // Attempt the render directly: `npx --yes hyperframes@<pin>` installs the pinned
   // CLI on demand. A failure (missing network, CLI error) is returned as a reason and
   // the caller raises a loud named error; there is no FFmpeg fallback.
-  const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath)]];
+  const extra = (input.extraArgs || []).map(String);
+  const cmd = ['npx', ['--yes', `hyperframes@${pin}`, 'render', projectDir, '--output', path.resolve(outputPath), ...extra]];
   try {
     const res = await run(cmd[0], cmd[1], { cwd: projectDir });
+    // Keep the CLI's own words: the exit code alone says nothing about why it failed.
+    const detail = res ? outputTail(res.stderr) || outputTail(res.stdout) : '';
+    if (res?.error) {
+      return { rendered: false, reason: `error: ${res.error.message || String(res.error)}`, ...(detail && { detail }) };
+    }
     if (res && typeof res.status === 'number' && res.status !== 0) {
-      return { rendered: false, reason: `hyperframes-exit-${res.status}` };
+      return { rendered: false, reason: `hyperframes-exit-${res.status}`, ...(detail && { detail }) };
     }
   } catch (err) {
     return { rendered: false, reason: `error: ${err?.message || String(err)}` };

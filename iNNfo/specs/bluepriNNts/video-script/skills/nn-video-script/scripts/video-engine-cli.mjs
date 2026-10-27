@@ -529,6 +529,7 @@ export async function renderVideo(options) {
       outputPath,
       concurrency: options.concurrency || 4,
       projectDir,
+      extraArgs: options.hyperframesArgs,
     },
     renderDeps,
   );
@@ -537,7 +538,7 @@ export async function renderVideo(options) {
   if (!hfResult.rendered) {
     if (!options.allowMock) {
       throw new VideoRenderError(
-        `HyperFrames render failed (${hfResult.reason}). Install the CLI via ensure-hyperframes.mjs, ` +
+        `HyperFrames render failed (${hfResult.reason})${hfResult.detail ? `:\n${hfResult.detail}\n\n` : '. '}Install the CLI via ensure-hyperframes.mjs, ` +
           `or pass --allow-mock for a CI placeholder MP4.`,
       );
     }
@@ -679,6 +680,7 @@ const USAGE = [
   '          [--image-model id] [--tts-model id] [--avatar-model id]',
   '  render  <script.md|manifest.json> --output master.mp4 [--fps n] [--width n] [--height n] [--format 16:9|9:16|1:1] [--concurrency n] [--cache-dir dir]',
   '          [--allow-mock] [--approval approved.json] [--allow-model name]... [--image-model id] [--tts-model id] [--avatar-model id]',
+  '          [-- <hyperframes render flags>]   e.g. -- --workers 2 --low-memory-mode (forwarded verbatim)',
   '  preview <script.md|manifest.json> [--port n]',
   '  --dry-run (compile only): list uncached billable work and the estimated total; spends and writes nothing.',
   '  --approval: approved plan (default <script dir>/asset_plan.approved.json); --allow-model unlocks a blocked',
@@ -697,9 +699,19 @@ function parseCliArgs(argv) {
   }
 }
 
+/** Splits argv at the first literal `--`: what follows is forwarded verbatim to `hyperframes render`. */
+export function splitPassthrough(argv) {
+  const i = argv.indexOf('--');
+  return i === -1 ? { argv, passthrough: [] } : { argv: argv.slice(0, i), passthrough: argv.slice(i + 1) };
+}
+
 async function main() {
-  const args = parseCliArgs(process.argv.slice(2));
+  const { argv, passthrough } = splitPassthrough(process.argv.slice(2));
+  const args = parseCliArgs(argv);
   const command = args._[0];
+  if (passthrough.length > 0 && command !== 'render') {
+    console.warn(`⚠️ [video-engine-cli] Arguments after "--" are ignored (only render forwards them): ${passthrough.join(' ')}`);
+  }
 
   if (!command) {
     console.error(USAGE);
@@ -767,6 +779,7 @@ async function main() {
         approvalPath: typeof args.approval === 'string' ? args.approval : undefined,
         models: { image: args['image-model'], tts: args['tts-model'], avatar: args['avatar-model'] },
         allowMock: Boolean(args['allow-mock']),
+        hyperframesArgs: passthrough,
         onProgress: cliReporter,
       });
       console.log(`✅ [video-engine-cli] Rendered ${result.outputVideoPath}`);
