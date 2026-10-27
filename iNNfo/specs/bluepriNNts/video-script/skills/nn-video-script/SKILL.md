@@ -46,7 +46,7 @@ The video engine operates headlessly through programmatic modules:
 - **Asset Synthesizer (`scripts/asset-synthesizer.mjs` / `scripts/tts-generator.mjs`)**: Synthesizes TTS voiceover tracks and image/motion assets.
 - **Runtime Provisioner (`scripts/ensure-hyperframes.mjs`)**: Idempotent, consent-gated verification of the pinned HyperFrames CLI (`0.8.192`) and its agent skills.
 - **Render Driver (`scripts/hyperframes-render.mjs`)**: emits the project and renders it via the pinned CLI; HyperFrames is the only renderer.
-- **Video Engine CLI (`scripts/video-engine-cli.mjs`)**: Headless CLI providing `compile`, `render`, and `preview` commands.
+- **Video Engine CLI (`scripts/video-engine-cli.mjs`)**: Headless CLI providing `compile` and `render` commands.
 
 ## 1b. Domain Setup (adopt the blueprint)
 
@@ -141,7 +141,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/lib/avatar-jobs.mjs` | Avatar job definition shared by synthesize-avatar and compile: layer predicate, audio source, content-addressed cache key, cached-clip pickup. |
 | `scripts/voice-clone.mjs` | Clone a voice once (pending reservation under a lock, atomic registry write, ledgered); refuses re-cloning without `--force`. |
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
-| `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`), headless rendering (`render`), and local web preview (`preview`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
+| `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`) and headless rendering (`render`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
 | `scripts/render-vertical.mjs` | Cheap ffmpeg 16:9 → 9:16 reframe fallback (blur bg + header + title). Prefer native `--format 9:16`. |
 | `scripts/render-formats.mjs` | Format-variant post-process: square master → `_1080x1080` (copy) / `_1080x1920` / `_1920x1080` with the square whole over a Gaussian-blurred fill (`+faststart`). |
 | `scripts/assemble-video.mjs` | Final-assembly layer: joins already-produced clips into one master via the FFmpeg concat demuxer (`-f concat -c copy`, +faststart) with an ffprobe consistency precheck. Assembly only — no scene effects. |

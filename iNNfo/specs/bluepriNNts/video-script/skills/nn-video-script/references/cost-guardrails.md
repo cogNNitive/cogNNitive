@@ -121,7 +121,7 @@ apply to in-chat approvals.
 uncached billable call (TTS and image layers), the estimated total against the
 per-run and 24h caps, blocked models and approval status. It spends nothing,
 writes nothing (not even cache directories) and exits 0. `--dry-run` is rejected
-on `render` and `preview`.
+on `render`.
 
 ## 4. Enforcement order (per billable call)
 
