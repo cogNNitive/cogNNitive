@@ -223,11 +223,13 @@ export function loadKnowledgeModel(scriptPath, options = {}) {
 
 /**
  * Discovers Series L3 Template documents near a script and returns a
- * `name → { tool, voice, model }` map so `template::` references resolve.
- * Scans the script's directory and up to three ancestor levels (their
+ * `name → { tool, voice, model, speed, emotion }` map so `template::` references
+ * resolve. `speed`/`emotion` are the template's voice delivery: they must reach
+ * the TTS payload *and* its cache key, so they are carried here, not restated by
+ * the scene. Scans the script's directory and up to three ancestor levels (their
  * immediate subdirectories included) for `templates_*_NN.md`.
  * @param {string} startDir
- * @returns {Record<string, { tool?: string, voice?: string, model?: string }>}
+ * @returns {Record<string, { tool?: string, voice?: string, model?: string, speed?: number, emotion?: string }>}
  */
 export function loadTemplateModels(startDir) {
   const templates = {};
@@ -257,7 +259,15 @@ export function loadTemplateModels(startDir) {
     for (const f of files) {
       const model = parseKnowledgeDocument(fs.readFileSync(path.join(d, f), 'utf8'));
       for (const t of model.elements.Template || []) {
-        templates[t.name] = { tool: t.fields.tool, voice: t.fields.voice, model: t.fields.model };
+        const fields = t.fields || {};
+        const entry = { tool: fields.tool, voice: fields.voice, model: fields.model };
+        // Delivery travels with the template: an undeclared field stays absent
+        // so the provider defaults never enter the TTS cache key.
+        const speed = Number(fields.speed);
+        if (String(fields.speed ?? '').trim() !== '' && Number.isFinite(speed)) entry.speed = speed;
+        const emotion = typeof fields.emotion === 'string' ? fields.emotion.trim() : '';
+        if (emotion !== '') entry.emotion = emotion;
+        templates[t.name] = entry;
       }
     }
   }

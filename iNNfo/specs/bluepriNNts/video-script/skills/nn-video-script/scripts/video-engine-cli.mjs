@@ -31,6 +31,7 @@ import { resolveEngineModel } from './lib/model-cascade.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { refreshFaststart } from './lib/faststart.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
+import { loadFrameTokens } from './lib/frame-tokens.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 import { tryHyperframesRender } from './hyperframes-render.mjs';
 
@@ -432,6 +433,12 @@ export async function compileVideo(options) {
   const publicDir = path.join(scriptDir, 'public');
   const staging = resolveMediaLayers(manifest, { scriptDir, publicDir, seriesRoot: findSeriesRoot(scriptDir) });
   manifest.metadata.publicDir = publicDir;
+
+  // A Series `frame.md` (palette + type) becomes the manifest's frame contract so the
+  // emitter styles overlays from brand tokens instead of hardcoded values. Absent a
+  // frame, the manifest carries nothing and the emitter keeps its own defaults.
+  const frame = loadFrameTokens(scriptDir);
+  if (frame) manifest.metadata.frame = { path: frame.path, tokens: frame.tokens };
 
   // Keep the human-visible local audio staging dir next to the script (developer aid).
   const localAudioDir = path.join(scriptDir, 'audio');

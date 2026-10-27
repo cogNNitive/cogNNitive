@@ -44,7 +44,9 @@ function outputTail(text) {
 
 /** Emit the project and copy the compiled public assets into `<project>/assets/`. */
 export function buildHyperframesProject(manifest, projectDir) {
-  const built = emitHyperframesProject(manifest, { projectDir });
+  // A Series `frame.md` (palette + type) rides on the manifest so the emitter can
+  // style overlays without re-reading the workspace.
+  const built = emitHyperframesProject(manifest, { projectDir, seriesFrame: manifest?.metadata?.frame });
   const publicDir = manifest?.metadata?.publicDir;
   const assetsDir = path.join(projectDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });

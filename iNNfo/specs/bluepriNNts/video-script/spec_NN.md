@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-3-9"
+blueprint_version: "V_0-3-10"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -187,6 +187,16 @@ concept:: Template
 type:: string
 description:: Provider model id used for TTS synthesis.
 
+## NN Field Definition: speed
+concept:: Template
+type:: string
+description:: Playback rate the provider synthesizes the narration at (a number, e.g. `1.1` for 10% faster). Optional; when omitted the provider default applies. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
+
+## NN Field Definition: emotion
+concept:: Template
+type:: string
+description:: Delivery the provider synthesizes the narration with (e.g. `happy`, `neutral`). Optional; when omitted the provider default applies. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
+
 # Video Script Blueprint
 
 ## A native iNNfo schema for a video script: one Video, its ordered Scenes, and each Scene's Layers
@@ -212,7 +222,8 @@ and schedule are derived by the engine from synthesized media.
 - **Layer** — child of a Scene, never of the Video. Discriminated by a required `type::`
   select. The allowed fields depend on `type::` (see Conditional Fields).
 - **Template** — top-level Concept. Instances live in the Series' L3 Template-data document
-  and carry `tool`, `voice`, and `model`. A Scene references one through `template::`.
+  and carry `tool`, `voice`, `model`, and optional `speed`/`emotion` delivery. A Scene
+  references one through `template::`.
 
 ## Conditional Fields
 
@@ -328,7 +339,8 @@ A tool-agnostic instance of provider configuration shipped by a Series' L3 Templ
 
 ### Description
 
-One `## NN Template: <name>` element carries `tool`, `voice`, and `model`. Instances live in
+One `## NN Template: <name>` element carries `tool`, `voice`, `model`, and optional
+`speed`/`emotion` delivery. Instances live in
 the Series' L3 Template-data document, not in the script. A Scene references one through the
 `template::` reference field using the qualified cross-knowledge form
 `[[<Document Title> :: <Template Name>]]`.

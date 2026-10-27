@@ -10,7 +10,7 @@
  */
 
 /**
- * @param {{ properties?: Record<string, any>, resolvedTemplate?: { tool?: string, voice?: string, model?: string } }} sc Lowered scene
+ * @param {{ properties?: Record<string, any>, resolvedTemplate?: { tool?: string, voice?: string, model?: string, speed?: number, emotion?: string } }} sc Lowered scene
  * @param {{ tts?: string }} [models] Explicitly chosen models (a chosen TTS model changes the output, so it joins the key)
  * @returns {Record<string, unknown>}
  */
@@ -23,6 +23,10 @@ export function buildTtsVoiceOptions(sc, models = {}) {
     model,
     voice: tmpl?.voice || sc.properties?.scene_voice || 'default',
   };
+  // Delivery changes the synthesized audio, so it belongs to the cache identity.
+  // Only declared values are added: the provider defaults stay out of the key.
+  if (tmpl?.speed !== undefined && tmpl.speed !== null) voiceOptions.speed = tmpl.speed;
+  if (tmpl?.emotion) voiceOptions.emotion = tmpl.emotion;
   for (const k of Object.keys(voiceOptions)) {
     if (voiceOptions[k] === undefined) delete voiceOptions[k];
   }
