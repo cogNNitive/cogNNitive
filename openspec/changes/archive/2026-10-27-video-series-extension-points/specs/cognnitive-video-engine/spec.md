@@ -199,6 +199,18 @@ hash MUST be written normally.
 - WHEN `--force` is passed
 - THEN it is not recognised as a way to bypass the guard
 
+### Requirement: Only Implemented Providers Exist
+
+The engine MUST name only providers it has a request path for (WaveSpeed and Replicate) plus
+the offline `local`/`mock` modes. `elevenlabs`, `edge-tts` and `ELEVENLABS_API_KEY` MUST NOT
+appear in the skill's scripts, tests or docs.
+
+#### Scenario: No phantom provider
+
+- GIVEN the skill tree
+- WHEN it is searched for `elevenlabs`, `edge-tts` or `ELEVENLABS_API_KEY` (case-insensitive)
+- THEN nothing is found
+
 ## MODIFIED Requirements
 
 ### Requirement: B-roll overlay rendering
@@ -248,18 +260,6 @@ value. Changing a presenter Layer's `avatar_model::` MUST NOT change the TTS cac
 - GIVEN a Scene cached with a Template declaring `model:: minimax/speech-2.8-hd`
 - WHEN the Template is migrated to `tts_model:: minimax/speech-2.8-hd` and the Scene is recompiled
 - THEN the TTS step is a cache hit
-
-### Requirement: Only Implemented Providers Exist
-
-The engine MUST name only providers it has a request path for (WaveSpeed and Replicate) plus
-the offline `local`/`mock` modes. `elevenlabs`, `edge-tts` and `ELEVENLABS_API_KEY` MUST NOT
-appear in the skill's scripts, tests or docs.
-
-#### Scenario: No phantom provider
-
-- GIVEN the skill tree
-- WHEN it is searched for `elevenlabs`, `edge-tts` or `ELEVENLABS_API_KEY` (case-insensitive)
-- THEN nothing is found
 
 ### Requirement: Spend Guard Is Gate-Only
 
