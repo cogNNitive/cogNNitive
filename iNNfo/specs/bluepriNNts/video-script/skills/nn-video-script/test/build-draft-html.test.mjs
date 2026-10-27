@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDraftHtml } from '../scripts/build-draft-html.mjs';
-import { buildScript, DEFAULT_SERIES_CONFIG } from '../scripts/build-script-from-draft.mjs';
+import { buildScript } from '../scripts/build-script-from-draft.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(__dirname, '..', 'scripts', 'draft-template.html');
@@ -61,7 +61,7 @@ test('the reviewed export keeps fixed scenes in order and builds without --draft
   assert.equal(reviewed.scenes[1].kind, 'fixed');
   assert.equal(reviewed.scenes[1].narration, undefined);
 
-  const md = buildScript(reviewed, null, DEFAULT_SERIES_CONFIG);
+  const md = buildScript(reviewed, null, { bags: {}, frontmatter: '' });
   assert.match(md, /## NN Scene: 01 Intro/);
   assert.match(md, /slug:: 01-intro-background/);
   assert.match(md, /text:: edited/);
