@@ -26,8 +26,9 @@
  *                  (see `scripts/verify.js`).
  *   --root         override the bluepriNNts tree (default: iNNfo/specs/bluepriNNts).
  *   --out          override the output file (default: iNNfo/specs/bluepriNNts/catalog.json).
- *   --release-tag  override the `release_tag` stamped on every entry (default: newest
- *                  `blueprints-v*` git tag of the repo, or `blueprints-v0.0.0`).
+ *   --release-tag  override the `release_tag` stamped on every entry (used by
+ *                  release prep). Default: per entry, the newest `blueprints-v*`
+ *                  tag whose tree equals HEAD's, or `null` when unreleased.
  *
  * Zero external dependencies. LF line endings, stable key ordering.
  */
@@ -59,32 +60,86 @@ const FROZEN_NAMES = ['cogNNitive', 'workspace'];
  */
 const CORE_NAMES = new Set(['domaiNN', 'changes', 'sidecar', 'sources', 'artifacts', 'procedures', 'blank']);
 
-/** Fallback used when git tag resolution fails (offline checkout, no repo). */
-const FALLBACK_RELEASE_TAG = 'blueprints-v0.0.0';
-
 /**
- * Newest `blueprints-vX.Y.Z` git tag of the repository, or `FALLBACK_RELEASE_TAG`
- * when git is unavailable or no such tag exists. Injected into every blueprint
- * entry as `release_tag` so on-demand hydration can pin a fetch.
+ * The git top-level directory that contains `dir`, or null when `dir` is not
+ * inside a git work tree (offline checkout, bare fixture).
  */
-function resolveReleaseTag(override) {
-  if (override) return override;
+function gitToplevel(dir) {
   try {
-    const out = execFileSync('git', ['tag', '--list', 'blueprints-v*'], {
-      cwd: REPO_ROOT,
+    const out = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      cwd: dir,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-    const tags = out
+    return out.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** `blueprints-vX.Y.Z` tags of the repo at `cwd`, newest first. */
+function releaseTags(cwd) {
+  try {
+    const out = execFileSync('git', ['tag', '--list', 'blueprints-v*'], {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return out
       .split(/\r?\n/)
       .map((t) => t.trim())
-      .filter((t) => /^blueprints-v\d+\.\d+\.\d+$/.test(t));
-    if (tags.length === 0) return FALLBACK_RELEASE_TAG;
-    tags.sort((a, b) => compareVersions(a, b));
-    return tags[tags.length - 1];
+      .filter((t) => /^blueprints-v\d+\.\d+\.\d+$/.test(t))
+      .sort((a, b) => compareVersions(b, a));
   } catch {
-    return FALLBACK_RELEASE_TAG;
+    return [];
   }
+}
+
+/**
+ * Object hash of `relPath` at `ref` (`git ls-tree ref -- relPath`), or null when
+ * the path does not exist at that ref. `cwd` must be the git top-level so
+ * `relPath` is repo-relative.
+ */
+function treeHashAt(cwd, ref, relPath) {
+  try {
+    const out = execFileSync('git', ['ls-tree', ref, '--', relPath], {
+      cwd,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (!out) return null;
+    // "<mode> <type> <hash>\t<path>"
+    return out.split(/\s+/)[2] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds the per-entry `release_tag` resolver. An override (from `--release-tag`)
+ * wins for every entry. Otherwise, for each entry the tag is the newest
+ * `blueprints-v*` tag whose tree for the entry's directory is identical to
+ * HEAD's, so fetching the entry at `release_tag` yields the adopted content.
+ * `null` when no tag matches (the entry's content is unreleased).
+ * @param {string} rootDir
+ * @param {string} [override]
+ * @returns {(name: string) => string | null}
+ */
+function makeReleaseTagResolver(rootDir, override) {
+  if (override) return () => override;
+  const toplevel = gitToplevel(rootDir);
+  if (!toplevel) return () => null;
+  const tags = releaseTags(toplevel);
+  const relRoot = path.relative(toplevel, path.resolve(rootDir)).split(path.sep).join('/');
+  const cache = new Map();
+  return (name) => {
+    if (cache.has(name)) return cache.get(name);
+    const relPath = relRoot ? `${relRoot}/${name}` : name;
+    const head = treeHashAt(toplevel, 'HEAD', relPath);
+    const tag = head ? tags.find((t) => treeHashAt(toplevel, t, relPath) === head) || null : null;
+    cache.set(name, tag);
+    return tag;
+  };
 }
 
 /**
@@ -171,7 +226,7 @@ function walk(rootDir, rel, files) {
   }
 }
 
-function generate(rootDir, releaseTag) {
+function generate(rootDir, releaseTagFor) {
   const files = [];
   walk(rootDir, '', files);
 
@@ -242,7 +297,7 @@ function generate(rootDir, releaseTag) {
         tier: CORE_NAMES.has(name) ? 'core' : 'free',
         access: 'public',
         when_to_use: whenToUse,
-        release_tag: releaseTag,
+        release_tag: releaseTagFor(name),
         embedded_skills: embeddedSkills(rootDir, name),
         versions: versionsOut,
       };
@@ -272,7 +327,7 @@ function render(catalog) {
  * was regenerated. The drift guard therefore compares catalog *content* only.
  */
 function withoutReleaseTag(text) {
-  return text.replace(/("release_tag"\s*:\s*)"(?:[^"\\]|\\.)*"/g, '$1"<release-state>"');
+  return text.replace(/("release_tag"\s*:\s*)(?:"(?:[^"\\]|\\.)*"|null)/g, '$1"<release-state>"');
 }
 
 function main() {
@@ -283,14 +338,14 @@ function main() {
   const tagIdx = argv.indexOf('--release-tag');
   const rootDir = rootIdx !== -1 ? argv[rootIdx + 1] : DEFAULT_ROOT;
   const outFile = outIdx !== -1 ? argv[outIdx + 1] : DEFAULT_OUT;
-  const releaseTag = resolveReleaseTag(tagIdx !== -1 ? argv[tagIdx + 1] : undefined);
+  const releaseTagFor = makeReleaseTagResolver(rootDir, tagIdx !== -1 ? argv[tagIdx + 1] : undefined);
 
   if (!fs.existsSync(rootDir)) {
     console.error(`blueprint-catalog: bluepriNNts tree not found: ${rootDir}`);
     process.exit(2);
   }
 
-  const catalog = generate(rootDir, releaseTag);
+  const catalog = generate(rootDir, releaseTagFor);
   const rendered = render(catalog);
 
   if (check) {

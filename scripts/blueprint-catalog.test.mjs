@@ -186,6 +186,53 @@ async function runTests() {
     fs.rmSync(root, { recursive: true, force: true });
   }
 
+  // Test 4: per-entry `release_tag` is the newest `blueprints-v*` tag whose tree
+  // for the entry equals HEAD's; an entry changed after the last tag is `null`.
+  {
+    const gitCwd = (cwd, args) => {
+      const res = spawnSync('git', args, { cwd, encoding: 'utf-8' });
+      assert.strictEqual(res.status, 0, `git ${args.join(' ')} failed: ${res.stderr}`);
+      return res.stdout;
+    };
+    const commit = (cwd, message) =>
+      gitCwd(cwd, ['-c', 'user.email=test@example.com', '-c', 'user.name=Test', '-c', 'commit.gpgsign=false', 'commit', '-m', message]);
+
+    const gitRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'blueprint-catalog-git-'));
+    const gt = path.join(gitRoot, 'templates');
+    const spec = (v) => `---\nlevel: 2\nblueprint_version: "${v}"\ntitle: "T"\n---\n`;
+    try {
+      gitCwd(gitRoot, ['init']);
+      for (const name of ['business', 'changes', 'documentation']) {
+        fs.mkdirSync(path.join(gt, name), { recursive: true });
+        fs.writeFileSync(path.join(gt, name, 'spec_NN.md'), spec('V_0-1-0'));
+      }
+      gitCwd(gitRoot, ['add', '-A']);
+      commit(gitRoot, 'one');
+      gitCwd(gitRoot, ['tag', 'blueprints-v1.0.0']);
+
+      fs.writeFileSync(path.join(gt, 'business', 'spec_NN.md'), spec('V_0-2-0'));
+      gitCwd(gitRoot, ['add', '-A']);
+      commit(gitRoot, 'two');
+      gitCwd(gitRoot, ['tag', 'blueprints-v1.1.0']);
+
+      // documentation changes AFTER the last tag → unreleased.
+      fs.writeFileSync(path.join(gt, 'documentation', 'spec_NN.md'), spec('V_0-3-0'));
+      gitCwd(gitRoot, ['add', '-A']);
+      commit(gitRoot, 'three');
+
+      const out2 = path.join(gitRoot, 'catalog.json');
+      const res = spawnSync(process.execPath, [GENERATOR, '--root', gt, '--out', out2], { encoding: 'utf-8' });
+      assert.strictEqual(res.status, 0, res.stderr);
+      const c = JSON.parse(fs.readFileSync(out2, 'utf-8'));
+      assert.strictEqual(c.blueprints.business.release_tag, 'blueprints-v1.1.0', 'a changed-and-tagged entry pins its newest matching tag');
+      assert.strictEqual(c.blueprints.changes.release_tag, 'blueprints-v1.1.0', 'an unchanged entry pins the newest matching tag');
+      assert.strictEqual(c.blueprints.documentation.release_tag, null, 'an entry changed after the last tag is unreleased (null)');
+      console.log('✔ per-entry release_tag pins the newest matching tag and nulls an unreleased entry');
+    } finally {
+      fs.rmSync(gitRoot, { recursive: true, force: true });
+    }
+  }
+
   console.log('All blueprint-catalog tests passed successfully!\n');
 }
 
