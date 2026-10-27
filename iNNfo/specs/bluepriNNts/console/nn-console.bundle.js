@@ -8551,7 +8551,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var groupLi = mk('li')
           var groupDetails = mk('details')
           if (groupDetails) {
-            groupDetails.className = 'collapse collapse-arrow'
+            groupDetails.className = 'collapse collapse-arrow nn-rail-blueprint'
             if (groupDetails.setAttribute) groupDetails.setAttribute('name', 'nn-rail-blueprint')
             groupDetails.open = false
             var groupSummary = mk('summary')

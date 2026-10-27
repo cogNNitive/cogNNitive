@@ -1788,7 +1788,7 @@
           var groupLi = mk('li')
           var groupDetails = mk('details')
           if (groupDetails) {
-            groupDetails.className = 'collapse collapse-arrow'
+            groupDetails.className = 'collapse collapse-arrow nn-rail-blueprint'
             if (groupDetails.setAttribute) groupDetails.setAttribute('name', 'nn-rail-blueprint')
             groupDetails.open = false
             var groupSummary = mk('summary')
