@@ -1013,7 +1013,7 @@ var require_skills_commands = __commonJS({
       hashTree
     } = require_projection();
     var { skillTreeDigest } = require_skill_tree_digest();
-    var { hashSkillDir } = require_skill_content_hash();
+    var { hashSkillDir, diffSkillDir } = require_skill_content_hash();
     var {
       fetchString,
       fetchJson,
@@ -1534,6 +1534,7 @@ ${RETIRED_REPO_NOTICE}`);
       const outdatedBlueprints = [];
       const outdatedConsoleAssets = [];
       const outdatedMcp = [];
+      const modifiedSkills = [];
       for (const skill of skills) {
         const dirPresent = fs.existsSync(path2.join(args.skillsDir, skill.name));
         const entry = state.skills[skill.name];
@@ -1545,6 +1546,15 @@ ${RETIRED_REPO_NOTICE}`);
         } else {
           status = entry ? "dir-missing" : "missing";
         }
+        let modified = false;
+        if (dirPresent && entry && entry.files) {
+          try {
+            modified = diffSkillDir(path2.join(args.skillsDir, skill.name), entry.files).modified;
+          } catch (_) {
+            modified = false;
+          }
+        }
+        if (modified && status === "up-to-date") status = "modified locally";
         rows.push({
           type: "skill",
           name: skill.name,
@@ -1553,6 +1563,7 @@ ${RETIRED_REPO_NOTICE}`);
           status
         });
         if (status === "outdated") outdatedSkills.push(skill);
+        if (modified) modifiedSkills.push(skill.name);
       }
       for (const template of blueprints) {
         const fileName = template.name.endsWith(".md") ? template.name : `${template.name}.md`;
@@ -1619,6 +1630,30 @@ ${RETIRED_REPO_NOTICE}`);
         });
         if (status === "outdated") outdatedConsoleAssets.push(asset);
       }
+      let catalog = null;
+      try {
+        catalog = await loadBlueprintCatalog(args.catalogPath);
+      } catch (_) {
+        catalog = null;
+      }
+      const manifestNames = new Set(blueprints.map((t) => t.name));
+      for (const [name, entry] of Object.entries(state.blueprints || {})) {
+        if (manifestNames.has(name)) continue;
+        const catalogEntry = findCatalogEntry(catalog, name);
+        const installedTag = entry && entry.commit;
+        let status;
+        if (!catalogEntry) status = "unknown";
+        else if (!catalogEntry.release_tag) status = "unreleased";
+        else if (installedTag === catalogEntry.release_tag) status = "up-to-date";
+        else status = "outdated";
+        rows.push({
+          type: "catalog",
+          name,
+          pinned: catalogEntry && catalogEntry.release_tag ? String(catalogEntry.release_tag).slice(0, 7) : "-",
+          installed: installedTag ? String(installedTag).slice(0, 7) : "-",
+          status
+        });
+      }
       printStatusTable(rows);
       if (outdatedSkills.length > 0 || outdatedBlueprints.length > 0 || outdatedConsoleAssets.length > 0 || outdatedMcp.length > 0) {
         console.log("\nDiff previews for outdated items:");
@@ -1630,6 +1665,10 @@ ${RETIRED_REPO_NOTICE}`);
           const installed = state.blueprints[template.name].commit;
           console.log(`  template ${template.name}: ${await fetchCompareSummary(template, installed)}`);
         }
+      }
+      if (modifiedSkills.length > 0) {
+        console.log(`
+modified locally (hand-edited copy, version unchanged): ${modifiedSkills.join(", ")}`);
       }
     }
     async function cmdInstall(args) {
