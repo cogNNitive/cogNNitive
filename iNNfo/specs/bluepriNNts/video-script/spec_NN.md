@@ -129,13 +129,13 @@ description:: Name of the frame document (`frames/<name>.md`) whose tokens style
 
 ## NN Field Definition: components
 concept:: [Video, Series, Video Defaults]
-type:: string
+type:: select
 multiple:: true
 description:: Keyed list of slot→component-name bindings (`slot=name`, e.g. `[lower-third=pill]`). Resolves per key through the Universal Parameter Cascade. Engine code names no component.
 
 ## NN Field Definition: sounds
 concept:: [Video, Series, Video Defaults]
-type:: string
+type:: select
 multiple:: true
 description:: Keyed list of engine-event→sound-name bindings (`event=name`, e.g. `[scene-boundary=whoosh]`). Resolves per key through the Universal Parameter Cascade. Engine code names no sound.
 
