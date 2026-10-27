@@ -99,6 +99,37 @@ test('a series components:: [lower-third=pill] mounts pill.html', () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test('a static component marks its overlay host data-no-timeline', () => {
+  // A component whose root declares data-no-timeline never registers a
+  // sub-composition timeline; without the host flag HyperFrames waits its 45s
+  // readiness timeout on every render (S0 spike finding).
+  const manifest = fixture();
+  manifest.metadata.components = { 'lower-third': { name: 'lower-third', noTimeline: true } };
+  assert.match(buildProject(manifest).indexHtml, /nn-overlay[^>]*data-no-timeline/);
+
+  // A component that does not declare it keeps the wait (it may register a timeline).
+  const manifest2 = fixture();
+  manifest2.metadata.components = { 'lower-third': { name: 'lower-third', noTimeline: false } };
+  assert.doesNotMatch(buildProject(manifest2).indexHtml, /nn-overlay[^>]*data-no-timeline/);
+});
+
+test('resolveComponents records whether each resolved component is static', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-comp-static-'));
+  const episode = path.join(root, 'ep-01');
+  fs.mkdirSync(path.join(root, 'components'), { recursive: true });
+  fs.mkdirSync(episode, { recursive: true });
+  const vars = '[{"id":"text"},{"id":"src"},{"id":"position"},{"id":"enter"},{"id":"exit"},{"id":"font"},{"id":"accent"}]';
+  fs.writeFileSync(path.join(root, 'components', 'static.html'), `<div data-composition-variables='${vars}' data-no-timeline></div>`, 'utf8');
+  fs.writeFileSync(path.join(root, 'components', 'animated.html'), `<div data-composition-variables='${vars}'></div>`, 'utf8');
+
+  const bags = (name) => ({ series: { components: `[lower-third=${name}]` }, blueprint: { components: '[lower-third=lower-third]' } });
+  const staticRes = resolveComponents({ slots: ['lower-third'], bags: bags('static'), scriptDir: episode, workspaceRoot: root, skillDir: SKILL_DIR });
+  assert.equal(staticRes['lower-third'].noTimeline, true);
+  const animatedRes = resolveComponents({ slots: ['lower-third'], bags: bags('animated'), scriptDir: episode, workspaceRoot: root, skillDir: SKILL_DIR });
+  assert.equal(animatedRes['lower-third'].noTimeline, false);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('a user-level component name with no file fails pre-compile via the D21 check', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-comp-missing-'));
   const episode = path.join(root, 'ep-01');

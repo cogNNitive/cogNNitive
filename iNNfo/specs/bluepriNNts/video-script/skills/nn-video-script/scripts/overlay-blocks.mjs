@@ -97,7 +97,7 @@ function overlayVariables(overlay, frame) {
  * Emits the root-level host that mounts one overlay's slot component with global
  * times. Returns null for an unknown overlay type.
  * @param {object} overlay manifest overlay track
- * @param {{ componentName?: string, fps?: number, frame?: object, trackIndex?: number, zIndex?: number, width?: number, height?: number }} [opts]
+ * @param {{ componentName?: string, noTimeline?: boolean, fps?: number, frame?: object, trackIndex?: number, zIndex?: number, width?: number, height?: number }} [opts]
  * @returns {string | null}
  */
 export function overlayMount(overlay, opts = {}) {
@@ -112,10 +112,14 @@ export function overlayMount(overlay, opts = {}) {
     .replace(/</g, '&lt;')
     .replace(/'/g, '&#39;');
   const z = Number.isFinite(opts.zIndex) ? ` style="z-index:${opts.zIndex}"` : '';
+  // A static component (its root declares `data-no-timeline`) never registers a
+  // sub-composition timeline, so the host must say so too or HyperFrames waits the
+  // full 45s readiness timeout on every render.
+  const noTimeline = opts.noTimeline ? ' data-no-timeline' : '';
   return (
     `<div id="${esc(overlay.id)}" class="clip nn-overlay" data-composition-id="${esc(slot)}" ` +
     `data-composition-src="components/${esc(componentName)}.html" data-start="${start}" data-duration="${duration}" ` +
-    `data-track-index="${opts.trackIndex ?? 10}" data-track-kind="graphics" ` +
+    `data-track-index="${opts.trackIndex ?? 10}" data-track-kind="graphics"${noTimeline} ` +
     `data-variable-values='${values}'${z}></div>`
   );
 }
