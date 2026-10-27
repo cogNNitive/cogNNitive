@@ -1,37 +1,40 @@
 # Delta for series-script-templates
 
-Scope: series and episode folders may carry slot components and sound files by convention.
+Scope: where a series keeps its Series document, components and sounds; the domain root as a
+shared level.
 
 ## ADDED Requirements
 
-### Requirement: Series And Episode Extension Folders
+### Requirement: Series, Domain And Episode Extension Folders
 
-A series folder and an episode folder MAY each contain `components/<slot>.html` and
-`sounds/<event>.*` (and, for `overlay-enter`, `sounds/overlay-enter.<slot>.*`). No `Series`
-Concept and no new Field MUST be required. Resolution MUST be episode, then series, then the
-skill fallback, found by a nearest-folder walk from the script's folder. A file present at a
-nearer level MUST win over the same file at a farther level.
+A series folder MAY contain one `series_NN.md` (the `series` cascade level). The domain root MAY
+contain one `series_NN.md` (the `domain` level). The episode, series and domain folders MAY each
+contain `components/<name>.html` and `sounds/<name>.*`, where `<name>` is a cascade value, never
+an event or slot convention. File lookup MUST be episode, then series, then domain, then the
+skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. All
+folders and documents are optional. No scaffolder creates them; a new series copies the skill's
+`defaults/series_NN.md`.
 
-#### Scenario: Episode component beats series component
+#### Scenario: Episode file beats series file
 
 - GIVEN `components/title.html` in both the episode and the series folder
-- WHEN the `title` slot is resolved
+- WHEN the `title` component name is located
 - THEN the episode file is used
 
-#### Scenario: Series component beats the fallback
+#### Scenario: Domain file is shared by every series
 
-- GIVEN `components/title.html` only in the series folder
-- WHEN the `title` slot is resolved
-- THEN the series file is used, not the skill fallback
+- GIVEN `sounds/whoosh.mp3` only at the domain root and two series without `sounds/`
+- WHEN either series resolves `scene-boundary=whoosh`
+- THEN the domain file is used
 
 #### Scenario: No override falls back
 
-- GIVEN no `components/title.html` at episode or series level
-- WHEN the `title` slot is resolved
+- GIVEN no `components/title.html` at episode, series or domain level
+- WHEN the `title` component is located
 - THEN the skill's neutral fallback is used
 
 #### Scenario: Folders are optional
 
-- GIVEN a series with no `components/` or `sounds/` folder
+- GIVEN a series with no `series_NN.md`, `components/` or `sounds/`
 - WHEN a video in it is rendered
-- THEN rendering succeeds using fallbacks and no sound
+- THEN rendering succeeds using the shipped defaults and fallbacks
