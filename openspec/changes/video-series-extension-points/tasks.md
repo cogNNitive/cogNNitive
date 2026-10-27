@@ -76,9 +76,9 @@ Each slice is revertible alone (revert its commits; S1 bumps stay valid).
 
 ## Slice 4: Frame (spec: model Frame Parameter; engine Names Are Parameters, Slot Contract frame scenario; design D18, D14)
 
-- [ ] 4.1 RED: `frame` resolves per scene; `frames/<name>.md` found episode>series>domain>skill; a series `frame.md` is ignored; dry-run prints `frame <name>: <path> (<source>)`. Missing-file rule (D21): a frame name with source `scene|video|series|domain` and no file throws `MissingAssetError` pre-compile naming the name, the level and every path searched, with nothing spent; a frame name with source `blueprint` and no file warns once and is skipped.
-- [ ] 4.2 GREEN: create `SKILL/frames/neutral.md`; `lib/frame-tokens.mjs` keeps `parseFrameTokens`/`frameCss`, deletes `FRAME_FILE` and the `loadFrameTokens` walk (a `loadFrame(path)` reader replaces it); callers use `resolve('frame')` + `findNearest`. Add the shared D21 check (`findNearest*` returns the paths tried on a miss; `MissingAssetError`; error-vs-warn by `source`) and run it in `compile` before any synthesis; S6 and S7 reuse it.
-- [ ] 4.3 Re-run catalog and guard; `node scripts/verify.js --only=video`.
+- [x] 4.1 RED: `frame` resolves per scene; `frames/<name>.md` found episode>series>domain>skill; a series `frame.md` is ignored; dry-run prints `frame <name>: <path> (<source>)`. Missing-file rule (D21): a frame name with source `scene|video|series|domain` and no file throws `MissingAssetError` pre-compile naming the name, the level and every path searched, with nothing spent; a frame name with source `blueprint` and no file warns once and is skipped.
+- [x] 4.2 GREEN: create `SKILL/frames/neutral.md`; `lib/frame-tokens.mjs` keeps `parseFrameTokens`/`frameCss`, deletes `FRAME_FILE` and the `loadFrameTokens` walk (a `loadFrame(path)` reader replaces it); callers use `resolve('frame')` + `findNearest`. Add the shared D21 check (`findNearest*` returns the paths tried on a miss; `MissingAssetError`; error-vs-warn by `source`) and run it in `compile` before any synthesis; S6 and S7 reuse it.
+- [x] 4.3 Re-run catalog and guard; `node scripts/verify.js --only=video`.
 
 ## Slice 5: Draft tools (spec: skill Blueprint-Ships Draft Authoring Tools)
 

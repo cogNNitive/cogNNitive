@@ -1,10 +1,14 @@
 /**
  * nn-video-script/scripts/lib/frame-tokens.mjs
  *
- * Reads a Series' `frame.md` design-token document (the HyperFrames frame layer:
- * palette + typography) and reduces it to the handful of tokens the emitter can
- * apply to overlays. The frame is truth for color and type, never for layout —
- * overlay geometry stays the engine's decision.
+ * Reads a frame design-token document (the HyperFrames frame layer: palette +
+ * typography) and reduces it to the handful of tokens the emitter can apply to
+ * overlays. The frame is truth for color and type, never for layout — overlay
+ * geometry stays the engine's decision.
+ *
+ * A frame is named by the cascade (`frame:: <name>`) and located as
+ * `frames/<name>.md` by the shared nearest-folder walker (design D18); this
+ * module only reads and parses the file it is handed.
  *
  * Only the frontmatter is read. The parser is a deliberately small YAML subset
  * (`section:` / `  key: value` / `  key: { k: v, ... }`) so the skill stays
@@ -14,9 +18,6 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
-
-export const FRAME_FILE = 'frame.md';
 
 const FENCE = /^---\s*$/;
 const unquote = (s) => String(s).trim().replace(/^["']|["']$/g, '').trim();
@@ -96,27 +97,15 @@ export function parseFrameTokens(text) {
 }
 
 /**
- * Discover and parse `frame.md` starting at `startDir` and walking up to
- * `maxDepth` ancestors. The nearest document wins.
- * @param {string} startDir
- * @param {{ maxDepth?: number }} [opts]
- * @returns {{ path: string, tokens: object } | null}
+ * Reads and parses one frame document. A path that does not exist yields
+ * `tokens: null`; callers locate the file first (via the walker), so a missing
+ * path is a bug, never a silent fallback.
+ * @param {string} filePath
+ * @returns {{ path: string, tokens: object | null }}
  */
-export function loadFrameTokens(startDir, opts = {}) {
-  if (!startDir) return null;
-  const maxDepth = Number.isInteger(opts.maxDepth) ? opts.maxDepth : 4;
-  let dir = path.resolve(startDir);
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    const candidate = path.join(dir, FRAME_FILE);
-    if (fs.existsSync(candidate)) {
-      const tokens = parseFrameTokens(fs.readFileSync(candidate, 'utf8'));
-      if (tokens) return { path: candidate, tokens };
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return null;
+export function loadFrame(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return { path: filePath, tokens: null };
+  return { path: filePath, tokens: parseFrameTokens(fs.readFileSync(filePath, 'utf8')) };
 }
 
 /**
