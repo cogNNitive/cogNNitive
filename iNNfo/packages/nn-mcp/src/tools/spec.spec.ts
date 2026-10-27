@@ -771,47 +771,29 @@ describe('catalog-driven discovery and on-demand hydration', () => {
     })
   }
 
-  it('hydrateBlueprint fetches an uncached catalog blueprint on demand and projects embedded skills', async () => {
-    mockCatalogFetch()
-
+  it('hydrateBlueprint returns the install command for an uninstalled catalog blueprint and writes nothing', async () => {
     const res = await hydrateBlueprint(catRoot, 'organization', {
       globalDir,
       skillsDir,
       catalog,
     })
 
-    expect(res.success).toBe(true)
+    expect(res.success).toBe(false)
     expect(res.source).toBe('catalog')
-    expect(res.targetPath).toBe(join(globalDir, 'organization', 'V_0-4-0'))
-    expect(res.projectedSkills?.some((s) => s.name === 'nn-org')).toBe(true)
+    expect(res.installCommand).toBe(
+      'node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint organization',
+    )
 
     const { stat: statFs } = await import('node:fs/promises')
-    expect((await statFs(join(globalDir, 'organization', 'V_0-4-0', 'spec_NN.md'))).isFile()).toBe(
-      true,
-    )
-    expect((await statFs(join(skillsDir, 'nn-org', 'SKILL.md'))).isFile()).toBe(true)
+    await expect(statFs(join(globalDir, 'organization', 'V_0-4-0', 'spec_NN.md'))).rejects.toThrow()
+    await expect(statFs(join(skillsDir, 'nn-org', 'SKILL.md'))).rejects.toThrow()
   })
 
-  it('hydrateBlueprint returns an actionable offline diagnostic when the catalog fetch fails', async () => {
+  it('hydrateBlueprint never fetches: the command is returned even without network', async () => {
     vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'))
 
-    await expect(
-      hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog }),
-    ).rejects.toThrow(/install --blueprint organization/)
-  })
-
-  it('hydrateBlueprint surfaces an auth error for an authenticated catalog blueprint without a token', async () => {
-    delete process.env.COGNNITIVE_TOKEN
-    process.env.COGNNITIVE_CREDENTIALS = join(catRoot, 'no-creds.json')
-    const authedCatalog = {
-      blueprints: {
-        ...catalog.blueprints,
-        organization: { ...catalog.blueprints.organization, access: 'authenticated' as const },
-      },
-    }
-
-    await expect(
-      hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog: authedCatalog }),
-    ).rejects.toThrow(/requires authentication/)
+    const res = await hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog })
+    expect(res.success).toBe(false)
+    expect(res.installCommand).toMatch(/install --blueprint organization/)
   })
 })
