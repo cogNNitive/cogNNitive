@@ -126,7 +126,7 @@ async function runTests() {
         const lowered = compiler.lowerKnowledgeModel(model({
           scenes: [scene('s1', narration, { template: '[[Series :: Voice]]' })],
           layers: [layer('p', 's1', { type: 'presenter', asset: 'p.png', ...(avatarModel ? { model: avatarModel } : {}) })],
-        }), { templates: { Voice: { tool: 'elevenlabs', voice: 'Ana' } } });
+        }), { templates: { Voice: { tool: 'wavespeed', voice: 'Ana' } } });
         const sc = lowered.scenes[0];
         const options = resolveRegisteredVoice(buildTtsVoiceOptions(sc, { tts: 'minimax/speech' }), { voices: {} });
         return cache.computeHash(sc.narration, options);

@@ -214,8 +214,8 @@ export const DEFAULT_MODELS = Object.freeze({
 });
 
 /**
- * Provider model ids contain a slash; anything else (a loose label such as 'elevenlabs' or
- * 'wavespeed-v1-flux') falls back. Shared by the estimator and the synthesizer so the plan
+ * Provider model ids contain a slash; anything else (a loose label such as 'wavespeed-v1-flux')
+ * falls back. Shared by the estimator and the synthesizer so the plan
  * prices exactly the models that will be called.
  * @param {unknown} prop
  * @param {string} fallback
