@@ -1094,3 +1094,18 @@ Applied History" requirement.
 **Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` ("Stale kit docs").
 
 **Suggested trigger:** `/sdd-new console-ui-kit-refresh` (light lane).
+
+## 42. `feature/video-vector-actor-catalog` — systematic SVG flat-color character catalog and rig animation in HyperFrames
+
+**Type:** functional · **Size:** medium · **Added:** 2026-10-27 · **Risk of waiting:** low
+
+**Why:** Current avatar and visual generation in the `video-script` engine relies predominantly on generative raster APIs (WaveSpeed, Replicate, InfiniteTalk), which incur recurring API costs, external latency, and visual drift (temporal inconsistency across scenes and episodes). HyperFrames runs on Chromium and natively supports SVG DOM and GSAP timelines. A structured vector character catalog enables 100% visual consistency, deterministic local rendering, customizable flat-color palettes, and zero marginal provider costs for character-driven scenes.
+
+**Scope:**
+1. **Catalog schema & tokens:** define a modular rig contract under `assets/characters/<character_id>/` with standardized SVG groups (`#head`, `#eyes`, `#mouth`, `#torso`, `#arm-left`, `#arm-right`), CSS custom properties for color palettes (`--skin`, `--hair`, `--shirt-accent`), and discrete canonical poses (`idle`, `explaining`, `waving`, `listening`).
+2. **L3 Blueprint contract (`video-script`):** introduce support for an `actor` layer type (`actor:: <id>`, `pose:: <pose>`, `position:: left|center|right`, `emotion:: <emotion>`) so AI script authors direct scenes without hallucinating SVG geometry.
+3. **HyperFrames Emitter integration (`scene-project.mjs`):** lower `actor` layers into scene sub-compositions, automatically binding GSAP timelines for idle breathing, natural eye blinking, head gestures, and speech modulation synchronized to the scene's narration duration.
+4. **First reference actor:** bundle the verified `lucas` character rig (validated in `_smoke/vector_character_mockup/`) as the canonical flat-color actor.
+
+**Suggested trigger:** `/sdd-new video-vector-actor-catalog`.
+
