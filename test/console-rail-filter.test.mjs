@@ -90,8 +90,26 @@ describe('rail concept rows are scoped to their own model', () => {
     assert.equal(search.value, 'model:series/a/one_video-script concept:Video')
     assert.equal(cards(), 1, "only model A's Video")
 
-    // Re-clicking removes both facets again.
+    // A sibling row keeps the model already selected and unions its concept, instead
+    // of toggling the model off.
+    rowFor('series/a/one_video-script', 'Scene').click()
+    assert.equal(search.value, 'model:series/a/one_video-script concept:Video concept:Scene')
+    assert.equal(cards(), 2, "model A's Video and its Scene")
+
+    // Re-clicking one facet of the row drops just that facet; the model scope stays.
     rowFor('series/a/one_video-script', 'Video').click()
+    assert.equal(search.value, 'model:series/a/one_video-script concept:Scene')
+    assert.equal(cards(), 1)
+
+    // Clearing the last concept leaves the model scope in place.
+    rowFor('series/a/one_video-script', 'Scene').click()
+    assert.equal(search.value, 'model:series/a/one_video-script')
+    assert.equal(cards(), 2, "model A's two elements")
+
+    // The model row owns the model facet.
+    document
+      .querySelector('#nn-rail summary[data-model="series/a/one_video-script"]')
+      .click()
     assert.equal(search.value, '')
     assert.equal(cards(), 5, 'every element is back')
   })

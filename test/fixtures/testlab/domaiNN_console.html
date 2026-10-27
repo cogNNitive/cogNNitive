@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-t6phq7e5gjJNiVch617H3i8GcPeq4zM5IOUmaWsRr5A=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-Z1wmFJv/zxb/29POriNVyQQFPLH12sV4NQqMTOf8s0Y=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10145,7 +10145,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-32442737",
-    "generated": "2026-10-27T16:40:23.437Z",
+    "generated": "2026-10-27T16:43:14.598Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10156,7 +10156,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "a0f7961b76715571dad1c8d67854aab72001742a6391c02cd89a3602a7580204",
-        "citationsResolvedAt": "2026-10-27T16:40:23.327Z",
+        "citationsResolvedAt": "2026-10-27T16:43:14.491Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -21817,7 +21817,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') {
-                onSelect(formatFacetToken('model', mid) + ' ' + formatFacetToken('concept', name))
+                // The row's model is a scope, not part of the toggle: add it only when
+                // it is not selected yet, so clicking a sibling concept keeps the scope
+                // and clearing the row never drops the model.
+                var scoped = activeModels.indexOf(midLower) === -1
+                onSelect(
+                  (scoped ? formatFacetToken('model', mid) + ' ' : '') +
+                    formatFacetToken('concept', name),
+                )
               }
             })
           }
@@ -26508,19 +26515,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       var parsed = parseFilterQuery(current)
       var ops = parsed.operators.slice()
-      incoming.forEach(function (raw) {
+      var parsedIncoming = incoming.map(function (raw) {
         var at = raw.indexOf(':')
-        var key = raw.slice(0, at).toLowerCase()
-        var val = raw.slice(at + 1).replace(/^["']|["']$/g, '')
-        var found = -1
+        return {
+          key: raw.slice(0, at).toLowerCase(),
+          val: raw.slice(at + 1).replace(/^["']|["']$/g, ''),
+          raw: raw,
+        }
+      })
+      function indexOfOp(op) {
         for (var i = 0; i < ops.length; i++) {
-          if (ops[i].key === key && String(ops[i].val).toLowerCase() === val.toLowerCase()) {
-            found = i
-            break
+          if (ops[i].key === op.key && String(ops[i].val).toLowerCase() === op.val.toLowerCase()) {
+            return i
           }
         }
-        if (found !== -1) ops.splice(found, 1)
-        else ops.push({ key: key, val: val, raw: raw })
+        return -1
+      }
+      parsedIncoming.forEach(function (op) {
+        var at = indexOfOp(op)
+        if (at !== -1) ops.splice(at, 1)
+        else ops.push({ key: op.key, val: op.val, raw: op.raw })
       })
       var queryParts = parsed.textTokens.map(function (t) {
         return t.indexOf(' ') !== -1 ? '"' + t + '"' : t

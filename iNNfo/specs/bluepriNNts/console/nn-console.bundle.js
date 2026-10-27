@@ -8637,7 +8637,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') {
-                onSelect(formatFacetToken('model', mid) + ' ' + formatFacetToken('concept', name))
+                // The row's model is a scope, not part of the toggle: add it only when
+                // it is not selected yet, so clicking a sibling concept keeps the scope
+                // and clearing the row never drops the model.
+                var scoped = activeModels.indexOf(midLower) === -1
+                onSelect(
+                  (scoped ? formatFacetToken('model', mid) + ' ' : '') +
+                    formatFacetToken('concept', name),
+                )
               }
             })
           }
@@ -13328,19 +13335,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       var parsed = parseFilterQuery(current)
       var ops = parsed.operators.slice()
-      incoming.forEach(function (raw) {
+      var parsedIncoming = incoming.map(function (raw) {
         var at = raw.indexOf(':')
-        var key = raw.slice(0, at).toLowerCase()
-        var val = raw.slice(at + 1).replace(/^["']|["']$/g, '')
-        var found = -1
+        return {
+          key: raw.slice(0, at).toLowerCase(),
+          val: raw.slice(at + 1).replace(/^["']|["']$/g, ''),
+          raw: raw,
+        }
+      })
+      function indexOfOp(op) {
         for (var i = 0; i < ops.length; i++) {
-          if (ops[i].key === key && String(ops[i].val).toLowerCase() === val.toLowerCase()) {
-            found = i
-            break
+          if (ops[i].key === op.key && String(ops[i].val).toLowerCase() === op.val.toLowerCase()) {
+            return i
           }
         }
-        if (found !== -1) ops.splice(found, 1)
-        else ops.push({ key: key, val: val, raw: raw })
+        return -1
+      }
+      parsedIncoming.forEach(function (op) {
+        var at = indexOfOp(op)
+        if (at !== -1) ops.splice(at, 1)
+        else ops.push({ key: op.key, val: op.val, raw: op.raw })
       })
       var queryParts = parsed.textTokens.map(function (t) {
         return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
