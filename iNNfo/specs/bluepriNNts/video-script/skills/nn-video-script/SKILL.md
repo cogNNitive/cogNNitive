@@ -1,8 +1,8 @@
 ---
 name: nn-video-script
 description: |
-  iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports clip assembly and thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script, assemble video, concat clips.
-version: "V_0-15-0"
+  iNNfo-native skill for authoring, compiling, and rendering cogNNitive Video scripts inside a workspace's Series/Video hierarchy. Lowers the structured model into a deterministic Composition Manifest, emits a HyperFrames project from it, measures duration with ffprobe, and renders headlessly via the pinned HyperFrames CLI; also supports thumbnail composition. Triggers: video script, cognnitive video, hyperframes, series script, nn-video-script, video-script blueprint, finalize video, render video script.
+version: "V_0-15-1"
 last_updated: 2026-10-27
 license: MIT
 depends_on:
@@ -97,11 +97,6 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/video-engine-cli.mjs render renders/{ref}-vertical/manifest.json --output renders/{ref}-vertical/master_vertical.mp4
    ```
    *A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr (stdout if empty) — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render` (e.g. `render <manifest> --output <mp4> -- --workers 2 --low-memory-mode`); environment variables are inherited by the CLI. Pass `--allow-mock` only for CI placeholders. `--format 16:9|9:16|1:1` sets width/height (explicit flags win); `render` from a manifest refuses size flags — re-compile. Overlays scale with `width/1920` via `useVideoConfig`, so the vertical master keeps captions in frame. The second compile reuses cached TTS/images: zero extra provider cost.*
-6b. **Assemble Master from Clips (optional)** — when some segments are pass-through or produced outside the HyperFrames pipeline:
-   ```bash
-   node scripts/assemble-video.mjs <clip1> <clip2> ... --out renders/{ref}/master.mp4
-   ```
-   *Final-assembly layer: joins already-produced clips into one master with the FFmpeg concat demuxer in stream-copy mode (`-f concat -c copy`, +faststart). Assembly only — no re-encode and NO scene effects. Clips MUST share codec/resolution/fps; an ffprobe precheck refuses a mismatched set with a named error before ffmpeg can emit a glitched file. `--dry-run` prints the ffmpeg command. FFmpeg scene effects (zoompan, burned-in `.ass` captions) are prohibited and out of scope.*
 6c. **Derive Format Variants (optional, from a square master)** — when the deliverable set is square/vertical/horizontal and crop-fill would lose the square composition:
    ```bash
    node scripts/render-formats.mjs --master renders/{ref}/master_1080x1080.mp4 [--out-dir renders/{ref}] [--formats square,vertical,horizontal]
@@ -142,7 +137,6 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
 | `scripts/video-engine-cli.mjs` | Headless CLI for video compilation (`compile`) and headless rendering (`render`). `compile` enforces the approval gate; `--dry-run` previews spend. `--format 16:9\|9:16\|1:1` presets width/height. |
 | `scripts/render-formats.mjs` | Format-variant post-process: square master → `_1080x1080` (copy) / `_1080x1920` / `_1920x1080` with the square whole over a Gaussian-blurred fill (`+faststart`). |
-| `scripts/assemble-video.mjs` | Final-assembly layer: joins already-produced clips into one master via the FFmpeg concat demuxer (`-f concat -c copy`, +faststart) with an ffprobe consistency precheck. Assembly only — no scene effects. |
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor (SVG + Sharp) rendering high-contrast typography over clean 16:9 base images. |
 | `scripts/finalize-video.mjs` | Promotes rendered `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the video's own folder. |
 | `scripts/build-script-from-draft.mjs` | Generates the L3 `video-script` document from a reviewed draft JSON, reading series values through the parameter cascade (`series_NN.md` → domain Video Defaults → package Video Defaults). The reviewed JSON (all scenes, fixed ones included, each with its `kind`) is the single source of truth for per-scene decisions (narration, choice, overlays) and works on its own; `--draft` only supplies scene structure. The script frontmatter is copied from the series document and the filename uses the Series slug. |
