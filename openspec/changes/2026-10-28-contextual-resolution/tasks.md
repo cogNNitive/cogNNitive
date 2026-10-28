@@ -135,13 +135,13 @@ Start: `findDomainRoot` exists. End: the folder adapter produces `ScopeNode[]` f
 
 Start: nodes exist. End: `override` and `union` resolve over `ScopeNode[]` with a JSON-safe `explain`.
 
-- [ ] L1.2.1 RED `CORE/scope/resolve.spec.ts` with literal `ScopeNode[]`: nearest wins at three depths; child without value inherits; floor used when no node sets the key; no default gives `present: false`; union accumulates and nearer entry shadows (shadowed listed); `isolate` blocks the parent value; unknown strategy returns `UNSUPPORTED_STRATEGY`; same input gives same output; every result passes `JSON.parse(JSON.stringify(r))` deep-equal. The spec uses only node arrays, never paths. (contextual-resolution: "Same input, same output", "Unknown strategy", "No scope sets the key", "No default anywhere", "Nearest declaration wins at three depths", "Child without a value inherits", "Entries accumulate", "Nearer entry shadows farther entry", "Trace names the supplier", "Trace round-trips", "Overridden candidates are visible", "Parent value is not inherited across isolate")
-- [ ] L1.2.2 GREEN `SCOPE/resolve.ts`: `resolve(nodes, key, strategy)`, closed `MergeStrategy = 'override' | 'union'`; keyed-list normalization (`[name=value, ...]`, array, object) lifted from `cascade.mjs`'s `keyedEntries` by copy (the original is deleted in video adoption).
-- [ ] L1.2.3 RED `CORE/scope/fs-layers.spec.ts` on `FIX`: values come from the first element of the `scope: true` document via `parseKnowledge`; root may add a values doc beside `domaiNN_NN.md`; floor is the single `_NN.md` under the bluepriNNt `defaults/`, injected via `floorDoc`; consumer-appended nodes sort after.
-- [ ] L1.2.4 GREEN `SCOPE/fs-layers.ts`: `loadChain` (folder adapter output -> `ScopeNode[]` plus floor).
-- [ ] L1.2.5 Extend purity spec to `resolve.ts`; genericity grep still green.
-- [ ] L1.2.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: removing floor injection turns the "No scope sets the key" case red.
-- [ ] L1.2.7 Tick tasks; Decision log; status.
+- [x] L1.2.1 RED `CORE/scope/resolve.spec.ts` with literal `ScopeNode[]`: nearest wins at three depths; child without value inherits; floor used when no node sets the key; no default gives `present: false`; union accumulates and nearer entry shadows (shadowed listed); `isolate` blocks the parent value; unknown strategy returns `UNSUPPORTED_STRATEGY`; same input gives same output; every result passes `JSON.parse(JSON.stringify(r))` deep-equal. The spec uses only node arrays, never paths. (contextual-resolution: "Same input, same output", "Unknown strategy", "No scope sets the key", "No default anywhere", "Nearest declaration wins at three depths", "Child without a value inherits", "Entries accumulate", "Nearer entry shadows farther entry", "Trace names the supplier", "Trace round-trips", "Overridden candidates are visible", "Parent value is not inherited across isolate")
+- [x] L1.2.2 GREEN `SCOPE/resolve.ts`: `resolve(nodes, key, strategy)`, closed `MergeStrategy = 'override' | 'union'`; keyed-list normalization (`[name=value, ...]`, array, object) lifted from `cascade.mjs`'s `keyedEntries` by copy (the original is deleted in video adoption).
+- [x] L1.2.3 RED `CORE/scope/fs-layers.spec.ts` on `FIX`: values come from the first element of the `scope: true` document via `parseKnowledge`; root may add a values doc beside `domaiNN_NN.md`; floor is the single `_NN.md` under the bluepriNNt `defaults/`, injected via `floorDoc`; consumer-appended nodes sort after.
+- [x] L1.2.4 GREEN `SCOPE/fs-layers.ts`: `loadChain` (folder adapter output -> `ScopeNode[]` plus floor).
+- [x] L1.2.5 Extend purity spec to `resolve.ts`; genericity grep still green.
+- [x] L1.2.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: removing floor injection turns the "No scope sets the key" case red.
+- [x] L1.2.7 Tick tasks; Decision log; status.
 
 ### L1.3 Procedure slots and fork recording, pure (specs: procedure-extension-points)
 
