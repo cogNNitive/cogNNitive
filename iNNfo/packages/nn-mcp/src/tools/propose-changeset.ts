@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import {
+  ENTRYPOINT_FILENAME,
   computeProposalSha,
   verifyProposalSha,
   parseChangeset,
@@ -22,7 +23,6 @@ import {
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
 import { findKnowledgeFile } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
-import { findManifestPath } from './workspace-sync.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 
 /**
@@ -53,14 +53,12 @@ function fileSegment(value: string, fallback: string): string {
  */
 export async function resolveWorkspaceId(rootDir: string): Promise<string> {
   try {
-    const manifestPath = await findManifestPath(rootDir)
-    if (manifestPath) {
-      const frontmatter = (parseFrontmatter(await readFile(manifestPath, 'utf-8')) ?? {}) as Record<string, unknown>
-      const declared = frontmatter['workspace_id']
-      if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
-    }
+    const manifest = await readFile(join(rootDir, ENTRYPOINT_FILENAME), 'utf-8')
+    const frontmatter = (parseFrontmatter(manifest) ?? {}) as Record<string, unknown>
+    const declared = frontmatter['workspace_id']
+    if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
   } catch {
-    // an unreadable manifest falls back to the folder name
+    // a missing or unreadable manifest falls back to the folder name
   }
   return slugify(basename(resolve(rootDir))) || 'domain'
 }
