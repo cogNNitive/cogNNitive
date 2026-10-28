@@ -12,9 +12,6 @@ author: reviewer
 applied_at: 2026-10-10T12:00:00.000Z
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
 # NN index
 
 * [[Change]]

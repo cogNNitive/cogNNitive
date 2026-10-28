@@ -274,20 +274,6 @@ export function validateFormatContent(
   const body = stripFrontmatter(content).trim()
   const hasBody = body.length > 0
 
-  // 7. Document notice
-  if (hasBody) {
-    const hasNote = /^> \[!NOTE\]/m.test(body)
-    checks.push({
-      id: 'body-note',
-      label: 'Document notice blockquote',
-      description: 'Body should start with a > [!NOTE] blockquote identifying the iNNfo document',
-      category: 'body',
-      severity: 'warning',
-      passed: hasNote,
-      message: hasNote ? undefined : 'Missing [!NOTE] document notice in body',
-    })
-  }
-
   // 8. Index section / taxonomy check
   const hasIndex = parsed.taxonomy.length > 0
   if (isLevel3 && hasIndex) {

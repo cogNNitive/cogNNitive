@@ -21,11 +21,6 @@ export interface SyncLineageResult {
   projection: LineageProjection
 }
 
-const DOC_NOTICE =
-  '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. ' +
-  'Open it with any text editor; ' +
-  '[cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.'
-
 const PROCEDURES_GUIDANCE =
   'Append-only. One entry per pipeline run (--scan, --import-url). Never regenerated.'
 
@@ -52,8 +47,6 @@ function buildFreshRecord(projectName: string, sections: { sources: string; mode
   return (
     renderRecordFrontmatter(`${projectName} Provenance`) +
     '\n' +
-    DOC_NOTICE.replace(/^\n+|\n+$/g, '') +
-    '\n\n' +
     blocks.join('\n') +
     '\n'
   )

@@ -588,8 +588,8 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     })
   })
 
-  describe('Changeset export document badge', () => {
-    it('writes the canonical domain-console badge, never the retired hosted app', () => {
+  describe('Changeset export preamble', () => {
+    it('writes no boilerplate badge, so the author owns the preamble slot', () => {
       const res = nnConsole.composeChangesetExport(
         {
           modelTitle: 'BusinessModel',
@@ -599,11 +599,9 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         'author_jane',
       )
       assert.equal(res.ok, true)
-      assert.ok(
-        res.text.includes(
-          '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
-        ),
-      )
+      assert.ok(!res.text.includes('This is an **iNNfo document**'))
+      assert.ok(!res.text.includes('> [!NOTE]'))
+      assert.ok(res.text.includes('# NN index'))
     })
   })
 })

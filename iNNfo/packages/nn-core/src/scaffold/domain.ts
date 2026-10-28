@@ -39,9 +39,6 @@ export interface DomainScaffoldPlan {
   workspaceId: string
 }
 
-const NOTICE = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
-
 export function planDomainScaffold(input: DomainScaffoldInput): DomainScaffoldPlan {
   const name = input.name.trim()
   const workspaceId = (input.workspaceId?.trim() || slugify(name)).trim()
@@ -59,8 +56,6 @@ export function planDomainScaffold(input: DomainScaffoldInput): DomainScaffoldPl
     `title: ${esc(name)}`,
     `workspace_id: ${esc(workspaceId)}`,
     '---',
-    '',
-    NOTICE,
     '',
     '# NN index',
     '',

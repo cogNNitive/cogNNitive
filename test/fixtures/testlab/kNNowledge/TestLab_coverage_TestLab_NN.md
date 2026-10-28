@@ -7,9 +7,6 @@ knowledge_version: "V_0-1-1"
 title: "TestLab Coverage Model"
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Synthetic coverage model for automated tests and documentation examples. All content is in English.
-
 # NN Concept 1
 
 ## NN Concept 1: Element 1A

@@ -295,17 +295,14 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     lines.push('---')
   }
   lines.push('')
+  // The preamble is an author-owned channel: whatever sits between the
+  // frontmatter and the first `# NN` heading is reproduced verbatim. It is
+  // optional, so a document whose author wrote none is emitted with no banner
+  // at all rather than a boilerplate one.
   if (model.rawPreamble) {
-    // The author's own banner block, which may carry more than the standard
-    // note (template-specific callouts, experimental-feature warnings).
     lines.push(...model.rawPreamble.split('\n'))
-  } else {
-    lines.push('> [!NOTE]')
-    lines.push(
-      '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
-    )
+    lines.push('')
   }
-  lines.push('')
 
   // AD-2: `model.sectionOrder` (when present) drives emission order, so a
   // `# NN Analysis` text section authored above the element sections stays

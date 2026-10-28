@@ -7,9 +7,6 @@ knowledge_version: "V_0-1-0"
 title: "TestLab Coverage Workspace"
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Synthetic coverage workspace: open this folder in the app to browse the TestLab coverage model. All content is in English.
-
 # NN Workspace
 
 ## NN Workspace: TestLab Coverage Workspace

@@ -9962,7 +9962,7 @@ function refreshExistingModel(existing, sections) {
     insertAt++;
   }
   const notice = preamble.replace(/^\n+|\n+$/g, "");
-  return renderRecordFrontmatter(titleMatch ? titleMatch[1] : "Provenance") + "\n" + notice + "\n\n" + rebuilt.join("\n") + "\n";
+  return renderRecordFrontmatter(titleMatch ? titleMatch[1] : "Provenance") + "\n" + (notice ? notice + "\n\n" : "") + rebuilt.join("\n") + "\n";
 }
 function findLineageRecord(files) {
   const candidates = files.filter((f) => isNNName(f.path) && !isExcludedPath(f.path)).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);

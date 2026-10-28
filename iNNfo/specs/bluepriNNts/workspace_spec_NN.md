@@ -19,9 +19,6 @@ relationship_types:
     enabled: false
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
 # NN index
 
 * [[Workspace]]
@@ -420,9 +417,6 @@ parent_spec:
 model_version: "V_0-1-0"
 title: "<Workspace Name>"
 ---
-
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
 
 # NN Workspace
 

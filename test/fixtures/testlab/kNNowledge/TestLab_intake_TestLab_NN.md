@@ -7,9 +7,6 @@ knowledge_version: "V_0-1-1"
 title: "TestLab Intake Model"
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
 # NN Concept 1
 
 ## NN Concept 1: Intake element

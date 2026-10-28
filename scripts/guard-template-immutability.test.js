@@ -117,6 +117,24 @@ Changed body.`));
       console.log('✔ a badge-only retarget does not demand a blueprint_version bump');
     }
 
+    // 2d. Removing the boilerplate callout outright is the same class of change as
+    //     retargeting it: not content, so no bump. A body change next to it still is.
+    {
+      const BADGE_BLOCK = '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.';
+      writeBase('nobadge/spec_NN.md', tpl('V_0-2-0', `${BADGE_BLOCK}
+
+Same body.`));
+      writeWork('nobadge/spec_NN.md', tpl('V_0-2-0', 'Same body.'));
+      const fx = writeFixture(['M\tiNNfo/specs/bluepriNNts/nobadge/spec_NN.md']);
+      const res = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(res.status, 0, `removing the badge must exit 0. stdout: ${res.stdout}`);
+
+      writeWork('nobadge/spec_NN.md', tpl('V_0-2-0', 'Changed body.'));
+      const res2 = await runGuard(args(fx), tmpDir);
+      assert.strictEqual(res2.status, 1, 'a badge removal plus a body change still needs a bump');
+      console.log('✔ removing the boilerplate badge does not demand a blueprint_version bump');
+    }
+
     // 3. Added template with a valid semver blueprint_version -> exit 0
     {
       writeWork('newthing/spec_NN.md', tpl('V_0-1-0'));

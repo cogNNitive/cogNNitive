@@ -230,6 +230,13 @@ function isCanonicalMigrationRename(status, oldPath, target) {
 function normalizeBadgeForComparison(content) {
   if (!content) return content;
   return content
+    // The callout is not content. Since the preamble became an optional
+    // author-owned channel, the boilerplate badge is no longer emitted at all,
+    // so removing the whole `> [!NOTE]` + badge pair must be as neutral as
+    // retargeting its URL. Strip both before the value-level normalisation
+    // below, which stays for the retarget and the published templates.
+    .replace(/^> \[!NOTE\]\r?\n(?=> This is an \*\*iNNfo document\*\*)/gm, '')
+    .replace(/^> This is an \*\*iNNfo document\*\*.*(?:\r?\n)?/gm, '')
     // The document badge is not content. Templates still carry the original
     // "edit it with [cogNNitive](.../innfo/app/)" line, while the retargeted
     // badge points at the domain console; both must normalise to the same
@@ -249,7 +256,10 @@ function normalizeBadgeForComparison(content) {
       /https:\/\/github\.com\/cogNNitive\/cogNNitive(?:-web)?\//g,
       'https://github.com/cogNNitive/HOST/',
     )
-    .replace(/\r\n/g, '\n');
+    .replace(/\r\n/g, '\n')
+    // Collapse the blank run an excised callout leaves behind (`---`, '', '',
+    // '# NN`), so removing it can never be mistaken for a content change.
+    .replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n');
 }
 
 function checkModified(relPath, baseContent, workingContent, errors, migrationRename) {

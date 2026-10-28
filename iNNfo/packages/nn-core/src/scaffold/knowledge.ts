@@ -23,11 +23,6 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema): string {
   const listConcepts = schema.concepts.filter((c) => c.type !== 'text')
   const exampleFor = (concept?: string): string => (concept ? `Example ${concept}` : 'Example')
 
-  lines.push(
-    '> [!NOTE]',
-    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.',
-    '',
-  )
   for (const c of schema.concepts) {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
@@ -102,9 +97,6 @@ export function resolveScaffoldSpec(
   return { version: FALLBACK_SPEC_VERSION, url: FALLBACK_SPEC_URL }
 }
 
-const NOTICE = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.`
-
 export interface ScaffoldKnowledgeInput {
   /** Normalized model id (the file stem without `_NN.md`). */
   id: string
@@ -114,7 +106,7 @@ export interface ScaffoldKnowledgeInput {
   title?: string
   /** Explicit initial version; wins over the inferred one. */
   knowledgeVersion?: string
-  /** Resolved bluepriNNt schema; without it the body is the notice only. */
+  /** Resolved bluepriNNt schema; without it the body is empty. */
   schema?: ScaffoldSchema | null
   /** Resolved bluepriNNt frontmatter, used to infer the initial version. */
   blueprintFrontmatter?: Record<string, unknown> | null
@@ -142,7 +134,7 @@ export function inferKnowledgeVersion(
  * `add_model` apply path (and so by `init_knowledge`).
  */
 export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string {
-  const body = input.schema ? scaffoldBodyFromSchema(input.schema) : NOTICE
+  const body = input.schema ? scaffoldBodyFromSchema(input.schema) : ''
   const knowledgeVersion = inferKnowledgeVersion(input.knowledgeVersion, input.blueprintFrontmatter)
   const title = input.title || input.id
   const modelSlug = input.modelSlug || slugify(input.id)

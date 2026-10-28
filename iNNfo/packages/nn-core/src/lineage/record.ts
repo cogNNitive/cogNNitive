@@ -133,8 +133,7 @@ export function refreshExistingModel(existing: string, sections: RenderedSection
   return (
     renderRecordFrontmatter(titleMatch ? titleMatch[1] : 'Provenance') +
     '\n' +
-    notice +
-    '\n\n' +
+    (notice ? notice + '\n\n' : '') +
     rebuilt.join('\n') +
     '\n'
   )

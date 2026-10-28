@@ -11,9 +11,6 @@ prov:generatedAtTime: "1984-12-01T10:00:00Z"
 prov:wasAttributedTo: "Peter Venkman"
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
 # NN index
 
 * [[Value Proposition]]

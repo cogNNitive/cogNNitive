@@ -10,9 +10,6 @@ knowledge_version: "V_9-9-9"
 title: "Acme"
 ---
 
-> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor; [cogNNitive](https://cognnitive.com/innfo/) shows it in the domain console.
-
 # NN Work
 ## NN Work: Example Work
 slug:: example-work
