@@ -89,13 +89,13 @@ Out of scope: the video `resolveWorkspace` (`video-guard.mjs`) moves with video 
 
 Start: a repeated filename stem in one domaiNN is dropped silently. End: it is reported as a diagnostic naming the id and every path.
 
-- [ ] L0.2.1 Locate where model discovery and manifest sync collapse stems (`MCP/tools/workspace-sync.ts`, `MCP/tools/check-workspace.ts`); record the call sites in the PR body.
-- [ ] L0.2.2 RED `CORE/scope/stem-collision.spec.ts`: `findStemCollisions` names the id and both paths; a stem unique per path yields `[]`; same stem across nested domaiNNs is not a collision. (scope-chain: "Sibling scopes share a stem", "Same stem in different domaiNNs is fine")
-- [ ] L0.2.3 GREEN `SCOPE/stem-collision.ts`: pure `findStemCollisions(modelPaths)`; export from `SCOPE/index.ts`.
-- [ ] L0.2.4 RED `MCP/tools/check-workspace.spec.ts` and `MCP/tools/workspace-sync.spec.ts`: a duplicate stem (e.g. two `script.md` or two `NoticiasVillabotijos_noticias_NN.md`) yields a diagnostic naming the id and both paths, never a silent drop.
-- [ ] L0.2.5 GREEN `MCP/tools/check-workspace.ts` / `workspace-sync.ts`: call `findStemCollisions` and surface the diagnostic.
-- [ ] L0.2.6 Verify: nn-core and nn-mcp tests; `node scripts/verify.js`. Mutation check: removing the diagnostic turns L0.2.4 red.
-- [ ] L0.2.7 Tick tasks; Decision log; status.
+- [x] L0.2.1 Locate where model discovery and manifest sync collapse stems (`MCP/tools/workspace-sync.ts`, `MCP/tools/check-workspace.ts`); record the call sites in the PR body.
+- [x] L0.2.2 RED `CORE/scope/stem-collision.spec.ts`: `findStemCollisions` names the id and both paths; a stem unique per path yields `[]`; same stem across nested domaiNNs is not a collision. (scope-chain: "Sibling scopes share a stem", "Same stem in different domaiNNs is fine")
+- [x] L0.2.3 GREEN `SCOPE/stem-collision.ts`: pure `findStemCollisions(modelPaths)`; export from `SCOPE/index.ts`.
+- [x] L0.2.4 RED `MCP/tools/check-workspace.spec.ts` and `MCP/tools/workspace-sync.spec.ts`: a duplicate stem (e.g. two `script.md` or two `NoticiasVillabotijos_noticias_NN.md`) yields a diagnostic naming the id and both paths, never a silent drop.
+- [x] L0.2.5 GREEN `MCP/tools/check-workspace.ts` / `workspace-sync.ts`: call `findStemCollisions` and surface the diagnostic.
+- [x] L0.2.6 Verify: nn-core and nn-mcp tests; `node scripts/verify.js`. Mutation check: removing the diagnostic turns L0.2.4 red.
+- [x] L0.2.7 Tick tasks; Decision log; status.
 
 Deletes: the silent stem drop.
 Out of scope: resolving collisions or scope-qualified ids (Deferred).
