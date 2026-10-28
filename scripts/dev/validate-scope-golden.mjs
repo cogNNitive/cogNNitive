@@ -4,6 +4,10 @@
  *
  *   node scripts/dev/validate-scope-golden.mjs <video-domain-dir> [--keep]
  *
+ * With `--elements` it validates element scopes instead (see runElements below):
+ *
+ *   node scripts/dev/validate-scope-golden.mjs --elements [<video-domain-dir>] [--programas=<LC_programas-dir>]
+ *
  * Local only, never run by CI (CI covers the reduced fixture, nn-core
  * `src/scope/golden.spec.ts`). The directory is COPIED to a temp folder; markers,
  * values documents and a slotted procedure are added to the COPY only, and the source
@@ -38,9 +42,24 @@ const EXPECTED_MUSIC = { innteresante: 'jazz.mp3', 'villabotijos-today': 'pasodo
 
 const args = process.argv.slice(2);
 const keep = args.includes('--keep');
+const elementsMode = args.includes('--elements');
+const programasDir = args.find((a) => a.startsWith('--programas='))?.slice('--programas='.length);
 const source = args.find((a) => !a.startsWith('--'));
-if (!source || !existsSync(source)) {
-  console.error('usage: node scripts/dev/validate-scope-golden.mjs <video-domain-dir> [--keep]');
+const usage = [
+  'usage: node scripts/dev/validate-scope-golden.mjs <video-domain-dir> [--keep]',
+  '       node scripts/dev/validate-scope-golden.mjs --elements [<video-domain-dir>] [--programas=<LC_programas-dir>] [--keep]',
+].join('\n');
+const sourceMissing = !source || !existsSync(source);
+if (elementsMode ? sourceMissing && !programasDir : sourceMissing) {
+  console.error(usage);
+  process.exit(2);
+}
+if (source && sourceMissing) {
+  console.error(`not found: ${source}\n${usage}`);
+  process.exit(2);
+}
+if (programasDir && !existsSync(join(programasDir, 'kNNowledge', 'LC_programas_Tutorias_NN.md'))) {
+  console.error(`--programas must point at the LC_programas domaiNN (kNNowledge/LC_programas_Tutorias_NN.md not found)\n${usage}`);
   process.exit(2);
 }
 if (!existsSync(CORE_DIST)) {
@@ -125,6 +144,171 @@ function seriesValues(root, series) {
   const transition = json?.defaultTransition ?? fieldOf(template, 'transition');
   return { music, volume: volume === null ? null : Number(volume), transition, voice, voiceCounts: counts, source: json ? 'video.series.json' : 'script_template.md' };
 }
+
+// ---------------------------------------------------------------- --elements mode
+
+/**
+ * Element scopes on real domains, read-only on the sources: the video scripts' Video and
+ * Scene elements, and the LC_programas Tutorias document (Programa and Prestacion).
+ * `scope_elements` is added to a COPY only. LC_programas holds personal data, so its part
+ * prints counts and key names only: never a title, a slug, a value or an error detail.
+ */
+async function runElements() {
+  const sources = [];
+  const lines = (n) => String(n).padStart(2);
+  const freq = (items) => {
+    const m = new Map();
+    for (const i of items) m.set(i, (m.get(i) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+  };
+  const addDecls = (text, decls) => {
+    const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!m) throw new Error('document has no frontmatter');
+    if (/^scope_elements:/m.test(m[1])) throw new Error('document already declares scope_elements');
+    return text.replace(m[0], `---\n${m[1]}\nscope_elements:\n${decls}\n---`);
+  };
+  const resolveOk = (loaded, key, strategy = 'override') => {
+    const r = core.resolve(loaded, key, strategy);
+    if (!r.ok) throw new Error(`${key}: ${r.code}`);
+    return r;
+  };
+
+  // ------------------------------------------------------------ video scripts
+  if (source) {
+    console.log(`\n== video: ${source}`);
+    const before = hashTree(source);
+    sources.push({ label: 'video tree', dir: source, before, hash: () => hashTree(source) });
+    const work = mkdtempSync(join(tmpdir(), 'scope-elements-video-'));
+    cpSync(source, work, { recursive: true });
+    if (!existsSync(join(work, 'domaiNN_NN.md'))) write(work, 'domaiNN_NN.md', '---\ntitle: video_NN\n---\n# video_NN\n');
+
+    const deviations = {};
+    for (const series of SERIES) {
+      const v = seriesValues(work, series);
+      const fields = [`music:: ${v.music}`, v.volume === null ? null : `music_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice_id:: ${v.voice}`].filter(Boolean).join('\n');
+      write(work, `series/${series}/${series}_scope_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
+
+      const rows = [];
+      for (const ep of episodesOf(work, series)) {
+        const p = join(work, ep.doc);
+        writeFileSync(p, addDecls(readFileSync(p, 'utf-8'), '  - concept: Video\n  - concept: Scene'), 'utf-8');
+        const listed = core.listScopeElements(p);
+        if (!listed.ok) { check(`${series}/${ep.slug}: elements list`, false, `${listed.code}: ${listed.detail}`); continue; }
+        const scenes = listed.elements.filter((e) => e.concept === 'Scene');
+        const perScene = [];
+        let failed = 0;
+        for (const sc of scenes) {
+          const r = core.loadElementChain(p, { concept: 'Scene', slug: sc.slug }, { floorDoc: floorDocEl });
+          if (!r.ok) { failed++; continue; }
+          const music = resolveOk(r.loaded, 'music');
+          const volume = resolveOk(r.loaded, 'music_volume');
+          allResolutionsEl.push(music, volume);
+          perScene.push({
+            music: baseName(music.value ?? ''),
+            volume: volume.present ? volume.value : null,
+            ownVolume: volume.explain.winner?.scope?.includes('#Scene/') ?? false,
+            ownMusic: music.explain.winner?.scope?.includes('#Scene/') ?? false,
+          });
+        }
+        check(`${series}/${ep.slug}: every Scene (${scenes.length}) loads an element chain`, failed === 0 && scenes.length > 0, `${failed} failed`);
+        rows.push({ slug: ep.slug, scenes: scenes.length, perScene });
+      }
+
+      console.log(`   ${series}: series music ${baseName(v.music)}, volume ${v.volume}`);
+      for (const row of rows) {
+        const vols = freq(row.perScene.map((s) => s.volume)).map(([k, n]) => `${k}x${n}`).join(' ');
+        const tracks = freq(row.perScene.map((s) => s.music)).map(([k, n]) => `${k}x${n}`).join(' ');
+        const own = row.perScene.filter((s) => s.ownVolume).length;
+        console.log(`      ${row.slug.padEnd(40)} scenes ${lines(row.scenes)} | own volume ${lines(own)} | volumes ${vols} | music ${tracks}`);
+      }
+      deviations[series] = {
+        scripts: rows.length,
+        volume: rows.filter((r) => r.perScene.some((s) => s.volume !== v.volume)),
+        music: rows.filter((r) => r.perScene.some((s) => s.music !== baseName(v.music))),
+        seriesVolume: v.volume,
+        seriesMusic: baseName(v.music),
+      };
+    }
+
+    // The known L1.4 deviations, now read from the scene elements that really carry them.
+    const inn = deviations.innteresante;
+    const innVolumes = freq(inn.volume.flatMap((r) => [...new Set(r.perScene.map((s) => s.volume).filter((x) => x !== inn.seriesVolume))]));
+    check(`innteresante: ${inn.volume.length} of ${inn.scripts} scripts deviate from the series volume ${inn.seriesVolume} (L1.4: 5 of 8)`, inn.volume.length === 5, inn.volume.map((r) => r.slug).join(', '));
+    check('innteresante: the deviating volumes are 0.06 (4 scripts) and 0.2 (1 script) (L1.4)', JSON.stringify(innVolumes.map(([k, n]) => [k, n]).sort()) === JSON.stringify([[0.06, 4], [0.2, 1]]), JSON.stringify(innVolumes));
+    check('innteresante: exactly one script uses another track, elevator.mp3 (L1.4)', inn.music.length === 1 && inn.music[0].perScene.some((s) => s.music === 'elevator.mp3'), inn.music.map((r) => r.slug).join(', '));
+    const vt = deviations['villabotijos-today'];
+    check(`villabotijos-today: exactly one of ${vt.scripts} scripts deviates from the series volume ${vt.seriesVolume}: casimiro-mahou at 0.1 (L1.4)`, vt.volume.length === 1 && vt.volume[0].slug === 'casimiro-mahou' && vt.volume[0].perScene.some((s) => s.volume === 0.1), vt.volume.map((r) => r.slug).join(', '));
+    check('villabotijos-today: no script uses another track', vt.music.length === 0, vt.music.map((r) => r.slug).join(', '));
+    const extra = [...inn.volume, ...vt.volume].filter((r) => r.perScene.some((s) => !s.ownVolume && s.volume !== null)).length;
+    console.log(`      scripts whose deviating scenes mix own and inherited volumes: ${extra}`);
+    if (!keep) rmSync(work, { recursive: true, force: true });
+    else console.log(`kept video copy: ${work}`);
+  }
+
+  // ------------------------------------------------------------ LC_programas
+  if (programasDir) {
+    console.log('\n== LC_programas (counts and key names only; the data is personal)');
+    const file = join(programasDir, 'kNNowledge', 'LC_programas_Tutorias_NN.md');
+    const hashFile = () => createHash('sha256').update(readFileSync(file)).digest('hex');
+    sources.push({ label: 'LC_programas Tutorias document', before: { digest: hashFile(), count: 1 }, hash: () => ({ digest: hashFile(), count: 1 }) });
+    const work = mkdtempSync(join(tmpdir(), 'scope-elements-lc-'));
+    write(work, 'domaiNN_NN.md', '---\ntitle: lc-copy\n---\n# lc-copy\n');
+    const PRESTACION = 'Prestación de Servicios';
+    const copy = 'kNNowledge/LC_programas_Tutorias_NN.md';
+    write(work, copy, addDecls(readFileSync(file, 'utf-8'), `  - concept: Programa\n  - concept: "${PRESTACION}"\n    parent: programa_ref`));
+    const path = join(work, copy);
+
+    const listed = core.listScopeElements(path);
+    if (!listed.ok) {
+      check('LC: scope elements list', false, listed.code);
+    } else {
+      const programas = listed.elements.filter((e) => e.concept === 'Programa');
+      const prestaciones = listed.elements.filter((e) => e.concept === PRESTACION);
+      check('LC: 5 Programa element nodes are listed', programas.length === 5, `${programas.length}`);
+      check('LC: 6 Prestaciones de Servicios are listed', prestaciones.length === 6, `${prestaciones.length}`);
+
+      let resolved = 0;
+      const failures = [];
+      const prices = [];
+      const rootRate = [];
+      for (const pr of prestaciones) {
+        const r = core.loadElementChain(path, { concept: PRESTACION, slug: pr.slug });
+        if (!r.ok) { failures.push(r.code); continue; }
+        const [folder, programa, prestacion] = [r.loaded.nodes[0], r.loaded.nodes[1], r.loaded.nodes.at(-1)];
+        const ref = String(prestacion.values.programa_ref ?? '');
+        const parentTitle = programas.find((p) => p.slug === programa.id.split('/').pop())?.title;
+        if (r.loaded.nodes.length === 3 && programa.kind === 'element:Programa' && ref === `[[${parentTitle}]]` && folder.id === '') resolved++;
+        const price = core.resolve(r.loaded, 'precio_hora_tutoria', 'none');
+        if (price.ok) { prices.push(price.present ? price.value : null); allResolutionsEl.push(price); rootRate.push(price.explain.notInherited.length); }
+      }
+      check('LC: 6/6 Prestaciones resolve their Programa by programa_ref', resolved === 6, `${resolved}/6${failures.length ? ` (error codes: ${[...new Set(failures)].join(', ')})` : ''}`);
+      const present = prices.filter((x) => x !== null);
+      console.log(`      precio_hora_tutoria (none): present in ${present.length}/${prices.length} Prestaciones, ${new Set(present).size} distinct value(s)`);
+      check('LC: precio_hora_tutoria resolves with none from the Prestacion itself in 6/6', present.length === 6, `${present.length}/6`);
+      finding(`LC: the six Prestaciones carry precio_hora_tutoria ${present.length === 6 && new Set(present).size === 1 ? 'with one single value' : `with ${new Set(present).size} distinct values`}; under strategy none each keeps its own, nothing is inherited`);
+      check('LC: every Prestacion loads its element chain without a loader error', failures.length === 0, [...new Set(failures)].join(', '));
+
+      // Tutores are not scopes (unlisted concept): asking for one is a structured error, not a guess
+      const bogus = core.loadElementChain(path, { concept: 'Tutor', slug: 'x' });
+      check('LC: an unlisted concept (Tutor) is UNKNOWN_ELEMENT', !bogus.ok && bogus.code === 'UNKNOWN_ELEMENT', bogus.ok ? 'ok' : bogus.code);
+    }
+    rmSync(work, { recursive: true, force: true });
+  }
+
+  check('explain: every element resolution round-trips through JSON (deep equal)', allResolutionsEl.every((r) => sameJsonEl(JSON.parse(JSON.stringify(r)), r)), `${allResolutionsEl.length} resolutions`);
+  for (const s of sources) {
+    const after = s.hash();
+    check(`source unchanged afterwards: ${s.label}`, after.digest === s.before.digest && after.count === s.before.count, `${after.count} file(s)`);
+  }
+  const failed = results.filter((r) => !r.ok);
+  console.log(`\n${results.length - failed.length}/${results.length} assertions passed, ${findings.length} findings`);
+  process.exit(failed.length === 0 ? 0 : 1);
+}
+
+const allResolutionsEl = [];
+const sameJsonEl = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+const floorDocEl = { label: 'video-script', path: FLOOR_DOC };
+if (elementsMode) await runElements();
 
 // ---------------------------------------------------------------- copy + adapt
 
