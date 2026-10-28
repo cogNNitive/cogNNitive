@@ -70,17 +70,17 @@ from L0.1. L2+ needs the L1 checkpoint. Each lot reverts on its own.
 
 Start: four inconsistent root finders; nn-mcp keys on `.git`. End: `findDomainRoot` is the only finder; nn-mcp uses it; `repo-root.ts` is gone.
 
-- [ ] L0.1.0 Create the tracker branch and the draft/no-merge tracker PR; record branch names in the PR body and in a `design.md` Decision log entry.
-- [ ] L0.1.1 RED `CORE/scope/root.spec.ts` (`mkdtemp`): root found from a deep document; domaiNN without `.git`; `.git` above the root ignored; repository root without a marker is not a root (returns null, no throw); nested `domaiNN_NN.md` is its own root. (scope-chain: "Root found from a deep document", "domaiNN without git", "Git directory is ignored", "Repository root without a marker is not a root")
-- [ ] L0.1.2 GREEN `SCOPE/root.ts`: `findDomainRoot(path)` (walk up to the nearest `domaiNN_NN.md`; never reads `.git`); `SCOPE/index.ts`; re-export from `CORE/index.ts`. Relative imports carry `.js`.
-- [ ] L0.1.3 RED `MCP/server.spec.ts`: root resolved from a subdirectory of a fixture domaiNN; no-git domaiNN; `INNFO_DOMAIN_DIR` override wins; no marker falls to `cwd` (see Q1). (workspace-entrypoint: "MCP tool called from a subdirectory", "No marker found")
-- [ ] L0.1.4 RED `MCP/tools/dev-checkout.spec.ts`: `devCheckoutRoot` derives from the module's own location, never from the domain path; a normalizer planted in a domain-found root is never `require()`d.
-- [ ] L0.1.5 GREEN `MCP/tools/dev-checkout.ts` (extract `devCheckoutRoot` from `MCP/tools/console-regeneration.ts`); `MCP/tools/cognitivize.ts:29` resolves the normalizer through it.
-- [ ] L0.1.6 GREEN `MCP/server.ts:65`: `ROOT_DIR = INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd`.
-- [ ] L0.1.7 RED then GREEN `MCP/tools/workspace-sync.spec.ts` / `MCP/tools/workspace-sync.ts:63` and `MCP/tools/propose-changeset.ts:56`: manifest path is `join(root, ENTRYPOINT_FILENAME)`; `walkMarkdownFiles` skips a dir holding a nested `domaiNN_NN.md`. (workspace-entrypoint: "Manifest sync in a domaiNN without git", "Manifest sync does not absorb a nested domaiNN")
-- [ ] L0.1.8 DELETE `MCP/tools/repo-root.ts`, `MCP/tools/repo-root.spec.ts`, `findManifestPath`, `findWorkspaceRoot`; grep proves zero `.git`-based domaiNN lookups remain in nn-mcp. (scope-chain: "One finder in the codebase")
-- [ ] L0.1.9 Verify: rebuild nn-core first (stale `dist` breaks nn-mcp tests), then `npm --workspace=@cognnitive/nn-mcp test`; `node scripts/verify.js`. Mutation check: reintroducing a `.git` branch turns L0.1.1 red.
-- [ ] L0.1.10 Tick tasks; Decision log; status.
+- [ ] L0.1.0 Create the tracker branch and the draft/no-merge tracker PR; record branch names in the PR body and in a `design.md` Decision log entry. (Skipped in apply batch 1: commits live on the session branch `session/contextual-resolution`; the orchestrator handles PRs.)
+- [x] L0.1.1 RED `CORE/scope/root.spec.ts` (`mkdtemp`): root found from a deep document; domaiNN without `.git`; `.git` above the root ignored; repository root without a marker is not a root (returns null, no throw); nested `domaiNN_NN.md` is its own root. (scope-chain: "Root found from a deep document", "domaiNN without git", "Git directory is ignored", "Repository root without a marker is not a root")
+- [x] L0.1.2 GREEN `SCOPE/root.ts`: `findDomainRoot(path)` (walk up to the nearest `domaiNN_NN.md`; never reads `.git`); `SCOPE/index.ts`; re-export from `CORE/index.ts`. Relative imports carry `.js`.
+- [x] L0.1.3 RED `MCP/server.spec.ts`: root resolved from a subdirectory of a fixture domaiNN; no-git domaiNN; `INNFO_DOMAIN_DIR` override wins; no marker falls to `cwd` (see Q1). (workspace-entrypoint: "MCP tool called from a subdirectory", "No marker found")
+- [x] L0.1.4 RED `MCP/tools/dev-checkout.spec.ts`: `devCheckoutRoot` derives from the module's own location, never from the domain path; a normalizer planted in a domain-found root is never `require()`d.
+- [x] L0.1.5 GREEN `MCP/tools/dev-checkout.ts` (extract `devCheckoutRoot` from `MCP/tools/console-regeneration.ts`); `MCP/tools/cognitivize.ts:29` resolves the normalizer through it.
+- [x] L0.1.6 GREEN `MCP/server.ts:65`: `ROOT_DIR = INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd`.
+- [x] L0.1.7 RED then GREEN `MCP/tools/workspace-sync.spec.ts` / `MCP/tools/workspace-sync.ts:63` and `MCP/tools/propose-changeset.ts:56`: manifest path is `join(root, ENTRYPOINT_FILENAME)`; `walkMarkdownFiles` skips a dir holding a nested `domaiNN_NN.md`. (workspace-entrypoint: "Manifest sync in a domaiNN without git", "Manifest sync does not absorb a nested domaiNN")
+- [x] L0.1.8 DELETE `MCP/tools/repo-root.ts`, `MCP/tools/repo-root.spec.ts`, `findManifestPath`, `findWorkspaceRoot`; grep proves zero `.git`-based domaiNN lookups remain in nn-mcp. (scope-chain: "One finder in the codebase")
+- [x] L0.1.9 Verify: rebuild nn-core first (stale `dist` breaks nn-mcp tests), then `npm --workspace=@cognnitive/nn-mcp test`; `node scripts/verify.js`. Mutation check: reintroducing a `.git` branch turns L0.1.1 red.
+- [x] L0.1.10 Tick tasks; Decision log; status.
 
 Deletes: `repo-root.ts` (+ spec), `findManifestPath`, `findWorkspaceRoot`, the prefix heuristic.
 Out of scope: the video `resolveWorkspace` (`video-guard.mjs`) moves with video adoption in Lote 2+.
@@ -213,11 +213,11 @@ Each item has an unlock trigger. Adding an item requires a dated `design.md` ent
 
 ## Open Questions / Maintainer Decisions Pending
 
-- [ ] Q1 When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`; a repo subfolder used to resolve to the repo root. Acceptable? (affects L0.1.3)
+- [x] Q1 ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): no `domaiNN_NN.md` and no `INNFO_DOMAIN_DIR` -> `ROOT_DIR` is `cwd`; never `.git`.
 - [x] Q7 ~~`projects` release cost (template_version bump, tag/repin).~~ Moot: `projects` is no longer an adoption target (design entry 2026-10-28, LC_programas).
 - [ ] Q1b Is the marker-move warning (`compareEffective` on move/changeset preview) SHOULD-in-scope? Moved to Lote 2+; decide at the checkpoint.
 - [ ] Q2 `isolate: true` frontmatter syntax: confirm strict boolean on the marker document, same as `scope: true`. (affects L1.1.2)
-- [ ] Q3 Nested `domaiNN_NN.md` is not descended by outer discovery (implicit isolate, own root). Confirm, including for `walkMarkdownFiles`, `check_domain` and sources. (affects L0.1.7)
+- [x] Q3 ~~Nested `domaiNN_NN.md` is not descended by outer discovery.~~ Resolved 2026-10-28 (maintainer): a nested `domaiNN_NN.md` is its own root; outer discovery (`walkMarkdownFiles`, manifest sync) does not descend into it. Applied in `workspace-sync.ts`; `listKnowledge`/`check_domain` descent is tracked in the Decision log.
 - [ ] Q4 `workspace/procedures/` is placed in the root scope, above the bluepriNNt. This reverses the documented "blueprint > domain" precedence in §16-bis.2. Confirm the reversal. (affects L1.3.2)
 - [ ] Q5 The living `workspace-entrypoint` spec still names `workspace_NN.md` plus an `index.md` fallback, which conflicts with the marker walk on `domaiNN_NN.md` (and the no-fallback rule). Confirm the delta replaces it fully. (affects L0.1)
 - [ ] Q6 Broader source visibility: each scope's `sources/` is visible nearest-first (own scope plus ancestors, bounded by isolate). Confirm this widening. (Lote 2+)
