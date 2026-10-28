@@ -122,14 +122,14 @@ without touching nn-mcp. Specs: scope-chain, contextual-resolution, procedure-ex
 
 Start: `findDomainRoot` exists. End: the folder adapter produces `ScopeNode[]` for the fixture.
 
-- [ ] L1.1.1 Build fixture `FIX` (no implementation yet): root `domaiNN_NN.md` and a root values doc; `portfolio/` -> `programs/alpha/` -> `projects/p1/` (3+ depths); isolated `programs/legacy/` (`isolate: true`); a nested `domaiNN_NN.md` subtree; two sibling scopes sharing a model stem; a folder without a marker; a marker with `scope: "yes"`; a directory with two markers.
-- [ ] L1.1.2 RED `CORE/scope/chain.spec.ts` (in-memory `probe`/`parentOf`): three-level chain, outermost first; folder without marker is not a scope; non-boolean `scope` is not a scope; two markers in one dir returns `DUPLICATE_SCOPE_MARKER`; no marker returns `NO_DOMAIN_ROOT` with `searched`; isolate sets `cutAt` and truncates; siblings unaffected; nested `domaiNN_NN.md` is its own root with implicit isolate. (scope-chain: "Three-level chain", "Folder without a marker is not a scope", "Flag value other than true", "Two markers in one directory", "Chain cut at an isolated scope", "Siblings are unaffected", "Nested domaiNN is its own root", "Outer discovery stops at the nested root")
-- [ ] L1.1.3 GREEN `SCOPE/types.ts` (`ScopeNode`, `ScopeChain`, `JsonValue`), `SCOPE/chain.ts`: pure `buildScopeChain`.
-- [ ] L1.1.4 RED `CORE/scope/fs-chain.spec.ts` against `FIX` plus `mkdtemp`: `findScopeChain` over the fixture; markers read with `parseFrontmatter`; tags and other memberships create no parent. (scope-chain: "Tags do not create parents")
-- [ ] L1.1.5 GREEN `SCOPE/fs-chain.ts`: `findScopeChain`, `findInChain` (reuses `findDomainRoot`; no second walker).
-- [ ] L1.1.6 RED then GREEN `CORE/scope/purity.spec.ts` (pure files import no `node:fs`/`node:path` I/O; same pattern as `workspace/integrity/purity.spec.ts`) and the genericity grep: core contains no `video|series|projects|programa` outside tests and fixtures. (contextual-resolution: "Core contains no consumer vocabulary")
-- [ ] L1.1.7 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: dropping the isolate branch turns L1.1.2 red.
-- [ ] L1.1.8 Tick tasks; Decision log; status.
+- [x] L1.1.1 Build fixture `FIX` (no implementation yet): root `domaiNN_NN.md` and a root values doc; `portfolio/` -> `programs/alpha/` -> `projects/p1/` (3+ depths); isolated `programs/legacy/` (`isolate: true`); a nested `domaiNN_NN.md` subtree; two sibling scopes sharing a model stem; a folder without a marker; a marker with `scope: "yes"`; a directory with two markers.
+- [x] L1.1.2 RED `CORE/scope/chain.spec.ts` (in-memory `probe`/`parentOf`): three-level chain, outermost first; folder without marker is not a scope; non-boolean `scope` is not a scope; two markers in one dir returns `DUPLICATE_SCOPE_MARKER`; no marker returns `NO_DOMAIN_ROOT` with `searched`; isolate sets `cutAt` and truncates; siblings unaffected; nested `domaiNN_NN.md` is its own root with implicit isolate. (scope-chain: "Three-level chain", "Folder without a marker is not a scope", "Flag value other than true", "Two markers in one directory", "Chain cut at an isolated scope", "Siblings are unaffected", "Nested domaiNN is its own root", "Outer discovery stops at the nested root")
+- [x] L1.1.3 GREEN `SCOPE/types.ts` (`ScopeNode`, `ScopeChain`, `JsonValue`), `SCOPE/chain.ts`: pure `buildScopeChain`.
+- [x] L1.1.4 RED `CORE/scope/fs-chain.spec.ts` against `FIX` plus `mkdtemp`: `findScopeChain` over the fixture; markers read with `parseFrontmatter`; tags and other memberships create no parent. (scope-chain: "Tags do not create parents")
+- [x] L1.1.5 GREEN `SCOPE/fs-chain.ts`: `findScopeChain`, `findInChain` (reuses `findDomainRoot`; no second walker).
+- [x] L1.1.6 RED then GREEN `CORE/scope/purity.spec.ts` (pure files import no `node:fs`/`node:path` I/O; same pattern as `workspace/integrity/purity.spec.ts`) and the genericity grep: core contains no `video|series|projects|programa` outside tests and fixtures. (contextual-resolution: "Core contains no consumer vocabulary")
+- [x] L1.1.7 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: dropping the isolate branch turns L1.1.2 red.
+- [x] L1.1.8 Tick tasks; Decision log; status.
 
 ### L1.2 Fold, explain and node loading (specs: contextual-resolution)
 
