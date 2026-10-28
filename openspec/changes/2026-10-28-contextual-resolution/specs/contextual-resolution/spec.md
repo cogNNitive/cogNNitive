@@ -181,6 +181,77 @@ scope nodes; folder scopes are the first adapter and element scopes a later one.
 - THEN the leaf's value wins and the trace names the leaf scope
 - AND resolving for a document in a mid scope that declares nothing yields the root value
 
+### Requirement: Drift Report Is A Pure Read-Only Function
+
+nn-core MUST expose a pure `driftReport` that states, for each scope that offers values to descendants and each compared key, the baseline value the scope offers and how many units deviate from it.
+A **unit** is a grouping of leaf chains chosen by the caller (the leaf itself, or the supplying
+document); the report MUST treat unit labels as opaque. A unit **deviates** from scope S on key K
+when at least one of its chains resolves K, with `override`, to a value that is not deeply equal
+to the value K resolves to at S (deep JSON equality, object key order irrelevant); a key absent
+at S and present in the unit deviates. The baseline and every unit value MUST be obtained from
+`resolve` (no second fold), so the floor is part of the baseline and a unit that crosses an
+isolate after S MUST NOT be counted for S. The report MUST list each deviating value once with
+the number of units that hold it and the supplier of the first, MUST say whether all units hold
+one single value (`uniform`), and MUST NOT emit a row for a key that no scope or unit supplies.
+A key whose strategy is not `override` MUST be listed in `skipped` with a reason, never omitted.
+The report MUST be plain JSON, versioned, deterministically ordered, independent of the order of
+its input chains, and MUST NOT mutate its input.
+
+#### Scenario: Deviating units are counted
+
+- GIVEN a scope `series` declaring `volume: 0.4` and eight units below it, four declaring `0.06`, one declaring `0.2` and three declaring nothing
+- WHEN the report is built
+- THEN the row for scope `series` and key `volume` has baseline `0.4` supplied by `series`
+- AND 5 of 8 units deviate, it is not uniform, and the variants are `0.06` held by 4 units and `0.2` held by 1
+
+#### Scenario: Uniform repetition is reported as hoistable
+
+- GIVEN six units below a scope that declares nothing, each declaring `price: "84"`
+- WHEN the report is built
+- THEN the row for that scope and `price` has an absent baseline, 6 of 6 units deviating, uniform true and the single variant `"84"` held by 6 units
+
+#### Scenario: No deviation
+
+- GIVEN units below a scope that all inherit its value
+- WHEN the report is built
+- THEN the row has 0 deviating units and no variants
+
+#### Scenario: Key declared nowhere is not a row
+
+- GIVEN a requested key that no scope, unit or floor declares
+- WHEN the report is built
+- THEN no row and no skipped entry exists for it
+
+#### Scenario: Floor value is the baseline when no scope declares
+
+- GIVEN a floor declaring `transition: none`, a root declaring nothing, and one unit declaring `transition: fade`
+- WHEN the report is built
+- THEN the baseline of the root row is `none`, supplied by the floor, and 1 unit deviates
+
+#### Scenario: Isolate bounds the baseline
+
+- GIVEN a root declaring `level: 1`, one unit below an isolated scope and one unit below an ordinary scope
+- WHEN the report is built
+- THEN the root row counts only the unit below the ordinary scope
+
+#### Scenario: Union keys are skipped visibly
+
+- GIVEN a key whose strategy is `union`
+- WHEN the report is built
+- THEN no row exists for it and `skipped` names the key with a reason
+
+#### Scenario: Report round-trips JSON and is deterministic
+
+- GIVEN any input
+- WHEN the report is built twice, once with the chains in reverse order
+- THEN both reports are deeply equal and survive `JSON.parse(JSON.stringify(report))` unchanged
+
+#### Scenario: Report never mutates its input
+
+- GIVEN a deep-frozen or snapshotted input
+- WHEN the report is built
+- THEN the input is deeply equal to its snapshot afterwards
+
 ## Out of scope
 
 `restrict` and `append` strategies, per-scope `aggregate`, lockfile or materialization of
