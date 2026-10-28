@@ -4,6 +4,16 @@ export type { StemCollision } from './stem-collision.js'
 export { buildScopeChain } from './chain.js'
 export type { DirProbe } from './chain.js'
 export { findScopeChain, findInChain } from './fs-chain.js'
+export { resolve } from './resolve.js'
+export type {
+  MergeStrategy,
+  Supplier,
+  LoadedChain,
+  Candidate,
+  UnionEntry,
+  ExplainTrace,
+  Resolution,
+} from './resolve.js'
 export type {
   JsonValue,
   ScopeLink,
