@@ -8,6 +8,7 @@ export { loadChain } from './fs-layers.js'
 export { loadScopeProcedures } from './fs-procedures.js'
 export { resolve } from './resolve.js'
 export { resolveProcedures } from './procedures.js'
+export { elementChain } from './elements.js'
 export type {
   ProcedureDiagnostic,
   Binding,
@@ -15,6 +16,14 @@ export type {
   EffectiveProcedure,
   ProcedureResolution,
 } from './procedures.js'
+export type {
+  ElementScopeDecl,
+  ScopeElement,
+  ElementSource,
+  ElementTarget,
+  ElementErrorCode,
+  ElementChainResult,
+} from './elements.js'
 export type {
   MergeStrategy,
   Supplier,
