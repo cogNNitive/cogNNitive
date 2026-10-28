@@ -9,6 +9,14 @@ export { loadScopeProcedures } from './fs-procedures.js'
 export { resolve } from './resolve.js'
 export { resolveProcedures } from './procedures.js'
 export { elementChain } from './elements.js'
+export { loadElementChain, listScopeElements } from './fs-elements.js'
+export type {
+  ElementLoadErrorCode,
+  ElementLoadFailure,
+  ElementChainLoad,
+  ScopeElementRef,
+  ScopeElementList,
+} from './fs-elements.js'
 export { driftReport } from './drift.js'
 export type {
   ProcedureDiagnostic,

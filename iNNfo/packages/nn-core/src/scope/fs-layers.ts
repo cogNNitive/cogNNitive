@@ -1,19 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { parseKnowledge } from '../parser/index.js'
+import { asJson } from './json.js'
 import type { LoadedChain } from './resolve.js'
 import type { JsonValue, ScopeChain, ScopeNode } from './types.js'
-
-/** Keeps what JSON can carry; anything else (a Date, undefined, a function) becomes its text. */
-function asJson(value: unknown): JsonValue {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string') return value
-  if (typeof value === 'number') return Number.isFinite(value) ? value : String(value)
-  if (Array.isArray(value)) return value.map(asJson)
-  if (typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, asJson(v)]))
-  }
-  return String(value)
-}
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
