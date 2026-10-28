@@ -9,6 +9,7 @@ export { loadScopeProcedures } from './fs-procedures.js'
 export { resolve } from './resolve.js'
 export { resolveProcedures } from './procedures.js'
 export { elementChain } from './elements.js'
+export { driftReport } from './drift.js'
 export type {
   ProcedureDiagnostic,
   Binding,
@@ -24,6 +25,14 @@ export type {
   ElementErrorCode,
   ElementChainResult,
 } from './elements.js'
+export type {
+  DriftChain,
+  DriftInput,
+  DriftBaseline,
+  DriftVariant,
+  DriftRow,
+  DriftReport,
+} from './drift.js'
 export type {
   MergeStrategy,
   Supplier,
