@@ -7641,6 +7641,7 @@ function isModelCandidate(f) {
   if (f.frontmatter["level"] !== 3) return false;
   if (!f.frontmatter["parent_spec"]) return false;
   if (isExcludedPath(f.path)) return false;
+  if (segmentsOf(f.path)[0] === "sources") return false;
   if (parseName(baseOf(f.path)).kind !== "nn") return false;
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === "knowledge";
 }
