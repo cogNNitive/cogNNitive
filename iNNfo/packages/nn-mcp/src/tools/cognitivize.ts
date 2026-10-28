@@ -4,7 +4,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { cognitivize, type RejectReason, type NormalizerAdapter } from '@cognnitive/nn-core'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
-import { findRepoRoot } from './repo-root.js'
+import { devCheckoutRoot } from './dev-checkout.js'
 
 export type CognitivizeToolResult =
   | { status: 'written' | 'refreshed' | 'unchanged'; sidecar: string; sha256: string }
@@ -15,9 +15,11 @@ export type CognitivizeToolResult =
  * Resolves the normalizer adapter from nn-sources if available.
  * Searches:
  *  1. INNFO_SOURCES_DIR env var
- *  2. Skills under repo root (development worktree / checkout)
+ *  2. Skills under the cogNNitive dev checkout this module runs from
  *  3. ~/.agents/skills/nn-sources/scripts/lib/normalizer.js
- *  4. Inside rootDir/skills/nn-sources/...
+ *
+ * The adapter is `require()`d, so only trusted locations are searched: never a
+ * path derived from the domain (`rootDir`) or the working directory.
  */
 export function resolveNormalizer(rootDir: string): NormalizerAdapter | null {
   const candidates: string[] = []
@@ -26,13 +28,12 @@ export function resolveNormalizer(rootDir: string): NormalizerAdapter | null {
     candidates.push(join(process.env.INNFO_SOURCES_DIR, 'scripts', 'lib', 'normalizer.js'))
   }
 
-  const repo = findRepoRoot(rootDir) || findRepoRoot(process.cwd())
-  if (repo) {
-    candidates.push(join(repo, 'skills', 'nn-sources', 'scripts', 'lib', 'normalizer.js'))
+  const devRoot = devCheckoutRoot()
+  if (devRoot) {
+    candidates.push(join(devRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'normalizer.js'))
   }
 
   candidates.push(join(homedir(), '.agents', 'skills', 'nn-sources', 'scripts', 'lib', 'normalizer.js'))
-  candidates.push(join(rootDir, 'skills', 'nn-sources', 'scripts', 'lib', 'normalizer.js'))
 
   for (const candidate of candidates) {
     if (existsSync(candidate)) {

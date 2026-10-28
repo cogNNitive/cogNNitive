@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { isAbsolute, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { parseChangeset } from '@cognnitive/nn-core'
 import { syncDomainManifest } from './workspace-sync.js'
+import { DEV_ROOT_MARKER, devCheckoutRoot } from './dev-checkout.js'
 
 /**
  * Console regeneration for the MCP.
@@ -79,24 +80,6 @@ const EXPORT_MODULE = 'export-console.mjs'
 /** Never open a browser when this is set (CI, headless runs, test suites). */
 export const NO_OPEN_ENV = 'INNFO_CONSOLE_NO_OPEN'
 
-/** Marker file that identifies the cogNNitive repo itself (not any repo that happens to have scripts/). */
-const DEV_ROOT_MARKER = join('iNNfo', 'specs', 'bluepriNNts', 'console', 'artifact_shell.html')
-
-/**
- * The cogNNitive dev checkout this MCP module runs from, or null. Derived from the
- * module's own location, never from the domain path: the domain is untrusted input
- * and `export-console.mjs` is imported (executed) once resolved.
- */
-function devCheckoutRoot(): string | null {
-  let dir = dirname(fileURLToPath(import.meta.url))
-  for (;;) {
-    if (existsSync(join(dir, DEV_ROOT_MARKER)) && existsSync(join(dir, 'scripts', EXPORT_MODULE))) return dir
-    const parent = dirname(dir)
-    if (parent === dir) return null
-    dir = parent
-  }
-}
-
 /**
  * Locate `export-console.mjs` from trusted locations only: `$INNFO_CONSOLE_DIR`, the
  * installed set in `~/.agents/console`, then the cogNNitive dev checkout this module
@@ -109,7 +92,8 @@ export function resolveConsoleModulePath(
   const env = opts.env ?? process.env
   const candidates: string[] = []
   if (env.INNFO_CONSOLE_DIR) candidates.push(join(env.INNFO_CONSOLE_DIR, EXPORT_MODULE))
-  const devRoot = opts.devRoot === undefined ? devCheckoutRoot() : opts.devRoot
+  const devRoot =
+    opts.devRoot === undefined ? devCheckoutRoot({ requires: [join('scripts', EXPORT_MODULE)] }) : opts.devRoot
   if (devRoot && existsSync(join(devRoot, DEV_ROOT_MARKER))) candidates.push(join(devRoot, 'scripts', EXPORT_MODULE))
   candidates.push(join(opts.home ?? homedir(), '.agents', 'console', EXPORT_MODULE))
   return candidates.find((candidate) => existsSync(candidate)) ?? null
