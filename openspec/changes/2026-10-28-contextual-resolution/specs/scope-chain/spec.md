@@ -177,6 +177,90 @@ Tooling that previews a document move to a location with a different chain MUST 
 - WHEN the move is previewed
 - THEN no warning is emitted
 
+### Requirement: Element Scopes Declared By Frontmatter
+
+An element adapter MUST turn each element of a concept listed in the document frontmatter `scope_elements` into one scope node nested under the document's folder chain.
+`scope_elements: [{ concept: <Concept> }, ...]` is an ordered list (outermost concept first) with an optional `parent: <field>` per entry. An element of an unlisted concept (a sub-element by
+heading depth, for example) MUST NOT become a node. The parent of an element of a listed
+concept other than the first MUST be, without `parent`, the nearest preceding element in
+document order of the previous listed concept, and with `parent: <field>` the element of the
+previous listed concept whose title is the `[[title]]` reference held in that field (exact,
+unique match). The adapter MUST NOT guess: an unresolved or ambiguous parent MUST be a
+structured error. The fields `slug` and `isolate` of an element MUST NOT be values. An element
+with the strict boolean `isolate:: true` MUST end the chain at itself, like a folder scope;
+any other value (for example the text `"true"`) MUST NOT. A document that has both
+`scope: true` and `scope_elements` MUST be rejected. Node ids MUST be domain-relative, stable
+and JSON-safe, and the adapter MUST be pure (it receives the already parsed elements and never
+reads the filesystem).
+
+#### Scenario: Each element of a listed concept becomes a node
+
+- GIVEN a document with `scope_elements: [{ concept: A }, { concept: B }]`, two `A` elements `a1`, `a2` and a `B` element `b1` placed after `a2`
+- WHEN the chain of `B/b1` is requested
+- THEN the element nodes are `A/a2` then `B/b1`, outermost first
+- AND each node id is `<doc>#<Concept>/<slug>` with the domain-relative document path
+
+#### Scenario: Nesting follows document order
+
+- GIVEN two `A` elements and `B` elements that follow each of them
+- WHEN the chain of a `B` element is requested
+- THEN its parent is the nearest preceding `A` element, not the first one
+
+#### Scenario: Parent given by a reference field
+
+- GIVEN `scope_elements: [{ concept: A }, { concept: B, parent: a_ref }]` and a `B` element with `a_ref:: [[Title of a1]]` placed anywhere in the document
+- WHEN the chain of that `B` element is requested
+- THEN its parent is the `A` element titled `Title of a1`, whatever the document order
+
+#### Scenario: Unknown parent reference
+
+- GIVEN a `B` element whose `parent` field is absent, is not a `[[title]]` reference, or names no `A` element
+- WHEN its chain is requested
+- THEN the result is the error `UNKNOWN_PARENT_ELEMENT` with a detail naming the element and the field
+
+#### Scenario: Ambiguous parent reference
+
+- GIVEN two `A` elements with the same title and a `B` element referencing that title
+- WHEN its chain is requested
+- THEN the result is the error `AMBIGUOUS_PARENT_ELEMENT`, and no parent is chosen
+
+#### Scenario: Isolate on an element is a strict boolean
+
+- GIVEN a `B` element with `isolate:: true` and another with `isolate:: "true"`
+- WHEN each chain is built and a value is resolved through it
+- THEN the first node has `isolate` true and the fold hides every node before it
+- AND the second node has `isolate` false
+
+#### Scenario: Reserved fields are not values
+
+- GIVEN an element with `slug`, `isolate` and `colour` fields
+- WHEN its node is built
+- THEN `colour` is a value and neither `slug` nor `isolate` is
+
+#### Scenario: Unlisted concept is not a node
+
+- GIVEN a `Layer` sub-element under a `B` element and `Layer` not listed in `scope_elements`
+- WHEN the chain of `Layer/l1` is requested
+- THEN the result is the error `UNKNOWN_ELEMENT`, and the `B` chain contains no `Layer` node
+
+#### Scenario: Both scope declarations are rejected
+
+- GIVEN a document with `scope: true` and `scope_elements`
+- WHEN any element chain of it is requested
+- THEN the result is the error `AMBIGUOUS_SCOPE_DECLARATION`
+
+#### Scenario: Element target is not found or not unique
+
+- GIVEN a target `{ concept, slug }` that matches no element, or matches two elements of one concept
+- WHEN the chain is requested
+- THEN the result is `UNKNOWN_ELEMENT` or `AMBIGUOUS_ELEMENT` respectively
+
+#### Scenario: Element nodes round-trip as JSON
+
+- GIVEN any element chain
+- WHEN it is serialized with `JSON.stringify` and parsed back
+- THEN it is deeply equal to the original, and requesting it twice gives equal results
+
 ## Out of scope
 
 Per-field `inherit::`, L2 scope declaration, per-scope ingestion and scope-qualified model
