@@ -4,6 +4,7 @@ export type { StemCollision } from './stem-collision.js'
 export { buildScopeChain } from './chain.js'
 export type { DirProbe } from './chain.js'
 export { findScopeChain, findInChain } from './fs-chain.js'
+export { loadChain } from './fs-layers.js'
 export { resolve } from './resolve.js'
 export type {
   MergeStrategy,
