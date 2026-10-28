@@ -147,10 +147,7 @@ nested subtree is not absorbed into the outer manifest.
 
 ### Requirement: Model Id Collision Is An Error
 
-Model ids are filename stems and are global to a domaiNN. When two documents in different
-scopes of one domaiNN resolve to the same model id, scope discovery MUST report an error
-that names the id and both document paths. It MUST NOT silently choose one, and it MUST NOT
-qualify the id with a scope.
+Model ids are filename stems and are global to a domaiNN, so when two documents in different scopes of one domaiNN resolve to the same model id, scope discovery MUST report an error that names the id and both document paths. It MUST NOT silently choose one, and it MUST NOT qualify the id with a scope.
 
 #### Scenario: Sibling scopes share a stem
 
@@ -166,10 +163,7 @@ qualify the id with a scope.
 
 ### Requirement: Marker Move Changes Effective Values Warning
 
-When a document is moved to a location with a different chain, tooling that performs or
-previews the move SHOULD compare the document's effective values before and after and warn
-for each key whose effective value would change, naming the key and the supplying scope on
-each side.
+Tooling that previews a document move to a location with a different chain MUST warn for each key whose effective value would change, naming the key and the supplying scope on each side; building the preview itself is optional (Lote 2+, Q1b).
 
 #### Scenario: Move into a scope with a different default
 

@@ -78,11 +78,7 @@ NOT silently ignore or coerce a filler.
 
 ### Requirement: Whole-Procedure Override Is A Recorded Fork
 
-A scope MAY replace an ancestor procedure by defining a procedure with the same id. Such a
-replacement MUST be recorded as a fork identifying the forking scope, the original
-procedure and scope, and the original's version at fork time. A same-id procedure in a
-nearer scope that does not declare itself a fork MUST still shadow the original, and MUST
-be reported as an undeclared shadow.
+A scope MAY replace an ancestor procedure by defining a procedure with the same id, and such a replacement MUST be recorded as a fork identifying the forking scope, the original procedure and scope, and the original's version at fork time. A same-id procedure in a nearer scope that does not declare itself a fork MUST still shadow the original, and MUST be reported as an undeclared shadow.
 
 #### Scenario: Declared fork is recorded
 
@@ -98,9 +94,7 @@ be reported as an undeclared shadow.
 
 ### Requirement: Original Advanced Warning
 
-When the original procedure of a recorded fork has a version different from the version
-recorded at fork time, resolution and listing MUST warn, naming the fork, the recorded
-version and the current version of the original. The warning MUST NOT block execution.
+When the original procedure of a recorded fork has a version different from the version recorded at fork time, resolution and listing MUST warn, naming the fork, the recorded version and the current version of the original. The warning MUST NOT block execution.
 
 #### Scenario: Original moves ahead
 

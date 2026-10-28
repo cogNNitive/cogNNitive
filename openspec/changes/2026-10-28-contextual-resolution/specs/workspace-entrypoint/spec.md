@@ -8,9 +8,7 @@ fallbacks are unchanged by this delta.
 
 ### Requirement: Root Is Located By The domaiNN Marker Walk
 
-Every operation that needs the domaiNN root (`recursiveParse()`, manifest sync, MCP tools
-that take a workspace location) MUST obtain it from `findScopeChain`, starting from the
-given path and walking up to the nearest `domaiNN_NN.md`. No operation MAY locate the root
+Every operation that needs the domaiNN root (`recursiveParse()`, manifest sync, MCP tools that take a workspace location) MUST obtain it from `findScopeChain`, starting from the given path and walking up to the nearest `domaiNN_NN.md`. No operation MAY locate the root
 through `.git`, through a single-directory prefix heuristic, or through a root-handle-only
 lookup. A domaiNN MUST work with no git repository present.
 
