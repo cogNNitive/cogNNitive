@@ -46,24 +46,25 @@ import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
 import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
-import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { syncLineageTool } from './tools/sync-lineage.js'
-import { envelope, envelopeList } from '@cognnitive/nn-core'
+import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
 /**
- * Root directory for knowledge scanning and `specs/` placement.
- *
- * Defaults to the repo root found by walking up from `process.cwd()` (so
- * `specs/` always lands inside the repo, not in some ambiguous
- * sibling/parent directory when the server is started from an unexpected
- * cwd), falling back to `process.cwd()` itself when no `.git` is found.
+ * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
+ * `domaiNN_NN.md` found by walking up from `cwd` (so `specs/` lands inside the
+ * domaiNN even when the server starts from a subdirectory), else `cwd` itself.
+ * `.git` is never consulted: a domaiNN does not need a repository.
  */
-export const ROOT_DIR: string =
-  process.env.INNFO_DOMAIN_DIR ?? findRepoRoot(process.cwd()) ?? process.cwd()
+export function resolveRootDir(cwd: string, env: NodeJS.ProcessEnv): string {
+  return env.INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd
+}
+
+/** Root directory for knowledge scanning and `specs/` placement. */
+export const ROOT_DIR: string = resolveRootDir(process.cwd(), process.env)
 
 // MCP server version: injected at build time by tsup via `define`, so the
 // standalone bundle (bin/nn-mcp.bundle.js) stays self-contained when

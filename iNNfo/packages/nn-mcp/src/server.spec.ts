@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { readFile, rm, mkdir, writeFile } from 'node:fs/promises'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
@@ -9,7 +11,7 @@ const rootDir = join(import.meta.dirname!, '..', 'temp-test-server')
 const specsDir = join(rootDir, 'specs')
 process.env.INNFO_DOMAIN_DIR = rootDir
 
-const { server, toolDefinitions, TOOL_COUNT, ROOT_DIR } = await import('./server')
+const { server, toolDefinitions, TOOL_COUNT, ROOT_DIR, resolveRootDir } = await import('./server')
 
 const pkgVersion = JSON.parse(
   await readFile(join(import.meta.dirname!, '..', 'package.json'), 'utf-8'),
@@ -520,5 +522,52 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       expect(text).not.toContain('isLegacy')
       expect(text).not.toContain('legacy layout')
     })
+  })
+})
+
+describe('resolveRootDir', () => {
+  let base: string
+
+  beforeEach(() => {
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'nn-mcp-root-dir-')))
+  })
+
+  afterEach(() => {
+    rmSync(base, { recursive: true, force: true })
+  })
+
+  function marker(dir: string): void {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+  }
+
+  it('resolves the root from a subdirectory of a domaiNN', () => {
+    marker(join(base, 'acme'))
+    const sub = join(base, 'acme', 'programs', 'alpha')
+    mkdirSync(sub, { recursive: true })
+    expect(resolveRootDir(sub, {})).toBe(join(base, 'acme'))
+  })
+
+  it('resolves a domaiNN that has no .git', () => {
+    marker(join(base, 'plain'))
+    expect(resolveRootDir(join(base, 'plain'), {})).toBe(join(base, 'plain'))
+  })
+
+  it('prefers the domaiNN marker over a .git directory above it', () => {
+    mkdirSync(join(base, '.git'), { recursive: true })
+    marker(join(base, 'acme'))
+    expect(resolveRootDir(join(base, 'acme'), {})).toBe(join(base, 'acme'))
+  })
+
+  it('lets INNFO_DOMAIN_DIR win over the marker walk', () => {
+    marker(join(base, 'acme'))
+    expect(resolveRootDir(join(base, 'acme'), { INNFO_DOMAIN_DIR: '/somewhere/else' })).toBe('/somewhere/else')
+  })
+
+  it('falls back to cwd when no marker exists, never to the repository root', () => {
+    mkdirSync(join(base, 'repo', '.git'), { recursive: true })
+    const sub = join(base, 'repo', 'docs')
+    mkdirSync(sub, { recursive: true })
+    expect(resolveRootDir(sub, {})).toBe(sub)
   })
 })
