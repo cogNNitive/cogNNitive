@@ -56,8 +56,8 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L1.2 | Fold (`override` + `union`), `explain`, node loading | L1.1 | 380 | L1.1 branch | G1.1 | done |
 | L1.3 | Procedure slots, fills, fork recording (pure) | L1.2 | 380 | L1.2 branch | G2.1 (pure) | done |
 | L1.4 | Golden validation: local script on a temp copy of the video backup, reduced committed fixture | L1.3 | 200 | L1.3 branch | new | done |
-| L1 checkpoint | Conclusions into `design.md`; re-plan Lote 2+ | L1.4 | docs | L1.4 branch | new | in progress (L1.C.3 review open) |
-| L2.1a | Element adapter, pure: `scope_elements` declaration, element nodes, spec delta | L1.C.3, Q10 | 360 | L1.4 branch | new | pending |
+| L1 checkpoint | Conclusions into `design.md`; re-plan Lote 2+ | L1.4 | docs | L1.4 branch | new | done (L1.C.3 approved 2026-10-28) |
+| L2.1a | Element adapter, pure: `scope_elements` declaration, element nodes, spec delta | L1.C.3, Q10 | 360 | L1.4 branch | new | in progress |
 | L2.1b | Element adapter, fs loader; video scenes and LC_programas Programas as real consumers | L2.1a, Q11 | 380 | L2.1a branch | new | pending |
 | L2.2a | Drift report, pure (`driftReport`) | L2.1b | 380 | L2.1b branch | new | pending |
 | L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | pending |
@@ -188,7 +188,7 @@ Start: pure fold and procedures exist. End: a manual script proves equivalence w
 
 - [x] L1.C.1 Write Lote 1 conclusions into the `design.md` decision log: what the golden run proved or contradicted, the `ScopeNode` shape as built, the element-scope marker syntax decision (open question), slot candidates confirmed, and any change to the procedure precedence. (Done in the 2026-10-28 L1.C.1 entry; the marker syntax is now a proposal, see Q10.)
 - [x] L1.C.2 Re-plan the Lote 2+ section of this file with concrete RED/GREEN tasks, file paths and estimates; update the Lot Overview and the Review Workload Forecast. (Done 2026-10-28: Lote 2, Lote 2 checkpoint and Lote 3 below.)
-- [ ] L1.C.3 Maintainer review of the re-plan before any Lote 2+ apply. Required answers before L2.1a starts: Q10 (element-scope marker) and the order of the lots.
+- [x] L1.C.3 Maintainer review of the re-plan before any Lote 2+ apply. Required answers before L2.1a starts: Q10 (element-scope marker) and the order of the lots. (Done 2026-10-28: the maintainer reviewed and approved the Lote 2+ re-plan order; Q10 confirmed, see below.)
 
 ---
 
@@ -440,7 +440,7 @@ Scheduled out of Deferred on 2026-10-28 (see the re-plan entry in `design.md`): 
 - [ ] Q6 Broader source visibility: each scope's `sources/` is visible nearest-first (own scope plus ancestors, bounded by isolate). Confirm this widening. (Deferred item; no scheduled slice needs it.)
 - [ ] Q8 Data changes in the external `video_NN` and LC_programas domaiNNs are not CI-verifiable. Accept manual evidence in the Decision log as the gate?
 - [ ] Q9 `scope::` field-name confusion in the procedures bluepriNNt (an existing field vs the new `scope: true` frontmatter flag and `fork_of.scope`). Rename, or document the distinction? (affects L1.3)
-- [ ] Q10 Element-scope marker syntax. PROPOSAL (needs a yes/no, gate for L2.1a.1): the document frontmatter declares which concepts are scopes, `scope_elements: [{ concept: Video }, { concept: Scene }]`, with an optional `parent: <field>` naming a `[[title]]` reference to the parent element; `isolate:: true` (strict boolean) is a field on the element. No heading syntax, no `scope::` field (217 existing uses as a procedures field, see Q9), no L1/L2 change. Rejected: a heading flag (changes the parser/serializer round trip) and `scope:: true` per element (name clash, one edit per element). Rationale and consequences in the `design.md` entry of 2026-10-28 (re-plan).
+- [x] Q10 Element-scope marker syntax. RESOLVED 2026-10-28 (maintainer confirmed): element-scope marker = document frontmatter `scope_elements: [{ concept: <Concept> }, ...]`, optional `parent: <field>` (a `[[title]]` reference to the parent element), default parent = nearest preceding element of the previous listed concept, `isolate:: true` strict-boolean field per element, and `AMBIGUOUS_SCOPE_DECLARATION` when a document has both `scope: true` and `scope_elements`. No heading syntax, no `scope::` field. Rationale in the `design.md` entries of 2026-10-28.
 - [ ] Q11 LC_programas data shape (gate for L2.1b.1). `precio_hora_tutoria` lives on each `## NN Prestación de Servicios` (6 orders, all "84"), linked to its Programa by `programa_ref`; the Programa element itself has no price. Proposal: the Prestación is the leaf scope, the chain is `[root, Programa, Prestación]`, and the default "84" moves to a root values document at adoption (L3.3). Alternative: copy the price onto each Programa (a data change, no `parent` field). Confirm the proposal?
 - [ ] Q12 Drift report exposure (gate for L2.2b). Proposal: ship a read-only CLI `scripts/dev/scope-drift.mjs` first and defer the MCP tool (thinnest surface, no server or docs change). Confirm, or ask for the MCP tool in L2.3.
 - [ ] Q13 Model-id strategy (gate for L2.4.2; answered after the L2.4.1 spike): A path-qualified id only for colliding stems (bare stem accepted when unique, ambiguity is an error with candidates), B always path-qualified, C keep global stems and enforce unique stems with a rename tool.
