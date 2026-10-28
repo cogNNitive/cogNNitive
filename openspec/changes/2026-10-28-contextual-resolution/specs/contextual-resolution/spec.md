@@ -27,7 +27,7 @@ frontmatter or field parser is permitted.
 
 #### Scenario: Unknown strategy
 
-- GIVEN a call with a strategy other than `override` or `union`
+- GIVEN a call with a strategy other than `override`, `union` or `none`
 - WHEN `resolve` is called
 - THEN it returns an error naming the unsupported strategy
 - AND it does not fall back to another strategy
@@ -90,6 +90,36 @@ declaration order within a scope.
 - WHEN resolved for `alpha` with `union`
 - THEN the result's `risk` is `"schedule threat"`
 - AND the trace lists `portfolio`'s `risk` as shadowed by `alpha`
+
+### Requirement: None Strategy Keeps A Declared Value Local To Its Scope
+
+With `none`, the result MUST be the value declared by the innermost node of the visible chain (the target) and nothing else: ancestors and the bluepriNNt floor MUST NOT supply it. A key the target does not declare MUST resolve as explicitly absent, never inherited. `none` is for values that are identity, outputs or recorded facts (for example an invoiced price), where inheriting a later change would rewrite history. The trace MUST name the target as `winner` (or none), MUST list ancestor and floor declarations of the key under `notInherited` and MUST NOT list them as `overridden`.
+
+#### Scenario: Omitted contractual value stays absent
+
+- GIVEN a root declaring `price: "84"` and a target node declaring no `price`
+- WHEN `price` is resolved with `none`
+- THEN the result is explicitly absent
+- AND the trace lists the root's `"84"` under `notInherited`, with an empty `overridden`
+
+#### Scenario: Own contractual value is returned
+
+- GIVEN a root declaring `price: "84"` and a target node declaring `price: "90"`
+- WHEN `price` is resolved with `none`
+- THEN the value is `"90"`, supplied by the target
+- AND the root's `"84"` is listed under `notInherited`, not under `overridden`
+
+#### Scenario: Floor is never a source for none
+
+- GIVEN a floor declaring `price: "10"` and a target node declaring nothing
+- WHEN `price` is resolved with `none`
+- THEN the result is absent and the floor's declaration is listed under `notInherited`
+
+#### Scenario: Target is the nearest node after an isolate cut
+
+- GIVEN a chain whose innermost node is below an isolated node
+- WHEN `none` is resolved
+- THEN only the innermost node is read, and nodes above the isolate are not listed
 
 ### Requirement: Explain Trace Identifies The Supplying Scope
 
@@ -193,7 +223,7 @@ at S and present in the unit deviates. The baseline and every unit value MUST be
 isolate after S MUST NOT be counted for S. The report MUST list each deviating value once with
 the number of units that hold it and the supplier of the first, MUST say whether all units hold
 one single value (`uniform`), and MUST NOT emit a row for a key that no scope or unit supplies.
-A key whose strategy is not `override` MUST be listed in `skipped` with a reason, never omitted.
+A key whose strategy is `none` MUST be compared with `none` and MUST never have an inherited baseline: its baseline is explicitly absent and each unit's value is its own declaration, so sibling variants are still reported. Any other key whose strategy is not `override` MUST be listed in `skipped` with a reason, never omitted.
 The report MUST be plain JSON, versioned, deterministically ordered, independent of the order of
 its input chains, and MUST NOT mutate its input.
 
@@ -239,6 +269,13 @@ its input chains, and MUST NOT mutate its input.
 - GIVEN a key whose strategy is `union`
 - WHEN the report is built
 - THEN no row exists for it and `skipped` names the key with a reason
+
+#### Scenario: None keys report siblings without an inherited baseline
+
+- GIVEN a scope declaring `price: "84"` and three units below it, two declaring `price: "84"` and one declaring `price: "90"`
+- WHEN the report is built with strategy `none` for `price`
+- THEN the row has an absent baseline, 3 of 3 units deviating, uniform false and the variants `"84"` held by 2 units and `"90"` held by 1
+- AND `price` is not listed in `skipped`
 
 #### Scenario: Report round-trips JSON and is deterministic
 

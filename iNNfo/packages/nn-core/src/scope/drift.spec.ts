@@ -172,6 +172,39 @@ describe('driftReport: keys, floor and isolate', () => {
   })
 })
 
+describe('driftReport: none keys', () => {
+  const orders = (): DriftChain[] =>
+    [['a', '84'], ['b', '84'], ['c', '90'], ['d', null]].map(([id, price]) => ({
+      unit: `u${id}`,
+      nodes: [ROOT, GROUP({ price: '84' }), leaf(`u${id}`, price === null ? {} : { price })],
+    }))
+
+  it('reports siblings against an absent baseline, never the inherited one', () => {
+    const report = driftReport({ floor: null, chains: orders(), strategies: { price: 'none' } })
+    const row = rowOf(report, 'group', 'price')
+    expect(row.baseline).toEqual({ present: false, value: null, from: null })
+    expect(row.units).toEqual({ total: 4, deviating: 3, uniform: false })
+    expect(row.variants.map((v) => [v.value, v.units])).toEqual([
+      ['84', 2],
+      ['90', 1],
+    ])
+    expect(report.skipped).toEqual([])
+  })
+
+  it('does not count a unit omitting the value as inheriting the scope value', () => {
+    const row = rowOf(driftReport({ floor: null, chains: orders(), strategies: { price: 'none' } }), 'group', 'price')
+    expect(row.variants.some((v) => v.units === 1 && v.value === '84')).toBe(false)
+    const asOverride = rowOf(driftReport({ floor: null, chains: orders() }), 'group', 'price')
+    expect(asOverride.baseline.value).toBe('84')
+  })
+
+  it('reports a hoistable repetition: every unit holds the same own value', () => {
+    const chains: DriftChain[] = [0, 1, 2].map((i) => ({ unit: `u${i}`, nodes: [ROOT, GROUP(), leaf(`u${i}`, { price: '84' })] }))
+    const row = rowOf(driftReport({ floor: null, chains, strategies: { price: 'none' } }), 'group', 'price')
+    expect(row.units).toEqual({ total: 3, deviating: 3, uniform: true })
+  })
+})
+
 describe('driftReport: purity', () => {
   const input = (): DriftInput => ({
     floor: floorOf({ volume: 1 }),

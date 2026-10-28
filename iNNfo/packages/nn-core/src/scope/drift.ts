@@ -22,7 +22,10 @@ export interface DriftInput {
   keys?: readonly string[]
   /** Keys left out of the comparison. */
   ignore?: readonly string[]
-  /** Strategy per key; a key not listed is compared with `override`. Others are `skipped`. */
+  /**
+   * Strategy per key; a key not listed is compared with `override`. `none` keys are compared
+   * with `none` against an absent baseline. Others are `skipped`.
+   */
   strategies?: Readonly<Record<string, string>>
 }
 
@@ -78,19 +81,21 @@ function sortedKeys(value: JsonValue): JsonValue {
 
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
-function observe(floor: ScopeNode | null, nodes: readonly ScopeNode[], key: string): Observed {
-  const r = resolve({ floor, nodes }, key, 'override')
-  if (!r.ok) throw new Error(`unreachable: override is supported (${r.code})`)
-  if (!r.present) return { id: 'absent', present: false, value: null, from: null }
+const ABSENT: Observed = { id: 'absent', present: false, value: null, from: null }
+
+function observe(floor: ScopeNode | null, nodes: readonly ScopeNode[], key: string, strategy: 'override' | 'none'): Observed {
+  const r = resolve({ floor, nodes }, key, strategy)
+  if (!r.ok) throw new Error(`unreachable: ${strategy} is supported (${r.code})`)
+  if (!r.present) return ABSENT
   return { id: `value:${JSON.stringify(sortedKeys(r.value))}`, present: true, value: r.value, from: r.explain.winner }
 }
 
 const leafId = (c: DriftChain): string => c.nodes[c.nodes.length - 1].id
 const pathOf = (c: DriftChain): string => c.nodes.map((n) => n.id).join('\u0000')
 
-/** Skip reason for a key that is not compared with `override`, or null when it is. */
+/** Skip reason for a key that is not compared with `override` or `none`, or null when it is. */
 function skipReason(strategy: string): string | null {
-  if (strategy === 'override') return null
+  if (strategy === 'override' || strategy === 'none') return null
   return strategy === 'union' ? 'strategy union is not compared' : `unsupported strategy ${strategy}`
 }
 
@@ -108,6 +113,7 @@ export function driftReport(input: DriftInput): DriftReport {
 
   const skipped: DriftReport['skipped'] = []
   const compared: string[] = []
+  const strategyOf = (key: string): 'override' | 'none' => (input.strategies?.[key] === 'none' ? 'none' : 'override')
   for (const key of keys) {
     const reason = skipReason(input.strategies?.[key] ?? 'override')
     if (reason === null) compared.push(key)
@@ -123,8 +129,10 @@ export function driftReport(input: DriftInput): DriftReport {
     if (members.length === 0) continue
     const prefix = members[0].chain.nodes.slice(0, members[0].at + 1)
     for (const key of compared) {
-      const base = observe(input.floor, prefix, key)
-      const seen = members.map(({ chain }) => ({ unit: chain.unit, obs: observe(input.floor, chain.nodes, key) }))
+      const strategy = strategyOf(key)
+      // `none` values are never inherited, so there is no baseline to deviate from.
+      const base = strategy === 'none' ? ABSENT : observe(input.floor, prefix, key, strategy)
+      const seen = members.map(({ chain }) => ({ unit: chain.unit, obs: observe(input.floor, chain.nodes, key, strategy) }))
       if (!base.present && seen.every(({ obs }) => !obs.present)) continue
 
       const deviating = new Set<string>()

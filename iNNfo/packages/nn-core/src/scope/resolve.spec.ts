@@ -203,6 +203,58 @@ describe('resolve with union', () => {
   })
 })
 
+describe('resolve with none', () => {
+  const root = node('', { price: '84' }, { doc: 'root_NN.md' })
+  const order = node('orders/o1', {}, { kind: 'element:Order', doc: 'orders_NN.md' })
+
+  it('leaves an omitted contractual value absent instead of inheriting it', () => {
+    const r = ok(resolve(chain([root, order]), 'price', 'none'))
+    expect(r.strategy).toBe('none')
+    expect(r.present).toBe(false)
+    expect(r.value).toBeNull()
+    expect(r.explain.winner).toBeNull()
+    expect(r.explain.overridden).toEqual([])
+    expect(r.explain.notInherited).toEqual([{ scope: '', doc: 'root_NN.md', value: '84' }])
+  })
+
+  it('returns the target own value and lists the ancestor as not inherited, never as overridden', () => {
+    const own = node('orders/o2', { price: '90' }, { doc: 'orders_NN.md' })
+    const r = ok(resolve(chain([root, own]), 'price', 'none'))
+    expect(r.present).toBe(true)
+    expect(r.value).toBe('90')
+    expect(r.explain.winner).toEqual({ scope: 'orders/o2', doc: 'orders_NN.md' })
+    expect(r.explain.overridden).toEqual([])
+    expect(r.explain.notInherited).toEqual([{ scope: '', doc: 'root_NN.md', value: '84' }])
+  })
+
+  it('never takes the floor as a source, but lists its declaration', () => {
+    const r = ok(resolve(chain([order], floor({ price: '10' })), 'price', 'none'))
+    expect(r.present).toBe(false)
+    expect(r.explain.notInherited).toEqual([{ scope: 'floor:defaults', doc: 'defaults/defaults_NN.md', value: '10' }])
+  })
+
+  it('reads only the target after an isolate cut and lists the visible ancestors', () => {
+    const legacy = node('legacy', { price: '70' }, { isolate: true })
+    const r = ok(resolve(chain([root, legacy, order]), 'price', 'none'))
+    expect(r.present).toBe(false)
+    expect(r.explain.cutAt).toBe('legacy')
+    expect(r.explain.consulted).toEqual([{ scope: 'orders/o1', doc: 'orders_NN.md' }])
+    expect(r.explain.notInherited?.map((c) => c.scope)).toEqual(['legacy'])
+  })
+
+  it('nothing declared anywhere is absent with an empty notInherited', () => {
+    const r = ok(resolve(chain([root, order]), 'other', 'none'))
+    expect(r.present).toBe(false)
+    expect(r.explain.notInherited).toEqual([])
+  })
+
+  it('is deterministic, does not mutate its input and round-trips JSON', () => {
+    const input = deepFreeze(chain([root, order], floor({ price: '10' })))
+    expect(ok(resolve(input, 'price', 'none'))).toStrictEqual(ok(resolve(input, 'price', 'none')))
+    roundTrips(ok(resolve(input, 'price', 'none')))
+  })
+})
+
 describe('resolve contract', () => {
   it('rejects an unknown strategy by name and does not fall back', () => {
     const r = resolve(chain([node('', { priority: 'medium' })]), 'priority', 'restrict')

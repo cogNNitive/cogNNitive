@@ -1,7 +1,7 @@
 import type { JsonValue, ScopeNode } from './types.js'
 
 /** The closed set of merge strategies. `restrict` and `append` are deferred. */
-export type MergeStrategy = 'override' | 'union'
+export type MergeStrategy = 'override' | 'union' | 'none'
 
 /** Who supplied a value: a node id (or the floor's id) and the document that declared it. */
 export interface Supplier {
@@ -46,6 +46,8 @@ export interface ExplainTrace {
   entries?: Array<{ name: string; from: Supplier; shadowed: Candidate[] }>
   /** `union`: items that were not `name=value`, kept visible instead of dropped. */
   skipped?: Array<Supplier & { item: JsonValue }>
+  /** `none`: declarations of the key by ancestors and the floor that were NOT inherited, nearest first. */
+  notInherited?: Array<Supplier & { value: JsonValue }>
 }
 
 export type Resolution =
@@ -190,21 +192,54 @@ function resolveUnion(
 }
 
 /**
+ * `none`: the target (innermost visible node) is the only supplier. Ancestors and the
+ * floor are never read for the value; the ones that declare the key are only reported.
+ */
+function resolveNone(key: string, floor: ScopeNode | null, nodes: readonly ScopeNode[], cutAt: string | null): Resolution {
+  const target = nodes.at(-1) ?? null
+  const own = target !== null && declares(target, key) ? target : null
+  const notInherited = [...(floor ? [floor] : []), ...nodes.slice(0, -1)]
+    .filter((n) => declares(n, key))
+    .reverse()
+    .map((n) => ({ ...supplierOf(n), value: n.values[key] }))
+  return {
+    ok: true,
+    key,
+    strategy: 'none',
+    present: own !== null,
+    value: own === null ? null : own.values[key],
+    explain: {
+      v: 1,
+      key,
+      strategy: 'none',
+      consulted: target === null ? [] : [supplierOf(target)],
+      cutAt,
+      winner: own === null ? null : supplierOf(own),
+      overridden: [],
+      notInherited,
+    },
+  }
+}
+
+/**
  * Pure fold of `key` over the chain with a merge strategy. Same input, same output; the
  * input is never mutated and the result is plain JSON (no functions, cycles, classes or
  * absolute paths). An unknown strategy is an error, never a fallback.
  *
  * - `override`: the nearest node that declares the key wins (an empty value declared
  *   nearer wins over a farther non-empty one); the floor is the last resort.
+ * - `none`: only the target (innermost visible node) supplies the value; ancestors and
+ *   the floor are never inherited and are listed in `explain.notInherited`.
  * - `union`: the named entries of every node, a nearer entry shadowing a farther one of
  *   the same name; entries are ordered by supplying scope, outermost first, then by
  *   declaration order.
  */
 export function resolve(loaded: LoadedChain, key: string, strategy: string): Resolution {
-  if (strategy !== 'override' && strategy !== 'union') {
+  if (strategy !== 'override' && strategy !== 'union' && strategy !== 'none') {
     return { ok: false, code: 'UNSUPPORTED_STRATEGY', strategy }
   }
   const { nodes, cutAt } = visibleNodes(loaded.nodes)
+  if (strategy === 'none') return resolveNone(key, loaded.floor, nodes, cutAt)
   const consulted = [...(loaded.floor ? [loaded.floor] : []), ...nodes].map(supplierOf)
   const order = farToNear(loaded.floor, nodes)
   return strategy === 'override'
