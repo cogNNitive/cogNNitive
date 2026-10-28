@@ -26,6 +26,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, sep } from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -47,6 +48,8 @@ if (!existsSync(CORE_DIST)) {
   process.exit(2);
 }
 const core = await import(pathToFileURL(CORE_DIST).href);
+/** The naming contract's predicate (the one definition of what a `_NN.md` name is). */
+const { isNNName } = createRequire(import.meta.url)(join(REPO, 'skills', 'nn-preflight', 'scripts', 'lib', 'naming-contract.generated.cjs'));
 
 const results = [];
 const findings = [];
@@ -359,7 +362,7 @@ for (const series of SERIES) {
   finding('voice_id is declared nowhere at series level today: it is repeated in each "## NN Video" block (element scope) and only mapped by video-guard.json; the golden hoists it into the series marker');
   const singular = SERIES.filter((s) => existsSync(join(work, 'series', s, 'procedure')));
   finding(`procedures live in "series/<s>/procedure/" (singular) in ${singular.length} of ${SERIES.length} series, while loadScopeProcedures reads "<scope>/procedures/": video adoption must rename the folder or the loader must learn the name`);
-  const nnDocs = listFiles(work).filter((f) => f.endsWith('_NN.md') && !f.startsWith('.moves_backup/') && !f.startsWith('sources/'));
+  const nnDocs = listFiles(work).filter((f) => isNNName(f) && !f.startsWith('.moves_backup/') && !f.startsWith('sources/'));
   const collisions = core.findStemCollisions(nnDocs);
   finding(`model-id collisions among ${nnDocs.length} _NN.md documents (outside sources/ and .moves_backup/): ${collisions.length} (${collisions.slice(0, 6).map((c) => c.id + ' x' + c.paths.length).join(', ')}${collisions.length > 6 ? ', ...' : ''})`);
 }
