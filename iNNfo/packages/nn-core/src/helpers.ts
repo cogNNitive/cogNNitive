@@ -3,10 +3,11 @@
  * These do NOT change any existing behavior — they provide convenience
  * wrappers that the MCP server consumes.
  */
+import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter } from './parser/index.js'
-import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
+import { ENTRYPOINT_FILENAME, isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
@@ -57,7 +58,10 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (isIgnoredDir(entry.name)) continue
-      await collectModels(join(dir, entry.name), rootDir, models)
+      const child = join(dir, entry.name)
+      // A nested domaiNN is its own root: its models are not the outer domaiNN's.
+      if (existsSync(join(child, ENTRYPOINT_FILENAME))) continue
+      await collectModels(child, rootDir, models)
       continue
     }
     if (!entry.isFile()) continue
@@ -95,7 +99,8 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
  * Scan a root directory (recursively) for discoverable iNNfo model files
  * (`_NN.md`, `level: 3`, resolvable `parent_spec` — see
  * `isModelCandidate`). Skips `backups`, `archive`, `specs`,
- * `node_modules`, `.git`, and any dot-directory. Returns an array of
+ * `node_modules`, `.git`, any dot-directory, and any nested domaiNN (a
+ * directory holding its own `domaiNN_NN.md`). Returns an array of
  * `KnowledgeInfo` sorted by id.
  */
 export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
