@@ -60,7 +60,7 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.1a | Element adapter, pure: `scope_elements` declaration, element nodes, spec delta | L1.C.3, Q10 | 360 | L1.4 branch | new | done |
 | L2.1b | Element adapter, fs loader, `none` strategy; video scenes and LC_programas Programas as real consumers | L2.1a | 380 | L2.1a branch | new | done |
 | L2.2a | Drift report, pure (`driftReport`) | L2.1b (ordering only, no code dependency) | 380 | L2.1b branch | new | done |
-| L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | pending |
+| L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | done |
 | L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | pending |
 | L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | pending |
 | L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | pending |
@@ -298,11 +298,11 @@ works on any domaiNN path today. An MCP `drift` tool is deferred until an agent 
 (see Deferred). Value: the maintainer can run it on `video_NN` and LC_programas now. Estimate: ~200
 lines. Gate: Q12 confirmation.
 
-- [ ] L2.2b.1 RED `scripts/dev/scope-drift.test.mjs` (`node --test`; use the shape `verify.js` `collectTestSuites` discovers): over `GOLD` and `ELFIX` it prints the expected rows, `--json` output parses and equals `driftReport`, a path outside any domaiNN exits non-zero with the searched list, and the domain hash is unchanged after a run.
-- [ ] L2.2b.2 GREEN `scripts/dev/scope-drift.mjs <domain-dir> [--unit leaf|doc] [--keys a,b] [--ignore slug,title] [--json]`: discovers documents, builds chains with `listScopeElements` + `loadElementChain`, calls `driftReport`, prints a table (scope, key, baseline, deviating/total, variants). Read-only; never writes.
-- [ ] L2.2b.3 Validate on the video COPY with `--unit doc`: expect innteresante `music_volume` baseline 0.4 with 5 of 8 deviating (0.06 x4, 0.2 x1), one `music` variant `elevator.mp3`; villabotijos-today `casimiro-mahou` 0.1 (1 deviating); `voice_id` uniform per series. Validate on LC_programas (temp COPY of the Tutorias document): `precio_hora_tutoria` 6 of 6 uniform "84", Tutor `nombre` 5 of 5 uniform. Record the real outputs, and any mismatch as findings, in the Decision log (Q8).
-- [ ] L2.2b.4 Verify: `node scripts/verify.js --only=scope-drift`; full `node scripts/verify.js`.
-- [ ] L2.2b.5 Tick tasks; Decision log; status.
+- [x] L2.2b.1 (as built: 10 tests; plain `node --test` file under `scripts/`, picked up by `collectTestSuites`; they run the real CLI as a child process) RED `scripts/dev/scope-drift.test.mjs` (`node --test`; use the shape `verify.js` `collectTestSuites` discovers): over `GOLD` and `ELFIX` it prints the expected rows, `--json` output parses and equals `driftReport`, a path outside any domaiNN exits non-zero with the searched list, and the domain hash is unchanged after a run.
+- [x] L2.2b.2 (as built: also `--none a,b` and `--all`; the text view lists only rows whose scope declares the key itself, plus `none` keys, unless `--all`; `--json` prints the raw `driftReport`; elements that cannot be placed go to stderr and the run continues; see the L2.2b Decision log entries) GREEN `scripts/dev/scope-drift.mjs <domain-dir> [--unit leaf|doc] [--keys a,b] [--ignore slug,title] [--json]`: discovers documents, builds chains with `listScopeElements` + `loadElementChain`, calls `driftReport`, prints a table (scope, key, baseline, deviating/total, variants). Read-only; never writes.
+- [x] L2.2b.3 (all video expectations reproduced; the Tutor expectation held only as a top-level scope and is a different finding than assumed, see the Decision log) Validate on the video COPY with `--unit doc`: expect innteresante `music_volume` baseline 0.4 with 5 of 8 deviating (0.06 x4, 0.2 x1), one `music` variant `elevator.mp3`; villabotijos-today `casimiro-mahou` 0.1 (1 deviating); `voice_id` uniform per series. Validate on LC_programas (temp COPY of the Tutorias document): `precio_hora_tutoria` 6 of 6 uniform "84", Tutor `nombre` 5 of 5 uniform. Record the real outputs, and any mismatch as findings, in the Decision log (Q8).
+- [x] L2.2b.4 (`--only=scope-drift` green; the full run has 5 failures of 205, all from `skills/nn-sources` dependencies missing in this worktree, which cannot be installed here: convergence-cli, gc, nn-sources suite, Typecheck Scripts on `pdf-parse`, license check) Verify: `node scripts/verify.js --only=scope-drift`; full `node scripts/verify.js`.
+- [x] L2.2b.5 Tick tasks; Decision log; status.
 
 Rollback: delete the script and its test.
 
