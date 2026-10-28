@@ -1,18 +1,20 @@
 # Design: Contextual Resolution — Scope Chain and Typed Cascade
 
 One new nn-core module, `scope/`, owns three things: finding the root and scopes, folding
-values over the chain, and resolving procedures. Each has a pure core and a thin Node
+values over the chain, and resolving procedures. As of the 2026-10-28 re-slice the fold takes
+an abstract `ScopeNode[]` chain (see "Scope Nodes" below); folder containment is only the
+first adapter that produces nodes. Each has a pure core and a thin Node
 adapter. nn-mcp and the video-script skill call it and delete their own walkers. Video
 reaches it through the generated-CJS mirror pattern that `nn-sources` already uses.
 
 ## Technical Approach
 
 ```
-path ─▶ findScopeChain (fs adapter) ─▶ ScopeChain ─▶ loadChain (fs, parseKnowledge) ─▶ LoadedChain
-                                            │                                            │
-                                            │                     resolve(loaded, key, strategy) ─▶ Resolution + ExplainTrace (JSON)
-                                            └─▶ loadScopeProcedures (fs) ─▶ resolveProcedures ─▶ EffectiveProcedure[] + diagnostics
-consumers: nn-mcp (ROOT_DIR, resolve_effective, explain, list_blueprint_procedures{path}) · video mirror · projects fixture
+path ─▶ folder adapter: findScopeChain (fs) ─▶ ScopeChain ─▶ loadChain (fs, parseKnowledge) ─▶ ScopeNode[] (+ floor)
+        element adapter (later): document + heading ─▶ ScopeNode[]                                  │
+                                                                  resolve(nodes, key, strategy) ─▶ Resolution + ExplainTrace (JSON)
+                                                                  resolveProcedures(nodes…) ─▶ EffectiveProcedure[] + diagnostics
+consumers: nn-mcp (ROOT_DIR, resolve_effective, explain, list_blueprint_procedures{path}) · video mirror · LC_programas (element scopes)
 ```
 
 | Module (nn-core `src/scope/`) | Pure? | Interface |
@@ -27,7 +29,32 @@ consumers: nn-mcp (ROOT_DIR, resolve_effective, explain, list_blueprint_procedur
 | `index.ts` | — | re-exported from `src/index.ts`; pure files guarded by a `purity.spec.ts` (same pattern as `workspace/integrity/purity.spec.ts`) |
 
 All new relative imports carry `.js` (NodeNext). The core never names a bluepriNNt,
-concept or field. That rule is enforced by a test that greps the core for `video|series|projects`.
+concept or field. That rule is enforced by a test that greps the core for `video|series|projects|programa`.
+
+## Scope Nodes (2026-10-28 re-slice)
+
+Evidence from real domaiNNs: most containers are elements inside documents, not folders. The
+fold therefore never sees paths. An adapter turns a location into an ordered chain of nodes
+(outermost first); `resolve`, `resolveProcedures` and `explain` only see nodes.
+
+```ts
+export interface ScopeNode {
+  id: string          // stable, domain-relative, JSON-safe ('' = root; 'series/x'; later 'doc#programa-02')
+  kind: string        // adapter-defined label ('root' | 'scope' | 'element'); the core never branches on it
+  doc: string | null  // supplier document, domain-relative
+  isolate: boolean
+  values: Readonly<Record<string, JsonValue>>
+  fills?: Record<string, Record<string, Filler>>
+  procedures?: ProcedureDef[]
+}
+export type ScopeChainOf = (location: string) => { nodes: ScopeNode[]; cutAt: string | null }  // adapter contract
+```
+
+Lote 1 ships only the folder adapter (`ScopeChain` + `loadChain` produce `ScopeNode[]`). The
+element adapter is deferred (trigger: Lote 1 conclusions; consumers LC_programas and video
+episodes). `Layer`, `Supplier` and `LoadedChain` below are read as views over `ScopeNode`:
+`Layer = Supplier + values`, `LoadedChain = { floor: ScopeNode | null; nodes: ScopeNode[]; cutAt }`.
+Signatures that say `resolve(loaded: LoadedChain, …)` keep their shape; `layers` becomes `nodes`.
 
 ## Data Shapes
 
@@ -172,26 +199,23 @@ Deleted: `tools/repo-root.ts`, `tools/repo-root.spec.ts`, `findManifestPath`, `f
 | `changes/` | Stays a single root log. Changesets do not gain a scope field in this change. |
 | Source visibility | `createFsSourceResolver` bounds its walk at the chain's outermost link (isolate-aware) instead of `rootDir`. |
 
-## Slice Plan (feature-branch-chain)
+## Lot Plan (feature-branch-chain; replaces the earlier Slice Plan)
 
-Estimates exclude the generated mirror bundle, which is drift-checked and not reviewed.
+> Superseded by the 2026-10-28 value-first re-slice entry. The earlier G0.1..B slice plan is
+> kept in git history. Old ids map to lots as shown; `tasks.md` carries the concrete ids.
 
-| Slice | Content | Deletes | ~Lines |
+Estimates exclude generated mirror bundles.
+
+| Lot | Content | Old ids | ~Lines |
 |---|---|---|---|
-| G0.1 | `chain.ts`, `fs-chain.ts`, `findStemCollisions`, fixture `nn-core/tests/fixtures/scoped-portfolio/` (3+ depths, isolate, nested domaiNN, collision), purity spec | — | 380 |
-| G0.2 | nn-mcp swaps above, `dev-checkout.ts`, collision diagnostic in `check-workspace.ts` | `repo-root.ts`(+spec), `findManifestPath` | 300 |
-| G0.3 | Rename `scripts/build-trannsform-core-mirror.mjs` to `build-core-mirrors.mjs` with a second target `src/scopePrimitives.ts` → `nn-video-script/scripts/lib/nn-core.generated.cjs`; `resolveWorkspace` on `findDomainRoot`; `verify.js` `--check` | `.git` and guard-walk branches, `findWorkspaceRoot` | 220 |
-| G1.1 | `resolve.ts`, `fs-layers.ts`, explain round-trip tests | — | 380 |
-| G1.2 | `compareEffective`; isolate-bounded `fs-source-resolver.ts` | `rootDir` walk bound | 150 |
-| G2.1 | `procedures.ts`, `fs-procedures.ts`, fixture procedures (slots, fills, fork, undeclared shadow) | — | 380 |
-| G2.2 | `spec.ts` `discoverTransitiveAssets`: shadowed entries reported, not dropped | silent `seenProcIds` skip | 150 |
-| G3 | `tools/resolve-effective.ts` (`resolve_effective`, `explain`); `list_blueprint_procedures` gains `path` and returns `shadowed`/`forks`/`diagnostics`; `skills/nn-innfo/SKILL.md` §16-bis.2 precedence; `mcp-tools.md` | prose-only precedence | 350 |
-| A1 | Video params on `resolve` via mirror (call sites: `asset-cost-estimator`, `asset-synthesizer`, `build-script-from-draft`, `render-thumbnail`, `scene-compiler`, `synthesize-avatar`, `video-engine-cli`, `lib/tts-options`). The `cli/layer/scene/video` levels become appended layers. | `cascade.mjs`; `cascade.test.mjs` ported | 400 |
-| A2 | `findNearest*` → `findInChain`; series = innermost scope; folder-contract check | `nearest.mjs`, `SERIES_MARKERS` | 300 |
-| A3 | `video_NN` domaiNN data (outside this repo): `scope: true` markers, one slotted `draft_scene_visuals` at root | — | n/a |
-| B | `projects`: portfolio→program→project fixture; `generate-status-report` gains `slots:`; `priority` declared for `Project`; `template_version` bump | — | 300 |
+| L0.1 | `findDomainRoot` in nn-core; nn-mcp `ROOT_DIR`; `cognitivize.ts` stops `require()`-ing from a domain-found root (resolve via `dev-checkout.ts`); delete `repo-root.ts` | G0.2 | 250 |
+| L0.2 | Model-id collision detection (`findStemCollisions`) surfaced as a `check_domain` / manifest-sync diagnostic | G0.1 (collisions), G0.2.3 | 150 |
+| L0.3 | Test-first check that `sources/` files are discovered as models; exclude `sources/` if so, else close with evidence | exploration bug note | 80 |
+| L1 | `src/scope/`: `ScopeNode`, folder adapter, fold (`override` + `union`), explain, slots and fork recording, generic fixture, golden validation script plus reduced committed fixture | G0.1, G1.1, G2.1 (pure) | 700 |
+| L1 checkpoint | Conclusions into the decision log; re-plan `tasks.md` | new | docs |
+| L2+ | Element adapter; source-visibility bound and `compareEffective`; procedure precedence in nn-mcp (`spec.ts`); `resolve_effective` / `explain` tools and SKILL.md; video adoption (mirror, `cascade.mjs`, `nearest.mjs`, `draft_scene_visuals` slots); LC_programas adoption; `restrict` for `allowedModels` | G1.2, G2.2, G3, A1-A3, B | re-planned |
 
-Each slice reverts on its own. Dependencies: G0.1 → G0.2/G0.3 → G1 → G2 → G3; A1–A2 need G0.3+G1+G2; B needs G2.
+Each lot reverts on its own. Dependencies: L0.1 before L1 only for `findDomainRoot`; L0.2 and L0.3 are independent; L2+ needs the L1 checkpoint.
 
 ## Testing Strategy (strict TDD seams)
 
@@ -209,12 +233,12 @@ Each slice reverts on its own. Dependencies: G0.1 → G0.2/G0.3 → G1 → G2 �
 | Date | Decision | Rejected | Why |
 |---|---|---|---|
 | 2026-10-28 | Scope declared by frontmatter `scope: true` first; L2 declaration arrives with the next L1 (with `inherit::`) | L1/L2 change now | Ships without a spec-version cascade |
-| 2026-10-28 | Generic first in nn-core; video is the first consumer only | Video-local fix | Rule of two consumers |
+| 2026-10-28 | Generic first in nn-core; video is the first consumer only | Video-local fix | Rule of two consumers (second consumer revised by the LC_programas entry) |
 | 2026-10-28 | Single-parent containment; other memberships are non-cascading facets | Multi-parent, `extends` | Deterministic fold, simple explain |
 | 2026-10-28 | `changes/` stays one root transaction log | Per-scope `changes/` | Lock, conflicts and review queue stay single |
 | 2026-10-28 | No lockfile yet; `ExplainTrace` is versioned plain JSON | Materialize now | Keeps the future lockfile a small task |
 | 2026-10-28 | Root is never found via `.git`; nearest `domaiNN_NN.md` only | `.git` fallback | A domaiNN must not need git |
-| 2026-10-28 | `projects` is the second consumer | `organization`, `procedures` | Containment by nature, has procedures |
+| 2026-10-28 | `projects` is the second consumer | `organization`, `procedures` | Containment by nature, has procedures. **Superseded by the 2026-10-28 LC_programas entry** (no real `projects` consumer) |
 | 2026-10-28 | Values come from the `scope: true` document's first element; the root may add one beside `domaiNN_NN.md` | Values in `domaiNN_NN.md`; frontmatter `values:` map | Typed kNNowledge; no `domaiNN` schema pollution |
 | 2026-10-28 | Floor = bluepriNNt `defaults/` document, injected by the adapter | Field-level `default::` in L2 | Already used by video; no L2 change |
 | 2026-10-28 | Precedence: model > nearest scope > root > bluepriNNt | Prose order "blueprint > domain" (§16-bis.2) | The bluepriNNt is the floor; the domaiNN is more specific |
@@ -222,8 +246,15 @@ Each slice reverts on its own. Dependencies: G0.1 → G0.2/G0.3 → G1 → G2 �
 | 2026-10-28 | Extend `list_blueprint_procedures` with `path`; no rename | `list_procedures` + delete | 16 files reference the name |
 | 2026-10-28 | Video uses nn-core through a generated CJS mirror | Runtime import; copy | Skills install where nn-core is absent; precedent `nn-sources` |
 | 2026-10-28 | Only `override` and `union` exist; `MergeStrategy` is a closed union | Plugin registry | No speculative generality |
+| 2026-10-28 | The fold takes an abstract `ScopeNode[]` chain, not paths. Folder adapter ships first; element adapter later (trigger: Lote 1 conclusions; consumers LC_programas and video episodes) | Folder-only chain; element scopes via fake folders | Real review of 8 domaiNNs: only `video_NN` is hierarchical by folder; most containers are elements inside documents (`## NN Programa`, `## NN Video`, accounting Periods) |
+| 2026-10-28 | LC_programas replaces `projects` as the second consumer (Programa as element scope; `precio_hora_tutoria` "84" and tutor identity repeated in 6 orders -> override; `Lean_Business_Plan_*` hardcoded paths -> slots). It follows the element adapter. `projects` becomes deferred: "no real consumer" | `projects` (no consumer); `organization`; `procedures` | An evidence-backed consumer beats a hypothetical one; also makes the earlier Q7 (projects release cost) moot |
+| 2026-10-28 | No root-marker fallback. `video_NN`, `transcriptions_NN` and `Electricidad_NN` lack `domaiNN_NN.md`; real domains get it via adoption or the new-domain recipe; validation adds it only to a temp copy | Falling back to lineage records such as `video_NN_cogNNitive_NN.md` | No backwards-compat code; one marker, one finder |
+| 2026-10-28 | Value-first lot order: Lote 0 independent fixes (root finder, collision detection, `sources/` check) as small PRs, then Lote 1 pure walking skeleton, then a checkpoint before Lote 2+ | Phase order G0 -> G3 -> adoption | Collisions are already real (40+ `script.md`; duplicated `NoticiasVillabotijos_noticias_NN.md` in 2 series) and the `.git` root finder plus `cognitivize.ts` `require()` are live defects; none needs the cascade. Supersedes the earlier slice plan |
+| 2026-10-28 | Golden validation: temp COPY of `video_NN-backup-2026-10-27_193914` with `domaiNN_NN.md` added; chain [episode, series, root]; innteresante -> jazz.mp3, villabotijos-today -> pasodoble-loop.m4a at 0.06; `draft_scene_visuals` composed (1 definition + 2 slot fills) equals both copies modulo naming noise; explain serializes. Local/manual script plus a reduced committed fixture; CI never reads the real path | Test against the live domain; CI test on the real path | Safe oracle never mutated; reproducible in CI through the reduced fixture. Candidate slots: presenter_persona, tools_invocation, scene_structure, attribution_overlay, render_notes, finalize_fields; `select_*_news` trio: news_sources, topic_filter, news_model_ref |
+| 2026-10-28 | `restrict` trigger is met by `video-guard.json` `allowedModels`; scheduled after the MCP slice, not in Lote 0/1 | Implement now | Keeps Lote 1 to `override` + `union`; ~25 backup folders keep the lockfile deferred |
 
 ## Open Questions
 
 - [ ] When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`. Today a repo subfolder resolves to the repo root, and that changes. Is that acceptable?
-- [ ] Adoption B edits files in the `projects` package, which needs a `template_version` bump and a templates tag/repin. Should that ship inside this umbrella?
+- [x] ~~Adoption B edits the `projects` package and needs a `template_version` bump and repin.~~ Moot: `projects` is no longer an adoption target (2026-10-28 LC_programas entry).
+- [ ] How does an element scope's `isolate` and marker syntax look (heading flag vs `key::`)? Decide at the Lote 1 checkpoint.

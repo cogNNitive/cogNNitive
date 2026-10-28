@@ -4,6 +4,11 @@ Scope: one scope and root finder in nn-core. A domaiNN root is the nearest `doma
 marker found by walking up; a sub-scope is a marker kNNowledge document with `scope: true`;
 containment is single-parent; `isolate` stops the chain. Phase G0.
 
+Note (2026-10-28 re-slice): the fold consumes an abstract chain of scope nodes. Folder
+containment, described here, is the first adapter; an element adapter (a heading-level
+entry inside a document acting as a scope) follows after Lote 1. `findScopeChain` is the
+folder adapter's entry point and `findDomainRoot` the single root finder.
+
 Terms. The **chain** of a path is the ordered list of scopes that contain it, from the
 domaiNN root (outermost) to the nearest enclosing scope (innermost). A **marker** is the
 kNNowledge document that declares a scope: `domaiNN_NN.md` for the root, any kNNowledge

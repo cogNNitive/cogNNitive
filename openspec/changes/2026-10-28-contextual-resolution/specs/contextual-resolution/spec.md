@@ -2,7 +2,7 @@
 
 Scope: a pure fold over the scope chain with typed merge strategies (`override`, `union`),
 the bluepriNNt default as floor, and a serializable `explain` trace. Phases G1 and G3
-(MCP contract), plus the second-consumer proof of Adoption B.
+(MCP contract), plus the second-consumer proof (LC_programas adoption, Lote 2+).
 
 Terms. `local(S,k)` is the value of key `k` declared in the marker kNNowledge document of
 scope `S`. `effective(S,k)` folds `local` over the chain of `S`, outermost first, starting
@@ -160,7 +160,9 @@ a key with an unsupported strategy.
 
 The nn-core resolution module MUST NOT name any bluepriNNt, concept or field of a specific
 bluepriNNt. Phase G0-G2 behavior MUST be validated on a fixture that is not a video
-bluepriNNt, and Adoption B MUST demonstrate a second real consumer.
+bluepriNNt, and the LC_programas adoption (Programa as element scope, after the element
+adapter) MUST demonstrate a second real consumer. The fold MUST take an abstract chain of
+scope nodes; folder scopes are the first adapter and element scopes a later one.
 
 #### Scenario: Core contains no consumer vocabulary
 
@@ -168,12 +170,16 @@ bluepriNNt, and Adoption B MUST demonstrate a second real consumer.
 - WHEN they are searched for `video`, `series` or `projects`
 - THEN no match is found outside tests and fixtures
 
-#### Scenario: projects bluepriNNt resolves across three levels
+#### Scenario: Generic fixture resolves across three levels
 
-- GIVEN a `projects` domaiNN with portfolio, program and project scopes, and `priority` declared with `override` at portfolio and project levels
-- WHEN `priority` is resolved for a document in the project
-- THEN the project's value wins and the trace names the project scope
-- AND resolving for a document in a program that declares nothing yields the portfolio value
+> Moved 2026-10-28: the `projects` bluepriNNt has no real consumer and is no longer an
+> adoption target. The three-level proof is the generic non-video fixture in Lote 1; the
+> real second consumer is LC_programas (element scope, Lote 2+).
+
+- GIVEN a generic fixture domaiNN with root, mid and leaf scopes, and a key declared with `override` at root and leaf levels
+- WHEN the key is resolved for a document in the leaf
+- THEN the leaf's value wins and the trace names the leaf scope
+- AND resolving for a document in a mid scope that declares nothing yields the root value
 
 ## Out of scope
 

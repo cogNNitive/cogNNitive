@@ -163,3 +163,16 @@ Deferred, each with an unlock trigger:
 - user/org scope above the domaiNN;
 - `extends` for explicit multi-composition;
 - fixing the video-specific drift (`shared/` vs `assets/`, stale `video-production-hierarchy` spec).
+
+## Real-domain review (2026-10-28)
+
+Read-only review of 8 real domaiNNs, approved by the maintainer as the basis for a re-slice.
+
+- **Folder containment is rare.** Only `video_NN` is genuinely hierarchical (root, 4 series, episodes). Most domains are flat; their containers are elements inside documents: LC_programas `## NN Programa` entries in its Tutorias document, video episodes as `## NN Video` blocks in the series document, accounting Period entries. The resolver therefore needs an abstract scope-node chain: folder adapter first, element adapter later.
+- **Root marker gaps.** `video_NN`, `transcriptions_NN` and `Electricidad_NN` have no `domaiNN_NN.md`. `video_NN`'s de facto marker is the lineage record `video_NN_cogNNitive_NN.md`. No fallback to other markers; real domains get `domaiNN_NN.md` through adoption or the new-domain recipe.
+- **`projects` has no real consumer.** LC_programas replaces it: Programa as element scope, `precio_hora_tutoria` ("84") and tutor identity repeated across 6 orders (override candidates), `Lean_Business_Plan_*` procedures hardcoding paths (slot candidates).
+- **Real procedure duplication in `video_NN`.** `draft_scene_visuals` is copied in innteresante and villabotijos-today (76 changed lines, 31 hunks, mostly naming noise). Candidate slots: presenter_persona, tools_invocation, scene_structure, attribution_overlay, render_notes, finalize_fields. The `select_*_news` trio suggests slots news_sources, topic_filter, news_model_ref.
+- **`restrict` is real.** `video-guard.json` `allowedModels`. Stays deferred until after Lote 1.
+- **Model-id collisions already exist.** 40+ `script.md` files and a duplicated `NoticiasVillabotijos_noticias_NN.md` in 2 series. Detection has value today, independent of any cascade.
+- **Backup sprawl.** About 25 backup/copy folders exist because upgrades back up whole trees; a lockfile would narrow that. Stays deferred.
+- **Safe oracle.** `video_NN-backup-2026-10-27_193914` (under `Documents\_NN`, or `Y:\My Drive\_NN`), always copied to a temp fixture, never mutated.

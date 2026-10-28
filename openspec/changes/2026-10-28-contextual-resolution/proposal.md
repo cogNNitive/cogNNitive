@@ -36,40 +36,67 @@ fill; a whole-procedure override is an explicit, tracked **fork**. Guarantees: `
 (provenance of every effective value), `isolate` (stops the chain), single-parent
 resolution, and serializable resolution output.
 
+## Evidence from real domains (2026-10-28)
+
+A read-only review of 8 real domaiNNs reshaped the plan (details in `exploration.md`):
+
+- Folder containment is rare. Only `video_NN` is hierarchical; most domains are flat and their
+  containers are elements inside documents (LC_programas `## NN Programa`, video `## NN Video`
+  episodes, accounting Periods). The resolver therefore folds an abstract `ScopeNode` chain:
+  folder adapter now, element adapter later.
+- `video_NN`, `transcriptions_NN` and `Electricidad_NN` lack `domaiNN_NN.md`. No fallback to
+  other markers; real domains get the marker through adoption or the new-domain recipe.
+- `projects` has no real consumer. LC_programas replaces it as the second consumer.
+- Real duplication exists (`draft_scene_visuals` in 2 series) and real model-id collisions
+  exist (40+ `script.md`), so some deliverables pay off before any cascade exists.
+
 ## Scope
+
+Delivery is value-first, in lots. G-ids stay traceable through the mapping below.
 
 ### In Scope Now
 
-| Phase | Deliverable | Validated by |
-|---|---|---|
-| G0 Scope | One `findScopeChain(path)` in nn-core: walk up to the nearest `domaiNN_NN.md` (root); a sub-scope is a marker document with frontmatter `scope: true`; `isolate` stops the chain. Replaces the four root finders; removes `.git` lookup | Generic nested-scope fixture (non-video) |
-| G1 Resolution | Pure `resolve(chain, key, strategy)` with `override` + `union`; serializable `explain` trace; reads kNNowledge through nn-core's parser only | Same fixture |
-| G2 Procedures | Procedure precedence implemented in code over the scope chain; shadowed procedures reported, never silently dropped; named slots with contract check; fork recording and "original advanced" warning | Fixture procedure with slots |
-| G3 MCP | `resolve_effective` and `explain` tools; scope-aware procedure listing | nn-mcp tests |
-| Adoption A | `video-script` consumes the core (`cascade.mjs` / `nearest.mjs` replaced); `draft_scene_visuals` deduplicated into one slotted procedure | Real `video_NN` series |
-| Adoption B | `projects` bluepriNNt adopts scopes (portfolio → program → project) | Second real consumer |
+| Lot | Deliverable | Validated by | Old ids |
+|---|---|---|---|
+| Lote 0 | Independent value fixes, one small PR each: L0.1 single `findDomainRoot` in nn-core (nearest `domaiNN_NN.md`, never `.git`) replacing `nn-mcp` `findRepoRoot` and fixing the `cognitivize.ts` domain-controlled `require()`; L0.2 model-id collision detection as a reported diagnostic; L0.3 verify whether `sources/` files are discovered as models and exclude them if so | Unit and nn-mcp tests; no cascade needed | G0.2 (root finder), G0.1 (collisions), exploration bug note |
+| Lote 1 | Pure nn-core walking skeleton, no MCP: `src/scope/` with the `ScopeNode` abstraction, folder adapter (`scope: true`, `domaiNN_NN.md` root, `isolate`), fold with `override` + `union`, JSON-serializable `explain`, procedure slots and fork recording | Generic fixture plus golden validation on a temp copy of the `video_NN` backup (with `domaiNN_NN.md` added to the copy) | G0.1, G1, G2 (pure side) |
+| Lote 2+ (re-planned at the Lote 1 checkpoint) | Element adapter (LC_programas, video episodes); procedure precedence and slots in nn-mcp; `resolve_effective` / `explain` MCP tools; video adoption; LC_programas adoption; `restrict` for `allowedModels` | Real consumers | G2 (code side), G3, A1-A3, B (replaced) |
 
-**Why `projects` as the second consumer:** its hierarchy is folder containment by nature;
-it already ships procedures (`generate-status-report` is a clean slot candidate: audience and
-format vary per program); `priority`/`health` defaults are natural `override` keys. Rejected:
-`organization` (its hierarchy is intra-document, and the name collides with the deferred
-org scope above the domaiNN); `procedures` (circular as a proof of the procedure mechanism).
+Lote 1 ends with a checkpoint: conclusions go into the `design.md` decision log and
+`tasks.md` is re-planned before Lote 2+ starts.
+
+**Why LC_programas as the second consumer (replaces `projects`):** `projects` has no real
+consumer. LC_programas is evidence-backed: the Programa is an element scope (`## NN Programa`
+inside its Tutorias document); `precio_hora_tutoria` ("84") and tutor identity repeat in 6
+orders (`override` candidates); `Lean_Business_Plan_*` procedures hardcode paths (slot
+candidates). It depends on the element adapter, so it lands after Lote 1. Rejected earlier:
+`organization` (hierarchy is intra-document; name collides with the deferred org scope) and
+`procedures` (circular as a proof of the procedure mechanism).
+
+**Golden validation (Lote 1):** on a temp COPY of `video_NN-backup-2026-10-27_193914` with
+`domaiNN_NN.md` added, the chain is [episode, series, root]; music/voice resolution equals
+today's values (innteresante -> jazz.mp3; villabotijos-today -> pasodoble-loop.m4a at 0.06
+volume); `draft_scene_visuals` composed from 1 definition and 2 slot fills equals both
+existing copies modulo naming noise; explain serializes. This is a local/manual script plus a
+reduced committed fixture derived from it; CI never depends on the real path.
 
 ### Deferred (each with its unlock trigger)
 
 | Item | Unlock trigger |
 |---|---|
-| `restrict` strategy | A second real constraint beyond `video-guard.json` `allowedModels` |
+| Element adapter (Programa, Episode, Period as scopes) | Lote 1 conclusions are written; consumers LC_programas and video episodes |
+| `restrict` strategy | Trigger met by `video-guard.json` `allowedModels`; schedule after the MCP slice |
 | `append` strategy | Agent-context assembly work starts |
 | Per-field `inherit::` (L1) and L2 scope declaration | The next iNNfo (L1) version is opened |
 | Per-scope `aggregate` (manifest, console, lineage, change views) | A consumer needs a per-scope index or console after Adoption |
 | Per-scope ingestion (`sources/` scanner, `importRaw`) | A domaiNN needs to import into a sub-scope |
-| Lockfile / materialization on publish | First publish flow that needs frozen effective values |
+| Lockfile / materialization on publish | First publish flow that needs frozen effective values; also would narrow the ~25 upgrade backup folders |
 | Per-scope bluepriNNt version pin | Two scopes in one domaiNN need different bluepriNNt versions |
 | User/org scope above the domaiNN | A second domaiNN needs shared defaults |
 | `extends` (explicit multi-composition) | A case single-parent containment demonstrably cannot express |
-| Video drift fixes (`shared/` vs `assets/`, stale `video-production-hierarchy` spec) | Adoption A lands |
-| Scope-qualified model ids | First real sibling-scope stem collision (see Risks) |
+| Video drift fixes (`shared/` vs `assets/`, stale `video-production-hierarchy` spec) | Video adoption lands |
+| Scope-qualified model ids | Collision detection (L0.2) shows collisions that renaming cannot resolve |
+| `projects` bluepriNNt adoption | A real consumer appears (currently none) |
 
 ## Non-Goals
 
@@ -79,14 +106,16 @@ org scope above the domaiNN); `procedures` (circular as a proof of the procedure
 - No multi-parent inheritance; other memberships are non-cascading facets (tags).
 - No per-scope `changes/` folder: `changes/` stays one domaiNN-root transaction log.
 - No change to type-axis composition (`includes` stays strict).
-- The suspected `nn-upgrade --import-as-source` discovery bug is tracked as a separate issue.
+- The `nn-upgrade --import-as-source` discovery question is handled by L0.3 (verify, then fix or close with evidence).
+- No `projects` bluepriNNt adoption: no real consumer.
+- No root-marker fallback: a domaiNN without `domaiNN_NN.md` is not a root. Validation adds the marker only to a temp copy.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `scope-chain`: marker-walk root and sub-scope discovery, `isolate`, single parent.
-- `contextual-resolution`: typed merge fold, `override`/`union`, serializable `explain`.
+- `scope-chain`: marker-walk root and sub-scope discovery (folder adapter over abstract scope nodes), `isolate`, single parent.
+- `contextual-resolution`: typed merge fold over a `ScopeNode` chain, `override`/`union`, serializable `explain`.
 - `procedure-extension-points`: procedure slots, slot contract check, fork tracking.
 
 ### Modified Capabilities
@@ -105,17 +134,16 @@ org scope above the domaiNN); `procedures` (circular as a proof of the procedure
 | `iNNfo/packages/nn-core/src/` (new scope + resolve modules; `schema/compose.ts` provenance reuse) | New |
 | `iNNfo/packages/nn-mcp/src/server.ts`, `tools/workspace-sync.ts`, `tools/spec.ts` | Modified |
 | `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/{cascade,nearest}.mjs`, `video-guard.mjs` | Removed / Modified |
-| `iNNfo/specs/bluepriNNts/projects/` | Modified |
 | `skills/nn-innfo/SKILL.md` §16-bis | Modified |
 
 ## Delivery and Governance
 
-- **One umbrella change**, active until the last in-scope phase (Adoption B) lands.
-- **`tasks.md` is the living roadmap**, organized by phase (G0…Adoption B, then Deferred).
-- **Every phase PR updates `tasks.md`** (checkboxes, plus any deferred item it unlocks).
+- **One umbrella change**, active until the last in-scope lot (LC_programas adoption) lands.
+- **`tasks.md` is the living roadmap**, organized by lot (Lote 0, Lote 1, Lote 2+, then Deferred).
+- **Every lot PR updates `tasks.md`** (checkboxes, plus any deferred item it unlocks).
 - **`design.md` holds a dated decision log**; each scope or strategy decision gets an entry.
-- **Chained PRs, `feature-branch-chain`, `ask-on-risk`**: one tracker branch; each phase is
-  one or more PRs with its own fixture-backed verification and rollback boundary.
+- **Chained PRs, `feature-branch-chain`, `ask-on-risk`**: one tracker branch; each lot is
+  one or more PRs (Lote 0 items are independent small PRs) with its own fixture-backed verification and rollback boundary.
 
 ## Risks
 
@@ -124,38 +152,41 @@ org scope above the domaiNN); `procedures` (circular as a proof of the procedure
 | Action at a distance: editing a parent changes children | High | `explain` mandatory; tools warn when a move or edit changes effective values |
 | Opacity: users cannot see why a value applies | Med | `explain` exposed via MCP (G3); trace is serializable |
 | Agents copy instead of resolving | High | §16-bis and MCP tools return effective values; forks are recorded and warned |
-| Global model-id collisions across sibling scopes | Med | Detected and reported as an error in G0; scope-qualified ids deferred with a trigger |
-| Video "no upward escape" contradicts upward resolution | High | Contract redefined as scope-root-bounded in Adoption A |
+| Global model-id collisions across sibling scopes | High (already real: 40+ `script.md`) | Detected and reported in L0.2; scope-qualified ids deferred with a trigger |
+| Folder-only model misses the real hierarchies | High | Abstract `ScopeNode` chain; element adapter scheduled after Lote 1 |
+| Golden validation depends on a private path | Med | Local/manual script plus a reduced committed fixture; CI never reads the real path |
+| Video "no upward escape" contradicts upward resolution | High | Contract redefined as scope-root-bounded in video adoption |
 | L1 version cost of `inherit::` | Med | Start with the frontmatter flag (no L1/L2 change); defer L1 work to the next L1 version |
 | Umbrella scope creep | Med | Deferred table is closed; adding an item requires a dated `design.md` entry |
 
 ## Rollback Plan
 
-Each phase reverts independently on the tracker branch. G0 revert restores the previous
-root finders; G1–G3 are additive modules and tools; Adoption reverts restore the video
-scripts and the `projects` bluepriNNt. No domaiNN data migrates inside this change.
+Each lot reverts independently on the tracker branch. Lote 0 reverts restore the previous
+root finder and discovery; Lote 1 is an additive module; later lots are additive tools and
+adoption reverts restore the video scripts. No domaiNN data migrates inside this change.
 
 ## Dependencies
 
-- None external. Adoption A depends on G0–G2; G3 depends on G1–G2.
+- None external. Lote 0 items are independent. Lote 1 is pure and needs only `findDomainRoot` from Lote 0 (L0.1). LC_programas adoption depends on the element adapter.
 
 ## Assumptions Needing Maintainer Review
 
 | # | Assumption |
 |---|---|
-| 1 | `projects` is the second consumer (rationale above) |
-| 2 | Model-id collision is a detected error now, not resolved, in this change |
+| 1 | LC_programas is the second consumer (rationale above); `projects` is dropped |
+| 2 | Model-id collision is a detected diagnostic now (L0.2), not resolved, in this change |
 | 3 | A nested `domaiNN_NN.md` acts as a root (implicit `isolate`) |
+| 4 | No root-marker fallback (e.g. to lineage records); real domains get `domaiNN_NN.md` |
 
 ## Success Criteria
 
-- [ ] Exactly one root/scope finder exists in the codebase; no code path reads `.git` to locate a domaiNN.
-- [ ] The nested-scope fixture resolves `override` and `union` keys correctly at 3+ depths, and `isolate` stops the chain.
-- [ ] Every effective value returned has an `explain` trace that round-trips through JSON unchanged.
-- [ ] A shadowed procedure appears in listing output as shadowed; zero silent drops.
-- [ ] A fork is recorded and warns when the original procedure's version advances.
-- [ ] `draft_scene_visuals` exists once in `video_NN`; both series run it through slots.
-- [ ] `cascade.mjs` and `nearest.mjs` are deleted; video tests pass on nn-core.
-- [ ] `projects` resolves at least one `override` key and one slotted procedure across portfolio → program → project.
-- [ ] Every deferred item in `tasks.md` carries an unlock trigger; every merged phase PR touched `tasks.md`.
-- [ ] `node scripts/verify.js` is green after each phase.
+- [ ] Lote 0: exactly one root finder exists (`findDomainRoot`); no code path reads `.git` to locate a domaiNN; `cognitivize.ts` no longer loads code found from the domain path.
+- [ ] Lote 0: a repeated model-id stem within one domaiNN is reported as a diagnostic, never silently dropped.
+- [ ] Lote 0: the `sources/` discovery question is closed (fixed test-first, or recorded as not reproducible with evidence).
+- [ ] Lote 1: the generic fixture resolves `override` and `union` correctly at 3+ depths, and `isolate` stops the chain.
+- [ ] Lote 1: every effective value has an `explain` trace that round-trips through JSON unchanged.
+- [ ] Lote 1: golden validation on the temp copy of the video backup matches today's music/voice values and the composed `draft_scene_visuals`.
+- [ ] Lote 1 checkpoint: conclusions logged in `design.md` and `tasks.md` re-planned.
+- [ ] Later lots: shadowed procedures are listed, never dropped; forks warn when the original advances; `draft_scene_visuals` exists once in `video_NN`; `cascade.mjs` and `nearest.mjs` are deleted; LC_programas resolves at least one `override` key and one slotted procedure through element scopes.
+- [ ] Every deferred item in `tasks.md` carries an unlock trigger; every merged PR touched `tasks.md`.
+- [ ] `node scripts/verify.js` is green after each lot.
