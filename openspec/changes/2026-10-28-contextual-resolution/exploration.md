@@ -139,7 +139,7 @@ A procedure is defined once, at the highest sensible scope, with **named extensi
 - **Model ids are global filename stems.** Same-named documents in sibling scopes collide.
 - **Nested `domaiNN_NN.md`.** It is skipped as a model (role `entrypoint`), but its subtree is absorbed into the parent manifest, with no boundary.
 - **Video folder contract** forbids paths above the Series folder (no upward escape). This conflicts with upward resolution.
-- **Possible bug (unverified).** `nn-upgrade --import-as-source` copies the old `_NN.md` files into `sources/import/`, and `sources/` is not excluded from model discovery. Track it as a separate issue.
+- **Confirmed and fixed in L0.3 (2026-10-28).** `nn-upgrade --import-as-source` copies the old `_NN.md` files into `sources/import/`, and `sources/` is not excluded from model discovery. Track it as a separate issue.
 
 ## Proposed phasing (generic first)
 

@@ -104,11 +104,11 @@ Out of scope: resolving collisions or scope-qualified ids (Deferred).
 
 Start: unverified suspicion that `sources/import/*_NN.md` files are discovered as models. End: fixed test-first, or closed with evidence.
 
-- [ ] L0.3.1 RED `MCP/tools/workspace-sync.spec.ts` (or the discovery module's spec): a `sources/import/foo_NN.md` fixture is not listed as a model. If the test is already green, stop and go to L0.3.4.
-- [ ] L0.3.2 GREEN exclude `sources/` from model discovery at the discovery site found in L0.2.1.
-- [ ] L0.3.3 Verify: nn-mcp tests; `node scripts/verify.js`.
-- [ ] L0.3.4 If not reproducible: record the evidence (test name, fixture, commit) in the Decision log and mark the exploration note closed. No code change.
-- [ ] L0.3.5 Tick tasks; Decision log; status.
+- [x] L0.3.1 RED `MCP/tools/workspace-sync.spec.ts` (or the discovery module's spec): a `sources/import/foo_NN.md` fixture is not listed as a model. If the test is already green, stop and go to L0.3.4.
+- [x] L0.3.2 GREEN exclude `sources/` from model discovery at the discovery site found in L0.2.1.
+- [x] L0.3.3 Verify: nn-mcp tests; `node scripts/verify.js`.
+- [x] L0.3.4 N/A, the bug reproduced (RED test failed before the fix), so there is no closing evidence to record. If not reproducible: record the evidence (test name, fixture, commit) in the Decision log and mark the exploration note closed. No code change.
+- [x] L0.3.5 Tick tasks; Decision log; status.
 
 ---
 
