@@ -147,13 +147,13 @@ Start: nodes exist. End: `override` and `union` resolve over `ScopeNode[]` with 
 
 Start: fold exists. End: `resolveProcedures` composes slotted procedures over nodes with diagnostics.
 
-- [ ] L1.3.1 Extend `FIX` with `<scope>/procedures/*_procedures_NN.md`: a slotted root procedure (`slots:` frontmatter), `fills:` in child values docs, a declared fork (`fork_of`), an undeclared shadow, a `{ procedure: id }` filler.
-- [ ] L1.3.2 RED `CORE/scope/procedures.spec.ts` (literal nodes with `procedures` and `fills`): slot declared; `DUPLICATE_SLOT`; two scopes share one procedure; nearest filler wins; `REQUIRED_SLOT_UNFILLED`; `UNKNOWN_SLOT`; `FILLER_KIND_MISMATCH`; `UNKNOWN_FILLER_PROCEDURE`; declared fork recorded; `UNDECLARED_SHADOW` warning; `ORIGINAL_ADVANCED` when the recorded version differs, none when equal; precedence model > nearest node > ... > root > bluepriNNt; shadowed listed, never dropped; JSON round-trip. (procedure-extension-points: all scenarios; procedure-execution: "Model overrides workspace", "Nearest scope wins over farther scope and bluepriNNt", "Scope procedure outranks the bluepriNNt", "No silent drop")
-- [ ] L1.3.3 GREEN `SCOPE/procedures.ts`: `resolveProcedures` reusing `union` for the id registry and `override` per slot.
-- [ ] L1.3.4 RED then GREEN `CORE/scope/fs-procedures.spec.ts` / `SCOPE/fs-procedures.ts`: `loadScopeProcedures` attaches procedures and fills to nodes from `<scope-dir>/procedures/`; sibling procedures not visible. (procedure-execution: "Sibling procedures are not visible")
-- [ ] L1.3.5 Extend purity spec to `procedures.ts`; genericity grep green.
-- [ ] L1.3.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: removing the shadow report turns "No silent drop" red.
-- [ ] L1.3.7 Tick tasks; Decision log; status.
+- [x] L1.3.1 Extend `FIX` with `<scope>/procedures/*_procedures_NN.md`: a slotted root procedure (`slots:` frontmatter), `fills:` in child values docs, a declared fork (`fork_of`), an undeclared shadow, a `{ procedure: id }` filler.
+- [x] L1.3.2 RED `CORE/scope/procedures.spec.ts` (literal nodes with `procedures` and `fills`): slot declared; `DUPLICATE_SLOT`; two scopes share one procedure; nearest filler wins; `REQUIRED_SLOT_UNFILLED`; `UNKNOWN_SLOT`; `FILLER_KIND_MISMATCH`; `UNKNOWN_FILLER_PROCEDURE`; declared fork recorded; `UNDECLARED_SHADOW` warning; `ORIGINAL_ADVANCED` when the recorded version differs, none when equal; precedence model > nearest node > ... > root > bluepriNNt; shadowed listed, never dropped; JSON round-trip. (procedure-extension-points: all scenarios; procedure-execution: "Model overrides workspace", "Nearest scope wins over farther scope and bluepriNNt", "Scope procedure outranks the bluepriNNt", "No silent drop")
+- [x] L1.3.3 GREEN `SCOPE/procedures.ts`: `resolveProcedures` reusing `union` for the id registry and `override` per slot.
+- [x] L1.3.4 RED then GREEN `CORE/scope/fs-procedures.spec.ts` / `SCOPE/fs-procedures.ts`: `loadScopeProcedures` attaches procedures and fills to nodes from `<scope-dir>/procedures/`; sibling procedures not visible. (procedure-execution: "Sibling procedures are not visible")
+- [x] L1.3.5 Extend purity spec to `procedures.ts`; genericity grep green.
+- [x] L1.3.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation check: removing the shadow report turns "No silent drop" red.
+- [x] L1.3.7 Tick tasks; Decision log; status.
 
 Out of scope: `discoverTransitiveAssets` in `MCP/tools/spec.ts` (old G2.2) moves to Lote 2+.
 
@@ -161,14 +161,14 @@ Out of scope: `discoverTransitiveAssets` in `MCP/tools/spec.ts` (old G2.2) moves
 
 Start: pure fold and procedures exist. End: a manual script proves equivalence with today's `video_NN`; a reduced fixture keeps CI independent of the real path.
 
-- [ ] L1.4.1 RED `scripts/golden-video-validate.mjs` (local/manual; takes the backup path as an argument): copy `video_NN-backup-2026-10-27_193914` to a temp dir, add `domaiNN_NN.md` to the COPY only, assert the source tree is byte-unchanged afterwards. Fails first because adapters/fixtures are missing.
-- [ ] L1.4.2 Assert chain [episode, series, root] for an innteresante episode and a villabotijos-today episode (nodes built from the copy through the folder adapter plus `scope: true` markers added to the copy).
-- [ ] L1.4.3 Assert resolution equals today's values: innteresante -> `jazz.mp3`; villabotijos-today -> `pasodoble-loop.m4a` at volume `0.06`. Record any mismatch as a finding, not a patch.
-- [ ] L1.4.4 Assert `draft_scene_visuals` composed from 1 definition and 2 slot fills equals both existing copies modulo naming noise (normalize casing/ids; report remaining diff hunks). Candidate slots: presenter_persona, tools_invocation, scene_structure, attribution_overlay, render_notes, finalize_fields.
-- [ ] L1.4.5 Assert `explain` for each resolved key serializes (`JSON.parse(JSON.stringify(r))` deep-equal).
-- [ ] L1.4.6 GREEN derive `GOLD` (reduced committed fixture: 1 root, 2 series, 1 episode each, the two music values, a reduced slotted procedure) and `CORE/scope/golden.spec.ts` running the same assertions against `GOLD`. CI never reads the real path.
-- [ ] L1.4.7 Verify: nn-core tests (uses `GOLD`); the manual script run locally with the backup path, output pasted in the PR body.
-- [ ] L1.4.8 Tick tasks; Decision log; status.
+- [x] L1.4.1 RED `scripts/golden-video-validate.mjs` (local/manual; takes the backup path as an argument): copy `video_NN-backup-2026-10-27_193914` to a temp dir, add `domaiNN_NN.md` to the COPY only, assert the source tree is byte-unchanged afterwards. Fails first because adapters/fixtures are missing.
+- [x] L1.4.2 Assert chain [episode, series, root] for an innteresante episode and a villabotijos-today episode (nodes built from the copy through the folder adapter plus `scope: true` markers added to the copy).
+- [x] L1.4.3 Assert resolution equals today's values: innteresante -> `jazz.mp3`; villabotijos-today -> `pasodoble-loop.m4a` at volume `0.06`. Record any mismatch as a finding, not a patch.
+- [x] L1.4.4 Assert `draft_scene_visuals` composed from 1 definition and 2 slot fills equals both existing copies modulo naming noise (normalize casing/ids; report remaining diff hunks). Candidate slots: presenter_persona, tools_invocation, scene_structure, attribution_overlay, render_notes, finalize_fields.
+- [x] L1.4.5 Assert `explain` for each resolved key serializes (`JSON.parse(JSON.stringify(r))` deep-equal).
+- [x] L1.4.6 GREEN derive `GOLD` (reduced committed fixture: 1 root, 2 series, 1 episode each, the two music values, a reduced slotted procedure) and `CORE/scope/golden.spec.ts` running the same assertions against `GOLD`. CI never reads the real path.
+- [x] L1.4.7 Verify: nn-core tests (uses `GOLD`); the manual script run locally with the backup path, output pasted in the PR body.
+- [x] L1.4.8 Tick tasks; Decision log; status.
 
 ### L1 checkpoint (mandatory before Lote 2+)
 
@@ -216,7 +216,7 @@ Each item has an unlock trigger. Adding an item requires a dated `design.md` ent
 - [x] Q1 ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): no `domaiNN_NN.md` and no `INNFO_DOMAIN_DIR` -> `ROOT_DIR` is `cwd`; never `.git`.
 - [x] Q7 ~~`projects` release cost (template_version bump, tag/repin).~~ Moot: `projects` is no longer an adoption target (design entry 2026-10-28, LC_programas).
 - [ ] Q1b Is the marker-move warning (`compareEffective` on move/changeset preview) SHOULD-in-scope? Moved to Lote 2+; decide at the checkpoint.
-- [ ] Q2 `isolate: true` frontmatter syntax: confirm strict boolean on the marker document, same as `scope: true`. (affects L1.1.2)
+- [x] Q2 `isolate: true` frontmatter syntax: strict boolean on the marker document, same as `scope: true`. Applied in L1.1 as the assumed answer (`isolate: "true"` is not an isolate, tested); maintainer to confirm at the Lote 1 checkpoint. (affects L1.1.2)
 - [x] Q3 ~~Nested `domaiNN_NN.md` is not descended by outer discovery.~~ Resolved 2026-10-28 (maintainer): a nested `domaiNN_NN.md` is its own root; outer discovery (`walkMarkdownFiles`, manifest sync) does not descend into it. Applied in `workspace-sync.ts`; `listKnowledge`/`check_domain` descent is tracked in the Decision log.
 - [ ] Q4 `workspace/procedures/` is placed in the root scope, above the bluepriNNt. This reverses the documented "blueprint > domain" precedence in §16-bis.2. Confirm the reversal. (affects L1.3.2)
 - [ ] Q5 The living `workspace-entrypoint` spec still names `workspace_NN.md` plus an `index.md` fallback, which conflicts with the marker walk on `domaiNN_NN.md` (and the no-fallback rule). Confirm the delta replaces it fully. (affects L0.1)
