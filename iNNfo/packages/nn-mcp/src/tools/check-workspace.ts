@@ -35,6 +35,7 @@ import {
 } from '@cognnitive/nn-core'
 import type { SpecCache } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
+import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
 import { deriveNameFromUrl } from './spec.js'
 import {
   collectWorkspaceDiagnostics,
@@ -373,7 +374,14 @@ export function checkLineageGate(rootDir: string): LineageGateReport {
 export async function checkWorkspace(
   rootDir: string,
   options: CheckWorkspaceOptions = {},
-): Promise<WorkspaceIntegrityReport & { truncated?: boolean; lineage: LineageGateReport }> {
+): Promise<
+  WorkspaceIntegrityReport & {
+    truncated?: boolean
+    lineage: LineageGateReport
+    /** Repeated model ids (filename stems): warnings that name the id and every path. */
+    collisions: ModelIdCollisionDiagnostic[]
+  }
+> {
   const ctx: CheckContext = {
     rootDir,
     offline: options.offline ?? false,
@@ -383,7 +391,11 @@ export async function checkWorkspace(
     absByPath: new Map(),
   }
   const base = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
-  const report = { ...base, lineage: checkLineageGate(rootDir) }
+  const report = {
+    ...base,
+    lineage: checkLineageGate(rootDir),
+    collisions: modelIdCollisionDiagnostics(ctx.models.map((m) => m.path)),
+  }
 
   if (!options.summaryOnly) return report
 

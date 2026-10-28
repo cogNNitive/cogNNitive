@@ -9,6 +9,7 @@ import {
   displayStem,
 } from '@cognnitive/nn-core'
 import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
+import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
 
 /**
  * sync_workspace_manifest — the headless (MCP) caller of `reconcileManifest`
@@ -25,6 +26,8 @@ export interface SyncWorkspaceManifestResult {
   dry_run: boolean
   manifest_path: string
   changes: ManifestChange[]
+  /** Repeated model ids among the discovered models: warnings, never a failure. */
+  collisions: ModelIdCollisionDiagnostic[]
   diff?: string
   written: boolean
 }
@@ -158,7 +161,7 @@ export async function syncWorkspaceManifest(
   const dryRun = options.dry_run !== false
 
   if (!(await hasEntrypoint(root))) {
-    return { dry_run: dryRun, manifest_path: '', changes: [], written: false }
+    return { dry_run: dryRun, manifest_path: '', changes: [], collisions: [], written: false }
   }
   const manifestPath = join(root, ENTRYPOINT_FILENAME)
 
@@ -183,6 +186,7 @@ export async function syncWorkspaceManifest(
     dry_run: dryRun,
     manifest_path: manifestRelPath,
     changes,
+    collisions: modelIdCollisionDiagnostics(discovered.map((d) => d.path)),
     ...(diff !== undefined ? { diff } : {}),
     written,
   }

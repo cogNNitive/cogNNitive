@@ -173,6 +173,34 @@ describe('syncWorkspaceManifest', () => {
     expect(after).toBe(manifestBody)
   })
 
+  it('reports a repeated model id as a diagnostic naming the id and both paths, never dropping either model', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await mkdir(join(rootDir, 'alpha'), { recursive: true })
+    await mkdir(join(rootDir, 'beta'), { recursive: true })
+    await writeFile(join(rootDir, 'alpha', 'status_NN.md'), modelFrontmatter(), 'utf-8')
+    await writeFile(join(rootDir, 'beta', 'status_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.collisions).toEqual([
+      {
+        code: 'MODEL_ID_COLLISION',
+        severity: 'warning',
+        id: 'status_NN',
+        paths: ['alpha/status_NN.md', 'beta/status_NN.md'],
+        message: expect.stringContaining('status_NN'),
+      },
+    ])
+    expect(result.changes.map((c) => c.path).sort()).toEqual(['alpha/status_NN.md', 'beta/status_NN.md'])
+  })
+
+  it('reports no collisions when every model id is unique', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+    expect(result.collisions).toEqual([])
+  })
+
   it('does not absorb a nested domaiNN into the outer manifest', async () => {
     await writeFile(join(rootDir, 'domaiNN_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')

@@ -216,6 +216,38 @@ describe('checkWorkspace (AD-5)', () => {
     await rmWithRetry(rootDir)
   })
 
+  it('reports a repeated model id as a warning naming the id and every path, without failing the pass', async () => {
+    stubNetwork()
+    await mkdir(join(modelsDir, 'alpha'), { recursive: true })
+    await mkdir(join(modelsDir, 'beta'), { recursive: true })
+    const dup = 'status_V_0-1-0_business_NN.md'
+    await writeFile(join(modelsDir, 'alpha', dup), modelContent('Alpha status', ''), 'utf-8')
+    await writeFile(join(modelsDir, 'beta', dup), modelContent('Beta status', ''), 'utf-8')
+    await writeFile(join(modelsDir, 'unique_V_0-1-0_business_NN.md'), modelContent('Unique', ''), 'utf-8')
+
+    const report = await checkWorkspace(rootDir, { offline: true })
+
+    expect(report.models).toHaveLength(3)
+    expect(report.collisions).toEqual([
+      {
+        code: 'MODEL_ID_COLLISION',
+        severity: 'warning',
+        id: 'status_V_0-1-0_business_NN',
+        paths: [`models/alpha/${dup}`, `models/beta/${dup}`],
+        message: expect.stringContaining('status_V_0-1-0_business_NN'),
+      },
+    ])
+    expect(report.collisions[0].message).toContain(`models/alpha/${dup}`)
+    expect(report.collisions[0].message).toContain(`models/beta/${dup}`)
+  })
+
+  it('reports no collisions when every model id is unique', async () => {
+    stubNetwork()
+    await writeModels(2)
+    const report = await checkWorkspace(rootDir, { offline: true })
+    expect(report.collisions).toEqual([])
+  })
+
   it('hydrates a missing template package through the temp cache and never writes into the tree', async () => {
     stubNetwork()
     await writeModels(2)
