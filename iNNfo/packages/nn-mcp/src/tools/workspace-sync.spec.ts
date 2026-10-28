@@ -201,6 +201,20 @@ describe('syncWorkspaceManifest', () => {
     expect(result.collisions).toEqual([])
   })
 
+  it('never lists a raw import under sources/ as a model', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+    await mkdir(join(rootDir, 'sources', 'import', 'old-domain'), { recursive: true })
+    await writeFile(join(rootDir, 'sources', 'import', 'foo_NN.md'), modelFrontmatter(), 'utf-8')
+    await writeFile(join(rootDir, 'sources', 'import', 'old-domain', 'bar_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'acme_business_NN.md', name: 'Acme Business Model' },
+    ])
+  })
+
   it('does not absorb a nested domaiNN into the outer manifest', async () => {
     await writeFile(join(rootDir, 'domaiNN_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')

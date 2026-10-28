@@ -242,6 +242,9 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
   if (f.frontmatter['level'] !== 3) return false
   if (!f.frontmatter['parent_spec']) return false
   if (isExcludedPath(f.path)) return false
+  // The root `sources/` folder holds raw material (imports, conversations): an `_NN.md` there,
+  // such as an old domain imported as a source, is evidence, never a model.
+  if (segmentsOf(f.path)[0] === 'sources') return false
   if (parseName(baseOf(f.path)).kind !== 'nn') return false
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }

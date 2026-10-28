@@ -229,6 +229,14 @@ describe('deep archive exclusion & changeset role', () => {
       }),
     ).toBe(false)
   })
+
+  it('excludes raw imports under sources/ from model discovery', () => {
+    const frontmatter = { level: 3, parent_spec: { name: 'business_V_0-2-0' } }
+    expect(isModelCandidate({ path: 'sources/import/foo_NN.md', frontmatter })).toBe(false)
+    expect(isModelCandidate({ path: 'sources/import/old-domain/models/foo_NN.md', frontmatter })).toBe(false)
+    // Only the root sources/ folder is excluded; a folder merely named like it deeper down is not.
+    expect(isModelCandidate({ path: 'programs/sources/foo_NN.md', frontmatter })).toBe(true)
+  })
 })
 
 
