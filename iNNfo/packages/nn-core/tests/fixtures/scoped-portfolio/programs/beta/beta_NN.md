@@ -5,6 +5,9 @@ parent_spec:
   url: "https://example.invalid/settings_V_0-1-0.md"
 title: "Beta Program"
 scope: true
+fills:
+  status-report:
+    audience: "board"
 ---
 
 # NN Settings

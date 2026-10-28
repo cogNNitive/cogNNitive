@@ -5,6 +5,10 @@ parent_spec:
   url: "https://example.invalid/settings_V_0-1-0.md"
 title: "Alpha Program"
 scope: true
+fills:
+  status-report:
+    audience: "steering committee"
+    post_step: { procedure: "alpha-review" }
 ---
 
 # NN Settings

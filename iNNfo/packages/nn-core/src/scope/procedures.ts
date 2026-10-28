@@ -11,6 +11,8 @@ export interface ProcedureDiagnostic {
     | 'UNKNOWN_FILLER_PROCEDURE'
     | 'UNDECLARED_SHADOW'
     | 'ORIGINAL_ADVANCED'
+    | 'INVALID_SLOT_DECL'
+    | 'INVALID_FORK_RECORD'
   severity: 'error' | 'warning'
   procedure: string
   /** The scope the finding is about: the supplier of a bad filler, else the defining scope. */
