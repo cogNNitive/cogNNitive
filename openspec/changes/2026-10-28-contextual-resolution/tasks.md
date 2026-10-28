@@ -57,9 +57,9 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L1.3 | Procedure slots, fills, fork recording (pure) | L1.2 | 380 | L1.2 branch | G2.1 (pure) | done |
 | L1.4 | Golden validation: local script on a temp copy of the video backup, reduced committed fixture | L1.3 | 200 | L1.3 branch | new | done |
 | L1 checkpoint | Conclusions into `design.md`; re-plan Lote 2+ | L1.4 | docs | L1.4 branch | new | done (L1.C.3 approved 2026-10-28) |
-| L2.1a | Element adapter, pure: `scope_elements` declaration, element nodes, spec delta | L1.C.3, Q10 | 360 | L1.4 branch | new | in progress |
+| L2.1a | Element adapter, pure: `scope_elements` declaration, element nodes, spec delta | L1.C.3, Q10 | 360 | L1.4 branch | new | done |
 | L2.1b | Element adapter, fs loader; video scenes and LC_programas Programas as real consumers | L2.1a, Q11 | 380 | L2.1a branch | new | pending |
-| L2.2a | Drift report, pure (`driftReport`) | L2.1b | 380 | L2.1b branch | new | pending |
+| L2.2a | Drift report, pure (`driftReport`) | L2.1b (ordering only, no code dependency) | 380 | L2.1b branch | new | done |
 | L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | pending |
 | L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | pending |
 | L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | pending |
@@ -232,13 +232,13 @@ user-visible change yet; user value arrives in L2.1b. Estimate: ~360 lines. Gate
 Start: folder adapter only. End: `elementChain` returns the element nodes of a target; the fold
 resolves over `[...folder nodes, ...element nodes]` unchanged.
 
-- [ ] L2.1a.1 SPEC FIRST `specs/scope-chain/spec.md` (ADDED): Requirement "Element Scopes Declared By Frontmatter" with scenarios: a concept in `scope_elements` makes each of its elements a node; nesting by document order (nearest preceding element of the previous listed concept); `parent: <field>` resolves a `[[title]]` ref by exact unique title; `UNKNOWN_PARENT_ELEMENT`; `AMBIGUOUS_PARENT_ELEMENT`; `isolate:: true` strict boolean ends the chain and `isolate:: "true"` does not; `slug` and `isolate` fields are not values; an unlisted concept (e.g. Layer) is not a node; a document with both `scope: true` and `scope_elements` is `AMBIGUOUS_SCOPE_DECLARATION`; node ids are domain-relative and stable; trace round-trips JSON.
-- [ ] L2.1a.2 RED `CORE/scope/elements.spec.ts` (literal element lists, no fs): the scenarios above plus two `Video` elements in one document (each `Scene` hangs from the nearest preceding one), determinism, `JSON.parse(JSON.stringify(r))` deep-equal.
-- [ ] L2.1a.3 GREEN `SCOPE/elements.ts` (pure): types `ElementScopeDecl { concept; parent? }`, `ElementSource { doc; decls; elements: Array<{ concept; title; slug; fields }> }` (a plain structural shape the fs side builds from `parseKnowledge`; no parser import), `elementChain(source, target): { ok: true; nodes } | { ok: false; code; detail }`. Node: `{ id: '<doc>#<Concept>/<slug>', kind: 'element:<Concept>', doc, isolate, values }`. Exports in `SCOPE/index.ts`.
-- [ ] L2.1a.4 RED then GREEN in `elements.spec.ts`: `resolve` over `[root, series, Video, Scene]` literal nodes: scene value wins, `overridden` names the series, an element isolate hides the folder nodes but not the floor.
-- [ ] L2.1a.5 Extend `CORE/scope/purity.spec.ts` to `elements.ts`; genericity grep still green (concept names appear only as data in tests).
-- [ ] L2.1a.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation checks: nearest-preceding changed to first-preceding turns the two-Videos case red; removing the `slug` exclusion turns the "slug is not a value" case red.
-- [ ] L2.1a.7 Tick tasks; Decision log; status.
+- [x] L2.1a.1 SPEC FIRST `specs/scope-chain/spec.md` (ADDED): Requirement "Element Scopes Declared By Frontmatter" with scenarios: a concept in `scope_elements` makes each of its elements a node; nesting by document order (nearest preceding element of the previous listed concept); `parent: <field>` resolves a `[[title]]` ref by exact unique title; `UNKNOWN_PARENT_ELEMENT`; `AMBIGUOUS_PARENT_ELEMENT`; `isolate:: true` strict boolean ends the chain and `isolate:: "true"` does not; `slug` and `isolate` fields are not values; an unlisted concept (e.g. Layer) is not a node; a document with both `scope: true` and `scope_elements` is `AMBIGUOUS_SCOPE_DECLARATION`; node ids are domain-relative and stable; trace round-trips JSON.
+- [x] L2.1a.2 RED `CORE/scope/elements.spec.ts` (literal element lists, no fs): the scenarios above plus two `Video` elements in one document (each `Scene` hangs from the nearest preceding one), determinism, `JSON.parse(JSON.stringify(r))` deep-equal.
+- [x] L2.1a.3 GREEN (as built: `ElementSource` also carries `scopeFlag?`; error codes `INVALID_SCOPE_DECLARATION`, `UNKNOWN_ELEMENT`, `AMBIGUOUS_ELEMENT` added; see the L2.1a Decision log entry) `SCOPE/elements.ts` (pure): types `ElementScopeDecl { concept; parent? }`, `ElementSource { doc; decls; elements: Array<{ concept; title; slug; fields }> }` (a plain structural shape the fs side builds from `parseKnowledge`; no parser import), `elementChain(source, target): { ok: true; nodes } | { ok: false; code; detail }`. Node: `{ id: '<doc>#<Concept>/<slug>', kind: 'element:<Concept>', doc, isolate, values }`. Exports in `SCOPE/index.ts`.
+- [x] L2.1a.4 RED then GREEN in `elements.spec.ts`: `resolve` over `[root, series, Video, Scene]` literal nodes: scene value wins, `overridden` names the series, an element isolate hides the folder nodes but not the floor.
+- [x] L2.1a.5 Extend `CORE/scope/purity.spec.ts` to `elements.ts`; genericity grep still green (concept names appear only as data in tests).
+- [x] L2.1a.6 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation checks: nearest-preceding changed to first-preceding turns the two-Videos case red; removing the `slug` exclusion turns the "slug is not a value" case red.
+- [x] L2.1a.7 Tick tasks; Decision log; status.
 
 Validation on real data: none in this slice (pure). Rollback: delete `elements.ts`, `elements.spec.ts` and the spec delta.
 
@@ -276,12 +276,12 @@ resolves to at S; `uniform` means every unit has the same value; sibling groupin
 the parent id as opaque equality labels, never parsed. `union` keys are listed as `skipped` with
 a reason (no silent omission). Output is plain JSON, versioned, deterministically ordered.
 
-- [ ] L2.2a.1 SPEC FIRST `specs/contextual-resolution/spec.md` (ADDED): scenarios "Deviating units are counted" (5 of 8), "Uniform repetition is reported as hoistable" (6 of 6 equal), "No deviation", "Key declared nowhere is not a row", "Floor value is the baseline when no scope declares", "Isolate bounds the baseline", "Union keys are skipped visibly", "Report round-trips JSON and is deterministic", "Report never mutates its input".
-- [ ] L2.2a.2 RED `CORE/scope/drift.spec.ts` (literal nodes): the scenarios above with 8 units / 5 deviating and variants `0.06 x4, 0.2 x1`; unit grouping by an injected `unitOf`; `ignore` keys.
-- [ ] L2.2a.3 GREEN `SCOPE/drift.ts` (pure): `driftReport({ floor, chains: Array<{ unit: string; nodes: ScopeNode[] }>, keys?, ignore? }): { v: 1; rows: DriftRow[]; skipped: Array<{ key; reason }> }`, `DriftRow = { scope; key; baseline: { value; from }; units: { total; deviating; uniform }; variants: Array<{ value; units; from }> }`, built from `resolve` only (baseline = `resolve` over the chain prefix ending at S; unit value = `resolve` over the full chain). No second fold.
-- [ ] L2.2a.4 Extend `purity.spec.ts` to `drift.ts`; genericity grep green.
-- [ ] L2.2a.5 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation checks: comparing with `===` instead of deep equality turns the object-valued case red; dropping the floor from the baseline turns the floor case red.
-- [ ] L2.2a.6 Tick tasks; Decision log; status.
+- [x] L2.2a.1 SPEC FIRST `specs/contextual-resolution/spec.md` (ADDED): scenarios "Deviating units are counted" (5 of 8), "Uniform repetition is reported as hoistable" (6 of 6 equal), "No deviation", "Key declared nowhere is not a row", "Floor value is the baseline when no scope declares", "Isolate bounds the baseline", "Union keys are skipped visibly", "Report round-trips JSON and is deterministic", "Report never mutates its input".
+- [x] L2.2a.2 RED `CORE/scope/drift.spec.ts` (literal nodes): the scenarios above with 8 units / 5 deviating and variants `0.06 x4, 0.2 x1`; unit grouping by an injected `unitOf`; `ignore` keys.
+- [x] L2.2a.3 GREEN (as built: input gains `strategies?`, baseline gains `present`; see the L2.2a Decision log entry) `SCOPE/drift.ts` (pure): `driftReport({ floor, chains: Array<{ unit: string; nodes: ScopeNode[] }>, keys?, ignore? }): { v: 1; rows: DriftRow[]; skipped: Array<{ key; reason }> }`, `DriftRow = { scope; key; baseline: { value; from }; units: { total; deviating; uniform }; variants: Array<{ value; units; from }> }`, built from `resolve` only (baseline = `resolve` over the chain prefix ending at S; unit value = `resolve` over the full chain). No second fold.
+- [x] L2.2a.4 Extend `purity.spec.ts` to `drift.ts`; genericity grep green.
+- [x] L2.2a.5 Verify: nn-core tests; build; `node scripts/verify.js`. Mutation checks: comparing with `===` instead of deep equality turns the object-valued case red; dropping the floor from the baseline turns the floor case red.
+- [x] L2.2a.6 Tick tasks; Decision log; status.
 
 Rollback: delete `drift.ts`, its spec and the spec delta.
 
