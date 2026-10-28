@@ -4,7 +4,8 @@ parent_spec:
   name: "villabotijos-today_V_0-1-0"
   url: "https://example.invalid/villabotijos-today_V_0-1-0.md"
 title: "boa-constrictor-suelta"
-scope: true
+scope_elements:
+  - concept: Video
 ---
 
 # NN Video

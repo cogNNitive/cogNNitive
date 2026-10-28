@@ -51,13 +51,11 @@ function value(loaded: LoadedChain, key: string): Extract<Resolution, { ok: true
 }
 
 describe('chain shape', () => {
-  it.each(Object.entries(EPISODES))('%s episode: root, series, episode (outermost first)', (slug, path) => {
+  // The episode script declares `scope_elements` instead of `scope: true`, so the episode
+  // FOLDER is no longer a scope (L1.4 finding 3); the episode appears as element nodes.
+  it.each(Object.entries(EPISODES))('%s episode: the folder chain is root, series (outermost first)', (slug, path) => {
     const { chain } = load(path)
-    expect(chain.links.map((l) => l.dir)).toEqual([
-      '',
-      `series/${slug}`,
-      `series/${slug}/assets/${basename(join(path, '..'))}`,
-    ])
+    expect(chain.links.map((l) => l.dir)).toEqual(['', `series/${slug}`])
     expect(chain.root).toBe(GOLD)
     expect(chain.cutAt).toBeNull()
   })
