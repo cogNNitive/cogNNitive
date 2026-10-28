@@ -42,4 +42,42 @@ export interface ScopeNode {
   doc: string | null
   isolate: boolean
   values: Readonly<Record<string, JsonValue>>
+  /** Slot fillers this scope supplies: procedure id, then slot name. */
+  fills?: Readonly<Record<string, Readonly<Record<string, JsonValue>>>>
+  /** Procedures this scope defines. */
+  procedures?: readonly ProcedureDef[]
+}
+
+/**
+ * A named extension point of a procedure. `value` slots take plain data; `procedure`
+ * slots take a reference to another procedure of the same chain, `{ procedure: id }`.
+ */
+export interface SlotDecl {
+  name: string
+  kind: 'value' | 'procedure'
+  required: boolean
+  default?: JsonValue
+  /** Where in the procedure the slot sits, when it is a step. */
+  step?: string
+}
+
+/** A nearer procedure's claim to replace an ancestor procedure as a whole. */
+export interface ForkRecord {
+  /** Id of the original procedure. */
+  procedure: string
+  /** Node id of the scope that defines the original ('' is the root). */
+  scope: string
+  /** The original's version when the fork was made. */
+  version: string
+}
+
+export interface ProcedureDef {
+  id: string
+  /** Node id of the defining scope. */
+  scope: string
+  /** Defining document, domain-relative. */
+  doc: string
+  version: string | null
+  slots: readonly SlotDecl[]
+  forkOf?: ForkRecord
 }

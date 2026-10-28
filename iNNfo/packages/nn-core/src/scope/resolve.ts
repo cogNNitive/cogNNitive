@@ -63,7 +63,7 @@ const supplierOf = (n: ScopeNode): Supplier => ({ scope: n.id, doc: n.doc })
 const declares = (n: ScopeNode, key: string): boolean => Object.hasOwn(n.values, key)
 
 /** Nodes the fold may read: from the nearest isolate inward. */
-function visibleNodes(nodes: readonly ScopeNode[]): { nodes: readonly ScopeNode[]; cutAt: string | null } {
+export function visibleNodes(nodes: readonly ScopeNode[]): { nodes: readonly ScopeNode[]; cutAt: string | null } {
   for (let i = nodes.length - 1; i >= 0; i--) {
     if (nodes[i].isolate) return { nodes: nodes.slice(i), cutAt: nodes[i].id }
   }
