@@ -22,8 +22,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { loadCascadeBags, resolve } from './lib/cascade.mjs';
-import { findSeriesRoot } from './lib/nearest.mjs';
+import { loadCascadeBags, resolve, findSeriesRoot } from './lib/video-scope.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
 import { parseKnowledgeDocument, slugify } from './lib/knowledge-model.mjs';
 
