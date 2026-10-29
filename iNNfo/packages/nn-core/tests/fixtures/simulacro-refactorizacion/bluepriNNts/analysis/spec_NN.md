@@ -10,10 +10,10 @@ title: "Analysis App"
 procedures:
   - id: "run-coherence-audit"
     name: "Run Coherence Audit"
-    path: "procedures/run_coherence_audit_NN.md"
+    path: "procedures/run_coherence_audit_procedures_NN.md"
   - id: "prioritize-experiments"
     name: "Prioritize Experiments"
-    path: "procedures/prioritize_experiments_NN.md"
+    path: "procedures/prioritize_experiments_procedures_NN.md"
 assets:
   - id: "strategic-audit-layout"
     name: "Strategic Audit HTML Layout"

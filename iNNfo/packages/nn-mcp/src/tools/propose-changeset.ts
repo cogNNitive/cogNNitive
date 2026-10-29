@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import {
+  ENTRYPOINT_FILENAME,
   computeProposalSha,
   verifyProposalSha,
   parseChangeset,
@@ -20,9 +21,8 @@ import {
   resolveCitation,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
-import { findKnowledgeFile } from './spec.js'
+import { findKnowledgeFile, AmbiguousModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
-import { findManifestPath } from './workspace-sync.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 
 /**
@@ -53,14 +53,12 @@ function fileSegment(value: string, fallback: string): string {
  */
 export async function resolveWorkspaceId(rootDir: string): Promise<string> {
   try {
-    const manifestPath = await findManifestPath(rootDir)
-    if (manifestPath) {
-      const frontmatter = (parseFrontmatter(await readFile(manifestPath, 'utf-8')) ?? {}) as Record<string, unknown>
-      const declared = frontmatter['workspace_id']
-      if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
-    }
+    const manifest = await readFile(join(rootDir, ENTRYPOINT_FILENAME), 'utf-8')
+    const frontmatter = (parseFrontmatter(manifest) ?? {}) as Record<string, unknown>
+    const declared = frontmatter['workspace_id']
+    if (typeof declared === 'string' && declared.trim() !== '') return declared.trim()
   } catch {
-    // an unreadable manifest falls back to the folder name
+    // a missing or unreadable manifest falls back to the folder name
   }
   return slugify(basename(resolve(rootDir))) || 'domain'
 }
@@ -232,6 +230,25 @@ function changesTemplate(): SpecDocument | null {
   }
 }
 
+async function modelExists(rootDir: string, modelId: string): Promise<boolean> {
+  try {
+    return Boolean(await findKnowledgeFile(rootDir, modelId))
+  } catch (err) {
+    if (err instanceof AmbiguousModelIdError) return true
+    throw err
+  }
+}
+
+async function checkModelTarget(rootDir: string, modelId: string): Promise<'FOUND' | 'NOT_FOUND' | 'AMBIGUOUS'> {
+  try {
+    const f = await findKnowledgeFile(rootDir, modelId)
+    return f ? 'FOUND' : 'NOT_FOUND'
+  } catch (err) {
+    if (err instanceof AmbiguousModelIdError) return 'AMBIGUOUS'
+    throw err
+  }
+}
+
 /**
  * Validates a proposal's operations before anything is written. Returns every problem
  * found; an empty list means the proposal may be written.
@@ -269,7 +286,7 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     if (change.op === 'add_model') {
       if (created.has(key)) {
         errors.push({ path: label, code: 'ADD_MODEL_DUPLICATE', message: `${label}: add_model for "${modelId}" appears more than once` })
-      } else if (await findKnowledgeFile(rootDir, modelId)) {
+      } else if (await modelExists(rootDir, modelId)) {
         errors.push({ path: label, code: 'MODEL_EXISTS', message: `MODEL_EXISTS: ${label}: model "${modelId}" already exists; add_model never overwrites a model` })
       }
       created.add(key)
@@ -279,8 +296,13 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     if (created.has(key)) continue
     if ((createdLater.get(key) ?? -1) > index) {
       errors.push({ path: label, code: 'ADD_MODEL_ORDER', message: `ADD_MODEL_ORDER: ${label} targets "${modelId}" before the add_model that creates it` })
-    } else if (!(await findKnowledgeFile(rootDir, modelId))) {
-      errors.push({ path: label, code: 'MODEL_NOT_FOUND', message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain` })
+    } else {
+      const status = await checkModelTarget(rootDir, modelId)
+      if (status === 'AMBIGUOUS') {
+        errors.push({ path: label, code: 'AMBIGUOUS_MODEL_ID', message: `AMBIGUOUS_MODEL_ID: ${label}: model "${modelId}" is ambiguous` })
+      } else if (status === 'NOT_FOUND') {
+        errors.push({ path: label, code: 'MODEL_NOT_FOUND', message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain` })
+      }
     }
   }
 

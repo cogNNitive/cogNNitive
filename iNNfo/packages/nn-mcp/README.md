@@ -22,13 +22,16 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/nn-core` for the `cogN
 - **`query_units`**: Queries atomic knowledge units and citations across the domain.
 - **`cognitivize`**: Creates or refreshes the sidecar of one raw markdown, CSV, or JSON file in place; binaries return `requires-cli`.
 - **`resolve_sources`**: Resolves raw source provenance links and citations.
+- **`resolve_effective`**: Read-only. The effective value of a key at a document, or at one scope element of it (`target: { concept, slug }`), folded over the scope chain with `override`, `union` or `none`; the bluepriNNt `defaults/` document is the floor. Returns `{ present, value, winner, trace }` or a structured error.
+- **`explain`**: Read-only. Same inputs as `resolve_effective`; returns the same trace plus the chain of scopes it was computed over.
 
 ### Blueprint Package & Discovery Tools
 
 - **`list_blueprints`**: Scans and lists all Level-2 spec blueprints available across 4 local tiers (workspace package, workspace flat, global cache, installed skills).
 - **`hydrate_blueprint`**: Hydrates (copies) a Level-2 spec blueprint from global or skill stores into the active workspace package directory (`specs/bluepriNNts/<name>/<version>/`) atomically with write-once cache immutability.
-- **`list_blueprint_procedures`**: Discovers procedures defined in a blueprint and its transitively included blueprints up to depth 10, deduplicating by procedure `id`.
-  - Arguments: `knowledge_id`, `blueprint_name`, `version`, `url`, `root`.
+- **`list_blueprint_procedures`**: Discovers procedures defined in a blueprint and its transitively included blueprints up to depth 10, reporting a procedure that loses an `id` clash as `shadowed` (with `shadowed_by`) instead of dropping it.
+  - With `path` (a document or scope directory) it lists the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root `procedures/` > the bluepriNNt package), with slots, fork record and warnings; a path outside any domaiNN returns `NO_DOMAIN_ROOT` with `searched`.
+  - Arguments: `path`, `knowledge_id`, `blueprint_name`, `version`, `url`, `root`.
 - **`list_blueprint_skills`**: Discovers agent skills defined in a blueprint and its transitively included blueprints up to depth 10, deduplicating by skill `name`.
   - Arguments: `knowledge_id`, `blueprint_name`, `version`, `url`, `root`.
 

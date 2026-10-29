@@ -20,7 +20,7 @@ relationship_types:
 procedures:
   - id: "create-timeline"
     name: "Create Timeline"
-    path: "procedures/create_timeline_NN.md"
+    path: "procedures/create_timeline_procedures_NN.md"
 assets:
   - id: "timeline-layout"
     name: "Timeline HTML Layout"

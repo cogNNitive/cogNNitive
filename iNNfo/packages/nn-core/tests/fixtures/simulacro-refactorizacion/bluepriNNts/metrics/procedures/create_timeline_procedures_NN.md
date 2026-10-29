@@ -139,7 +139,7 @@ input:: [[Verification Report]]
 output:: [[Regenerated Console]]
 output_status:: verified
 tool:: [[innfo-mcp apply_change]]
-Apply Feedback replaces the old Version-And-Archive step: the console is a frozen snapshot and only changes through the feedback loop. Run the Apply Feedback procedure (`../procedures/apply_feedback_NN.md`): staleness check (`meta.source_knowledge_version` vs the live model — block with a report naming both versions until the reviewer confirms), diff preview per pending item, apply accepted items via `innfo-mcp apply_change` (one call per item), run `validate_model` (failure aborts the run: no version bump and no console rewrite), bump the patch version once, and regenerate the stable-name console `{Model}_V_{version}_console.html`. Timestamped console copies are archive-only.
+Apply Feedback replaces the old Version-And-Archive step: the console is a frozen snapshot and only changes through the feedback loop. Run the Apply Feedback procedure (`../procedures/apply_feedback_procedures_NN.md`): staleness check (`meta.source_knowledge_version` vs the live model — block with a report naming both versions until the reviewer confirms), diff preview per pending item, apply accepted items via `innfo-mcp apply_change` (one call per item), run `validate_model` (failure aborts the run: no version bump and no console rewrite), bump the patch version once, and regenerate the stable-name console `{Model}_V_{version}_console.html`. Timestamped console copies are archive-only.
 
 # NN Artifact
 

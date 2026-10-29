@@ -899,3 +899,74 @@ parent_spec:
     assert.deepEqual(schema.markers?.map((x) => [x.name, x.widgetType]) ?? [], [])
   })
 })
+
+describe('domain console schema slot reports shadowed procedures (L2.5.3, no silent drop)', () => {
+  let root
+  const blueprint = (title, procs) => `---
+level: 2
+spec_version: V_0-1-0
+title: "${title}"
+procedures:
+${procs.map((p) => `  - id: ${p.id}\n    name: "${p.name}"\n    path: ${p.path}`).join('\n')}
+---
+
+# NN Concept Definition
+## NN Concept Definition: Item
+type:: text
+`
+  const model = (parent, title) => `---
+title: "${title}"
+model_version: "V_1-0-0"
+level: 3
+parent_spec:
+  name: "${parent}"
+---
+
+# NN Item
+## NN Item: A
+  slug:: a
+`
+
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-shadowed-procs-'))
+    const specs = join(root, 'specs', 'bluepriNNts')
+    for (const [name, procs] of [
+      ['alpha', [{ id: 'check', name: 'Alpha check', path: 'procedures/check_alpha_NN.md' }, { id: 'only-alpha', name: 'Only alpha', path: 'procedures/only_alpha_NN.md' }]],
+      ['beta', [{ id: 'check', name: 'Beta check', path: 'procedures/check_beta_NN.md' }]],
+    ]) {
+      await mkdir(join(specs, name), { recursive: true })
+      await writeFile(join(specs, name, 'spec_NN.md'), blueprint(name, procs), 'utf-8')
+    }
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(join(root, 'models', 'a1_alpha_V_1-0-0_NN.md'), model('alpha_V_0-1-0', 'A1'), 'utf-8')
+    await writeFile(join(root, 'models', 'a2_alpha_V_1-0-0_NN.md'), model('alpha_V_0-1-0', 'A2'), 'utf-8')
+    await writeFile(join(root, 'models', 'b1_beta_V_1-0-0_NN.md'), model('beta_V_0-1-0', 'B1'), 'utf-8')
+  })
+  after(() => rm(root, { recursive: true, force: true }))
+
+  it('carries both same-id procedures, the loser marked shadowed by the winner source', async () => {
+    const res = await runCli([root, '--domain'])
+    assert.equal(res.code, 0, res.stderr)
+    const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
+    const m = html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)
+    const procs = JSON.parse(m[1]).procedures
+    const checks = procs.filter((p) => p.id === 'check')
+    assert.equal(checks.length, 2, 'both same-id procedures are carried')
+    const winner = checks.find((p) => p.status === 'selected')
+    const loser = checks.find((p) => p.status === 'shadowed')
+    assert.equal(winner.path, 'procedures/check_alpha_NN.md')
+    assert.equal(loser.path, 'procedures/check_beta_NN.md')
+    assert.equal(loser.shadowed_by, 'alpha_V_0-1-0')
+  })
+
+  it('does not report a procedure repeated by several models of the same blueprint as shadowed', async () => {
+    const res = await runCli([root, '--domain'])
+    assert.equal(res.code, 0, res.stderr)
+    const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
+    const procs = JSON.parse(html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)[1]).procedures
+    const only = procs.filter((p) => p.id === 'only-alpha')
+    assert.deepEqual(only.map((p) => p.status), ['selected'])
+    assert.equal(procs.filter((p) => p.status === 'selected').length, 2)
+    assert.equal(procs.length, 3)
+  })
+})

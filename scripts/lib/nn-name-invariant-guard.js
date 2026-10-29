@@ -12,8 +12,6 @@
  * Carve-out (frozen content is reported, never failed, never renamed):
  *   - published specs `iNNfo/specs/**` whose name carries `_V_`
  *   - the folder of every blueprint in `manifest/source.yaml` `frozen_blueprints`
- *   - `iNNfo/specs/bluepriNNts/workspace/procedures/**`, named explicitly because
- *     the manifest's frozen workspace entry points only at the flat spec file
  *
  * Out of scope: test directories (deliberately legacy inputs), `openspec/`,
  * `temp/`, `node_modules/`.
@@ -30,9 +28,7 @@ const { parseFocusedYaml, parseFrontmatter } = require('./yaml-parser.js');
 const MANIFEST_PATH = 'manifest/source.yaml';
 
 /** Fixed carve-out prefixes (posix, repo-relative). */
-const FROZEN_PREFIXES = [
-  'iNNfo/specs/bluepriNNts/workspace/procedures/',
-];
+const FROZEN_PREFIXES = [];
 
 /**
  * Violators that part B of slice S6 renames. Prefix match; a reason is mandatory.

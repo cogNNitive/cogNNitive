@@ -34,6 +34,7 @@ import {
   hydrateBlueprint,
   listBlueprintProcedures,
   listBlueprintSkills,
+  AmbiguousModelIdError,
 } from './tools/spec.js'
 import {
   validateKnowledge,
@@ -46,24 +47,26 @@ import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
 import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
-import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { syncLineageTool } from './tools/sync-lineage.js'
-import { envelope, envelopeList } from '@cognnitive/nn-core'
+import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
+import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
 /**
- * Root directory for knowledge scanning and `specs/` placement.
- *
- * Defaults to the repo root found by walking up from `process.cwd()` (so
- * `specs/` always lands inside the repo, not in some ambiguous
- * sibling/parent directory when the server is started from an unexpected
- * cwd), falling back to `process.cwd()` itself when no `.git` is found.
+ * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
+ * `domaiNN_NN.md` found by walking up from `cwd` (so `specs/` lands inside the
+ * domaiNN even when the server starts from a subdirectory), else `cwd` itself.
+ * `.git` is never consulted: a domaiNN does not need a repository.
  */
-export const ROOT_DIR: string =
-  process.env.INNFO_DOMAIN_DIR ?? findRepoRoot(process.cwd()) ?? process.cwd()
+export function resolveRootDir(cwd: string, env: NodeJS.ProcessEnv): string {
+  return env.INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd
+}
+
+/** Root directory for knowledge scanning and `specs/` placement. */
+export const ROOT_DIR: string = resolveRootDir(process.cwd(), process.env)
 
 // MCP server version: injected at build time by tsup via `define`, so the
 // standalone bundle (bin/nn-mcp.bundle.js) stays self-contained when
@@ -72,7 +75,7 @@ export const ROOT_DIR: string =
 declare const __INNFO_MCP_VERSION__: string
 
 export const server = new Server(
-  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.11.0' },
+  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.32.0' },
   { capabilities: { tools: {} } },
 )
 
@@ -688,10 +691,15 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'list_blueprint_procedures',
       description:
-        'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10',
+        'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10. A procedure that loses a name clash is returned with status shadowed (shadowed_by names the winner), never dropped. ' +
+        'With path (a document or scope directory) the listing is scope-aware: the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root procedures/ > the bluepriNNt package), each with its source, slots, fork record and warnings; a path outside any domaiNN returns NO_DOMAIN_ROOT with the directories searched. The scoped listing is bound to the server domain root: path cannot be combined with domain or root (INVALID_ARGUMENT), and path must be a non-empty string.',
       inputSchema: {
         type: 'object',
         properties: {
+          path: {
+            type: 'string',
+            description: 'Optional document or scope directory, domain-relative or absolute inside the domain root: scope-aware listing',
+          },
           knowledge_path: { type: 'string', description: 'Optional knowledge file path or ID' },
           model_path: { type: 'string', description: 'Optional knowledge file path or ID (alias for knowledge_path)' },
           knowledge_id: { type: 'string', description: 'Optional knowledge ID' },
@@ -728,6 +736,75 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     },
     handler: handleListBlueprintSkills,
   },
+  {
+    definition: {
+      name: 'resolve_effective',
+      description:
+        'Read-only: the effective value of a key at a document (or at one scope element of it), folded over the scope chain with a merge strategy, plus the trace that explains it. ' +
+        'Strategies: override (nearest declaration wins), union (named entries accumulate, nearer shadows farther) and none (only the target node supplies the value; ancestors and the bluepriNNt floor are reported under notInherited, never inherited). ' +
+        'The floor is the single document under the defaults/ folder of the bluepriNNt package named by the innermost scope document. Returns {present, value, winner, trace}, or a structured error (NO_DOMAIN_ROOT, PATH_OUTSIDE_SCOPE, UNSUPPORTED_STRATEGY, UNKNOWN_ELEMENT, ...). Never writes files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+          },
+          key: { type: 'string', description: 'Field name to resolve, e.g. music_volume' },
+          strategy: {
+            type: 'string',
+            enum: ['override', 'union', 'none'],
+            description: 'Merge strategy for the key',
+          },
+          target: {
+            type: 'object',
+            description:
+              'Optional scope element of the document (declared in its scope_elements): resolves from that element instead of from the document',
+            properties: {
+              concept: { type: 'string', description: 'Concept of the element, e.g. Scene' },
+              slug: { type: 'string', description: 'Slug of the element, e.g. 02-noticia' },
+            },
+            required: ['concept', 'slug'],
+          },
+        },
+        required: ['path', 'key', 'strategy'],
+      },
+    },
+    handler: handleResolveEffective,
+  },
+  {
+    definition: {
+      name: 'explain',
+      description:
+        'Read-only: why a key resolves the way it does at a document (or at one scope element of it). Takes the same inputs as resolve_effective and returns the same trace, plus the chain of scopes it was computed over (node ids and kinds, outermost first) and the floor supplier. Never writes files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+          },
+          key: { type: 'string', description: 'Field name to explain, e.g. music_volume' },
+          strategy: {
+            type: 'string',
+            enum: ['override', 'union', 'none'],
+            description: 'Merge strategy for the key',
+          },
+          target: {
+            type: 'object',
+            description: 'Optional scope element of the document (declared in its scope_elements)',
+            properties: {
+              concept: { type: 'string', description: 'Concept of the element, e.g. Scene' },
+              slug: { type: 'string', description: 'Slug of the element, e.g. 02-noticia' },
+            },
+            required: ['concept', 'slug'],
+          },
+        },
+        required: ['path', 'key', 'strategy'],
+      },
+    },
+    handler: handleExplain,
+  },
 ]
 
 /** Tool definitions advertised by ListTools — derived from the registry. */
@@ -748,6 +825,27 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
     if (!handler) return errorResult(`Unknown tool: ${name}`)
     return await handler(args)
   } catch (err) {
+    if (err instanceof AmbiguousModelIdError) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ok: false,
+                code: 'AMBIGUOUS_MODEL_ID',
+                id: err.id,
+                candidates: err.candidates,
+                message: err.message,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        isError: true,
+      }
+    }
     return errorResult(String(err))
   }
 }
@@ -994,6 +1092,16 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
 async function handleListBlueprintProcedures(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
+  if (args.path !== undefined) {
+    // The scoped listing is bound to the server's domain root, like resolve_effective and explain:
+    // the root is what PATH_OUTSIDE_SCOPE is measured against, so a caller cannot choose another.
+    const scoped =
+      args.domain || args.root
+        ? ({ ok: false, code: 'INVALID_ARGUMENT', detail: 'domain and root cannot be combined with path: the scoped listing is bound to the server domain root' } as const)
+        : await listBlueprintProcedures(ROOT_DIR, { path: args.path as string })
+    const text = JSON.stringify(envelope('innfo-list-blueprint-procedures', scoped), null, 2)
+    return scoped.ok ? textResult(text) : errorResult(text)
+  }
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const result = await listBlueprintProcedures(root, {
     model_path: (args.knowledge_path as string) || (args.model_path as string),
@@ -1015,6 +1123,20 @@ async function handleListBlueprintSkills(args: Record<string, unknown>): Promise
     url: args.url as string | undefined,
   })
   return textResult(JSON.stringify(envelope('innfo-list-blueprint-skills', result), null, 2))
+}
+
+// Both scope tools are bound to the server's domain root: they take no `domain`/`root`
+// override, because the root is what PATH_OUTSIDE_SCOPE is measured against.
+async function handleResolveEffective(args: Record<string, unknown>): Promise<CallToolResult> {
+  const result = await resolveEffective(ROOT_DIR, args)
+  const text = JSON.stringify(envelope('innfo-resolve-effective', result), null, 2)
+  return result.ok ? textResult(text) : errorResult(text)
+}
+
+async function handleExplain(args: Record<string, unknown>): Promise<CallToolResult> {
+  const result = await explainEffective(ROOT_DIR, args)
+  const text = JSON.stringify(envelope('innfo-explain', result), null, 2)
+  return result.ok ? textResult(text) : errorResult(text)
 }
 
 /* ── Response helpers ────────────────────────────────────────── */

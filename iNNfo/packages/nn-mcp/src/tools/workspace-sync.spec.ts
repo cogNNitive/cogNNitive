@@ -172,6 +172,72 @@ describe('syncWorkspaceManifest', () => {
     const after = await readFile(join(rootDir, 'domaiNN_NN.md'), 'utf-8')
     expect(after).toBe(manifestBody)
   })
+
+  it('reports a repeated model id as a diagnostic naming the id and both paths, never dropping either model', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await mkdir(join(rootDir, 'alpha'), { recursive: true })
+    await mkdir(join(rootDir, 'beta'), { recursive: true })
+    await writeFile(join(rootDir, 'alpha', 'status_NN.md'), modelFrontmatter(), 'utf-8')
+    await writeFile(join(rootDir, 'beta', 'status_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.collisions).toEqual([
+      {
+        code: 'MODEL_ID_COLLISION',
+        severity: 'warning',
+        id: 'status_NN',
+        paths: ['alpha/status_NN.md', 'beta/status_NN.md'],
+        message: expect.stringContaining('status_NN'),
+      },
+    ])
+    expect(result.changes.map((c) => c.path).sort()).toEqual(['alpha/status_NN.md', 'beta/status_NN.md'])
+  })
+
+  it('reports no collisions when every model id is unique', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+    expect(result.collisions).toEqual([])
+  })
+
+  it('never lists a raw import under sources/ as a model', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), '# NN Models\n', 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+    await mkdir(join(rootDir, 'sources', 'import', 'old-domain'), { recursive: true })
+    await writeFile(join(rootDir, 'sources', 'import', 'foo_NN.md'), modelFrontmatter(), 'utf-8')
+    await writeFile(join(rootDir, 'sources', 'import', 'old-domain', 'bar_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'acme_business_NN.md', name: 'Acme Business Model' },
+    ])
+  })
+
+  it('does not absorb a nested domaiNN into the outer manifest', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+    await mkdir(join(rootDir, 'vendor', 'inner'), { recursive: true })
+    await writeFile(join(rootDir, 'vendor', 'inner', 'domaiNN_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
+    await writeFile(join(rootDir, 'vendor', 'inner', 'inner_business_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'acme_business_NN.md', name: 'Acme Business Model' },
+    ])
+  })
+
+  it('takes only domaiNN_NN.md as the manifest, never a workspace*/domain* prefix match', async () => {
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+
+    expect(result.manifest_path).toBe('')
+    expect(result.changes).toEqual([])
+  })
 })
 
 describe('buildUnifiedDiff', () => {

@@ -7,6 +7,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter } from './parser/index.js'
 import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
+import { isDomainRoot } from './scope/root.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
@@ -52,12 +53,22 @@ function isIgnoredDir(name: string): boolean {
  * `_NN.md` name (cheap, no I/O) -> read + parse frontmatter -> shared
  * predicate. Only `_NN.md` candidates are ever read from disk.
  */
-async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo[]): Promise<void> {
+interface RawModelCandidate {
+  bareStem: string
+  relPath: string
+  path: string
+  version: string | null
+}
+
+async function collectModels(dir: string, rootDir: string, candidates: RawModelCandidate[]): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (isIgnoredDir(entry.name)) continue
-      await collectModels(join(dir, entry.name), rootDir, models)
+      const child = join(dir, entry.name)
+      // A nested domaiNN is its own root: its models are not the outer domaiNN's.
+      if (isDomainRoot(child)) continue
+      await collectModels(child, rootDir, candidates)
       continue
     }
     if (!entry.isFile()) continue
@@ -84,10 +95,10 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
     if (!frontmatter) continue
     if (!isModelCandidate({ path: relPath, frontmatter })) continue
 
-    const id = entry.name.replace(MD_FILE_RE, '')
+    const bareStem = entry.name.replace(MD_FILE_RE, '')
     const version = resolveKnowledgeVersion(frontmatter)
 
-    models.push({ id, path: filePath, version })
+    candidates.push({ bareStem, relPath, path: filePath, version })
   }
 }
 
@@ -95,12 +106,30 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
  * Scan a root directory (recursively) for discoverable iNNfo model files
  * (`_NN.md`, `level: 3`, resolvable `parent_spec` — see
  * `isModelCandidate`). Skips `backups`, `archive`, `specs`,
- * `node_modules`, `.git`, and any dot-directory. Returns an array of
- * `KnowledgeInfo` sorted by id.
+ * `node_modules`, `.git`, any dot-directory, and any nested domaiNN (a
+ * directory holding its own `domaiNN_NN.md`).
+ *
+ * Implements Option A: emits the bare stem when unique, and the
+ * domain-relative path form when the stem collides.
+ * Returns an array of `KnowledgeInfo` sorted by id.
  */
 export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
-  const models: KnowledgeInfo[] = []
-  await collectModels(rootDir, rootDir, models)
+  const candidates: RawModelCandidate[] = []
+  await collectModels(rootDir, rootDir, candidates)
+
+  // Pass 2: detect stem collisions and assign id form
+  const stemCounts = new Map<string, number>()
+  for (const c of candidates) {
+    const key = c.bareStem.toLowerCase()
+    stemCounts.set(key, (stemCounts.get(key) ?? 0) + 1)
+  }
+
+  const models: KnowledgeInfo[] = candidates.map((c) => {
+    const count = stemCounts.get(c.bareStem.toLowerCase()) ?? 1
+    const id = count > 1 ? c.relPath.replace(MD_FILE_RE, '') : c.bareStem
+    return { id, path: c.path, version: c.version }
+  })
+
   models.sort((a, b) => a.id.localeCompare(b.id))
   return models
 }

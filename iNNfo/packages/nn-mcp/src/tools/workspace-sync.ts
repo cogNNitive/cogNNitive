@@ -1,6 +1,7 @@
-import { readFile, writeFile, readdir } from 'node:fs/promises'
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises'
 import { join, relative, basename as pathBasename } from 'node:path'
 import {
+  ENTRYPOINT_FILENAME,
   reconcileManifest,
   isReconcilableModel,
   parseFrontmatter,
@@ -8,6 +9,7 @@ import {
   displayStem,
 } from '@cognnitive/nn-core'
 import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
+import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
 
 /**
  * sync_workspace_manifest — the headless (MCP) caller of `reconcileManifest`
@@ -24,6 +26,8 @@ export interface SyncWorkspaceManifestResult {
   dry_run: boolean
   manifest_path: string
   changes: ManifestChange[]
+  /** Repeated model ids among the discovered models: warnings, never a failure. */
+  collisions: ModelIdCollisionDiagnostic[]
   diff?: string
   written: boolean
 }
@@ -51,7 +55,10 @@ async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<strin
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (SKIP_DIR_NAMES.has(entry.name)) continue
-      await walkMarkdownFiles(join(dir, entry.name), out)
+      const child = join(dir, entry.name)
+      // A nested domaiNN is its own root: the outer manifest does not absorb it.
+      if (await hasEntrypoint(child)) continue
+      await walkMarkdownFiles(child, out)
     } else if (entry.isFile() && /\.md$/i.test(entry.name)) {
       out.push(join(dir, entry.name))
     }
@@ -59,27 +66,13 @@ async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<strin
   return out
 }
 
-/** Finds the domain/workspace manifest (`domaiNN*.md`, `domain*.md`, `workspace*.md` at the domain root). */
-export async function findManifestPath(root: string): Promise<string | null> {
-  let entries
+/** True when `dir` holds its own `domaiNN_NN.md`, i.e. it is a (nested) domaiNN root. */
+async function hasEntrypoint(dir: string): Promise<boolean> {
   try {
-    entries = await readdir(root, { withFileTypes: true })
-  } catch (err) {
-    /* v8 ignore start */
-    // swallow deliberately: the workspace root may legitimately not exist.
-    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-      console.warn(`[workspace-sync] Failed to readdir root ${root}: ${err}`)
-    }
-    return null
-    /* v8 ignore stop */
+    return (await stat(join(dir, ENTRYPOINT_FILENAME))).isFile()
+  } catch {
+    return false
   }
-  const match = entries.find(
-    (e) =>
-      e.isFile() &&
-      (e.name.toLowerCase().startsWith('domain') || e.name.toLowerCase().startsWith('workspace')) &&
-      e.name.toLowerCase().endsWith('.md'),
-  )
-  return match ? join(root, match.name) : null
 }
 
 async function discoverCandidates(
@@ -167,10 +160,10 @@ export async function syncWorkspaceManifest(
 ): Promise<SyncWorkspaceManifestResult> {
   const dryRun = options.dry_run !== false
 
-  const manifestPath = await findManifestPath(root)
-  if (!manifestPath) {
-    return { dry_run: dryRun, manifest_path: '', changes: [], written: false }
+  if (!(await hasEntrypoint(root))) {
+    return { dry_run: dryRun, manifest_path: '', changes: [], collisions: [], written: false }
   }
+  const manifestPath = join(root, ENTRYPOINT_FILENAME)
 
   const manifestRelPath = toRelative(root, manifestPath)
   const manifestContent = await readFile(manifestPath, 'utf-8')
@@ -193,6 +186,7 @@ export async function syncWorkspaceManifest(
     dry_run: dryRun,
     manifest_path: manifestRelPath,
     changes,
+    collisions: modelIdCollisionDiagnostics(discovered.map((d) => d.path)),
     ...(diff !== undefined ? { diff } : {}),
     written,
   }

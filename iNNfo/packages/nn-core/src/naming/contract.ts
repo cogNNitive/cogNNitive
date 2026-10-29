@@ -159,6 +159,18 @@ export function roleOf(i: { path: string; parentSpecName?: string; hasSidecar?: 
   return CORE_BLUEPRINT_ROLE[bp] ?? 'knowledge'
 }
 
+/**
+ * True for a procedure document: a non-sidecar `_NN.md` whose stem ends in `_procedures`
+ * (`x_procedures_NN.md`). This is the name-only form of the contract rule that
+ * `checkNameInvariant` enforces (a stem ends in `_<bluepriNNt>`) and `roleOf` reads
+ * (`procedures_NN.md` is the catalog, any other `procedures` document a procedure). It is the
+ * one rule every procedure loader applies; catalogs, specs and other documents are not procedures.
+ */
+export function isProcedureDocument(nameOrPath: string): boolean {
+  const parsed = parseName(baseOf(nameOrPath))
+  return parsed.kind === 'nn' && parsed.sidecarOf === undefined && /_procedures$/i.test(parsed.stem)
+}
+
 /** Scope rule (not a role): ignored roots, any `archive` or `staging` segment, any dot-prefixed segment. */
 export function isExcludedPath(path: string): boolean {
   const segs = segmentsOf(path)
@@ -234,6 +246,15 @@ export function parentSpecNameOf(frontmatter: Record<string, unknown>): string |
 }
 
 /**
+ * The root `sources/` folder holds raw material (imports, conversations): an `_NN.md` there,
+ * such as an old domain imported as a source, is evidence, never a model. The folder name
+ * is matched case-insensitively because Windows folders keep whatever casing they were made with.
+ */
+function isUnderRootSources(path: string): boolean {
+  return segmentsOf(path)[0]?.toLowerCase() === 'sources'
+}
+
+/**
  * THE discovery predicate: an `_NN.md` document of role `knowledge`, Level 3
  * with a `parent_spec`, outside every excluded path. Sidecars, lineage
  * records, catalogs, procedures, the entrypoint and specs are never models.
@@ -242,6 +263,7 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
   if (f.frontmatter['level'] !== 3) return false
   if (!f.frontmatter['parent_spec']) return false
   if (isExcludedPath(f.path)) return false
+  if (isUnderRootSources(f.path)) return false
   if (parseName(baseOf(f.path)).kind !== 'nn') return false
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }
@@ -259,6 +281,9 @@ export function isConsoleModel(f: { path: string; frontmatter: Record<string, un
   if (isExcludedPath(f.path)) return false
   const parentSpecName = parentSpecNameOf(f.frontmatter)
   const role = roleOf({ path: f.path, parentSpecName })
+  // Models of an import under the root `sources/` are evidence, as for `isModelCandidate`;
+  // the declared collections below (the `sources` catalog itself) still surface.
+  if ((role === 'knowledge' || role === 'procedure') && isUnderRootSources(f.path)) return false
   if (role === 'knowledge') return true
   // A procedures model surfaces, but never a `procedures/` execution stepper (submodel).
   if (role === 'procedure') return !segmentsOf(f.path).includes('procedures')

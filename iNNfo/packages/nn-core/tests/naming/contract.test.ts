@@ -10,6 +10,7 @@ import {
   rawPathOfSidecar,
   displayStem,
   procedureIdOf,
+  isProcedureDocument,
   isExcludedPath,
   roleOf,
   isModelCandidate,
@@ -175,6 +176,42 @@ describe('procedureIdOf', () => {
   it('keeps the stem of a frozen procedure that has no _procedures', () => {
     expect(procedureIdOf('reconcile_feedback_NN.md')).toBe('reconcile-feedback')
   })
+
+  it('preserves procedure ids across the workspace package renaming to *_procedures_NN.md', () => {
+    const workspaceProcedures = [
+      'import_and_analyze_visual_source',
+      'import_and_process_multimodal_video',
+      'import_and_structure_tabular_data',
+      'import_and_transcribe_audio',
+      'reconcile_artifact_feedback',
+      'upgrade_and_migrate_legacy_workspace',
+    ] as const
+
+    for (const stem of workspaceProcedures) {
+      const oldFilename = `${stem}_NN.md`
+      const newFilename = `${stem}_procedures_NN.md`
+      const expectedId = stem.replace(/_/g, '-')
+      expect(procedureIdOf(newFilename)).toBe(expectedId)
+      expect(procedureIdOf(oldFilename)).toBe(expectedId)
+      expect(procedureIdOf(newFilename)).toBe(procedureIdOf(oldFilename))
+    }
+  })
+
+  it('recognizes the renamed workspace package procedures under the suffix rule', () => {
+    const workspaceProcedures = [
+      'import_and_analyze_visual_source',
+      'import_and_process_multimodal_video',
+      'import_and_structure_tabular_data',
+      'import_and_transcribe_audio',
+      'reconcile_artifact_feedback',
+      'upgrade_and_migrate_legacy_workspace',
+    ] as const
+
+    for (const stem of workspaceProcedures) {
+      expect(isProcedureDocument(`${stem}_procedures_NN.md`)).toBe(true)
+      expect(isProcedureDocument(`${stem}_NN.md`)).toBe(false)
+    }
+  })
 })
 
 describe('entry points', () => {
@@ -228,6 +265,20 @@ describe('deep archive exclusion & changeset role', () => {
         },
       }),
     ).toBe(false)
+  })
+
+  it('excludes raw imports under sources/ from model discovery', () => {
+    const frontmatter = { level: 3, parent_spec: { name: 'business_V_0-2-0' } }
+    expect(isModelCandidate({ path: 'sources/import/foo_NN.md', frontmatter })).toBe(false)
+    expect(isModelCandidate({ path: 'sources/import/old-domain/models/foo_NN.md', frontmatter })).toBe(false)
+    // Only the root sources/ folder is excluded; a folder merely named like it deeper down is not.
+    expect(isModelCandidate({ path: 'programs/sources/foo_NN.md', frontmatter })).toBe(true)
+  })
+
+  it('matches the root sources/ folder case-insensitively (Windows folders keep any casing)', () => {
+    const frontmatter = { level: 3, parent_spec: { name: 'business_V_0-2-0' } }
+    expect(isModelCandidate({ path: 'Sources/import/foo_NN.md', frontmatter })).toBe(false)
+    expect(isModelCandidate({ path: 'SOURCES\\import\\foo_NN.md', frontmatter })).toBe(false)
   })
 })
 

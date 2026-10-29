@@ -12,6 +12,7 @@ import {
   listBlueprintSkills,
   findKnowledgeFile,
   deriveNameFromUrl,
+  AmbiguousModelIdError,
 } from './spec'
 import { validateKnowledge, validateBlueprint } from './mutate'
 
@@ -319,9 +320,15 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     )
 
     const procsRes = await listBlueprintProcedures(rootDir, { blueprint_name: 'base_spec_NN' })
-    expect(procsRes.procedures).toHaveLength(2)
-    expect(procsRes.procedures.map((p) => p.id)).toEqual(['proc-base', 'proc-included'])
+    // The duplicate `proc-base` of the included template is reported as shadowed, not dropped.
+    expect(procsRes.procedures).toHaveLength(3)
+    expect(procsRes.procedures.map((p) => [p.id, p.status])).toEqual([
+      ['proc-base', 'selected'],
+      ['proc-included', 'selected'],
+      ['proc-base', 'shadowed'],
+    ])
     expect(procsRes.procedures[0].source_template).toBe('base_spec_NN')
+    expect(procsRes.procedures[2].shadowed_by).toBe('base_spec_NN')
 
     const skillsRes = await listBlueprintSkills(rootDir, { blueprint_name: 'base_spec_NN' })
     expect(skillsRes.skills).toHaveLength(2)
@@ -388,7 +395,7 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     )
 
     await writeFile(
-      join(procsDir, 'generate_script_NN.md'),
+      join(procsDir, 'generate_script_procedures_NN.md'),
       [
         '---',
         'title: "Generate Script SOP"',
@@ -403,7 +410,7 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     const scriptProc = procsRes.procedures.find((p) => p.id === 'generate-script')
     expect(scriptProc).toBeDefined()
     expect(scriptProc?.name).toBe('Generate Script SOP')
-    expect(scriptProc?.path).toBe('procedures/generate_script_NN.md')
+    expect(scriptProc?.path).toBe('procedures/generate_script_procedures_NN.md')
   })
 
   describe('embedded skills (skills/<name>/SKILL.md inside a bluepriNNt package)', () => {
@@ -533,6 +540,26 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     expect(result.errors).toHaveLength(0)
   })
 
+  it('Option A: findKnowledgeFile throws AmbiguousModelIdError on colliding stems and resolves path', async () => {
+    const scope1 = join(rootDir, 'series', 'alpha')
+    const scope2 = join(rootDir, 'series', 'beta')
+    await mkdir(scope1, { recursive: true })
+    await mkdir(scope2, { recursive: true })
+    await writeFile(join(scope1, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
+    await writeFile(join(scope2, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
+
+    // Bare stem collides -> throws AmbiguousModelIdError listing candidates
+    await expect(findKnowledgeFile(rootDir, 'script_NN')).rejects.toThrow(AmbiguousModelIdError)
+    await expect(findKnowledgeFile(rootDir, 'script')).rejects.toThrow(AmbiguousModelIdError)
+
+    // Path-qualified resolves cleanly
+    const p1 = await findKnowledgeFile(rootDir, 'series/alpha/script_NN')
+    expect(p1).toBe(join(scope1, 'script_NN.md'))
+
+    const p2 = await findKnowledgeFile(rootDir, 'series/beta/script')
+    expect(p2).toBe(join(scope2, 'script_NN.md'))
+  })
+
   // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named
   // after a coverage metric rather than a behaviour.
   it('spec.ts: discoverTransitiveAssets traverses parent_spec and includes', async () => {
@@ -606,6 +633,7 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
       name: 'Ingest Visual Catalog Procedure',
       path: 'procedures/ingest_visual_catalog_procedures_NN.md',
       source_template: 'visual-catalog',
+      status: 'selected',
     })
   })
 })

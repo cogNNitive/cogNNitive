@@ -1,0 +1,547 @@
+# Design: Contextual Resolution — Scope Chain and Typed Cascade
+
+One new nn-core module, `scope/`, owns three things: finding the root and scopes, folding
+values over the chain, and resolving procedures. As of the 2026-10-28 re-slice the fold takes
+an abstract `ScopeNode[]` chain (see "Scope Nodes" below); folder containment is only the
+first adapter that produces nodes. Each has a pure core and a thin Node
+adapter. nn-mcp and the video-script skill call it and delete their own walkers. Video
+reaches it through the generated-CJS mirror pattern that `nn-sources` already uses.
+
+## Technical Approach
+
+```
+path ─▶ folder adapter: findScopeChain (fs) ─▶ ScopeChain ─▶ loadChain (fs, parseKnowledge) ─▶ ScopeNode[] (+ floor)
+        element adapter (later): document + heading ─▶ ScopeNode[]                                  │
+                                                                  resolve(nodes, key, strategy) ─▶ Resolution + ExplainTrace (JSON)
+                                                                  resolveProcedures(nodes…) ─▶ EffectiveProcedure[] + diagnostics
+consumers: nn-mcp (ROOT_DIR, resolve_effective, explain, list_blueprint_procedures{path}) · video mirror · LC_programas (element scopes)
+```
+
+| Module (nn-core `src/scope/`) | Pure? | Interface |
+|---|---|---|
+| `types.ts` | yes | `ScopeChain`, `Layer`, `Resolution`, `ExplainTrace`, procedure types |
+| `chain.ts` | yes | `buildScopeChain(start, probe, parentOf)`, `findStemCollisions(paths)` |
+| `fs-chain.ts` | no | `findScopeChain(path)`, `findDomainRoot(path)`, `findInChain(...)` |
+| `resolve.ts` | yes | `resolve(loaded, key, strategy)`, `compareEffective(a, b)` |
+| `fs-layers.ts` | no | `loadChain(chain, { floorDoc? })` |
+| `procedures.ts` | yes | `resolveProcedures(input)` |
+| `fs-procedures.ts` | no | `loadScopeProcedures(chain, opts)` |
+| `index.ts` | — | re-exported from `src/index.ts`; pure files guarded by a `purity.spec.ts` (same pattern as `workspace/integrity/purity.spec.ts`) |
+
+All new relative imports carry `.js` (NodeNext). The core never names a bluepriNNt,
+concept or field. That rule is enforced by a test that greps the core for `video|series|projects|programa`.
+
+## Scope Nodes (2026-10-28 re-slice)
+
+Evidence from real domaiNNs: most containers are elements inside documents, not folders. The
+fold therefore never sees paths. An adapter turns a location into an ordered chain of nodes
+(outermost first); `resolve`, `resolveProcedures` and `explain` only see nodes.
+
+```ts
+export interface ScopeNode {
+  id: string          // stable, domain-relative, JSON-safe ('' = root; 'series/x'; later 'doc#programa-02')
+  kind: string        // adapter-defined label ('root' | 'scope' | 'element'); the core never branches on it
+  doc: string | null  // supplier document, domain-relative
+  isolate: boolean
+  values: Readonly<Record<string, JsonValue>>
+  fills?: Record<string, Record<string, Filler>>
+  procedures?: ProcedureDef[]
+}
+export type ScopeChainOf = (location: string) => { nodes: ScopeNode[]; cutAt: string | null }  // adapter contract
+```
+
+Lote 1 ships only the folder adapter (`ScopeChain` + `loadChain` produce `ScopeNode[]`). The
+element adapter is deferred (trigger: Lote 1 conclusions; consumers LC_programas and video
+episodes). `Layer`, `Supplier` and `LoadedChain` below are read as views over `ScopeNode`:
+`Layer = Supplier + values`, `LoadedChain = { floor: ScopeNode | null; nodes: ScopeNode[]; cutAt }`.
+Signatures that say `resolve(loaded: LoadedChain, …)` keep their shape; `layers` becomes `nodes`.
+
+## Data Shapes
+
+**Scope marker = values document.** A directory is a sub-scope if it holds exactly one
+kNNowledge document with frontmatter `scope: true` (strict boolean, read with nn-core
+`parseFrontmatter`). The domaiNN root is the nearest directory with `domaiNN_NN.md`. The
+root folder MAY also hold one `scope: true` document that supplies the root's values. This
+keeps bluepriNNt-typed values out of the `domaiNN` manifest. `isolate: true` on a marker
+ends the chain there. A nested `domaiNN_NN.md` is a new root with an implicit isolate.
+
+**Local values** are the `key:: value` fields of the values document's first element (in
+document order, the first non-index concept section) as returned by `parseKnowledge`. `union`
+operands use the existing keyed-list grammar `[name=value, …]`, an array, or an object.
+Normalization moves out of `cascade.mjs` (`keyedEntries`) into `resolve.ts`.
+
+```markdown
+---
+level: 3
+parent_spec: { name: "projects_V_0-5-0", url: "…" }
+title: "Alpha Program"
+scope: true
+fills:
+  generate-status-report:
+    audience: "steering committee"           # value filler
+    post_step: { procedure: "alpha-review" } # sub-procedure filler
+---
+# NN Project
+## NN Project: Alpha Program
+priority:: high
+glossary:: [risk=schedule threat, sprint=two weeks]
+```
+
+**Floor** is the single `_NN.md` under the bluepriNNt package's `defaults/` folder. The
+package is the one named by the innermost values document's `parent_spec`. Video already
+uses this convention (`defaults/video-defaults_NN.md`). The adapter injects the floor:
+nn-mcp locates it with `resolveBlueprintPackage`, and video with its own `findBlueprintPackage`.
+These two adapters make it a real seam.
+
+**Slot declaration** goes in the procedure document's frontmatter (flag-first, so the
+procedures bluepriNNt needs no change). The version comes from `knowledge_version`.
+
+```yaml
+slots:
+  - { name: audience, kind: value, required: true }
+  - { name: format, kind: value, required: false, default: "markdown" }
+  - { name: post_step, kind: procedure, required: false, step: "Compile Health Dashboard" }
+```
+
+**Slot filling** uses `fills.<procedure-id>.<slot>` in a scope's values-document frontmatter
+(see above). Per slot, the nearest scope wins (`override`). A `{ procedure: id }` filler
+must resolve in the same chain.
+
+**Fork record** goes in the frontmatter of a same-id procedure in a nearer scope:
+
+```yaml
+fork_of: { procedure: generate-status-report, scope: "", version: "V_0-1-0" }  # scope "" = root; "bluepriNNt:projects" = floor
+```
+
+If the recorded version differs from the original's current `knowledge_version`, the
+result carries an `ORIGINAL_ADVANCED` warning. A same-id procedure without `fork_of` still
+shadows the original and gets an `UNDECLARED_SHADOW` warning. Shadowing is never silent.
+
+**Procedure placement** is `<scope-dir>/procedures/*_procedures_NN.md`, matching the
+existing `DOMAIN_DIRS` `procedures`. Precedence, encoded in code: model `## NN Procedure:` >
+nearest scope > … > root > bluepriNNt (including `includes`/`parent_spec`, first-seen,
+with the rest reported as shadowed).
+
+## Interfaces
+
+```ts
+export type JsonValue = null | boolean | number | string | JsonValue[] | { [k: string]: JsonValue }
+export type MergeStrategy = 'override' | 'union'           // closed set; restrict/append deferred
+
+export interface ScopeLink { dir: string /* domain-relative POSIX, '' = root */; valuesDoc: string | null; kind: 'root' | 'scope'; isolate: boolean }
+export interface ScopeChain { root: string /* absolute, adapter-only */; links: ScopeLink[] /* outermost first */; cutAt: string | null }
+export type ScopeChainResult =
+  | { ok: true; chain: ScopeChain }
+  | { ok: false; code: 'NO_DOMAIN_ROOT'; searched: string[] }
+  | { ok: false; code: 'DUPLICATE_SCOPE_MARKER'; dir: string; markers: string[] }
+export interface DirProbe { hasEntrypoint: boolean; scopeMarkers: Array<{ path: string; isolate: boolean }> }
+
+export function buildScopeChain(startDir: string, probe: (dir: string) => DirProbe, parentOf: (dir: string) => string | null): ScopeChainResult
+export function findStemCollisions(modelPaths: readonly string[]): Array<{ id: string; paths: string[] }>
+export function findScopeChain(path: string): ScopeChainResult            // fs adapter, sync
+export function findDomainRoot(path: string): string | null
+export function findInChain(chain: ScopeChain, fromDir: string,
+  target: { rel: string } | { dir: string; stem: string }, fallbackDir?: string): { path: string | null; searched: string[] }
+
+export interface Supplier { scope: string /* dir | 'bluepriNNt:<name>' | consumer label */; doc: string | null }
+export interface Layer extends Supplier { values: Readonly<Record<string, JsonValue>> }
+export interface LoadedChain { floor: Layer | null; layers: Layer[] /* outermost first; consumers may append intra-document layers */; cutAt: string | null }
+export function loadChain(chain: ScopeChain, opts?: { floorDoc?: { label: string; path: string } }): LoadedChain
+
+export interface ExplainTrace {
+  v: 1; key: string; strategy: MergeStrategy
+  consulted: Supplier[]; cutAt: string | null
+  winner: Supplier | null                                            // override
+  overridden: Array<Supplier & { value: JsonValue; by: string }>
+  entries?: Array<{ name: string; from: Supplier; shadowed: Array<Supplier & { value: JsonValue }> }> // union
+}
+export type Resolution =
+  | { ok: true; key: string; strategy: MergeStrategy; present: boolean; value: JsonValue; explain: ExplainTrace }
+  | { ok: false; code: 'UNSUPPORTED_STRATEGY'; strategy: string }
+export function resolve(loaded: LoadedChain, key: string, strategy: string, opts?: { accept?: (v: JsonValue) => boolean }): Resolution
+export function compareEffective(before: Resolution[], after: Resolution[]): Array<{ key: string; from: Supplier & { value: JsonValue }; to: Supplier & { value: JsonValue } }>
+
+export interface SlotDecl { name: string; kind: 'value' | 'procedure'; required: boolean; default?: JsonValue; step?: string }
+export interface ForkRecord { procedure: string; scope: string; version: string }
+export type Filler = string | { procedure: string }
+export interface ProcedureDef { id: string; scope: string; doc: string; version: string | null; slots: SlotDecl[]; forkOf?: ForkRecord }
+export interface ScopeProcedures { scope: string; doc: string | null; procedures: ProcedureDef[]; fills: Record<string, Record<string, Filler>> }
+export interface ProcedureDiagnostic { code: 'DUPLICATE_SLOT' | 'REQUIRED_SLOT_UNFILLED' | 'UNKNOWN_SLOT' | 'FILLER_KIND_MISMATCH'
+  | 'UNKNOWN_FILLER_PROCEDURE' | 'UNDECLARED_SHADOW' | 'ORIGINAL_ADVANCED'; severity: 'error' | 'warning'; procedure: string; scope: string; detail: string }
+export interface EffectiveProcedure { def: ProcedureDef; bindings: Record<string, { value: Filler | JsonValue; from: Supplier }>; shadowed: Supplier[] }
+export function resolveProcedures(input: { model?: ProcedureDef[]; scopes: ScopeProcedures[]; floor: ProcedureDef[] }): { procedures: EffectiveProcedure[]; diagnostics: ProcedureDiagnostic[] }
+```
+
+`resolveProcedures` reuses the `union` strategy for the id registry and `override` for each
+slot, so procedures and values share one fold. Every trace path is domain-relative, which
+keeps the trace JSON-safe and machine-independent.
+
+## Root Finder Replacement
+
+| Call site | Today | Replacement |
+|---|---|---|
+| `nn-mcp/src/server.ts:66` `ROOT_DIR` | `findRepoRoot(cwd)` (`.git`) | `INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd` |
+| `nn-mcp/src/tools/cognitivize.ts:29` | `findRepoRoot(rootDir)` picks a module to `require()` from the domain path | module-location dev checkout (extract `devCheckoutRoot` from `console-regeneration.ts` into `tools/dev-checkout.ts`). This removes a domain-controlled `require`. |
+| `nn-mcp/src/tools/workspace-sync.ts:63` `findManifestPath` (+ `propose-changeset.ts:56`) | prefix heuristic `domain*`/`workspace*` | `join(root, ENTRYPOINT_FILENAME)`; `walkMarkdownFiles` skips dirs that hold a nested `domaiNN_NN.md` |
+| `video-guard.mjs:98` `resolveWorkspace` | `video-guard.json` walk, then `.git` | `findDomainRoot` via mirror; guard file only at `<root>/video-guard.json` |
+| `recursiveParse` | not a walker (it receives the root handle) | unchanged; its callers get the root from `findDomainRoot` |
+
+Deleted: `tools/repo-root.ts`, `tools/repo-root.spec.ts`, `findManifestPath`, `findWorkspaceRoot`.
+
+## Invariants
+
+| Invariant | Handling |
+|---|---|
+| Type-axis `includes` never overrides | Untouched. `compose.ts` stays strict, and `scope/` never reads L2 schema. Only `DeclMeta` is reused, for the floor supplier label. |
+| Video "no upward escape" | Split in two. Path literals (`../../x`) still may not escape the scope root. Named lookup (`findInChain`) climbs the chain, bounded by the root or the nearest isolate. |
+| Nested `domaiNN_NN.md` | New root with implicit isolate. Outer discovery stops there. |
+| Global model ids | `findStemCollisions` gives a `check_domain` error naming the id and both paths. Same stem across nested domaiNNs is fine. |
+| `changes/` | Stays a single root log. Changesets do not gain a scope field in this change. |
+| Source visibility | `createFsSourceResolver` bounds its walk at the chain's outermost link (isolate-aware) instead of `rootDir`. |
+
+## Lot Plan (feature-branch-chain; replaces the earlier Slice Plan)
+
+> Superseded by the 2026-10-28 value-first re-slice entry. The earlier G0.1..B slice plan is
+> kept in git history. Old ids map to lots as shown; `tasks.md` carries the concrete ids.
+
+Estimates exclude generated mirror bundles.
+
+| Lot | Content | Old ids | ~Lines |
+|---|---|---|---|
+| L0.1 | `findDomainRoot` in nn-core; nn-mcp `ROOT_DIR`; `cognitivize.ts` stops `require()`-ing from a domain-found root (resolve via `dev-checkout.ts`); delete `repo-root.ts` | G0.2 | 250 |
+| L0.2 | Model-id collision detection (`findStemCollisions`) surfaced as a `check_domain` / manifest-sync diagnostic | G0.1 (collisions), G0.2.3 | 150 |
+| L0.3 | Test-first check that `sources/` files are discovered as models; exclude `sources/` if so, else close with evidence | exploration bug note | 80 |
+| L1 | `src/scope/`: `ScopeNode`, folder adapter, fold (`override` + `union`), explain, slots and fork recording, generic fixture, golden validation script plus reduced committed fixture | G0.1, G1.1, G2.1 (pure) | 700 |
+| L1 checkpoint | Conclusions into the decision log; re-plan `tasks.md` | new | docs |
+| L2+ | Element adapter; source-visibility bound and `compareEffective`; procedure precedence in nn-mcp (`spec.ts`); `resolve_effective` / `explain` tools and SKILL.md; video adoption (mirror, `cascade.mjs`, `nearest.mjs`, `draft_scene_visuals` slots); LC_programas adoption; `restrict` for `allowedModels` | G1.2, G2.2, G3, A1-A3, B | re-planned |
+
+Each lot reverts on its own. Dependencies: L0.1 before L1 only for `findDomainRoot`; L0.2 and L0.3 are independent; L2+ needs the L1 checkpoint.
+
+## Testing Strategy (strict TDD seams)
+
+| Layer | Seam | Approach |
+|---|---|---|
+| Unit | `buildScopeChain(start, probe, parentOf)` | in-memory probe map; no fs |
+| Unit | `resolve`, `resolveProcedures`, `compareEffective` | literal `LoadedChain` / `ScopeProcedures`; `JSON.parse(JSON.stringify(r))` deep-equal on every result |
+| Integration | `findScopeChain`, `loadChain`, `loadScopeProcedures` | `scoped-portfolio` fixture plus `mkdtemp` cases (no `.git`, `.git` above root) |
+| Integration | nn-mcp tools | `server.spec.ts` / new `resolve-effective.spec.ts` against the fixture |
+| Consumer | video | existing `node --test` suites, run against the mirror |
+| Guard | core genericity, purity, mirror drift | grep test; `purity.spec.ts`; `build-core-mirrors --check` in `verify.js` |
+
+## Decision Log (living — every phase PR appends dated entries)
+
+| Date | Decision | Rejected | Why |
+|---|---|---|---|
+| 2026-10-28 | Scope declared by frontmatter `scope: true` first; L2 declaration arrives with the next L1 (with `inherit::`) | L1/L2 change now | Ships without a spec-version cascade |
+| 2026-10-28 | Generic first in nn-core; video is the first consumer only | Video-local fix | Rule of two consumers (second consumer revised by the LC_programas entry) |
+| 2026-10-28 | Single-parent containment; other memberships are non-cascading facets | Multi-parent, `extends` | Deterministic fold, simple explain |
+| 2026-10-28 | `changes/` stays one root transaction log | Per-scope `changes/` | Lock, conflicts and review queue stay single |
+| 2026-10-28 | No lockfile yet; `ExplainTrace` is versioned plain JSON | Materialize now | Keeps the future lockfile a small task |
+| 2026-10-28 | Root is never found via `.git`; nearest `domaiNN_NN.md` only | `.git` fallback | A domaiNN must not need git |
+| 2026-10-28 | `projects` is the second consumer | `organization`, `procedures` | Containment by nature, has procedures. **Superseded by the 2026-10-28 LC_programas entry** (no real `projects` consumer) |
+| 2026-10-28 | Values come from the `scope: true` document's first element; the root may add one beside `domaiNN_NN.md` | Values in `domaiNN_NN.md`; frontmatter `values:` map | Typed kNNowledge; no `domaiNN` schema pollution |
+| 2026-10-28 | Floor = bluepriNNt `defaults/` document, injected by the adapter | Field-level `default::` in L2 | Already used by video; no L2 change |
+| 2026-10-28 | Precedence: model > nearest scope > root > bluepriNNt | Prose order "blueprint > domain" (§16-bis.2) | The bluepriNNt is the floor; the domaiNN is more specific |
+| 2026-10-28 | Slots, fills and `fork_of` live in frontmatter | New procedures L2 fields | Same flag-first stance as `scope: true` |
+| 2026-10-28 | Extend `list_blueprint_procedures` with `path`; no rename | `list_procedures` + delete | 16 files reference the name |
+| 2026-10-28 | Video uses nn-core through a generated CJS mirror | Runtime import; copy | Skills install where nn-core is absent; precedent `nn-sources` |
+| 2026-10-28 | Only `override` and `union` exist; `MergeStrategy` is a closed union | Plugin registry | No speculative generality |
+| 2026-10-28 | The fold takes an abstract `ScopeNode[]` chain, not paths. Folder adapter ships first; element adapter later (trigger: Lote 1 conclusions; consumers LC_programas and video episodes) | Folder-only chain; element scopes via fake folders | Real review of 8 domaiNNs: only `video_NN` is hierarchical by folder; most containers are elements inside documents (`## NN Programa`, `## NN Video`, accounting Periods) |
+| 2026-10-28 | LC_programas replaces `projects` as the second consumer (Programa as element scope; `precio_hora_tutoria` "84" and tutor identity repeated in 6 orders -> override; `Lean_Business_Plan_*` hardcoded paths -> slots). It follows the element adapter. `projects` becomes deferred: "no real consumer" | `projects` (no consumer); `organization`; `procedures` | An evidence-backed consumer beats a hypothetical one; also makes the earlier Q7 (projects release cost) moot |
+| 2026-10-28 | No root-marker fallback. `video_NN`, `transcriptions_NN` and `Electricidad_NN` lack `domaiNN_NN.md`; real domains get it via adoption or the new-domain recipe; validation adds it only to a temp copy | Falling back to lineage records such as `video_NN_cogNNitive_NN.md` | No backwards-compat code; one marker, one finder |
+| 2026-10-28 | Value-first lot order: Lote 0 independent fixes (root finder, collision detection, `sources/` check) as small PRs, then Lote 1 pure walking skeleton, then a checkpoint before Lote 2+ | Phase order G0 -> G3 -> adoption | Collisions are already real (40+ `script.md`; duplicated `NoticiasVillabotijos_noticias_NN.md` in 2 series) and the `.git` root finder plus `cognitivize.ts` `require()` are live defects; none needs the cascade. Supersedes the earlier slice plan |
+| 2026-10-28 | Golden validation: temp COPY of `video_NN-backup-2026-10-27_193914` with `domaiNN_NN.md` added; chain [episode, series, root]; innteresante -> jazz.mp3, villabotijos-today -> pasodoble-loop.m4a at 0.06; `draft_scene_visuals` composed (1 definition + 2 slot fills) equals both copies modulo naming noise; explain serializes. Local/manual script plus a reduced committed fixture; CI never reads the real path | Test against the live domain; CI test on the real path | Safe oracle never mutated; reproducible in CI through the reduced fixture. Candidate slots: presenter_persona, tools_invocation, scene_structure, attribution_overlay, render_notes, finalize_fields; `select_*_news` trio: news_sources, topic_filter, news_model_ref |
+| 2026-10-28 | `restrict` trigger is met by `video-guard.json` `allowedModels`; scheduled after the MCP slice, not in Lote 0/1 | Implement now | Keeps Lote 1 to `override` + `union`; ~25 backup folders keep the lockfile deferred |
+| 2026-10-28 | L0.1 applied. `findDomainRoot(path)` lives in `nn-core/src/scope/root.ts` (nearest `domaiNN_NN.md`, file or directory input, no `.git`, returns `null` on a miss). nn-mcp `resolveRootDir(cwd, env)` = `INNFO_DOMAIN_DIR ?? findDomainRoot(cwd) ?? cwd` (exported so it is testable; `ROOT_DIR` is its evaluation). Q1 resolved by the maintainer: no marker and no env falls back to `cwd`, never `.git` | Root-marker fallback to `.git`; `searched` list on the miss now | One finder, no backwards-compat. The `searched: string[]` miss report of the spec arrives with `findScopeChain` (`NO_DOMAIN_ROOT`) in L1.1; `findDomainRoot` returns plain `null` |
+| 2026-10-28 | L0.1: `cognitivize.ts` `resolveNormalizer` no longer `require()`s anything derived from the domain: removed the `findRepoRoot(rootDir)` candidate AND the explicit `<rootDir>/skills/nn-sources/...` candidate (both let a planted file execute). Search order is now `INNFO_SOURCES_DIR`, the dev checkout this module runs from (`tools/dev-checkout.ts`), `~/.agents/skills/nn-sources`. `devCheckoutRoot({ startDir?, requires? })` is extracted from `console-regeneration.ts` (the console keeps its extra `scripts/export-console.mjs` requirement through `requires`) | Keeping the `<rootDir>/skills` candidate | The test "a normalizer planted in a domain-found root is never `require()`d" cannot pass while the `rootDir` candidate exists; tasks.md only named the `findRepoRoot` line. A domain-local normalizer is no longer supported (no compat code) |
+| 2026-10-28 | L0.1.7: `syncWorkspaceManifest` / `resolveWorkspaceId` take `join(root, ENTRYPOINT_FILENAME)` only (the `domain*`/`workspace*` prefix heuristic and `findManifestPath` are gone; a lone `workspace_NN.md` is no longer a manifest). `walkMarkdownFiles` skips any child directory holding its own `domaiNN_NN.md`. Q3 resolved by the maintainer: a nested `domaiNN_NN.md` is its own root and outer manifest sync does not descend into it | Keeping a legacy manifest-name fallback | No backwards-compat. Follow-up (not done in L0.1): core `listKnowledge`/`collectModels` (used by `list_models` and `check_domain`) still descends into a nested domaiNN; the spec scenario only covers the manifest, so it is left for L1.1/L2 |
+| 2026-10-28 | L0.1.8: deleted `tools/repo-root.ts` + spec. A search of `nn-mcp/src` finds no `.git`-based root lookup; remaining `.git` mentions are directory skip lists. The video `findWorkspaceRoot` is out of scope (video adoption, Lote 2+) | - | Matches the tasks.md "Out of scope" note |
+| 2026-10-28 | L0.2 applied. Call sites (L0.2.1): ids are filename stems produced by `nn-core/src/helpers.ts` `collectModels` (`id = entry.name` minus `.md`; both documents are returned, then `nn-mcp` `readKnowledge`/`validateKnowledge` resolve by id and silently take the first, which is the silent drop); `check-workspace.ts` `discoverModels` and `workspace-sync.ts` `discoverCandidates` feed the two diagnostics. `findStemCollisions(paths)` + `stemCollisionMessage` live in `nn-core/src/scope/stem-collision.ts` (pure, dedupes repeated paths, normalizes `\`, sorted). nn-mcp `tools/model-collisions.ts` maps them to `{ code: 'MODEL_ID_COLLISION', severity: 'warning', id, paths, message }`, returned as `collisions` by `check_domain` (alongside `lineage`) and `sync_domain_manifest` (always present, `[]` when clean) | Hard error (`check_domain` error per the Invariants table); scope-qualified ids | Real data has 40+ `script.md` and a duplicated `NoticiasVillabotijos_noticias_NN.md`: a hard failure would block existing domaiNNs. The Invariants row "check_domain error" is therefore softened to a warning until a rename path exists (Deferred: scope-qualified ids) |
+| 2026-10-28 | L0.2: `collectModels` (core `listKnowledge`, used by `list_models`/`check_domain`) now skips child directories holding their own `domaiNN_NN.md`. This closes the L0.1 follow-up for Q3 and makes "same stem across nested domaiNNs is fine" true without extra parameters on `findStemCollisions` | A `nestedRoots` parameter on `findStemCollisions` | Discovery stopping at the nested root is the one rule; the collision finder stays a pure function over one domaiNN's paths |
+| 2026-10-28 | L0.3 reproduced and fixed. RED: `workspace-sync.spec.ts` "never lists a raw import under sources/ as a model" listed `sources/import/foo_NN.md` and `sources/import/old-domain/bar_NN.md` as added models (plus the core predicate case in `tests/naming/contract.test.ts`), because `IGNORED_DIRECTORIES` lacks `sources` and the imported old tree keeps `level: 3` + a model `parent_spec`. Fix in the shared predicate `isModelCandidate` (`naming/contract.ts`): a path whose first segment is `sources` is never a model. This covers `listKnowledge`/`check_domain`, `isReconcilableModel` (manifest sync) and the lineage projection with one rule. `IGNORED_DIRECTORIES` and `isExcludedPath` are intentionally NOT widened (they also drive `recursiveParse` and citation resolution, where `sources/` content must stay visible). Deviation from tasks.md L0.3.2 ("at the discovery site found in L0.2.1"): the shared predicate is that site. Not done: `isConsoleModel` still treats such a file as a console model; revisit if the console shows imports | Widening `IGNORED_DIRECTORIES` | Blast radius: `sources/` must remain walkable for citations and lineage |
+| 2026-10-28 | L1.1 applied. `buildScopeChain(startDir, probe, parentOf)` is pure over opaque directory keys and returns `ScopeChain { root, links, cutAt }`; `findScopeChain(path)` (fs adapter) takes the root from `findDomainRoot` (the single root finder; when it misses, the pure builder is run over an empty probe only to list `searched`), reads markers with `parseFrontmatter`, and converts links, `valuesDoc` and `cutAt` to domain-relative POSIX (`root` stays absolute). Markers are `_NN.md` documents only (`parseName(...).kind === 'nn'`, no sidecars, never `domaiNN_NN.md`), listed in sorted order; `scope` and `isolate` are strict booleans (this settles Q2: `isolate: "true"` is NOT an isolate). `ScopeNode` lives in `types.ts` without `fills`/`procedures` (added in L1.3 when they have a test). Two refinements to the plan: (a) an isolate ends the links but the walk still finds the root, so an isolated scope outside any domaiNN is a `NO_DOMAIN_ROOT` miss and `root` is always the domaiNN root; (b) a directory with two markers ABOVE an isolate cut is ignored, because it is not part of the chain. `findInChain(chain, { rel })` ships without the `{ dir, stem }` form, `fromDir` and `fallbackDir` of the design signature: no spec scenario or consumer exercises them yet (video adoption, Lote 2+, adds them with a test) | Reading `findDomainRoot` inside the pure builder; a probe returning domain-relative names | One root authority and a pure core; domain-relative output keeps chains machine-independent. The unused `findInChain` options would be speculative |
+| 2026-10-28 | L1.1: purity and genericity guard (`scope/purity.spec.ts`): pure modules (`types`, `chain`, `stem-collision`, and later `resolve`/`procedures`) may not import `node:*`, an fs adapter, nor use clock or randomness; every non-spec file of `src/scope/` is grepped for `\b(video|series|projects?|programa)\b`. The genericity guard went RED on its first run (a `'series/x'` comment example in `types.ts`), so it has teeth. Mutation checks done: removing the isolate branch turns two `chain.spec` cases red; adding a `node:fs` import to `chain.ts` turns the purity case red | - | Tasks L1.1.6/L1.1.7 |
+| 2026-10-28 | L1.2 applied. `resolve(loaded, key, strategy: string)` in `scope/resolve.ts`; `LoadedChain` is `{ floor: ScopeNode \| null; nodes }` with no `cutAt` field: the fold itself honours `ScopeNode.isolate` (nearest isolate wins, nodes before it are hidden, the floor never is) and reports it as `explain.cutAt`, so a literal `ScopeNode[]` behaves like a chain built by the adapter. Departures from the design signatures: no `accept` option (no scenario needs it; the video typed-parameter skip returns with video adoption), `Candidate = Supplier + { value, by }` is used for BOTH `overridden` and union `shadowed` (the design's `shadowed` had no `by`, the spec asks for the displacing scope), and the union trace gains `skipped` (items that are not `name=value`, e.g. a number or a bare word, are listed with their supplier instead of dropped as `cascade.mjs` did). Union result value is `Array<{ name, value }>` (not an object, so key order cannot be reshuffled by integer-like names) ordered by SUPPLYING scope outermost first, then declaration order: with root `[risk, issue]` and alpha `[milestone, risk]` the result is `issue, milestone, risk`. Keyed-list forms accepted: bracketed or bare comma string, array of `name=value` strings, object (`parseKnowledge` already yields an array of strings for `[a=b, c=d]` and numbers/booleans for scalars) | Returning `cutAt` from the adapter only; first-appearance ordering of union entries | A pure fold must be correct on literal nodes; supplier ordering is the reading that matches "outermost scope first" in the spec |
+| 2026-10-28 | L1.2: `loadChain(chain, { floorDoc?: { label, path } })` (`scope/fs-layers.ts`) builds one `ScopeNode` per link from the first element of the first concept section that has one (an `# NN index` holds none), via `parseKnowledge`; non-JSON field values are coerced to text. The floor node is `{ id: 'bluepriNNt:<label>', kind: 'floor', doc: <basename>, ... }`: machine-independent, the absolute path never reaches a trace. No `findFloorDoc(packageDir)` helper was built: locating "the single `_NN.md` under `defaults/`" is the consumer's job (nn-mcp `resolveBlueprintPackage`, video `findBlueprintPackage`) and nothing in Lote 1 needs it. Mutation check: nulling the floor turns 5 `fs-layers` cases red | A core-side package locator | The core stays ignorant of package layout beyond the injected document |
+| 2026-10-28 | L1.3 applied (pure side). `resolveProcedures(loaded, { model? })` in `scope/procedures.ts` takes the same `LoadedChain` as `resolve` (slot fillers and procedures hang off `ScopeNode` as `fills` and `procedures`, so there is no separate `ScopeProcedures` type). Precedence in code: model, then nodes nearest to farthest, then the floor; per id the first is selected and every other definition is listed in `shadowed` with the displacing scope (`selected + shadowed == found`, tested), selected procedures sorted by id. Slots reuse the SAME `override` fold: for each slot a synthetic chain holds only that slot's accepted fillers and `resolve` picks the nearest (so `Binding.shadowed` carries the displaced fills, nearest first); the id registry does NOT go through `union` (a direct first-wins grouping gives the same nearest-wins plus shadowed list without encoding procedures as keyed strings) | Encoding `ProcedureDef`s as `union` entries; a second `ScopeProcedures` input type | One fold for values and fills; the registry needs no string round trip |
+| 2026-10-28 | L1.3 slot contract details. `Filler` is any `JsonValue` (not `string \| { procedure }` as in the design) because a value slot legitimately takes a number or a list; a sub-procedure filler is exactly `{ procedure: id }` and the kind check is `kind === 'procedure'` XOR "is a reference". A filler that fails a check (`UNKNOWN_SLOT`, `FILLER_KIND_MISMATCH`, `UNKNOWN_FILLER_PROCEDURE`) is reported and EXCLUDED from binding, so a bad nearest filler lets a valid farther one bind (never coerced). Any scope of the visible chain or the floor may fill a slot; there is no "only scopes below the definition" rule. `UNDECLARED_SHADOW` is raised for scope-over-scope and scope-over-floor shadows, not for a model procedure shadowing a scope one (the model-over-workspace case is already a reported `shadowed` entry and is the documented precedence). `ORIGINAL_ADVANCED` compares the recorded `fork_of.version` with the shadowed original's `knowledge_version` (string inequality; a missing version counts as different); a fork whose original is not in the chain produces nothing (no code exists for it, noted as a gap). Two diagnostic codes were added to the closed set: `INVALID_SLOT_DECL` and `INVALID_FORK_RECORD`, emitted by the loader so a malformed `slots:` / `fork_of:` is never silently dropped | Silent drop of malformed declarations; coercing a mismatched filler | Matches the spec's "MUST NOT silently ignore or coerce" |
+| 2026-10-28 | L1.3 folder side. `loadChain` also attaches `fills` from the marker document's frontmatter (it already parses the document), so `loadScopeProcedures(chain, loaded)` only adds `procedures` and returns `{ loaded, diagnostics }` (the loader diagnostics above). Procedures are the `*_procedures_NN.md` documents under `<scope dir>/procedures/`, id from `procedureIdOf` (filename), version from `knowledge_version`, `slots:` and `fork_of:` from frontmatter; scopes without the folder keep their node object unchanged. Not done: loading the floor's (bluepriNNt) procedures (nn-mcp resolves them via `resolveBlueprintPackage`, Lote 2+), and the root-scope reading of `workspace/procedures/` (Q4) which belongs to the nn-mcp `spec.ts` change. Fork finding: a fork must redeclare every slot the fills address, because fills are checked against the SELECTED definition (the fixture's p1 fork copies all three slots; with one slot the alpha fills raised `UNKNOWN_SLOT`) | Reading `workspace/procedures/` now | Keeps Lote 1 free of nn-mcp |
+| 2026-10-28 | L1.4 golden validation done. Committed side: reduced fixture `tests/fixtures/video-golden/` (+ `video-golden-blueprint/defaults/` as the floor) and `src/scope/golden.spec.ts` (12 cases, written RED against the missing fixture, then GREEN; mutating the override winner turns 2 red). Manual side: `scripts/dev/validate-scope-golden.mjs <dir> [--keep]` (path differs from tasks.md `scripts/golden-video-validate.mjs`, per the batch brief) copies the domain to a temp folder, adds markers to the COPY, runs the real adapters (`findScopeChain`, `loadChain`, `loadScopeProcedures`, `resolve`, `resolveProcedures`) and re-hashes the source. Run on the text-only copy of `video_NN-backup-2026-10-27_193914` (600 files with the added `domaiNN_NN.md`): 30/30 assertions pass, source hash unchanged. Chains (outermost first): episode `[root, series/innteresante, series/innteresante/assets/bosco-verticale]` and `[root, series/villabotijos-today, .../boa-constrictor-suelta]`; a series-level document gets `[root, series]`. Values: innteresante music `../../shared/music/jazz.mp3` (jazz.mp3), volume 0.4, voice LucasCervera02; villabotijos-today music `../../shared/music/pasodoble-loop.m4a` (pasodoble-loop.m4a), volume 0.06, transition fade, voice Villabotijos01; the transition of innteresante comes from the blueprint floor (`none`). Every explain trace round-trips through JSON (11 resolutions, union included) | Testing against the live domain; asserting values the script itself just authored without a second source | The expected music comes from the maintainer brief and is cross-checked against `script_template.md` / `video.series.json`; the voice is checked against all 8 `## NN Video` blocks of each series (8/8 agree) |
+| 2026-10-28 | L1.4 FINDINGS (data vs fold, reported not patched). (1) innteresante: `script_template.md` says volume 0.4 but 5 of 8 episode scripts use 0.06 (bosco-verticale, camuflaje-digital, ciberseguridad-rgpd-ia, esquizofrenia-diagnostico-ia) or 0.2 (robo-carga-centros-de-datos); `ciberseguridad-rgpd-ia` uses `elevator.mp3` instead of jazz.mp3. villabotijos-today: `casimiro-mahou` volume 0.1 (1 of 9), two scripts omit the volume. These per-episode values sit on the FIRST SCENE element (`## NN Scene`) of the script, not on its Video element, so a folder adapter that reads the marker's first element cannot express them: element-adapter need (the scene/Video elements are the real override level, cascade.mjs `scene > video > series`). (2) Series values are scattered in three shapes: prose + `script_template.md` (innteresante), `video.series.json` (villabotijos-today), and `voice_id::` repeated in every `## NN Video` block of the series doc (8/8 equal in each series); `video-guard.json` `voices` maps LucasCervera02 to series `inntrevistas` and Villabotijos01 to `cosicah-explicas...`, contradicting the data. Hoisting them into one `scope: true` marker per series is expressible; the marker needs a UNIQUE stem (`<series>_scope_NN.md`) because model ids are global filename stems (a fixed `series_NN.md` would be one of the L0.2 collisions). (3) Episodes become folder scopes only by adding `scope: true` to the episode script (the Video element is its first element and carries no music), so for folders the episode node adds nothing today. (4) Procedures live in `series/<s>/procedure/` (SINGULAR) in both series; the loader reads `<scope>/procedures/`. (5) `findStemCollisions` over the 96 `_NN.md` documents outside `sources/` and `.moves_backup/` reports 5 collisions: NoticiasVillabotijos_noticias_NN x2, draft_scene_visuals_procedures_NN x2, generate_video_script_procedures_NN x5, select_weird_news_procedures_NN x2, spec_NN x7. (6) `loadScopeProcedures` only reads the chain, so the floor's (blueprint) procedures and `workspace/procedures/` are not covered | - | Inputs to the Lote 1 checkpoint and the element-adapter design |
+| 2026-10-28 | L1.4 `draft_scene_visuals` result. Normalization (explicit, in the script and mirrored in `golden.spec.ts`): drop the frontmatter (the two copies differ only in `knowledge_version` and `title`), drop the `> This is an **iNNfo document**` banner (typo variant), replace series name / doc name / slug and the presenter (Lucas, Celedonio) by tokens, trim, collapse blank runs. Residual after normalization: 272 vs 272 lines, 255 shared, 14 hunks, 17 lines on each side = 6.3% of the larger copy; without the name tokens the same diff has 30 hunks, so 16 were naming noise. Reading the 14 hunks by hand, 11 fit the six candidate slots: tools_invocation 4 (build-draft-html, build-script-from-draft, asset-cost-estimator, the engine path), presenter_persona 2 (steps 'previous to the draft' and the portrait definition), scene_structure 2, attribution_overlay 1, render_notes 1 (render order), finalize_fields 1 (formats); 3 need extra slots: the one-line summary, the video-config bullet (3 lines) and the avatar-model rule (2 lines). The composition (1 root definition `procedures/draft-scene-visuals_procedures_NN.md` with 14 required value slots + one `fills:` table per series marker) goes through the real loaders and `resolveProcedures` with zero diagnostics and reproduces both copies exactly. CAUTION: the fills are derived from the diff, so exact equality is true by construction; what the run proves is that the slot machinery carries real-size multi-line fills through YAML, the loaders and the fold, and that the divergence is 6.3% | Claiming the equality as evidence of the slot model | Honest reading: the evidence is the residual size and the pipeline, not the equality |
+| 2026-10-28 | L1.4 slot-design friction for the checkpoint. (a) Slots here are whole Spanish paragraphs, not parameters: only persona names and tool paths look like parameters, the rest is prose a series rewrites. A slot per paragraph (14) is workable but heavy; the lever for reducing it is to keep series copies convergent, not richer slots. (b) The body templating (`{{slot:name}}` tokens substituted from bindings) is NOT part of the core: `golden.spec.ts` and the script each carry a 5-line `compose`. If the nn-mcp tools (Lote 2+) must return a composed procedure, a core `composeProcedure` is the next candidate, with its own test. (c) A fork must redeclare every slot the fills address (fills are checked against the selected definition). (d) The real procedures use `## NN Procedure` / `## NN Step` bodies; slot tokens inside steps keep the document valid kNNowledge only if the token sits inside a field or paragraph, which the reduced fixture respects but a validator run on the slotted definition was not done | - | Lote 1 checkpoint inputs |
+| 2026-10-28 | L1.C.1 Lote 1 checkpoint conclusions. (1) The core holds: an abstract `ScopeNode` chain, `override` + `union`, a JSON-serializable explain and procedure slots run unchanged on real data (30/30 on the video copy, nn-core 1885 tests, no video identifiers in `src/scope/`). Keep the module shape. (2) The folder adapter is necessary but not sufficient: on the only hierarchical domain, the values that actually vary (music, volume, voice) live in ELEMENTS (first `## NN Scene`, every `## NN Video` block), not in folder markers. The element adapter is the highest-value next step, not MCP. (3) The first direct user value of the cascade is DRIFT VISIBILITY, not deduplication: explain surfaced 5 of 8 innteresante episodes deviating from the series template, one different track, and a `video-guard.json` voice map that contradicts the data. A read-only "effective values and deviations per scope" report is cheap on top of `resolve` + explain. (4) Slots work mechanically but are prose-sized (14 paragraph slots for one procedure; the composed equality is by construction). Do not build richer slot features yet; add a core `composeProcedure` only when an nn-mcp tool must return a composed procedure. (5) Model ids as global stems now block scope markers (unique `<scope>_scope_NN.md` stems needed) and produce 5 real collisions (`spec_NN` x7, `generate_video_script_procedures_NN` x5): the deferred "scope-qualified model ids" item has met its trigger. (6) Data hygiene found by the run (`procedure/` vs `procedures/`, scattered series values) belongs to video adoption, not to the core | Going straight to MCP tools; expanding slot features | Evidence from the golden run; value-first ordering |
+| 2026-10-28 | L1.C.2 re-plan of Lote 2+ (maintainer order, binding): L2.1 element adapter (a: pure + spec, b: fs loader + video scenes and LC_programas Programas), L2.2 drift report (a: pure `driftReport`, b: CLI `scripts/dev/scope-drift.mjs`), L2.3 MCP (a: `resolve_effective`/`explain`, b: scope-aware procedure listing, precedence only in core `resolveProcedures`, floor and `workspace/procedures/`), L2.4 scope-qualified ids (spike, hard maintainer gate, provisional 3 PRs), L2 checkpoint, then Lote 3 adoptions (L3.1 video skill a/b/c, L3.2 video data, L3.3 LC_programas data). The deferred items "element adapter" and "scope-qualified ids" are scheduled; "source visibility" and the `compareEffective` marker-move warning move back to Deferred (no ordered slice needs them); `restrict` is placed at the L2 checkpoint; drift as an MCP tool and `composeProcedure` stay deferred with triggers. Drift CLI before MCP tool: it is the thinnest surface with direct maintainer value (no schema, registration, tool-list test or docs). The drift report is a pure function over `resolve`: per scope and key a baseline, units that deviate from it, and variants (a UNIT is caller-chosen: the leaf, or the supplying document for video episodes, which is what makes "5 of 8 episodes" computable when the values sit on scenes); `union` keys are listed as skipped, never omitted silently | Planning the MCP tools first; a drift MCP tool in L2.3; folding L2.4 into L2.3 | Evidence in L1.C.1: the real variance lives in elements, and the first direct value is visibility of deviations |
+| 2026-10-28 | Element-scope marker PROPOSAL (confirmed as Q10 on 2026-10-28, see the entry below). The document frontmatter declares scope concepts: `scope_elements: [{ concept: Video }, { concept: Scene }]`, optional `parent: <field>` holding a `[[title]]` reference to the parent element (exact, unique title match; `UNKNOWN_PARENT_ELEMENT` / `AMBIGUOUS_PARENT_ELEMENT`, never a guess). Without `parent`, an element's parent is the nearest preceding element, in document order, of the previous listed concept; the first listed concept hangs from the document's folder chain (`findScopeChain` + `loadChain`). `isolate:: true` (strict boolean, same rule as Q2) is a field on the element; `slug` and `isolate` are not values. Node: `{ id: '<doc>#<Concept>/<slug>', kind: 'element:<Concept>', doc, isolate, values }` (the parser already supplies concept sections, titles, derived or explicit slugs, `fields`, `headingDepth`, `parentElement`). A document with both `scope: true` and `scope_elements` is `AMBIGUOUS_SCOPE_DECLARATION` (so the golden episode loses its folder-scope marker, which L1.4 finding 3 showed added nothing). Sub-elements by heading depth (`### NN Layer`) are not scopes unless listed. Why this option: needs no L1/L2 change and no parser or serializer change (flag-first, like `scope: true`); one frontmatter edit per document instead of one per element (LC_programas has 5 Programas and 6 Prestaciones; a video script has N scenes); keeps values as typed fields; `isolate::` has 0 uses in the specs. Rejected: heading flag (`## NN Programa: X {scope}`) because the heading is identity and the byte-identical round trip is guarded by `roundtrip-fidelity`; `scope:: true` per element because `scope::` is already used 217 times as a procedures field (Q9) and costs one edit per element | A heading flag; a per-element `scope::` field; declaring scopes in the bluepriNNt (L2, deferred with the next L1) | Prefer the option needing no L1 change, with the least data churn |
+| 2026-10-28 | Real shapes found while re-planning (read-only). (1) LC_programas: `precio_hora_tutoria:: "84"` is on the six `## NN Prestación de Servicios` elements, NOT on the Programa; each Prestación reaches its Programa through `programa_ref:: [[<Programa title>]]` (titles match the Programa headings exactly in the visible orders); Tutor `nombre` repeats in 5 Tutor elements. The design brief's "Programa with `precio_hora_tutoria`" therefore needs a parent link by reference, which is why `parent: <field>` is in the proposal; the leaf scope is the Prestación (Q11). (2) Video scripts: `music`, `music_volume` and `transition` sit on `## NN Scene` elements and repeat in most scenes of a script (absent in some, for example `01 Intro`); the Video element holds only slug, title, sources; a per-episode deviation is therefore a property of a script's scenes, which is why drift uses a caller-chosen unit (document). (3) LC_programas already has `domaiNN_NN.md` and a root `procedures/` with 10 documents; the `Lean_Business_Plan_from_Model` procedure hardcodes `sources/import/LeanBusinessPlanProyectosCoworkingEOI` (lines 18 and 96). (4) The LC_programas data contains real student names, DNI and NIF: committed fixtures (`programas-golden`) MUST be synthetic. (5) The temp video fixture in the session scratchpad is the old pre-kNNowledge format and is not a source of element shapes; the backup `video_NN-backup-2026-10-27_193914` is | - | Inputs to Q10, Q11 and the L2.1b fixtures |
+| 2026-10-28 | MAINTAINER DECISIONS. (1) Q10 CONFIRMED: element-scope marker = document frontmatter `scope_elements: [{ concept: <Concept> }, ...]`, optional `parent: <field>` (a `[[title]]` reference to the parent element), default parent = nearest preceding element of the previous listed concept, `isolate:: true` strict-boolean field per element, `AMBIGUOUS_SCOPE_DECLARATION` when a document has both `scope: true` and `scope_elements`. (2) L1.C.3 DONE: the maintainer reviewed and approved the Lote 2+ re-plan order (L2.1 -> L2.2 -> L2.3 -> L2.4 -> Lote 3). L2.1a and L2.2a are ungated; L2.1b waits for Q11, L2.2b for Q12 | Heading flag; per-element `scope::` | See the proposal entry above |
+| 2026-10-28 | L2.1a applied (pure element adapter). `elementChain(source, target)` in `scope/elements.ts` returns `{ ok: true, nodes }` (the element nodes on the path, outermost first, target last; the caller prepends the folder nodes and the floor and calls `resolve` unchanged) or a structured error. Node: `{ id: '<doc>#<Concept>/<slug>', kind: 'element:<Concept>', doc, isolate, values }`; values are the element fields minus `slug` and `isolate`; `isolate` is `fields.isolate === true` (strict boolean, the text "true" is not). Parent: with `parent: <field>` the `[[title]]` reference is resolved against the previous listed concept by exact title (`UNKNOWN_PARENT_ELEMENT` when the field is absent, not a reference, or names nothing; `AMBIGUOUS_PARENT_ELEMENT` when two match); without it the nearest PRECEDING element of the previous listed concept in `source.elements` order (an inner element before every outer one is `UNKNOWN_PARENT_ELEMENT`, never an orphan or a guess). Mutation checks: first-preceding instead of nearest turns 2 cases red, removing the `slug` exclusion turns 1 red, a `node:fs` import turns the purity case red. Spec: ADDED requirement `Element Scopes Declared By Frontmatter` in `specs/scope-chain/spec.md` (11 scenarios). nn-core 1885 -> 1910 tests; the generated nn-sources mirror is unchanged | Importing the parser into the pure module; silent orphan placement | Pure over a structural shape; the fs side (L2.1b) builds it from `parseKnowledge` |
+| 2026-10-28 | L2.1a deviations from the tasks text, all additions: (a) `ElementSource` gains `scopeFlag?: boolean` so `AMBIGUOUS_SCOPE_DECLARATION` (document has `scope: true` AND `scope_elements`) is decided in the pure function and not only in the loader; an empty `scope_elements` list is not a declaration. (b) Three codes beyond the spec text: `INVALID_SCOPE_DECLARATION` (a concept listed twice, an empty concept, or `parent` on the first listed concept), `UNKNOWN_ELEMENT` (target concept not listed, or no element with that slug, which also covers a Layer-style unlisted sub-element) and `AMBIGUOUS_ELEMENT` (two elements of the concept share the target slug). Two elements of different concepts may share a slug because ids carry the concept. (c) The spec requirement's first physical line must hold the MUST (the delta checker reads only that line), so the sentence order differs from the first draft | Treating a duplicate slug as first-wins | Never guess, consistent with the rest of the module |
+| 2026-10-28 | L2.1a FINDINGS for L2.1b (verified by reading `types/parser.ts` and `scope/fs-layers.ts`, not by running the fs side). (1) `parseKnowledge().elements` is an `ElementsMap` keyed by CONCEPT (case-insensitive); it keeps document order inside one concept and the order of concept sections via `entries()`, but carries no cross-concept position. The loader must flatten concept sections in section order into `source.elements`. Consequence: when the outer and inner concepts live in separate top-level sections (`# NN Video` then `# NN Scene`, the real video shape), every outer element precedes every inner one, so the default rule degenerates to "the LAST outer element"; a document with two Videos and one Scene section needs `parent: <field>` (the nearest-preceding rule is only meaningful for interleaved sections). The two-outer-elements spec case therefore uses interleaved elements. (2) Whether `parseKnowledge` hands `[[Title]]` back as the string "[[Title]]" (what `elementChain` accepts) or in another shape is unverified; L2.1b.2 must test it against a real parse. (3) Every parsed element already carries a `slug` (derived, or authored with `slug::`), so `ScopeElement.slug` can be filled straight from `ElementNode.slug`; `ElementNode.fields` values are `unknown` and must go through the same `asJson` coercion `fs-layers.ts` uses (module-private today; extract or duplicate with a test). (4) `headingDepth` and `parentElement`, named in the 2026-10-28 marker proposal as parser-supplied, do NOT exist in `ElementNode`; nothing in the design depends on them (listed concepts are top-level sections), but the proposal text was wrong on this | - | Inputs to L2.1b.2 and L2.1b.3 |
+| 2026-10-28 | L2.2a applied (pure drift report). `driftReport({ floor, chains, keys?, ignore?, strategies? })` in `scope/drift.ts` returns `{ v: 1, rows, skipped }`. Rows exist for every scope that is a NON-FINAL node of at least one chain (a scope that offers values to descendants; leaves get none), per compared key. Baseline = `resolve` over the chain prefix ending at the scope (floor included, isolate honoured); a unit value = `resolve` over the full chain; both through `resolve` only, no second fold. A unit deviates when at least one of its chains differs from the baseline by deep JSON equality (object key order irrelevant, canonical form by recursive key sort); `units.total` counts distinct unit labels, `uniform` means every chain across all units holds one identical value (absence counts as a value), `variants` lists deviating values most-units-first (tie: canonical form) with the supplier of the first chain holding them. A chain that crosses an isolate AFTER the scope is not counted for that scope. A row is not emitted when the baseline is absent and no unit supplies the key; a requested key that nothing declares gets no row and no `skipped` entry. Chains are sorted internally (unit, leaf id, path), so the report does not depend on input order. Mutation checks: reference-style identity for objects (the `===` analogue) turns the deep-equality case red, dropping the floor from the baseline turns the floor case red, ignoring the isolate cut turns the isolate case red, a `node:fs` import turns purity red. Spec: ADDED requirement `Drift Report Is A Pure Read-Only Function` in `specs/contextual-resolution/spec.md` (9 scenarios). nn-core 1910 -> 1927 tests | A second fold inside the report; a `hoistable` boolean on the row | A hoistable repetition is already visible as `uniform` with every unit deviating and an absent baseline, so no extra field is promised |
+| 2026-10-28 | L2.2a deviations from the tasks text: (a) `DriftInput.strategies?: Record<key, string>` is new. `driftReport` cannot know which keys are `union` otherwise, and the spec asks for visible skipping; the reasons are `strategy union is not compared` and `unsupported strategy <x>`. (b) `DriftRow.baseline` gains `present: boolean` (an absent baseline is `{ present: false, value: null, from: null }`, because JSON `null` can be a real value). (c) The Lot Overview lists L2.1b as the dependency of L2.2a; the code does not depend on it (the report takes literal chains) and the order stays only because the CLI (L2.2b) needs the element loader. (d) Reading note for L2.2b: the report states drift relative to EVERY ancestor scope, so the root row of a hierarchical domain lists all values as variants when the root declares nothing; the CLI should default to the nearest scope that declares the key, or hide rows with an absent baseline unless asked | `unitOf` function injected into the core | The caller already labels chains (`DriftChain.unit`); an injected callback adds nothing the label does not |
+
+| 2026-10-28 | Q11 reframed (maintainer). Two levels were mixed: the repo provides mechanisms, the domaiNN decides its data. Repo level: (a) add the `none` strategy to `resolve` in L2.1b (L2.1b.0): only the target node's own declaration counts, ancestors and the floor are never inherited; (b) new deferred generic item "snapshot on create": resolve selected keys at document creation and write them explicitly, so contractual or historical values are frozen and never re-inherited. Domain level (L3.3, maintainer-run): LC_programas `precio_hora_tutoria` is a contractual value on each Prestación and stays explicit; the current rate may exist as a default at the root or Programa. The earlier proposal (Prestaciones inherit "84" from a root values document) is rejected: raising the rate would silently change past orders and break invoice consistency | Inheriting contractual values; treating Q11 as a repo gate for L2.1b | Identity, outputs and recorded facts are `none` in the first-principles model; the mistake was applying `override` to a recorded fact |
+| 2026-10-28 | L2.1b.0 applied (`none` strategy). `resolve(loaded, key, 'none')` reads ONLY the target, the innermost node of the visible chain (after the isolate cut): present when the target declares the key, otherwise explicitly absent. The trace gains the optional field `notInherited: Array<Supplier & { value }>` (nearest first, the floor last) holding the declarations of ancestors and the floor that were NOT used; `overridden` stays empty, `winner` is the target or null, and `consulted` is just the target. Ancestors above an isolate are not listed (not visible); the floor is listed even across an isolate because it is never hidden. `driftReport` takes `strategies: { key: 'none' }` and compares such keys with `none` against an ABSENT baseline (`present: false`): each unit's value is its own declaration, so a unit omitting the value is not counted as deviating and siblings are still reported as variants. Spec: ADDED requirement "None Strategy Keeps A Declared Value Local To Its Scope" (4 scenarios), the "Unknown strategy" scenario now says `override`, `union` or `none`, and the drift requirement plus one scenario say how `none` keys behave. Mutation: `none` falling back to `override` turns 5 resolve cases red. RED was seen first (`UNSUPPORTED_STRATEGY`; for drift the key was skipped). The MCP tools of L2.3a must accept `none` and show `notInherited` | Resolving `none` as `override` plus a filter; listing ancestor declarations as `overridden` | `overridden` means "lost to a nearer value"; a declaration that was never a candidate must not read as one |
+| 2026-10-28 | L2.1b.2/3 applied (fs loader). `loadElementChain(path, target \| null, { floorDoc? })` in `scope/fs-elements.ts` = `findScopeChain` + `loadChain` + `parseKnowledge` + `elementChain`; it returns `{ ok: true, loaded: LoadedChain, chain }` (the element nodes appended to the folder nodes, floor injected by the caller as in `loadChain`) or `{ ok: false, code, detail, searched? }` and never throws on bad data. Codes are the `ElementErrorCode` set plus `NO_DOMAIN_ROOT` (with `searched`), `DUPLICATE_SCOPE_MARKER` and `UNREADABLE_DOCUMENT`; a malformed `scope_elements` (not a list of maps) is `INVALID_SCOPE_DECLARATION`. `target: null` returns the folder nodes only, which is what "a document without `scope_elements`" yields; asking for an element of such a document is `UNKNOWN_ELEMENT`, never a guess. `listScopeElements(path)` returns `{ ok, doc, elements: [{ concept, title, slug }] }` in document order for the LISTED concepts only (a Layer or a Tutor is not a scope), and reports `AMBIGUOUS_SCOPE_DECLARATION` too. Concept names are matched case-insensitively (the parser's `ElementsMap` is) and emitted in the spelling of the declaration. Cost note: each call re-reads and re-parses the document, fine for the 146 resolutions of the manual run; a bulk `loadElementChains(path)` is the answer if L2.2b is slow | A loader that mutates `scope: true` documents into folder scopes; first-wins on a missing parent | Never guess; one parse per call keeps the API small |
+| 2026-10-28 | L2.1b answers to the L2.1a findings. (1) CONFIRMED: `parseKnowledge().elements` has no cross-concept position, so the loader flattens concept sections in `entries()` order and keeps only the listed concepts; on the real video shape (`# NN Video` then `# NN Scene`) the default parent is the last Video, which is correct because every one of the 17 real scripts holds exactly one Video; a script with several Videos would need `parent:` on Scene. (2) VERIFIED on a real parse: `[[Title]]` comes back as the plain string `"[[Title]]"` (fixture and the live LC_programas document, 6 of 6 Prestaciones resolved through `programa_ref`). (3) `asJson` was extracted into the pure `scope/json.ts` and is used by `fs-layers.ts` and `fs-elements.ts` (no duplicate). (4) NEW: an `ElementNode` has `name` (the element title), not `title`; the loader maps `name` to `ScopeElement.title`. Also new: numeric-looking fields are numbers after parsing (`numero_pedido:: 001` is `1`), while a quoted value stays text (`"84"` is `"84"`), so a contractual price written without quotes would compare as a number. `purity.spec.ts` now classifies every non-index module as pure or fs adapter, so a new module cannot skip the guard | Duplicating `asJson` | Reuse over reimplementation |
+| 2026-10-28 | L2.1b fixtures and deviations from the tasks text. (a) The L2.1b.1 text asked for a series document "with `## NN Video` blocks carrying `voice_id`": built as `series/innteresante/innteresante_video_NN.md` (two blocks, `scope_elements: [{ concept: Video }]`) beside the existing series marker, which keeps `voice_id`; the test shows the Video block winning over the series marker. (b) The folder-scope marker of the two episode scripts was replaced by `scope_elements` as planned, so the episode FOLDER is no longer a scope and `golden.spec.ts` "chain shape" now expects `[root, series]`. (c) ELFIX holds 2 Programas, 2 Tutores (not scopes), 3 Prestaciones (one omitting the price, one with `"90"`, one with an unknown `programa_ref` and `"84"`), a root values document with `precio_hora_tutoria: "84"` and `idioma: es`, and one Programa overriding `idioma`. (d) `L2.1b.4` tests passed on first run because the loader already existed; mutation evidence instead: reversing the node order turns 7 of the 23 golden cases red. (e) The mirrors (`build-trannsform-core-mirror.mjs`) produced no diff: the scope module is not in the generated mirror, so there is no separate mirror commit | - | Keep the committed fixtures synthetic and the suite green per commit |
+| 2026-10-28 | L2.1b.5 manual run on real data (`node scripts/dev/validate-scope-golden.mjs --elements <video copy> --programas=<LC_programas>`; 31 of 31 assertions, sources byte-unchanged: video tree 600 files, LC Tutorias document hash). CORRECTION: the scratchpad copy `video_fixture` is NOT in the old `@ scene` format; it carries `## NN Scene` in 24 files (0 files with `@ scene`), the same shape as the backup, so it is a valid source (the earlier claim in this file and in the brief was wrong). VIDEO: `scope_elements: [Video, Scene]` was added to the 17 main scripts of the COPY (8 innteresante, 9 villabotijos-today; the `_V_0-1-0_` duplicates and `_tts-ab-test` are skipped) plus a series marker with the series values; every Scene (70 in total) loads an element chain. The known L1.4 deviations reproduce exactly: innteresante 5 of 8 scripts deviate from the series volume 0.4 (0.06 in 4 scripts, 0.2 in 1) and 1 script uses `elevator.mp3`; villabotijos-today 1 of 9 deviates (`casimiro-mahou`, 0.1) and none uses another track. NO new deviation appeared. New detail the folder adapter could not give: the deviation is per SCENE inside a script (ciberseguridad-rgpd-ia: `elevator.mp3` on 2 of 3 scenes, the third inherits `jazz.mp3`; casimiro-mahou: 0.1 on 2 of 3 scenes), 3 innteresante scripts (cementerio-de-la-ia, google-maps-hack, justeat-menus-ia) repeat the series 0.4 on EVERY scene (redundant but not deviating), robo-carga-centros-de-datos declares 0.2 on all 8, and 2 villabotijos-today scripts (dog-walking-simulator, el-cocodrilo-de-singapur) declare no volume on any scene. LC_PROGRAMAS (counts and key names only, copy of `kNNowledge/LC_programas_Tutorias_NN.md` plus a synthetic `domaiNN_NN.md`): 5 Programa element nodes, 6 Prestaciones de Servicios, 6 of 6 resolve their Programa by `programa_ref` (chain `[root, Programa, Prestación]`), `precio_hora_tutoria` resolves with `none` from the Prestación itself in 6 of 6 with 1 distinct value and nothing inherited, `Tutor` as a target is `UNKNOWN_ELEMENT`. Mutation: breaking the parent title match turns the three LC assertions red (0 of 6). The script prints no title, slug, value or error detail of the LC document | Running the video part against the live backup | The copy is a safe, sufficient oracle |
+| 2026-10-28 | L2.1b findings for L2.2b. (1) Unit for video must be the script document (`--unit doc`): the leaf is the Scene and deviations live on 2 of 3 scenes. (2) The CLI needs a way to mark `none` keys (for example `--none precio_hora_tutoria`) and pass `strategies` to `driftReport`; without it the six repeated prices read as plain `override` drift against an absent baseline. (3) The L2.2b.3 expectation "Tutor `nombre` 5 of 5 uniform" is unverified: Tutor is not a scope in the minimal declaration used here; the validation copy must also list `Tutor` in `scope_elements` (with a `parent` field only if the Tutor elements carry a reference to their Programa, which was not checked). (4) The live LC_programas root has `domaiNN_NN.md` but no `scope: true` document, so its root node is empty; ancestor rows show absent baselines. (5) Per-call re-parse: the CLI should call `listScopeElements` once per document and, if it is slow, a bulk loader is a small follow-up. (6) The `Video` element node carries no values in real scripts, so drift rows for a Video scope are empty by design; the CLI may hide scopes without declarations | - | Inputs to L2.2b |
+| 2026-10-28 | Q12 CONFIRMED by the maintainer: the drift report ships as a read-only CLI (`scripts/dev/scope-drift.mjs`) first; the MCP drift tool stays deferred (its Deferred entry stands; unlock: an agent workflow needs the report). L2.2b is ungated | An MCP `drift` tool in L2.3 | Thinnest surface with direct maintainer value: no schema, registration, tool-list test or docs |
+| 2026-10-28 | L2.2b applied (drift CLI). `scripts/dev/scope-drift.mjs <domain-dir> [--unit leaf\|doc] [--keys a,b] [--ignore slug,title] [--none a,b] [--all] [--json]`, read-only, no logic of its own: it walks the directory for documents whose frontmatter declares `scope_elements` (skipping dot-directories, `node_modules`, `sources`, `changes`), calls `listScopeElements` and `loadElementChain` per element, keeps the LEAF elements (an element no other element of the same document hangs from, so a script's Video is not a unit when its Scenes are), labels each chain with its unit (`leaf`: the element id; `doc`: the document) and calls `driftReport` with `strategies` built from `--none`. A path with no `domaiNN_NN.md` in its ancestry exits 1 and prints `NO_DOMAIN_ROOT` with the searched list; a usage error exits 2; elements that cannot be placed are listed on stderr (document, element, code) and left out, exit 0. Answers to the L2.1b findings: (1) default view = rows whose scope declares the key itself plus `none` keys (a root that declares nothing no longer lists every value as drift); `--all` shows everything; `--json` is always the raw, unfiltered report, so the text view is a presentation of it. Floor-supplied baselines are hidden in the text view by default (seen with `--all`). (2) `--none` passes `strategies`. (3) `--unit doc` for video. Tests: 10 in `scope-drift.test.mjs` over GOLD and ELFIX (expected rows as literals, `--json` equal to `driftReport` over independently built chains, `--none` against an absent baseline, hidden vs `--all`, unplaceable element on stderr, no domain, usage, read-only). Mutation checks: not passing `strategies` turns the `--none` case red; not filtering leaves turns the leaf-unit and `--none` cases red; not filtering rows turns the hidden-vs-`--all` case red; writing a file into the domain turns the suite red (the first attempt did NOT: earlier cases had already polluted the fixture, so the read-only case hashed a dirty tree; now the real fixtures are hashed at load and in an `after` hook, and the read-only case works on fresh copies). No nn-core change, no mirror change | Row filtering inside `driftReport`; an MCP tool | Presentation concern, kept in the script; the report stays complete in JSON |
+| 2026-10-28 | L2.2b real-data runs (copies only, sources untouched: the LC Tutorias document hash is identical before and after). VIDEO (copy prepared by `validate-scope-golden.mjs --elements --keep`, `--unit doc --keys music,music_volume,voice_id,transition`; 70 chains): innteresante `music_volume` baseline 0.4, 5 of 8 deviating (0.06 x4, 0.2 x1); `music` baseline jazz.mp3, 1 of 8 deviating (`elevator.mp3` x1); `voice_id` 0 of 8, uniform. villabotijos-today `music_volume` baseline 0.06, 1 of 9 deviating (0.1 x1, `casimiro-mahou`); `music` 0 of 9; `transition` 0 of 9; `voice_id` 0 of 9, uniform. Every expectation of the task text reproduced; NO mismatch. LC_PROGRAMAS (temp copy of the Tutorias document plus a synthetic `domaiNN_NN.md`; counts and key names only): with `scope_elements: Programa, Prestación de Servicios (parent programa_ref)` the run loads 6 chains, no stderr, 215 report rows (43 in the default text view); `precio_hora_tutoria` (`--none`) at the root: 6 of 6 uniform with ONE distinct value, absent baseline, i.e. six orders repeating one rate that each keep explicit by design (Q11); the per-Programa rows agree. Runtime about 0.5 s | Running the CLI on the live LC_programas directory | The live root has no `scope: true` document; a copy with a marker is the oracle |
+| 2026-10-28 | L2.2b Tutor expectation, resolved. The task text said "Tutor `nombre` 5 of 5 uniform"; L2.1b doubted it. Findings: (a) Tutor elements do NOT carry a reference to their Programa (they have `nombre`, `slug`, `source_ref`, `total_horas`; the programa-tutor link is a matrix section), so Tutor cannot be placed under Programa: with `parent: programa_ref` all 5 fail with `UNKNOWN_PARENT_ELEMENT`, reported on stderr as designed. (b) As a TOP-LEVEL scope element (`scope_elements: [Tutor]`, chain `[root, Tutor]`) the run loads 5 chains and `nombre` (`--none`) is 5 of 5 uniform with ONE distinct value: the five Tutor elements hold the same name. So the expectation is true as data, but its meaning differs from what the task implied: it is not a Programa-level hoist, it is one person repeated as five Tutor elements, an identity field that should be `none` and a normalization smell for L3.3, not drift to remove. (c) FINDING for the element adapter: a document cannot list two sibling concepts under the same parent (the parent is always the PREVIOUS listed concept), so `[Programa, Prestación, Tutor]` would look for Tutor parents among Prestaciones. No slice needs it yet; if L3.3 needs Tutores under Programas it needs a `parent_concept` per declaration (an L2.1a spec change) or a separate document | Bending the fixture so Tutor nests under Programa | The data has no such link; the report must not invent one |
+| 2026-10-28 | L2.2b findings for L2.3a and L3.3. (1) The default-row filter lives in the script; if L2.3a or a future MCP drift tool needs the same view it should move into nn-core as a pure filter over `DriftRow` (the info is already in `baseline.from`). (2) `--none` is a CLI argument today; the natural home is a per-key strategy declaration, which L2.3a's `resolve_effective` also needs (it must accept `none`). (3) Leaf detection is per document: a Programa that no Prestación references is itself a leaf unit. (4) `loadElementChain` re-parses its document per element; 6 chains took about 0.5 s total, fine for these domains, a bulk loader remains the answer if a domain with hundreds of elements needs it. (5) Unplaceable elements (the fixture's Pedido with an unknown `programa_ref`) surface only on stderr; a report that feeds an agent should carry them in its payload. (6) Full `verify.js` in this worktree fails 5 of 205 steps because `skills/nn-sources` dependencies are not installed (environment, not this change) | - | Inputs to L2.3a and L3.3 |
+| 2026-10-29 | Review of L1 to L2.2b by two blind reviewers: 0 critical findings, 11 confirmed fixes applied, each test-first. (1) Elements are ordered by heading position (`inDocumentOrder`, matching each `## NN` heading to its parsed element), so the default parent is the nearest preceding element of the previous listed concept in document order and interleaved or repeated concept sections place correctly. (2) Concept matching is one rule, case-insensitive, and nodes answer under the declared spelling. (3) `findScopeChain` returns `MALFORMED_FRONTMATTER` or `UNREADABLE_DOCUMENT` (with the domain-relative path) for a `_NN.md` on the way that does not parse or cannot be read, instead of silently dropping a scope or its isolate. (4) `loadChain` returns `{ ok, loaded } | UNREADABLE_DOCUMENT`; `loadScopeProcedures` reports `UNREADABLE_DOCUMENT` as a diagnostic and keeps the other procedures; `loadElementChain` propagates both, so `loadElementChain(path, null)` no longer throws. (5) `findInChain` returns `{ ok, path, searched } | PATH_OUTSIDE_SCOPE` and refuses an absolute path or one resolving outside the outermost link from any scope. (6) New procedure diagnostics: `UNKNOWN_FILL_PROCEDURE` (error: a fill table names a procedure defined nowhere in the chain) and `FORK_ORIGINAL_NOT_FOUND` (warning: the fork names another procedure than its own, or a scope holding none of the procedures it replaces; a fork whose original is simply not in the chain still raises nothing). (7) Fills are built with `Object.fromEntries` so a `__proto__` key stays data; a slot `default` passes through `asJson`. (8) `scope-drift.mjs`: `sources/` and `changes/` are skipped at the domain root only and nested domaiNNs are never entered; any chain error other than `NO_DOMAIN_ROOT` prints its real code and detail and exits 2 (1 stays "no domaiNN"), as does an uncaught exception; the dead `floor` assignment is gone and the header states the bluepriNNt floor is not included (nn-mcp locates it in L2.3a); documents are loaded once through the new core helper `loadElementChains(path, opts?)` (one parse and one folder chain per document), removing the O(n^2) re-parse noted on 2026-10-28. (9) `isConsoleModel` rejects knowledge and procedure models under the root `sources/` (the declared `sources` catalog still surfaces, as its test requires) and the `sources` segment match is case-insensitive in both predicates; the naming-contract mirrors were regenerated. (10) `collectModels` detects a nested domaiNN with the new `isDomainRoot(dir)` (file check, in `scope/root.ts`, shared with `findDomainRoot`) instead of `existsSync`, which is true for a directory. (11) `check_workspace` with `summary_only` caps `collisions` at 25 like `models` and flags it with `collisionsTruncated: true` (and `truncated: true`). Accepted and deferred, not done here: blueprint-floor procedure loading (L2.3b), symlink handling, union comma parsing, root-marker `isolate`, extending the purity guard, case-insensitive stem collisions | Returning the pure-module error shapes only, leaving the adapters to throw; patching the parser to expose element positions (touches round-trip fidelity) | The module promise is "nothing here throws on bad data"; positions are derived from the text, so the parser and the serializer stay untouched |
+| 2026-10-29 | L2.3a applied (MCP `resolve_effective` and `explain`). Files: `nn-mcp/src/tools/resolve-effective.ts` (+ `floor-doc.ts`), registered in `server.ts`; contracts `innfo-resolve-effective@1` and `innfo-explain@1`. Input (both tools): `{ path, key, strategy: override\|union\|none, target?: { concept, slug } }`, no `domain`/`root` override (the server root is what `PATH_OUTSIDE_SCOPE` is measured against). `resolve_effective` returns `{ ok: true, key, strategy, present, value, winner, trace }`; `explain` returns `{ ok: true, key, strategy, trace, chain: [{ id, kind, doc, isolate }], floor: Supplier\|null }` (the maintainer brief asked `explain` = trace + chain and `resolve_effective` = value/present/winner + trace, which replaces the earlier spec text "explain returns only the trace"; spec updated). Failure is `{ ok: false, code, detail, searched?, path? }`, delivered as an `isError` MCP result with that body. Codes: `INVALID_ARGUMENT`, `PATH_OUTSIDE_SCOPE`, `NO_DOMAIN_ROOT` (+ `searched`), `DUPLICATE_SCOPE_MARKER`, `UNSUPPORTED_STRATEGY`, the element codes, `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (+ `path`), `AMBIGUOUS_FLOOR`, `INTERNAL_ERROR` (catch-all so the tool contract "never throws" holds). The value and trace come from core `resolve` and the nodes from `findScopeChain` + `loadElementChain`; there is no second fold. Floor: `locateFloor(chain, opts)` reads `parent_spec.name` of the innermost values document of the folder chain (literal reading of the design: if that document names none, there is no floor), resolves it with `resolveBlueprintPackage(chain.root, name, undefined, opts)` (a package directory only) and takes the single `_NN.md` (sidecars excluded) under `defaults/`; label = package name, so the floor supplier is `bluepriNNt:<package>`. Deviations from the tasks text: (1) NEW code `AMBIGUOUS_FLOOR` when `defaults/` holds more than one document (picking one would be a guess); the brief did not list it. (2) NEW `INVALID_ARGUMENT` and `INTERNAL_ERROR` for the never-throws contract. (3) `explain.chain` lists ALL loaded nodes with their `isolate` flag, not only the consulted ones, because for `none` the trace consults only the target. (4) The tool functions take an optional `{ globalDir, skillsDir }` forwarded to the package resolver so tests do not read the maintainer's home; the server passes none. Tests: 35 in `resolve-effective.spec.ts` over `scoped-portfolio`, `video-golden`, `programas-golden` (the floor cases use a throwaway copy of the portfolio fixture with a `settings` package) plus 1 dispatch test in `server.spec.ts` (tool count 22 to 24). Mutation: computing the override value and trace in `resolve_effective` instead of calling `resolve` turns 9 of 35 cases red (both trace-equality cases included); reverted. Docs: the generated `mcp-tools` region of `skills/nn-innfo/SKILL.md` (24 tools), the hand-kept copy in `docs/documentation/content/reference/mcp-tools.md`, and the nn-mcp README | A `domain` override on the scope tools; resolving the package from the queried document instead of the innermost values document | An LLM-controlled root would defeat the containment check; the design names the innermost values document |
+| 2026-10-29 | L2.3a real-data runs (in-process through the BUILT server and an in-memory MCP client, copies only, sources unchanged: content hash of the video copy and stat hash of the whole LC_programas tree identical before and after; the LC copy was deleted). VIDEO (marked copy): scene `00-gancho` of `bosco-verticale`, `music_volume` with `override` returns 0.06, winner = the Scene element, overridden = the series scope with 0.4; `explain` trace deep-equals the `resolve_effective` trace; chain = root, series, Video element, Scene element; no floor (the series marker's `parent_spec` names no resolvable package here); `none` returns 0.06 with the series 0.4 under `notInherited`; an absolute path outside the root is `PATH_OUTSIDE_SCOPE`. LC_PROGRAMAS (copy of `domaiNN_NN.md`, `kNNowledge/` and `specs/` with `scope_elements: Programa, Prestación de Servicios (parent programa_ref)` added to the copy of the Tutorias document; counts only): 11 scope elements, 6 Prestaciones; `precio_hora_tutoria` with `none` on each of the 6: present 6, absent 0, winner = the Prestación element 6 of 6, `notInherited` 0 in total (the live root has no `scope: true` document, so nothing sits above the Prestaciones), 0 errors; chain kinds root, element, element; no floor; `explain` trace equals the `resolve_effective` trace. This matches the L2.2b finding (6 of 6 hold their own price), so the `none` absent-with-`notInherited` case is exercised by the fixtures (`programas-golden`), not by the live data | Running against the live LC_programas directory | Copies only |
+| 2026-10-29 | Fresh review of L2.3a (one blind reviewer, 0 critical, 4 warnings), fixed test-first in 295f0c5d: (1) the scope chain root must be inside or equal to the server root, otherwise PATH_OUTSIDE_SCOPE (a server rooted in a sub-folder no longer reads the outer domaiNN); (2) containment compares real paths, so a link or junction pointing outside is refused; (3) a `parent_spec` name containing `/`, `` or `..` is INVALID_PARENT_SPEC; (4) error details are scrubbed of the root prefix and INTERNAL_ERROR is generic, so no absolute machine path leaves the tool outside `searched`; (5) floor lookup failures other than a missing file are FLOOR_UNREADABLE instead of a silent missing floor. Missing tests added (element-target trace equality, INVALID_ARGUMENT shapes, other-drive and UNC paths on win32). nn-mcp 571 tests, full verify green. Also 2026-10-29: the L2.4.1 spike ran before L2.3b because L2.3b is gated by Q4 and the spike is docs only; no code order changed. |
+| 2026-10-29 | Q4 CONFIRMED (maintainer): `workspace/procedures/` (the domaiNN root `procedures/`) belongs to the root scope, ABOVE the bluepriNNt floor. Precedence in code and in the MCP listing: model > nearest scope > ... > root (including root `procedures/`) > bluepriNNt. This reverses the documented "blueprint > domain" order of `skills/nn-innfo/SKILL.md` §16-bis.2 (docs change in L2.3b.4) | Keep the prose order "blueprint > domain" | The bluepriNNt is the floor; the domaiNN root is more specific. Gate for L2.3b.1 lifted |
+| 2026-10-29 | Q9 RESOLVED (maintainer): document the distinction, NO rename. The `scope::` element field of the procedures bluepriNNt (e.g. `scope:: internal`) stays as is; it is unrelated to the `scope: true` frontmatter flag (a scope marker) and to `fork_of.scope` (the scope path of the forked original). The note lives in `skills/nn-innfo/SKILL.md` because the field is defined in a published `_V_x-y-z_` spec file (write-once) | Rename the field; rename the flag | A rename is a spec-version cascade and the field is already shipped |
+| 2026-10-29 | L2.3b applied (scope-aware procedure listing). `list_blueprint_procedures` takes an optional `path`; with it, `scoped-procedures.ts` runs `findScopeChain` (shared `locateChain` extracted from `resolve-effective.ts`), `loadChain`, `loadScopeProcedures` and nn-core `resolveProcedures`, with the floor built by nn-mcp `floor-procedures.ts` from the package `procedures/` folder (core gained `loadDirProcedures`, which reads a caller-located directory; the core still never finds a package). Entry: `{ id, source_kind (scope|blueprint|model), source (scope path, empty string for the root, or `bluepriNNt:<pkg>`), doc, status, shadowed_by?, slots, fork_of?, warnings }`; result `{ ok, procedures, diagnostics }` or a `ToolFailure` (`NO_DOMAIN_ROOT` with `searched`, `PATH_OUTSIDE_SCOPE`). Without `path` the transitive discovery keeps its entries and order, adds `status`, and reports a clash between packages as `shadowed` (`shadowed_by` = winner `source_template`), classified by `resolveProcedures`; `seenProcIds` is gone from nn-mcp. Two existing assertions of `spec.spec.ts` encoded the silent drop and the exact entry shape; they were updated to the new contract. The floor is located through `locateFloorPackage` (extracted from `locateFloor`), so an ambiguous `defaults/` does not block the procedure listing. Evidence: nn-core 2006 tests, nn-mcp 581 tests, `verify.js` green; mutation (first-seen skip restored before classification) turned 2 tests red | Precedence in MCP code; a new core floor loader | One precedence implementation, in the core |
+| 2026-10-29 | L2.3b real-data runs (in-process through the BUILT server and an in-memory client, copies only; the LC copy under %TEMP% was deleted afterwards and the source stat hash was identical before and after; counts only for LC): LC_programas root `procedures/` lists 10 procedures, all selected with the root as supplier (10 `_NN.md` files in the folder), 0 diagnostics. Video copy: a series scope lists 0 procedures, because the series procedures live in the SINGULAR `series/<s>/procedure/` (L3.1b rename, not a bug) and the series scope names the bluepriNNt `series_V_0-1-0`, which is not in the `specs/` of the copy, so no floor is found there; the floor path is covered by the automated tests on a synthetic package | Treat as a defect | Documents the L3.1b rename and the missing package |
+| 2026-10-29 | L2.3b review: 1 high, 3 medium, 2 low, all fixed. High: the `path` branch of `list_blueprint_procedures` honoured a caller-chosen `domain`/`root`, defeating containment; with `path` they are now `INVALID_ARGUMENT` and the listing always uses the server root. Medium: `path` present but not a non-empty string is a structured `INVALID_ARGUMENT` (server and direct call, never a throw, never an unscoped fallback); every diagnostic of the scoped listing is scrubbed (root prefix domain-relative, a package folder outside the root becomes `<bluepriNNt>/`, an `UNREADABLE_DOCUMENT` keeps only the errno code); per-entry `warnings` now include loader findings and fill violations addressed to the entry (supplier scope notwithstanding), a shadowed entry carries the findings of its own definition, and the top-level `diagnostics` stay complete. Docs and skills state that the listing returns shadowed entries and a picker offers only `status === 'selected'`. Low: only the same file seen twice (frontmatter entry plus on-disk document) is merged inside a package, the same id at another path is reported as shadowed; the server spec leaves nothing behind (its root is removed before and after each test). Deferred: unify the three procedure-document filename rules (scope `*_procedures_NN.md`, floor any non-sidecar `_NN.md`, transitive discovery `procedures/*.md`); floor errors abort the scoped listing like `resolve_effective` | Fix only the high and defer the rest | Containment and no absolute path are the contract of every scope tool; the listing must not hide a definition or a finding |
+| 2026-10-29 | Q15 RESOLVED (maintainer), fully: "one document = one procedure". Identity = the document (as in the cascade); `Work` elements are steps only; slots reference their step by element id, not by name; the hand-written catalog becomes a derived view later (deferred `aggregate`). FILE RULE = the SUFFIX rule, the existing naming contract (`checkNameInvariant`: an L3 stem ends in `_<bluepriNNt>`; `roleOf` in nn-core `naming/contract.ts`: `procedures_NN.md` = catalog, `x_procedures_NN.md` = procedure). Evidence: of 49 documents in `procedures/` folders, 30 conform, 1 is the L2 `procedures/spec_NN.md`, 1 is a correctly named catalog, 11 are test fixtures, 6 are workspace-package procedures (`iNNfo/specs/bluepriNNts/workspace/procedures/`, `parent_spec: procedures_V_0-5-0`) that violate the invariant unnoticed because the guard ignores `specs/`. Consequences: L2.5.2 reuses `roleOf`, L2.5.2b renames the 11 fixtures, L2.5.2c (gated on a workspace bluepriNNt release) renames the 6 package procedures and extends the guard to `specs/`; `console-procedure-view` is now owned by this session | Folder rule (any `_NN.md` inside `procedures/`) as first recommended; keep the three identities | A folder rule would treat `spec_NN.md` and catalogs as procedures and adds a rule the contract already answers; three identities guarantee drift |
+| 2026-10-29 | L2.5.2c APPROVED (maintainer): rename the 6 workspace-package procedures to `*_procedures_NN.md` under a NEW version of the workspace bluepriNNt, and extend the name-invariant guard to package files under `specs/`. The 6 procedure ids do not change (`procedureIdOf` strips `_procedures`); a test pins this. RELEASE STEPS (L2.5.2c-release, from `nn-dev-release`; NOT done in this change's branch work: no tag, no repin before the merge): (1) in the branch, bump the workspace package `template_version` in frontmatter, register it wherever shipped template versions are listed (editor `SHIPPED_TEMPLATE_VERSIONS`, catalogs, `manifest/source.yaml` entry; its `version:` is spec_version, NOT template_version) using the generators `verify.js` names; (2) merge to `main` with a MERGE COMMIT (not squash) and wait for `CI & Verify` green on the exact `origin/main` tip; (3) release freeze, then `git fetch origin` and `git tag -a templates-v<semver> origin/main -m "release: templates v<semver>"` (the skill table calls the key `blueprints`; the repo's existing tags are `templates-v0.17.0` and earlier, so follow the existing tag series and check `release.yml`), confirm `git rev-parse templates-v<semver>^{commit}` equals `origin/main`, semver strictly above the highest tag in the monorepo and `cogNNitive-web`; (4) `git push origin templates-v<semver>`, then `gh run watch` the `release.yml` run (fallback: `gh workflow run release.yml --ref main -f tag=templates-v<semver> -f publish=true`); (5) REPIN: point `channels.stable.refs` for the templates in `manifest/source.yaml` to the new tag and regenerate `docs/use/manifest.md`, commit on `main` (validate-manifest rejects an unmerged tag and byte-checks template content on main against the pinned tag, so editing a template without a new tag plus repin reddens main); (6) report deployed only when the four legs of the skill verify | Tag/repin inside the PR branch | `validate-manifest` reachability guard cannot pass before the merge; a tag is irreversible |
+| 2026-10-29 | L2.5.3, L2.5.4, L2.5.1, L2.5.2, L2.5.2b applied. (1) Console export (`scripts/export-console.mjs`): the domain `schema.procedures` keeps every entry; a blueprint is aggregated once (models sharing a `parent_spec` repeat the same catalog, not a clash), and a same-id entry from another blueprint is carried as `status: 'shadowed'` with `shadowed_by` = the winner's `parent_spec` name (winner `status: 'selected'`), the shape of `list_blueprint_procedures`; `render-procedure-stepper.js` lists only non-shadowed entries (bundle rebuilt). (2) Slots: `step` is the slug of a step element of the same procedure document (any element but `Procedure`); an unknown value (including a display name) is `UNKNOWN_SLOT_STEP` and the reference is left out of the slot; the name form is removed, not aliased. (3) One predicate `isProcedureDocument` in `naming/contract.ts` (name-only form of the suffix rule) is used by `fs-procedures.ts` (scope folder and `loadDirProcedures`) and `discoverTransitiveAssets`; the three private rules are deleted, so catalogs, `spec_NN.md` and unsuffixed documents are no longer procedures. (4) 10 simulacro fixtures renamed to `*_procedures_NN.md` with their references (the brief said 11; 10 exist). The 6 workspace-package procedures are NOT renamed yet (L2.5.2c, new session): until then they are invisible to on-disk transitive discovery | Resolve step by display name; keep the folder rule | Names are not ids; the contract already defines the suffix rule |
+| 2026-10-29 | L2.5.2c applied: renamed the 6 workspace package procedures under `iNNfo/specs/bluepriNNts/workspace/procedures/` to `*_procedures_NN.md`, bumped workspace `template_version` to `V_0-10-0`, regenerated blueprint catalogs (and docs catalog), updated references (`ingest_visual_catalog_procedures_NN.md`, `ecosystem_NN/procedures/procedures_NN.md`, `skills/nn-upgrade/SKILL.md`, `check-procedures-version.test.mjs`), extended `nn-name-invariant-guard.js` by removing the `workspace/procedures/` carve-out and verified test-first that `procedureIdOf` retains the exact same IDs. All 2011 nn-core tests, 600 nn-mcp tests and 205/205 verify.js pre-checks pass. Release tagging/repinning remains deferred to landing (L2.5.2c-release) | Keep carve-out or keep old names | Resolves the transitive discovery regression and aligns workspace procedures with the naming contract |
+
+## Scope-Qualified Model Ids (L2.4.1 spike, 2026-10-29)
+
+Docs only. Paths are relative to `iNNfo/packages/`. Evidence was gathered with `rg` over the
+worktree and, for real data, with file-NAME listings only (no document contents were read).
+
+### 1. Inventory: who produces and who consumes a model id
+
+The core fact: there is no single id. Three id forms are live today, and only one of them is a
+bare stem.
+
+| Form | Producer | Consumers |
+|---|---|---|
+| Bare stem incl. `_NN` (`foo_NN`) | `nn-core/src/helpers.ts:91` `collectModels` (`id = entry.name` minus `.md`), returned by `listKnowledge` (`helpers.ts:106`, wrapped by `nn-mcp/src/tools/list-read.ts:64`) | `list_knowledge` output; agents echo it back as a tool argument |
+| Creation id without `_NN` (`foo_bp`) | `nn-core/src/naming/contract.ts:323` `canonicalModelId`; `nn-mcp/src/tools/model-id.ts:13-41` aliases inside one changeset | `propose_changeset` / `apply_change` targets `model@element&field` (`model-id.ts:30` `modelIdOfTarget`) |
+| Domain-relative path minus `_NN.md` | `nn-core/src/console/payload-builder.ts:149` `normalizeModelId` (also strips everything before a `kNNowledge/` or `models/` segment) | console payloads, `unit-address.ts:22-49` (`modelId@slug`), `scripts/export-console.mjs:956,972` (stem only as fallback) |
+
+Every model-id ARGUMENT funnels into ONE resolver: `nn-mcp/src/tools/spec.ts:82`
+`findKnowledgeFile(rootDir, id)`. It tries root, then `kNNowledge/`, then a `domain*`/`workspace*`
+prefix heuristic (`spec.ts:118-143`), then a depth-first recursive walk that returns the FIRST
+filename match (`spec.ts:152-209`, readdir order, so the winner can differ by platform). It is
+name-level: it does not apply `isModelCandidate`, so procedures, catalogs and `spec_NN.md`
+compete with models. This first-wins walk is the silent drop L0.2 found.
+
+| Site | Count | Anchors |
+|---|---|---|
+| `findKnowledgeFile` call sites (non-test) | 16 in 7 files | `validate.ts:531,562,898,988`; `apply-change.ts:516,676,781,1476,1512,1579`; `list-read.ts:116`; `spec.ts:222,848`; `resolve-sources.ts:44`; `propose-changeset.ts:270,280` |
+| MCP tools taking a model id (`id` / `knowledge_id` / `model_id` / `model`) | 8 | `server.ts` schemas: `read_knowledge` 113, `get_spec` 163, `get_blueprint` 189, `validate_knowledge` 216, `apply_change` 265, `resolve_sources` 662, `list_blueprint_procedures` 691, `list_blueprint_skills` 713 |
+| Changeset targets (model id persisted in `changes/*_changes_NN.md`) | 3 files | `model-id.ts:30`, `propose-changeset.ts:246-281`, `apply-change.ts:641` |
+| Collision diagnostics (L0.2) | 4 | `nn-core/src/scope/stem-collision.ts:19`, `nn-mcp/src/tools/model-collisions.ts:16`, `check-workspace.ts:399`, `workspace-sync.ts:189` |
+| Procedure id (separate namespace, also from the stem) | 2 | `naming/contract.ts:93` `procedureIdOf`; `scope/fs-procedures.ts` |
+| Console unit addresses | 1 module (16 uses) | `nn-core/src/console/unit-address.ts` |
+| Scripts | 2 files | `scripts/export-console.mjs:956,972`; `scripts/dev/validate-scope-golden.mjs:533,552` |
+| Skills / docs | 4 prose mentions | `skills/nn-innfo/SKILL.md:449,510,738,748` (`<model_id>`); generated tool table 344-345 |
+
+Sites that are NOT keyed by the stem (verified, so they carry no migration cost):
+
+- Manifest `## NN Models` entries are written as `path:: <relPath>`
+  (`nn-core/src/workspace/reconcileManifest.ts:122`) and reconciled by path.
+- Lineage projection: `model_ref: kf.path` (`nn-core/src/lineage/project.ts:327`).
+- Citations (`sourceRef.ts:132` `parseCitation`, `console/citations.ts:219`) and `query_units`
+  are path-based.
+- `[[Model Title :: Element]]` resolves by TITLE first (`validator/workspaceReferences.ts:213`);
+  the file-name tier (`:216`) is a fallback and already returns every hit, not the first.
+
+### 2. Collision counts per real domaiNN (read-only, names only)
+
+Method: `**/*_NN.md` file names per top-level folder of `D:\Users\lucas\Documents\_NN`,
+excluding what `collectModels` / `isExcludedPath` exclude (`specs/`, `archive`, `backups`,
+dot-directories, root `sources/` and `changes/`, sidecars, nested domaiNNs), then grouped by
+stem exactly like `findStemCollisions`. This is the NAME-level count, which is what
+`findKnowledgeFile` sees. The predicate-filtered count (`check_domain` `collisions`) is lower
+because procedures (`role: procedure`), catalogs and `spec_NN.md` are not model candidates; it
+is given as an expectation from the file role and was not run. Backups are excluded except
+the video copy used as the golden oracle.
+
+| domaiNN | `domaiNN_NN.md` | Colliding stems (name-level) | Files | Expected `check_domain` |
+|---|---|---|---|---|
+| video_NN (live) | no | `spec_NN` x2, `generate_video_script_procedures_NN` x4, `NoticiasVillabotijos_noticias_NN` x2, `draft_scene_visuals_procedures_NN` x2, `select_weird_news_procedures_NN` x2 | 12 | 1 (`NoticiasVillabotijos_noticias_NN`) |
+| video_NN-backup-2026-10-27 (oracle; L1.4 run incl. `specs/`) | no (added on copies) | `spec_NN` x7, `generate_video_script_procedures_NN` x5, `NoticiasVillabotijos_noticias_NN` x2, `draft_scene_visuals_procedures_NN` x2, `select_weird_news_procedures_NN` x2 | 18 | 1 |
+| LC_programas | yes | `sources_NN` x8 (root + 7 project folders) | 8 | 0 (catalog role) |
+| accounting | yes | 0 | 0 | 0 |
+| AI_stack_NN | yes | 0 | 0 | 0 |
+| arenzano | yes | 0 | 0 | 0 |
+| ave_del_paraiso_NN | yes | 0 (`spec_NN` x5 only under `specs/`) | 0 | 0 |
+| educatioNN | yes | 0 | 0 | 0 |
+| eventovery | yes | 0 | 0 | 0 |
+| iNNbox_NN | yes | 0 | 0 | 0 |
+| iNNtrevistas | yes | 0 | 0 | 0 |
+| lucascervera | yes | 0 | 0 | 0 |
+
+`transcriptions_NN` and `Electricidad_NN` (named in the 2026-10-28 entry) were not found under
+`_NN`. Reading: collisions concentrate in the one hierarchical domaiNN, and they are exactly the
+per-scope copies (one procedure per series, one `spec_NN` per series) that the scope cascade is
+designed to support. Flat domaiNNs have none.
+
+### 3. Options
+
+**A. Path-qualified only when needed.** One pure index in nn-core over the name-level namespace
+(not `isModelCandidate`, because `read_knowledge` also reads procedures and catalogs):
+`resolveModelId(index, arg) -> { ok, path } | { code: 'AMBIGUOUS_MODEL_ID', candidates } |
+{ code: 'MODEL_NOT_FOUND' }`. An argument containing `/` is a domain-relative path (`.md` and
+`_NN` optional, matching today's candidate list); otherwise it is a stem matched against every
+file; more than one hit is an error with all candidates, never first-wins. `collectModels`
+emits the bare stem when unique and the path form when the stem collides.
+
+| Site | Change |
+|---|---|
+| `findKnowledgeFile` | rewritten on the index; recursive first-wins walk and `domain*` prefix heuristic deleted |
+| 16 call sites / 8 tools | map `AMBIGUOUS_MODEL_ID` to a structured tool error with `candidates` |
+| `collectModels` / `listKnowledge` | two passes (index, then id form per entry) |
+| Changeset targets | `modelIdOfTarget` already splits at `@`; paths contain none. `MODEL_EXISTS` / `MODEL_NOT_FOUND` go through the index |
+| `findStemCollisions` | kept as the index's collision view; `check_domain` reports collisions as `info` (resolvable), not `warning` |
+| Console | unchanged in this item (see risks) |
+
+Persisted data: manifest entries, lineage, citations and `[[...]]` untouched. Changesets that
+name a colliding bare stem now fail loudly instead of hitting an arbitrary file; no real
+changeset contents were read in this spike; the colliding files are procedures, catalogs and
+`spec_NN`, which changesets do not normally target, so exposure is expected to be nil (verify in
+L2.4.7 with a read-only scan of `changes/` targets on copies). Zero renames. Agents keep passing stems; only an
+ambiguity costs one retry with a candidate path. Rollback: revert the PRs; nothing was written
+to any domaiNN. Weakness: a bare id stops resolving the day a second file with the same stem
+appears (the error names both, so it is visible, not silent). Estimate: ~550 lines in 2-3 PRs.
+
+**B. Always path-qualified.** Every id is the domain-relative path. Same index, but bare stems
+are rejected. Every listing, tool argument, changeset target and the skill prose change.
+Persisted changesets in five real domaiNNs (video_NN, LC_programas, iNNbox_NN, accounting,
+lucascervera: ~100 `changes/` files) carry bare-stem targets; under the no-backwards-compat rule
+they stop resolving, so those domaiNNs migrate via new domaiNN + import-as-source. Agent cost
+rises on every call (longer ids), and a folder move changes the id (moves happen: `.moves_backup`
+in video_NN). Rollback: code revert is clean, but any domaiNN already migrated stays migrated.
+Estimate: ~950 lines in 3 PRs plus data migration.
+
+**C. Global stems, enforced unique.** `check_domain` turns name-level collisions into errors;
+a `rename_model` tool renames the file and rewrites its manifest `path::` (the only persisted
+stem-dependent data is changeset targets). Real cost: 12 renames in video_NN and 8 in
+LC_programas (name-level), every scope marker needs a unique `<scope>_scope_NN.md` stem, and per-series
+procedure copies need distinct names. That last point contradicts this change's own design: a
+nearer-scope fork or shadow of a procedure is, by definition, a same-id document in another
+scope (`fork_of`, `UNDECLARED_SHADOW`, `procedureIdOf` from the filename). C makes the cascade
+fight the naming rule. Rollback: the code reverts, the renames do not. Estimate: ~450 lines
+plus 20 data renames.
+
+| Option | Renames | Persisted data touched | Agent cost | Fits scope cascade | ~Lines |
+|---|---|---|---|---|---|
+| A | 0 | none | unchanged; retry on ambiguity | yes | 550 |
+| B | 0 | ~100 changeset files (migration) | every call | yes | 950 + migration |
+| C | 20 | renamed files + manifests | unchanged | no (forks need same id) | 450 + renames |
+
+### 4. Recommendation
+
+Choose A. It is the only option that fixes the actual defect (the first-wins resolver in
+`spec.ts:152-209`) without renaming or migrating data, and the inventory shows that the
+persisted surfaces (manifest, lineage, citations, `[[...]]`) are already path- or title-keyed, so
+the id change stays inside the resolver and the tool error contract. It also matches the module
+rule "never guess": an ambiguous stem is an error with candidates, like `AMBIGUOUS_PARENT_ELEMENT`.
+B buys stable ids at the cost of every agent call and a data migration for a problem that exists
+in one domaiNN. C contradicts same-id forks across scopes. The `<scope>_scope_NN.md` unique-stem
+convention can be dropped under A (a marker named `scope_NN.md` in each scope becomes legal).
+
+Risks to carry into L2.4.3+: (1) the console id (`normalizeModelId`) is already path-based but
+strips the `kNNowledge/` prefix and `_NN`, so console and MCP ids still differ after A; aligning
+them is a separate decision. (2) The index scans the whole domaiNN per call, the cost the
+recursive walk already pays; cache per call, not per process. (3) Case: stems are compared
+case-insensitively by the walk today; the index must keep that and report `Foo_NN` vs `foo_NN`
+as a collision (deferred item from the 2026-10-29 review).
+
+**Q13 (for the maintainer):** "Model ids: do we adopt option A, where a bare filename stem stays
+valid while it is unique in the domaiNN, a domain-relative path (`series/innteresante/spec_NN`)
+is always accepted, and a stem shared by two or more documents is an `AMBIGUOUS_MODEL_ID` error
+that lists every candidate path (no renames, no data migration, the first-wins recursive lookup
+is deleted)? Or B (path always required, ~100 persisted changesets migrate) or C (unique stems
+enforced, 20 renames, same-id procedure forks across scopes become illegal)?"
+
+## Procedure Identity (alignment with `2026-10-27-console-procedure-view`, 2026-10-29)
+
+Two sessions found the same root problem from opposite ends. This section merges both findings
+so neither is lost. It is the input for lot L2.5 and question Q15 in `tasks.md`.
+
+### Finding 1: which FILES are procedure documents (this change, L2.3b review)
+
+Three loaders apply three different file rules:
+
+| Loader | Rule | Site |
+|---|---|---|
+| Scope `procedures/` (cascade) | stem ends in `_procedures` (`*_procedures_NN.md`) | `nn-core/src/scope/fs-procedures.ts` |
+| bluepriNNt floor | any non-sidecar `_NN.md` in the package `procedures/` | `nn-core` `loadDirProcedures`, `nn-mcp/src/tools/floor-procedures.ts` |
+| Transitive discovery (unscoped listing) | any `*.md` under `procedures/` | `nn-mcp/src/tools/spec.ts` `discoverTransitiveAssets` |
+
+Repository evidence (tracked `_NN.md` files, 2026-10-29): 49 documents live in a `procedures/`
+folder, but only 30 of them follow `*_procedures_NN.md`. The other 19 are mostly bluepriNNt package
+procedures such as `apply_feedback_NN.md`. Another 8 files named `*procedures_NN.md` live outside any
+`procedures/` folder; they are catalogs such as `use-cases/*/procedures_NN.md` and
+`_samples_nn/procedures_NN.md`. A package procedure is therefore visible to the floor loader and to
+transitive discovery, but it would be invisible if the same document were placed in a scope folder.
+
+### Finding 2: what INSIDE a document is "the procedure" (session "Funcionamiento vista de procedimientos")
+
+Three things are each treated as "the procedure":
+
+| Consumer | Identity |
+|---|---|
+| Cascade (this change) | The FILE (`procedureIdOf`), with `slots`, `fills` and `fork_of` in frontmatter |
+| Procedures bluepriNNt catalog | A `## NN Procedure` element linked to the executable model by `procedure_model::` (a document path) |
+| Console stepper | Each root `Work` (a `Work` element with no `parent`) |
+
+The corpus mixes all three shapes: step-only documents (0 `Procedure`, 8-9 `Work`), catalog-only
+documents (1-2 `Procedure`, 0 `Work`) and at least one mixed document
+(`reconcile_artifact_feedback`: 1 `Procedure`, 8 `Work`). Consequences:
+
+- `scripts/export-console.mjs` (~1100) keeps the first procedure id it sees and drops the rest
+  silently. The `procedure-execution` delta of this change forbids that ("No silent drop").
+- Decision D5 of `console-procedure-view` turns `procedure_model` into a relation to the root
+  `Work`, which is element identity. Applied as written, it adds a fourth way to link a procedure.
+- Slots in this change name their step with `step: "<Work name>"`, a join by name string, the same
+  fragile join `console-procedure-view` is trying to remove.
+- The console is not scope-aware. With the cascade, the right question is "which procedures apply
+  here": selected, shadowed, slot fills and stale forks. That is exactly what
+  `list_blueprint_procedures({ path })` returns since L2.3b.
+
+### Proposed model (adopted by Q15, 2026-10-29)
+
+- One document = one procedure. Identity = the document, as in the cascade. One file rule for every
+  loader. The catalog fields (`summary`, `executed_by`, `inputs_required`, `outputs_expected`) and
+  `slots`/`fork_of` live in that document.
+- `Work` elements are steps only. Order comes from `next::`; branches use `next:: [yes=A, no=B]`.
+- Slots reference their step by element id, not by name.
+- The hand-written catalog becomes a derived view (the deferred `aggregate` operator), so catalog
+  and executable cannot drift.
+- The console renders the scoped listing (`resolveProcedures` for the current scope) plus its
+  diagnostics. It does not rebuild procedures from loose elements, so there is one source of truth
+  for D2/D8-style defects.
+
+### Coordination with `console-procedure-view`
+
+- Independent of this change, ship now: issue #360 (the stepper drops leading steps) and decisions
+  D1-D4, D7, D8 and D10 of that change.
+- Hold until Q15 is answered: D5 (catalog-to-execution link), D6 (summary card in the tab) and D9
+  (scaffolder guidance), because they encode procedure identity.
+- Constraint: the procedures bluepriNNt spec is write-once per version. Any change to the
+  `Procedure`/`Work` shape is a new bluepriNNt version (`template_version` bump, tag and repin, see
+  the release memory). It is not an edit to the published file.
+
+### 2026-10-29 (maintainer decision: Q13, Option A adopted)
+
+The maintainer chose Option A for model id resolution:
+- A bare filename stem is valid while unique across the domaiNN.
+- A domain-relative path (`series/innteresante/spec_NN`) is always accepted.
+- A stem shared by two or more documents is an `AMBIGUOUS_MODEL_ID` error listing candidate paths.
+- The recursive first-wins lookup walk and the `domain*` prefix heuristic are deleted.
+- 0 file renames, 0 data migrations.
+
+## Open Questions
+
+- [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.
+- [x] ~~Adoption B edits the `projects` package and needs a `template_version` bump and repin.~~ Moot: `projects` is no longer an adoption target (2026-10-28 LC_programas entry).
+- [x] How does an element scope's `isolate` and marker syntax look (heading flag vs `key::`)? Resolved 2026-10-28 (maintainer, Q10): frontmatter `scope_elements` plus an `isolate::` element field.
+- [x] Q13 Model-id strategy: resolved 2026-10-29 (maintainer): Option A.
+- [ ] Q11 and Q14 in `tasks.md` (LC_programas data shape, procedure composition) are tracked there.

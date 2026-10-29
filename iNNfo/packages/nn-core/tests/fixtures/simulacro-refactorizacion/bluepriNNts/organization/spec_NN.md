@@ -10,10 +10,10 @@ title: "Organization App"
 procedures:
   - id: "audit-skill-gaps"
     name: "Audit Skill Gaps"
-    path: "procedures/audit_skill_gaps_NN.md"
+    path: "procedures/audit_skill_gaps_procedures_NN.md"
   - id: "export-team-directory"
     name: "Export Team Directory"
-    path: "procedures/export_team_directory_NN.md"
+    path: "procedures/export_team_directory_procedures_NN.md"
 assets:
   - id: "org-chart-layout"
     name: "Organization Chart HTML Layout"
