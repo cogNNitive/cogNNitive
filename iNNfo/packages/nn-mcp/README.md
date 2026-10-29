@@ -22,6 +22,8 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/nn-core` for the `cogN
 - **`query_units`**: Queries atomic knowledge units and citations across the domain.
 - **`cognitivize`**: Creates or refreshes the sidecar of one raw markdown, CSV, or JSON file in place; binaries return `requires-cli`.
 - **`resolve_sources`**: Resolves raw source provenance links and citations.
+- **`resolve_effective`**: Read-only. The effective value of a key at a document, or at one scope element of it (`target: { concept, slug }`), folded over the scope chain with `override`, `union` or `none`; the bluepriNNt `defaults/` document is the floor. Returns `{ present, value, winner, trace }` or a structured error.
+- **`explain`**: Read-only. Same inputs as `resolve_effective`; returns the same trace plus the chain of scopes it was computed over.
 
 ### Blueprint Package & Discovery Tools
 
