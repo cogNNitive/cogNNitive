@@ -158,17 +158,31 @@ nested subtree is not absorbed into the outer manifest.
 - WHEN the outer domaiNN's models are discovered
 - THEN no model under `outer/vendor/inner/` is listed in the outer manifest
 
-### Requirement: Model Id Collision Is An Error
+### Requirement: Model Id Collision Resolves via Domain-Relative Path (Option A)
 
-Model ids are filename stems and are global to a domaiNN, so when two documents in different scopes of one domaiNN resolve to the same model id, scope discovery MUST report an error that names the id and both document paths. It MUST NOT silently choose one, and it MUST NOT qualify the id with a scope.
+Resolution of a colliding model id across scopes MUST accept domain-relative paths, and bare stem lookup of a colliding model id MUST report an AMBIGUOUS_MODEL_ID error naming every candidate path.
 
-#### Scenario: Sibling scopes share a stem
+- An unambiguous domain-relative path (e.g. `series/alpha/status_01`) MUST always resolve to the target document.
+- Resolving the bare stem MUST produce an `AMBIGUOUS_MODEL_ID` error listing candidate paths, and MUST NOT silently choose one (first-wins walk deleted).
+- Discoveries (`list_knowledge`) emit the bare stem when unique, and the domain-relative path when colliding.
 
-- GIVEN `portfolio/programs/alpha/status_01.md` and `portfolio/programs/beta/status_01.md`
-- WHEN the domaiNN's scopes and models are discovered
-- THEN one error is reported naming id `status_01` and both paths
+#### Scenario: Sibling scopes share a stem and bare lookup is an error
+
+- GIVEN `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
+- WHEN resolving bare model id `status_01`
+- THEN an `AMBIGUOUS_MODEL_ID` error is returned naming id `status_01` and candidates `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
+
+#### Scenario: Sibling scopes share a stem and domain-relative path resolves
+
+- GIVEN `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
+- WHEN resolving `portfolio/programs/alpha/status_01`
+- THEN resolution succeeds and returns `portfolio/programs/alpha/status_01_NN.md`
 
 #### Scenario: Same stem in different domaiNNs is fine
+
+- GIVEN `outer/status_01.md` and `outer/vendor/inner/status_01.md`, where `inner` has its own `domaiNN_NN.md`
+- WHEN each domaiNN is discovered
+- THEN no collision is reported
 
 - GIVEN `outer/status_01.md` and `outer/vendor/inner/status_01.md`, where `inner` has its own `domaiNN_NN.md`
 - WHEN each domaiNN is discovered

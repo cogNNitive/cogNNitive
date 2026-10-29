@@ -37,7 +37,7 @@ import type {
   ChangeStatus,
   BumpLevel,
 } from '@cognnitive/nn-core'
-import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId } from './spec.js'
+import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, AmbiguousModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 
@@ -513,7 +513,13 @@ export async function executeChangesetApply(
       const recordedModels = csDoc.frontmatter.models ?? {}
       let allMatch = Object.keys(recordedModels).length > 0
       for (const [modelSlug, transition] of Object.entries(recordedModels)) {
-        const modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        let modelFile: string | null = null
+        try {
+          modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        } catch {
+          allMatch = false
+          break
+        }
         if (!modelFile) {
           allMatch = false
           break
@@ -673,7 +679,14 @@ export async function executeChangesetApply(
     for (const change of csDoc.changes) {
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
-      if (await findKnowledgeFile(rootDir, change.target)) {
+      let exists = false
+      try {
+        exists = Boolean(await findKnowledgeFile(rootDir, change.target))
+      } catch (err) {
+        if (err instanceof AmbiguousModelIdError) exists = true
+        else throw err
+      }
+      if (exists) {
         existingAddModelIds.add(key)
         blockedChanges.set(change.id, {
           code: 'MODEL_EXISTS',
@@ -778,7 +791,22 @@ export async function executeChangesetApply(
       }
 
       if (!loadedModels.has(modelSlug.toLowerCase())) {
-        const modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        let modelFile: string | null = null
+        try {
+          modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        } catch (err) {
+          if (err instanceof AmbiguousModelIdError) {
+            return {
+              success: false,
+              changesetPath: relChangesetPath,
+              status: 'rejected',
+              models: {},
+              appliedCount: 0,
+              errors: [{ path: change.target, message: err.message }],
+            }
+          }
+          throw err
+        }
         if (!modelFile) {
           return {
             success: false,
@@ -1473,7 +1501,15 @@ export async function applyChange(
   const opArgs = args || {}
 
   if (op === 'bump_version') {
-    const filePath = await findKnowledgeFile(rootDir, id)
+    let filePath: string | null = null
+    try {
+      filePath = await findKnowledgeFile(rootDir, id)
+    } catch (err) {
+      if (err instanceof AmbiguousModelIdError) {
+        return { success: false, errors: [{ path: '', message: err.message }] }
+      }
+      throw err
+    }
     if (!filePath) {
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }
@@ -1509,7 +1545,15 @@ export async function applyChange(
   }
 
   if (op === 'generate_index') {
-    const filePath = await findKnowledgeFile(rootDir, id)
+    let filePath: string | null = null
+    try {
+      filePath = await findKnowledgeFile(rootDir, id)
+    } catch (err) {
+      if (err instanceof AmbiguousModelIdError) {
+        return { success: false, errors: [{ path: '', message: err.message }] }
+      }
+      throw err
+    }
     if (!filePath) {
       return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
     }

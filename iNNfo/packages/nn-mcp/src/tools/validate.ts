@@ -40,7 +40,7 @@ import type {
   BaselineEntry,
   BaselineDiff,
 } from '@cognnitive/nn-core'
-import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec } from './spec.js'
+import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, AmbiguousModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
 import { loadKnowledge } from './knowledge-io.js'
@@ -528,7 +528,23 @@ export async function validateKnowledge(
   if (content) {
     model = parseKnowledge(content)
   } else if (id) {
-    const filePath = await findKnowledgeFile(rootDir, id)
+    let filePath: string | null = null
+    try {
+      filePath = await findKnowledgeFile(rootDir, id)
+    } catch (err) {
+      if (err instanceof AmbiguousModelIdError) {
+        return {
+          valid: false,
+          errors: [{ path: '', message: err.message, severity: 'error' }],
+          warnings: [],
+          suppressedCount: 0,
+          staleEntries: [],
+          backlog: null,
+          summary: null,
+        }
+      }
+      throw err
+    }
     if (!filePath) {
       return {
         valid: false,

@@ -1,6 +1,8 @@
 export { findDomainRoot, isDomainRoot } from './root.js'
 export { findStemCollisions, stemCollisionMessage } from './stem-collision.js'
 export type { StemCollision } from './stem-collision.js'
+export { buildModelIndex, resolveModelId } from './model-index.js'
+export type { ModelIndex, ModelIndexEntry, ModelResolution } from './model-index.js'
 export { buildScopeChain } from './chain.js'
 export type { DirProbe } from './chain.js'
 export { findScopeChain, findInChain } from './fs-chain.js'

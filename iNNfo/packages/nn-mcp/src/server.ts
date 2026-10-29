@@ -34,6 +34,7 @@ import {
   hydrateBlueprint,
   listBlueprintProcedures,
   listBlueprintSkills,
+  AmbiguousModelIdError,
 } from './tools/spec.js'
 import {
   validateKnowledge,
@@ -74,7 +75,7 @@ export const ROOT_DIR: string = resolveRootDir(process.cwd(), process.env)
 declare const __INNFO_MCP_VERSION__: string
 
 export const server = new Server(
-  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.11.0' },
+  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.32.0' },
   { capabilities: { tools: {} } },
 )
 
@@ -824,6 +825,27 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
     if (!handler) return errorResult(`Unknown tool: ${name}`)
     return await handler(args)
   } catch (err) {
+    if (err instanceof AmbiguousModelIdError) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                ok: false,
+                code: 'AMBIGUOUS_MODEL_ID',
+                id: err.id,
+                candidates: err.candidates,
+                message: err.message,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        isError: true,
+      }
+    }
     return errorResult(String(err))
   }
 }

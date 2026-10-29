@@ -529,9 +529,19 @@ documents (1-2 `Procedure`, 0 `Work`) and at least one mixed document
   `Procedure`/`Work` shape is a new bluepriNNt version (`template_version` bump, tag and repin, see
   the release memory). It is not an edit to the published file.
 
+### 2026-10-29 (maintainer decision: Q13, Option A adopted)
+
+The maintainer chose Option A for model id resolution:
+- A bare filename stem is valid while unique across the domaiNN.
+- A domain-relative path (`series/innteresante/spec_NN`) is always accepted.
+- A stem shared by two or more documents is an `AMBIGUOUS_MODEL_ID` error listing candidate paths.
+- The recursive first-wins lookup walk and the `domain*` prefix heuristic are deleted.
+- 0 file renames, 0 data migrations.
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.
 - [x] ~~Adoption B edits the `projects` package and needs a `template_version` bump and repin.~~ Moot: `projects` is no longer an adoption target (2026-10-28 LC_programas entry).
 - [x] How does an element scope's `isolate` and marker syntax look (heading flag vs `key::`)? Resolved 2026-10-28 (maintainer, Q10): frontmatter `scope_elements` plus an `isolate::` element field.
-- [ ] Q11 to Q14 in `tasks.md` (LC_programas data shape, drift exposure, model-id strategy, procedure composition) are tracked there.
+- [x] Q13 Model-id strategy: resolved 2026-10-29 (maintainer): Option A.
+- [ ] Q11 and Q14 in `tasks.md` (LC_programas data shape, procedure composition) are tracked there.

@@ -12,6 +12,7 @@ import {
   listBlueprintSkills,
   findKnowledgeFile,
   deriveNameFromUrl,
+  AmbiguousModelIdError,
 } from './spec'
 import { validateKnowledge, validateBlueprint } from './mutate'
 
@@ -537,6 +538,26 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     const result = await validateBlueprint(rootDir, 'business_V_0-2-0')
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
+  })
+
+  it('Option A: findKnowledgeFile throws AmbiguousModelIdError on colliding stems and resolves path', async () => {
+    const scope1 = join(rootDir, 'series', 'alpha')
+    const scope2 = join(rootDir, 'series', 'beta')
+    await mkdir(scope1, { recursive: true })
+    await mkdir(scope2, { recursive: true })
+    await writeFile(join(scope1, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
+    await writeFile(join(scope2, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
+
+    // Bare stem collides -> throws AmbiguousModelIdError listing candidates
+    await expect(findKnowledgeFile(rootDir, 'script_NN')).rejects.toThrow(AmbiguousModelIdError)
+    await expect(findKnowledgeFile(rootDir, 'script')).rejects.toThrow(AmbiguousModelIdError)
+
+    // Path-qualified resolves cleanly
+    const p1 = await findKnowledgeFile(rootDir, 'series/alpha/script_NN')
+    expect(p1).toBe(join(scope1, 'script_NN.md'))
+
+    const p2 = await findKnowledgeFile(rootDir, 'series/beta/script')
+    expect(p2).toBe(join(scope2, 'script_NN.md'))
   })
 
   // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named

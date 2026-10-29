@@ -10,7 +10,7 @@
  * the self-describing parent chain up to level 0, caching locally.
  */
 
-import { join, basename, dirname, resolve } from 'node:path'
+import { join, basename, dirname, resolve, relative } from 'node:path'
 import { readFile, stat } from 'node:fs/promises'
 import {
   getBlueprint as coreGetBlueprint,
@@ -23,6 +23,10 @@ import {
   isProcedureDocument,
   procedureIdOf,
   resolveProcedures,
+  buildModelIndex,
+  resolveModelId,
+  isDomainRoot,
+  type ModelIndex,
 } from '@cognnitive/nn-core'
 import { listScopedProcedures } from './scoped-procedures.js'
 import type { ScopedProceduresResult } from './scoped-procedures.js'
@@ -85,135 +89,71 @@ export { normalizeId }
  * Searches the root directory, `kNNowledge/` and the conventional `kNNowledge/` subdirectory.
  * Supports nested relative paths (e.g. `subsystems/auth/tokens_NN.md`).
  */
+export class AmbiguousModelIdError extends Error {
+  readonly code = 'AMBIGUOUS_MODEL_ID'
+  readonly id: string
+  readonly candidates: string[]
+  constructor(id: string, candidates: string[]) {
+    super(`Model id "${id}" is ambiguous. Candidates: ${candidates.join(', ')}`)
+    this.name = 'AmbiguousModelIdError'
+    this.id = id
+    this.candidates = candidates
+  }
+}
+
+async function collectDomainFiles(
+  dir: string,
+  rootDir: string,
+  relPaths: string[],
+  opts?: { includeSpecs?: boolean },
+  depth = 0,
+): Promise<void> {
+  if (depth > 8) return
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    const nameLower = entry.name.toLowerCase()
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith('.')) continue
+      const skip = opts?.includeSpecs
+        ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
+        : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
+      if (skip.includes(nameLower)) continue
+      const child = join(dir, entry.name)
+      if (isDomainRoot(child)) continue
+
+      await collectDomainFiles(child, rootDir, relPaths, opts, depth + 1)
+      continue
+    }
+    if (!entry.isFile()) continue
+    if (entry.name.startsWith('.')) continue
+    const rel = relative(rootDir, join(dir, entry.name)).replace(/\\/g, '/')
+    relPaths.push(rel)
+  }
+}
+
+/**
+ * Locate a kNNowledge document on disk by id.
+ *
+ * Implements Option A of contextual-resolution L2.4:
+ * Resolves bare stems when unique across the domaiNN; accepts domain-relative paths;
+ * throws AmbiguousModelIdError when a bare stem collides across documents.
+ */
 export async function findKnowledgeFile(
   rootDir: string,
   id: string,
   opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
-  // `id` is an untrusted MCP tool argument: reject traversal, absolute and
   if (!isSafeRelativeId(id)) return null
-  const cleanId = normalizeId(id)
-  const searchDirs = [rootDir, join(rootDir, 'kNNowledge')]
-  if (opts?.includeSpecs) {
-    searchDirs.push(join(rootDir, 'specs'), join(rootDir, 'specs', 'bluepriNNts'))
+  const relPaths: string[] = []
+  await collectDomainFiles(rootDir, rootDir, relPaths, opts)
+  const index = buildModelIndex(relPaths)
+  const resolution = resolveModelId(index, id)
+  if (resolution.ok) {
+    return join(rootDir, resolution.path)
   }
-  for (const dir of searchDirs) {
-    const candidates = [
-      join(dir, `${cleanId}_NN.md`),
-      join(dir, `${cleanId}.md`),
-      join(dir, cleanId),
-      join(dir, id),
-      join(dir, `${id}.md`),
-      join(dir, `${id}_NN.md`),
-      join(dir, cleanId, 'spec_NN.md'),
-      join(dir, id, 'spec_NN.md'),
-    ].filter((fp) => isInsideRoot(rootDir, fp))
-    for (const fp of candidates) {
-      try {
-        const st = await stat(fp)
-        if (st.isFile()) return fp
-      } catch (err) {
-        // swallow deliberately: a candidate path may legitimately not exist.
-        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-          console.warn(`[spec] Failed to stat candidate ${fp}: ${err}`)
-        }
-      }
-    }
+  if (resolution.code === 'AMBIGUOUS_MODEL_ID') {
+    throw new AmbiguousModelIdError(id, [...resolution.candidates])
   }
-
-  if (
-    cleanId.toLowerCase().startsWith('domain') ||
-    cleanId.toLowerCase().startsWith('workspace') ||
-    id.toLowerCase().startsWith('domain') ||
-    id.toLowerCase().startsWith('workspace')
-  ) {
-    const { readdir } = await import('node:fs/promises')
-    for (const dir of searchDirs) {
-      try {
-        const files = await readdir(dir)
-        const wsFile = files.find(
-          (f) =>
-            (f.toLowerCase().startsWith('domain') || f.toLowerCase().startsWith('workspace')) &&
-            f.toLowerCase().endsWith('.md'),
-        )
-        if (wsFile) {
-          return join(dir, wsFile)
-        }
-      } catch (err) {
-        // swallow deliberately: a search dir may legitimately not exist.
-        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-          console.warn(`[spec] Failed to readdir ${dir}: ${err}`)
-        }
-      }
-    }
-  }
-
-  // Recursive fallback across subdirectories
-  const recursiveMatch = await recursiveFindModel(rootDir, cleanId, id, 0, opts)
-  if (recursiveMatch) return recursiveMatch
-
-  return null
-}
-
-async function recursiveFindModel(
-  dir: string,
-  cleanId: string,
-  rawId: string,
-  depth = 0,
-  opts?: { includeSpecs?: boolean },
-): Promise<string | null> {
-  if (depth > 8) return null
-  const { readdir } = await import('node:fs/promises')
-  let entries
-  try {
-    entries = await readdir(dir, { withFileTypes: true })
-  } catch (err) {
-    // swallow deliberately: a search dir may legitimately not exist.
-    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-      console.warn(`[spec] Failed to readdir ${dir}: ${err}`)
-    }
-    return null
-  }
-
-  const subdirs: string[] = []
-  const candidatesNames = new Set([
-    `${cleanId}_NN.md`.toLowerCase(),
-    `${cleanId}.md`.toLowerCase(),
-    `${cleanId}`.toLowerCase(),
-    `${rawId}`.toLowerCase(),
-    `${rawId}.md`.toLowerCase(),
-    `${rawId}_NN.md`.toLowerCase(),
-  ])
-
-  for (const entry of entries) {
-    const nameLower = entry.name.toLowerCase()
-    if (entry.isFile() && candidatesNames.has(nameLower)) {
-      return join(dir, entry.name)
-    }
-    if (opts?.includeSpecs && entry.isDirectory() && (nameLower === cleanId.toLowerCase() || nameLower === rawId.toLowerCase())) {
-      const specCandidate = join(dir, entry.name, 'spec_NN.md')
-      try {
-        await stat(specCandidate)
-        return specCandidate
-      } catch {
-        // not a spec_NN.md package
-      }
-    }
-    if (entry.isDirectory()) {
-      const skip = opts?.includeSpecs
-        ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
-        : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
-      if (!skip.includes(nameLower)) {
-        subdirs.push(join(dir, entry.name))
-      }
-    }
-  }
-
-  for (const subdir of subdirs) {
-    const found = await recursiveFindModel(subdir, cleanId, rawId, depth + 1, opts)
-    if (found) return found
-  }
-
   return null
 }
 
@@ -225,7 +165,12 @@ export async function readParentSpecUrl(
   rootDir: string,
   modelId: string,
 ): Promise<{ url: string; name: string } | null> {
-  const filePath = await findKnowledgeFile(rootDir, modelId)
+  let filePath: string | null = null
+  try {
+    filePath = await findKnowledgeFile(rootDir, modelId)
+  } catch {
+    return null
+  }
   if (!filePath) return null
   const content = await readFile(filePath, 'utf-8').catch(() => null)
   if (!content) return null
@@ -860,9 +805,14 @@ export async function discoverTransitiveAssets(
   }
 
   if (modelId) {
-    const filePath =
-      (await findKnowledgeFile(rootDir, modelId)) ??
-      (isLocalPath(modelId) ? toLocalFilePath(modelId, rootDir) : null)
+    let filePath: string | null = null
+    try {
+      filePath =
+        (await findKnowledgeFile(rootDir, modelId)) ??
+        (isLocalPath(modelId) ? toLocalFilePath(modelId, rootDir) : null)
+    } catch {
+      filePath = isLocalPath(modelId) ? toLocalFilePath(modelId, rootDir) : null
+    }
     if (filePath) {
       const content = await readFile(filePath, 'utf-8').catch(() => null)
       if (content) {

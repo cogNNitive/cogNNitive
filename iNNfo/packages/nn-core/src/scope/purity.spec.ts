@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
  * filesystem, clock or network. The `fs-*` files are the thin adapters, the only place
  * allowed to touch Node I/O. Guard it statically, the same way as the integrity modules.
  */
-const PURE_MODULES = ['./types.ts', './chain.ts', './stem-collision.ts', './resolve.ts', './procedures.ts', './elements.ts', './drift.ts', './json.ts']
+const PURE_MODULES = ['./types.ts', './chain.ts', './stem-collision.ts', './model-index.ts', './resolve.ts', './procedures.ts', './elements.ts', './drift.ts', './json.ts']
 
 /** The thin adapters: the only modules allowed to import `node:*` (this list keeps the split visible). */
 const FS_ADAPTERS = ['./fs-chain.ts', './fs-layers.ts', './fs-procedures.ts', './fs-elements.ts']
