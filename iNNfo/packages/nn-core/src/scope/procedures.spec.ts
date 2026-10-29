@@ -245,6 +245,44 @@ describe('forks and shadows', () => {
     const r = resolveProcedures(chain([{ ...filled(), procedures: [fork('V_0-1-0')] }]))
     expect(codes(r)).toEqual([])
   })
+
+  it('warns FORK_ORIGINAL_NOT_FOUND when the fork names a scope that holds no such original', () => {
+    const wrongScope = def('series', 'draft-visuals', [STYLE], {
+      forkOf: { procedure: 'draft-visuals', scope: 'elsewhere', version: 'V_0-2-0' },
+    })
+    const r = resolveProcedures(chain([root, { ...filled(), procedures: [wrongScope] }]))
+    const warning = r.diagnostics.find((d) => d.code === 'FORK_ORIGINAL_NOT_FOUND')
+    expect(warning).toMatchObject({ severity: 'warning', procedure: 'draft-visuals', scope: 'series' })
+    expect(warning?.detail).toContain('elsewhere')
+    expect(codes(r)).not.toContain('ORIGINAL_ADVANCED')
+  })
+
+  it('warns FORK_ORIGINAL_NOT_FOUND when the fork names another procedure than its own', () => {
+    const wrongProcedure = def('series', 'draft-visuals', [STYLE], {
+      forkOf: { procedure: 'other', scope: '', version: 'V_0-2-0' },
+    })
+    const r = resolveProcedures(chain([root, { ...filled(), procedures: [wrongProcedure] }]))
+    expect(codes(r)).toContain('FORK_ORIGINAL_NOT_FOUND')
+  })
+})
+
+describe('fills that name no procedure', () => {
+  it('reports UNKNOWN_FILL_PROCEDURE for a fill table whose procedure id is defined nowhere in the chain', () => {
+    const r = resolveProcedures(
+      chain([
+        node('', { procedures: [def('', 'known', [STYLE])] }),
+        node('s', { fills: { known: { style: 'x' }, typo: { style: 'y' } } }),
+      ]),
+    )
+    const unknown = r.diagnostics.filter((d) => d.code === 'UNKNOWN_FILL_PROCEDURE')
+    expect(unknown).toHaveLength(1)
+    expect(unknown[0]).toMatchObject({ severity: 'error', procedure: 'typo', scope: 's' })
+  })
+
+  it('does not report a fill for a procedure the blueprint floor defines', () => {
+    const r = resolveProcedures(chain([node('s', { fills: { kit: { style: 'y' } } })], floorNode([def('bluepriNNt:kit', 'kit', [STYLE])])))
+    expect(codes(r)).not.toContain('UNKNOWN_FILL_PROCEDURE')
+  })
 })
 
 describe('precedence', () => {

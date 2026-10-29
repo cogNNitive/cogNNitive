@@ -9,10 +9,13 @@ export interface ProcedureDiagnostic {
     | 'UNKNOWN_SLOT'
     | 'FILLER_KIND_MISMATCH'
     | 'UNKNOWN_FILLER_PROCEDURE'
+    | 'UNKNOWN_FILL_PROCEDURE'
     | 'UNDECLARED_SHADOW'
     | 'ORIGINAL_ADVANCED'
+    | 'FORK_ORIGINAL_NOT_FOUND'
     | 'INVALID_SLOT_DECL'
     | 'INVALID_FORK_RECORD'
+    | 'UNREADABLE_DOCUMENT'
   severity: 'error' | 'warning'
   procedure: string
   /** The scope the finding is about: the supplier of a bad filler, else the defining scope. */
@@ -104,6 +107,18 @@ export function resolveProcedures(
 
   const selectedIds = new Set(groups.keys())
   const fillSources = [...nearToFar].reverse()
+  for (const source of fillSources) {
+    for (const id of Object.keys(source.fills ?? {})) {
+      if (selectedIds.has(id)) continue
+      diagnostics.push({
+        code: 'UNKNOWN_FILL_PROCEDURE',
+        severity: 'error',
+        procedure: id,
+        scope: source.id,
+        detail: `Scope "${source.id}" fills procedure "${id}", which is not defined in its chain.`,
+      })
+    }
+  }
   const procedures = [...groups.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([id, defs]): EffectiveProcedure => {
@@ -122,9 +137,10 @@ function checkShadow(
   fromModel: boolean,
   diagnostics: ProcedureDiagnostic[],
 ): void {
-  if (fromModel || shadowed.length === 0) return
+  if (fromModel) return
   const fork = def.forkOf
   if (!fork) {
+    if (shadowed.length === 0) return
     diagnostics.push({
       code: 'UNDECLARED_SHADOW',
       severity: 'warning',
@@ -134,8 +150,21 @@ function checkShadow(
     })
     return
   }
-  const original = shadowed.find((s) => s.scope === fork.scope)
-  if (original && original.version !== fork.version) {
+  // Shadowed entries share the id of `def`, so a fork naming another procedure matches none.
+  const original = fork.procedure === def.id ? shadowed.find((s) => s.scope === fork.scope) : undefined
+  if (!original) {
+    // A fork whose original is simply not in the chain (nothing shadowed) is not an error.
+    if (fork.procedure === def.id && shadowed.length === 0) return
+    diagnostics.push({
+      code: 'FORK_ORIGINAL_NOT_FOUND',
+      severity: 'warning',
+      procedure: def.id,
+      scope: def.scope,
+      detail: `Fork "${def.id}" in "${def.scope}" names the original "${fork.procedure}" in "${fork.scope}", which is not among the procedures it replaces.`,
+    })
+    return
+  }
+  if (original.version !== fork.version) {
     diagnostics.push({
       code: 'ORIGINAL_ADVANCED',
       severity: 'warning',
