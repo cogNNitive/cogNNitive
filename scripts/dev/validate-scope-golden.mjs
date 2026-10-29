@@ -426,7 +426,9 @@ const floorDoc = { label: 'video-script', path: FLOOR_DOC };
 function load(path) {
   const found = core.findScopeChain(path);
   if (!found.ok) throw new Error(`no chain for ${path}: ${found.code}`);
-  const { loaded, diagnostics } = core.loadScopeProcedures(found.chain, core.loadChain(found.chain, { floorDoc }));
+  const base = core.loadChain(found.chain, { floorDoc });
+  if (!base.ok) throw new Error(`${base.code}: ${base.detail}`);
+  const { loaded, diagnostics } = core.loadScopeProcedures(found.chain, base.loaded);
   return { chain: found.chain, loaded, diagnostics };
 }
 const one = (loaded, key, strategy = 'override') => {

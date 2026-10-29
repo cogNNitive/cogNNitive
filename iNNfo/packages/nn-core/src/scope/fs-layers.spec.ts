@@ -23,6 +23,12 @@ function chainOf(path: string): ScopeChain {
   return result.chain
 }
 
+function loadOk(chain: ScopeChain, opts?: Parameters<typeof loadChain>[1]): LoadedChain {
+  const r = loadChain(chain, opts)
+  if (!r.ok) throw new Error(`${r.code}: ${r.detail}`)
+  return r.loaded
+}
+
 function valueOf(r: Resolution) {
   if (!r.ok) throw new Error(r.code)
   return r
@@ -32,7 +38,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   const p1 = () => chainOf(join(FIX, 'programs', 'alpha', 'projects', 'p1', 'risks_NN.md'))
 
   it('turns each link into a node holding the fields of the marker document', () => {
-    const { nodes } = loadChain(p1())
+    const { nodes } = loadOk(p1())
     expect(nodes.map((n) => [n.id, n.kind, n.doc, n.isolate])).toEqual([
       ['', 'root', 'portfolio_settings_NN.md', false],
       ['programs/alpha', 'scope', 'programs/alpha/alpha_NN.md', false],
@@ -49,14 +55,14 @@ describe('loadChain over the scoped-portfolio fixture', () => {
 
   it('carries the isolate flag of an isolated scope', () => {
     const cut = chainOf(join(FIX, 'programs', 'legacy', 'projects', 'old', 'old_NN.md'))
-    expect(loadChain(cut).nodes.map((n) => [n.id, n.isolate])).toEqual([
+    expect(loadOk(cut).nodes.map((n) => [n.id, n.isolate])).toEqual([
       ['programs/legacy', true],
       ['programs/legacy/projects/old', false],
     ])
   })
 
   it('injects the floor from the given blueprint defaults document, without a machine path', () => {
-    const { floor } = loadChain(p1(), { floorDoc: FLOOR })
+    const { floor } = loadOk(p1(), { floorDoc: FLOOR })
     expect(floor).toEqual({
       id: 'bluepriNNt:settings',
       kind: 'floor',
@@ -67,11 +73,11 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   })
 
   it('has no floor when none is injected', () => {
-    expect(loadChain(p1()).floor).toBeNull()
+    expect(loadOk(p1()).floor).toBeNull()
   })
 
   it('resolves the generic three-level fixture end to end', () => {
-    const loaded = loadChain(p1(), { floorDoc: FLOOR })
+    const loaded = loadOk(p1(), { floorDoc: FLOOR })
     const priority = valueOf(resolve(loaded, 'priority', 'override'))
     expect(priority.value).toBe('high')
     expect(priority.explain.winner).toEqual({
@@ -79,7 +85,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
       doc: 'programs/alpha/projects/p1/p1_NN.md',
     })
 
-    const alphaLoaded = loadChain(chainOf(join(FIX, 'programs', 'alpha', 'status_NN.md')), { floorDoc: FLOOR })
+    const alphaLoaded = loadOk(chainOf(join(FIX, 'programs', 'alpha', 'status_NN.md')), { floorDoc: FLOOR })
     const inherited = valueOf(resolve(alphaLoaded, 'priority', 'override'))
     expect(inherited.value).toBe('medium')
     expect(inherited.explain.winner).toEqual({ scope: '', doc: 'portfolio_settings_NN.md' })
@@ -88,7 +94,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   })
 
   it('does not inherit across an isolate: the floor answers instead of the portfolio', () => {
-    const legacy = loadChain(chainOf(join(FIX, 'programs', 'legacy', 'legacy_NN.md')), { floorDoc: FLOOR })
+    const legacy = loadOk(chainOf(join(FIX, 'programs', 'legacy', 'legacy_NN.md')), { floorDoc: FLOOR })
     const r = valueOf(resolve(legacy, 'priority', 'override'))
     expect(r.value).toBe('none')
     expect(r.explain.winner?.scope).toBe('bluepriNNt:settings')
@@ -96,7 +102,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   })
 
   it('unions the glossary across the chain with the nearer entry shadowing the farther', () => {
-    const loaded = loadChain(chainOf(join(FIX, 'programs', 'alpha', 'status_NN.md')), { floorDoc: FLOOR })
+    const loaded = loadOk(chainOf(join(FIX, 'programs', 'alpha', 'status_NN.md')), { floorDoc: FLOOR })
     const r = valueOf(resolve(loaded, 'glossary', 'union'))
     expect(r.value).toEqual([
       { name: 'floor', value: 'lowest layer' },
@@ -107,7 +113,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   })
 
   it('lets a consumer-appended node sort after the folder nodes and win', () => {
-    const loaded = loadChain(p1(), { floorDoc: FLOOR })
+    const loaded = loadOk(p1(), { floorDoc: FLOOR })
     const extended: LoadedChain = {
       ...loaded,
       nodes: [
@@ -125,7 +131,7 @@ describe('loadChain over the scoped-portfolio fixture', () => {
   })
 
   it('produces plain JSON nodes', () => {
-    const loaded = loadChain(p1(), { floorDoc: FLOOR })
+    const loaded = loadOk(p1(), { floorDoc: FLOOR })
     expect(JSON.parse(JSON.stringify(loaded))).toStrictEqual(loaded)
   })
 })
@@ -150,7 +156,7 @@ describe('loadChain over a temporary tree', () => {
 
   it('gives a root without a values document a node with no values', () => {
     write('acme/domaiNN_NN.md', '# acme\n')
-    const { nodes } = loadChain(chainOf(write('acme/a_NN.md', '# NN Note\n')))
+    const { nodes } = loadOk(chainOf(write('acme/a_NN.md', '# NN Note\n')))
     expect(nodes).toEqual([{ id: '', kind: 'root', doc: null, isolate: false, values: {} }])
   })
 
@@ -162,14 +168,42 @@ describe('loadChain over a temporary tree', () => {
         '\n# NN index\n\n* [[First]]\n\n# NN Settings\n\n## NN Settings: First\nowner:: one\n\n## NN Settings: Second\nowner:: two\nextra:: yes\n',
       ),
     )
-    const { nodes } = loadChain(chainOf(write('acme/g/x_NN.md', '# NN Note\n')))
+    const { nodes } = loadOk(chainOf(write('acme/g/x_NN.md', '# NN Note\n')))
     expect(nodes[1].values).toEqual({ owner: 'one' })
   })
 
   it('gives a marker with no concept element a node with no values', () => {
     write('acme/domaiNN_NN.md', '# acme\n')
     write('acme/g/g_NN.md', marker('\nJust prose, no element.\n'))
-    const { nodes } = loadChain(chainOf(write('acme/g/x_NN.md', '# NN Note\n')))
+    const { nodes } = loadOk(chainOf(write('acme/g/x_NN.md', '# NN Note\n')))
     expect(nodes[1]).toEqual({ id: 'g', kind: 'scope', doc: 'g/g_NN.md', isolate: false, values: {} })
+  })
+
+  it('reads a `__proto__` procedure key in fills as plain data', () => {
+    write('acme/domaiNN_NN.md', '# acme\n')
+    write('acme/g/g_NN.md', '---\nlevel: 3\nscope: true\nfills:\n  __proto__:\n    slot: x\n  real:\n    slot: y\n---\n\nprose\n')
+    const { nodes } = loadOk(chainOf(write('acme/g/x_NN.md', '# NN Note\n')))
+    const fills = nodes[1].fills ?? {}
+    expect(Object.keys(fills).sort()).toEqual(['__proto__', 'real'])
+    expect(Object.getPrototypeOf(fills)).toBe(Object.prototype)
+  })
+
+  it('returns UNREADABLE_DOCUMENT, not an exception, for a values document that cannot be read', () => {
+    write('acme/domaiNN_NN.md', '# acme\n')
+    const chain: ScopeChain = {
+      root: join(base, 'acme'),
+      links: [{ dir: '', valuesDoc: 'gone_NN.md', kind: 'root', isolate: false }],
+      cutAt: null,
+    }
+    const r = loadChain(chain)
+    expect(r).toMatchObject({ ok: false, code: 'UNREADABLE_DOCUMENT', path: 'gone_NN.md' })
+  })
+
+  it('returns UNREADABLE_DOCUMENT for a floor document that cannot be read', () => {
+    write('acme/domaiNN_NN.md', '# acme\n')
+    const r = loadChain(chainOf(write('acme/a_NN.md', '# NN Note\n')), {
+      floorDoc: { label: 'kit', path: join(base, 'nope_NN.md') },
+    })
+    expect(r).toMatchObject({ ok: false, code: 'UNREADABLE_DOCUMENT', path: 'nope_NN.md' })
   })
 })

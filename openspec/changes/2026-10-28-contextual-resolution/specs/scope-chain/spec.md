@@ -94,6 +94,19 @@ reported as an error naming both files.
 - WHEN `findScopeChain` is called with a path in that directory
 - THEN an error is returned naming both documents
 
+#### Scenario: Document on the way cannot be read or parsed
+
+- GIVEN a `_NN.md` document in a directory of the ancestry that cannot be read, or whose frontmatter does not parse
+- WHEN `findScopeChain` is called from below that directory
+- THEN the result is the error `UNREADABLE_DOCUMENT` or `MALFORMED_FRONTMATTER` naming the document (domain-relative)
+- AND no chain is returned, because the document might have declared a scope or an `isolate`
+
+#### Scenario: Named lookup cannot leave the chain
+
+- GIVEN a chain and a lookup path that is absolute, or that resolves outside the chain's outermost link from any of its scopes
+- WHEN `findInChain` is called with it
+- THEN the result is the error `PATH_OUTSIDE_SCOPE` and nothing is looked up
+
 ### Requirement: Single-Parent Containment
 
 Every scope except the root MUST have exactly one parent: the nearest enclosing scope by
@@ -237,6 +250,13 @@ reads the filesystem).
 - WHEN its node is built
 - THEN `colour` is a value and neither `slug` nor `isolate` is
 
+#### Scenario: Order and case of concepts
+
+- GIVEN a document whose concept sections interleave (`Alpha`, `Beta`, `Alpha`, `Beta`)
+- WHEN the element chain of the first `Beta` is requested
+- THEN its default parent is the nearest preceding `Alpha` in document order, and the elements are listed in document order
+- AND a target concept matches the declared one case-insensitively, and the nodes carry the declared spelling
+
 #### Scenario: Unlisted concept is not a node
 
 - GIVEN a `Layer` sub-element under a `B` element and `Layer` not listed in `scope_elements`
@@ -254,6 +274,12 @@ reads the filesystem).
 - GIVEN a target `{ concept, slug }` that matches no element, or matches two elements of one concept
 - WHEN the chain is requested
 - THEN the result is `UNKNOWN_ELEMENT` or `AMBIGUOUS_ELEMENT` respectively
+
+#### Scenario: Folder document of an element chain cannot be used
+
+- GIVEN a document whose folder chain holds an unreadable or malformed `_NN.md`, or a values document that cannot be read
+- WHEN any element chain, or the folder nodes alone, are requested
+- THEN the result is a structured error (`UNREADABLE_DOCUMENT` or `MALFORMED_FRONTMATTER`) naming the document, never an exception
 
 #### Scenario: Element nodes round-trip as JSON
 

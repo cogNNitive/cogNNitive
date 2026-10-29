@@ -146,6 +146,13 @@ describe('findScopeChain over a temporary tree', () => {
     expect(chain.links[1].isolate).toBe(false)
   })
 
+  it('returns MALFORMED_FRONTMATTER naming the document instead of dropping a scope', () => {
+    write('acme/domaiNN_NN.md', '# acme\n')
+    write('acme/prog/p_NN.md', '---\nscope: [unclosed\nisolate: true\n---\n# NN Settings\n')
+    const result = findScopeChain(write('acme/prog/a_NN.md', '# NN Note\n'))
+    expect(result).toMatchObject({ ok: false, code: 'MALFORMED_FRONTMATTER', path: 'prog/p_NN.md' })
+  })
+
   it('does not take domaiNN_NN.md itself for a marker', () => {
     write('acme/domaiNN_NN.md', marker('scope: true\n'))
     const chain = chainOf(write('acme/a_NN.md', '# NN Note\n'))
@@ -153,17 +160,39 @@ describe('findScopeChain over a temporary tree', () => {
   })
 })
 
+function foundIn(chain: ScopeChain, rel: string) {
+  const r = findInChain(chain, { rel })
+  if (!r.ok) throw new Error(`${r.code}: ${r.detail}`)
+  return r
+}
+
 describe('findInChain', () => {
   const p1 = () => chainOf(join(FIX, 'programs', 'alpha', 'projects', 'p1', 'risks_NN.md'))
 
+  it('rejects a relative path that climbs out of the domaiNN with PATH_OUTSIDE_SCOPE', () => {
+    const r = findInChain(p1(), { rel: '../../../../../outside_NN.md' })
+    expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+  })
+
+  it('rejects an absolute path with PATH_OUTSIDE_SCOPE', () => {
+    const r = findInChain(p1(), { rel: join(FIX, 'portfolio_settings_NN.md') })
+    expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+  })
+
+  it('rejects a path that climbs above an isolated scope', () => {
+    const cut = chainOf(join(FIX, 'programs', 'legacy', 'projects', 'old', 'old_NN.md'))
+    const r = findInChain(cut, { rel: '../../../../portfolio_settings_NN.md' })
+    expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+  })
+
   it('finds a document in the nearest scope that holds it, searching nearest first', () => {
-    const found = findInChain(p1(), { rel: 'p1_NN.md' })
+    const found = foundIn(p1(), 'p1_NN.md')
     expect(found.path).toBe(join(FIX, 'programs', 'alpha', 'projects', 'p1', 'p1_NN.md'))
     expect(found.searched).toEqual([join(FIX, 'programs', 'alpha', 'projects', 'p1', 'p1_NN.md')])
   })
 
   it('climbs the chain to the root when nearer scopes lack the document', () => {
-    const found = findInChain(p1(), { rel: 'portfolio_settings_NN.md' })
+    const found = foundIn(p1(), 'portfolio_settings_NN.md')
     expect(found.path).toBe(join(FIX, 'portfolio_settings_NN.md'))
     expect(found.searched).toEqual([
       join(FIX, 'programs', 'alpha', 'projects', 'p1', 'portfolio_settings_NN.md'),
@@ -174,7 +203,7 @@ describe('findInChain', () => {
 
   it('does not climb above an isolated scope', () => {
     const cut = chainOf(join(FIX, 'programs', 'legacy', 'projects', 'old', 'old_NN.md'))
-    const found = findInChain(cut, { rel: 'portfolio_settings_NN.md' })
+    const found = foundIn(cut, 'portfolio_settings_NN.md')
     expect(found.path).toBeNull()
     expect(found.searched).toHaveLength(2)
   })

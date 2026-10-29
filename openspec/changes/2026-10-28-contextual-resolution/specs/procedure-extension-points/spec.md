@@ -76,6 +76,12 @@ NOT silently ignore or coerce a filler.
 - WHEN the procedure is resolved
 - THEN an error reports the kind mismatch for `post_step` and names the scope
 
+#### Scenario: Fill names no procedure
+
+- GIVEN a scope whose `fills` name a procedure id that is defined nowhere in its chain
+- WHEN procedures are resolved for that scope
+- THEN an error `UNKNOWN_FILL_PROCEDURE` names the procedure id and the supplying scope
+
 ### Requirement: Whole-Procedure Override Is A Recorded Fork
 
 A scope MAY replace an ancestor procedure by defining a procedure with the same id, and such a replacement MUST be recorded as a fork identifying the forking scope, the original procedure and scope, and the original's version at fork time. A same-id procedure in a nearer scope that does not declare itself a fork MUST still shadow the original, and MUST be reported as an undeclared shadow.
@@ -91,6 +97,19 @@ A scope MAY replace an ancestor procedure by defining a procedure with the same 
 - GIVEN a series scope defining `draft-visuals` with no fork declaration
 - WHEN procedures are listed for that series
 - THEN the root's `draft-visuals` is reported as shadowed, and the series procedure is flagged as an undeclared shadow
+
+#### Scenario: Fork names an original that is not there
+
+- GIVEN a fork record whose procedure differs from the forking procedure, or whose scope holds none of the procedures it replaces
+- WHEN procedures are listed
+- THEN a warning `FORK_ORIGINAL_NOT_FOUND` names the fork and the recorded original
+- AND a fork whose original is simply not in the chain raises nothing
+
+#### Scenario: Procedure document cannot be read
+
+- GIVEN a procedure document of a scope that cannot be read
+- WHEN the scope procedures are loaded
+- THEN an error `UNREADABLE_DOCUMENT` names the procedure and the scope, the other procedures load, and nothing throws
 
 ### Requirement: Original Advanced Warning
 

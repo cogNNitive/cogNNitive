@@ -8,6 +8,7 @@ import { loadChain } from './fs-layers.js'
 import { loadScopeProcedures } from './fs-procedures.js'
 import { resolveProcedures } from './procedures.js'
 import type { ProcedureResolution } from './procedures.js'
+import type { LoadedChain } from './resolve.js'
 import type { ScopeChain } from './types.js'
 
 const FIX = fileURLToPath(new URL('../../tests/fixtures/scoped-portfolio', import.meta.url))
@@ -18,9 +19,15 @@ function chainOf(path: string): ScopeChain {
   return result.chain
 }
 
+function loadOk(chain: ScopeChain): LoadedChain {
+  const r = loadChain(chain)
+  if (!r.ok) throw new Error(`${r.code}: ${r.detail}`)
+  return r.loaded
+}
+
 function resolved(path: string): { result: ProcedureResolution; load: ReturnType<typeof loadScopeProcedures> } {
   const chain = chainOf(path)
-  const load = loadScopeProcedures(chain, loadChain(chain))
+  const load = loadScopeProcedures(chain, loadOk(chain))
   return { result: resolveProcedures(load.loaded), load }
 }
 
@@ -66,7 +73,7 @@ describe('loadScopeProcedures over the scoped-portfolio fixture', () => {
 
   it('leaves a scope without a procedures folder or fills untouched', () => {
     const chain = chainOf(join(FIX, 'programs', 'legacy', 'projects', 'old', 'old_NN.md'))
-    const { loaded } = loadScopeProcedures(chain, loadChain(chain))
+    const { loaded } = loadScopeProcedures(chain, loadOk(chain))
     for (const node of loaded.nodes) {
       expect(Object.hasOwn(node, 'procedures')).toBe(false)
       expect(Object.hasOwn(node, 'fills')).toBe(false)
@@ -137,7 +144,7 @@ describe('loadScopeProcedures over a temporary tree', () => {
   const procedureDoc = (frontmatter: string) => `---\nlevel: 3\ntitle: "p"\n${frontmatter}---\n# NN Procedure\n`
   const load = (start: string) => {
     const chain = chainOf(start)
-    return loadScopeProcedures(chain, loadChain(chain))
+    return loadScopeProcedures(chain, loadOk(chain))
   }
 
   it('reports INVALID_SLOT_DECL for a malformed slot and keeps the valid ones', () => {
@@ -173,5 +180,15 @@ describe('loadScopeProcedures over a temporary tree', () => {
     expect(loaded.nodes[0].procedures?.map((p) => [p.id, p.version, p.doc])).toEqual([
       ['draft-scene', null, 'procedures/Draft_Scene_procedures_NN.md'],
     ])
+  })
+
+  it('passes a slot default through JSON normalisation like every other value', () => {
+    write('acme/domaiNN_NN.md', '# acme\n')
+    write('acme/procedures/p_procedures_NN.md', procedureDoc('slots:\n  - { name: s, kind: value, required: false, default: .inf }\n'))
+    const { loaded } = load(write('acme/a_NN.md', '# NN Note\n'))
+    const slot = loaded.nodes[0].procedures?.[0].slots[0]
+    expect(slot?.default).toBe('Infinity')
+    const r = JSON.parse(JSON.stringify(loaded))
+    expect(r).toStrictEqual(loaded)
   })
 })

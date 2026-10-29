@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'nod
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listScopeElements, loadElementChain } from './fs-elements.js'
+import { listScopeElements, loadElementChain, loadElementChains } from './fs-elements.js'
 import { resolve } from './resolve.js'
 import type { Resolution } from './resolve.js'
 
@@ -225,6 +225,56 @@ describe('element isolate and declaration conflicts (throwaway domaiNN)', () => 
     expect(one(resolve(l, 'color', 'override')).value).toBe('blue')
   })
 
+  describe('document order across concepts', () => {
+    const pair = (body: string) => doc('pair_NN.md', 'scope_elements:\n  - concept: Alpha\n  - concept: Beta\n', body)
+    const ids = (path: string, concept: string, slug: string) =>
+      loaded(path, concept, slug).loaded.nodes.map((n) => n.id)
+
+    it('attaches each Beta to the nearest preceding Alpha when the sections interleave', () => {
+      const path = pair(
+        '# NN Alpha\n\n## NN Alpha: a1\n\n# NN Beta\n\n## NN Beta: b1\n\n# NN Alpha\n\n## NN Alpha: a2\n\n# NN Beta\n\n## NN Beta: b2\n',
+      )
+      expect(ids(path, 'Beta', 'b1')).toEqual(['', 'pair_NN.md#Alpha/a1', 'pair_NN.md#Beta/b1'])
+      expect(ids(path, 'Beta', 'b2')).toEqual(['', 'pair_NN.md#Alpha/a2', 'pair_NN.md#Beta/b2'])
+    })
+
+    it('lists the elements in the order of the document, not grouped by concept', () => {
+      const path = pair(
+        '# NN Alpha\n\n## NN Alpha: a1\n\n# NN Beta\n\n## NN Beta: b1\n\n# NN Alpha\n\n## NN Alpha: a2\n',
+      )
+      const r = listScopeElements(path)
+      expect(r.ok && r.elements.map((e) => e.slug)).toEqual(['a1', 'b1', 'a2'])
+    })
+
+    it('places an element whose concept section is listed before the parent section by position', () => {
+      const path = pair(
+        '# NN Beta\n\n## NN Beta: b0\n\n# NN Alpha\n\n## NN Alpha: a1\n\n# NN Beta\n\n## NN Beta: b1\n',
+      )
+      expect(ids(path, 'Beta', 'b1')).toEqual(['', 'pair_NN.md#Alpha/a1', 'pair_NN.md#Beta/b1'])
+      const orphan = loadElementChain(path, { concept: 'Beta', slug: 'b0' })
+      expect(orphan.ok === false && orphan.code).toBe('UNKNOWN_PARENT_ELEMENT')
+    })
+  })
+
+  it('matches the target concept case-insensitively and answers under the declared spelling', () => {
+    const path = nested('')
+    const r = loaded(path, 'inner', 'i1')
+    expect(r.loaded.nodes.map((n) => [n.id, n.kind])).toEqual([
+      ['', 'root'],
+      ['plan_NN.md#Outer/o1', 'element:Outer'],
+      ['plan_NN.md#Inner/i1', 'element:Inner'],
+    ])
+  })
+
+  it('returns a structured error, not an exception, for a folder marker with malformed frontmatter', () => {
+    writeFileSync(join(dir, 'broken_NN.md'), '---\nscope: [unclosed\n---\n# NN Settings\n')
+    const path = nested('')
+    const r = loadElementChain(path, null)
+    expect(r.ok === false && r.code).toBe('MALFORMED_FRONTMATTER')
+    const e = loadElementChain(path, { concept: 'Inner', slug: 'i1' })
+    expect(e.ok === false && e.code).toBe('MALFORMED_FRONTMATTER')
+  })
+
   it('a document with both scope: true and scope_elements is AMBIGUOUS_SCOPE_DECLARATION', () => {
     const path = doc(
       'sub/both_NN.md',
@@ -239,5 +289,45 @@ describe('element isolate and declaration conflicts (throwaway domaiNN)', () => 
     const path = doc('bad_NN.md', 'scope_elements: Outer\n', '# NN Outer\n\n## NN Outer: o1\n')
     const r = loadElementChain(path, { concept: 'Outer', slug: 'o1' })
     expect(r.ok === false && r.code).toBe('INVALID_SCOPE_DECLARATION')
+  })
+})
+
+describe('loadElementChains', () => {
+  it('returns every element chain of a document, identical to loading them one by one', () => {
+    const all = loadElementChains(TUTORIAS)
+    if (!all.ok) throw new Error(all.code)
+    const listed = listScopeElements(TUTORIAS)
+    if (!listed.ok) throw new Error(listed.code)
+    expect(all.doc).toBe(TUTORIAS_DOC)
+    expect(all.chains.map((c) => [c.concept, c.slug])).toEqual(listed.elements.map((e) => [e.concept, e.slug]))
+    for (const c of all.chains) {
+      const single = loadElementChain(TUTORIAS, { concept: c.concept, slug: c.slug })
+      expect(c.result).toEqual(single)
+    }
+    const bad = all.chains.find((c) => c.slug === 'pedido-003')
+    expect(bad?.result.ok === false && bad.result.code).toBe('UNKNOWN_PARENT_ELEMENT')
+  })
+
+  it('passes the floor to every chain', () => {
+    const all = loadElementChains(SCRIPT, { floorDoc: FLOOR })
+    if (!all.ok) throw new Error(all.code)
+    for (const c of all.chains) expect(c.result.ok && c.result.loaded.floor?.id).toBe('bluepriNNt:video-golden')
+  })
+
+  it('has no chains for a document that declares no scope_elements', () => {
+    const r = loadElementChains(join(GOLD, 'series', 'innteresante', 'innteresante_scope_NN.md'))
+    expect(r.ok && r.chains).toEqual([])
+  })
+
+  it('fails as a whole with the same structured errors as listScopeElements', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'nn-els-outside-'))
+    try {
+      writeFileSync(join(outside, 'x_NN.md'), '---\nscope_elements:\n  - concept: A\n---\n# NN A\n\n## NN A: one\n')
+      expect(loadElementChains(join(outside, 'x_NN.md')).ok).toBe(false)
+    } finally {
+      rmSync(outside, { recursive: true, force: true })
+    }
+    const r = loadElementChains(join(ELFIX, 'kNNowledge', 'missing_NN.md'))
+    expect(r.ok === false && r.code).toBe('UNREADABLE_DOCUMENT')
   })
 })

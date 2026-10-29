@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { ENTRYPOINT_FILENAME, parseName } from '../naming/contract.js'
 import { parseFrontmatter } from '../parser/index.js'
 import { buildScopeChain } from './chain.js'
 import type { DirProbe } from './chain.js'
 import { findDomainRoot } from './root.js'
-import type { ScopeChain, ScopeChainResult } from './types.js'
+import type { DocumentFailure, ScopeChain, ScopeChainResult } from './types.js'
 
 const NO_MARKERS: DirProbe = { hasEntrypoint: false, scopeMarkers: [] }
 
@@ -42,24 +42,40 @@ function knowledgeDocsOf(dir: string): string[] {
     .sort()
 }
 
-function probeDir(dir: string, root: string): DirProbe {
+function posix(root: string, path: string): string {
+  return relative(root, path).split(sep).join('/')
+}
+
+/**
+ * Reads the `_NN.md` documents of `dir` for scope markers. A document that cannot be read
+ * or whose frontmatter does not parse is recorded in `failures` rather than skipped: a
+ * silent skip would drop a scope, or the `isolate` that ends the chain.
+ */
+function probeDir(dir: string, root: string, failures: DocumentFailure[]): DirProbe {
   const scopeMarkers: Array<{ path: string; isolate: boolean }> = []
   for (const name of knowledgeDocsOf(dir)) {
     const path = join(dir, name)
     let text: string
     try {
       text = readFileSync(path, 'utf-8')
-    } catch {
+    } catch (error) {
+      failures.push({
+        ok: false,
+        code: 'UNREADABLE_DOCUMENT',
+        path: posix(root, path),
+        detail: error instanceof Error ? error.message : String(error),
+      })
       continue
     }
-    const fm = parseFrontmatter(text) as unknown as Record<string, unknown> | null
+    const problems: string[] = []
+    const fm = parseFrontmatter(text, (message) => problems.push(message)) as unknown as Record<string, unknown> | null
+    if (problems.length > 0) {
+      failures.push({ ok: false, code: 'MALFORMED_FRONTMATTER', path: posix(root, path), detail: problems.join('; ') })
+      continue
+    }
     if (fm?.['scope'] === true) scopeMarkers.push({ path, isolate: fm['isolate'] === true })
   }
   return { hasEntrypoint: dir === root, scopeMarkers }
-}
-
-function posix(root: string, path: string): string {
-  return relative(root, path).split(sep).join('/')
 }
 
 function toRelative(chain: ScopeChain): ScopeChain {
@@ -80,14 +96,19 @@ function toRelative(chain: ScopeChain): ScopeChain {
  * a directory), outermost first. The root comes from `findDomainRoot`, the only root
  * finder; a sub-scope is a directory holding exactly one `_NN.md` document whose
  * frontmatter declares `scope: true` (strict boolean). `isolate: true` ends the chain.
- * Link directories and documents are domain-relative POSIX; `root` is absolute.
+ * Link directories and documents are domain-relative POSIX; `root` is absolute. A `_NN.md`
+ * on the way that cannot be read, or whose frontmatter does not parse, is an error naming
+ * it (`UNREADABLE_DOCUMENT`, `MALFORMED_FRONTMATTER`): the chain it might have shaped is
+ * unknown, so none is returned.
  */
 export function findScopeChain(path: string): ScopeChainResult {
   const start = startDirOf(path)
   const root = findDomainRoot(start)
   if (root === null) return buildScopeChain(start, () => NO_MARKERS, parentOf)
 
-  const result = buildScopeChain(start, (dir) => probeDir(dir, root), parentOf)
+  const failures: DocumentFailure[] = []
+  const result = buildScopeChain(start, (dir) => probeDir(dir, root, failures), parentOf)
+  if (failures.length > 0) return failures[0]
   if (result.ok) return { ok: true, chain: toRelative(result.chain) }
   if (result.code === 'DUPLICATE_SCOPE_MARKER') {
     return {
@@ -100,24 +121,36 @@ export function findScopeChain(path: string): ScopeChainResult {
   return result
 }
 
+function isInside(base: string, path: string): boolean {
+  const rel = relative(base, path)
+  return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
+}
+
+export type ChainLookup =
+  | { ok: true; path: string | null; searched: string[] }
+  | { ok: false; code: 'PATH_OUTSIDE_SCOPE'; detail: string }
+
 /**
  * Named lookup along a chain: the first existing `<scope dir>/<rel>`, nearest scope
  * first, never above the chain's outermost link (the root, or the isolated scope that
- * cut it). `searched` lists every candidate path tried, in order.
+ * cut it). `searched` lists every candidate path tried, in order. A `rel` that is
+ * absolute, or that resolves outside the outermost link from any scope, is refused with
+ * `PATH_OUTSIDE_SCOPE` before anything is looked up.
  */
-export function findInChain(
-  chain: ScopeChain,
-  target: { rel: string },
-): { path: string | null; searched: string[] } {
+export function findInChain(chain: ScopeChain, target: { rel: string }): ChainLookup {
+  const outermost = chain.links.length > 0 ? resolve(chain.root, chain.links[0].dir) : chain.root
+  const candidates = chain.links.map((link) => resolve(chain.root, link.dir, target.rel)).reverse()
+  if (isAbsolute(target.rel) || !candidates.every((c) => isInside(outermost, c))) {
+    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `"${target.rel}" leaves the scope chain rooted at ${chain.links[0]?.dir || '.'}` }
+  }
   const searched: string[] = []
-  for (let i = chain.links.length - 1; i >= 0; i--) {
-    const candidate = join(chain.root, chain.links[i].dir, target.rel)
+  for (const candidate of candidates) {
     searched.push(candidate)
     try {
-      if (statSync(candidate).isFile()) return { path: candidate, searched }
+      if (statSync(candidate).isFile()) return { ok: true, path: candidate, searched }
     } catch {
       // not here: keep climbing
     }
   }
-  return { path: null, searched }
+  return { ok: true, path: null, searched }
 }

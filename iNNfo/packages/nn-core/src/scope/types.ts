@@ -23,10 +23,19 @@ export interface ScopeChain {
   cutAt: string | null
 }
 
+/** A document the adapters could not use. `path` is domain-relative POSIX. */
+export interface DocumentFailure {
+  ok: false
+  code: 'MALFORMED_FRONTMATTER' | 'UNREADABLE_DOCUMENT'
+  path: string
+  detail: string
+}
+
 export type ScopeChainResult =
   | { ok: true; chain: ScopeChain }
   | { ok: false; code: 'NO_DOMAIN_ROOT'; searched: string[] }
   | { ok: false; code: 'DUPLICATE_SCOPE_MARKER'; dir: string; markers: string[] }
+  | DocumentFailure
 
 /**
  * One scope of the chain, as the fold sees it. The fold never sees paths: an adapter

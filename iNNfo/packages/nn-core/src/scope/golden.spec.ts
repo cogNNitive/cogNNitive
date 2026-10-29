@@ -41,7 +41,8 @@ function load(path: string) {
   const found = findScopeChain(path)
   if (!found.ok) throw new Error(`no chain for ${path}: ${found.code}`)
   const withFloor = loadChain(found.chain, { floorDoc: FLOOR })
-  const { loaded, diagnostics } = loadScopeProcedures(found.chain, withFloor)
+  if (!withFloor.ok) throw new Error(`${withFloor.code}: ${withFloor.detail}`)
+  const { loaded, diagnostics } = loadScopeProcedures(found.chain, withFloor.loaded)
   return { chain: found.chain, loaded, loadDiagnostics: diagnostics }
 }
 

@@ -4,7 +4,8 @@ import { parseName, procedureIdOf } from '../naming/contract.js'
 import { parseFrontmatter } from '../parser/index.js'
 import type { ProcedureDiagnostic } from './procedures.js'
 import type { LoadedChain } from './resolve.js'
-import type { ForkRecord, JsonValue, ProcedureDef, ScopeChain, ScopeNode, SlotDecl } from './types.js'
+import { asJson } from './json.js'
+import type { ForkRecord, ProcedureDef, ScopeChain, ScopeNode, SlotDecl } from './types.js'
 
 /** Where a scope keeps its procedures, relative to the scope directory. */
 const PROCEDURES_DIR = 'procedures'
@@ -35,7 +36,7 @@ function slotOf(raw: unknown): SlotDecl | null {
   if (required !== undefined && typeof required !== 'boolean') return null
   if (step !== undefined && typeof step !== 'string') return null
   const slot: SlotDecl = { name, kind, required: required === true }
-  if (Object.hasOwn(raw, 'default')) slot.default = raw['default'] as JsonValue
+  if (Object.hasOwn(raw, 'default')) slot.default = asJson(raw['default'])
   if (step !== undefined) slot.step = step
   return slot
 }
@@ -54,9 +55,21 @@ function readProcedureDoc(
   scope: string,
   docPath: string,
   diagnostics: ProcedureDiagnostic[],
-): ProcedureDef {
-  const frontmatter = (parseFrontmatter(readFileSync(path, 'utf-8')) ?? {}) as unknown as Record<string, unknown>
+): ProcedureDef | null {
   const id = procedureIdOf(name)
+  let frontmatter: Record<string, unknown>
+  try {
+    frontmatter = (parseFrontmatter(readFileSync(path, 'utf-8')) ?? {}) as unknown as Record<string, unknown>
+  } catch (error) {
+    diagnostics.push({
+      code: 'UNREADABLE_DOCUMENT',
+      severity: 'error',
+      procedure: id,
+      scope,
+      detail: `${docPath} cannot be read: ${error instanceof Error ? error.message : String(error)}`,
+    })
+    return null
+  }
   const invalid = (code: 'INVALID_SLOT_DECL' | 'INVALID_FORK_RECORD', detail: string) =>
     diagnostics.push({ code, severity: 'error', procedure: id, scope, detail })
 
@@ -94,7 +107,7 @@ function readProcedureDoc(
  * `*_procedures_NN.md` documents under `<scope dir>/procedures/`, nothing else, so a
  * sibling's procedures are never visible. Slots (`slots:`) and the fork record
  * (`fork_of:`) are read from the document's frontmatter; a malformed one is reported
- * and left out. Nodes the chain does not own (appended by a consumer) are returned as
+ * and left out, and so is a document that cannot be read (`UNREADABLE_DOCUMENT`). Nodes the chain does not own (appended by a consumer) are returned as
  * they are, and the floor is not loaded here.
  */
 export function loadScopeProcedures(
@@ -106,9 +119,11 @@ export function loadScopeProcedures(
     const link = chain.links.find((l) => l.dir === node.id)
     if (!link) return node
     const dir = join(chain.root, link.dir, PROCEDURES_DIR)
-    const procedures = procedureDocsOf(dir).map((name) =>
-      readProcedureDoc(join(dir, name), name, node.id, [link.dir, PROCEDURES_DIR, name].filter(Boolean).join('/'), diagnostics),
-    )
+    const procedures = procedureDocsOf(dir)
+      .map((name) =>
+        readProcedureDoc(join(dir, name), name, node.id, [link.dir, PROCEDURES_DIR, name].filter(Boolean).join('/'), diagnostics),
+      )
+      .filter((def): def is ProcedureDef => def !== null)
     return procedures.length > 0 ? { ...node, procedures } : node
   })
   return { loaded: { ...loaded, nodes }, diagnostics }
