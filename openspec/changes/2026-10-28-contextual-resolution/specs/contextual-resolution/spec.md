@@ -169,8 +169,9 @@ through `findScopeChain` (and, with an element target, `loadElementChain`), MUST
 value and the trace from nn-core `resolve` (no second fold in nn-mcp), and MUST NOT write.
 
 `resolve_effective` MUST return the effective value, whether it is present, the winner and
-the trace. `explain` MUST return the same trace plus the chain the fold read (node ids and
-kinds, outermost first) and the floor supplier. Neither MUST return a composed procedure.
+the trace. `explain` MUST return the same trace plus the chain of scopes it was computed over
+(node id, kind, supplier document and `isolate` flag, outermost first) and the floor supplier.
+Neither MUST return a composed procedure.
 
 The floor MUST be located by nn-mcp: the bluepriNNt package named by the `parent_spec` of the
 innermost values document of the chain is resolved through the bluepriNNt package resolver
@@ -191,7 +192,7 @@ deep equality and MUST NOT contain absolute machine paths other than inside `sea
 
 - GIVEN the three-level fixture and `priority: high` declared in `p1`
 - WHEN `resolve_effective` is called with a path in `p1`, key `priority`, strategy `override`
-- THEN the response contains `high`, present true, the winner `p1`, and a trace that overrides `alpha`'s and `portfolio`'s declarations
+- THEN the response contains `high`, present true, the winner `p1`, and a trace listing `portfolio`'s `medium` as overridden by `p1`
 
 #### Scenario: explain returns the trace and the chain
 

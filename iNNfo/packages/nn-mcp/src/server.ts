@@ -51,6 +51,7 @@ import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/con
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { syncLineageTool } from './tools/sync-lineage.js'
+import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
 import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
 /**
@@ -729,6 +730,75 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     },
     handler: handleListBlueprintSkills,
   },
+  {
+    definition: {
+      name: 'resolve_effective',
+      description:
+        'Read-only: the effective value of a key at a document (or at one scope element of it), folded over the scope chain with a merge strategy, plus the trace that explains it. ' +
+        'Strategies: override (nearest declaration wins), union (named entries accumulate, nearer shadows farther) and none (only the target node supplies the value; ancestors and the bluepriNNt floor are reported under notInherited, never inherited). ' +
+        'The floor is the single document under the defaults/ folder of the bluepriNNt package named by the innermost scope document. Returns {present, value, winner, trace}, or a structured error (NO_DOMAIN_ROOT, PATH_OUTSIDE_SCOPE, UNSUPPORTED_STRATEGY, UNKNOWN_ELEMENT, ...). Never writes files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+          },
+          key: { type: 'string', description: 'Field name to resolve, e.g. music_volume' },
+          strategy: {
+            type: 'string',
+            enum: ['override', 'union', 'none'],
+            description: 'Merge strategy for the key',
+          },
+          target: {
+            type: 'object',
+            description:
+              'Optional scope element of the document (declared in its scope_elements): resolves from that element instead of from the document',
+            properties: {
+              concept: { type: 'string', description: 'Concept of the element, e.g. Scene' },
+              slug: { type: 'string', description: 'Slug of the element, e.g. 02-noticia' },
+            },
+            required: ['concept', 'slug'],
+          },
+        },
+        required: ['path', 'key', 'strategy'],
+      },
+    },
+    handler: handleResolveEffective,
+  },
+  {
+    definition: {
+      name: 'explain',
+      description:
+        'Read-only: why a key resolves the way it does at a document (or at one scope element of it). Takes the same inputs as resolve_effective and returns the same trace, plus the chain of scopes it was computed over (node ids and kinds, outermost first) and the floor supplier. Never writes files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+          },
+          key: { type: 'string', description: 'Field name to explain, e.g. music_volume' },
+          strategy: {
+            type: 'string',
+            enum: ['override', 'union', 'none'],
+            description: 'Merge strategy for the key',
+          },
+          target: {
+            type: 'object',
+            description: 'Optional scope element of the document (declared in its scope_elements)',
+            properties: {
+              concept: { type: 'string', description: 'Concept of the element, e.g. Scene' },
+              slug: { type: 'string', description: 'Slug of the element, e.g. 02-noticia' },
+            },
+            required: ['concept', 'slug'],
+          },
+        },
+        required: ['path', 'key', 'strategy'],
+      },
+    },
+    handler: handleExplain,
+  },
 ]
 
 /** Tool definitions advertised by ListTools — derived from the registry. */
@@ -1016,6 +1086,20 @@ async function handleListBlueprintSkills(args: Record<string, unknown>): Promise
     url: args.url as string | undefined,
   })
   return textResult(JSON.stringify(envelope('innfo-list-blueprint-skills', result), null, 2))
+}
+
+// Both scope tools are bound to the server's domain root: they take no `domain`/`root`
+// override, because the root is what PATH_OUTSIDE_SCOPE is measured against.
+async function handleResolveEffective(args: Record<string, unknown>): Promise<CallToolResult> {
+  const result = await resolveEffective(ROOT_DIR, args)
+  const text = JSON.stringify(envelope('innfo-resolve-effective', result), null, 2)
+  return result.ok ? textResult(text) : errorResult(text)
+}
+
+async function handleExplain(args: Record<string, unknown>): Promise<CallToolResult> {
+  const result = await explainEffective(ROOT_DIR, args)
+  const text = JSON.stringify(envelope('innfo-explain', result), null, 2)
+  return result.ok ? textResult(text) : errorResult(text)
 }
 
 /* ── Response helpers ────────────────────────────────────────── */

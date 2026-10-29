@@ -127,11 +127,11 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists exactly the 22 canonical tools and no retired names', async () => {
+  it('lists exactly the 24 canonical tools and no retired names', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(22)
+    expect(tools).toHaveLength(24)
 
     const canonicalNames = [
       'list_knowledge',
@@ -156,6 +156,8 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       'resolve_sources',
       'list_blueprint_procedures',
       'list_blueprint_skills',
+      'resolve_effective',
+      'explain',
     ].sort()
     expect(names).toEqual(canonicalNames)
 
@@ -193,6 +195,37 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     const result2 = await client.callTool({ name: 'list_models', arguments: {} })
     expect(result2.isError).toBe(true)
     expect(textOf(result2 as CallToolResult)).toBe('Unknown tool: list_models')
+  })
+
+  describe('resolve_effective and explain dispatch', () => {
+    it('resolve over the server domain root; explain carries the same trace; failures are structured isError results', async () => {
+      await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
+      await writeFile(
+        join(rootDir, 'root_scope_NN.md'),
+        '---\nlevel: 3\nscope: true\n---\n\n# NN Settings\n\n## NN Settings: Root\ncolor:: red\n',
+        'utf-8',
+      )
+      const args = { path: 'note_NN.md', key: 'color', strategy: 'override' }
+
+      const value = await client.callTool({ name: 'resolve_effective', arguments: args })
+      expect(value.isError).toBeFalsy()
+      const valueBody = JSON.parse(textOf(value as CallToolResult))
+      expect(valueBody).toMatchObject({ version: 'innfo-resolve-effective@1', ok: true, present: true, value: 'red' })
+
+      const explained = await client.callTool({ name: 'explain', arguments: args })
+      const explainBody = JSON.parse(textOf(explained as CallToolResult))
+      expect(explainBody.version).toBe('innfo-explain@1')
+      expect(explainBody.trace).toEqual(valueBody.trace)
+      expect(explainBody.chain).toEqual([{ id: '', kind: 'root', doc: 'root_scope_NN.md', isolate: false }])
+
+      const outside = await client.callTool({ name: 'resolve_effective', arguments: { ...args, path: '../elsewhere_NN.md' } })
+      expect(outside.isError).toBe(true)
+      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+
+      const missing = await client.callTool({ name: 'explain', arguments: {} })
+      expect(missing.isError).toBe(true)
+      expect(JSON.parse(textOf(missing as CallToolResult))).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    })
   })
 
   describe('apply_change dispatch (changeset vs legacy bare calls)', () => {
