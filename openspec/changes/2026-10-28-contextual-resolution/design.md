@@ -573,6 +573,25 @@ The maintainer chose Option A for model id resolution:
   - `L3.2`: Video domain adoption (dry-run plan script `adopt-video-plan.mjs`, converge slots, maintainer run on copy).
   - `L3.3`: LC_programas adoption (`scope_elements` on Tutorias, slot import paths, close-out verification).
 
+### 2026-10-29 (Lote 3: Video Skill Adoption and Dry-Run Planner)
+
+- **L3.1a (Core Mirrors)**:
+  - Generalized mirror generator to `scripts/build-core-mirrors.mjs` serving both `nn-sources` and `nn-video-script`.
+  - Added `scripts/build-core-mirrors.test.mjs` verifying drift detection.
+- **L3.1b (Video Scope & Core Resolution)**:
+  - Added typed parameter fallback (`accept`) and tighten-only set intersection (`restrict`) to `nn-core/src/scope/resolve.ts`.
+  - Created `video-scope.mjs` adapting `nn-core` for video skill parameter cascade and asset location.
+  - Migrated all 8 callers to `video-scope.mjs`; updated procedures directory to `procedures/`.
+- **L3.1c (Legacy Deletion)**:
+  - Deleted obsolete `cascade.mjs`, `nearest.mjs`, and associated test suites (-648 lines).
+  - All 31 video test suites pass (268/268 tests).
+- **L3.2.1 (Adoption Planner)**:
+  - Added `scripts/dev/adopt-video-plan.mjs` dry-run adoption planner for unadopted video domains.
+  - Added `scripts/dev/adopt-video-plan.test.mjs` (CI-validated against GOLD fixture, testing immutability and unadopted state detection).
+- **Verification & Integrity**:
+  - `video-script` blueprint bumped to `V_0-13-9` with updated `catalog.json`.
+  - All 183 verify pre-checks pass clean (`verify.js --fast`).
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.

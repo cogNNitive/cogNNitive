@@ -210,9 +210,9 @@ describe('structured errors', () => {
   })
 
   it('UNSUPPORTED_STRATEGY names the strategy and does not fall back', async () => {
-    const r = await resolveEffective(FIX, { path: P1, key: 'priority', strategy: 'restrict' }, isolated)
+    const r = await resolveEffective(FIX, { path: P1, key: 'priority', strategy: 'bogus' as any }, isolated)
     expect(r).toMatchObject({ ok: false, code: 'UNSUPPORTED_STRATEGY' })
-    expect(!r.ok && r.detail).toContain('restrict')
+    expect(!r.ok && r.detail).toContain('bogus')
   })
 
   it('reports element errors from the element adapter', async () => {

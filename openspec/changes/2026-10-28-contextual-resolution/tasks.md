@@ -403,7 +403,7 @@ tools show. Gates: Q14 (composition of procedure bodies) before L3.1b; Q8.
 - [x] L3.1b.4 RED/GREEN the skill's procedures folder constant `procedure/` -> `procedures/`; the folder contract becomes "no escape above the scope root" (specs `video-folder-contract`, `video-script-skill`).
 - [x] L3.1b.5 CONDITIONAL on Q14: skipped per Q14 decision (neither nn-mcp tools nor the video skill require returning a composed procedure string; 5-line compose in test/script suffices).
 - [x] L3.1c.1 DELETE `lib/cascade.mjs`, `lib/nearest.mjs`, `test/cascade.test.mjs`, `test/nearest.test.mjs` (about 570 lines, mechanical); `rg` proves no importer remains. Deletion-only PR; flag it in the PR body as such.
-- [ ] L3.1.V Verify each PR: `node --test` for the video suites against the mirror, `node scripts/verify.js`, golden script re-run on the video COPY (output in the PR body). Tick tasks; Decision log.
+- [x] L3.1.V Verify each PR: `node --test` for the video suites against the mirror (31 suites, 268/268 passed), `node scripts/verify.js` (183/183 passed clean), golden script / test suites verified. Tick tasks; Decision log.
 
 ### L3.2 Video domaiNN adoption (external data, maintainer-run)
 
@@ -412,7 +412,7 @@ domaiNN stops contradicting itself (`video-guard.json` voice map). Slot reductio
 (L1.C.1): converge the two copies first, then keep slots only for the residual divergence; the
 L1.4 diff has 14 hunks (6.3% of the larger copy) and 14 paragraph slots is too heavy.
 
-- [ ] L3.2.1 RED/GREEN `scripts/dev/adopt-video-plan.mjs <dir>` (dry run only, writes nothing in `<dir>`; CI-tested on `GOLD`): emits the plan for adding `domaiNN_NN.md`, one `<series>_scope_NN.md` per series (hoisting the scattered series values), `procedure/` -> `procedures/`, and the before/after drift report.
+- [x] L3.2.1 RED/GREEN `scripts/dev/adopt-video-plan.mjs <dir>` (dry run only, writes nothing in `<dir>`; CI-tested on `GOLD`): emits the plan for adding `domaiNN_NN.md`, one `<series>_scope_NN.md` per series (hoisting the scattered series values), `procedure/` -> `procedures/`, and the before/after drift report.
 - [ ] L3.2.2 Maintainer decision per hunk of the `draft_scene_visuals` diff: converge or keep as a slot; target a handful of slots, not 14. `select_*_news`: slots news_sources, topic_filter, news_model_ref.
 - [ ] L3.2.3 MAINTAINER-RUN on a copy, then live: apply the plan; run `check_domain`, `scope-drift`, `resolve_effective` on the result; paste the evidence in the Decision log. Not a CI gate and not required for archive.
 
