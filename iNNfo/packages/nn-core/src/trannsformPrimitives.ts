@@ -3,7 +3,7 @@
  *
  * Single source of nn-core primitives needed by the distributed `nn-sources` skill.
  * Bundled into `skills/nn-sources/scripts/lib/nn-core.generated.cjs` by
- * `scripts/build-trannsform-core-mirror.mjs`.
+ * `scripts/build-core-mirrors.mjs`.
  */
 
 export {

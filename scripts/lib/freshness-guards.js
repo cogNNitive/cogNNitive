@@ -15,7 +15,7 @@ const FRESHNESS_GUARDS = [
   { id: 'skills-manager-bundle', desc: 'Check Skills Manager Bundle Fresh', script: 'scripts/build-skills-manager-bundle.mjs', args: ['--check'], regen: 'node scripts/build-skills-manager-bundle.mjs' },
   { id: 'skill-shared-rules', desc: 'Check Skill Shared Rules Fresh', script: 'scripts/build-skill-shared-rules.mjs', args: ['--check'], regen: 'node scripts/build-skill-shared-rules.mjs' },
   { id: 'blueprint-catalog', desc: 'Check Blueprint Catalog Fresh', script: 'scripts/blueprint-catalog.mjs', args: ['--check'], regen: 'node scripts/blueprint-catalog.mjs' },
-  { id: 'core-mirror', desc: 'Check Trannsform Core Mirror Fresh', script: 'scripts/build-trannsform-core-mirror.mjs', args: ['--check'], regen: 'node scripts/build-trannsform-core-mirror.mjs' },
+  { id: 'core-mirror', desc: 'Check Core Mirrors Fresh', script: 'scripts/build-core-mirrors.mjs', args: ['--check'], regen: 'node scripts/build-core-mirrors.mjs' },
   { id: 'canonical-registry', desc: 'Check Canonical Registry Mirror Fresh', script: 'scripts/generate-canonical-registry.mjs', args: ['--check'], regen: 'node scripts/generate-canonical-registry.mjs' },
   { id: 'console-payload', desc: 'Check Console Payload Mirror Fresh', script: 'scripts/build-console-payload.mjs', args: ['--check'], regen: 'node scripts/build-console-payload.mjs' },
   { id: 'console-bundle', desc: 'Check Console Bundle Fresh', script: 'scripts/build-console-bundle.mjs', args: ['--check'], regen: 'node scripts/build-console-bundle.mjs' },

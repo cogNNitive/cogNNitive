@@ -66,7 +66,7 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | done (Option A implemented, PR #404) |
 | L2.5 | Procedure identity: one procedure-document rule, no silent drop in the console export, slots by element id; hand-off to `console-procedure-view` | L2.3b, Q15 (resolved) | ~350 provisional | previous branch | new (2026-10-29) | done (blueprints-v0.48.0 released) |
 | L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | done (L2.C.1 & L2.C.2 recorded; awaiting review L2.C.3) |
-| L3.1a | Video skill: `build-core-mirrors.mjs` rename and scope mirror | L2 checkpoint | 250 (+ generated bundle) | previous branch | G0.3, A1 | pending |
+| L3.1a | Video skill: `build-core-mirrors.mjs` rename and scope mirror | L2 checkpoint | 250 (+ generated bundle) | previous branch | G0.3, A1 | done |
 | L3.1b | Video skill: `resolveWorkspace` on `findDomainRoot`, params through the core, `procedures/`, folder contract | L3.1a, Q14 | 380 | L3.1a branch | A1, A2 | pending |
 | L3.1c | Video skill: delete `cascade.mjs`, `nearest.mjs` and their tests | L3.1b | ~570 deleted | L3.1b branch | A2 | pending |
 | L3.2 | Video domaiNN adoption (data, maintainer-run) plus the dry-run plan script | L3.1c | 250 (+ external) | L3.1c branch | A3 | pending |
@@ -395,7 +395,7 @@ maintainer-run, never CI (Q8), and every such step is first rehearsed on a temp 
 Value: one resolver instead of two private ones; the video skill honours the same chain the MCP
 tools show. Gates: Q14 (composition of procedure bodies) before L3.1b; Q8.
 
-- [ ] L3.1a.1 RED/GREEN `scripts/build-trannsform-core-mirror.mjs` -> `scripts/build-core-mirrors.mjs` (update every reference found with `rg`; keep its existing test, renamed): a second target generates a CJS mirror of the scope module for the video skill, following the `nn-sources` precedent; `--check` mode wired into `scripts/verify.js` (drift test: a hand-edited mirror turns it red). Estimate ~250 excluding the generated bundle.
+- [x] L3.1a.1 RED/GREEN `scripts/build-trannsform-core-mirror.mjs` -> `scripts/build-core-mirrors.mjs` (update every reference found with `rg`; keep its existing test, renamed): a second target generates a CJS mirror of the scope module for the video skill, following the `nn-sources` precedent; `--check` mode wired into `scripts/verify.js` (drift test: a hand-edited mirror turns it red). Completed 2026-10-29.
 - [ ] L3.1b.1 RED/GREEN `video-guard.mjs` `resolveWorkspace` (~98) on `findDomainRoot` through the mirror; the guard file is only read at `<root>/video-guard.json`; no `.git` branch.
 - [ ] L3.1b.2 RED/GREEN generic `accept` option on core `resolve` (the typed-parameter skip that `cascade.mjs` has; removed in L1.2 until a consumer needs it), with its own core test and mutation check.
 - [ ] L3.1b.2b RED/GREEN `restrict` merge strategy in core `resolve` (`SCOPE/resolve.ts`) for array allowlists (`allowedModels`): inner scopes may only tighten (intersect) or maintain parent values, never broaden. Mutation check: widening allowlist returns intersection.
