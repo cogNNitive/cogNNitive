@@ -14,6 +14,7 @@
     "build:console": "node scripts/build-console-bundle.mjs",
     "check:console-bundle": "node scripts/build-console-bundle.mjs --check",
     "build:docs": "node scripts/build-docs.mjs",
+    "check:docs-links": "node scripts/check-docs-links.mjs",
     "stage:mcp-bundle": "node scripts/stage-mcp-bundle.mjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint iNNfo/ scripts/",

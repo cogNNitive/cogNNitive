@@ -309,6 +309,7 @@ Generated / published artifacts must not be stale:
 ```powershell
 npm run build:docs
 node scripts/generate-docsify-suite.mjs
+npm run check:docs-links
 $env:GITHUB_TOKEN = (gh auth token).Trim()
 node scripts/manifest/generate-manifest.js --channel stable
 node scripts/manifest/generate-manifest.js --channel preview
