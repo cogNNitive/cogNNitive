@@ -64,6 +64,7 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | done |
 | L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | done |
 | L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | spike done 2026-10-29; waiting on Q13 |
+| L2.5 | Procedure identity: one procedure-document rule, no silent drop in the console export, slots by element id; hand-off to `console-procedure-view` | L2.3b, Q15 | ~350 provisional | previous branch | new (2026-10-29) | pending (gate Q15) |
 | L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | pending |
 | L3.1a | Video skill: `build-core-mirrors.mjs` rename and scope mirror | L2 checkpoint | 250 (+ generated bundle) | previous branch | G0.3, A1 | pending |
 | L3.1b | Video skill: `resolveWorkspace` on `findDomainRoot`, params through the core, `procedures/`, folder contract | L3.1a, Q14 | 380 | L3.1a branch | A1, A2 | pending |
@@ -359,6 +360,20 @@ docs only; the provisional implementation is ~900 lines in 3 PRs and is re-plann
 
 Rollback: option-dependent; the manifest-entry change is the irreversible part, which is why the gate exists.
 
+### L2.5 Procedure identity (added 2026-10-29; gate: Q15; see `design.md` "Procedure Identity")
+
+Goal: one definition of a procedure shared by the cascade, the MCP listing, the console export and
+the console view. Value: no loader disagrees on which documents are procedures, and no procedure is
+dropped silently anywhere. It also unblocks D5, D6 and D9 of `2026-10-27-console-procedure-view`.
+Provisional; re-planned once Q15 is answered.
+
+- [ ] L2.5.1 SPEC FIRST: the procedure document rule and identity (scope-chain or procedure-extension-points delta), consistent with the Q15 answer.
+- [ ] L2.5.2 RED/GREEN one predicate `isProcedureDocument` in `CORE/naming/contract.ts` (regenerate its mirrors), used by `fs-procedures.ts`, `loadDirProcedures` and `discoverTransitiveAssets`; the three private rules are deleted.
+- [ ] L2.5.3 RED/GREEN `scripts/export-console.mjs` (~1100): report shadowed procedures instead of keeping the first id seen.
+- [ ] L2.5.4 RED/GREEN slots reference their step by element id instead of `step: "<name>"` (spec, `procedures.ts`, fixtures).
+- [ ] L2.5.5 Hand-off: write the agreed identity into `2026-10-27-console-procedure-view` (D5, D6, D9) so that change applies on top of it. The console view projecting the scoped listing belongs to that change, not this one.
+- [ ] L2.5.6 Deferred inside this lot: a derived catalog (`aggregate`), and a new procedures bluepriNNt version with `Work` = steps only. Unlock: Q15 = yes plus the first bluepriNNt release after L2.5.2.
+
 ### L2 checkpoint (mandatory before Lote 3)
 
 - [ ] L2.C.1 Write Lote 2 conclusions into the `design.md` decision log: drift numbers on the real domains, the element contract as built, MCP surface, the id decision, and what Lote 3 now needs.
@@ -449,6 +464,7 @@ Scheduled out of Deferred on 2026-10-28 (see the re-plan entry in `design.md`): 
 - [ ] Q11 (reframed 2026-10-28; now an L3.3 adoption question, no longer a gate for L2.1b) LC_programas data shape: `precio_hora_tutoria` lives on each `## NN Prestación de Servicios` (6 orders, all "84"), linked to its Programa by `programa_ref`. Repo-level conclusion already taken: contractual/invoiced values use strategy `none` and are never inherited (an earlier proposal to move "84" to a root document and let Prestaciones inherit it was rejected: changing the rate would silently rewrite historical orders). Open for the maintainer at L3.3: where the CURRENT rate lives as a default (root or Programa), given that every Prestación keeps its own explicit value.
 - [x] Q12 RESOLVED 2026-10-28 (maintainer confirmed: CLI first, MCP tool stays deferred). Drift report exposure (gate for L2.2b). Proposal: ship a read-only CLI `scripts/dev/scope-drift.mjs` first and defer the MCP tool (thinnest surface, no server or docs change). Confirm, or ask for the MCP tool in L2.3.
 - [ ] Q13 Model-id strategy (gate for L2.4.2; answered after the L2.4.1 spike): A path-qualified id only for colliding stems (bare stem accepted when unique, ambiguity is an error with candidates), B always path-qualified, C keep global stems and enforce unique stems with a rename tool.
+- [ ] Q15 (added 2026-10-29) Procedure identity. Adopt "one document = one procedure" (identity = the document, one file rule for all loaders, `Work` = steps only, slots reference steps by id, catalog derived later), as recommended in `design.md` "Procedure Identity"? This gates L2.5 and decisions D5, D6 and D9 of `2026-10-27-console-procedure-view`. Sub-decision: the single file rule (a `*_procedures_NN.md` stem, or any `_NN.md` inside a `procedures/` folder). Today 19 of the 49 documents in `procedures/` folders, mostly bluepriNNt package procedures, do not follow the stem rule.
 - [ ] Q14 Who composes a slotted procedure body? (gate for L3.1b.5). Option 1: a core `composeProcedure(def, bindings)` shared by the video skill and the MCP tools. Option 2: tools return definition plus bindings and the agent composes. Decide when a consumer first needs the composed text.
 
 ---

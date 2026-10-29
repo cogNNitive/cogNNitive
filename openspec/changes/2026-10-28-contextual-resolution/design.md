@@ -456,6 +456,75 @@ that lists every candidate path (no renames, no data migration, the first-wins r
 is deleted)? Or B (path always required, ~100 persisted changesets migrate) or C (unique stems
 enforced, 20 renames, same-id procedure forks across scopes become illegal)?"
 
+## Procedure Identity (alignment with `2026-10-27-console-procedure-view`, 2026-10-29)
+
+Two sessions found the same root problem from opposite ends. This section merges both findings
+so neither is lost. It is the input for lot L2.5 and question Q15 in `tasks.md`.
+
+### Finding 1: which FILES are procedure documents (this change, L2.3b review)
+
+Three loaders apply three different file rules:
+
+| Loader | Rule | Site |
+|---|---|---|
+| Scope `procedures/` (cascade) | stem ends in `_procedures` (`*_procedures_NN.md`) | `nn-core/src/scope/fs-procedures.ts` |
+| bluepriNNt floor | any non-sidecar `_NN.md` in the package `procedures/` | `nn-core` `loadDirProcedures`, `nn-mcp/src/tools/floor-procedures.ts` |
+| Transitive discovery (unscoped listing) | any `*.md` under `procedures/` | `nn-mcp/src/tools/spec.ts` `discoverTransitiveAssets` |
+
+Repository evidence (tracked `_NN.md` files, 2026-10-29): 49 documents live in a `procedures/`
+folder, but only 30 of them follow `*_procedures_NN.md`. The other 19 are mostly bluepriNNt package
+procedures such as `apply_feedback_NN.md`. Another 8 files named `*procedures_NN.md` live outside any
+`procedures/` folder; they are catalogs such as `use-cases/*/procedures_NN.md` and
+`_samples_nn/procedures_NN.md`. A package procedure is therefore visible to the floor loader and to
+transitive discovery, but it would be invisible if the same document were placed in a scope folder.
+
+### Finding 2: what INSIDE a document is "the procedure" (session "Funcionamiento vista de procedimientos")
+
+Three things are each treated as "the procedure":
+
+| Consumer | Identity |
+|---|---|
+| Cascade (this change) | The FILE (`procedureIdOf`), with `slots`, `fills` and `fork_of` in frontmatter |
+| Procedures bluepriNNt catalog | A `## NN Procedure` element linked to the executable model by `procedure_model::` (a document path) |
+| Console stepper | Each root `Work` (a `Work` element with no `parent`) |
+
+The corpus mixes all three shapes: step-only documents (0 `Procedure`, 8-9 `Work`), catalog-only
+documents (1-2 `Procedure`, 0 `Work`) and at least one mixed document
+(`reconcile_artifact_feedback`: 1 `Procedure`, 8 `Work`). Consequences:
+
+- `scripts/export-console.mjs` (~1100) keeps the first procedure id it sees and drops the rest
+  silently. The `procedure-execution` delta of this change forbids that ("No silent drop").
+- Decision D5 of `console-procedure-view` turns `procedure_model` into a relation to the root
+  `Work`, which is element identity. Applied as written, it adds a fourth way to link a procedure.
+- Slots in this change name their step with `step: "<Work name>"`, a join by name string, the same
+  fragile join `console-procedure-view` is trying to remove.
+- The console is not scope-aware. With the cascade, the right question is "which procedures apply
+  here": selected, shadowed, slot fills and stale forks. That is exactly what
+  `list_blueprint_procedures({ path })` returns since L2.3b.
+
+### Proposed model (recommendation, pending Q15)
+
+- One document = one procedure. Identity = the document, as in the cascade. One file rule for every
+  loader. The catalog fields (`summary`, `executed_by`, `inputs_required`, `outputs_expected`) and
+  `slots`/`fork_of` live in that document.
+- `Work` elements are steps only. Order comes from `next::`; branches use `next:: [yes=A, no=B]`.
+- Slots reference their step by element id, not by name.
+- The hand-written catalog becomes a derived view (the deferred `aggregate` operator), so catalog
+  and executable cannot drift.
+- The console renders the scoped listing (`resolveProcedures` for the current scope) plus its
+  diagnostics. It does not rebuild procedures from loose elements, so there is one source of truth
+  for D2/D8-style defects.
+
+### Coordination with `console-procedure-view`
+
+- Independent of this change, ship now: issue #360 (the stepper drops leading steps) and decisions
+  D1-D4, D7, D8 and D10 of that change.
+- Hold until Q15 is answered: D5 (catalog-to-execution link), D6 (summary card in the tab) and D9
+  (scaffolder guidance), because they encode procedure identity.
+- Constraint: the procedures bluepriNNt spec is write-once per version. Any change to the
+  `Procedure`/`Work` shape is a new bluepriNNt version (`template_version` bump, tag and repin, see
+  the release memory). It is not an edit to the published file.
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.
