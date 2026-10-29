@@ -115,7 +115,7 @@ test('findBlueprintPackage throws listing every path tried when none is found', 
 
 test('loadCascadeBags reads the series, domain and blueprint documents', () => {
   const root = tmp();
-  fs.mkdirSync(path.join(root, '.git'), { recursive: true }); // workspace root marker
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n');
   fs.writeFileSync(path.join(root, 'video-defaults_NN.md'), defaultsDoc({ music_volume: '0.3' }));
   const series = path.join(root, 'series-a');
   const episode = path.join(series, 'ep-01');
@@ -133,7 +133,7 @@ test('loadCascadeBags reads the series, domain and blueprint documents', () => {
 
 test('loadCascadeBags skips the domain level when there is no domain document', () => {
   const root = tmp();
-  fs.mkdirSync(path.join(root, '.git'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n');
   const episode = path.join(root, 'ep-01');
   fs.mkdirSync(episode, { recursive: true });
 
@@ -145,7 +145,7 @@ test('loadCascadeBags skips the domain level when there is no domain document', 
 
 test('a script outside a series yields the domain level, never series', () => {
   const root = tmp();
-  fs.mkdirSync(path.join(root, '.git'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n');
   fs.writeFileSync(path.join(root, 'video-defaults_NN.md'), defaultsDoc({ transition: 'fade' }));
   const loose = path.join(root, 'loose-episode');
   fs.mkdirSync(loose, { recursive: true });
