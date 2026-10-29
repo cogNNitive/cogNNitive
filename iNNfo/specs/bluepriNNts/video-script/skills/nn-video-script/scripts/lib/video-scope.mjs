@@ -131,13 +131,36 @@ export function findSeriesRoot(startDir, domainRoot) {
   }
 }
 
+/**
+ * Series values read from the scope chain of the script (the context resolution
+ * layer): every folder scope between the domaiNN root and the document, merged
+ * outermost first so a deeper folder wins. The root's own values are NOT a
+ * series level and are skipped. Returns null when the script sits in no chain or
+ * the chain holds no folder scope below the root, so the caller can fall back to
+ * the legacy `series_NN.md` document.
+ */
+function seriesValuesFromScopeChain(scriptDir) {
+  const found = findScopeChain(scriptDir);
+  if (!found.ok) return null;
+  const loaded = loadChain(found.chain);
+  if (!loaded.ok) return null;
+  const nodes = loaded.loaded.nodes.slice(1);
+  if (nodes.length === 0) return null;
+  return Object.assign({}, ...nodes.map((node) => node.values || {}));
+}
+
 export function loadCascadeBags(scriptDir, options = {}) {
   const bags = {};
   const domainRoot = resolveWorkspace(scriptDir).root;
-  const seriesRoot = findSeriesRoot(scriptDir, domainRoot);
-  if (seriesRoot) {
-    const series = documentFields(path.join(seriesRoot, 'series_NN.md'), 'Series');
-    if (series) bags.series = series;
+  const fromChain = seriesValuesFromScopeChain(scriptDir);
+  if (fromChain) {
+    bags.series = fromChain;
+  } else {
+    const seriesRoot = findSeriesRoot(scriptDir, domainRoot);
+    if (seriesRoot) {
+      const series = documentFields(path.join(seriesRoot, 'series_NN.md'), 'Series');
+      if (series) bags.series = series;
+    }
   }
   const domain = documentFields(path.join(domainRoot, 'video-defaults_NN.md'), 'Video Defaults');
   if (domain) bags.domain = domain;
