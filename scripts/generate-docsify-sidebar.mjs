@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const suiteScript = path.join(__dirname, 'generate-docsify-suite.mjs');
+const suiteScript = path.join(import.meta.dirname, 'generate-docsify-suite.mjs');
 
 // Forward arguments to generate-docsify-suite.mjs in --sidebar-only mode
 const args = process.argv.slice(2);

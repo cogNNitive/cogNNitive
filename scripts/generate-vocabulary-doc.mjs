@@ -1,10 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const REPO_ROOT = path.resolve(__dirname, '..');
+const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const VOCAB_JSON_PATH = path.join(REPO_ROOT, 'iNNfo', 'specs', 'vocabulary.json');
 const VOCAB_MD_PATH = path.join(REPO_ROOT, 'docs', 'documentation', 'content', 'vocabulary.md');
 
@@ -109,7 +106,7 @@ export function syncVocabularyDoc(options = {}) {
   return true;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   const check = process.argv.includes('--check');
   const ok = syncVocabularyDoc({ check });
   process.exit(ok ? 0 : 1);

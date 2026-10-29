@@ -24,7 +24,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@cognnitive/nn-core': resolve(__dirname, '../nn-core/src/index.ts'),
+      '@cognnitive/nn-core': resolve(import.meta.dirname, '../nn-core/src/index.ts'),
     },
   },
   test: {

@@ -8,11 +8,9 @@
 import assert from 'node:assert'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { join, resolve, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = resolve(__dirname, '..')
+const ROOT = resolve(import.meta.dirname, '..')
 
 function testSpecFilesExist() {
   const defPath = join(ROOT, 'iNNfo', 'specs', 'defiNNition_V_0-1-0_NN.md')
