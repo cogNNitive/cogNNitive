@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findScopeChain } from './fs-chain.js'
 import { loadChain } from './fs-layers.js'
-import { loadScopeProcedures } from './fs-procedures.js'
+import { loadDirProcedures, loadScopeProcedures } from './fs-procedures.js'
 import { resolveProcedures } from './procedures.js'
 import type { ProcedureResolution } from './procedures.js'
 import type { LoadedChain } from './resolve.js'
@@ -190,5 +190,33 @@ describe('loadScopeProcedures over a temporary tree', () => {
     expect(slot?.default).toBe('Infinity')
     const r = JSON.parse(JSON.stringify(loaded))
     expect(r).toStrictEqual(loaded)
+  })
+})
+
+describe('loadDirProcedures (a caller-located directory, e.g. a bluepriNNt package)', () => {
+  let dir: string
+  beforeEach(() => {
+    dir = realpathSync(mkdtempSync(join(tmpdir(), 'nn-dir-procs-')))
+  })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  it('reads every non-sidecar _NN.md as a definition of the given scope, whatever its stem', () => {
+    writeFileSync(join(dir, 'import_data_NN.md'), '---\nknowledge_version: "V_0-2-0"\nslots:\n  - { name: audience, kind: value, required: true }\n---\n')
+    writeFileSync(join(dir, 'plain-note.md'), '---\ntitle: not a Knowledge doc\n---\n')
+    const { procedures, diagnostics } = loadDirProcedures(dir, 'bluepriNNt:pkg', 'procedures')
+    expect(diagnostics).toEqual([])
+    expect(procedures).toEqual([
+      {
+        id: 'import-data',
+        scope: 'bluepriNNt:pkg',
+        doc: 'procedures/import_data_NN.md',
+        version: 'V_0-2-0',
+        slots: [{ name: 'audience', kind: 'value', required: true }],
+      },
+    ])
+  })
+
+  it('returns nothing for a directory that does not exist', () => {
+    expect(loadDirProcedures(join(dir, 'missing'), 'x', 'procedures')).toEqual({ procedures: [], diagnostics: [] })
   })
 })
