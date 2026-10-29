@@ -161,6 +161,12 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     ].sort()
     expect(names).toEqual(canonicalNames)
 
+    // Verify all 24 tools declare MCP tool annotations with readOnlyHint
+    for (const tool of tools) {
+      expect(tool.annotations).toBeDefined()
+      expect(typeof tool.annotations?.readOnlyHint).toBe('boolean')
+    }
+
     // Verify retired names are not present
     const retired = [
       'record_feedback_verdict',

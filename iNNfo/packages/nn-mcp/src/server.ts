@@ -98,6 +98,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'list_knowledge',
+      annotations: { readOnlyHint: true },
       description: 'Scan the knowledge directory and list all iNNfo knowledge documents',
       inputSchema: {
         type: 'object',
@@ -112,6 +113,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'read_knowledge',
+      annotations: { readOnlyHint: true },
       description:
         "Parse and return an iNNfo knowledge document's full structure by its id. For surgical work prefer bounded slices: pass concept (+ element) with max_lines (default 150); slices over the cap truncate with truncated=true unless override_reason records a manual override",
       inputSchema: {
@@ -162,6 +164,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'get_spec',
+      annotations: { readOnlyHint: true },
       description:
         'Resolve the iNNfo specification (level-1) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — the URL is never taken from an internal constant',
       inputSchema: {
@@ -188,6 +191,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'get_blueprint',
+      annotations: { readOnlyHint: true },
       description:
         'Resolve an iNNfo blueprint (level-2) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — blueprint names/URLs are never hardcoded',
       inputSchema: {
@@ -215,6 +219,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'validate_knowledge',
+      annotations: { readOnlyHint: true },
       description:
         'Validate an iNNfo knowledge document against its blueprint. Provide id (file on disk) or content (raw text). The blueprint is resolved from the knowledge parent_spec.url, or from an optional blueprint_url',
       inputSchema: {
@@ -264,6 +269,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'apply_change',
+      annotations: { readOnlyHint: false, destructiveHint: true },
       description:
         'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or bare intent operations. ' +
         'Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, bump_version on a bluepriNNt) write directly. ' +
@@ -329,6 +335,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'regenerate_console',
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
       description:
         'Regenerate the domain console (or one model-scoped console) and open it in a browser tab. Idempotent: an up-to-date console is reported as unchanged. ' +
         'Also the retry path after an apply whose console regeneration failed. The result carries console and next_steps: you MUST relay next_steps.notice to the user.',
@@ -353,6 +360,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'propose_changeset',
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
         'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, remove_matrix, add_matrix, comment, add_model, freeze_slugs, bump_version); the tool does not interpret conversations. ' +
@@ -384,6 +392,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'init_domain',
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         'Create an empty, conformant domaiNN container in a new directory: the canonical folders (kNNowledge/, sources/import/, sources/conversations/, conversations/, artifacts/, procedures/, staging/, changes/), a .gitattributes with * -text and a domaiNN_NN.md manifest listing no models. ' +
         'Refuses a directory that exists and is not empty. It is not a changeset; add models afterwards with an add_model changeset (propose_changeset) or init_knowledge. ' +
@@ -406,6 +415,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'validate_knowledge_url',
+      annotations: { readOnlyHint: true },
       description:
         'Validate an iNNfo knowledge document fetched from a URL without writing to disk. Accepts a knowledge URL and optional blueprint_url. Returns validation results.',
       inputSchema: {
@@ -429,6 +439,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'validate_blueprint',
+      annotations: { readOnlyHint: true },
       description:
         'Validate a Level 2 blueprint against its Level 1 parent spec with frontmatter level-2 auto-detection and parent resolution failure diagnostics',
       inputSchema: {
@@ -447,6 +458,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'init_knowledge',
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         'Create a new level-3 knowledge document. Create-only: it is a wrapper over a one-change add_model changeset (written to changes/ and applied), so the creation is recorded as a change. ' +
         'It scaffolds canonical YAML frontmatter and a starter body (one section per Concept, no index block: taxonomy lives in the blueprint) from the resolved blueprint schema; an unresolvable blueprint fails and writes nothing. ' +
@@ -486,6 +498,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'list_blueprints',
+      annotations: { readOnlyHint: true },
       description:
         'List all available Level 2 spec blueprints across local domain, global environment, and installed skills',
       inputSchema: {
@@ -501,6 +514,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'hydrate_blueprint',
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         'Hydrate (copy) a Level 2 spec blueprint from global or skill store into active domain blueprints directory',
       inputSchema: {
@@ -525,6 +539,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'sync_domain_manifest',
+      annotations: { readOnlyHint: false, idempotentHint: true },
       description:
         'Reconcile the domain manifest ## NN Knowledge entries against discovered Level-3 knowledge files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
       inputSchema: {
@@ -544,6 +559,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'check_domain',
+      annotations: { readOnlyHint: true },
       description:
         'Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, self-heal missing blueprint packages/specs (write-once hydration), classify each pinned blueprint version against the published catalog, compare the managed sections of the lineage record with a fresh projection (error LINEAGE_DRIFT in the lineage field of the report; read-only), and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational — validation failures never fail the tool.',
       inputSchema: {
@@ -575,6 +591,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'query_units',
+      annotations: { readOnlyHint: true },
       description:
         'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Pass max_values_chars to cap projected value characters for slice-only surgical reads. Never writes files.',
       inputSchema: {
@@ -610,6 +627,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'cognitivize',
+      annotations: { readOnlyHint: false, destructiveHint: true },
       description:
         'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw file in place, so it can be cited. Markdown, CSV, and JSON files are handled directly; binary formats (PDF, DOCX, XLSX, images) are converted when the environment has converter adapters available. Paths outside the workspace, sidecars, and NN documents are rejected.',
       inputSchema: {
@@ -636,6 +654,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'sync_lineage',
+      annotations: { readOnlyHint: false, idempotentHint: true },
       description:
         'Recompute the lineage projection from the workspace filesystem and regenerate the canonical lineage record (`<project>_cogNNitive_NN.md`) without requiring the CLI. Re-synchronizes # NN Sources, # NN ModelRecords, and # NN Artifacts sections.',
       inputSchema: {
@@ -661,6 +680,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'resolve_sources',
+      annotations: { readOnlyHint: true },
       description:
         'Read-only: resolve an element\'s citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" | "human" | "document"), resolved from the `author::` of the `## NN Change:` block the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files.',
       inputSchema: {
@@ -690,6 +710,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'list_blueprint_procedures',
+      annotations: { readOnlyHint: true },
       description:
         'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10. A procedure that loses a name clash is returned with status shadowed (shadowed_by names the winner), never dropped. ' +
         'With path (a document or scope directory) the listing is scope-aware: the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root procedures/ > the bluepriNNt package), each with its source, slots, fork record and warnings; a path outside any domaiNN returns NO_DOMAIN_ROOT with the directories searched. The scoped listing is bound to the server domain root: path cannot be combined with domain or root (INVALID_ARGUMENT), and path must be a non-empty string.',
@@ -717,6 +738,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'list_blueprint_skills',
+      annotations: { readOnlyHint: true },
       description:
         'List all agent skills defined in a blueprint and its transitively included blueprints up to depth 10. Skills shipped inside a package under skills/<name>/SKILL.md are returned with embedded: true and a resolved absolute path.',
       inputSchema: {
@@ -739,6 +761,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'resolve_effective',
+      annotations: { readOnlyHint: true },
       description:
         'Read-only: the effective value of a key at a document (or at one scope element of it), folded over the scope chain with a merge strategy, plus the trace that explains it. ' +
         'Strategies: override (nearest declaration wins), union (named entries accumulate, nearer shadows farther) and none (only the target node supplies the value; ancestors and the bluepriNNt floor are reported under notInherited, never inherited). ' +
@@ -775,6 +798,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
     definition: {
       name: 'explain',
+      annotations: { readOnlyHint: true },
       description:
         'Read-only: why a key resolves the way it does at a document (or at one scope element of it). Takes the same inputs as resolve_effective and returns the same trace, plus the chain of scopes it was computed over (node ids and kinds, outermost first) and the floor supplier. Never writes files.',
       inputSchema: {
