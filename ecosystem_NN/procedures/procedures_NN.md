@@ -39,4 +39,4 @@ summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation 
 inputs_required:: Reviewed Deliverable Document
 outputs_expected:: Published Final Deliverable
 executed_by:: Senior AI Architect
-procedure_model:: procedures/reconcile_artifact_feedback_NN.md
+procedure_model:: procedures/reconcile_artifact_feedback_procedures_NN.md

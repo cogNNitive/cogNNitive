@@ -75,11 +75,10 @@ function main() {
   }
   console.log('✔ a _V_ token in a new name fails');
 
-  // 4. Frozen carve-out: published specs, frozen blueprints, workspace procedures.
+  // 4. Frozen carve-out: published specs, frozen blueprints.
   {
     const files = {
       'iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-3_business_NN.md': doc('business'),
-      'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures'),
       'iNNfo/specs/bluepriNNts/cogNNitive/samples/workspace_NN.md': doc('workspace_spec'),
     };
     const r = run(files);
@@ -99,14 +98,14 @@ function main() {
   }
   console.log('✔ sample and use-case trees are guarded, not carved out');
 
-  // 5. The carve-out names the workspace procedures folder explicitly; a sibling non-frozen procedure still fails.
+  // 5. Package procedures (including workspace) are not carved out and must follow the suffix rule.
   {
-    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/workspace/procedures/a_NN.md', []), true);
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/workspace/procedures/a_NN.md', []), false);
     assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/video/procedures/generate_video_script_NN.md', []), false);
-    const r = run({ 'iNNfo/specs/bluepriNNts/video/procedures/generate_video_script_NN.md': doc('procedures') });
+    const r = run({ 'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures') });
     assert.strictEqual(r.ok, false);
   }
-  console.log('✔ non-frozen procedures are not carved out');
+  console.log('✔ package procedures are not carved out');
 
   // 5b. Blueprint package `defaults/` baseline documents are carved out: they are named
   //     by the blueprint spec (`video-defaults_NN.md`), not by the `_NN` invariant.
