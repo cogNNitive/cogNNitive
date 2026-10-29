@@ -62,7 +62,7 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.2a | Drift report, pure (`driftReport`) | L2.1b (ordering only, no code dependency) | 380 | L2.1b branch | new | done |
 | L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | done |
 | L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | done |
-| L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | pending |
+| L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | done |
 | L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | spike done 2026-10-29; waiting on Q13 |
 | L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | pending |
 | L3.1a | Video skill: `build-core-mirrors.mjs` rename and scope mirror | L2 checkpoint | 250 (+ generated bundle) | previous branch | G0.3, A1 | pending |
@@ -333,11 +333,11 @@ domain", `workspace/procedures/` in the root scope) MUST be answered before L2.3
 
 - [x] L2.3b.1 (6839ae5a) SPEC FIRST: add scenarios to `specs/template-procedures-manifest-and-discovery/spec.md` (floor procedures listed and shadowed by a scope procedure; root `workspace/procedures/` listed as root scope) and to `specs/procedure-execution/spec.md` ("No silent drop" for `discoverTransitiveAssets`).
 - [x] L2.3b.2 (9 tests in `nn-mcp/src/tools/procedures-scope.spec.ts`, all red for missing behaviour) RED `MCP/tools/spec.spec.ts`: `discoverTransitiveAssets` reports shadowed entries (no `seenProcIds` skip); `listBlueprintProcedures({ path })` from the `p1` scope returns selected and shadowed per the spec with slots, fork record and `ORIGINAL_ADVANCED`; no `path` behaves as before with status `selected`; a path outside any domaiNN returns the structured error with `searched`; floor procedures come from the blueprint package; root `workspace/procedures/` appears as root scope.
-- [ ] L2.3b.3 GREEN `MCP/tools/spec.ts` (`discoverTransitiveAssets` ~829, `listBlueprintProcedures` ~1116): build the floor `ProcedureDef[]` in nn-mcp (`MCP/tools/floor-procedures.ts`; the core never loads the floor, per the L1.3 decision), run `loadChain` + `loadScopeProcedures` + `resolveProcedures`, map to listing entries; add the `path` input to the schema at `MCP/server.ts` (~690). `rg seenProcIds iNNfo/packages/nn-mcp/src` returns nothing (precedence exists only in the core).
-- [ ] L2.3b.4 Docs: `skills/nn-innfo/SKILL.md` §16-bis.2 precedence rewritten as model > nearest scope > ... > root (including `workspace/procedures/`) > bluepriNNt; `mcp-tools.md`.
-- [ ] L2.3b.5 Verify: rebuild nn-core, nn-mcp tests, `node scripts/verify.js`. Mutation check: restoring the first-seen skip turns the "No silent drop" case red.
-- [ ] L2.3b.6 Validate (read-only): LC_programas lists its 10 root `procedures/` as root scope; the video COPY lists zero series procedures because they live in the SINGULAR `series/<s>/procedure/` (documents the L3.1b rename, not a bug); blueprint procedures appear as floor.
-- [ ] L2.3b.7 Tick tasks; Decision log; status.
+- [x] L2.3b.3 (d189e6fb; core `loadDirProcedures` added with its own test, floor built in nn-mcp `floor-procedures.ts`, `seenProcIds` gone) GREEN `MCP/tools/spec.ts` (`discoverTransitiveAssets` ~829, `listBlueprintProcedures` ~1116): build the floor `ProcedureDef[]` in nn-mcp (`MCP/tools/floor-procedures.ts`; the core never loads the floor, per the L1.3 decision), run `loadChain` + `loadScopeProcedures` + `resolveProcedures`, map to listing entries; add the `path` input to the schema at `MCP/server.ts` (~690). `rg seenProcIds iNNfo/packages/nn-mcp/src` returns nothing (precedence exists only in the core).
+- [x] L2.3b.4 (5b09450d; also `skills/nn/SKILL.md`, `docs/.../skills/nn.md`, nn-mcp README) Docs: `skills/nn-innfo/SKILL.md` §16-bis.2 precedence rewritten as model > nearest scope > ... > root (including `workspace/procedures/`) > bluepriNNt; `mcp-tools.md`.
+- [x] L2.3b.5 (nn-core 2006, nn-mcp 581, `verify.js` green; mutation turned 2 red) Verify: rebuild nn-core, nn-mcp tests, `node scripts/verify.js`. Mutation check: restoring the first-seen skip turns the "No silent drop" case red.
+- [x] L2.3b.6 (LC_programas copy: 10 root procedures listed as root scope; video copy: 0, see Decision log) Validate (read-only): LC_programas lists its 10 root `procedures/` as root scope; the video COPY lists zero series procedures because they live in the SINGULAR `series/<s>/procedure/` (documents the L3.1b rename, not a bug); blueprint procedures appear as floor.
+- [x] L2.3b.7 Tick tasks; Decision log; status.
 
 ### L2.4 Scope-qualified model ids (RISKIEST item; spike, decision gate, then a provisional list)
 
