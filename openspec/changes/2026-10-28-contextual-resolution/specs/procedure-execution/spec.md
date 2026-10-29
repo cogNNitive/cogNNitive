@@ -44,6 +44,14 @@ the others without a report.)
 - THEN every procedure found in any source appears either as selected or as shadowed
 - AND the number of selected plus shadowed entries equals the number of procedures discovered
 
+#### Scenario: No silent drop in transitive discovery
+
+- GIVEN a bluepriNNt and its `parent_spec` both defining a procedure `base-check`
+- WHEN the transitive procedure discovery runs for the child bluepriNNt
+- THEN the child's `base-check` is reported as `selected`
+- AND the parent's `base-check` is reported as `shadowed`, naming the child entry
+- AND no discovery step skips a procedure because its id was already seen
+
 ## ADDED Requirements
 
 ### Requirement: Scope-Aware Resolution Context
