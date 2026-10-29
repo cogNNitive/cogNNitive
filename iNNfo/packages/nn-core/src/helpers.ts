@@ -3,11 +3,11 @@
  * These do NOT change any existing behavior — they provide convenience
  * wrappers that the MCP server consumes.
  */
-import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter } from './parser/index.js'
-import { ENTRYPOINT_FILENAME, isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
+import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
+import { isDomainRoot } from './scope/root.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
@@ -60,7 +60,7 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
       if (isIgnoredDir(entry.name)) continue
       const child = join(dir, entry.name)
       // A nested domaiNN is its own root: its models are not the outer domaiNN's.
-      if (existsSync(join(child, ENTRYPOINT_FILENAME))) continue
+      if (isDomainRoot(child)) continue
       await collectModels(child, rootDir, models)
       continue
     }

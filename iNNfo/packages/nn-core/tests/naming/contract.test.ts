@@ -237,6 +237,12 @@ describe('deep archive exclusion & changeset role', () => {
     // Only the root sources/ folder is excluded; a folder merely named like it deeper down is not.
     expect(isModelCandidate({ path: 'programs/sources/foo_NN.md', frontmatter })).toBe(true)
   })
+
+  it('matches the root sources/ folder case-insensitively (Windows folders keep any casing)', () => {
+    const frontmatter = { level: 3, parent_spec: { name: 'business_V_0-2-0' } }
+    expect(isModelCandidate({ path: 'Sources/import/foo_NN.md', frontmatter })).toBe(false)
+    expect(isModelCandidate({ path: 'SOURCES\\import\\foo_NN.md', frontmatter })).toBe(false)
+  })
 })
 
 

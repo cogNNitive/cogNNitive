@@ -38,6 +38,16 @@ describe('isConsoleModel (console model notion)', () => {
     expect(isConsoleModel({ path: 'archive/a_NN.md', frontmatter: fm('business') })).toBe(false)
   })
 
+  it('rejects the models of an import under the root sources/ folder, in any casing', () => {
+    expect(isConsoleModel({ path: 'sources/import/old/foo_NN.md', frontmatter: fm('business') })).toBe(false)
+    expect(isConsoleModel({ path: 'Sources/import/old/foo_NN.md', frontmatter: fm('business') })).toBe(false)
+    expect(
+      isConsoleModel({ path: 'sources/import/old/foo_procedures_NN.md', frontmatter: fm('procedures_V_0-3-2') }),
+    ).toBe(false)
+    // Only the root folder: a folder merely named like it deeper down still holds models.
+    expect(isConsoleModel({ path: 'programs/sources/foo_NN.md', frontmatter: fm('business') })).toBe(true)
+  })
+
   it('accepts documents whose blueprint declares a nature (declared collections)', () => {
     expect(
       isConsoleModel({ path: 'sources/report_sources_NN.md', frontmatter: fm('sources') }),

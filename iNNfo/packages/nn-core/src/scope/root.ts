@@ -10,6 +10,11 @@ function isFile(path: string): boolean {
   }
 }
 
+/** Whether `dir` is a domaiNN root: it holds a `domaiNN_NN.md` file (a directory of that name does not count). */
+export function isDomainRoot(dir: string): boolean {
+  return isFile(join(dir, ENTRYPOINT_FILENAME))
+}
+
 /**
  * The domaiNN root of `path`: the nearest directory (the path's own directory
  * included) that holds a `domaiNN_NN.md`. `path` may be a document or a directory.
@@ -22,7 +27,7 @@ export function findDomainRoot(path: string): string | null {
   let dir = resolve(path)
   if (isFile(dir)) dir = dirname(dir)
   for (;;) {
-    if (isFile(join(dir, ENTRYPOINT_FILENAME))) return dir
+    if (isDomainRoot(dir)) return dir
     const parent = dirname(dir)
     if (parent === dir) return null
     dir = parent

@@ -60,6 +60,26 @@ describe('isModelCandidate', () => {
   })
 })
 
+describe('listKnowledge nested domaiNN detection', () => {
+  const dirs: string[] = []
+  afterEach(async () => {
+    await Promise.all(dirs.splice(0).map((d) => rm(d, { recursive: true, force: true })))
+  })
+
+  const doc = '---\nlevel: 3\nparent_spec:\n  name: business\n  url: https://example.com/business_NN.md\n---\n# Doc\n'
+
+  it('treats a directory named like the entrypoint as no domaiNN, and a real nested entrypoint file as one', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'nn-nested-'))
+    dirs.push(root)
+    await mkdir(join(root, 'odd', 'domaiNN_NN.md'), { recursive: true })
+    await writeFile(join(root, 'odd', 'Kept_business_NN.md'), doc, 'utf-8')
+    await mkdir(join(root, 'inner'), { recursive: true })
+    await writeFile(join(root, 'inner', 'domaiNN_NN.md'), '# inner\n', 'utf-8')
+    await writeFile(join(root, 'inner', 'Hidden_business_NN.md'), doc, 'utf-8')
+    expect((await listKnowledge(root)).map((m) => m.id)).toEqual(['Kept_business_NN'])
+  })
+})
+
 describe('list_models and ## NN Models agree', () => {
   const dirs: string[] = []
   afterEach(async () => {
