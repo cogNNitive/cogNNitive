@@ -377,6 +377,27 @@ describe('checkWorkspace (AD-5)', () => {
       report.models.every((m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available'),
     ).toBe(true)
   }, 30000)
+
+  it('summary_only caps the collision list like the model list and flags the cut', async () => {
+    stubNetwork()
+    await mkdir(join(modelsDir, 'alpha'), { recursive: true })
+    await mkdir(join(modelsDir, 'beta'), { recursive: true })
+    for (let i = 0; i < 30; i++) {
+      const name = `dup${String(i).padStart(2, '0')}_V_0-1-0_business_NN.md`
+      await writeFile(join(modelsDir, 'alpha', name), modelContent(`A ${i}`, ''), 'utf-8')
+      await writeFile(join(modelsDir, 'beta', name), modelContent(`B ${i}`, ''), 'utf-8')
+    }
+
+    const full = await checkWorkspace(rootDir, { offline: true })
+    expect(full.collisions).toHaveLength(30)
+    expect(full.collisionsTruncated).toBeUndefined()
+
+    const summary = await checkWorkspace(rootDir, { offline: true, summaryOnly: true })
+    expect(summary.collisions).toHaveLength(25)
+    expect(summary.collisionsTruncated).toBe(true)
+    expect(summary.truncated).toBe(true)
+    expect(summary.aggregate.modelsScanned).toBe(60)
+  }, 30000)
 })
 
 describe('checkWorkspace lineage drift gate', () => {

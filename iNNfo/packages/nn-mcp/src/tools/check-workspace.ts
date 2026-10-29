@@ -368,8 +368,9 @@ export function checkLineageGate(rootDir: string): LineageGateReport {
 /**
  * Run the workspace integrity check. Returns the builder's consolidated
  * report. With `summaryOnly`, `models` carries only rows with validation
- * errors or `upgrade-available` (capped at 25) plus `truncated: true` when the
- * cap was hit; `aggregate` always reflects the full set.
+ * errors or `upgrade-available` (capped at 25) and `collisions` is capped at 25 too;
+ * `truncated: true` says either cap was hit and `collisionsTruncated: true` that the
+ * collision list was; `aggregate` always reflects the full set.
  */
 export async function checkWorkspace(
   rootDir: string,
@@ -377,6 +378,7 @@ export async function checkWorkspace(
 ): Promise<
   WorkspaceIntegrityReport & {
     truncated?: boolean
+    collisionsTruncated?: boolean
     lineage: LineageGateReport
     /** Repeated model ids (filename stems): warnings that name the id and every path. */
     collisions: ModelIdCollisionDiagnostic[]
@@ -402,13 +404,15 @@ export async function checkWorkspace(
   const included = report.models.filter(
     (m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available',
   )
-  const truncated = included.length > 25
-  const trimmed = truncated ? included.slice(0, 25) : included
+  const modelsCut = included.length > 25
+  const collisionsCut = report.collisions.length > 25
   return {
     ...report,
-    models: trimmed,
+    models: modelsCut ? included.slice(0, 25) : included,
+    collisions: collisionsCut ? report.collisions.slice(0, 25) : report.collisions,
     aggregate: summarizeWorkspaceIntegrity(report.models),
-    ...(truncated ? { truncated: true } : {}),
+    ...(modelsCut || collisionsCut ? { truncated: true } : {}),
+    ...(collisionsCut ? { collisionsTruncated: true } : {}),
   }
 }
 
