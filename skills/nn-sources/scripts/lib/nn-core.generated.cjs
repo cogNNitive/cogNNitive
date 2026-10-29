@@ -7637,11 +7637,14 @@ function parentSpecNameOf(frontmatter) {
   }
   return void 0;
 }
+function isUnderRootSources(path4) {
+  return segmentsOf(path4)[0]?.toLowerCase() === "sources";
+}
 function isModelCandidate(f) {
   if (f.frontmatter["level"] !== 3) return false;
   if (!f.frontmatter["parent_spec"]) return false;
   if (isExcludedPath(f.path)) return false;
-  if (segmentsOf(f.path)[0] === "sources") return false;
+  if (isUnderRootSources(f.path)) return false;
   if (parseName(baseOf(f.path)).kind !== "nn") return false;
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === "knowledge";
 }
@@ -7649,6 +7652,7 @@ function isConsoleModel(f) {
   if (isExcludedPath(f.path)) return false;
   const parentSpecName = parentSpecNameOf(f.frontmatter);
   const role = roleOf({ path: f.path, parentSpecName });
+  if ((role === "knowledge" || role === "procedure") && isUnderRootSources(f.path)) return false;
   if (role === "knowledge") return true;
   if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
   return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === "catalog";
