@@ -48,6 +48,7 @@ __export(index_exports, {
   isExcludedPath: () => isExcludedPath,
   isModelCandidate: () => isModelCandidate,
   isNNName: () => isNNName,
+  isProcedureDocument: () => isProcedureDocument,
   isSidecarName: () => isSidecarName,
   nextStamp: () => nextStamp,
   parentSpecNameOf: () => parentSpecNameOf,
@@ -153,6 +154,10 @@ function roleOf(i) {
     return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
   }
   return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
+}
+function isProcedureDocument(nameOrPath) {
+  const parsed = parseName(baseOf(nameOrPath));
+  return parsed.kind === "nn" && parsed.sidecarOf === void 0 && /_procedures$/i.test(parsed.stem);
 }
 function isExcludedPath(path) {
   const segs = segmentsOf(path);

@@ -20,6 +20,7 @@ import {
   resolveBlueprintPath,
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
+  isProcedureDocument,
   procedureIdOf,
   resolveProcedures,
 } from '@cognnitive/nn-core'
@@ -977,7 +978,7 @@ export async function discoverTransitiveAssets(
       try {
         const procEntries = await readdir(procsDir, { withFileTypes: true })
         for (const pe of procEntries) {
-          if (pe.isFile() && pe.name.endsWith('.md')) {
+          if (pe.isFile() && isProcedureDocument(pe.name)) {
             const procStem = pe.name.replace(/\.md$/i, '')
             const procId = procedureIdOf(pe.name)
             if (!packageDocs.has(docKey(procId, `procedures/${pe.name}`))) {

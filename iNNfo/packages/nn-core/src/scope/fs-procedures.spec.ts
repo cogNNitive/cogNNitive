@@ -238,16 +238,20 @@ describe('loadDirProcedures (a caller-located directory, e.g. a bluepriNNt packa
   })
   afterEach(() => rmSync(dir, { recursive: true, force: true }))
 
-  it('reads every non-sidecar _NN.md as a definition of the given scope, whatever its stem', () => {
-    writeFileSync(join(dir, 'import_data_NN.md'), '---\nknowledge_version: "V_0-2-0"\nslots:\n  - { name: audience, kind: value, required: true }\n---\n')
-    writeFileSync(join(dir, 'plain-note.md'), '---\ntitle: not a Knowledge doc\n---\n')
+  it('reads only procedure documents (the `_procedures` suffix rule) as definitions of the given scope', () => {
+    const body = '---\nknowledge_version: "V_0-2-0"\nslots:\n  - { name: audience, kind: value, required: true }\n---\n'
+    writeFileSync(join(dir, 'import_data_procedures_NN.md'), body)
+    // Not procedure documents: a catalog, a spec, an unsuffixed document and a plain file.
+    for (const ignored of ['procedures_NN.md', 'spec_NN.md', 'apply_feedback_NN.md', 'plain-note.md']) {
+      writeFileSync(join(dir, ignored), body)
+    }
     const { procedures, diagnostics } = loadDirProcedures(dir, 'bluepriNNt:pkg', 'procedures')
     expect(diagnostics).toEqual([])
     expect(procedures).toEqual([
       {
         id: 'import-data',
         scope: 'bluepriNNt:pkg',
-        doc: 'procedures/import_data_NN.md',
+        doc: 'procedures/import_data_procedures_NN.md',
         version: 'V_0-2-0',
         slots: [{ name: 'audience', kind: 'value', required: true }],
       },

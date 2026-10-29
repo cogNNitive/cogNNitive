@@ -159,6 +159,18 @@ export function roleOf(i: { path: string; parentSpecName?: string; hasSidecar?: 
   return CORE_BLUEPRINT_ROLE[bp] ?? 'knowledge'
 }
 
+/**
+ * True for a procedure document: a non-sidecar `_NN.md` whose stem ends in `_procedures`
+ * (`x_procedures_NN.md`). This is the name-only form of the contract rule that
+ * `checkNameInvariant` enforces (a stem ends in `_<bluepriNNt>`) and `roleOf` reads
+ * (`procedures_NN.md` is the catalog, any other `procedures` document a procedure). It is the
+ * one rule every procedure loader applies; catalogs, specs and other documents are not procedures.
+ */
+export function isProcedureDocument(nameOrPath: string): boolean {
+  const parsed = parseName(baseOf(nameOrPath))
+  return parsed.kind === 'nn' && parsed.sidecarOf === undefined && /_procedures$/i.test(parsed.stem)
+}
+
 /** Scope rule (not a role): ignored roots, any `archive` or `staging` segment, any dot-prefixed segment. */
 export function isExcludedPath(path: string): boolean {
   const segs = segmentsOf(path)

@@ -394,7 +394,7 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     )
 
     await writeFile(
-      join(procsDir, 'generate_script_NN.md'),
+      join(procsDir, 'generate_script_procedures_NN.md'),
       [
         '---',
         'title: "Generate Script SOP"',
@@ -409,7 +409,7 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     const scriptProc = procsRes.procedures.find((p) => p.id === 'generate-script')
     expect(scriptProc).toBeDefined()
     expect(scriptProc?.name).toBe('Generate Script SOP')
-    expect(scriptProc?.path).toBe('procedures/generate_script_NN.md')
+    expect(scriptProc?.path).toBe('procedures/generate_script_procedures_NN.md')
   })
 
   describe('embedded skills (skills/<name>/SKILL.md inside a bluepriNNt package)', () => {

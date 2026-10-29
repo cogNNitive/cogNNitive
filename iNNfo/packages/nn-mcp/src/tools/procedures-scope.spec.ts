@@ -310,4 +310,16 @@ describe('discoverTransitiveAssets: no silent drop', () => {
     const { procedures } = await discoverTransitiveAssets(dir, { blueprint_name: 'solo' })
     expect(procedures.filter((p) => p.id === 'one')).toHaveLength(1)
   })
+
+  it('applies the one procedure-document rule on disk: catalogs, specs and unsuffixed documents are not procedures (L2.5.2)', async () => {
+    const dir = join(scratch, `one-rule-${Math.random().toString(36).slice(2)}`)
+    const pkg = join(dir, 'specs', 'bluepriNNts', 'solo', 'V_0-1-0')
+    mkdirSync(join(pkg, 'procedures'), { recursive: true })
+    writeFileSync(join(pkg, 'spec_NN.md'), '---\nlevel: 2\nspec_version: "V_0-1-0"\ntitle: "Solo"\n---\n')
+    for (const name of ['real_procedures_NN.md', 'procedures_NN.md', 'spec_NN.md', 'apply_feedback_NN.md', 'notes.md']) {
+      writeFileSync(join(pkg, 'procedures', name), procDoc('Doc'))
+    }
+    const { procedures } = await discoverTransitiveAssets(dir, { blueprint_name: 'solo' })
+    expect(procedures.map((p) => [p.id, p.path])).toEqual([['real', 'procedures/real_procedures_NN.md']])
+  })
 })

@@ -7414,6 +7414,7 @@ __export(trannsformPrimitives_exports, {
   isJsonPointer: () => isJsonPointer,
   isModelCandidate: () => isModelCandidate,
   isNNName: () => isNNName,
+  isProcedureDocument: () => isProcedureDocument,
   isSidecarName: () => isSidecarName,
   latestOfFamily: () => latestOfFamily,
   nextStamp: () => nextStamp,
@@ -7587,6 +7588,10 @@ function roleOf(i) {
     return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
   }
   return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
+}
+function isProcedureDocument(nameOrPath) {
+  const parsed = parseName(baseOf(nameOrPath));
+  return parsed.kind === "nn" && parsed.sidecarOf === void 0 && /_procedures$/i.test(parsed.stem);
 }
 function isExcludedPath(path4) {
   const segs = segmentsOf(path4);
@@ -10466,6 +10471,7 @@ async function importRaw(root, externalAbs, o = {}) {
   isJsonPointer,
   isModelCandidate,
   isNNName,
+  isProcedureDocument,
   isSidecarName,
   latestOfFamily,
   nextStamp,

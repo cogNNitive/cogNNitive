@@ -10,6 +10,30 @@ scope that replaces an ancestor procedure of the same id as a whole.
 
 ## ADDED Requirements
 
+### Requirement: One Document Is One Procedure
+
+A procedure MUST be identified by its document: one procedure document defines exactly one
+procedure, whose id is the document stem without its `_procedures` suffix, lower-cased, with
+underscores turned into hyphens. A document is a procedure document if and only if its name
+follows the naming contract: a non-sidecar `_NN.md` whose stem ends in `_procedures`
+(`status-report_procedures_NN.md`). A catalog (`procedures_NN.md`), a blueprint spec
+(`spec_NN.md`) and any other document are NOT procedure documents, wherever they live. Every
+loader of procedures (a scope's `procedures/` folder, a bluepriNNt package's `procedures/`
+folder and the transitive discovery of a bluepriNNt chain) MUST apply this one rule. The
+elements of a procedure document other than the `Procedure` element are its steps.
+
+#### Scenario: Only documents named as procedures are procedures
+
+- GIVEN a `procedures/` folder holding `status-report_procedures_NN.md`, `procedures_NN.md`, `spec_NN.md` and `notes_NN.md`
+- WHEN the procedures of that folder are loaded by any loader
+- THEN exactly one procedure, `status-report`, is found
+
+#### Scenario: Renaming keeps the id
+
+- GIVEN a package procedure `import_and_transcribe_audio_NN.md` renamed to `import_and_transcribe_audio_procedures_NN.md`
+- WHEN its id is computed
+- THEN the id is `import-and-transcribe-audio` before and after the rename
+
 ### Requirement: Procedures Declare Named Slots
 
 A procedure MUST be able to declare zero or more named slots, each with a contract stating

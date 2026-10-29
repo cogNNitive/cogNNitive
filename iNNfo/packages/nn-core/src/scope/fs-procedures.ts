@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseName, procedureIdOf } from '../naming/contract.js'
+import { isProcedureDocument, procedureIdOf } from '../naming/contract.js'
 import { parseFrontmatter, parseKnowledge } from '../parser/index.js'
 import type { ProcedureDiagnostic } from './procedures.js'
 import type { LoadedChain } from './resolve.js'
@@ -18,10 +18,7 @@ function procedureDocsOf(dir: string): string[] {
     return readdirSync(dir, { withFileTypes: true })
       .filter((e) => e.isFile())
       .map((e) => e.name)
-      .filter((name) => {
-        const parsed = parseName(name)
-        return parsed.kind === 'nn' && parsed.sidecarOf === undefined && /_procedures$/i.test(parsed.stem)
-      })
+      .filter(isProcedureDocument)
       .sort()
   } catch {
     return []
@@ -144,8 +141,8 @@ function readProcedureDoc(
 
 /**
  * Reads the procedure documents of a directory the caller located (a bluepriNNt package's
- * `procedures/` folder, the floor). Unlike a scope's `procedures/`, any non-sidecar `_NN.md`
- * counts, whatever its stem. The core never finds the package itself: `scope` is the node id
+ * `procedures/` folder, the floor). The same rule as a scope's `procedures/`: only procedure
+ * documents (`isProcedureDocument`) count, never a catalog or a spec. The core never finds the package itself: `scope` is the node id
  * the definitions carry and `docPrefix` the folder prefix of their `doc`. A missing directory
  * yields nothing.
  */
@@ -160,10 +157,7 @@ export function loadDirProcedures(
     names = readdirSync(dir, { withFileTypes: true })
       .filter((e) => e.isFile())
       .map((e) => e.name)
-      .filter((name) => {
-        const parsed = parseName(name)
-        return parsed.kind === 'nn' && parsed.sidecarOf === undefined
-      })
+      .filter(isProcedureDocument)
       .sort()
   } catch {
     names = []

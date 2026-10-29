@@ -10,10 +10,10 @@ title: "Projects App"
 procedures:
   - id: "calculate-critical-path"
     name: "Calculate Critical Path"
-    path: "procedures/calculate_critical_path_NN.md"
+    path: "procedures/calculate_critical_path_procedures_NN.md"
   - id: "generate-status-report"
     name: "Generate Project Status Report"
-    path: "procedures/generate_status_report_NN.md"
+    path: "procedures/generate_status_report_procedures_NN.md"
 assets:
   - id: "roadmap-layout"
     name: "Roadmap Console HTML Layout"

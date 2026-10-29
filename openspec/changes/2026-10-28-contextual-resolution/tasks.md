@@ -367,9 +367,9 @@ the console view. Value: no loader disagrees on which documents are procedures, 
 dropped silently anywhere. It also unblocks D5, D6 and D9 of `2026-10-27-console-procedure-view`.
 Q15 is answered (2026-10-29); the file rule is the suffix rule.
 
-- [ ] L2.5.1 SPEC FIRST: the procedure document rule (the suffix rule of the naming contract) and identity (scope-chain or procedure-extension-points delta), consistent with the Q15 answer.
-- [ ] L2.5.2 RED/GREEN one predicate for "is this file a procedure document" that REUSES the naming contract: `roleOf(...) === 'procedure'`, or a thin `isProcedureDocument` built on it in `CORE/naming/contract.ts` (regenerate its mirrors). No new rule. Used by `fs-procedures.ts`, `loadDirProcedures` and `discoverTransitiveAssets`; the three private rules are deleted.
-- [ ] L2.5.2b Rename the 11 test fixtures in `procedures/` folders that violate the suffix rule, together with the tests that reference them.
+- [x] L2.5.1 SPEC FIRST: the procedure document rule (the suffix rule of the naming contract) and identity (scope-chain or procedure-extension-points delta), consistent with the Q15 answer.
+- [x] L2.5.2 RED/GREEN one predicate for "is this file a procedure document" that REUSES the naming contract: `roleOf(...) === 'procedure'`, or a thin `isProcedureDocument` built on it in `CORE/naming/contract.ts` (regenerate its mirrors). No new rule. Used by `fs-procedures.ts`, `loadDirProcedures` and `discoverTransitiveAssets`; the three private rules are deleted.
+- [x] L2.5.2b Rename the 10 test fixtures (simulacro-refactorizacion bluepriNNts, with their `spec_NN.md` catalog paths and mentions) in `procedures/` folders that violate the suffix rule, together with the tests that reference them.
 - [ ] L2.5.2c APPROVED by the maintainer 2026-10-29 (after L2.5.1/2/2b, test-first): rename the 6 workspace package procedures under `iNNfo/specs/bluepriNNts/workspace/procedures/` to `*_procedures_NN.md` (new workspace template version, tag and repin per the release memory), and extend the name-invariant guard to package files under `specs/`.
 - [x] L2.5.3 RED/GREEN `scripts/export-console.mjs` (~1100): report shadowed procedures instead of keeping the first id seen.
 - [x] L2.5.4 RED/GREEN slots reference their step by element id instead of `step: "<name>"` (spec, `fs-procedures.ts`, fixtures). Step id = the step element's slug within the procedure document; unknown id = `UNKNOWN_SLOT_STEP`, the name form is removed.

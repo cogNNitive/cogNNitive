@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { roleOf, isExcludedPath, familyOf, compareMembers } from '../../src/naming/contract.js'
+import { roleOf, isExcludedPath, familyOf, compareMembers, isProcedureDocument } from '../../src/naming/contract.js'
 
 describe('roleOf', () => {
   it('derives structural roles from the basename', () => {
@@ -138,5 +138,27 @@ describe('compareMembers', () => {
 
   it('returns 0 for equal names', () => {
     expect(compareMembers('r_20261002T101500Z.md', 'r_20261002T101500Z.md')).toBe(0)
+  })
+})
+
+describe('isProcedureDocument (the one procedure-document rule, L2.5.2)', () => {
+  it('accepts a non-sidecar _NN.md whose stem ends in _procedures, and agrees with roleOf', () => {
+    for (const path of ['x/status-report_procedures_NN.md', 'import_and_transcribe_audio_procedures_NN.md', 'A_Procedures_NN.md']) {
+      expect(isProcedureDocument(path)).toBe(true)
+      expect(roleOf({ path, parentSpecName: 'procedures' })).toBe('procedure')
+    }
+  })
+
+  it('rejects catalogs, specs, sidecars, plain files and unsuffixed _NN.md documents', () => {
+    for (const path of [
+      'procedures/procedures_NN.md',
+      'bluepriNNts/procedures/spec_NN.md',
+      'procedures/apply_feedback_NN.md',
+      'x/status-report_procedures.md',
+      'x/data.csv_sidecar_NN.md',
+      'notes.md',
+    ]) {
+      expect(isProcedureDocument(path)).toBe(false)
+    }
   })
 })

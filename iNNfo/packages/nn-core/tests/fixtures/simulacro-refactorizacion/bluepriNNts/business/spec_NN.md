@@ -31,7 +31,7 @@ relationship_types:
 procedures:
   - id: "compile-model-viewer"
     name: "Compile Model Viewer"
-    path: "procedures/compile_model_viewer_NN.md"
+    path: "procedures/compile_model_viewer_procedures_NN.md"
 assets:
   - id: "model-viewer-shell"
     name: "Model Viewer HTML Layout"
@@ -166,7 +166,7 @@ The official sample for this template is
 `V_0-2-1` Ghostbusters sample re-pointed at this version.
 `Ghostbusters_V_0-2-1_business_NN.md` is kept for consumers still pinned to
 `V_0-2-1`. `V_0-2-1` added the `Compile Strategic Master` procedure; `V_0-2-2`
-added `Compile Model Viewer` (`procedures/compile_model_viewer_NN.md`), which
+added `Compile Model Viewer` (`procedures/compile_model_viewer_procedures_NN.md`), which
 fills the template-agnostic consultation shell at `assets/model_viewer.html`
 with the resolved schema and serialized model data — a single offline,
 read-only page for browsing any model built on this template. `V_0-2-3` is a
