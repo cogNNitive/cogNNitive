@@ -255,10 +255,118 @@ describe('resolve with none', () => {
   })
 })
 
+describe('resolve with accept option', () => {
+  const root = node('', { music_volume: '0.2' })
+  const child = node('child', { music_volume: 'invalid' })
+
+  it('skips a nearer node whose value is rejected by accept and falls back to a valid parent', () => {
+    const r = ok(
+      resolve(chain([root, child]), 'music_volume', 'override', {
+        accept: (v) => Number.isFinite(Number(v)),
+      }),
+    )
+    expect(r.present).toBe(true)
+    expect(r.value).toBe('0.2')
+    expect(r.explain.winner?.scope).toBe('')
+  })
+
+  it('is absent when all declaring nodes are rejected by accept', () => {
+    const badRoot = node('', { music_volume: 'bad' })
+    const r = ok(
+      resolve(chain([badRoot, child]), 'music_volume', 'override', {
+        accept: (v) => Number.isFinite(Number(v)),
+      }),
+    )
+    expect(r.present).toBe(false)
+    expect(r.value).toBeNull()
+    expect(r.explain.winner).toBeNull()
+  })
+
+  it('passes the supplier to the accept callback', () => {
+    const seen: string[] = []
+    resolve(chain([root, child]), 'music_volume', 'override', {
+      accept: (v, supplier) => {
+        seen.push(`${supplier.scope}:${v}`)
+        return true
+      },
+    })
+    expect(seen).toContain(':0.2')
+    expect(seen).toContain('child:invalid')
+  })
+})
+
+describe('resolve with restrict', () => {
+  const root = node('', { allowedModels: ['model-a', 'model-b', 'model-c'] })
+  const series = node('series', { allowedModels: ['model-b', 'model-c', 'model-d'] })
+  const ep = node('series/ep', { allowedModels: ['model-b'] })
+
+  it('inner scope tightens the allowlist by set intersection', () => {
+    const r = ok(resolve(chain([root, series, ep]), 'allowedModels', 'restrict'))
+    expect(r.present).toBe(true)
+    expect(r.value).toEqual(['model-b'])
+    expect(r.explain.winner?.scope).toBe('series/ep')
+    expect(r.explain.overridden).toEqual([
+      { scope: 'series', doc: 'series/marker_NN.md', value: ['model-b', 'model-c', 'model-d'], by: 'series/ep' },
+      { scope: '', doc: 'root_NN.md', value: ['model-a', 'model-b', 'model-c'], by: 'series/ep' },
+    ])
+  })
+
+  it('inner scope cannot broaden the allowlist (widening is intersected)', () => {
+    const wideningChild = node('series/wide', { allowedModels: ['model-a', 'model-b', 'unauthorized-model'] })
+    const r = ok(resolve(chain([root, wideningChild]), 'allowedModels', 'restrict'))
+    expect(r.present).toBe(true)
+    expect(r.value).toEqual(['model-a', 'model-b'])
+  })
+
+  it('child without declaration maintains parent allowlist', () => {
+    const passiveChild = node('series/passive')
+    const r = ok(resolve(chain([root, passiveChild]), 'allowedModels', 'restrict'))
+    expect(r.present).toBe(true)
+    expect(r.value).toEqual(['model-a', 'model-b', 'model-c'])
+    expect(r.explain.winner?.scope).toBe('')
+    expect(r.explain.overridden).toEqual([])
+  })
+
+  it('supports comma-separated string in frontmatter', () => {
+    const stringRoot = node('', { allowedModels: '[model-a, model-b]' })
+    const stringChild = node('c', { allowedModels: 'model-b, model-c' })
+    const r = ok(resolve(chain([stringRoot, stringChild]), 'allowedModels', 'restrict'))
+    expect(r.value).toEqual(['model-b'])
+  })
+
+  it('falls back to floor when no node declares key', () => {
+    const emptyRoot = node('')
+    const r = ok(resolve(chain([emptyRoot], floor({ allowedModels: ['floor-model'] })), 'allowedModels', 'restrict'))
+    expect(r.present).toBe(true)
+    expect(r.value).toEqual(['floor-model'])
+    expect(r.explain.winner?.scope).toBe('floor:defaults')
+  })
+
+  it('is absent when nothing declares the key', () => {
+    const r = ok(resolve(chain([node('')]), 'allowedModels', 'restrict'))
+    expect(r.present).toBe(false)
+    expect(r.value).toBeNull()
+    expect(r.explain.winner).toBeNull()
+  })
+
+  it('isolate blocks parent allowlist from restriction fold', () => {
+    const iso = node('isolated', { allowedModels: ['iso-only'] }, { isolate: true })
+    const r = ok(resolve(chain([root, iso]), 'allowedModels', 'restrict'))
+    expect(r.value).toEqual(['iso-only'])
+    expect(r.explain.cutAt).toBe('isolated')
+  })
+
+  it('is deterministic, does not mutate input and round-trips JSON', () => {
+    const input = deepFreeze(chain([root, series], floor({ allowedModels: ['floor-model'] })))
+    expect(ok(resolve(input, 'allowedModels', 'restrict'))).toStrictEqual(ok(resolve(input, 'allowedModels', 'restrict')))
+    roundTrips(ok(resolve(input, 'allowedModels', 'restrict')))
+  })
+})
+
 describe('resolve contract', () => {
   it('rejects an unknown strategy by name and does not fall back', () => {
-    const r = resolve(chain([node('', { priority: 'medium' })]), 'priority', 'restrict')
-    expect(r).toEqual({ ok: false, code: 'UNSUPPORTED_STRATEGY', strategy: 'restrict' })
+    const r = resolve(chain([node('', { priority: 'medium' })]), 'priority', 'bogus')
+    expect(r).toEqual({ ok: false, code: 'UNSUPPORTED_STRATEGY', strategy: 'bogus' })
   })
 
   it('is deterministic and never mutates its input', () => {

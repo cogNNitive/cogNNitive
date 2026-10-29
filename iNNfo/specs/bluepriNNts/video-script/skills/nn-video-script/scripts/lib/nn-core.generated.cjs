@@ -8635,8 +8635,12 @@ function keyedEntries(raw) {
   return { entries, skipped };
 }
 var farToNear = (floor, nodes) => floor ? [floor, ...nodes] : [...nodes];
-function resolveOverride(key, order, cutAt, consulted) {
-  const declaring = order.filter((n) => declares(n, key));
+function resolveOverride(key, order, cutAt, consulted, options) {
+  const declaring = order.filter((n) => {
+    if (!declares(n, key)) return false;
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) return false;
+    return true;
+  });
   const winnerNode = declaring.at(-1);
   if (!winnerNode) {
     return {
@@ -8658,12 +8662,56 @@ function resolveOverride(key, order, cutAt, consulted) {
     explain: { v: 1, key, strategy: "override", consulted, cutAt, winner: supplierOf(winnerNode), overridden }
   };
 }
-function resolveUnion(key, order, cutAt, consulted) {
+function toStringList(raw) {
+  if (Array.isArray(raw)) {
+    return raw.map(String).map((s) => s.trim()).filter((s) => s.length > 0);
+  }
+  if (typeof raw === "string") {
+    let text = raw.trim();
+    if (text.startsWith("[") && text.endsWith("]")) text = text.slice(1, -1);
+    return text.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+  }
+  return [];
+}
+function resolveRestrict(key, order, cutAt, consulted, options) {
+  const declaring = order.filter((n) => {
+    if (!declares(n, key)) return false;
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) return false;
+    return true;
+  });
+  if (declaring.length === 0) {
+    return {
+      ok: true,
+      key,
+      strategy: "restrict",
+      present: false,
+      value: null,
+      explain: { v: 1, key, strategy: "restrict", consulted, cutAt, winner: null, overridden: [] }
+    };
+  }
+  let allowed = [...new Set(toStringList(declaring[0].values[key]))];
+  for (let i = 1; i < declaring.length; i++) {
+    const nodeItems = new Set(toStringList(declaring[i].values[key]));
+    allowed = allowed.filter((item) => nodeItems.has(item));
+  }
+  const winnerNode = declaring.at(-1);
+  const overridden = declaring.slice(0, -1).reverse().map((n) => ({ ...supplierOf(n), value: n.values[key], by: winnerNode.id }));
+  return {
+    ok: true,
+    key,
+    strategy: "restrict",
+    present: true,
+    value: allowed,
+    explain: { v: 1, key, strategy: "restrict", consulted, cutAt, winner: supplierOf(winnerNode), overridden }
+  };
+}
+function resolveUnion(key, order, cutAt, consulted, options) {
   const sequence = [];
   const skipped = [];
   let present = false;
   for (const n of order) {
     if (!declares(n, key)) continue;
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) continue;
     present = true;
     const parsed = keyedEntries(n.values[key]);
     for (const e of parsed.entries) sequence.push({ ...e, node: n });
@@ -8686,9 +8734,9 @@ function resolveUnion(key, order, cutAt, consulted) {
     explain: { v: 1, key, strategy: "union", consulted, cutAt, winner: null, overridden: [], entries, skipped }
   };
 }
-function resolveNone(key, floor, nodes, cutAt) {
+function resolveNone(key, floor, nodes, cutAt, options) {
   const target = nodes.at(-1) ?? null;
-  const own = target !== null && declares(target, key) ? target : null;
+  const own = target !== null && declares(target, key) && (!options?.accept || options.accept(target.values[key], supplierOf(target))) ? target : null;
   const notInherited = [...floor ? [floor] : [], ...nodes.slice(0, -1)].filter((n) => declares(n, key)).reverse().map((n) => ({ ...supplierOf(n), value: n.values[key] }));
   return {
     ok: true,
@@ -8708,15 +8756,17 @@ function resolveNone(key, floor, nodes, cutAt) {
     }
   };
 }
-function resolve3(loaded, key, strategy) {
-  if (strategy !== "override" && strategy !== "union" && strategy !== "none") {
+function resolve3(loaded, key, strategy, options) {
+  if (strategy !== "override" && strategy !== "union" && strategy !== "none" && strategy !== "restrict") {
     return { ok: false, code: "UNSUPPORTED_STRATEGY", strategy };
   }
   const { nodes, cutAt } = visibleNodes(loaded.nodes);
-  if (strategy === "none") return resolveNone(key, loaded.floor, nodes, cutAt);
+  if (strategy === "none") return resolveNone(key, loaded.floor, nodes, cutAt, options);
   const consulted = [...loaded.floor ? [loaded.floor] : [], ...nodes].map(supplierOf);
   const order = farToNear(loaded.floor, nodes);
-  return strategy === "override" ? resolveOverride(key, order, cutAt, consulted) : resolveUnion(key, order, cutAt, consulted);
+  if (strategy === "override") return resolveOverride(key, order, cutAt, consulted, options);
+  if (strategy === "restrict") return resolveRestrict(key, order, cutAt, consulted, options);
+  return resolveUnion(key, order, cutAt, consulted, options);
 }
 
 // iNNfo/packages/nn-core/src/scope/procedures.ts

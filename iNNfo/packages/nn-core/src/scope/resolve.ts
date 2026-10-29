@@ -1,7 +1,12 @@
 import type { JsonValue, ScopeNode } from './types.js'
 
-/** The closed set of merge strategies. `restrict` and `append` are deferred. */
-export type MergeStrategy = 'override' | 'union' | 'none'
+/** The closed set of merge strategies. `append` is deferred. */
+export type MergeStrategy = 'override' | 'union' | 'none' | 'restrict'
+
+/** Optional parameter filtering / validation for resolution. */
+export interface ResolveOptions {
+  accept?: (value: JsonValue, supplier: Supplier) => boolean
+}
 
 /** Who supplied a value: a node id (or the floor's id) and the document that declared it. */
 export interface Supplier {
@@ -125,8 +130,13 @@ function resolveOverride(
   order: readonly ScopeNode[],
   cutAt: string | null,
   consulted: Supplier[],
+  options?: ResolveOptions,
 ): Resolution {
-  const declaring = order.filter((n) => declares(n, key))
+  const declaring = order.filter((n) => {
+    if (!declares(n, key)) return false
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) return false
+    return true
+  })
   const winnerNode = declaring.at(-1)
   if (!winnerNode) {
     return {
@@ -152,11 +162,69 @@ function resolveOverride(
   }
 }
 
+function toStringList(raw: JsonValue): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map(String).map((s) => s.trim()).filter((s) => s.length > 0)
+  }
+  if (typeof raw === 'string') {
+    let text = raw.trim()
+    if (text.startsWith('[') && text.endsWith(']')) text = text.slice(1, -1)
+    return text.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+  }
+  return []
+}
+
+function resolveRestrict(
+  key: string,
+  order: readonly ScopeNode[],
+  cutAt: string | null,
+  consulted: Supplier[],
+  options?: ResolveOptions,
+): Resolution {
+  const declaring = order.filter((n) => {
+    if (!declares(n, key)) return false
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) return false
+    return true
+  })
+  if (declaring.length === 0) {
+    return {
+      ok: true,
+      key,
+      strategy: 'restrict',
+      present: false,
+      value: null,
+      explain: { v: 1, key, strategy: 'restrict', consulted, cutAt, winner: null, overridden: [] },
+    }
+  }
+
+  let allowed = [...new Set(toStringList(declaring[0].values[key]))]
+  for (let i = 1; i < declaring.length; i++) {
+    const nodeItems = new Set(toStringList(declaring[i].values[key]))
+    allowed = allowed.filter((item) => nodeItems.has(item))
+  }
+
+  const winnerNode = declaring.at(-1)!
+  const overridden: Candidate[] = declaring
+    .slice(0, -1)
+    .reverse()
+    .map((n) => ({ ...supplierOf(n), value: n.values[key], by: winnerNode.id }))
+
+  return {
+    ok: true,
+    key,
+    strategy: 'restrict',
+    present: true,
+    value: allowed,
+    explain: { v: 1, key, strategy: 'restrict', consulted, cutAt, winner: supplierOf(winnerNode), overridden },
+  }
+}
+
 function resolveUnion(
   key: string,
   order: readonly ScopeNode[],
   cutAt: string | null,
   consulted: Supplier[],
+  options?: ResolveOptions,
 ): Resolution {
   type Contribution = { name: string; value: JsonValue; node: ScopeNode }
   const sequence: Contribution[] = []
@@ -164,6 +232,7 @@ function resolveUnion(
   let present = false
   for (const n of order) {
     if (!declares(n, key)) continue
+    if (options?.accept && !options.accept(n.values[key], supplierOf(n))) continue
     present = true
     const parsed = keyedEntries(n.values[key])
     for (const e of parsed.entries) sequence.push({ ...e, node: n })
@@ -195,9 +264,20 @@ function resolveUnion(
  * `none`: the target (innermost visible node) is the only supplier. Ancestors and the
  * floor are never read for the value; the ones that declare the key are only reported.
  */
-function resolveNone(key: string, floor: ScopeNode | null, nodes: readonly ScopeNode[], cutAt: string | null): Resolution {
+function resolveNone(
+  key: string,
+  floor: ScopeNode | null,
+  nodes: readonly ScopeNode[],
+  cutAt: string | null,
+  options?: ResolveOptions,
+): Resolution {
   const target = nodes.at(-1) ?? null
-  const own = target !== null && declares(target, key) ? target : null
+  const own =
+    target !== null &&
+    declares(target, key) &&
+    (!options?.accept || options.accept(target.values[key], supplierOf(target)))
+      ? target
+      : null
   const notInherited = [...(floor ? [floor] : []), ...nodes.slice(0, -1)]
     .filter((n) => declares(n, key))
     .reverse()
@@ -233,16 +313,23 @@ function resolveNone(key: string, floor: ScopeNode | null, nodes: readonly Scope
  * - `union`: the named entries of every node, a nearer entry shadowing a farther one of
  *   the same name; entries are ordered by supplying scope, outermost first, then by
  *   declaration order.
+ * - `restrict`: inner scopes can only tighten or maintain an array allowlist (set
+ *   intersection), never broaden it.
  */
-export function resolve(loaded: LoadedChain, key: string, strategy: string): Resolution {
-  if (strategy !== 'override' && strategy !== 'union' && strategy !== 'none') {
+export function resolve(
+  loaded: LoadedChain,
+  key: string,
+  strategy: string,
+  options?: ResolveOptions,
+): Resolution {
+  if (strategy !== 'override' && strategy !== 'union' && strategy !== 'none' && strategy !== 'restrict') {
     return { ok: false, code: 'UNSUPPORTED_STRATEGY', strategy }
   }
   const { nodes, cutAt } = visibleNodes(loaded.nodes)
-  if (strategy === 'none') return resolveNone(key, loaded.floor, nodes, cutAt)
+  if (strategy === 'none') return resolveNone(key, loaded.floor, nodes, cutAt, options)
   const consulted = [...(loaded.floor ? [loaded.floor] : []), ...nodes].map(supplierOf)
   const order = farToNear(loaded.floor, nodes)
-  return strategy === 'override'
-    ? resolveOverride(key, order, cutAt, consulted)
-    : resolveUnion(key, order, cutAt, consulted)
+  if (strategy === 'override') return resolveOverride(key, order, cutAt, consulted, options)
+  if (strategy === 'restrict') return resolveRestrict(key, order, cutAt, consulted, options)
+  return resolveUnion(key, order, cutAt, consulted, options)
 }
