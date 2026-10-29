@@ -228,6 +228,24 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     })
   })
 
+  describe('list_blueprint_procedures path dispatch', () => {
+    it('lists the root procedures/ as the root scope with a path; a path outside any domaiNN is an isError result', async () => {
+      await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
+      await mkdir(join(rootDir, 'procedures'), { recursive: true })
+      await writeFile(join(rootDir, 'procedures', 'close-month_procedures_NN.md'), '---\nlevel: 3\ntitle: Close Month\n---\n', 'utf-8')
+
+      const scoped = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path: 'note_NN.md' } })
+      expect(scoped.isError).toBeFalsy()
+      const body = JSON.parse(textOf(scoped as CallToolResult))
+      expect(body.version).toBe('innfo-list-blueprint-procedures@1')
+      expect(body.procedures).toMatchObject([{ id: 'close-month', source_kind: 'scope', source: '', status: 'selected' }])
+
+      const outside = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path: '../elsewhere_NN.md' } })
+      expect(outside.isError).toBe(true)
+      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+    })
+  })
+
   describe('apply_change dispatch (changeset vs legacy bare calls)', () => {
     it('rejects when neither changeset nor (id, op) is provided', async () => {
       const result = await client.callTool({ name: 'apply_change', arguments: {} })

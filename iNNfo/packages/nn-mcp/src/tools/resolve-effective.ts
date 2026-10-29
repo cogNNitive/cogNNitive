@@ -3,6 +3,7 @@ import { isAbsolute, relative, resolve as resolvePath, sep } from 'node:path'
 import { findScopeChain, loadElementChain, resolve } from '@cognnitive/nn-core'
 import type {
   ElementLoadErrorCode,
+  ScopeChain,
   ExplainTrace,
   JsonValue,
   LoadedChain,
@@ -119,7 +120,7 @@ function insideRoot(rootDir: string, abs: string): boolean {
 }
 
 /** Replaces the absolute root prefix in `text` (either separator) with nothing: domain-relative. */
-function scrub(text: string, rootDir: string): string {
+export function scrub(text: string, rootDir: string): string {
   const root = resolvePath(rootDir)
   const flags = process.platform === 'win32' ? 'gi' : 'g'
   let out = text
@@ -132,13 +133,14 @@ function scrub(text: string, rootDir: string): string {
   return out
 }
 
-async function run(rootDir: string, input: unknown, opts: PackageOptions): Promise<Outcome> {
-  const parsed = parseInput(input)
-  if ('ok' in parsed) return parsed
-
-  const abs = resolvePath(rootDir, parsed.path)
+/**
+ * The scope chain of a document or scope directory, bounded by the server root. Shared by
+ * the scope tools: every failure is a `ToolFailure` with domain-relative text.
+ */
+export function locateChain(rootDir: string, path: string): { ok: true; chain: ScopeChain; abs: string } | ToolFailure {
+  const abs = resolvePath(rootDir, path)
   if (!insideRoot(rootDir, abs)) {
-    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `${parsed.path} is outside the domain root` }
+    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `${path} is outside the domain root` }
   }
 
   const found = findScopeChain(abs)
@@ -152,8 +154,19 @@ async function run(rootDir: string, input: unknown, opts: PackageOptions): Promi
     return { ok: false, code: found.code, detail: scrub(found.detail, rootDir), path: found.path }
   }
   if (!within(realOrSelf(resolvePath(rootDir)), realOrSelf(found.chain.root))) {
-    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `${parsed.path} belongs to a domaiNN that is not inside the domain root` }
+    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `${path} belongs to a domaiNN that is not inside the domain root` }
   }
+  return { ok: true, chain: found.chain, abs }
+}
+
+async function run(rootDir: string, input: unknown, opts: PackageOptions): Promise<Outcome> {
+  const parsed = parseInput(input)
+  if ('ok' in parsed) return parsed
+
+  const located = locateChain(rootDir, parsed.path)
+  if (!located.ok) return located
+  const { abs } = located
+  const found = { chain: located.chain }
 
   const floor = await locateFloor(found.chain, opts)
   if (!floor.ok) return floor

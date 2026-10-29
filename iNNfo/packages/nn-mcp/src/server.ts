@@ -690,10 +690,15 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'list_blueprint_procedures',
       description:
-        'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10',
+        'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10. A procedure that loses a name clash is returned with status shadowed (shadowed_by names the winner), never dropped. ' +
+        'With path (a document or scope directory) the listing is scope-aware: the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root procedures/ > the bluepriNNt package), each with its source, slots, fork record and warnings; a path outside any domaiNN returns NO_DOMAIN_ROOT with the directories searched.',
       inputSchema: {
         type: 'object',
         properties: {
+          path: {
+            type: 'string',
+            description: 'Optional document or scope directory, domain-relative or absolute inside the domain root: scope-aware listing',
+          },
           knowledge_path: { type: 'string', description: 'Optional knowledge file path or ID' },
           model_path: { type: 'string', description: 'Optional knowledge file path or ID (alias for knowledge_path)' },
           knowledge_id: { type: 'string', description: 'Optional knowledge ID' },
@@ -1066,6 +1071,11 @@ async function handleListBlueprintProcedures(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  if (typeof args.path === 'string' && args.path !== '') {
+    const scoped = await listBlueprintProcedures(root, { path: args.path })
+    const text = JSON.stringify(envelope('innfo-list-blueprint-procedures', scoped), null, 2)
+    return scoped.ok ? textResult(text) : errorResult(text)
+  }
   const result = await listBlueprintProcedures(root, {
     model_path: (args.knowledge_path as string) || (args.model_path as string),
     model_id: (args.knowledge_id as string) || (args.model_id as string),

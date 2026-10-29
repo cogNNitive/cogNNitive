@@ -32,9 +32,9 @@ const isAbsence = (error: unknown): boolean => {
   return code === 'ENOENT' || code === 'ENOTDIR'
 }
 
-const unreadable = (error: unknown): FloorLocation => ({
-  ok: false,
-  code: 'FLOOR_UNREADABLE',
+const unreadable = (error: unknown) => ({
+  ok: false as const,
+  code: 'FLOOR_UNREADABLE' as const,
   detail: `the bluepriNNt package or its defaults/ folder could not be read (${(error as NodeJS.ErrnoException | null)?.code ?? 'unknown error'})`,
 })
 
@@ -50,13 +50,24 @@ function parentSpecName(path: string): string | null {
   }
 }
 
-export async function locateFloor(chain: ScopeChain, opts: PackageOptions = {}): Promise<FloorLocation> {
-  const innermost = chain.links.filter((link) => link.valuesDoc !== null).at(-1)
-  if (!innermost?.valuesDoc) return { ok: true, floorDoc: null }
-  const name = parentSpecName(join(chain.root, innermost.valuesDoc))
-  if (name === null) return { ok: true, floorDoc: null }
+export type FloorPackage = Awaited<ReturnType<typeof resolveBlueprintPackage>>
 
-  if (name.includes('/') || name.includes('\\')|| name.includes('..')) {
+export type FloorPackageLocation =
+  | { ok: true; pkg: NonNullable<FloorPackage> | null }
+  | { ok: false; code: 'INVALID_PARENT_SPEC' | 'FLOOR_UNREADABLE'; detail: string; path?: string }
+
+/**
+ * The bluepriNNt package named by the `parent_spec` of the innermost values document of the
+ * chain, or null when there is none (not an error). Shared by the floor document and the floor
+ * procedures so both read the same package.
+ */
+export async function locateFloorPackage(chain: ScopeChain, opts: PackageOptions = {}): Promise<FloorPackageLocation> {
+  const innermost = chain.links.filter((link) => link.valuesDoc !== null).at(-1)
+  if (!innermost?.valuesDoc) return { ok: true, pkg: null }
+  const name = parentSpecName(join(chain.root, innermost.valuesDoc))
+  if (name === null) return { ok: true, pkg: null }
+
+  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
     return {
       ok: false,
       code: 'INVALID_PARENT_SPEC',
@@ -65,12 +76,17 @@ export async function locateFloor(chain: ScopeChain, opts: PackageOptions = {}):
     }
   }
 
-  let pkg: Awaited<ReturnType<typeof resolveBlueprintPackage>>
   try {
-    pkg = await resolveBlueprintPackage(chain.root, name, undefined, opts)
+    return { ok: true, pkg: (await resolveBlueprintPackage(chain.root, name, undefined, opts)) ?? null }
   } catch (error) {
-    return isAbsence(error) ? { ok: true, floorDoc: null } : unreadable(error)
+    return isAbsence(error) ? { ok: true, pkg: null } : unreadable(error)
   }
+}
+
+export async function locateFloor(chain: ScopeChain, opts: PackageOptions = {}): Promise<FloorLocation> {
+  const located = await locateFloorPackage(chain, opts)
+  if (!located.ok) return located
+  const pkg = located.pkg
   if (!pkg?.isPackageDir) return { ok: true, floorDoc: null }
 
   const defaults = join(pkg.packagePath, 'defaults')

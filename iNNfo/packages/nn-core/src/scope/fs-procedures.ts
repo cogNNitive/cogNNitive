@@ -103,6 +103,38 @@ function readProcedureDoc(
 }
 
 /**
+ * Reads the procedure documents of a directory the caller located (a bluepriNNt package's
+ * `procedures/` folder, the floor). Unlike a scope's `procedures/`, any non-sidecar `_NN.md`
+ * counts, whatever its stem. The core never finds the package itself: `scope` is the node id
+ * the definitions carry and `docPrefix` the folder prefix of their `doc`. A missing directory
+ * yields nothing.
+ */
+export function loadDirProcedures(
+  dir: string,
+  scope: string,
+  docPrefix: string,
+): { procedures: ProcedureDef[]; diagnostics: ProcedureDiagnostic[] } {
+  const diagnostics: ProcedureDiagnostic[] = []
+  let names: string[]
+  try {
+    names = readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isFile())
+      .map((e) => e.name)
+      .filter((name) => {
+        const parsed = parseName(name)
+        return parsed.kind === 'nn' && parsed.sidecarOf === undefined
+      })
+      .sort()
+  } catch {
+    names = []
+  }
+  const procedures = names
+    .map((name) => readProcedureDoc(join(dir, name), name, scope, `${docPrefix}/${name}`, diagnostics))
+    .filter((def): def is ProcedureDef => def !== null)
+  return { procedures, diagnostics }
+}
+
+/**
  * Attaches the procedures of every scope of the chain to its node: the
  * `*_procedures_NN.md` documents under `<scope dir>/procedures/`, nothing else, so a
  * sibling's procedures are never visible. Slots (`slots:`) and the fork record

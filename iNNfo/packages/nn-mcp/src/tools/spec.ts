@@ -21,13 +21,18 @@ import {
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
   procedureIdOf,
+  resolveProcedures,
 } from '@cognnitive/nn-core'
+import { listScopedProcedures } from './scoped-procedures.js'
+import type { ScopedProceduresResult } from './scoped-procedures.js'
+import type { PackageOptions } from './floor-doc.js'
 import { mkdir, copyFile, readdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import type {
   SpecDocument,
   SpecCache,
   TemplateProcedure,
+  ProcedureDef,
   TemplateSkill,
   SpecFrontmatter,
 } from '@cognnitive/nn-core'
@@ -814,8 +819,18 @@ export interface EmbeddedBlueprintSkill {
   description?: string
 }
 
+/**
+ * A procedure found in a bluepriNNt package chain. A procedure that loses a name clash with
+ * a nearer package is not dropped: it is reported as `shadowed`, naming the winner's package.
+ */
+export interface ListedTemplateProcedure extends TemplateProcedure {
+  status: 'selected' | 'shadowed'
+  /** `shadowed` entries: the package (`source_template`) of the entry that wins. */
+  shadowed_by?: string
+}
+
 interface DiscoveredAssets {
-  procedures: TemplateProcedure[]
+  procedures: ListedTemplateProcedure[]
   skills: Array<TemplateSkill | EmbeddedBlueprintSkill>
 }
 
@@ -901,9 +916,11 @@ export async function discoverTransitiveAssets(
     }
   }
 
-  const procedures: TemplateProcedure[] = []
+  // Every procedure found, in discovery order (nearest package first). A definition repeated
+  // inside one package (frontmatter entry plus its on-disk document) is one declaration;
+  // a clash between packages is resolved by nn-core `resolveProcedures` after the walk.
+  const found: Array<{ proc: TemplateProcedure; def: ProcedureDef }> = []
   const skills: Array<TemplateSkill | EmbeddedBlueprintSkill> = []
-  const seenProcIds = new Set<string>()
   const seenSkillNames = new Set<string>()
   const seenBlueprints = new Set<string>()
 
@@ -919,11 +936,19 @@ export async function discoverTransitiveAssets(
       ? blueprintOwnerName(dirname(item.filePath), item.docName)
       : item.docName
 
+    const packageProcIds = new Set<string>()
+    const addProcedure = (proc: TemplateProcedure): void => {
+      packageProcIds.add(proc.id)
+      found.push({
+        proc,
+        def: { id: proc.id, scope: proc.source_template ?? ownerName, doc: proc.path, version: null, slots: [] },
+      })
+    }
+
     if (Array.isArray(fm.procedures)) {
       for (const p of fm.procedures) {
-        if (p && typeof p === 'object' && p.id && !seenProcIds.has(p.id)) {
-          seenProcIds.add(p.id)
-          procedures.push({
+        if (p && typeof p === 'object' && p.id && !packageProcIds.has(String(p.id))) {
+          addProcedure({
             id: String(p.id),
             name: String(p.name ?? p.id),
             path: String(p.path ?? ''),
@@ -952,8 +977,7 @@ export async function discoverTransitiveAssets(
           if (pe.isFile() && pe.name.endsWith('.md')) {
             const procStem = pe.name.replace(/\.md$/i, '')
             const procId = procedureIdOf(pe.name)
-            if (!seenProcIds.has(procId)) {
-              seenProcIds.add(procId)
+            if (!packageProcIds.has(procId)) {
               let procName = procStem
                 .replace(/_NN$/i, '')
                 .replace(/_/g, ' ')
@@ -966,7 +990,7 @@ export async function discoverTransitiveAssets(
               } catch (_) {
                 /* unreadable/invalid frontmatter — fall back to the default name */
               }
-              procedures.push({
+              addProcedure({
                 id: procId,
                 name: procName,
                 path: `procedures/${pe.name}`,
@@ -1110,13 +1134,47 @@ export async function discoverTransitiveAssets(
     }
   }
 
-  return { procedures, skills }
+  return { procedures: classifyProcedures(found), skills }
+}
+
+/**
+ * Selected or shadowed for every procedure found, by nn-core `resolveProcedures`: one node per
+ * package, the nearest package last. Order and fields of the entries are those of discovery.
+ */
+function classifyProcedures(found: Array<{ proc: TemplateProcedure; def: ProcedureDef }>): ListedTemplateProcedure[] {
+  const byPackage = new Map<string, ProcedureDef[]>()
+  for (const { def } of found) byPackage.set(def.scope, [...(byPackage.get(def.scope) ?? []), def])
+  const nodes = [...byPackage.entries()]
+    .reverse()
+    .map(([id, procedures]) => ({ id, kind: 'blueprint', doc: null, isolate: false, values: {}, procedures }))
+  const winners = new Map(resolveProcedures({ floor: null, nodes }).procedures.map((e) => [e.def.id, e.def]))
+  return found.map(({ proc, def }) =>
+    winners.get(def.id) === def
+      ? { ...proc, status: 'selected' }
+      : { ...proc, status: 'shadowed', shadowed_by: winners.get(def.id)?.scope },
+  )
+}
+
+export interface ListBlueprintProceduresScopedOptions extends ListBlueprintProceduresOptions {
+  /** A document or scope directory: list the procedures visible from there, selected and shadowed. */
+  path: string
 }
 
 export async function listBlueprintProcedures(
   rootDir: string,
+  opts: ListBlueprintProceduresScopedOptions,
+  pkg?: PackageOptions,
+): Promise<ScopedProceduresResult>
+export async function listBlueprintProcedures(
+  rootDir: string,
   opts?: ListBlueprintProceduresOptions,
-): Promise<{ procedures: TemplateProcedure[] }> {
+): Promise<{ procedures: ListedTemplateProcedure[] }>
+export async function listBlueprintProcedures(
+  rootDir: string,
+  opts?: ListBlueprintProceduresOptions & { path?: string },
+  pkg?: PackageOptions,
+): Promise<ScopedProceduresResult | { procedures: ListedTemplateProcedure[] }> {
+  if (opts?.path !== undefined) return listScopedProcedures(rootDir, opts.path, pkg)
   const assets = await discoverTransitiveAssets(rootDir, opts)
   return { procedures: assets.procedures }
 }

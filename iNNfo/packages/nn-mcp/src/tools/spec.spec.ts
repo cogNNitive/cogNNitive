@@ -319,9 +319,15 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     )
 
     const procsRes = await listBlueprintProcedures(rootDir, { blueprint_name: 'base_spec_NN' })
-    expect(procsRes.procedures).toHaveLength(2)
-    expect(procsRes.procedures.map((p) => p.id)).toEqual(['proc-base', 'proc-included'])
+    // The duplicate `proc-base` of the included template is reported as shadowed, not dropped.
+    expect(procsRes.procedures).toHaveLength(3)
+    expect(procsRes.procedures.map((p) => [p.id, p.status])).toEqual([
+      ['proc-base', 'selected'],
+      ['proc-included', 'selected'],
+      ['proc-base', 'shadowed'],
+    ])
     expect(procsRes.procedures[0].source_template).toBe('base_spec_NN')
+    expect(procsRes.procedures[2].shadowed_by).toBe('base_spec_NN')
 
     const skillsRes = await listBlueprintSkills(rootDir, { blueprint_name: 'base_spec_NN' })
     expect(skillsRes.skills).toHaveLength(2)
@@ -606,6 +612,7 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
       name: 'Ingest Visual Catalog Procedure',
       path: 'procedures/ingest_visual_catalog_procedures_NN.md',
       source_template: 'visual-catalog',
+      status: 'selected',
     })
   })
 })
