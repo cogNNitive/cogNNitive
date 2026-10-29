@@ -37,6 +37,12 @@ export interface ConsoleProcedureSlot {
   id: string
   name: string
   path: string
+  /**
+   * Set by the domain export: a same-id procedure from another blueprint is carried
+   * as `shadowed` (naming the winner in `shadowed_by`) instead of being dropped.
+   */
+  status?: 'selected' | 'shadowed'
+  shadowed_by?: string
 }
 
 /**

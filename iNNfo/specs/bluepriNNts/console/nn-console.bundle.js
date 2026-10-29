@@ -14104,7 +14104,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // Blueprint procedure catalog (parent + includes). `usage` reads first,
     // labelled "Getting started"; the rest keep their declared names.
-    var blueprintProcedures = Array.isArray(schema.procedures) ? schema.procedures.slice() : []
+    // The export carries shadowed same-id entries too (never dropped silently);
+    // the list shows only the ones that won.
+    var blueprintProcedures = Array.isArray(schema.procedures)
+      ? schema.procedures.filter(function (p) {
+          return !(p && p.status === 'shadowed')
+        })
+      : []
     if (blueprintProcedures.length > 0) {
       blueprintProcedures.sort(function (a, b) {
         if (a && a.id === 'usage') return -1

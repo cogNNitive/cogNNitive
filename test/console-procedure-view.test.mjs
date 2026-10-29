@@ -119,6 +119,19 @@ describe('procedure view (bluepriNNt)', () => {
     handle.unmount()
   })
 
+  it('lists only selected blueprint procedures, never a shadowed one (L2.5.3)', () => {
+    const stepper = createRequire(import.meta.url)(stepperPath)
+    const p = payload()
+    p.schema.procedures = [
+      { id: 'check', name: 'Alpha check', path: 'procedures/check_alpha_NN.md', status: 'selected' },
+      { id: 'check', name: 'Beta check', path: 'procedures/check_beta_NN.md', status: 'shadowed', shadowed_by: 'alpha' },
+    ]
+    const handle = stepper.mount(container, p)
+    const items = [...container.querySelectorAll('[data-nn-procedures="blueprint"] .proc-blueprint-item')]
+    assert.deepEqual(items.map((i) => i.textContent), ['Alpha check'])
+    handle.unmount()
+  })
+
   it('renders no blueprint list when the schema carries no procedures', () => {
     const stepper = createRequire(import.meta.url)(stepperPath)
     const handle = stepper.mount(container, payload())
