@@ -63,9 +63,9 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | done |
 | L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | done |
 | L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | done |
-| L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | spike done 2026-10-29; waiting on Q13 |
-| L2.5 | Procedure identity: one procedure-document rule, no silent drop in the console export, slots by element id; hand-off to `console-procedure-view` | L2.3b, Q15 (resolved) | ~350 provisional | previous branch | new (2026-10-29) | pending (L2.5.2c gated on a workspace bluepriNNt release) |
-| L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | pending |
+| L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | done (Option A implemented, PR #404) |
+| L2.5 | Procedure identity: one procedure-document rule, no silent drop in the console export, slots by element id; hand-off to `console-procedure-view` | L2.3b, Q15 (resolved) | ~350 provisional | previous branch | new (2026-10-29) | done (blueprints-v0.48.0 released) |
+| L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | done (L2.C.1 & L2.C.2 recorded; awaiting review L2.C.3) |
 | L3.1a | Video skill: `build-core-mirrors.mjs` rename and scope mirror | L2 checkpoint | 250 (+ generated bundle) | previous branch | G0.3, A1 | pending |
 | L3.1b | Video skill: `resolveWorkspace` on `findDomainRoot`, params through the core, `procedures/`, folder contract | L3.1a, Q14 | 380 | L3.1a branch | A1, A2 | pending |
 | L3.1c | Video skill: delete `cascade.mjs`, `nearest.mjs` and their tests | L3.1b | ~570 deleted | L3.1b branch | A2 | pending |
@@ -373,14 +373,14 @@ Q15 is answered (2026-10-29); the file rule is the suffix rule.
 - [x] L2.5.2c APPROVED by the maintainer 2026-10-29 (after L2.5.1/2/2b, test-first): rename the 6 workspace package procedures under `iNNfo/specs/bluepriNNts/workspace/procedures/` to `*_procedures_NN.md` (new workspace template version, tag and repin per the release memory), and extend the name-invariant guard to package files under `specs/`.
 - [x] L2.5.3 RED/GREEN `scripts/export-console.mjs` (~1100): report shadowed procedures instead of keeping the first id seen.
 - [x] L2.5.4 RED/GREEN slots reference their step by element id instead of `step: "<name>"` (spec, `fs-procedures.ts`, fixtures). Step id = the step element's slug within the procedure document; unknown id = `UNKNOWN_SLOT_STEP`, the name form is removed.
-- [ ] L2.5.2c-release: at landing, on the MERGED commit, cut the `templates-v*` tag and repin (validate-manifest rejects unmerged tags). Do NOT tag or repin before the merge. Exact steps are in the Decision log (2026-10-29, L2.5.2c).
+- [x] L2.5.2c-release: at landing, on the MERGED commit, cut the blueprints-v* tag and repin. Completed 2026-10-29: `blueprints-v0.48.0` tag cut on `origin/main`, `release.yml` workflow succeeded in 3m12s, mirror tag verified on `cogNNitive-web`, 0 files changed.
 - [x] L2.5.5 Hand-off: write the agreed identity into `2026-10-27-console-procedure-view` (D5, D6, D9). That change is now OWNED by this session (the other session was retired), including its shippable part (#360, D1-D4, D7, D8, D10), so the console view projecting the scoped listing is applied from there, not in this change.
 - [ ] L2.5.6 Deferred inside this lot: a derived catalog (`aggregate`), and a new procedures bluepriNNt version with `Work` = steps only. Unlock: Q15 = yes plus the first bluepriNNt release after L2.5.2.
 
 ### L2 checkpoint (mandatory before Lote 3)
 
-- [ ] L2.C.1 Write Lote 2 conclusions into the `design.md` decision log: drift numbers on the real domains, the element contract as built, MCP surface, the id decision, and what Lote 3 now needs.
-- [ ] L2.C.2 Re-plan Lote 3 with concrete RED/GREEN tasks; decide the placement of `restrict` for `video-guard.json` `allowedModels` (trigger met; scheduled after L2.3) and of the marker-move warning (Q1b).
+- [x] L2.C.1 (done 2026-10-29) Write Lote 2 conclusions into the `design.md` decision log: drift numbers on the real domains (video 5/8 volume drift, LC_programas 6/6 price uniform under `none`), the element contract as built (`scope_elements`, `parent`, `isolate`), MCP surface (`resolve_effective`, `explain`, scoped procedures, `AMBIGUOUS_MODEL_ID`), the Option A model id decision, procedure identity (`isProcedureDocument`, workspace `V_0-10-0`), and what Lote 3 now needs.
+- [x] L2.C.2 (done 2026-10-29) Re-plan Lote 3 with concrete RED/GREEN tasks: scheduled `restrict` strategy for `video-guard.json` `allowedModels` as task `L3.1b.2b` (tighten-only set intersection in `nn-core/src/scope/resolve.ts`); decided marker-move warning (Q1b) remains in Deferred as potential-enhancement.
 - [ ] L2.C.3 Maintainer review of the Lote 3 plan before any Lote 3 apply.
 
 ---
@@ -398,6 +398,7 @@ tools show. Gates: Q14 (composition of procedure bodies) before L3.1b; Q8.
 - [ ] L3.1a.1 RED/GREEN `scripts/build-trannsform-core-mirror.mjs` -> `scripts/build-core-mirrors.mjs` (update every reference found with `rg`; keep its existing test, renamed): a second target generates a CJS mirror of the scope module for the video skill, following the `nn-sources` precedent; `--check` mode wired into `scripts/verify.js` (drift test: a hand-edited mirror turns it red). Estimate ~250 excluding the generated bundle.
 - [ ] L3.1b.1 RED/GREEN `video-guard.mjs` `resolveWorkspace` (~98) on `findDomainRoot` through the mirror; the guard file is only read at `<root>/video-guard.json`; no `.git` branch.
 - [ ] L3.1b.2 RED/GREEN generic `accept` option on core `resolve` (the typed-parameter skip that `cascade.mjs` has; removed in L1.2 until a consumer needs it), with its own core test and mutation check.
+- [ ] L3.1b.2b RED/GREEN `restrict` merge strategy in core `resolve` (`SCOPE/resolve.ts`) for array allowlists (`allowedModels`): inner scopes may only tighten (intersect) or maintain parent values, never broaden. Mutation check: widening allowlist returns intersection.
 - [ ] L3.1b.3 RED/GREEN callers of `cascade.mjs`/`nearest.mjs` move to the mirror and the element chain (`scene > video > series`): `video-engine-cli.mjs`, `synthesize-avatar.mjs`, `scene-compiler.mjs`, `render-thumbnail.mjs`, `lib/tts-options.mjs`, `build-script-from-draft.mjs`, `asset-synthesizer.mjs`, `asset-cost-estimator.mjs`; existing `node --test` suites stay green.
 - [ ] L3.1b.4 RED/GREEN the skill's procedures folder constant `procedure/` -> `procedures/`; the folder contract becomes "no escape above the scope root" (specs `video-folder-contract`, `video-script-skill`).
 - [ ] L3.1b.5 CONDITIONAL on Q14: if a tool or the skill must return a composed procedure body, RED/GREEN a core `composeProcedure(def, bindings)` (replaces the 5-line `compose` in `golden.spec.ts` and the script); otherwise skip with a Decision log entry.

@@ -538,10 +538,46 @@ The maintainer chose Option A for model id resolution:
 - The recursive first-wins lookup walk and the `domain*` prefix heuristic are deleted.
 - 0 file renames, 0 data migrations.
 
+### 2026-10-29 (L2 Checkpoint: L2.C.1 & L2.C.2 conclusions and Lote 3 re-plan)
+
+**1. Lote 2 Conclusions (L2.C.1):**
+- **Real-Domain Drift Numbers**:
+  - `video_NN` (70 chains across 17 scripts): `music_volume` baseline 0.4 (innteresante), 5 of 8 scripts deviate (0.06 x4, 0.2 x1); `music` baseline jazz.mp3, 1 of 8 deviates (`elevator.mp3`); `voice_id` is 100% uniform (0 of 8). villabotijos-today baseline 0.06, 1 of 9 deviates (0.1 x1, `casimiro-mahou`). Drift surfaces deviations cleanly down to individual scene elements.
+  - `LC_programas` (Tutorias): 6 chains, 6 of 6 Prestaciones de Servicios resolve their Programa via `programa_ref`. Under strategy `none`, `precio_hora_tutoria` resolves from the Prestación itself across 6 of 6 orders with 1 distinct value and zero inheritance, validating that contractual pricing remains explicit without drift.
+- **Element Contract as Built**:
+  - Declared via frontmatter `scope_elements: [{ concept: <Concept> }, ...]`.
+  - Parent resolution: explicit `parent: <field>` via exact title matching against the parent concept, or implicit nearest preceding element in document order (`inDocumentOrder`).
+  - Strict-boolean `isolate:: true` cuts outer inheritance while preserving floor access.
+  - Purity enforced: zero `node:fs` imports in pure adapters; loader returns structured errors and never throws on corrupt data.
+- **MCP Surface**:
+  - `resolve_effective` & `explain` tools (contracts `innfo-resolve-effective@1` and `innfo-explain@1`) bound strictly to server domain root, with symlink-safe containment and diagnostics scrubbing.
+  - Scope-aware `list_blueprint_procedures({ path })` lists selected and shadowed procedures (precedence: model > nearest scope > ... > root `procedures/` > blueprint package floor).
+- **Model ID Resolution (Option A)**:
+  - Pure index (`buildModelIndex`, `resolveModelId`) supporting bare stem when unique, domain-relative path always, and `AMBIGUOUS_MODEL_ID` errors with candidate lists on collisions. First-wins walk and `domain*` heuristics eliminated. Zero file renames, zero data migration.
+- **Procedure Identity & Release**:
+  - Single procedure document rule (`isProcedureDocument`) based on canonical naming contract (`*_procedures_NN.md`).
+  - Slots reference step elements by slug; unknown slug returns `UNKNOWN_SLOT_STEP`.
+  - Workspace blueprint bumped to `V_0-10-0`, procedure filenames suffixed, released to `main` as `blueprints-v0.48.0` and mirrored to `cogNNitive-web`.
+
+**2. Lote 3 Re-Plan & Strategy Decisions (L2.C.2):**
+- **Placement of `restrict` Strategy**:
+  - Trigger: `video-guard.json` `allowedModels` (array allowlist).
+  - Semantics: Tighten-only intersection (lex superior). An inner scope can only narrow or maintain the set of allowed models, never broaden it.
+  - Placement: Scheduled in `nn-core/src/scope/resolve.ts` as task `L3.1b.2b`, alongside the generic `accept` option in `L3.1b.2`.
+- **Marker-Move Warning (`compareEffective`, Q1b)**:
+  - Decision: Remains in **Deferred** (as a `potential-enhancement`). No domain document move/preview tool exists today. Building it now would be speculative overengineering (Ponytail principle); the pure building blocks exist in `driftReport` whenever a move preview tool is designed.
+- **Lote 3 Execution Sequence**:
+  - `L3.1a`: Rename `build-trannsform-core-mirror.mjs` to `build-core-mirrors.mjs` and emit CJS scope mirror for video skill.
+  - `L3.1b`: Video skill adopts core mirror (`findDomainRoot`, generic `accept`, `restrict` strategy for `allowedModels`, `procedure/` -> `procedures/`).
+  - `L3.1c`: Delete legacy `cascade.mjs`, `nearest.mjs` and their test suites (~570 lines deleted).
+  - `L3.2`: Video domain adoption (dry-run plan script `adopt-video-plan.mjs`, converge slots, maintainer run on copy).
+  - `L3.3`: LC_programas adoption (`scope_elements` on Tutorias, slot import paths, close-out verification).
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.
 - [x] ~~Adoption B edits the `projects` package and needs a `template_version` bump and repin.~~ Moot: `projects` is no longer an adoption target (2026-10-28 LC_programas entry).
 - [x] How does an element scope's `isolate` and marker syntax look (heading flag vs `key::`)? Resolved 2026-10-28 (maintainer, Q10): frontmatter `scope_elements` plus an `isolate::` element field.
 - [x] Q13 Model-id strategy: resolved 2026-10-29 (maintainer): Option A.
+- [x] Q1b Marker-move warning (`compareEffective`): resolved 2026-10-29 (L2 Checkpoint): remains in Deferred (potential-enhancement).
 - [ ] Q11 and Q14 in `tasks.md` (LC_programas data shape, procedure composition) are tracked there.
