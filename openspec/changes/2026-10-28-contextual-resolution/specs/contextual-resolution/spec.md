@@ -161,30 +161,81 @@ in the trace.
 
 ### Requirement: MCP resolve_effective And explain Tools
 
-nn-mcp MUST expose a `resolve_effective` tool and an `explain` tool. `resolve_effective`
-MUST accept a document or scope path, a key, and a strategy, and MUST return the effective
-value, the chain used (outermost first) and the trace. `explain` MUST accept the same
-inputs and MUST return the trace. Both MUST locate scopes through `findScopeChain`, and both
-MUST return a structured error, not a thrown exception, for a path outside any domaiNN or
-a key with an unsupported strategy.
+nn-mcp MUST expose a `resolve_effective` tool and an `explain` tool. Both MUST accept a
+document or scope `path` (domain-relative, or absolute inside the server's domaiNN), a `key`,
+a `strategy` (`override`, `union` or `none`) and an optional element target
+`{ concept, slug }` naming a declared scope element of that document. Both MUST locate scopes
+through `findScopeChain` (and, with an element target, `loadElementChain`), MUST obtain the
+value and the trace from nn-core `resolve` (no second fold in nn-mcp), and MUST NOT write.
 
-#### Scenario: resolve_effective returns value and chain
+`resolve_effective` MUST return the effective value, whether it is present, the winner and
+the trace. `explain` MUST return the same trace plus the chain the fold read (node ids and
+kinds, outermost first) and the floor supplier. Neither MUST return a composed procedure.
+
+The floor MUST be located by nn-mcp: the bluepriNNt package named by the `parent_spec` of the
+innermost values document of the chain is resolved through the bluepriNNt package resolver
+(`resolveBlueprintPackage`), and its floor is the single `_NN.md` under the package's
+`defaults/` folder. A package that cannot be resolved, or has no `defaults/` document, means
+no floor and is not an error; more than one `_NN.md` under `defaults/` is the structured
+error `AMBIGUOUS_FLOOR`.
+
+Both tools MUST return a structured error, never a thrown exception or a rejected call, with
+a stable `code` and a `detail`: `INVALID_ARGUMENT` (a missing or ill-typed input),
+`PATH_OUTSIDE_SCOPE` (the path is outside the server's domain root), `NO_DOMAIN_ROOT` (with
+the directories `searched`), `UNSUPPORTED_STRATEGY`, the element errors of the element
+adapter, and the document errors `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (with the
+domain-relative `path`). Every response MUST survive `JSON.stringify` then `JSON.parse` with
+deep equality and MUST NOT contain absolute machine paths other than inside `searched`.
+
+#### Scenario: resolve_effective returns value and winner
 
 - GIVEN the three-level fixture and `priority: high` declared in `p1`
 - WHEN `resolve_effective` is called with a path in `p1`, key `priority`, strategy `override`
-- THEN the response contains `high`, the chain `portfolio, alpha, p1`, and a trace naming `p1`
+- THEN the response contains `high`, present true, the winner `p1`, and a trace that overrides `alpha`'s and `portfolio`'s declarations
 
-#### Scenario: explain returns only the trace
+#### Scenario: explain returns the trace and the chain
 
 - GIVEN the same inputs
 - WHEN `explain` is called
-- THEN the response contains the trace and it equals the trace returned by `resolve_effective`
+- THEN the response contains the chain `portfolio, alpha, p1` with node kinds
+- AND its trace deep-equals the trace returned by `resolve_effective`
+
+#### Scenario: Element target
+
+- GIVEN a document declaring `scope_elements` and a scene element declaring `music_volume: 0.06` below a series declaring `0.4`
+- WHEN `resolve_effective` is called for that document, the key `music_volume`, `override` and the target `{ concept: Scene, slug }`
+- THEN the value is `0.06`, the winner is the scene element, and the trace lists the series' `0.4` as overridden by it
+
+#### Scenario: none keeps an omitted value absent
+
+- GIVEN a root declaring `precio_hora_tutoria: "84"` and a Prestación element declaring none
+- WHEN `resolve_effective` is called with `none` and that element as target
+- THEN the result is absent and the trace lists the root's declaration under `notInherited`
+
+#### Scenario: Floor fallback
+
+- GIVEN a package whose `defaults/` document declares `health: green` and no scope declaring `health`
+- WHEN `resolve_effective` is called for `health` with `override`
+- THEN the value is `green` and the winner is the floor supplier `bluepriNNt:<package>`
+- AND the same call in a domaiNN whose package has no `defaults/` document is explicitly absent, not an error
 
 #### Scenario: Path outside any domaiNN
 
 - GIVEN a path with no `domaiNN_NN.md` in its ancestry
 - WHEN either tool is called
-- THEN a structured error is returned listing the directories searched
+- THEN the structured error `NO_DOMAIN_ROOT` is returned listing the directories searched
+
+#### Scenario: Path outside the server's domain root
+
+- GIVEN an absolute path that is not inside the server's domain root
+- WHEN either tool is called
+- THEN the structured error `PATH_OUTSIDE_SCOPE` is returned and nothing outside the root is read
+
+#### Scenario: Bad input never throws
+
+- GIVEN a missing key, an unsupported strategy, an unknown element target or an unreadable document
+- WHEN either tool is called
+- THEN a structured error with its code is returned and no exception escapes
 
 ### Requirement: Resolution Is Generic Across bluepriNNts
 
