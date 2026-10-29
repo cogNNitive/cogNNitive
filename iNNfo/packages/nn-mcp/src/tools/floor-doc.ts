@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import type { Dirent } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseFrontmatter, parseName, resolveBlueprintPackage } from '@cognnitive/nn-core'
@@ -23,7 +24,19 @@ export interface PackageOptions {
 
 export type FloorLocation =
   | { ok: true; floorDoc: { label: string; path: string } | null }
-  | { ok: false; code: 'AMBIGUOUS_FLOOR'; detail: string }
+  | { ok: false; code: 'AMBIGUOUS_FLOOR' | 'INVALID_PARENT_SPEC' | 'FLOOR_UNREADABLE'; detail: string; path?: string }
+
+/** Absence (no such file or folder) is "no floor"; any other I/O failure is an error. */
+const isAbsence = (error: unknown): boolean => {
+  const code = (error as NodeJS.ErrnoException | null)?.code
+  return code === 'ENOENT' || code === 'ENOTDIR'
+}
+
+const unreadable = (error: unknown): FloorLocation => ({
+  ok: false,
+  code: 'FLOOR_UNREADABLE',
+  detail: `the bluepriNNt package or its defaults/ folder could not be read (${(error as NodeJS.ErrnoException | null)?.code ?? 'unknown error'})`,
+})
 
 /** `parent_spec.name` of a document, or null when it cannot be read or names none. */
 function parentSpecName(path: string): string | null {
@@ -43,11 +56,30 @@ export async function locateFloor(chain: ScopeChain, opts: PackageOptions = {}):
   const name = parentSpecName(join(chain.root, innermost.valuesDoc))
   if (name === null) return { ok: true, floorDoc: null }
 
-  const pkg = await resolveBlueprintPackage(chain.root, name, undefined, opts).catch(() => null)
+  if (name.includes('/') || name.includes('\\')|| name.includes('..')) {
+    return {
+      ok: false,
+      code: 'INVALID_PARENT_SPEC',
+      detail: 'parent_spec.name must be a bluepriNNt name, not a path',
+      path: innermost.valuesDoc,
+    }
+  }
+
+  let pkg: Awaited<ReturnType<typeof resolveBlueprintPackage>>
+  try {
+    pkg = await resolveBlueprintPackage(chain.root, name, undefined, opts)
+  } catch (error) {
+    return isAbsence(error) ? { ok: true, floorDoc: null } : unreadable(error)
+  }
   if (!pkg?.isPackageDir) return { ok: true, floorDoc: null }
 
   const defaults = join(pkg.packagePath, 'defaults')
-  const entries = await readdir(defaults, { withFileTypes: true }).catch(() => [])
+  let entries: Dirent[]
+  try {
+    entries = await readdir(defaults, { withFileTypes: true })
+  } catch (error) {
+    return isAbsence(error) ? { ok: true, floorDoc: null } : unreadable(error)
+  }
   const docs = entries
     .filter((e) => {
       const parsed = e.isFile() ? parseName(e.name) : null

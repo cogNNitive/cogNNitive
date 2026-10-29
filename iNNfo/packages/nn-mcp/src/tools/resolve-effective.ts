@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs'
 import { isAbsolute, relative, resolve as resolvePath, sep } from 'node:path'
 import { findScopeChain, loadElementChain, resolve } from '@cognnitive/nn-core'
 import type {
@@ -24,6 +25,8 @@ export type ToolErrorCode =
   | 'PATH_OUTSIDE_SCOPE'
   | 'UNSUPPORTED_STRATEGY'
   | 'AMBIGUOUS_FLOOR'
+  | 'INVALID_PARENT_SPEC'
+  | 'FLOOR_UNREADABLE'
   | 'INTERNAL_ERROR'
 
 export interface ToolFailure {
@@ -94,10 +97,39 @@ function parseInput(input: unknown): Parsed | ToolFailure {
   return { path, key, strategy, target: { concept: target['concept'], slug: target['slug'] } }
 }
 
-/** True when `abs` is the server root or lies inside it. */
-function insideRoot(rootDir: string, abs: string): boolean {
-  const rel = relative(resolvePath(rootDir), abs)
+/** True when `abs` is `root` or lies inside it (pure path logic). */
+function within(root: string, abs: string): boolean {
+  const rel = relative(root, abs)
   return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
+}
+
+/** The real location of `abs`: links resolved. A path that does not exist keeps its lexical form. */
+function realOrSelf(abs: string): string {
+  try {
+    return realpathSync(abs)
+  } catch {
+    return abs
+  }
+}
+
+/** True when `abs` is the server root or lies inside it, lexically and once links are resolved. */
+function insideRoot(rootDir: string, abs: string): boolean {
+  const root = resolvePath(rootDir)
+  return within(root, abs) && within(realOrSelf(root), realOrSelf(abs))
+}
+
+/** Replaces the absolute root prefix in `text` (either separator) with nothing: domain-relative. */
+function scrub(text: string, rootDir: string): string {
+  const root = resolvePath(rootDir)
+  const flags = process.platform === 'win32' ? 'gi' : 'g'
+  let out = text
+  for (const prefix of new Set([root, realOrSelf(root)])) {
+    for (const variant of new Set([prefix, prefix.replaceAll('\\', '/'), prefix.replaceAll('/', '\\')])) {
+      const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      out = out.replace(new RegExp(`${escaped}[\\\\/]?`, flags), '')
+    }
+  }
+  return out
 }
 
 async function run(rootDir: string, input: unknown, opts: PackageOptions): Promise<Outcome> {
@@ -117,7 +149,10 @@ async function run(rootDir: string, input: unknown, opts: PackageOptions): Promi
     if (found.code === 'DUPLICATE_SCOPE_MARKER') {
       return { ok: false, code: 'DUPLICATE_SCOPE_MARKER', detail: `${found.dir || '.'} holds more than one scope marker: ${found.markers.join(', ')}` }
     }
-    return { ok: false, code: found.code, detail: found.detail, path: found.path }
+    return { ok: false, code: found.code, detail: scrub(found.detail, rootDir), path: found.path }
+  }
+  if (!within(realOrSelf(resolvePath(rootDir)), realOrSelf(found.chain.root))) {
+    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `${parsed.path} belongs to a domaiNN that is not inside the domain root` }
   }
 
   const floor = await locateFloor(found.chain, opts)
@@ -126,7 +161,7 @@ async function run(rootDir: string, input: unknown, opts: PackageOptions): Promi
   const element = loadElementChain(abs, parsed.target, floor.floorDoc ? { floorDoc: floor.floorDoc } : {})
   if (!element.ok) {
     const { ok, code, detail, searched, path } = element
-    return { ok, code, detail, ...(searched ? { searched } : {}), ...(path ? { path } : {}) }
+    return { ok, code, detail: scrub(detail, rootDir), ...(searched ? { searched } : {}), ...(path ? { path } : {}) }
   }
 
   const resolution = resolve(element.loaded, parsed.key, parsed.strategy)
@@ -140,7 +175,7 @@ async function guarded(rootDir: string, input: unknown, opts: PackageOptions): P
   try {
     return await run(rootDir, input, opts)
   } catch (error) {
-    return { ok: false, code: 'INTERNAL_ERROR', detail: error instanceof Error ? error.message : String(error) }
+    return { ok: false, code: 'INTERNAL_ERROR', detail: 'internal error' }
   }
 }
 

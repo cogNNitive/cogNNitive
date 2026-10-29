@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { explainEffective, resolveEffective } from './resolve-effective'
@@ -254,6 +254,108 @@ describe('structured errors', () => {
       const r = await tool(FIX, input as never, isolated)
       expect(r.ok).toBe(false)
       expect(typeof (r as ToolFailure).code).toBe('string')
+    }
+  })
+})
+
+describe('containment', () => {
+  it('PATH_OUTSIDE_SCOPE when the domaiNN root lies above the server root', async () => {
+    const outer = join(scratch, 'outer')
+    mkdirSync(join(outer, 'inner', 'sub'), { recursive: true })
+    writeFileSync(join(outer, 'domaiNN_NN.md'), '---\ntitle: outer\n---\n# outer\n')
+    writeFileSync(join(outer, 'inner', 'sub', 'a_NN.md'), '# NN Note\n')
+    const r = await resolveEffective(join(outer, 'inner'), { path: 'sub/a_NN.md', key: 'k', strategy: 'override' }, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+  })
+
+  it('PATH_OUTSIDE_SCOPE when a link inside the domaiNN points outside it', async (ctx) => {
+    const dom = join(scratch, 'linked')
+    const outside = join(scratch, 'linked-outside')
+    mkdirSync(dom)
+    mkdirSync(outside)
+    writeFileSync(join(dom, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n')
+    writeFileSync(join(outside, 'x_NN.md'), '# NN Note\n')
+    try {
+      symlinkSync(outside, join(dom, 'link'), 'junction')
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') return ctx.skip()
+      throw error
+    }
+    const r = await resolveEffective(dom, { path: 'link/x_NN.md', key: 'k', strategy: 'override' }, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+  })
+
+  it.skipIf(process.platform !== 'win32')('PATH_OUTSIDE_SCOPE for another drive or a UNC path', async () => {
+    for (const path of ['Z:\\elsewhere\\a_NN.md', '\\\\server\\share\\a_NN.md']) {
+      const r = await resolveEffective(FIX, { path, key: 'k', strategy: 'override' }, isolated)
+      expect(r).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+    }
+  })
+})
+
+describe('floor errors', () => {
+  function domainWithParent(name: string): string {
+    const dir = join(scratch, `parent-${Math.random().toString(36).slice(2)}`)
+    mkdirSync(join(dir, 'prog'), { recursive: true })
+    writeFileSync(join(dir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n')
+    writeFileSync(join(dir, 'prog', 'p_NN.md'), `---\nparent_spec:\n  name: ${JSON.stringify(name)}\nscope: true\n---\n# NN Settings\n`)
+    return dir
+  }
+
+  it.each(['../evil', '..\\evil', 'a/b', 'a\\b', '..'])('INVALID_PARENT_SPEC for parent_spec name %s', async (name) => {
+    const dir = domainWithParent(name)
+    const r = await resolveEffective(dir, { path: 'prog/p_NN.md', key: 'k', strategy: 'override' }, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'INVALID_PARENT_SPEC', path: 'prog/p_NN.md' })
+    expect(JSON.stringify(r)).not.toContain(dir.replaceAll('\\', '\\\\'))
+  })
+})
+
+describe('no absolute paths in failures', () => {
+  it('UNREADABLE_DOCUMENT carries no absolute machine path', async () => {
+    const r = await resolveEffective(ELFIX, { path: 'kNNowledge/missing_NN.md', key: 'k', strategy: 'override', target: { concept: 'Programa', slug: 'x' } }, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'UNREADABLE_DOCUMENT' })
+    const text = JSON.stringify(r)
+    expect(text).not.toContain(ELFIX.replaceAll('\\', '\\\\'))
+    expect(text).not.toContain(ELFIX)
+    expect(text).not.toContain(ELFIX.replaceAll('\\', '/'))
+  })
+
+  it('INTERNAL_ERROR is generic', async () => {
+    const hostile = {
+      get path(): string {
+        throw new Error(`boom at ${FIX}`)
+      },
+      key: 'k',
+      strategy: 'override',
+    }
+    const r = await resolveEffective(FIX, hostile, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'INTERNAL_ERROR', detail: 'internal error' })
+  })
+})
+
+describe('input and element parity', () => {
+  it('keeps element-target traces equal between explain and resolve_effective', async () => {
+    const input = { path: SCRIPT, key: 'music_volume', strategy: 'override', target: { concept: 'Scene', slug: '02-noticia' } }
+    const a = ok(await resolveEffective(GOLD, input, isolated))
+    const b = okExplain(await explainEffective(GOLD, input, isolated))
+    expect(b.trace).toEqual(a.trace)
+  })
+
+  it.each([
+    ['a string target', 'Scene'],
+    ['a numeric target', 3],
+    ['a numeric slug', { concept: 'Scene', slug: 2 }],
+    ['an empty concept', { concept: '', slug: 's' }],
+  ])('INVALID_ARGUMENT for %s', async (_label, target) => {
+    for (const tool of [resolveEffective, explainEffective]) {
+      const r = await tool(FIX, { path: P1, key: 'k', strategy: 'override', target } as never, isolated)
+      expect(r).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    }
+  })
+
+  it.each([['an array', []], ['a number', 5], ['undefined', undefined]])('INVALID_ARGUMENT for %s as the whole input', async (_label, input) => {
+    for (const tool of [resolveEffective, explainEffective]) {
+      expect(await tool(FIX, input as never, isolated)).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
     }
   })
 })

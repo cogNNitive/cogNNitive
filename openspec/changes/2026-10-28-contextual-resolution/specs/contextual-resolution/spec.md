@@ -178,15 +178,20 @@ innermost values document of the chain is resolved through the bluepriNNt packag
 (`resolveBlueprintPackage`), and its floor is the single `_NN.md` under the package's
 `defaults/` folder. A package that cannot be resolved, or has no `defaults/` document, means
 no floor and is not an error; more than one `_NN.md` under `defaults/` is the structured
-error `AMBIGUOUS_FLOOR`.
+error `AMBIGUOUS_FLOOR`. A `parent_spec.name` that is a path (it contains `/`, `\` or `..`) is the
+structured error `INVALID_PARENT_SPEC` naming the document, and an I/O failure other than
+absence while reading the package or its `defaults/` folder is `FLOOR_UNREADABLE`; neither is
+silently treated as "no floor".
 
 Both tools MUST return a structured error, never a thrown exception or a rejected call, with
 a stable `code` and a `detail`: `INVALID_ARGUMENT` (a missing or ill-typed input),
-`PATH_OUTSIDE_SCOPE` (the path is outside the server's domain root), `NO_DOMAIN_ROOT` (with
+`PATH_OUTSIDE_SCOPE` (the path, or the domaiNN it belongs to, is outside the server's domain root, including through a link), `INVALID_PARENT_SPEC`, `FLOOR_UNREADABLE`, `NO_DOMAIN_ROOT` (with
 the directories `searched`), `UNSUPPORTED_STRATEGY`, the element errors of the element
 adapter, and the document errors `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (with the
 domain-relative `path`). Every response MUST survive `JSON.stringify` then `JSON.parse` with
-deep equality and MUST NOT contain absolute machine paths other than inside `searched`.
+deep equality and MUST NOT contain absolute machine paths other than inside `searched`; error
+details are scrubbed to domain-relative form and an unexpected failure is the generic
+`INTERNAL_ERROR` without paths.
 
 #### Scenario: resolve_effective returns value and winner
 
@@ -231,6 +236,24 @@ deep equality and MUST NOT contain absolute machine paths other than inside `sea
 - GIVEN an absolute path that is not inside the server's domain root
 - WHEN either tool is called
 - THEN the structured error `PATH_OUTSIDE_SCOPE` is returned and nothing outside the root is read
+
+#### Scenario: Domain root above the server root or behind a link
+
+- GIVEN the server root is a sub-folder of the real domaiNN, or a link inside the root points outside it
+- WHEN either tool is called for a path that reaches the outer domaiNN
+- THEN the structured error `PATH_OUTSIDE_SCOPE` is returned
+
+#### Scenario: parent_spec naming a path
+
+- GIVEN the innermost values document declares `parent_spec.name: ../evil`
+- WHEN either tool is called
+- THEN the structured error `INVALID_PARENT_SPEC` is returned with the document's domain-relative `path`, and no package is resolved
+
+#### Scenario: Unreadable floor
+
+- GIVEN the package's `defaults/` folder exists but cannot be read (for example, permission denied)
+- WHEN either tool is called
+- THEN the structured error `FLOOR_UNREADABLE` is returned, without an absolute path, instead of "no floor"
 
 #### Scenario: Bad input never throws
 
