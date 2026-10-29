@@ -64,18 +64,15 @@ Each slice is revertible alone.
 - [ ] 3.4 Rebuild `BUNDLE`; regenerate the testlab fixture; `node scripts/verify.js --only=console`.
 - [ ] 3.5 Mutation check: removing the defect collection turns 3.1 red.
 
-## Slice 4: Payload emits the catalog link (spec: console-payload-builder "Procedure Catalog Link Is Emitted"; design D5)
+## Slice 4: Scoped procedure listing & file identity (spec: console-payload-builder "Procedure Catalog Link Is Emitted" MODIFIED; design D5; aligned with Q15)
 
-- [ ] 4.1 RED `PAYLOAD` test: a `Procedure` with `procedure_model::` emits a `procedure_model` relation targeting the root `Work`'s id; an unresolved target emits no relation and does not fail the build.
-- [ ] 4.2 GREEN `PAYLOAD`: resolve `procedure_model::` per document and emit the relation on the `Procedure` element.
-- [ ] 4.3 `BP`: `Procedure` Field Definition `procedure_model` becomes `type:: reference`, `target_concepts:: [Work]`; run `validate_knowledge` on a document using it.
-- [ ] 4.4 Rebuild the `console-payload.generated.cjs` mirror; `node scripts/verify.js --only=payload`.
-- [ ] 4.5 Golden-payload check: existing consumers see only an added relation (no field removed).
+- [ ] 4.1 Under Q15 ("one document = one procedure"), the data source for available procedures is the scoped procedure listing (`list_blueprint_procedures({ path })`). The procedure document itself (`*_procedures_NN.md`) provides procedure identity and contains its `Work` steps.
+- [ ] 4.2 Payload builder and console export preserve all procedures without dropping duplicates, marking clashing entries as `shadowed` with `shadowed_by` (shipped in L2.5.3).
 
-## Slice 5: Tab shows the catalog ficha (spec: innfo-console-runtime "Procedure Tab Shows The Catalog Entry"; design D6)
+## Slice 5: Tab shows the procedure metadata (spec: innfo-console-runtime "Procedure Tab Shows The Catalog Entry" MODIFIED; design D6; aligned with Q15)
 
-- [ ] 5.1 RED: a `Procedure` joined to a root `Work` renders its `summary`, `category`, `executed_by`, `inputs_required`, `outputs_expected` in the header; a root `Work` with no `Procedure` renders a "no catalog entry" note with no fabricated values.
-- [ ] 5.2 GREEN `STEP`: join via the `procedure_model` relation; render the ficha; omit missing fields.
+- [ ] 5.1 RED: the procedure stepper renders procedure metadata (`summary`, `category`, `executed_by`, `inputs_required`, `outputs_expected`) directly from the active procedure document / catalog entry; non-shadowed procedures are listed in the stepper.
+- [ ] 5.2 GREEN `STEP`: render the procedure header; omit missing fields.
 - [ ] 5.3 Rebuild `BUNDLE`; regenerate the testlab fixture; `node scripts/verify.js --only=console`.
 
 ## Slice 6: Decision steps render as branches (spec: innfo-console-runtime "Decision Steps Render As Branches"; design D7)
@@ -84,9 +81,9 @@ Each slice is revertible alone.
 - [ ] 6.2 GREEN `STEP`: branch rendering for multi-target decisions.
 - [ ] 6.3 Rebuild `BUNDLE`; regenerate the testlab fixture; `node scripts/verify.js --only=console`.
 
-## Slice 7: Blueprint template shows the combined shape (spec: design D9; `BP`)
+## Slice 7: Blueprint template and self-contained shape (spec: design D9; `BP`; aligned with Q15)
 
-- [ ] 7.1 `BP`: the template section shows the combined document — catalog `Procedure` + root `Work` (`next::` to the first step) + `parent::`-linked steps — matching a shipped example.
+- [ ] 7.1 `BP`: the template section shows the self-contained procedure document (`<verb>_<noun>_procedures_NN.md`) with `Work` elements as execution steps.
 - [ ] 7.2 Document the "structure fix" assistant: it reports a missing root `Work`/`parent::` and suggests the patch; it never edits the domain (mirror video-series `D16`).
 - [ ] 7.3 `node scripts/verify.js --only=procedures`; blueprint immutability guard passes with the version bump if `BP` changes.
 

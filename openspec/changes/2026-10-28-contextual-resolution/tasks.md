@@ -374,7 +374,7 @@ Q15 is answered (2026-10-29); the file rule is the suffix rule.
 - [x] L2.5.3 RED/GREEN `scripts/export-console.mjs` (~1100): report shadowed procedures instead of keeping the first id seen.
 - [x] L2.5.4 RED/GREEN slots reference their step by element id instead of `step: "<name>"` (spec, `fs-procedures.ts`, fixtures). Step id = the step element's slug within the procedure document; unknown id = `UNKNOWN_SLOT_STEP`, the name form is removed.
 - [ ] L2.5.2c-release: at landing, on the MERGED commit, cut the `templates-v*` tag and repin (validate-manifest rejects unmerged tags). Do NOT tag or repin before the merge. Exact steps are in the Decision log (2026-10-29, L2.5.2c).
-- [ ] L2.5.5 Hand-off: write the agreed identity into `2026-10-27-console-procedure-view` (D5, D6, D9). That change is now OWNED by this session (the other session was retired), including its shippable part (#360, D1-D4, D7, D8, D10), so the console view projecting the scoped listing is applied from there, not in this change.
+- [x] L2.5.5 Hand-off: write the agreed identity into `2026-10-27-console-procedure-view` (D5, D6, D9). That change is now OWNED by this session (the other session was retired), including its shippable part (#360, D1-D4, D7, D8, D10), so the console view projecting the scoped listing is applied from there, not in this change.
 - [ ] L2.5.6 Deferred inside this lot: a derived catalog (`aggregate`), and a new procedures bluepriNNt version with `Work` = steps only. Unlock: Q15 = yes plus the first bluepriNNt release after L2.5.2.
 
 ### L2 checkpoint (mandatory before Lote 3)
