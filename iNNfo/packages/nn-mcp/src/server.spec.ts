@@ -244,6 +244,32 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       expect(outside.isError).toBe(true)
       expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
     })
+
+    it.each([['domain'], ['root']])('refuses %s together with path: the scoped listing is bound to the server root', async (override) => {
+      await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
+      const other = mkdtempSync(join(tmpdir(), 'nn-other-domain-'))
+      try {
+        writeFileSync(join(other, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n')
+        mkdirSync(join(other, 'procedures'))
+        writeFileSync(join(other, 'procedures', 'secret_procedures_NN.md'), '---\nlevel: 3\n---\n')
+        const result = await client.callTool({
+          name: 'list_blueprint_procedures',
+          arguments: { path: 'note_NN.md', [override]: other },
+        })
+        expect(result.isError).toBe(true)
+        const body = JSON.parse(textOf(result as CallToolResult))
+        expect(body).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+        expect(JSON.stringify(body)).not.toContain('secret')
+      } finally {
+        rmSync(other, { recursive: true, force: true })
+      }
+    })
+
+    it.each([[''], [42], [null], [{}]])('answers a structured INVALID_ARGUMENT for path %j instead of falling back to the unscoped listing', async (path) => {
+      const result = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path } })
+      expect(result.isError).toBe(true)
+      expect(JSON.parse(textOf(result as CallToolResult))).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    })
   })
 
   describe('apply_change dispatch (changeset vs legacy bare calls)', () => {

@@ -119,15 +119,18 @@ function insideRoot(rootDir: string, abs: string): boolean {
   return within(root, abs) && within(realOrSelf(root), realOrSelf(abs))
 }
 
-/** Replaces the absolute root prefix in `text` (either separator) with nothing: domain-relative. */
-export function scrub(text: string, rootDir: string): string {
+/**
+ * Replaces the absolute `rootDir` prefix in `text` (either separator) with `replacement`
+ * (nothing by default: domain-relative).
+ */
+export function scrub(text: string, rootDir: string, replacement = ''): string {
   const root = resolvePath(rootDir)
   const flags = process.platform === 'win32' ? 'gi' : 'g'
   let out = text
   for (const prefix of new Set([root, realOrSelf(root)])) {
     for (const variant of new Set([prefix, prefix.replaceAll('\\', '/'), prefix.replaceAll('/', '\\')])) {
       const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      out = out.replace(new RegExp(`${escaped}[\\\\/]?`, flags), '')
+      out = out.replace(new RegExp(`${escaped}[\\\\/]?`, flags), () => replacement)
     }
   }
   return out

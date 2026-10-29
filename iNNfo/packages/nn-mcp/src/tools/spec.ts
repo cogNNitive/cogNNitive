@@ -917,7 +917,7 @@ export async function discoverTransitiveAssets(
   }
 
   // Every procedure found, in discovery order (nearest package first). A definition repeated
-  // inside one package (frontmatter entry plus its on-disk document) is one declaration;
+  // inside one package (frontmatter entry plus its on-disk document, the same file) is one declaration;
   // a clash between packages is resolved by nn-core `resolveProcedures` after the walk.
   const found: Array<{ proc: TemplateProcedure; def: ProcedureDef }> = []
   const skills: Array<TemplateSkill | EmbeddedBlueprintSkill> = []
@@ -936,9 +936,12 @@ export async function discoverTransitiveAssets(
       ? blueprintOwnerName(dirname(item.filePath), item.docName)
       : item.docName
 
-    const packageProcIds = new Set<string>()
+    // A declaration is its id plus its document: only the same file seen twice (frontmatter entry
+    // and on-disk document) is one declaration. The same id at another path is a second definition.
+    const packageDocs = new Set<string>()
+    const docKey = (id: string, path: string): string => `${id}\0${path.replaceAll('\\', '/').replace(/^\.\//, '')}`
     const addProcedure = (proc: TemplateProcedure): void => {
-      packageProcIds.add(proc.id)
+      packageDocs.add(docKey(proc.id, proc.path))
       found.push({
         proc,
         def: { id: proc.id, scope: proc.source_template ?? ownerName, doc: proc.path, version: null, slots: [] },
@@ -947,7 +950,7 @@ export async function discoverTransitiveAssets(
 
     if (Array.isArray(fm.procedures)) {
       for (const p of fm.procedures) {
-        if (p && typeof p === 'object' && p.id && !packageProcIds.has(String(p.id))) {
+        if (p && typeof p === 'object' && p.id && !packageDocs.has(docKey(String(p.id), String(p.path ?? '')))) {
           addProcedure({
             id: String(p.id),
             name: String(p.name ?? p.id),
@@ -977,7 +980,7 @@ export async function discoverTransitiveAssets(
           if (pe.isFile() && pe.name.endsWith('.md')) {
             const procStem = pe.name.replace(/\.md$/i, '')
             const procId = procedureIdOf(pe.name)
-            if (!packageProcIds.has(procId)) {
+            if (!packageDocs.has(docKey(procId, `procedures/${pe.name}`))) {
               let procName = procStem
                 .replace(/_NN$/i, '')
                 .replace(/_/g, ' ')

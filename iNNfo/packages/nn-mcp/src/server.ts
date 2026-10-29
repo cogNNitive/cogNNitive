@@ -691,7 +691,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'list_blueprint_procedures',
       description:
         'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10. A procedure that loses a name clash is returned with status shadowed (shadowed_by names the winner), never dropped. ' +
-        'With path (a document or scope directory) the listing is scope-aware: the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root procedures/ > the bluepriNNt package), each with its source, slots, fork record and warnings; a path outside any domaiNN returns NO_DOMAIN_ROOT with the directories searched.',
+        'With path (a document or scope directory) the listing is scope-aware: the procedures visible from that scope, selected and shadowed (model > nearest scope > ... > root procedures/ > the bluepriNNt package), each with its source, slots, fork record and warnings; a path outside any domaiNN returns NO_DOMAIN_ROOT with the directories searched. The scoped listing is bound to the server domain root: path cannot be combined with domain or root (INVALID_ARGUMENT), and path must be a non-empty string.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1070,12 +1070,17 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
 async function handleListBlueprintProcedures(
   args: Record<string, unknown>,
 ): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  if (typeof args.path === 'string' && args.path !== '') {
-    const scoped = await listBlueprintProcedures(root, { path: args.path })
+  if (args.path !== undefined) {
+    // The scoped listing is bound to the server's domain root, like resolve_effective and explain:
+    // the root is what PATH_OUTSIDE_SCOPE is measured against, so a caller cannot choose another.
+    const scoped =
+      args.domain || args.root
+        ? ({ ok: false, code: 'INVALID_ARGUMENT', detail: 'domain and root cannot be combined with path: the scoped listing is bound to the server domain root' } as const)
+        : await listBlueprintProcedures(ROOT_DIR, { path: args.path as string })
     const text = JSON.stringify(envelope('innfo-list-blueprint-procedures', scoped), null, 2)
     return scoped.ok ? textResult(text) : errorResult(text)
   }
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const result = await listBlueprintProcedures(root, {
     model_path: (args.knowledge_path as string) || (args.model_path as string),
     model_id: (args.knowledge_id as string) || (args.model_id as string),

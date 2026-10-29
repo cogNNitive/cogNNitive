@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { discoverTransitiveAssets, listBlueprintProcedures } from './spec'
@@ -163,6 +163,64 @@ describe('listBlueprintProcedures({ path }): scoped listing', () => {
   })
 })
 
+describe('listBlueprintProcedures({ path }): invalid path', () => {
+  it.each([[''], [42], [null], [{}], [['a']]])('returns a structured INVALID_ARGUMENT for path %j and never throws', async (path) => {
+    const call = listBlueprintProcedures as unknown as (root: string, opts: unknown, pkg: unknown) => Promise<Scoped>
+    const r = await call(FIX, { path }, isolated)
+    expect(r).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    expect(r).not.toHaveProperty('procedures')
+  })
+})
+
+describe('listBlueprintProcedures({ path }): warnings per entry', () => {
+  /** A portfolio whose chain carries a bad fill (alpha), a duplicate-slot root definition and a malformed slot list. */
+  function portfolioWithFindings(): string {
+    const dir = join(scratch, `findings-${Math.random().toString(36).slice(2)}`)
+    cpSync(FIX, dir, { recursive: true })
+    // alpha fills a slot status-report does not declare: the supplier scope is alpha, the subject is p1's definition.
+    const alpha = join(dir, 'programs', 'alpha', 'alpha_NN.md')
+    writeFileSync(alpha, readFileSync(alpha, 'utf-8').replace('    audience:', '    bogus: 1\n    audience:'))
+    // The shadowed root definition declares a slot twice.
+    writeFileSync(
+      join(dir, 'procedures', 'status-report_procedures_NN.md'),
+      '---\nlevel: 3\nknowledge_version: "V_0-1-0"\nslots:\n  - { name: dup, kind: value }\n  - { name: dup, kind: value }\n---\n\n# NN Procedure\n',
+    )
+    // A procedure whose slots declaration is malformed.
+    writeFileSync(join(dir, 'programs', 'alpha', 'procedures', 'bad-slots_procedures_NN.md'), '---\nlevel: 3\nslots: "oops"\n---\n\n# NN Procedure\n')
+    return dir
+  }
+
+  const codes = (e: Listed): string[] => e.warnings.map((w) => w.code)
+
+  it('attaches a fill error to the selected entry although its scope is the supplier', async () => {
+    const list = okList(await listAt(portfolioWithFindings(), P1))
+    const selected = pick(list, 'status-report').find((e) => e.status === 'selected')!
+    expect(codes(selected)).toContain('UNKNOWN_SLOT')
+  })
+
+  it('attaches loader findings (INVALID_SLOT_DECL) to the entry they are about', async () => {
+    const list = okList(await listAt(portfolioWithFindings(), P1))
+    const bad = pick(list, 'bad-slots')
+    expect(bad).toHaveLength(1)
+    expect(codes(bad[0])).toContain('INVALID_SLOT_DECL')
+  })
+
+  it('gives a shadowed entry the findings of its own definition and keeps them off the winner', async () => {
+    const list = okList(await listAt(portfolioWithFindings(), P1))
+    const report = pick(list, 'status-report')
+    const root = report.find((e) => e.status === 'shadowed' && e.source === '')!
+    expect(codes(root)).toContain('DUPLICATE_SLOT')
+    const selected = report.find((e) => e.status === 'selected')!
+    expect(codes(selected)).not.toContain('DUPLICATE_SLOT')
+  })
+
+  it('keeps the top-level diagnostics complete', async () => {
+    const r = (await listAt(portfolioWithFindings(), P1)) as unknown as { ok: true; diagnostics: Array<{ code: string }> }
+    const all = r.diagnostics.map((d) => d.code)
+    expect(all).toEqual(expect.arrayContaining(['UNKNOWN_SLOT', 'DUPLICATE_SLOT', 'INVALID_SLOT_DECL']))
+  })
+})
+
 describe('listBlueprintProcedures without a path', () => {
   /** `base` and `child` (parent_spec -> base) both ship `base-check`; `base` also ships `parent-only`. */
   function chainRoot(): string {
@@ -220,5 +278,34 @@ describe('discoverTransitiveAssets: no silent drop', () => {
     )
     // Three procedures exist in the two packages; three entries are reported.
     expect(found).toHaveLength(3)
+  })
+
+  it('reports a second frontmatter entry with the same id and another path inside one package', async () => {
+    const dir = join(scratch, `dup-id-${Math.random().toString(36).slice(2)}`)
+    const pkg = join(dir, 'specs', 'bluepriNNts', 'solo', 'V_0-1-0')
+    mkdirSync(join(pkg, 'procedures'), { recursive: true })
+    writeFileSync(
+      join(pkg, 'spec_NN.md'),
+      '---\nlevel: 2\nspec_version: "V_0-1-0"\ntitle: "Solo"\nprocedures:\n  - { id: twin, name: "Twin A", path: "procedures/twin-a.md" }\n  - { id: twin, name: "Twin B", path: "procedures/twin-b.md" }\n  - { id: twin, name: "Twin A again", path: "procedures/twin-a.md" }\n---\n',
+    )
+    const { procedures } = await discoverTransitiveAssets(dir, { blueprint_name: 'solo' })
+    const found = procedures as unknown as Array<{ id: string; path: string; status: string }>
+    expect(found.map((p) => [p.path, p.status]).sort()).toEqual([
+      ['procedures/twin-a.md', 'selected'],
+      ['procedures/twin-b.md', 'shadowed'],
+    ])
+  })
+
+  it('still merges the frontmatter entry and the on-disk document of the same file', async () => {
+    const dir = join(scratch, `same-file-${Math.random().toString(36).slice(2)}`)
+    const pkg = join(dir, 'specs', 'bluepriNNts', 'solo', 'V_0-1-0')
+    mkdirSync(join(pkg, 'procedures'), { recursive: true })
+    writeFileSync(
+      join(pkg, 'spec_NN.md'),
+      '---\nlevel: 2\nspec_version: "V_0-1-0"\ntitle: "Solo"\nprocedures:\n  - { id: one, name: "One", path: "procedures/one_procedures_NN.md" }\n---\n',
+    )
+    writeFileSync(join(pkg, 'procedures', 'one_procedures_NN.md'), procDoc('One'))
+    const { procedures } = await discoverTransitiveAssets(dir, { blueprint_name: 'solo' })
+    expect(procedures.filter((p) => p.id === 'one')).toHaveLength(1)
   })
 })

@@ -13,7 +13,7 @@ import type { PackageOptions } from './floor-doc.js'
  */
 
 export type FloorProcedures =
-  | { ok: true; floor: ScopeNode | null; diagnostics: ProcedureDiagnostic[] }
+  | { ok: true; floor: ScopeNode | null; diagnostics: ProcedureDiagnostic[]; packageDir?: string }
   | { ok: false; code: 'INVALID_PARENT_SPEC' | 'FLOOR_UNREADABLE'; detail: string; path?: string }
 
 export async function locateFloorProcedures(chain: ScopeChain, opts: PackageOptions = {}): Promise<FloorProcedures> {
@@ -26,7 +26,7 @@ export async function locateFloorProcedures(chain: ScopeChain, opts: PackageOpti
   const packageDir = pkg.isPackageDir ? pkg.packagePath : dirname(pkg.specFilePath)
   const id = `bluepriNNt:${pkg.name}`
   const { procedures, diagnostics } = loadDirProcedures(join(packageDir, 'procedures'), id, 'procedures')
-  if (procedures.length === 0) return { ok: true, floor: null, diagnostics }
+  if (procedures.length === 0) return { ok: true, floor: null, diagnostics, packageDir }
   const defs: readonly ProcedureDef[] = procedures
-  return { ok: true, floor: { id, kind: 'floor', doc: null, isolate: false, values: {}, procedures: defs }, diagnostics }
+  return { ok: true, floor: { id, kind: 'floor', doc: null, isolate: false, values: {}, procedures: defs }, diagnostics, packageDir }
 }
