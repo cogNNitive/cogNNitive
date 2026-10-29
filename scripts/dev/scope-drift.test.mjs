@@ -11,7 +11,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { after, test } from 'node:test'
@@ -167,5 +167,86 @@ test('a run never writes into the domain', () => {
     }
   } finally {
     rmSync(work, { recursive: true, force: true })
+  }
+})
+
+/** Writes `files` (relative path -> text) under a fresh temp directory and returns it. */
+function tempDomain(files) {
+  const base = mkdtempSync(join(tmpdir(), 'scope-drift-domain-'))
+  for (const [rel, text] of Object.entries(files)) {
+    const path = join(base, rel)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, text, 'utf-8')
+  }
+  return base
+}
+const ENTRY = '---\ntitle: t\n---\n# t\n'
+/** A document with one `Item` element carrying `tag:: <name>`. */
+const itemDoc = (name) =>
+  `---\nlevel: 3\nscope_elements:\n  - concept: Item\n---\n\n# NN Item\n\n## NN Item: ${name}\ntag:: ${name}\n`
+/** The `tag` values the report saw, one per scanned document. */
+const tagsSeen = (report) =>
+  [...new Set(report.rows.filter((r) => r.key === 'tag').flatMap((r) => [r.baseline.value, ...r.variants.map((v) => v.value)]))]
+    .filter((v) => v !== undefined && v !== null)
+    .sort()
+
+test('the scan skips sources/ and changes/ at the domain root only, and never enters a nested domaiNN', () => {
+  const base = tempDomain({
+    'domaiNN_NN.md': ENTRY,
+    'programs/a_NN.md': itemDoc('a'),
+    'programs/sources/b_NN.md': itemDoc('b'),
+    'sources/c_NN.md': itemDoc('c'),
+    'changes/d_NN.md': itemDoc('d'),
+    'vendor/domaiNN_NN.md': ENTRY,
+    'vendor/e_NN.md': itemDoc('e'),
+    'vendor/deep/f_NN.md': itemDoc('f'),
+  })
+  try {
+    const report = json(base, '--unit', 'doc', '--all')
+    assert.deepEqual(tagsSeen(report), ['a', 'b'])
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('a chain error other than a missing domaiNN prints the real code and exits 2', () => {
+  const base = tempDomain({
+    'domaiNN_NN.md': ENTRY,
+    'g/one_NN.md': '---\nlevel: 3\nscope: true\n---\n# NN S\n',
+    'g/two_NN.md': '---\nlevel: 3\nscope: true\n---\n# NN S\n',
+  })
+  try {
+    const r = run(join(base, 'g'))
+    assert.equal(r.status, 2)
+    assert.match(r.stderr, /DUPLICATE_SCOPE_MARKER/)
+    assert.match(r.stderr, /one_NN\.md/)
+    assert.doesNotMatch(r.stderr, /no domaiNN_NN\.md in the ancestry/)
+    assert.equal(r.stdout, '')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('a malformed marker exits 2 naming the document', () => {
+  const base = tempDomain({
+    'domaiNN_NN.md': ENTRY,
+    'g/bad_NN.md': '---\nscope: [unclosed\n---\n# NN S\n',
+  })
+  try {
+    const r = run(join(base, 'g'))
+    assert.equal(r.status, 2)
+    assert.match(r.stderr, /MALFORMED_FRONTMATTER/)
+    assert.match(r.stderr, /bad_NN\.md/)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('the missing-domaiNN exit code stays 1', () => {
+  const outside = mkdtempSync(join(tmpdir(), 'scope-drift-outside-'))
+  try {
+    assert.equal(run(outside).status, 1)
+  } finally {
+    rmSync(outside, { recursive: true, force: true })
   }
 })
