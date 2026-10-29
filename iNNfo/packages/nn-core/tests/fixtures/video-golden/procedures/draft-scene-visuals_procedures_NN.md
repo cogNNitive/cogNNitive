@@ -6,9 +6,9 @@ parent_spec:
 knowledge_version: "V_0-1-0"
 title: "Draft Scene Visuals"
 slots:
-  - { name: presenter_persona, kind: value, required: true }
-  - { name: scene_structure, kind: value, required: true }
-  - { name: tools_invocation, kind: value, required: true }
+  - { name: presenter_persona, kind: value, required: true, step: define-the-presenter }
+  - { name: scene_structure, kind: value, required: true, step: draft-the-scenes }
+  - { name: tools_invocation, kind: value, required: true, step: generate-the-html-view }
 ---
 
 # NN Procedure

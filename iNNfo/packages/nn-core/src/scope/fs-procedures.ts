@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseName, procedureIdOf } from '../naming/contract.js'
-import { parseFrontmatter } from '../parser/index.js'
+import { parseFrontmatter, parseKnowledge } from '../parser/index.js'
 import type { ProcedureDiagnostic } from './procedures.js'
 import type { LoadedChain } from './resolve.js'
 import { asJson } from './json.js'
@@ -48,6 +48,42 @@ function forkOf(raw: unknown): ForkRecord | null {
   return { procedure, scope, version }
 }
 
+/**
+ * A slot's `step` is the slug of a step element of the same document: every element other
+ * than the `Procedure` element. A reference that matches none is reported as
+ * `UNKNOWN_SLOT_STEP` and left out of the slot; it is never matched by name or guessed.
+ */
+function checkSlotSteps(
+  slots: SlotDecl[],
+  text: string,
+  id: string,
+  scope: string,
+  docPath: string,
+  diagnostics: ProcedureDiagnostic[],
+): void {
+  if (!slots.some((slot) => slot.step !== undefined)) return
+  const stepIds = new Set<string>()
+  try {
+    for (const [concept, elements] of parseKnowledge(text).elements.entries()) {
+      if (concept.toLowerCase() === 'procedure') continue
+      for (const el of elements) if (el.slug) stepIds.add(el.slug)
+    }
+  } catch {
+    // An unparseable body has no steps: every reference is reported below.
+  }
+  for (const slot of slots) {
+    if (slot.step === undefined || stepIds.has(slot.step)) continue
+    diagnostics.push({
+      code: 'UNKNOWN_SLOT_STEP',
+      severity: 'error',
+      procedure: id,
+      scope,
+      detail: `Slot "${slot.name}" of procedure "${id}" in ${docPath} names step "${slot.step}", which is not the slug of a step element of the document.`,
+    })
+    delete slot.step
+  }
+}
+
 /** Reads one procedure document into a definition; malformed declarations become diagnostics. */
 function readProcedureDoc(
   path: string,
@@ -58,8 +94,10 @@ function readProcedureDoc(
 ): ProcedureDef | null {
   const id = procedureIdOf(name)
   let frontmatter: Record<string, unknown>
+  let text: string
   try {
-    frontmatter = (parseFrontmatter(readFileSync(path, 'utf-8')) ?? {}) as unknown as Record<string, unknown>
+    text = readFileSync(path, 'utf-8')
+    frontmatter = (parseFrontmatter(text) ?? {}) as unknown as Record<string, unknown>
   } catch (error) {
     diagnostics.push({
       code: 'UNREADABLE_DOCUMENT',
@@ -86,6 +124,8 @@ function readProcedureDoc(
       }
     }
   }
+
+  checkSlotSteps(slots, text, id, scope, docPath, diagnostics)
 
   const def: ProcedureDef = {
     id,

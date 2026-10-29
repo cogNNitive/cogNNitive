@@ -31,7 +31,7 @@ interface Listed {
   doc: string
   status: 'selected' | 'shadowed'
   shadowed_by?: string
-  slots: Array<{ name: string; kind: string; required: boolean }>
+  slots: Array<{ name: string; kind: string; required: boolean; step?: string }>
   fork_of?: { procedure: string; scope: string; version: string }
   warnings: Array<{ code: string }>
 }
@@ -88,6 +88,8 @@ describe('listBlueprintProcedures({ path }): scoped listing', () => {
     const selected = report.find((e) => e.status === 'selected')!
     expect(selected).toMatchObject({ source_kind: 'scope', source: P1_SCOPE })
     expect(selected.slots.map((s) => s.name)).toEqual(['audience', 'format', 'post_step'])
+    // A slot names its step by the step element's slug, never by display name (L2.5.4).
+    expect(selected.slots.find((s) => s.name === 'post_step')?.step).toBe('compile-health-dashboard')
     expect(selected.fork_of).toEqual({ procedure: 'status-report', scope: '', version: 'V_0-1-0' })
     expect(selected.warnings.map((w) => w.code)).toContain('ORIGINAL_ADVANCED')
 

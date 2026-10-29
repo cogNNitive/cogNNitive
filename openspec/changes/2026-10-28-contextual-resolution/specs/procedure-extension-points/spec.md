@@ -29,6 +29,38 @@ before.
 - WHEN it is loaded
 - THEN an error names the procedure and the duplicated slot
 
+### Requirement: Slots Reference Their Step By Id
+
+A slot MAY name the step of its procedure where it sits, with `step`. The value MUST be the
+id of a step element of the same procedure document, and that id is the element's slug
+(its explicit `slug::` or the slug derived from its name), unique within the document. Every
+element of the document other than the `Procedure` element is a step. A slot MUST NOT
+reference its step by display name: a name is not an id and a rename would silently
+break the join. A `step` that names no step element of the document MUST be reported as
+an error `UNKNOWN_SLOT_STEP` naming the procedure, the slot and the step; the reference is
+then left out of the loaded slot, never guessed from a similar name.
+
+#### Scenario: Slot sits at a step
+
+- GIVEN a procedure document with a step element whose slug is `compile-health-dashboard` and a slot `post_step` with `step: compile-health-dashboard`
+- WHEN the procedure is loaded
+- THEN the slot carries `step: compile-health-dashboard`
+- AND no diagnostic is reported
+
+#### Scenario: Step named by its display name
+
+- GIVEN the same document and a slot with `step: "Compile Health Dashboard"`
+- WHEN the procedure is loaded
+- THEN an error `UNKNOWN_SLOT_STEP` names the procedure, the slot `post_step` and the step `Compile Health Dashboard`
+- AND the loaded slot carries no `step`
+
+#### Scenario: Step that does not exist
+
+- GIVEN a slot with `step: ghost` and no step element with that slug
+- WHEN the procedure is loaded
+- THEN an error `UNKNOWN_SLOT_STEP` names the procedure, the slot and `ghost`
+- AND the other slots of the procedure load unchanged
+
 ### Requirement: Child Scopes Fill Slots
 
 A scope MUST be able to fill the slots of a procedure defined in any scope above it in its

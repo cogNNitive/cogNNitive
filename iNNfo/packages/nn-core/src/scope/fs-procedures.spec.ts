@@ -52,7 +52,7 @@ describe('loadScopeProcedures over the scoped-portfolio fixture', () => {
         slots: [
           { name: 'audience', kind: 'value', required: true },
           { name: 'format', kind: 'value', required: false, default: 'markdown' },
-          { name: 'post_step', kind: 'procedure', required: false, step: 'Compile Health Dashboard' },
+          { name: 'post_step', kind: 'procedure', required: false, step: 'compile-health-dashboard' },
         ],
       },
     ])
@@ -161,6 +161,44 @@ describe('loadScopeProcedures over a temporary tree', () => {
       ['INVALID_SLOT_DECL', 'error', 'p', ''],
       ['INVALID_SLOT_DECL', 'error', 'p', ''],
     ])
+  })
+
+  describe('slot step references (L2.5.4)', () => {
+    const stepDoc = (slotLine: string) =>
+      procedureDoc(`slots:\n  - { name: ok, kind: value, required: false }\n  - ${slotLine}\n`) +
+      '\n## NN Procedure: P\nslug:: p\n\n## NN Work: Compile Health Dashboard\nslug:: compile-health-dashboard\n\n## NN Work: Send It\n'
+    const loadSlots = (slotLine: string) => {
+      write('acme/domaiNN_NN.md', '# acme\n')
+      write('acme/procedures/p_procedures_NN.md', stepDoc(slotLine))
+      const { loaded, diagnostics } = load(write('acme/a_NN.md', '# NN Note\n'))
+      return { slots: loaded.nodes[0].procedures?.[0].slots, diagnostics }
+    }
+
+    it('accepts the slug of a step element, explicit or derived from its name', () => {
+      for (const step of ['compile-health-dashboard', 'send-it']) {
+        const { slots, diagnostics } = loadSlots(`{ name: post, kind: procedure, required: false, step: ${step} }`)
+        expect(slots?.[1]).toEqual({ name: 'post', kind: 'procedure', required: false, step })
+        expect(diagnostics).toEqual([])
+      }
+    })
+
+    it('rejects the display name of a step as UNKNOWN_SLOT_STEP and leaves the reference out', () => {
+      const { slots, diagnostics } = loadSlots(
+        '{ name: post, kind: procedure, required: false, step: "Compile Health Dashboard" }',
+      )
+      expect(slots?.[1]).toEqual({ name: 'post', kind: 'procedure', required: false })
+      expect(slots?.[0]).toEqual({ name: 'ok', kind: 'value', required: false })
+      expect(diagnostics.map((d) => [d.code, d.severity, d.procedure, d.scope])).toEqual([
+        ['UNKNOWN_SLOT_STEP', 'error', 'p', ''],
+      ])
+      expect(diagnostics[0].detail).toContain('post')
+      expect(diagnostics[0].detail).toContain('Compile Health Dashboard')
+    })
+
+    it('does not take the Procedure element for a step', () => {
+      const { diagnostics } = loadSlots('{ name: post, kind: procedure, required: false, step: p }')
+      expect(diagnostics.map((d) => d.code)).toEqual(['UNKNOWN_SLOT_STEP'])
+    })
   })
 
   it('reports INVALID_FORK_RECORD and treats the procedure as unforked', () => {

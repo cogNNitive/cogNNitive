@@ -15,6 +15,7 @@ export interface ProcedureDiagnostic {
     | 'FORK_ORIGINAL_NOT_FOUND'
     | 'INVALID_SLOT_DECL'
     | 'INVALID_FORK_RECORD'
+    | 'UNKNOWN_SLOT_STEP'
     | 'UNREADABLE_DOCUMENT'
   severity: 'error' | 'warning'
   procedure: string

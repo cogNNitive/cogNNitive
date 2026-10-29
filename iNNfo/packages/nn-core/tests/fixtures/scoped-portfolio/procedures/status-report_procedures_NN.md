@@ -8,7 +8,7 @@ title: "Status Report"
 slots:
   - { name: audience, kind: value, required: true }
   - { name: format, kind: value, required: false, default: "markdown" }
-  - { name: post_step, kind: procedure, required: false, step: "Compile Health Dashboard" }
+  - { name: post_step, kind: procedure, required: false, step: compile-health-dashboard }
 ---
 
 # NN Procedure
@@ -17,3 +17,6 @@ slots:
 slug:: status-report
 summary:: Status Report
 
+
+## NN Work: Compile Health Dashboard
+slug:: compile-health-dashboard

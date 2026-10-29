@@ -66,7 +66,7 @@ export interface SlotDecl {
   kind: 'value' | 'procedure'
   required: boolean
   default?: JsonValue
-  /** Where in the procedure the slot sits, when it is a step. */
+  /** Where in the procedure the slot sits: the slug of a step element of the procedure document. */
   step?: string
 }
 
