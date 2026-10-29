@@ -297,6 +297,159 @@ Each lot reverts on its own. Dependencies: L0.1 before L1 only for `findDomainRo
 | 2026-10-29 | L2.3a applied (MCP `resolve_effective` and `explain`). Files: `nn-mcp/src/tools/resolve-effective.ts` (+ `floor-doc.ts`), registered in `server.ts`; contracts `innfo-resolve-effective@1` and `innfo-explain@1`. Input (both tools): `{ path, key, strategy: override\|union\|none, target?: { concept, slug } }`, no `domain`/`root` override (the server root is what `PATH_OUTSIDE_SCOPE` is measured against). `resolve_effective` returns `{ ok: true, key, strategy, present, value, winner, trace }`; `explain` returns `{ ok: true, key, strategy, trace, chain: [{ id, kind, doc, isolate }], floor: Supplier\|null }` (the maintainer brief asked `explain` = trace + chain and `resolve_effective` = value/present/winner + trace, which replaces the earlier spec text "explain returns only the trace"; spec updated). Failure is `{ ok: false, code, detail, searched?, path? }`, delivered as an `isError` MCP result with that body. Codes: `INVALID_ARGUMENT`, `PATH_OUTSIDE_SCOPE`, `NO_DOMAIN_ROOT` (+ `searched`), `DUPLICATE_SCOPE_MARKER`, `UNSUPPORTED_STRATEGY`, the element codes, `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (+ `path`), `AMBIGUOUS_FLOOR`, `INTERNAL_ERROR` (catch-all so the tool contract "never throws" holds). The value and trace come from core `resolve` and the nodes from `findScopeChain` + `loadElementChain`; there is no second fold. Floor: `locateFloor(chain, opts)` reads `parent_spec.name` of the innermost values document of the folder chain (literal reading of the design: if that document names none, there is no floor), resolves it with `resolveBlueprintPackage(chain.root, name, undefined, opts)` (a package directory only) and takes the single `_NN.md` (sidecars excluded) under `defaults/`; label = package name, so the floor supplier is `bluepriNNt:<package>`. Deviations from the tasks text: (1) NEW code `AMBIGUOUS_FLOOR` when `defaults/` holds more than one document (picking one would be a guess); the brief did not list it. (2) NEW `INVALID_ARGUMENT` and `INTERNAL_ERROR` for the never-throws contract. (3) `explain.chain` lists ALL loaded nodes with their `isolate` flag, not only the consulted ones, because for `none` the trace consults only the target. (4) The tool functions take an optional `{ globalDir, skillsDir }` forwarded to the package resolver so tests do not read the maintainer's home; the server passes none. Tests: 35 in `resolve-effective.spec.ts` over `scoped-portfolio`, `video-golden`, `programas-golden` (the floor cases use a throwaway copy of the portfolio fixture with a `settings` package) plus 1 dispatch test in `server.spec.ts` (tool count 22 to 24). Mutation: computing the override value and trace in `resolve_effective` instead of calling `resolve` turns 9 of 35 cases red (both trace-equality cases included); reverted. Docs: the generated `mcp-tools` region of `skills/nn-innfo/SKILL.md` (24 tools), the hand-kept copy in `docs/documentation/content/reference/mcp-tools.md`, and the nn-mcp README | A `domain` override on the scope tools; resolving the package from the queried document instead of the innermost values document | An LLM-controlled root would defeat the containment check; the design names the innermost values document |
 | 2026-10-29 | L2.3a real-data runs (in-process through the BUILT server and an in-memory MCP client, copies only, sources unchanged: content hash of the video copy and stat hash of the whole LC_programas tree identical before and after; the LC copy was deleted). VIDEO (marked copy): scene `00-gancho` of `bosco-verticale`, `music_volume` with `override` returns 0.06, winner = the Scene element, overridden = the series scope with 0.4; `explain` trace deep-equals the `resolve_effective` trace; chain = root, series, Video element, Scene element; no floor (the series marker's `parent_spec` names no resolvable package here); `none` returns 0.06 with the series 0.4 under `notInherited`; an absolute path outside the root is `PATH_OUTSIDE_SCOPE`. LC_PROGRAMAS (copy of `domaiNN_NN.md`, `kNNowledge/` and `specs/` with `scope_elements: Programa, Prestación de Servicios (parent programa_ref)` added to the copy of the Tutorias document; counts only): 11 scope elements, 6 Prestaciones; `precio_hora_tutoria` with `none` on each of the 6: present 6, absent 0, winner = the Prestación element 6 of 6, `notInherited` 0 in total (the live root has no `scope: true` document, so nothing sits above the Prestaciones), 0 errors; chain kinds root, element, element; no floor; `explain` trace equals the `resolve_effective` trace. This matches the L2.2b finding (6 of 6 hold their own price), so the `none` absent-with-`notInherited` case is exercised by the fixtures (`programas-golden`), not by the live data | Running against the live LC_programas directory | Copies only |
 
+## Scope-Qualified Model Ids (L2.4.1 spike, 2026-10-29)
+
+Docs only. Paths are relative to `iNNfo/packages/`. Evidence was gathered with `rg` over the
+worktree and, for real data, with file-NAME listings only (no document contents were read).
+
+### 1. Inventory: who produces and who consumes a model id
+
+The core fact: there is no single id. Three id forms are live today, and only one of them is a
+bare stem.
+
+| Form | Producer | Consumers |
+|---|---|---|
+| Bare stem incl. `_NN` (`foo_NN`) | `nn-core/src/helpers.ts:91` `collectModels` (`id = entry.name` minus `.md`), returned by `listKnowledge` (`helpers.ts:106`, wrapped by `nn-mcp/src/tools/list-read.ts:64`) | `list_knowledge` output; agents echo it back as a tool argument |
+| Creation id without `_NN` (`foo_bp`) | `nn-core/src/naming/contract.ts:323` `canonicalModelId`; `nn-mcp/src/tools/model-id.ts:13-41` aliases inside one changeset | `propose_changeset` / `apply_change` targets `model@element&field` (`model-id.ts:30` `modelIdOfTarget`) |
+| Domain-relative path minus `_NN.md` | `nn-core/src/console/payload-builder.ts:149` `normalizeModelId` (also strips everything before a `kNNowledge/` or `models/` segment) | console payloads, `unit-address.ts:22-49` (`modelId@slug`), `scripts/export-console.mjs:956,972` (stem only as fallback) |
+
+Every model-id ARGUMENT funnels into ONE resolver: `nn-mcp/src/tools/spec.ts:82`
+`findKnowledgeFile(rootDir, id)`. It tries root, then `kNNowledge/`, then a `domain*`/`workspace*`
+prefix heuristic (`spec.ts:118-143`), then a depth-first recursive walk that returns the FIRST
+filename match (`spec.ts:152-209`, readdir order, so the winner can differ by platform). It is
+name-level: it does not apply `isModelCandidate`, so procedures, catalogs and `spec_NN.md`
+compete with models. This first-wins walk is the silent drop L0.2 found.
+
+| Site | Count | Anchors |
+|---|---|---|
+| `findKnowledgeFile` call sites (non-test) | 16 in 7 files | `validate.ts:531,562,898,988`; `apply-change.ts:516,676,781,1476,1512,1579`; `list-read.ts:116`; `spec.ts:222,848`; `resolve-sources.ts:44`; `propose-changeset.ts:270,280` |
+| MCP tools taking a model id (`id` / `knowledge_id` / `model_id` / `model`) | 8 | `server.ts` schemas: `read_knowledge` 113, `get_spec` 163, `get_blueprint` 189, `validate_knowledge` 216, `apply_change` 265, `resolve_sources` 662, `list_blueprint_procedures` 691, `list_blueprint_skills` 713 |
+| Changeset targets (model id persisted in `changes/*_changes_NN.md`) | 3 files | `model-id.ts:30`, `propose-changeset.ts:246-281`, `apply-change.ts:641` |
+| Collision diagnostics (L0.2) | 4 | `nn-core/src/scope/stem-collision.ts:19`, `nn-mcp/src/tools/model-collisions.ts:16`, `check-workspace.ts:399`, `workspace-sync.ts:189` |
+| Procedure id (separate namespace, also from the stem) | 2 | `naming/contract.ts:93` `procedureIdOf`; `scope/fs-procedures.ts` |
+| Console unit addresses | 1 module (16 uses) | `nn-core/src/console/unit-address.ts` |
+| Scripts | 2 files | `scripts/export-console.mjs:956,972`; `scripts/dev/validate-scope-golden.mjs:533,552` |
+| Skills / docs | 4 prose mentions | `skills/nn-innfo/SKILL.md:449,510,738,748` (`<model_id>`); generated tool table 344-345 |
+
+Sites that are NOT keyed by the stem (verified, so they carry no migration cost):
+
+- Manifest `## NN Models` entries are written as `path:: <relPath>`
+  (`nn-core/src/workspace/reconcileManifest.ts:122`) and reconciled by path.
+- Lineage projection: `model_ref: kf.path` (`nn-core/src/lineage/project.ts:327`).
+- Citations (`sourceRef.ts:132` `parseCitation`, `console/citations.ts:219`) and `query_units`
+  are path-based.
+- `[[Model Title :: Element]]` resolves by TITLE first (`validator/workspaceReferences.ts:213`);
+  the file-name tier (`:216`) is a fallback and already returns every hit, not the first.
+
+### 2. Collision counts per real domaiNN (read-only, names only)
+
+Method: `**/*_NN.md` file names per top-level folder of `D:\Users\lucas\Documents\_NN`,
+excluding what `collectModels` / `isExcludedPath` exclude (`specs/`, `archive`, `backups`,
+dot-directories, root `sources/` and `changes/`, sidecars, nested domaiNNs), then grouped by
+stem exactly like `findStemCollisions`. This is the NAME-level count, which is what
+`findKnowledgeFile` sees. The predicate-filtered count (`check_domain` `collisions`) is lower
+because procedures (`role: procedure`), catalogs and `spec_NN.md` are not model candidates; it
+is given as an expectation from the file role and was not run. Backups are excluded except
+the video copy used as the golden oracle.
+
+| domaiNN | `domaiNN_NN.md` | Colliding stems (name-level) | Files | Expected `check_domain` |
+|---|---|---|---|---|
+| video_NN (live) | no | `spec_NN` x2, `generate_video_script_procedures_NN` x4, `NoticiasVillabotijos_noticias_NN` x2, `draft_scene_visuals_procedures_NN` x2, `select_weird_news_procedures_NN` x2 | 12 | 1 (`NoticiasVillabotijos_noticias_NN`) |
+| video_NN-backup-2026-10-27 (oracle; L1.4 run incl. `specs/`) | no (added on copies) | `spec_NN` x7, `generate_video_script_procedures_NN` x5, `NoticiasVillabotijos_noticias_NN` x2, `draft_scene_visuals_procedures_NN` x2, `select_weird_news_procedures_NN` x2 | 18 | 1 |
+| LC_programas | yes | `sources_NN` x8 (root + 7 project folders) | 8 | 0 (catalog role) |
+| accounting | yes | 0 | 0 | 0 |
+| AI_stack_NN | yes | 0 | 0 | 0 |
+| arenzano | yes | 0 | 0 | 0 |
+| ave_del_paraiso_NN | yes | 0 (`spec_NN` x5 only under `specs/`) | 0 | 0 |
+| educatioNN | yes | 0 | 0 | 0 |
+| eventovery | yes | 0 | 0 | 0 |
+| iNNbox_NN | yes | 0 | 0 | 0 |
+| iNNtrevistas | yes | 0 | 0 | 0 |
+| lucascervera | yes | 0 | 0 | 0 |
+
+`transcriptions_NN` and `Electricidad_NN` (named in the 2026-10-28 entry) were not found under
+`_NN`. Reading: collisions concentrate in the one hierarchical domaiNN, and they are exactly the
+per-scope copies (one procedure per series, one `spec_NN` per series) that the scope cascade is
+designed to support. Flat domaiNNs have none.
+
+### 3. Options
+
+**A. Path-qualified only when needed.** One pure index in nn-core over the name-level namespace
+(not `isModelCandidate`, because `read_knowledge` also reads procedures and catalogs):
+`resolveModelId(index, arg) -> { ok, path } | { code: 'AMBIGUOUS_MODEL_ID', candidates } |
+{ code: 'MODEL_NOT_FOUND' }`. An argument containing `/` is a domain-relative path (`.md` and
+`_NN` optional, matching today's candidate list); otherwise it is a stem matched against every
+file; more than one hit is an error with all candidates, never first-wins. `collectModels`
+emits the bare stem when unique and the path form when the stem collides.
+
+| Site | Change |
+|---|---|
+| `findKnowledgeFile` | rewritten on the index; recursive first-wins walk and `domain*` prefix heuristic deleted |
+| 16 call sites / 8 tools | map `AMBIGUOUS_MODEL_ID` to a structured tool error with `candidates` |
+| `collectModels` / `listKnowledge` | two passes (index, then id form per entry) |
+| Changeset targets | `modelIdOfTarget` already splits at `@`; paths contain none. `MODEL_EXISTS` / `MODEL_NOT_FOUND` go through the index |
+| `findStemCollisions` | kept as the index's collision view; `check_domain` reports collisions as `info` (resolvable), not `warning` |
+| Console | unchanged in this item (see risks) |
+
+Persisted data: manifest entries, lineage, citations and `[[...]]` untouched. Changesets that
+name a colliding bare stem now fail loudly instead of hitting an arbitrary file; no real
+changeset contents were read in this spike; the colliding files are procedures, catalogs and
+`spec_NN`, which changesets do not normally target, so exposure is expected to be nil (verify in
+L2.4.7 with a read-only scan of `changes/` targets on copies). Zero renames. Agents keep passing stems; only an
+ambiguity costs one retry with a candidate path. Rollback: revert the PRs; nothing was written
+to any domaiNN. Weakness: a bare id stops resolving the day a second file with the same stem
+appears (the error names both, so it is visible, not silent). Estimate: ~550 lines in 2-3 PRs.
+
+**B. Always path-qualified.** Every id is the domain-relative path. Same index, but bare stems
+are rejected. Every listing, tool argument, changeset target and the skill prose change.
+Persisted changesets in five real domaiNNs (video_NN, LC_programas, iNNbox_NN, accounting,
+lucascervera: ~100 `changes/` files) carry bare-stem targets; under the no-backwards-compat rule
+they stop resolving, so those domaiNNs migrate via new domaiNN + import-as-source. Agent cost
+rises on every call (longer ids), and a folder move changes the id (moves happen: `.moves_backup`
+in video_NN). Rollback: code revert is clean, but any domaiNN already migrated stays migrated.
+Estimate: ~950 lines in 3 PRs plus data migration.
+
+**C. Global stems, enforced unique.** `check_domain` turns name-level collisions into errors;
+a `rename_model` tool renames the file and rewrites its manifest `path::` (the only persisted
+stem-dependent data is changeset targets). Real cost: 12 renames in video_NN and 8 in
+LC_programas (name-level), every scope marker needs a unique `<scope>_scope_NN.md` stem, and per-series
+procedure copies need distinct names. That last point contradicts this change's own design: a
+nearer-scope fork or shadow of a procedure is, by definition, a same-id document in another
+scope (`fork_of`, `UNDECLARED_SHADOW`, `procedureIdOf` from the filename). C makes the cascade
+fight the naming rule. Rollback: the code reverts, the renames do not. Estimate: ~450 lines
+plus 20 data renames.
+
+| Option | Renames | Persisted data touched | Agent cost | Fits scope cascade | ~Lines |
+|---|---|---|---|---|---|
+| A | 0 | none | unchanged; retry on ambiguity | yes | 550 |
+| B | 0 | ~100 changeset files (migration) | every call | yes | 950 + migration |
+| C | 20 | renamed files + manifests | unchanged | no (forks need same id) | 450 + renames |
+
+### 4. Recommendation
+
+Choose A. It is the only option that fixes the actual defect (the first-wins resolver in
+`spec.ts:152-209`) without renaming or migrating data, and the inventory shows that the
+persisted surfaces (manifest, lineage, citations, `[[...]]`) are already path- or title-keyed, so
+the id change stays inside the resolver and the tool error contract. It also matches the module
+rule "never guess": an ambiguous stem is an error with candidates, like `AMBIGUOUS_PARENT_ELEMENT`.
+B buys stable ids at the cost of every agent call and a data migration for a problem that exists
+in one domaiNN. C contradicts same-id forks across scopes. The `<scope>_scope_NN.md` unique-stem
+convention can be dropped under A (a marker named `scope_NN.md` in each scope becomes legal).
+
+Risks to carry into L2.4.3+: (1) the console id (`normalizeModelId`) is already path-based but
+strips the `kNNowledge/` prefix and `_NN`, so console and MCP ids still differ after A; aligning
+them is a separate decision. (2) The index scans the whole domaiNN per call, the cost the
+recursive walk already pays; cache per call, not per process. (3) Case: stems are compared
+case-insensitively by the walk today; the index must keep that and report `Foo_NN` vs `foo_NN`
+as a collision (deferred item from the 2026-10-29 review).
+
+**Q13 (for the maintainer):** "Model ids: do we adopt option A, where a bare filename stem stays
+valid while it is unique in the domaiNN, a domain-relative path (`series/innteresante/spec_NN`)
+is always accepted, and a stem shared by two or more documents is an `AMBIGUOUS_MODEL_ID` error
+that lists every candidate path (no renames, no data migration, the first-wins recursive lookup
+is deleted)? Or B (path always required, ~100 persisted changesets migrate) or C (unique stems
+enforced, 20 renames, same-id procedure forks across scopes become illegal)?"
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.
