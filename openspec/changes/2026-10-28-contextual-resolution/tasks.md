@@ -61,7 +61,7 @@ Spec ids refer to `openspec/changes/2026-10-28-contextual-resolution/specs/<capa
 | L2.1b | Element adapter, fs loader, `none` strategy; video scenes and LC_programas Programas as real consumers | L2.1a | 380 | L2.1a branch | new | done |
 | L2.2a | Drift report, pure (`driftReport`) | L2.1b (ordering only, no code dependency) | 380 | L2.1b branch | new | done |
 | L2.2b | Drift CLI `scripts/dev/scope-drift.mjs`, validated on video copy and LC_programas | L2.2a, Q12 | 200 | L2.2a branch | new | done |
-| L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | pending |
+| L2.3a | MCP `resolve_effective` / `explain` | L2.1b | 350 | L2.2b branch | G3 | done |
 | L2.3b | Scope-aware procedure listing, precedence in code, floor and `workspace/procedures/` | L2.3a, Q4 | 380 | L2.3a branch | G2.2, G3 | pending |
 | L2.4 | Scope-qualified model ids: design spike, DECISION GATE, then provisional 3-PR list (riskiest item) | L2.3b, Q13 | spike docs; ~900 provisional | L2.3b branch | new (was deferred) | pending |
 | L2 checkpoint | Conclusions; re-plan Lote 3; schedule `restrict` | L2.4 | docs | previous branch | new | pending |
@@ -313,13 +313,13 @@ here, and why" question has an answer through MCP, using the same fold as the CL
 ~350 lines. Gate: none new (builds on L2.1b). A core `composeProcedure` is NOT part of this slice:
 neither tool returns a composed procedure.
 
-- [ ] L2.3a.1 SPEC FIRST `specs/contextual-resolution/spec.md` (MODIFIED requirement): add the optional element target `{ concept, slug }`; the floor is located by nn-mcp through `resolveBlueprintPackage` plus the single `_NN.md` under the package `defaults/`; structured errors `NO_DOMAIN_ROOT` (with `searched`), `UNSUPPORTED_STRATEGY`, element errors; both tools never throw.
-- [ ] L2.3a.2 RED `MCP/tools/resolve-effective.spec.ts` against `FIX`, `GOLD`, `ELFIX`: the three spec scenarios; element target; floor fallback; trace of `explain` equals the trace of `resolve_effective`; every response JSON round-trips.
-- [ ] L2.3a.3 GREEN `MCP/tools/resolve-effective.ts` (+ `MCP/tools/floor-doc.ts` locating the floor) using only core `findScopeChain`, `loadElementChain`, `loadChain`, `resolve`; register both tools in `MCP/server.ts` and update the tool list in `MCP/server.spec.ts`.
-- [ ] L2.3a.4 Docs: `skills/nn-innfo/SKILL.md` (tool mentions) and `mcp-tools.md`.
-- [ ] L2.3a.5 Verify: rebuild nn-core first (stale `dist` breaks nn-mcp tests), then `npm --workspace=@cognnitive/nn-mcp test`; `node scripts/verify.js`. Mutation check: a tool that re-implements the fold instead of calling `resolve` turns the trace-equality case red.
-- [ ] L2.3a.6 Validate: call both tools in-process against the video COPY (a scene's `music_volume`) and LC_programas (a Prestación's price), read-only; paste outputs in the PR body.
-- [ ] L2.3a.7 Tick tasks; Decision log; status.
+- [x] L2.3a.1 (as built: also `INVALID_ARGUMENT` and `AMBIGUOUS_FLOOR`; `explain` returns the trace plus the chain, per the maintainer brief) SPEC FIRST `specs/contextual-resolution/spec.md` (MODIFIED requirement): add the optional element target `{ concept, slug }`; the floor is located by nn-mcp through `resolveBlueprintPackage` plus the single `_NN.md` under the package `defaults/`; structured errors `NO_DOMAIN_ROOT` (with `searched`), `UNSUPPORTED_STRATEGY`, element errors; both tools never throw.
+- [x] L2.3a.2 (as built: 35 tests in `resolve-effective.spec.ts` plus 1 dispatch test in `server.spec.ts`) RED `MCP/tools/resolve-effective.spec.ts` against `FIX`, `GOLD`, `ELFIX`: the three spec scenarios; element target; floor fallback; trace of `explain` equals the trace of `resolve_effective`; every response JSON round-trips.
+- [x] L2.3a.3 (as built: the tool functions take an optional `{ globalDir, skillsDir }` for the package resolver; no `domain`/`root` override) GREEN `MCP/tools/resolve-effective.ts` (+ `MCP/tools/floor-doc.ts` locating the floor) using only core `findScopeChain`, `loadElementChain`, `loadChain`, `resolve`; register both tools in `MCP/server.ts` and update the tool list in `MCP/server.spec.ts`.
+- [x] L2.3a.4 (as built: generated region of `SKILL.md`, `mcp-tools.md` kept by hand, nn-mcp README) Docs: `skills/nn-innfo/SKILL.md` (tool mentions) and `mcp-tools.md`.
+- [x] L2.3a.5 (nn-core 2004 tests, nn-mcp 552 tests, `verify.js` green; the mutation turned 9 of 35 red) Verify: rebuild nn-core first (stale `dist` breaks nn-mcp tests), then `npm --workspace=@cognnitive/nn-mcp test`; `node scripts/verify.js`. Mutation check: a tool that re-implements the fold instead of calling `resolve` turns the trace-equality case red.
+- [x] L2.3a.6 (video copy and LC_programas copy; outputs in the Decision log, counts only for LC) Validate: call both tools in-process against the video COPY (a scene's `music_volume`) and LC_programas (a Prestación's price), read-only; paste outputs in the PR body.
+- [x] L2.3a.7 Tick tasks; Decision log; status.
 
 ### L2.3b Scope-aware procedure listing and precedence in code (specs: template-procedures-manifest-and-discovery, procedure-execution, both existing deltas plus new scenarios)
 
