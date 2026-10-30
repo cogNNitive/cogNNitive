@@ -9,6 +9,7 @@
 
 import assert from 'node:assert'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -23,25 +24,28 @@ function run(args) {
 
 function runTests() {
   console.log('Running build-skills-manager-bundle unit tests...')
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-manager-bundle-'))
+  const tmpBundle = path.join(tmp, 'skills-manager.js')
 
-  // Test 1: render mode writes a self-contained bundle with a generated header
-  {
-    const res = run([])
-    assert.strictEqual(res.status, 0, res.stderr)
-    assert.ok(fs.existsSync(BUNDLE), 'bundle written')
-    const text = fs.readFileSync(BUNDLE, 'utf-8')
-    assert.ok(text.includes('GENERATED FILE'), 'generated-file header present')
-    assert.ok(text.startsWith('#!/usr/bin/env node'), 'shebang kept on the first line')
-    assert.ok(!/require\(["']\.{1,2}\//.test(text), 'no relative require() left in the bundle')
-    console.log('✔ render mode emits a self-contained bundle with a generated header')
-  }
+  try {
+    // Test 1: render mode writes a self-contained bundle with a generated header to --out
+    {
+      const res = run(['--out', tmpBundle])
+      assert.strictEqual(res.status, 0, res.stderr)
+      assert.ok(fs.existsSync(tmpBundle), 'bundle written to isolated out path')
+      const text = fs.readFileSync(tmpBundle, 'utf-8')
+      assert.ok(text.includes('GENERATED FILE'), 'generated-file header present')
+      assert.ok(text.startsWith('#!/usr/bin/env node'), 'shebang kept on the first line')
+      assert.ok(!/require\(["']\.{1,2}\//.test(text), 'no relative require() left in the bundle')
+      console.log('✔ render mode emits a self-contained bundle with a generated header')
+    }
 
-  // Test 2: the bundle runs without the repo's scripts/lib (prints usage)
-  {
-    const res = spawnSync(process.execPath, [BUNDLE], { encoding: 'utf-8' })
-    assert.ok((res.stdout + res.stderr).includes('Usage:'), res.stdout + res.stderr)
-    console.log('✔ bundle runs standalone')
-  }
+    // Test 2: the bundle runs without the repo's scripts/lib (prints usage)
+    {
+      const res = spawnSync(process.execPath, [tmpBundle], { encoding: 'utf-8' })
+      assert.ok((res.stdout + res.stderr).includes('Usage:'), res.stdout + res.stderr)
+      console.log('✔ bundle runs standalone')
+    }
 
   // Test 3: --check passes when in sync
   {
@@ -62,6 +66,9 @@ function runTests() {
     } finally {
       fs.writeFileSync(BUNDLE, original)
     }
+  }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
   }
 
   console.log('All build-skills-manager-bundle tests passed successfully!\n')

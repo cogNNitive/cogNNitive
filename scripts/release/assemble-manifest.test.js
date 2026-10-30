@@ -304,3 +304,18 @@ agent-bootstrap:
   assert.ok(result.manifestText.includes('ref: "nn-mcp-v0.11.0"'), 'the MCP pin itself is unchanged');
   assert.ok(result.manifestText.includes('ref: "skills-v2.11.0"'), 'the released key still moves');
 });
+
+test('assembleManifest uses custom body when provided instead of inheriting prev.body', () => {
+  const result = assembleManifest({
+    releaseTag: 'skills-v2.10.0',
+    contentSha: 'aaaa2222aaaa2222aaaa2222aaaa2222aaaa2222',
+    source: SOURCE_YAML,
+    prevManifestText: PREV_MANIFEST,
+    readVersion: () => '2.10.0',
+    resolveGitRef: () => true,
+    body: '# New Custom Body Content\n\nSome custom instructions.',
+  });
+
+  assert.ok(result.manifestText.includes('# New Custom Body Content'), 'Manifest must include custom body');
+  assert.ok(!result.manifestText.includes('# Body'), 'Manifest must not inherit previous body when custom is provided');
+});

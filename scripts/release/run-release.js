@@ -58,6 +58,22 @@ function pushWithRetry(workDir, args, authEnv, secrets, maxAttempts = 5) {
   }
 }
 
+function stampBlueprintCatalog(workDir, tag, logger) {
+  for (const rel of ['iNNfo/specs/bluepriNNts/catalog.json', 'docs/innfo/blueprints/catalog.json']) {
+    const catPath = path.join(workDir, ...rel.split('/'));
+    if (!fs.existsSync(catPath)) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(catPath, 'utf8'));
+      for (const sec of [raw.blueprints, raw.frozen]) {
+        if (sec) for (const bp of Object.values(sec)) if (bp && typeof bp === 'object') bp.release_tag = tag;
+      }
+      fs.writeFileSync(catPath, JSON.stringify(raw, null, 2) + '\n', 'utf8');
+    } catch (e) {
+      logger.warn(`Could not stamp release_tag on ${catPath}: ${e.message}`);
+    }
+  }
+}
+
 async function runRelease(config, options = {}) {
   const logger = config.logger || options.logger || console;
   const repoRoot = path.resolve(config.repoRoot || process.cwd());
@@ -96,6 +112,8 @@ async function runRelease(config, options = {}) {
         fs.writeFileSync(path.join(work, 'docs', 'innfo', 'cdn', 'manifest.json'), JSON.stringify({ latest: version }, null, 2) + '\n');
       }
     }
+
+    if (key === 'blueprints') stampBlueprintCatalog(work, tag, logger);
 
     // 2. Diff and decide commit C
     git(['add', '-A']);
@@ -138,6 +156,9 @@ async function runRelease(config, options = {}) {
       return (fs.existsSync(target) ? readEntryVersion({ section: entry.section, content: fs.readFileSync(target, 'utf8') }) : null) || version;
     };
 
+    const manifestBodyPath = path.join(repoRoot, 'manifest', 'body.md');
+    const customBody = fs.existsSync(manifestBodyPath) ? fs.readFileSync(manifestBodyPath, 'utf8') : undefined;
+
     const { manifestText, snapshotPath } = assembleManifest({
       releaseTag: tag,
       contentSha,
@@ -145,6 +166,7 @@ async function runRelease(config, options = {}) {
       prevManifestText,
       readVersion,
       resolveGitRef: (ref) => { try { return git(['rev-parse', `${ref}^{commit}`]); } catch { return null; } },
+      body: customBody,
     });
 
     if (!(await validator(manifestText, 'stable'))) throw new ReleaseError(`Staged manifest validation failed for ${tag}`);

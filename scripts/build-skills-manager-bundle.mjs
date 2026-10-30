@@ -80,11 +80,14 @@ async function render() {
 
 async function main() {
   const check = process.argv.includes('--check')
-  const rel = path.relative(REPO_ROOT, OUT).split(path.sep).join('/')
+  const outIdx = process.argv.indexOf('--out')
+  const customOut = outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
+  const outPath = customOut || OUT
+  const rel = path.relative(REPO_ROOT, outPath).split(path.sep).join('/')
   const rendered = await render()
 
   if (check) {
-    const committed = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf-8').replace(/\r\n/g, '\n') : null
+    const committed = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf-8').replace(/\r\n/g, '\n') : null
     if (rendered !== committed) {
       console.error(`build-skills-manager-bundle: DRIFT — ${rel} is stale. Re-run without --check.`)
       process.exit(1)
@@ -93,8 +96,8 @@ async function main() {
     return
   }
 
-  fs.mkdirSync(path.dirname(OUT), { recursive: true })
-  fs.writeFileSync(OUT, rendered, 'utf-8')
+  fs.mkdirSync(path.dirname(outPath), { recursive: true })
+  fs.writeFileSync(outPath, rendered, 'utf-8')
   console.log(`build-skills-manager-bundle: wrote ${rel}.`)
 }
 

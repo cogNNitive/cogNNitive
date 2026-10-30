@@ -40,13 +40,14 @@ async function runTests() {
   console.log('Running build-preflight-primitives unit tests...')
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-primitives-'))
   try {
-    // Test 1: render mode writes all requireable CJS bundles
+    // Test 1: render mode writes all requireable CJS bundles into an isolated output dir
     {
-      const res = run([])
+      const res = run(['--out', tmp])
       assert.strictEqual(res.status, 0, res.stderr)
       for (const target of COMMITTED_TARGETS) {
-        assert.ok(fs.existsSync(target), `bundle written: ${path.basename(target)}`)
-        const mod = require(target)
+        const rendered = path.join(tmp, path.basename(target))
+        assert.ok(fs.existsSync(rendered), `bundle written: ${path.basename(target)}`)
+        const mod = require(rendered)
         if (target.endsWith('version-status.generated.cjs')) {
           assert.strictEqual(typeof mod.classifyAgainstCatalog, 'function', 'exports classifyAgainstCatalog')
           assert.strictEqual(typeof mod.parsePinnedUrl, 'function', 'exports parsePinnedUrl')
