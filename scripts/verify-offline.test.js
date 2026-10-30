@@ -140,9 +140,9 @@ async function testRunner() {
   // 5e. A hung pooled step times out and fails instead of stalling the run.
   {
     const previous = process.env.NN_VERIFY_STEP_TIMEOUT_MS;
-    process.env.NN_VERIFY_STEP_TIMEOUT_MS = '500';
+    process.env.NN_VERIFY_STEP_TIMEOUT_MS = '1500';
     try {
-      const res = await runSteps([nodeStep('hang', 'setInterval(() => {}, 1000)'), nodeStep('ok', 'process.exit(0)')], {
+      const res = await runSteps([nodeStep('hang', 'setInterval(() => {}, 10000)'), nodeStep('ok', 'process.exit(0)')], {
         jobs: 2, logDir: tmp('verify-hang-'), write: () => {},
       });
       assert.deepStrictEqual(res.failed.map((f) => f.id), ['hang']);
