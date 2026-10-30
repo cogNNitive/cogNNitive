@@ -12,7 +12,7 @@ import {
   parseName,
   sidecarPathOf,
 } from '../naming/contract.js'
-import { sha256Hex, writeOnce, type WriteOnceResult } from '../writeOnce/fs.js'
+import { readOrNull, sha256Hex, writeOnce, type WriteOnceResult } from '../writeOnce/fs.js'
 import {
   TEXT_NATIVE_FORMATS,
   buildSidecar,
@@ -46,15 +46,6 @@ export type CognitivizeResult =
   | { status: 'rejected'; path: string; reason: RejectReason }
 
 const toPosix = (p: string): string => p.replace(/\\/g, '/')
-
-async function readOrNull(file: string): Promise<Buffer | null> {
-  try {
-    return await fsp.readFile(file)
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null
-    throw e
-  }
-}
 
 /** ISO 8601 UTC at seconds precision. */
 const isoSeconds = (at: Date): string => at.toISOString().replace(/\.\d{3}Z$/, 'Z')

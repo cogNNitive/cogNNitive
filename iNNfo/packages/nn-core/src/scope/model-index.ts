@@ -28,7 +28,7 @@ export type ModelResolution =
   | { readonly ok: false; readonly code: 'AMBIGUOUS_MODEL_ID'; readonly candidates: readonly string[] }
   | { readonly ok: false; readonly code: 'MODEL_NOT_FOUND' }
 
-function stemOf(path: string): string {
+export function stemOf(path: string): string {
   const base = path.slice(path.lastIndexOf('/') + 1)
   return base.replace(/\.md$/i, '')
 }
