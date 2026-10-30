@@ -67,10 +67,11 @@ describe('Console runtime slug parity with core (D8)', () => {
     const runtimeCode = readFileSync(runtimePath, 'utf8')
 
     const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
-    // The runtime now depends on nnUI (D5) and nnReview (C); load both
+    // The runtime now depends on nnUI (D5), nnReview (C), and nnStudio; load them
     // first, as the bundle does.
     dom.window.eval(readFileSync(join(consoleDir, 'ui-kit.js'), 'utf8'))
     dom.window.eval(readFileSync(join(consoleDir, 'review.js'), 'utf8'))
+    dom.window.eval(readFileSync(join(consoleDir, 'studio.js'), 'utf8'))
     dom.window.eval(slugCode)
     dom.window.eval(runtimeCode)
 

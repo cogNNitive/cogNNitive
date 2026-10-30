@@ -46,8 +46,9 @@ The console bundle is composed strictly in dependency order:
 8. `nn-icons.js` (`nnIcons`) — Inline SVG icon library
 9. `ui-kit.js` (`nnUI`) — UI primitives (badges, status tags, accordions)
 10. `review.js` (`nnReview`) — Interactive changeset review widgets
-11. `nn-runtime.js` (`nnConsole`) — Application state, router, and view switcher
-12. `render-procedure-stepper.js` (`nnProcedureStepper`) — Interactive step-by-step procedure runner
+11. `studio.js` (`nnStudio`) — Timeline grid calculations, formulas, charts, and studio analytics
+12. `nn-runtime.js` (`nnConsole`) — Application state, router, and view switcher
+13. `render-procedure-stepper.js` (`nnProcedureStepper`) — Interactive step-by-step procedure runner
 
 ---
 
