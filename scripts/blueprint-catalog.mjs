@@ -271,8 +271,17 @@ function generate(rootDir, releaseTagFor) {
 
   const blueprints = {};
   const frozen = {};
-  for (const [name, versions] of byName.entries()) {
-    versions.sort((a, b) => compareVersions(a.blueprint_version, b.blueprint_version));
+  for (const [name, rawVersions] of byName.entries()) {
+    rawVersions.sort((a, b) => compareVersions(a.blueprint_version, b.blueprint_version));
+    const seenVer = new Set();
+    const versions = [];
+    for (let i = rawVersions.length - 1; i >= 0; i--) {
+      const v = rawVersions[i];
+      if (!seenVer.has(v.blueprint_version)) {
+        seenVer.add(v.blueprint_version);
+        versions.unshift(v);
+      }
+    }
     const adopted = versions[versions.length - 1];
     const whenToUse = adopted._when_to_use;
     const versionsOut = versions.map(({ blueprint_version, spec_version, title, url }) => ({

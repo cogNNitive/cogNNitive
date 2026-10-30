@@ -145,15 +145,18 @@ async function renderTarget(target) {
 
 async function main() {
   const check = process.argv.includes('--check')
+  const outIdx = process.argv.indexOf('--out')
+  const outDir = outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
   let driftCount = 0
 
   for (const target of BUNDLE_TARGETS) {
-    const rel = path.relative(REPO_ROOT, target.out) || target.out
+    const targetOut = outDir ? path.join(outDir, path.basename(target.out)) : target.out
+    const rel = path.relative(REPO_ROOT, targetOut) || targetOut
     const rendered = await renderTarget(target)
 
     if (check) {
-      const committed = fs.existsSync(target.out)
-        ? fs.readFileSync(target.out, 'utf-8').replace(/\r\n/g, '\n')
+      const committed = fs.existsSync(targetOut)
+        ? fs.readFileSync(targetOut, 'utf-8').replace(/\r\n/g, '\n')
         : null
       if (rendered !== committed) {
         console.error(
@@ -164,8 +167,8 @@ async function main() {
         console.log(`build-preflight-primitives: OK — ${rel} is up to date.`)
       }
     } else {
-      fs.mkdirSync(path.dirname(target.out), { recursive: true })
-      fs.writeFileSync(target.out, rendered, 'utf-8')
+      fs.mkdirSync(path.dirname(targetOut), { recursive: true })
+      fs.writeFileSync(targetOut, rendered, 'utf-8')
       console.log(`build-preflight-primitives: wrote ${rel}.`)
     }
   }

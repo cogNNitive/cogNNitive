@@ -400,7 +400,14 @@ function assembleManifest(params) {
     });
   }
 
-  const bodyContent = customBody !== undefined ? customBody : prev.body ? `\n${prev.body}` : '';
+  let bodyContent = '';
+  if (customBody !== undefined) {
+    if (customBody) {
+      bodyContent = customBody.startsWith('\n') ? customBody : `\n${customBody}`;
+    }
+  } else if (prev.body) {
+    bodyContent = `\n${prev.body}`;
+  }
   const frontmatter = renderFrontmatter(model, 'stable');
   const manifestText = normalizeOutput(`${frontmatter}${bodyContent}`);
   const snapshotPath = `docs/use/manifests/${releaseTag}.md`;

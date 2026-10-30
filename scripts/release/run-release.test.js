@@ -99,6 +99,7 @@ before(() => {
   fs.mkdirSync(path.join(monorepo, 'manifest'), { recursive: true });
   fs.writeFileSync(path.join(monorepo, 'skills', 'nn-router', 'SKILL.md'), SKILL_MD);
   fs.writeFileSync(path.join(monorepo, 'manifest', 'source.yaml'), SOURCE_YAML);
+  fs.writeFileSync(path.join(monorepo, 'manifest', 'body.md'), '# Authored Body from manifest/body.md\n');
   monoGit(['add', '.']);
   monoGit(['commit', '-m', 'feat: update router to 2.10.0']);
   monoGit(['tag', '-a', 'skills-v2.10.0', '-m', 'release skills-v2.10.0']);
@@ -148,6 +149,7 @@ test('runRelease happy path: publishes content commit C, mirror tag, and manifes
 
   const publishedManifest = fs.readFileSync(path.join(checkClone, 'docs', 'use', 'manifest.md'), 'utf8');
   assert.ok(publishedManifest.includes('skills-v2.10.0'), 'Published manifest must reference new tag');
+  assert.ok(publishedManifest.includes('# Authored Body from manifest/body.md'), 'Published manifest must include authored body from manifest/body.md');
   assert.ok(fs.existsSync(path.join(checkClone, 'docs', 'use', 'manifests', 'skills-v2.10.0.md')), 'Snapshot must exist');
 });
 
@@ -201,4 +203,55 @@ test('runRelease dry-run writes nothing to remote', async (t) => {
   const checkGit = (args) => execFileSync('git', args, { cwd: checkClone, encoding: 'utf8' }).trim();
   const tags = checkGit(['tag', '-l']);
   assert.equal(tags, '');
+});
+
+test('runRelease blueprint release stamps release_tag on catalog.json', async (t) => {
+  const fx = cloneFixture();
+  t.after(() => {
+    try { fs.rmSync(fx.tmp, { recursive: true, force: true }); } catch {}
+  });
+
+  // Setup blueprint catalog in monorepo
+  const catDir = path.join(fx.monorepo, 'iNNfo', 'specs', 'bluepriNNts');
+  fs.mkdirSync(catDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(catDir, 'catalog.json'),
+    JSON.stringify({
+      generator: 'test',
+      blueprints: {
+        procedures: { name: 'procedures', release_tag: 'blueprints-v0.40.0' },
+      },
+      frozen: {},
+    }, null, 2) + '\n'
+  );
+
+  // Update source.yaml with blueprint
+  fs.writeFileSync(
+    path.join(fx.monorepo, 'manifest', 'source.yaml'),
+    `version: "1.0.0"\nentrypoint: nn-router\nskills: []\nblueprints:\n  - name: procedures\n    repo: cogNNitive/cogNNitive-web\n    path: iNNfo/specs/bluepriNNts/procedures/spec_NN.md\n    ref_key: blueprints\nworkflows: []`
+  );
+
+  // Commit and tag blueprints-v0.50.0 in monorepo
+  const monoGit = (args) => execFileSync('git', args, { cwd: fx.monorepo, encoding: 'utf8' }).trim();
+  monoGit(['add', '.']);
+  monoGit(['commit', '-m', 'feat(blueprints): release blueprints-v0.50.0']);
+  monoGit(['tag', '-a', 'blueprints-v0.50.0', '-m', 'release blueprints-v0.50.0']);
+
+  const result = await runRelease({
+    tag: 'blueprints-v0.50.0',
+    repoRoot: fx.monorepo,
+    remoteUrl: fx.webBare,
+    validator: async () => true,
+    logger: { log: () => {}, error: () => {}, warn: () => {} },
+  });
+
+  assert.equal(result.tag, 'blueprints-v0.50.0');
+
+  // Verify web repo has stamped catalog.json
+  const checkClone = path.join(fx.tmp, 'web-check-bp');
+  execFileSync('git', ['clone', fx.webBare, checkClone], { stdio: 'ignore' });
+  const publishedCat = JSON.parse(
+    fs.readFileSync(path.join(checkClone, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json'), 'utf8')
+  );
+  assert.equal(publishedCat.blueprints.procedures.release_tag, 'blueprints-v0.50.0');
 });
