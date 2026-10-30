@@ -82,6 +82,13 @@ The engine MUST NOT emit overlay markup or overlay CSS of its own. The emitted p
 - WHEN the project is emitted
 - THEN emission fails with `SlotContractError` naming the slot and the missing variable
 
+#### Scenario: Overlay host reflects configured position class
+
+- GIVEN an overlay Layer declaring a `position` value
+- WHEN the project is emitted
+- THEN the overlay host carries the class `nn-pos-<position>` (sanitized to alphanumeric and dashes)
+- AND slot fallback components honor position classes via CSS
+
 ### Requirement: Overlay Hosts Declare Their Timeline
 
 An overlay host MUST carry `data-no-timeline` when its resolved component is static — the
