@@ -12,9 +12,10 @@
  * Dry run only: writes NOTHING to disk.
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { seriesValues } from './lib/series-values.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..');
@@ -76,26 +77,15 @@ if (existsSync(seriesBase) && statSync(seriesBase).isDirectory()) {
         },
       });
     } else {
-      // Gather scattered series values to hoist
+      // Gather the scattered series values from the sources the series really uses
+      // (scope marker, video.series.json, script_template.md, the `## NN Video`
+      // blocks of the series document), not from a synthetic series_NN.md.
+      const values = seriesValues(absTarget, seriesSlug);
       const hoisted = {};
-      const candidateDocs = [
-        join(seriesDir, `${seriesSlug}_series_NN.md`),
-        join(seriesDir, 'series_NN.md'),
-      ];
-      for (const cand of candidateDocs) {
-        if (!existsSync(cand)) continue;
-        const text = readFileSync(cand, 'utf8');
-        for (const line of text.split('\n')) {
-          const m = line.match(/^([a-zA-Z0-9_]+)::\s*(.+)$/);
-          if (m) {
-            const key = m[1].trim();
-            const val = m[2].trim();
-            if (['voice_id', 'music', 'music_volume', 'transition'].includes(key)) {
-              hoisted[key] = val;
-            }
-          }
-        }
-      }
+      if (values.voice) hoisted.voice_id = values.voice;
+      if (values.music) hoisted.music = values.music;
+      if (values.volume !== null) hoisted.music_volume = String(values.volume);
+      if (values.transition) hoisted.transition = values.transition;
 
       seriesPlans.push({
         slug: seriesSlug,
@@ -109,19 +99,21 @@ if (existsSync(seriesBase) && statSync(seriesBase).isDirectory()) {
   }
 }
 
-// 3. Drift summary (via nn-core if available)
-/** @type {{ status?: string, rows: any[] }} */
-let driftSummary = { rows: [] };
-try {
-  if (existsSync(CORE_DIST)) {
-    const core = await import(pathToFileURL(CORE_DIST).href);
-    if (typeof core.driftReport === 'function') {
-      driftSummary = { status: 'checked', rows: [] };
+// 3. Drift: a dry run cannot report drift, because the scopes do not exist yet.
+// Say so instead of printing an empty "checked" report; the real report comes
+// from `scripts/dev/scope-drift.mjs` once the plan is applied.
+/** @type {{ status: string, rows: any[], reason: string }} */
+const driftSummary = existsSync(CORE_DIST)
+  ? {
+      status: 'deferred',
+      rows: [],
+      reason: 'run scripts/dev/scope-drift.mjs after applying the plan',
     }
-  }
-} catch {
-  // drift check optional
-}
+  : {
+      status: 'unavailable',
+      rows: [],
+      reason: 'nn-core is not built (npm --workspace=@cognnitive/nn-core run build)',
+    };
 
 const plan = {
   v: 1,
@@ -152,4 +144,5 @@ if (isJson) {
   } else {
     console.log('\nRenames: none');
   }
+  console.log(`\nDrift: ${driftSummary.status} (${driftSummary.reason})`);
 }

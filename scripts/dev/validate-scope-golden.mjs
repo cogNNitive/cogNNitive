@@ -29,9 +29,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, relative, sep } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { seriesValues } from './lib/series-values.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CORE_DIST = join(REPO, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js');
@@ -128,21 +129,6 @@ function episodesOf(root, series) {
     if (existsSync(join(assets, e.name, doc))) out.push({ slug: e.name, doc: `series/${series}/assets/${e.name}/${doc}` });
   }
   return out;
-}
-
-/** Values that today live as prose / JSON / `## NN Video` blocks, hoisted to the series marker. */
-function seriesValues(root, series) {
-  const dir = join('series', series);
-  const template = read(root, join(dir, 'script_template.md'));
-  const json = existsSync(join(root, dir, 'video.series.json')) ? JSON.parse(read(root, join(dir, 'video.series.json'))) : null;
-  const seriesDoc = readdirSync(join(root, dir)).find((f) => f.endsWith('_video_NN.md'));
-  const voices = [...read(root, join(dir, seriesDoc)).matchAll(/^voice_id:: (.+)$/gm)].map((m) => m[1].trim());
-  const counts = voices.reduce((a, v) => ((a[v] = (a[v] || 0) + 1), a), {});
-  const voice = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-  const music = json?.defaultMusic ?? fieldOf(template, 'music');
-  const volume = json?.defaultMusicVolume ?? fieldOf(template, 'music_volume');
-  const transition = json?.defaultTransition ?? fieldOf(template, 'transition');
-  return { music, volume: volume === null ? null : Number(volume), transition, voice, voiceCounts: counts, source: json ? 'video.series.json' : 'script_template.md' };
 }
 
 // ---------------------------------------------------------------- --elements mode
@@ -253,7 +239,7 @@ async function runElements() {
     sources.push({ label: 'LC_programas Tutorias document', before: { digest: hashFile(), count: 1 }, hash: () => ({ digest: hashFile(), count: 1 }) });
     const work = mkdtempSync(join(tmpdir(), 'scope-elements-lc-'));
     write(work, 'domaiNN_NN.md', '---\ntitle: lc-copy\n---\n# lc-copy\n');
-    const PRESTACION = 'Prestación de Servicios';
+    const PRESTACION = 'PrestaciÃ³n de Servicios';
     const copy = 'kNNowledge/LC_programas_Tutorias_NN.md';
     write(work, copy, addDecls(readFileSync(file, 'utf-8'), `  - concept: Programa\n  - concept: "${PRESTACION}"\n    parent: programa_ref`));
     const path = join(work, copy);

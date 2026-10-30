@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, test } from 'node:test';
@@ -58,6 +58,7 @@ test('adopt-video-plan on GOLD: detects already adopted state and writes nothing
   }
   assert.equal(plan.renames.length, 0);
   assert.ok(plan.drift);
+  assert.equal(plan.drift.status, 'deferred');
 });
 
 test('adopt-video-plan on unadopted fixture: plans domaiNN_NN.md, scope markers and procedure rename', () => {
@@ -70,8 +71,25 @@ test('adopt-video-plan on unadopted fixture: plans domaiNN_NN.md, scope markers 
     mkdirSync(assetsDir, { recursive: true });
 
     writeFileSync(
-      join(seriesDir, 'series_NN.md'),
-      '# NN Series\n\ntitle:: My Series\nvoice_id:: Host01\nmusic:: ../../shared/tune.mp3\n',
+      join(seriesDir, 'script_template.md'),
+      [
+        '---',
+        'level: 3',
+        '---',
+        '',
+        '# NN Scene',
+        '',
+        '## NN Scene: 00 Gancho',
+        'music:: ../../shared/tune.mp3',
+        'music_volume:: 0.35',
+        'transition:: fade',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    writeFileSync(
+      join(seriesDir, 'my-series_video_NN.md'),
+      '# NN Video\n\n## NN Video: Ep 1\nslug:: ep1\nvoice_id:: Host01\n',
       'utf8',
     );
     writeFileSync(
@@ -99,6 +117,8 @@ test('adopt-video-plan on unadopted fixture: plans domaiNN_NN.md, scope markers 
     assert.equal(plan.series[0].scopeMarker.status, 'planned-create');
     assert.equal(plan.series[0].scopeMarker.hoisted.voice_id, 'Host01');
     assert.equal(plan.series[0].scopeMarker.hoisted.music, '../../shared/tune.mp3');
+    assert.equal(plan.series[0].scopeMarker.hoisted.music_volume, '0.35');
+    assert.equal(plan.series[0].scopeMarker.hoisted.transition, 'fade');
 
     assert.equal(plan.renames.length, 1);
     assert.equal(plan.renames[0].from, 'series/my-series/procedure');
