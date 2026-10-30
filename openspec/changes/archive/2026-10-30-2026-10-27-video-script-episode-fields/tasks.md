@@ -26,22 +26,22 @@
 
 ## 3. Capability delta
 
-- [ ] 3.1 `specs/video-script-model/spec.md`: the `Video` concept carries the episode record, and
+- [x] 3.1 `specs/video-script-model/spec.md`: the `Video` concept carries the episode record, and
       derived format variants are never modelled. (Written; the normative line is a single physical
       line to satisfy the `check-openspec-deltas.mjs` guard.)
 
-## 4. Domain migration (`video_NN`, separate changeset path)
+## 4. Domain migration (`video_NN`, separate changeset path — external maintainer task)
 
-- [ ] 4.1 Re-parent the four series models to `video-script` and drop the local
+- [x] 4.1 Re-parent the four series models to `video-script` and drop the local
       `specs/bluepriNNts/video/V_0-7-3` pin.
-- [ ] 4.2 Drop `master_vertical` / `thumbnail_vertical` from the models and let the variant paths be
+- [x] 4.2 Drop `master_vertical` / `thumbnail_vertical` from the models and let the variant paths be
       derived.
-- [ ] 4.3 Add the `series_NN.md` documents and retire the frontmatter `series:` blocks.
-- [ ] 4.4 Regenerate the domain console and the lineage record; confirm one `Video` entry per episode.
+- [x] 4.3 Add the `series_NN.md` documents and retire the frontmatter `series:` blocks.
+- [x] 4.4 Regenerate the domain console and the lineage record; confirm one `Video` entry per episode.
 
 ## 5. Release and gates
 
-- [ ] 5.1 `node scripts/verify.js` + green CI on `dev`.
-- [ ] 5.2 `nn-dev-release`: `blueprints-v*` tag.
-- [ ] 5.3 Confirm the tag's workflow run and that consumers resolving the remote blueprint see the
+- [x] 5.1 `node scripts/verify.js` + green CI on `dev`.
+- [x] 5.2 `nn-dev-release`: `blueprints-v*` tag (`blueprints-v0.47.0` released).
+- [x] 5.3 Confirm the tag's workflow run and that consumers resolving the remote blueprint see the
       new fields.
