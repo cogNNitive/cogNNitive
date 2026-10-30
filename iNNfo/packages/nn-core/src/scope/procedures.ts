@@ -59,8 +59,6 @@ const isProcedureRef = (v: JsonValue): v is { procedure: string } =>
   typeof v['procedure'] === 'string' &&
   Object.keys(v).length === 1
 
-const supplierOf = (n: ScopeNode): Supplier => ({ scope: n.id, doc: n.doc })
-
 function duplicateSlots(def: ProcedureDef): string[] {
   const seen = new Set<string>()
   const dups = new Set<string>()

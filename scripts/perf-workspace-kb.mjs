@@ -23,7 +23,7 @@
  * removed on exit.
  */
 
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'

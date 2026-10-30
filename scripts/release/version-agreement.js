@@ -10,28 +10,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { parseReleaseTag } = require('./parse-release-tag.js');
+const { parseSemver, compareSemver } = require('../lib/semver.js');
 
 class VersionAgreementError extends Error {
   constructor(message) {
     super(message);
     this.name = 'VersionAgreementError';
   }
-}
-
-function parseSemver(v) {
-  const parts = String(v || '').replace(/^v/, '').split('.').map(Number);
-  return parts.length === 3 && parts.every((n) => !isNaN(n)) ? parts : null;
-}
-
-function compareSemver(v1, v2) {
-  const p1 = parseSemver(v1);
-  const p2 = parseSemver(v2);
-  if (!p1 || !p2) return String(v1).localeCompare(String(v2));
-  for (let i = 0; i < 3; i++) {
-    if (p1[i] > p2[i]) return 1;
-    if (p1[i] < p2[i]) return -1;
-  }
-  return 0;
 }
 
 /**

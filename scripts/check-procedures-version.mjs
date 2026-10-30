@@ -25,6 +25,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFrontmatter, compareVersions } from './lib/blueprint-version.mjs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -38,33 +39,6 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 const PARENT_BLUEPRINT = 'procedures';
 const VERSION_RE = /V_\d+-\d+-\d+/;
-
-function readFrontmatter(filePath) {
-  let content;
-  try {
-    content = fs.readFileSync(filePath, 'utf8');
-  } catch {
-    return null;
-  }
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  return fmMatch ? fmMatch[1] : null;
-}
-
-function parseVersionParts(version) {
-  const m = String(version).match(/V_(\d+)-(\d+)-(\d+)/);
-  if (!m) return null;
-  return [Number(m[1]), Number(m[2]), Number(m[3])];
-}
-
-function compareVersions(a, b) {
-  const pa = parseVersionParts(a);
-  const pb = parseVersionParts(b);
-  if (!pa || !pb) return null;
-  for (let i = 0; i < 3; i++) {
-    if (pa[i] !== pb[i]) return pa[i] < pb[i] ? -1 : 1;
-  }
-  return 0;
-}
 
 /** The shipped `procedures` blueprint's current `blueprint_version`. */
 export function currentProceduresVersion(blueprintsRoot = BLUEPRINTS_ROOT) {

@@ -1,7 +1,7 @@
 import { slugify } from '../parser/slug.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
-import { escapeRegex, extractModelSlug } from './utils.js'
+import { extractModelSlug } from './utils.js'
 
 export interface CascadedMatrixCell {
   matrixName: string

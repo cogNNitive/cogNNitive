@@ -1,5 +1,4 @@
-import { existsSync } from 'node:fs'
-import { writeFile, rename } from 'node:fs/promises'
+import { writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import {
   readLineageRecord,
@@ -10,7 +9,6 @@ import {
   refreshExistingModel,
   type LineageProjection,
 } from '@cognnitive/nn-core'
-import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 export interface SyncLineageResult {
   status: 'created' | 'refreshed'

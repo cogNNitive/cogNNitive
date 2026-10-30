@@ -578,7 +578,7 @@ function legacyEntryViolations(manifestData) {
 
 async function validateManifest(manifestData, policy) {
   resetRemoteCaches();
-  const { skills = [], blueprints = [], workflows = [], mcp = [], consoleAssets = [] } = manifestData;
+  const { skills = [], blueprints = [], mcp = [], consoleAssets = [] } = manifestData;
   const mcpCount = mcp.length + skills.reduce((n, s) => n + ((s.mcp || []).length), 0);
   const violations = legacyEntryViolations(manifestData);
   const knownSkillBundledBlueprints = new Set();

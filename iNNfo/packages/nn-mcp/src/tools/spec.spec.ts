@@ -764,41 +764,6 @@ describe('catalog-driven discovery and on-demand hydration', () => {
     expect(core?.tier).toBe('core')
   })
 
-  function mockCatalogFetch(): void {
-    vi.spyOn(global, 'fetch').mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input)
-      if (url.startsWith('https://api.github.com/')) {
-        if (url.includes('skills/nn-org')) {
-          return Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify([{ name: 'SKILL.md', type: 'file', path: 'SKILL.md' }])),
-          } as Response)
-        }
-        if (url.includes('/skills?')) {
-          return Promise.resolve({
-            ok: true,
-            text: () => Promise.resolve(JSON.stringify([{ name: 'nn-org', type: 'dir', path: 'nn-org' }])),
-          } as Response)
-        }
-        // procedures/samples/assets — absent
-        return Promise.resolve({ ok: true, text: () => Promise.resolve('[]') } as Response)
-      }
-      if (url.endsWith('/organization/spec_NN.md')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('---\nblueprint_version: "V_0-4-0"\nlevel: 2\ntitle: "Organization"\n---\n# Org'),
-        } as Response)
-      }
-      if (url.endsWith('/organization/skills/nn-org/SKILL.md')) {
-        return Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve('---\nname: nn-org\nversion: "1.0.0"\n---\n# Skill'),
-        } as Response)
-      }
-      return Promise.resolve({ ok: false, status: 404, statusText: 'Not Found' } as Response)
-    })
-  }
-
   it('hydrateBlueprint returns the install command for an uninstalled catalog blueprint and writes nothing', async () => {
     const res = await hydrateBlueprint(catRoot, 'organization', {
       globalDir,

@@ -42,7 +42,7 @@ describe('cognitivize tool', () => {
   })
 
   it('defers a binary to the CLI when no normalizer is available', async () => {
-    const before = await readdir(importDir)
+    await readdir(importDir)
     const result = await cognitivizeTool(rootDir, 'sources/import/report.pdf', { normalizer: null as any })
     expect(result.status).toBe('requires-cli')
     expect((result as { message: string }).message).toContain('use the nn-sources CLI')

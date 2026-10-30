@@ -89,14 +89,6 @@ async function resolveFileHandle(
 }
 
 
-function isWorkspaceManifest(name: string): boolean {
-  return (
-    name.toLowerCase().startsWith('workspace') &&
-    name.endsWith(INNFO_FILE_SUFFIX) &&
-    !isIgnoredPath(name)
-  )
-}
-
 async function findCanonicalDomainEntrypoint(
   root: DirectoryHandleLike,
   driver?: KnowledgeDriver,
