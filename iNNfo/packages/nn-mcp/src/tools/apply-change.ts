@@ -225,10 +225,9 @@ async function persistAtomic(stagingPath: string, livePath: string): Promise<voi
       await rename(stagingPath, livePath)
       return
     } catch (err: any) {
-      const isWindowsLockError =
-        process.platform === 'win32' &&
-        (err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES')
-      if (isWindowsLockError && attempt < MAX_RETRIES) {
+      const isLockError =
+        err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES'
+      if (isLockError && attempt < MAX_RETRIES) {
         attempt++
         await new Promise((r) => setTimeout(r, attempt * 25))
         continue
