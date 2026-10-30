@@ -123,9 +123,42 @@ test('adopt-video-plan on unadopted fixture: plans domaiNN_NN.md, scope markers 
     assert.equal(plan.renames.length, 1);
     assert.equal(plan.renames[0].from, 'series/my-series/procedure');
     assert.equal(plan.renames[0].to, 'series/my-series/procedures');
+    assert.equal(plan.renames[0].status, 'planned-rename');
 
     // Prove dry run: byte-identical after run
     assert.equal(hashTree(tempDir), initialHash, 'Unadopted fixture must be byte-identical after plan');
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('adopt-video-plan detects conflict when both procedure/ and procedures/ exist (#408)', () => {
+  const tempDir = mkdtempSync(join(tmpdir(), 'adopt-video-conflict-'));
+  try {
+    const seriesDir = join(tempDir, 'series', 'demo');
+    mkdirSync(join(seriesDir, 'procedure'), { recursive: true });
+    mkdirSync(join(seriesDir, 'procedures'), { recursive: true });
+    writeFileSync(join(seriesDir, 'procedure', 'old_procedures_NN.md'), 'old\n', 'utf8');
+    writeFileSync(join(seriesDir, 'procedures', 'new_procedures_NN.md'), 'new\n', 'utf8');
+
+    const initialHash = hashTree(tempDir);
+
+    const resJson = run(tempDir, '--json');
+    assert.equal(resJson.status, 0, resJson.stderr);
+    const plan = JSON.parse(resJson.stdout);
+
+    assert.equal(plan.renames.length, 1);
+    assert.equal(plan.renames[0].from, 'series/demo/procedure');
+    assert.equal(plan.renames[0].to, 'series/demo/procedures');
+    assert.equal(plan.renames[0].status, 'conflict');
+    assert.equal(plan.renames[0].reason, 'destination exists');
+
+    // Also assert text view prints conflict note
+    const resText = run(tempDir);
+    assert.equal(resText.status, 0, resText.stderr);
+    assert.match(resText.stdout, /series\/demo\/procedure -> series\/demo\/procedures \[CONFLICT: destination exists\]/);
+
+    assert.equal(hashTree(tempDir), initialHash, 'Fixture must remain untouched');
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }
