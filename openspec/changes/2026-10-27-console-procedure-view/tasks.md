@@ -66,14 +66,14 @@ Each slice is revertible alone.
 
 ## Slice 4: Scoped procedure listing & file identity (spec: console-payload-builder "Procedure Catalog Link Is Emitted" MODIFIED; design D5; aligned with Q15)
 
-- [ ] 4.1 Under Q15 ("one document = one procedure"), the data source for available procedures is the scoped procedure listing (`list_blueprint_procedures({ path })`). The procedure document itself (`*_procedures_NN.md`) provides procedure identity and contains its `Work` steps.
+- [x] 4.1 Under Q15 ("one document = one procedure"), the data source for available procedures is the scoped procedure listing (`list_blueprint_procedures({ path })`). The procedure document itself (`*_procedures_NN.md`) provides procedure identity and contains its `Work` steps.
 - [x] 4.2 Payload builder and console export preserve all procedures without dropping duplicates, marking clashing entries as `shadowed` with `shadowed_by` (shipped in L2.5.3).
 
 ## Slice 5: Tab shows the procedure metadata (spec: innfo-console-runtime "Procedure Tab Shows The Catalog Entry" MODIFIED; design D6; aligned with Q15)
 
-- [ ] 5.1 RED: the procedure stepper renders procedure metadata (`summary`, `category`, `executed_by`, `inputs_required`, `outputs_expected`) directly from the active procedure document / catalog entry; non-shadowed procedures are listed in the stepper.
-- [ ] 5.2 GREEN `STEP`: render the procedure header; omit missing fields.
-- [ ] 5.3 Rebuild `BUNDLE`; regenerate the testlab fixture; `node scripts/verify.js --only=console`.
+- [x] 5.1 RED: the procedure stepper renders procedure metadata (`summary`, `category`, `executed_by`, `inputs_required`, `outputs_expected`) directly from the active procedure document / catalog entry; non-shadowed procedures are listed in the stepper.
+- [x] 5.2 GREEN `STEP`: render the procedure header; omit missing fields.
+- [x] 5.3 Rebuild `BUNDLE`; regenerate the testlab fixture; `node scripts/verify.js --only=console`.
 
 ## Slice 6: Decision steps render as branches (spec: innfo-console-runtime "Decision Steps Render As Branches"; design D7)
 

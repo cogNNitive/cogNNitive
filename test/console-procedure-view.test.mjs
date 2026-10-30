@@ -363,4 +363,45 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(branchOutcomes.length, 0, 'no branch outcomes rendered for single target')
     handle.unmount()
   })
+
+  it('renders procedure metadata in the tab header from linked Procedure or document fields', () => {
+    const stepper = createRequire(import.meta.url)(stepperPath)
+    const p = {
+      schema: {
+        concepts: [{ name: 'Work', weight: 100 }, { name: 'Procedure', weight: 90 }],
+        procedures: [
+          { id: 'proc-1', name: 'Onboarding Flow', summary: 'Onboards a new customer', category: 'Customer Ops', executed_by: 'Support Lead', inputs_required: 'Account ID', outputs_expected: 'Active Workspace' },
+          { id: 'shadowed-proc', name: 'Shadowed', status: 'shadowed', shadowed_by: 'outer' }
+        ]
+      },
+      model: {
+        meta: { title: 'Proc With Ficha' },
+        elements: [
+          {
+            id: 'work-root',
+            concept: 'Work',
+            name: 'Onboarding Flow',
+            fields: {
+              summary: 'Onboards a new customer',
+              category: 'Customer Ops',
+              executed_by: 'Support Lead',
+              inputs_required: 'Account ID',
+              outputs_expected: 'Active Workspace',
+            },
+            relations: [],
+          },
+          { id: 'work-step', concept: 'Work', name: 'Verify ID', fields: { parent: 'Onboarding Flow' } },
+        ],
+      },
+    }
+    const handle = stepper.mount(container, p)
+    const ficha = container.querySelector('.proc-ficha')
+    assert.ok(ficha, 'procedure ficha header rendered')
+    assert.ok(ficha.textContent.includes('Onboards a new customer'), 'summary rendered')
+    assert.ok(ficha.textContent.includes('Customer Ops'), 'category rendered')
+    assert.ok(ficha.textContent.includes('Support Lead'), 'executed_by rendered')
+    assert.ok(ficha.textContent.includes('Account ID'), 'inputs_required rendered')
+    assert.ok(ficha.textContent.includes('Active Workspace'), 'outputs_expected rendered')
+    handle.unmount()
+  })
 })
