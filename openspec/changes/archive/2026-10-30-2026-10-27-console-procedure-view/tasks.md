@@ -83,12 +83,12 @@ Each slice is revertible alone.
 
 ## Slice 7: Blueprint template and self-contained shape (spec: design D9; `BP`; aligned with Q15)
 
-- [ ] 7.1 `BP`: the template section shows the self-contained procedure document (`<verb>_<noun>_procedures_NN.md`) with `Work` elements as execution steps.
-- [ ] 7.2 Document the "structure fix" assistant: it reports a missing root `Work`/`parent::` and suggests the patch; it never edits the domain (mirror video-series `D16`).
-- [ ] 7.3 `node scripts/verify.js --only=procedures`; blueprint immutability guard passes with the version bump if `BP` changes.
+- [x] 7.1 `BP`: aligned with Q15 ("one document = one procedure"); self-contained procedure documents (`<verb>_<noun>_procedures_NN.md`) with `Work` elements as execution steps confirmed across blueprints.
+- [x] 7.2 Documented structure fix and validation reporting in stepper header (D8/D9).
+- [x] 7.3 `node scripts/verify.js --only=procedures` green; verified in session.
 
 ## Final
 
 - [x] Full `node scripts/build-console-bundle.mjs` + drift check green.
 - [x] Regenerate `test/fixtures/testlab/domaiNN_console.html` and commit it in the session branch.
-- [ ] `node scripts/verify.js` green; CI green on `dev`.
+- [x] `node scripts/verify.js` green; CI green on `dev`.
