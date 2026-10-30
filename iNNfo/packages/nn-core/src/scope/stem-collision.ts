@@ -1,13 +1,10 @@
+import { stemOf } from './model-index.js'
+
 export interface StemCollision {
   /** The repeated filename stem (the model id), e.g. `script_NN`. */
   id: string
   /** Every domain-relative path carrying that stem, sorted. */
   paths: string[]
-}
-
-function stemOf(path: string): string {
-  const base = path.slice(path.lastIndexOf('/') + 1)
-  return base.replace(/\.md$/i, '')
 }
 
 /**

@@ -6,7 +6,7 @@ import {
   SpecFrontmatter,
   TaxonomyEdge,
 } from '../types/index.js'
-import { normalizeSource, YAML_BLOCK_RE, parseMarkdownTable } from './markdown.js'
+import { normalizeSource, YAML_BLOCK_RE } from './markdown.js'
 import { parseFrontmatter } from './yaml.js'
 import { parseIndexBlock } from './taxonomy.js'
 import {

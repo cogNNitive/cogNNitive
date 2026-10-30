@@ -67,7 +67,7 @@ function resolveInside(root: string, rel: string): string {
   return target
 }
 
-async function readOrNull(file: string): Promise<Buffer | null> {
+export async function readOrNull(file: string): Promise<Buffer | null> {
   try {
     return await fsp.readFile(file)
   } catch (e) {
