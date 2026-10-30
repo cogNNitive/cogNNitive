@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
+import { basename, dirname, join, relative } from 'node:path'
 import {
   parseKnowledge,
   validateDocument,
@@ -14,7 +14,6 @@ import {
   validateWorkspaceSources,
   createFsSourceResolver,
   readLineageSnapshot,
-  extractHeadings,
   levenshteinDistance,
   loadBaseline,
   fingerprint,

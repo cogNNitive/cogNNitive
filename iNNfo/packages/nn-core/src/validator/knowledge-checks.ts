@@ -5,7 +5,6 @@ import type { IncludeResolver } from '../schema/index.js'
 import { parseKnowledge } from '../parser/index.js'
 import { validateFieldValue } from '../schema/field-values.js'
 import { RESERVED_CONCEPT_NAMES } from './constants.js'
-import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
 export type ElementGroup = [string, Array<{ name: string; fields: Record<string, unknown> }>]

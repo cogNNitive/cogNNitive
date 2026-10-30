@@ -79,16 +79,6 @@ function unknownConceptMessage(conceptName: string, declaredNames: string[]): st
   return `Concept "${conceptName}" is not declared in the template. Declared concepts: ${declaredNames.join(', ')}`
 }
 
-function getKnowledgeWideElementNames(model: ParsedKnowledge): Set<string> {
-  const names = new Set<string>()
-  for (const [, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      names.add(el.name)
-    }
-  }
-  return names
-}
-
 /**
  * Deep-copy a ParsedKnowledge. `elements` is an `ElementsMap` (a class), so it is
  * rebuilt by hand; every other field is a plain object/array/string and clones

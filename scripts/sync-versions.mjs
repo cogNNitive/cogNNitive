@@ -27,7 +27,6 @@ const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core
 
 const FRONTMATTER_VERSION_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const BLUEPRINT_VERSION_RE = /^blueprint_version:\s*"?([^"\r\n]+?)"?\s*$/m;
-const SPEC_VERSION_RE = /^spec_version:\s*"?([^"\r\n]+?)"?\s*$/m;
 const SKILL_VERSION_RE = /^version:\s*"?([^"\r\n]+?)"?\s*$/m;
 
 /**
@@ -45,13 +44,6 @@ function readFrontmatterVersion(filePath, fieldRe) {
 /** Reads `blueprint_version` -- the blueprint's OWN version. */
 function readBlueprintVersion(filePath) {
   return readFrontmatterVersion(filePath, BLUEPRINT_VERSION_RE);
-}
-
-/**
- * Reads `spec_version` -- the Level-1 iNNfo meta-spec the template conforms to.
- */
-function readSpecVersion(filePath) {
-  return readFrontmatterVersion(filePath, SPEC_VERSION_RE);
 }
 
 /**
@@ -86,10 +78,6 @@ function collectVersions(blueprintsDir, read) {
 
 export function collectBlueprintVersions(blueprintsDir = DEFAULT_BLUEPRINTS_DIR) {
   return collectVersions(blueprintsDir, readBlueprintVersion);
-}
-
-export function collectSpecVersions(blueprintsDir = DEFAULT_BLUEPRINTS_DIR) {
-  return collectVersions(blueprintsDir, readSpecVersion);
 }
 
 /**
@@ -242,9 +230,6 @@ export function syncVersions({
 
   return { ok: errors.length === 0, errors, versions, skillVersions };
 }
-
-// Backward-compatibility alias
-export const syncBlueprintVersions = syncVersions;
 
 // Direct CLI invocation
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {

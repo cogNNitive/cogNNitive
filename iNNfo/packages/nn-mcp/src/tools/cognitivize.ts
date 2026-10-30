@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { cognitivize, type RejectReason, type NormalizerAdapter } from '@cognnitive/nn-core'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 import { devCheckoutRoot } from './dev-checkout.js'

@@ -187,7 +187,6 @@ export function validateFormatContent(
   const isV030 = fm.spec_version === 'V_0-3-0' || (!fm.spec_version && fm.level === 3 && fm.knowledge_version !== undefined)
   const hasKnowledgeVersion = typeof fm.knowledge_version === 'string' && fm.knowledge_version.length > 0
   const hasModelVersion = typeof fm.model_version === 'string' && fm.model_version.length > 0
-  const hasBlueprintVersion = typeof fm.blueprint_version === 'string' && fm.blueprint_version.length > 0
 
   if (isV030 && hasModelVersion) {
     checks.push({

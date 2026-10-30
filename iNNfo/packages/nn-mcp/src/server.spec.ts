@@ -11,7 +11,7 @@ const rootDir = join(import.meta.dirname!, '..', 'temp-test-server')
 const specsDir = join(rootDir, 'specs')
 process.env.INNFO_DOMAIN_DIR = rootDir
 
-const { server, toolDefinitions, TOOL_COUNT, ROOT_DIR, resolveRootDir } = await import('./server')
+const { server, toolDefinitions, resolveRootDir } = await import('./server')
 
 const pkgVersion = JSON.parse(
   await readFile(join(import.meta.dirname!, '..', 'package.json'), 'utf-8'),

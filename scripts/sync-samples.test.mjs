@@ -7,25 +7,7 @@
  */
 
 import assert from 'node:assert';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { syncSamples, SAMPLE_MAPPINGS } from './sync-samples.mjs';
-
-function fixtureTree() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-samples-test-'));
-  const ssotModels = path.join(root, '_samples_nn', 'models');
-  const blueprintsDir = path.join(root, 'iNNfo', 'specs', 'bluepriNNts');
-
-  fs.mkdirSync(ssotModels, { recursive: true });
-  fs.mkdirSync(blueprintsDir, { recursive: true });
-
-  for (const m of SAMPLE_MAPPINGS) {
-    fs.writeFileSync(path.join(ssotModels, m.source), `# Content of ${m.source}\n`, 'utf8');
-  }
-
-  return { root, ssotModels, blueprintsDir };
-}
 
 async function runTests() {
   console.log('Running sync-samples unit tests...');

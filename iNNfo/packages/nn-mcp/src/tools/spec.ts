@@ -26,12 +26,11 @@ import {
   buildModelIndex,
   resolveModelId,
   isDomainRoot,
-  type ModelIndex,
 } from '@cognnitive/nn-core'
 import { listScopedProcedures } from './scoped-procedures.js'
 import type { ScopedProceduresResult } from './scoped-procedures.js'
 import type { PackageOptions } from './floor-doc.js'
-import { mkdir, copyFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, copyFile, readdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import type {
   SpecDocument,
@@ -46,13 +45,10 @@ import {
   resolveBlueprintPackage,
   hydrateBlueprintPackageAtomically,
   fetchSpecContent,
-  fetchBlueprintPackageFromRemote,
   isLocalPath,
   toLocalFilePath,
   parseSpecName,
   findSpecInPackageDir,
-  resolveAuthToken,
-  BlueprintAuthError,
 } from './resolver-node.js'
 import type { FreshnessResult, ResolvedCache } from './resolver-node.js'
 
@@ -79,7 +75,7 @@ export function deriveNameFromUrl(url: string): string {
 }
 
 import { normalizeId } from './list-read.js'
-import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
+import { isSafeRelativeId } from './path-guard.js'
 
 export { normalizeId }
 

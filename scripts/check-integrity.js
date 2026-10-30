@@ -19,7 +19,6 @@
  */
 
 const { execSync, spawnSync } = require('child_process');
-const fs = require('fs');
 const path = require('path');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
 

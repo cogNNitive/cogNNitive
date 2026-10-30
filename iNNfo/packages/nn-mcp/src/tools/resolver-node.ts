@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
-import { join, basename, isAbsolute } from 'node:path'
+import { join, isAbsolute } from 'node:path'
 import { isInsideRoot, isDriveQualified, isDriveContained } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
 import { homedir, tmpdir } from 'node:os'
@@ -15,7 +15,6 @@ import {
   parseSpecName,
   findLocalSpec,
   versionFromFrontmatter,
-  findSpecInPackageDir,
 } from '@cognnitive/nn-core'
 import type { SpecCache, SpecDocument, ResolverOptions } from '@cognnitive/nn-core'
 

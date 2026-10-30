@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, rm, stat, rename, readdir } from 'node:fs/promises'
 import { basename, dirname, join, relative, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
@@ -17,7 +17,6 @@ import {
   resolveBatchSlugs,
   evaluateBatchDeleteImpact,
   partitionChangeset,
-  formatUtcStamp,
   isChangeOp,
   isBumpLevel,
   BUMP_LEVELS,
