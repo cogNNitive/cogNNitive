@@ -194,6 +194,28 @@
     }
 
     var state = read()
+    if (opts.initialDrafts && Array.isArray(opts.initialDrafts) && opts.initialDrafts.length > 0) {
+      var indexById = {}
+      state.drafts.forEach(function (d, i) {
+        if (d && d.id) indexById[d.id] = i
+      })
+      var modified = false
+      opts.initialDrafts.forEach(function (d) {
+        var norm = normalizeDraft(d)
+        if (!norm) return
+        if (norm.id && indexById[norm.id] !== undefined) {
+          state.drafts[indexById[norm.id]] = norm
+          modified = true
+        } else {
+          state.drafts.push(norm)
+          if (norm.id) indexById[norm.id] = state.drafts.length - 1
+          modified = true
+        }
+      })
+      if (modified) {
+        write(state)
+      }
+    }
 
     // Read-merge-write: every mutation starts from what storage holds now, so a draft
     // saved in another tab since our last read is kept instead of overwritten.

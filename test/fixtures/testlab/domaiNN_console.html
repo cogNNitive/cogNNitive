@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-UvbCGHgB+BEZuRnhbRAVSERFDMRGUfat4a9lzt2eplA=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-J3r6mslc5Q7wSEEg2G5st9ksWqGycpl8G3qP0+b34b0=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -10159,8 +10159,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-def0019e",
-    "generated": "2026-10-30T12:11:33.445Z",
+    "domainId": "testlab-951539a1",
+    "generated": "2026-10-30T21:21:48.854Z",
     "changesBlueprintVersion": "V_0-5-5",
     "models": [
       {
@@ -10171,7 +10171,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-10-30T12:11:33.344Z",
+        "citationsResolvedAt": "2026-10-30T21:21:48.743Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -14538,6 +14538,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-preview .nn-card{border:none;box-shadow:none;margin:0}',
     '.nn-mini-info{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:none;background:transparent;color:var(--nn-muted);cursor:pointer;border-radius:50%}',
     '.nn-mini-info:hover,.nn-mini-info[aria-expanded=true]{color:var(--nn-text);background:var(--nn-surface-2)}',
+    '.nn-navbar-actions-group{display:inline-flex;align-items:center;gap:.5rem}',
+    '.nn-navbar-action-btn{appearance:none;border:1px solid var(--nn-border);background:var(--nn-surface);color:var(--nn-text);font:inherit;font-size:.8rem;font-weight:600;padding:5px 12px;border-radius:var(--nn-radius-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s ease,border-color .15s ease;line-height:1.2}',
+    '.nn-navbar-action-btn:hover{background:var(--nn-surface-2);border-color:var(--nn-focus)}',
+    '.nn-navbar-action-btn:focus-visible{outline:2px solid var(--nn-focus);outline-offset:1px}',
+    '.nn-navbar-action-btn .nn-btn-icon{display:inline-flex;align-items:center;color:var(--nn-muted)}',
+    '.nn-navbar-action-btn:hover .nn-btn-icon{color:var(--nn-text)}',
+    '.nn-navbar-action-btn .nn-badge-count{margin-left:4px;font-size:.72rem;background:var(--nn-accent);color:var(--nn-bg);padding:1px 6px;border-radius:999px;font-weight:700}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -17354,6 +17361,99 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return toast
   }
 
+  // TopBarActions: Global navbar actions for in-place self-saving (Quine pattern)
+  // and agent hand-off clipboard action (Copy Prompt for AI Agent).
+  function TopBarActions(data, opts) {
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    if (!doc) throw new TypeError('nnUI.TopBarActions: doc is required')
+    var onSave = opts.onSave
+    var onCopyPrompt = opts.onCopyPrompt
+    var draftsCount = (data && data.draftsCount) || 0
+
+    var htmlTag = (typeof html !== 'undefined' && html) || (typeof window !== 'undefined' && window.html) || (typeof globalThis !== 'undefined' && globalThis.html)
+    var renderFn = (typeof render !== 'undefined' && render) || (typeof window !== 'undefined' && window.render) || (typeof globalThis !== 'undefined' && globalThis.render)
+
+    var saveSvg = (typeof icon === 'function' ? icon('download', 14) : '') ||
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>'
+
+    var promptSvg = (typeof icon === 'function' ? icon('sparkles', 14) : '') ||
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>'
+
+    if (htmlTag && renderFn) {
+      var container = doc.createElement('div')
+      container.className = 'nn-navbar-actions-group'
+      container.setAttribute('data-nn-component', 'navbar-actions')
+
+      var vnode = htmlTag`
+        <div class="nn-navbar-actions-inner" style="display:inline-flex;align-items:center;gap:8px;">
+          <button
+            type="button"
+            class="nn-navbar-action-btn nn-btn-save"
+            data-nn="save-snapshot"
+            data-has-drafts=${draftsCount > 0 ? 'true' : 'false'}
+            title="Save self-contained snapshot directly to file (Quine Pattern)"
+            onClick=${function (e) {
+              if (e && e.preventDefault) e.preventDefault()
+              if (typeof onSave === 'function') onSave()
+            }}
+          >
+            <span class="nn-btn-icon" dangerouslySetInnerHTML=${{ __html: saveSvg }}></span>
+            <span>Save Snapshot</span>
+            ${draftsCount > 0 ? htmlTag`<span class="nn-badge-count">${draftsCount}</span>` : ''}
+          </button>
+          <button
+            type="button"
+            class="nn-navbar-action-btn nn-btn-copy-prompt"
+            data-nn="copy-agent-prompt"
+            title="Copy structured changeset and instructions for AI assistant"
+            onClick=${function (e) {
+              if (e && e.preventDefault) e.preventDefault()
+              if (typeof onCopyPrompt === 'function') onCopyPrompt()
+            }}
+          >
+            <span class="nn-btn-icon" dangerouslySetInnerHTML=${{ __html: promptSvg }}></span>
+            <span>Copy AI Prompt</span>
+          </button>
+        </div>
+      `
+      renderFn(vnode, container)
+      return container
+    }
+
+    var wrap = makeEl(doc, 'div', 'nn-navbar-actions-group')
+    wrap.setAttribute('data-nn-component', 'navbar-actions')
+
+    var btnSave = makeEl(doc, 'button', 'nn-navbar-action-btn nn-btn-save')
+    btnSave.setAttribute('type', 'button')
+    btnSave.setAttribute('data-nn', 'save-snapshot')
+    btnSave.setAttribute('data-has-drafts', draftsCount > 0 ? 'true' : 'false')
+    btnSave.setAttribute('title', 'Save self-contained snapshot directly to file (Quine Pattern)')
+    btnSave.innerHTML = '<span class="nn-btn-icon">' + saveSvg + '</span><span>Save Snapshot</span>'
+    if (draftsCount > 0) {
+      var badge = makeEl(doc, 'span', 'nn-badge-count', String(draftsCount))
+      btnSave.appendChild(badge)
+    }
+    btnSave.addEventListener('click', function (e) {
+      if (e && e.preventDefault) e.preventDefault()
+      if (typeof onSave === 'function') onSave()
+    })
+    wrap.appendChild(btnSave)
+
+    var btnCopy = makeEl(doc, 'button', 'nn-navbar-action-btn nn-btn-copy-prompt')
+    btnCopy.setAttribute('type', 'button')
+    btnCopy.setAttribute('data-nn', 'copy-agent-prompt')
+    btnCopy.setAttribute('title', 'Copy structured changeset and instructions for AI assistant')
+    btnCopy.innerHTML = '<span class="nn-btn-icon">' + promptSvg + '</span><span>Copy AI Prompt</span>'
+    btnCopy.addEventListener('click', function (e) {
+      if (e && e.preventDefault) e.preventDefault()
+      if (typeof onCopyPrompt === 'function') onCopyPrompt()
+    })
+    wrap.appendChild(btnCopy)
+
+    return wrap
+  }
+
   /**
    * Registers <nn-ku> custom element in window.customElements when available.
    */
@@ -18322,6 +18422,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     AnnotationPopover: AnnotationPopover,
     RailProgress: RailProgress,
     Toast: Toast,
+    TopBarActions: TopBarActions,
     STATUS_LABELS: STATUS_LABELS,
     statusLabel: statusLabel,
     EditModal: EditModal,
@@ -18441,6 +18542,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (d.original !== undefined) draft.original = d.original
     if (d.proposed !== undefined) draft.proposed = d.proposed
     if (d.comment !== undefined && d.comment !== null) draft.comment = String(d.comment)
+    if (d.sources !== undefined && d.sources !== null) {
+      draft.sources = Array.isArray(d.sources) ? deepCopy(d.sources) : d.sources
+    }
     return draft
   }
 
@@ -18537,6 +18641,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     var state = read()
+    if (opts.initialDrafts && Array.isArray(opts.initialDrafts) && opts.initialDrafts.length > 0) {
+      var indexById = {}
+      state.drafts.forEach(function (d, i) {
+        if (d && d.id) indexById[d.id] = i
+      })
+      var modified = false
+      opts.initialDrafts.forEach(function (d) {
+        var norm = normalizeDraft(d)
+        if (!norm) return
+        if (norm.id && indexById[norm.id] !== undefined) {
+          state.drafts[indexById[norm.id]] = norm
+          modified = true
+        } else {
+          state.drafts.push(norm)
+          if (norm.id) indexById[norm.id] = state.drafts.length - 1
+          modified = true
+        }
+      })
+      if (modified) {
+        write(state)
+      }
+    }
 
     // Read-merge-write: every mutation starts from what storage holds now, so a draft
     // saved in another tab since our last read is kept instead of overwritten.
@@ -21063,6 +21189,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
   // Values the `is:` filter operator understands (see matchAtom).
   var KNOWN_IS_VALUES = ['draft', 'reviewed', 'changed']
+  var activeState = null
 
   var CITATION_ORIGIN_LABELS = (UI && UI.CITATION_ORIGIN_LABELS) || {}
 
@@ -21923,24 +22050,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       .replace(/'/g, '&#39;')
   }
 
-  // Transient message for failures the reviewer must see (e.g. drafts not saved).
+  // Transient message for feedback and notifications.
   // Replaces any previous toast instead of stacking them.
-  function showToast(doc, message) {
+  function showToast(doc, message, tone) {
     if (!doc || !doc.body || typeof doc.createElement !== 'function') return null
     var old = doc.querySelector('[data-nn="toast"]')
     if (old && old.parentNode) old.parentNode.removeChild(old)
     var toast = doc.createElement('div')
     toast.setAttribute('data-nn', 'toast')
-    toast.setAttribute('role', 'alert')
+    toast.setAttribute('role', tone === 'error' ? 'alert' : 'status')
     toast.className = 'nn-toast'
+    var bg = tone === 'error' ? '#7f1d1d' : '#171717'
     toast.style.cssText =
-      'position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:10px 14px;' +
-      'border-radius:6px;background:#7f1d1d;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.25);'
+      'position:fixed;right:16px;bottom:16px;z-index:10000;max-width:380px;padding:10px 16px;' +
+      'border-radius:6px;background:' + bg + ';color:#ffffff;font-size:13px;font-weight:500;' +
+      'box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;' +
+      'font-family:var(--nn-font, sans-serif);line-height:1.4;'
     toast.textContent = String(message)
     doc.body.appendChild(toast)
     setTimeout(function () {
       if (toast.parentNode) toast.parentNode.removeChild(toast)
-    }, 8000)
+    }, 4500)
     return toast
   }
 
@@ -26184,7 +26314,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     lines.push('target:: ' + target)
     // C: every change carries mandatory evidence. A draft may name a citation; a
     // reviewer correction that names none is an explicit `decision`.
-    lines.push('evidence:: ' + oneLine(d.evidence || d.source || 'decision'))
+    var ev = d.evidence || d.sources || d.source || 'decision'
+    if (Array.isArray(ev)) ev = ev.join(', ')
+    lines.push('evidence:: ' + oneLine(ev))
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
@@ -26403,6 +26535,297 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return composed
   }
 
+  function copyTextToClipboard(doc, text) {
+    var win = (doc && doc.defaultView) || (typeof window !== 'undefined' ? window : null)
+    var nav = win && win.navigator ? win.navigator : (typeof navigator !== 'undefined' ? navigator : null)
+    if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+      return nav.clipboard.writeText(text).catch(function () {
+        return execCopyFallback(doc, text)
+      })
+    }
+    return Promise.resolve(execCopyFallback(doc, text))
+  }
+
+  function execCopyFallback(doc, text) {
+    if (!doc || !doc.body) return false
+    var ta = doc.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    ta.style.top = '0'
+    doc.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    var ok = false
+    try {
+      ok = typeof doc.execCommand === 'function' ? doc.execCommand('copy') : false
+    } catch {
+      ok = false
+    }
+    ta.remove()
+    return ok
+  }
+
+  function composeAgentPrompt(state) {
+    state = state || (typeof document !== 'undefined' && document.__nnConsoleState) || activeState || {}
+    var drafts = state && state.store ? state.store.drafts() : []
+    var domainOrModel = (state && state.modelTitle) || 'Domain Model'
+    var version = (state && state.modelVersion) || 'V_1-0-0'
+    var slugOrId = (state && (state.modelSlug || state.modelId)) || 'model'
+    var domainId = (state && state.meta && (state.meta.domainId || state.meta.modelId)) || slugOrId
+
+    var targetAddresses = []
+    drafts.forEach(function (d) {
+      var addr = d.address || ((d.knowledge_id || slugOrId) + '@' + (d.element_slug || d.element || d.element_id || 'unit') + (d.field ? '&' + d.field : ''))
+      if (targetAddresses.indexOf(addr) === -1) {
+        targetAddresses.push(addr)
+      }
+    })
+
+    var lines = []
+    lines.push('# AI Agent Instructions: Apply Domain Console Changeset')
+    lines.push('')
+    lines.push('## Target Domain & Entity')
+    lines.push('- **Domain / Model**: ' + domainOrModel)
+    lines.push('- **Version**: ' + version)
+    lines.push('- **Domain Identifier**: `' + domainId + '`')
+    lines.push('- **Target Model / Entity Slug**: `' + slugOrId + '`')
+    if (targetAddresses.length > 0) {
+      lines.push('- **Target Canonical Addresses**:')
+      targetAddresses.forEach(function (addr) {
+        lines.push('  - `' + addr + '`')
+      })
+    }
+    lines.push('')
+
+    lines.push('## Changeset Summary (' + drafts.length + ' modification' + (drafts.length === 1 ? '' : 's') + ')')
+    if (drafts.length === 0) {
+      lines.push('No pending modifications recorded in the console snapshot. Domain state is current.')
+    } else {
+      lines.push('| Kind | Target Address | Field | Proposed / Details | Notes |')
+      lines.push('| :--- | :--- | :--- | :--- | :--- |')
+      drafts.forEach(function (d) {
+        var addr = d.address || ((d.knowledge_id || slugOrId) + '@' + (d.element_slug || d.element || d.element_id || 'unit'))
+        var field = d.field || '-'
+        var proposed = d.proposed !== undefined ? formatChangesetValue(d.proposed) : (d.comment || '-')
+        var note = d.comment && d.proposed !== undefined ? String(d.comment).replace(/\n/g, ' ') : '-'
+        lines.push('| `' + d.kind + '` | `' + addr + '` | `' + field + '` | ' + proposed + ' | ' + note + ' |')
+      })
+    }
+    lines.push('')
+
+    var reviewer = getReviewerName()
+    var exportMeta = {
+      source_knowledge: domainOrModel,
+      title: 'Review Changes: ' + domainOrModel,
+      author: reviewer || 'reviewer',
+      changesBlueprintVersion: (state && state.meta && state.meta.changesBlueprintVersion) || 'V_0-1-0',
+    }
+    try {
+      var changesetDoc = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
+      if (changesetDoc && drafts.length > 0) {
+        lines.push('### Normative Changeset Document (`_changes_NN.md`)')
+        lines.push('```markdown')
+        lines.push(changesetDoc.trim())
+        lines.push('```')
+        lines.push('')
+      }
+    } catch {
+      /* ignore if markdown generation fails */
+    }
+
+    lines.push('## Actionable Instructions for AI Assistant')
+    lines.push('1. Inspect and validate the requested modifications against the target domain blueprints and schemas.')
+    lines.push('2. Apply each change to the authoritative knowledge files under `models/`:')
+    lines.push('   - Use the `nn-mcp` tool `apply_change` when connected, or directly update the Level 3 Markdown units.')
+    lines.push('   - Ensure element frontmatter hashes and canonical addresses match.')
+    lines.push('3. Verify integrity across the workspace and regenerate the console:')
+    lines.push('   ```bash')
+    lines.push('   npm run build:console')
+    lines.push('   npm run check:console-bundle')
+    lines.push('   node scripts/export-console.mjs <domain-path> --domain --no-open')
+    lines.push('   ```')
+
+    return lines.join('\n')
+  }
+
+  function copyAgentPrompt(doc, state) {
+    var active = doc || (typeof document !== 'undefined' ? document : null)
+    state = state || (active && active.__nnConsoleState) || activeState || {}
+    var promptText = composeAgentPrompt(state)
+    var draftsCount = state && state.store ? state.store.drafts().length : 0
+
+    return copyTextToClipboard(active, promptText).then(function () {
+      showToast(active, 'Copied! Prompt for AI agent is ready in clipboard.', 'success')
+      return { ok: true, prompt: promptText, items: draftsCount }
+    })
+  }
+
+  function downloadFallback(doc, htmlContent, filename, draftsCount) {
+    if (doc && doc.createElement && typeof Blob !== 'undefined') {
+      var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+      var url = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' ? URL.createObjectURL(blob) : ''
+      if (url) {
+        var anchor = doc.createElement('a')
+        anchor.href = url
+        anchor.download = filename
+        if (doc.body) doc.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        setTimeout(function () {
+          URL.revokeObjectURL(url)
+        }, 1000)
+      }
+    }
+    showToast(doc, 'Snapshot downloaded: ' + filename, 'success')
+    return {
+      ok: true,
+      method: 'download',
+      filename: filename,
+      html: htmlContent,
+      draftsCount: draftsCount,
+    }
+  }
+
+  function saveSnapshot(doc, state, options) {
+    var opts = options || {}
+    var active = doc || (typeof document !== 'undefined' ? document : null)
+    if (!active) return Promise.resolve({ ok: false, error: 'Document unavailable' })
+    state = state || (active && active.__nnConsoleState) || activeState || {}
+
+    // 1. Synchronize State to DOM into \x3Cscript id="nn-model">
+    var modelSlot = active.getElementById('nn-model')
+    if (!modelSlot) {
+      return Promise.resolve({ ok: false, error: 'Element #nn-model not found' })
+    }
+
+    var currentModel = {}
+    try {
+      currentModel = JSON.parse(modelSlot.textContent || '{}')
+    } catch {
+      currentModel = {}
+    }
+
+    var drafts = state && state.store ? state.store.drafts() : (currentModel.drafts || [])
+    currentModel.meta = Object.assign({}, currentModel.meta || {}, (state && state.meta) || {})
+    if (state && Array.isArray(state.elements)) currentModel.elements = state.elements
+    if (state && Array.isArray(state.matrices)) currentModel.matrices = state.matrices
+    if (state && Array.isArray(state.changes)) currentModel.changes = state.changes
+    currentModel.drafts = drafts
+
+    var searchEl = active.getElementById('nn-search')
+    var currentQuery = searchEl ? searchEl.value : (state && state.activeSearchQuery) || ''
+    currentModel.uiState = {
+      activeTab: (state && state.tabs && typeof state.tabs.current === 'function')
+        ? state.tabs.current()
+        : (currentModel.uiState && currentModel.uiState.activeTab) || 'explorer',
+      searchQuery: currentQuery,
+      reviewer: getReviewerName(),
+      selectedElementId: (state && state.focusedElementId) || null,
+      savedAt: new Date().toISOString(),
+    }
+
+    modelSlot.textContent = '\n' + JSON.stringify(currentModel, null, 2) + '\n    '
+
+    // 2. Serializes Complete Document
+    var rootEl = active.documentElement
+    var hadBooted = rootEl ? rootEl.getAttribute('data-nn-console-booted') : null
+    if (rootEl && hadBooted !== null) {
+      rootEl.removeAttribute('data-nn-console-booted')
+    }
+
+    var htmlContent = '<!DOCTYPE html>\n' + (rootEl ? rootEl.outerHTML : '')
+
+    if (rootEl && hadBooted !== null) {
+      rootEl.setAttribute('data-nn-console-booted', hadBooted)
+    }
+
+    // 3. In-Place File Overwrite via File System Access API with download fallback
+    var suggestedName = (opts && opts.suggestedName) ||
+      (state && state.artifactName) ||
+      (state && state.meta && state.meta.domainId ? state.meta.domainId + '_console.html' : '') ||
+      (active.title ? slugify(active.title) + '.html' : '') ||
+      'domaiNN_console.html'
+
+    if (!suggestedName.endsWith('.html') && !suggestedName.endsWith('.htm')) {
+      suggestedName += '.html'
+    }
+
+    var win = (active && active.defaultView) || (typeof window !== 'undefined' ? window : null)
+    var canUsePicker = win && typeof win.showSaveFilePicker === 'function' && opts.forceDownload !== true
+
+    if (canUsePicker) {
+      return win.showSaveFilePicker({
+        suggestedName: suggestedName,
+        types: [
+          {
+            description: 'HTML Document',
+            accept: { 'text/html': ['.html', '.htm'] },
+          },
+        ],
+      }).then(
+        function (handle) {
+          return handle.createWritable().then(function (writable) {
+            return writable.write(htmlContent).then(function () {
+              return writable.close().then(function () {
+                showToast(active, 'Snapshot saved in-place to ' + (handle.name || suggestedName), 'success')
+                return {
+                  ok: true,
+                  method: 'file-system-access',
+                  filename: handle.name || suggestedName,
+                  html: htmlContent,
+                  draftsCount: drafts.length,
+                }
+              })
+            })
+          })
+        },
+        function (err) {
+          if (err && (err.name === 'AbortError' || err.code === 20)) {
+            return { ok: false, aborted: true }
+          }
+          return downloadFallback(active, htmlContent, suggestedName, drafts.length)
+        },
+      )
+    }
+
+    return Promise.resolve(downloadFallback(active, htmlContent, suggestedName, drafts.length))
+  }
+
+  function mountNavbarActions(doc, state) {
+    var active = doc || (typeof document !== 'undefined' ? document : null)
+    if (!active) return null
+    var target = active.getElementById('nn-navbar-actions')
+    if (!target) {
+      var navbar = active.querySelector ? active.querySelector('.nn-navbar') : null
+      if (navbar) {
+        target = active.createElement('div')
+        target.id = 'nn-navbar-actions'
+        target.className = 'nn-navbar-actions'
+        navbar.appendChild(target)
+      }
+    }
+    if (!target || !UI || typeof UI.TopBarActions !== 'function') return null
+    target.innerHTML = ''
+    var draftsCount = state && state.store ? state.store.drafts().length : 0
+    var actionsEl = UI.TopBarActions(
+      { draftsCount: draftsCount },
+      {
+        doc: active,
+        onSave: function () {
+          saveSnapshot(active, state)
+        },
+        onCopyPrompt: function () {
+          copyAgentPrompt(active, state)
+        },
+      },
+    )
+    if (actionsEl) {
+      target.appendChild(actionsEl)
+    }
+    return target
+  }
+
   // A change `sources` value is a path plus an optional `#anchor`. Nothing resolves it
   // here, so the entry is marked `unchecked` and the dialog claims no status for it.
   function openSourceCitation(doc, source) {
@@ -26586,6 +27009,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var registry = (opts && opts.registry) || defaultViewRegistry
     var active = doc || (typeof document !== 'undefined' ? document : null)
     if (!active) return { ok: false, reason: 'no-document' }
+    if (active.documentElement) {
+      active.documentElement.setAttribute('data-nn-console-booted', 'true')
+    }
     var cleanups = []
     if (bootTeardowns) {
       var previous = bootTeardowns.get(active)
@@ -26685,6 +27111,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         // A domain console keys its drafts by the stable domain id, never by content.
         String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
         {
+          initialDrafts: Array.isArray(model.drafts) ? model.drafts : [],
           onError: function (err) {
             notifyStoreError(active, err)
           },
@@ -26716,6 +27143,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Deep-link focus: the element id a `#el-<id>` hash asked to open, consumed
     // once by the next card render and then cleared.
     var focusId = null
+    if (model.uiState) {
+      if (model.uiState.reviewer) {
+        setReviewerName(model.uiState.reviewer)
+      }
+      if (model.uiState.searchQuery) {
+        activeSearchQuery = String(model.uiState.searchQuery)
+      }
+      if (model.uiState.selectedElementId) {
+        focusId = String(model.uiState.selectedElementId)
+      }
+    }
     // Model Explorer view mode ('cards' | 'table') and the table sort state.
     var explorerView = 'sheets'
     var sortState = { key: '', dir: 'asc' }
@@ -26837,6 +27275,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var dockCount = active.querySelector('#nn-review-dock .nn-dock-drafts')
       if (dockCount) dockCount.textContent = 'Unsent: ' + n
       updateTabBadges(active, state)
+      mountNavbarActions(active, state)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)
       })
@@ -26968,7 +27407,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var content = active.getElementById('nn-content') || active.getElementById('content')
       if (content) {
-        active.dispatchEvent(new CustomEvent('nn:rendered', { detail: { root: content } }))
+        var Evt = (active.defaultView && active.defaultView.CustomEvent) || (typeof CustomEvent !== 'undefined' ? CustomEvent : null)
+        if (Evt) {
+          active.dispatchEvent(new Evt('nn:rendered', { detail: { root: content } }))
+        }
       }
     }
 
@@ -26977,8 +27419,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     var initialQuery = ''
-    if (!scopedView && typeof active.location !== 'undefined' && active.location.hash) {
+    if (!scopedView && typeof active.location !== 'undefined' && active.location && active.location.hash) {
       initialQuery = parseViewHash(active.location.hash).q
+    }
+    if (!initialQuery && model.uiState && model.uiState.searchQuery) {
+      initialQuery = String(model.uiState.searchQuery)
     }
 
     var searchBox = active.getElementById('nn-search')
@@ -27016,7 +27461,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       cleanups.push(tabs.destroy)
     }
     renderNavbarIdentity(active, meta)
+    mountNavbarActions(active, state)
+    active.__nnConsoleState = state
+    activeState = state
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
+
+    if (model.uiState && model.uiState.activeTab && tabs) {
+      var hasHashTab = (typeof active.location !== 'undefined' && active.location && active.location.hash) ? parseViewHash(active.location.hash).tab : ''
+      if (!hasHashTab && typeof tabs.select === 'function') {
+        tabs.select(model.uiState.activeTab)
+      }
+    }
 
     // C3: the controller builds the toggle into the (now rendered) banner and
     // listens for nn:rendered; created after the first paint so the banner
@@ -27248,7 +27703,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     onHash()
 
-    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller, registry: registry }
+    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller, registry: registry, state: state }
   }
 
   function autoBoot() {
@@ -27333,6 +27788,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     composeChangesetExport: composeChangesetExport,
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
+    saveSnapshot: saveSnapshot,
+    copyAgentPrompt: copyAgentPrompt,
+    composeAgentPrompt: composeAgentPrompt,
+    mountNavbarActions: mountNavbarActions,
     boot: boot,
     fieldDefOf: fieldDefOf,
   }
