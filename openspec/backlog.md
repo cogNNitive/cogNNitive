@@ -48,6 +48,12 @@ Updated 2026-10-20: added items 38-41, the follow-ups of the archived change
 failures, the stale `nn-ui.css` hand copy, drafts that drop `sources`, stale kit docs).
 Its low-risk leftovers stay only in the archived `deferred.md`.
 
+Updated 2026-10-30: retired item 36 (`fix/validate-workspace-sources-tests`) — verified
+passing 6/6 on `dev` (no unexplained failures or ENOENT); retired item 39
+(`fix/console-css-source-of-truth`) — moot, `innfo-ui.css` was removed in PR #277 and
+`nn-ui.css` is the sole CSS source of truth; marked resolved the `frozen` catalog partition
+drift in item 35 (`catalog.json` ships `frozen: { cogNNitive, workspace }`).
+
 ---
 
 ## 1. `feature/source-import-guards` — import-time guards, duplicate detection + in-app editor import
@@ -759,9 +765,11 @@ S3b group 10 (declared media rendering) shipped with no sample able to exercise 
 
 **Suggested trigger:** `/sdd-new sample-media-fields` (light lane is enough if no public contract changes).
 
-## 36. `fix/validate-workspace-sources-tests` — two red tests in innfo-mcp, unexplained
+## 36. [RETIRED 2026-10-30] `fix/validate-workspace-sources-tests` — two red tests in innfo-mcp, unexplained
 
-`iNNfo/packages/innfo-mcp/test/validate-workspace-sources.test.ts` fails 2 of 6 locally on every run since at least 2026-10-14: "reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only" (the dangling diagnostic is `undefined`) and "emits missing parent directory and fuzzy suggestions in diagnostics". Stderr shows `[resolver-node] Local tier missed for defiNNition_V_0-1-0 ... ENOENT .../temp-test-workspace-sources/specs/defiNNition_V_0-1-0_NN.md`. CI on `dev` and `main` is green, so the cause is probably environmental (the fixture workspace lacks the defiNNition spec locally, or the local tier is masked on CI by a network tier). Not caused by S6/S3b (verified: those diffs touch neither validator nor resolver). Find the cause, then fix the fixture or the resolver fallback; do not skip the tests.
+*Retired 2026-10-30: verified on `dev` @ 3b2c6565 — `npm --workspace=@cognnitive/nn-mcp test -- test/validate-workspace-sources.test.ts` passes 6/6 tests cleanly.*
+
+`iNNfo/packages/nn-mcp/test/validate-workspace-sources.test.ts` fails 2 of 6 locally on every run since at least 2026-10-14: "reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only" (the dangling diagnostic is `undefined`) and "emits missing parent directory and fuzzy suggestions in diagnostics". Stderr shows `[resolver-node] Local tier missed for defiNNition_V_0-1-0 ... ENOENT .../temp-test-workspace-sources/specs/defiNNition_V_0-1-0_NN.md`. CI on `dev` and `main` is green, so the cause is probably environmental (the fixture workspace lacks the defiNNition spec locally, or the local tier is masked on CI by a network tier). Not caused by S6/S3b (verified: those diffs touch neither validator nor resolver). Find the cause, then fix the fixture or the resolver fallback; do not skip the tests.
 
 **Diagnosis 2026-10-16 (not reproducible; no fix applied):**
 - On `session/backlog-ab` (main at `6bd9e308`, includes #185-#187) `validate-workspace-sources.test.ts` passes 6/6, both in isolation and inside the full `innfo-mcp` vitest run (no ENOENT / resolver-node stderr).
@@ -938,17 +946,11 @@ Recorded here so they are not lost; deliberately deferred — do NOT start now.
   regeneration; also check `visual-catalog`, `video` and `_samples_nn/sources_NN.md` for the
   same wording. *(Same debt already noted under item 28; kept here as the cross-reference.)*
 
-- **`frozen` partition of the bluepriNNt catalog is empty in practice (drift).**
-  `scripts/blueprint-catalog.mjs` only catalogs an entry that carries `blueprint_version`
-  (line 132) and `continue`s with a warning otherwise (133-136) — BEFORE the `FROZEN_NAMES`
-  branch (158-162). The frozen files `base`, `cogNNitive` and `workspace_spec_NN` carry
-  `template_version`, not `blueprint_version`, so the committed
-  `iNNfo/specs/bluepriNNts/catalog.json` ships `"frozen": {}` and the three appear only as
-  warnings — contradicting the `base-composite-template` spec, which requires them under a
-  populated `frozen` object. The unit test misses it because its fixtures set
-  `blueprint_version` on those names (`scripts/blueprint-catalog.test.mjs:49,53,54`). The fix
-  must live in the generator: the frozen files MUST stay byte-identical, so they cannot be
-  edited to add the missing field.
+- **[RESOLVED] `frozen` partition of the bluepriNNt catalog is empty in practice (drift).**
+  Resolved: generator handles entries carrying `template_version` in `FROZEN_NAMES` and
+  the committed `catalog.json` now includes `frozen: { cogNNitive, workspace }`.
+  *(Historical note: `scripts/blueprint-catalog.mjs` previously `continue`d before `FROZEN_NAMES`
+  when `blueprint_version` was absent).*
 
 - **`nn-domain-git` is absent from `manifest/source.yaml` (decision).** Deliberate, not an
   oversight: it is maintained as an Alpha/internal capability
@@ -1049,7 +1051,9 @@ removal of `partially_applied`/`rejected`/replay). The decision was OPEN with de
 
 **Suggested trigger:** `/sdd-new changeset-per-change-skip`.
 
-## 39. `fix/console-css-source-of-truth` — the export prefers a stale hand copy `nn-ui.css` over `innfo-ui.css`
+## 39. [RETIRED 2026-10-30] `fix/console-css-source-of-truth` — the export prefers a stale hand copy `nn-ui.css` over `innfo-ui.css`
+
+*Retired 2026-10-30: moot. `innfo-ui.css` was removed during the prefix rename cutover in PR #277. `nn-ui.css` is the sole CSS source of truth in `iNNfo/specs/bluepriNNts/console/`.*
 
 **Type:** fix / decision · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** medium
 
