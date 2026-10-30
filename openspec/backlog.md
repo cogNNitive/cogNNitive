@@ -1069,21 +1069,6 @@ removed card lineage pill (`.innfo-lineage-pill`, `.innfo-card-meta-strip`) in b
 
 **Suggested trigger:** `/sdd-explore console-css-source-of-truth` (light lane once decided).
 
-## 40. `fix/review-draft-keeps-sources` — the draft store drops `sources`, so unsent drafts carry no evidence
-
-**Type:** fix · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** low until drafts gain evidence
-
-**Why:** `normalizeDraft` in the console `review.js` drops `sources`, so an unsent draft never
-carries a citation in the app and the `DraftList` citation path is reachable only through
-direct kit use. Evidence proposed with a change is lost before it is exported.
-
-**Scope:** keep `sources` through `normalizeDraft`, the storage round trip and the export, with a
-test that goes red when the field is dropped.
-
-**Pointer:** `openspec/changes/archive/2026-10-19-simplify-change-workflow/deferred.md` (last line).
-
-**Suggested trigger:** `/sdd-new review-draft-keeps-sources` (light lane).
-
 ## 41. `docs/console-ui-kit-refresh` — refresh the console UI kit documentation
 
 **Type:** docs · **Size:** small · **Added:** 2026-10-20 · **Risk of waiting:** low (misleading docs only)

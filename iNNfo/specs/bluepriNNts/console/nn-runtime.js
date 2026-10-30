@@ -5145,7 +5145,9 @@
     lines.push('target:: ' + target)
     // C: every change carries mandatory evidence. A draft may name a citation; a
     // reviewer correction that names none is an explicit `decision`.
-    lines.push('evidence:: ' + oneLine(d.evidence || d.source || 'decision'))
+    var ev = d.evidence || d.sources || d.source || 'decision'
+    if (Array.isArray(ev)) ev = ev.join(', ')
+    lines.push('evidence:: ' + oneLine(ev))
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
