@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, rm, stat, rename, readdir, mkdir, open } from 'node:fs/promises'
 import { basename, dirname, join, relative, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
@@ -197,17 +197,44 @@ async function bumpBlueprintVersion(
 }
 
 /**
+ * Writes data to a temporary file and fsyncs it to disk before returning,
+ * ensuring all bytes and metadata are flushed before rename (#188).
+ */
+async function writeAndSync(filePath: string, data: string): Promise<void> {
+  const handle = await open(filePath, 'w')
+  try {
+    await handle.writeFile(data, 'utf-8')
+    await handle.sync()
+  } finally {
+    await handle.close()
+  }
+}
+
+/**
  * Replaces `livePath` with the already-written `stagingPath` by an atomic rename.
  * The live file is never removed, moved or copied first, so at every instant (and
  * after a crash) the live path holds a complete model — the old one or the new one.
+ * On Windows, handles transient EPERM/EBUSY locks with backoff retries (#188).
  * If the rename fails, the staging file is removed and the live file is untouched.
  */
 async function persistAtomic(stagingPath: string, livePath: string): Promise<void> {
-  try {
-    await rename(stagingPath, livePath)
-  } catch (err) {
-    await rm(stagingPath, { force: true })
-    throw err
+  const MAX_RETRIES = 5
+  let attempt = 0
+  while (true) {
+    try {
+      await rename(stagingPath, livePath)
+      return
+    } catch (err: any) {
+      const isLockError =
+        err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES'
+      if (isLockError && attempt < MAX_RETRIES) {
+        attempt++
+        await new Promise((r) => setTimeout(r, attempt * 25))
+        continue
+      }
+      await rm(stagingPath, { force: true }).catch(() => {})
+      throw err
+    }
   }
 }
 
@@ -1032,6 +1059,7 @@ export async function executeChangesetApply(
         const elIdent = parts[0]
         const fieldIdent = parts.length > 1 ? parts[1] : ''
         mutationArgs = {
+          conceptName: change.concept,
           elementName: elIdent,
           fieldName: fieldIdent,
           value: change.to,
@@ -1261,14 +1289,47 @@ export async function executeChangesetApply(
       }
     }
 
-    // A failure while persisting must not strand models this run created: without a changeset
-    // annotation a replay would hit MODEL_EXISTS forever. Pre-existing models are never removed.
-    const rollbackCreatedModels = async (): Promise<void> => {
+    // Pre-record original content of existing mutated models for full cross-model rollback (#188)
+    const originalModelsBackup = new Map<string, string>()
+    const persistedFiles = new Set<string>()
+    for (const [, entry] of loadedModels) {
+      if (entry.mutated && !entry.created) {
+        try {
+          const content = await readFile(entry.filePath, 'utf-8')
+          originalModelsBackup.set(entry.filePath, content)
+        } catch {
+          // If unreadable, not yet on disk
+        }
+      }
+    }
+
+    // A failure while persisting must rollback all touched models (created AND modified),
+    // guaranteeing cross-model atomicity and leaving no orphan staging files (#188).
+    const rollbackPersistence = async (): Promise<void> => {
+      // 1. Rollback created models (delete them and their staging files)
       for (const [, entry] of loadedModels) {
         if (!entry.created) continue
         const stem = displayStem(basename(entry.filePath))
         await rm(entry.filePath, { force: true }).catch(() => {})
         await rm(join(dirname(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {})
+      }
+      // 2. Rollback modified models that were already written to disk
+      for (const [filePath, originalText] of originalModelsBackup) {
+        if (!persistedFiles.has(filePath)) continue
+        try {
+          const stem = displayStem(basename(filePath))
+          const stagingPath = join(dirname(filePath), `${stem}.rollback.tmp`)
+          await writeAndSync(stagingPath, originalText)
+          await persistAtomic(stagingPath, filePath)
+        } catch (rollbackErr) {
+          console.warn(`[apply-change] Failed to rollback model "${filePath}": ${rollbackErr}`)
+        }
+      }
+      // 3. Clean up any remaining .tmp or .rollback.tmp files
+      for (const [, entry] of loadedModels) {
+        const stem = displayStem(basename(entry.filePath))
+        await rm(join(dirname(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {})
+        await rm(join(dirname(entry.filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {})
       }
     }
 
@@ -1285,8 +1346,9 @@ export async function executeChangesetApply(
         const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
 
         const serialized = serializeKnowledge(entry.model)
-        await writeFile(stagingPath, serialized, 'utf-8')
+        await writeAndSync(stagingPath, serialized)
         await persistAtomic(stagingPath, modelFile)
+        persistedFiles.add(modelFile)
 
         if (
           csDoc.changes.some(
@@ -1315,7 +1377,7 @@ export async function executeChangesetApply(
         }
       }
     } catch (err) {
-      await rollbackCreatedModels()
+      await rollbackPersistence()
       throw err
     }
 
@@ -1341,9 +1403,11 @@ export async function executeChangesetApply(
 
     const serializedCs = serializeChangeset(csDoc)
     try {
-      await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+      const csStaging = join(dirname(resolvedChangesetPath), `${basename(resolvedChangesetPath)}.tmp`)
+      await writeAndSync(csStaging, serializedCs)
+      await persistAtomic(csStaging, resolvedChangesetPath)
     } catch (err) {
-      await rollbackCreatedModels()
+      await rollbackPersistence()
       throw err
     }
 

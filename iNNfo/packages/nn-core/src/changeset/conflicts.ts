@@ -131,18 +131,62 @@ export async function partitionChangeset(
       let foundConcept = ''
       let foundIsLive = false
       if (model.elements) {
-        for (const [conceptName, elements] of model.elements.entries()) {
-          const el = elements.find(
-            (e) =>
-              e.name.toLowerCase() === elementIdent.toLowerCase() ||
-              (e.slug && e.slug.toLowerCase() === elementIdent.toLowerCase()) ||
-              slugify(e.name).toLowerCase() === elementIdent.toLowerCase(),
-          )
-          if (el) {
-            foundElement = el
-            foundConcept = conceptName
+        const candidates: Array<{
+          concept: string
+          element: { name: string; slug?: string; fields: Record<string, unknown>; description?: string }
+        }> = []
+
+        // If change.concept is specified, check that concept first
+        if (change.concept && model.elements.has(change.concept)) {
+          const list = model.elements.get(change.concept)!
+          for (const el of list) {
+            if (
+              el.name.toLowerCase() === elementIdent.toLowerCase() ||
+              (el.slug && el.slug.toLowerCase() === elementIdent.toLowerCase()) ||
+              slugify(el.name).toLowerCase() === elementIdent.toLowerCase()
+            ) {
+              candidates.push({ concept: change.concept, element: el })
+            }
+          }
+        }
+
+        // If no candidate found in specified concept or no concept specified, scan all concepts
+        if (candidates.length === 0) {
+          for (const [conceptName, elements] of model.elements.entries()) {
+            if (change.concept && conceptName === change.concept) continue
+            for (const el of elements) {
+              if (
+                el.name.toLowerCase() === elementIdent.toLowerCase() ||
+                (el.slug && el.slug.toLowerCase() === elementIdent.toLowerCase()) ||
+                slugify(el.name).toLowerCase() === elementIdent.toLowerCase()
+              ) {
+                candidates.push({ concept: conceptName, element: el })
+              }
+            }
+          }
+        }
+
+        if (candidates.length === 1) {
+          foundElement = candidates[0].element
+          foundConcept = candidates[0].concept
+          foundIsLive = true
+        } else if (candidates.length > 1) {
+          // Disambiguate duplicate names across concepts using base_hash if present (#189)
+          if (change.base_hash) {
+            const normalizedBaseHash = change.base_hash.trim().toLowerCase()
+            const matchByHash = candidates.find(
+              (c) => hashParsedElement(c.concept, c.element as any) === normalizedBaseHash,
+            )
+            if (matchByHash) {
+              foundElement = matchByHash.element
+              foundConcept = matchByHash.concept
+              foundIsLive = true
+            }
+          }
+          if (!foundElement) {
+            foundElement = candidates[0].element
+            foundConcept = candidates[0].concept
             foundIsLive = true
-            break
           }
         }
       }
@@ -153,6 +197,7 @@ export async function partitionChangeset(
           (c) =>
             c.op === 'add_element' &&
             extractModelSlug(c.target).toLowerCase() === targetModelSlug.toLowerCase() &&
+            (!change.concept || !c.concept || c.concept.toLowerCase() === change.concept.toLowerCase()) &&
             ((c.resolved_slug && c.resolved_slug.toLowerCase() === elementIdent.toLowerCase()) ||
               (c.slug && c.slug.toLowerCase() === elementIdent.toLowerCase()) ||
               (c.name && slugify(c.name).toLowerCase() === elementIdent.toLowerCase())),
