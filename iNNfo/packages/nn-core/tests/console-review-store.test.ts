@@ -96,6 +96,27 @@ describe('console-review-store (draft store v3)', () => {
     expect(s2.drafts()[0].element_id).toBe('e1')
   })
 
+  it('preserves sources through addDraft, normalization, and store re-read (backlog #40)', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const s1 = Review.createDraftStore(storage, 'm1') as DraftStore
+    s1.addDraft({
+      element_id: 'e1',
+      concept: 'C',
+      element: 'E1',
+      base_hash: 'abcdef0123456789',
+      kind: 'correction',
+      field: 'status',
+      original: 'open',
+      proposed: 'closed',
+      sources: 'sources/findings.md#line-42',
+    })
+
+    expect(s1.drafts()[0].sources).toBe('sources/findings.md#line-42')
+    const s2 = Review.createDraftStore(storage, 'm1') as DraftStore
+    expect(s2.drafts()[0].sources).toBe('sources/findings.md#line-42')
+  })
+
   it('reads as empty a store persisted with the previous STORE_VERSION', () => {
     const Review = loadReview()
     const storage = memoryStorage({

@@ -95,6 +95,9 @@
     if (d.original !== undefined) draft.original = d.original
     if (d.proposed !== undefined) draft.proposed = d.proposed
     if (d.comment !== undefined && d.comment !== null) draft.comment = String(d.comment)
+    if (d.sources !== undefined && d.sources !== null) {
+      draft.sources = Array.isArray(d.sources) ? deepCopy(d.sources) : d.sources
+    }
     return draft
   }
 
