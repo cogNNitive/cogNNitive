@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
-const SOURCES = ['ui-kit.js', 'review.js', 'nn-runtime.js']
+const SOURCES = ['ui-kit.js', 'review.js', 'studio.js', 'nn-runtime.js']
 const BANNED = [/provenance/i, /traceability/i, /grounding/i]
 
 describe('console vocabulary', () => {
