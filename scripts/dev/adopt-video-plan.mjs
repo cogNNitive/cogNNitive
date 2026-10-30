@@ -56,11 +56,25 @@ if (existsSync(seriesBase) && statSync(seriesBase).isDirectory()) {
 
     // Check procedure rename (procedure/ -> procedures/)
     const singularProc = join(seriesDir, 'procedure');
-    if (existsSync(singularProc) && statSync(singularProc).isDirectory()) {
-      renames.push({
-        from: `series/${seriesSlug}/procedure`,
-        to: `series/${seriesSlug}/procedures`,
-      });
+    const pluralProc = join(seriesDir, 'procedures');
+    const hasSingular = existsSync(singularProc) && statSync(singularProc).isDirectory();
+    const hasPlural = existsSync(pluralProc) && statSync(pluralProc).isDirectory();
+
+    if (hasSingular) {
+      if (hasPlural) {
+        renames.push({
+          from: `series/${seriesSlug}/procedure`,
+          to: `series/${seriesSlug}/procedures`,
+          status: 'conflict',
+          reason: 'destination exists',
+        });
+      } else {
+        renames.push({
+          from: `series/${seriesSlug}/procedure`,
+          to: `series/${seriesSlug}/procedures`,
+          status: 'planned-rename',
+        });
+      }
     }
 
     // Check scope marker
@@ -139,7 +153,11 @@ if (isJson) {
   if (renames.length > 0) {
     console.log(`\nRenames (${renames.length}):`);
     for (const r of renames) {
-      console.log(`  - ${r.from} -> ${r.to}`);
+      if (r.status === 'conflict') {
+        console.log(`  - ${r.from} -> ${r.to} [CONFLICT: ${r.reason}]`);
+      } else {
+        console.log(`  - ${r.from} -> ${r.to}`);
+      }
     }
   } else {
     console.log('\nRenames: none');

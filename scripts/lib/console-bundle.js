@@ -21,6 +21,7 @@ const SOURCES = [
   ['nn-icons.js', 'nnIcons'],
   ['ui-kit.js', 'nnUI'],
   ['review.js', 'nnReview'],
+  ['studio.js', 'nnStudio'],
   ['nn-runtime.js', 'nnConsole'],
   ['render-procedure-stepper.js', 'nnProcedureStepper'],
 ];

@@ -58,6 +58,7 @@ function main() {
       'nn-icons.js',
       'ui-kit.js',
       'review.js',
+      'studio.js',
       'nn-runtime.js',
       'render-procedure-stepper.js',
     ];
