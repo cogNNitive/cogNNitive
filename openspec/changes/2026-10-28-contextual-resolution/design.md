@@ -592,6 +592,42 @@ The maintainer chose Option A for model id resolution:
   - `video-script` blueprint bumped to `V_0-13-9` with updated `catalog.json`.
   - All 183 verify pre-checks pass clean (`verify.js --fast`).
 
+### 2026-10-30 (Lote 3: video domaiNN adoption, engine wiring and planner fixes)
+
+- **L3.2.2 (slots, converged)**: the two `draft_scene_visuals` copies became one root
+  `procedures/draft-scene-visuals_procedures_NN.md` with 2 slots (`series_profile`,
+  `avatar_recipe`). Of the 14 normalized hunks, 11 were maintenance drift and were CONVERGED
+  (engine invocation paths, render order, attribution overlay, finalize fields), not slotted.
+  The three news procedures became one `procedures/select-news_procedures_NN.md` with the 3
+  named slots (`news_sources`, `topic_filter`, `news_model_ref`). Fills live in each
+  `<series>_scope_NN.md`; `resolveProcedures` reports 0 diagnostics and binds every slot from
+  the series scope on all four series.
+- **L3.2.3 (adoption, maintainer-run)**: `domaiNN_NN.md` added; one marker per series with
+  `voice_id`/`music`/`music_volume`/`transition` (cosicah has no uniform volume, `inntrevistas`
+  no track: neither was invented); `procedure/` -> `procedures/` in all four series (27 path
+  references updated); 24 duplicate `voice_id::` lines removed from the series documents;
+  `scope_elements: [Video, Scene]` added to the 17 main episode scripts. `scope-drift --unit doc`
+  now reports 70 chains and the known deviations (innteresante volume 0.06 x4 and 0.2 x1,
+  `elevator.mp3` x1; villabotijos `casimiro-mahou` 0.1); those are intentional per-episode
+  values and were left untouched by decision. 132 scene lines that exactly matched the series
+  baseline were removed; the effective value of every Scene was snapshotted before and after
+  with `loadElementChain` + `resolve` (70 scenes x 3 keys = 210 resolutions, 0 changed).
+- **Engine wiring**: `video-scope.mjs` builds the cascade `series` bag from the scope chain
+  (`<series>_scope_NN.md`), with `series_NN.md` kept as the legacy fallback;
+  `build-script-from-draft.mjs` takes the Series document from either, sanitizes the marker's
+  `scope`/`isolate`/`fills` and derives the slug from the filename stem. End-to-end check: a
+  minimal reviewed draft generated `demo-episodio_video-script_villabotijos-today_NN.md` with
+  `level`/`parent_spec`/`title` only and no `music`/`music_volume`/`transition` lines.
+- **L3.2.4/L3.2.5 (planner and oracle fixes)**: `adopt-video-plan.mjs` hoists through the new
+  `scripts/dev/lib/series-values.mjs` instead of looking for a `series_NN.md` that the domain
+  does not have, and its drift field no longer claims `checked` with zero rows (it is
+  `deferred`, pointing at `scope-drift`). `validate-scope-golden.mjs` uses the same lib, so it
+  reads the marker first and survives the template cleanup.
+- **Evidence**: video-skill suite 274/274; `scripts/dev` suites 7/7; `scope-drift` 70 chains on
+  the live domain; installed runtime 272/274, the 2 failures being tests that assert the tree
+  has no `node_modules` (the installed tree ships `hyperframes`). The adopted domain is not
+  under version control, so its changes are not in this repository.
+
 ## Open Questions
 
 - [x] ~~When nn-mcp starts outside any domaiNN, `ROOT_DIR` falls back to `cwd`.~~ Resolved 2026-10-28 (maintainer): yes, `cwd`; never `.git`.

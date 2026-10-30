@@ -413,8 +413,10 @@ domaiNN stops contradicting itself (`video-guard.json` voice map). Slot reductio
 L1.4 diff has 14 hunks (6.3% of the larger copy) and 14 paragraph slots is too heavy.
 
 - [x] L3.2.1 RED/GREEN `scripts/dev/adopt-video-plan.mjs <dir>` (dry run only, writes nothing in `<dir>`; CI-tested on `GOLD`): emits the plan for adding `domaiNN_NN.md`, one `<series>_scope_NN.md` per series (hoisting the scattered series values), `procedure/` -> `procedures/`, and the before/after drift report.
-- [ ] L3.2.2 Maintainer decision per hunk of the `draft_scene_visuals` diff: converge or keep as a slot; target a handful of slots, not 14. `select_*_news`: slots news_sources, topic_filter, news_model_ref.
-- [ ] L3.2.3 MAINTAINER-RUN on a copy, then live: apply the plan; run `check_domain`, `scope-drift`, `resolve_effective` on the result; paste the evidence in the Decision log. Not a CI gate and not required for archive.
+- [x] L3.2.2 Maintainer decision per hunk of the `draft_scene_visuals` diff: converge or keep as a slot; target a handful of slots, not 14. `select_*_news`: slots news_sources, topic_filter, news_model_ref.
+- [x] L3.2.3 MAINTAINER-RUN on a copy, then live: apply the plan; run `check_domain`, `scope-drift`, `resolve_effective` on the result; paste the evidence in the Decision log. Not a CI gate and not required for archive.
+- [x] L3.2.4 FIX `scripts/dev/adopt-video-plan.mjs`: hoist from the sources the data really uses (`<series>_scope_NN.md`, `video.series.json`, `script_template.md`, the `## NN Video` blocks) via the shared `scripts/dev/lib/series-values.mjs`, and stop reporting a fake `checked` drift with zero rows (a dry run has no scopes to report; it now says `deferred` and points at `scope-drift`). Covered by `series-values.test.mjs` and the reshaped unadopted fixture.
+- [x] L3.2.5 FIX `scripts/dev/validate-scope-golden.mjs`: read the series values from the scope marker first (same shared lib), so the oracle stays valid after the templates stop repeating music/volume. Verified on the adopted domain: all four series resolve from their marker.
 
 ### L3.3 LC_programas adoption (external data, maintainer-run)
 
