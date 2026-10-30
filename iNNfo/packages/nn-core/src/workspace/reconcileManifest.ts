@@ -19,12 +19,18 @@ export interface ManifestChange {
   reason?: string
 }
 
-/** `# NN Models` — the section header, exactly one `#`. */
-const SECTION_HEADER_RE = /^#\s+NN\s+Models\s*$/
-/** Any level-1 heading (single `#`, not `##`) — terminates the Models section. */
+/** `# NN kNNowledge` or legacy `# NN Models` — the section header, exactly one `#`. */
+const SECTION_HEADER_RE = /^#\s+NN\s+(?:kNNowledge|Models)\s*$/
+/** Any level-1 heading (single `#`, not `##`) — terminates the Models/kNNowledge section. */
 const TOP_HEADER_RE = /^#(?!#)\s/
-/** `## NN Models: <name>` — one entry heading. */
-const ENTRY_HEADER_RE = /^##\s+NN\s+Models:\s*(.+?)\s*$/
+/** `## NN kNNowledge: <name>` or legacy `## NN Models: <name>` — one entry heading. */
+const ENTRY_HEADER_RE = /^##\s+NN\s+(?:kNNowledge|Models):\s*(.+?)\s*$/
+
+interface SectionInfo {
+  headerIdx: number
+  endIdx: number
+  kind: 'kNNowledge' | 'Models'
+}
 
 interface LocatedEntry {
   name: string
@@ -61,9 +67,11 @@ function isFieldLine(line: string): boolean {
   return /^\s*[A-Za-z_][A-Za-z0-9_-]*::/.test(stripCR(line))
 }
 
-function findModelsSection(lines: string[]): { headerIdx: number; endIdx: number } | null {
+function findModelsSection(lines: string[]): SectionInfo | null {
   const headerIdx = lines.findIndex((l) => SECTION_HEADER_RE.test(stripCR(l)))
   if (headerIdx === -1) return null
+  const headerText = stripCR(lines[headerIdx])
+  const kind: 'kNNowledge' | 'Models' = /Models/i.test(headerText) ? 'Models' : 'kNNowledge'
   let endIdx = lines.length
   for (let i = headerIdx + 1; i < lines.length; i++) {
     if (TOP_HEADER_RE.test(stripCR(lines[i]))) {
@@ -71,12 +79,12 @@ function findModelsSection(lines: string[]): { headerIdx: number; endIdx: number
       break
     }
   }
-  return { headerIdx, endIdx }
+  return { headerIdx, endIdx, kind }
 }
 
 function locateEntries(
   lines: string[],
-  section: { headerIdx: number; endIdx: number },
+  section: SectionInfo,
 ): LocatedEntry[] {
   const headerIdxs: number[] = []
   for (let i = section.headerIdx + 1; i < section.endIdx; i++) {
@@ -118,9 +126,15 @@ function locateEntries(
   })
 }
 
-function buildEntryBlockLines(model: DiscoveredModel): string[] {
-  const block = [`## NN Models: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
-  if (model.template) block.push(`template:: [[${model.template}]]`)
+function buildEntryBlockLines(model: DiscoveredModel, kind: 'kNNowledge' | 'Models' = 'kNNowledge'): string[] {
+  if (kind === 'Models') {
+    const block = [`## NN Models: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
+    if (model.template) block.push(`template:: [[${model.template}]]`)
+    block.push('status:: active')
+    return block
+  }
+  const block = [`## NN kNNowledge: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
+  if (model.template) block.push(`blueprint:: [[${model.template}]]`)
   block.push('status:: active')
   return block
 }
@@ -224,7 +238,7 @@ export function reconcileManifest(
       const insertIdx = rescanSection.endIdx
       const blockLines: string[] = []
       for (const d of toAdd) {
-        blockLines.push('', ...buildEntryBlockLines(d))
+        blockLines.push('', ...buildEntryBlockLines(d, rescanSection.kind))
       }
       if (
         blockLines[0] === '' &&
@@ -236,16 +250,16 @@ export function reconcileManifest(
       rescanLines.splice(insertIdx, 0, ...blockLines)
       content = rescanLines.join('\n')
     } else {
-      // No `# NN Models` section at all: append the whole section at EOF,
-      // preceded by exactly one blank line.
+      // No `# NN kNNowledge` or `# NN Models` section at all: append the canonical
+      // `# NN kNNowledge` section at EOF, preceded by exactly one blank line.
       let base = content
       if (base.length > 0) {
         if (!base.endsWith('\n')) base += '\n'
         base += '\n'
       }
-      const sectionLines = ['# NN Models']
+      const sectionLines = ['# NN kNNowledge']
       for (const d of toAdd) {
-        sectionLines.push('', ...buildEntryBlockLines(d))
+        sectionLines.push('', ...buildEntryBlockLines(d, 'kNNowledge'))
       }
       content = base + sectionLines.join('\n') + '\n'
     }

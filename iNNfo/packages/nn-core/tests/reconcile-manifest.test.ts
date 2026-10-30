@@ -318,8 +318,35 @@ describe('reconcileManifest', () => {
 
     expect(result.changes).toEqual([{ kind: 'added', path: 'alpha_NN.md', name: 'Alpha' }])
     expect(result.content.startsWith(manifestContent)).toBe(true)
-    expect(result.content).toContain('# NN Models')
-    expect(result.content).toContain('## NN Models: Alpha')
+    expect(result.content).toContain('# NN kNNowledge')
+    expect(result.content).toContain('## NN kNNowledge: Alpha')
+  })
+
+  it('reconciles canonical ## NN kNNowledge entries without creating duplicate section', () => {
+    const manifestContent = [
+      '# NN domaiNN',
+      'Operational domain.',
+      '',
+      '# NN kNNowledge',
+      '',
+      '## NN kNNowledge: Existing',
+      OWNERSHIP_MARKER,
+      'path:: existing_NN.md',
+      'blueprint:: [[business]]',
+      'status:: active',
+      '',
+    ].join('\n')
+
+    const discovered: DiscoveredModel[] = [
+      { path: 'existing_NN.md', name: 'Existing', template: 'business' },
+      { path: 'new_NN.md', name: 'New Model', template: 'analysis' },
+    ]
+
+    const result = reconcileManifest(manifestContent, discovered)
+    expect(result.changes).toEqual([{ kind: 'added', path: 'new_NN.md', name: 'New Model' }])
+    expect(result.content).toContain('## NN kNNowledge: New Model')
+    expect(result.content).toContain('blueprint:: [[analysis]]')
+    expect(result.content).not.toContain('# NN Models')
   })
 
   it('excludes-cognnitive-and-manifest: discovery predicate filters them out before reconciliation ever sees them', () => {
