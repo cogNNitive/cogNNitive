@@ -238,6 +238,22 @@ describe('syncWorkspaceManifest', () => {
     expect(result.manifest_path).toBe('')
     expect(result.changes).toEqual([])
   })
+
+  it('reconciles into canonical # NN kNNowledge section when present (#246)', async () => {
+    await writeFile(
+      join(rootDir, 'domaiNN_NN.md'),
+      ['# NN domaiNN', 'Desc', '', '# NN kNNowledge', ''].join('\n'),
+      'utf-8',
+    )
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+
+    await syncWorkspaceManifest(rootDir, { dry_run: false })
+    const updated = await readFile(join(rootDir, 'domaiNN_NN.md'), 'utf-8')
+
+    expect(updated).toContain('## NN kNNowledge: Acme Business Model')
+    expect(updated).toContain('blueprint:: [[business_V_0-2-0]]')
+    expect(updated).not.toContain('# NN Models')
+  })
 })
 
 describe('buildUnifiedDiff', () => {
