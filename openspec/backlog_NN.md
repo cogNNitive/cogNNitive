@@ -45,6 +45,9 @@ captured:: 2026-10-31
 ## NN Idea: Fix the documentation-template living spec line that references the missing ecosystem.md OKF anchor (via a change)
 captured:: 2026-10-31
 
+## NN Idea: Audit and retire or migrate docs/skills workflow templates and live samples
+captured:: 2026-10-31
+
 # NN Item
 
 ## NN Item: repair-simulation
