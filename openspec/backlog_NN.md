@@ -78,7 +78,7 @@ lane:: heavy
 verdict:: current
 evidence:: Checked 2026-10-31 and stopped: no blueprint declares type:: audio, and only video-script declares video and file but has no sample under test/_samples_nn (samples there are write-through mirrors synced into iNNfo/specs/bluepriNNts/*/samples by scripts/sync-samples.mjs). A sample with audio, video and file fields therefore needs a published blueprint change (audio field type, version bump, repin) plus a new sample mapping, which exceeds the light lane. test/console-s3b-parity.test.mjs:52-58,230-235 still covers video with an inline fixture.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
-batch:: b1-light-cleanup
+batch:: b2-published-blueprints
 
 ## NN Item: sources-blueprint-drift
 value:: M
@@ -304,14 +304,14 @@ state:: planned
 ## NN Batch: b1-light-cleanup
 order:: 2
 lane:: light
-items:: repair-simulation, sample-media-fields
+items:: repair-simulation
 risk:: L
 state:: in-progress
 
 ## NN Batch: b2-published-blueprints
 order:: 3
 lane:: heavy
-items:: sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion
+items:: sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion, sample-media-fields
 risk:: M
 state:: planned
 
