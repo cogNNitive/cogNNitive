@@ -2,7 +2,7 @@
  * S01 — Source ingestion and citation traceability.
  *
  * Simulates the flagship user journey: an analyst imports a primary source
- * into `sources/nn/`, cites specific sections of it from model elements, and
+ * into `sources/import/`, cites specific sections of it from model elements, and
  * expects the workspace to confirm every citation resolves — then expects a
  * broken citation to be reported precisely rather than silently ignored.
  */
@@ -14,6 +14,7 @@ import { createScenario, SIM } from '../lib/harness.mjs'
 import { loadCore } from '../lib/core.mjs'
 
 const WS = join(SIM, 'fixtures', 'acme')
+const REPORT = 'sources/import/market-report-2026.txt_sidecar_NN.md'
 
 /** Node-side SourceResolver: the contract innfo-mcp implements against disk. */
 function makeResolver(root, extractHeadings) {
@@ -33,7 +34,7 @@ export default async function run() {
     recursiveParse,
     validateWorkspaceSources,
     extractHeadings,
-    parseKnowledgeUnitRef,
+    parseCitation,
     serializeKnowledgeUnitRef,
     resolveHeadingSection,
   } = await loadCore()
@@ -56,16 +57,18 @@ export default async function run() {
     )
 
     // --- The canonical `@` grammar, as a user would type it -----------------
-    const ref = parseKnowledgeUnitRef('market-report-2026.md@## Q4 Outlook')
+    // parseCitation is nn-core's public entry point for `@` pointers (parseKnowledgeUnitRef is module-internal).
+    // Normalized sources are cited through their sidecar markdown under sources/import/.
+    const ref = parseCitation(`${REPORT}@## Q4 Outlook`)
     s.expect(
       'A heading citation parses into an addressable knowledge unit',
       ref,
       (r) => r !== null && r.unit?.kind === 'header' && r.unit.level === 2,
-      'parses to a header unit at level 2 under sources/nn/',
+      'parses to a header unit at level 2 under sources/import/',
     )
     if (ref) {
       const written = serializeKnowledgeUnitRef(ref.filePath, ref.unit, ref.subunits)
-      const reread = parseKnowledgeUnitRef(written)
+      const reread = parseCitation(written)
       s.expect(
         'Citation is structurally stable across a write-back cycle',
         { authored: ref.raw, written, rereadSlug: reread?.unit?.slug },
@@ -81,7 +84,7 @@ export default async function run() {
     }
 
     // --- The cited section actually resolves to real text -------------------
-    const srcText = await readFile(join(WS, 'sources', 'nn', 'market-report-2026.md'), 'utf-8')
+    const srcText = await readFile(join(WS, REPORT), 'utf-8')
     const section = resolveHeadingSection(srcText, 'q4-outlook')
     s.expect(
       'Cited section resolves to a concrete line range in the source',
@@ -123,14 +126,14 @@ export default async function run() {
     // Case C: raw, un-normalized material must not be citable.
     s.expect(
       'Raw material under sources/original/ is refused as a citation target',
-      parseKnowledgeUnitRef('sources/original/market-report-2026.txt@## Anything'),
+      parseCitation('sources/original/market-report-2026.txt@## Anything'),
       (r) => r === null,
-      'null — only normalized sources under sources/nn/ carry provenance',
+      'null — only normalized sources (sidecars under sources/import/) carry provenance',
     )
 
     // Case D: a query is not provenance.
     const queryDiags = validateWorkspaceSources(
-      injectFieldValue(parsed, 'Logistics Capacity', 'sources', ['sources/nn/market-report-2026.md?concept=Risk']),
+      injectFieldValue(parsed, 'Logistics Capacity', 'sources', [`${REPORT}?concept=Risk`]),
       makeResolver(WS, extractHeadings),
     )
     s.expect(
