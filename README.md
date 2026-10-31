@@ -38,7 +38,7 @@ cogNNitive/
 │   ├── _samples_nn/      # Sample domaiNN: source of truth for every blueprint sample
 │   ├── ecosystem_NN/     # Dogfooding domaiNN for the ecosystem itself
 │   └── simulation/       # Executable user-journey simulations (diagnostic, not a CI gate)
-├── openspec/             # Specs, change history and `backlog.md` (planned work)
+├── openspec/             # Specs, change history and `backlog_NN.md` (planned work)
 ├── .agents/ · .claude/   # Maintainer-only skills and git/worktree guard hooks (not distributed)
 └── .github/ · .githooks/ # CI, release workflows and the pre-push hook
 ```
