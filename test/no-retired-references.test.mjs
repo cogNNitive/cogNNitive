@@ -117,17 +117,15 @@ const DISTRIBUTION_RETIRED_PATTERNS = [
 ]
 const DISTRIBUTION_ALLOWLIST = [
   'openspec/', // SDD specs, changes, archive and backlog are the permanent record
-  'docs/', // published docs prose deferred by scope
-  '.agents/', // maintainer-only skills prose deferred by scope
+  'docs/documentation/content/vocabulary.md', // retired-identifiers table names every old string by design
+  '.agents/skills/nn-dev-check-integrity/references/catalog.md', // memory-file names (expedientes) keep the innfo-core-* slug
+  '.agents/skills/nn-dev-issue-tracking/references/imported-issues.md', // historical issue titles quoted verbatim
   'test/simulation/', // executable simulation of the shipped contract, never distributed
   'test/_samples_nn/', // sample workspace deferred by scope
   'test/fixtures/', // stamped console exports and simulacro fixtures
   'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro and scaffold fixtures
-  'dev/', // maintainer handoff and planning notes
   'iNNfo/specs/', // published blueprints, catalog and the vocabulary dictionary
   'iNNfo/packages/nn-mcp/test/', // test temp-dir prefixes and describe labels
-  'README.md',
-  'THIRD_PARTY.md',
   'scripts/lib/skills-commands.js', // D10 migration literals (kept permanently)
   'scripts/lib/mcp-config-adapter.js', // D10 user-config migration literals
   'scripts/lib/mcp-config-adapter.test.js', // D10 tests
