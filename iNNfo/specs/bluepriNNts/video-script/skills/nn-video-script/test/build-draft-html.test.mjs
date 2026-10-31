@@ -67,3 +67,8 @@ test('the reviewed export keeps fixed scenes in order and builds without --draft
   assert.match(md, /text:: edited/);
   assert.doesNotMatch(md, /text:: proposed/);
 });
+
+test('scenes with empty variants array do not corrupt narration or throw', () => {
+  const html = fs.readFileSync(TEMPLATE, 'utf8');
+  assert.match(html, /sc\.variants && sc\.variants\.length > 0/);
+});

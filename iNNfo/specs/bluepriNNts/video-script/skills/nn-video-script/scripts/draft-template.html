@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -109,10 +109,10 @@
           if (sc.kind !== "fixed") { s.narrations[sc.slug] = sc.narration; s.choices[sc.slug] = sc.recommended; }
           s.sceneOverlays[sc.slug] = {};
           (sc.overlays || []).forEach((o) => { s.sceneOverlays[sc.slug][o.id] = { text: o.text !== undefined ? o.text : "", position: o.position || "" }; });
-          if (sc.variants) {
+          if (sc.variants && sc.variants.length > 0) {
             s.variants[sc.slug] = {};
             sc.variants.forEach((v) => (s.variants[sc.slug][v.id] = v.text));
-            s.selectedVariant[sc.slug] = sc.selectedVariant;
+            s.selectedVariant[sc.slug] = sc.selectedVariant || sc.variants[0]?.id;
           }
         });
         return s;
@@ -124,8 +124,11 @@
         POSITIONS.map((p) => '<option ' + (p === value ? "selected" : "") + ">" + p + "</option>").join("") + "</select>";
 
       function sceneNarration(sc) {
-        if (sc.variants) { const vid = state.selectedVariant[sc.slug]; return state.variants[sc.slug][vid]; }
-        return state.narrations[sc.slug];
+        if (sc.variants && sc.variants.length > 0) {
+          const vid = state.selectedVariant[sc.slug];
+          return (state.variants[sc.slug] && state.variants[sc.slug][vid]) || sc.narration || "";
+        }
+        return state.narrations[sc.slug] || sc.narration || "";
       }
 
       function overlaysFor(sc) {
@@ -149,7 +152,7 @@
       }
       function optionsFor(sc) {
         const avatars = DRAFT.avatars.map((a) => ({ id: a.id, type: "avatar", lbl: "Talking avatar Â· " + a.quality, det: a.model + " Â· " + a.resolution }));
-        const media = DRAFT.media.map((m) => ({ id: m.id, type: "media", lbl: m.id, det: m.path, thumb: THUMBS[m.id] }));
+        const media = DRAFT.media.map((m) => ({ id: m.id, type: "media", lbl: m.id, det: m.path, thumb: m.thumbB64 || THUMBS[m.id] }));
         const anims = (sc.animations || []).map((a) => ({ id: a.id, type: "animation", lbl: "AnimaciÃ³n Â· " + a.label, det: a.asset ? ("ya generada: " + a.asset) : a.prompt }));
         return { avatars, media, anims };
       }
@@ -172,7 +175,7 @@
             return '<section class="card"><div class="scene-head"><h2>' + sc.name + '</h2><span class="tag">fijo Â· sin narraciÃ³n</span></div><p class="hint">' + esc(sc.narration) + "</p></section>";
           }
           let narrBlock = '<div class="group"><h3>NarraciÃ³n (texto â†’ TTS)</h3><textarea class="narr" data-scene="' + sc.slug + '">' + esc(state.narrations[sc.slug]) + "</textarea></div>";
-          if (sc.variants) {
+          if (sc.variants && sc.variants.length > 0) {
             narrBlock = '<div class="group"><h3>Opciones de gancho (5) Â· elegÃ­ y editÃ¡</h3>' + sc.variants.map((v) =>
               '<div class="vcard ' + (state.selectedVariant[sc.slug] === v.id ? "sel" : "") + '" data-vscene="' + sc.slug + '" data-vid="' + v.id + '">' +
               '<div class="vhead"><span class="radio"></span><span class="vlbl">' + esc(v.label) + "</span></div>" +
