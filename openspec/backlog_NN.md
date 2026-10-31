@@ -58,49 +58,15 @@ evidence:: iNNfo/specs, skills, manifest and docs are all still in place and add
 done_when:: The decision to keep iNNfo/specs, skills, manifest and docs paths frozen is recorded as a decision note linked from packages-to-root.
 batch:: b0-bookkeeping
 
-## NN Item: okf-docs-claim-cleanup
-value:: L
-effort:: S
-risk:: L
-status:: open
-lane:: light
-verdict:: current
-evidence:: docs/index.html:1771 says "OKF-compatible and plain Markdown" although no OKF export exists (see okf-export-projector). The published iNNfo_V_0-2-2_NN.md:699-711 claim is write-once and the documentation-template spec anchor is a living spec; neither is edited here.
-done_when:: docs/index.html:1771 no longer claims OKF compatibility (drop the OKF-compatible wording and keep the rest of the sentence), and git grep -n -i okf -- docs shows no other unqualified compatibility claim. Do not edit iNNfo/specs or openspec/specs.
-batch:: b1-light-cleanup
-
-## NN Item: retired-terms-inventory
-value:: M
-effort:: M
-risk:: L
-status:: open
-lane:: light
-verdict:: current
-evidence:: test/no-retired-references.test.mjs:119-148 DISTRIBUTION_ALLOWLIST exempts docs/, .agents/, README.md, THIRD_PARTY.md and dev/ wholesale. dev/ no longer exists, THIRD_PARTY.md has no retired term, docs/ has one file with hits (docs/documentation/content/vocabulary.md, the retired-identifiers table) and .agents/ has three (nn-dev-check-integrity/references/catalog.md, nn-dev-development/SKILL.md, nn-dev-issue-tracking/references/imported-issues.md). Migration shims at scripts/lib/mcp-config-adapter.js and skills-commands.js are already allowlisted per file. The innfo- prefix rename itself already shipped (archived 2026-10-21 and 2026-10-25 changes).
-merged_from:: legacy-terminology-sweep, issue-278-allowlist
-done_when:: The entries dev/, THIRD_PARTY.md, docs/, .agents/ and README.md are removed from DISTRIBUTION_ALLOWLIST. Each file that intentionally names a retired term gets its own entry with a one-line reason (vocabulary.md and the three .agents files). The README.md hit is fixed if it is prose, otherwise it gets a per-file entry with a reason. node --test test/no-retired-references.test.mjs passes. The allowlist is the inventory; no separate document.
-batch:: b1-light-cleanup
-
-## NN Item: repair-perf-workspace-kb
-value:: M
-effort:: S
-risk:: L
-status:: open
-lane:: light
-verdict:: current
-evidence:: scripts/perf-workspace-kb.mjs:190,194 call the retired MCP tools check_workspace and validate_model, which iNNfo/packages/nn-mcp/src/server.spec.ts:171-190 asserts are absent; the script is not wired into package.json.
-done_when:: scripts/perf-workspace-kb.mjs calls check_domain and validate_knowledge instead of the retired tools and runs with npm run perf:workspace-kb (a new package.json script, not part of CI because timings depend on the machine). The header comment of the script records the measured limits with date and tested workspace size. Do not add it to verify.js.
-batch:: b1-light-cleanup
-
 ## NN Item: repair-simulation
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: partial
 lane:: light
 verdict:: current
-evidence:: test/simulation/lib/core.mjs:27 loads iNNfo/packages/innfo-core/dist/index.js but only nn-core and nn-mcp exist; the header still describes the old moduleResolution failure.
-done_when:: test/simulation/lib/core.mjs loads the nn-core dist instead of innfo-core and the 8 user-flow journeys run; the report lists which pass and fail. Decision 2026-10-31: repair, not delete. STOP rule - if repairing needs more than the import path (journeys must be rewritten), stop and report instead of widening the scope. It is a diagnostic harness, not a CI gate.
+evidence:: Partly done 2026-10-31: test/simulation/lib/core.mjs now loads the nn-core dist and its header is rewritten. test/simulation/run-all.mjs now runs with 24 passed, 7 failed, 3 observed. Remaining failures are stale scenario code, not the import path: S01 parseKnowledgeUnitRef is no longer exported by nn-core; S02 duplicate element name is no longer refused (step expectation outdated, see intra-document identity); S03 and S07 read the retired root _samples_nn/kNNowledge path (now test/_samples_nn/kNNowledge); S05 fixture test/simulation/fixtures/acme/sources/nn/unit-costs.csv is missing (sources/nn is retired); S06 resolves iNNfo/specs relative to test/ (harness ROOT or path is off by one level).
+done_when:: The scenarios in test/simulation/scenarios are updated for the current layout and nn-core API (S01, S02, S03, S05, S06, S07) so run-all.mjs reports no FAIL, or the harness is deleted with a recorded decision. Diagnostic harness, not a CI gate.
 batch:: b1-light-cleanup
 
 ## NN Item: sample-media-fields
@@ -108,9 +74,9 @@ value:: L
 effort:: S
 risk:: L
 status:: open
-lane:: light
+lane:: heavy
 verdict:: current
-evidence:: No type:: audio or video field exists under test/_samples_nn; only the video-script blueprint declares one, and test/console-s3b-parity.test.mjs:52-58,230-235 covers video with an inline fixture.
+evidence:: Checked 2026-10-31 and stopped: no blueprint declares type:: audio, and only video-script declares video and file but has no sample under test/_samples_nn (samples there are write-through mirrors synced into iNNfo/specs/bluepriNNts/*/samples by scripts/sync-samples.mjs). A sample with audio, video and file fields therefore needs a published blueprint change (audio field type, version bump, repin) plus a new sample mapping, which exceeds the light lane. test/console-s3b-parity.test.mjs:52-58,230-235 still covers video with an inline fixture.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
 batch:: b1-light-cleanup
 
@@ -338,9 +304,9 @@ state:: planned
 ## NN Batch: b1-light-cleanup
 order:: 2
 lane:: light
-items:: okf-docs-claim-cleanup, retired-terms-inventory, repair-perf-workspace-kb, repair-simulation, sample-media-fields
+items:: repair-simulation, sample-media-fields
 risk:: L
-state:: planned
+state:: in-progress
 
 ## NN Batch: b2-published-blueprints
 order:: 3
