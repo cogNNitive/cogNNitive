@@ -42,19 +42,10 @@ captured:: 2026-10-31
 ## NN Idea: Regenerate testlab console fixtures that still ship innfo-ui.css
 captured:: 2026-10-31
 
-# NN Item
+## NN Idea: Fix the documentation-template living spec line that references the missing ecosystem.md OKF anchor (via a change)
+captured:: 2026-10-31
 
-## NN Item: close-issue-278
-value:: L
-effort:: S
-risk:: L
-status:: open
-lane:: light
-verdict:: current
-evidence:: Issue 278 target trees (docs/innfo, docs/skills, docs/use/reviewer-guide.md) were cleaned or deleted in e4d66781; remaining innfo- hits are legitimate (docs/documentation/content/vocabulary.md:155-164 table, skills/nn-skills-lifecycle/scripts/skills-manager.js:857 cleanup shim).
-done_when:: Issue 278 is closed through nn-dev-issue-tracking with a comment citing this evidence.
-ref:: issue-278
-batch:: b0-bookkeeping
+# NN Item
 
 ## NN Item: adr-keep-published-paths-frozen
 value:: L
@@ -74,8 +65,8 @@ risk:: L
 status:: open
 lane:: light
 verdict:: current
-evidence:: docs/index.html:1771 claims OKF compatibility; openspec/specs/documentation-template/spec.md:61 points at an ecosystem.md anchor that no longer exists. The published iNNfo_V_0-2-2_NN.md:699-711 claim is write-once and must not be edited.
-done_when:: docs/index.html no longer states OKF compatibility unqualified and the documentation-template spec no longer references the missing anchor.
+evidence:: docs/index.html:1771 says "OKF-compatible and plain Markdown" although no OKF export exists (see okf-export-projector). The published iNNfo_V_0-2-2_NN.md:699-711 claim is write-once and the documentation-template spec anchor is a living spec; neither is edited here.
+done_when:: docs/index.html:1771 no longer claims OKF compatibility (drop the OKF-compatible wording and keep the rest of the sentence), and git grep -n -i okf -- docs shows no other unqualified compatibility claim. Do not edit iNNfo/specs or openspec/specs.
 batch:: b1-light-cleanup
 
 ## NN Item: retired-terms-inventory
@@ -85,9 +76,9 @@ risk:: L
 status:: open
 lane:: light
 verdict:: current
-evidence:: test/no-retired-references.test.mjs:119-131 DISTRIBUTION_ALLOWLIST exempts docs/, .agents/, README.md and THIRD_PARTY.md wholesale; migration shims remain at scripts/lib/mcp-config-adapter.js:80,142 and skills-commands.js:116-130. The innfo- prefix rename itself already shipped (archived 2026-10-21 and 2026-10-25 changes).
+evidence:: test/no-retired-references.test.mjs:119-148 DISTRIBUTION_ALLOWLIST exempts docs/, .agents/, README.md, THIRD_PARTY.md and dev/ wholesale. dev/ no longer exists, THIRD_PARTY.md has no retired term, docs/ has one file with hits (docs/documentation/content/vocabulary.md, the retired-identifiers table) and .agents/ has three (nn-dev-check-integrity/references/catalog.md, nn-dev-development/SKILL.md, nn-dev-issue-tracking/references/imported-issues.md). Migration shims at scripts/lib/mcp-config-adapter.js and skills-commands.js are already allowlisted per file. The innfo- prefix rename itself already shipped (archived 2026-10-21 and 2026-10-25 changes).
 merged_from:: legacy-terminology-sweep, issue-278-allowlist
-done_when:: A written inventory of non-runtime surfaces naming retired vocabulary exists and the allowlist is narrowed to the entries that are intentionally exempt.
+done_when:: The entries dev/, THIRD_PARTY.md, docs/, .agents/ and README.md are removed from DISTRIBUTION_ALLOWLIST. Each file that intentionally names a retired term gets its own entry with a one-line reason (vocabulary.md and the three .agents files). The README.md hit is fixed if it is prose, otherwise it gets a per-file entry with a reason. node --test test/no-retired-references.test.mjs passes. The allowlist is the inventory; no separate document.
 batch:: b1-light-cleanup
 
 ## NN Item: repair-perf-workspace-kb
@@ -98,10 +89,10 @@ status:: open
 lane:: light
 verdict:: current
 evidence:: scripts/perf-workspace-kb.mjs:190,194 call the retired MCP tools check_workspace and validate_model, which iNNfo/packages/nn-mcp/src/server.spec.ts:171-190 asserts are absent; the script is not wired into package.json.
-done_when:: The harness runs against check_domain and validate_knowledge, prints timings, and the measured limits are recorded.
+done_when:: scripts/perf-workspace-kb.mjs calls check_domain and validate_knowledge instead of the retired tools and runs with npm run perf:workspace-kb (a new package.json script, not part of CI because timings depend on the machine). The header comment of the script records the measured limits with date and tested workspace size. Do not add it to verify.js.
 batch:: b1-light-cleanup
 
-## NN Item: repair-or-retire-simulation
+## NN Item: repair-simulation
 value:: L
 effort:: S
 risk:: L
@@ -109,7 +100,7 @@ status:: open
 lane:: light
 verdict:: current
 evidence:: test/simulation/lib/core.mjs:27 loads iNNfo/packages/innfo-core/dist/index.js but only nn-core and nn-mcp exist; the header still describes the old moduleResolution failure.
-done_when:: Either the simulation runs against nn-core or it is deleted together with its FINDINGS references.
+done_when:: test/simulation/lib/core.mjs loads the nn-core dist instead of innfo-core and the 8 user-flow journeys run; the report lists which pass and fail. Decision 2026-10-31: repair, not delete. STOP rule - if repairing needs more than the import path (journeys must be rewritten), stop and report instead of widening the scope. It is a diagnostic harness, not a CI gate.
 batch:: b1-light-cleanup
 
 ## NN Item: sample-media-fields
@@ -120,7 +111,7 @@ status:: open
 lane:: light
 verdict:: current
 evidence:: No type:: audio or video field exists under test/_samples_nn; only the video-script blueprint declares one, and test/console-s3b-parity.test.mjs:52-58,230-235 covers video with an inline fixture.
-done_when:: The console sample declares an audio, a video and a file field and the exported console renders them.
+done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
 batch:: b1-light-cleanup
 
 ## NN Item: sources-blueprint-drift
@@ -340,14 +331,14 @@ evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no arch
 ## NN Batch: b0-bookkeeping
 order:: 1
 lane:: light
-items:: close-issue-278, adr-keep-published-paths-frozen
+items:: adr-keep-published-paths-frozen
 risk:: L
 state:: planned
 
 ## NN Batch: b1-light-cleanup
 order:: 2
 lane:: light
-items:: okf-docs-claim-cleanup, retired-terms-inventory, repair-perf-workspace-kb, repair-or-retire-simulation, sample-media-fields
+items:: okf-docs-claim-cleanup, retired-terms-inventory, repair-perf-workspace-kb, repair-simulation, sample-media-fields
 risk:: L
 state:: planned
 
