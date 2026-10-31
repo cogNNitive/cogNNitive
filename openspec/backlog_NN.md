@@ -47,17 +47,6 @@ captured:: 2026-10-31
 
 # NN Item
 
-## NN Item: repair-simulation
-value:: L
-effort:: S
-risk:: L
-status:: partial
-lane:: light
-verdict:: current
-evidence:: Partly done 2026-10-31: test/simulation/lib/core.mjs now loads the nn-core dist and its header is rewritten. test/simulation/run-all.mjs now runs with 24 passed, 7 failed, 3 observed. Remaining failures are stale scenario code, not the import path: S01 parseKnowledgeUnitRef is no longer exported by nn-core; S02 duplicate element name is no longer refused (step expectation outdated, see intra-document identity); S03 and S07 read the retired root _samples_nn/kNNowledge path (now test/_samples_nn/kNNowledge); S05 fixture test/simulation/fixtures/acme/sources/nn/unit-costs.csv is missing (sources/nn is retired); S06 resolves iNNfo/specs relative to test/ (harness ROOT or path is off by one level).
-done_when:: The scenarios in test/simulation/scenarios are updated for the current layout and nn-core API (S01, S02, S03, S05, S06, S07) so run-all.mjs reports no FAIL, or the harness is deleted with a recorded decision. Diagnostic harness, not a CI gate.
-batch:: b1-light-cleanup
-
 ## NN Item: sample-media-fields
 value:: L
 effort:: S
@@ -283,17 +272,10 @@ evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no arch
 
 # NN Batch
 
-## NN Batch: b1-light-cleanup
-order:: 2
-lane:: light
-items:: repair-simulation
-risk:: L
-state:: in-progress
-
 ## NN Batch: b2-published-blueprints
 order:: 3
 lane:: heavy
-items:: sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion, sample-media-fields
+items:: sample-media-fields, sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion, sample-media-fields
 risk:: M
 state:: planned
 
