@@ -1,34 +1,29 @@
 /**
- * Loads `@cognnitive/innfo-core` for the simulation.
+ * Loads `@cognnitive/nn-core` for the simulation.
  *
- * WHY THIS EXISTS (this file is itself a finding — see results/report.md, F-01):
- * `innfo-core` is published as `"type": "module"` with `"main": "./dist/index.js"`,
- * but it is compiled with `moduleResolution: "bundler"`, so its emitted ESM
- * contains extensionless directory imports (`export * from './types'`). Plain
- * Node ESM rejects those with ERR_UNSUPPORTED_DIR_IMPORT, so
- * `import '@cognnitive/innfo-core'` fails outright in Node.
+ * The simulation deliberately consumes the package the way an ordinary Node
+ * program would: it first tries a plain `import '@cognnitive/nn-core'`. nn-core
+ * is built with NodeNext resolution and explicit `.js` specifiers, so that
+ * import is expected to work under Node ESM.
  *
- * Every current consumer hides this: the editor goes through Vite, the tests
- * through Vitest, and innfo-mcp through tsup — all bundlers, all of which
- * resolve directory imports. The simulation deliberately consumes the package
- * the way an ordinary Node program would, hits the wall, and then bundles it
- * with esbuild exactly as innfo-mcp's build does.
- *
- * Delete this shim the day `dist/index.js` imports resolve under Node.
+ * The esbuild bundling below is a fallback kept for the case where the direct
+ * import fails (for example a regression to extensionless directory imports,
+ * which Node rejects with ERR_UNSUPPORTED_DIR_IMPORT). Scenario S08 reports
+ * which path was taken.
  */
 import { existsSync, mkdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ROOT, SIM } from './harness.mjs'
 
-const ENTRY = join(ROOT, 'iNNfo', 'packages', 'innfo-core', 'dist', 'index.js')
+const ENTRY = join(ROOT, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js')
 const OUT_DIR = join(SIM, '.cache')
-const OUT = join(OUT_DIR, 'innfo-core.bundle.mjs')
+const OUT = join(OUT_DIR, 'nn-core.bundle.mjs')
 
 /** True when plain Node ESM can import the package as published. */
 export async function nodeEsmImportWorks() {
   try {
-    await import('@cognnitive/innfo-core')
+    await import('@cognnitive/nn-core')
     return { ok: true, error: null }
   } catch (err) {
     return { ok: false, error: `${err.code ?? err.name}: ${err.url ?? err.message}` }
@@ -41,11 +36,11 @@ export async function loadCore() {
   if (cached) return cached
   const direct = await nodeEsmImportWorks()
   if (direct.ok) {
-    cached = await import('@cognnitive/innfo-core')
+    cached = await import('@cognnitive/nn-core')
     return cached
   }
   if (!existsSync(ENTRY)) {
-    throw new Error(`innfo-core is not built. Run: npm --prefix iNNfo/packages/innfo-core run build`)
+    throw new Error(`nn-core is not built. Run: npm --prefix iNNfo/packages/nn-core run build`)
   }
   const stale = !existsSync(OUT) || statSync(OUT).mtimeMs < statSync(ENTRY).mtimeMs
   if (stale) {
