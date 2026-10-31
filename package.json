@@ -12,6 +12,7 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "build:console": "node scripts/build-console-bundle.mjs",
+    "perf:workspace-kb": "node scripts/perf-workspace-kb.mjs",
     "check:console-bundle": "node scripts/build-console-bundle.mjs --check",
     "build:docs": "node scripts/build-docs.mjs",
     "check:docs-links": "node scripts/check-docs-links.mjs",

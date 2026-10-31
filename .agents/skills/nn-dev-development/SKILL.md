@@ -178,7 +178,7 @@ strict cycle:
    assume or start implementing speculative UI changes.
 3. **Session Worktree Isolation**: All edits must happen inside a dedicated `nn-session` worktree.
 4. **Rebuild Bundle & Regenerate Fixture**:
-   - Whenever console styles (`innfo-ui.css`), components (`ui-kit.js`), runtime (`innfo-runtime.js`),
+   - Whenever console styles (`nn-ui.css`), components (`ui-kit.js`), runtime (`nn-runtime.js`),
      review tools (`review.js`), or shell (`artifact_shell.html`) are updated, compile the bundle:
      ```powershell
      node scripts/build-console-bundle.mjs
