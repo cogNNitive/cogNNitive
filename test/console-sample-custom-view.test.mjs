@@ -12,7 +12,7 @@ import { JSDOM } from 'jsdom'
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
-const samples = resolve(here, '..', '_samples_nn')
+const samples = resolve(here, '_samples_nn')
 const VIEW_ID = 'missing-descriptions'
 
 /** Real CLI subprocess, kept as an exit-code/wiring smoke test. */
@@ -27,7 +27,7 @@ async function runCliSubprocess(args) {
   }
 }
 
-describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js)', () => {
+describe('sample custom view (test/_samples_nn/consoles/views/missing-descriptions.js)', () => {
   let tmp
   let html
   let scopedHtml

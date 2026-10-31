@@ -150,7 +150,7 @@ Group 2 verifies:
 
 ### Sample version coherence (blueprint bump ↔ sample refresh) — a `verify.js` step
 **Expediente:** `samples-version-coherence-guard` (2026-10-04). `scripts/sync-samples.mjs`
-compared the SSOT (`_samples_nn/`) and shipped (`iNNfo/specs/bluepriNNts/*/samples/`)
+compared the SSOT (`test/_samples_nn/`) and shipped (`iNNfo/specs/bluepriNNts/*/samples/`)
 copies byte-for-byte **against each other** with a hardcoded target filename, so both
 copies advanced in lockstep and the `samples-parity` step stayed GREEN while every sample
 pinned an obsolete blueprint version (business pinned V_0-2-3 while the blueprint shipped
@@ -213,7 +213,7 @@ git diff --name-only origin/main...HEAD -- "iNNfo/specs/bluepriNNts/*/spec_NN.md
   `blueprint_version` is not strictly greater than the base's. The guard reports
   `base: "V_X", current: "V_X"`.
 - The bump **cascades** — it is not one edit. All of these move together, in the same
-  batch: the sample pin at BOTH sites (`_samples_nn/` + `bluepriNNts/<bp>/samples/`, see
+  batch: the sample pin at BOTH sites (`test/_samples_nn/` + `bluepriNNts/<bp>/samples/`, see
   Sample version coherence), `SAMPLE_MAPPINGS` in `scripts/sync-samples.mjs`, the regenerated
   `catalog.json` (`npm run sync:versions`), and every test that asserts a
   blueprint version (core + mcp; the frozen editor is not gated).

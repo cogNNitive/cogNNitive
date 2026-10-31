@@ -4,12 +4,12 @@
  * scripts/sync-samples.mjs
  *
  * Synchronizes and validates canonical sample models from the Single Source of Truth
- * (_samples_nn/kNNowledge/) into their respective Level-2 blueprint distribution folders
+ * (test/_samples_nn/kNNowledge/) into their respective Level-2 blueprint distribution folders
  * (iNNfo/specs/bluepriNNts/<blueprint>/samples/).
  *
  * Usage:
- *   node scripts/sync-samples.mjs          # Syncs files from _samples_nn to templates
- *   node scripts/sync-samples.mjs --check  # Verifies zero drift between _samples_nn and templates (fails with exit code 1 if drift is detected)
+ *   node scripts/sync-samples.mjs          # Syncs files from test/_samples_nn to templates
+ *   node scripts/sync-samples.mjs --check  # Verifies zero drift between test/_samples_nn and templates (fails with exit code 1 if drift is detected)
  */
 
 import fs from 'node:fs';
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
-const SAMPLES_SSOT_DIR = path.join(REPO_ROOT, '_samples_nn', 'kNNowledge');
+const SAMPLES_SSOT_DIR = path.join(REPO_ROOT, 'test', '_samples_nn', 'kNNowledge');
 const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 
 export const SAMPLE_MAPPINGS = [
@@ -116,19 +116,19 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking samples parity (_samples_nn/kNNowledge/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
+    console.log('🔍 Checking samples parity (test/_samples_nn/kNNowledge/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
     const res = syncSamples({ check: true });
     if (!res.ok) {
       console.error('❌ Samples drift detected:');
       for (const err of res.errors) {
         console.error(`  - ${err}`);
       }
-      console.error('\nRun `npm run sync:samples` to synchronize template samples from _samples_nn.');
+      console.error('\nRun `npm run sync:samples` to synchronize template samples from test/_samples_nn.');
       process.exit(1);
     }
-    console.log('✅ All template samples are in sync with _samples_nn.');
+    console.log('✅ All template samples are in sync with test/_samples_nn.');
   } else {
-    console.log('📦 Projecting samples from _samples_nn/kNNowledge/ into blueprint packages...');
+    console.log('📦 Projecting samples from test/_samples_nn/kNNowledge/ into blueprint packages...');
     const res = syncSamples({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync samples:');

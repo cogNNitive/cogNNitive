@@ -26,17 +26,26 @@ Welcome to the **cogNNitive** monorepo. cogNNitive turns scattered ideas in huma
 
 ```text
 cogNNitive/
-├── docs/             # Public website (https://cognnitive.com) & agent bootstrap (/use)
-│   ├── innfo/        # Documentation for iNNfo core, MCP and the domain console
-│   ├── actionn/      # Documentation for skills catalog
-│   └── use/          # Universal AI Agent manifest & bootstrap
-├── iNNfo/            # Semantic modeling layer
-│   ├── packages/     # innfo-core (pure TS semantic engine) & innfo-mcp (MCP server)
-│   └── specs/        # Canonical iNNfo specifications, bluepriNNts, and samples
-├── skills/           # Agent skills (nn-innfo, nn-sources, nn-preflight, etc.)
-├── openspec/         # Cross-system architecture RFCs and formal specifications
-└── scripts/          # Workspace maintenance and verification scripts
+├── iNNfo/                # The product's semantic layer
+│   ├── packages/         # nn-core (TS semantic engine) & nn-mcp (MCP server) — the npm workspaces
+│   └── specs/            # Canonical specs, bluepriNNts and their shipped samples (published, write-once)
+├── skills/               # Distributed agent skills (nn-innfo, nn-sources, nn-preflight, ...)
+├── docs/                 # Public website (https://cognnitive.com), documentation and agent bootstrap (/use)
+├── manifest/             # Source of the generated distribution manifest
+├── scripts/              # Build, release, sync and verification tooling (`verify.js` is the gate)
+├── test/                 # Root-level tests and everything used as test data
+│   ├── fixtures/         # Frozen inputs (console exports, testlab domaiNN)
+│   ├── _samples_nn/      # Sample domaiNN: source of truth for every blueprint sample
+│   ├── ecosystem_NN/     # Dogfooding domaiNN for the ecosystem itself
+│   └── simulation/       # Executable user-journey simulations (diagnostic, not a CI gate)
+├── openspec/             # Specs, change history and `backlog.md` (planned work)
+├── .agents/ · .claude/   # Maintainer-only skills and git/worktree guard hooks (not distributed)
+└── .github/ · .githooks/ # CI, release workflows and the pre-push hook
 ```
+
+Where to look: product code is under `iNNfo/packages/`, what users install is
+under `skills/` and `iNNfo/specs/`, and anything that is not shipped but proves it
+works lives under `test/`.
 
 ## Public distribution (`cogNNitive-web`)
 

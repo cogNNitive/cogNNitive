@@ -23,17 +23,17 @@ function findModelDocuments(dir: string): string[] {
 }
 
 function sampleFiles(): string[] {
-  return findModelDocuments(join(REPO_ROOT, '_samples_nn'))
+  return findModelDocuments(join(REPO_ROOT, 'test', '_samples_nn'))
 }
 
 function domainFiles(): string[] {
   const all: string[] = []
   for (const dir of [
-    join(REPO_ROOT, '_samples_nn'),
-    join(REPO_ROOT, 'ecosystem_NN'),
+    join(REPO_ROOT, 'test', '_samples_nn'),
+    join(REPO_ROOT, 'test', 'ecosystem_NN'),
     join(REPO_ROOT, 'test', 'fixtures', 'testlab'),
     join(REPO_ROOT, 'docs', 'cognitive_nn', 'use-cases'),
-    join(REPO_ROOT, 'simulation', 'fixtures'),
+    join(REPO_ROOT, 'test', 'simulation', 'fixtures'),
   ]) {
     for (const f of findModelDocuments(dir)) {
       if (f.endsWith('domaiNN_NN.md')) all.push(f)

@@ -7,7 +7,7 @@
  * the projection, the renderer, or the managed-section definitions that is not
  * reflected in the committed record turns `scripts/verify.js` red.
  *
- * It never scans `_samples_nn/` or shipped template bytes (they carry no record
+ * It never scans `test/_samples_nn/` or shipped template bytes (they carry no record
  * and must not gain one), and it is read-only. Core comes from the committed
  * trannsform mirror, which a separate verify step keeps fresh.
  *

@@ -11,16 +11,16 @@ import type { DirectoryHandleLike } from '../src/types/index.js'
 
 /**
  * `shipped-sample-workspace` Requirements 1, 2, 4 and 5, enforced against the
- * real `_samples_nn/` through the same code path the editor and MCP use.
+ * real `test/_samples_nn/` through the same code path the editor and MCP use.
  *
- * `_samples_nn/` is the first workspace a new user opens. Anything it reports
+ * `test/_samples_nn/` is the first workspace a new user opens. Anything it reports
  * on load is something a first-time user sees on day one, so it must not be
  * allowed to regress silently.
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(here, '..', '..', '..', '..')
-const WS = join(REPO_ROOT, '_samples_nn')
+const WS = join(REPO_ROOT, 'test', '_samples_nn')
 const TEMPLATES = join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts')
 
 /**

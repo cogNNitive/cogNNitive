@@ -15,8 +15,8 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-export const SIM = join(ROOT, 'simulation')
+export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+export const SIM = join(ROOT, 'test', 'simulation')
 
 export function createScenario(id, title, intent) {
   const steps = []

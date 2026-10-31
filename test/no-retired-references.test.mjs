@@ -79,8 +79,8 @@ const HUB_ALLOWLIST = [
   'openspec/specs/',
   'iNNfo/packages/nn-core/tests/fixtures/simulacro-refactorizacion/',
   'test/fixtures/testlab/',
-  'simulation/FINDINGS.md',
-  'simulation/results/',
+  'test/simulation/FINDINGS.md',
+  'test/simulation/results/',
   'openspec/backlog.md',
   SELF,
 ]
@@ -120,8 +120,8 @@ const DISTRIBUTION_ALLOWLIST = [
   'openspec/', // SDD specs, changes, archive and backlog are the permanent record
   'docs/', // published docs prose deferred by scope
   '.agents/', // maintainer-only skills prose deferred by scope
-  'simulation/', // executable simulation of the shipped contract, never distributed
-  '_samples_nn/', // sample workspace deferred by scope
+  'test/simulation/', // executable simulation of the shipped contract, never distributed
+  'test/_samples_nn/', // sample workspace deferred by scope
   'test/fixtures/', // stamped console exports and simulacro fixtures
   'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro and scaffold fixtures
   'dev/', // maintainer handoff and planning notes
@@ -213,7 +213,7 @@ const GUARDS = [
       'openspec/', // frozen change/spec history
       'iNNfo/specs/bluepriNNts/workspace/', // frozen_blueprints (C9)
       'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro fixtures
-      '_samples_nn/', // deferred sample workspace
+      'test/_samples_nn/', // deferred sample workspace
       SELF,
     ]),
     lines: true,
@@ -311,7 +311,7 @@ const FROZEN_PATH_PREFIXES = [
   'openspec/changes/', // frozen change history
   'iNNfo/specs/', // published blueprint specs and generated console artifacts
   'test/fixtures/', // frozen fixtures
-  'simulation/', // sample domain, never distributed
+  'test/simulation/', // sample domain, never distributed
   'iNNfo/packages/nn-core/tests/fixtures/', // frozen simulacro fixtures
 ]
 
@@ -453,7 +453,7 @@ describe('the workspace hub is deleted', () => {
   const DELETED = [
     'iNNfo/specs/bluepriNNts/workspace/assets/workspace_hub.html',
     'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md',
-    '_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
+    'test/_samples_nn/procedures/compile_workspace_hub_procedures_NN.md',
     'iNNfo/packages/nn-core/tests/workspace-hub.test.ts',
   ]
   it('requires every hub file to be deleted', () => {

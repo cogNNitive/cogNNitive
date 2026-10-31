@@ -18,13 +18,13 @@ picture of real behaviour, not to stop at the first surprise.
 ## Running it
 
 ```bash
-node simulation/run-all.mjs
+node test/simulation/run-all.mjs
 ```
 
 Filter to one or more scenarios by substring:
 
 ```bash
-node simulation/run-all.mjs 03 07
+node test/simulation/run-all.mjs 03 07
 ```
 
 Output lands in `results/report.md` (readable) and `results/report.json`
