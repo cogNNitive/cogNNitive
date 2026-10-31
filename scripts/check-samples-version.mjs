@@ -119,7 +119,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
       console.error(`  - ${f.target} [${f.reason}] pin=${f.pin ?? '—'} current=${f.current ?? '—'}`);
     }
     console.error('\nA blueprint bump requires refreshing its sample(s) at both sites:');
-    console.error('  _samples_nn/kNNowledge/  and  iNNfo/specs/bluepriNNts/<bp>/samples/');
+    console.error('  test/_samples_nn/kNNowledge/  and  iNNfo/specs/bluepriNNts/<bp>/samples/');
     console.error('The guard will not auto-fix: a bump changes the sample schema/content, not just the number.');
   }
 

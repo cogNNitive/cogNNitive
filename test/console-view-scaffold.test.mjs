@@ -11,7 +11,7 @@ import { promisify } from 'node:util'
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
-const samples = resolve(here, '..', '_samples_nn')
+const samples = resolve(here, '_samples_nn')
 
 describe('scaffoldConsoleView (--new-view)', () => {
   let tmp

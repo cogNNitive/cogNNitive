@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
-const SAMPLES_DIR = path.join(REPO_ROOT, '_samples_nn', 'kNNowledge');
+const SAMPLES_DIR = path.join(REPO_ROOT, 'test', '_samples_nn', 'kNNowledge');
 
 const SAMPLES_WITH_PREVIOUS_MARKERS = [
   'Ghostbusters_analysis_NN.md',

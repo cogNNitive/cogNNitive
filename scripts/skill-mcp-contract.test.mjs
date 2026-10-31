@@ -19,7 +19,7 @@ assert.ok(
   `Expected at least 15 registered tools in server.ts, found ${registeredTools.size}`,
 );
 
-// 2. Discover markdown files across skills/ and _samples_nn/
+// 2. Discover markdown files across skills/ and test/_samples_nn/
 function collectMarkdownFiles(dir) {
   let results = [];
   if (!fs.existsSync(dir)) return results;
@@ -35,9 +35,9 @@ function collectMarkdownFiles(dir) {
   return results;
 }
 
-const targetDirs = [path.join(ROOT, 'skills'), path.join(ROOT, '_samples_nn')];
+const targetDirs = [path.join(ROOT, 'skills'), path.join(ROOT, 'test', '_samples_nn')];
 const filesToScan = targetDirs.flatMap((d) => collectMarkdownFiles(d));
-console.log(`  Scanning ${filesToScan.length} files across skills/ and _samples_nn/ for contract violations...`);
+console.log(`  Scanning ${filesToScan.length} files across skills/ and test/_samples_nn/ for contract violations...`);
 
 const invalidToolCitations = [];
 const missingNodeScripts = [];

@@ -1098,3 +1098,60 @@ Applied History" requirement.
 
 **Suggested trigger:** `/sdd-new video-vector-actor-catalog`.
 
+
+## `refactor/packages-to-root` — move `iNNfo/packages/` to a top-level `packages/`
+
+**Type:** structural · **Size:** medium (half a day, gated by `verify.js` + CI) · **Added:** 2026-10-31 · **Risk of waiting:** low
+
+**Why:** `iNNfo/` mixes the published specs (`iNNfo/specs/`, ~220 files) with the npm
+workspaces (`iNNfo/packages/`, ~525 files). A reader looking for code finds a folder named
+after the spec layer. Tier 2 of the 2026-10-31 repo-layout review; tier 1 (delete `dev/` and
+the legacy `run-dev.bat`, group `_samples_nn`, `ecosystem_NN`, `simulation` under `test/`,
+README map) already shipped.
+
+**Scope:**
+1. Move `iNNfo/packages/*` to `packages/*` with `git mv` and update `workspaces` in `package.json`.
+2. Update every path reference. Count first with `git grep -lF "iNNfo/packages"`: ~45 code
+   files at review time (scripts, tests, `tsconfig*`, `eslint.config.mjs`, `.gitignore`,
+   `ci.yml`, `release.yml`, `.githooks/pre-push`, `scripts/lib/channel-refs.js`).
+3. Re-run `npm ci` from a clean checkout and rebuild core before mcp; regenerate the
+   derived bundles (`verify.js` lists which are byte-checked).
+
+**Risks:** worktrees link `node_modules` by junction, so run installs only from the primary
+checkout. Land it in a quiet window with no open session branches: a mass rename conflicts
+with every in-flight branch. Not a release, but check `nn-dev-release` for refs that pin paths.
+
+**Optional, same change:** rename `test/_samples_nn` and `test/ecosystem_NN` to names that
+do not rely on the leading underscore. Costs one extra pass over the ~16 files that name them.
+
+**Suggested trigger:** `/sdd-new packages-to-root`.
+
+## `decision/keep-published-paths-frozen` — do NOT move `iNNfo/specs/`, `skills/`, `manifest/`, `docs/`
+
+**Type:** decision record · **Added:** 2026-10-31
+
+**Why:** tier 3 of the repo-layout review. These four are addressed by path from outside the
+tree, so a rename is a breaking change rather than a tidy-up:
+- `iNNfo/specs/` is referenced by ~115 code files; published `_V_x-y-z_` spec files are
+  write-once and `manifest` byte-checks template content on `main` against the `templates-v*` pin.
+- `skills/` is installed from the distribution channel by path; `skills/nn-sources` has its
+  own `package.json` outside the workspaces.
+- `docs/` is what GitHub Pages serves (`CNAME`, `sitemap.xml`, `llms.txt`, `ai-index.yaml`).
+- `manifest/source.yaml` feeds the generated manifest verified on every run.
+
+**Revisit only if** a distribution-channel change already forces a repin of all four, so the
+rename rides on a release that is happening anyway.
+
+## `chore/retire-or-repair-simulation` — `test/simulation/` cannot run
+
+**Type:** cleanup · **Size:** small · **Added:** 2026-10-31 · **Risk of waiting:** low
+
+**Why:** `test/simulation/lib/core.mjs` loads `iNNfo/packages/innfo-core/dist/index.js`, a
+package that no longer exists (the workspaces are `nn-core` and `nn-mcp`). The scenarios,
+`FINDINGS.md` and `results/report.*` describe a product state from before the rename and
+before the `.js`-specifier fix that its F-01 finding asked for. Found while moving the folder.
+
+**Scope:** decide first. Either delete the folder and keep `FINDINGS.md` as history in
+`openspec/`, or repoint `core.mjs` at `nn-core` (now Node-ESM importable, so the esbuild
+shim can go) and regenerate the report. Note `test/no-retired-references.test.mjs` allowlists
+`test/simulation/` paths and must follow either choice.
