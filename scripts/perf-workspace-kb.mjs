@@ -5,7 +5,7 @@
  * Workspace KB performance probe (backlog: chore/workspace-kb-perf-limits).
  *
  * Generates a disposable scaled workspace under `temp/simulation-perf/` and
- * measures `check_workspace`, `validate_model`, and `query_units` latency vs
+ * measures `check_domain`, `validate_knowledge`, and `query_units` latency vs
  * dimension size, so breaking points (timeouts, memory, false KU_* errors)
  * are recorded instead of guessed.
  *
@@ -18,7 +18,18 @@
  * Run:
  *   node scripts/perf-workspace-kb.mjs --models 20 --rows 500 --units 50 --sources 4
  *
- * Output is a markdown table of {dimension, value, check_ms, validate_ms, query_ms}.
+ * Measured limits (2026-10-31, Windows 11, Node 22, nn-mcp dist build 0.34.0; each
+ * tool call spawns a cold MCP process, so figures include startup and vary run to run;
+ * validate_knowledge on the 2-model run was 9.2s on a cold first call vs ~3.7s warm):
+ *   --models  2 --rows   5 --units  3 --sources 1: check_domain 10958 ms, validate_knowledge 9152 ms, query_units 2387 ms
+ *   --models 10 --rows 200 --units 20 --sources 2: check_domain 28745 ms, validate_knowledge 3728 ms, query_units 1394 ms
+ *   --models 20 --rows 500 --units 50 --sources 4: check_domain 86420 ms, validate_knowledge 3668 ms, query_units 1545 ms
+ * check_domain grows roughly with the number of models (~4 s per model at 20 models,
+ * single run each); validate_knowledge and query_units stayed flat at ~1.5-4 s up to 20
+ * models / 4 x 500-row sources / 200 units. No timeout (120 s per call) was hit; the
+ * 20-model check_domain run used ~72% of it. Not a CI gate: timings depend on the machine.
+ *
+ * Output is a markdown table of {tool, latency_ms}.
  * Fixtures live under the repo-root temp/ directory (gitignored) and are
  * removed on exit.
  */
@@ -106,8 +117,6 @@ function generateWorkspace({ models, rows, units, sources }) {
       '> Generated performance fixture.',
       '',
       '# NN index',
-      '* [[Item A]]',
-      '* [[Item B]]',
       '',
       '# NN Problems',
       '',
@@ -184,15 +193,24 @@ function mcpCall(rootDir, toolName, args) {
   })
 }
 
+/** A timing is only meaningful when the tool really ran: fail loudly on an error response. */
+function assertTool(name, text, marker) {
+  if (!text.includes(marker)) {
+    throw new Error(`${name} did not return the expected result: ${text.slice(0, 300)}`)
+  }
+}
+
 async function measure(rootDir) {
   const out = {}
   const t0 = performance.now()
-  await mcpCall(rootDir, 'check_workspace', {})
+  const r0 = await mcpCall(rootDir, 'check_domain', { offline: true })
   out.check = performance.now() - t0
+  assertTool('check_domain', r0, 'innfo-check-domain@1')
 
   const t1 = performance.now()
-  await mcpCall(rootDir, 'validate_model', { id: 'perf_model_0_V_0-0-1_business_NN' })
+  const r1 = await mcpCall(rootDir, 'validate_knowledge', { id: 'perf_model_0_V_0-0-1_business_NN' })
   out.validate = performance.now() - t1
+  assertTool('validate_knowledge', r1, '"valid": true')
 
   const t2 = performance.now()
   await mcpCall(rootDir, 'query_units', { query: 'sources/import/kb_0.csv?status=active' })
@@ -211,8 +229,8 @@ async function main() {
   console.log('| tool | latency (ms) |')
   console.log('|---|---|')
   const { check, validate, query } = await measure(rootDir)
-  console.log(`| check_workspace | ${Math.round(check)} |`)
-  console.log(`| validate_model | ${Math.round(validate)} |`)
+  console.log(`| check_domain | ${Math.round(check)} |`)
+  console.log(`| validate_knowledge | ${Math.round(validate)} |`)
   console.log(`| query_units | ${Math.round(query)} |`)
   console.log('')
 
