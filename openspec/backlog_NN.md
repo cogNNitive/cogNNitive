@@ -47,17 +47,6 @@ captured:: 2026-10-31
 
 # NN Item
 
-## NN Item: adr-keep-published-paths-frozen
-value:: L
-effort:: S
-risk:: L
-status:: open
-lane:: light
-verdict:: current
-evidence:: iNNfo/specs, skills, manifest and docs are all still in place and addressed by path from outside the tree (manifest/source.yaml, docs/CNAME).
-done_when:: The decision to keep iNNfo/specs, skills, manifest and docs paths frozen is recorded as a decision note linked from packages-to-root.
-batch:: b0-bookkeeping
-
 ## NN Item: repair-simulation
 value:: L
 effort:: S
@@ -78,7 +67,7 @@ lane:: heavy
 verdict:: current
 evidence:: Checked 2026-10-31 and stopped: no blueprint declares type:: audio, and only video-script declares video and file but has no sample under test/_samples_nn (samples there are write-through mirrors synced into iNNfo/specs/bluepriNNts/*/samples by scripts/sync-samples.mjs). A sample with audio, video and file fields therefore needs a published blueprint change (audio field type, version bump, repin) plus a new sample mapping, which exceeds the light lane. test/console-s3b-parity.test.mjs:52-58,230-235 still covers video with an inline fixture.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
-batch:: b1-light-cleanup
+batch:: b2-published-blueprints
 
 ## NN Item: sources-blueprint-drift
 value:: M
@@ -252,7 +241,7 @@ status:: open
 lane:: heavy
 verdict:: current
 evidence:: iNNfo/packages/nn-core and nn-mcp are still nested under iNNfo/ and no top-level packages/ exists; git grep -lF iNNfo/packages returned 116 files across code, docs and openspec on 2026-10-31.
-done_when:: Packages live at packages/, workspaces and every path reference are updated, and CI is green after a clean npm ci. Preconditions - no open session worktrees and re-measure git grep -lF iNNfo/packages first.
+done_when:: Packages live at packages/, workspaces and every path reference are updated, and CI is green after a clean npm ci. Preconditions - no open session worktrees and re-measure git grep -lF iNNfo/packages first. Scope is bounded by openspec/decisions/keep-published-paths-frozen.md (iNNfo/specs, skills, manifest and docs do not move).
 batch:: b9-packages-to-root
 
 ## NN Item: kb-change-governance
@@ -294,24 +283,17 @@ evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no arch
 
 # NN Batch
 
-## NN Batch: b0-bookkeeping
-order:: 1
-lane:: light
-items:: adr-keep-published-paths-frozen
-risk:: L
-state:: planned
-
 ## NN Batch: b1-light-cleanup
 order:: 2
 lane:: light
-items:: repair-simulation, sample-media-fields
+items:: repair-simulation
 risk:: L
 state:: in-progress
 
 ## NN Batch: b2-published-blueprints
 order:: 3
 lane:: heavy
-items:: sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion
+items:: sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion, sample-media-fields
 risk:: M
 state:: planned
 
