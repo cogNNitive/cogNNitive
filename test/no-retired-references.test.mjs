@@ -81,7 +81,6 @@ const HUB_ALLOWLIST = [
   'test/fixtures/testlab/',
   'test/simulation/FINDINGS.md',
   'test/simulation/results/',
-  'openspec/backlog.md',
   SELF,
 ]
 const HUB_NEEDLES = ['workspacehub', 'workspaceconsoleshub', 'workspaceconsolehub', 'consolehubview', 'compileworkspacehub', 'compilehub']
