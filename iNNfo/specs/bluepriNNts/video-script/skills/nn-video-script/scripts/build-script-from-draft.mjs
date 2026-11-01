@@ -16,7 +16,7 @@
  * `fit`) are never written.
  *
  * Usage:
- *   node build-script-from-draft.mjs <slug>_reviewed.json [--draft <draft.json>]
+ *   node build-script-from-draft.mjs reviewed.json [--draft <draft.json>]
  *     [--series <series-dir>] [--out <script_NN.md>]
  */
 
@@ -25,6 +25,7 @@ import path from 'node:path';
 import { loadCascadeBags, resolve, findSeriesRoot } from './lib/video-scope.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
 import { parseKnowledgeDocument, slugify } from './lib/knowledge-model.mjs';
+import { assertNoLegacyKeys } from './lib/legacy-draft-keys.mjs';
 
 /** The raw frontmatter block (between the `---` fences) of an iNNfo document. */
 export function extractFrontmatter(content) {
@@ -127,6 +128,8 @@ export function loadSeriesFor(inputDir, seriesDirFlag) {
 
 /** Pure: build the L3 script markdown from a reviewed draft and the cascade bags. */
 export function buildScript(reviewed, draft, options = {}) {
+  assertNoLegacyKeys(reviewed, 'reviewed.json');
+  if (draft) assertNoLegacyKeys(draft, 'draft.json');
   const bags = options.bags || {};
   const frontmatter = options.frontmatter || '';
   const byslug = new Map((reviewed.scenes || []).map((s) => [s.slug, s]));
@@ -149,7 +152,7 @@ export function buildScript(reviewed, draft, options = {}) {
   const presetsFor = (scene) => {
     const fromDraft = draftBySlug.get(scene.slug);
     const fromReviewed = byslug.get(scene.slug);
-    return presetName((fromDraft && fromDraft.template) || (fromReviewed && fromReviewed.template) || '');
+    return presetName((fromDraft && fromDraft.presets) || (fromReviewed && fromReviewed.presets) || '');
   };
 
   function layersFor(scene, choice) {
@@ -291,7 +294,16 @@ function main() {
   const frontmatter = series ? series.frontmatter : '';
   const seriesSlug = (series && series.slug) || (bags.series && bags.series.slug) || reviewed.slug;
   const outPath = flag('--out') || path.join(inputDir, scriptFilename(seriesSlug, reviewed.slug));
-  const md = buildScript(reviewed, draft, { bags, frontmatter });
+  let md;
+  try {
+    assertNoLegacyKeys(reviewed, reviewedPath);
+    if (draft) assertNoLegacyKeys(draft, draftPath);
+    md = buildScript(reviewed, draft, { bags, frontmatter });
+  } catch (e) {
+    if (e.code !== 'legacy-draft-keys') throw e;
+    console.error('build-script-from-draft: ' + e.message);
+    process.exit(1);
+  }
   fs.writeFileSync(outPath, md, 'utf8');
   console.log('Script written: ' + outPath + ' (' + (Buffer.byteLength(md) / 1024).toFixed(1) + ' KB)');
 }

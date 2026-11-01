@@ -64,7 +64,7 @@ const reviewed = {
 };
 const draft = {
   scenes: [
-    { slug: '00-gancho', name: '00 Gancho', template: '[[Other Series :: Full]]' },
+    { slug: '00-gancho', name: '00 Gancho', presets: '[[Other Series :: Full]]' },
     { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
     { slug: '02-noticia', name: '02 Noticia' },
   ],
@@ -242,3 +242,16 @@ test('a fixed scene falls back to visual.asset or asset when cascade has no intr
   assert.match(md2, /asset:: media\/visual-fallback\.mp4/);
 });
 
+
+test('an episode with reviewed.json and no draft.json builds its script', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'reviewed-only-'));
+  fs.writeFileSync(path.join(dir, 'reviewed.json'), JSON.stringify(reviewed));
+  const cli = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'build-script-from-draft.mjs');
+  const r = spawnSync(process.execPath, [cli, path.join(dir, 'reviewed.json')], { encoding: 'utf8' });
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(files.length, 1);
+  assert.match(files[0], /^demo_video-script_.+_NN\.md$/);
+});

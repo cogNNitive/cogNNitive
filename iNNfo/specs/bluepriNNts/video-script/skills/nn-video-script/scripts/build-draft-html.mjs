@@ -12,8 +12,12 @@
  * (`{{SERIES}}`).
  *
  * Usage:
- *   node build-draft-html.mjs <slug>_draft_V_x-y-z.json [--out <file.html>]
+ *   node build-draft-html.mjs draft.json [--out <file.html>]
  *     [--series <dir>] [--series-title <name>]
+ *
+ * Writes `review_console.html` next to the draft and embeds `reviewed.json` when
+ * it sits beside it. A draft or reviewed JSON with a retired key is rejected
+ * (`legacy-draft-keys`).
  */
 
 import fs from 'node:fs';
@@ -21,6 +25,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSeriesFor } from './build-script-from-draft.mjs';
 import { findBlueprintPackage } from './lib/video-scope.mjs';
+import { RETIRED_DRAFT_KEYS, findLegacyKeys, assertNoLegacyKeys } from './lib/legacy-draft-keys.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -156,6 +161,8 @@ export function normalizeAnimationTiers(draft) {
 }
 
 export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 'Series', title, description, reviewed } = {}) {
+  assertNoLegacyKeys(rawDraft, 'draft.json');
+  if (reviewed) assertNoLegacyKeys(reviewed, 'reviewed.json');
   const draft = normalizeAnimationTiers(rawDraft);
   const mimeFor = (p) => {
     const e = path.extname(p).toLowerCase();
@@ -204,7 +211,9 @@ export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 
     .replace(/\{\{BLUEPRINT_VERSION\}\}/g, blueprintVersion())
     .replace('/*__DRAFT_JSON__*/', JSON.stringify(draft))
     .replace('/*__THUMBS_JSON__*/', JSON.stringify(thumbs))
-    .replace('/*__REVIEWED_JSON__*/', reviewedJson);
+    .replace('/*__REVIEWED_JSON__*/', reviewedJson)
+    .replace('/*__RETIRED_KEYS__*/', () => JSON.stringify(RETIRED_DRAFT_KEYS))
+    .replace('/*__FIND_LEGACY_KEYS__*/', () => findLegacyKeys.toString());
 }
 
 function main() {
@@ -220,8 +229,6 @@ function main() {
   }
   const draft = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   const baseDir = path.dirname(jsonPath);
-  const slug = draft.slug || path.basename(jsonPath).replace(/_draft.*\.json$/, '').replace(/\.json$/, '');
-  const version = draft.version || 'v1';
 
   // Never build the console over missing evidence (#429): every media file and every thumbnail without an inline copy must exist.
   const absent = (draft.media || [])
@@ -235,7 +242,7 @@ function main() {
     process.exit(1);
   }
 
-  const reviewedPath = path.join(baseDir, `${slug}_reviewed.json`);
+  const reviewedPath = path.join(baseDir, 'reviewed.json');
   let reviewed = null;
   if (fs.existsSync(reviewedPath)) {
     try {
@@ -244,29 +251,29 @@ function main() {
   }
 
   const out = argValue(argv, 'out');
-  const reviewConsolePath = out ? path.resolve(out) : path.join(baseDir, `${slug}_review_console.html`);
-  const legacyDraftPath = path.join(baseDir, `${slug}_draft_${version}.html`);
+  const reviewConsolePath = out ? path.resolve(out) : path.join(baseDir, 'review_console.html');
 
   const series = loadSeriesFor(baseDir, argValue(argv, 'series'));
   const seriesTitle = argValue(argv, 'series-title') || (series && series.title) || (draft.series || 'Series');
 
-  const html = buildDraftHtml(draft, {
-    baseDir,
-    templatePath: path.join(__dirname, 'draft-template.html'),
-    seriesTitle,
-    reviewed,
-  });
+  let html;
+  try {
+    html = buildDraftHtml(draft, {
+      baseDir,
+      templatePath: path.join(__dirname, 'draft-template.html'),
+      seriesTitle,
+      reviewed,
+    });
+  } catch (e) {
+    if (e.code !== 'legacy-draft-keys') throw e;
+    console.error('build-draft-html: ' + e.message);
+    process.exit(1);
+  }
 
   fs.writeFileSync(reviewConsolePath, html, 'utf8');
-  if (!out) {
-    fs.writeFileSync(legacyDraftPath, html, 'utf8');
-  }
 
   const embedded = (html.match(/data:[^"]+;base64,/g) || []).length;
   console.log('Review console HTML written: ' + reviewConsolePath + ' (' + (Buffer.byteLength(html) / 1024).toFixed(0) + ' KB, ' + embedded + ' thumbnails embedded)');
-  if (!out) {
-    console.log('Legacy draft alias written: ' + legacyDraftPath);
-  }
 }
 
 const isMain =
