@@ -82,12 +82,11 @@ test('extraArgs are appended verbatim to the hyperframes render command', async 
 test('renderVideo surfaces the captured detail in the named error and forwards hyperframesArgs', async () => {
   const dir = tmp();
   const manifestPath = path.join(dir, 'manifest.json');
-  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  fs.writeFileSync(manifestPath, JSON.stringify({ ...manifest, metadata: { buildDir: path.join(dir, 'build'), videoSlug: 'demo-video' } }));
   let seen;
   await assert.rejects(
     renderVideo({
       manifestPath,
-      outputVideoPath: path.join(dir, 'out.mp4'),
       hyperframesArgs: ['--workers', '2'],
       hyperframesRun: async (cmd, args) => {
         seen = args;

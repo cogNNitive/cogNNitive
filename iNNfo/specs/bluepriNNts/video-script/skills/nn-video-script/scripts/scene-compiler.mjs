@@ -468,6 +468,7 @@ export class SceneCompiler {
 
     return {
       title: videoEl.fields?.title || videoEl.name || model?.frontmatter?.title || 'video',
+      slug: videoEl.slug,
       fps: options.fps || this.fps,
       width,
       height,
@@ -818,6 +819,8 @@ export class SceneCompiler {
         generator: 'cogNNitive Video Engine',
         generatedAt: new Date().toISOString(),
         scriptSource,
+        // The Video element's reserved slug: the render names the master after it.
+        ...(parsed.slug ? { videoSlug: parsed.slug } : {}),
       },
     };
   }

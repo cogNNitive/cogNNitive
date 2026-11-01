@@ -107,9 +107,9 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
 
 6. **Render the Master (one 1920x1920 file)**:
    ```bash
-   node scripts/video-engine-cli.mjs render <script_NN.md> --output <episode-dir>/<slug>_1920x1920.mp4
+   node scripts/video-engine-cli.mjs render <script_NN.md>
    ```
-   *`render` takes the SCRIPT (a manifest argument is a usage error) and compiles first, so a stale manifest can never be rendered. The master size comes from the declared `master_resolution` in the domain Video Defaults; there is no `--format`, `--width` or `--height` and no 9:16 recompile. The master is written in place through a temp file in `build/`, so the path holds either the previous complete master or the new one. A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render`; `--allow-mock` is only for CI placeholders. A presenter Layer with no cached avatar clip stops the render before it starts.*
+   *`render` takes the SCRIPT (a manifest argument is a usage error) and compiles first, so a stale manifest can never be rendered. It has no output option: the master is always `<episode-dir>/<slug>_1920x1920.mp4`, and `compile` has no `--output`/`--out` either (the manifest is always `build/manifest.json`). The master size comes from the declared `master_resolution` in the domain Video Defaults; there is no `--format`, `--width` or `--height` and no 9:16 recompile. The master is written in place through a temp file in `build/`, so the path holds either the previous complete master or the new one. A HyperFrames failure is a loud, non-zero error that includes the tail of the CLI's stderr — there is no FFmpeg fallback. Everything after a literal `--` is forwarded verbatim to `hyperframes render`; `--allow-mock` is only for CI placeholders. A presenter Layer with no cached avatar clip stops the render before it starts.*
 7. **Compose Video Thumbnail**:
    ```bash
    node scripts/render-thumbnail.mjs --base <path> --title <title> --out <out> [--series <series-dir>]
