@@ -154,37 +154,14 @@ in the trace.
 
 ### Requirement: MCP resolve_effective And explain Tools
 
-nn-mcp MUST expose a `resolve_effective` tool and an `explain` tool. Both MUST accept a
-document or scope `path` (domain-relative, or absolute inside the server's domaiNN), a `key`,
-a `strategy` (`override`, `union` or `none`) and an optional element target
-`{ concept, slug }` naming a declared scope element of that document. Both MUST locate scopes
-through `findScopeChain` (and, with an element target, `loadElementChain`), MUST obtain the
-value and the trace from nn-core `resolve` (no second fold in nn-mcp), and MUST NOT write.
+nn-mcp MUST expose a `resolve_effective` tool and an `explain` tool. Both MUST accept a document or scope `path` (domain-relative, or absolute inside the server's domaiNN), a `key`, a `strategy` (`override`, `union` or `none`) and an optional element target `{ concept, slug }` naming a declared scope element of that document. Both MUST locate scopes through `findScopeChain` (and, with an element target, `loadElementChain`), MUST obtain the value and the trace from nn-core `resolve` (no second fold in nn-mcp), and MUST NOT write.
 
-`resolve_effective` MUST return the effective value, whether it is present, the winner and
-the trace. `explain` MUST return the same trace plus the chain of scopes it was computed over
-(node id, kind, supplier document and `isolate` flag, outermost first) and the floor supplier.
-Neither MUST return a composed procedure.
+`resolve_effective` MUST return the effective value, whether it is present, the winner and the trace. `explain` MUST return the same trace plus the chain of scopes it was computed over (node id, kind, supplier document and `isolate` flag, outermost first) and the floor supplier. Neither MUST return a composed procedure.
 
-The floor MUST be located by nn-mcp: the bluepriNNt package named by the `parent_spec` of the
-innermost values document of the chain is resolved through the bluepriNNt package resolver
-(`resolveBlueprintPackage`), and its floor is the single `_NN.md` under the package's
-`defaults/` folder. A package that cannot be resolved, or has no `defaults/` document, means
-no floor and is not an error; more than one `_NN.md` under `defaults/` is the structured
-error `AMBIGUOUS_FLOOR`. A `parent_spec.name` that is a path (it contains `/`, `\` or `..`) is the
-structured error `INVALID_PARENT_SPEC` naming the document, and an I/O failure other than
-absence while reading the package or its `defaults/` folder is `FLOOR_UNREADABLE`; neither is
-silently treated as "no floor".
+The floor MUST be located by nn-mcp: the bluepriNNt package named by the `parent_spec` of the innermost values document of the chain is resolved through the bluepriNNt package resolver (`resolveBlueprintPackage`), and its floor is the single `_NN.md` under the package's `defaults/` folder. A package that cannot be resolved, or has no `defaults/` document, means no floor and is not an error; more than one `_NN.md` under `defaults/` is the structured error `AMBIGUOUS_FLOOR`. A `parent_spec.name` that is a path (it contains `/`, `\` or `..`) is the structured error `INVALID_PARENT_SPEC` naming the document, and an I/O failure other than absence while reading the package or its `defaults/` folder is `FLOOR_UNREADABLE`; neither is silently treated as "no floor".
 
-Both tools MUST return a structured error, never a thrown exception or a rejected call, with
-a stable `code` and a `detail`: `INVALID_ARGUMENT` (a missing or ill-typed input),
-`PATH_OUTSIDE_SCOPE` (the path, or the domaiNN it belongs to, is outside the server's domain root, including through a link), `INVALID_PARENT_SPEC`, `FLOOR_UNREADABLE`, `NO_DOMAIN_ROOT` (with
-the directories `searched`), `UNSUPPORTED_STRATEGY`, the element errors of the element
-adapter, and the document errors `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (with the
-domain-relative `path`). Every response MUST survive `JSON.stringify` then `JSON.parse` with
-deep equality and MUST NOT contain absolute machine paths other than inside `searched`; error
-details are scrubbed to domain-relative form and an unexpected failure is the generic
-`INTERNAL_ERROR` without paths.
+Both tools MUST return a structured error, never a thrown exception or a rejected call, with a stable `code` and a `detail`: `INVALID_ARGUMENT` (a missing or ill-typed input), `PATH_OUTSIDE_SCOPE` (the path, or the domaiNN it belongs to, is outside the server's domain root, including through a link), `INVALID_PARENT_SPEC`, `FLOOR_UNREADABLE`, `NO_DOMAIN_ROOT` (with the directories `searched`), `UNSUPPORTED_STRATEGY`, the element errors of the element adapter, and the document errors `UNREADABLE_DOCUMENT` and `MALFORMED_FRONTMATTER` (with the domain-relative `path`). Every response MUST survive `JSON.stringify` then `JSON.parse` with deep equality and MUST NOT contain absolute machine paths other than inside `searched`; error details are scrubbed to domain-relative form and an unexpected failure is the generic `INTERNAL_ERROR` without paths.
+(Previously: the "Element target" scenario used the key `music_volume`; behavior is unchanged.)
 
 #### Scenario: resolve_effective returns value and winner
 
@@ -201,8 +178,8 @@ details are scrubbed to domain-relative form and an unexpected failure is the ge
 
 #### Scenario: Element target
 
-- GIVEN a document declaring `scope_elements` and a scene element declaring `music_volume: 0.06` below a series declaring `0.4`
-- WHEN `resolve_effective` is called for that document, the key `music_volume`, `override` and the target `{ concept: Scene, slug }`
+- GIVEN a document declaring `scope_elements` and a scene element declaring `background_audio_volume: 0.06` below a series declaring `0.4`
+- WHEN `resolve_effective` is called for that document, the key `background_audio_volume`, `override` and the target `{ concept: Scene, slug }`
 - THEN the value is `0.06`, the winner is the scene element, and the trace lists the series' `0.4` as overridden by it
 
 #### Scenario: none keeps an omitted value absent
@@ -356,4 +333,3 @@ its input chains, and MUST NOT mutate its input.
 - GIVEN a deep-frozen or snapshotted input
 - WHEN the report is built
 - THEN the input is deeply equal to its snapshot afterwards
-

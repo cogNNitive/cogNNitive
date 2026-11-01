@@ -8,7 +8,10 @@ Updates the `video-template` capability to migrate procedural workflows and nami
 
 ### Requirement: Video Generation Procedure Migration
 
-The video production template MUST provide the video generation procedure under the canonical name `generate_video_script_NN.md`. This procedure MUST instruct and orchestrate script authoring, asset synthesis, composition generation, and video rendering using internal `cogNNitive Video` CLI tools instead of external desktop applications. The template MUST NOT ship any deprecated redirect procedure alongside it.
+The video production template MUST provide the video generation procedure under the canonical name `generate_video_script_NN.md`. This procedure MUST instruct and orchestrate script authoring, asset synthesis, composition generation, and video rendering using internal `cogNNitive Video` CLI tools instead of external desktop applications, following the workflow estimate, approve, produce, thumbnails, finalize: it MUST render one 1920x1920 master and derive every other format from it, and MUST write the platform-neutral `description.md` chapter block only after the render. The template MUST NOT ship any deprecated redirect procedure alongside it.
+(Previously: the procedure listed no workflow order; the description was authored before durations existed and a native 9:16 master was an option.)
+
+Source: D3, D6, D8.
 
 #### Scenario: Script-to-video workflow executed via cogNNitive Video CLI
 - GIVEN a video project utilizing the `video` template
@@ -20,7 +23,11 @@ The video production template MUST provide the video generation procedure under 
 - WHEN it is inspected
 - THEN `generate-video-script` is the only script-generation procedure and no entry is marked deprecated
 
----
+#### Scenario: Single master and late description
+- GIVEN the procedure's steps
+- WHEN they are read in order
+- THEN a single 1920x1920 render precedes format derivation and the chapter block is generated after the render
+- AND no step recompiles for a 9:16 master
 
 ### Requirement: Naming Rebranding
 

@@ -16,7 +16,8 @@ Defines the four-level production hierarchy — Workspace → Subject → Series
 
 ### Requirement: Four-Level Hierarchy
 
-The system MUST recognize four production levels: Workspace, Subject, Series, and Video. Subject MUST represent the content (facts and sources). Series MUST represent the production format: one procedure extending the generic script-generation procedure, one script template, and shared series assets. Video MUST combine exactly one Subject with exactly one Series.
+The system MUST recognize four production levels: Workspace, Subject, Series, and Video. Subject MUST represent the content (facts and sources). Series MUST represent the production format: one procedure extending the generic script-generation procedure, its Presets (see capability `video-presets`), and shared series assets. Video MUST combine exactly one Subject with exactly one Series.
+(Previously: Series supplied "one script template" instead of its Presets.)
 
 #### Scenario: A Video declares its Subject and Series
 - GIVEN a Video Element being authored
@@ -28,14 +29,10 @@ The system MUST recognize four production levels: Workspace, Subject, Series, an
 - WHEN a new Video is authored for the same Subject under Series B
 - THEN the Subject content is reused unchanged and no coupling to Series A is required
 
-### Requirement: Series Represented as a Reused Video-Template Model
-
-A Series MUST be represented as a Level-3 model of the existing `video` template — not a new Level-2 template — located at `series/{series-slug}/{Name}_V_x-y-z_video_NN.md`. Its frontmatter MUST declare a `series:` block naming, at minimum: the procedure it extends, the path to its script template, and the path to its shared series-assets folder. This representation MUST NOT introduce a new iNNfo Concept/Field Definition template, a new `template_version` axis, or a new spec pin for Series as its own concept.
-
-#### Scenario: Video resolves its Series registry
-- GIVEN a Video referencing Series `X`
-- WHEN the owning procedure runs
-- THEN it locates `X`'s `video`-template model file and reads the procedure, script-template, and assets-folder entries from its `series:` frontmatter block
+#### Scenario: Series supplies presets
+- GIVEN a Series whose scope document defines a Preset `Lucas`
+- WHEN a Video of that Series references `presets:: [Lucas]`
+- THEN the Preset is resolved from the Series and no script template is required for it
 
 ### Requirement: Subject Referenced Generically, Not Standardized
 
@@ -50,3 +47,27 @@ Video MUST reference its Subject through a generic, reserved-property-style link
 - GIVEN this change's `manifest/source.yaml` diff
 - WHEN inspected
 - THEN no new Subject template entry is present
+
+### Requirement: Series Is A Folder Anchored By Its Scope Document
+
+A Series MUST be the folder `series/<s>/` anchored by its scope document `<s>_scope_NN.md` carrying `scope: true` and the `# NN Series` element, MUST be found through the nn-core scope chain, and MUST NOT require a `video`-template model file, a `series:` frontmatter block, a script-template path or a shared-assets path entry.
+
+Source: D9, settled default 5.
+
+#### Scenario: Video resolves its Series from the scope chain
+
+- GIVEN a Video in `series/X/assets/e/` and `series/X/X_scope_NN.md` with `scope: true`
+- WHEN the owning procedure runs
+- THEN it locates Series `X` through the scope chain and reads its values from the scope document
+
+#### Scenario: No reused video-template record is needed
+
+- GIVEN a series folder with a scope document and no `{Name}_V_x-y-z_video_NN.md`
+- WHEN a Video of that series is authored
+- THEN authoring succeeds
+
+#### Scenario: Old record is listed, not read
+
+- GIVEN a series folder that still holds `{Name}_V_x-y-z_video_NN.md` with a `series:` block
+- WHEN the engine runs over that series
+- THEN the engine reads no value from it and the file is left untouched
