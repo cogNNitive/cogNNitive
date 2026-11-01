@@ -15,7 +15,7 @@ import { buildTtsVoiceOptions } from '../scripts/lib/tts-options.mjs';
 import { loadPresetIndex } from '../scripts/lib/presets.mjs';
 import { CacheManager } from '../scripts/cache-manager.mjs';
 
-const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
+const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1920 });
 const cache = new CacheManager({ baseDir: 'C:/tmp/nn-model-params' });
 const NARRATION = 'Same narration words here.';
 

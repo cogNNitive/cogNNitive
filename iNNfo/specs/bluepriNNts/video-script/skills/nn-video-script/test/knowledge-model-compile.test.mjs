@@ -131,7 +131,7 @@ async function runTests() {
     const model = loadKnowledgeModel(scriptPath);
     assert.ok(model.elements, 'reader produces a read_knowledge-shaped model');
     const bags = BAGS;
-    const compiler = new SceneCompiler();
+    const compiler = new SceneCompiler({ width: 1920, height: 1920 });
     const manifest = compiler.compile(model, { bags });
 
     assert.strictEqual(manifest.version, '1.0.0');
@@ -159,7 +159,7 @@ async function runTests() {
     assert.ok(drawTypes.includes('video'));
 
     // The Preset supplies the voice and the model through the cascade.
-    const lowered = new SceneCompiler().lowerKnowledgeModel(model, { bags });
+    const lowered = new SceneCompiler({ width: 1920, height: 1920 }).lowerKnowledgeModel(model, { bags });
     assert.strictEqual(lowered.scenes[0].properties.scene_voice, 'demo-voice');
     assert.strictEqual(lowered.scenes[0].properties.scene_voice_model, 'minimax/speech-2.8-hd');
 
@@ -178,7 +178,7 @@ async function runTests() {
         ],
       },
     };
-    const manifest = new SceneCompiler().compile(model);
+    const manifest = new SceneCompiler({ width: 1920, height: 1920 }).compile(model);
     const seq = manifest.tracks.overlays.filter((o) => o.type === 'quote').sort((a, b) => a.fromFrame - b.fromFrame);
     assert.strictEqual(seq.length, 2);
     assert.ok(seq[1].fromFrame >= seq[0].fromFrame + seq[0].durationInFrames, 'overlays never overlap');
@@ -187,7 +187,7 @@ async function runTests() {
 
   // 3. The guard rejects invalid documents before any manifest.
   {
-    const compiler = new SceneCompiler();
+    const compiler = new SceneCompiler({ width: 1920, height: 1920 });
     // Two Videos.
     assert.throws(
       () => compiler.compile({ elements: { Video: [{ name: 'a' }, { name: 'b' }], Scene: [], Layer: [] } }),
@@ -263,7 +263,7 @@ async function runTests() {
       }
     }
     // The compiler accepts exactly this shape and rejects raw markdown.
-    const compiler = new SceneCompiler();
+    const compiler = new SceneCompiler({ width: 1920, height: 1920 });
     assert.ok(compiler.compile(adapted, { bags: BAGS }).tracks.scenes.length > 0);
     assert.throws(() => compiler.compile(SAMPLE_DOC), (e) => e instanceof ScriptValidationError);
     console.log('✔ structural adapter stays contract-aligned with read_knowledge (drift guard)');
@@ -301,7 +301,7 @@ prompt:: Talking head
     assert.strictEqual(adapted.elements.Layer[0].parentSlug, 'first-scene');
     assert.strictEqual(adapted.elements.Layer[1].parentSlug, 'first-scene');
 
-    const compiler = new SceneCompiler();
+    const compiler = new SceneCompiler({ width: 1920, height: 1920 });
     const manifest = compiler.compile(adapted);
     assert.strictEqual(manifest.tracks.scenes.length, 1);
     assert.strictEqual(manifest.tracks.scenes[0].props.layers.length, 1);

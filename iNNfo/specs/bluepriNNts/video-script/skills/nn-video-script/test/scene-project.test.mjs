@@ -106,11 +106,19 @@ test('emitHyperframesProject writes the tree and is idempotent', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('presenter layer anchors object-position at center 12% in widescreen (16:9) to preserve headroom', () => {
+test('the square master carries no widescreen headroom offset', () => {
   const f = fixture();
   f.width = 1920;
-  f.height = 1080;
+  f.height = 1920;
   const { compositions } = buildProject(f);
   const intro = compositions.find((c) => c.slug === 'intro').html;
-  assert.match(intro, /object-position:\s*center 12%/);
+  assert.doesNotMatch(intro, /center 12%/);
+  assert.match(intro, /object-position:\s*center center/);
+});
+
+test('a manifest without width/height is refused instead of assuming 1920x1080', () => {
+  const f = fixture();
+  delete f.width;
+  delete f.height;
+  assert.throws(() => buildProject(f), /width\/height/);
 });

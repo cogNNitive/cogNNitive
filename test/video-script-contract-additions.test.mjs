@@ -164,7 +164,7 @@ async function runTests() {
 
   // 6. The blueprint contract itself (capability video-blueprint and video-presets).
   {
-    assert.match(SPEC, /^blueprint_version: "V_0-14-0"$/m, 'the blueprint declares V_0-14-0');
+    assert.match(SPEC, /^blueprint_version: "V_0-14-1"$/m, 'the blueprint declares V_0-14-1');
     assert.match(SPEC, /^## NN Concept Definition: Preset$/m, 'Preset is a top-level Concept');
     assert.doesNotMatch(SPEC, /^## NN Concept Definition: Template$/m, 'Template is gone');
     assert.doesNotMatch(SPEC, /^## NN Field Definition: Template$/m);
@@ -202,7 +202,23 @@ async function runTests() {
     assert.doesNotMatch(DEFAULTS, /voice_speed::|voice_emotion::|voice_tone::/);
     assert.match(DEFAULTS, /^voice_model:: minimax\/speech-2\.8-hd$/m);
     assert.match(DEFAULTS, /^background_audio_volume:: 0\.2$/m);
-    assert.match(DEFAULTS, /^parent_spec:\n  name: "video-script_V_0-14-0"$/m);
+    assert.match(DEFAULTS, /^parent_spec:\n  name: "video-script_V_0-14-1"$/m);
+
+    // One declared master size; every delivery format is derived from it.
+    const masterResolution = fieldDefinition('master_resolution');
+    assert.ok(masterResolution, 'master_resolution is declared');
+    assert.match(masterResolution, /^concept:: Video Defaults$/m);
+    assert.match(masterResolution, /^type:: select$/m);
+    assert.match(masterResolution, /^options:: \[1920x1920\]$/m);
+    assert.match(DEFAULTS, /^master_resolution:: 1920x1920$/m);
+    assert.strictEqual(fieldDefinition('resolution'), null, 'resolution stays undeclared');
+    assert.strictEqual(fieldDefinition('format'), null, 'format stays undeclared');
+    assert.strictEqual(fieldDefinition('fps'), null, 'fps stays undeclared');
+    assert.match(fieldDefinition('master'), /square master `<slug>_1920x1920\.mp4`/);
+    assert.match(fieldDefinition('position'), /central safe square/);
+    assert.doesNotMatch(SPEC, /center 12%/);
+    assert.doesNotMatch(SPEC, /\bdual\b/);
+    console.log('OK one declared square master; delivery formats are derived, never modeled');
     console.log('OK blueprint contract: Preset concept, presets shape, retired names gone, defaults preset-free');
   }
 

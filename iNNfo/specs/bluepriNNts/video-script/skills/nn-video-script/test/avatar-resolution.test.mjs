@@ -33,7 +33,7 @@ test('the compiler lowers avatar_resolution onto the layer', () => {
       Layer: [{ type: 'Layer', name: 'p', slug: 'p', parentSlug: 's', fields: { type: 'presenter', asset: 'a.png', avatar_model: PRUNA, avatar_resolution: '768p' } }],
     },
   };
-  const lowered = new SceneCompiler().lowerKnowledgeModel(model);
+  const lowered = new SceneCompiler({ width: 1920, height: 1920 }).lowerKnowledgeModel(model);
   assert.equal(lowered.scenes[0].layers[0].properties.layer_avatar_resolution, '768p');
 });
 

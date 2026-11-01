@@ -14,7 +14,7 @@ import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 import { loadPresetIndex } from '../scripts/lib/presets.mjs';
 import { resolve } from '../scripts/lib/video-scope.mjs';
 
-const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
+const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1920 });
 
 function preset(name, fields) {
   return { type: 'Preset', name, slug: name.toLowerCase().replace(/\s+/g, '-'), fields };

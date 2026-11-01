@@ -260,15 +260,17 @@ export class SceneCompiler {
   /**
    * @param {Object} [options]
    * @param {number} [options.fps=30]
-   * @param {number} [options.width=1920]
-   * @param {number} [options.height=1080]
+   * @param {number} [options.width] Overrides the resolved `master_resolution`
+   * @param {number} [options.height]
    * @param {number} [options.wordsPerSecond=2.5]
    * @param {number} [options.defaultSceneDuration=5]
    */
   constructor(options = {}) {
     this.fps = options.fps || 30;
-    this.width = options.width || 1920;
-    this.height = options.height || 1080;
+    // The master size is declared data (`master_resolution`), never an engine
+    // default: no width/height fallback lives in code.
+    this.width = options.width;
+    this.height = options.height;
     this.wordsPerSecond = options.wordsPerSecond || 2.5;
     this.defaultSceneDuration = options.defaultSceneDuration || 5;
     /** Non-fatal compiler warnings. */
@@ -446,11 +448,30 @@ export class SceneCompiler {
       };
     });
 
+    // One declared master size for the whole episode: the delivery formats are
+    // derived from it, never rendered on their own (design D3).
+    const declared = resolve('master_resolution', { ...bags, video: videoEl.fields || {} }).value;
+    let width = options.width ?? this.width;
+    let height = options.height ?? this.height;
+    if (declared !== null && declared !== undefined && String(declared).trim() !== '') {
+      const m = /^(\d+)x(\d+)$/.exec(String(declared).trim());
+      if (!m) {
+        throw new Error(
+          `unsupported-master-resolution: "${declared}" — expected <width>x<height>, for example 1920x1920`,
+        );
+      }
+      if (width === undefined || height === undefined) {
+        width = Number(m[1]);
+        height = Number(m[2]);
+      }
+    }
+
     return {
       title: videoEl.fields?.title || videoEl.name || model?.frontmatter?.title || 'video',
       fps: options.fps || this.fps,
-      width: options.width || this.width,
-      height: options.height || this.height,
+      width,
+      height,
+      masterResolution: declared ?? null,
       videoProps: {},
       frame: resolve('frame', { ...bags, video: videoEl.fields || {} }),
       scenes,
@@ -612,8 +633,13 @@ export class SceneCompiler {
     }
 
     const fps = options.fps || parsed.fps || this.fps;
-    const width = options.width || parsed.width || this.width;
-    const height = options.height || parsed.height || this.height;
+    const width = options.width ?? parsed.width;
+    const height = options.height ?? parsed.height;
+    if (!width || !height) {
+      throw new Error(
+        'missing-master-resolution: the episode declares no master_resolution and no width/height was supplied',
+      );
+    }
     const audioDurations = options.audioDurations || {};
     const audioAssets = options.audioAssets || {};
     const animations = options.animations || {};

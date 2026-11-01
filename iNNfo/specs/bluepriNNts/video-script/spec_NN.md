@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-5-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-14-0"
+blueprint_version: "V_0-14-1"
 title: "Video Script App"
 relationship_types:
   hierarchy:
@@ -120,7 +120,7 @@ description:: The episode's script document, resolved under the owning model's d
 ## NN Field Definition: master
 concept:: Video
 type:: video
-description:: The episode's rendered master, resolved under the owning model's directory. For multi-platform delivery, the video engine compiles native dual masters (16:9 1920x1080 and 9:16 1080x1920) via HyperFrames with shared cached assets ($0 extra spend) and safe-zone-aware presenter headroom, avoiding lossy blur-fills.
+description:: The episode's square master `<slug>_1920x1920.mp4`. Delivery formats are derived by `render-formats` and never modeled.
 
 ## NN Field Definition: thumbnail
 concept:: Video
@@ -201,7 +201,7 @@ description:: Inline text for a Layer. Required for title, lower-third, quote, a
 concept:: Layer
 type:: select
 options:: [top, center, bottom, bottom-left, bottom-right]
-description:: Anchor position of the Layer. Optional. When rendering in horizontal widescreen (16:9), presenter and avatar layers without an explicit position automatically anchor at `center 12%` (cinematic headroom) to prevent facial clipping, while vertical (9:16) maintains full-body framing.
+description:: Overlay anchor inside the central safe square (the central 1080x1080 of the master).
 
 ## NN Field Definition: enter_animation
 concept:: Layer
@@ -259,6 +259,12 @@ description:: Delivery the provider synthesizes the narration with (e.g. `happy`
 concept:: [Video, Scene, Preset, Series, Video Defaults]
 type:: string
 description:: Free-form tone guidance for the author and the review console (e.g. `warm`, `authoritative`). Authoring guidance only: the engine never sends it to a provider, so it is not part of the cache key and never changes the synthesized audio.
+
+## NN Field Definition: master_resolution
+concept:: Video Defaults
+type:: select
+options:: [1920x1920]
+description:: Pixel size of the single rendered master. Every delivery format is derived from it; no format is rendered on its own.
 
 ## NN Field Definition: image_model
 concept:: [Video, Scene, Preset, Series, Video Defaults]
@@ -366,8 +372,8 @@ second Video element in the same document violates the one-video-per-script cons
 - Never add ordering, duration, or timing fields to the Video.
 - Point `script`, `master` and `thumbnail` at one file each, resolved under the owning model's
   directory.
-- Never model a format variant: the vertical and horizontal masters and thumbnails are derived
-  from `master` by the render-formats naming convention.
+- Never model a format variant: the vertical, horizontal and square delivery files and the
+  thumbnails are derived from `master` by the render-formats naming convention.
 
 ### Prompts
 

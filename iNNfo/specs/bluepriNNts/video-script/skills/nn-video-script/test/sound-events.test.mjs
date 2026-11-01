@@ -292,7 +292,7 @@ test('compileVideo warns once and succeeds for a blueprint-only sound name with 
     const res = await compileVideo({
       scriptPath,
       synthesizeAssets: false,
-      bags: { blueprint: { sounds: '[scene-boundary=whoosh]' } },
+      bags: { blueprint: { sounds: '[scene-boundary=whoosh]', master_resolution: '1920x1920' } },
     });
     assert.ok(res.manifest, 'the render still succeeds');
     assert.equal(warnings.filter((w) => /whoosh/.test(w)).length, 1);

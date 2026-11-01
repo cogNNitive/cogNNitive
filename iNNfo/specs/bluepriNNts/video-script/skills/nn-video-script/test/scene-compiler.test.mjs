@@ -37,7 +37,7 @@ function layer(name, slug, fields = {}) {
 
 async function runTests() {
   console.log('Running Scene Compiler unit tests...');
-  const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1080 });
+  const compiler = new SceneCompiler({ fps: 30, width: 1920, height: 1920 });
 
   // Test 1: compile into a typed manifest.
   {
@@ -70,7 +70,7 @@ async function runTests() {
         scene('Three', 'three', 'a b c'),
       ],
     });
-    const manifest = new SceneCompiler({ fps: 30, wordsPerSecond: 5 }).compile(m);
+    const manifest = new SceneCompiler({ fps: 30, wordsPerSecond: 5, width: 1920, height: 1920 }).compile(m);
     const [s1, s2, s3] = manifest.tracks.scenes;
     // 10 words / 5 wps = 2s -> max(3,2)=3s -> 90 frames.
     assert.strictEqual(s1.fromFrame, 0);

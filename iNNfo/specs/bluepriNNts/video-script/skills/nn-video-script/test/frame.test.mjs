@@ -97,7 +97,7 @@ test('the compiler resolves frame per scene through the cascade', () => {
     },
   };
   const bags = { series: { frame: 'brand' }, blueprint: { frame: 'neutral' } };
-  const parsed = new SceneCompiler().lowerKnowledgeModel(model, { bags });
+  const parsed = new SceneCompiler({ width: 1920, height: 1920 }).lowerKnowledgeModel(model, { bags });
   assert.deepEqual(parsed.scenes[0].frame, { value: 'night', source: 'scene' });
   assert.deepEqual(parsed.scenes[1].frame, { value: 'brand', source: 'series' });
   assert.deepEqual(parsed.frame, { value: 'brand', source: 'series' });
