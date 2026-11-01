@@ -58,7 +58,7 @@ package's `defaults/video-defaults_NN.md` there unchanged:
 cp <bluepriNNt package>/defaults/video-defaults_NN.md <domain root>/video-defaults_NN.md
 ```
 
-Domain tuning is an EDIT of that copy (voice, models, `music_volume`, `transition`, `fit`,
+Domain tuning is an EDIT of that copy (voice, models, `background_audio_volume`, `transition`, `fit`,
 `frame`, `components`, `sounds`). No script creates it; when it is absent the `domain` level is
 simply skipped and the package defaults apply.
 
@@ -66,14 +66,14 @@ simply skipped and the package defaults apply.
 
 This skill owns **authoring, validating, compiling, rendering, and finalizing** one video's script inside a Series folder:
 
-1. **Author** the video's Level-3 kNNowledge document (adopting the `video-script` blueprint, following the Series' `includes` blueprint and its L3 Template-data document; see `references/series-template-convention.md`). Allowed Field names and `type::` values are read from the `video-script` blueprint at run time — never restated as prose.
+1. **Author** the video's Level-3 kNNowledge document (adopting the `video-script` blueprint, following the Series' `includes` blueprint and its scope document plus its `Preset` elements; see `references/series-template-convention.md`). Allowed Field names and `type::` values are read from the `video-script` blueprint at run time — never restated as prose.
 1b. **Interactive Review Console & Human Review Gate** (`<slug>_review_console.html`):
    Before executing billable synthesis or committing the final L3 script, generate the interactive self-contained Review Console:
    ```bash
    node scripts/build-draft-html.mjs <draft.json>
    ```
-   This emits `<slug>_review_console.html` (and backwards-compatible `<slug>_draft_<version>.html`). The console provides:
-   - Parameter cascade inspection and overrides (`#video-params-sheet`): speed, fps, music volume, transition.
+   This emits `<slug>_review_console.html`. The console provides:
+   - Parameter cascade inspection and overrides (`#video-params-sheet`): voice speed, fps, background audio volume, transition, and the Preset list.
    - Global video overlay templates (`#video-overlays-sheet`).
    - Editorial hook variant selection and narration editing.
    - Visual option selection with 3-tier motion styling (ALTA, MEDIA, RÁPIDA) and storyboard lightbox inspection (`#modal-lightbox`).

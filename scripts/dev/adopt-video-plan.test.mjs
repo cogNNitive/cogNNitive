@@ -115,9 +115,9 @@ test('adopt-video-plan on unadopted fixture: plans domaiNN_NN.md, scope markers 
     assert.equal(plan.series.length, 1);
     assert.equal(plan.series[0].slug, 'my-series');
     assert.equal(plan.series[0].scopeMarker.status, 'planned-create');
-    assert.equal(plan.series[0].scopeMarker.hoisted.voice_id, 'Host01');
-    assert.equal(plan.series[0].scopeMarker.hoisted.music, '../../shared/tune.mp3');
-    assert.equal(plan.series[0].scopeMarker.hoisted.music_volume, '0.35');
+    assert.equal(plan.series[0].scopeMarker.hoisted.voice, 'Host01');
+    assert.equal(plan.series[0].scopeMarker.hoisted.background_audio, '../../shared/tune.mp3');
+    assert.equal(plan.series[0].scopeMarker.hoisted.background_audio_volume, '0.35');
     assert.equal(plan.series[0].scopeMarker.hoisted.transition, 'fade');
 
     assert.equal(plan.renames.length, 1);

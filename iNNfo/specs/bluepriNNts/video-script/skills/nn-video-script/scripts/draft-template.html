@@ -948,9 +948,9 @@
           const badgeLabel = hasOver ? "Video Override" : (c.origin || "series");
 
           let inputWidget = '';
-          if (c.key === 'music_volume') {
+          if (c.key === 'background_audio_volume') {
             inputWidget = '<input type="number" step="0.05" min="0" max="1" class="param-input ' + (hasOver ? 'overridden' : '') + '" value="' + currentVal + '" data-vparam="' + c.key + '">';
-          } else if (c.key === 'speed') {
+          } else if (c.key === 'voice_speed') {
             inputWidget = '<input type="number" step="0.05" min="0.5" max="2.0" class="param-input ' + (hasOver ? 'overridden' : '') + '" value="' + currentVal + '" data-vparam="' + c.key + '">';
           } else if (c.key === 'fps') {
             inputWidget = '<input type="number" step="1" min="15" max="60" class="param-input ' + (hasOver ? 'overridden' : '') + '" value="' + currentVal + '" data-vparam="' + c.key + '">';
@@ -1050,8 +1050,8 @@
           const isFixed = sc.kind === 'fixed';
 
           const scOver = sc.sceneOverrides || {};
-          const effMusic = scOver.music || getEffectiveVideoParam('music');
-          const effVol = scOver.music_volume !== undefined ? scOver.music_volume : getEffectiveVideoParam('music_volume');
+          const effMusic = scOver.background_audio || getEffectiveVideoParam('background_audio');
+          const effVol = scOver.background_audio_volume !== undefined ? scOver.background_audio_volume : getEffectiveVideoParam('background_audio_volume');
           const effTrans = scOver.transition || getEffectiveVideoParam('transition');
           const hasOverrides = Object.keys(scOver).length > 0;
 
@@ -1186,10 +1186,10 @@
               '<div class="scene-cascade-bar">' +
                 '<div class="scene-chips">' +
                   '<span style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Cascade Resolution:</span>' +
-                  '<div class="cascade-chip ' + (scOver.music_volume || scOver.music ? 'has-override' : '') + '">' +
+                  '<div class="cascade-chip ' + (scOver.background_audio_volume || scOver.background_audio ? 'has-override' : '') + '">' +
                     '<span class="icon sm">' + getSvg('music') + '</span>' +
                     'Music: <b>' + (effMusic ? String(effMusic).split('/').pop() : 'none') + '</b> (vol: ' + (effVol !== undefined ? effVol : 'default') + ')' +
-                    '<span class="src-badge ' + (scOver.music_volume ? 'override-scene' : 'series') + '">' + (scOver.music_volume ? 'Override' : 'Inherited') + '</span>' +
+                    '<span class="src-badge ' + (scOver.background_audio_volume ? 'override-scene' : 'series') + '">' + (scOver.background_audio_volume ? 'Override' : 'Inherited') + '</span>' +
                   '</div>' +
                   '<div class="cascade-chip ' + (scOver.transition ? 'has-override' : '') + '">' +
                     '<span class="icon sm">' + getSvg('sliders') + '</span>' +
@@ -1207,11 +1207,11 @@
               '<div class="scene-drawer" id="drawer-' + sc.slug + '">' +
                 '<div class="param-card">' +
                   '<div class="param-label-row"><span>Music Track (Override)</span></div>' +
-                  '<input type="text" class="param-input" placeholder="Inherited" value="' + (scOver.music || '') + '" data-sc-param="' + sc.slug + ':music">' +
+                  '<input type="text" class="param-input" placeholder="Inherited" value="' + (scOver.background_audio || '') + '" data-sc-param="' + sc.slug + ':background_audio">' +
                 '</div>' +
                 '<div class="param-card">' +
                   '<div class="param-label-row"><span>Music Volume</span></div>' +
-                  '<input type="number" step="0.05" min="0" max="1" class="param-input" placeholder="' + effVol + '" value="' + (scOver.music_volume !== undefined ? scOver.music_volume : '') + '" data-sc-param="' + sc.slug + ':music_volume">' +
+                  '<input type="number" step="0.05" min="0" max="1" class="param-input" placeholder="' + effVol + '" value="' + (scOver.background_audio_volume !== undefined ? scOver.background_audio_volume : '') + '" data-sc-param="' + sc.slug + ':background_audio_volume">' +
                 '</div>' +
                 '<div class="param-card">' +
                   '<div class="param-label-row"><span>Transition In</span></div>' +
@@ -1563,6 +1563,14 @@
         URL.revokeObjectURL(a.href);
       }
 
+      // A Preset is referenced by bare name, so only the trailing segment of the
+      // retired qualified form ("[[Doc :: Name]]") survives.
+      function presetName(value) {
+        const inner = String(value || '').trim().replace(/^\[\[|\]\]$/g, '');
+        const parts = inner.split('::').map((part) => part.trim()).filter(Boolean);
+        return parts.length ? parts[parts.length - 1] : '';
+      }
+
       function generateL3Markdown() {
         const p = buildReviewed();
         const out = [];
@@ -1580,7 +1588,7 @@
         out.push('## NN Video: ' + (p.title || p.slug));
         out.push('slug:: ' + p.slug);
         out.push('title:: ' + (p.title || p.slug));
-        if (p.videoOverrides && p.videoOverrides.template) out.push('template:: ' + p.videoOverrides.template);
+        if (p.videoOverrides && p.videoOverrides.template) out.push('presets:: [' + presetName(p.videoOverrides.template) + ']');
         if (p.videoOverrides && p.videoOverrides.frame) out.push('frame:: ' + p.videoOverrides.frame);
         out.push('');
         out.push('# NN Scene');
@@ -1590,9 +1598,9 @@
           out.push('## NN Scene: ' + sc.name);
           out.push('slug:: ' + sc.slug);
           const scOver = sc.sceneOverrides || {};
-          if (scOver.template) out.push('template:: ' + scOver.template);
-          if (scOver.music) out.push('music:: ' + scOver.music);
-          if (scOver.music_volume) out.push('music_volume:: ' + scOver.music_volume);
+          if (scOver.template) out.push('presets:: [' + presetName(scOver.template) + ']');
+          if (scOver.background_audio) out.push('background_audio:: ' + scOver.background_audio);
+          if (scOver.background_audio_volume) out.push('background_audio_volume:: ' + scOver.background_audio_volume);
           if (scOver.transition) out.push('transition:: ' + scOver.transition);
           out.push('');
           if (sc.kind !== 'fixed' && sc.narration) out.push(sc.narration);
@@ -1610,7 +1618,7 @@
             out.push('slug:: ' + sc.slug + '-presenter');
             out.push('type:: presenter');
             out.push('avatar_model:: ' + (ch.model || 'wavespeed-ai/infinitetalk-fast'));
-            if (ch.quality === 'ALTA') out.push('avatar_resolution:: ' + (ch.resolution || '768p'));
+            if (ch.resolution) out.push('avatar_resolution:: ' + ch.resolution);
           } else if (ch && ch.type === 'animation') {
             out.push('### NN Layer: ' + sc.name + ' Animation');
             out.push('slug:: ' + sc.slug + '-animation');

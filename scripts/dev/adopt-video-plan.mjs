@@ -96,9 +96,9 @@ if (existsSync(seriesBase) && statSync(seriesBase).isDirectory()) {
       // blocks of the series document), not from a synthetic series_NN.md.
       const values = seriesValues(absTarget, seriesSlug);
       const hoisted = {};
-      if (values.voice) hoisted.voice_id = values.voice;
-      if (values.music) hoisted.music = values.music;
-      if (values.volume !== null) hoisted.music_volume = String(values.volume);
+      if (values.voice) hoisted.voice = values.voice;
+      if (values.music) hoisted.background_audio = values.music;
+      if (values.volume !== null) hoisted.background_audio_volume = String(values.volume);
       if (values.transition) hoisted.transition = values.transition;
 
       seriesPlans.push({
