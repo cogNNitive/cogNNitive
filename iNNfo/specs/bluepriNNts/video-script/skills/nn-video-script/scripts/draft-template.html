@@ -837,6 +837,7 @@
     <script id="raw-draft-data" type="application/json">/*__DRAFT_JSON__*/</script>
     <script id="raw-thumbs-data" type="application/json">/*__THUMBS_JSON__*/</script>
     <script id="raw-reviewed-data" type="application/json">/*__REVIEWED_JSON__*/</script>
+    <script id="raw-retired-keys" type="application/json">/*__RETIRED_KEYS__*/</script>
 
     <script>
       const DRAFT = JSON.parse(document.getElementById("raw-draft-data")?.textContent || document.getElementById("draft-data")?.textContent || "{}");
@@ -847,6 +848,18 @@
       const PREV_REVIEWED = revScriptTag && revScriptTag.textContent.trim()
         ? JSON.parse(revScriptTag.textContent)
         : null;
+
+      // A draft or saved review carrying a retired key is refused, never silently dropped (same source as the Node tools).
+      /*__FIND_LEGACY_KEYS__*/
+      {
+        const retired = JSON.parse(document.getElementById("raw-retired-keys")?.textContent || "{}");
+        const bad = findLegacyKeys(DRAFT, retired).concat(PREV_REVIEWED ? findLegacyKeys(PREV_REVIEWED, retired) : []);
+        if (bad.length) {
+          const msg = "legacy-draft-keys: " + (DRAFT.slug || "this draft") + " carries retired keys: " + bad.map(f => f.key + " (" + f.at + ", now " + f.replacement + ")").join("; ") + ". Re-draft it, or produce this episode with the earlier blueprint version.";
+          document.body.textContent = msg;
+          throw new Error(msg);
+        }
+      }
 
       if (PREV_REVIEWED) {
         const badge = document.getElementById("header-status-badge");
@@ -1598,7 +1611,7 @@
         out.push('## NN Video: ' + (p.title || p.slug));
         out.push('slug:: ' + p.slug);
         out.push('title:: ' + (p.title || p.slug));
-        if (p.videoOverrides && p.videoOverrides.template) out.push('presets:: [' + presetName(p.videoOverrides.template) + ']');
+        if (p.videoOverrides && p.videoOverrides.presets) out.push('presets:: [' + presetName(p.videoOverrides.presets) + ']');
         if (p.videoOverrides && p.videoOverrides.frame) out.push('frame:: ' + p.videoOverrides.frame);
         out.push('');
         out.push('# NN Scene');
@@ -1608,7 +1621,7 @@
           out.push('## NN Scene: ' + sc.name);
           out.push('slug:: ' + sc.slug);
           const scOver = sc.sceneOverrides || {};
-          if (scOver.template) out.push('presets:: [' + presetName(scOver.template) + ']');
+          if (scOver.presets) out.push('presets:: [' + presetName(scOver.presets) + ']');
           if (scOver.background_audio) out.push('background_audio:: ' + scOver.background_audio);
           if (scOver.background_audio_volume) out.push('background_audio_volume:: ' + scOver.background_audio_volume);
           if (scOver.transition) out.push('transition:: ' + scOver.transition);
@@ -1678,7 +1691,7 @@
         }
 
         const fullHtml = '<!doctype html>\n' + document.documentElement.outerHTML;
-        const suggestedName = DRAFT.slug + '_review_console.html';
+        const suggestedName = 'review_console.html';
 
         if (window.showSaveFilePicker) {
           try {
@@ -1709,7 +1722,7 @@
       document.getElementById("btn-save-json")?.addEventListener("click", () => {
         const payload = buildReviewed();
         const text = JSON.stringify(payload, null, 2);
-        const name = DRAFT.slug + "_reviewed.json";
+        const name = "reviewed.json";
         download(name, text);
         showToast("Downloaded " + name);
       });

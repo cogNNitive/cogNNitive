@@ -81,6 +81,29 @@ test('gate: a missing thumbnail is tolerated when its inline copy is embedded', 
   assert.equal(r.wroteHtml, true);
 });
 
+// ---- Fixed file names: no slug, no version tag, no legacy alias ----
+
+test('the CLI reads draft.json and reviewed.json and writes only review_console.html', () => {
+  const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, 'draft.json'), JSON.stringify({ slug: 'demo', version: 'v3', title: 'Demo', media: [], scenes: [] }));
+  fs.writeFileSync(path.join(dir, 'reviewed.json'), JSON.stringify({ slug: 'demo', title: 'Demo', scenes: [] }));
+  const r = spawnSync(process.execPath, [SCRIPT, path.join(dir, 'draft.json')], { encoding: 'utf8' });
+  const files = fs.readdirSync(dir).sort();
+  const html = fs.existsSync(path.join(dir, 'review_console.html')) ? fs.readFileSync(path.join(dir, 'review_console.html'), 'utf8') : '';
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(files, ['draft.json', 'review_console.html', 'reviewed.json']);
+  assert.match(html, /video-script\.draft\.reviewed\.v1/);
+  assert.doesNotMatch(r.stdout, /alias/i);
+});
+
+test('the console downloads use the fixed names', () => {
+  const html = fs.readFileSync(TEMPLATE, 'utf8');
+  assert.match(html, /suggestedName = 'review_console\.html'/);
+  assert.match(html, /const name = "reviewed\.json"/);
+  assert.doesNotMatch(html, /DRAFT\.slug \+ ['"]_(review_console|reviewed)/);
+});
+
 // Coupling: the export logic is inline in the template, so we slice buildReviewed out by text markers; keep them in sync.
 // The export logic lives inline in the template; evaluate just `buildReviewed` against stub state.
 function loadBuildReviewed() {
