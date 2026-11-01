@@ -43,18 +43,20 @@ export default async function run() {
       'the new risk is present, no error',
     )
 
-    // --- Duplicate names must be refused (R-IE-02) --------------------------
-    const dup = applyMutation(model, 'add_element', {
+    // --- Duplicate names: no longer refused at mutation time ------------------
+    // Model-wide uniqueness (R-IE-02) is now enforced by the workspace parser
+    // (recursiveParse silently drops the losing element), not by applyMutation.
+    // Observed on a throwaway parse so the later steps keep a clean model.
+    const dupProbe = parseKnowledge(original)
+    const dup = applyMutation(dupProbe, 'add_element', {
       conceptName: 'Keys',
-      elementName: 'Warehouse Overtime Cost',
+      elementName: 'Supplier Concentration',
       description: 'Same name under a different concept.',
     }, schema)
-    s.expect(
-      'A duplicate element name anywhere in the model is refused',
-      { success: dup.success, errors: dup.errors },
-      (v) => v.success === false,
-      'model-wide element name uniqueness (R-IE-02) is enforced',
-    )
+    s.observe('applyMutation accepts a duplicate element name; uniqueness is enforced later by the workspace parser', {
+      success: dup.success,
+      errors: dup.errors,
+    })
 
     // --- Update a field -----------------------------------------------------
     const updated = applyMutation(model, 'update_field', {

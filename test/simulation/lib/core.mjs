@@ -45,7 +45,7 @@ export async function loadCore() {
   const stale = !existsSync(OUT) || statSync(OUT).mtimeMs < statSync(ENTRY).mtimeMs
   if (stale) {
     mkdirSync(OUT_DIR, { recursive: true })
-    const { build } = await import(pathToFileURL(join(ROOT, 'iNNfo', 'node_modules', 'esbuild', 'lib', 'main.js')).href)
+    const { build } = await import(pathToFileURL(join(ROOT, 'node_modules', 'esbuild', 'lib', 'main.js')).href)
     await build({
       entryPoints: [ENTRY],
       outfile: OUT,
