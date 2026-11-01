@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { buildDraftHtml } from '../scripts/build-draft-html.mjs';
 import { buildScript } from '../scripts/build-script-from-draft.mjs';
 
@@ -24,12 +25,60 @@ test('the draft HTML is self-contained and substitutes the series title', () => 
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('a missing thumbnail is skipped, not fatal', () => {
+test('a missing thumbnail is skipped by the pure builder, not fatal', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-html-'));
   const draft = { slug: 'demo', title: 'Demo', media: [{ id: 'm1', thumb: 'missing.jpg' }], scenes: [] };
   const html = buildDraftHtml(draft, { baseDir: dir, templatePath: TEMPLATE, seriesTitle: 'S' });
   assert.ok(html.length > 0);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// ---- Media gate (issue #429): the CLI never builds the console over missing evidence ----
+
+const SCRIPT = path.join(__dirname, '..', 'scripts', 'build-draft-html.mjs');
+
+function tmpDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'draft-html-gate-'));
+}
+
+function touch(dir, rel) {
+  const full = path.join(dir, rel);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, Buffer.from('fake-bytes'));
+}
+
+function runCli(media, files = []) {
+  const dir = tmpDir();
+  for (const f of files) touch(dir, f);
+  const json = path.join(dir, 'draft.json');
+  fs.writeFileSync(json, JSON.stringify({ slug: 'demo', title: 'Demo', media, scenes: [] }));
+  const r = spawnSync(process.execPath, [SCRIPT, json], { encoding: 'utf8' });
+  const wroteHtml = fs.readdirSync(dir).some((f) => f.endsWith('.html'));
+  fs.rmSync(dir, { recursive: true, force: true });
+  return { ...r, wroteHtml };
+}
+
+test('gate: a missing media file or thumbnail exits 1, names every file and writes no HTML', () => {
+  const r = runCli([
+    { id: 'a', path: 'media/gone.png', thumb: 'thumbs/gone.jpg' },
+    { id: 'b', path: 'media/ok.png' },
+  ], ['media/ok.png']);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /gone\.png/);
+  assert.match(r.stderr, /thumbs[\\/]gone\.jpg/);
+  assert.doesNotMatch(r.stderr, /ok\.png/);
+  assert.equal(r.wroteHtml, false);
+});
+
+test('gate: with every file present, or no media declared, the console is written', () => {
+  assert.equal(runCli([{ id: 'm1', path: 'media/a.png' }], ['media/a.png']).wroteHtml, true);
+  assert.equal(runCli([]).wroteHtml, true);
+});
+
+test('gate: a missing thumbnail is tolerated when its inline copy is embedded', () => {
+  const r = runCli([{ id: 'm1', path: 'media/a.png', thumb: 'missing.jpg', thumbB64: 'AAAA' }], ['media/a.png']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.wroteHtml, true);
 });
 
 // Coupling: the export logic is inline in the template, so we slice buildReviewed out by text markers; keep them in sync.
