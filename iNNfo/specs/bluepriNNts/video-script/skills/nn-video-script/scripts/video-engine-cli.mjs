@@ -639,7 +639,9 @@ export async function compileVideo(options) {
     parsed,
     scriptDir,
     cacheManager: new CacheManager({ baseDir: cacheDir, readOnly: true }),
-    audioFor: (sc) => audioAssets[sc.id]?.assetPath,
+    config: loaded.config,
+    models,
+    bags,
   });
 
   const manifest = compiler.compile(parsed, {
