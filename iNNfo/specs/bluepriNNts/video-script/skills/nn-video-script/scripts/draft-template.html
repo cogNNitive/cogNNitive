@@ -470,6 +470,25 @@
         color: #15803d;
       }
 
+      .preset-selector {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+      .preset-selector .cascade-chip button {
+        border: 0;
+        background: none;
+        cursor: pointer;
+        padding: 0;
+        color: inherit;
+      }
+      .preset-error {
+        flex-basis: 100%;
+        font-size: 12px;
+        color: #b91c1c;
+      }
+
       .scene-drawer {
         display: none;
         padding: 14px;
@@ -754,6 +773,7 @@
         <p style="font-size: 13px; color: var(--muted); margin-bottom: 12px;">
           Parameters resolved down the cascade hierarchy. Overrides specified here apply to all scenes unless a scene exception is defined.
         </p>
+        <div class="param-card" id="video-presets"></div>
         <div class="params-grid" id="video-params-grid"></div>
       </div>
     </div>
@@ -836,12 +856,16 @@
 
     <script id="raw-draft-data" type="application/json">/*__DRAFT_JSON__*/</script>
     <script id="raw-thumbs-data" type="application/json">/*__THUMBS_JSON__*/</script>
+    <script id="raw-presets-data" type="application/json">/*__PRESET_NAMES_JSON__*/</script>
     <script id="raw-reviewed-data" type="application/json">/*__REVIEWED_JSON__*/</script>
     <script id="raw-retired-keys" type="application/json">/*__RETIRED_KEYS__*/</script>
 
     <script>
       const DRAFT = JSON.parse(document.getElementById("raw-draft-data")?.textContent || document.getElementById("draft-data")?.textContent || "{}");
       const thumbs = JSON.parse(document.getElementById("raw-thumbs-data")?.textContent || document.getElementById("thumbs-data")?.textContent || "{}");
+
+      // The Preset names visible from the script's lookup order, computed at build time.
+      const PRESET_NAMES = JSON.parse(document.getElementById("raw-presets-data")?.textContent || "[]");
 
       // Check if previously saved
       const revScriptTag = document.getElementById("raw-reviewed-data");
@@ -868,9 +892,26 @@
         }
       }
 
+      // `presets` is an ordered list of names. A saved single string (the retired form) is
+      // reported inline and dropped, never coerced.
+      const presetErrors = {};
+      function takePresets(overrides, scope) {
+        const out = Object.assign({}, overrides);
+        if (out.presets === undefined) return out;
+        if (!Array.isArray(out.presets)) {
+          presetErrors[scope] = 'Saved presets must be a list of names, found ' + JSON.stringify(out.presets) + '; it was dropped.';
+          delete out.presets;
+        } else if (out.presets.length === 0) {
+          delete out.presets;
+        } else {
+          out.presets = out.presets.slice();
+        }
+        return out;
+      }
+
       function defaults() {
         return {
-          videoOverrides: PREV_REVIEWED ? (PREV_REVIEWED.videoOverrides || (PREV_REVIEWED.config && PREV_REVIEWED.config.overrides) || {}) : {},
+          videoOverrides: takePresets(PREV_REVIEWED ? (PREV_REVIEWED.videoOverrides || (PREV_REVIEWED.config && PREV_REVIEWED.config.overrides) || {}) : {}, 'video'),
           config: (DRAFT.config || []).map(c => Object.assign({}, c)),
           videoOverlays: PREV_REVIEWED && (PREV_REVIEWED.videoOverlays || PREV_REVIEWED.overlays)
             ? (PREV_REVIEWED.videoOverlays || PREV_REVIEWED.overlays).map(o => Object.assign({}, o))
@@ -885,7 +926,7 @@
               variants: sc.variants && sc.variants.length > 0 ? sc.variants.map(v => Object.assign({}, v)) : null,
               selectedVariant: revSc && revSc.selectedVariant ? revSc.selectedVariant : (sc.selectedVariant || (sc.variants && sc.variants.length > 0 ? sc.variants[0].id : null)),
               choice: revSc && (revSc.choice?.id || revSc.choice) ? (revSc.choice.id || revSc.choice) : (sc.recommended || (sc.animations && sc.animations[0] ? sc.animations[0].id : (DRAFT.avatars && DRAFT.avatars[0] ? DRAFT.avatars[0].id : null))),
-              sceneOverrides: revSc && revSc.sceneOverrides ? Object.assign({}, revSc.sceneOverrides) : {},
+              sceneOverrides: takePresets(revSc && revSc.sceneOverrides ? revSc.sceneOverrides : {}, sc.slug),
               mutedOverlays: revSc && revSc.mutedOverlays ? revSc.mutedOverlays.slice() : (sc.kind === "fixed" ? (DRAFT.overlays || []).map(o => o.id) : []),
               overlays: revSc && revSc.overlays ? revSc.overlays.map(o => Object.assign({}, o)) : (sc.overlays ? sc.overlays.map(o => Object.assign({}, o)) : [])
             };
@@ -952,6 +993,11 @@
         const grid = document.getElementById("video-params-grid");
         if (!grid) return;
         const overridesCount = Object.keys(state.videoOverrides || {}).length;
+        const presetsEl = document.getElementById("video-presets");
+        if (presetsEl) {
+          presetsEl.innerHTML = presetSelectorHtml("video");
+          presetsEl.style.display = presetsEl.innerHTML ? "" : "none";
+        }
 
         const summaryEl = document.getElementById("video-params-badge-summary");
         if (summaryEl) {
@@ -960,7 +1006,7 @@
             : '<span class="src-badge series">All Inherited from Cascade</span>';
         }
 
-        grid.innerHTML = (state.config || []).map(c => {
+        grid.innerHTML = (state.config || []).filter(c => c.key !== 'presets').map(c => {
           const hasOver = (state.videoOverrides || {})[c.key] !== undefined;
           const currentVal = hasOver ? state.videoOverrides[c.key] : c.value;
           const badgeClass = hasOver ? "override-video" : (c.origin || "series");
@@ -1059,6 +1105,51 @@
         const c = (state.config || []).find(item => item.key === key);
         return c ? c.value : '';
       }
+
+      // ---- The one Preset selector (video and scene level): ordered chips, no kinds ----
+      const escHtml = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+      function presetBag(scope) {
+        if (scope === "video") return state.videoOverrides || (state.videoOverrides = {});
+        const sc = (state.scenes || []).find(s => s.slug === scope);
+        return sc ? (sc.sceneOverrides || (sc.sceneOverrides = {})) : null;
+      }
+
+      function presetSelectorHtml(scope) {
+        const bag = presetBag(scope) || {};
+        const chosen = Array.isArray(bag.presets) ? bag.presets : [];
+        if (PRESET_NAMES.length === 0 && chosen.length === 0 && !presetErrors[scope]) return "";
+        const chips = chosen.map(n =>
+          '<span class="cascade-chip has-override">' + escHtml(n) +
+          '<button type="button" data-preset-remove="' + encodeURIComponent(n) + '" title="Remove preset">×</button></span>').join("");
+        const offered = PRESET_NAMES.filter(n => !chosen.includes(n)).map(n =>
+          '<button type="button" class="btn sm" data-preset-add="' + encodeURIComponent(n) + '">+ ' + escHtml(n) + '</button>').join("");
+        return '<div class="preset-selector" data-preset-scope="' + escHtml(scope) + '">' +
+          '<span style="font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Presets (in order, the last wins):</span>' +
+          chips + offered +
+          (presetErrors[scope] ? '<span class="preset-error">' + escHtml(presetErrors[scope]) + '</span>' : "") +
+          '</div>';
+      }
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest && e.target.closest("[data-preset-add], [data-preset-remove]");
+        if (!btn) return;
+        const scope = btn.closest("[data-preset-scope]").dataset.presetScope;
+        const bag = presetBag(scope);
+        if (!bag) return;
+        let list = Array.isArray(bag.presets) ? bag.presets.slice() : [];
+        if (btn.dataset.presetAdd !== undefined) {
+          const name = decodeURIComponent(btn.dataset.presetAdd);
+          if (!list.includes(name)) list.push(name);
+        } else {
+          const name = decodeURIComponent(btn.dataset.presetRemove);
+          list = list.filter(n => n !== name);
+        }
+        if (list.length > 0) bag.presets = list;
+        else delete bag.presets;
+        delete presetErrors[scope];
+        render();
+      });
 
       function renderScenes() {
         const container = document.getElementById("scenes-sheet-container");
@@ -1201,6 +1292,8 @@
                   }).join('') +
                 '</div>' +
               '</div>' +
+
+              (isFixed ? '' : '<div class="form-section">' + presetSelectorHtml(sc.slug) + '</div>') +
 
               /* Scene Cascade Toolbar */
               '<div class="scene-cascade-bar">' +
@@ -1487,9 +1580,16 @@
       }
 
       function buildReviewed() {
+        // `presets` leaves as a fresh ordered array; an empty list is no override.
+        const exported = (bag) => {
+          const out = Object.assign({}, bag);
+          if (Array.isArray(out.presets) && out.presets.length > 0) out.presets = out.presets.slice();
+          else delete out.presets;
+          return out;
+        };
         const overrides = {};
         if (state.videoOverrides) {
-          Object.assign(overrides, state.videoOverrides);
+          Object.assign(overrides, exported(state.videoOverrides));
         } else if (state.config && !Array.isArray(state.config)) {
           (DRAFT.config || []).forEach((c) => {
             if (state.config[c.key] !== undefined && state.config[c.key] !== c.value) {
@@ -1568,7 +1668,7 @@
               kind: sc.kind || "scene",
               narration,
               choice,
-              sceneOverrides: scState && scState.sceneOverrides ? scState.sceneOverrides : {},
+              sceneOverrides: scState && scState.sceneOverrides ? exported(scState.sceneOverrides) : {},
               mutedOverlays: scState && scState.mutedOverlays ? scState.mutedOverlays : [],
               overlays
             };
@@ -1584,14 +1684,6 @@
         a.download = name;
         a.click();
         URL.revokeObjectURL(a.href);
-      }
-
-      // A Preset is referenced by bare name, so only the trailing segment of the
-      // retired qualified form ("[[Doc :: Name]]") survives.
-      function presetName(value) {
-        const inner = String(value || '').trim().replace(/^\[\[|\]\]$/g, '');
-        const parts = inner.split('::').map((part) => part.trim()).filter(Boolean);
-        return parts.length ? parts[parts.length - 1] : '';
       }
 
       function generateL3Markdown() {
@@ -1611,7 +1703,7 @@
         out.push('## NN Video: ' + (p.title || p.slug));
         out.push('slug:: ' + p.slug);
         out.push('title:: ' + (p.title || p.slug));
-        if (p.videoOverrides && p.videoOverrides.presets) out.push('presets:: [' + presetName(p.videoOverrides.presets) + ']');
+        if (p.videoOverrides && p.videoOverrides.presets) out.push('presets:: [' + p.videoOverrides.presets.join(', ') + ']');
         if (p.videoOverrides && p.videoOverrides.frame) out.push('frame:: ' + p.videoOverrides.frame);
         out.push('');
         out.push('# NN Scene');
@@ -1621,7 +1713,7 @@
           out.push('## NN Scene: ' + sc.name);
           out.push('slug:: ' + sc.slug);
           const scOver = sc.sceneOverrides || {};
-          if (scOver.presets) out.push('presets:: [' + presetName(scOver.presets) + ']');
+          if (scOver.presets) out.push('presets:: [' + scOver.presets.join(', ') + ']');
           if (scOver.background_audio) out.push('background_audio:: ' + scOver.background_audio);
           if (scOver.background_audio_volume) out.push('background_audio_volume:: ' + scOver.background_audio_volume);
           if (scOver.transition) out.push('transition:: ' + scOver.transition);
@@ -1782,6 +1874,7 @@
 
       document.getElementById("btn-reset")?.addEventListener("click", () => {
         state.videoOverrides = {};
+        Object.keys(presetErrors).forEach(k => delete presetErrors[k]);
         (state.scenes || []).forEach(s => {
           s.sceneOverrides = {};
           s.mutedOverlays = s.kind === 'fixed' ? (DRAFT.overlays || []).map(o => o.id) : [];

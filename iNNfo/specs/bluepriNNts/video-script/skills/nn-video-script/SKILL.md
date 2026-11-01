@@ -75,7 +75,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    The script refuses to build the console (exit 1, no HTML written) while any media or thumbnail file referenced by the draft is missing under `assets/<slug>/media/`; produce the screenshots and HyperFrames clips first.
    The draft, the review and the console use fixed names (`draft.json`, `reviewed.json`, `review_console.html`) in the episode folder. A draft or reviewed JSON carrying a retired key (`template`, `speed`, `emotion`, `tts_model`, `music`, `music_volume`, `presenter_asset`, `intro_asset`) is rejected with `legacy-draft-keys`, which names the key and its replacement (list: `scripts/lib/legacy-draft-keys.mjs`); re-draft it, it is never converted.
    This emits `review_console.html`. The console provides:
-   - Parameter cascade inspection and overrides (`#video-params-sheet`): voice speed, fps, background audio volume, transition, and the Preset list.
+   - Parameter cascade inspection and overrides (`#video-params-sheet`): voice speed, fps, background audio volume, transition, and one Preset selector (video and scene level) that lists the Presets visible from the Series chain and the domain Video Defaults, and exports the choice as an ordered `presets` list.
    - Global video overlay templates (`#video-overlays-sheet`).
    - Editorial hook variant selection and narration editing.
    - Visual option selection with 3-tier motion styling (ALTA, MEDIA, RÁPIDA) and storyboard lightbox inspection (`#modal-lightbox`).

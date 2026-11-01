@@ -138,22 +138,19 @@ export function buildScript(reviewed, draft, options = {}) {
   const humanName = (s) => (s || '').replace(/-/g, ' ').replace(/^\d+ /, '').trim();
   const d = draft || { scenes: reviewed.scenes };
 
-  // The Preset list is a per-scene draft decision; it is the only Preset the
-  // tool writes. Scenes without one rely on the cascade (the engine resolves it).
-  // A draft may carry the retired qualified form `[[Doc :: Name]]`; only the
-  // trailing name is kept, because a Preset is referenced by bare name.
-  const presetName = (value) => {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    const inner = raw.replace(/^\[\[|\]\]$/g, '');
-    const parts = inner.split('::').map((part) => part.trim()).filter(Boolean);
-    return parts.length ? parts[parts.length - 1] : '';
+  // The Preset list is an ordered author decision made in the console's one
+  // selector, read only from the reviewed JSON (the draft never proposes Presets),
+  // at video and scene level. Absent or empty relies on the cascade (the engine
+  // resolves it); anything but a list fails.
+  const presetList = (value, where) => {
+    if (value === undefined || value === null) return [];
+    if (!Array.isArray(value) || value.some((name) => typeof name !== 'string' || name.trim() === '')) {
+      throw new Error(`presets in ${where} must be a list of Preset names, got ${JSON.stringify(value)}`);
+    }
+    return value.map((name) => name.trim());
   };
-  const presetsFor = (scene) => {
-    const fromDraft = draftBySlug.get(scene.slug);
-    const fromReviewed = byslug.get(scene.slug);
-    return presetName((fromDraft && fromDraft.presets) || (fromReviewed && fromReviewed.presets) || '');
-  };
+  const presetsLine = (names) => (names.length ? 'presets:: [' + names.join(', ') + ']' : '');
+  const presetsFor = (scene) => presetList(byslug.get(scene.slug)?.sceneOverrides?.presets, `reviewed scene ${scene.slug}`);
 
   function layersFor(scene, choice) {
     const head = '### NN Layer: ';
@@ -240,8 +237,8 @@ export function buildScript(reviewed, draft, options = {}) {
     const r = byslug.get(scene.slug);
     const narration = scene.kind === 'fixed' ? '' : (r ? r.narration : scene.narration) || '';
     const lines = ['## NN Scene: ' + scene.name, '', 'slug:: ' + scene.slug];
-    const preset = presetsFor(scene);
-    if (preset) lines.push('presets:: [' + preset + ']');
+    const presets = presetsLine(presetsFor(scene));
+    if (presets) lines.push(presets);
     lines.push('', narration, '');
     const layers = layersFor(scene, r ? r.choice : null);
     if (layers) lines.push(layers);
@@ -252,6 +249,7 @@ export function buildScript(reviewed, draft, options = {}) {
 
   const ordered = d.scenes || reviewed.scenes;
   const blocks = ordered.map(sceneBlock).join('\n\n');
+  const videoPresets = presetsLine(presetList(reviewed.videoOverrides?.presets, 'reviewed videoOverrides'));
 
   return [
     '---',
@@ -265,6 +263,7 @@ export function buildScript(reviewed, draft, options = {}) {
     'slug:: ' + reviewed.slug,
     'title:: ' + reviewed.title,
     'sources:: [' + (reviewed.sources || []).join(', ') + ']',
+    ...(videoPresets ? [videoPresets] : []),
     '',
     '# NN Scene',
     '',
