@@ -27,6 +27,7 @@ import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { loadCascadeBags, resolve, resolveKeyed, findNearest, findNearestByStem, findSeriesRoot, withScriptPresets } from './lib/video-scope.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
+import { buildImageOptions } from './lib/image-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
 import { checkMissingAsset } from './lib/missing-asset.mjs';
@@ -447,13 +448,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
     for (const layer of Array.isArray(sc.layers) ? sc.layers : []) {
       const prompt = layer.properties?.layer_prompt || layer.properties?.prompt;
       if (!prompt) continue;
-      const mediaOptions = {
-        provider: 'wavespeed',
-        model: 'wavespeed-v1-flux',
-        title: `${sc.name} — ${layer.name}`,
-        accentColor: '#ef4444',
-      };
-      if (models.image) mediaOptions.modelOverride = models.image;
+      const mediaOptions = buildImageOptions(sc, layer, models);
       const imageModel = normalizeModelId(resolve('image_model', bags).value);
       const ref = `${sc.id}/${layer.name}`;
       onProgress({ phase: 'media-start', done: mediaDone, total: mediaTotal, scene: sc.id, model: imageModel });

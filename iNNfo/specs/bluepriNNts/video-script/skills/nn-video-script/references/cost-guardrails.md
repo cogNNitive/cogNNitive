@@ -65,7 +65,11 @@ fallback): budgets and `dailyCapUsd` must be finite numbers >= 0,
    stamps the first line of the plan with `plan_hash` (sha256 of the normalized
    script text, NFC and newline-insensitive, plus the explicitly chosen
    `--image-model/--tts-model/--avatar-model`), `total_usd` and the model set.
-   Only that first-line stamp is ever read back.
+   Only that first-line stamp is ever read back. The estimate prices what the run
+   will charge: it opens the video cache read-only, with the same keys `compile`
+   writes (TTS, image, avatar clip), and quotes a cached item at $0 (marked
+   `cached` in the plan); an image is quoted only for a layer with a prompt. The
+   plan states the in-chat phrase and lists the stamped resolved model ids.
 2. A **human** approves it — normally **in chat** (section 2b): the user replies
    with `approve the plan <plan-hash-8>` and the agent relays it. A workspace may
    instead require an interactive TTY: `node scripts/approve-plan.mjs
