@@ -77,6 +77,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    - Global video overlay templates (`#video-overlays-sheet`).
    - Editorial hook variant selection and narration editing.
    - Visual option selection with 3-tier motion styling (ALTA, MEDIA, RÁPIDA) and storyboard lightbox inspection (`#modal-lightbox`).
+     The builder (`normalizeAnimationTiers`) guarantees every animated scene exactly 3 HyperFrames options, ALTA (violet/magenta), MEDIA (blue/cyan) and RÁPIDA (emerald), each with a structured `storyboard` (`camera[]`, `choreography[]`, `timeline{duration_s, ease, fps}`) shown in the lightbox. Authored options are kept; missing tiers are derived. Procedural options never carry a raster thumbnail.
    - **Quine Self-Saving Pattern**: Clicking *Save & Package HTML* (`#btn-save-html`) packages all editorial decisions into `<script id="raw-reviewed-data">` directly inside the standalone HTML file, making it self-contained and portable.
    - Exporting `<slug>_reviewed.json` (`#btn-save-json`) or copying compiled Level-3 markdown prompt for the agent (`#btn-copy-prompt`).
    The human reviewer opens the console in any browser, completes the review, and either exports `<slug>_reviewed.json` or uses the Quine file to build the script with `scripts/build-script-from-draft.mjs`.

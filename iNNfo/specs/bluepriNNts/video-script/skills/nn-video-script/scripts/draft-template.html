@@ -643,16 +643,16 @@
         border-radius: 6px; overflow: hidden; cursor: zoom-in; transition: transform 0.2s ease;
       }
       .visual-thumb-motion.tier-alta {
-        background: radial-gradient(circle at 30% 30%, #4338ca, #1e1b4b);
-        border: 1px solid #6366f1;
+        background: radial-gradient(circle at 30% 30%, #7c3aed, #3b0764);
+        border: 1px solid #ec4899;
       }
       .visual-thumb-motion.tier-media {
-        background: radial-gradient(circle at 30% 30%, #0891b2, #083344);
-        border: 1px solid #06b6d4;
+        background: radial-gradient(circle at 30% 30%, #2563eb, #082f49);
+        border: 1px solid #38bdf8;
       }
       .visual-thumb-motion.tier-rapida {
-        background: radial-gradient(circle at 30% 30%, #d97706, #451a03);
-        border: 1px solid #f59e0b;
+        background: radial-gradient(circle at 30% 30%, #059669, #022c22);
+        border: 1px solid #10b981;
       }
       .visual-thumb-motion:hover { filter: brightness(1.15); }
       .motion-stage-label {
@@ -679,6 +679,11 @@
         font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px;
         text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px;
       }
+      .stage-badge-tag { color: #ffffff; }
+      .stage-badge-tag.tier-alta { background: linear-gradient(135deg, #7c3aed, #ec4899); }
+      .stage-badge-tag.tier-media { background: linear-gradient(135deg, #2563eb, #38bdf8); }
+      .stage-badge-tag.tier-rapida { background: linear-gradient(135deg, #059669, #10b981); }
+      .storyboard-structured { color: #cbd5e1; font-size: 12px; line-height: 1.5; margin-bottom: 8px; white-space: pre-line; }
       .stage-viewport-label {
         font-family: monospace; font-size: 12px; color: #94a3b8; letter-spacing: 0.5px;
       }
@@ -817,6 +822,7 @@
               HyperFrames Motion Graphic Storyboard
             </div>
             <div id="storyboard-desc" class="storyboard-desc"></div>
+            <div id="storyboard-structured" class="storyboard-structured"></div>
             <div id="storyboard-specs" class="storyboard-specs"></div>
           </div>
         </div>
@@ -1086,6 +1092,7 @@
               desc: an.prompt || an.description || '',
               specs: an.specs || '',
               tier: an.tier || 'MEDIA',
+              storyboard: an.storyboard || null,
               icon: 'sparkles',
               isAnimation: true,
               thumb: null
@@ -1152,12 +1159,12 @@
                     const tierClass = opt.tier ? opt.tier.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : 'media';
                     let thumbContent = '';
                     if (isAnim) {
-                      thumbContent = '<div class="visual-thumb-motion tier-' + tierClass + '" data-inspect-title="' + opt.title + '" data-inspect-desc="' + (opt.desc || '') + '" data-inspect-specs="' + (opt.specs || '') + '" data-is-anim="1" data-tier="' + (opt.tier || 'MEDIA') + '" title="Click to view storyboard">' +
+                      thumbContent = '<div class="visual-thumb-motion tier-' + tierClass + '" data-inspect-title="' + opt.title + '" data-inspect-desc="' + (opt.desc || '') + '" data-inspect-specs="' + (opt.specs || '') + '" data-is-anim="1" data-tier="' + (opt.tier || 'MEDIA') + '" data-inspect-storyboard="' + encodeURIComponent(JSON.stringify(opt.storyboard || null)) + '" title="Click to view storyboard">' +
                         '<div style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; background:rgba(0,0,0,0.3); color:#fff; margin-bottom:4px;">' +
                           '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>' +
                         '</div>' +
                         '<span class="motion-stage-label">MOTION ' + (opt.tier || 'GRAPHIC') + '</span>' +
-                        '<button class="btn-inspect-thumb" type="button" data-inspect-title="' + opt.title + '" data-inspect-desc="' + (opt.desc || '') + '" data-inspect-specs="' + (opt.specs || '') + '" data-is-anim="1" data-tier="' + (opt.tier || 'MEDIA') + '" title="Inspect storyboard"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>' +
+                        '<button class="btn-inspect-thumb" type="button" data-inspect-title="' + opt.title + '" data-inspect-desc="' + (opt.desc || '') + '" data-inspect-specs="' + (opt.specs || '') + '" data-is-anim="1" data-tier="' + (opt.tier || 'MEDIA') + '" data-inspect-storyboard="' + encodeURIComponent(JSON.stringify(opt.storyboard || null)) + '" title="Inspect storyboard"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg></button>' +
                       '</div>';
                     } else if (opt.thumb) {
                       thumbContent = '<img src="' + opt.thumb + '" alt="" data-inspect-src="' + opt.thumb + '" data-inspect-title="' + opt.title + '" data-inspect-desc="' + (opt.desc || '') + '" data-inspect-specs="' + (opt.specs || '') + '" data-is-anim="0" style="cursor: zoom-in;" title="Click to inspect">' +
@@ -1266,7 +1273,7 @@
         attachDynamicEvents();
       }
 
-      function openLightbox(src, title, desc, specs, isAnim, tier) {
+      function openLightbox(src, title, desc, specs, isAnim, tier, storyboardEnc) {
         const modal = document.getElementById("modal-lightbox");
         const img = document.getElementById("lightbox-img");
         const titleEl = document.getElementById("lightbox-title");
@@ -1276,6 +1283,7 @@
         const sbEl = document.getElementById("lightbox-storyboard");
         const sbDesc = document.getElementById("storyboard-desc");
         const sbSpecs = document.getElementById("storyboard-specs");
+        const sbStruct = document.getElementById("storyboard-structured");
         if (!modal) return;
 
         if (titleEl) titleEl.textContent = title || "Asset Inspection";
@@ -1290,16 +1298,8 @@
             const normTier = (tier || 'MEDIA').toUpperCase();
             if (stageTier) {
               stageTier.textContent = 'HYPERFRAMES · ' + normTier;
-              if (normTier.includes('ALTA')) {
-                stageTier.style.background = '#4f46e5';
-                stageTier.style.color = '#ffffff';
-              } else if (normTier.includes('MEDIA')) {
-                stageTier.style.background = '#0891b2';
-                stageTier.style.color = '#ffffff';
-              } else {
-                stageTier.style.background = '#d97706';
-                stageTier.style.color = '#ffffff';
-              }
+              const tierCls = normTier.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+              stageTier.className = 'stage-badge-tag tier-' + tierCls;
             }
             if (stageTitle) stageTitle.textContent = title || "";
           }
@@ -1307,6 +1307,16 @@
             sbEl.style.display = "block";
             if (sbDesc) sbDesc.textContent = desc || "";
             if (sbSpecs) sbSpecs.textContent = specs || "";
+            if (sbStruct) {
+              let sb = null;
+              try { sb = storyboardEnc ? JSON.parse(decodeURIComponent(storyboardEnc)) : null; } catch (_) { sb = null; }
+              const t = (sb && sb.timeline) || {};
+              sbStruct.textContent = sb ? [
+                'Camera: ' + (sb.camera || []).join(' → '),
+                'Choreography: ' + (sb.choreography || []).join(' → '),
+                'Timeline: ' + [t.duration_s != null ? t.duration_s + 's' : '', t.fps ? t.fps + ' FPS' : '', t.ease ? 'GSAP ' + t.ease : ''].filter(Boolean).join(' · ')
+              ].join('\n') : '';
+            }
           }
         } else {
           if (stageEl) stageEl.style.display = "none";
@@ -1336,7 +1346,7 @@
         document.querySelectorAll("[data-inspect-src], [data-inspect-title]").forEach(el => {
           el.addEventListener("click", (e) => {
             e.stopPropagation();
-            openLightbox(el.dataset.inspectSrc || "", el.dataset.inspectTitle || "", el.dataset.inspectDesc || "", el.dataset.inspectSpecs || "", el.dataset.isAnim === "1", el.dataset.tier || "MEDIA");
+            openLightbox(el.dataset.inspectSrc || "", el.dataset.inspectTitle || "", el.dataset.inspectDesc || "", el.dataset.inspectSpecs || "", el.dataset.isAnim === "1", el.dataset.tier || "MEDIA", el.dataset.inspectStoryboard || "");
           });
         });
 

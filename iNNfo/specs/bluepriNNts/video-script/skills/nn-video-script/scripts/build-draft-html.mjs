@@ -45,7 +45,118 @@ function argValue(argv, name) {
   return i >= 0 ? argv[i + 1] : undefined;
 }
 
-export function buildDraftHtml(draft, { baseDir, templatePath, seriesTitle = 'Series', title, description, reviewed } = {}) {
+/**
+ * The three standardized quality tiers every animated scene offers, in display order.
+ * Each carries the default Motion Graphic Storyboard used when the draft does not
+ * author one: camera movements, choreography and GSAP timeline parameters.
+ */
+const TIER_DEFAULTS = [
+  {
+    tier: 'ALTA',
+    suffix: 'alta',
+    motion_type: 'Multi-layer 3D / parallax / kinetic type',
+    storyboard: {
+      camera: ['Slow 3D dolly-in with a slight orbit', 'Parallax drift across 3+ depth layers'],
+      choreography: ['Kinetic type enters layer by layer with depth easing', 'Key graphic folds in with a multi-stage transition', 'Floating accent elements settle last'],
+      timeline: { duration_s: 6, ease: 'expo.out', fps: 30 },
+    },
+  },
+  {
+    tier: 'MEDIA',
+    suffix: 'media',
+    motion_type: 'Guided Ken Burns / smooth pan / zoom',
+    storyboard: {
+      camera: ['Continuous smooth pan', 'Guided zoom-in toward the key element'],
+      choreography: ['Hold the frame, then drift toward the key graphic or text', 'Single soft fade for the entrance'],
+      timeline: { duration_s: 4, ease: 'power2.inOut', fps: 30 },
+    },
+  },
+  {
+    tier: 'RÁPIDA',
+    suffix: 'rapida',
+    motion_type: 'Subtle snap zoom + vignette',
+    storyboard: {
+      camera: ['Snap zoom 1.0 to 1.05'],
+      choreography: ['Static composition with a vignette', 'No secondary motion'],
+      timeline: { duration_s: 2, ease: 'power4.out', fps: 30 },
+    },
+  },
+];
+
+const stripAccents = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+
+function tierKey(tier) {
+  const k = /^(ALTA|MEDIA|RAPIDA)(?![A-Z])/.exec(stripAccents(String(tier ?? '').trim()))?.[1];
+  return TIER_DEFAULTS.find((t) => stripAccents(t.tier) === k)?.tier ?? null;
+}
+
+const asList = (v, fallback) => (Array.isArray(v) ? v.map(String) : v == null ? fallback : [String(v)]);
+
+function specsFor(tier, sb) {
+  const t = sb.timeline;
+  return `${tier} · 1920x1920 · ${t.fps} FPS · GSAP ${t.ease} · ${t.duration_s}s`;
+}
+
+/**
+ * Guarantees that every animated scene (one with at least one `animations` entry)
+ * offers exactly the 3 tiers ALTA, MEDIA and RÁPIDA, each with a structured
+ * storyboard. Authored options win: they keep their id, label, prompt and
+ * storyboard (an untiered one is taken as MEDIA when that slot is free); missing
+ * tiers are derived from the first authored option. Procedural options never
+ * carry a raster `thumb`. Pure and idempotent: the input is not mutated.
+ */
+export function normalizeAnimationTiers(draft) {
+  return {
+    ...draft,
+    scenes: (draft?.scenes || []).map((sc) => {
+      const authored = Array.isArray(sc.animations) ? sc.animations.filter((a) => a && typeof a === 'object') : [];
+      if (authored.length === 0) return sc;
+      const slots = new Map();
+      const untiered = [];
+      const dropped = [];
+      for (const an of authored) {
+        const key = tierKey(an.tier);
+        if (key && !slots.has(key)) slots.set(key, an);
+        else if (!key) untiered.push(an);
+        else dropped.push(an);
+      }
+      if (untiered.length > 0 && !slots.has('MEDIA')) slots.set('MEDIA', untiered.shift());
+      dropped.push(...untiered);
+      for (const an of dropped) {
+        console.warn(`animation option discarded (scene ${sc.slug || sc.id || '?'}): ${an.id || an.label || '(unnamed)'}; only one option per tier is kept`);
+      }
+      const seed = authored[0];
+      const baseId = seed.id || `${sc.slug || sc.id || 'scene'}-motion`;
+      const animations = TIER_DEFAULTS.map((def) => {
+        const src = slots.get(def.tier);
+        const authoredSb = src?.storyboard && typeof src.storyboard === 'object' ? src.storyboard : null;
+        const sb = structuredClone(def.storyboard);
+        if (authoredSb) {
+          Object.assign(sb, authoredSb, {
+            camera: asList(authoredSb.camera, sb.camera),
+            choreography: asList(authoredSb.choreography, sb.choreography),
+            timeline: { ...sb.timeline, ...(authoredSb.timeline && typeof authoredSb.timeline === 'object' ? authoredSb.timeline : {}) },
+          });
+        }
+        const { thumb: _drop, ...rest } = src || {};
+        return {
+          ...rest,
+          id: src?.id || `${baseId}-${def.suffix}`,
+          label: src?.label || `${seed.label || 'HyperFrames Motion'} · ${def.tier}`,
+          prompt: src?.prompt ?? seed.prompt ?? seed.description ?? '',
+          tier: def.tier,
+          motion_type: src?.motion_type || def.motion_type,
+          storyboard: sb,
+          specs: src?.specs || specsFor(def.tier, sb),
+        };
+      });
+      return { ...sc, animations };
+    }),
+  };
+}
+
+export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 'Series', title, description, reviewed } = {}) {
+  const draft = normalizeAnimationTiers(rawDraft);
   const mimeFor = (p) => {
     const e = path.extname(p).toLowerCase();
     if (e === '.png') return 'image/png';
