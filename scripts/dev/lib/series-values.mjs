@@ -1,3 +1,5 @@
+// nn-retired-vocabulary: legacy-read — this tool interprets documents of the
+// frozen real domain, which still uses the pre-V_0-14-0 field names.
 /**
  * scripts/dev/lib/series-values.mjs
  *
@@ -6,7 +8,7 @@
  *
  *   1. the series scope marker `<series>_scope_NN.md` (post-adoption truth)
  *   3. `script_template.md` (`music`, `music_volume`, `transition`)
- *   4. `voice_id::` repeated in the `## NN Video` blocks of `<Series>_video_NN.md`
+ *   4. the registered-voice field repeated in the `## NN Video` blocks of `<Series>_video_NN.md`
  *
  * Shared by the adoption planner and the golden validator so the two never
  * disagree about what a series declares. Read-only: it never writes.

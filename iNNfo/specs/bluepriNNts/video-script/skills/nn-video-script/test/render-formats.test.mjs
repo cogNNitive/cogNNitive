@@ -16,7 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
-  FORMAT_PRESETS,
+  DELIVERY_FORMATS,
   slugFromMaster,
   variantName,
   renderFormats,
@@ -36,10 +36,10 @@ async function runTests() {
 
   // 1. Formats are pure functions of the master: no stream copy anywhere.
   {
-    assert.strictEqual(FORMAT_PRESETS.vertical.filter, 'crop=1080:1920:420:0');
-    assert.strictEqual(FORMAT_PRESETS.horizontal.filter, 'crop=1920:1080:0:420');
-    assert.strictEqual(FORMAT_PRESETS.square.filter, 'scale=1080:1080:flags=lanczos');
-    for (const preset of Object.values(FORMAT_PRESETS)) {
+    assert.strictEqual(DELIVERY_FORMATS.vertical.filter, 'crop=1080:1920:420:0');
+    assert.strictEqual(DELIVERY_FORMATS.horizontal.filter, 'crop=1920:1080:0:420');
+    assert.strictEqual(DELIVERY_FORMATS.square.filter, 'scale=1080:1080:flags=lanczos');
+    for (const preset of Object.values(DELIVERY_FORMATS)) {
       assert.strictEqual('copy' in preset, false, 'no format is a stream copy any more');
     }
     console.log('OK every format is a crop or a scale of the master, never a copy');
@@ -48,9 +48,9 @@ async function runTests() {
   // 2. The slug comes from the master file name.
   {
     assert.strictEqual(slugFromMaster('/x/pepper-mapache_1920x1920.mp4'), 'pepper-mapache');
-    assert.strictEqual(variantName('pepper-mapache', FORMAT_PRESETS.vertical), 'pepper-mapache_1080x1920.mp4');
+    assert.strictEqual(variantName('pepper-mapache', DELIVERY_FORMATS.vertical), 'pepper-mapache_1080x1920.mp4');
     assert.strictEqual(
-      variantName('pepper-mapache', { ...FORMAT_PRESETS.vertical, suffix: '_blur' }),
+      variantName('pepper-mapache', { ...DELIVERY_FORMATS.vertical, suffix: '_blur' }),
       'pepper-mapache_1080x1920_blur.mp4',
     );
     console.log('OK the slug comes from the master and every name carries its true dimensions');
@@ -87,9 +87,9 @@ async function runTests() {
     assert.strictEqual(calls.length, 3, 'square, vertical and horizontal');
     const filters = calls.map((a) => a[a.indexOf('-filter_complex') + 1]);
     assert.deepStrictEqual(filters, [
-      FORMAT_PRESETS.square.filter,
-      FORMAT_PRESETS.vertical.filter,
-      FORMAT_PRESETS.horizontal.filter,
+      DELIVERY_FORMATS.square.filter,
+      DELIVERY_FORMATS.vertical.filter,
+      DELIVERY_FORMATS.horizontal.filter,
     ]);
     for (const args of calls) {
       assert.ok(args.includes('libx264'));
@@ -122,7 +122,7 @@ async function runTests() {
     assert.deepStrictEqual(names, ['ep_1080x1080.mp4', 'ep_1080x1920_blur.mp4', 'ep_1920x1080_blur.mp4']);
     assert.match(calls[1][calls[1].indexOf('-filter_complex') + 1], /gblur/);
     assert.match(calls[2][calls[2].indexOf('-filter_complex') + 1], /gblur/);
-    assert.strictEqual(calls[0][calls[0].indexOf('-filter_complex') + 1], FORMAT_PRESETS.square.filter);
+    assert.strictEqual(calls[0][calls[0].indexOf('-filter_complex') + 1], DELIVERY_FORMATS.square.filter);
     fs.rmSync(dir, { recursive: true, force: true });
     console.log('OK blur is opt-in, suffixed and never applied to the square');
   }

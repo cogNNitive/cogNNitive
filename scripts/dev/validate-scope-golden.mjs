@@ -171,7 +171,7 @@ async function runElements() {
     const deviations = {};
     for (const series of SERIES) {
       const v = seriesValues(work, series);
-      const fields = [`music:: ${v.music}`, v.volume === null ? null : `music_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice_id:: ${v.voice}`].filter(Boolean).join('\n');
+      const fields = [`background_audio:: ${v.music}`, v.volume === null ? null : `background_audio_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice:: ${v.voice}`].filter(Boolean).join('\n');
       write(work, `series/${series}/${series}_scope_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
 
       const rows = [];
@@ -187,7 +187,7 @@ async function runElements() {
           const r = core.loadElementChain(p, { concept: 'Scene', slug: sc.slug }, { floorDoc: floorDocEl });
           if (!r.ok) { failed++; continue; }
           const music = resolveOk(r.loaded, 'music');
-          const volume = resolveOk(r.loaded, 'music_volume');
+          const volume = resolveOk(r.loaded, 'background_audio_volume');
           allResolutionsEl.push(music, volume);
           perScene.push({
             music: baseName(music.value ?? ''),
@@ -395,7 +395,7 @@ for (const series of SERIES) {
   values[series] = seriesValues(work, series);
   const v = values[series];
   const fillYaml = Object.entries(fills[series]).map(([k, t]) => `    ${k}: ${JSON.stringify(t)}`).join('\n');
-  const fields = [`music:: ${v.music}`, v.volume === null ? null : `music_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice_id:: ${v.voice}`].filter(Boolean).join('\n');
+  const fields = [`background_audio:: ${v.music}`, v.volume === null ? null : `background_audio_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice:: ${v.voice}`].filter(Boolean).join('\n');
   write(work, `series/${series}/${series}_scope_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\nfills:\n  draft-scene-visuals:\n${fillYaml}\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
   for (const ep of episodesOf(work, series)) {
     const p = join(work, ep.doc);
@@ -437,14 +437,14 @@ for (const series of SERIES) {
   check(`${series}: loaders raise no diagnostic`, diagnostics.length === 0, JSON.stringify(diagnostics));
 
   const music = one(loaded, 'music');
-  const volume = one(loaded, 'music_volume');
-  const voice = one(loaded, 'voice_id');
+  const volume = one(loaded, 'background_audio_volume');
+  const voice = one(loaded, 'voice');
   allResolutions.push(music, volume, voice, one(loaded, 'transition'), one(loaded, 'absent_key'));
   check(`${series}: music resolves to ${EXPECTED_MUSIC[series]}`, baseName(music.value) === EXPECTED_MUSIC[series], `got ${music.value}`);
   check(`${series}: music is supplied by the series marker`, music.explain.winner?.scope === `series/${series}`, JSON.stringify(music.explain.winner));
   const v = values[series];
-  check(`${series}: music_volume equals the series source (${v.source})`, volume.value === v.volume, `got ${volume.value}, source says ${v.volume}`);
-  if (series === 'villabotijos-today') check('villabotijos-today: music_volume is 0.06', volume.value === 0.06, `got ${volume.value}`);
+  check(`${series}: background_audio_volume equals the series source (${v.source})`, volume.value === v.volume, `got ${volume.value}, source says ${v.volume}`);
+  if (series === 'villabotijos-today') check('villabotijos-today: background_audio_volume is 0.06', volume.value === 0.06, `got ${volume.value}`);
   const blocks = Object.values(v.voiceCounts).reduce((a, b) => a + b, 0);
   check(`${series}: voice_id ${voice.value} equals the voice of every one of the ${blocks} Video blocks`, v.voiceCounts[voice.value] === blocks, JSON.stringify(v.voiceCounts));
   const transition = one(loaded, 'transition');
@@ -531,7 +531,7 @@ for (const series of SERIES) {
       else if (entry.series !== series) finding(`${series}: video-guard.json maps voice ${voice} to series "${entry.series}", but all 8 Video blocks of ${series} use it: the guard and the data disagree`);
     }
   }
-  finding('voice_id is declared nowhere at series level today: it is repeated in each "## NN Video" block (element scope) and only mapped by video-guard.json; the golden hoists it into the series marker');
+  finding('voice is declared nowhere at series level today: it is repeated in each "## NN Video" block (element scope) and only mapped by video-guard.json; the golden hoists it into the series marker');
   const singular = SERIES.filter((s) => existsSync(join(work, 'series', s, 'procedure')));
   finding(`procedures live in "series/<s>/procedure/" (singular) in ${singular.length} of ${SERIES.length} series, while loadScopeProcedures reads "<scope>/procedures/": video adoption must rename the folder or the loader must learn the name`);
   const nnDocs = listFiles(work).filter((f) => isNNName(f) && !f.startsWith('.moves_backup/') && !f.startsWith('sources/'));

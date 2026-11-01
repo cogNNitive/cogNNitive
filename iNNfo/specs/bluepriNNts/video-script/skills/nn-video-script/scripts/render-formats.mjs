@@ -39,7 +39,7 @@ export class RenderFormatsError extends Error {
  * master: the vertical and horizontal files are the central 1080-wide/1080-high
  * crops of the Open Gate safe square, and the square file is a real lanczos scale.
  */
-export const FORMAT_PRESETS = {
+export const DELIVERY_FORMATS = {
   square: { width: 1080, height: 1080, filter: 'scale=1080:1080:flags=lanczos' },
   vertical: { width: 1080, height: 1920, filter: 'crop=1080:1920:420:0' },
   horizontal: { width: 1920, height: 1080, filter: 'crop=1920:1080:0:420' },
@@ -162,9 +162,9 @@ export async function renderFormats({
 
   const variants = [];
   for (const name of formats) {
-    const preset = FORMAT_PRESETS[name];
+    const preset = DELIVERY_FORMATS[name];
     if (!preset) {
-      throw new RenderFormatsError(`Unknown format "${name}" (known: ${Object.keys(FORMAT_PRESETS).join(', ')}).`);
+      throw new RenderFormatsError(`Unknown format "${name}" (known: ${Object.keys(DELIVERY_FORMATS).join(', ')}).`);
     }
     const blur = fill === 'blur' && (name === 'vertical' || name === 'horizontal');
     const outputPath = path.join(dir, blur ? variantName(slug, { ...preset, suffix: '_blur' }) : variantName(slug, preset));
