@@ -26,7 +26,8 @@ const repoRoot = process.env.NN_PRE_PUSH_ROOT
   ? path.resolve(process.env.NN_PRE_PUSH_ROOT)
   : path.join(__dirname, '..');
 const LINTABLE = /^(iNNfo|scripts)\/.*\.(?:[cm]?js|ts|tsx)$/;
-const BASES = ['origin/dev', 'origin/main'];
+const NO_CODE_PATHS = /^openspec\//;
+const BASES =['origin/dev', 'origin/main'];
 const ZERO = /^0+$/;
 
 /** Runs git in `cwd`; returns trimmed stdout or null on failure. */
@@ -71,6 +72,24 @@ function isWipFastPath(refLines, cwd = repoRoot) {
       .map((s) => s.trim())
       .filter(Boolean);
     return subjects.length > 0 && subjects.every((s) => s.startsWith('wip:'));
+  });
+}
+
+/**
+ * True when every file changed by every pushed branch lives under `openspec/`, which
+ * nothing in the typecheck, docs-facts or freshness pipeline reads. A new branch
+ * (all-zero remote sha) never qualifies: there is no remote range to diff against.
+ * @param {ReturnType<typeof parseRefLines>} refLines
+ * @param {string} [cwd]
+ * @returns {boolean}
+ */
+function isNoCodePush(refLines, cwd = repoRoot) {
+  const pushes = refLines.filter((l) => l.remoteRef.startsWith('refs/heads/') && !ZERO.test(l.localSha));
+  if (pushes.length === 0) return false;
+  return pushes.every((l) => {
+    if (ZERO.test(l.remoteSha)) return false;
+    const names = (gitIn(cwd, 'diff', '--name-only', l.remoteSha, l.localSha) || '').split('\n').filter(Boolean);
+    return names.length > 0 && names.every((n) => NO_CODE_PATHS.test(n));
   });
 }
 
@@ -153,6 +172,11 @@ async function main() {
     return 0;
   }
 
+  if (isNoCodePush(refLines)) {
+    console.log('pre-push: no code changed (openspec/ only) — skipping typecheck, docs build and freshness guards.');
+    return 0;
+  }
+
   const failures = [];
   const t0 = Date.now();
 
@@ -204,6 +228,7 @@ if (require.main === module) {
 module.exports = {
   parseRefLines,
   isWipFastPath,
+  isNoCodePush,
   collectGuardFailures,
   changedLintableFiles,
   runHeavyPrerequisites,

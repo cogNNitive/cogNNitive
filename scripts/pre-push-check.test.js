@@ -17,12 +17,14 @@ const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const SCRIPT = path.join(__dirname, 'pre-push-check.js');
-const { parseRefLines, isWipFastPath, collectGuardFailures } = require('./pre-push-check.js');
+const { parseRefLines, isWipFastPath, isNoCodePush, collectGuardFailures } = require('./pre-push-check.js');
 
 let REPO;
 let SHA0;
 let SHA1;
 let SHA2;
+let SHA_DOCS;
+let SHA_MIXED;
 
 before(() => {
   REPO = fs.mkdtempSync(path.join(os.tmpdir(), 'pre-push-'));
@@ -42,6 +44,16 @@ before(() => {
   g(['add', '-A']);
   g(['commit', '-m', 'feat: second']);
   SHA2 = g(['rev-parse', 'HEAD']).trim();
+  fs.mkdirSync(path.join(REPO, 'openspec', 'changes'), { recursive: true });
+  fs.writeFileSync(path.join(REPO, 'openspec', 'changes', 'p.md'), 'plan');
+  g(['add', '-A']);
+  g(['commit', '-m', 'docs(openspec): plan']);
+  SHA_DOCS = g(['rev-parse', 'HEAD']).trim();
+  fs.writeFileSync(path.join(REPO, 'openspec', 'changes', 'p.md'), 'plan 2');
+  fs.writeFileSync(path.join(REPO, 'f.txt'), '3');
+  g(['add', '-A']);
+  g(['commit', '-m', 'feat: mixed']);
+  SHA_MIXED = g(['rev-parse', 'HEAD']).trim();
 });
 
 after(() => {
@@ -80,6 +92,33 @@ test('isWipFastPath is false for dev/main, new branches, and empty input', () =>
 test('isWipFastPath requires every pushed ref to be a wip: session branch', () => {
   const refs = parseRefLines(`${line('refs/heads/session/x', SHA1)}\n${line('refs/heads/dev', SHA1, SHA1)}`);
   assert.equal(isWipFastPath(refs, REPO), false);
+});
+
+test('isNoCodePush is true when every changed file is under openspec/', () => {
+  assert.equal(isNoCodePush(parseRefLines(line('refs/heads/dev', SHA_DOCS, SHA2)), REPO), true);
+});
+
+test('isNoCodePush is false when any changed file is outside openspec/', () => {
+  assert.equal(isNoCodePush(parseRefLines(line('refs/heads/dev', SHA_MIXED, SHA2)), REPO), false);
+  assert.equal(isNoCodePush(parseRefLines(line('refs/heads/dev', SHA2, SHA1)), REPO), false);
+});
+
+test('isNoCodePush is false for new branches, empty diffs, and empty input', () => {
+  assert.equal(isNoCodePush(parseRefLines(line('refs/heads/dev', SHA_DOCS, '0'.repeat(40))), REPO), false);
+  assert.equal(isNoCodePush(parseRefLines(line('refs/heads/dev', SHA_DOCS, SHA_DOCS)), REPO), false);
+  assert.equal(isNoCodePush(parseRefLines(''), REPO), false);
+});
+
+test('CLI skips the heavy pipeline for an openspec-only push', () => {
+  const res = spawnSync(process.execPath, [SCRIPT, 'origin', 'file:///x'], {
+    cwd: REPO,
+    input: `${line('refs/heads/dev', SHA_DOCS, SHA2)}\n`,
+    encoding: 'utf8',
+    env: { ...process.env, NN_PRE_PUSH_ROOT: REPO },
+  });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /no code changed/);
+  assert.ok(!/freshness guards in \d+ms/.test(res.stdout), 'an openspec-only push must not run the guards');
 });
 
 test('collectGuardFailures runs every guard and collects all failures', async () => {

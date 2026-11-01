@@ -61,7 +61,9 @@ This creates the worktree `../cogNNitive-<id>` on branch `session/<id>` cut from
 checkout's, it links `node_modules` (root + `skills/nn-sources`) via a directory
 junction — about 2s instead of ~90s — and builds `@cognnitive/nn-core`. Pass
 `--full-install` to force a clean `npm ci` when dependencies must be rebuilt, or
-`--no-install` only for docs-only work. Do all writes, commits and pushes from that
+`--no-install` only for docs-only work (a push touching only `openspec/` also skips the
+pre-push typecheck, docs build and freshness guards, so it needs no dependencies at all;
+any other path runs the full gate). Do all writes, commits and pushes from that
 worktree. If the tool environment refuses a worktree as `cwd`, keep the primary as `cwd`
 and use absolute paths or `git -C <worktree>`.
 
