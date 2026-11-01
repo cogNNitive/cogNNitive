@@ -43,11 +43,13 @@ const generate = [
   ...FRESHNESS_GUARDS.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],
   ['scripts/generate-vocabulary-doc.mjs'],
+  ['scripts/generate-video-parameters-doc.mjs'],
 ];
 const check = [
   ...FRESHNESS_GUARDS.map((g) => [g.script, ...g.args]),
   ['scripts/generate-docs-facts.mjs', '--check'],
   ['scripts/generate-vocabulary-doc.mjs', '--check'],
+  ['scripts/generate-video-parameters-doc.mjs', '--check'],
 ];
 
 for (let pass = 1; pass <= 3; pass++) {

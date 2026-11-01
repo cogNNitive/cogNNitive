@@ -154,3 +154,4 @@ Run any script with no arguments (or a bad one) to see its usage banner.
 See `references/thumbnail-and-asset-pipeline.md` for visual preproduction guidelines.
 See `references/overlay-slots.md` for the overlay slot contract (variables, components, sound keys).
 See `references/cost-guardrails.md` for the spend gate (approval, budget, allowlist, ledger, dry run).
+See `references/parameters.md` for every Field by scope (Defaults, Series, Preset, Video, Scene, Layer) with its type and values. It is generated from the blueprint; never edit it by hand.
