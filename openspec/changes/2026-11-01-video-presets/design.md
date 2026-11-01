@@ -22,13 +22,14 @@ Approach A, as fixed by the proposal. A video-side module loads `# NN Preset` el
 - A token containing `[[`, `]]` or `::` is a `preset-syntax` error whose hint gives the canonical form. This is the only syntax supported, with no alias.
 - Unknown name: an `unknown-preset` error from `checkScript`, before any spend (proposal assumption 1). The error lists the documents searched.
 - **No nn-core change needed.** Cost: `validate_knowledge` does not check that a preset name exists. That check belongs to the engine guard, which is acceptable for a scope-resolved name.
-- **Maintainer confirmation needed:** exploration decision 1 writes references as `[[Lucas]]`. This design drops the wiki-link brackets. If the brackets are required, the least invasive option is an nn-core change: a field type or flag that exempts scope-resolved names from `references.ts`/`relationships.ts`. That also means a `nn-core.generated.cjs` rebuild and an nn-core release. Under that option D3–D7 stay unchanged and only `parsePresetList` changes.
+- **Decided by the maintainer (real-domain review):** `presets` is written WITHOUT wiki-link brackets, as `presets:: [Lucas, Studio Warm]`. Exploration decision 1 wrote `[[Lucas]]`; that notation is superseded and appears nowhere as the preset reference syntax. The legacy `[[Doc :: Name]]` survives only as the migration source (D8). The bracketed alternative (an nn-core flag exempting scope-resolved names from `references.ts`/`relationships.ts`, plus a `nn-core.generated.cjs` rebuild) is not pursued.
 
 ### D2: Preset concept shape
 
 - `Preset` is a `list` Concept with no fields of its own. Its elements may carry only **preset parameters**: the fields whose `concept::` lists `Preset` (table below).
 - The engine vendors that set as `PRESET_PARAMETERS`. A drift test checks it against `spec_NN.md`, following the `conditional-fields-drift.test.mjs` pattern.
 - Any other key is a `preset-field` error. This covers `presets` (no composition, so no cycles), `type`, `asset` and `title`.
+- `slug` is exempt from `preset-field` (real-domain review): it is the reserved identity key every element carries, and migrated Preset elements keep the `slug::` their Template had. Lookup by slug (D3) depends on it. `PRESET_PARAMETERS` does not list `slug`; the check skips reserved identity keys instead, and the drift test treats them the same way.
 - Two Presets with the same name or slug in one document are a `preset-duplicate` error. A name listed twice in one `presets` list is also an error.
 
 ### D3 (Q3): Storage and lookup
@@ -99,8 +100,8 @@ export function bagsToChain(bags = {}) {
 
 - **Vehicle:** `scripts/dev/migrate-video-presets.mjs`. Its pure core is `scripts/dev/lib/video-presets-migration.mjs`, following the `adopt-video-plan` pattern.
 - **Rejected:** `nn-upgrade`. It is agent-guided and non-deterministic, and has no `rename_field` primitive.
-- **CLI:** `node scripts/dev/migrate-video-presets.mjs <domain-dir> [--apply] [--json]`. Dry run is the default and writes nothing. Exit 1 on any conflict. `--apply` is all-or-nothing.
-- **Files covered:** `*_NN.md` whose `parent_spec.name` starts with `video-script_V_`, `templates_*_NN.md`, the chain scope markers, and the root `video-defaults_NN.md`.
+- **CLI:** `node scripts/dev/migrate-video-presets.mjs <domain-dir> [--steps presets[,layout]] [--apply] [--json]`. Dry run is the default and writes nothing. Exit 1 on any conflict. `--apply` is all-or-nothing. (real-domain review) The script is an ORDERED PIPELINE OF STEPS: this change owns step group `presets` and is the only one implemented here; `--steps` defaults to `presets`, and an unknown or not-yet-implemented step group is a usage error. All selected steps share one document scan, produce ONE dry-run report and commit ONE atomic apply (see "Companion change").
+- **Files covered (real-domain review):** selected by CONTENT, not by `parent_spec.name`. Real scripts and scope markers carry `parent_spec.name: "video-script"` without a version, older ones `<series>_V_0-1-0`, so a version prefix test misses them. A `*.md` document under the domain is selected when it contains any of: a `# NN Template` section, a `template::` field, a `# NN Video` or `# NN Scene` element, or a scope marker (a `# NN Series` element). The root `video-defaults_NN.md` is always selected. Ignored directories and files: `archive`, `.bak*`, `node_modules`, `renders`, `_tmp_*`. Selection never reads `parent_spec`. Selected and unselected documents are both counted in the report.
 
 **Rewrites:**
 
@@ -108,20 +109,57 @@ export function bagsToChain(bags = {}) {
 |---|---|
 | Field renames | `tts_model`→`voice_model`, `music`→`background_audio`, `music_volume`→`background_audio_volume`, `presenter_asset`→`avatar`, `intro_asset`→`intro`, Template `speed`/`emotion`→`voice_speed`/`voice_emotion`, Layer-only `level::`→`z_index::` (frontmatter `level:` untouched) |
 | Layer `model::` | becomes `avatar_model::` when that field is absent. If both are present, `model` is dropped and reported |
+| Template `model::` / `tts_model::` (real-domain review) | in a `# NN Template` element, both map to `voice_model::`, value preserved byte-for-byte, including provider-prefixed ids such as `edge-tts/neural` or `replicate/minimax/...`. Without it the TTS model silently falls back to the default and edge-tts voices break. If a Template declares both keys with different values it is a conflict (no writes); with equal values one is dropped and reported. The Layer-vs-Template distinction comes from the owning concept section, never from the key alone |
 | `template::` | `template:: [[Doc :: Name]]` or `Name` becomes `presets:: [Name]` (last `::` segment) |
-| Template data | `# NN Template` elements become `# NN Preset`, are **moved** into the innermost scope document covering the templates file's folder (else `series_NN.md`, else the domain `video-defaults_NN.md`), and are appended after the first section. Emptied `templates_*_NN.md` are deleted |
+| Template data | `# NN Template` elements become `# NN Preset`, keep their `slug::`, are **moved** into the innermost scope document covering the templates file's folder (else `series_NN.md`, else the domain `video-defaults_NN.md`), and are appended after the first section. (real-domain review) When the `templates_*_NN.md` file itself holds the `# NN Series` element, it is its own target: the Presets are appended after the Series section in place. The `templates_*` file is NEVER deleted; the report lists it as now holding only the Series element |
+| Index (real-domain review) | in the `# NN index` of every migrated document AND of every series blueprint `spec_NN.md` that lists them, `* [[Template]]` becomes `* [[Preset]]`. The `# NN Series` element (tone, sound_tags) stays in place |
 | Removed fields | `tool` and Video `voice_id` are dropped and reported. `voice_id` is **not** converted to `voice`, because that would change resolution and bill again |
-| Version | `parent_spec.name` is set to `video-script_V_0-14-0` |
-| JSON drafts | `*_reviewed.json` / draft `*.json`: `template`→`presets: [Name]`, `music*`→`background_audio*`, `speed`→`voice_speed` |
+| Scope-marker voice keys (real-domain review) | Series fields `voice_id::` and `narrator_voice_id::` (4 real markers) have no consumer in the engine. The migration REPORTS each (file, key, value) and, on `--apply`, REMOVES it as a dead key; the report lists every removal so nothing is lost silently. Voice comes from Presets or the cascade `voice`. The guard-config voice registry entry is reported as informational only and is never edited. The removal is a maintainer-confirmable assumption (proposal) |
+| Version | (real-domain review) `parent_spec` is left UNTOUCHED: it is a pointer, not a version gate. A plain `video-script` is never rewritten to a versioned name, and a versioned one is not bumped. The blueprint version lives in `spec_NN.md` and the defaults document (slice 1) only |
+| JSON drafts | `*_reviewed.json` / draft `*.json`: see "JSON review state" below |
+| Series-local tool forks (real-domain review) | `series/*/tools/` copies of skill tools (for example `build-review-console.mjs`, `build-draft-html.mjs`, `build-script-from-draft.mjs`, copies of `draft-template.html`) are invisible to rename logic and keep emitting old names. The report LISTS each (path plus the old keys it mentions) and never edits or deletes it |
 | HTML consoles | quine consoles are listed for regeneration and not edited |
+
+**JSON review state (real-domain review).** The draft JSON stores config as `config[] = {key, value, origin, type}` (keys such as `tts_model`, `speed`, `emotion`, `music`, `music_volume`, and off-schema `narrator_voice`, `avatar_image`, `avatar_resolution_hook`), plus `videoOverrides{}` and per-scene override keys; reviewed JSON has `scenes[].template`. The migration rewrites `config[].key`, `videoOverrides` keys, per-scene override keys (all through the same rename table, including `tts_model`→`voice_model`, `speed`→`voice_speed`, `emotion`→`voice_emotion`, `music*`→`background_audio*`) and `scenes[].template`→`presets` (a one-element list). It MUST NEVER rename `scenes[].choice.model`: that is an AVATAR model id, not the retired Template alias. Off-schema keys (`narrator_voice`, `avatar_image`, `avatar_resolution_hook`, and any other unknown config key) are REPORTED with their location and left unchanged, not converted.
 
 - **Conflicts (no writes):** two moved Presets with the same name landing in one target, or no target document.
 - **Precedence warnings:** a Scene with an explicit `voice`/`tts_model` that differs from its Template's value. That scene's cache key will change, which is intended under the fixed precedence.
 - **Idempotence:** a second run reports zero changes. A test enforces this.
 - **Legacy key rejection:** engine and tools reject legacy keys loudly. `build-script-from-draft` and the console loader fail with `legacy-draft-keys` and name the script.
-- **Plan approval:** the approval hash covers script content (`plan-approval.mjs:50`), so migrated scripts need re-approval. There is no spend.
-- **Legacy markers:** `series_NN.md`, `series_rules.md` and `script_template.md` are **not dropped here**. They are orthogonal to presets and touch `findSeriesRoot` consumers (`video-engine-cli.mjs:675`, `render-thumbnail`, `build-script-from-draft`, `frame`/`series-scope` tests). Follow-up change: `video-legacy-series-markers`.
-- **Owner of the external `video_NN` migration:** the maintainer, who runs the script outside the repo.
+- **Plan approval:** the approval hash covers script content (`plan-approval.mjs:50`), so migrated scripts need re-approval. There is no spend. (real-domain review) Migrated scripts invalidate `asset_plan.approved.json`: re-run the estimate and re-approve; the spend is zero because every asset is a cache hit (D9). A `manifest.json` produced before the migration is stale and MUST be regenerated by `compile`; the report lists both kinds of file per script.
+- **Legacy markers:** `series_NN.md`, `series_rules.md` and `script_template.md` are **not dropped here**. They are orthogonal to presets and touch `findSeriesRoot` consumers (`video-engine-cli.mjs:675`, `render-thumbnail`, `build-script-from-draft`, `frame`/`series-scope` tests). (real-domain review) Their removal belongs to the companion change `2026-11-01-video-folder-contract`, which replaces the earlier idea of a separate `video-legacy-series-markers` change.
+- **Owner of the external `video_NN` migration:** the maintainer, who runs the script outside the repo ONCE, after both this change and the companion have landed (real-domain review).
+
+### D9: Cache preservation invariant (real-domain review, hard maintainer constraint)
+
+Re-running generation from a migrated script MUST NEVER repeat a provider request that the cache already satisfies.
+
+- For the real-domain-shaped fixture, the TTS, avatar and image cache identities (TTS options hash per D5, avatar job key, image prompt plus options hash) computed BEFORE migration (V_0-13-11 engine) and AFTER migration (new engine) MUST be identical for every scene whose effective inputs did not change.
+- Only scenes touched by the documented precedence-bug fix (D4, D8 precedence warnings) may differ. The dry-run report MUST list each such scene, so a difference is never a surprise and an unexpected one fails the test.
+- The `model`/`tts_model`→`voice_model` rule (D8) is part of the invariant: dropping it would change the TTS model and therefore the TTS hash.
+- Dead-key removal (`voice_id::`, `narrator_voice_id::`) is cache-neutral because no hash reads them. Series-local forks are not edited, so they cannot change a hash.
+- Not cache-related but reported together: `asset_plan.approved.json` is invalidated and `manifest.json` is stale (see D8 Plan approval).
+- Test method: a golden file of "before" cache identities is generated once from the V_0-13-11 engine and committed with the fixture (slice 1); a slice 2 test computes the "after" identities from the migrated fixture with the new engine and fails on any unexpected difference.
+
+## Naming convention (defined once here; consumed by the companion change)
+
+(real-domain review) The companion `2026-11-01-video-folder-contract` consumes this section and does not redefine it.
+
+- Concept names are singular and capitalised in documents (`Preset`, `Series`, `Video`, `Scene`, `Layer`); the retired `Template` is never reused for this mechanism.
+- Field names are `snake_case`. Voice delivery parameters carry the `voice_` prefix (`voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`); background sound carries `background_audio` and `background_audio_volume`; paint order is `z_index`; the avatar source is `avatar`. Cascade scope names are `<level>:preset:<Name>`.
+- `presets` holds bare names, unbracketed (D1). `slug` is the reserved identity key of every element (D2).
+- Internal TTS option keys and cache keys keep their historical names (D5).
+- Folder and file naming, and the layout step group, are owned by the companion.
+
+## Companion change
+
+(real-domain review) A second change, `2026-11-01-video-folder-contract` (folder layout, file/folder naming, workflow cleanup, single 1920x1920 master, platform-neutral description file, legacy series markers removal, issues #425 and #428), is coordinated with this one. Its content is not designed here. Binding points:
+
+- The migration script is an ORDERED PIPELINE OF STEPS (D8). This change owns step group `presets`; the companion adds step group `layout` and may rename the script to `migrate-video-domain.mjs`. CLI: `--steps presets[,layout]`; `presets` is the only step implemented here. One dry-run report, one atomic apply.
+- Both changes ride the same blueprint release: this change bumps to `V_0-14-0` and the companion bumps within the same unreleased train, so neither is merged to main alone. This is a release-train constraint: see "Test Strategy (Strict TDD) and Slices", which already requires `feature-branch-chain` or a held `dev`->`main` batch.
+- The companion is stacked after this change and may not archive before it.
+- Shared vocabulary and naming convention are defined once, in this change ("Naming convention" above).
+- The real-domain migration is run ONCE, after both changes land.
 
 ## Field Definitions (post-change, feeds the spec)
 
@@ -163,10 +201,10 @@ Every slice must leave `node scripts/verify.js` green. **No intermediate state i
 
 | # | Slice | RED tests first | Files |
 |---|---|---|---|
-| 1 | Contract + migration | `scripts/dev/migrate-video-presets.test.mjs`: renames, Template move, `template::` conversion, drops reported, Layer-only `z_index`, conflict means no write, **second run no-op**. Root `test/video-script-contract-additions.test.mjs`: Preset present, Template absent, `presets` shape, defaults free of `voice_speed`/`voice_emotion`/`voice_tone`/`presets`/Preset | `<bp>spec_NN.md` (`V_0-14-0`, concepts, fields, conditional_fields), `<bp>defaults/video-defaults_NN.md` (only `parent_spec` → `V_0-14-0`), `scene-compiler.mjs` (`DEFAULT_CONDITIONAL_FIELDS` only), `draft-template.html:1572` (version injected by `build-draft-html.mjs`, test forbids a literal `video-script_V_`), both `catalog.json` (`scripts/blueprint-catalog.mjs`), migration script plus lib, delta specs |
-| 2 | Engine core | (a) **cache-key regression**: a V_0-13-11 Template fixture and its migrated form give identical `computeHash`; (b) resolution order: last preset wins, explicit beats own presets, Scene `voice` beats Video preset, Video explicit beats Video preset, inner preset beats outer explicit; (c) lookup: nearest-first, shadowing, `unknown-preset`, `preset-syntax`, `preset-section-order`, `preset-duplicate`; (d) additive lists across levels and series folders; (e) `explain` names `scene:preset:X`; `preset-parameters-drift` | new `lib/presets.mjs`, `lib/video-scope.mjs`, `scene-compiler.mjs`, `lib/knowledge-model.mjs`, `lib/tts-options.mjs`, `video-engine-cli.mjs`, defaults `tts_model`→`voice_model`; rewrite `template-delivery`, `model-params`, `knowledge-model-compile`, `video-template`, `series-scope` tests |
+| 1 | Contract + migration | `scripts/dev/migrate-video-presets.test.mjs`: renames, Template move, `template::` conversion, drops reported, Layer-only `z_index`, conflict means no write, **second run no-op**; (real-domain review) fixtures modelled on the real domain: content-based selection with unversioned `parent_spec`, Template `model::`/`tts_model::` to `voice_model` (provider-prefixed values), JSON `config[]`/`videoOverrides`/`scenes[].template` with `choice.model` untouched, marker `voice_id`/`narrator_voice_id` removal, `# NN index` rewrite with the `templates_*` Series element kept, fork listing, and the committed "before" cache-identity golden. Root `test/video-script-contract-additions.test.mjs`: Preset present, Template absent, `presets` shape, defaults free of `voice_speed`/`voice_emotion`/`voice_tone`/`presets`/Preset | `<bp>spec_NN.md` (`V_0-14-0`, concepts, fields, conditional_fields), `<bp>defaults/video-defaults_NN.md` (only `parent_spec` → `V_0-14-0`), `scene-compiler.mjs` (`DEFAULT_CONDITIONAL_FIELDS` only), `draft-template.html:1572` (version injected by `build-draft-html.mjs`, test forbids a literal `video-script_V_`), both `catalog.json` (`scripts/blueprint-catalog.mjs`), migration script plus lib, delta specs |
+| 2 | Engine core | (a) **cache-key regression**: a V_0-13-11 Template fixture and its migrated form give identical `computeHash`; (real-domain review) plus the D9 before/after cache-identity comparison on the real-domain-shaped fixture (TTS, avatar, image), failing on any unexpected difference; (b) resolution order: last preset wins, explicit beats own presets, Scene `voice` beats Video preset, Video explicit beats Video preset, inner preset beats outer explicit; (c) lookup: nearest-first, shadowing, `unknown-preset`, `preset-syntax`, `preset-section-order`, `preset-duplicate`; (d) additive lists across levels and series folders; (e) `explain` names `scene:preset:X`; `preset-parameters-drift` | new `lib/presets.mjs`, `lib/video-scope.mjs`, `scene-compiler.mjs`, `lib/knowledge-model.mjs`, `lib/tts-options.mjs`, `video-engine-cli.mjs`, defaults `tts_model`→`voice_model`; rewrite `template-delivery`, `model-params`, `knowledge-model-compile`, `video-template`, `series-scope` tests |
 | 3 | Widening + renames | presenter without `asset` passes the guard via a Scene/Series/Preset `avatar` and fails without one; `z_index` paint order; `background_audio*` resolution | `scene-compiler.mjs` (guard, `lowerLayer`), `lib/avatar-jobs.mjs`, `synthesize-avatar.mjs`, `asset-cost-estimator.mjs`, `asset-synthesizer.mjs`, `scene-project.mjs`, defaults `music_volume` rename, remaining skill tests |
-| 4 | Authoring + docs | `build-script-from-draft` writes `presets:: [..]`, no presenter `asset::`, resolves `intro`; `legacy-draft-keys` rejection; console exports new keys | `build-script-from-draft.mjs`, `build-draft-html.mjs`, `draft-template.html`, `scripts/dev/adopt-video-plan.mjs` (it hoists `voice_id`, should be `voice`), `lib/series-values.mjs`, `validate-scope-golden.mjs`, `SKILL.md`, `references/*` (`series-template-convention.md` replaced) |
+| 4 | Authoring + docs | `build-script-from-draft` writes `presets:: [..]`, no presenter `asset::`, resolves `intro`; (real-domain review) writes `avatar_resolution` for any draft quality (today `build-script-from-draft.mjs:175` writes it only for `ALTA` and silently drops the chosen resolution otherwise; the real episode chose 480p), test first; `legacy-draft-keys` rejection; console exports new keys | `build-script-from-draft.mjs`, `build-draft-html.mjs`, `draft-template.html`, `scripts/dev/adopt-video-plan.mjs` (it hoists `voice_id`, should be `voice`), `lib/series-values.mjs`, `validate-scope-golden.mjs`, `SKILL.md`, `references/*` (`series-template-convention.md` replaced) |
 | 5 (opt.) | Fixture text | – | nn-core golden fixtures, nn-mcp illustrative text |
 
 **Slice 1 checklist:**
@@ -190,7 +228,8 @@ I read code only, with no shell. Nothing was run.
 - `validate_knowledge` and the workspace parse on a real `presets:: [Lucas]` (expected: no diagnostics).
 - Editor rendering of an option-less select-multiple.
 - `explain` output wording.
-- The `parent_spec` of real `<series>_scope_NN.md` markers. The D8 file selection assumes they are discoverable through the chain.
+- (real-domain review) The real-domain review settled that scripts and markers carry `parent_spec.name: "video-script"` (no version) or `<series>_V_0-1-0`; D8 therefore selects by content. Still unverified: whether a `templates_*_NN.md` holding a `# NN Series` element is discovered by `findScopeChain` as a scope document (D8 assumes it is, and otherwise falls back to the innermost covering scope document).
+- (real-domain review) The path and format of the "guard-config voice registry entry"; D8 only reports it.
 - The exact draft and quine key set beyond the lines the exploration cites.
 
 **Not in scope:**
@@ -198,4 +237,5 @@ I read code only, with no shell. Nothing was run.
 - nn-mcp `resolve_effective` stays preset-blind.
 - Per-folder series nodes (D3 tradeoff).
 - `image_model` per Layer.
-- Dropping the legacy markers.
+- Dropping the legacy markers (owned by the companion change `2026-11-01-video-folder-contract`).
+- The `layout` migration step group and folder/file naming (companion).

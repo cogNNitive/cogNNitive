@@ -10,7 +10,7 @@ Defines the `Preset` concept of the `video-script` bluepriNNt: a named bundle of
 
 The `video-script` blueprint MUST define a top-level `Preset` Concept that has no Field of its own, so that a `# NN Preset` element MAY carry only the preset parameters (the Fields whose `concept::` lists `Preset`) and the global `tags` Field (D2).
 
-The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`, `avatar`, `avatar_model`, `intro`, `image_model`, `background_audio`, `background_audio_volume`, `transition`, `frame`, `fit`, `components` and `sounds`. A Preset MUST NOT contain `Layer` elements. `tags` characterise a Preset and MUST NOT affect any resolved value.
+The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`, `avatar`, `avatar_model`, `intro`, `image_model`, `background_audio`, `background_audio_volume`, `transition`, `frame`, `fit`, `components` and `sounds`. A Preset MUST NOT contain `Layer` elements. `tags` characterise a Preset and MUST NOT affect any resolved value. (real-domain review) The reserved `slug` identity key that every element carries is exempt from the `preset-field` check and is not a preset parameter; migrated Presets keep their `slug::`.
 
 #### Scenario: Preset with parameters only is valid
 
@@ -24,6 +24,13 @@ The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`
 - WHEN the script is checked
 - THEN the check reports a `preset-field` error naming the Preset and the offending key
 - AND `presets` inside a Preset is rejected so that Presets cannot compose or form cycles
+
+#### Scenario: Reserved slug is not a preset-field error (real-domain review)
+
+- GIVEN a `# NN Preset` element `Lucas` declaring `slug:: lucas` and `voice:: lucas-es`
+- WHEN the script and its scope chain are checked
+- THEN no `preset-field` error is reported
+- AND the Preset is also found by the slug `lucas`
 
 #### Scenario: Layers inside a Preset are not accepted
 
