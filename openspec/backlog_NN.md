@@ -27,9 +27,6 @@ captured:: 2026-10-31
 ## NN Idea: Migrate local specializations onto canonical templates (deferred, conflicts with no-backwards-compat)
 captured:: 2026-10-31
 
-## NN Idea: Console review view for video scripts (premise stale after the HyperFrames move)
-captured:: 2026-10-31
-
 ## NN Idea: OKF trustFor and stale_after fields (deferred, no consumer yet)
 captured:: 2026-10-31
 
@@ -54,7 +51,7 @@ risk:: L
 status:: partial
 lane:: light
 verdict:: current
-evidence:: Partly done 2026-10-31: test/simulation/lib/core.mjs now loads the nn-core dist and its header is rewritten. test/simulation/run-all.mjs now runs with 24 passed, 7 failed, 3 observed. Remaining failures are stale scenario code, not the import path: S01 parseKnowledgeUnitRef is no longer exported by nn-core; S02 duplicate element name is no longer refused (step expectation outdated, see intra-document identity); S03 and S07 read the retired root _samples_nn/kNNowledge path (now test/_samples_nn/kNNowledge); S05 fixture test/simulation/fixtures/acme/sources/nn/unit-costs.csv is missing (sources/nn is retired); S06 resolves iNNfo/specs relative to test/ (harness ROOT or path is off by one level).
+evidence:: Partly done 2026-10-31: test/simulation/lib/core.mjs now loads the nn-core dist and its header is rewritten. test/simulation/run-all.mjs now runs with 24 passed, 7 failed, 3 observed. Remaining failures are stale scenario code, not the import path: S01 parseKnowledgeUnitRef is no longer exported by nn-core; S02 duplicate element name is no longer refused (step expectation outdated, see intra-document identity); S03 and S07 read the retired root _samples_nn/kNNowledge path (now test/_samples_nn/kNNowledge); S05 reads the retired sources/nn/unit-costs.csv while the fixture exists at test/simulation/fixtures/acme/sources/import/unit-costs.csv (repoint it) and also calls the unexported parseKnowledgeUnitRef; S06 builds its iNNfo/specs path with three parent hops from test/simulation/fixtures/acme and lands in test/ (one more hop is needed; the harness ROOT in lib/harness.mjs is correct). Re-audited 2026-11-01 by reading the code, not by running it.
 done_when:: The scenarios in test/simulation/scenarios are updated for the current layout and nn-core API (S01, S02, S03, S05, S06, S07) so run-all.mjs reports no FAIL, or the harness is deleted with a recorded decision. Diagnostic harness, not a CI gate.
 batch:: b1-light-cleanup
 
@@ -88,7 +85,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/business-model/spec_NN.md:294,300 define Contributions and Compensations only as Concept Definitions with no guidance sections; analysis has no Validation section; validator rule at iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:260.
+evidence:: iNNfo/specs/bluepriNNts/business-model/spec_NN.md:294,300 define Contributions and Compensations only as Concept Definitions with no guidance sections; analysis has no Validation section; validator rule at iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:260. Issue 228 is wider than this Item: it also names the projects concepts, a policy decision for system blueprints and the l3-index-ignored reconciliation.
 done_when:: business-model, analysis and projects carry the missing Summary, Description, Methodologies and Prompts sections and the validator reports no PARENT_CONCEPT_GUIDANCE_INCOMPLETE for them.
 ref:: issue-228
 batch:: b2-published-blueprints
@@ -100,7 +97,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/changes/spec_NN.md:40,150 list rename_element but never explain the cascade or the slug freeze; a cheaper home exists at docs/documentation/content/reference/mcp-tools.md:24.
+evidence:: iNNfo/specs/bluepriNNts/changes/spec_NN.md:40,150 list rename_element but never explain the slug freeze; the cascade is only stated informally at docs/documentation/content/skills/nn-innfo.md:72-75 (WikiLinks, matrices and cross-references renamed); a cheaper home exists at docs/documentation/content/reference/mcp-tools.md:24.
 done_when:: The rename_element cascade and slug freeze are documented in one place.
 ref:: issue-244
 batch:: b2-published-blueprints
@@ -114,7 +111,7 @@ lane:: heavy
 verdict:: current
 evidence:: No order field exists outside iNNfo/specs/bluepriNNts/documentation/spec_NN.md:89,126, and CHANGE_OPS in iNNfo/packages/nn-core/src/changeset/types.ts:7-20 has no reorder op. Decision 2026-10-31: model order as a number field named order moved with update_field; the reorder changeset op is the rejected alternative and a console drag and drop writes order through update_field.
 merged_from:: issue-222, console-element-reorder
-done_when:: The blueprints where ordering matters declare order as a number field and the recipe for reordering by update_field is documented.
+done_when:: The blueprints where ordering matters declare order as a number field and the recipe for reordering by update_field is documented. The video-script blueprint is excluded: its spec_NN.md:293,399 forbid an order:: field and order Scenes by the # NN index list. The issue text names docs/innfo/documentation/manual-editing-risks.md, which no longer exists (the docs/innfo tree was dropped), so the recipe needs a new home.
 ref:: issue-222
 batch:: b2-published-blueprints
 
@@ -166,7 +163,7 @@ risk:: H
 status:: partial
 lane:: heavy
 verdict:: current
-evidence:: scripts/regen.js and scripts/lib/freshness-guards.js already give one regen entry, but committed derived files remain (console/nn-console.bundle.js, console-payload.generated.cjs, nn-address.generated.js, nn-slug.generated.js, iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js, five skills/*/scripts/lib/*.generated.cjs) with about ten roFresh steps at scripts/verify.js:577-632. Re-check the pays-a-ripple premise before starting.
+evidence:: scripts/regen.js and scripts/lib/freshness-guards.js already give one regen entry, but committed derived files remain (console/nn-console.bundle.js, console-payload.generated.cjs, nn-address.generated.js, nn-slug.generated.js, iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js, five skills/*/scripts/lib/*.generated.cjs) with eleven roFresh steps at scripts/verify.js:577-632; a fifth generated skill file now lives inside the blueprint skill (iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/scripts/lib/nn-core.generated.cjs). Re-check the pays-a-ripple premise before starting.
 merged_from:: derived-artifact-consolidation, console-bundle-derived-on-release
 batch:: b4a-derived-artifacts
 
@@ -240,7 +237,7 @@ risk:: H
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/packages/nn-core and nn-mcp are still nested under iNNfo/ and no top-level packages/ exists; git grep -lF iNNfo/packages returned 116 files across code, docs and openspec on 2026-10-31.
+evidence:: iNNfo/packages/nn-core and nn-mcp are still nested under iNNfo/ and no top-level packages/ exists; git grep -lF iNNfo/packages returned 116 files across code, docs and openspec on 2026-10-31 and 118 on 2026-11-01.
 done_when:: Packages live at packages/, workspaces and every path reference are updated, and CI is green after a clean npm ci. Preconditions - no open session worktrees and re-measure git grep -lF iNNfo/packages first. Scope is bounded by openspec/decisions/keep-published-paths-frozen.md (iNNfo/specs, skills, manifest and docs do not move).
 batch:: b9-packages-to-root
 
@@ -270,7 +267,29 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: The video-script blueprint has no actor layer type, video-defaults_NN.md:21-22 still points at WaveSpeed, and the assets/characters rig does not exist in the tree.
+evidence:: The video-script blueprint has no actor layer type, defaults/video-defaults_NN.md:22-23 still points at WaveSpeed (wavespeed-ai/z-image/turbo, wavespeed-ai/infinitetalk-fast), the Layer types at video-script/spec_NN.md:182 are presenter, background, b-roll, title, lower-third, caption, brand, quote, watermark and animation (a HyperFrames project directory, the likely carrier for an actor), and the assets/characters rig does not exist in the tree. Re-checked 2026-11-01 after the presets and folder-contract releases: unchanged.
+
+## NN Item: docs-skills-retirement
+value:: L
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: docs/skills/ still tracks 17 files (templates/workflow, samples, js, setup) and iNNfo/validation-baseline.json:11 and scripts/verify.js:138,182 still reference it; no open Item covers the audit. Confirmed 2026-11-01.
+done_when:: Every file under docs/skills/ is either migrated to its living home or retired with a recorded reason, the references in iNNfo/validation-baseline.json and scripts/verify.js are updated, and verify.js is green.
+ref:: issue-430
+
+## NN Item: video-script-procedures
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: The video-script blueprint ships no procedures/ folder (9 other blueprints do) and its spec_NN.md never declares one, although openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
+done_when:: The video-script blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
+ref:: issue-429
 
 ## NN Item: cognitivize-archive-and-gc-decisions
 value:: L
