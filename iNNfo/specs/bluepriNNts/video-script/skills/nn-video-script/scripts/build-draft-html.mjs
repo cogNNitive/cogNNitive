@@ -223,6 +223,18 @@ function main() {
   const slug = draft.slug || path.basename(jsonPath).replace(/_draft.*\.json$/, '').replace(/\.json$/, '');
   const version = draft.version || 'v1';
 
+  // Never build the console over missing evidence (#429): every media file and every thumbnail without an inline copy must exist.
+  const absent = (draft.media || [])
+    .flatMap((m) => [m.path, m.thumb && !m.thumbB64 ? m.thumb : null])
+    .filter(Boolean)
+    .map((rel) => path.resolve(baseDir, rel))
+    .filter((p) => !fs.existsSync(p));
+  if (absent.length > 0) {
+    console.error('Cannot build the review console, referenced media is missing:\n' + absent.map((p) => '  - ' + p).join('\n'));
+    console.error('Produce the screenshots and HyperFrames clips under assets/<slug>/media/ first, then re-run.');
+    process.exit(1);
+  }
+
   const reviewedPath = path.join(baseDir, `${slug}_reviewed.json`);
   let reviewed = null;
   if (fs.existsSync(reviewedPath)) {

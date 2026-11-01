@@ -12,7 +12,7 @@ import { createNodeDirectoryHandle } from '../lib/nodeFs.mjs'
 import { createScenario, ROOT } from '../lib/harness.mjs'
 import { loadCore } from '../lib/core.mjs'
 
-const WS = join(ROOT, '_samples_nn')
+const WS = join(ROOT, 'test', '_samples_nn')
 const TEMPLATES = join(ROOT, 'iNNfo', 'specs', 'bluepriNNts')
 
 export default async function run() {
@@ -92,11 +92,11 @@ export default async function run() {
     )
 
     // Does the flagship workspace actually demonstrate the flagship feature?
-    const sourcesDir = join(WS, 'sources', 'nn')
+    const sourcesDir = join(WS, 'sources', 'import')
     const sourceFiles = existsSync(sourcesDir) ? await readdir(sourcesDir) : []
     s.expect(
       'The shipped workspace contains the sources its models cite',
-      { sourcesDir: 'sources/nn/', files: sourceFiles },
+      { sourcesDir: 'sources/import/', files: sourceFiles },
       (v) => v.files.length > 0,
       'source traceability is the headline capability — the demo must demonstrate it',
     )

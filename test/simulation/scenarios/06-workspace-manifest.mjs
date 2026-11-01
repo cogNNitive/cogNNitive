@@ -74,7 +74,7 @@ export default async function run() {
 
     // The host supplies template schemas; here they come off disk.
     const analysisSchema = extractBlueprintSchemaFromContent(
-      await readFile(join(WS, '..', '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'analysis', 'spec_NN.md'), 'utf-8'),
+      await readFile(join(WS, '..', '..', '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'analysis', 'spec_NN.md'), 'utf-8'),
     )
     const index = buildWorkspaceIndex(parsed, (node) =>
       String(node?.frontmatter?.parent_spec?.name ?? '').startsWith('analysis') ? analysisSchema : null,

@@ -72,6 +72,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    ```bash
    node scripts/build-draft-html.mjs <draft.json>
    ```
+   The script refuses to build the console (exit 1, no HTML written) while any media or thumbnail file referenced by the draft is missing under `assets/<slug>/media/`; produce the screenshots and HyperFrames clips first.
    This emits `<slug>_review_console.html`. The console provides:
    - Parameter cascade inspection and overrides (`#video-params-sheet`): voice speed, fps, background audio volume, transition, and the Preset list.
    - Global video overlay templates (`#video-overlays-sheet`).
@@ -102,7 +103,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    node scripts/synthesize-avatar.mjs <script_NN.md> [--scene <id>]... [--dry-run] [--resume <task-id>] [--force-resubmit] [--poll-window <min>] [--allow-model <name>] [--approval <file>] [--cache-dir <dir>]
    node scripts/video-engine-cli.mjs compile <script_NN.md>   # picks the clips up, zero extra spend
    ```
-   *Needs the narration audio the first `compile` cached (it reads `<domain>/.cognnitive/cache/video/tts` directly: there is no `audio/` copy), `WAVESPEED_API_KEY` and the human-approved plan. The price is per second of that audio (measured first; unmeasurable audio is refused), the default and only allowed model is `wavespeed-ai/infinitetalk-fast`, and the whole batch is refused before the first charge. A job takes minutes: the task id is journaled in `.cognnitive/pending-predictions.jsonl` before polling, and a re-run is REFUSED while the journal shows an outstanding job for the same scene (use the printed `--resume` command; `--force-resubmit` costs money). On a timeout or recoverable failure the script exits 3 with one complete resume command per task (resume never re-submits). Avatar images must be real files (prompt-only avatar layers need the image generated first by compile); stale staged audio is refused (re-run compile). Billing is ceil(seconds), capped by `maxAvatarSeconds`. The second `compile` rewrites each cached avatar layer to a muted `video` layer.*
+   *Needs the narration audio the first `compile` cached (it reads `<domain>/.cognnitive/cache/video/tts` directly: there is no `audio/` copy), `WAVESPEED_API_KEY` and the human-approved plan. The price is per second of that audio (measured first; unmeasurable audio is refused), the default and only allowed model is `wavespeed-ai/infinitetalk-fast`, and the whole batch is refused before the first charge. A job takes minutes: the task id is journaled in `.cognnitive/pending-predictions.jsonl` before polling, and a re-run is REFUSED while the journal shows an outstanding job for the same scene (use the printed `--resume` command; `--force-resubmit` costs money). On a timeout or recoverable failure the script exits 3 with one complete resume command per task (resume never re-submits). Avatar images must be real files (prompt-only avatar layers need the image generated first by compile); a scene whose narration, voice or model changed has no cache entry and is refused (re-run compile first). Billing is ceil(seconds), capped by `maxAvatarSeconds`. The second `compile` rewrites each cached avatar layer to a muted `video` layer.*
 
 6. **Render the Master (one 1920x1920 file)**:
    ```bash
@@ -154,3 +155,4 @@ Run any script with no arguments (or a bad one) to see its usage banner.
 See `references/thumbnail-and-asset-pipeline.md` for visual preproduction guidelines.
 See `references/overlay-slots.md` for the overlay slot contract (variables, components, sound keys).
 See `references/cost-guardrails.md` for the spend gate (approval, budget, allowlist, ledger, dry run).
+See `references/parameters.md` for every Field by scope (Defaults, Series, Preset, Video, Scene, Layer) with its type and values. It is generated from the blueprint; never edit it by hand.

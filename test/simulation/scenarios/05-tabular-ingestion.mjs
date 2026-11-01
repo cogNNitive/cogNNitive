@@ -15,7 +15,7 @@ import { loadCore } from '../lib/core.mjs'
 const WS = join(SIM, 'fixtures', 'acme')
 
 export default async function run() {
-  const { recursiveParse, validateWorkspaceSources, parseCsvTable, extractHeadings, parseKnowledgeUnitRef } =
+  const { recursiveParse, validateWorkspaceSources, parseCsvTable, extractHeadings, parseCitation } =
     await loadCore()
   const s = createScenario('S05', 'Tabular source ingestion & row-level citations',
     'An analyst imports a cost table and cites one SKU row from a model assumption.')
@@ -28,7 +28,7 @@ export default async function run() {
   }
 
   try {
-    const csv = parseCsvTable(readFileSync(join(WS, 'sources', 'nn', 'unit-costs.csv'), 'utf-8'))
+    const csv = parseCsvTable(readFileSync(join(WS, 'sources', 'import', 'unit-costs.csv'), 'utf-8'))
     s.expect(
       'The imported table parses with a usable key column',
       { columns: csv.columns ?? csv.headers, rowCount: (csv.rows ?? []).length },
@@ -38,7 +38,7 @@ export default async function run() {
 
     s.expect(
       'A row citation parses as a row unit, not a heading',
-      parseKnowledgeUnitRef('unit-costs.csv@SKU-014'),
+      parseCitation('unit-costs.csv@SKU-014'),
       (r) => r?.unit?.kind === 'row' && r.unit.id === 'SKU-014',
       'the `.csv` extension selects the row grammar automatically',
     )
@@ -52,7 +52,7 @@ export default async function run() {
     )
 
     // The row is deleted upstream — the classic silent-breakage scenario.
-    const withoutRow = readFileSync(join(WS, 'sources', 'nn', 'unit-costs.csv'), 'utf-8')
+    const withoutRow = readFileSync(join(WS, 'sources', 'import', 'unit-costs.csv'), 'utf-8')
       .split(/\r?\n/)
       .filter((l) => !l.startsWith('SKU-014'))
       .join('\n')
@@ -64,7 +64,7 @@ export default async function run() {
     )
 
     // Duplicate keys make every row citation ambiguous.
-    const dupKeys = `${readFileSync(join(WS, 'sources', 'nn', 'unit-costs.csv'), 'utf-8').trim()}\nSKU-014,control board v2,44.10,Norvex\n`
+    const dupKeys = `${readFileSync(join(WS, 'sources', 'import', 'unit-costs.csv'), 'utf-8').trim()}\nSKU-014,control board v2,44.10,Norvex\n`
     s.expect(
       'Duplicate keys in the source table are reported once, not per citation',
       validateWorkspaceSources(parsed, resolve(dupKeys)).map((d) => d.code),
@@ -74,7 +74,7 @@ export default async function run() {
 
     s.expect(
       'A line-range citation is refused (line numbers are not stable provenance)',
-      parseKnowledgeUnitRef('unit-costs.csv#L2-L4'),
+      parseCitation('unit-costs.csv#L2-L4'),
       (r) => r === null,
       'null — provenance addresses named units, never line offsets',
     )
