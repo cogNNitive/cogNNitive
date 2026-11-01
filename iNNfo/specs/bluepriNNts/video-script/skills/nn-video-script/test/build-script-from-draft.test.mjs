@@ -64,7 +64,7 @@ const reviewed = {
 };
 const draft = {
   scenes: [
-    { slug: '00-gancho', name: '00 Gancho', presets: '[[Other Series :: Full]]' },
+    { slug: '00-gancho', name: '00 Gancho', presets: ['Lucas', 'Full'] },
     { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
     { slug: '02-noticia', name: '02 Noticia' },
   ],
@@ -105,12 +105,39 @@ test('no cascaded scene line is written', () => {
   assert.doesNotMatch(md, /\[\[Blueprint :: Section\]\]/);
 });
 
-test('the hook preset comes from the draft scene', () => {
+test('a presets list that exists only on the draft scene is not written: the console selector is the only source', () => {
   const md = build();
+  assert.doesNotMatch(md, /presets::/);
+});
+
+test('the reviewed scene presets list is written in the author order', () => {
+  const rev = structuredClone(reviewed);
+  rev.scenes[0].sceneOverrides = { presets: ['Studio Warm', 'Lucas'] };
+  const md = build(rev);
   const hook = md.split('## NN Scene: 00 Gancho')[1].split('## NN Scene: 01 Intro')[0];
-  assert.match(hook, /presets:: \[Full\]/);
+  assert.match(hook, /presets:: \[Studio Warm, Lucas\]/);
   const body = md.split('## NN Scene: 02 Noticia')[1];
   assert.doesNotMatch(body, /presets::/);
+});
+
+test('the reviewed video-level presets list is written on the video, absent means no line', () => {
+  const rev = structuredClone(reviewed);
+  rev.videoOverrides = { presets: ['Lucas', 'Studio Warm'] };
+  const md = build(rev);
+  const video = md.split('# NN Scene')[0];
+  assert.match(video, /^presets:: \[Lucas, Studio Warm\]$/m);
+  assert.doesNotMatch(build().split('# NN Scene')[0], /presets::/);
+  rev.videoOverrides = { presets: [] };
+  assert.doesNotMatch(build(rev).split('# NN Scene')[0], /presets::/);
+});
+
+test('a presets value that is not a list fails loudly, at video and scene level', () => {
+  const sceneBad = structuredClone(reviewed);
+  sceneBad.scenes[0].sceneOverrides = { presets: 'Lucas' };
+  assert.throws(() => build(sceneBad), /presets/);
+  const videoBad = structuredClone(reviewed);
+  videoBad.videoOverrides = { presets: '[[Doc :: Lucas]]' };
+  assert.throws(() => build(videoBad), /presets/);
 });
 
 test('the avatar layer uses the renamed avatar_model field', () => {

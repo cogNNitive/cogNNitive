@@ -15,6 +15,9 @@
  *   node build-draft-html.mjs draft.json [--out <file.html>]
  *     [--series <dir>] [--series-title <name>]
  *
+ * The console's one Preset selector lists the Preset names visible from the same
+ * folder (see `visiblePresetNames`).
+ *
  * Writes `review_console.html` next to the draft and embeds `reviewed.json` when
  * it sits beside it. A draft or reviewed JSON with a retired key is rejected
  * (`legacy-draft-keys`).
@@ -24,7 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSeriesFor } from './build-script-from-draft.mjs';
-import { findBlueprintPackage } from './lib/video-scope.mjs';
+import { findBlueprintPackage, loadCascadeBags } from './lib/video-scope.mjs';
 import { RETIRED_DRAFT_KEYS, findLegacyKeys, assertNoLegacyKeys } from './lib/legacy-draft-keys.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,6 +46,27 @@ export function blueprintVersion() {
   } catch {
     return '';
   }
+}
+
+/**
+ * The Preset names visible from a draft's folder, in lookup order (the Series
+ * chain innermost first, then the domain Video Defaults), de-duplicated the way
+ * the engine's index shadows them. A Preset defined in the script itself does
+ * not exist at draft time, so it never appears. `seriesDir` mirrors `--series`.
+ */
+export function visiblePresetNames(dir, seriesDir) {
+  const { presetIndex } = loadCascadeBags(seriesDir || dir);
+  const names = [];
+  const seen = new Set();
+  for (const source of presetIndex.sources) {
+    for (const element of source.elements?.Preset || []) {
+      const key = String(element.name ?? element.slug ?? '').trim().toLowerCase();
+      if (key === '' || seen.has(key)) continue;
+      seen.add(key);
+      names.push(String(element.name ?? element.slug).trim());
+    }
+  }
+  return names;
 }
 
 function argValue(argv, name) {
@@ -160,7 +184,7 @@ export function normalizeAnimationTiers(draft) {
   };
 }
 
-export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 'Series', title, description, reviewed } = {}) {
+export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 'Series', title, description, reviewed, presetNames = [] } = {}) {
   assertNoLegacyKeys(rawDraft, 'draft.json');
   if (reviewed) assertNoLegacyKeys(reviewed, 'reviewed.json');
   const draft = normalizeAnimationTiers(rawDraft);
@@ -211,6 +235,7 @@ export function buildDraftHtml(rawDraft, { baseDir, templatePath, seriesTitle = 
     .replace(/\{\{BLUEPRINT_VERSION\}\}/g, blueprintVersion())
     .replace('/*__DRAFT_JSON__*/', JSON.stringify(draft))
     .replace('/*__THUMBS_JSON__*/', JSON.stringify(thumbs))
+    .replace('/*__PRESET_NAMES_JSON__*/', () => JSON.stringify(presetNames).replace(/</g, '\\u003c'))
     .replace('/*__REVIEWED_JSON__*/', reviewedJson)
     .replace('/*__RETIRED_KEYS__*/', () => JSON.stringify(RETIRED_DRAFT_KEYS))
     .replace('/*__FIND_LEGACY_KEYS__*/', () => findLegacyKeys.toString());
@@ -263,6 +288,7 @@ function main() {
       templatePath: path.join(__dirname, 'draft-template.html'),
       seriesTitle,
       reviewed,
+      presetNames: visiblePresetNames(baseDir, argValue(argv, 'series')),
     });
   } catch (e) {
     if (e.code !== 'legacy-draft-keys') throw e;
