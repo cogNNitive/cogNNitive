@@ -54,7 +54,7 @@ test('reads music, volume and transition from script_template.md when no marker 
   });
 });
 
-test('video.series.json wins over the template', () => {
+test('video.series.json is not read any more: the template still supplies the value', () => {
   withDomain(
     {
       'script_template.md': TEMPLATE,
@@ -66,10 +66,8 @@ test('video.series.json wins over the template', () => {
     },
     (root) => {
       const v = seriesValues(root, 'demo');
-      assert.equal(v.music, '../../shared/json.mp3');
-      assert.equal(v.volume, 0.1);
-      assert.equal(v.transition, 'slide-left');
-      assert.equal(v.source, 'video.series.json');
+      assert.notEqual(v.music, '../../shared/json.mp3');
+      assert.notEqual(v.source, 'video.series.json');
     },
   );
 });

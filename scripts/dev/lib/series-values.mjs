@@ -5,7 +5,6 @@
  * series uses today, in precedence order:
  *
  *   1. the series scope marker `<series>_scope_NN.md` (post-adoption truth)
- *   2. `video.series.json` (structured config)
  *   3. `script_template.md` (`music`, `music_volume`, `transition`)
  *   4. `voice_id::` repeated in the `## NN Video` blocks of `<Series>_video_NN.md`
  *
@@ -38,16 +37,6 @@ export function seriesValues(root, series) {
   const marker = readIf(root, join(dir, `${series}_scope_NN.md`));
   const template = readIf(root, join(dir, 'script_template.md')) ?? '';
 
-  const jsonText = readIf(root, join(dir, 'video.series.json'));
-  let json = null;
-  if (jsonText) {
-    try {
-      json = JSON.parse(jsonText);
-    } catch {
-      json = null;
-    }
-  }
-
   const entries = existsSync(join(root, dir)) ? readdirSync(join(root, dir)) : [];
   const seriesDoc = entries.find((f) => f.endsWith('_video_NN.md'));
   const docText = seriesDoc ? (readIf(root, join(dir, seriesDoc)) ?? '') : '';
@@ -67,18 +56,14 @@ export function seriesValues(root, series) {
   };
   const markerHit = Object.values(markerValues).some((v) => v !== null);
 
-  const music = markerValues.music ?? json?.defaultMusic ?? fieldOf(template, 'music');
-  const volumeRaw = markerValues.volume ?? json?.defaultMusicVolume ?? fieldOf(template, 'music_volume');
+  const music = markerValues.music ?? fieldOf(template, 'music');
+  const volumeRaw = markerValues.volume ?? fieldOf(template, 'music_volume');
   const volume = volumeRaw === null || volumeRaw === undefined || volumeRaw === '' ? null : Number(volumeRaw);
-  const transition = markerValues.transition ?? json?.defaultTransition ?? fieldOf(template, 'transition');
+  const transition = markerValues.transition ?? fieldOf(template, 'transition');
   const voice = markerValues.voice ?? majority;
 
-  const jsonHit =
-    json !== null &&
-    ['defaultMusic', 'defaultMusicVolume', 'defaultTransition'].some((key) => json[key] !== undefined);
   let source = null;
   if (markerHit) source = 'scope marker';
-  else if (jsonHit) source = 'video.series.json';
   else if (music !== null || volume !== null || transition !== null || voice !== null) source = 'script_template.md';
 
   return { music, volume: Number.isFinite(volume) ? volume : null, transition, voice, voiceCounts, source };

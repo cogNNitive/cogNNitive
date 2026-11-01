@@ -21,7 +21,6 @@ import { parseKnowledgeDocument } from './knowledge-model.mjs';
 import { loadPresetIndex, lookupPreset, parsePresetList, presetSourceFromFile } from './presets.mjs';
 
 export const SCOPE_ORDER = ['cli', 'layer', 'scene', 'video', 'series', 'domain', 'blueprint'];
-export const SERIES_MARKERS = ['series_NN.md', 'series_rules.md', 'script_template.md'];
 export const PROCEDURES_DIR = 'procedures';
 
 /** Levels whose `presets` list expands. `layer` and `cli` carry explicit fields only. */
@@ -135,16 +134,32 @@ export function findBlueprintPackage(skillDir = SKILL_DIR) {
   throw new BlueprintPackageNotFoundError(candidates);
 }
 
-export function findSeriesRoot(startDir, domainRoot) {
-  const stop = domainRoot ? path.resolve(domainRoot) : null;
-  let dir = path.resolve(startDir);
-  for (;;) {
-    if (stop && dir === stop) return undefined;
-    if (SERIES_MARKERS.some((m) => fs.existsSync(path.join(dir, m)))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
+/**
+ * The series root: the outermost folder scope link below the domain root, as the
+ * nn-core scope chain resolves it. A scope document is recognised by its
+ * frontmatter `scope: true`, never by filename, and a chain that is not `ok`
+ * (for example DUPLICATE_SCOPE_MARKER) is surfaced instead of swallowed.
+ *
+ * @param {string} startDir
+ * @returns {string|undefined} Absolute path of the series folder, or undefined.
+ */
+export function findSeriesRoot(startDir) {
+  const found = findScopeChain(startDir);
+  if (!found.ok) {
+    // An episode with no domaiNN root above it simply has no series; a broken
+    // chain (a duplicate scope marker) is a real error and is surfaced.
+    if (found.code === 'NO_DOMAIN_ROOT') return undefined;
+    const detail = found.detail ? `: ${found.detail}` : '';
+    throw new Error(`Cannot resolve the series root: ${found.code || 'unreadable scope chain'}${detail}`);
   }
+  const loaded = loadChain(found.chain);
+  if (!loaded.ok) {
+    const detail = loaded.detail ? `: ${loaded.detail}` : '';
+    throw new Error(`Cannot load the scope chain: ${loaded.code || 'unreadable scope chain'}${detail}`);
+  }
+  const scope = (loaded.loaded.nodes || []).find((node) => node.kind === 'scope');
+  if (!scope) return undefined;
+  return path.resolve(found.chain.root, scope.id);
 }
 
 /**
@@ -190,16 +205,10 @@ export function loadCascadeBags(scriptDir, options = {}) {
   const bags = {};
   const domainRoot = resolveWorkspace(scriptDir).root;
   const domainFile = path.join(domainRoot, 'video-defaults_NN.md');
+  // The series level comes only from the scope chain: the legacy markers
+  // (`series_NN.md`, `series_rules.md`, `script_template.md`) anchor nothing.
   const fromChain = seriesValuesFromScopeChain(scriptDir);
-  if (fromChain) {
-    bags.series = fromChain;
-  } else {
-    const seriesRoot = findSeriesRoot(scriptDir, domainRoot);
-    if (seriesRoot) {
-      const series = documentFields(path.join(seriesRoot, 'series_NN.md'), 'Series');
-      if (series) bags.series = series;
-    }
-  }
+  if (fromChain) bags.series = fromChain;
   const domain = documentFields(domainFile, 'Video Defaults');
   if (domain) bags.domain = domain;
   const pkg = findBlueprintPackage(options.skillDir || SKILL_DIR);

@@ -206,17 +206,6 @@ export function resolveSoundFiles({ bags, scriptDir, workspaceRoot, skillDir = S
       fallbackDir: skillDir,
     });
     if (!soundPath) {
-      const fallback = findNearestByStem(scriptDir, 'shared/audio', name, {
-        stopDir: workspaceRoot,
-        fallbackDir: skillDir,
-      });
-      if (fallback.path) {
-        soundPath = fallback.path;
-      } else {
-        searched = searched.concat(fallback.searched);
-      }
-    }
-    if (!soundPath) {
       checkMissingAsset({ kind: 'sound', name, source, searched });
       continue;
     }
@@ -672,7 +661,7 @@ export async function compileVideo(options) {
   const staging = resolveMediaLayers(manifest, {
     scriptDir,
     publicDir,
-    seriesRoot: findSeriesRoot(scriptDir, scopeRoot),
+    seriesRoot: findSeriesRoot(scriptDir),
     scopeRoot,
   });
   manifest.metadata.publicDir = publicDir;

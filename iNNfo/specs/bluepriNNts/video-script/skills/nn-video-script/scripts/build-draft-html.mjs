@@ -7,7 +7,7 @@
  * URI, so the HTML is a single portable file (no assets folder) that works from file://.
  *
  * Series-parameterized through the parameter cascade: the display series title
- * comes from the `series_NN.md` document found by walking from the draft JSON's
+ * comes from the scope document found by walking the scope chain from the draft JSON's
  * folder (or an explicit `--series <dir>`); the template ships neutral
  * (`{{SERIES}}`).
  *

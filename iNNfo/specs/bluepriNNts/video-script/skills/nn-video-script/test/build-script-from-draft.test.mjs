@@ -194,9 +194,9 @@ test('a reviewed scene without an overlays key yields no overlays, with or witho
   assert.equal(md, build(rev, null));
 });
 
-test('loadSeriesDocument reads the slug, title and frontmatter from series_NN.md', () => {
+test('loadSeriesDocument reads the slug, title and frontmatter from the scope document', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-series-'));
-  fs.writeFileSync(path.join(dir, 'series_NN.md'), SERIES_CONTENT, 'utf8');
+  fs.writeFileSync(path.join(dir, 'other-series_scope_NN.md'), SERIES_CONTENT, 'utf8');
   const series = loadSeriesDocument(dir);
   assert.equal(series.slug, 'other-series');
   assert.equal(series.title, 'Other Series');

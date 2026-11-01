@@ -68,6 +68,7 @@ function seriesDoc(fields = {}) {
   return [
     '---',
     'level: 3',
+    'scope: true',
     'parent_spec:',
     '  name: "video-script_V_0-8-0"',
     'title: "Series A"',
@@ -184,7 +185,7 @@ test('compile --dry-run prints the resolved frame name, path and source', () => 
   const ep = path.join(series, 'ep-01');
   fs.mkdirSync(path.join(series, 'frames'), { recursive: true });
   fs.mkdirSync(ep, { recursive: true });
-  fs.writeFileSync(path.join(series, 'series_NN.md'), seriesDoc({ frame: 'brand' }), 'utf8');
+  fs.writeFileSync(path.join(series, 'series-a_scope_NN.md'), seriesDoc({ frame: 'brand' }), 'utf8');
   fs.writeFileSync(path.join(series, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
   const scriptPath = path.join(ep, 'script.md');
   fs.writeFileSync(scriptPath, SCRIPT, 'utf8');

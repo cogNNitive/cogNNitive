@@ -9,7 +9,7 @@
  *
  * Series-parameterized through the parameter cascade (design D10/D11): every
  * series value (presenter/intro assets, per-scene templates) is read from the
- * `series_NN.md` bag, the domain Video Defaults or the package Video Defaults,
+ * Series scope document bag, the domain Video Defaults or the package Video Defaults,
  * never from a side config. The generated document's frontmatter is copied from
  * the series document and its filename uses the Series slug. Cascaded scene
  * values the engine resolves itself (`background_audio`, `background_audio_volume`, `transition`,
@@ -64,16 +64,14 @@ export function dropFrontmatterKeys(frontmatter, keys = MARKER_ONLY_KEYS) {
 }
 
 /**
- * The series document of a folder: the legacy `series_NN.md` when present, else
- * the unique `<series>_scope_NN.md` scope marker. Returns null when neither
- * exists or the marker name is ambiguous.
+ * The series document of a folder: its unique `<series>_scope_NN.md` scope
+ * document. Returns null when there is none or the name is ambiguous. The legacy
+ * `series_NN.md` is not a series document any more.
  * @param {string} seriesDir
  * @returns {{ file: string, marker: boolean } | null}
  */
 export function seriesDocumentFile(seriesDir) {
   const dir = path.resolve(seriesDir);
-  const legacy = path.join(dir, 'series_NN.md');
-  if (fs.existsSync(legacy)) return { file: legacy, marker: false };
   let entries;
   try {
     entries = fs.readdirSync(dir);
@@ -85,9 +83,9 @@ export function seriesDocumentFile(seriesDir) {
 }
 
 /**
- * Reads the Series document from a series folder (`series_NN.md`, or its
- * `<series>_scope_NN.md` marker). A marker's scope-only keys are dropped, and
- * its slug comes from the filename stem because it declares no `slug::` field.
+ * Reads the Series document from a series folder (its `<series>_scope_NN.md`
+ * scope document). Scope-only keys are dropped, and its slug comes from the
+ * filename stem because a scope document declares no `slug::` field.
  * @param {string} seriesDir
  * @returns {{ frontmatter: string, slug: string, title: string, fields: Record<string, string> }}
  */
@@ -95,7 +93,7 @@ export function loadSeriesDocument(seriesDir) {
   const found = seriesDocumentFile(seriesDir);
   if (!found) {
     throw new Error(
-      `no series document in ${path.resolve(seriesDir)}: expected series_NN.md or a <series>_scope_NN.md marker`,
+      `no series document in ${path.resolve(seriesDir)}: expected a <series>_scope_NN.md scope document`,
     );
   }
   const content = fs.readFileSync(found.file, 'utf8');
@@ -116,24 +114,13 @@ export function loadSeriesDocument(seriesDir) {
 
 /**
  * Locates the series document for an input folder: an explicit `--series <dir>` wins,
- * otherwise the nearest ancestor holding a `series_NN.md` marker strictly below the
- * workspace root.
- * @param {string} inputDir
- * @param {string} [seriesDirFlag]
- * @returns {({ frontmatter: string, slug: string, title: string, fields: Record<string, string>, dir: string }) | null}
- */
-/**
- * Locates the series document for an input folder: an explicit `--series <dir>` wins,
- * otherwise the nearest ancestor holding a series marker strictly below the
- * workspace root. The document is `series_NN.md` or the `<series>_scope_NN.md` marker.
+ * otherwise the series root the scope chain resolves (see `findSeriesRoot`).
  * @param {string} inputDir
  * @param {string} [seriesDirFlag]
  * @returns {({ frontmatter: string, slug: string, title: string, fields: Record<string, string>, dir: string }) | null}
  */
 export function loadSeriesFor(inputDir, seriesDirFlag) {
-  const dir = seriesDirFlag
-    ? path.resolve(seriesDirFlag)
-    : findSeriesRoot(inputDir, resolveWorkspace(inputDir).root);
+  const dir = seriesDirFlag ? path.resolve(seriesDirFlag) : findSeriesRoot(inputDir);
   if (!dir || !seriesDocumentFile(dir)) return null;
   return { dir, ...loadSeriesDocument(dir) };
 }
