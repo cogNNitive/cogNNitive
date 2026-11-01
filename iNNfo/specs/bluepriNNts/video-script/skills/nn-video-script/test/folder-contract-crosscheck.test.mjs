@@ -56,9 +56,8 @@ test('description.md: doc and the chapter printer agree', () => {
   assert.ok(read('scripts/finalize-video.mjs').includes('description.md'), 'finalize prints chapters for description.md');
 });
 
-// The engine still renders straight to --output on this base; the temp name below is documented
-// in the folder contract and the engine spec only. When the render slice lands, add its source here.
-test('render.tmp.mp4 is documented under build/', () => {
+test('render.tmp.mp4: doc and the render step agree', () => {
   assert.ok(layout.includes('render.tmp.mp4'));
   assert.match(doc, /`render\.tmp\.mp4` during a render/);
+  assert.ok(read('scripts/video-engine-cli.mjs').includes("'render.tmp.mp4'"), 'video-engine-cli.mjs renders through render.tmp.mp4');
 });
