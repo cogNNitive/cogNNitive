@@ -656,7 +656,17 @@ export async function compileVideo(options) {
   // Sources resolve against the script dir, not the cwd, so in-dir (`assets/…`)
   // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud
   // failure — never a silently dropped layer.
-  const publicDir = path.join(scriptDir, 'public');
+  // Every engine-generated file goes under one gitignored folder. The staging
+  // layer IS the renderer's asset dir, so nothing is copied twice (design D2).
+  const buildDir = path.join(scriptDir, 'build');
+  const publicDir = path.join(buildDir, 'hyperframes', 'assets');
+  fs.mkdirSync(publicDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(buildDir, '.nn-build'),
+    JSON.stringify({ schema: 'nn-build@1', script: path.basename(scriptPath) }, null, 2) + '\n',
+    'utf8',
+  );
+  manifest.metadata.buildDir = buildDir;
   const scopeRoot = resolveWorkspace(scriptDir).root;
   const staging = resolveMediaLayers(manifest, {
     scriptDir,
@@ -688,16 +698,8 @@ export async function compileVideo(options) {
   });
   manifest.tracks.audio.push(...sfxTracks);
 
-  // Keep the human-visible local audio staging dir next to the script (developer aid).
-  const localAudioDir = path.join(scriptDir, 'audio');
-  fs.mkdirSync(localAudioDir, { recursive: true });
-
-  for (const [scId, audioInfo] of Object.entries(audioAssets)) {
-    if (audioInfo?.assetPath && fs.existsSync(audioInfo.assetPath)) {
-      const destAudio = path.join(localAudioDir, `${scId}_voiceover.mp3`);
-      fs.copyFileSync(audioInfo.assetPath, destAudio);
-    }
-  }
+  // No audio/ handoff: the narration stays in the TTS cache, and avatar
+  // synthesis reads it from there (design D7).
 
   if (staging.escaped.length > 0) {
     throw new VideoRenderError(
@@ -712,11 +714,12 @@ export async function compileVideo(options) {
     );
   }
 
-  if (options.outputPath) {
-    const outResolved = path.resolve(options.outputPath);
-    fs.mkdirSync(path.dirname(outResolved), { recursive: true });
-    fs.writeFileSync(outResolved, JSON.stringify(manifest, null, 2), 'utf8');
-  }
+  // The manifest always lands at build/manifest.json: it is a build artifact, not
+  // a user-chosen output (design D2).
+  const manifestPath = path.join(buildDir, 'manifest.json');
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
+  manifest.metadata.manifestPath = manifestPath;
 
   return { manifest, cachedAssetsUsed, newAssetsSynthesized, avatarVideos, spentUsd, plannedTotalUsd };
 }
@@ -767,7 +770,10 @@ export async function renderVideo(options) {
   // HyperFrames is the renderer: emit the project from the manifest, then render
   // it headlessly. A failure is a loud, named, non-zero error — never a silent
   // FFmpeg fallback or a mock MP4 masquerading as a render (only `--allow-mock`).
-  const projectDir = path.join(path.dirname(outputPath), 'hyperframes');
+  const projectDir =
+    manifest.metadata?.buildDir
+      ? path.join(manifest.metadata.buildDir, 'hyperframes')
+      : path.join(path.dirname(outputPath), 'hyperframes');
   const renderDeps = { onProgress };
   if (options.hyperframesRun) renderDeps.run = options.hyperframesRun;
   const hfResult = await tryHyperframesRender(
@@ -967,6 +973,12 @@ async function main() {
         process.exit(1);
       }
       const isManifest = target.endsWith('.json');
+      if (isManifest) {
+        console.error(
+          `${'\u274C'} [video-engine-cli] render takes the script, not a manifest: it recompiles every run. Re-run: render <script.md> --output <master.mp4>`,
+        );
+        process.exit(1);
+      }
       // The master size comes from the declared `master_resolution`, never from a
       // flag; a manifest is rendered as it was compiled.
       const result = await renderVideo({
