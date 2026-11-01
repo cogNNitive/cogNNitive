@@ -1,8 +1,8 @@
 # Delta for video-blueprint
 
-Scope: the blueprint text and validation for the single square master, and the release obligations of this change on the unreleased `V_0-14-0` train. Design decision ids refer to `design.md` of change `2026-11-01-video-folder-contract`.
+Scope: the blueprint text and validation for the single square master, and this change's own version bump to `V_0-14-1`. Design decision ids refer to `design.md` of change `2026-11-01-video-folder-contract`.
 
-Composition with `2026-11-01-video-presets` (applied first): that change ADDS "Blueprint Version Bump And Catalog Parity" and MODIFIES "Native L2 Video-Script Blueprint". This delta modifies neither; the requirements below have distinct headings and extend the version obligations without restating them.
+Composition with `2026-11-01-video-presets` (applied and archived first, released as `V_0-14-0`): that change ADDS "Blueprint Version Bump And Catalog Parity" and MODIFIES "Native L2 Video-Script Blueprint". This delta modifies neither; the requirements below have distinct headings and extend the version obligations without restating them.
 
 ## ADDED Requirements
 
@@ -60,26 +60,20 @@ Source: D4.
 - WHEN it is searched for `center 12%` and `dual`
 - THEN no match is found
 
-### Requirement: Folder Contract Change Rides The Same Version Train
+### Requirement: This Change Bumps The Blueprint To Its Own Version
 
-This change MUST NOT bump `blueprint_version` beyond the unreleased `V_0-14-0` of change `2026-11-01-video-presets`; if `origin/main` already carries `V_0-14-0` when this change's field edits land, the blueprint MUST instead be set to `V_0-14-1` in the same slice that edits `spec_NN.md`, the package defaults `parent_spec` and both `catalog.json` files, and the skill `version:` MUST be bumped once, coordinated with that change.
+This change MUST set `blueprint_version` to `V_0-14-1` in `spec_NN.md`, set the package defaults `parent_spec` to the same version, regenerate both `catalog.json` files in the same slice, and bump the skill `version:` once.
 
 Source: D11 release checklist, settled default 11.
 
-#### Scenario: Same train, no further bump
+#### Scenario: The bump is its own
 
-- GIVEN `origin/main` does not carry `V_0-14-0`
-- WHEN this change edits `spec_NN.md` for `master_resolution`
-- THEN `blueprint_version` stays `V_0-14-0`
-
-#### Scenario: Main already carries the version
-
-- GIVEN `origin/main` already carries `V_0-14-0`
+- GIVEN `origin/main` carries `V_0-14-0` (the presets release)
 - WHEN this change edits `spec_NN.md`
 - THEN `blueprint_version` is `V_0-14-1`, the package defaults `parent_spec` names `video-script_V_0-14-1`, and both catalogs name `V_0-14-1`
 
 #### Scenario: Catalogs and guards stay green
 
-- GIVEN the regenerated catalogs and the shipped `procedures/` folder
+- GIVEN the regenerated catalogs
 - WHEN `node scripts/verify.js` runs
 - THEN the field-catalogue, metaschema self-describe, template-immutability and blueprint inventory and catalog guards pass

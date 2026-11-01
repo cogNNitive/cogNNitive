@@ -2,23 +2,23 @@
 
 ## Purpose
 
-Defines the nested Layer syntax mandated for series script templates and procedures, and the optional series, domain and episode extension folders (`series_NN.md`, `video-defaults_NN.md`, `components/`, `sounds/`, `frames/`). This capability supersedes `series-script-templates`, whose name and Template-data requirements described the retired `Template` mechanism; those moved to capability `video-presets`. The two requirements below are carried over unchanged.
+Defines the nested Layer syntax mandated for series authoring documents, and the optional series, domain and episode extension folders (`<s>_scope_NN.md`, `video-defaults_NN.md`, `components/`, `sounds/`, `frames/`). This capability supersedes `series-script-templates`, whose name and Template-data requirements described the retired `Template` mechanism; those moved to capability `video-presets`. Both requirements below are carried over and corrected to the scope-document anchor the engine already resolves.
 
 ## Requirements
 
-### Requirement: Script Templates Mandate Nested Layer Syntax
+### Requirement: Series Authoring Documents Mandate Nested Layer Syntax
 
-Series script templates and authoring procedures MUST declare `Layer` elements as nested `### NN Layer:` headings inside enclosing `## NN Scene:` sections.
+Series authoring documents and procedures MUST declare `Layer` elements as nested `### NN Layer:` headings inside enclosing `## NN Scene:` sections.
 
-#### Scenario: Script template uses nested headings
+#### Scenario: Series authoring document uses nested headings
 
-- GIVEN a series script template or procedure
+- GIVEN a series authoring document or procedure
 - WHEN authoring video scripts
 - THEN Scene sections contain nested `### NN Layer:` headings instead of flat `## NN Layer:` sections
 
 ### Requirement: Series, Domain And Episode Extension Folders
 
-A series folder MAY contain one `series_NN.md` (the `series` cascade level); the domain root MUST NOT be treated as a series. The domain root MAY contain one `video-defaults_NN.md` (the `domain` level). The episode, series and domain folders MAY each contain `components/<name>.html`, `sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. All folders and documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series writes its own `series_NN.md`.
+A series folder MAY contain one scope document `<s>_scope_NN.md` with frontmatter `scope: true` (the `series` cascade level); the domain root MUST NOT be treated as a series. The domain root MAY contain one `video-defaults_NN.md` (the `domain` level). The episode, series and domain folders MAY each contain `components/<name>.html`, `sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. All folders and documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series writes its own scope document.
 
 #### Scenario: Episode file beats series file
 
@@ -40,6 +40,6 @@ A series folder MAY contain one `series_NN.md` (the `series` cascade level); the
 
 #### Scenario: Folders are optional
 
-- GIVEN a domain with no `video-defaults_NN.md` and a series with no `series_NN.md`, `components/`, `sounds/` or `frames/`
+- GIVEN a domain with no `video-defaults_NN.md` and a series with no scope document, `components/`, `sounds/` or `frames/`
 - WHEN a video in it is rendered
 - THEN rendering succeeds using the package defaults and the skill fallbacks

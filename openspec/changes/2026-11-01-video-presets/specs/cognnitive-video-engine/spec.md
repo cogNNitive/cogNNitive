@@ -162,11 +162,11 @@ The TTS cache key MUST depend only on the narration text and the resolved `voice
 - WHEN the presenter's `avatar_model::` changes and the Scene is recompiled
 - THEN the TTS step is a cache hit (zero spend) for an unchanged narration
 
-#### Scenario: Migrated Template fixture keeps its cache key
+#### Scenario: Same effective inputs keep the same cache key under the new names
 
-- GIVEN a V_0-13-11 fixture whose Scene resolved voice `v`, model `m`, speed `1.1` and emotion `calm` through a Template
-- WHEN the fixture is migrated to a Preset and the Scene is recompiled
-- THEN the computed TTS hash equals the hash computed before the migration
+- GIVEN a Scene whose narration resolves voice `v`, model `m`, speed `1.1` and emotion `calm`, expressed once with the retired names and once with `voice_model`, `voice_speed` and `voice_emotion`
+- WHEN the TTS options and the hash are computed for each
+- THEN the two hashes are equal
 
 #### Scenario: Speed keeps its numeric form
 

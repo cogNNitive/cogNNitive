@@ -1,23 +1,22 @@
 # Exploration: video-folder-contract
 
-Companion of `openspec/changes/2026-11-01-video-presets/` (referred to as CHANGE-1). This change reshapes the folder layout, file/folder naming and workflow of the `video-script` bluepriNNt. It is ABSOLUTELY coordinated with CHANGE-1 (see Coordination contract). Evidence comes from three read-only reviews on 2026-11-01: backlog/issues overlap, the maintainer's real domain `D:\Users\lucas\Documents\_NN\video_NN` (latest episode `series/cognitive-use-cases/assets/startup-founder`), and the cache/staging/master-format verification.
+Standalone change that ships after `openspec/changes/2026-11-01-video-presets/` (referred to as CHANGE-1) as its own release. This change reshapes the folder layout, file/folder naming and workflow of the `video-script` bluepriNNt. It is sequential to CHANGE-1, not parallel (see Relationship). Evidence comes from three read-only reviews on 2026-11-01: backlog/issues overlap, the maintainer's real domain `D:\Users\lucas\Documents\_NN\video_NN` (latest episode `series/cognitive-use-cases/assets/startup-founder`), and the cache/staging/master-format verification.
 
 Roots: blueprint `iNNfo/specs/bluepriNNts/video-script/`; skill `SK = <blueprint>/skills/nn-video-script/`.
 
 ## Maintainer decisions (authoritative)
 
-1. Two changes, absolutely coordinated (this one stacks after CHANGE-1).
+1. Two releases, sequential: CHANGE-1 ships as `V_0-14-0`, this change as `V_0-14-1`.
 2. The caching mechanism MUST be preserved: re-running generation from a script must never repeat provider requests or processing that the cache already satisfies. Some file copies exist for that purpose.
 3. The YouTube description file becomes platform-neutral (it serves several platforms). Working name `description.md` (English artifact name; the Video record's `description` field stays the short 1-2 sentence summary). Chapter timestamps must come from measured durations.
 4. The ONLY valid master is 1920x1920 (square, Open Gate). Every other aspect is derived from it; the 9:16 recompile route and any native dual-master route are retired.
 5. `presets` syntax and all renames are fixed by CHANGE-1; this change consumes them and defines no field names of its own beyond those it explicitly lists.
-6. No backwards-compatibility aliases (maintainer preference); hard rename plus migration.
+6. No backwards-compatibility aliases, and **no migration at all**: a document, episode or domain produced with an earlier blueprint version is left exactly as it is and is not converted. The blueprint ships no conversion tool.
 
-## Coordination contract with CHANGE-1
+## Relationship with CHANGE-1
 
-- One migration script, ordered steps: `scripts/dev/migrate-video-presets.mjs` is built by CHANGE-1 with CLI `--steps presets[,layout]`; this change adds step group `layout` and may rename the script to `migrate-video-domain.mjs` in the same stroke. One dry-run report, one atomic `--apply`, idempotent.
-- One release train: CHANGE-1 bumps the blueprint to `V_0-14-0`; this change bumps within the same unreleased train. Neither merges to `main` alone (the version guard compares against main's merge-base; once main carries `V_0-14-0` every later slice needs a further bump). Chain strategy: `feature-branch-chain` or hold the dev-to-main batch.
-- This change is stacked after CHANGE-1 and MUST NOT archive before it. The real domain is migrated ONCE, after both land.
+- Sequential releases: CHANGE-1 bumps the blueprint to `V_0-14-0` and ships; this change then bumps to `V_0-14-1`. No shared migration script, no step pipeline, no single-train constraint.
+- This change branches from the CHANGE-1 tip and touches many of the same files, so it cannot be developed in parallel. The only structural dependency is that `video-series-folders` is created by CHANGE-1, so this change archives after it.
 - Vocabulary and naming convention are defined once in CHANGE-1 (`subject` / `subject_attribute`, bare-noun file fields, plural lists, snake_case fields, kebab-case values). This change consumes them.
 - It absorbs the follow-up named `video-legacy-series-markers` in CHANGE-1 (design D3/tasks) and the open issues #425 and #428.
 
@@ -118,9 +117,9 @@ Steps: domain setup (manual `cp` of defaults/guard/series files) -> front contro
 - `findSeriesRoot` and finalize assumptions as above; the blueprint ships no `procedures/` folder although #429 and `video-template` assume `draft-scene-visuals` and `generate_video_script_NN.md`.
 - Domain setup is manual; `defaults/video-defaults_NN.md` `parent_spec` drift (`V_0-13-6`) is fixed in CHANGE-1.
 
-## Impact on the real domain (to be covered by the `layout` migration step)
+## Impact on the real domain (nothing is migrated)
 
-Files whose names or locations would change: `descripcion_youtube.md` -> `description.md`; output families (`master_*`, `<slug>_*`) -> `<slug>_<W>x<H>.mp4` derived from the 1920x1920 master; legacy markers `series_rules.md`, `script_template.md`, `video.series.json` and `templates_*` stay or go per design; leftovers listed by name in the report, never deleted; `.gitignore` of the domain updated to the real engine outputs. Any change that edits script text invalidates `asset_plan.approved.json` (re-estimate and re-approve: zero spend on a full cache) and `manifest.json` must be regenerated by compile.
+Existing episodes are not touched. What changes for **new** work in that domain: a new episode writes `description.md` instead of `descripcion_youtube.md`; deliverables are `<slug>_<W>x<H>.mp4` derived from the 1920x1920 master; engine output goes to `build/`; the legacy markers `series_rules.md`, `script_template.md`, `video.series.json` and `templates_*` are simply ignored (no series root depends on them, because all five series carry a scope document); the domain `.gitignore` gains `**/build/`, `**/draft_thumbs/` and `.cognnitive/cache/` when the contract is adopted. Anything under `shared/audio/` is no longer searched for named sounds, so a new episode of those three series must place its sounds under `sounds/`.
 
 ## Open decisions for design (recommendations noted)
 

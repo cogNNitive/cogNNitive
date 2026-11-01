@@ -27,12 +27,12 @@ Source: D9, settled default 5.
 #### Scenario: Old record is listed, not read
 
 - GIVEN a series folder that still holds `{Name}_V_x-y-z_video_NN.md` with a `series:` block
-- WHEN the layout migration and the engine run
-- THEN the migration lists the file and the engine reads no value from it
+- WHEN the engine runs over that series
+- THEN the engine reads no value from it and the file is left untouched
 
 ## REMOVED Requirements
 
 ### Requirement: Series Represented as a Reused Video-Template Model
 
 (Reason: the representation was never produced by the engine or the real domain; `findSeriesRoot` and the cascade use the scope document, and the `series:` block, script-template path and assets path anchored nothing.)
-(Migration: "Series Is A Folder Anchored By Its Scope Document" in this capability; `series_NN.md` converts to `<s>_scope_NN.md` through the `layout` migration step; Series-as-template records `*_video_NN.md` are listed and never deleted.)
+(Migration: "Series Is A Folder Anchored By Its Scope Document" in this capability. No conversion: an existing `series_NN.md` is ignored, not renamed, and Series-as-template records `*_video_NN.md` are left untouched.)

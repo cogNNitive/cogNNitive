@@ -53,7 +53,7 @@ Source: D4.
 ### Requirement: Series Concept
 
 The blueprint MUST define a top-level `Series` Concept for real series only, carrying the cascade parameters of `Video Defaults` (excluding `master_resolution`), including `presets`, `avatar` and `intro`, plus `title`. A series folder MUST hold at most one scope document `<s>_scope_NN.md` (frontmatter `scope: true`). The series level MUST come only from a series root strictly below the domain root; an episode outside a series folder MUST have no series level.
-(Previously: a series folder MUST hold at most one `series_NN.md`.)
+(Previously: the carried set did not exclude `master_resolution`, which this change adds.)
 
 Source: D9.
 

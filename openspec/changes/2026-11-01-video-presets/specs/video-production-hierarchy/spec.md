@@ -1,6 +1,6 @@
 # Delta for video-production-hierarchy
 
-Scope: wording only. A Series supplies Presets instead of "one script template". The `series:` frontmatter block and its `script template` path entry are unchanged because the legacy markers are retired in the separate follow-up change `video-legacy-series-markers`.
+Scope: wording only. A Series supplies Presets instead of "one script template". The `series:` frontmatter block and its `script template` path entry are unchanged in this change; the legacy series markers are removed by the later change `2026-11-01-video-folder-contract`.
 
 ## MODIFIED Requirements
 

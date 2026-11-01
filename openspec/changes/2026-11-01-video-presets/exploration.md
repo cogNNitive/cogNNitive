@@ -7,7 +7,7 @@ Blueprint root: `iNNfo/specs/bluepriNNts/video-script/` (spec `V_0-13-11`). Skil
 
 ## Decisions already taken (not to be re-litigated)
 
-1. `Preset` replaces `Template`: a named bundle of cascade parameters with no own fields. Referenced by plain name `[[Lucas]]`, defined in the scope document (Series, domain Video Defaults, Video), resolved nearest-first. `tool` is dropped. Character / environment / look is only the preset name plus the existing `tags` field. The console shows one preset selector.
+1. `Preset` replaces `Template`: a named bundle of cascade parameters with no own fields. Referenced by bare name in a list, `presets:: [Lucas]` (the bracketed wiki-link form was rejected in design D1), defined in the scope document (Series, domain Video Defaults, Video), resolved nearest-first. `tool` is dropped. Character / environment / look is only the preset name plus the existing `tags` field. The console shows one preset selector.
 2. An element carries a LIST `presets`, applied in order, last wins. Explicit fields on the element beat its own presets. Across cascade levels the lists are ADDITIVE: each level's presets sit directly under that level's explicit fields, outer levels first. Known tradeoff: a preset that omits a parameter inherits the previous preset's value.
 3. Presets hold parameters only, not Layers (background layers and HyperFrames effects are deferred).
 4. Cascade parameters are settable at every level where meaningful (avatar on Scene, `presenter_asset` no longer Series-only, voice delivery parameters cascade).
@@ -51,10 +51,12 @@ No other blueprint includes `video-script`. The `design-presets` blueprint uses 
 4. nn-core `resolve` offers `override | union | none | restrict`. `union` merges only `name=value` keyed items; there is no ordered concatenation of plain lists.
 5. Smallest viable mechanism (approach A, no nn-core change): before `bagsToChain`, expand each level's `presets` into extra `ScopeNode`s placed immediately before that level's own node, in list order (ids like `series:preset:Lucas`), then call the unchanged `coreResolve(..., 'override')`. Last preset wins, explicit fields beat their level's presets, nearer levels still win, and `explain.winner.scope` names the preset. Cost: nn-mcp `resolve_effective` stays preset-blind (accepted, tracked separately). Approach B (new ordered-list strategy in nn-core) was rejected: engine, validator and mirror rebuilds.
 
-## Migration situation
+## Version boundary (decided after exploration)
 
-- No real video domain is reachable from this repo. The real `video_NN` domain, its Template-data documents, `reviewed.json`, draft quines and the `draft_scene_visuals` procedure live outside it. With no aliases they stay broken until migrated.
-- No deterministic field-rename migration exists. `skills/nn-upgrade` is agent-guided; nn-core `mutate` has `rename_concept` / `rename_element` but no instance `rename_field`. Only `scripts/dev/adopt-video-plan.mjs` / `lib/series-values.mjs` do video-specific hoisting (dry-run only). A one-shot migration script following the `adopt-video-plan` pattern is the likely vehicle.
+- No conversion of existing data. The maintainer's decision is that episodes produced with earlier blueprint versions stay exactly as they are; nothing is migrated and no backwards compatibility is wanted.
+- Therefore this change ships no migration script and no aliases. A document carrying `Template`, `template::`, `tts_model`, `music`, `music_volume`, `presenter_asset`, `intro_asset`, a Layer `level::`/`model::` or a Video `voice_id::` fails validation, which is the intended behaviour.
+- The exploration below originally proposed a one-shot migration script; that option is closed. `skills/nn-upgrade` and nn-core `mutate` remain irrelevant to this change.
+- Consequence for the repo: an old episode is re-produced only with the earlier blueprint version. SKILL.md states this in three sentences.
 
 ## Guards that will fire
 
@@ -81,12 +83,12 @@ No other blueprint includes `video-script`. The `design-presets` blueprint uses 
 1. Canonical multi-value syntax for `presets`, and how a scope-resolved plain `[[Name]]` avoids being reported dangling (field type, validator exemption, or new nn-core support).
 2. (Resolved: per-level expansion.)
 3. Storage: does a Series scope document carry `# NN Preset` after its first element, and are Presets in multi-element `video-defaults_NN.md` readable (scope readers take the first element only)?
-4. Migration vehicle (one-shot script vs `nn-upgrade` recipe), who migrates the external `video_NN`, and whether the legacy markers `series_NN.md` / `script_template.md` / `series_rules.md` (`video-scope.mjs:23, 156-163`) are also dropped.
+4. (Resolved: no migration. The legacy markers `series_NN.md` / `script_template.md` / `series_rules.md` (`video-scope.mjs:23, 156-163`) are removed by `2026-11-01-video-folder-contract`.)
 5. `voice_tone` semantics (payload and cache key) and how a cascaded `avatar` / `intro` satisfies the `conditional_fields` guard.
 
 ## Recommended slicing (chained PRs, ~400-line review budget)
 
-1. Spec and migration contract: `spec_NN.md`, defaults, both catalog files, living-spec deltas, migration script (the version bump and guards force these together; settle Q1 first).
+1. Spec and contract: `spec_NN.md`, defaults, both catalog files, living-spec deltas (the version bump and guards force these together; settle Q1 first).
 2. Engine core: Preset loader, `bagsToChain` expansion, `scene-compiler` / `knowledge-model` / `tts-options` rewiring (internal TTS keys kept), `tool` and `model`-alias removal, rewrite of `template-delivery`, `model-params`, `knowledge-model-compile`, `video-template` tests; first tests are the cache-key regression and the resolution-order scenarios.
 3. Cascade widening and renames: `avatar`, `intro`, `background_audio*`, `z_index`, `voice_*`, the `checkScript` interaction, `scene-project` / `avatar-jobs` / `asset-cost-estimator` / CLI keys, remaining skill tests.
 4. Authoring tools: `build-script-from-draft.mjs`, `draft-template.html` (including its hardcoded parent_spec), `adopt-video-plan` / `series-values`, skill references and `SKILL.md`; nn-core golden and nn-mcp fixtures as an optional fifth cleanup PR.

@@ -152,7 +152,7 @@ The script model MUST be tool-agnostic by guidance: voice ids, model ids and res
 Every video parameter that is valid at more than one level MUST resolve through one resolver with the precedence, most specific first:
 
 ```
-cli  >  layer  >  scene  >  video  >  series  >  domain  >  blueprint
+cli > layer > scene > video > series > domain > blueprint
 ```
 
 `series` is the episode's `Series` document; `domain` is the domain-root `Video Defaults` document; `blueprint` is the `Video Defaults` document shipped in the bluepriNNt package. The parameter MUST carry the same Field name at every level, and a level MUST be overridable only when that parameter's Field Definition lists the level's Concept. Default values MUST be blueprint data, never engine code. The resolver MUST report the level that supplied the value. `cli` applies only to model ids and, when used, MUST be recorded in the plan. List parameters (`components`, `sounds`) hold `key=name` items and MUST resolve per key. Each of `domain`, `series`, `video` and `scene` MAY list `presets`, which expand directly beneath that level's explicit fields as specified by video-presets "Per-Level Additive Expansion Order".
@@ -226,24 +226,24 @@ The blueprint MUST define a top-level `Video Defaults` Concept carrying every ca
 
 ### Requirement: Series Concept
 
-The blueprint MUST define a top-level `Series` Concept for real series only, carrying the cascade parameters of `Video Defaults`, including `presets`, `avatar` and `intro`, plus `title`. A series folder MUST hold at most one `series_NN.md`. The series level MUST come only from a series root strictly below the domain root; an episode outside a series folder MUST have no series level.
+The blueprint MUST define a top-level `Series` Concept for real series only, carrying the cascade parameters of `Video Defaults`, including `presets`, `avatar` and `intro`, plus `title`. A series folder MUST hold at most one scope document `<s>_scope_NN.md` (frontmatter `scope: true`), which is the only series anchor. The series level MUST come only from a series root strictly below the domain root; an episode outside a series folder MUST have no series level.
 (Previously: `presenter_asset` and `intro_asset` were Series-only fields.)
 
 #### Scenario: Series document supplies the series level
 
-- GIVEN `series_NN.md` in the series folder declaring `transition:: fade`
+- GIVEN `s_scope_NN.md` in the series folder declaring `transition:: fade`
 - WHEN a Scene in that series without `transition::` is compiled
 - THEN its transition is `fade` with source `series`
 
 #### Scenario: Episode outside a series has no series level
 
-- GIVEN a script directly under the domain root (or in a folder with no series marker below it) and a domain Video Defaults declaring `transition:: fade`
+- GIVEN a script directly under the domain root (or in a folder with no scope document below it) and a domain Video Defaults declaring `transition:: fade`
 - WHEN a Scene without `transition::` is compiled
 - THEN its transition is `fade` with source `domain`, never `series`
 
 #### Scenario: Series supplies avatar and intro through the cascade
 
-- GIVEN `series_NN.md` declaring `avatar:: lucas.png` and `intro:: intro.mp4`
+- GIVEN `s_scope_NN.md` declaring `avatar:: lucas.png` and `intro:: intro.mp4`
 - WHEN a Scene without those fields is resolved
 - THEN `avatar` and `intro` resolve to the Series values with source `series`
 
@@ -365,4 +365,4 @@ Background audio MUST be declared as the `background_audio::` cascade field, set
 ### Requirement: Template Concept and `template::` Reference
 
 (Reason: the `Template` concept ran parallel to the parameter cascade, was a flat global name map with a precedence bug, and collided with the deprecated bluepriNNt alias `template`.)
-(Migration: `Preset` and the `presets` field, see capability `video-presets`; `scripts/dev/migrate-video-presets.mjs` converts `# NN Template` data and `template::` references. `tool` and the `model` alias are removed without replacement.)
+(Migration: `Preset` and the `presets` field, see capability `video-presets`. `tool` and the `model` alias are removed without replacement. No conversion path exists: a document that still uses `template::` or a `Template` element is rejected.)

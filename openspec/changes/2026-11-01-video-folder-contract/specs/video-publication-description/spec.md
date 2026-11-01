@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines `description.md`, the platform-neutral publication body of a video episode. The engine generates only its chapter block from the compiled manifest's measured scene starts; the agent writes the title, summary, sources and attribution. The file is distinct from the Video element's `description` field. Design decisions are referenced as D6 in `design.md` of change `2026-11-01-video-folder-contract`.
+Defines `description.md`, the platform-neutral publication body of a video episode. The engine prints its chapters from the compiled manifest's measured scene starts and the agent writes the whole file; the agent-authored prose and the engine's output are both plain markdown, with no marker comments. The file is distinct from the Video element's `description` field. Design decisions are referenced as D6 in `design.md` of change `2026-11-01-video-folder-contract`.
 
 ## Requirements
 
@@ -18,29 +18,30 @@ Source: D1, D6.
 - WHEN its folder is listed
 - THEN the publication file is `description.md` and no `descripcion_youtube.md` or `youtube*.md` exists
 
-#### Scenario: Generated block is platform-free
+#### Scenario: Printed chapters are platform-free
 
-- GIVEN a generated chapter block
+- GIVEN the chapter output of finalize
 - WHEN it is read
-- THEN it contains only `MM:SS Title` lines between the marker comments
+- THEN it contains only `MM:SS Title` lines and no platform name
 
-### Requirement: Finalize Generates The Chapter Block
+### Requirement: Finalize Prints The Chapter Block
 
-`finalize-video.mjs`, through `lib/description.mjs`, MUST write only the text between `<!-- nn:chapters:begin -->` and `<!-- nn:chapters:end -->` in `description.md`, MUST run after render, and MUST leave every byte outside the markers unchanged.
+`finalize-video.mjs`, through `lib/description.mjs`, MUST print one chapter line per scene, computed as `floor(fromFrame / fps)` from `E/build/manifest.json` with the scene title from `props.title`, MUST run after render, and MUST NOT write any file.
 
 Source: D6.
 
-#### Scenario: Prose outside the markers is preserved
+#### Scenario: Printed chapters match the manifest
 
-- GIVEN a `description.md` with an agent-written summary and sources around the marker block
-- WHEN finalize runs twice
-- THEN the text outside the markers is byte-identical after each run
-
-#### Scenario: Block is refreshed
-
-- GIVEN a changed manifest after a re-render
+- GIVEN a manifest with measured scene starts
 - WHEN finalize runs
-- THEN only the lines between the markers change
+- THEN it prints one `MM:SS Title` line per scene, the first being `00:00`
+- AND it writes no file
+
+#### Scenario: Long videos use hours
+
+- GIVEN a total duration of 3700 s
+- WHEN the chapters are printed
+- THEN every line uses `H:MM:SS`
 
 ### Requirement: Chapter Starts Come From Measured Durations
 
@@ -72,48 +73,6 @@ Source: D6.
 - WHEN the generated starts are compared with `floor(fromFrame / fps)` per scene
 - THEN they are equal
 
-### Requirement: Chapter Warnings
-
-Finalize MUST warn, without failing, when the block would have fewer than 3 chapters or when any chapter is shorter than 10 seconds, because platforms may ignore such chapter lists.
-
-Source: D6.
-
-#### Scenario: Too few chapters
-
-- GIVEN a manifest with 2 scenes
-- WHEN finalize runs
-- THEN it warns that fewer than 3 chapters may be ignored and still writes the block
-
-#### Scenario: Short chapter
-
-- GIVEN a scene of 8 seconds
-- WHEN finalize runs
-- THEN it warns naming that chapter
-
-### Requirement: Skeleton Creation And Marker Insertion
-
-When `description.md` is absent, finalize MUST write a skeleton with `# <title>`, the Video `description` field as the summary, a Chapters section holding the marker block, a Sources section and an Attribution section; when it exists without markers, finalize MUST insert the block after the H1 and MUST report every handwritten line matching `^\d{1,2}:\d{2}`.
-
-Source: D6.
-
-#### Scenario: Skeleton is written
-
-- GIVEN no `description.md` and a Video `description` of "A short pitch."
-- WHEN finalize runs
-- THEN the file has the H1, the summary "A short pitch.", the marker block, Sources and Attribution
-
-#### Scenario: Insertion after the H1
-
-- GIVEN a `description.md` with an H1 and no markers
-- WHEN finalize runs
-- THEN the marker block follows the H1 and nothing else changes
-
-#### Scenario: Handwritten timestamps are reported
-
-- GIVEN a `description.md` without markers containing the line `00:23 Intro`
-- WHEN finalize runs
-- THEN the report lists that line and the line is not deleted
-
 ### Requirement: Description Is Distinct From The Video Description Field
 
 The Video element's `description` field MUST remain the one or two sentence episode record, `description.md` MUST be the publication body, and no new field MUST be added to the blueprint for it.
@@ -125,15 +84,3 @@ Source: D6.
 - GIVEN the `video-script` blueprint
 - WHEN the `Video` Field Definitions are listed
 - THEN `description` is present and no field refers to `description.md`
-
-### Requirement: Stale Manifest Blocks Chapter Generation
-
-Finalize MUST NOT generate chapters from a manifest whose `scriptSource` is not the episode script or which is older than the script.
-
-Source: D5, D6.
-
-#### Scenario: Stale manifest leaves the file untouched
-
-- GIVEN a manifest older than the script
-- WHEN finalize runs
-- THEN it fails and `description.md` is unchanged

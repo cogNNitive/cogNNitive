@@ -2,6 +2,8 @@
 
 Scope: canonical names of the media and thumbnail files, aligned with the folder contract. Design decision ids refer to `design.md` of change `2026-11-01-video-folder-contract`. The unnamed base-thumbnail name `thumbnail_[topic]_base.jpeg` is not settled by the design and is kept as it was.
 
+Archive note: the living `openspec/specs/video-asset-pipeline/spec.md` spells its headings `### REQ-1:`, `### REQ-2:`, `### REQ-3:` with no `Requirement:` prefix, so they are not OpenSpec requirements and a delta cannot target them. The archive step MUST rename `### REQ-3: Canonical Asset Naming Pattern` to `### Requirement: REQ-3: Canonical Asset Naming Pattern` before merging this block, otherwise the merge adds a duplicate requirement and leaves the old one in place. Neither `openspec validate` nor `node scripts/check-openspec-deltas.mjs` detects this.
+
 ## MODIFIED Requirements
 
 ### Requirement: REQ-3: Canonical Asset Naming Pattern

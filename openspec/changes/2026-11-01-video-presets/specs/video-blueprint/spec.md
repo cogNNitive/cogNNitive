@@ -46,7 +46,7 @@ The blueprint `validation.conditional_fields` MUST declare `presenter: [asset, p
 
 The change MUST set `blueprint_version` to `V_0-14-0` in `spec_NN.md`, set the package defaults `parent_spec` to the same version, regenerate both `catalog.json` files, and keep every release guard green.
 
-The draft console MUST NOT carry a literal `video-script_V_` version string; the version is injected at build time.
+The draft console MUST NOT carry a literal `video-script_V_` version string; `build-draft-html.mjs` substitutes the version when it builds the console, and a test forbids a literal in the template.
 
 #### Scenario: Immutability guard accepts the bump
 
@@ -78,7 +78,7 @@ The draft console MUST NOT carry a literal `video-script_V_` version string; the
 - TO: `### Requirement: Per-Scene background audio volume`
 
 (Reason: `music` and `music_volume` are renamed `background_audio` and `background_audio_volume`.)
-(Migration: scripts, fixtures and docs move to the new names via `scripts/dev/migrate-video-presets.mjs`.)
+(Migration: none. The new names are the only names; a document using the old ones is rejected.)
 
 ## MODIFIED Requirements
 
@@ -139,4 +139,4 @@ A Scene MUST be able to declare `background_audio_volume:: <0..1>` to set the vo
 ### Requirement: Video-Level Template Field
 
 (Reason: the `Template` concept is retired; a whole-video default now uses `presets` on the `Video` element.)
-(Migration: replaced by "Optional `presets` Field On Cascade Levels" in this capability and by capability `video-presets`; `template:: [[Doc :: Name]]` becomes `presets:: [Name]` through the migration script.)
+(Migration: replaced by "Optional `presets` Field On Cascade Levels" in this capability and by capability `video-presets`. A whole-video default is written as `presets:: [Name]`; a document carrying `template::` is rejected, with no conversion.)

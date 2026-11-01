@@ -10,7 +10,7 @@ Defines the `Preset` concept of the `video-script` bluepriNNt: a named bundle of
 
 The `video-script` blueprint MUST define a top-level `Preset` Concept that has no Field of its own, so that a `# NN Preset` element MAY carry only the preset parameters (the Fields whose `concept::` lists `Preset`) and the global `tags` Field (D2).
 
-The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`, `avatar`, `avatar_model`, `intro`, `image_model`, `background_audio`, `background_audio_volume`, `transition`, `frame`, `fit`, `components` and `sounds`. A Preset MUST NOT contain `Layer` elements. `tags` characterise a Preset and MUST NOT affect any resolved value. (real-domain review) The reserved `slug` identity key that every element carries is exempt from the `preset-field` check and is not a preset parameter; migrated Presets keep their `slug::`.
+The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`, `avatar`, `avatar_model`, `intro`, `image_model`, `background_audio`, `background_audio_volume`, `transition`, `frame`, `fit`, `components` and `sounds`. A Preset MUST NOT contain `Layer` elements. `tags` characterise a Preset and MUST NOT affect any resolved value. The reserved `slug` identity key that every element carries is exempt from the `preset-field` check and is not a preset parameter; migrated Presets keep their `slug::`.
 
 #### Scenario: Preset with parameters only is valid
 
@@ -25,9 +25,7 @@ The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`
 - THEN the check reports a `preset-field` error naming the Preset and the offending key
 - AND `presets` inside a Preset is rejected so that Presets cannot compose or form cycles
 
-#### Scenario: Reserved slug is not a preset-field error (real-domain review)
-
-- GIVEN a `# NN Preset` element `Lucas` declaring `slug:: lucas` and `voice:: lucas-es`
+#### Scenario: Reserved slug is not a preset-field error - GIVEN a `# NN Preset` element `Lucas` declaring `slug:: lucas` and `voice:: lucas-es`
 - WHEN the script and its scope chain are checked
 - THEN no `preset-field` error is reported
 - AND the Preset is also found by the slug `lucas`
@@ -90,7 +88,7 @@ The blueprint MUST define an optional `presets` Field of `type:: select` with `m
 
 Presets MUST be definable in the script, in Series scope documents and in the domain `video-defaults_NN.md`, and every `presets` reference, whatever level it appears on, MUST be resolved by one lookup order: the script, then the Series chain from innermost to outermost folder scope document, then the domain `video-defaults_NN.md`; the first match MUST win (D3).
 
-Names match case-insensitively by name or by slug. A deeper definition MUST shadow an outer definition of the same name, including for references written at an outer level. In a Series scope document the `# NN Preset` section MUST follow the Series section; a Preset section that is the first concept section MUST be a `preset-section-order` error. Two Presets with the same name or slug in one document MUST be a `preset-duplicate` error. The legacy `series_NN.md`, when it supplies the series level, MUST also be searched as a Series document.
+Names match case-insensitively by name or by slug. A deeper definition MUST shadow an outer definition of the same name, including for references written at an outer level. In a Series scope document the `# NN Preset` section MUST follow the Series section; a Preset section that is the first concept section MUST be a `preset-section-order` error. Two Presets with the same name or slug in one document MUST be a `preset-duplicate` error. When the series level is supplied by the legacy `series_NN.md` fallback, Presets defined in that document MUST also be found.
 
 #### Scenario: Script definition shadows series definition
 

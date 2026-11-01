@@ -1,15 +1,15 @@
 # Delta for video-series-folders
 
-Scope: the series level is anchored by its scope document instead of `series_NN.md`, and named sounds are found only in `sounds/` (issue #425). Design decision ids refer to `design.md` of change `2026-11-01-video-folder-contract`.
+Scope: named sounds are found only in `sounds/` folders (issue #425), and the extension-folder requirement names the scope document and `sounds/` consistently. Design decision ids refer to `design.md` of change `2026-11-01-video-folder-contract`.
 
-Composition with `2026-11-01-video-presets`: that change CREATES this capability (it supersedes `series-script-templates`). This delta targets a capability that does not exist in `openspec/specs/` until that change is archived, so this change MUST archive after it. The MODIFIED block below is a full copy of that change's version of "Series, Domain And Episode Extension Folders", edited. "Script Templates Mandate Nested Layer Syntax" is not touched. The `Purpose` paragraph of the created capability names `series_NN.md` and cannot be changed by a delta; it MUST be edited at archive time to say "scope document".
+Composition with `2026-11-01-video-presets`: that change CREATES this capability (it supersedes `series-script-templates`) and already corrects the series anchor to the scope document. This delta targets a capability that does not exist in `openspec/specs/` until that change is archived, so this change archives after it. The MODIFIED block below is a full copy of that change's version of "Series, Domain And Episode Extension Folders", edited for the sound lookup only. "Series Authoring Documents Mandate Nested Layer Syntax" is not touched.
 
 ## MODIFIED Requirements
 
 ### Requirement: Series, Domain And Episode Extension Folders
 
 A series folder MAY contain one scope document `<s>_scope_NN.md` with frontmatter `scope: true` (the `series` cascade level); the domain root MUST NOT be treated as a series. The domain root MAY contain one `video-defaults_NN.md` (the `domain` level). The episode, series and domain folders MAY each contain `components/<name>.html`, `sounds/<name>.*` and `frames/<name>.md`, where `<name>` is a cascade value, never an event or slot convention. File lookup MUST be episode, then series, then domain, then the skill fallback, by a nearest-folder walk from the script's folder; a nearer file MUST win. Named sounds MUST be looked up only in `sounds/` folders: `shared/audio/` and `audio/` MUST NOT be searched. All folders and documents are optional. No scaffolder creates them: the domain Video Defaults is a copy of the package's `defaults/video-defaults_NN.md` made on adoption (SKILL.md step), and a new series writes its own scope document.
-(Previously: the series document was `series_NN.md`, and sound lookup also searched `shared/audio` and `audio`.)
+(Previously: sound lookup also searched `shared/audio` and `audio`.)
 
 Source: D9, settled defaults 5 and 7.
 

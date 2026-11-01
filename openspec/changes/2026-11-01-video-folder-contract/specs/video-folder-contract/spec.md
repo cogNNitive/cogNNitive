@@ -6,7 +6,7 @@ Scope: one canonical episode, series and domain layout; one gitignored `build/` 
 
 ### Requirement: Canonical Domain, Series And Episode Layout
 
-Every video domain MUST use one layout: the domain root holds `domaiNN_NN.md`, `video-defaults_NN.md`, `video-guard.json`, `.gitignore`, `.cognnitive/`, and optional `sounds/`, `components/`, `frames/`, `procedures/` and `assets/<library>/`; each series at `series/<s>/` holds its scope document `<s>_scope_NN.md`, optional `shared/<kind>/`, `sounds/`, `components/`, `frames/`, and its episodes at `series/<s>/assets/<slug>/`.
+Every video domain MUST use one layout: the domain root holds at least `domaiNN_NN.md`, `video-defaults_NN.md`, `video-guard.json`, `.gitignore` and `.cognnitive/`, MAY hold `sounds/`, `components/`, `frames/`, `procedures/`, `assets/<library>/` and any other domaiNN content, and MUST NOT hold engine output; each series at `series/<s>/` holds its scope document `<s>_scope_NN.md` plus optional `shared/<kind>/`, `sounds/`, `components/`, `frames/`, `procedures/`, and its episodes at `series/<s>/assets/<slug>/`.
 
 Source: D1.
 
@@ -15,12 +15,12 @@ An episode folder `E` MUST contain `<slug>_video-script_<s>_NN.md`, `draft.json`
 #### Scenario: Episodes stay where they are
 
 - GIVEN a domain whose episodes live at `series/<s>/assets/<slug>/`
-- WHEN the layout migration plans its moves
-- THEN no episode folder is moved or renamed
+- WHEN the canonical layout is checked
+- THEN no episode folder needs to move and no episode folder is missing
 
 #### Scenario: Fully produced episode matches the layout
 
-- GIVEN an episode that has run estimate, produce, thumbnails and finalize
+- GIVEN an episode that has run estimate, compile, avatar synthesis, render, thumbnails and finalize
 - WHEN its folder is listed
 - THEN every entry is named in the canonical layout and every engine-generated file is under `build/`
 
@@ -59,8 +59,8 @@ The episode script MUST keep the name `<slug>_video-script_<s>_NN.md` because it
 #### Scenario: Spanish names are reported, not renamed
 
 - GIVEN a real-domain procedure file with a Spanish name
-- WHEN the layout migration runs
-- THEN the file is listed in the report and its name is unchanged
+- WHEN the canonical layout is applied to a new episode
+- THEN the existing file keeps its name and the contract states that new names are English
 
 ### Requirement: Deliverables Are Written In Place
 
@@ -101,7 +101,7 @@ The approval file `asset_plan.approved.json` MUST stay at `E` as a tracked gover
 #### Scenario: Deleting build is safe
 
 - GIVEN a produced episode with a full cache
-- WHEN `E/build/` is deleted and `produce` runs again
+- WHEN `E/build/` is deleted and the three engine commands run again
 - THEN `asset_plan.approved.json` and every deliverable are untouched
 - AND no provider request is made
 
@@ -248,4 +248,4 @@ Source: D2.
 ### Requirement: Finalize/Register Step Promotes Rendered Output
 
 (Reason: render writes the master straight to its final path and finalize derives formats in place; promotion copied a file of hundreds of MB for nothing, and `renders/<ref>/` was never produced.)
-(Migration: "Deliverables Are Written In Place" in this capability, and "Finalize Derives Formats In Place" in capability `video-script-skill`.)
+(Migration: none. There is no conversion of existing episodes; a rendered output written by an earlier version is left where it is.)

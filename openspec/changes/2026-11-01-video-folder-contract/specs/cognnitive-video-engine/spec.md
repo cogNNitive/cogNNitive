@@ -1,8 +1,8 @@
 # Delta for cognnitive-video-engine
 
-Scope: one declared 1920x1920 master and formats derived from it by crop; engine output under `build/`; `render` that takes a script and writes the master in place; `produce`; avatar synthesis reading the TTS cache directly; sounds found only in `sounds/`; truthful estimate; a layout-independent cache identity. Design decision ids (D1 to D11) refer to `design.md` of change `2026-11-01-video-folder-contract`.
+Scope: the CLI stops rendering format variants natively and takes its size from the declared master; engine output under `build/`; `render` that takes a script and writes the master in place; avatar synthesis reading the TTS cache directly; sounds found only in `sounds/`; truthful estimate; a layout-independent cache identity. Design decision ids (D1 to D10) refer to `design.md` of change `2026-11-01-video-folder-contract`.
 
-Composition with `2026-11-01-video-presets` (applied first): that change modifies "Deterministic Media & TTS Asset Synthesis", "Interactive Provider Consultation and Cost Estimation", "Stable TTS cache key" and "Programmatic HyperFrames Scene Compilation". This delta does not modify any of them; every requirement below has a distinct heading. "Headless Video Rendering CLI" and "Format variants with blur fill" are not touched by that change.
+Composition with `2026-11-01-video-presets` (applied and archived first): that change modifies "Deterministic Media & TTS Asset Synthesis", "Interactive Provider Consultation and Cost Estimation", "Stable TTS cache key" and "Programmatic HyperFrames Scene Compilation". This delta does not modify any of them; every requirement below has a distinct heading. "Headless Video Rendering CLI" and "Format variants with blur fill" are not touched by that change.
 
 ## ADDED Requirements
 
@@ -208,46 +208,15 @@ A rename that fails because the target is open MUST end in an error message that
 
 ### Requirement: Render Refuses Missing Avatar Clips
 
-The `render` command MUST refuse to render when a presenter Layer has no cached avatar clip, with a named non-zero error, unless `--allow-still-avatars` is passed.
+The `render` command MUST refuse to render when a presenter Layer has no cached avatar clip, with a named non-zero error that states the avatar synthesis command. There is no override flag: the way forward is to synthesize the avatars first.
 
 Source: D8.
 
 #### Scenario: Missing clip stops the render
 
 - GIVEN a presenter Layer whose avatar clip is not in the cache
-- WHEN `render <script>` runs without `--allow-still-avatars`
-- THEN it fails before rendering and states the avatar synthesis command
-
-#### Scenario: Opt-in still avatar
-
-- GIVEN the same script
-- WHEN `render` runs with `--allow-still-avatars`
-- THEN it renders with the still image
-
-### Requirement: Produce Command Runs Compile, Avatar Synthesis And Render
-
-The engine CLI MUST provide `produce <script>` that runs compile (TTS and images, one approval), then avatar synthesis only for jobs that are not cached with the same flags object, then render, and MUST exit 3 with the resume command when avatar synthesis exits 3; `compile`, `synthesize-avatar` and `render` MUST remain available.
-
-Source: D8, invariant 7.
-
-#### Scenario: Phases run in order
-
-- GIVEN fake providers and an approved plan
-- WHEN `produce` runs
-- THEN compile, avatar synthesis and render run in that order, with one identical `--*-model` flags object passed to compile and avatar synthesis
-
-#### Scenario: Avatar exit 3 is propagated
-
-- GIVEN avatar synthesis exits 3
-- WHEN `produce` handles it
-- THEN `produce` exits 3 and prints the resume command
-- AND render has not run
-
-#### Scenario: Re-run is idempotent
-
-- GIVEN a completed `produce` on a full cache
-- WHEN `produce` runs again
-- THEN no provider request is made and no ledger entry is added
+- WHEN `render <script>` runs
+- THEN it fails before rendering, states the avatar synthesis command, and writes no master
 
 ### Requirement: Avatar Synthesis Reads The TTS Cache Directly
 
@@ -373,7 +342,7 @@ Source: D3, cache-key audit.
 #### Scenario: Display names are not renamed
 
 - GIVEN scene and layer display names
-- WHEN the layout migration and the engine change are applied
+- WHEN the engine change is applied
 - THEN no heading is renamed and the title string in the key is unchanged
 
 ### Requirement: Cache Identity Avatar Audio Comes From The TTS Cache
@@ -391,7 +360,7 @@ Source: D7, invariant 5.
 #### Scenario: Temp clips are kept
 
 - GIVEN avatar clips in `.cognnitive/cache/video/temp/`
-- WHEN produce, finalize or the layout migration runs
+- WHEN compile, avatar synthesis, render or finalize runs
 - THEN no `temp/*.mp4` file is deleted
 
 ### Requirement: Cache Identity Keyless Placeholders Are Stored Offline
@@ -436,24 +405,6 @@ Source: D2, cache-key audit, invariants 1 and 10.
 - WHEN the domain root is resolved from the script and from `E/build/`
 - THEN both resolve to the folder holding `domaiNN_NN.md`
 - AND the ledger, locks and `video-guard.json` are read from there
-
-### Requirement: Cache Identity Re-Run After Layout Migration Spends Nothing
-
-A compile, avatar synthesis and render run after the layout migration on a full cache MUST make zero provider requests and MUST add zero ledger entries.
-
-Source: D11, invariants 1 to 12, success criteria.
-
-#### Scenario: Re-run after migration is free
-
-- GIVEN a real-domain-shaped fixture with a full cache, migrated with `--steps presets,layout` and re-approved
-- WHEN `produce` runs
-- THEN the provider call count is 0 and the ledger gains no entry
-
-#### Scenario: Only the plan hash changes
-
-- GIVEN a migrated script whose text changed
-- WHEN the plan hash is recomputed
-- THEN it differs from the old approval and the estimate prices every item at $0 after re-approval
 
 ## MODIFIED Requirements
 
