@@ -6,10 +6,10 @@
  * Headless CLI and programmatic engine for video compilation and rendering.
  *
  * Commands:
- *   compile <script.md> [--output <manifest.json>] [--fps <n>] [--cache-dir <dir>]
+ *   compile <script.md> [--fps <n>] [--cache-dir <dir>]
  *           [--dry-run] [--allow-model <name>]... [--approval <approved.json>]
  *           [--image-model <m>] [--tts-model <m>] [--avatar-model <m>]
- *   render  <script.md|manifest.json> --output <master.mp4> [--fps <n>] [--concurrency <n>]
+ *   render  <script.md> [--fps <n>] [--concurrency <n>]   (writes <slug>_1920x1920.mp4 next to the script)
  *
  * Zero external mandatory runtime dependencies for compilation. ESM module.
  */
@@ -343,7 +343,6 @@ export function resolveMediaLayers(manifest, opts) {
 /**
  * @typedef {Object} VideoCompileOptions
  * @property {string} scriptPath
- * @property {string} [outputPath]
  * @property {number} [fps]
  * @property {number} [width]
  * @property {number} [height]
@@ -364,7 +363,6 @@ export function resolveMediaLayers(manifest, opts) {
  * @typedef {Object} VideoRenderOptions
  * @property {string} [scriptPath]
  * @property {string} [manifestPath]
- * @property {string} outputVideoPath
  * @property {number} [fps]
  * @property {number} [width]
  * @property {number} [height]
@@ -766,22 +764,28 @@ export async function renderVideo(options) {
     throw new Error('Either scriptPath or manifestPath must be provided for rendering');
   }
 
-  const outputPath = path.resolve(options.outputVideoPath);
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  // The master is written in place: render to build/render.tmp.mp4, then rename it
+  // over E/<slug>_1920x1920.mp4 (same volume), so a failed render never touches a
+  // previous master and no partial file is ever visible under the master name.
+  const buildDir = manifest.metadata?.buildDir;
+  if (!buildDir) throw new Error('The manifest has no metadata.buildDir; render takes the script, which compile stamps');
+  const slug = manifest.metadata?.videoSlug;
+  if (!slug) throw new Error('The manifest has no metadata.videoSlug (the Video slug); recompile the script');
+  const tmpPath = path.join(buildDir, 'render.tmp.mp4');
+  const outputPath = path.join(path.dirname(buildDir), `${slug}_1920x1920.mp4`);
+  fs.mkdirSync(buildDir, { recursive: true });
+  fs.rmSync(tmpPath, { force: true });
 
   // HyperFrames is the renderer: emit the project from the manifest, then render
   // it headlessly. A failure is a loud, named, non-zero error — never a silent
   // FFmpeg fallback or a mock MP4 masquerading as a render (only `--allow-mock`).
-  const projectDir =
-    manifest.metadata?.buildDir
-      ? path.join(manifest.metadata.buildDir, 'hyperframes')
-      : path.join(path.dirname(outputPath), 'hyperframes');
+  const projectDir = path.join(buildDir, 'hyperframes');
   const renderDeps = { onProgress };
   if (options.hyperframesRun) renderDeps.run = options.hyperframesRun;
   const hfResult = await tryHyperframesRender(
     {
       manifest,
-      outputPath,
+      outputPath: tmpPath,
       concurrency: options.concurrency || 4,
       projectDir,
       extraArgs: options.hyperframesArgs,
@@ -791,6 +795,7 @@ export async function renderVideo(options) {
 
   let mocked = false;
   if (!hfResult.rendered) {
+    fs.rmSync(tmpPath, { force: true });
     if (!options.allowMock) {
       throw new VideoRenderError(
         `HyperFrames render failed (${hfResult.reason})${hfResult.detail ? `:\n${hfResult.detail}\n\n` : '. '}Install the CLI via ensure-hyperframes.mjs, ` +
@@ -798,8 +803,21 @@ export async function renderVideo(options) {
       );
     }
     console.warn(`[video-engine-cli] HyperFrames unavailable (${hfResult.reason}); writing mock MP4 (--allow-mock).`);
-    writeMockMp4(outputPath);
+    writeMockMp4(tmpPath);
     mocked = true;
+  }
+
+  try {
+    fs.renameSync(tmpPath, outputPath);
+  } catch (err) {
+    fs.rmSync(tmpPath, { force: true });
+    const open = err?.code === 'EBUSY' || err?.code === 'EPERM' || err?.code === 'EACCES';
+    throw new VideoRenderError(
+      open
+        ? `Cannot replace ${outputPath}: the file is open in another program (a player or editor). Close it and render again; the previous master was left untouched.`
+        : `Cannot move the render into place at ${outputPath}: ${err?.message || err}`,
+      { cause: err },
+    );
   }
 
   const renderTimeMs = Date.now() - startTime;
@@ -885,7 +903,7 @@ function printDryRun(result) {
 const FLAG_SPEC = {
   boolean: ['dry-run', 'allow-mock'],
   value: [
-    'output', 'out', 'script', 'manifest', 'fps', 'concurrency',
+    'script', 'manifest', 'fps', 'concurrency',
     'cache-dir', 'approval', 'image-model', 'tts-model', 'avatar-model',
   ],
   repeatable: ['allow-model'],
@@ -893,10 +911,10 @@ const FLAG_SPEC = {
 
 const USAGE = [
   'Usage: node video-engine-cli.mjs <compile|render> [options]',
-  '  compile <script.md> [--output manifest.json] [--fps n] [--cache-dir dir]',
+  '  compile <script.md> [--fps n] [--cache-dir dir]',
   '          [--dry-run] [--approval approved.json] [--allow-model name]...',
   '          [--image-model id] [--tts-model id] [--avatar-model id]',
-  '  render  <script.md|manifest.json> --output master.mp4 [--fps n] [--concurrency n] [--cache-dir dir]',
+  '  render  <script.md> [--fps n] [--concurrency n] [--cache-dir dir]',
   '          [--allow-mock] [--approval approved.json] [--allow-model name]... [--image-model id] [--tts-model id] [--avatar-model id]',
   '          [-- <hyperframes render flags>]   e.g. -- --workers 2 --low-memory-mode (forwarded verbatim)',
   '  --dry-run (compile only): list uncached billable work and the estimated total; spends and writes nothing.',
@@ -949,7 +967,6 @@ async function main() {
       }
       const result = await compileVideo({
         scriptPath,
-        outputPath: args.output || args.out,
         fps: args.fps ? Number(args.fps) : undefined,
         cacheDir: args['cache-dir'],
         dryRun: Boolean(args['dry-run']),
@@ -969,15 +986,14 @@ async function main() {
       }
     } else if (command === 'render') {
       const target = args._[1] || args.script || args.manifest;
-      const output = args.output || args.out;
-      if (!target || !output) {
+      if (!target) {
         console.error(USAGE);
         process.exit(1);
       }
       const isManifest = target.endsWith('.json');
       if (isManifest) {
         console.error(
-          `${'\u274C'} [video-engine-cli] render takes the script, not a manifest: it recompiles every run. Re-run: render <script.md> --output <master.mp4>`,
+          `${'\u274C'} [video-engine-cli] render takes the script, not a manifest: it recompiles every run. Re-run: render <script.md>`,
         );
         process.exit(1);
       }
@@ -986,7 +1002,6 @@ async function main() {
       const result = await renderVideo({
         scriptPath: isManifest ? undefined : target,
         manifestPath: isManifest ? target : undefined,
-        outputVideoPath: output,
         fps: args.fps ? Number(args.fps) : undefined,
         concurrency: args.concurrency ? Number(args.concurrency) : undefined,
         cacheDir: args['cache-dir'],
