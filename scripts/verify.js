@@ -481,6 +481,7 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('test-nn-sources', 'Test nn-sources Skill Suite', 'skills/nn-sources/test/run.js'));
   steps.push(ro('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
   steps.push(ro('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
+  steps.push(ro('video-parameters-doc', 'Check Video Script Parameter Reference Fresh', 'scripts/generate-video-parameters-doc.mjs', '--check'));
 
   // 1. Template Inventory Guard: every template folder is declared in manifest/source.yaml.
   steps.push({
