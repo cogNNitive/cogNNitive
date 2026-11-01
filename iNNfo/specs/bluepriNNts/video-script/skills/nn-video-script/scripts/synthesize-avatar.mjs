@@ -32,7 +32,8 @@ import { CacheManager } from './cache-manager.mjs';
 import { estimateCallUsd } from './asset-cost-estimator.mjs';
 import { loadCascadeBags } from './lib/video-scope.mjs';
 import { SceneCompiler, ScriptValidationError } from './scene-compiler.mjs';
-import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
+import { loadKnowledgeModel } from './lib/knowledge-model.mjs';
+import { withScriptPresets } from './lib/video-scope.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { LOCKS_RELATIVE_DIR, SpendGuard, loadGuard, resolveDefaultCacheDir } from './lib/video-guard.mjs';
 import { assertAudioFresh, collectAvatarJobs } from './lib/avatar-jobs.mjs';
@@ -116,7 +117,7 @@ export async function synthesizeAvatars(o) {
   const scriptDir = path.dirname(scriptPath);
   const bags = {
     ...(o.bags || loadCascadeBags(scriptDir)),
-    cli: { tts_model: models.tts, image_model: models.image, avatar_model: models.avatar },
+    cli: { voice_model: models.tts, image_model: models.image, avatar_model: models.avatar },
   };
   const loaded = loadGuard(scriptDir);
   const cacheDir = o.cacheDir || resolveDefaultCacheDir(scriptDir);
@@ -128,9 +129,11 @@ export async function synthesizeAvatars(o) {
 
   const compiler = new SceneCompiler({});
   const model = o.model || loadKnowledgeModel(scriptPath, { model: o.model, modelPath: o.modelPath });
-  const scriptGuard = compiler.checkScript(model, o);
+  // The script's own Presets shadow Series and domain ones (design D3).
+  const chainBags = withScriptPresets(bags, model, scriptPath);
+  const scriptGuard = compiler.checkScript(model, { ...o, bags: chainBags });
   if (!scriptGuard.ok) throw new ScriptValidationError(scriptGuard.errors);
-  const parsed = compiler.lowerKnowledgeModel(model, { templates: o.templates || loadTemplateModels(scriptDir), bags });
+  const parsed = compiler.lowerKnowledgeModel(model, { bags: chainBags });
   const sceneFilter = o.scenes?.length ? [...new Set(o.scenes)] : undefined;
   if (sceneFilter) {
     const unknown = sceneFilter.filter((id) => !parsed.scenes.some((s) => s.id === id));

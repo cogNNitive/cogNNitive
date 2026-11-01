@@ -127,7 +127,7 @@ export class AssetSynthesizer {
     const bags = options.bags || {};
     this.defaultModels = {
       image: chosen.image || resolve('image_model', bags).value || undefined,
-      tts: chosen.tts || resolve('tts_model', bags).value || undefined,
+      tts: chosen.tts || resolve('voice_model', bags).value || undefined,
       avatar: chosen.avatar || resolve('avatar_model', bags).value || undefined,
     };
     if (options.guard) {

@@ -33,8 +33,8 @@ title: "Other Series"
 ## NN Series: Other Series
 slug:: other-series
 title:: Other Series
-presenter_asset:: media/presenter.png
-intro_asset:: media/intro.mp4
+avatar:: media/presenter.png
+intro:: media/intro.mp4
 `;
 
 // The cascade bags: the series document supplies the values the tool reads.
@@ -42,13 +42,13 @@ const bags = {
   series: {
     slug: 'other-series',
     title: 'Other Series',
-    presenter_asset: 'media/presenter.png',
-    intro_asset: 'media/intro.mp4',
+    avatar: 'media/presenter.png',
+    intro: 'media/intro.mp4',
     transition: 'fade',
-    music: 'series-music.mp3',
-    music_volume: '0.4',
+    background_audio: 'series-music.mp3',
+    background_audio_volume: '0.4',
   },
-  blueprint: { music_volume: '0.2', transition: 'none', template: '[[Blueprint :: Section]]' },
+  blueprint: { background_audio_volume: '0.2', transition: 'none' },
 };
 
 const reviewed = {
@@ -57,7 +57,7 @@ const reviewed = {
   sources: ['src_a'],
   overlays: [{ id: 'watermark', type: 'watermark', text: 'generated with AI', position: 'bottom', default: true }],
   scenes: [
-    { slug: '00-gancho', name: '00 Gancho', narration: 'Hook words here', choice: { type: 'avatar', model: 'pruna-ai/p-video-2-pro/avatar', quality: 'ALTA' } },
+    { slug: '00-gancho', name: '00 Gancho', narration: 'Hook words here', choice: { type: 'avatar', model: 'pruna-ai/p-video-2-pro/avatar', quality: 'ALTA', resolution: '768p' } },
     { slug: '01-intro', name: '01 Intro', kind: 'fixed' },
     { slug: '02-noticia', name: '02 Noticia', narration: 'Body words here', choice: { type: 'animation', asset: 'media/anim-demo' } },
   ],
@@ -74,10 +74,13 @@ function build(rev = reviewed, dr = draft) {
   return buildScript(rev, dr, { bags, frontmatter: extractFrontmatter(SERIES_CONTENT) });
 }
 
-test('the presenter and intro assets come from the cascade', () => {
+test('the intro asset comes from the cascade and the presenter carries no literal asset', () => {
   const md = build();
-  assert.match(md, /asset:: media\/presenter\.png/);
   assert.match(md, /asset:: media\/intro\.mp4/);
+  // A presenter Layer takes its image from the cascaded `avatar` (design D7),
+  // so the tool never writes a literal presenter asset.
+  const hook = md.split('## NN Scene: 00 Gancho')[1].split('## NN Scene: 01 Intro')[0];
+  assert.doesNotMatch(hook, /asset:: media\/presenter\.png/);
 });
 
 test('the script filename uses the Series slug', () => {
@@ -93,8 +96,8 @@ test('the frontmatter is copied from the series document', () => {
 
 test('no cascaded scene line is written', () => {
   const md = build();
-  assert.doesNotMatch(md, /^music:: /m);
-  assert.doesNotMatch(md, /^music_volume:: /m);
+  assert.doesNotMatch(md, /^background_audio:: /m);
+  assert.doesNotMatch(md, /^background_audio_volume:: /m);
   assert.doesNotMatch(md, /^transition:: /m);
   assert.doesNotMatch(md, /^fit:: /m);
   // The series/blueprint values must never leak into the script.
@@ -102,17 +105,20 @@ test('no cascaded scene line is written', () => {
   assert.doesNotMatch(md, /\[\[Blueprint :: Section\]\]/);
 });
 
-test('the hook template comes from the draft scene', () => {
+test('the hook preset comes from the draft scene', () => {
   const md = build();
   const hook = md.split('## NN Scene: 00 Gancho')[1].split('## NN Scene: 01 Intro')[0];
-  assert.match(hook, /template:: \[\[Other Series :: Full\]\]/);
+  assert.match(hook, /presets:: \[Full\]/);
   const body = md.split('## NN Scene: 02 Noticia')[1];
-  assert.doesNotMatch(body, /template::/);
+  assert.doesNotMatch(body, /presets::/);
 });
 
 test('the avatar layer uses the renamed avatar_model field', () => {
   const md = build();
   assert.match(md, /avatar_model:: pruna-ai\/p-video-2-pro\/avatar/);
+  // The chosen resolution is written whatever the draft's quality label was: it
+  // used to be dropped for anything but ALTA, silently changing what was billed.
+  assert.match(md, /avatar_resolution:: 768p/);
   assert.doesNotMatch(md, /(?:^|\n)model:: /);
 });
 
@@ -195,7 +201,7 @@ test('loadSeriesDocument reads the slug, title and frontmatter from series_NN.md
   assert.equal(series.slug, 'other-series');
   assert.equal(series.title, 'Other Series');
   assert.equal(series.frontmatter, extractFrontmatter(SERIES_CONTENT));
-  assert.equal(series.fields.presenter_asset, 'media/presenter.png');
+  assert.equal(series.fields.avatar, 'media/presenter.png');
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

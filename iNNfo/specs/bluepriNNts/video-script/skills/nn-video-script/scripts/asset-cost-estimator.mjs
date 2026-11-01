@@ -13,11 +13,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { SceneCompiler, ScriptValidationError } from './scene-compiler.mjs';
-import { loadKnowledgeModel, loadTemplateModels, parseKnowledgeDocument } from './lib/knowledge-model.mjs';
+import { loadKnowledgeModel, parseKnowledgeDocument } from './lib/knowledge-model.mjs';
 import { fileURLToPath } from 'node:url';
 import { computePlanHash, formatStamp } from './lib/plan-approval.mjs';
 import { normalizeModelId } from './lib/video-guard.mjs';
-import { loadCascadeBags, resolve } from './lib/video-scope.mjs';
+import { loadCascadeBags, resolve, withScriptPresets } from './lib/video-scope.mjs';
 import { isAvatarLayer } from './lib/avatar-jobs.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 
@@ -282,22 +282,25 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
 
   const compiler = new SceneCompiler(options);
   const model = isPath ? loadKnowledgeModel(scriptContentOrPath) : parseKnowledgeDocument(String(scriptContent));
-  const guard = compiler.checkScript(model, options);
-  if (!guard.ok) throw new ScriptValidationError(guard.errors);
-  const templates = isPath ? loadTemplateModels(path.dirname(scriptContentOrPath)) : {};
   // Model selection goes through the single cascade resolver
   // (cli > layer > scene > video > series > domain > blueprint). The plan and
   // the execution read the same bags, so they pick the SAME model id.
-  const bags = options.bags || (isPath ? loadCascadeBags(path.dirname(path.resolve(scriptContentOrPath))) : {});
+  const bags = withScriptPresets(
+    options.bags || (isPath ? loadCascadeBags(path.dirname(path.resolve(scriptContentOrPath))) : {}),
+    model,
+    isPath ? path.resolve(scriptContentOrPath) : null,
+  );
   const resolvedBags = {
     ...bags,
     cli: {
       image_model: options.defaultImageModel,
-      tts_model: options.defaultTtsModel,
+      voice_model: options.defaultTtsModel,
       avatar_model: options.defaultAvatarModel,
     },
   };
-  const parsed = compiler.lowerKnowledgeModel(model, { templates, bags: resolvedBags });
+  const guard = compiler.checkScript(model, { ...options, bags: resolvedBags });
+  if (!guard.ok) throw new ScriptValidationError(guard.errors);
+  const parsed = compiler.lowerKnowledgeModel(model, { bags: resolvedBags });
   const defaultImageModel = normalizeModelId(resolve('image_model', resolvedBags).value);
   const defaultAvatarModel = normalizeModelId(resolve('avatar_model', resolvedBags).value);
   const planModels = new Set();
@@ -346,7 +349,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
     const imagePricing = findCatalogEntry('image', imageModelKey) || { modelName: imageModelKey, provider: 'Unlisted (fallback rate)' };
 
     // 2. TTS
-    const ttsModelKey = normalizeModelId(scene.properties?.scene_tts_model);
+    const ttsModelKey = normalizeModelId(scene.properties?.scene_voice_model);
     const ttsPricing = findCatalogEntry('tts', ttsModelKey) || { modelName: ttsModelKey, provider: 'Unlisted (fallback rate)' };
     const sceneTtsCost = estimateCallUsd('tts', ttsModelKey, { chars: charCount });
     if (charCount > 0) noteModel(ttsModelKey);

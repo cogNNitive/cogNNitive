@@ -12,7 +12,7 @@
  * `series_NN.md` bag, the domain Video Defaults or the package Video Defaults,
  * never from a side config. The generated document's frontmatter is copied from
  * the series document and its filename uses the Series slug. Cascaded scene
- * values the engine resolves itself (`music`, `music_volume`, `transition`,
+ * values the engine resolves itself (`background_audio`, `background_audio_volume`, `transition`,
  * `fit`) are never written.
  *
  * Usage:
@@ -148,12 +148,21 @@ export function buildScript(reviewed, draft, options = {}) {
   const humanName = (s) => (s || '').replace(/-/g, ' ').replace(/^\d+ /, '').trim();
   const d = draft || { scenes: reviewed.scenes };
 
-  // A scene template is a per-scene draft decision; it is the only template the
+  // The Preset list is a per-scene draft decision; it is the only Preset the
   // tool writes. Scenes without one rely on the cascade (the engine resolves it).
-  const templateFor = (scene) => {
+  // A draft may carry the retired qualified form `[[Doc :: Name]]`; only the
+  // trailing name is kept, because a Preset is referenced by bare name.
+  const presetName = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const inner = raw.replace(/^\[\[|\]\]$/g, '');
+    const parts = inner.split('::').map((part) => part.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
+  };
+  const presetsFor = (scene) => {
     const fromDraft = draftBySlug.get(scene.slug);
     const fromReviewed = byslug.get(scene.slug);
-    return (fromDraft && fromDraft.template) || (fromReviewed && fromReviewed.template) || '';
+    return presetName((fromDraft && fromDraft.template) || (fromReviewed && fromReviewed.template) || '');
   };
 
   function layersFor(scene, choice) {
@@ -161,19 +170,21 @@ export function buildScript(reviewed, draft, options = {}) {
     if (scene.kind === 'fixed') {
       const fromDraft = draftBySlug.get(scene.slug);
       const fromRev = byslug.get(scene.slug);
-      const asset = resolve('intro_asset', bags).value || (fromDraft && fromDraft.visual && fromDraft.visual.asset) || (fromDraft && fromDraft.asset) || (fromRev && fromRev.visual && fromRev.visual.asset) || (fromRev && fromRev.asset) || (scene.visual && scene.visual.asset) || scene.asset;
+      const asset = resolve('intro', bags).value || (fromDraft && fromDraft.visual && fromDraft.visual.asset) || (fromDraft && fromDraft.asset) || (fromRev && fromRev.visual && fromRev.visual.asset) || (fromRev && fromRev.asset) || (scene.visual && scene.visual.asset) || scene.asset;
       const lines = [head + humanName(scene.name) + ' Background', 'slug:: ' + scene.slug + '-background', 'type:: background'];
       if (asset) lines.push('asset:: ' + asset);
       lines.push('position:: center');
       return lines.join('\n');
     }
     if (choice && choice.type === 'avatar') {
-      const asset = resolve('presenter_asset', bags).value;
+      // The presenter takes its image from the cascaded `avatar`, so the tool
+      // writes no literal `asset::` (design D7). The chosen resolution is a
+      // per-Layer decision and is written whatever the draft's quality label
+      // was: dropping it silently changed what was billed (design D8).
       const lines = [head + humanName(scene.name) + ' Presenter', 'slug:: ' + scene.slug + '-presenter', 'type:: presenter'];
-      if (asset) lines.push('asset:: ' + asset);
       lines.push('avatar_model:: ' + choice.model);
-      if (choice.quality === 'ALTA') {
-        lines.push('avatar_resolution:: ' + (choice.resolution || '768p'));
+      if (choice.resolution) {
+        lines.push('avatar_resolution:: ' + choice.resolution);
       }
       return lines.join('\n');
     }
@@ -239,8 +250,8 @@ export function buildScript(reviewed, draft, options = {}) {
     const r = byslug.get(scene.slug);
     const narration = scene.kind === 'fixed' ? '' : (r ? r.narration : scene.narration) || '';
     const lines = ['## NN Scene: ' + scene.name, '', 'slug:: ' + scene.slug];
-    const template = templateFor(scene);
-    if (template) lines.push('template:: ' + template);
+    const preset = presetsFor(scene);
+    if (preset) lines.push('presets:: [' + preset + ']');
     lines.push('', narration, '');
     const layers = layersFor(scene, r ? r.choice : null);
     if (layers) lines.push(layers);

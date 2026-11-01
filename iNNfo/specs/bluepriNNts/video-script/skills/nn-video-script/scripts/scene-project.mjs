@@ -50,19 +50,19 @@ const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').
 const sceneSlug = (scene) => String(scene.slug || scene.id || 'scene').replace(/^scene_/, '') || 'scene';
 const isVideoName = (name) => /\.(mp4|webm|mov|mkv|m4v)$/i.test(String(name || ''));
 
-/** Drawable media layers (have a staged asset) sorted by paint order (`layer_level`). */
+/** Drawable media layers (have a staged asset) sorted by paint order (`layer_z_index`). */
 function drawableLayers(scene) {
   const layers = (scene?.props?.layers) || [];
   return layers
     .filter((l) => String(l.layer_asset_source || '').length > 0)
     .slice()
-    .sort((a, b) => Number(a.layer_level ?? 0) - Number(b.layer_level ?? 0));
+    .sort((a, b) => Number(a.layer_z_index ?? 0) - Number(b.layer_z_index ?? 0));
 }
 
 function layerMarkup(layer, sceneDurationFrames, fps, trackBase, sceneSlug, isHorizontal = false) {
   const name = String(layer.layer_asset_source);
   const dur = frameSeconds(sceneDurationFrames, fps);
-  const z = Number(layer.layer_level ?? 0);
+  const z = Number(layer.layer_z_index ?? 0);
   const tag = isVideoName(name) ? 'video' : 'img';
   const mediaAttrs =
     tag === 'video'

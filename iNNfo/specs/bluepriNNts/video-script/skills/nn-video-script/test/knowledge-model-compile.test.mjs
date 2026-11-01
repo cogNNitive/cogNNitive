@@ -19,7 +19,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SceneCompiler, ScriptValidationError } from '../scripts/scene-compiler.mjs';
-import { loadKnowledgeModel, loadTemplateModels, parseKnowledgeDocument } from '../scripts/lib/knowledge-model.mjs';
+import { loadKnowledgeModel, parseKnowledgeDocument } from '../scripts/lib/knowledge-model.mjs';
+import { loadPresetIndex } from '../scripts/lib/presets.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_DIR = path.join(__dirname, '..');
@@ -43,7 +44,7 @@ title:: Demo Clip
 
 ## NN Scene: Opening
 slug:: opening
-template:: [[Demo Series :: Presenter Full]]
+presets:: [Presenter Full]
 music:: media/bed.m4a
 transition:: fade
 
@@ -51,7 +52,7 @@ Welcome to the demo.
 
 ## NN Scene: Body
 slug:: body
-template:: [[Demo Series :: Presenter Full]]
+presets:: [Presenter Full]
 
 This is the body narration.
 
@@ -97,14 +98,19 @@ knowledge_version: "V_0-1-0"
 title: "Demo Series"
 ---
 
-# NN Template
+# NN Preset
 
-## NN Template: Presenter Full
+## NN Preset: Presenter Full
 slug:: presenter-full
-tool:: wavespeed
 voice:: demo-voice
-tts_model:: minimax/speech-2.8-hd
+voice_model:: minimax/speech-2.8-hd
 `;
+
+/** The Series Preset that the script references, and the bags that carry it. */
+const PRESET_INDEX = loadPresetIndex([
+  { doc: 'templates_V_0-1-0_demo_NN.md', elements: parseKnowledgeDocument(TEMPLATES_DOC).elements },
+]);
+const BAGS = { presetIndex: PRESET_INDEX };
 
 /** Writes the generic fixture into a temp dir and returns its paths. */
 function writeFixture() {
@@ -124,9 +130,9 @@ async function runTests() {
   {
     const model = loadKnowledgeModel(scriptPath);
     assert.ok(model.elements, 'reader produces a read_knowledge-shaped model');
-    const templates = loadTemplateModels(dir);
+    const bags = BAGS;
     const compiler = new SceneCompiler();
-    const manifest = compiler.compile(model, { templates });
+    const manifest = compiler.compile(model, { bags });
 
     assert.strictEqual(manifest.version, '1.0.0');
     assert.strictEqual(manifest.compositionId, 'demo-clip');
@@ -152,10 +158,10 @@ async function runTests() {
     assert.ok(drawTypes.includes('talking_avatar'));
     assert.ok(drawTypes.includes('video'));
 
-    // Template-resolved configuration reaches the manifest.
-    const opening = manifest.tracks.scenes[0];
-    assert.strictEqual(opening.props.template.voice, 'demo-voice');
-    assert.strictEqual(opening.props.template.model, 'minimax/speech-2.8-hd');
+    // The Preset supplies the voice and the model through the cascade.
+    const lowered = new SceneCompiler().lowerKnowledgeModel(model, { bags });
+    assert.strictEqual(lowered.scenes[0].properties.scene_voice, 'demo-voice');
+    assert.strictEqual(lowered.scenes[0].properties.scene_voice_model, 'minimax/speech-2.8-hd');
 
     console.log('✔ fixture compiles to a manifest from the iNNfo model (one track per Scene, list order)');
   }
@@ -258,7 +264,7 @@ async function runTests() {
     }
     // The compiler accepts exactly this shape and rejects raw markdown.
     const compiler = new SceneCompiler();
-    assert.ok(compiler.compile(adapted).tracks.scenes.length > 0);
+    assert.ok(compiler.compile(adapted, { bags: BAGS }).tracks.scenes.length > 0);
     assert.throws(() => compiler.compile(SAMPLE_DOC), (e) => e instanceof ScriptValidationError);
     console.log('✔ structural adapter stays contract-aligned with read_knowledge (drift guard)');
   }

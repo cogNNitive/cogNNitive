@@ -19,12 +19,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { SceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDurations } from './scene-compiler.mjs';
-import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
+import { loadKnowledgeModel } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './lib/video-guard.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
-import { loadCascadeBags, resolve, resolveKeyed, findNearest, findNearestByStem, findSeriesRoot } from './lib/video-scope.mjs';
+import { loadCascadeBags, resolve, resolveKeyed, findNearest, findNearestByStem, findSeriesRoot, withScriptPresets } from './lib/video-scope.mjs';
 import { applyCachedAvatars } from './lib/avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './lib/tts-options.mjs';
 import { loadFrame } from './lib/frame-tokens.mjs';
@@ -435,7 +435,7 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
     // 1. TTS synthesis
     if (sc.narration && sc.narration.trim().length > 0) {
       const voiceOptions = buildTtsVoiceOptions(sc, models, bags);
-      const ttsModel = normalizeModelId(sc.properties?.scene_tts_model);
+      const ttsModel = normalizeModelId(sc.properties?.scene_voice_model);
       onProgress({ phase: 'tts-start', done: ttsDone, total: ttsScenes.length, scene: sc.id, model: ttsModel });
       const ttsRes = await synthesizer.synthesizeTTS(sc.narration, voiceOptions, { ref: sc.id, model: ttsModel });
       if (!ttsRes.dryRun) {
@@ -514,7 +514,7 @@ export async function compileVideo(options) {
   // series/domain/blueprint documents the rest (design D10). No default id here.
   const bags = {
     ...(options.bags || loadCascadeBags(scriptDir)),
-    cli: { image_model: models.image, tts_model: models.tts, avatar_model: models.avatar },
+    cli: { image_model: models.image, voice_model: models.tts, avatar_model: models.avatar },
   };
   const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
   const makeGuard = (dryRun) =>
@@ -530,10 +530,10 @@ export async function compileVideo(options) {
   // never a re-parse of the script markdown. The pre-compile guard runs before
   // any synthesis so an invalid document never spends a cent.
   const model = options.model || loadKnowledgeModel(scriptPath, { model: options.model, modelPath: options.modelPath });
-  const guard = compiler.checkScript(model, options);
+  const scriptBags = withScriptPresets(bags, model, scriptPath);
+  const guard = compiler.checkScript(model, { ...options, bags: scriptBags });
   if (!guard.ok) throw new ScriptValidationError(guard.errors);
-  const templates = options.templates || loadTemplateModels(scriptDir);
-  const parsed = compiler.lowerKnowledgeModel(model, { templates, bags, fps: options.fps, width: options.width, height: options.height });
+  const parsed = compiler.lowerKnowledgeModel(model, { bags: scriptBags, fps: options.fps, width: options.width, height: options.height });
   // Resolve the frame cascade value to its document BEFORE any synthesis or
   // render (design D18/D21): a user-level name with no file fails here, with
   // nothing spent; a blueprint-only name is skipped with one warning.
@@ -758,7 +758,6 @@ export async function renderVideo(options) {
       synthesizeAssets: options.synthesizeAssets,
       model: options.model,
       modelPath: options.modelPath,
-      templates: options.templates,
       allowModels: options.allowModels,
       approvalPath: options.approvalPath,
       models: options.models,

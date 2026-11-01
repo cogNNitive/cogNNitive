@@ -24,8 +24,8 @@ function fixture() {
           transition: { type: 'fade', durationInFrames: 15, easing: 'power2.out' },
           props: {
             layers: [
-              { layer_type: 'image', layer_asset_source: 'bg_intro_abc.jpg', layer_level: 0 },
-              { layer_type: 'talking_avatar', layer_asset_source: 'avatar_lucas_def.png', layer_level: 50 },
+              { layer_type: 'image', layer_asset_source: 'bg_intro_abc.jpg', layer_z_index: 0 },
+              { layer_type: 'talking_avatar', layer_asset_source: 'avatar_lucas_def.png', layer_z_index: 50 },
             ],
           },
         },
@@ -35,7 +35,7 @@ function fixture() {
           fromFrame: 90,
           durationInFrames: 150,
           transition: { type: 'none' },
-          props: { layers: [{ layer_type: 'video', layer_asset_source: 'clip_ghi.mp4', layer_level: 0 }] },
+          props: { layers: [{ layer_type: 'video', layer_asset_source: 'clip_ghi.mp4', layer_z_index: 0 }] },
         },
       ],
       audio: [

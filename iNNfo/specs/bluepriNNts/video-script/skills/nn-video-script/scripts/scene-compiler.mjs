@@ -91,7 +91,7 @@ export const TYPE_RENDERERS = {
  * identical. The engine does not read the blueprint map at compile time.
  */
 export const DEFAULT_CONDITIONAL_FIELDS = {
-  presenter: ['asset', 'prompt'],
+  presenter: ['asset', 'prompt', 'avatar'],
   background: ['asset', 'prompt'],
   'b-roll': ['asset', 'prompt'],
   title: ['text'],
@@ -143,14 +143,6 @@ export class ScriptValidationError extends Error {
 
 /** Overlay layers sequenced into non-overlapping slots, and their default seconds. */
 const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'b-roll': 4 };
-
-/** Extracts the instance name from a `[[Doc :: Name]]` template reference. */
-function templateRefName(ref) {
-  const m = /\[\[(.*?)\]\]/.exec(String(ref || ''));
-  if (!m) return null;
-  const parts = m[1].split('::');
-  return parts[parts.length - 1].trim() || null;
-}
 
 /** Video vs still by extension (background layers). */
 function isVideoAsset(asset) {
@@ -319,6 +311,36 @@ export class SceneCompiler {
       }
     }
     const conditional = options.conditionalFields || DEFAULT_CONDITIONAL_FIELDS;
+    const guardBags = options.bags || null;
+    const videoFields = (elements.Video || [])[0]?.fields || {};
+    const sceneFieldsBySlug = new Map();
+    for (const sceneEl of elements.Scene || []) {
+      const key = sceneEl.slug || slugify(sceneEl.name);
+      if (key) sceneFieldsBySlug.set(key, sceneEl.fields || {});
+    }
+    // Preset reference errors are reported by the same guard, before any spend.
+    if (guardBags) {
+      const seen = new Set(errors.map((e) => e.code + '|' + e.message));
+      const targets = [
+        { ...guardBags, video: videoFields },
+        ...[...sceneFieldsBySlug.values()].map((fields) => ({ ...guardBags, video: videoFields, scene: fields })),
+      ];
+      for (const bags of targets) {
+        try {
+          resolve('voice', bags);
+        } catch (err) {
+          if (err && err.code) {
+            const key = err.code + '|' + err.message;
+            if (!seen.has(key)) {
+              seen.add(key);
+              errors.push({ code: err.code, message: err.message });
+            }
+          } else {
+            throw err;
+          }
+        }
+      }
+    }
     for (const layer of elements.Layer || []) {
       const type = layer.fields?.type;
       if (!type) {
@@ -334,7 +356,17 @@ export class SceneCompiler {
       if (type === 'caption') continue;
       const hasAny = required.some((field) => {
         const value = layer.fields?.[field];
-        return value !== undefined && String(value).trim() !== '';
+        if (value !== undefined && String(value).trim() !== '') return true;
+        // A cascade parameter may be satisfied by another level: a presenter's
+        // image can come from `avatar` on the Scene, a Preset, the Video, the
+        // Series or the domain defaults (design D7). Resolution stays pure and
+        // offline, so the guard still runs before any spend.
+        if (field === 'avatar' && guardBags) {
+          const sceneFields = sceneFieldsBySlug.get(layer.parentSlug) || {};
+          const resolved = resolve('avatar', { ...guardBags, video: videoFields, scene: sceneFields }).value;
+          return resolved !== undefined && resolved !== null && String(resolved).trim() !== '';
+        }
+        return false;
       });
       if (!hasAny) {
         errors.push({
@@ -350,61 +382,55 @@ export class SceneCompiler {
    * Lowers a structured iNNfo model into the internal
    * `{ title, fps, width, height, scenes[] }` shape.
    * @param {object} model read_knowledge-shaped model
-   * @param {{ templates?: Record<string, { tool?: string, voice?: string, model?: string }>, bags?: Record<string, Record<string, unknown>>, fps?: number, width?: number, height?: number }} [options]
+   * @param {{ bags?: Record<string, Record<string, unknown>>, fps?: number, width?: number, height?: number }} [options]
    */
   lowerKnowledgeModel(model, options = {}) {
     const elements = model?.elements || {};
     const videos = elements.Video || [];
     const sceneElements = elements.Scene || [];
     const layerElements = elements.Layer || [];
-    const templates = options.templates || {};
     const bags = options.bags || {};
     const buckets = assignLayersToScenes(sceneElements, layerElements);
     const videoEl = videos[0] || {};
-    const videoTemplateRef = resolve('template', { ...bags, video: videoEl.fields || {} }).value;
-    const videoRefName = templateRefName(videoTemplateRef);
-    const videoTemplate = videoRefName && templates[videoRefName] ? { name: videoRefName, ...templates[videoRefName] } : null;
 
     const scenes = sceneElements.map((sc, i) => {
       const slug = sc.slug || slugify(sc.name);
       const sceneId = `scene_${slug}`;
       const fields = sc.fields || {};
       // The scene bag is the most specific element level; `video` is the
-      // enclosing Video element. `series`/`domain`/`blueprint` ride in `bags`.
+      // enclosing Video element. `series`/`domain`/`blueprint` ride in `bags`,
+      // and every level's `presets` expand there (design D4).
       const sceneBags = { ...bags, video: videoEl.fields || {}, scene: fields };
-      const refName = templateRefName(resolve('template', sceneBags).value);
-      const resolvedTemplate =
-        (refName && templates[refName] ? { name: refName, ...templates[refName] } : null) || videoTemplate;
-      const music = resolve('music', sceneBags).value;
-      const musicVolume = resolve('music_volume', sceneBags, {
+      const backgroundAudio = resolve('background_audio', sceneBags).value;
+      const backgroundVolume = resolve('background_audio_volume', sceneBags, {
         accept: (v) => v !== undefined && v !== null && String(v).trim() !== '' && Number.isFinite(Number(v)),
       }).value;
       const transition = resolve('transition', sceneBags).value;
       // `frame` is a cascade parameter resolved per scene (design D18); the file
       // for the resolved name is located by the caller's nearest-folder walk.
       const frame = resolve('frame', sceneBags);
-      // The resolved template's `tts_model`/`voice` fill the referencing
-      // element's bag (design D10/D20); the rest of the cascade supplies the
-      // value. Engine code names no model.
-      const elementBags = resolvedTemplate
-        ? {
-            ...sceneBags,
-            scene: {
-              ...fields,
-              ...(resolvedTemplate.model !== undefined ? { tts_model: resolvedTemplate.model } : {}),
-              ...(resolvedTemplate.voice !== undefined ? { voice: resolvedTemplate.voice } : {}),
-            },
-          }
-        : sceneBags;
-      const ttsModel = resolve('tts_model', elementBags).value;
-      const voice = resolve('voice', elementBags).value;
+      // Voice delivery resolves through the same cascade as every other
+      // parameter: a Preset, a scope document or the element may supply it, and
+      // an explicit Scene field beats any Preset (design D4/D5).
+      const voiceModel = resolve('voice_model', sceneBags).value;
+      const voice = resolve('voice', sceneBags).value;
+      const voiceSpeed = resolve('voice_speed', sceneBags, {
+        accept: (v) => v !== undefined && v !== null && String(v).trim() !== '' && Number.isFinite(Number(v)),
+      }).value;
+      const voiceEmotion = resolve('voice_emotion', sceneBags).value;
       const properties = {};
-      if (music) properties.scene_background_audio = music;
-      if (musicVolume !== null) {
-        properties.scene_music_volume = Number(musicVolume);
+      if (backgroundAudio) properties.scene_background_audio = backgroundAudio;
+      if (backgroundVolume !== null) {
+        properties.scene_background_audio_volume = Number(backgroundVolume);
       }
-      if (ttsModel !== null && ttsModel !== undefined) properties.scene_tts_model = ttsModel;
+      if (voiceModel !== null && voiceModel !== undefined) properties.scene_voice_model = voiceModel;
       if (voice !== null && voice !== undefined) properties.scene_voice = voice;
+      if (voiceSpeed !== null && voiceSpeed !== undefined) properties.scene_voice_speed = Number(voiceSpeed);
+      if (typeof voiceEmotion === 'string' && voiceEmotion.trim() !== '') {
+        properties.scene_voice_emotion = voiceEmotion.trim();
+      }
+      // `voice_tone` is authoring guidance only and is deliberately not read
+      // here: it must never reach the TTS payload or the cache key (design D6).
 
       const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
       return {
@@ -412,11 +438,9 @@ export class SceneCompiler {
         name: sc.name,
         slug,
         narration: String(sc.description || '').trim(),
-        template: resolve('template', sceneBags).value || null,
-        resolvedTemplate,
         transition: transition || null,
         frame: { value: frame.value, source: frame.source },
-        music: music || null,
+        music: backgroundAudio || null,
         properties,
         layers,
       };
@@ -427,7 +451,6 @@ export class SceneCompiler {
       fps: options.fps || this.fps,
       width: options.width || this.width,
       height: options.height || this.height,
-      videoTemplate,
       videoProps: {},
       frame: resolve('frame', { ...bags, video: videoEl.fields || {} }),
       scenes,
@@ -440,16 +463,17 @@ export class SceneCompiler {
     const declared = fields.type;
     const binding = TYPE_RENDERERS[declared] || { kind: 'layer', manifest: declared };
     const fit = resolve('fit', { ...bags, layer: fields }).value;
-    const avatarModel = resolve('avatar_model', {
-      ...bags,
-      layer: { ...fields, avatar_model: fields.avatar_model || fields.model },
-    }).value;
+    const avatarModel = resolve('avatar_model', { ...bags, layer: fields }).value;
+    // A presenter with no local asset takes the cascaded `avatar` as its source
+    // (design D7); every other Layer type uses `asset` only.
+    const cascadedAvatar =
+      declared === 'presenter' && !fields.asset ? resolve('avatar', { ...bags, layer: fields }).value : null;
     const properties = {
       layer_type: internalLayerType(declared, fields.asset),
-      layer_asset_source: fields.asset,
+      layer_asset_source: fields.asset || cascadedAvatar || undefined,
       layer_prompt: fields.prompt,
       layer_text_content: fields.text,
-      layer_level: fields.level !== undefined ? Number(fields.level) : undefined,
+      layer_z_index: fields.z_index !== undefined ? Number(fields.z_index) : undefined,
       layer_position: fields.position,
       layer_avatar_model: avatarModel ?? undefined,
       layer_avatar_resolution: fields.avatar_resolution,
@@ -565,8 +589,7 @@ export class SceneCompiler {
    * @param {Object} [options]
     * @param {Record<string, number>} [options.audioDurations] Map of sceneId -> duration in seconds
     * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
-    * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
-   * @param {string} [options.scriptSource="script.model"]
+    * @param {string} [options.scriptSource="script.model"]
    * @returns {CompositionManifest}
    */
   compile(input, options = {}) {
@@ -643,7 +666,6 @@ export class SceneCompiler {
       const sceneProps = {
         title: sc.name || `Scene ${i + 1}`,
         narration: sc.narration || '',
-        ...(sc.resolvedTemplate ? { template: sc.resolvedTemplate } : {}),
         layers: drawable,
       };
 
@@ -670,12 +692,12 @@ export class SceneCompiler {
         });
       }
 
-      // 5b. Scene background music (music::), looping for the scene.
+      // 5b. Scene background audio (background_audio::), looping for the scene.
       if (sc.music) {
         if (path.isAbsolute(sc.music) || /^[A-Za-z]:[\\/]/.test(sc.music) || /^[a-z]+:\/\//i.test(sc.music)) {
-          throw new Error(`Invalid music "${sc.music}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
+          throw new Error(`Invalid background audio "${sc.music}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
         }
-        const musicVolume = sc.properties?.scene_music_volume;
+        const musicVolume = sc.properties?.scene_background_audio_volume;
         audioTracks.push({
           id: `bgmusic_${sceneId}`,
           sceneId,
@@ -786,12 +808,13 @@ async function main() {
   const outPath = outIdx !== -1 ? process.argv[outIdx + 1] : null;
 
   try {
-    const { loadKnowledgeModel, loadTemplateModels } = await import('./lib/knowledge-model.mjs');
+    const { loadKnowledgeModel } = await import('./lib/knowledge-model.mjs');
+    const { loadCascadeBags, withScriptPresets } = await import('./lib/video-scope.mjs');
     const resolved = path.resolve(target);
     const model = loadKnowledgeModel(resolved);
-    const templates = loadTemplateModels(path.dirname(resolved));
+    const bags = withScriptPresets(loadCascadeBags(path.dirname(resolved)), model, resolved);
     const compiler = new SceneCompiler();
-    const manifest = compiler.compile(model, { templates, scriptSource: target });
+    const manifest = compiler.compile(model, { bags, scriptSource: target });
     const jsonStr = JSON.stringify(manifest, null, 2);
     if (outPath) {
       fs.writeFileSync(path.resolve(outPath), jsonStr, 'utf8');

@@ -20,8 +20,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSeriesFor } from './build-script-from-draft.mjs';
+import { findBlueprintPackage } from './lib/video-scope.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The owning blueprint's `blueprint_version`, read from the package's `spec_NN.md`.
+ * The review console emits it as the exported document's `parent_spec`, so the
+ * template never carries a literal version that goes stale on every bump.
+ */
+export function blueprintVersion() {
+  try {
+    const pkg = findBlueprintPackage();
+    const text = fs.readFileSync(path.join(pkg, 'spec_NN.md'), 'utf8');
+    const m = /^blueprint_version:\s*"?([^"\r\n]+)"?\s*$/m.exec(text);
+    return m ? m[1].trim() : '';
+  } catch {
+    return '';
+  }
+}
 
 function argValue(argv, name) {
   const i = argv.indexOf('--' + name);
@@ -73,6 +90,7 @@ export function buildDraftHtml(draft, { baseDir, templatePath, seriesTitle = 'Se
     .replace(/\{\{SERIES\}\}/g, seriesTitle)
     .replace(/\{\{TITLE\}\}/g, effectiveTitle)
     .replace(/\{\{DESCRIPTION\}\}/g, effectiveDescription)
+    .replace(/\{\{BLUEPRINT_VERSION\}\}/g, blueprintVersion())
     .replace('/*__DRAFT_JSON__*/', JSON.stringify(draft))
     .replace('/*__THUMBS_JSON__*/', JSON.stringify(thumbs))
     .replace('/*__REVIEWED_JSON__*/', reviewedJson);
