@@ -72,6 +72,7 @@ This skill owns **authoring, validating, compiling, rendering, and finalizing** 
    ```bash
    node scripts/build-draft-html.mjs <draft.json>
    ```
+   The script refuses to build the console (exit 1, no HTML written) while any media or thumbnail file referenced by the draft is missing under `assets/<slug>/media/`; produce the screenshots and HyperFrames clips first.
    This emits `<slug>_review_console.html`. The console provides:
    - Parameter cascade inspection and overrides (`#video-params-sheet`): voice speed, fps, background audio volume, transition, and the Preset list.
    - Global video overlay templates (`#video-overlays-sheet`).
