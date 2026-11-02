@@ -52,7 +52,7 @@ level: 3
 ## NN System: Core Engine
   slug:: core-engine
   status:: active
-  source:: sources/import/spec.md
+  source:: sources/import/spec.md_sidecar_NN.md
 `
     await writeFile(join(tempDir, 'kNNowledge', 'system_NN.md'), modelContent, 'utf8')
 

@@ -870,7 +870,16 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
     }
   }
 
-  // Map elements citations and changeset evidence for fast lookup
+  // Map elements citations and changeset evidence for fast lookup. A unit cites
+  // the normalized sidecar document (`<file>.<ext>_sidecar_NN.md`); the inventory
+  // entry is the subject file, so both sides are normalized to that path.
+  function normalizeCitationPath(raw) {
+    const norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
+    return payloadHelper && payloadHelper.isSidecarPath && payloadHelper.isSidecarPath(norm)
+      ? payloadHelper.sidecarSubjectPath(norm)
+      : norm
+  }
+
   const citationPaths = []
   for (const el of elements) {
     if (el.citations && typeof el.citations === 'object') {
@@ -879,8 +888,7 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
           for (const cit of list) {
             const raw = cit.path || cit.href
             if (raw) {
-              const norm = raw.replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
-              citationPaths.push({ norm, excerpt: cit.excerpt, unitId: el.id })
+              citationPaths.push({ norm: normalizeCitationPath(raw), excerpt: cit.excerpt, unitId: el.id })
             }
           }
         }
@@ -890,14 +898,10 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
 
   const changeEvidencePaths = []
   for (const cs of changesets) {
-    if (cs.evidence) {
-      changeEvidencePaths.push(cs.evidence.replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0])
-    }
+    if (cs.evidence) changeEvidencePaths.push(normalizeCitationPath(cs.evidence))
     if (Array.isArray(cs.changes)) {
       for (const c of cs.changes) {
-        if (c.evidence) {
-          changeEvidencePaths.push(c.evidence.replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0])
-        }
+        if (c.evidence) changeEvidencePaths.push(normalizeCitationPath(c.evidence))
       }
     }
   }

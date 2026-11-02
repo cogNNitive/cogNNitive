@@ -12495,7 +12495,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (f && f.path) byPath[f.path] = f
     })
 
-    // Which units cite which file, matched the same way export does.
+    // Which units cite which file, matched the same way export does. A unit cites
+    // the sidecar document, so the path is folded back to its subject file.
+    var SIDECAR_SUFFIX = '_sidecar_NN.md'
+    function citationSubject(raw) {
+      var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
+      if (norm.length > SIDECAR_SUFFIX.length && norm.slice(-SIDECAR_SUFFIX.length) === SIDECAR_SUFFIX) {
+        return norm.slice(0, norm.length - SIDECAR_SUFFIX.length)
+      }
+      return norm
+    }
+
     var unitsByPath = {}
     elements.forEach(function (e) {
       if (!e || !e.citations) return
@@ -12505,7 +12515,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         list.forEach(function (cit) {
           var raw = cit && (cit.path || cit.href)
           if (!raw) return
-          var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
+          var norm = citationSubject(raw)
           inventory.forEach(function (f) {
             if (f.path === norm || f.path.endsWith('/' + norm) || norm.endsWith('/' + f.path)) {
               if (!unitsByPath[f.path]) unitsByPath[f.path] = []
@@ -12518,17 +12528,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var state = { mode: 'explorer', selected: '', collapsed: {}, query: '' }
 
+    var elementsById = {}
+    elements.forEach(function (e) {
+      if (e && e.id) elementsById[e.id] = e
+    })
+
     function kuBadge(unitId) {
-      if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', String(unitId))
+      var target = elementsById[unitId]
+      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      if (target && target.concept) ref.concept = target.concept
+      if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', ref.label)
       try {
-        return UI.Ku('element', { id: String(unitId), label: String(unitId) }, {
+        return UI.Ku('element', ref, {
           doc: doc,
           onAction: function (action, descriptor) {
             if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
           },
         })
       } catch {
-        return el('span', 'nn-badge', String(unitId))
+        return el('span', 'nn-badge', ref.label)
       }
     }
 
@@ -12713,17 +12731,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var alerts = el('div', 'nn-files-alerts')
-      function alert(label, count) {
+      function alert(count, one, many) {
         if (!count) return
         var card = el('div', 'nn-integrity-alert')
         card.appendChild(el('strong', null, String(count)))
-        card.appendChild(el('span', null, ' ' + label))
+        card.appendChild(el('span', null, ' ' + (count === 1 ? one : many)))
         alerts.appendChild(card)
       }
-      alert('source files no knowledge unit or change cites', stats.uncitedSourceCount)
-      alert('files without a sidecar', stats.sidecarMissingCount)
-      alert('sidecars with an invalid frontmatter', stats.sidecarInvalidCount)
-      alert('sidecars whose digest no longer matches the file', stats.sidecarMismatchCount)
+      alert(
+        stats.uncitedSourceCount,
+        'source file is never cited by a knowledge unit or a change',
+        'source files are never cited by a knowledge unit or a change',
+      )
+      alert(stats.sidecarMissingCount, 'file has no sidecar', 'files have no sidecar')
+      alert(
+        stats.sidecarInvalidCount,
+        'sidecar has an invalid frontmatter',
+        'sidecars have an invalid frontmatter',
+      )
+      alert(
+        stats.sidecarMismatchCount,
+        'sidecar digest no longer matches its file',
+        'sidecar digests no longer match their file',
+      )
       if (alerts.childNodes.length) {
         var alertsWrap = el('div', 'nn-files-section')
         alertsWrap.appendChild(el('h3', 'nn-files-section-title', 'Integrity signals'))
@@ -12889,13 +12919,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       })
       var unitIds = Object.keys(unitSet).sort()
-      var changeSet = {}
+      // Changes come from the domain's own changeset records; lineage only adds
+      // the highlighting, so the column is never empty when changes exist.
+      var changeRecords = Array.isArray(opts.changes) ? opts.changes : []
+      var changeNode = {}
+      changeRecords.forEach(function (cs) {
+        var path = String((cs && cs.path) || '')
+        var id = path
+          .split('/')
+          .pop()
+          .replace(/_changes_NN\.md$/i, '')
+        if (id) changeNode[id] = { name: (cs && cs.title) || id, sub: (cs && cs.status) || 'changeset' }
+      })
       Object.keys(lineage).forEach(function (k) {
         ;(lineage[k].changesetIds || []).forEach(function (id) {
-          changeSet[id] = true
+          if (!changeNode[id]) changeNode[id] = { name: id, sub: 'changeset' }
         })
       })
-      var changeIds = Object.keys(changeSet).sort()
+      var changeIds = Object.keys(changeNode).sort()
 
       var content = {
         origins: watchRoots.map(function (r) {
@@ -12905,10 +12946,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           return { id: 'file:' + f.path, name: filesBaseName(f.path), sub: FILES_CATEGORY_LABEL[f.category] + ' · ' + filesFmtBytes(f.size) }
         }),
         changes: changeIds.map(function (id) {
-          return { id: 'change:' + id, name: id, sub: 'changeset' }
+          return { id: 'change:' + id, name: changeNode[id].name, sub: changeNode[id].sub }
         }),
         units: unitIds.map(function (id) {
-          return { id: 'unit:' + id, name: id, sub: 'knowledge unit' }
+          var target = elementsById[id]
+          return {
+            id: 'unit:' + id,
+            name: (target && (target.name || target.slug)) || id,
+            sub: 'knowledge unit',
+          }
         }),
         artifacts: artifactsStage.map(function (f) {
           return { id: 'file:' + f.path, name: filesBaseName(f.path), sub: filesFmtBytes(f.size) }
@@ -15717,6 +15763,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderMatrices(active, matrices, concepts, (meta && (meta.modelId || meta.model)) || '')
     renderFilesTab(active, model && model.files, {
       elements: elements,
+      changes: (model && Array.isArray(model.changes) ? model.changes : []),
       onReveal: function (descriptor) {
         revealUnit(descriptor)
       },

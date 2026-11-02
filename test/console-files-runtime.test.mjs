@@ -87,6 +87,14 @@ const FILES_MODEL = {
       citations: { source: [{ path: 'sources/import/spec.md', excerpt: 'Engine specification details.' }] },
     },
   ],
+  changes: [
+    {
+      path: 'changes/2026-10-01-initial_changes_NN.md',
+      title: 'Initial change',
+      status: 'applied',
+      changes: [{ target: 'ecto-1', op: 'create' }],
+    },
+  ],
   matrices: [],
   files: FILES_PAYLOAD,
 }
@@ -188,6 +196,9 @@ describe('Files tab runtime', () => {
     assert.equal(stages.length, 5, '5 stages')
     assert.ok(pipeline.textContent.includes('Origins'))
     assert.ok(pipeline.textContent.includes('Artifacts'))
+    const changeStage = [...stages].find((s) => s.textContent.includes('Changes'))
+    assert.equal(changeStage.querySelectorAll('.nn-pipeline-card').length, 1, 'changes come from the domain changesets')
+    assert.ok(changeStage.textContent.includes('Initial change'), 'the changeset title is shown')
 
     const sourceCard = [...pipeline.querySelectorAll('.nn-pipeline-card')].find((c) =>
       c.textContent.includes('spec.md'),
