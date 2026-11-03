@@ -9495,6 +9495,7 @@ var CHANGE_OPS = [
   "comment",
   "add_model",
   "move_model",
+  "extract_instance",
   "freeze_slugs",
   "bump_version",
   "update_element_text",
@@ -9542,6 +9543,37 @@ function moveModelProblems(change) {
   if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`);
   else if (!bareModelId(to) || to.startsWith("/")) {
     problems.push(`change "${id}": move_model "to" must be the new instance model id`);
+  }
+  return problems;
+}
+function extractInstanceProblems(change) {
+  if (change.op !== "extract_instance") return [];
+  const problems = [];
+  const id = change.id;
+  for (const key of ["from", "base_hash"]) {
+    if (change[key] !== void 0) {
+      problems.push(`change "${id}": extract_instance must not carry "${key}"`);
+    }
+  }
+  if (change.fields !== void 0 || change.slug !== void 0) {
+    problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`);
+  }
+  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`);
+  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`);
+  const target = String(change.target ?? "").trim();
+  const at = target.indexOf("@");
+  const modelPart = at === -1 ? target : target.slice(0, at);
+  const elementPart = at === -1 ? "" : target.slice(at + 1);
+  const unsafe = (value) => value.includes("&") || value.includes("\\") || value.includes("..") || /^[a-zA-Z]:/.test(value) || value.startsWith("/");
+  if (!modelPart || !elementPart || unsafe(modelPart) || unsafe(elementPart)) {
+    problems.push(
+      `change "${id}": extract_instance target must be the source element address (<compact-id>@<slug>)`
+    );
+  }
+  const to = String(change.to ?? "").trim();
+  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
+  else if (!to.includes("/") || unsafe(to)) {
+    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`);
   }
   return problems;
 }
@@ -9742,6 +9774,11 @@ function parseChangeset(rawContent) {
         if (shas.length > 0) currentChange.evidence_sha256 = shas;
         break;
       }
+      case "extracted_slugs": {
+        const slugs = splitSourceFieldValue(rawVal);
+        if (slugs.length > 0) currentChange.extracted_slugs = slugs;
+        break;
+      }
       case "seed": {
         const parsedSeed = parseJsonObject(rawVal);
         if (parsedSeed) {
@@ -9768,6 +9805,10 @@ function parseChangeset(rawContent) {
   const moveProblems = changes.flatMap(moveModelProblems);
   if (moveProblems.length > 0) {
     throw new Error(`Invalid move_model change: ${moveProblems.join("; ")}`);
+  }
+  const extractProblems = changes.flatMap(extractInstanceProblems);
+  if (extractProblems.length > 0) {
+    throw new Error(`Invalid extract_instance change: ${extractProblems.join("; ")}`);
   }
   return {
     frontmatter,
@@ -9866,7 +9907,7 @@ function updateWikiLinks(text, oldName, newName) {
 }
 
 // iNNfo/packages/nn-core/src/changelog/fold.ts
-function rekeyKey(key, from, to) {
+function rekeyKey(key, from, to, slugs) {
   const at = key.indexOf("@");
   const model = at === -1 ? key : key.slice(0, at);
   const rest = at === -1 ? "" : key.slice(at);
@@ -9874,7 +9915,14 @@ function rekeyKey(key, from, to) {
   if (model === from) newModel = to;
   else if (model.startsWith(`${from}/`)) newModel = `${to}${model.slice(from.length)}`;
   else return key;
-  if (at === -1) return newModel;
+  if (at === -1) {
+    return slugs ? key : newModel;
+  }
+  if (slugs) {
+    const first = rest.slice(1).split("&")[0] ?? "";
+    const moved = slugs.some((slug) => slug.toLowerCase() === first.toLowerCase());
+    return moved ? `${newModel}${rest}` : key;
+  }
   const oldSlug = from.split("/").pop() ?? "";
   const newSlug = to.split("/").pop() ?? "";
   if (oldSlug !== newSlug) {
@@ -9981,11 +10029,14 @@ function foldChanges(changes) {
         addRelink(model, oldName, newName, order);
         return;
       }
-      case "move_model": {
-        const fromId = change.target;
+      case "move_model":
+      case "extract_instance": {
+        const slugs = change.op === "extract_instance" ? change.extractedSlugs : void 0;
+        if (change.op === "extract_instance" && (!slugs || slugs.length === 0)) return;
+        const fromId = change.op === "extract_instance" ? change.target.split("@")[0].trim() : change.target;
         const toId = change.to ?? "";
         if (!fromId || !toId || fromId === toId) return;
-        const rekey = (key) => rekeyKey(key, fromId, toId);
+        const rekey = (key) => rekeyKey(key, fromId, toId, slugs);
         const rekeyMap = (map, withKey) => {
           for (const [key, value] of [...map]) {
             const next = rekey(key);
@@ -10013,7 +10064,14 @@ function foldChanges(changes) {
             ...tombstone.resolvedTarget !== void 0 ? { resolvedTarget: rekey(tombstone.resolvedTarget) } : {}
           };
         }
-        rekeys.push({ from: fromId, to: toId, order });
+        rekeys.push({
+          from: fromId,
+          to: toId,
+          order,
+          kind: change.op === "extract_instance" ? "extract" : "move",
+          change,
+          ...slugs ? { slugs } : {}
+        });
         return;
       }
       case "remove_element": {
@@ -10118,6 +10176,7 @@ var ChangeLogImpl = class {
     let current = id;
     for (let i = this.fold.rekeys.length - 1; i >= 0; i--) {
       const rekey = this.fold.rekeys[i];
+      if (rekey.kind === "extract") continue;
       if (rekey.to !== current) continue;
       former.push(rekey.from);
       current = rekey.from;
@@ -10128,6 +10187,7 @@ var ChangeLogImpl = class {
     let current = id;
     let moved = false;
     for (const rekey of this.fold.rekeys) {
+      if (rekey.kind === "extract") continue;
       if (current === rekey.from) current = rekey.to;
       else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`;
       else continue;
@@ -10143,7 +10203,7 @@ var ChangeLogImpl = class {
     let key = unit;
     for (const rekey of this.fold.rekeys) {
       if (rekey.order < order) continue;
-      const next = rekeyKey(key, rekey.from, rekey.to);
+      const next = rekeyKey(key, rekey.from, rekey.to, rekey.slugs);
       if (next !== key) key = next;
     }
     return key;
@@ -10203,6 +10263,9 @@ var ChangeLogImpl = class {
   }
   get tombstones() {
     return this.fold.tombstones;
+  }
+  get rekeys() {
+    return this.fold.rekeys;
   }
   /** Canonical position of a change: its index in the sorted `all` list. */
   orderOf(change) {
@@ -10267,11 +10330,15 @@ function loggedChanges(cs) {
       evidence: change.evidence,
       evidenceItems: splitEvidence(change.evidence),
       evidenceSha256: change.evidence_sha256,
+      extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
       concept: change.concept,
       name: change.name,
       slug: change.slug,
+      blueprintName: change.blueprint_name,
+      blueprintUrl: change.blueprint_url,
+      knowledgeVersion: change.knowledge_version,
       resolvedSlug: change.resolved_slug,
       notes: change.notes,
       resolution: change.resolution,
