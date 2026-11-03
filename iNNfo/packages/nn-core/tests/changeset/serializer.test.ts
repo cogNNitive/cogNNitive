@@ -183,3 +183,42 @@ evidence:: decision
     ).toThrow(/plain model id/)
   })
 })
+
+describe('Changeset Serializer — move_model (distributed-storage S6b)', () => {
+  const changeset = `---
+spec_version: "V_0-5-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Move an instance"
+---
+
+# NN Change
+
+## NN Change: c-01
+op:: move_model
+target:: villabotijos-today/intro
+to:: villabotijos-today/welcome
+evidence:: decision
+`
+
+  it('preserves op and to byte for byte through the raw path', () => {
+    const doc = parseChangeset(changeset)
+    expect(doc.changes[0]).toMatchObject({ op: 'move_model', to: 'villabotijos-today/welcome' })
+    const out = serializeChangeset(doc)
+    expect(out).toContain('op:: move_model\n')
+    expect(out).toContain('to:: villabotijos-today/welcome\n')
+    expect(parseChangeset(out).changes[0]!.to).toBe('villabotijos-today/welcome')
+  })
+
+  it('renders move_model structurally when the document is built in memory', () => {
+    const doc = parseChangeset(changeset)
+    const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural).toContain('op:: move_model')
+    expect(structural).toContain('to:: villabotijos-today/welcome')
+  })
+})

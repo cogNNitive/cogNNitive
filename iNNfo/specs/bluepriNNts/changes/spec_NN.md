@@ -37,7 +37,7 @@ description:: Open vocabulary ad-hoc tags and classification labels.
 ## NN Field Definition: op
 concept:: Change
 type:: select
-options:: [update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_concept_field, remove_matrix, add_matrix, comment, add_model, freeze_slugs, bump_version, update_element_text, produce_artifact]
+options:: [update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_concept_field, remove_matrix, add_matrix, comment, add_model, move_model, freeze_slugs, bump_version, update_element_text, produce_artifact]
 description:: Mutation or review operation.
 
 ## NN Field Definition: target
@@ -53,7 +53,7 @@ description:: Precondition check value prior to mutation.
 ## NN Field Definition: to
 concept:: Change
 type:: string
-description:: Proposed target value. For bump_version, the version level to bump: patch, minor or major. For add_matrix, the column-axis concept.
+description:: Proposed target value. For bump_version, the version level to bump: patch, minor or major. For add_matrix, the column-axis concept. For move_model, the new instance model id.
 
 ## NN Field Definition: base_hash
 concept:: Change
@@ -166,7 +166,7 @@ Every graph mutation in cogNNitive is represented as a structured changeset docu
 A changeset document lives in the changes/ directory at the domain root with the filename pattern <prefix>_<author>_<stamp>_changes_NN.md. The prefix is the workspace_id for a changeset written by the MCP (propose_changeset, init_knowledge, apply_change) and the model slug for a changeset exported by the console review.
 
 Each change is declared as an element of concept Change:
-- op: One of update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_concept_field, remove_matrix, add_matrix, comment, add_model, freeze_slugs, bump_version, update_element_text, produce_artifact.
+- op: One of update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_concept_field, remove_matrix, add_matrix, comment, add_model, move_model, freeze_slugs, bump_version, update_element_text, produce_artifact.
 - update_element_text: Replaces the prose body of an element (ElementNode.description), named to mirror update_concept_text. target is model@element; from is the current prose and to the new prose. notes never writes the prose body, and update_field on description is rejected with USE_UPDATE_ELEMENT_TEXT.
 - produce_artifact: Records that an artifact was produced. target is a workspace-relative artifact path; evidence lists the units or sources consumed; author is the producing procedure. A regenerable view (the console HTML, the impact report family) needs no record.
 - add_element: Creates an element with its concept, name and optional explicit slug only. It carries no inline field values: each field is set afterwards by its own update_field change with its own evidence (no from, because the field does not exist yet). notes is rationale, never prose.
@@ -174,6 +174,7 @@ Each change is declared as an element of concept Change:
 - from: Precondition value that must match the live model state.
 - to: Proposed value.
 - add_model: Creates a new Level-3 kNNowledge document. target is the new model id; blueprint_name and blueprint_url are required; name (title) and knowledge_version are optional. It carries no from, to or base_hash and no element payload: initial elements are add_element changes that follow it in the same changeset. With concept it instantiates a distributed concept: target is then the instance's hierarchical id (container chain plus slug), the file is written at the concept's declared placement path, and the skeleton carries the instance root element (## NN &lt;Concept&gt;: &lt;name&gt; plus slug:: &lt;slug&gt;).
+- move_model: Renames or relocates an instance model, which changes its id and the ids of every descendant instance. target is the old instance model id and to is the new one (same concept). The instance root folder, the file stem and the root slug:: move together inside the same atomic persistence; only the moved model is bumped, and only when its body changed. Recorded targets are never rewritten: the fold carries them forward. Every typed reference to the old id must be retargeted by an update_field in the same changeset, or the move is rejected with MOVE_LEAVES_DANGLING_REFERENCES. A compact model is MOVE_REQUIRES_INSTANCE; an occupied id is MODEL_EXISTS; a missing container is CONTAINER_MISSING.
 - freeze_slugs: Writes an explicit slug for every element of the model that lacks one. target is the bare model id; it carries no other payload.
 - bump_version: Raises the model knowledge_version by the level named in to (patch, minor or major). target is the bare model id. The apply engine bumps each touched model exactly once: a changeset that carries bump_version applies that level instead of the default patch bump, never both. The unversioned lineage record cannot be bumped.
 - add_matrix: Adds a new matrix table to a Level-3 model. target is model@matrix:&lt;name&gt;; name is the matrix name, concept is the row-axis concept and to is the column-axis concept. seed ({columns, rows}) supplies the header elements; when omitted they default to the axis concepts' own elements. Every seeded cell starts empty, ready for update_matrix_cell, and records no cell unit. seed is sealed and is refused on any other op. It is refused on a Level-2 bluepriNNt (declare a Matrix Definition element there instead), and rejected when the matrix already exists.

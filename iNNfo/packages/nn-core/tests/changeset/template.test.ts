@@ -195,3 +195,47 @@ evidence:: decision
     expect(description).toContain('distributed')
   })
 })
+
+describe('changes blueprint — move_model (distributed-storage S6b)', () => {
+  const changeset = `---
+spec_version: "V_0-5-0"
+level: 3
+knowledge_version: "V_0-1-0"
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Move a Video instance"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: move_model
+target:: villabotijos-today/intro
+to:: villabotijos-today/welcome
+evidence:: decision
+`
+
+  it('declares move_model in the closed op select', () => {
+    const composed = resolveBlueprintSchema(changesSpec, () => null)
+    const op = composed.schema.concepts
+      .find((c) => c.name === 'Change')!
+      .fields.find((f) => f.name === 'op')!
+    const options = ((op as { options?: unknown[] }).options ?? []).map((v) => String(v))
+    expect(options).toContain('move_model')
+  })
+
+  it('validates a changeset using move_model', () => {
+    const model = parseKnowledge(changeset)
+    const res = validateKnowledge(model, specDoc, null)
+    const errors = res.checks.filter((c) => c.severity === 'error')
+    expect(errors).toEqual([])
+  })
+})
