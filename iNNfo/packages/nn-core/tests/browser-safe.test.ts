@@ -42,3 +42,21 @@ describe('Browser Entry Point', () => {
     expect(browserExports).toHaveProperty('normalizeSingleKnowledge')
   })
 })
+
+describe('address grammar is exported from every entry point', () => {
+  const names = ['parseAddress', 'formatAddress', 'isAddressError']
+
+  it('browser entry', () => {
+    for (const name of names) expect(browserExports).toHaveProperty(name)
+  })
+
+  it('node entry', async () => {
+    const entry = await import('../src/index')
+    for (const name of [...names, 'parseCitationResult', 'resolveUnitPathResult']) expect(entry).toHaveProperty(name)
+  })
+
+  it('trannsform primitives entry', async () => {
+    const entry = await import('../src/trannsformPrimitives')
+    for (const name of [...names, 'parseCitationResult']) expect(entry).toHaveProperty(name)
+  })
+})

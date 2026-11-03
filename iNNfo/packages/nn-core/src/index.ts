@@ -87,16 +87,20 @@ export type {
   CitationDiagnostic,
 } from './validator/index.js'
 
+export { parseAddress, formatAddress, isAddressError } from './address/index.js'
+export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './address/index.js'
 export {
   parseCitation,
+  parseCitationResult,
   resolveUnitPath,
+  resolveUnitPathResult,
   splitSourceFieldValue,
   levenshteinDistance,
   slugifyHeading,
   extractHeadings,
   resolveHeadingSection,
 } from './sourceRef.js'
-export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type { Citation, CitationResult, UnitPathResult, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export { serializeKnowledgeUnitRef, slugifyUnitHeading, normalizeName } from './sourceRef.js'
 export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
 export { unitLabel } from './sourceRef.js'

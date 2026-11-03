@@ -7,22 +7,42 @@
  * same changes, so the mapping is extracted here: one definition, two callers,
  * no chance of the replay drifting from apply.
  */
-import type { BlueprintSchema, ChangeItem, ParsedKnowledge } from '@cognnitive/nn-core'
+import { isAddressError, parseAddress } from '@cognnitive/nn-core'
+import type { AddressError, BlueprintSchema, ChangeItem, ParsedKnowledge } from '@cognnitive/nn-core'
 
-/** Splits a change target into its model id and remaining address parts. */
+/**
+ * Splits a change target into its model id and remaining address parts. The unified
+ * address grammar decides whether the target is valid: a violation is reported in
+ * `error` (a file path, a wikilink, a non-canonical segment) while the split itself
+ * stays lenient, so a legacy display-name target keeps resolving until the engine
+ * rejects on `error` (the index-backed resolution lands with the domain index).
+ */
 export function parseTargetAddress(target: string): {
   modelSlug: string
   remainder: string
   parts: string[]
+  error?: AddressError
 } {
+  const parsed = parseAddress(target)
+  const invalid: AddressError | undefined = isAddressError(parsed)
+    ? parsed
+    : parsed.kind === 'source'
+      ? {
+          kind: 'error',
+          code: 'ADDRESS_MALFORMED',
+          segment: parsed.raw,
+          message: `Malformed target: \`${parsed.raw}\` is a file path, not a model address; use \`<hierarchical-id>@<slug>\`.`,
+        }
+      : undefined
   const atIdx = target.indexOf('@')
+  const error = invalid ? { error: invalid } : {}
   if (atIdx === -1) {
-    return { modelSlug: target.trim(), remainder: '', parts: [] }
+    return { modelSlug: target.trim(), remainder: '', parts: [], ...error }
   }
   const modelSlug = target.slice(0, atIdx).trim()
   const remainder = target.slice(atIdx + 1).trim()
   const parts = remainder.split('&').map((p) => p.trim())
-  return { modelSlug, remainder, parts }
+  return { modelSlug, remainder, parts, ...error }
 }
 
 /** Finds an element by name or slug, optionally scoped to a concept. */

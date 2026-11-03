@@ -12,9 +12,12 @@ export {
   normalizeName,
   headingSlugParts,
   parseCitation,
+  parseCitationResult,
   extractHeadings,
   serializeKnowledgeUnitRef,
 } from './sourceRef.js'
+
+export { parseAddress, formatAddress, isAddressError } from './address/index.js'
 
 export {
   createFsSourceResolver,
