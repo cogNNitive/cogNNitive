@@ -15,7 +15,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S3a | 509 | `ds/s3a` | `ds/s2b` | open, applied (`size:exception`) |
 | S3b | 510 | `ds/s3b` | `ds/s3a` | open, applied (`size:exception`) |
 | S3c | 512 | `ds/s3c` | `ds/s3b` | open, applied (resumed from an interrupted apply; one deviation in S3c.3) |
-| S4a to S7d | n/a | n/a | n/a | not started |
+| S4a | PR_S4A | `ds/s4a` | `ds/s3c` | open, applied |
+| S4b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -378,3 +379,28 @@ Identity is the slug, scoped by the model. Two elements with the same NAME and d
 - Two nn-mcp tests hit their 30s timeout under full-suite load (`check-workspace.spec.ts` "summary_only", `concept-drift-and-gate.test.ts` "PARENT_RESOLUTION_FAILED"); both pass in isolation (15.7s and 12.4s) and pass in the second full run. Flaky under concurrency, not a regression.
 - `node scripts/build-core-mirrors.mjs`: no output change (the parser is not mirrored); `node --test scripts/build-core-mirrors.test.mjs`: 1 passed.
 - `node scripts/verify.js --fast`: exit 0.
+
+## S4a - `check_domain.layout` (PR 9, branch `ds/s4a`, targets `ds/s3c`)
+
+Status: S4a done (S4a.1 to S4a.5).
+
+### RED
+`src/tools/layout.spec.ts` (NEW, 9 cases) failed 9/9: `check_domain` had no `layout` section, `collisions` was still the S3a shim, and `validate_knowledge` reported no placement at all.
+
+### GREEN
+- `domainLayoutDiagnostics(rootDir)` in `domain-index.ts` is now the single read of the layout pass. It returns `index.diagnostics` verbatim: `buildDomainIndex` ALREADY appends `versionSkew` (S2b), so recomputing it here reported every skew twice. That duplication was caught by the new test, not by inspection.
+- `check_domain` returns `layout: { ok, diagnostics }` and no longer returns `collisions`. `ok` is false only when some diagnostic is an error (a warning such as `INSTANCE_SHADOWS_ELEMENT_ASSETS` leaves the domaiNN clean). `summaryOnly` caps `layout.diagnostics` at 25 and sets `layoutTruncated`; `truncated` is set when either cap fires.
+- `duplicateIdCollisions` stays exported for `sync_domain_manifest`, whose flat `collisions` field is a different tool's output shape; its comment no longer promises an S4a replacement.
+- `validate_knowledge`: a single-file pass reports its OWN placement through `fileLocalDiagnostics` (design A10, no domaiNN needed) and stays silent about skew and duplicated ids; a `workspace: true` pass files every domain layout diagnostic whose `paths` include the model, so placement, identity and skew reach the model exactly once. The two branches are mutually exclusive, which is what keeps a diagnostic from being reported twice.
+- `loadDeclarations` is exported from `domain-index.ts` so the single-file path resolves the pinned bluepriNNt's storage the same way the index does.
+
+### Fixture notes (for the next slice that needs layout fixtures)
+- Models live at the domaiNN root (`series/<slug>/...`), NOT under `models/`: `classifyModel.matchFolder` requires the directory chain to equal the rule's folder exactly, so a `models/` prefix makes every model compact.
+- A `{container}` placement needs `container:: <Concept>` on the declaring concept, or `buildRules` drops the rule and the concept reads as compact.
+- `parent_spec.url` must be root-relative (`specs/bluepriNNts/x_NN.md`) and the bluepriNNt must pin a resolvable L1, or `validate_knowledge` short-circuits with `PARENT_RESOLUTION_FAILED` before Phase 4 and reports no layout at all.
+- A model pinning a blueprint NAME that no local package carries falls back to package lookup, so a "non-declaring blueprint" fixture needs its own name (`plain_V_0-1-0`), not just its own file.
+
+### Gate (S4a verification)
+- nn-core `tsc --noEmit`: exit 0. nn-mcp typecheck (throwaway paths config, against the worktree core): exit 0.
+- `src/tools/layout.spec.ts`: 9 passed. nn-mcp `vitest run`: 62 files, 667 passed.
+- `node scripts/verify.js --fast`: see the PR body.
