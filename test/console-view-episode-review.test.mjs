@@ -184,10 +184,10 @@ describe('Episode review view — parity with the former console', () => {
       n.textContent.trim(),
     )
     const at = (needle) => labels.findIndex((l) => l.toLowerCase().includes(needle))
-    assert.ok(at('narration') < at('background'), 'narration comes before the background')
+    assert.ok(at('narration') < at('scene parameters'), 'parameters come right after the narration')
+    assert.ok(at('scene parameters') < at('background'), 'parameters come before the background')
     assert.ok(at('background') < at('overlays'), 'the background comes before the overlays')
-    assert.ok(at('overlays') < at('scene parameters'), 'overlays come before the parameters')
-    assert.ok(at('scene parameters') < at('verdict'), 'parameters come before the verdict')
+    assert.ok(at('overlays') < at('verdict'), 'overlays come before the verdict')
   })
 
   it('opens the same inspector for a layer', () => {
@@ -304,6 +304,33 @@ describe('Episode review view — parity with the former console', () => {
     const op = drafts().find((d) => d.field === 'transition')
     assert.equal(op.proposed, 'fade')
     assert.equal(op.element_id, 's-1')
+  })
+
+  it('preselects Approve visually without marking the scene approved', () => {
+    const { document, drafts, click } = bootView({})
+    // A scene with no verdict yet.
+    const scene = { ...episode() }
+    scene.scenes = [{ ...scene.scenes[0], review: '' }]
+    const solo = bootView({ viewData: { 'episode-review': { episodes: { 'ep-1': scene } } } })
+    solo.openCard = null
+    solo.document.querySelector('[data-nn-scene="opening"] .nn-scene-header').dispatchEvent(
+      new solo.document.defaultView.Event('click', { bubbles: true }),
+    )
+    const approve = solo.document.querySelector('[data-nn-scene="opening"] [data-nn-verdict="approved"]')
+    assert.ok(approve.classList.contains('is-default'), 'Approve looks like the primary action')
+    assert.equal(approve.classList.contains('is-active'), false, 'but the verdict is not set')
+    assert.equal(
+      solo.document.querySelector('[data-nn-verdict-pill]').textContent,
+      'unreviewed',
+      'the scene stays unreviewed',
+    )
+    assert.equal(solo.drafts().length, 0, 'nothing was proposed by rendering')
+
+    approve.dispatchEvent(new solo.document.defaultView.Event('click', { bubbles: true }))
+    assert.ok(approve.classList.contains('is-active'), 'once clicked it is the real verdict')
+    assert.ok(solo.drafts().some((d) => d.field === 'review' && d.proposed === 'approved'))
+    void drafts
+    void click
   })
 
   it('writes the verdict as update_field and the reason as comment', () => {

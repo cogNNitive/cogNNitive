@@ -308,7 +308,27 @@ registerView({
         nSection.appendChild(narration)
         body.appendChild(nSection)
 
-        // ── 2. backgrounds (full-frame) and overlays (painted on top) ───────────
+        // ── 2. scene parameters (only the fields this scene can use) ────────────
+        var names = (scene.relevantFields || Object.keys(scene.fields || {})).filter(function (name) {
+          return name !== 'review' && name !== 'kind'
+        })
+        if (names.length > 0) {
+          var pSection = el('div', 'nn-form-section')
+          pSection.setAttribute('data-nn-params', '')
+          pSection.appendChild(el('div', 'nn-section-label', 'Scene parameters'))
+          var paramsBox = el('div', 'nn-params-grid')
+          names.forEach(function (name) {
+            paramsBox.appendChild(
+              fieldRow(name, scene.fields[name] || { value: null, source: null, local: null }, 'Scene', function (value) {
+                propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: value })
+              }),
+            )
+          })
+          pSection.appendChild(paramsBox)
+          body.appendChild(pSection)
+        }
+
+        // ── 3. backgrounds (full-frame) and overlays (painted on top) ───────────
         var backgrounds = (scene.layers || []).filter(function (l) {
           return l.kind === 'background'
         })
@@ -406,7 +426,7 @@ registerView({
           var bSection = el('div', 'nn-form-section')
           bSection.setAttribute('data-nn-backgrounds', '')
           bSection.appendChild(el('div', 'nn-section-label', 'Background (fills the frame)'))
-          var bGrid = el('div', 'nn-visual-grid')
+          var bGrid = el('div', 'nn-layer-grid')
           backgrounds.forEach(function (layer) {
             bGrid.appendChild(layerCard(layer, true))
           })
@@ -418,32 +438,12 @@ registerView({
           var oSection = el('div', 'nn-form-section')
           oSection.setAttribute('data-nn-overlays', '')
           oSection.appendChild(el('div', 'nn-section-label', 'Overlays (on top of the frame)'))
-          var oGrid = el('div', 'nn-visual-grid')
+          var oGrid = el('div', 'nn-layer-grid')
           overlays.forEach(function (layer) {
             oGrid.appendChild(layerCard(layer, false))
           })
           oSection.appendChild(oGrid)
           body.appendChild(oSection)
-        }
-
-        // ── 3. scene parameters (only the fields this scene can use) ─────────────
-        var names = (scene.relevantFields || Object.keys(scene.fields || {})).filter(function (name) {
-          return name !== 'review' && name !== 'kind'
-        })
-        if (names.length > 0) {
-          var pSection = el('div', 'nn-form-section')
-          pSection.setAttribute('data-nn-params', '')
-          pSection.appendChild(el('div', 'nn-section-label', 'Scene parameters'))
-          var paramsBox = el('div', 'nn-params-grid')
-          names.forEach(function (name) {
-            paramsBox.appendChild(
-              fieldRow(name, scene.fields[name] || { value: null, source: null, local: null }, 'Scene', function (value) {
-                propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: value })
-              }),
-            )
-          })
-          pSection.appendChild(paramsBox)
-          body.appendChild(pSection)
         }
 
         // ── 4. verdict + reason, one compact line ───────────────────────────────
@@ -457,7 +457,10 @@ registerView({
           var button = el('button', 'nn-verdict', pair[1])
           button.type = 'button'
           button.setAttribute('data-nn-verdict', pair[0])
+          // Preselection is visual only: an unreviewed scene shows Approve as the primary
+          // action, but the field stays empty so the review gate still stops `produce`.
           if (scene.review === pair[0]) button.classList.add('is-active')
+          else if (!scene.review && pair[0] === 'approved') button.classList.add('is-default')
           button.addEventListener('click', function () {
             propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'review', proposed: pair[0] })
             verdictPill.textContent = pair[0]
