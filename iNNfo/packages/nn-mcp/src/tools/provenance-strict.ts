@@ -30,6 +30,7 @@ import {
   type ChangeItem,
   type FileSnapshot,
   type LoggedChange,
+  type ModelId,
   type ParsedKnowledge,
   type ProvenanceDiagnostic,
   type ProvenanceModel,
@@ -46,8 +47,12 @@ export interface StrictProvenanceOptions {
   sha256?: (path: string) => string | undefined
 }
 
-/** Ops the replay does not run: they write no body. */
-const NON_REPLAY_OPS = new Set(['add_model', 'bump_version', 'comment', 'produce_artifact'])
+/**
+ * Ops the replay does not run: they write no body. `move_model` is here because
+ * the replay skeleton is already built under the model's CURRENT id, which is
+ * what the move produced (design A10); the identity chain carries it.
+ */
+const NON_REPLAY_OPS = new Set(['add_model', 'bump_version', 'comment', 'produce_artifact', 'move_model'])
 
 const EVIDENCE_CODES = new Set(['EVIDENCE_UNKNOWN', 'EVIDENCE_SOURCE_CHANGED'])
 
@@ -109,13 +114,19 @@ function creationOf(
   createdIds: ReadonlyMap<string, Set<string>>,
   modelId: string,
 ): { change: LoggedChange; aliases: Set<string> } | null {
+  // A move renames the id but not the creation: the chain links the current id
+  // to the ids the `add_model` (and later changes) addressed (design A10).
+  const chain = [modelId, ...log.identities(modelId as ModelId)].map((id) => id.toLowerCase())
+  const chainSet = new Set(chain)
   for (const change of log.all) {
     if (!change.applied || change.op !== 'add_model') continue
     const addressedId = canonicalUnitModelId(change.target)
     const recorded = createdIds.get(change.changeset)
-    const createdThis = recorded?.has(modelId) === true || addressedId === modelId
+    const createdThis =
+      (recorded ? [...recorded].some((id) => chainSet.has(canonicalUnitModelId(id).toLowerCase())) : false) ||
+      chainSet.has(addressedId.toLowerCase())
     if (!createdThis) continue
-    const aliases = new Set<string>([modelId.toLowerCase(), addressedId.toLowerCase()])
+    const aliases = new Set<string>([...chain, addressedId.toLowerCase()])
     return { change, aliases }
   }
   return null

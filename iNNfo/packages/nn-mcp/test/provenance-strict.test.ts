@@ -1,7 +1,7 @@
 ﻿import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises'
-import { computeProposalSha, serializeChangeset, parseKnowledge } from '@cognnitive/nn-core'
+import { computeProposalSha, parseChangeset, serializeChangeset, parseKnowledge } from '@cognnitive/nn-core'
 import type { ChangeItem } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { checkDomain } from '../src/tools/check-workspace.js'
@@ -360,6 +360,60 @@ describe('strict provenance of instance models (distributed-storage S6a)', () =>
     expect(drift).toHaveLength(1)
     expect(drift[0]!.severity).toBe('error')
     expect(strict.ok).toBe(false)
+  })
+
+  it('replays a created, edited and renamed instance with no drift (distributed-storage S6b/S6c)', async () => {
+    expect(
+      (
+        await applyChange(
+          iRoot,
+          await writeInstanceCs(
+            [
+              CREATE_EPISODE,
+              {
+                id: 'c-02',
+                op: 'add_element',
+                target: 'villabotijos-today/new-episode@Scene',
+                concept: 'Scene',
+                name: '00 Gancho',
+              },
+              {
+                id: 'c-03',
+                op: 'update_field',
+                target: 'villabotijos-today/new-episode@00-gancho&voice',
+                to: 'raspy',
+              },
+            ],
+            'create_changes_NN.md',
+          ),
+        )
+      ).success,
+    ).toBe(true)
+    const createBytes = await readFile(join(iChangesDir, 'create_changes_NN.md'), 'utf-8')
+
+    expect(
+      (
+        await applyChange(
+          iRoot,
+          await writeInstanceCs(
+            [{ id: 'c-01', op: 'move_model', target: 'villabotijos-today/new-episode', to: 'villabotijos-today/welcome' }],
+            'rename_changes_NN.md',
+          ),
+        )
+      ).success,
+    ).toBe(true)
+
+    // The earlier changeset bytes and its seal are untouched by the later move.
+    const sealed = parseChangeset(createBytes)
+    expect(sealed.frontmatter.proposal_sha).toBe(computeProposalSha(sealed.changes))
+    expect(await readFile(join(iChangesDir, 'create_changes_NN.md'), 'utf-8')).toBe(createBytes)
+
+    const strict = await checkDomainProvenance(iRoot, { strict: true })
+    expect(strict.diagnostics.map((d) => `${d.code}: ${d.unit ?? ''}`)).toEqual([])
+    expect(strict.ok).toBe(true)
+
+    const fold = await checkDomain(iRoot, { offline: true })
+    expect(fold.provenance.diagnostics.filter((d) => d.code === 'EDITED_WITHOUT_RECORD' || d.code === 'MODEL_WITHOUT_FILE')).toEqual([])
   })
 
   it('reports an instance with no recorded creation as not strictly checkable', async () => {
