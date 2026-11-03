@@ -167,7 +167,7 @@ describe('displayStem', () => {
 
 describe('procedureIdOf', () => {
   it('drops a trailing _procedures and hyphenates', () => {
-    expect(procedureIdOf('generate_video_script_procedures_NN.md')).toBe('generate-coNNtent')
+    expect(procedureIdOf('generate_video_script_procedures_NN.md')).toBe('generate-video-script')
   })
 
   it('lower-cases the id, matching the existing list_procedures ids', () => {

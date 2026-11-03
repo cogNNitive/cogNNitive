@@ -84,8 +84,8 @@ test('GOLD with the default unit counts the leaf elements', () => {
 
 test('--json output equals driftReport over the same chains', async () => {
   const core = await import(pathToFileURL(join(REPO, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js')).href)
-  const bosco = join(GOLD, 'series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_innteresante_NN.md')
-  const boa = join(GOLD, 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_video-script_villabotijos-today_NN.md')
+  const bosco = join(GOLD, 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md')
+  const boa = join(GOLD, 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_coNNtent_villabotijos-today_NN.md')
   const videos = join(GOLD, 'series/innteresante/innteresante_video_NN.md')
   const chains = []
   for (const [doc, concept] of [[bosco, 'Scene'], [boa, 'Video'], [videos, 'Video']]) {

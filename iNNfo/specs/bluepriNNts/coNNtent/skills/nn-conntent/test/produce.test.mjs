@@ -55,10 +55,18 @@ ${scenes}`;
 function workspace(doc = episodeDoc(), { series = true } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-produce-'));
   fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '---\nname: "Probe"\nworkspace_id: "probe"\n---\n\n# NN DomaiNN\n', 'utf8');
+  // The package is laid out the way the resolver documents, both unversioned (Tier 1)
+  // and versioned (Tier 1b): a CI runner has no global blueprint cache to fall back on,
+  // so the fixture must not depend on one.
   fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-0'), { recursive: true });
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
     path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'spec_NN.md'),
+  );
+  fs.copyFileSync(
+    path.join(BLUEPRINT, 'spec_NN.md'),
+    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-0', 'spec_NN.md'),
   );
   fs.copyFileSync(path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'), path.join(root, 'video-defaults_NN.md'));
   fs.mkdirSync(path.join(root, 'changes'), { recursive: true });
