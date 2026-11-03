@@ -9,7 +9,7 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S0 | 495 | `ds/s0` | tracker | open, applied |
 | S1a | 500 | `ds/s1a` | `ds/s0` | open, applied (648 lines, `size:exception`) |
 | Docs (side PR) | 501 | `docs/distributed-storage` | `ds/s0` | open; vocabulary, skills and gate test stay in S7c |
-| S1b | 3 (to open) | `ds/s1b` | `ds/s1a` | applied (741 hand-authored changed lines, `size:exception`) |
+| S1b | 505 | `ds/s1b` | `ds/s1a` | open, applied (741 hand-authored changed lines, `size:exception`) |
 | S2a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
