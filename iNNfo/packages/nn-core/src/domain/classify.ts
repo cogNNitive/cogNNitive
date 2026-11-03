@@ -38,6 +38,9 @@ export function directoriesOf(path: string): string[] {
   return path.replace(/\\/g, '/').split('/').slice(0, -1).filter((s) => s !== '' && s !== '.')
 }
 
+/** Locale-independent ordering, so ids and paths sort the same on every machine. */
+export const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+
 export const basenameOf = (path: string): string => path.replace(/\\/g, '/').split('/').pop() ?? path
 
 /** Slugs of `dirs` when they match `rule`'s folder exactly, else null. */

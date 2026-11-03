@@ -8,7 +8,7 @@ import { formatAddress, isAddressError, parseAddress, type Address, type ModelId
 import { RESERVED_HEAD } from '../address/grammar.js'
 import { blueprintNameOf, roleOf } from '../naming/contract.js'
 import type { ConceptStorage } from '../schema/storage.js'
-import { basenameOf, classifyModel, idOf, parentSpecOf, type Classification } from './classify.js'
+import { basenameOf, byText, classifyModel, idOf, parentSpecOf, type Classification } from './classify.js'
 import {
   buildRules,
   expectedFolder,
@@ -17,7 +17,7 @@ import {
   placementFor as placementForRules,
   type PlacementRules,
 } from './placement.js'
-import { versionSkew } from './skew.js'
+import { versionSkew, versionTokenOf } from './skew.js'
 import type {
   AddressResolution,
   CollectionMember,
@@ -32,6 +32,8 @@ import type {
 } from './types.js'
 
 export type * from './types.js'
+export { fileLocalDiagnostics } from './placement.js'
+export { versionSkew } from './skew.js'
 
 export interface DomainIndex {
   /** Every addressable model, ordered by id then path. */
@@ -53,8 +55,6 @@ interface Entry {
   model: IndexedModel
 }
 
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
-const versionOf = (name: string): string | null => /_(V_\d+-\d+-\d+)$/i.exec(name.trim())?.[1] ?? null
 
 export function buildDomainIndex(
   inputs: readonly DomainModelInput[],
@@ -110,7 +110,7 @@ export function buildDomainIndex(
             slug: segments[segments.length - 1],
           }
         : { kind: 'compact' }
-    const blueprint = { name: blueprintNameOf(name ?? ''), version: versionOf(name ?? '') }
+    const blueprint = { name: blueprintNameOf(name ?? ''), version: versionTokenOf(name ?? '') }
     entries.push({ input, classification, rules: declared.rules, model: { id: id as ModelId, path: input.path, blueprint, storage } })
   }
 

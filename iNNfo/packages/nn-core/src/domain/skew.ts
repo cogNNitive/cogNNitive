@@ -5,7 +5,7 @@
 
 import { blueprintNameOf } from '../naming/contract.js'
 import { parsePinnedUrl, parseUnversionedBlueprintName } from '../workspace/integrity/versionStatus.js'
-import { parentSpecOf } from './classify.js'
+import { byText, parentSpecOf } from './classify.js'
 import { layoutDiagnostic } from './placement.js'
 import type { LayoutDiagnostic } from './types.js'
 
@@ -19,6 +19,10 @@ export interface SkewModel {
 type Incomparable = 'unpinned' | 'unclassifiable-url'
 
 const VERSION_TOKEN_RE = /_(V_\d+-\d+-\d+)$/i
+
+/** The `V_x-y-z` token a `parent_spec` name pins, or null for a bare name. */
+export const versionTokenOf = (name: string): string | null => VERSION_TOKEN_RE.exec(name.trim())?.[1] ?? null
+
 const MESSAGE_PATHS = 3
 const META_PATHS = 10
 
@@ -26,14 +30,12 @@ function pinOf(m: SkewModel): { blueprint: string; version: string; incomparable
   const { name, url } = parentSpecOf(m.frontmatter)
   if (!name?.trim()) return null
   const blueprint = blueprintNameOf(name).toLowerCase()
-  const token = VERSION_TOKEN_RE.exec(name.trim())?.[1]
+  const token = versionTokenOf(name)
   if (!token) return { blueprint, version: 'unpinned', incomparable: 'unpinned' }
   const classifiable = !url?.trim() || parsePinnedUrl(url) !== null || parseUnversionedBlueprintName(url) !== null
   if (!classifiable) return { blueprint, version: 'unclassifiable-url', incomparable: 'unclassifiable-url' }
   return { blueprint, version: token.toUpperCase() }
 }
-
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 
 /**
  * One `BLUEPRINT_VERSION_SKEW` error per bluepriNNt whose models carry two or more distinct

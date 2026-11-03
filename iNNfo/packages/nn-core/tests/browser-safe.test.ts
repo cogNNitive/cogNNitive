@@ -32,6 +32,37 @@ describe('schema/storage.ts is browser-safe', () => {
   })
 })
 
+describe('domain module is browser-safe', () => {
+  const dir = join(__dirname, '..', 'src', 'domain')
+  const expected = ['classify.ts', 'index.ts', 'placement.ts', 'skew.ts', 'types.ts']
+
+  it('contains the expected sources', () => {
+    expect(readdirSync(dir).filter((f) => f.endsWith('.ts')).sort()).toEqual(expected)
+  })
+
+  it.each(expected)('%s imports no node built-in', (file) => {
+    expect(readFileSync(join(dir, file), 'utf8')).not.toMatch(FORBIDDEN_IMPORT_RE)
+  })
+})
+
+describe('domain index is exported from every entry point', () => {
+  const names = ['buildDomainIndex', 'versionSkew', 'fileLocalDiagnostics']
+
+  it('browser entry', () => {
+    for (const name of names) expect(browserExports).toHaveProperty(name)
+  })
+
+  it('node entry', async () => {
+    const entry = await import('../src/index')
+    for (const name of names) expect(entry).toHaveProperty(name)
+  })
+
+  it('trannsform primitives entry exports versionSkew for the nn-preflight mirror', async () => {
+    const entry = await import('../src/trannsformPrimitives')
+    expect(entry).toHaveProperty('versionSkew')
+  })
+})
+
 describe('Browser Entry Point', () => {
   it('exports pure spec resolver functions, interface and errors', () => {
     expect(browserExports).toHaveProperty('getSpecForLevel')

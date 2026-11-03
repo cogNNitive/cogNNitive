@@ -7388,6 +7388,7 @@ __export(trannsformPrimitives_exports, {
   buildSidecar: () => buildSidecar,
   canonicalModelId: () => canonicalModelId,
   changesetStampOf: () => changesetStampOf,
+  checkInstanceName: () => checkInstanceName,
   checkNameInvariant: () => checkNameInvariant,
   checkPathBudget: () => checkPathBudget,
   cognitivize: () => cognitivize,
@@ -7408,6 +7409,7 @@ __export(trannsformPrimitives_exports, {
   formatUtcStamp: () => formatUtcStamp,
   headingSlugParts: () => headingSlugParts,
   importRaw: () => importRaw,
+  instanceFileName: () => instanceFileName,
   isAddressError: () => isAddressError,
   isConsoleModel: () => isConsoleModel,
   isExcludedPath: () => isExcludedPath,
@@ -7440,6 +7442,7 @@ __export(trannsformPrimitives_exports, {
   slugifyHeading: () => slugifyHeading,
   slugifyUnitHeading: () => slugifyUnitHeading,
   validateCitations: () => validateCitations,
+  versionSkew: () => versionSkew,
   writeOnce: () => writeOnce
 });
 module.exports = __toCommonJS(trannsformPrimitives_exports);
@@ -7539,6 +7542,13 @@ function formatNNName(stem, blueprint) {
   const bp = blueprint.toLowerCase();
   const conforms = s === bp || s.endsWith(`_${bp}`);
   return conforms ? `${stem}_NN.md` : `${stem}_${blueprint}_NN.md`;
+}
+function instanceFileName(folderSlug, blueprint) {
+  return formatNNName(folderSlug, blueprint);
+}
+function checkInstanceName(path4, folderSlug, blueprint) {
+  const expected = instanceFileName(folderSlug, blueprint);
+  return baseOf(path4).toLowerCase() === expected.toLowerCase() ? null : { expected };
 }
 function formatMemberName(key, ext, stamp) {
   const suffix = stamp ? `_${stamp.stamp}${stamp.seq > 1 ? `-${stamp.seq}` : ""}` : "";
@@ -8315,6 +8325,93 @@ function serializeKnowledgeUnitRef(filePath, unit, subunits = []) {
   }
   const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== "");
   return tail.length > 0 ? `${filePath}@${head}&${tail.join("&")}` : `${filePath}@${head}`;
+}
+
+// iNNfo/packages/nn-core/src/workspace/integrity/versionStatus.ts
+function parsePinnedUrl(url) {
+  const basename4 = String(url).split("/").pop()?.replace(/\.md$/i, "") ?? "";
+  const flat = basename4.match(/^(.+?)_V_(\d+)-(\d+)-(\d+)(?:_spec)?_NN$/i);
+  if (flat) return { name: flat[1], version: `V_${flat[2]}-${flat[3]}-${flat[4]}` };
+  const pkg = String(url).match(/bluepriNNts\/([^/]+)\/V_(\d+)-(\d+)-(\d+)\/spec_NN\.md/i);
+  if (pkg) return { name: pkg[1], version: `V_${pkg[2]}-${pkg[3]}-${pkg[4]}` };
+  return null;
+}
+function parseUnversionedBlueprintName(url) {
+  const str2 = String(url);
+  const pkg = str2.match(/bluepriNNts\/([^/]+)\/(?:spec_NN|[a-zA-Z0-9_-]+_spec_NN)\.md$/i);
+  if (pkg) return pkg[1];
+  const flat = str2.match(/bluepriNNts\/([^/]+?)_spec_NN\.md$/i);
+  if (flat) return flat[1];
+  return null;
+}
+
+// iNNfo/packages/nn-core/src/domain/classify.ts
+function parentSpecOf(frontmatter) {
+  const url = frontmatter["parent_spec"]?.url;
+  return { name: parentSpecNameOf(frontmatter), url: typeof url === "string" ? url : void 0 };
+}
+var byText = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+
+// iNNfo/packages/nn-core/src/domain/placement.ts
+function layoutDiagnostic(code, message, paths, extra = {}) {
+  const { severity = "error", ...rest } = extra;
+  return { code, severity, message: `${code}: ${message}`, paths, ...rest };
+}
+
+// iNNfo/packages/nn-core/src/domain/skew.ts
+var VERSION_TOKEN_RE2 = /_(V_\d+-\d+-\d+)$/i;
+var versionTokenOf = (name) => VERSION_TOKEN_RE2.exec(name.trim())?.[1] ?? null;
+var MESSAGE_PATHS = 3;
+var META_PATHS = 10;
+function pinOf(m) {
+  const { name, url } = parentSpecOf(m.frontmatter);
+  if (!name?.trim()) return null;
+  const blueprint = blueprintNameOf(name).toLowerCase();
+  const token = versionTokenOf(name);
+  if (!token) return { blueprint, version: "unpinned", incomparable: "unpinned" };
+  const classifiable = !url?.trim() || parsePinnedUrl(url) !== null || parseUnversionedBlueprintName(url) !== null;
+  if (!classifiable) return { blueprint, version: "unclassifiable-url", incomparable: "unclassifiable-url" };
+  return { blueprint, version: token.toUpperCase() };
+}
+function versionSkew(models) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const m of models) {
+    const pin = pinOf(m);
+    if (!pin) continue;
+    const members = groups.get(pin.blueprint) ?? [];
+    members.push({ path: m.path, version: pin.version, incomparable: pin.incomparable, concepts: m.concepts ?? [] });
+    groups.set(pin.blueprint, members);
+  }
+  const findings = [];
+  for (const [blueprint, members] of [...groups].sort(([a], [b]) => byText(a, b))) {
+    const byVersion = /* @__PURE__ */ new Map();
+    for (const { version, path: path4 } of members) byVersion.set(version, [...byVersion.get(version) ?? [], path4]);
+    if (byVersion.size < 2) continue;
+    const versions = [...byVersion].map(([version, paths]) => ({ version, count: paths.length, paths: [...paths].sort(byText) })).sort((a, b) => b.count - a.count || byText(a.version, b.version));
+    const concepts = [...new Set(members.flatMap((m) => m.concepts))].sort(byText);
+    const incomparable = members.filter((m) => m.incomparable).map((m) => ({ path: m.path, reason: m.incomparable })).sort((a, b) => byText(a.path, b.path));
+    const listed = versions.map((v) => {
+      const preview = v.paths.slice(0, MESSAGE_PATHS).join(", ");
+      return `${v.version} (${v.count}: ${preview}${v.paths.length > MESSAGE_PATHS ? "..." : ""})`;
+    }).join(", ");
+    const named = concepts.length > 0 ? ` (concepts: ${concepts.join(", ")})` : "";
+    findings.push(
+      layoutDiagnostic(
+        "BLUEPRINT_VERSION_SKEW",
+        `bluepriNNt "${blueprint}"${named} - pinned at ${versions.length} versions across ${members.length} models: ${listed}; a domaiNN uses one version per bluepriNNt, run nn-upgrade`,
+        members.map((m) => m.path).sort(byText),
+        {
+          meta: {
+            blueprint,
+            concepts,
+            versions: versions.map((v) => ({ ...v, paths: v.paths.slice(0, META_PATHS) })),
+            incomparable
+          }
+        }
+      )
+    );
+  }
+  return findings;
 }
 
 // iNNfo/packages/nn-core/src/console/fs-source-resolver.ts
@@ -10080,9 +10177,9 @@ function buildChangeLog(files) {
 }
 
 // iNNfo/packages/nn-core/src/changeset/resolved-target.ts
-var VERSION_TOKEN_RE2 = /_V_\d+-\d+-\d+$/;
+var VERSION_TOKEN_RE3 = /_V_\d+-\d+-\d+$/;
 function canonicalUnitModelId(model) {
-  return String(model ?? "").trim().replace(VERSION_TOKEN_RE2, "");
+  return String(model ?? "").trim().replace(VERSION_TOKEN_RE3, "");
 }
 
 // iNNfo/packages/nn-core/src/lineage/project.ts
@@ -11121,6 +11218,7 @@ async function importRaw(root, externalAbs, o = {}) {
   buildSidecar,
   canonicalModelId,
   changesetStampOf,
+  checkInstanceName,
   checkNameInvariant,
   checkPathBudget,
   cognitivize,
@@ -11141,6 +11239,7 @@ async function importRaw(root, externalAbs, o = {}) {
   formatUtcStamp,
   headingSlugParts,
   importRaw,
+  instanceFileName,
   isAddressError,
   isConsoleModel,
   isExcludedPath,
@@ -11173,5 +11272,6 @@ async function importRaw(root, externalAbs, o = {}) {
   slugifyHeading,
   slugifyUnitHeading,
   validateCitations,
+  versionSkew,
   writeOnce
 });

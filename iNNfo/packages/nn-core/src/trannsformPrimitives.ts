@@ -18,6 +18,7 @@ export {
 } from './sourceRef.js'
 
 export { parseAddress, formatAddress, isAddressError } from './address/index.js'
+export { versionSkew } from './domain/skew.js'
 
 export {
   createFsSourceResolver,
