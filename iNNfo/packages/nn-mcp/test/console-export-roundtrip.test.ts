@@ -136,8 +136,9 @@ describe('console export round trip', () => {
     const byName = (name: string) => payload.model.elements.find((e) => e.name === name)!
     const vision = byName('Vision')
     const legacy = byName('Legacy Plan')
-    // The payload still carries the path-derived id until S5b; the engine addresses the domain index id.
-    expect(payload.model.meta.modelId).toBe('kNNowledge/strategy')
+    // S5b: the payload carries the compact stem (no path), which is the id the
+    // domain index gives a standalone document; the engine addresses the same id.
+    expect(payload.model.meta.modelId).toBe('strategy')
     const modelId = 'strategy'
 
     const drafts: Draft[] = [
