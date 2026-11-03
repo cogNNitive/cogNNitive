@@ -359,11 +359,17 @@ can know: placement, naming and cardinality.
 | `DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL` | error | Elements of a distributed concept sit in a compact document, including a registry that duplicates an instance model. |
 | `MIXED_INSTANCE_MODEL` | error | One instance model holds roots of two distributed concepts. |
 | `MODEL_UNADDRESSABLE` | error | The bluepriNNt cannot be resolved, so there is no id. |
+| `RESERVED_MODEL_ID` | error | The derived id starts with `specs`, which is reserved for blueprint addresses. |
+| `MODEL_ID_INVALID` | error | An id cannot be placed: wrong segment count, a non-slug segment, or a `/` on a compact concept. |
+| `DUPLICATE_SLUG` | error | Two elements in one model carry the same `slug::`; the second is dropped from the graph. |
 | `INSTANCE_SHADOWS_ELEMENT_ASSETS` | warning | An element of the container model has the same slug as a contained instance, so both use that folder under `assets/`. |
 | `BLUEPRINT_VERSION_SKEW` | error | See the next section. |
+| `MODEL_WITHOUT_FILE` | warning in `check_domain`, error in strict replay | A model touched by applied changes has no file and no recorded move that ends in a live model. |
+| `STALE_TARGET_MOVED` | error | A pending change names an instance that was renamed after the change's `base_version`; retarget it to the new id. |
 
-Messages have the form `<CODE>: <subject> - <what is wrong>; <fix>` and always name the path.
-For example:
+Messages have the form `<CODE>: <subject> - <what is wrong>; <fix>`, always name the path, and
+carry a `severity` of `error` or `warning` on the finding itself (`check_domain.layout`). For
+example:
 
 ```
 PLACEMENT_MISMATCH: series/x/videos/intro/intro_video-script_NN.md holds Video "intro" - Video instances live at series/x/assets/intro/; move the file there
@@ -381,7 +387,7 @@ the same as one version per concept, for compact and distributed storage alike.
 document:
 
 ```
-BLUEPRINT_VERSION_SKEW: bluepriNNt "video-script" is pinned at 2 versions across 24 models: V_0-15-0 (20: <first 3 paths>...), unpinned (4: ...) - a domaiNN uses one version per bluepriNNt; run nn-upgrade
+BLUEPRINT_VERSION_SKEW: bluepriNNt "video-script" (concepts: Series, Video) - pinned at 2 versions across 24 models: V_0-15-0 (20: <first 3 paths>...), unpinned (4: <paths>); a domaiNN uses one version per bluepriNNt, run nn-upgrade
 ```
 
 - A bare name such as `video-script`, or a pin whose URL cannot be classified, is listed as an

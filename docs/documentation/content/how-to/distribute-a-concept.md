@@ -21,6 +21,11 @@ model*, *placement pattern* or *hierarchical id* are new.
 > and what you will see in that review. Every operation here is applied atomically and recorded,
 > like any other change.
 
+Operation failures come back as `errors[]` entries, each with a stable `code` and a message that
+starts with that code; the changeset is `rejected` and nothing is written unless the table says
+otherwise. A domain-check finding carries a `severity` of `error` or `warning`, and a message of
+the form `<CODE>: <path or subject> - <what is wrong>; <fix>`.
+
 ## 1. Declare storage on a concept
 
 Add the three properties to the concept's definition and bump the bluepriNNt's `blueprint_version`.
@@ -94,8 +99,10 @@ The file starts with its instance root already in it (`## NN Video: New Episode`
 
 | Diagnostic | Meaning | Fix |
 |---|---|---|
-| Container named in the message | The id's prefix is not an existing instance, for example `no-such-series`. Nothing is written. | Create the container first, in the same or an earlier changeset. |
+| `CONTAINER_MISSING` | The id's prefix is not an existing instance, for example `no-such-series`. Nothing is written. | Create the container first, in the same or an earlier changeset. |
 | `ADD_MODEL_ORDER` | The container is created later in the changeset. | Reorder so the container comes first. |
+| `ADD_MODEL_INVALID_TARGET` | The id is unsafe, the `concept::` does not belong to the bluepriNNt, or the placement rule rejects the id. | Fix the target or the `concept::` named in the message. |
+| `ADD_MODEL_DUPLICATE` | Two `add_model` changes target the same id. | Merge them, or give one a different slug. |
 | `MODEL_EXISTS` | The id is taken, or the placement folder is occupied. The existing file is untouched and dependent changes are conflicted. | Pick another slug, or edit the existing instance. |
 | `BLUEPRINT_UNRESOLVED` | The bluepriNNt could not be resolved. Nothing is written. | Check `blueprint_name` and `blueprint_url`. |
 | `VALIDATION_FAILED` | The created model fails whole-file validation. Nothing is written. | Read the diagnostics it carries and correct the change. |
@@ -158,8 +165,10 @@ What to expect:
 | Diagnostic | Meaning | Fix |
 |---|---|---|
 | `MOVE_REQUIRES_INSTANCE` | The target is a compact model, not an instance model. | `move_model` applies to instance models only. For elements of a compact model, use `extract_instance`. |
+| `MOVE_INVALID_TARGET` | The target or `to` is not a usable id, or the placement rule rejects the new id. | Fix the id the message names. |
 | `MODEL_EXISTS` | The new id is taken. Nothing changes. | Choose a different slug or container. |
 | `CONTAINER_MISSING` | The new container does not exist. | Create it first. |
+| `MOVE_DESTINATION_OCCUPIED` | The destination folder already exists. The original folder and file are untouched. | Choose another slug, or move the existing folder first. |
 | `MOVE_LEAVES_DANGLING_REFERENCES` | A reference to the old id is not retargeted. | Add the `update_field` changes, or take them from `propose_changeset`. |
 | `VALIDATION_FAILED` | The result would be invalid, for example the new name breaks the naming rule. No file or folder changes. | Fix what the diagnostic names. |
 
@@ -200,7 +209,14 @@ What to expect:
 
 | Diagnostic | Meaning | Fix |
 |---|---|---|
+| `EXTRACT_INVALID_TARGET` | The target is not `<compact-id>@<slug>`, `to` is not a hierarchical id, or the destination placement rejects the id. | Fix the target or `to` the message names. |
+| `EXTRACT_REQUIRES_COMPACT` | The source is already an instance model. | Use `move_model`; extraction converts a compact element only. |
+| `EXTRACT_ELEMENT_NOT_FOUND` | The source holds no element with that slug; the message lists the slugs it holds. | Use one of the listed slugs. |
+| `EXTRACT_NOT_DISTRIBUTED` | The element's concept is not distributed in the bluepriNNt. | Declare the concept distributed first, or do not extract. |
+| `EXTRACT_SLUG_MISMATCH` | `to` does not end in the element's slug. | Keep the slug: extraction never renames an instance. |
+| `CONTAINER_MISSING` | The destination container does not exist. | Create it first. |
 | `MODEL_EXISTS` | The instance already exists, so the registry holds a duplicate. | Do not extract. Remove the registry copy with `remove_element`. |
+| `EXTRACT_DESTINATION_OCCUPIED` | The destination folder exists but holds no model with that id. | Clear or move that folder first. |
 | `DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL` | Reported by the domain check for a distributed concept still stored in a compact document. | `extract_instance`, or `remove_element` when an instance model already exists. |
 
 The operation is also rejected, naming the problem, when the destination container is missing, when
@@ -222,9 +238,13 @@ message names the path, the id when there is one, and the fix.
 | `DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL` | Extract the instances, or remove the duplicate elements. |
 | `MIXED_INSTANCE_MODEL` | Keep one distributed concept per instance model. |
 | `MODEL_UNADDRESSABLE` | Make the document's bluepriNNt resolvable. Such a document has no id. |
+| `RESERVED_MODEL_ID` | The id starts with `specs`; rename the file or its folder. |
+| `MODEL_ID_INVALID` | Fix the id: the message names the segment or segment count the concept expects. |
+| `DUPLICATE_SLUG` | Give each element of the model its own `slug::`. |
 | `INSTANCE_SHADOWS_ELEMENT_ASSETS` | Warning. Rename the element or the instance so they do not share an `assets/` folder. |
 | `BLUEPRINT_VERSION_SKEW` | Ask your agent to run [nn-upgrade](../skills/nn-upgrade.md). It repins every document of the bluepriNNt, or none. |
 | `MODEL_WITHOUT_FILE` | A document touched by changes has no file. Restore it. See the limit below. |
+| `STALE_TARGET_MOVED` | A pending change names an instance renamed after its `base_version`; retarget it to the id the message names. |
 
 References have their own codes (`REF_MODEL_NOT_FOUND`, `ADDRESS_MALFORMED` and others), listed in
 [Storage and identity](../concepts/storage-and-identity.md) under *Reference diagnostics*.
