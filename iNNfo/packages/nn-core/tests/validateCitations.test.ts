@@ -115,14 +115,24 @@ describe('validateCitations', () => {
 
   it('validates file-level bare paths without anchor and without KU_DEPRECATED_HASH', () => {
     const site: CitationSite = {
+      value: 'villabotijos-today/intro',
+      referringPath: 'artifacts/console.html',
+      field: 'meta.sources',
+    }
+    const resolver: SourceResolver = (p) => ({ exists: p === 'villabotijos-today/intro' })
+
+    const diags = validateCitations([site], resolver)
+    expect(diags).toEqual([])
+  })
+
+  it('reports KU_MALFORMED for a kNNowledge file path (model-by-path is removed)', () => {
+    const site: CitationSite = {
       value: 'kNNowledge/Client_NN.md',
       referringPath: 'artifacts/console.html',
       field: 'meta.sources',
     }
-    const resolver: SourceResolver = (p) => ({ exists: p === 'kNNowledge/Client_NN.md' })
-
-    const diags = validateCitations([site], resolver)
-    expect(diags).toEqual([])
+    const diags = validateCitations([site], () => ({ exists: true }))
+    expect(diags.map((d) => d.code)).toEqual(['KU_MALFORMED'])
   })
 })
 

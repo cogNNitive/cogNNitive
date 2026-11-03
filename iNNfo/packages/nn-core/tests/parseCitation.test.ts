@@ -22,22 +22,8 @@ describe('parseCitation', () => {
       expect(cit?.legacyHash).toBeUndefined()
     })
 
-    it('parses kNNowledge model heading citation with concept and element', () => {
-      const cit = parseCitation('kNNowledge/Client_NN.md@## NN Stakeholders: Enterprise Clients')
-      expect(cit).toEqual({
-        filePath: 'kNNowledge/Client_NN.md',
-        fileName: 'Client_NN.md',
-        kind: 'model',
-        raw: 'kNNowledge/Client_NN.md@## NN Stakeholders: Enterprise Clients',
-        slug: 'nn-stakeholders--enterprise-clients',
-        unit: {
-          kind: 'header',
-          level: 2,
-          text: 'NN Stakeholders: Enterprise Clients',
-          slug: 'nn-stakeholders--enterprise-clients',
-        },
-        subunits: [],
-      })
+    it('rejects a kNNowledge model heading citation (model-by-path is a removed form)', () => {
+      expect(parseCitation('kNNowledge/Client_NN.md@## NN Stakeholders: Enterprise Clients')).toBeNull()
     })
 
     it('parses artifacts/ markdown heading citation', () => {
@@ -111,17 +97,8 @@ describe('parseCitation', () => {
   })
 
   describe('file-level bare path citations (no anchor)', () => {
-    it('parses kNNowledge bare path without unit or legacyHash', () => {
-      const cit = parseCitation('kNNowledge/Client_NN.md')
-      expect(cit).toEqual({
-        filePath: 'kNNowledge/Client_NN.md',
-        fileName: 'Client_NN.md',
-        kind: 'model',
-        raw: 'kNNowledge/Client_NN.md',
-      })
-      expect(cit?.unit).toBeUndefined()
-      expect(cit?.slug).toBeUndefined()
-      expect(cit?.legacyHash).toBeUndefined()
+    it('rejects a kNNowledge bare path (model-by-path is a removed form)', () => {
+      expect(parseCitation('kNNowledge/Client_NN.md')).toBeNull()
     })
 
     it('parses sources/import/ bare path', () => {
@@ -197,16 +174,8 @@ describe('parseCitation', () => {
       })
     })
 
-    it('parses legacy #slug on kNNowledge path with legacyHash: true', () => {
-      const cit = parseCitation('kNNowledge/Client_NN.md#stakeholders')
-      expect(cit).toEqual({
-        filePath: 'kNNowledge/Client_NN.md',
-        fileName: 'Client_NN.md',
-        slug: 'stakeholders',
-        kind: 'model',
-        raw: 'kNNowledge/Client_NN.md#stakeholders',
-        legacyHash: true,
-      })
+    it('rejects legacy #slug on a kNNowledge path (model-by-path is a removed form)', () => {
+      expect(parseCitation('kNNowledge/Client_NN.md#stakeholders')).toBeNull()
     })
   })
 
@@ -270,12 +239,9 @@ describe('resolveUnitPath', () => {
     })
   })
 
-  it('derives kind from the naming-contract role: model iff knowledge', () => {
-    expect(resolveUnitPath('kNNowledge/Client_NN.md')).toEqual({
-      filePath: 'kNNowledge/Client_NN.md',
-      kind: 'model',
-    })
-    expect(resolveUnitPath('anywhere/Client_business_NN.md')?.kind).toBe('model')
+  it('does not resolve a kNNowledge document path; every other role resolves as a source', () => {
+    expect(resolveUnitPath('kNNowledge/Client_NN.md')).toBeNull()
+    expect(resolveUnitPath('anywhere/Client_business_NN.md')).toBeNull()
     expect(resolveUnitPath('sources/import/report.pdf_sidecar_NN.md')?.kind).toBe('source')
     expect(resolveUnitPath('domaiNN_NN.md')?.kind).toBe('source')
   })
