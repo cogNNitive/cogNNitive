@@ -262,6 +262,10 @@ const VIDEO_BLUEPRINT = [
   'type:: select',
   'options:: [calm, tense]',
   '',
+  '## NN Field Definition: related',
+  'concept:: Video',
+  'type:: reference',
+  '',
 ].join('\n')
 
 const LEVEL1_CONTENT = [
@@ -856,5 +860,287 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
     expect(res.success).toBe(false)
     expect(res.errors!.map((e) => e.message).join(' ')).toContain('PLACEMENT_MISMATCH')
     expect(await readFile(misplaced, 'utf-8')).toBe(before)
+  })
+})
+
+/* ── move_model of an instance (distributed-storage S6b) ───────────────────
+ *
+ * One atomic recorded operation: the folder, the file stem and the id agree
+ * after the move; recorded targets stay valid through the fold rekey (S6b.1).
+ */
+const OTHER_SERIES_DIR = join(iRoot, 'series', 'otra')
+
+const PLAIN_BLUEPRINT = [
+  '---',
+  'spec_version: "V_0-1-0"',
+  'level: 2',
+  'title: "Plain"',
+  'parent_spec:',
+  '  name: "iNNfo_V_0-7-0"',
+  '  url: "specs/iNNfo_V_0-7-0_NN.md"',
+  '---',
+  '',
+  '# NN Concept Definition',
+  '',
+  '## NN Concept Definition: Note',
+  'type:: list',
+  '',
+  '# NN Field Definition',
+  '',
+  '## NN Field Definition: body',
+  'concept:: Note',
+  'type:: string',
+  '',
+].join('\n')
+
+const PLAIN_MODEL = [
+  '---',
+  'level: 3',
+  'title: "Notes"',
+  'knowledge_version: "V_0-1-0"',
+  'parent_spec:',
+  '  name: "plain_V_0-1-0"',
+  '  url: "specs/bluepriNNts/plain_V_0-1-0_NN.md"',
+  '---',
+  '',
+  '# NN Note',
+  '',
+  '## NN Note: One',
+  'slug:: one',
+  'body:: first',
+  '',
+].join('\n')
+
+/** A Video instance that references another model through a typed field on its root. */
+function referringVideoModel(slug: string, title: string, related: string): string {
+  return videoModel(slug, title, { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }).replace(
+    `## NN Video: ${title}\nslug:: ${slug}\n`,
+    `## NN Video: ${title}\nslug:: ${slug}\nrelated:: ${related}\n`,
+  )
+}
+
+const MOVE_INTRO_TO_WELCOME: ChangeItem = {
+  id: 'c-01',
+  op: 'move_model',
+  target: 'villabotijos-today/intro',
+  to: 'villabotijos-today/welcome',
+}
+
+describe('move_model of an instance (distributed-storage S6b)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(iRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rmWithRetry(iRoot)
+    for (const dir of [iChangesDir, iBlueprintsDir, iKnowledgeDir, iSeriesDir, OTHER_SERIES_DIR]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'plain_V_0-1-0_NN.md'), PLAIN_BLUEPRINT, 'utf-8')
+    await writeFile(join(iSeriesDir, 'villabotijos-today_video-script_NN.md'), seriesModel('villabotijos-today', 'Villabotijos Today'), 'utf-8')
+    await writeFile(join(OTHER_SERIES_DIR, 'otra_video-script_NN.md'), seriesModel('otra', 'Otra'), 'utf-8')
+    await writeFile(join(iKnowledgeDir, 'notes_NN.md'), PLAIN_MODEL, 'utf-8')
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(iRoot)
+  })
+
+  it('rejects a compact target with MOVE_REQUIRES_INSTANCE', async () => {
+    const before = await readFile(join(iKnowledgeDir, 'notes_NN.md'), 'utf-8')
+    const res = await applyInstance([{ id: 'c-01', op: 'move_model', target: 'notes', to: 'notes-two' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MOVE_REQUIRES_INSTANCE')
+    expect(await readFile(join(iKnowledgeDir, 'notes_NN.md'), 'utf-8')).toBe(before)
+  })
+
+  it('rejects an occupied id with MODEL_EXISTS and changes nothing', async () => {
+    const paths = await writeThreeVideos()
+    const before = await readFile(paths.introA!, 'utf-8')
+
+    const res = await applyInstance([
+      { id: 'c-01', op: 'move_model', target: 'villabotijos-today/intro', to: 'villabotijos-today/pepper-mapache' },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MODEL_EXISTS')
+    expect(await readFile(paths.introA!, 'utf-8')).toBe(before)
+    expect(existsSync(paths.pepper!)).toBe(true)
+  })
+
+  it('rejects a missing container with CONTAINER_MISSING', async () => {
+    const paths = await writeThreeVideos()
+    const res = await applyInstance([
+      { id: 'c-01', op: 'move_model', target: 'villabotijos-today/intro', to: 'no-such-series/intro' },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('CONTAINER_MISSING')
+    expect(existsSync(paths.introA!)).toBe(true)
+  })
+
+  it('rejects an occupied destination folder, leaving the original in place', async () => {
+    const paths = await writeThreeVideos()
+    await mkdir(join(iSeriesDir, 'assets', 'welcome'), { recursive: true })
+    await writeFile(join(iSeriesDir, 'assets', 'welcome', 'stray.txt'), 'occupied', 'utf-8')
+
+    const res = await applyInstance([MOVE_INTRO_TO_WELCOME])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MOVE_DESTINATION_OCCUPIED')
+    expect(existsSync(paths.introA!)).toBe(true)
+    expect(existsSync(join(iSeriesDir, 'assets', 'welcome', 'stray.txt'))).toBe(true)
+  })
+
+  it('renames folder, stem and id together and the old id stops resolving', async () => {
+    const paths = await writeThreeVideos()
+
+    const res = await applyInstance([MOVE_INTRO_TO_WELCOME])
+
+    expect(res.success).toBe(true)
+    const newRel = 'series/villabotijos-today/assets/welcome/welcome_video-script_NN.md'
+    expect(existsSync(join(iRoot, newRel))).toBe(true)
+    expect(existsSync(paths.introA!)).toBe(false)
+    expect(existsSync(join(iSeriesDir, 'assets', 'intro'))).toBe(false)
+
+    const moved = parseKnowledge(await readFile(join(iRoot, newRel), 'utf-8'))
+    expect(moved.elements.get('Video')![0]!.slug).toBe('welcome')
+    // The body changed (the root slug), so the moved model is bumped.
+    expect(res.models!['villabotijos-today/welcome']).toEqual({
+      base_version: 'V_0-1-0',
+      result_version: 'V_0-1-1',
+    })
+    const oldId = await validateKnowledge(iRoot, 'villabotijos-today/intro', undefined, undefined, false, { checkFreshness: false })
+    expect(oldId.valid).toBe(false)
+    expect(oldId.errors[0]!.message).toContain('Model not found')
+    const newId = await validateKnowledge(iRoot, 'villabotijos-today/welcome', undefined, undefined, false, { checkFreshness: false })
+    expect(newId.valid).toBe(true)
+  })
+
+  it('relocates between containers with no version transition when the body does not change', async () => {
+    const paths = await writeThreeVideos()
+    const before = await readFile(paths.introB!, 'utf-8')
+
+    const res = await applyInstance([
+      { id: 'c-01', op: 'move_model', target: 'innteresante/intro', to: 'otra/intro' },
+    ])
+
+    expect(res.success).toBe(true)
+    const movedRel = 'series/otra/assets/intro/intro_video-script_NN.md'
+    expect(existsSync(join(iRoot, movedRel))).toBe(true)
+    expect(existsSync(paths.introB!)).toBe(false)
+    expect(await readFile(join(iRoot, movedRel), 'utf-8')).toBe(before)
+    // Same slug, same body: the model is relocated, not bumped.
+    expect(res.models!['otra/intro']).toBeUndefined()
+    expect(existsSync(join(iRoot, 'series', 'innteresante', 'assets', 'intro'))).toBe(false)
+  })
+
+  it('rejects an invalid result with VALIDATION_FAILED, changing no file or folder', async () => {
+    const paths = await writeThreeVideos()
+    // The moved model already carries an undeclared concept, so the result is invalid.
+    await writeFile(paths.introA!, `${await readFile(paths.introA!, 'utf-8')}\n# NN Unicorn\n\n## NN Unicorn: Sparkle\n\n`, 'utf-8')
+    const before = await readFile(paths.introA!, 'utf-8')
+
+    const res = await applyInstance([MOVE_INTRO_TO_WELCOME])
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors!.map((e) => e.code)).toContain('VALIDATION_FAILED')
+    expect(await readFile(paths.introA!, 'utf-8')).toBe(before)
+    expect(existsSync(join(iSeriesDir, 'assets', 'welcome'))).toBe(false)
+  })
+
+  it('is not a title change: renaming the root element moves nothing', async () => {
+    const paths = await writeThreeVideos()
+
+    const res = await applyInstance([
+      { id: 'c-01', op: 'rename_element', target: 'villabotijos-today/intro@intro', from: 'Intro', name: 'Welcome' },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(existsSync(paths.introA!)).toBe(true)
+    expect(existsSync(join(iSeriesDir, 'assets', 'welcome'))).toBe(false)
+    expect(await readFile(paths.introA!, 'utf-8')).toContain('## NN Video: Welcome')
+  })
+
+  it('rename_element leaves assets/<slug> untouched', async () => {
+    const paths = await writeThreeVideos()
+    // The legacy path renamed `<model dir>/assets/<slug>`; slugs are immutable now,
+    // so the folder must survive the rename (design A10, F12).
+    const assetDir = join(iSeriesDir, 'assets', 'intro', 'assets', '00-gancho')
+    await mkdir(assetDir, { recursive: true })
+    await writeFile(join(assetDir, 'still.txt'), 'asset', 'utf-8')
+
+    const res = await applyInstance([
+      { id: 'c-01', op: 'rename_element', target: 'villabotijos-today/intro@00-gancho', from: '00 Gancho', name: 'Hook' },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(existsSync(join(assetDir, 'still.txt'))).toBe(true)
+    expect(await readFile(paths.introA!, 'utf-8')).toContain('## NN Scene: Hook')
+  })
+
+  it('reports MOVE_LEAVES_DANGLING_REFERENCES when the referrer is not retargeted', async () => {
+    await writeThreeVideos()
+    const referrerPath = await writeInstanceFile(
+      PEPPER_REL,
+      referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'),
+    )
+    const before = await readFile(referrerPath, 'utf-8')
+
+    const res = await applyInstance([MOVE_INTRO_TO_WELCOME])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MOVE_LEAVES_DANGLING_REFERENCES')
+    expect(await readFile(referrerPath, 'utf-8')).toBe(before)
+    expect(existsSync(join(iSeriesDir, 'assets', 'intro'))).toBe(true)
+  })
+
+  it('applies when the same changeset retargets every referrer', async () => {
+    const paths = await writeThreeVideos()
+    const referrerPath = await writeInstanceFile(
+      PEPPER_REL,
+      referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'),
+    )
+
+    const res = await applyInstance([
+      MOVE_INTRO_TO_WELCOME,
+      {
+        id: 'c-02',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@pepper-mapache&related',
+        from: 'villabotijos-today/intro',
+        to: 'villabotijos-today/welcome',
+      },
+    ])
+
+    expect(res.success).toBe(true)
+    const referrer = await readFile(referrerPath, 'utf-8')
+    expect(referrer).toContain('related:: villabotijos-today/welcome')
+    expect(referrer).not.toContain('related:: villabotijos-today/intro')
+    expect(existsSync(paths.introA!)).toBe(false)
+
+    const workspace = await validateKnowledge(iRoot, 'villabotijos-today/welcome', undefined, undefined, true, { checkFreshness: false })
+    expect(workspace.errors.filter((e) => /REF_MODEL_NOT_FOUND|Dangling/.test(e.message))).toEqual([])
+  })
+
+  it('propose_changeset returns the missing update_field changes as missing_referrer_updates', async () => {
+    await writeThreeVideos()
+    await writeInstanceFile(PEPPER_REL, referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'))
+
+    const proposed = await proposeChangeset(iRoot, { operations: [MOVE_INTRO_TO_WELCOME], open: false }, { writer })
+
+    expect(proposed.success).toBe(false)
+    const error = proposed.errors!.find((e) => e.code === 'MOVE_LEAVES_DANGLING_REFERENCES')
+    expect(error).toBeDefined()
+    const missing = (error as { missing_referrer_updates?: ChangeItem[] }).missing_referrer_updates ?? []
+    expect(missing).toHaveLength(1)
+    expect(missing[0]!.op).toBe('update_field')
+    expect(missing[0]!.target).toBe('villabotijos-today/pepper-mapache@pepper-mapache&related')
+    expect(missing[0]!.to).toBe('villabotijos-today/welcome')
   })
 })

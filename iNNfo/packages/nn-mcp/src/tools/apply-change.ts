@@ -50,6 +50,7 @@ import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { writeProposedChangeset } from './propose-changeset.js'
+import { findDanglingReferrers } from './move-referrers.js'
 
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
@@ -223,7 +224,7 @@ async function writeAndSync(filePath: string, data: string): Promise<void> {
 /**
  * Replaces `livePath` with the already-written `stagingPath` by an atomic rename.
  * The live file is never removed, moved or copied first, so at every instant (and
- * after a crash) the live path holds a complete model — the old one or the new one.
+ * after a crash) the live path holds a complete model â€” the old one or the new one.
  * On Windows, handles transient EPERM/EBUSY locks with backoff retries (#188).
  * If the rename fails, the staging file is removed and the live file is untouched.
  */
@@ -348,7 +349,7 @@ async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<bo
   return false
 }
 
-/* ── Execution facts (change-provenance) ─────────────────────── */
+/* â”€â”€ Execution facts (change-provenance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /** The element an address label names, by frozen slug, display name or slugified name. */
 function elementByLabel(model: ParsedKnowledge, label: string): { slug?: string; name?: string } | undefined {
@@ -472,7 +473,7 @@ async function latestAppliedAt(changesDir: string): Promise<string | undefined> 
  * phase (no writes) followed by a persist phase that rewrites each touched model
  * through an atomic rename. No snapshot of the prior model is kept: history is the
  * ordered change chain (by `target` and `applied_at`). Mutual exclusion is
- * guaranteed via changes/.lock. Persistence is not atomic across models — a
+ * guaranteed via changes/.lock. Persistence is not atomic across models â€” a
  * mid-phase failure leaves earlier models updated and later ones untouched, and
  * the changeset is not annotated, so it is not recorded as applied.
  */
@@ -485,7 +486,7 @@ export async function executeChangesetApply(
     : join(rootDir, changesetPathInput)
 
   // `changesetPathInput` is untrusted (LLM-composed). `isAbsolute`/`join` alone do
-  // not prove containment — `join(root, '../..')` and absolute paths outside the
+  // not prove containment â€” `join(root, '../..')` and absolute paths outside the
   // workspace must never reach `readFile`/`writeFile` below.
   if (!isInsideRoot(rootDir, resolvedChangesetPath)) {
     return {
@@ -599,7 +600,7 @@ export async function executeChangesetApply(
     // 3. Verify proposal_sha (tamper detection). A draft that arrives WITHOUT a
     // seal (e.g. the console review export) is stamped at intake: the engine
     // owns the canonical hash, so producers never duplicate it. A seal that IS
-    // present but does not match the body is a tampered proposal and is rejected —
+    // present but does not match the body is a tampered proposal and is rejected â€”
     // EXCEPT when the doc is already in `conflict` status: that is the documented
     // fix-and-retry loop (a previous run annotated status/conflict + resolution
     // and the author then edited the ops), so the edit re-proposes and is re-sealed.
@@ -632,7 +633,7 @@ export async function executeChangesetApply(
               path: 'frontmatter.proposal_sha',
               message:
                 'PROPOSAL_TAMPERED: proposal_sha does not match canonical proposed changes. ' +
-                'The changeset was edited after validation — review the annotated resolutions and ' +
+                'The changeset was edited after validation â€” review the annotated resolutions and ' +
                 're-submit as a new proposal (or clear frontmatter.proposal_sha so it is re-sealed at intake).',
               code: 'PROPOSAL_TAMPERED',
             },
@@ -701,7 +702,7 @@ export async function executeChangesetApply(
     // and sealed with the proposal; apply only verifies that every evidence that names an
     // artifact resolves. The literal tokens `decision` and `unknown` are not citations and
     // are accepted without resolution. One unresolved evidence rejects the whole changeset,
-    // writes nothing and releases the lock — the same all-or-nothing shape as PROPOSAL_TAMPERED.
+    // writes nothing and releases the lock â€” the same all-or-nothing shape as PROPOSAL_TAMPERED.
     const citationResolver = createFsSourceResolver(rootDir)
     for (const change of csDoc.changes) {
       // D2: evidence is mandatory on every change; a changeset with a change that carries
@@ -774,6 +775,12 @@ export async function executeChangesetApply(
       bumpLevel?: BumpLevel
       /** Resolved bluepriNNt schema, cached per model (null = unresolvable). */
       schema?: BlueprintSchema | null
+      /** `move_model`: the id this entry carries after the move. */
+      movedTo?: string
+      /** `move_model`: the file path this entry had before the move. */
+      movedFrom?: string
+      /** `move_model`: where the file will live once Phase 2 relocates it. */
+      plannedPath?: string
     }
     const loadedModels = new Map<string, LoadedModelEntry>()
 
@@ -1049,6 +1056,115 @@ export async function executeChangesetApply(
       }
     }
 
+    /**
+     * `move_model` plans (design A10): the old model, the new id, and the folder and
+     * file it moves to. Every check runs before any write; nothing is touched here.
+     */
+    interface MovePlan {
+      changeId: string
+      fromId: string
+      toId: string
+      concept: string
+      blueprintName: string
+      fromPath: string
+      toPath: string
+    }
+    const movePlans = new Map<string, MovePlan>()
+    for (const change of csDoc.changes) {
+      if (change.op !== 'move_model') continue
+      const fromId = change.target.trim()
+      const toId = String(change.to ?? '').trim()
+      if (!isSafeRelativeId(fromId) || !isSafeRelativeId(toId)) {
+        return rejectProposal(
+          'MOVE_INVALID_TARGET',
+          change.target,
+          `change "${change.id}" carries an unsafe model id`,
+          change.id,
+        )
+      }
+      const { index: domainIndex, pathOf } = await nodeIndex()
+      const from = domainIndex.byId(fromId)
+      if (!from) {
+        return rejectPhase1('MODEL_NOT_FOUND', fromId, `move_model target "${fromId}" does not exist`)
+      }
+      const fromStorage = from.storage
+      if (fromStorage.kind !== 'instance') {
+        return rejectProposal(
+          'MOVE_REQUIRES_INSTANCE',
+          fromId,
+          `change "${change.id}": "${fromId}" is a compact model; move_model moves an instance model only`,
+          change.id,
+        )
+      }
+      const concept = fromStorage.concept
+      if (domainIndex.byId(toId)) {
+        return rejectPhase1(
+          'MODEL_EXISTS',
+          toId,
+          `MODEL_EXISTS: moving "${fromId}" to "${toId}" would overwrite the model that already carries that id`,
+        )
+      }
+      const fromPath = pathOf(fromId)
+      if (!fromPath) {
+        return rejectPhase1('MODEL_NOT_FOUND', fromId, `move_model target "${fromId}" has no file`)
+      }
+      const oldModel = await loadKnowledge(fromPath)
+      const parent = oldModel.frontmatter.parent_spec as { name?: string; url?: string } | undefined
+      const declarations = parent?.name ? await loadDeclarations(rootDir, { name: parent.name, url: parent.url }) : null
+      const storage = declarations
+        ? [...declarations].find(([name]) => name.toLowerCase() === concept.toLowerCase())?.[1]
+        : undefined
+      const containerConcept = storage?.container
+      const segments = toId.split('/')
+      if (containerConcept) {
+        const holder = segments.length === 2 ? domainIndex.byId(segments[0]!) : undefined
+        if (
+          !holder ||
+          holder.storage.kind !== 'instance' ||
+          holder.storage.concept.toLowerCase() !== containerConcept.toLowerCase()
+        ) {
+          return rejectPhase1(
+            'CONTAINER_MISSING',
+            toId,
+            `CONTAINER_MISSING: container "${segments[0] ?? ''}" is not an instance of ${containerConcept}; create the container model first`,
+          )
+        }
+      }
+      // The index resolves declarations by the pinned bluepriNNt NAME, which keeps its
+      // version token (`video-script_V_0-1-0`); a version-less name resolves empty.
+      const blueprintName = parent?.name ?? from.blueprint.name
+      const placed = domainIndex.placementFor(concept, toId, blueprintName)
+      if (!('folder' in placed)) {
+        return rejectProposal('MOVE_INVALID_TARGET', toId, `change "${change.id}": ${placed.message}`, change.id)
+      }
+      const toPath = join(rootDir, placed.folder, placed.file)
+      if (!isInsideRoot(rootDir, toPath)) {
+        return rejectProposal('MOVE_INVALID_TARGET', toId, `model id "${toId}" resolves outside the domain`, change.id)
+      }
+      const fromDir = dirname(fromPath)
+      const toDir = dirname(toPath)
+      if (toDir !== fromDir) {
+        if (await stat(toDir).then(() => true, () => false)) {
+          return rejectPhase1(
+            'MOVE_DESTINATION_OCCUPIED',
+            toId,
+            `moving "${fromId}" to "${toId}" would write into "${relative(rootDir, toDir)}", which already exists`,
+          )
+        }
+      } else if (toPath !== fromPath && (await stat(toPath).then(() => true, () => false))) {
+        return rejectPhase1('MODEL_EXISTS', toId, `MODEL_EXISTS: "${toId}" already has a file`)
+      }
+      movePlans.set(change.id, {
+        changeId: change.id,
+        fromId,
+        toId,
+        concept: concept,
+        blueprintName,
+        fromPath,
+        toPath,
+      })
+    }
+
     /** Resolve (once per model) the bluepriNNt schema a model conforms to. */
     const schemaFor = async (entry: LoadedModelEntry): Promise<BlueprintSchema | undefined> => {
       if (entry.schema === undefined) {
@@ -1192,14 +1308,38 @@ export async function executeChangesetApply(
         const nextVer = computeNewVersion(baseVersion, { bump: 'patch' })
         const nextVersion = nextVer ? nextVer.version : 'V_0-1-1'
 
+        // A move that changes the slug is the only sanctioned slug change: the
+        // instance slug IS the id, so the root element moves with it (design A10).
+        const movePlan = [...movePlans.values()].find((plan) => plan.fromId === modelSlug)
+        let movedBody = false
+        if (movePlan) {
+          const oldSlug = movePlan.fromId.split('/').pop() ?? ''
+          const newSlug = movePlan.toId.split('/').pop() ?? ''
+          if (oldSlug !== newSlug) {
+            const rootElements = model.elements.get(movePlan.concept) ?? []
+            for (const element of rootElements) {
+              if (element.slug !== oldSlug) continue
+              element.slug = newSlug
+              element.slugExplicit = true
+              movedBody = true
+            }
+            const documentSlug = model.frontmatter.knowledge_slug
+            if (typeof documentSlug === 'string' && documentSlug === oldSlug) {
+              model.frontmatter.knowledge_slug = newSlug
+              movedBody = true
+            }
+          }
+        }
+
         loadedModels.set(modelSlug.toLowerCase(), {
           modelSlug,
           filePath: modelFile,
           model,
           baseVersion,
           nextVersion,
-          mutated: false,
+          mutated: movedBody,
           created: false,
+          ...(movePlan ? { movedTo: movePlan.toId, plannedPath: movePlan.toPath } : {}),
         })
       }
     }
@@ -1243,7 +1383,7 @@ export async function executeChangesetApply(
     // D11 rewrites target/to/name/slug in memory for the model mutation. The changeset
     // file is written back through the raw-text-preserving serializer, which never
     // re-renders a normative line, so the persisted proposal and its seal stay exactly
-    // as proposed — no re-seal here, or the on-disk seal would no longer match its body.
+    // as proposed â€” no re-seal here, or the on-disk seal would no longer match its body.
 
     // D12: Delete Impact Pre-Computation & Reference Scanning
     const { matrixCascades, referenceConflicts } = evaluateBatchDeleteImpact(
@@ -1324,6 +1464,35 @@ export async function executeChangesetApply(
       change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
     }
 
+    // Referrers (design A10): a move is allowed only when every typed reference to
+    // the old id (or a descendant) is retargeted by an `update_field` in the SAME
+    // changeset. Recorded targets are never rewritten, and referrers are never
+    // silently rewritten either: the move is rejected and the caller gets the
+    // missing update_field changes.
+    if (movePlans.size > 0) {
+      const retargets = new Map<string, string>()
+      for (const change of cleanSubset) {
+        if (change.op !== 'update_field' || change.to === undefined) continue
+        retargets.set(change.target, change.to)
+      }
+      for (const plan of movePlans.values()) {
+        const dangling = await findDanglingReferrers(
+          rootDir,
+          { fromId: plan.fromId, toId: plan.toId, fromPath: plan.fromPath },
+          retargets,
+        )
+        if (dangling.length === 0) continue
+        return rejectPhase1(
+          'MOVE_LEAVES_DANGLING_REFERENCES',
+          plan.fromId,
+          `MOVE_LEAVES_DANGLING_REFERENCES: moving "${plan.fromId}" to "${plan.toId}" leaves ` +
+            `${dangling.length} reference(s) pointing at the old id (${dangling
+              .map((d) => d.unit)
+              .join(', ')}); add one update_field per reference to this changeset`,
+        )
+      }
+    }
+
     // Apply mutations for clean subset in memory
     for (const change of cleanSubset) {
       if (change.op === 'comment') continue
@@ -1335,6 +1504,18 @@ export async function executeChangesetApply(
       const { modelSlug, parts, remainder } = parseTargetAddress(change.target)
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (!entry) continue
+
+      // A move carries no element mutation: the slug rewrite (if any) ran at load,
+      // and Phase 2 relocates the folder and file inside the atomic persist.
+      if (change.op === 'move_model') {
+        const plan = movePlans.get(change.id)
+        if (!plan) {
+          return rejectPhase1('MOVE_INVALID_TARGET', change.target, `change "${change.id}" has no move plan`)
+        }
+        change.status = 'applied'
+        change.resolution = `Moved model "${plan.fromId}" to "${plan.toId}"`
+        continue
+      }
 
       if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
         const problem = maintenanceChangeProblem(change, entry.model, entry.created)
@@ -1494,7 +1675,8 @@ export async function executeChangesetApply(
       for (const [concept, nodes] of entry.model.elements) {
         for (const node of nodes) if (node.slug) elements.push({ concept, slug: node.slug })
       }
-      const rel = relative(rootDir, entry.filePath).replace(/\\/g, '/')
+      // A moved instance is judged where it will live once Phase 2 renames it.
+      const rel = relative(rootDir, entry.plannedPath ?? entry.filePath).replace(/\\/g, '/')
       const findings = fileLocalDiagnostics(
         { path: rel, frontmatter: entry.model.frontmatter, elements },
         declarations,
@@ -1573,9 +1755,25 @@ export async function executeChangesetApply(
       }
     }
 
+    /** Moves this run performed, in order: rollback reverses them. */
+    const performedMoves: Array<{ fromPath: string; toPath: string }> = []
+
     // A failure while persisting must rollback all touched models (created AND modified),
     // guaranteeing cross-model atomicity and leaving no orphan staging files (#188).
     const rollbackPersistence = async (): Promise<void> => {
+      // 0. Reverse every folder/file relocation first, so the original content can be
+      // installed at the original path (the moved id resolves again).
+      for (const move of [...performedMoves].reverse()) {
+        const oldDir = dirname(move.fromPath)
+        const newDir = dirname(move.toPath)
+        try {
+          if (oldDir !== newDir) await rename(newDir, oldDir)
+          const movedFile = oldDir === newDir ? move.toPath : join(oldDir, basename(move.toPath))
+          if (movedFile !== move.fromPath) await rename(movedFile, move.fromPath)
+        } catch (rollbackErr) {
+          console.warn(`[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`)
+        }
+      }
       // 1. Rollback created models (delete them and their staging files)
       for (const [, entry] of loadedModels) {
         if (!entry.created) continue
@@ -1595,11 +1793,15 @@ export async function executeChangesetApply(
           console.warn(`[apply-change] Failed to rollback model "${filePath}": ${rollbackErr}`)
         }
       }
-      // 3. Clean up any remaining .tmp or .rollback.tmp files
+      // 3. Clean up any remaining .tmp or .rollback.tmp files. A moved entry has
+      // staged under the new path; both are cleaned so nothing survives.
       for (const [, entry] of loadedModels) {
-        const stem = displayStem(basename(entry.filePath))
-        await rm(join(dirname(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {})
-        await rm(join(dirname(entry.filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {})
+        for (const filePath of [entry.filePath, entry.movedFrom, entry.plannedPath]) {
+          if (!filePath) continue
+          const stem = displayStem(basename(filePath))
+          await rm(join(dirname(filePath), `${stem}.tmp`), { force: true }).catch(() => {})
+          await rm(join(dirname(filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {})
+        }
       }
       // 4. Remove the folders this run created, deepest first, and only when the
       // rollback left them empty: a folder that already held files stays.
@@ -1609,10 +1811,29 @@ export async function executeChangesetApply(
     }
 
     try {
+      // Relocate every moved model first: the folder rename carries descendants and
+      // assets, and a slug change also renames the file stem (design A10).
+      for (const plan of movePlans.values()) {
+        const entry = loadedModels.get(plan.fromId.toLowerCase())
+        if (!entry || entry.filePath === plan.toPath) continue
+        const oldPath = entry.filePath
+        const oldDir = dirname(oldPath)
+        const newDir = dirname(plan.toPath)
+        if (oldDir !== newDir) {
+          await ensureDirectory(dirname(newDir))
+          await rename(oldDir, newDir)
+        }
+        const relocated = oldDir === newDir ? oldPath : join(newDir, basename(oldPath))
+        if (relocated !== plan.toPath) await rename(relocated, plan.toPath)
+        performedMoves.push({ fromPath: oldPath, toPath: plan.toPath })
+        entry.filePath = plan.toPath
+        entry.movedFrom = oldPath
+      }
+
       for (const [, entry] of loadedModels) {
         if (!entry.mutated) continue
 
-        modelsTransitionMap[entry.modelSlug] = entry.created
+        modelsTransitionMap[entry.movedTo ?? entry.modelSlug] = entry.created
           ? { result_version: entry.nextVersion }
           : { base_version: entry.baseVersion, result_version: entry.nextVersion }
 
@@ -1626,32 +1847,9 @@ export async function executeChangesetApply(
         await writeAndSync(stagingPath, serialized)
         await persistAtomic(stagingPath, modelFile)
         persistedFiles.add(modelFile)
-
-        if (
-          csDoc.changes.some(
-            (c) =>
-              c.op === 'rename_element' &&
-              parseTargetAddress(c.target).modelSlug.toLowerCase() === entry.modelSlug.toLowerCase(),
-          )
-        ) {
-          for (const c of csDoc.changes) {
-            if (c.op === 'rename_element') {
-              try {
-                const modelDir = dirname(modelFile)
-                const oldSlug = parseTargetAddress(c.target).parts[0].toLowerCase().replace(/[^a-z0-9-]/g, '_')
-                const newSlug = (c.name || c.to || '').toLowerCase().replace(/[^a-z0-9-]/g, '_')
-                const oldAssetDir = join(modelDir, 'assets', oldSlug)
-                const newAssetDir = join(modelDir, 'assets', newSlug)
-                const st = await stat(oldAssetDir).catch(() => null)
-                if (st && st.isDirectory()) {
-                  await rename(oldAssetDir, newAssetDir)
-                }
-              } catch (err) {
-                console.warn(`[apply-change] Asset dir rename failed: ${err}`)
-              }
-            }
-          }
-        }
+        // A moved model was backed up under its OLD path: once the move is reversed
+        // the rollback restores the original content there.
+        if (entry.movedFrom) persistedFiles.add(entry.movedFrom)
       }
     } catch (err) {
       await rollbackPersistence()

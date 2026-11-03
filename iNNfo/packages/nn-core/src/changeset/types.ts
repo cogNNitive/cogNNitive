@@ -198,6 +198,36 @@ export function addModelProblems(change: ChangeItem): string[] {
   return problems
 }
 
+/**
+ * Structural problems of one `move_model` change, as human-readable messages naming
+ * the change id. `move_model` renames or relocates an instance model: it carries the
+ * old model id in `target` and the new one in `to`, and nothing else.
+ */
+export function moveModelProblems(change: ChangeItem): string[] {
+  if (change.op !== 'move_model') return []
+  const problems: string[] = []
+  const id = change.id
+  const bareModelId = (value: string): boolean =>
+    value.length > 0 &&
+    !value.includes('@') &&
+    !value.includes('&') &&
+    !value.includes('\\') &&
+    !value.includes('..') &&
+    !/^[a-zA-Z]:/.test(value) &&
+    value !== '.'
+  // `/` is legal: an instance id is hierarchical.
+  const target = String(change.target ?? '').trim()
+  if (!target || !bareModelId(target) || target.startsWith('/')) {
+    problems.push(`change "${id}": move_model target must be the old instance model id`)
+  }
+  const to = String(change.to ?? '').trim()
+  if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`)
+  else if (!bareModelId(to) || to.startsWith('/')) {
+    problems.push(`change "${id}": move_model "to" must be the new instance model id`)
+  }
+  return problems
+}
+
 export interface LockPayload {
   pid: number
   timestamp: number

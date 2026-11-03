@@ -27,6 +27,7 @@ import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn
 import { findKnowledgeFile, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
+import { findDanglingReferrers } from './move-referrers.js'
 
 /**
  * The single writer of proposed changesets. Every code path that leaves a sealed
@@ -148,6 +149,11 @@ export interface ProposalError {
   path: string
   message: string
   code: string
+  /**
+   * `MOVE_LEAVES_DANGLING_REFERENCES` only: the `update_field` changes that would
+   * retarget every referrer, ready to merge into the proposal (design A10).
+   */
+  missing_referrer_updates?: ChangeItem[]
 }
 
 /** Keys each operation requires, beyond `op` (add_model has its own check). */
@@ -218,6 +224,15 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       }
       if (!isBumpLevel(change.to)) {
         problems.push(`${label}: bump_version requires "to" to be one of ${BUMP_LEVELS.join(', ')}`)
+      }
+      break
+    case 'move_model':
+      if (target.includes('@') || target.includes('&') || /\.[a-z]+$/i.test(target)) {
+        problems.push(`${label}: move_model target must be the old instance model id`)
+      }
+      if (!change.to) problems.push(`${label}: move_model requires "to" (the new instance model id)`)
+      else if (change.to.includes('@') || change.to.includes('&') || change.to.includes('\\')) {
+        problems.push(`${label}: move_model "to" must be the new instance model id`)
       }
       break
     default:
@@ -361,6 +376,44 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
           message: `CITATION_UNRESOLVED: operations[${index}] cites "${item}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
         })
       }
+    }
+  }
+  // A move whose referrers are not retargeted in the same proposal is reported with
+  // the update_field changes that would fix it (design A10, the lineage-as-changes A9
+  // payload pattern). Apply runs the same scan, so the proposal never surprises it.
+  if (errors.length === 0) {
+    const retargets = new Map<string, string>()
+    for (const change of operations) {
+      if (change.op !== 'update_field' || change.to === undefined) continue
+      retargets.set(change.target, change.to)
+    }
+    for (const [index, change] of operations.entries()) {
+      if (change.op !== 'move_model' || !change.target || !change.to) continue
+      const fromPath = await findKnowledgeFile(rootDir, change.target).catch(() => null)
+      if (!fromPath) continue
+      const dangling = await findDanglingReferrers(
+        rootDir,
+        { fromId: change.target, toId: change.to, fromPath },
+        retargets,
+      )
+      if (dangling.length === 0) continue
+      errors.push({
+        path: `operations[${index}]`,
+        code: 'MOVE_LEAVES_DANGLING_REFERENCES',
+        message:
+          `MOVE_LEAVES_DANGLING_REFERENCES: moving "${change.target}" to "${change.to}" leaves ` +
+          `${dangling.length} reference(s) pointing at the old id (${dangling.map((d) => d.unit).join(', ')}); ` +
+          `add the missing update_field changes`,
+        missing_referrer_updates: dangling.map(
+          (d): ChangeItem => ({
+            id: '',
+            op: 'update_field',
+            target: d.unit,
+            to: d.suggested,
+            evidence: 'unknown',
+          }),
+        ),
+      })
     }
   }
   if (errors.length > 0) return errors

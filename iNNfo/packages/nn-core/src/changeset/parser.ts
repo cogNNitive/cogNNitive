@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import { addModelProblems, isChangeOp, isChangeStatus } from './types.js'
+import { addModelProblems, isChangeOp, isChangeStatus, moveModelProblems } from './types.js'
 import { splitSourceFieldValue } from '../sourceRef.js'
 import type {
   ChangesetDocument,
@@ -262,6 +262,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   const problems = changes.flatMap(addModelProblems)
   if (problems.length > 0) {
     throw new Error(`Invalid add_model change: ${problems.join('; ')}`)
+  }
+  const moveProblems = changes.flatMap(moveModelProblems)
+  if (moveProblems.length > 0) {
+    throw new Error(`Invalid move_model change: ${moveProblems.join('; ')}`)
   }
 
   return {
