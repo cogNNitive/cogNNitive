@@ -42,6 +42,11 @@ export interface LoggedChange {
   readonly evidence?: string
   /** Execution fact: one sha256 per evidence item, in evidence order. */
   readonly evidenceSha256?: readonly string[]
+  /**
+   * Execution fact (`extract_instance`): the element slugs the change moved into
+   * its new model, root first. The fold re-keys exactly this set (design A11).
+   */
+  readonly extractedSlugs?: readonly string[]
   readonly from?: string
   readonly to?: string
   readonly concept?: string

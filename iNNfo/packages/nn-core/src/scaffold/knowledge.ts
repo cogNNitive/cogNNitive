@@ -1,4 +1,5 @@
 import { slugify } from '../parser/slug.js'
+import type { ElementNode, ParsedKnowledge } from '../types/index.js'
 
 /** The slice of a resolved bluepriNNt schema the starter body is built from. */
 export interface ScaffoldSchema {
@@ -211,4 +212,32 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
   ].join('\n')
 
   return frontmatter + '\n\n' + body.trim() + '\n'
+}
+
+/**
+ * Seeds an extracted instance model (design A11) with the subtree lifted out of
+ * its compact source: the selected element becomes the instance root and every
+ * descendant it carried replaces the skeleton's placeholder for that concept.
+ * The extraction path and its strict replay both call this, so the file an apply
+ * writes is byte-identical to the file a replay rebuilds.
+ *
+ * A concept the subtree holds no element of keeps the skeleton's placeholder,
+ * which is what makes the result a valid instance model rather than a bare root.
+ */
+export function seedExtractedModel(
+  model: ParsedKnowledge,
+  subtree: { elements: ReadonlyArray<{ concept: string; node: ElementNode }> },
+): void {
+  const byConcept = new Map<string, ElementNode[]>()
+  for (const { concept, node } of subtree.elements) {
+    const list = byConcept.get(concept)
+    if (list) list.push(node)
+    else byConcept.set(concept, [node])
+  }
+  for (const [concept, nodes] of byConcept) {
+    // The scaffold's raw body for that concept would be re-emitted next to the
+    // elements and duplicate them.
+    if (model.rawSections) delete model.rawSections[concept]
+    model.elements.set(concept, nodes)
+  }
 }

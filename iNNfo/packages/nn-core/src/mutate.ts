@@ -23,6 +23,22 @@ export interface MutationResult {
   errors?: Array<{ path: string; message: string }>
   warnings?: Array<{ path: string; message: string }>
   cascadedMatrixCells?: number
+  /** `extract_instance` only: the subtree the cut lifted out of the source. */
+  extracted?: ExtractedSubtree
+}
+
+/**
+ * An element subtree lifted out of a compact model (design A11): the selected
+ * element (the instance root) plus every descendant element, found by
+ * `parentSlug`, in document order. `slugs` is the root first, then each
+ * descendant — the set the fold re-keys and the apply engine records.
+ */
+export interface ExtractedSubtree {
+  /** Concept of the instance root element. */
+  concept: string
+  /** Root first, then descendants, each with the concept that held it. */
+  elements: Array<{ concept: string; node: ElementNode }>
+  slugs: string[]
 }
 
 type RequireArgsResult =
@@ -218,6 +234,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   add_matrix: (model, args) => addMatrix(model, args),
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
+  extract_instance: (model, args) => extractInstance(model, args),
 }
 
 /** Names of every operation the mutation engine implements. */
@@ -968,6 +985,97 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
   }
 
   return { success: true, cascadedMatrixCells: cascadedCells }
+}
+
+/**
+ * Reads the subtree rooted at `elementIdent` (a slug) without changing the model:
+ * the element itself plus every descendant found by `parentSlug`, transitively,
+ * in document order. `conceptName` scopes the lookup when the same slug lives in
+ * several concepts. Returns `null` when nothing matches.
+ *
+ * This is the read half of `extract_instance` (design A11); the strict replay
+ * seeds the new model's skeleton with exactly this subtree.
+ */
+export function subtreeOf(
+  model: ParsedKnowledge,
+  elementIdent: string,
+  conceptName?: string,
+): ExtractedSubtree | null {
+  const ident = elementIdent.trim().toLowerCase()
+  if (!ident) return null
+  const matches = (el: ElementNode): boolean =>
+    Boolean(el.slug && el.slug.toLowerCase() === ident)
+
+  let rootConcept: string | undefined
+  let root: ElementNode | undefined
+  const scoped = conceptName ? [[conceptName, model.elements.get(conceptName) ?? []] as const] : [...model.elements.entries()]
+  for (const [concept, list] of scoped) {
+    root = list.find(matches)
+    if (root) {
+      rootConcept = concept
+      break
+    }
+  }
+  if (!root || !rootConcept) return null
+
+  const picked = new Set<ElementNode>([root])
+  const elements: Array<{ concept: string; node: ElementNode }> = [
+    { concept: rootConcept, node: root },
+  ]
+  // Breadth-first over `parentSlug`: a descendant's own slug becomes a parent
+  // for the next level, across concepts (a Layer hangs from a Scene).
+  const pending = [root.slug!.toLowerCase()]
+  while (pending.length > 0) {
+    const parent = pending.shift()!
+    for (const [concept, list] of model.elements.entries()) {
+      for (const el of list) {
+        if (picked.has(el)) continue
+        if (!el.parentSlug || el.parentSlug.toLowerCase() !== parent) continue
+        if (!el.slug) continue
+        picked.add(el)
+        elements.push({ concept, node: el })
+        pending.push(el.slug.toLowerCase())
+      }
+    }
+  }
+
+  return {
+    concept: rootConcept,
+    elements,
+    slugs: elements.map(({ node }) => node.slug!),
+  }
+}
+
+/**
+ * Cuts the subtree rooted at `elementIdent` out of the model and hands it back
+ * (design A11). Field values, prose and citation fields travel untouched: the
+ * elements are removed from the source exactly as they were parsed, so nothing
+ * is re-recorded and no value is altered.
+ */
+function extractInstance(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+  const elementIdent = String(args.elementName ?? args.elementIdent ?? args.slug ?? '').trim()
+  if (!elementIdent) {
+    return { success: false, errors: [{ path: '', message: 'elementName is required' }] }
+  }
+  const conceptName = typeof args.conceptName === 'string' ? args.conceptName : undefined
+  const subtree = subtreeOf(model, elementIdent, conceptName)
+  if (!subtree) {
+    return {
+      success: false,
+      errors: [
+        {
+          path: '',
+          message: `Element "${elementIdent}" not found in this model`,
+        },
+      ],
+    }
+  }
+  const moved = new Set(subtree.elements.map(({ node }) => node))
+  for (const [concept, list] of model.elements.entries()) {
+    const kept = list.filter((el) => !moved.has(el))
+    if (kept.length !== list.length) model.elements.set(concept, kept)
+  }
+  return { success: true, extracted: subtree }
 }
 
 /**

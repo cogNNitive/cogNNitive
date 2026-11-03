@@ -178,10 +178,11 @@ export {
   listMutationOperations,
   freeze_slugs,
   replayMutations,
+  subtreeOf,
   updateReferenceString,
   updateWikiLinks,
 } from './mutate.js'
-export type { MutationResult, ReplayOperation, ReplayResult } from './mutate.js'
+export type { ExtractedSubtree, MutationResult, ReplayOperation, ReplayResult } from './mutate.js'
 export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
 export type { VersionedEnvelope } from './envelope.js'
 export { Diagnostics } from './diagnostics.js'

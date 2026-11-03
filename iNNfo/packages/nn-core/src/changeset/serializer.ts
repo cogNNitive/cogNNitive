@@ -42,6 +42,9 @@ function annotationLines(item: ChangeItem): string[] {
   if (item.evidence_sha256 !== undefined && item.evidence_sha256.length > 0) {
     lines.push(`evidence_sha256:: ${formatShaList(item.evidence_sha256)}`)
   }
+  if (item.extracted_slugs !== undefined && item.extracted_slugs.length > 0) {
+    lines.push(`extracted_slugs:: ${formatShaList(item.extracted_slugs)}`)
+  }
   if (item.applied_at !== undefined) {
     lines.push(`applied_at:: ${formatPropertyValue(item.applied_at)}`)
   }

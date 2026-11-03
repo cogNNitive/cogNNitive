@@ -141,6 +141,14 @@ export function mutationArgsForChange(
     return { conceptName, elementName: elIdent }
   }
 
+  if (change.op === 'extract_instance') {
+    // The target is the source element address; the cut moves the element and
+    // every descendant (`parentSlug`) out of the source model (design A11).
+    const elIdent = parts[0] || remainder
+    const conceptName = change.concept ?? findElementInModel(model, undefined, elIdent)?.concept
+    return { conceptName, elementName: elIdent }
+  }
+
   if (change.op === 'rename_element') {
     const elIdent = parts[0] || remainder
     const conceptName = change.concept ?? findElementInModel(model, undefined, elIdent)?.concept

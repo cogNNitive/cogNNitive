@@ -1144,3 +1144,244 @@ describe('move_model of an instance (distributed-storage S6b)', () => {
     expect(missing[0]!.to).toBe('villabotijos-today/welcome')
   })
 })
+
+/* ── extract_instance: compact elements become instance models (S6d) ──────── */
+
+const xRoot = join(import.meta.dirname!, '..', '..', 'temp-test-facts-extract')
+const xChangesDir = join(xRoot, 'changes')
+const xSpecsDir = join(xRoot, 'specs')
+const xBlueprintsDir = join(xSpecsDir, 'bluepriNNts')
+const xKnowledgeDir = join(xRoot, 'kNNowledge')
+const xSeriesDir = join(xRoot, 'series', 'innteresante')
+const xSeriesModelRel = 'series/innteresante/innteresante_video-script_NN.md'
+
+const REGISTRY_REL = 'kNNowledge/InnteresanteVideos_NN.md'
+const INTRO_X_REL = 'series/innteresante/assets/intro/intro_video-script_NN.md'
+const NUEVO_X_REL = 'series/innteresante/assets/nuevo/nuevo_video-script_NN.md'
+
+/** The S6a blueprint plus one `Video` field and the Video -> Scene -> Layer taxonomy. */
+const EXTRACT_BLUEPRINT = VIDEO_BLUEPRINT.replace(
+  '# NN Concept Definition',
+  [
+    '# NN index',
+    '',
+    '* [[Video]]',
+    '  * [[Scene]]',
+    '    * [[Layer]]',
+    '* [[Series]]',
+    '',
+    '# NN Concept Definition',
+  ].join('\n'),
+)
+  .replace(
+    '# NN Field Definition',
+    [
+      '## NN Field Definition: status',
+      'concept:: Video',
+      'type:: select',
+      'options:: [draft, published]',
+      '',
+      '# NN Field Definition',
+    ].join('\n'),
+  )
+  .replace(
+    '## NN Concept Definition: Scene\ntype:: list\n',
+    '## NN Concept Definition: Scene\ntype:: list\n\n## NN Concept Definition: Layer\ntype:: list\n',
+  )
+
+/** A compact registry: two `Video` elements, one carrying a nested `Scene`. */
+const REGISTRY_MODEL = [
+  '---',
+  'level: 3',
+  'title: "Innteresante Videos"',
+  'knowledge_version: "V_0-1-0"',
+  'parent_spec:',
+  `  name: "${VIDEO_BLUEPRINT_NAME}"`,
+  `  url: "${VIDEO_BLUEPRINT_REL}"`,
+  '---',
+  '',
+  '# NN Video',
+  '',
+  '## NN Video: Intro',
+  'slug:: intro',
+  'status:: published',
+  '### NN Scene: 00 Gancho',
+  'slug:: 00-gancho',
+  'voice:: warm',
+  'mood:: calm',
+  '#### NN Layer: Presenter',
+  'slug:: presenter',
+  '',
+  '## NN Video: Nuevo',
+  'slug:: nuevo',
+  'status:: draft',
+  '',
+].join('\n')
+
+const EXTRACT_INTRO: ChangeItem = {
+  id: 'c-01',
+  op: 'extract_instance',
+  target: 'InnteresanteVideos@intro',
+  to: 'innteresante/intro',
+  blueprint_name: VIDEO_BLUEPRINT_NAME,
+  blueprint_url: VIDEO_BLUEPRINT_REL,
+}
+
+const EXTRACT_NUEVO: ChangeItem = {
+  id: 'c-02',
+  op: 'extract_instance',
+  target: 'InnteresanteVideos@nuevo',
+  to: 'innteresante/nuevo',
+  blueprint_name: VIDEO_BLUEPRINT_NAME,
+  blueprint_url: VIDEO_BLUEPRINT_REL,
+}
+
+async function applyExtract(changes: ChangeItem[], name = 'extract_changes_NN.md') {
+  const withEvidence = changes.map((c) => (c.evidence === undefined ? { ...c, evidence: 'decision' } : c))
+  const doc = {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      level: 3 as const,
+      parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
+      blueprint_version: 'V_0-6-0',
+      status: 'proposed' as const,
+      proposal_sha: computeProposalSha(withEvidence),
+    },
+    changes: withEvidence,
+  }
+  await writeFile(join(xChangesDir, name), serializeChangeset(doc), 'utf-8')
+  return applyChange(xRoot, 'changes/' + name)
+}
+
+describe('extract_instance of a compact element (distributed-storage S6d)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(xRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rmWithRetry(xRoot)
+    for (const dir of [xChangesDir, xBlueprintsDir, xKnowledgeDir, xSeriesDir]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(xSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(xSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(xBlueprintsDir, 'video-script_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
+    await writeFile(join(xRoot, xSeriesModelRel), seriesModel('innteresante', 'Innteresante'), 'utf-8')
+    await writeFile(join(xRoot, REGISTRY_REL), REGISTRY_MODEL, 'utf-8')
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(xRoot)
+  })
+
+  it('creates one instance model per extracted element and empties the source', async () => {
+    const res = await applyExtract([EXTRACT_INTRO, EXTRACT_NUEVO])
+
+    expect(res.errors).toBeUndefined()
+    expect(res.success).toBe(true)
+    expect(res.status).toBe('applied')
+    expect(existsSync(join(xRoot, INTRO_X_REL))).toBe(true)
+    expect(existsSync(join(xRoot, NUEVO_X_REL))).toBe(true)
+
+    const intro = parseKnowledge(await readFile(join(xRoot, INTRO_X_REL), 'utf-8'))
+    const videos = intro.elements.get('Video') ?? []
+    expect(videos).toHaveLength(1)
+    expect(videos[0]!.slug).toBe('intro')
+    expect(videos[0]!.fields.status).toBe('published')
+    // The descendant Scene came with it, slug and values unchanged.
+    const scenes = intro.elements.get('Scene') ?? []
+    expect(scenes.map((s) => s.slug)).toEqual(['00-gancho'])
+    expect(scenes[0]!.fields.voice).toBe('warm')
+    expect(scenes[0]!.fields.mood).toBe('calm')
+    expect(scenes[0]!.parentSlug).toBe('intro')
+    // The grandchild Layer travelled too, still under its Scene.
+    const layers = intro.elements.get('Layer') ?? []
+    expect(layers.map((l) => l.slug)).toEqual(['presenter'])
+    expect(layers[0]!.parentSlug).toBe('00-gancho')
+
+    // The source no longer holds either Video: no double storage remains.
+    const source = parseKnowledge(await readFile(join(xRoot, REGISTRY_REL), 'utf-8'))
+    expect(source.elements.get('Video') ?? []).toEqual([])
+
+    const ws = await validateKnowledge(xRoot, 'innteresante/intro', undefined, undefined, true, { checkFreshness: false })
+    expect(ws.errors.filter((e) => /DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL|PLACEMENT_MISMATCH/.test(e.message))).toEqual([])
+  })
+
+  it('records only a result version for each instance and one bump for the source', async () => {
+    const before = parseKnowledge(await readFile(join(xRoot, REGISTRY_REL), 'utf-8'))
+    const res = await applyExtract([EXTRACT_INTRO, EXTRACT_NUEVO])
+
+    expect(res.success).toBe(true)
+    const introModels = res.models!['innteresante/intro']!
+    expect(introModels).not.toHaveProperty('base_version')
+    expect(introModels.result_version).toBeTruthy()
+    const sourceTransition = res.models!['InnteresanteVideos']!
+    expect(sourceTransition.base_version).toBe(String(before.frontmatter.knowledge_version))
+    expect(sourceTransition.result_version).not.toBe(sourceTransition.base_version)
+
+    const applied = parseChangeset(await readFile(join(xRoot, 'changes', 'extract_changes_NN.md'), 'utf-8'))
+    // The extracted slug set is an execution fact: the fold re-keys units through it.
+    expect(applied.changes[0]!.extracted_slugs).toEqual(['intro', '00-gancho', 'presenter'])
+    expect(applied.changes[1]!.extracted_slugs).toEqual(['nuevo'])
+    // A recorded target keeps pointing at where the change was applied.
+    expect(applied.changes[0]!.resolved_target).toBe('InnteresanteVideos@intro')
+  })
+
+  it('never alters the field values of the extracted element', async () => {
+    const res = await applyExtract([EXTRACT_INTRO])
+    expect(res.success).toBe(true)
+    const nuevo = parseKnowledge(await readFile(join(xRoot, INTRO_X_REL), 'utf-8'))
+    const el = nuevo.elements.get('Video')![0]!
+    expect(el.fields).toMatchObject({ status: 'published' })
+    expect(el.name).toBe('Intro')
+  })
+
+  it('rejects an element of a concept the blueprint does not distribute', async () => {
+    // `Scene` is compact in the pinned blueprint: only a distributed concept may
+    // become its own model.
+    const res = await applyExtract([
+      { ...EXTRACT_INTRO, target: 'InnteresanteVideos@00-gancho', to: 'innteresante/gancho' },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors![0]!.code).toBe('EXTRACT_NOT_DISTRIBUTED')
+    expect(res.errors![0]!.message).toContain('Scene')
+    expect(existsSync(join(xRoot, INTRO_X_REL))).toBe(false)
+  })
+
+  it('rejects a destination whose slug is not the element slug', async () => {
+    const res = await applyExtract([{ ...EXTRACT_INTRO, to: 'innteresante/welcome' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors![0]!.code).toBe('EXTRACT_SLUG_MISMATCH')
+    expect(res.errors![0]!.message).toContain('intro')
+  })
+
+  it('an existing instance is MODEL_EXISTS and points at remove_element', async () => {
+    await mkdir(join(xRoot, INTRO_X_REL, '..'), { recursive: true })
+    await writeFile(
+      join(xRoot, INTRO_X_REL),
+      videoModel('intro', 'Intro', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+      'utf-8',
+    )
+
+    const res = await applyExtract([EXTRACT_INTRO])
+
+    expect(res.success).toBe(false)
+    const error = res.errors!.find((e) => e.code === 'MODEL_EXISTS')!
+    expect(error).toBeDefined()
+    expect(error.message).toContain('remove_element')
+    // The source keeps its element: nothing was cut.
+    const source = parseKnowledge(await readFile(join(xRoot, REGISTRY_REL), 'utf-8'))
+    expect((source.elements.get('Video') ?? []).map((v) => v.slug)).toEqual(['intro', 'nuevo'])
+  })
+
+  it('rejects an instance model as the source', async () => {
+    const res = await applyExtract([
+      { ...EXTRACT_INTRO, target: 'innteresante@innteresante', to: 'innteresante/otra' },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors![0]!.code).toBe('EXTRACT_REQUIRES_COMPACT')
+  })
+})

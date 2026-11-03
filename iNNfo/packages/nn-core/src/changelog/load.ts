@@ -37,6 +37,7 @@ export interface ChangeLike {
   evidence?: string
   evidence_sha256?: readonly string[]
   resolved_target?: string
+  extracted_slugs?: readonly string[]
   from?: string
   to?: string
   concept?: string
@@ -98,6 +99,7 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       evidence: change.evidence,
       evidenceItems: splitEvidence(change.evidence),
       evidenceSha256: change.evidence_sha256,
+      extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
       concept: change.concept,

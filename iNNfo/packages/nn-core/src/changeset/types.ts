@@ -18,6 +18,7 @@ export const CHANGE_OPS = [
   'comment',
   'add_model',
   'move_model',
+  'extract_instance',
   'freeze_slugs',
   'bump_version',
   'update_element_text',
@@ -94,6 +95,13 @@ export interface ChangeItem {
   resolved_target?: string
   /** Execution fact: one sha256 per evidence entry, in evidence order. Outside the seal. */
   evidence_sha256?: string[]
+  /**
+   * Execution fact (`extract_instance` only): the element slugs that moved into
+   * the new instance model — the instance root first, then every descendant the
+   * cut carried. The fold re-keys exactly this slug set (design A11), so it is
+   * written by apply and excluded from `proposal_sha`.
+   */
+  extracted_slugs?: string[]
   /** Per-change execution fact: when the change was applied, UTC (excluded from proposal_sha). */
   applied_at?: string
   /** Per-change execution fact: the batch identity, the changeset stem (excluded from proposal_sha). */
@@ -224,6 +232,51 @@ export function moveModelProblems(change: ChangeItem): string[] {
   if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`)
   else if (!bareModelId(to) || to.startsWith('/')) {
     problems.push(`change "${id}": move_model "to" must be the new instance model id`)
+  }
+  return problems
+}
+
+/**
+ * Structural problems of one `extract_instance` change (design A11), as
+ * human-readable messages naming the change id. `extract_instance` migrates a
+ * compact element into its own distributed model: `target` is the source address
+ * (`<compact-id>@<slug>`), `to` is the instance id it becomes, and the change
+ * carries the destination bluepriNNt (`blueprint_name` / `blueprint_url`) and
+ * nothing else — the element payload already lives in the source.
+ */
+export function extractInstanceProblems(change: ChangeItem): string[] {
+  if (change.op !== 'extract_instance') return []
+  const problems: string[] = []
+  const id = change.id
+  for (const key of ['from', 'base_hash'] as const) {
+    if (change[key] !== undefined) {
+      problems.push(`change "${id}": extract_instance must not carry "${key}"`)
+    }
+  }
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`)
+  }
+  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`)
+  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`)
+  const target = String(change.target ?? '').trim()
+  const at = target.indexOf('@')
+  const modelPart = at === -1 ? target : target.slice(0, at)
+  const elementPart = at === -1 ? '' : target.slice(at + 1)
+  const unsafe = (value: string): boolean =>
+    value.includes('&') ||
+    value.includes('\\') ||
+    value.includes('..') ||
+    /^[a-zA-Z]:/.test(value) ||
+    value.startsWith('/')
+  if (!modelPart || !elementPart || unsafe(modelPart) || unsafe(elementPart)) {
+    problems.push(
+      `change "${id}": extract_instance target must be the source element address (<compact-id>@<slug>)`,
+    )
+  }
+  const to = String(change.to ?? '').trim()
+  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
+  else if (!to.includes('/') || unsafe(to)) {
+    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`)
   }
   return problems
 }

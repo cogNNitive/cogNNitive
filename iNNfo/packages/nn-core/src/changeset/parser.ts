@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import { addModelProblems, isChangeOp, isChangeStatus, moveModelProblems } from './types.js'
+import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems } from './types.js'
 import { splitSourceFieldValue } from '../sourceRef.js'
 import type {
   ChangesetDocument,
@@ -237,6 +237,13 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
         if (shas.length > 0) currentChange.evidence_sha256 = shas
         break
       }
+      case 'extracted_slugs': {
+        // Execution fact written by `extract_instance` apply: the slug set the
+        // fold re-keys (design A11). Positional, `[intro, 00-gancho]`.
+        const slugs = splitSourceFieldValue(rawVal)
+        if (slugs.length > 0) currentChange.extracted_slugs = slugs
+        break
+      }
       case 'seed': {
         const parsedSeed = parseJsonObject(rawVal)
         if (parsedSeed) {
@@ -266,6 +273,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   const moveProblems = changes.flatMap(moveModelProblems)
   if (moveProblems.length > 0) {
     throw new Error(`Invalid move_model change: ${moveProblems.join('; ')}`)
+  }
+  const extractProblems = changes.flatMap(extractInstanceProblems)
+  if (extractProblems.length > 0) {
+    throw new Error(`Invalid extract_instance change: ${extractProblems.join('; ')}`)
   }
 
   return {

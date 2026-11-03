@@ -318,3 +318,67 @@ describe('U1: update_field with an empty value clears the field', () => {
     expect(serialized).toContain('price:: 5')
   })
 })
+
+/* ── extract_instance: the subtree cut (distributed-storage S6d) ─────────── */
+
+const REGISTRY = `---
+spec_version: "V_0-3-0"
+level: 3
+title: "Registry"
+---
+
+# NN Video
+## NN Video: Intro
+slug:: intro
+status:: published
+### NN Scene: 00 Gancho
+slug:: 00-gancho
+voice:: warm
+#### NN Layer: Presenter
+slug:: presenter
+
+## NN Video: Nuevo
+slug:: nuevo
+status:: draft
+
+# NN Scene
+## NN Scene: Suite
+slug:: suite
+voice:: cold
+`
+
+describe('U2: extract_instance cuts an element subtree by parentSlug', () => {
+  it('subtreeOf returns the root, its Scene and its Layer, root first', () => {
+    const model = parseKnowledge(REGISTRY)
+    const subtree = mutateModule.subtreeOf(model, 'intro')
+    expect(subtree).not.toBeNull()
+    expect(subtree!.concept).toBe('Video')
+    expect(subtree!.slugs).toEqual(['intro', '00-gancho', 'presenter'])
+    expect(subtree!.elements.map(({ concept }) => concept)).toEqual(['Video', 'Scene', 'Layer'])
+  })
+
+  it('subtreeOf never crosses into an element that hangs from another parent', () => {
+    const model = parseKnowledge(REGISTRY)
+    expect(mutateModule.subtreeOf(model, 'intro')!.slugs).not.toContain('suite')
+  })
+
+  it('applyMutation extract_instance removes exactly the selected subtree', () => {
+    const model = parseKnowledge(REGISTRY)
+    const result = applyMutation(model, 'extract_instance', { elementName: 'intro' })
+    expect(result.success).toBe(true)
+    expect(result.extracted!.slugs).toEqual(['intro', '00-gancho', 'presenter'])
+    expect((model.elements.get('Video') ?? []).map((el) => el.slug)).toEqual(['nuevo'])
+    expect((model.elements.get('Scene') ?? []).map((el) => el.slug)).toEqual(['suite'])
+    expect(model.elements.get('Layer') ?? []).toEqual([])
+    // The values and the prose of what stayed are untouched.
+    expect((model.elements.get('Video') ?? [])[0]!.fields.status).toBe('draft')
+  })
+
+  it('applyMutation extract_instance reports an unknown slug and changes nothing', () => {
+    const model = parseKnowledge(REGISTRY)
+    const before = serializeKnowledge(model)
+    const result = applyMutation(model, 'extract_instance', { elementName: 'ghost' })
+    expect(result.success).toBe(false)
+    expect(serializeKnowledge(model)).toBe(before)
+  })
+})

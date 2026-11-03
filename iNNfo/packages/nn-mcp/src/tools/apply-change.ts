@@ -24,9 +24,12 @@ import {
   createFsSourceResolver,
   resolveCitation,
   scaffoldKnowledgeDocument,
+  seedExtractedModel,
+  subtreeOf,
   fileLocalDiagnostics,
   roleOf,
   canonicalUnitModelId,
+  EXECUTION_FACT_KEYS,
   resolvedTarget,
   axisSlug,
   splitEvidence,
@@ -249,8 +252,14 @@ async function persistAtomic(stagingPath: string, livePath: string): Promise<voi
   }
 }
 
-/** Execution annotation keys: the only per-change lines apply may rewrite. */
-const ANNOTATION_LINE_RE = /^(status|resolution|resolved_slug|applied_at|batch)::/
+/**
+ * Execution annotation keys: the only per-change lines apply may rewrite. The
+ * execution-fact list comes from the changeset core module, so a new fact key
+ * (such as `extracted_slugs`) is an annotation everywhere at once.
+ */
+const ANNOTATION_LINE_RE = new RegExp(
+  `^(${['status', 'resolution', 'applied_at', 'batch', ...EXECUTION_FACT_KEYS].join('|')})::`,
+)
 
 /**
  * The normative lines of every `## NN Change` block: the heading and every non-blank,
@@ -392,6 +401,12 @@ function resolvedTargetForChange(
     case 'rename_element': {
       const el = elementByLabel(model, parts[0] ?? '')
       const slug = change.resolved_slug || el?.slug || change.slug || slugifyHeading(change.name ?? parts[0] ?? '')
+      return slug ? resolvedTarget.element(modelId, slug) : undefined
+    }
+    case 'extract_instance': {
+      // The element is no longer in the source (the cut took it), so the stamped
+      // address comes from the recorded extraction, not from a fresh lookup.
+      const slug = change.extracted_slugs?.[0] ?? parts[0] ?? ''
       return slug ? resolvedTarget.element(modelId, slug) : undefined
     }
     case 'update_concept_text':
@@ -916,6 +931,177 @@ export async function executeChangesetApply(
         root: { concept, slug, ...(change.name ? { name: change.name } : {}) },
       })
       plannedConcepts.set(change.target.toLowerCase(), concept)
+    }
+
+    /**
+     * `extract_instance` plans (design A11): a compact element becomes its own
+     * instance model. Every check runs before any write, and the destination is
+     * computed from the SAME placement rule `add_model` uses.
+     */
+    interface ExtractPlan {
+      changeId: string
+      /** The compact model the element is cut from. */
+      sourceId: string
+      /** The element slug that becomes the instance root. */
+      slug: string
+      /** Concept of the extracted element; it must be distributed. */
+      concept: string
+      toId: string
+      blueprintName: string
+      blueprintUrl: string
+      /** Workspace-relative folder with a trailing slash. */
+      folder: string
+      file: string
+      /** Absolute path of the instance file. */
+      path: string
+    }
+    const extractPlans = new Map<string, ExtractPlan>()
+    /** Extract changes grouped by source model: one source, one atomic migration set. */
+    const extractsBySource = new Map<string, Set<string>>()
+    for (const change of csDoc.changes) {
+      if (change.op !== 'extract_instance') continue
+      const key = parseTargetAddress(change.target).modelSlug.toLowerCase()
+      const group = extractsBySource.get(key)
+      if (group) group.add(change.id)
+      else extractsBySource.set(key, new Set([change.id]))
+    }
+    for (const change of csDoc.changes) {
+      if (change.op !== 'extract_instance') continue
+      const blueprintName = String(change.blueprint_name ?? '')
+      const blueprintUrl = String(change.blueprint_url ?? '')
+      const toId = String(change.to ?? '').trim()
+      const { modelSlug: sourceId, parts, error } = parseTargetAddress(change.target)
+      const slug = (parts[0] ?? '').trim()
+      if (error || !sourceId || !slug || slug.includes('&') || !isSafeRelativeId(sourceId) || !isSafeRelativeId(toId)) {
+        return rejectProposal(
+          'EXTRACT_INVALID_TARGET',
+          change.target,
+          `change "${change.id}": extract_instance needs a source element address (<compact-id>@<slug>) and a hierarchical "to" id`,
+          change.id,
+        )
+      }
+      const { index: domainIndex, pathOf } = await nodeIndex()
+      const source = domainIndex.byId(sourceId)
+      if (!source) {
+        return rejectPhase1('MODEL_NOT_FOUND', sourceId, `extract_instance source "${sourceId}" does not exist`)
+      }
+      if (source.storage.kind !== 'compact') {
+        return rejectProposal(
+          'EXTRACT_REQUIRES_COMPACT',
+          sourceId,
+          `change "${change.id}": "${sourceId}" is an instance model; extract_instance migrates a compact element into an instance model`,
+          change.id,
+        )
+      }
+      const sourcePath = pathOf(sourceId)
+      if (!sourcePath) {
+        return rejectPhase1('MODEL_NOT_FOUND', sourceId, `extract_instance source "${sourceId}" has no file`)
+      }
+      const sourceModel = await loadKnowledge(sourcePath)
+      const subtree = subtreeOf(sourceModel, slug)
+      if (!subtree) {
+        const held = [...sourceModel.elements.entries()]
+          .flatMap(([, list]) => list.map((el) => el.slug))
+          .filter((s): s is string => Boolean(s))
+        return rejectProposal(
+          'EXTRACT_ELEMENT_NOT_FOUND',
+          change.target,
+          `change "${change.id}": "${sourceId}" holds no element "${slug}" (slugs: ${held.join(', ') || 'none'})`,
+          change.id,
+        )
+      }
+      const declared = await loadDeclarations(rootDir, { name: blueprintName, url: blueprintUrl })
+      if (!declared) {
+        return rejectPhase1(
+          'BLUEPRINT_UNRESOLVED',
+          change.target,
+          `change "${change.id}": bluepriNNt "${blueprintName}" could not be resolved from "${blueprintUrl}"`,
+        )
+      }
+      const declaredStorage = [...declared].find(
+        ([name]) => name.toLowerCase() === subtree.concept.toLowerCase(),
+      )?.[1]
+      const distributed = [...declared]
+        .filter(([, storage]) => storage.mode === 'distributed')
+        .map(([name]) => name)
+      if (!declaredStorage || declaredStorage.mode !== 'distributed') {
+        return rejectProposal(
+          'EXTRACT_NOT_DISTRIBUTED',
+          change.target,
+          `change "${change.id}": "${subtree.concept}" is not a distributed concept of bluepriNNt "${blueprintName}"` +
+            ` (distributed: ${distributed.join(', ') || 'none'}); only a distributed concept may become its own model`,
+          change.id,
+        )
+      }
+      const targetSlug = toId.split('/').pop() ?? ''
+      if (targetSlug.toLowerCase() !== slug.toLowerCase()) {
+        return rejectProposal(
+          'EXTRACT_SLUG_MISMATCH',
+          toId,
+          `change "${change.id}": the extracted element "${slug}" must keep its slug, so "to" must end in "${slug}"`,
+          change.id,
+        )
+      }
+      const containerConcept = declaredStorage.container
+      const containerId = toId.split('/').slice(0, -1).join('/')
+      if (containerConcept && containerId) {
+        const holder = domainIndex.byId(containerId)
+        const planned = plannedConcepts.get(containerId.toLowerCase())
+        const ok =
+          planned !== undefined
+            ? containerConcept === undefined || planned.toLowerCase() === containerConcept.toLowerCase()
+            : holder?.storage.kind === 'instance' &&
+              holder.storage.concept.toLowerCase() === containerConcept.toLowerCase()
+        if (!ok) {
+          return rejectProposal(
+            'CONTAINER_MISSING',
+            toId,
+            `change "${change.id}": container "${containerId}" is not an instance of ${containerConcept}; create the container model first`,
+            change.id,
+          )
+        }
+      }
+      const placed = domainIndex.placementFor(subtree.concept, toId, blueprintName)
+      if (!('folder' in placed)) {
+        return rejectProposal('EXTRACT_INVALID_TARGET', toId, `change "${change.id}": ${placed.message}`, change.id)
+      }
+      const path = join(rootDir, placed.folder, placed.file)
+      if (!isInsideRoot(rootDir, path)) {
+        return rejectProposal('EXTRACT_INVALID_TARGET', toId, `model id "${toId}" resolves outside the domain`, change.id)
+      }
+      // An existing instance is a conflict, and it is the double-storage case the
+      // registry is cleaned of with `remove_element`, never repaired by extract.
+      const occupied =
+        domainIndex.byId(toId) !== undefined || (await stat(path).then((s) => s.isFile(), () => false))
+      if (occupied) {
+        blockedChanges.set(change.id, {
+          code: 'MODEL_EXISTS',
+          message: `MODEL_EXISTS: instance "${toId}" already exists; extract_instance never overwrites it - remove the registry copy with remove_element instead`,
+        })
+        // A-14: extracts of one source are one atomic migration. If one of them
+        // cannot land, none of them is attempted.
+        for (const otherId of extractsBySource.get(sourceId.toLowerCase()) ?? []) {
+          if (otherId === change.id) continue
+          blockedChanges.set(otherId, {
+            code: 'DEPENDS_ON_CONFLICTED_CHANGE',
+            message: `DEPENDS_ON_CONFLICTED_CHANGE: change "${otherId}" extracts from "${sourceId}", whose extraction group conflicted on change "${change.id}"`,
+          })
+        }
+        continue
+      }
+      extractPlans.set(change.id, {
+        changeId: change.id,
+        sourceId,
+        slug,
+        concept: subtree.concept,
+        toId,
+        blueprintName,
+        blueprintUrl,
+        folder: placed.folder,
+        file: placed.file,
+        path,
+      })
+      plannedConcepts.set(toId.toLowerCase(), subtree.concept)
     }
 
     for (const [index, change] of csDoc.changes.entries()) {
@@ -1514,6 +1700,93 @@ export async function executeChangesetApply(
         }
         change.status = 'applied'
         change.resolution = `Moved model "${plan.fromId}" to "${plan.toId}"`
+        continue
+      }
+
+      // `extract_instance` (design A11): cut the subtree out of the source and
+      // write it as a new instance model through the S6a skeleton. The source is
+      // mutated (bumped once); the new model records only its result version.
+      if (change.op === 'extract_instance') {
+        const plan = extractPlans.get(change.id)
+        if (!plan) {
+          return rejectPhase1('EXTRACT_INVALID_TARGET', change.target, `change "${change.id}" has no extract plan`)
+        }
+        const mutRes = coreApplyMutation(entry.model, 'extract_instance', {
+          elementName: plan.slug,
+          conceptName: plan.concept,
+        })
+        const subtree = mutRes.extracted
+        if (!mutRes.success || !subtree) {
+          return recordRejection(
+            (mutRes.errors ?? [{ path: '', message: `extract_instance "${plan.slug}" failed` }]).map((e) => ({
+              ...e,
+              code: 'MUTATION_FAILED',
+            })),
+            change.id,
+            mutRes.warnings,
+          )
+        }
+        let extractedBlueprint: Awaited<ReturnType<typeof resolveBlueprintWithCache>> | null = null
+        try {
+          extractedBlueprint = await resolveBlueprintWithCache(rootDir, plan.blueprintUrl, plan.blueprintName)
+        } catch {
+          extractedBlueprint = null
+        }
+        if (!extractedBlueprint?.template) {
+          return rejectPhase1(
+            'BLUEPRINT_UNRESOLVED',
+            change.to ?? '',
+            `change "${change.id}": bluepriNNt "${plan.blueprintName}" could not be resolved from "${plan.blueprintUrl}"`,
+          )
+        }
+        const composed = resolveBlueprintSchema(
+          extractedBlueprint.template.rawContent,
+          extractedBlueprint.resolveInclude,
+        )
+        if (composed.errors.length > 0) {
+          return rejectPhase1(
+            'BLUEPRINT_INVALID',
+            change.to ?? '',
+            `change "${change.id}": bluepriNNt "${plan.blueprintName}" does not compose: ${composed.errors
+              .map((e) => `${e.path}: ${e.message}`)
+              .join('; ')}`,
+          )
+        }
+        const rootNode = subtree.elements[0]!.node
+        const content = scaffoldKnowledgeDocument({
+          id: normalizeId(plan.toId),
+          blueprintName: plan.blueprintName,
+          blueprintUrl: plan.blueprintUrl,
+          title: change.name ?? rootNode.name,
+          knowledgeVersion: change.knowledge_version,
+          schema: composed.schema,
+          blueprintFrontmatter: extractedBlueprint.template.frontmatter as unknown as Record<string, unknown>,
+          root: {
+            concept: plan.concept,
+            slug: plan.slug,
+            ...(change.name ? { name: change.name } : { name: rootNode.name }),
+          },
+        })
+        const created = parseKnowledge(content)
+        // The extracted element IS the instance root, and its descendants
+        // replace the skeleton's placeholders: values and citations travel
+        // untouched, nothing is re-recorded.
+        seedExtractedModel(created, subtree)
+        const initialVersion = String(created.frontmatter.knowledge_version ?? 'V_0-1-0')
+        entry.mutated = true
+        loadedModels.set(plan.toId.toLowerCase(), {
+          modelSlug: plan.toId,
+          filePath: plan.path,
+          model: created,
+          baseVersion: initialVersion,
+          nextVersion: initialVersion,
+          mutated: true,
+          created: true,
+          schema: composed.schema,
+        })
+        change.status = 'applied'
+        change.resolution = `Extracted "${plan.slug}" from "${plan.sourceId}" into "${plan.toId}"`
+        change.extracted_slugs = [...subtree.slugs]
         continue
       }
 
