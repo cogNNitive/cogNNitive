@@ -7374,14 +7374,12 @@ var require_dist = __commonJS({
 // iNNfo/packages/nn-core/src/scope/index.ts
 var index_exports = {};
 __export(index_exports, {
-  buildModelIndex: () => buildModelIndex,
   buildScopeChain: () => buildScopeChain,
   driftReport: () => driftReport,
   elementChain: () => elementChain,
   findDomainRoot: () => findDomainRoot,
   findInChain: () => findInChain,
   findScopeChain: () => findScopeChain,
-  findStemCollisions: () => findStemCollisions,
   isDomainRoot: () => isDomainRoot,
   listScopeElements: () => listScopeElements,
   loadChain: () => loadChain,
@@ -7390,9 +7388,7 @@ __export(index_exports, {
   loadElementChains: () => loadElementChains,
   loadScopeProcedures: () => loadScopeProcedures,
   resolve: () => resolve3,
-  resolveModelId: () => resolveModelId,
-  resolveProcedures: () => resolveProcedures,
-  stemCollisionMessage: () => stemCollisionMessage
+  resolveProcedures: () => resolveProcedures
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -7461,130 +7457,6 @@ function findDomainRoot(path) {
     if (parent === dir) return null;
     dir = parent;
   }
-}
-
-// iNNfo/packages/nn-core/src/scope/model-index.ts
-function stemOf(path) {
-  const base = path.slice(path.lastIndexOf("/") + 1);
-  return base.replace(/\.md$/i, "");
-}
-function cleanStemOf(stem) {
-  let s = stem;
-  while (/_NN$/i.test(s)) {
-    s = s.replace(/_NN$/i, "");
-  }
-  return s;
-}
-function packageStemOf(path) {
-  const parts = path.split("/");
-  if (parts.length >= 2) {
-    const fileName = parts[parts.length - 1];
-    if (/^spec(_NN)?(\.md)?$/i.test(fileName)) {
-      const parent = parts[parts.length - 2];
-      if (parent && parent !== "specs" && parent !== "bluepriNNts") {
-        return cleanStemOf(parent);
-      }
-    }
-  }
-  return void 0;
-}
-function buildModelIndex(relativePaths) {
-  const entries = [];
-  const byStem = /* @__PURE__ */ new Map();
-  const byCleanStem = /* @__PURE__ */ new Map();
-  const byPath = /* @__PURE__ */ new Map();
-  for (const raw of relativePaths) {
-    const path = raw.replace(/\\/g, "/");
-    const stem = stemOf(path);
-    const cleanStem = cleanStemOf(stem);
-    const entry = { path, stem, cleanStem };
-    entries.push(entry);
-    byPath.set(path.toLowerCase(), entry);
-    const stemKey = stem.toLowerCase();
-    const stemList = byStem.get(stemKey) ?? [];
-    stemList.push(entry);
-    byStem.set(stemKey, stemList);
-    const cleanKey = cleanStem.toLowerCase();
-    const cleanList = byCleanStem.get(cleanKey) ?? [];
-    cleanList.push(entry);
-    byCleanStem.set(cleanKey, cleanList);
-    const pkg = packageStemOf(path);
-    if (pkg) {
-      const pkgKey = pkg.toLowerCase();
-      const pkgStemList = byStem.get(pkgKey) ?? [];
-      if (!pkgStemList.some((e) => e.path === entry.path)) {
-        pkgStemList.push(entry);
-        byStem.set(pkgKey, pkgStemList);
-      }
-      const pkgCleanList = byCleanStem.get(pkgKey) ?? [];
-      if (!pkgCleanList.some((e) => e.path === entry.path)) {
-        pkgCleanList.push(entry);
-        byCleanStem.set(pkgKey, pkgCleanList);
-      }
-    }
-  }
-  return { entries, byStem, byCleanStem, byPath };
-}
-function resolveModelId(index, arg) {
-  const normalized = arg.trim().replace(/\\/g, "/");
-  if (!normalized) return { ok: false, code: "MODEL_NOT_FOUND" };
-  if (normalized.includes("/")) {
-    const lower = normalized.toLowerCase();
-    const direct = index.byPath.get(lower);
-    if (direct) return { ok: true, path: direct.path };
-    const withMd = index.byPath.get(`${lower}.md`);
-    if (withMd) return { ok: true, path: withMd.path };
-    const withNN = index.byPath.get(`${lower}_nn.md`);
-    if (withNN) return { ok: true, path: withNN.path };
-    const matched = index.entries.filter((e) => {
-      const eLower = e.path.toLowerCase();
-      if (eLower === lower) return true;
-      if (eLower.replace(/\.md$/i, "") === lower) return true;
-      if (eLower.replace(/_nn\.md$/i, "") === lower) return true;
-      return false;
-    });
-    if (matched.length === 1) return { ok: true, path: matched[0].path };
-    if (matched.length > 1) {
-      const candidates = [...new Set(matched.map((m) => m.path))].sort();
-      return { ok: false, code: "AMBIGUOUS_MODEL_ID", candidates };
-    }
-    return { ok: false, code: "MODEL_NOT_FOUND" };
-  }
-  const bare = normalized.replace(/\.md$/i, "");
-  const key = bare.toLowerCase();
-  const cleanKey = cleanStemOf(bare).toLowerCase();
-  const stemMatches = index.byStem.get(key) ?? [];
-  let matches = stemMatches;
-  if (matches.length === 0) {
-    matches = index.byCleanStem.get(cleanKey) ?? [];
-  }
-  const unique = /* @__PURE__ */ new Map();
-  for (const m of matches) unique.set(m.path, m);
-  const candidateList = [...unique.values()];
-  if (candidateList.length === 1) {
-    return { ok: true, path: candidateList[0].path };
-  }
-  if (candidateList.length > 1) {
-    const candidates = candidateList.map((m) => m.path).sort();
-    return { ok: false, code: "AMBIGUOUS_MODEL_ID", candidates };
-  }
-  return { ok: false, code: "MODEL_NOT_FOUND" };
-}
-
-// iNNfo/packages/nn-core/src/scope/stem-collision.ts
-function findStemCollisions(modelPaths) {
-  const byStem = /* @__PURE__ */ new Map();
-  for (const raw of modelPaths) {
-    const path = raw.replace(/\\/g, "/");
-    const id = stemOf(path);
-    const paths = byStem.get(id) ?? /* @__PURE__ */ new Set();
-    paths.add(path);
-    byStem.set(id, paths);
-  }
-  return [...byStem.entries()].filter(([, paths]) => paths.size > 1).map(([id, paths]) => ({ id, paths: [...paths].sort() })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-}
-function stemCollisionMessage(collision) {
-  return `Model id "${collision.id}" is carried by ${collision.paths.length} documents: ${collision.paths.join(", ")}. Model ids are filename stems and must be unique within a domaiNN.`;
 }
 
 // iNNfo/packages/nn-core/src/scope/chain.ts
@@ -9197,14 +9069,12 @@ function driftReport(input) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  buildModelIndex,
   buildScopeChain,
   driftReport,
   elementChain,
   findDomainRoot,
   findInChain,
   findScopeChain,
-  findStemCollisions,
   isDomainRoot,
   listScopeElements,
   loadChain,
@@ -9213,7 +9083,5 @@ function driftReport(input) {
   loadElementChains,
   loadScopeProcedures,
   resolve,
-  resolveModelId,
-  resolveProcedures,
-  stemCollisionMessage
+  resolveProcedures
 });
