@@ -10124,6 +10124,17 @@ var ChangeLogImpl = class {
     }
     return former.reverse();
   }
+  successorOf(id) {
+    let current = id;
+    let moved = false;
+    for (const rekey of this.fold.rekeys) {
+      if (current === rekey.from) current = rekey.to;
+      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`;
+      else continue;
+      moved = true;
+    }
+    return moved ? current : void 0;
+  }
   /**
    * Maps a unit key forward through the rekeys recorded AFTER `order` (all of
    * them when `order` is omitted). The first move a unit predates re-keys it.
