@@ -9494,6 +9494,7 @@ var CHANGE_OPS = [
   "add_matrix",
   "comment",
   "add_model",
+  "move_model",
   "freeze_slugs",
   "bump_version",
   "update_element_text",
@@ -9525,6 +9526,22 @@ function addModelProblems(change) {
     problems.push(
       hierarchical ? `change "${id}": add_model target must be a hierarchical model id (no "@", "&", "..", backslashes, or absolute path)` : `change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`
     );
+  }
+  return problems;
+}
+function moveModelProblems(change) {
+  if (change.op !== "move_model") return [];
+  const problems = [];
+  const id = change.id;
+  const bareModelId = (value) => value.length > 0 && !value.includes("@") && !value.includes("&") && !value.includes("\\") && !value.includes("..") && !/^[a-zA-Z]:/.test(value) && value !== ".";
+  const target = String(change.target ?? "").trim();
+  if (!target || !bareModelId(target) || target.startsWith("/")) {
+    problems.push(`change "${id}": move_model target must be the old instance model id`);
+  }
+  const to = String(change.to ?? "").trim();
+  if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`);
+  else if (!bareModelId(to) || to.startsWith("/")) {
+    problems.push(`change "${id}": move_model "to" must be the new instance model id`);
   }
   return problems;
 }
@@ -9748,6 +9765,10 @@ function parseChangeset(rawContent) {
   if (problems.length > 0) {
     throw new Error(`Invalid add_model change: ${problems.join("; ")}`);
   }
+  const moveProblems = changes.flatMap(moveModelProblems);
+  if (moveProblems.length > 0) {
+    throw new Error(`Invalid move_model change: ${moveProblems.join("; ")}`);
+  }
   return {
     frontmatter,
     changes,
@@ -9845,6 +9866,23 @@ function updateWikiLinks(text, oldName, newName) {
 }
 
 // iNNfo/packages/nn-core/src/changelog/fold.ts
+function rekeyKey(key, from, to) {
+  const at = key.indexOf("@");
+  const model = at === -1 ? key : key.slice(0, at);
+  const rest = at === -1 ? "" : key.slice(at);
+  let newModel;
+  if (model === from) newModel = to;
+  else if (model.startsWith(`${from}/`)) newModel = `${to}${model.slice(from.length)}`;
+  else return key;
+  if (at === -1) return newModel;
+  const oldSlug = from.split("/").pop() ?? "";
+  const newSlug = to.split("/").pop() ?? "";
+  if (oldSlug !== newSlug) {
+    const [first, ...others] = rest.slice(1).split("&");
+    if (first === oldSlug) return `${newModel}@${[newSlug, ...others].join("&")}`;
+  }
+  return `${newModel}${rest}`;
+}
 function canonicalValue(raw) {
   if (raw === void 0 || raw === null) return "";
   const parsed = parsePropertyValue(String(raw));
@@ -9885,6 +9923,7 @@ function foldChanges(changes) {
   const epochs = /* @__PURE__ */ new Map();
   const elements = /* @__PURE__ */ new Map();
   const relinks = /* @__PURE__ */ new Map();
+  const rekeys = [];
   const addRelink = (model, from, to, order) => {
     if (!from || !to) return;
     const bucket = relinks.get(model);
@@ -9942,6 +9981,41 @@ function foldChanges(changes) {
         addRelink(model, oldName, newName, order);
         return;
       }
+      case "move_model": {
+        const fromId = change.target;
+        const toId = change.to ?? "";
+        if (!fromId || !toId || fromId === toId) return;
+        const rekey = (key) => rekeyKey(key, fromId, toId);
+        const rekeyMap = (map, withKey) => {
+          for (const [key, value] of [...map]) {
+            const next = rekey(key);
+            if (next === key) continue;
+            map.delete(key);
+            map.set(next, withKey(value, next));
+          }
+        };
+        rekeyMap(units, (unit, key) => ({ ...unit, key }));
+        rekeyMap(epochs, (_value) => _value);
+        rekeyMap(elements, (_value) => _value);
+        for (const key of [...cleared]) {
+          const next = rekey(key);
+          if (next === key) continue;
+          cleared.delete(key);
+          cleared.add(next);
+        }
+        for (let i = 0; i < tombstones.length; i++) {
+          const tombstone = tombstones[i];
+          const target = rekey(tombstone.target);
+          if (target === tombstone.target) continue;
+          tombstones[i] = {
+            ...tombstone,
+            target,
+            ...tombstone.resolvedTarget !== void 0 ? { resolvedTarget: rekey(tombstone.resolvedTarget) } : {}
+          };
+        }
+        rekeys.push({ from: fromId, to: toId, order });
+        return;
+      }
       case "remove_element": {
         const { model, parts } = splitUnitKey(address);
         const key = elementKeyOf(address) || (parts[0] ? `${model}@${parts[0]}` : address);
@@ -9978,7 +10052,7 @@ function foldChanges(changes) {
         return;
     }
   });
-  return { units, cleared, tombstones, epochs, elements, relinks };
+  return { units, cleared, tombstones, epochs, elements, relinks, rekeys };
 }
 function applyRelinks(unit, relinks) {
   if (unit.kind === "cell" || unit.kind === "artifact") return unit.value;
@@ -10022,21 +10096,46 @@ var ChangeLogImpl = class {
   fold;
   constructor(changes) {
     this.all = [...changes].sort(compareChanges);
-    for (const change of this.all) {
-      if (!change.applied) continue;
-      const unit = unitOf(change);
+    this.fold = foldChanges(this.all);
+    this.all.forEach((change, order) => {
+      if (!change.applied) return;
+      const unit = this.forwardKey(unitOf(change), order);
       const bucket = this.byUnit.get(unit);
       if (bucket) bucket.push(change);
       else this.byUnit.set(unit, [change]);
-    }
-    this.fold = foldChanges(this.all);
+    });
   }
   /** Applied changes of a unit, cut at the latest add_element of its element. */
   history(unit) {
-    const bucket = this.byUnit.get(unit) ?? [];
-    const epoch = this.fold.epochs.get(elementKeyOf(unit));
+    const key = this.forwardKey(unit);
+    const bucket = this.byUnit.get(key) ?? [];
+    const epoch = this.fold.epochs.get(elementKeyOf(key));
     if (epoch === void 0) return bucket;
     return bucket.filter((change) => this.orderOf(change) > epoch);
+  }
+  identities(id) {
+    const former = [];
+    let current = id;
+    for (let i = this.fold.rekeys.length - 1; i >= 0; i--) {
+      const rekey = this.fold.rekeys[i];
+      if (rekey.to !== current) continue;
+      former.push(rekey.from);
+      current = rekey.from;
+    }
+    return former.reverse();
+  }
+  /**
+   * Maps a unit key forward through the rekeys recorded AFTER `order` (all of
+   * them when `order` is omitted). The first move a unit predates re-keys it.
+   */
+  forwardKey(unit, order = -1) {
+    let key = unit;
+    for (const rekey of this.fold.rekeys) {
+      if (rekey.order < order) continue;
+      const next = rekeyKey(key, rekey.from, rekey.to);
+      if (next !== key) key = next;
+    }
+    return key;
   }
   origin(unit) {
     if (!this.fold.units.has(unit)) return void 0;
