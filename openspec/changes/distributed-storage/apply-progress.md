@@ -19,7 +19,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S4b | 516 | `ds/s4b` | `ds/s4a` | open, partial (S4b.2 apply pending a decision) |
 | S5a | 519 | `ds/s5a` | `ds/s4b` | open, applied |
 | S5b | 522 | `ds/s5b` | `ds/s5a` | open, applied (866 hand-authored changed lines, `size:exception`) |
-| S6a to S7d | n/a | n/a | n/a | not started |
+| S6a | PR_PLACEHOLDER | `ds/s6a` | `ds/s5b` | open, applied (`size:exception`) |
+| S6b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -508,3 +509,44 @@ Status: S5b.1 to S5b.5 done.
 - `node --test scripts/export-console.test.mjs`: 52 passed. `node --test test/console-edit-modal-types.test.mjs`: 13 passed. `node --test test/console-s3b-parity.test.mjs`: 16 passed.
 - `node scripts/verify.js --fast`: green. Full `node scripts/verify.js`: 227 steps, exit 0.
 - Bundle and testlab fixture regenerated with the shipped scripts; no inline hash edited by hand.
+
+## S6a - `add_model` with placement and replay skeleton (PR 13, branch `ds/s6a`, targets `ds/s5b`)
+
+Status: S6a.1 to S6a.8 done.
+
+### RED
+- `src/tools/apply-change-facts.spec.ts` gained a self-contained distributed fixture (a local bluepriNNt declaring `Series` at `series/{slug}/` and `Video` at `{container}/assets/{slug}/`) and 16 cases. The first 8 failed for real reasons: `parseChangeset` rejected `concept` on `add_model` ("must not carry element payload"), the placement was never computed, and the id was always written under `kNNowledge/`.
+- The S6a.3 run failed 4 of 8: a bare slug said only `Model not found: intro`, a filename stem was reported as an unknown id instead of a removed form, three instances with one invalid model applied, and a misplaced instance was updated in place.
+- `test/provenance-strict.test.ts` gained 3 instance cases; 2 failed: replay rebuilt a compact skeleton (so a clean instance drifted) and an instance with no recorded creation was skipped silently.
+- `tests/changeset/template.test.ts` failed on the `concept` description; the serializer/hasher cases passed at intake and were proven to bite by mutation (see Evidence).
+
+### GREEN
+- `addModelProblems` (`core/changeset/types.ts`) accepts `concept` on `add_model` and, only then, a hierarchical target. A hierarchical target without `concept` is still rejected as "a plain model id", so the compact branch is unchanged.
+- `scaffoldKnowledgeDocument({root})` (`core/scaffold/knowledge.ts`) writes the instance root element (`## NN <Concept>: <name>` plus `slug:: <slug>`) and skips every OTHER distributed concept. A second element of a distributed concept would make the file a registry or a mixed-storage model (design A8), so the skeleton holds the root and the compact concepts only. The document title and `knowledge_slug` default to the instance slug, never to the full id.
+- `add_model` (`apply-change.ts`) computes the placement once, before Phase 1, from `DomainIndex.placementFor` plus the models an earlier change in the same changeset creates. It reports `CONTAINER_MISSING` naming the container, `ADD_MODEL_ORDER` when the container is created later, `ADD_MODEL_INVALID_TARGET` for a bad id, and `BLUEPRINT_UNRESOLVED` (before placement can even be computed) when the bluepriNNt does not resolve. `MODEL_EXISTS` now also covers an occupied placement path, so a non-model file is never overwritten. `DOMAIN_LAYOUT_INVALID` stays on the compact branch only.
+- Phase 2 creates the folders an instance needs and records exactly the ones it created; the existing rollback removes created files and then those folders, deepest first and only when empty.
+- `modelIdAliases` skips `add_model` changes that name a concept or carry a hierarchical id: the stem alias is a compact-model rule (design A9), and `canonicalModelId` would otherwise append the bluepriNNt to the slug.
+- Targeting: an unresolved model part lists the ids that share its last segment (a bare slug never resolves), and a filename stem is reported as `MODEL_ADDRESSED_BY_STEM` naming the id to use. Before Phase 2, every touched instance model runs `fileLocalDiagnostics`, so a placement violation aborts the whole changeset.
+- Strict replay passes the same `root` to `scaffoldKnowledgeDocument`, and an instance model with no applied `add_model` is reported as `MODEL_WITHOUT_RECORD` (error) instead of being skipped.
+- `core/domain/placement.ts` derives the instance file name from the version-less bluepriNNt name, which is what `checkInstanceName` compares against; the two disagreed for a versioned `parent_spec.name`.
+- `buildNodeDomainIndex` also warms declarations by bluepriNNt NAME, so `DomainIndex.placementFor` (which takes no url) resolves the same declarations the models pinned.
+- `changes` blueprint: `blueprint_version` V_0-6-0 -> V_0-7-0 (bumped once; S6b edits it in place), the `concept` field documents `add_model`, and the `add_model` bullet states the placement rule. `manifest/source.yaml`, `catalog.json` and `canonical-registry.ts` regenerated.
+
+### Evidence
+- **Mutation 1**: removing `'concept'` from `PROPOSAL_KEYS` made `hasher.test.ts` fail on the frozen seal and on "the concept is part of the seal"; reverted, 13 passed.
+- **Mutation 2**: keying the loaded model by the bare slug instead of the hierarchical id made 8 cases of `apply-change-facts.spec.ts` fail (models map, resolved target, candidates, placement gate); reverted, 24 passed.
+
+### Deviations
+1. **Two TDD pairs share one commit.** S6a.1/S6a.2 and S6a.3/S6a.4 touch the same three files (`apply-change.ts`, the spec, `model-id.ts`); both pairs were driven red and green in that order, but the resulting tree cannot be split into two reviewable commits without rewriting the same hunks twice. Recorded here rather than fabricating a split.
+2. **An occupied placement path is detected with `stat` on the computed path.** `findKnowledgeFile` never resolves a non-model file whose stem matches a model, so the id check alone cannot see the squatting file.
+3. **The placement gate runs `fileLocalDiagnostics` only for touched instance models.** A compact model keeps today's behaviour, including the `DOMAIN_LAYOUT_INVALID` rule, because that rule belongs to the compact branch of `add_model` (task S6a.1).
+4. **The "one invalid instance" case uses a file that is already outside its bluepriNNt.** A bad `select` value is refused by the mutation (`MUTATION_FAILED`), so it cannot exercise the Phase 4 `VALIDATION_FAILED` path the spec's scenario is about.
+5. **A stem target is reported by the apply engine, not by the parser.** `parseAddress` cannot know the domain's stems; the check lives where the index does, and it runs before any write.
+6. **A pre-existing S5b defect was repaired here.** `test/console-export-roundtrip.test.ts` still asserted the pre-S5b path-derived `modelId` (`kNNowledge/strategy`); S5b deleted `normalizeModelId` but left the assertion, so the file was red on `ds/s5b` before this slice. The one-line expectation now matches the shipped behaviour (`strategy`) and is committed separately so the repair is visible.
+7. **`mcp-tests/apply-change-models.test.ts` was not edited.** Its compact cases already cover the unchanged branch and passed untouched; the new instance cases live in `apply-change-facts.spec.ts`, which the slice lists as the first failing test's home.
+
+### Gate (S6a verification)
+- nn-core `tsc --noEmit`: exit 0; nn-core build: exit 0; nn-core `vitest run`: 214 files, 2392 passed.
+- nn-mcp typecheck (throwaway worktree config): exit 0; nn-mcp `vitest run`: 63 files, 700 passed (after deviation 6).
+- `node scripts/verify.js --fast`: see the PR body.
+
