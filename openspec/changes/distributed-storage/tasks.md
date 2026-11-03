@@ -421,7 +421,7 @@ First failing test (`core-tests/corpus-address-scan.test.ts`): every kNNowledge 
 - [x] S7b.3 [GREEN] [S] Create the new sample versions through the repo's own change path where practical (changes applied to a copy), delete the superseded files, update catalogs and references. Migrate typed `[[Name]]` to `@slug`; prose wikilinks stay.
 - [x] S7b.4 [GREEN] [P] Migrate fixtures under `core-tests/fixtures/**`, `test/fixtures/testlab/**`, `test/simulation/fixtures/**`; regenerate `test/fixtures/testlab/domaiNN_console.html` (`node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`) and commit it.
 - [x] S7b.5 [S] If S3b.11 already pulled the corpus forward, reduce this PR to the remainder and say so in the PR body.
-- [ ] S7b.6 [S] Standard PR gate. Open PR 18.
+- [x] S7b.6 [S] Standard PR gate. Open PR 18.
 
 Verification: `npm --workspace=@cognnitive/nn-core test -- corpus`, `node scripts/verify.js --only=sample`, `npm run verify:fast`.
 Rollback: revert; restores the superseded samples.
