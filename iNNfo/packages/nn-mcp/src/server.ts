@@ -99,12 +99,17 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'list_knowledge',
       annotations: { readOnlyHint: true },
-      description: 'Scan the knowledge directory and list all iNNfo knowledge documents',
+      description:
+        'Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept\'s members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)',
       inputSchema: {
         type: 'object',
         properties: {
           domain: { type: 'string', description: 'Optional override domain directory to scan' },
           root: { type: 'string', description: 'Optional override domain directory to scan (alias for domain)' },
+          collection: {
+            type: 'string',
+            description: 'Return the members of this concept\'s collection instead of every model (e.g. "Video")',
+          },
         },
       },
     },
@@ -894,7 +899,8 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
 
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const knowledge = await listKnowledge(root)
+  const collection = typeof args.collection === 'string' && args.collection.trim() ? args.collection.trim() : undefined
+  const knowledge = await listKnowledge(root, collection ? { collection } : {})
   return textResult(JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2))
 }
 

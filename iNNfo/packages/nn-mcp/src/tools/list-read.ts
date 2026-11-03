@@ -58,20 +58,68 @@ export function normalizeId(id: string): string {
   return normalized
 }
 
+/** One row of `list_knowledge`: the model identity plus what a domaiNN-wide reader needs. */
+export interface ListedKnowledgeInfo extends KnowledgeInfo {
+  /** Pinned bluepriNNt name, or undefined for a model with no `parent_spec`. */
+  blueprint?: string
+  /** How the concept is stored; `instance` names the root concept. */
+  storage?: { kind: 'compact' } | { kind: 'instance'; concept: string }
+  /** Set when the layout pass flags this model: today only a placement mismatch. */
+  placement?: 'PLACEMENT_MISMATCH'
+}
+
+export interface ListKnowledgeOptions {
+  /**
+   * Return the members of one concept's collection instead of every model
+   * (design A12: a collection spans storage forms). Sorted by id.
+   */
+  collection?: string
+}
+
 /**
  * Scan a directory for iNNfo knowledge documents. Ids come from the domain
  * index: hierarchical, never a path, unchanged when a same-stem file is added
  * elsewhere. A model with no id (unaddressable) is not listed.
  */
-export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
+export async function listKnowledge(
+  rootDir: string,
+  options: ListKnowledgeOptions = {},
+): Promise<ListedKnowledgeInfo[]> {
   const { index, discovered } = await buildNodeDomainIndex(rootDir)
   const byRel = new Map(discovered.map((d) => [d.input.path, d]))
-  const models: KnowledgeInfo[] = []
-  for (const m of index.models) {
+
+  // A misplaced instance is still discoverable (discovery is path-agnostic);
+  // it is listed and flagged rather than hidden.
+  const misplaced = new Set(
+    index.diagnostics
+      .filter((d) => d.code === 'PLACEMENT_MISMATCH')
+      .flatMap((d) => d.paths),
+  )
+
+  const wanted =
+    options.collection === undefined
+      ? index.models
+      : index.collection(options.collection).map((member) => index.byPath(member.path)).filter(
+          (model): model is NonNullable<typeof model> => model !== undefined,
+        )
+
+  const models: ListedKnowledgeInfo[] = []
+  for (const m of wanted) {
     const found = byRel.get(m.path)
-    if (found) models.push({ id: m.id, path: found.path, version: found.version })
+    if (!found) continue
+    models.push({
+      id: m.id,
+      path: found.path,
+      version: found.version,
+      blueprint: m.blueprint.name,
+      storage:
+        m.storage.kind === 'instance'
+          ? { kind: 'instance', concept: m.storage.concept }
+          : { kind: 'compact' },
+      ...(misplaced.has(m.path) ? { placement: 'PLACEMENT_MISMATCH' as const } : {}),
+    })
   }
-  return models
+  return models.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 }
 
 /**

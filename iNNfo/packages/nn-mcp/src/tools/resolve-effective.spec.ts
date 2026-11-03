@@ -128,6 +128,38 @@ describe('resolve_effective over element scopes', () => {
   })
 })
 
+describe('storage is orthogonal to the scope chain (distributed-storage S5a)', () => {
+  it('an instance model inherits from the series scope through its own folder', async () => {
+    const r = ok(await resolveEffective(GOLD, { path: SCRIPT, key: 'voice_id', strategy: 'override' }, isolated))
+    // The supplier is the SERIES scope, not the instance model: distributing a
+    // concept moves the file, never the chain.
+    expect(r.present).toBe(true)
+    expect(r.value).toBe('LucasCervera02')
+    expect(r.winner?.scope).toBe('series/innteresante')
+  })
+
+  it('instances of different series never share a supplier', async () => {
+    const other = 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_video-script_villabotijos-today_NN.md'
+    const a = ok(await resolveEffective(GOLD, { path: SCRIPT, key: 'music_volume', strategy: 'override', target: { concept: 'Scene', slug: '03-cierre' } }, isolated))
+    const b = ok(await resolveEffective(GOLD, { path: other, key: 'music_volume', strategy: 'override' }, isolated))
+    // Membership in a collection adds, removes and reorders nothing: each clone
+    // resolves against its own series.
+    expect(a.winner?.scope).toBe('series/innteresante')
+    expect(b.winner?.scope ?? '').not.toBe('series/innteresante')
+  })
+
+  it('a folder holding instance models without scope: true is not in the chain', async () => {
+    const r = okExplain(
+      await explainEffective(GOLD, { path: SCRIPT, key: 'voice_id', strategy: 'override' }, isolated),
+    )
+    const ids = r.chain.map((c) => c.id)
+    // The instance folder is a LOOKUP location, never a supplier: it joins the
+    // chain only when the model declares scope.
+    expect(ids).not.toContain('series/innteresante/assets/bosco-verticale')
+    expect(ids).toContain('series/innteresante')
+  })
+})
+
 describe('the floor', () => {
   it('falls back to the single defaults document of the package named by parent_spec', async () => {
     const dir = portfolioWithPackage(['settings-defaults_NN.md'])
