@@ -9,7 +9,14 @@ import { RESERVED_HEAD } from '../address/grammar.js'
 import { blueprintNameOf, roleOf } from '../naming/contract.js'
 import type { ConceptStorage } from '../schema/storage.js'
 import { basenameOf, classifyModel, idOf, parentSpecOf, type Classification } from './classify.js'
-import { buildRules, layoutDiagnostic, placementFor as placementForRules, type PlacementRules } from './placement.js'
+import {
+  buildRules,
+  expectedFolder,
+  layoutDiagnostic,
+  localDiagnostics,
+  placementFor as placementForRules,
+  type PlacementRules,
+} from './placement.js'
 import type {
   AddressResolution,
   DomainModelInput,
@@ -37,6 +44,7 @@ export interface DomainIndex {
 interface Entry {
   input: DomainModelInput
   classification: Classification
+  rules: PlacementRules
   model: IndexedModel
 }
 
@@ -98,7 +106,7 @@ export function buildDomainIndex(
           }
         : { kind: 'compact' }
     const blueprint = { name: blueprintNameOf(name ?? ''), version: versionOf(name ?? '') }
-    entries.push({ input, classification, model: { id: id as ModelId, path: input.path, blueprint, storage } })
+    entries.push({ input, classification, rules: declared.rules, model: { id: id as ModelId, path: input.path, blueprint, storage } })
   }
 
   const byIdGroups = new Map<string, Entry[]>()
@@ -114,6 +122,42 @@ export function buildDomainIndex(
         { id },
       ),
     )
+  }
+
+  const alsoStoredAt = (concept: string, slugs: readonly string[]): string[] =>
+    entries
+      .filter(({ model: m }) => m.storage.kind === 'instance' && m.storage.concept === concept && slugs.includes(m.storage.slug))
+      .map((e) => e.model.path)
+  for (const e of entries) diagnostics.push(...localDiagnostics(e.input, e.classification, e.rules, alsoStoredAt))
+
+  for (const { classification: c, input, rules, model: m } of entries) {
+    if (c.kind !== 'instance' || !c.matched || !c.rule.container || m.storage.kind !== 'instance') continue
+    const { container: containerId, slug } = m.storage
+    const containerRule = rules.get(c.rule.container.toLowerCase())
+    const holder = (byIdGroups.get(containerId ?? '') ?? []).find(
+      (e) => e.model.storage.kind === 'instance' && e.model.storage.concept === c.rule.container,
+    )
+    if (!holder && containerRule) {
+      const where = expectedFolder(containerRule, c.matched.slice(0, -1))
+      diagnostics.push(
+        layoutDiagnostic(
+          'CONTAINER_MISSING',
+          `${input.path} - container ${c.rule.container} "${containerId}" is not an instance of ${c.rule.container} (expected a model in ${where}); add it or move the file`,
+          [input.path],
+          { id: m.id },
+        ),
+      )
+    } else if (holder?.input.elements.some((el) => el.slug === slug)) {
+      const folder = `${input.path.split('/').slice(0, -1).join('/')}/`
+      diagnostics.push(
+        layoutDiagnostic(
+          'INSTANCE_SHADOWS_ELEMENT_ASSETS',
+          `${input.path} - folder ${folder} is used by the ${m.storage.concept} instance "${m.id}" and by the assets of element "${slug}" in ${holder.model.path}; give one of them another slug`,
+          [holder.model.path, input.path],
+          { id: m.id, severity: 'warning' },
+        ),
+      )
+    }
   }
 
   const models = entries.map((e) => e.model).sort((a, b) => byText(a.id, b.id) || byText(a.path, b.path))
