@@ -423,6 +423,21 @@ describe('resolveBlueprintPackage — unversioned workspace package (Tier 1)', (
     expect(pkg?.packagePath).toBe(pkgDir)
   })
 
+  it('resolves a mixed-case blueprint folder by its real on-disk casing', async () => {
+    // `parseSpecName` lowercases the base, so the lookup used to ask for
+    // `bluepriNNts/conntent/` — invisible on Windows (case-insensitive) and a hard miss on
+    // Linux CI, where it fell through to the global cache instead of the workspace package.
+    const pkgDir = path.join(rootDir, 'specs', 'bluepriNNts', 'coNNtent')
+    fs.mkdirSync(pkgDir, { recursive: true })
+    fs.writeFileSync(path.join(pkgDir, 'spec_NN.md'), SPEC_CONTENT)
+
+    const pkg = await resolveBlueprintPackage(rootDir, 'coNNtent_V_0-15-0', undefined, options())
+
+    expect(pkg?.tier).toBe('workspace-package')
+    expect(pkg?.packagePath).toBe(pkgDir)
+    expect(pkg?.specFilePath).toBe(path.join(pkgDir, 'spec_NN.md'))
+  })
+
   it('does not match a directory that exists with no spec file', async () => {
     const pkgDir = path.join(rootDir, 'specs', 'bluepriNNts', 'empty-pkg')
     fs.mkdirSync(path.join(pkgDir, 'procedures'), { recursive: true })
