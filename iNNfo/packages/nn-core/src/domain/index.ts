@@ -17,6 +17,7 @@ import {
   placementFor as placementForRules,
   type PlacementRules,
 } from './placement.js'
+import { versionSkew } from './skew.js'
 import type {
   AddressResolution,
   CollectionMember,
@@ -163,6 +164,16 @@ export function buildDomainIndex(
       )
     }
   }
+
+  diagnostics.push(
+    ...versionSkew(
+      entries.map((e) => ({
+        path: e.input.path,
+        frontmatter: e.input.frontmatter,
+        concepts: e.model.storage.kind === 'instance' ? [e.model.storage.concept] : [],
+      })),
+    ),
+  )
 
   const models = entries.map((e) => e.model).sort((a, b) => byText(a.id, b.id) || byText(a.path, b.path))
   const pathMap = new Map(models.map((m) => [m.path, m]))
