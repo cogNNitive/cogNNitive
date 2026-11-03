@@ -2,17 +2,17 @@
    (change 2026-11-02-video-script-v1, decisions D10 / A3 / A12).
 
    Rebuilt to the shape of the former standalone review console. Each scene is a
-   collapsible card holding, in reading order: the narration body, its editorial
-   variants, the visual options with their motion tier, the layers, the cascade chips
-   (transition / background audio volume / voice speed) and the verdict with its reason.
+   collapsible card holding, in reading order: the narration body, the layers, the cascade
+   chips (transition / background audio volume / voice speed) and the verdict with its
+   reason.
 
-   One generic inspector serves every asset: the storyboard of a visual option and the
-   asset of a layer open the same modal instead of two bespoke overlays.
+   One generic inspector serves every asset: a scene layer opens a modal with its image and
+   its declaration.
 
    Every edit is a proposal through the console's store, which the review controller
-   exports as a changeset: narration, a chosen variant, a cascade override and the verdict
-   are `update_field`; a reason is `comment` (design A3). The view keeps no private copy of
-   any decision. Money and timings come from `ctx.viewData` (facts), never from the model. */
+   exports as a changeset: narration, a cascade override and the verdict are `update_field`;
+   a reason is `comment` (design A3). The view keeps no private copy of any decision. Money
+   and timings come from `ctx.viewData` (facts), never from the model. */
 registerView({
   title: 'Episode review',
   icon: 'play',
@@ -96,9 +96,7 @@ registerView({
       })
 
       card.appendChild(el('h3', null, view.title))
-      if (view.badge) {
-        card.appendChild(el('span', 'nn-tier-badge nn-tier-' + String(view.badge).toLowerCase(), String(view.badge).toUpperCase()))
-      }
+      if (view.badge) card.appendChild(el('span', 'nn-badge', String(view.badge)))
       if (view.image) {
         var shot = doc.createElement('img')
         shot.className = 'nn-lightbox-shot'
@@ -255,122 +253,7 @@ registerView({
         nSection.appendChild(narration)
         body.appendChild(nSection)
 
-        // ── 2. editorial (textual) variants ─────────────────────────────────────
-        var textVariants = (scene.variants || []).filter(function (v) {
-          return !(v.tier || v.thumbnail)
-        })
-        if (textVariants.length > 0) {
-          var vSection = el('div', 'nn-form-section')
-          vSection.appendChild(el('div', 'nn-section-label', 'Editorial variants (select & edit)'))
-          textVariants.forEach(function (variant) {
-            var item = el('div', 'nn-variant-item')
-            item.setAttribute('data-nn-variant', variant.slug)
-            var top = el('div', 'nn-variant-top')
-            var ring = el('button', 'nn-radio')
-            ring.type = 'button'
-            ring.setAttribute('data-nn-variant-pick', variant.slug)
-            ring.setAttribute('data-nn-variant-target', variant.target)
-            top.appendChild(ring)
-            top.appendChild(el('span', null, 'for:: ' + variant.target))
-            item.appendChild(top)
-
-            var area = el('textarea', 'nn-variant-input')
-            area.setAttribute('data-nn-variant-text', variant.slug)
-            area.value = variant.value
-            item.appendChild(area)
-
-            ring.addEventListener('click', function () {
-              propose({
-                kind: 'correction',
-                elementId: idOf(scene.slug),
-                field: variant.target === 'narration' ? 'narration' : variant.target,
-                proposed: area.value,
-              })
-              item.classList.add('is-selected')
-            })
-            vSection.appendChild(item)
-          })
-          body.appendChild(vSection)
-        }
-
-        // ── 3. visual options (motion tiers + storyboard) ───────────────────────
-        var visualVariants = (scene.variants || []).filter(function (v) {
-          return v.tier || v.thumbnail
-        })
-        if (visualVariants.length > 0) {
-          var gSection = el('div', 'nn-form-section')
-          gSection.setAttribute('data-nn-visual-section', '')
-          gSection.appendChild(el('div', 'nn-section-label', 'Visual options (pick one)'))
-          var vGrid = el('div', 'nn-visual-grid')
-          visualVariants.forEach(function (variant) {
-            var vCard = el('div', 'nn-visual-card')
-            vCard.setAttribute('data-nn-visual', variant.slug)
-            vCard.setAttribute('data-nn-visual-tier', variant.tier || 'media')
-
-            var tierClass = 'nn-tier-' + String(variant.tier || 'media').toLowerCase()
-            var vThumb = el('div', 'nn-visual-thumb ' + tierClass)
-            if (variant.thumbnailSrc) {
-              var vImg = doc.createElement('img')
-              vImg.src = variant.thumbnailSrc
-              vImg.alt = ''
-              vThumb.appendChild(vImg)
-            } else {
-              vThumb.appendChild(el('span', 'nn-motion-stage-label', 'MOTION ' + String(variant.tier || '').toUpperCase()))
-            }
-            if (variant.tier) {
-              vThumb.appendChild(el('span', 'nn-tier-badge ' + tierClass, String(variant.tier).toUpperCase()))
-            }
-            var inspect = el('button', 'nn-inspect', '⌕')
-            inspect.type = 'button'
-            inspect.setAttribute('data-nn-inspect', variant.slug)
-            inspect.title = 'Inspect storyboard'
-            vThumb.appendChild(inspect)
-            vCard.appendChild(vThumb)
-
-            var vDetails = el('div', 'nn-visual-details')
-            vDetails.appendChild(el('div', 'nn-visual-title', variant.slug))
-            vDetails.appendChild(el('div', 'nn-visual-sub', 'for:: ' + variant.target))
-            if (variant.storyboard) vDetails.appendChild(el('div', 'nn-visual-desc', variant.storyboard.slice(0, 80)))
-            vCard.appendChild(vDetails)
-
-            vCard.addEventListener('click', function (event) {
-              if (event.target && event.target.getAttribute && event.target.getAttribute('data-nn-inspect')) return
-              propose({
-                kind: 'correction',
-                elementId: idOf(scene.slug),
-                field: variant.target === 'narration' ? 'narration' : variant.target,
-                proposed: variant.value,
-              })
-              Array.prototype.forEach.call(vGrid.querySelectorAll('.nn-visual-card'), function (c) {
-                c.classList.remove('is-selected')
-              })
-              vCard.classList.add('is-selected')
-            })
-
-            inspect.addEventListener('click', function (event) {
-              event.stopPropagation()
-              openInspector({
-                title: variant.slug,
-                badge: variant.tier,
-                image: variant.thumbnailSrc,
-                specs: [
-                  ['Target', variant.target],
-                  ['Camera', variant.camera],
-                  ['Choreography', variant.choreography],
-                  ['Duration', variant.durationS === null ? '' : variant.durationS + 's'],
-                  ['Thumbnail', variant.thumbnail],
-                ],
-                body: variant.storyboard,
-              })
-            })
-
-            vGrid.appendChild(vCard)
-          })
-          gSection.appendChild(vGrid)
-          body.appendChild(gSection)
-        }
-
-        // ── 4. layers ───────────────────────────────────────────────────────────
+        // ── 2. layers ───────────────────────────────────────────────────────────
         if ((scene.layers || []).length > 0) {
           var lSection = el('div', 'nn-form-section')
           lSection.appendChild(el('div', 'nn-section-label', 'Layers'))

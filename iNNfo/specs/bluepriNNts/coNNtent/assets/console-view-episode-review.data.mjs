@@ -4,10 +4,9 @@
  * Export-time data for the Episode review view (design A12/A13).
  *
  * Two jobs:
- *  1. Read the Episode documents with the real parser, so nested `### NN Variant:` and
- *     `### NN Layer:` elements keep their `parentSlug`. The console payload flattens
- *     elements and loses that link, and without it a review UI cannot show "the variants
- *     of this scene".
+ *  1. Read the Episode documents with the real parser, so nested `### NN Layer:` elements
+ *     keep their `parentSlug`. The console payload flattens elements and loses that link,
+ *     and without it a review UI cannot show "the layers of this scene".
  *  2. Read the JSONL facts (`<domaiNN>/.cognnitive/video/*.jsonl`) for cost and timings.
  *
  * Nothing here runs in the browser: the console stays static and offline.
@@ -185,7 +184,7 @@ async function episodeDocs(rootDir) {
 }
 
 /** One document → the shape the review cards need, nesting preserved. */
-function sceneOf(scene, variants, layers) {
+function sceneOf(scene, layers) {
   const sceneSlug = String(scene.slug || scene.fields?.slug || '')
   const fields = scene.fields || {}
   return {
@@ -202,19 +201,6 @@ function sceneOf(scene, variants, layers) {
       presets: fields.presets ?? null,
     },
     // Nested elements declare their parent; that link is the whole point of parsing here.
-    variants: variants
-      .filter((v) => v.parentSlug === sceneSlug)
-      .map((v) => ({
-        slug: String(v.slug || ''),
-        target: String(v.fields?.for || ''),
-        value: String(v.description || '').trim(),
-        tier: v.fields?.tier ? String(v.fields.tier) : '',
-        thumbnail: v.fields?.thumbnail ? String(v.fields.thumbnail) : '',
-        storyboard: v.fields?.storyboard ? String(v.fields.storyboard) : '',
-        camera: v.fields?.camera ? String(v.fields.camera) : '',
-        choreography: v.fields?.choreography ? String(v.fields.choreography) : '',
-        durationS: v.fields?.duration_s !== undefined ? Number(v.fields.duration_s) : null,
-      })),
     layers: layers
       .filter((l) => l.parentSlug === sceneSlug)
       .map((l) => ({
@@ -230,9 +216,8 @@ async function loadEpisode(doc, cacheDir) {
   const content = await readFile(doc.file, 'utf8')
   const model = parseKnowledgeDocument(content)
   const video = (model.elements.Video || [])[0] || {}
-  const variants = model.elements.Variant || []
   const layers = model.elements.Layer || []
-  const scenes = (model.elements.Scene || []).map((s) => sceneOf(s, variants, layers))
+  const scenes = (model.elements.Scene || []).map((s) => sceneOf(s, layers))
 
   // Resolve every asset once, here, where the episode folder is known.
   for (const scene of scenes) {
@@ -240,11 +225,6 @@ async function loadEpisode(doc, cacheDir) {
       const asset = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: layer.asset })
       layer.assetSrc = asset.src
       layer.assetKind = asset.kind
-    }
-    for (const variant of scene.variants) {
-      const thumb = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: variant.thumbnail })
-      variant.thumbnailSrc = thumb.src
-      variant.thumbnailKind = thumb.kind
     }
   }
 

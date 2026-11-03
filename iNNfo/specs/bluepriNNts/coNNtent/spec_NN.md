@@ -31,7 +31,6 @@ validation:
 * [[Video]]
   * [[Scene]]
     * [[Layer]]
-    * [[Variant]]
 * [[Series]]
   * [[Scene Kind]]
   * [[Chrome]]
@@ -63,13 +62,6 @@ icon:: layers
 type:: list
 color:: orange
 weight:: 80
-
-## NN Concept Definition: Variant
-slug:: variant
-icon:: git-branch
-type:: list
-color:: amber
-weight:: 75
 
 ## NN Concept Definition: Preset
 slug:: preset
@@ -185,42 +177,6 @@ type:: select
 options:: [approved, needs-change]
 description:: The reviewer's verdict on the scene. Every scene must be `approved` before the episode can reach `approved`; a reason is a changeset comment, never a field.
 
-## NN Field Definition: for
-concept:: Variant
-type:: string
-description:: The target the Variant proposes a value for: a Scene Field name or the reserved value `narration` for the scene body.
-
-## NN Field Definition: tier
-concept:: Variant
-type:: select
-options:: [alta, media, rapida]
-description:: Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count.
-
-## NN Field Definition: thumbnail
-concept:: Variant
-type:: image
-description:: Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it.
-
-## NN Field Definition: storyboard
-concept:: Variant
-type:: markdown_inline
-description:: The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose.
-
-## NN Field Definition: camera
-concept:: Variant
-type:: string
-description:: Camera move of a visual Variant, for example `slow push-in` or `static`.
-
-## NN Field Definition: choreography
-concept:: Variant
-type:: string
-description:: What moves inside the shot, in order, for a visual Variant.
-
-## NN Field Definition: duration_s
-concept:: Variant
-type:: number
-description:: Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration.
-
 ## NN Field Definition: role
 concept:: Scene Kind
 type:: string
@@ -236,11 +192,6 @@ description:: Whether scenes of this kind carry narration. `off` means no TTS re
 concept:: Scene Kind
 type:: number
 description:: Maximum duration of a scene of this kind, in seconds. Compared with the estimate before spend and with the measured duration after TTS; an overrun is a warning, never a stop.
-
-## NN Field Definition: variants
-concept:: Scene Kind
-type:: number
-description:: Maximum number of Variant candidates per target field of a scene of this kind. Defaults to 1 (no alternatives).
 
 ## NN Field Definition: fixed
 concept:: Scene Kind
@@ -461,7 +412,7 @@ description:: Ordered list of delivery sizes as `<W>x<H>`. The first entry is th
 concept:: [Video, Series, Video Defaults]
 type:: select
 options:: [required, skip]
-description:: Whether the script review gate stops the run. `skip` picks the first Variant per target and treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
+description:: Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
 
 ## NN Field Definition: name
 concept:: Provider
@@ -570,10 +521,9 @@ reach the document only through changesets applied by the apply engine.
   cascade fields.
 - **Layer** — child of a Scene, never of the Video. Discriminated by the required `type::`
   with exactly four values: `avatar`, `media`, `text`, `animation`.
-- **Variant** — child of a Scene: one candidate value for a target field (`for::`). The
-  reviewer picks one; approval removes every Variant.
+- **Layer** - child of a Scene: one visual, overlay or avatar track.
 - **Scene Kind** — element of the Series: the grammar of one kind of scene (role,
-  narration, limits, variants, fixed placement, chrome, presets).
+  narration, limits, fixed placement, chrome, presets).
 - **Chrome** — element of the Series, one per language: series-level wallpaper (watermark,
   CTA, bumper, music) applied by kind.
 - **Preset** — top-level Concept with no fields of its own. An element may carry only the
@@ -624,7 +574,7 @@ and `placement`/`timing` on `media` through their Field Definitions, not through
 ## Objectives
 
 - Provide a valid Level-2 blueprint usable as `parent_spec` for episode documents at Level 3.
-- Model one Video per document, its ordered Scenes, each Scene's Layers and Variants.
+- Model one Video per document, its ordered Scenes, each Scene's Layers.
 - Keep narration as the Scene prose body, never as a Field or Concept.
 - State exactly four Layer behaviour types and keep appearance in Presets.
 - Model the series format once, in the Series document, as Scene Kinds and Chrome.
@@ -690,7 +640,7 @@ A child of Video: an ordered narrative unit whose free-form prose body is the na
 One `## NN Scene: <name>` element models one scene. Its position is the position of its entry
 in the `# NN index` list. The prose body after the `::` fields is the narration text,
 synthesized by TTS and timed by the engine. Every V_0-15-0 Scene states `kind::` with a kind
-declared by its Series or the reserved `Libre`. A scene owns its `Layer` and `Variant`
+declared by its Series or the reserved `Libre`. A scene owns its `Layer`
 children and may declare `review::`, `presets::` and cascade fields.
 
 ### Methodologies
@@ -699,12 +649,12 @@ children and may declare `review::`, `presets::` and cascade fields.
 - State the kind on every scene; use `Libre` only when the series format does not fit.
 - Order Scenes by the index list; never declare an `order::` field.
 - Put background audio on `background_audio::`, never as a Layer.
-- Write alternatives as `Variant` children, never as extra prose.
+- Write the narration as the scene body. Alternatives are edited in place by the reviewer, never stored as a second copy.
 
 ### Prompts
 
 - "Add a `Scene` named `<name>` with `kind:: <kind>`, narration prose and a `presets::` list."
-- "Propose three `Variant` elements for `narration` on `<scene>`."
+- "Rewrite the narration of `<scene>` in place."
 
 ## Layer
 
@@ -740,31 +690,6 @@ type.
 
 - "Add a nested `### NN Layer:` with `type:: text`, `style:: lower-third` and `text:: <caption>`."
 - "Add a `type:: media` Layer with `placement:: full` and `timing:: scene`."
-
-## Variant
-
-### Summary
-
-A candidate value proposed by the agent for one Scene field, reviewed and then removed.
-
-### Description
-
-One `## NN Variant: <name>` element carries `for::` naming the target (a Scene Field name or
-`narration` for the scene body) and a prose body holding the candidate value. A Variant MUST
-NOT exist at Video level. Choosing a Variant copies its value into the target through an
-`update_field` changeset operation; when the episode reaches `approved`, the engine removes
-every Variant in the same changeset.
-
-### Methodologies
-
-- Propose at most as many Variants per target as the kind's `variants`.
-- Write the candidate value as the element body, never as a field.
-- Never leave a Variant behind after approval.
-
-### Prompts
-
-- "Add a `Variant` with `for:: narration` holding `<alternative>`."
-- "Pick variant 2 for `narration` and remove the others on approval."
 
 ## Preset
 
@@ -835,7 +760,7 @@ An element of the Series that states what one kind of scene is and which rules a
 ### Description
 
 One `## NN Scene Kind: <name>` element declares `role`, `narration` (`on`/`off`),
-`max_duration`, `variants`, `fixed` (`none`, `first`, `last` or `after:<kind>`), the fixed
+`max_duration`, `fixed` (`none`, `first`, `last` or `after:<kind>`), the fixed
 scene's `asset`, a `chrome` list and `presets`. A Scene Kind carries no other cascade
 parameter: its only cascade contribution is its expanded `presets`. The series structure is
 orientative — an episode may reorder, remove or repeat scenes of any kind. A kind whose
@@ -848,12 +773,12 @@ and no kind chrome, and contributes no cascade node.
 - Give every kind a role; the role guides the agent, it is not an order.
 - Set `narration:: off` for silent scenes (bumper, title card) so no TTS is requested.
 - Use `fixed` for bumpers and outros instead of asking every episode to declare them.
-- Raise `variants` only on kinds where alternatives help the reviewer.
+- Keep `max_duration` realistic: the scene length follows the narration.
 
 ### Prompts
 
 - "Declare a `Scene Kind` named `Intro` with `narration:: off`, `fixed:: first` and an `asset::`."
-- "Allow three narration variants on the `Gancho` kind."
+- "Cap the `Gancho` kind at twelve seconds."
 
 ## Chrome
 

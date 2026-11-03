@@ -35,17 +35,9 @@ Legend: ● can be written at this scope, · cannot.
 | `thumbnail` | image | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `kind` | select | — | · | · | · | · | · | ● | · | · | · | · | · | · |
 | `review` | select | `approved`, `needs-change` | · | · | · | · | · | ● | · | · | · | · | · | · |
-| `for` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `tier` | select | `alta`, `media`, `rapida` | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `thumbnail` | image | — | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `storyboard` | markdown_inline | — | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `camera` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `choreography` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
-| `duration_s` | number | — | · | · | · | · | · | · | · | ● | · | · | · | · |
 | `role` | string | — | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `narration` | select | `on`, `off` | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `max_duration` | number | — | · | · | ● | · | · | · | · | · | · | · | · | · |
-| `variants` | number | — | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `fixed` | string | — | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `chrome` | select (multi) | `watermark`, `cta`, `bumper`, `music` | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `watermark` | markdown_inline | — | · | · | · | · | · | · | · | · | ● | · | · | · |
@@ -176,48 +168,6 @@ The reviewer's verdict on the scene. Every scene must be `approved` before the e
 
 Settable at: `Scene`.
 
-### `for`
-
-The target the Variant proposes a value for: a Scene Field name or the reserved value `narration` for the scene body.
-
-Settable at: `Variant`.
-
-### `tier`
-
-Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count.
-
-Settable at: `Variant`.
-
-### `thumbnail`
-
-Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it.
-
-Settable at: `Variant`.
-
-### `storyboard`
-
-The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose.
-
-Settable at: `Variant`.
-
-### `camera`
-
-Camera move of a visual Variant, for example `slow push-in` or `static`.
-
-Settable at: `Variant`.
-
-### `choreography`
-
-What moves inside the shot, in order, for a visual Variant.
-
-Settable at: `Variant`.
-
-### `duration_s`
-
-Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration.
-
-Settable at: `Variant`.
-
 ### `role`
 
 Free-text role of the kind in the series format (for example `hook`, `news`, `wrap-up`). Orientative for the author, never enforced as an order.
@@ -233,12 +183,6 @@ Settable at: `Scene Kind`.
 ### `max_duration`
 
 Maximum duration of a scene of this kind, in seconds. Compared with the estimate before spend and with the measured duration after TTS; an overrun is a warning, never a stop.
-
-Settable at: `Scene Kind`.
-
-### `variants`
-
-Maximum number of Variant candidates per target field of a scene of this kind. Defaults to 1 (no alternatives).
 
 Settable at: `Scene Kind`.
 
@@ -484,7 +428,7 @@ Settable at: `Video`, `Series`, `Video Defaults`.
 
 ### `script_review`
 
-Whether the script review gate stops the run. `skip` picks the first Variant per target and treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
+Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
 
 Settable at: `Video`, `Series`, `Video Defaults`.
 

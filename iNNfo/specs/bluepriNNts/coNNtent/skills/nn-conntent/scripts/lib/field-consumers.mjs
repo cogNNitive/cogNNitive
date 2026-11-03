@@ -36,12 +36,6 @@ export const FIELD_CONSUMERS = {
   script_review: ['produce.mjs', 'lib/episode.mjs'],
   review: ['lib/episode.mjs'],
   description: ['produce.mjs'],
-  tier: ['assets/console-view-episode-review.js'],
-  thumbnail: ['assets/console-view-episode-review.js'],
-  storyboard: ['assets/console-view-episode-review.js'],
-  camera: ['assets/console-view-episode-review.js'],
-  choreography: ['assets/console-view-episode-review.js'],
-  duration_s: ['assets/console-view-episode-review.js'],
   language: ['lib/episode.mjs', 'scene-compiler.mjs'],
   kind: ['lib/kinds.mjs', 'lib/episode.mjs'],
   background_audio: ['scene-compiler.mjs'],
@@ -81,11 +75,9 @@ export const FIELD_CONSUMERS = {
  * delete its entries here when it lands.
  */
 export const PLANNED_CONSUMERS = {
-  for: '8',
   role: '4',
   narration: '4',
   max_duration: '4',
-  variants: '8',
   fixed: '4',
   chrome: '4',
   watermark: '4',

@@ -43,34 +43,6 @@ const episode = (over = {}) => ({
       narration: 'Hello there',
       review: 'approved',
       fields: { transition: null, background_audio_volume: null, voice_speed: 1.1, presets: null },
-      variants: [
-        { slug: 'alt-a', target: 'narration', value: 'Alternative hook A' },
-        { slug: 'alt-b', target: 'narration', value: 'Alternative hook B' },
-        {
-          slug: 'motion-alta',
-          target: 'visual',
-          value: 'media/opening-alta.mp4',
-          tier: 'alta',
-          thumbnail: 'media/opening-alta.png',
-          thumbnailSrc: 'data:image/png;base64,iVBORw0KGgo=',
-          thumbnailKind: 'image',
-          storyboard: 'Slow push-in on the desk, papers lift.',
-          camera: 'slow push-in',
-          choreography: 'papers lift, then settle',
-          durationS: 6,
-        },
-        {
-          slug: 'motion-rapida',
-          target: 'visual',
-          value: 'media/opening-rapida.mp4',
-          tier: 'rapida',
-          thumbnail: '',
-          storyboard: 'Static frame with a caption wipe.',
-          camera: 'static',
-          choreography: 'caption wipe',
-          durationS: 3,
-        },
-      ],
       layers: [
         {
           slug: 'hook-avatar',
@@ -162,9 +134,7 @@ describe('Episode review view — parity with the former console', () => {
       n.textContent.trim(),
     )
     const at = (needle) => labels.findIndex((l) => l.toLowerCase().includes(needle))
-    assert.ok(at('narration') < at('editorial'), 'narration comes before its variants')
-    assert.ok(at('editorial') < at('visual'), 'variants come before the visual options')
-    assert.ok(at('visual') < at('layers'), 'visual options come before the layers')
+    assert.ok(at('narration') < at('layers'), 'narration comes before the layers')
     assert.ok(at('layers') < at('cascade'), 'layers come before the cascade chips')
     assert.ok(at('cascade') < at('verdict'), 'cascade comes before the verdict')
   })
@@ -182,85 +152,10 @@ describe('Episode review view — parity with the former console', () => {
     assert.ok(box.querySelector('img'), 'and previews the asset')
   })
 
-  it('reuses one modal for variants and layers', () => {
-    const { document, click } = bootView({})
-    openCard(document, 'opening')
-    click('[data-nn-inspect="motion-alta"]')
-    const first = document.querySelectorAll('[data-nn-lightbox]').length
-    click('[data-nn-inspect-layer="hook-avatar"]')
-    const second = document.querySelectorAll('[data-nn-lightbox]').length
-    assert.equal(first, 1, 'one modal for the storyboard')
-    assert.equal(second, 1, 'the layer reuses it instead of adding a second overlay')
-  })
 
-  it('renders the visual options with their motion tier and picks one', () => {
-    const { document, drafts, click } = bootView({})
-    openCard(document, 'opening')
-    const cards = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-visual]')]
-    assert.deepEqual(
-      cards.map((c) => c.getAttribute('data-nn-visual')),
-      ['motion-alta', 'motion-rapida'],
-      'visual variants are rendered in a grid',
-    )
-    assert.equal(cards[0].getAttribute('data-nn-visual-tier'), 'alta')
-    assert.ok(cards[0].querySelector('.nn-tier-badge'), 'the tier is badged on the thumbnail')
-    assert.ok(cards[0].querySelector('img'), 'a variant with a thumbnail shows it')
-    assert.match(cards[1].textContent + cards[1].innerHTML, /MOTION RAPIDA/, 'a variant without one shows its tier')
 
-    cards[1].dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
-    const op = drafts().find((d) => d.field === 'visual')
-    assert.ok(op, 'picking a visual option is a field change on its target')
-    assert.equal(op.proposed, 'media/opening-rapida.mp4')
-    assert.equal(op.element_id, 's-1')
-  })
 
-  it('opens the storyboard lightbox with the shot details', () => {
-    const { document, click } = bootView({})
-    openCard(document, 'opening')
-    click('[data-nn-inspect="motion-alta"]')
-    const box = document.querySelector('[data-nn-lightbox]')
-    assert.ok(box, 'the lightbox exists')
-    assert.ok(box.classList.contains('is-open'), 'it opens')
-    assert.match(box.textContent, /Slow push-in on the desk/, 'the storyboard text is shown')
-    assert.match(box.textContent, /slow push-in/, 'the camera move is shown')
-    assert.match(box.textContent, /papers lift/, 'the choreography is shown')
-    assert.match(box.textContent, /6s/, 'the nominal duration is shown')
 
-    click('[data-nn-lightbox-close]')
-    assert.equal(box.classList.contains('is-open'), false, 'it closes')
-  })
-
-  it('keeps the narration variants out of the visual grid', () => {
-    const { document } = bootView({})
-    openCard(document, 'opening')
-    const visuals = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-visual]')].map((c) =>
-      c.getAttribute('data-nn-visual'),
-    )
-    assert.ok(!visuals.includes('alt-a'), 'a narration variant is not a visual card')
-    const texts = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-variant]')].map((c) =>
-      c.getAttribute('data-nn-variant'),
-    )
-    assert.deepEqual(texts, ['alt-a', 'alt-b'], 'and it stays in the textual list')
-  })
-
-  it('shows the editorial variants of the scene and picks one as update_field', () => {
-    const { document, drafts, click } = bootView({})
-    openCard(document, 'opening')
-    const items = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-variant]')]
-    assert.deepEqual(items.map((i) => i.getAttribute('data-nn-variant')), ['alt-a', 'alt-b'])
-    assert.equal(
-      items[0].querySelector('[data-nn-variant-text]').value,
-      'Alternative hook A',
-      'the candidate text is visible and editable',
-    )
-
-    click('[data-nn-variant-pick="alt-b"]')
-    const op = drafts().find((d) => d.field === 'narration')
-    assert.ok(op, 'picking a variant is a narration field change')
-    assert.equal(op.kind, 'correction')
-    assert.equal(op.proposed, 'Alternative hook B', 'the candidate body is copied into the field')
-    assert.equal(op.element_id, 's-1', 'it targets the scene element')
-  })
 
   it('edits the narration body as update_field', () => {
     const { document, drafts } = bootView({})
@@ -350,13 +245,6 @@ describe('Episode review view — parity with the former console', () => {
     assert.match(cost, /1\.50/, 'the budget is shown')
   })
 
-  it('renders tier labels only when the model carries them', () => {
-    const { document } = bootView({})
-    // The tier vocabulary lives in the blueprint and arrives through the data hook; the
-    // view must not invent one. A scene with no visual variant shows no tier at all.
-    const explain = document.querySelector('[data-nn-scene="explain"]')
-    assert.doesNotMatch(explain.textContent, /ALTA|MEDIA|R[ÁA]PIDA|MOTION/)
-  })
 
   it('shows an empty state when the domain has no ported episode', () => {
     const { document } = bootView({ viewData: { 'episode-review': { episodes: {} } } })
@@ -416,15 +304,14 @@ asset:: media/avatar.png
     await rm(root, { recursive: true, force: true })
   })
 
-  it('parses the episode with the nested variants and layers attached to their scene', async () => {
+  it('parses the episode with the nested layers attached to their scene', async () => {
     const { collect } = await import(pathToFileURL(DATA_FILE).href)
     const data = await collect({ rootDir: root })
     const ep = data.episodes['ep-1']
     assert.ok(ep, 'the episode is discovered under series/<s>/episodes/')
     const scene = ep.scenes.find((s) => s.slug === 'opening')
-    assert.deepEqual(scene.variants.map((v) => v.slug), ['alt-hook'], 'the nested Variant keeps its parent')
     assert.deepEqual(scene.layers.map((l) => l.slug), ['hook-avatar'], 'the nested Layer keeps its parent')
-    assert.equal(scene.variants[0].value, 'A different hook.')
+    assert.equal(scene.narration, 'The opening line.', 'the scene body is the narration')
   })
 
   it('sums the ledger for the episode', async () => {
