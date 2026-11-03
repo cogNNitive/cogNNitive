@@ -15,7 +15,7 @@ import type { Resolution } from './resolve.js'
 const ELFIX = fileURLToPath(new URL('../../tests/fixtures/programas-golden', import.meta.url))
 const GOLD = fileURLToPath(new URL('../../tests/fixtures/video-golden', import.meta.url))
 const TUTORIAS = join(ELFIX, 'kNNowledge', 'tutorias_NN.md')
-const SCRIPT = join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_video-script_innteresante_NN.md')
+const SCRIPT = join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_innteresante_NN.md')
 const FLOOR = {
   label: 'video-golden',
   path: fileURLToPath(
@@ -165,7 +165,7 @@ describe('resolution over the loaded element chain', () => {
     const { loaded: l } = loaded(SCRIPT, 'Scene', '02-noticia', { floorDoc: FLOOR })
     const r = one(resolve(l, 'music_volume', 'override'))
     expect(r.value).toBe(0.06)
-    expect(r.explain.winner?.scope).toBe('series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_innteresante_NN.md#Scene/02-noticia')
+    expect(r.explain.winner?.scope).toBe('series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md#Scene/02-noticia')
     expect(r.explain.overridden.map((o) => [o.scope, o.value])).toEqual([
       ['series/innteresante', 0.4],
       ['bluepriNNt:video-golden', 0.2],

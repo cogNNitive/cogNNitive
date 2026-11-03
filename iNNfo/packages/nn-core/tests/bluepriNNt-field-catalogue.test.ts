@@ -26,7 +26,7 @@ const EXPECTED_TAGS_L2S = [
   'projects',
   'repository',
   'sources',
-  'video-script',
+  'coNNtent',
   'visual-catalog',
   'workspace',
 ]

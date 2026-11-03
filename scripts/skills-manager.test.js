@@ -1111,12 +1111,12 @@ agent-bootstrap:
   console.log('✔ Fallback manifest URL agreement test passed');
 }
 
-// End to end on the REAL video-script package: project its embedded skill into a temp skills dir
+// End to end on the REAL coNNtent package: project its embedded skill into a temp skills dir
 // and run the projected CLI from a cwd with no monorepo around it. The projected scripts must run
 // from the committed skill alone (node builtins only), proving there is no monorepo dependency.
 {
   const { installEmbeddedSkills } = require('./lib/skills-commands.js');
-  const videoPkgDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'bluepriNNts', 'video-script');
+  const videoPkgDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'bluepriNNts', 'coNNtent');
   const e2eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-e2e-embedded-'));
   try {
     const skillsDir = path.join(e2eDir, 'skills');
@@ -1125,31 +1125,31 @@ agent-bootstrap:
     process.env.SM_SKIP_NPM_INSTALL = '1';
     let names;
     try {
-      names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'video-script', commit: 'e2e' }, state);
+      names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'coNNtent', commit: 'e2e' }, state);
     } finally {
       if (savedSkip === undefined) delete process.env.SM_SKIP_NPM_INSTALL;
       else process.env.SM_SKIP_NPM_INSTALL = savedSkip;
     }
-    assert.deepStrictEqual(names, ['nn-video-script'], 'the real video-script package projects exactly nn-video-script');
-    assert.strictEqual(state.skills['nn-video-script'].source_blueprint, 'video-script');
+    assert.deepStrictEqual(names, ['nn-conntent'], 'the real coNNtent package projects exactly nn-conntent');
+    assert.strictEqual(state.skills['nn-conntent'].source_blueprint, 'coNNtent');
     assert.ok(
-      state.skills['nn-video-script'].files && Object.keys(state.skills['nn-video-script'].files).includes('SKILL.md'),
+      state.skills['nn-conntent'].files && Object.keys(state.skills['nn-conntent'].files).includes('SKILL.md'),
       'install records a per-file content hash (excludes node_modules/.bak-*)',
     );
 
-    const projected = path.join(skillsDir, 'nn-video-script');
-    const cli = path.join(projected, 'scripts', 'finalize-video.mjs');
+    const projected = path.join(skillsDir, 'nn-conntent');
+    const cli = path.join(projected, 'scripts', 'produce.mjs');
     assert.ok(fs.existsSync(path.join(projected, 'SKILL.md')), 'SKILL.md is projected');
 
-    // finalize-video.mjs with no args prints its usage banner and exits non-zero;
+    // produce.mjs with a bogus episode prints its usage banner and exits non-zero;
     // what matters is that it loads and runs without a monorepo checkout.
     const ok = spawnSync(process.execPath, [cli], { cwd: e2eDir, encoding: 'utf8' });
     assert.ok(
       !/ERR_MODULE_NOT_FOUND|Cannot find (package|module)/.test(`${ok.stdout}${ok.stderr}`),
       `projected CLI must run outside the monorepo: ${ok.stderr}`,
     );
-    assert.ok(/finalize-video/.test(`${ok.stdout}${ok.stderr}`), 'CLI prints its usage banner');
-    console.log('✔ End-to-end embedded video-script skill projection test passed');
+    assert.ok(/produce/.test(`${ok.stdout}${ok.stderr}`), 'CLI prints its usage banner');
+    console.log('✔ End-to-end embedded coNNtent skill projection test passed');
   } finally {
     fs.rmSync(e2eDir, { recursive: true, force: true });
   }

@@ -110,10 +110,10 @@ function main() {
   // 5b. Blueprint package `defaults/` baseline documents are carved out: they are named
   //     by the blueprint spec (`video-defaults_NN.md`), not by the `_NN` invariant.
   {
-    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md', []), true);
-    const r = run({ 'iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md': doc('video-script') });
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md', []), true);
+    const r = run({ 'iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md': doc('coNNtent') });
     assert.strictEqual(r.ok, true, r.errors.join('; '));
-    assert.deepStrictEqual(r.carvedOut, ['iNNfo/specs/bluepriNNts/video-script/defaults/video-defaults_NN.md']);
+    assert.deepStrictEqual(r.carvedOut, ['iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md']);
   }
   console.log('✔ blueprint package defaults/ documents are carved out');
 

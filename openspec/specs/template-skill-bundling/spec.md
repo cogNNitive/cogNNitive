@@ -79,14 +79,14 @@ The `skills-manager.js` script MUST manage skills, Core `bluepriNNts`/templates,
 - **THEN** state information from `~/.agents/bootstrap-state.json` is displayed showing installed vs pinned versions and commits for both skills and blueprints/templates
 
 #### Scenario: Drifted catalog blueprint shows outdated and is repaired
-- **GIVEN** `video-script` is installed and its `nn-video-script` copy differs from the catalog `release_tag`
+- **GIVEN** `coNNtent` is installed and its `nn-conntent` copy differs from the catalog `release_tag`
 - **WHEN** `skills-manager.js status` runs
-- **THEN** `video-script` and `nn-video-script` show `outdated`
+- **THEN** `coNNtent` and `nn-conntent` show `outdated`
 - **AND** after `skills-manager.js update` both are current
 
 #### Scenario: One consent per blueprint
-- **GIVEN** installing `video-script` with a CLI pin, external skills and npm dependencies
-- **WHEN** `install --blueprint video-script` runs interactively
+- **GIVEN** installing `coNNtent` with a CLI pin, external skills and npm dependencies
+- **WHEN** `install --blueprint coNNtent` runs interactively
 - **THEN** a single prompt lists every item to be installed
 
 ### Requirement: Interactive Decision Gating and Execution Modes
@@ -133,7 +133,7 @@ A bluepriNNt skill MAY declare top-level frontmatter `depends_on` with these key
 When installing or updating a skill, `skills-manager.js` MUST record in `bootstrap-state.json` a SHA-256 content hash of every file of the installed skill directory, excluding `node_modules` and `.bak-*` entries. `status` MUST recompute the hashes and report a skill whose files differ from the record (changed, added or removed) as `modified locally`, independently of version or tag equality. The report MUST be a warning and MUST NOT change the exit code. `update` MUST NOT overwrite a modified skill without consent: it MUST use the existing consent prompt, which MUST name the modified files; declining MUST leave that skill untouched. A skill with no recorded hash MUST NOT be reported as modified. No additional flag is introduced.
 
 #### Scenario: Patched skill with an unchanged version
-- GIVEN `nn-video-script` is installed and a file in it is edited by hand, version unchanged
+- GIVEN `nn-conntent` is installed and a file in it is edited by hand, version unchanged
 - WHEN `skills-manager.js status` runs
 - THEN the skill shows `modified locally`
 - AND the exit code is unchanged

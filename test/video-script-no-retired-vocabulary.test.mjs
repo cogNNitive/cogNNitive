@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * test/video-script-no-retired-vocabulary.test.mjs
+ * test/coNNtent-no-retired-vocabulary.test.mjs
  *
  * The blueprint, its embedded skill and the video dev tooling speak one
  * vocabulary: the names retired by V_0-14-0/V_0-14-1 never appear outside
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOTS = [
-  path.join(ROOT, 'iNNfo/specs/bluepriNNts/video-script'),
+  path.join(ROOT, 'iNNfo/specs/bluepriNNts/coNNtent'),
   path.join(ROOT, 'scripts/dev'),
 ];
 const SKIP_DIRS = new Set(['node_modules', 'archive', '.git', 'dist']);
@@ -31,7 +31,6 @@ const BANNED = [
   'presenter_asset::',
   'intro_asset::',
   'music_volume::',
-  'voice_id::',
   '# NN Template',
   '## NN Template',
   'FORMAT_PRESETS',
@@ -59,7 +58,7 @@ test('no retired field, flag or file name survives in the blueprint, the skill o
     for (const file of walk(root)) {
       // The scan's own fixtures and the test suites legitimately feed retired
       // documents in to prove they are rejected, so tests are out of scope.
-      if (file.endsWith('video-script-no-retired-vocabulary.test.mjs')) continue;
+      if (file.endsWith('coNNtent-no-retired-vocabulary.test.mjs')) continue;
       if (/\.test\.(mjs|js)$/.test(file)) continue;
       if (file.includes(`${path.sep}test${path.sep}`)) continue;
       // A tool that must interpret the frozen legacy domain declares it once.
@@ -79,16 +78,16 @@ test('no retired field, flag or file name survives in the blueprint, the skill o
 
 test('the blueprint declares the current field names only', () => {
   const spec = fs
-    .readFileSync(path.join(ROOT, 'iNNfo/specs/bluepriNNts/video-script/spec_NN.md'), 'utf8')
+    .readFileSync(path.join(ROOT, 'iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md'), 'utf8')
     .replace(/\r\n/g, '\n');
-  for (const retired of ['template', 'tool', 'tts_model', 'music', 'music_volume', 'presenter_asset', 'intro_asset', 'level', 'speed', 'emotion', 'voice_id']) {
+  for (const retired of ['template', 'tool', 'tts_model', 'music_volume', 'presenter_asset', 'intro_asset', 'level', 'speed', 'emotion', 'voice_tone', 'master_resolution', 'scene_duration', 'scene_tts_model']) {
     assert.doesNotMatch(
       spec,
       new RegExp(`^## NN Field Definition: ${retired}$`, 'm'),
       `retired Field Definition "${retired}" must be gone`,
     );
   }
-  for (const current of ['presets', 'voice_model', 'voice_speed', 'voice_emotion', 'voice_tone', 'avatar', 'intro', 'background_audio', 'background_audio_volume', 'z_index', 'master_resolution']) {
+  for (const current of ['presets', 'voice_model', 'voice_speed', 'voice_emotion', 'avatar', 'avatar_model', 'intro', 'background_audio', 'background_audio_volume', 'z_index', 'image_model', 'image_size', 'language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'kind', 'review', 'for', 'style', 'source', 'placement', 'timing', 'role', 'narration', 'max_duration', 'variants', 'fixed', 'chrome', 'watermark', 'cta', 'bumper', 'music', 'api_base', 'provider', 'api_id', 'capability', 'controls', 'sizes', 'adapter', 'price', 'price_unit', 'price_date', 'price_source', 'stale_after_days', 'allowed', 'voice_id']) {
     assert.match(spec, new RegExp(`^## NN Field Definition: ${current}$`, 'm'), `${current} is declared`);
   }
 });

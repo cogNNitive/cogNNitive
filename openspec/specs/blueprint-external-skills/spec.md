@@ -77,7 +77,7 @@ Agent skills that a pinned external CLI delivers itself (the HyperFrames skills,
 - AND `state.cli.hyperframes` records `{version: P, source_skill, updated_at}`
 
 #### Scenario: No duplicate git declaration
-- GIVEN the `video-script` bluepriNNt
+- GIVEN the `coNNtent` bluepriNNt
 - WHEN its `skills:` array is validated
 - THEN it contains no git-pinned entry for a HyperFrames skill
 

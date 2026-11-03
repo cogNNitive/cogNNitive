@@ -135,7 +135,7 @@ A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `p
 #### Scenario: New procedure name and id
 - GIVEN `procedures/generate_video_script_procedures_NN.md`
 - WHEN its id is derived
-- THEN the id is `generate-video-script`
+- THEN the id is `generate-coNNtent`
 
 #### Scenario: Frozen procedure keeps its name
 - GIVEN `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md` in a frozen bluepriNNt

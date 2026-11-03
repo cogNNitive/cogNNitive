@@ -501,7 +501,7 @@ async function renderTree(models, root, consoles) {
   }
 }
 
-function injectSlots(shell, config, schema, model) {
+function injectSlots(shell, config, schema, model, viewData) {
   const serialize = payloadHelper?.serializeConsoleSlot
     ? (json) => payloadHelper.serializeConsoleSlot(json)
     : (json) => JSON.stringify(json, null, 2).replace(/</g, '\\u003c')
@@ -511,9 +511,13 @@ function injectSlots(shell, config, schema, model) {
       (_m, open, close) => `${open}\n${serialize(json)}\n${close}`,
     )
   return slot(
-    slot(slot(shell, 'nn-config', config), 'nn-schema', schema),
-    'nn-model',
-    model,
+    slot(
+      slot(slot(shell, 'nn-config', config), 'nn-schema', schema),
+      'nn-model',
+      model,
+    ),
+    'nn-view-data',
+    viewData || {},
   )
 }
 
@@ -658,7 +662,7 @@ function renderConsole(shell, bundleName, config, payload, outDirAbs, rootAbs) {
     outDirAbs && rootAbs
       ? rebaseModelAssets(payload.model, outDirAbs, rootAbs, payload.schema)
       : payload.model
-  return injectSlots(pinned, config, payload.schema, model)
+  return injectSlots(pinned, config, payload.schema, model, payload.viewData)
 }
 
 /* ── Opening the console ───────────────────────────────────────── */
@@ -881,6 +885,16 @@ export async function writeConsole(opts = {}) {
     preparedAssets = viewsLib.assertInlinable(resolvedShell, { bundle, css: uiCss, views: domainViews })
   } catch (err) {
     throw new ConsoleExportError(err.message, 'VIEWS_INVALID')
+  }
+
+  // Views that ship a `console-view-<slug>.data.mjs` collect their facts here, at export
+  // time (decision A12). The result reaches each view as `ctx.viewData`; nothing is read
+  // from disk at runtime, so the console stays static and offline.
+  let viewData
+  try {
+    viewData = await viewsLib.collectViewData({ views: domainViews, rootDir: root, models: payloadModels })
+  } catch (err) {
+    throw new ConsoleExportError(err.message, 'VIEW_DATA_INVALID')
   }
 
   const config = {
@@ -1201,6 +1215,7 @@ export async function writeConsole(opts = {}) {
     : baseDomainId
 
   const domainPayload = {
+    viewData,
     schema: {
       concepts: allConcepts,
       fields: allFields,
@@ -1275,8 +1290,7 @@ export async function writeConsole(opts = {}) {
   const budget = viewsLib.evaluateSizeBudget({
     bundle: bytes(preparedAssets.bundleScript) + bytes(preparedAssets.css),
     models: bytes(JSON.stringify(domainPayload.schema)) + bytes(JSON.stringify(domainPayload.model)),
-    views: preparedAssets.viewScripts.reduce((sum, script) => sum + bytes(script), 0),
-    total: bytes(html),
+    views: preparedAssets.viewScripts.reduce((sum, script) => sum + bytes(script), 0),    total: bytes(html),
   })
   if (budget.status === 'fail') throw new ConsoleExportError(budget.message, 'CONSOLE_TOO_LARGE')
   if (budget.status === 'warn') process.stderr.write(`WARNING: [export-console] ${budget.message}\n`)

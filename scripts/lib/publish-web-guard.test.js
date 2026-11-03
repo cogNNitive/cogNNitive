@@ -73,15 +73,15 @@ function testManifestAllowlist() {
 
 function testDefaultAllowlistCoversVideoScriptSkill() {
   const root = mkTree({
-    'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/package.json': '{"name":"nn-video-script"}',
-    'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/package-lock.json': '{"lock":true}',
+    'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/package.json': '{"name":"nn-conntent"}',
+    'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/package-lock.json': '{"lock":true}',
   });
 
-  // Default allowlist, no override: the video-script skill manifest is a
+  // Default allowlist, no override: the coNNtent skill manifest is a
   // declared runtime dependency surface, like the console one.
-  const offenders = findSourceOffenders(root, ['iNNfo/specs/bluepriNNts/video-script']);
+  const offenders = findSourceOffenders(root, ['iNNfo/specs/bluepriNNts/coNNtent']);
   assert.deepStrictEqual(offenders, []);
-  console.log('PASS: default allowlist covers the video-script skill manifest');
+  console.log('PASS: default allowlist covers the coNNtent skill manifest');
 }
 
 function testAllowlistDoesNotRelaxNodeModules() {

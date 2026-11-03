@@ -7,6 +7,8 @@ dist/
 **/dist/
 build/
 **/build/
+# coNNtent engine project: regenerable, holds hardlinks to the provider cache.
+**/hyperframes/
 # Console export output root at the repo root (scripts/export-console.mjs).
 # Root-anchored on purpose: `artifacts/` also names tracked domain/use-case
 # folders and test fixtures elsewhere.

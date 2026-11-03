@@ -427,6 +427,25 @@ function isDirectSpecEntryName(filePath: string, base: string): boolean {
 }
 
 /**
+ * Resolves `specs/bluepriNNts/<base>` honouring the on-disk casing. Blueprint folders are
+ * mixed-case (`coNNtent`, `business`, ...) while `parseSpecName` lowercases the base, so a
+ * case-sensitive filesystem (Linux CI) used to miss a package that exists. The lookup stays
+ * exact first and only falls back to a case-insensitive match of the directory name.
+ */
+async function packageDirOf(rootDir: string, base: string): Promise<string> {
+  const { readdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+  const direct = join(rootDir, 'specs', 'bluepriNNts', base)
+  try {
+    const entries = await readdir(join(rootDir, 'specs', 'bluepriNNts'), { withFileTypes: true })
+    const match = entries.find((e) => e.isDirectory() && e.name.toLowerCase() === base)
+    return match ? join(rootDir, 'specs', 'bluepriNNts', match.name) : direct
+  } catch {
+    return direct
+  }
+}
+
+/**
  * 5-Tier Template Package Resolver:
  *   Tier 1: Workspace unversioned package: ./specs/bluepriNNts/<name>/spec_NN.md
  *   Tier 1b: Workspace package directory: ./specs/bluepriNNts/<name>/<version>/
@@ -458,7 +477,7 @@ export async function resolveBlueprintPackage(
   const targetVersion = reqVersion ? normalizeVersion(reqVersion) : parsed.version
 
   // Tier 1: Workspace Unversioned Package Directory (./specs/bluepriNNts/<name>/)
-  const wsPackageBaseDir = join(rootDir, 'specs', 'bluepriNNts', base)
+  const wsPackageBaseDir = await packageDirOf(rootDir, base)
   const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base)
   if (unversionedSpecFile && isDirectSpecEntryName(unversionedSpecFile, base)) {
     const content = await readFile(unversionedSpecFile, 'utf-8').catch(() => '')

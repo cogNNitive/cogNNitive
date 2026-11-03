@@ -82,7 +82,7 @@ Every video domain MUST use one layout: the domain root holds at least `domaiNN_
 
 Source: D1.
 
-An episode folder `E` MUST contain `<slug>_video-script_<s>_NN.md`, `draft.json`, `reviewed.json`, `review_console.html`, `draft_thumbs/`, `media/`, `animations/<project>/`, `asset_plan.md`, `asset_plan.approved.json`, `description.md`, the deliverables of "Deliverables Are Written In Place", and `build/`, each optional until its producing step has run. The folder name `assets/` is accepted as meaning both the domain library and the episode container, because both follow the iNNfo `{modelDir}/assets/` rule.
+An episode folder `E` MUST contain `<slug>_coNNtent_<s>_NN.md`, `draft.json`, `reviewed.json`, `review_console.html`, `draft_thumbs/`, `media/`, `animations/<project>/`, `asset_plan.md`, `asset_plan.approved.json`, `description.md`, the deliverables of "Deliverables Are Written In Place", and `build/`, each optional until its producing step has run. The folder name `assets/` is accepted as meaning both the domain library and the episode container, because both follow the iNNfo `{modelDir}/assets/` rule.
 
 #### Scenario: Episodes stay where they are
 
@@ -108,7 +108,7 @@ File and folder names MUST follow one scheme by class: domain-indexed documents 
 
 Source: D1.
 
-The episode script MUST keep the name `<slug>_video-script_<s>_NN.md` because it is a domain-indexed document and stems must be unique. Folders MUST be lowercase, plural when they hold many items (`assets`, `sounds`, `components`, `frames`, `animations`, `procedures`) and singular for mass nouns (`media`, `shared`, `build`). Every file and folder name MUST be English. Authored `Hyperframes/` folders are tolerated and are not renamed; new episodes use `animations/`.
+The episode script MUST keep the name `<slug>_coNNtent_<s>_NN.md` because it is a domain-indexed document and stems must be unique. Folders MUST be lowercase, plural when they hold many items (`assets`, `sounds`, `components`, `frames`, `animations`, `procedures`) and singular for mass nouns (`media`, `shared`, `build`). Every file and folder name MUST be English. Authored `Hyperframes/` folders are tolerated and are not renamed; new episodes use `animations/`.
 
 #### Scenario: Deliverable name carries slug and true dimensions
 
@@ -126,7 +126,7 @@ The episode script MUST keep the name `<slug>_video-script_<s>_NN.md` because it
 
 - GIVEN `build-script-from-draft.mjs` run for episode `startup-founder` in series `cognitive-use-cases`
 - WHEN the script is written
-- THEN its name is `startup-founder_video-script_cognitive-use-cases_NN.md`
+- THEN its name is `startup-founder_coNNtent_cognitive-use-cases_NN.md`
 
 #### Scenario: Spanish names are reported, not renamed
 

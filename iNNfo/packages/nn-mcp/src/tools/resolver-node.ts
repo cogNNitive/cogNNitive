@@ -236,7 +236,7 @@ export interface TemplatePackagePayload {
   procedures?: Record<string, string>
   samples?: Record<string, string>
   assets?: Record<string, string>
-  /** Embedded skills; keys are relative to `skills/` (e.g. `nn-video-script/SKILL.md`). */
+  /** Embedded skills; keys are relative to `skills/` (e.g. `nn-conntent/SKILL.md`). */
   skills?: Record<string, string>
 }
 

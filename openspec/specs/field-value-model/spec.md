@@ -246,7 +246,7 @@ Every element MUST inherit the concept-level values of its concept. For a multi-
 
 ### Requirement: Shipped Field Catalogue
 
-Shipped bluepriNNts MUST declare Fields instead of Marker Definitions, per this mapping. These L2s MUST each declare one identical open-vocabulary `tags` Field (`type:: select`, `multiple:: true`, no `options`, `concept:: *`): `analysis`, `artifacts`, `blank`, `business-model`, `changes`, `cogNNitive`, `design-presets`, `documentation`, `domaiNN`, `innovation`, `metrics`, `organization`, `procedures`, `projects`, `repository`, `sources`, `video-script`, `visual-catalog` and `workspace` (`workspace_spec_NN.md` and its `nn-innfo` template copy). `business` declares none and gets it by composition. `sidecar` MUST NOT declare it. BluepriNNts that declared a `tags` `type:: string` Field (`sources`, `artifacts`, `visual-catalog`, `documentation`) MUST use it instead.
+Shipped bluepriNNts MUST declare Fields instead of Marker Definitions, per this mapping. These L2s MUST each declare one identical open-vocabulary `tags` Field (`type:: select`, `multiple:: true`, no `options`, `concept:: *`): `analysis`, `artifacts`, `blank`, `business-model`, `changes`, `cogNNitive`, `design-presets`, `documentation`, `domaiNN`, `innovation`, `metrics`, `organization`, `procedures`, `projects`, `repository`, `sources`, `coNNtent`, `visual-catalog` and `workspace` (`workspace_spec_NN.md` and its `nn-innfo` template copy). `business` declares none and gets it by composition. `sidecar` MUST NOT declare it. BluepriNNts that declared a `tags` `type:: string` Field (`sources`, `artifacts`, `visual-catalog`, `documentation`) MUST use it instead.
 
 | bluepriNNt | Result |
 |---|---|

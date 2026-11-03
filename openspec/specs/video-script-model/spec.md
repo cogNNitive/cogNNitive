@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Defines the native iNNfo modeling of video scripts. A video script IS a Level-3 kNNowledge document governed by the Level-2 `video-script` blueprint; the engine consumes that structured model directly and never re-implements or re-parses the script's markdown grammar. The model is tool-agnostic and declares no timing.
+Defines the native iNNfo modeling of video scripts. A video script IS a Level-3 kNNowledge document governed by the Level-2 `coNNtent` blueprint; the engine consumes that structured model directly and never re-implements or re-parses the script's markdown grammar. The model is tool-agnostic and declares no timing.
 ## Requirements
 ### Requirement: Script Is an iNNfo Level-3 Document
 
-The video script MUST be an iNNfo Level-3 kNNowledge document whose `parent_spec` is the Level-2 `video-script` blueprint. The blueprint MUST define every Concept and Field the script may use. The engine's scene compiler MUST consume a structured iNNfo model and MUST NOT re-parse the script's markdown. The canonical source of that model is innfo-core `read_knowledge`; when an installed, zero-dependency skill cannot reach innfo-core, a thin structural adapter MAY emit the same `read_knowledge` shape — it MUST NOT re-implement the scene grammar and MUST be drift-guarded against innfo-core's model shape.
+The video script MUST be an iNNfo Level-3 kNNowledge document whose `parent_spec` is the Level-2 `coNNtent` blueprint. The blueprint MUST define every Concept and Field the script may use. The engine's scene compiler MUST consume a structured iNNfo model and MUST NOT re-parse the script's markdown. The canonical source of that model is innfo-core `read_knowledge`; when an installed, zero-dependency skill cannot reach innfo-core, a thin structural adapter MAY emit the same `read_knowledge` shape — it MUST NOT re-implement the scene grammar and MUST be drift-guarded against innfo-core's model shape.
 
 #### Scenario: Script validates against its blueprint
 
-- GIVEN a script authored against the `video-script` blueprint
+- GIVEN a script authored against the `coNNtent` blueprint
 - WHEN it is validated as an L3 document
 - THEN it validates with no schema errors
 
@@ -373,7 +373,7 @@ Source: D4.
 
 ### Requirement: The Video Concept Carries The Episode Record
 
-The `video-script` blueprint's `Video` concept MUST also declare the episode's catalogue and delivery fields `description` (markdown_inline), `status` (select of `draft`/`scripting`/`rendering`/`published`/`archived`), `script` (file), `master` (video) and `thumbnail` (image), so that one L3 document of the blueprint is both the episode's record and its script; `slug` is the reserved iNNfo identity property and MUST NOT be redeclared as a Field Definition of this blueprint.
+The `coNNtent` blueprint's `Video` concept MUST also declare the episode's catalogue and delivery fields `description` (markdown_inline), `status` (select of `draft`/`scripting`/`rendering`/`published`/`archived`), `script` (file), `master` (video) and `thumbnail` (image), so that one L3 document of the blueprint is both the episode's record and its script; `slug` is the reserved iNNfo identity property and MUST NOT be redeclared as a Field Definition of this blueprint.
 
 Each file-backed field MUST hold exactly one filename resolved under the owning model's directory, `master` MUST name the episode's square master `<slug>_1920x1920.mp4`, and a `Video` element MUST NOT carry a field for a derived format variant: the vertical, horizontal and square masters and the thumbnail variants are derived from `master` by the `render-formats.mjs` naming convention and are never stored.
 (Previously: the example `master` was `pepper-mapache_1080x1080.mp4`, and `master` was not tied to the 1920x1920 file name.)
@@ -382,7 +382,7 @@ Source: D4, D5.
 
 #### Scenario: An episode is one L3 document
 
-- GIVEN an L3 document of the `video-script` blueprint holding one `## NN Video:` element with `slug`, `status`, `script`, `master` and `thumbnail`
+- GIVEN an L3 document of the `coNNtent` blueprint holding one `## NN Video:` element with `slug`, `status`, `script`, `master` and `thumbnail`
 - WHEN it is validated as an L3 document
 - THEN it validates with no schema errors
 

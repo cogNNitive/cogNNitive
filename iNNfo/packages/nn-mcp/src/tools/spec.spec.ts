@@ -638,14 +638,14 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
   })
 })
 
-describe('video-script blueprint embedded skill discovery (real package)', () => {
-  it('listBlueprintSkills reports nn-video-script with a path that holds the real skill', async () => {
-    const { skills } = await listBlueprintSkills(iNNfoRootDir, { blueprint_name: 'video-script' })
-    const skill = skills.find((s) => s.name === 'nn-video-script')
+describe('coNNtent blueprint embedded skill discovery (real package)', () => {
+  it('listBlueprintSkills reports nn-conntent with a path that holds the real skill', async () => {
+    const { skills } = await listBlueprintSkills(iNNfoRootDir, { blueprint_name: 'coNNtent' })
+    const skill = skills.find((s) => s.name === 'nn-conntent')
     expect(skill).toBeDefined()
-    if (!skill || !('embedded' in skill)) throw new Error('nn-video-script must be an embedded skill')
+    if (!skill || !('embedded' in skill)) throw new Error('nn-conntent must be an embedded skill')
     expect(skill.embedded).toBe(true)
-    expect(skill.source_blueprint).toBe('video-script')
+    expect(skill.source_blueprint).toBe('coNNtent')
     expect(existsSync(join(skill.path, 'SKILL.md'))).toBe(true)
     expect(existsSync(join(skill.path, 'scripts', 'scene-compiler.mjs'))).toBe(true)
     expect(skill.version).toMatch(/^V_\d+-\d+-\d+$/)

@@ -217,9 +217,9 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const state = {
       meta: {
         models: [
-          { id: 'a1', title: 'Episode A', filePath: 'a1.md', elementCount: 2, blueprint: 'video-script' },
+          { id: 'a1', title: 'Episode A', filePath: 'a1.md', elementCount: 2, blueprint: 'coNNtent' },
           { id: 'b1', title: 'Series B', filePath: 'b1.md', elementCount: 1, blueprint: 'video' },
-          { id: 'a2', title: 'Episode B', filePath: 'a2.md', elementCount: 3, blueprint: 'video-script' },
+          { id: 'a2', title: 'Episode B', filePath: 'a2.md', elementCount: 3, blueprint: 'coNNtent' },
         ],
       },
       elements: [],
@@ -232,7 +232,7 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const sections = Array.from(rail.querySelectorAll('details[name="nn-rail-blueprint"]'))
     assert.deepEqual(
       sections.map((d) => d.querySelector('summary').textContent),
-      ['video-script (2)', 'video (1)'],
+      ['coNNtent (2)', 'video (1)'],
     )
     assert.deepEqual(
       sections.map((d) => d.open),

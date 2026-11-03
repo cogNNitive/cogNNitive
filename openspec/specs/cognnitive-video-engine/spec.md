@@ -242,12 +242,12 @@ script change.
 
 ### Requirement: Programmatic HyperFrames Scene Compilation
 
-The system MUST provide a scene compiler that transforms the structured iNNfo video-script model into a valid, tool-agnostic Composition Manifest and a renderer that lowers that manifest into a **HyperFrames project**. The compiler MUST obtain its scene model as a structured `read_knowledge`-shaped object (canonically from innfo-core `read_knowledge`; a thin, drift-guarded structural adapter is the permitted fallback for the zero-dependency installed skill) and MUST NOT re-parse the script's markdown. The compiler MUST resolve `presets` references through the Preset lookup order and expand them into the parameter cascade, MUST derive timing from measured TTS/media duration, and MUST derive layer sequencing and order from the model's list order. Each `Scene` MUST map to exactly one scene track preserving order, names, layers and resolved properties, and to exactly one HyperFrames Sub-composition. Overlay text MUST be sourced from the Layer's declared text field, never from the layer name. The engine MUST NOT depend on a React component runtime to render a scene.
+The system MUST provide a scene compiler that transforms the structured iNNfo coNNtent model into a valid, tool-agnostic Composition Manifest and a renderer that lowers that manifest into a **HyperFrames project**. The compiler MUST obtain its scene model as a structured `read_knowledge`-shaped object (canonically from innfo-core `read_knowledge`; a thin, drift-guarded structural adapter is the permitted fallback for the zero-dependency installed skill) and MUST NOT re-parse the script's markdown. The compiler MUST resolve `presets` references through the Preset lookup order and expand them into the parameter cascade, MUST derive timing from measured TTS/media duration, and MUST derive layer sequencing and order from the model's list order. Each `Scene` MUST map to exactly one scene track preserving order, names, layers and resolved properties, and to exactly one HyperFrames Sub-composition. Overlay text MUST be sourced from the Layer's declared text field, never from the layer name. The engine MUST NOT depend on a React component runtime to render a scene.
 (Previously: the compiler resolved `template::` references from the Series' L3 Template document; before that it lowered the model into a Remotion Composition.)
 
 #### Scenario: Compile multi-scene script into a manifest and a HyperFrames project
 
-- GIVEN a valid L3 video-script document containing narrative scenes and visual cues
+- GIVEN a valid L3 coNNtent document containing narrative scenes and visual cues
 - WHEN the scene compiler processes the document
 - THEN it produces a manifest with ordered scenes, audio bindings, transition descriptors and overlay intervals
 - AND the renderer emits a HyperFrames project with one Sub-composition per Scene and the project passes `hyperframes check` with no errors
@@ -425,7 +425,7 @@ named error listing every path tried. It MUST NOT write any Video Defaults docum
 
 #### Scenario: Package not found
 
-- GIVEN a skill copy with no `video-script` package at any known location
+- GIVEN a skill copy with no `coNNtent` package at any known location
 - WHEN `compile` runs
 - THEN it fails before any spend with an error listing the paths tried
 

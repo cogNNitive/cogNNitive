@@ -166,7 +166,8 @@ describe('S2b readonly views and sandboxed iframes', () => {
   it('a readonly ctx carries no store, modal or changeset', () => {
     const { ctxs } = bootViews([def('doc', { kind: 'readonly' })])
     const keys = Object.keys(ctxs.doc).sort()
-    assert.deepEqual(keys, ['container', 'doc', 'id', 'mountHtml', 'payload', 'ui'])
+    // viewData is the exporter's read-only facts (decision A12): it is data, not a store.
+    assert.deepEqual(keys, ['container', 'doc', 'id', 'mountHtml', 'payload', 'ui', 'viewData'])
   })
 
   it('an editable ctx has no mountHtml', () => {

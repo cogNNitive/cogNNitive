@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Defines the `Preset` concept of the `video-script` bluepriNNt: a named bundle of cascade parameters that replaces the retired `Template` concept. Covers what a Preset may carry, the `presets` field and its syntax, where Presets are defined and found, how they expand into the parameter cascade, how the supplying Preset is reported, and which errors stop a run before any spend. Design decisions are referenced as D1 to D8 in `design.md` of change `2026-11-01-video-presets`.
+Defines the `Preset` concept of the `coNNtent` bluepriNNt: a named bundle of cascade parameters that replaces the retired `Template` concept. Covers what a Preset may carry, the `presets` field and its syntax, where Presets are defined and found, how they expand into the parameter cascade, how the supplying Preset is reported, and which errors stop a run before any spend. Design decisions are referenced as D1 to D8 in `design.md` of change `2026-11-01-video-presets`.
 
 ## Requirements
 
 ### Requirement: Preset Is A Parameters-Only Concept
 
-The `video-script` blueprint MUST define a top-level `Preset` Concept that has no Field of its own, so that a `# NN Preset` element MAY carry only the preset parameters (the Fields whose `concept::` lists `Preset`) and the global `tags` Field (D2).
+The `coNNtent` blueprint MUST define a top-level `Preset` Concept that has no Field of its own, so that a `# NN Preset` element MAY carry only the preset parameters (the Fields whose `concept::` lists `Preset`) and the global `tags` Field (D2).
 
 The preset parameters are `voice`, `voice_model`, `voice_speed`, `voice_emotion`, `voice_tone`, `avatar`, `avatar_model`, `intro`, `image_model`, `background_audio`, `background_audio_volume`, `transition`, `frame`, `fit`, `components` and `sounds`. A Preset MUST NOT contain `Layer` elements. `tags` characterise a Preset and MUST NOT affect any resolved value. The reserved `slug` identity key that every element carries is exempt from the `preset-field` check and is not a preset parameter; migrated Presets keep their `slug::`.
 
@@ -140,7 +140,7 @@ Names match case-insensitively by name or by slug. A deeper definition MUST shad
 
 ### Requirement: The Blueprint Package Ships No Presets
 
-The `video-script` package `defaults/video-defaults_NN.md` MUST NOT contain a `Preset` element or a `presets` Field, so that the blueprint floor never needs preset expansion (D3).
+The `coNNtent` package `defaults/video-defaults_NN.md` MUST NOT contain a `Preset` element or a `presets` Field, so that the blueprint floor never needs preset expansion (D3).
 
 #### Scenario: Package defaults are preset-free
 

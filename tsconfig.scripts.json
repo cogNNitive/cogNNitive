@@ -23,6 +23,7 @@
     "**/test-*.js",
     "skills/**/test/**",
     "skills/**/tests/**",
-    "**/*.generated.cjs"
+    "**/*.generated.cjs",
+    "scripts/core-mirrors/**"
   ]
 }

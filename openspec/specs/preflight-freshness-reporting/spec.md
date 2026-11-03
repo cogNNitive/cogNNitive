@@ -142,9 +142,9 @@ For the freshness fetch specifically — because it is optional enrichment issue
 - **AND** `exitCode` remains `0`
 
 #### Scenario: Installed catalog blueprint is drifted
-- **GIVEN** `video-script` is installed and its state differs from the catalog `release_tag`
+- **GIVEN** `coNNtent` is installed and its state differs from the catalog `release_tag`
 - **WHEN** `preflight-check.js` executes
-- **THEN** `video-script` and its embedded skill are reported as outdated
+- **THEN** `coNNtent` and its embedded skill are reported as outdated
 
 ### Requirement: nn-preflight resolves only the nn-mcp name
 

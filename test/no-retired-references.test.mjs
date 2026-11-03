@@ -36,6 +36,7 @@ const EDITOR_ALLOWLIST = [
   'iNNfo/packages/nn-mcp/bin/innfo-mcp.bundle.js', // embeds write-once specs (legacy name)
   'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js', // embeds write-once specs
   'iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs', // embeds write-once specs
+  'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs', // embeds write-once specs
   'test/fixtures/testlab/artifacts/', // stamped console exports of earlier runtimes
 ]
 // Published write-once specs: root-level `<name>_V_x-y-z_NN.md`. Versioned samples under

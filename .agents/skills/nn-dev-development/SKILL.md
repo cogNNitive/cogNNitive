@@ -304,7 +304,7 @@ When the maintainer says the accumulated `dev` work is ready:
    offline gate (every step runs, it never stops on first failure). A green CI run on the
    `dev` tip is required (`gh run list --branch dev --limit 1`). `check-integrity.js` is
    **not** part of the merge gate: it hangs in this environment (observed 2026-10-13, no
-   output after the video-script suite) and `verify.js` + CI cover the same batch. Run it
+   output after the coNNtent suite) and `verify.js` + CI cover the same batch. Run it
    only on request, with a bounded timeout, and file a hang as its own issue — never as a
    batch blocker. Also run `npm run check:versions`.
    - **`verify.js` env drift is not a batch failure.** A fresh/primary checkout can fail

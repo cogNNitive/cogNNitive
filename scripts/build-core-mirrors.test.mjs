@@ -27,9 +27,9 @@ const COMMITTED_TARGETS = [
     'iNNfo',
     'specs',
     'bluepriNNts',
-    'video-script',
+    'coNNtent',
     'skills',
-    'nn-video-script',
+    'nn-conntent',
     'scripts',
     'lib',
     'nn-core.generated.cjs',
@@ -54,9 +54,9 @@ async function runTests() {
         for (const fn of ['slugifyHeading', 'parseCitation', 'createFsSourceResolver', 'validateCitations', 'projectLineage']) {
           assert.strictEqual(typeof mod[fn], 'function', `nn-sources mirror exports ${fn}`)
         }
-      } else if (target.includes('video-script')) {
+      } else if (target.includes('coNNtent')) {
         for (const fn of ['findDomainRoot', 'resolve', 'findScopeChain', 'loadChain', 'loadElementChain', 'elementChain', 'driftReport', 'resolveProcedures', 'resolveModelId']) {
-          assert.strictEqual(typeof mod[fn], 'function', `video-script scope mirror exports ${fn}`)
+          assert.strictEqual(typeof mod[fn], 'function', `coNNtent scope mirror exports ${fn}`)
         }
       }
     }

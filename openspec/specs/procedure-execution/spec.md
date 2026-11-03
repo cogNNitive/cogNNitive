@@ -121,7 +121,7 @@ skill rather than reimplementing it.
 
 #### Scenario: Delegated step
 
-- GIVEN a step whose NN Tools section references `nn-video-script`
+- GIVEN a step whose NN Tools section references `nn-conntent`
 - WHEN the agent reaches the step
 - THEN it invokes that skill and continues after it returns
 

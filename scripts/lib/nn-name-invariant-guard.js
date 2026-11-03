@@ -65,7 +65,7 @@ function isCarvedOut(relPath, frozenDirs) {
   if (FROZEN_PREFIXES.some((p) => relPath.startsWith(p))) return true;
   if (frozenDirs.some((p) => relPath.startsWith(p))) return true;
   // Package-level blueprint `defaults/` baseline documents (e.g.
-  // `bluepriNNts/video-script/defaults/video-defaults_NN.md`) are blueprint-internal
+  // `bluepriNNts/coNNtent/defaults/video-defaults_NN.md`) are blueprint-internal
   // data named by the blueprint spec, not user kNNowledge; the universal `_NN`
   // name invariant does not apply to them.
   if (relPath.startsWith('iNNfo/specs/bluepriNNts/') && relPath.includes('/defaults/')) return true;

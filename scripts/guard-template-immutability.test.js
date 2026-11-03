@@ -226,14 +226,14 @@ Same body.`));
     {
       writeBase('video/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
       writeWork('video/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
-      const skillFile = 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/SKILL.md';
+      const skillFile = 'iNNfo/specs/bluepriNNts/video/skills/nn-conntent/SKILL.md';
 
       for (const status of ['M', 'A', 'D']) {
         const fx = writeFixture([`${status}\t${skillFile}`], `skill-${status}.txt`);
         const res = await runGuard(args(fx), tmpDir);
         assert.strictEqual(res.status, 1, `${status} under skills/ without an owner bump must exit 1`);
         assert.ok(res.stdout.includes('video/spec_NN.md'), 'names the owning package spec');
-        assert.ok(res.stdout.includes('skills/nn-video-script/SKILL.md'), 'names the changed skill file');
+        assert.ok(res.stdout.includes('skills/nn-conntent/SKILL.md'), 'names the changed skill file');
         assert.ok(/blueprint_version/.test(res.stdout), 'carries the bump remediation');
       }
       console.log('✔ skill edit (M/A/D) without an owner blueprint_version bump fails');

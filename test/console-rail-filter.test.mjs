@@ -47,16 +47,16 @@ describe('rail concept rows are scoped to their own model', () => {
       modelId: 'rail-lab',
       modelVersion: 'V_1-0-0',
       models: [
-        { id: 'series/a/one_video-script', title: 'One', filePath: 'one.md', elementCount: 2, blueprint: 'video-script' },
-        { id: 'series/b/two_video-script', title: 'Two', filePath: 'two.md', elementCount: 3, blueprint: 'video-script' },
+        { id: 'series/a/one_coNNtent', title: 'One', filePath: 'one.md', elementCount: 2, blueprint: 'coNNtent' },
+        { id: 'series/b/two_coNNtent', title: 'Two', filePath: 'two.md', elementCount: 3, blueprint: 'coNNtent' },
       ],
     },
     elements: [
-      { id: 'a1', concept: 'Video', name: 'A video', modelId: 'series/a/one_video-script', fields: {}, hash: '0'.repeat(16) },
-      { id: 'a2', concept: 'Scene', name: 'A scene', modelId: 'series/a/one_video-script', fields: {}, hash: '0'.repeat(16) },
-      { id: 'b1', concept: 'Video', name: 'B video 1', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
-      { id: 'b2', concept: 'Video', name: 'B video 2', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
-      { id: 'b3', concept: 'Video', name: 'B video 3', modelId: 'series/b/two_video-script', fields: {}, hash: '0'.repeat(16) },
+      { id: 'a1', concept: 'Video', name: 'A video', modelId: 'series/a/one_coNNtent', fields: {}, hash: '0'.repeat(16) },
+      { id: 'a2', concept: 'Scene', name: 'A scene', modelId: 'series/a/one_coNNtent', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b1', concept: 'Video', name: 'B video 1', modelId: 'series/b/two_coNNtent', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b2', concept: 'Video', name: 'B video 2', modelId: 'series/b/two_coNNtent', fields: {}, hash: '0'.repeat(16) },
+      { id: 'b3', concept: 'Video', name: 'B video 3', modelId: 'series/b/two_coNNtent', fields: {}, hash: '0'.repeat(16) },
     ],
     matrices: [],
   }
@@ -81,34 +81,34 @@ describe('rail concept rows are scoped to their own model', () => {
       rowFor(model, concept).querySelector('.nn-rail-count').textContent
 
     // The row counts THIS model's elements, not the domaiNN-wide total for the concept.
-    assert.equal(countOf('series/a/one_video-script', 'Video'), '1')
-    assert.equal(countOf('series/a/one_video-script', 'Scene'), '1')
-    assert.equal(countOf('series/b/two_video-script', 'Video'), '3')
+    assert.equal(countOf('series/a/one_coNNtent', 'Video'), '1')
+    assert.equal(countOf('series/a/one_coNNtent', 'Scene'), '1')
+    assert.equal(countOf('series/b/two_coNNtent', 'Video'), '3')
 
     // Clicking narrows to the row's own model, so the sibling model's Videos stay out.
-    rowFor('series/a/one_video-script', 'Video').click()
-    assert.equal(search.value, 'model:series/a/one_video-script concept:Video')
+    rowFor('series/a/one_coNNtent', 'Video').click()
+    assert.equal(search.value, 'model:series/a/one_coNNtent concept:Video')
     assert.equal(cards(), 1, "only model A's Video")
 
     // A sibling row keeps the model already selected and unions its concept, instead
     // of toggling the model off.
-    rowFor('series/a/one_video-script', 'Scene').click()
-    assert.equal(search.value, 'model:series/a/one_video-script concept:Video concept:Scene')
+    rowFor('series/a/one_coNNtent', 'Scene').click()
+    assert.equal(search.value, 'model:series/a/one_coNNtent concept:Video concept:Scene')
     assert.equal(cards(), 2, "model A's Video and its Scene")
 
     // Re-clicking one facet of the row drops just that facet; the model scope stays.
-    rowFor('series/a/one_video-script', 'Video').click()
-    assert.equal(search.value, 'model:series/a/one_video-script concept:Scene')
+    rowFor('series/a/one_coNNtent', 'Video').click()
+    assert.equal(search.value, 'model:series/a/one_coNNtent concept:Scene')
     assert.equal(cards(), 1)
 
     // Clearing the last concept leaves the model scope in place.
-    rowFor('series/a/one_video-script', 'Scene').click()
-    assert.equal(search.value, 'model:series/a/one_video-script')
+    rowFor('series/a/one_coNNtent', 'Scene').click()
+    assert.equal(search.value, 'model:series/a/one_coNNtent')
     assert.equal(cards(), 2, "model A's two elements")
 
     // The model row owns the model facet.
     document
-      .querySelector('#nn-rail summary[data-model="series/a/one_video-script"]')
+      .querySelector('#nn-rail summary[data-model="series/a/one_coNNtent"]')
       .click()
     assert.equal(search.value, '')
     assert.equal(cards(), 5, 'every element is back')

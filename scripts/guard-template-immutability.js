@@ -102,7 +102,7 @@ function templateVersionOf(content) {
 function isCanonicalBlueprint(relPath) {
   const p = relPath.replace(/\\/g, '/');
   if (!/\.md$/i.test(p)) return false;
-  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/') || p.includes('/skills/') || p.includes('/defaults/')) return false;
+  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/') || p.includes('/skills/') || p.includes('/defaults/') || p.includes('/catalog/')) return false;
   const base = path.basename(p);
   // Level-2 template specs: `spec_NN.md`, `<name>_spec_NN.md`, `<name>_NN.md`.
   return /^(spec_NN|.*_spec_NN|.*_NN)\.md$/i.test(base);
@@ -115,7 +115,7 @@ function isCanonicalBlueprint(relPath) {
  * `.../bluepriNNts/video/defaults/video-defaults_NN.md` both -> `.../bluepriNNts/video/spec_NN.md`.
  */
 function ownerSpecOf(relPath) {
-  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults)\/.+/);
+  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults|catalog)\/.+/);
   return m ? `${m[1]}${m[2]}/spec_NN.md` : null;
 }
 

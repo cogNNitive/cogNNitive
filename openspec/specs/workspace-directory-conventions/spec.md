@@ -56,7 +56,7 @@ Bootstrap MUST ensure the domaiNN root `.gitattributes` contains the line `* -te
 ### Requirement: Series and Video Folder Layout
 
 The workspace directory conventions MUST recognize a `series/` tree for video production: `series/{series-slug}/` holds a Series' scope document `{series-slug}_scope_NN.md` (frontmatter `scope: true`), its shared series assets and its optional `sounds/`, `components/` and `frames/`. The standard `{modelDir}/assets/{video-slug}/` rule then places each Video's own files at `series/{series-slug}/assets/{video-slug}/`.
-(Previously: the series folder held a `video-script`-template model file carrying a `series:` frontmatter block and a script template, and the Series model file was said to be the Video Element's `{modelDir}`.)
+(Previously: the series folder held a `coNNtent`-template model file carrying a `series:` frontmatter block and a script template, and the Series model file was said to be the Video Element's `{modelDir}`.)
 
 Source: D1, D9.
 

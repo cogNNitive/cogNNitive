@@ -2,18 +2,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-const BLUEPRINT_DIR = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'video-script');
+const BLUEPRINT_DIR = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'coNNtent');
 export const SPEC_PATH = path.join(BLUEPRINT_DIR, 'spec_NN.md');
-export const DOC_PATH = path.join(BLUEPRINT_DIR, 'skills', 'nn-video-script', 'references', 'parameters.md');
+export const DOC_PATH = path.join(BLUEPRINT_DIR, 'skills', 'nn-conntent', 'references', 'parameters.md');
 
 /** Scope columns, in cascade-reading order (broadest first). Key = the spec's `concept::` name. */
 const SCOPES = [
   { concept: 'Video Defaults', label: 'Defaults' },
   { concept: 'Series', label: 'Series' },
+  { concept: 'Scene Kind', label: 'Kind' },
   { concept: 'Preset', label: 'Preset' },
   { concept: 'Video', label: 'Video' },
   { concept: 'Scene', label: 'Scene' },
   { concept: 'Layer', label: 'Layer' },
+  { concept: 'Variant', label: 'Variant' },
+  { concept: 'Chrome', label: 'Chrome' },
+  { concept: 'Provider', label: 'Provider' },
+  { concept: 'Model', label: 'Model' },
+  { concept: 'Voice', label: 'Voice' },
 ];
 
 const SET = '●';
@@ -88,7 +94,7 @@ export function renderParametersDoc(fields, conditionalFields) {
   lines.push('');
   lines.push('# Video Script Parameter Reference');
   lines.push('');
-  lines.push('Every Field the `video-script` blueprint defines, and the scopes where it can be written.');
+  lines.push('Every Field the `coNNtent` blueprint defines, and the scopes where it can be written.');
   lines.push('The authoritative definition is `spec_NN.md`; this page is its generated rendering.');
   lines.push('');
   lines.push('## How scopes resolve');
@@ -96,12 +102,12 @@ export function renderParametersDoc(fields, conditionalFields) {
   lines.push('A parameter marked on several scopes is a **cascade parameter**: the nearest scope that sets it wins.');
   lines.push('');
   lines.push('```text');
-  lines.push('cli > layer > scene > video > series > domain > blueprint');
-  lines.push('```');
+  lines.push('layer > scene > video > kind > series > domain > blueprint');  lines.push('```');
   lines.push('');
   lines.push('- **Defaults** is `video-defaults_NN.md`: the `domain` level, with the package copy as the `blueprint` level.');
-  lines.push('- **Series** is the episode\'s nearest `*_scope_NN.md`.');
-  lines.push('- **Preset** is a named bundle of cascade parameters. A `presets` list is written at Defaults, Series, Video or Scene (never on a Layer) and expands directly under that level, so a Preset beats the outer levels but never the explicit fields of the element that names it.');
+  lines.push('- **Series** is the episode\'s nearest `*_series_NN.md` (frontmatter `scope: true`).');
+  lines.push('- **Kind** is the `Scene Kind` element named by the scene\'s `kind::`; a `Libre` scene has no kind level.');
+  lines.push('- **Preset** is a named bundle of cascade parameters. A `presets` list is written at Defaults, Series, Scene Kind, Video or Scene (never on a Layer) and expands directly under that level, so a Preset beats the outer levels but never the explicit fields of the element that names it.');
   lines.push('- A Preset column mark means the Field can be set inside a Preset.');
   lines.push('');
   lines.push(`Legend: ${SET} can be written at this scope, ${UNSET} cannot.`);
@@ -157,10 +163,10 @@ export function syncParametersDoc(options = {}) {
     }
     const current = fs.readFileSync(DOC_PATH, 'utf8');
     if (current.replace(/\r\n/g, '\n') !== rendered) {
-      console.error('FAIL: video-script parameters.md is out of sync with spec_NN.md. Run node scripts/generate-video-parameters-doc.mjs');
+      console.error('FAIL: coNNtent parameters.md is out of sync with spec_NN.md. Run node scripts/generate-video-parameters-doc.mjs');
       return false;
     }
-    console.log('OK: video-script parameters.md is in sync with spec_NN.md');
+    console.log('OK: coNNtent parameters.md is in sync with spec_NN.md');
     return true;
   }
 

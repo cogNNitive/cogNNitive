@@ -81,6 +81,6 @@ Source: D6.
 
 #### Scenario: No new field
 
-- GIVEN the `video-script` blueprint
+- GIVEN the `coNNtent` blueprint
 - WHEN the `Video` Field Definitions are listed
 - THEN `description` is present and no field refers to `description.md`

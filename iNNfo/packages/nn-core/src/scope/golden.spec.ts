@@ -26,14 +26,14 @@ const FLOOR = {
 }
 
 const EPISODES = {
-  innteresante: join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_video-script_innteresante_NN.md'),
+  innteresante: join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_innteresante_NN.md'),
   'villabotijos-today': join(
     GOLD,
     'series',
     'villabotijos-today',
     'assets',
     'boa-constrictor-suelta',
-    'boa-constrictor-suelta_video-script_villabotijos-today_NN.md',
+    'boa-constrictor-suelta_coNNtent_villabotijos-today_NN.md',
   ),
 }
 
@@ -117,7 +117,7 @@ describe('music and voice reproduce the values of the series today', () => {
   })
 })
 
-const SCRIPT_DOC = 'series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_innteresante_NN.md'
+const SCRIPT_DOC = 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md'
 const SERIES_VIDEOS = join(GOLD, 'series', 'innteresante', 'innteresante_video_NN.md')
 
 function scene(slug: string) {

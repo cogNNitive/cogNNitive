@@ -2,17 +2,17 @@
 
 ## Purpose
 
-Defines the cogNNitive-owned skill that authors native iNNfo Level-3 video-script documents inside an iNNfo workspace. The skill is embedded in the `video-script` blueprint package; script validity is enforced by the `video-script` blueprint, with no external repository dependency.
+Defines the cogNNitive-owned skill that authors native iNNfo Level-3 coNNtent documents inside an iNNfo workspace. The skill is embedded in the `coNNtent` blueprint package; script validity is enforced by the `coNNtent` blueprint, with no external repository dependency.
 ## Requirements
 ### Requirement: Authors iNNfo L3 Script Documents
 
-The skill MUST author video scripts as iNNfo Level-3 kNNowledge documents that adopt the `video-script` blueprint. The skill MUST NOT author VUS scripts and MUST NOT ship, vendor, or invoke a VUS parser.
+The skill MUST author video scripts as iNNfo Level-3 kNNowledge documents that adopt the `coNNtent` blueprint. The skill MUST NOT author VUS scripts and MUST NOT ship, vendor, or invoke a VUS parser.
 
 #### Scenario: Skill authors an L3 document
 
 - GIVEN a workspace with a registered Video Element and its owning Series
 - WHEN the skill authors a script for that Video
-- THEN it writes an iNNfo L3 document adopting the `video-script` blueprint
+- THEN it writes an iNNfo L3 document adopting the `coNNtent` blueprint
 - AND the document validates against the blueprint
 
 #### Scenario: No VUS parser artifact present
@@ -24,7 +24,7 @@ The skill MUST author video scripts as iNNfo Level-3 kNNowledge documents that a
 
 ### Requirement: Owned Skill With No External Dependency
 
-The system MUST provide a cogNNitive-owned video-script skill embedded in the `video-script` bluepriNNt package at `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/` that authors iNNfo Level-3 video-script documents and understands iNNfo workspace structure (Series/Video registration). The skill MUST NOT depend on, fork from at run time, or reference any repository outside the monorepo. (Previously: it authored VUS scripts using a vendored parser and VUS specification, embedded in the `video` bluepriNNt package.)
+The system MUST provide a cogNNitive-owned coNNtent skill embedded in the `coNNtent` bluepriNNt package at `iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/` that authors iNNfo Level-3 coNNtent documents and understands iNNfo workspace structure (Series/Video registration). The skill MUST NOT depend on, fork from at run time, or reference any repository outside the monorepo. (Previously: it authored VUS scripts using a vendored parser and VUS specification, embedded in the `video` bluepriNNt package.)
 
 #### Scenario: Skill authors a document with no external repository
 
@@ -41,7 +41,7 @@ The system MUST provide a cogNNitive-owned video-script skill embedded in the `v
 
 #### Scenario: Installed copy authors with no monorepo checkout
 
-- GIVEN the skill installed at `~/.agents/skills/nn-video-script/` with no monorepo present
+- GIVEN the skill installed at `~/.agents/skills/nn-conntent/` with no monorepo present
 - WHEN the skill authors a valid L3 script document
 - THEN it succeeds using only artifacts committed inside the skill
 
@@ -53,7 +53,7 @@ The skill's own documentation and prompts MUST NOT restate blueprint Field names
 
 - GIVEN a document that needs a valid Layer `type::`
 - WHEN the skill selects a value
-- THEN it reads the allowed values from the `video-script` blueprint, never from a hardcoded list in its own prose
+- THEN it reads the allowed values from the `coNNtent` blueprint, never from a hardcoded list in its own prose
 
 #### Scenario: Restated schema fact rejected in review
 
@@ -87,24 +87,24 @@ Remotion engine.
 
 ### Requirement: Skill Is Installed By Projection From The video bluepriNNt
 
-The skill MUST be made available to agents at `~/.agents/skills/nn-video-script/` solely by
-installing the `video-script` bluepriNNt. It MUST NOT have a standalone distribution entry, alias,
-redirect or dual path. Any change under `video-script/skills/**` or `video-script/defaults/**`
-MUST bump the `video-script` `blueprint_version` and the skill `version`, and every registry that
+The skill MUST be made available to agents at `~/.agents/skills/nn-conntent/` solely by
+installing the `coNNtent` bluepriNNt. It MUST NOT have a standalone distribution entry, alias,
+redirect or dual path. Any change under `coNNtent/skills/**` or `coNNtent/defaults/**`
+MUST bump the `coNNtent` `blueprint_version` and the skill `version`, and every registry that
 records these versions MUST be updated in the same change.
 (Previously: pinned literal versions `V_0-6-0` / `V_0-4-0`, which went stale with each change.)
 
-#### Scenario: Installing video-script yields a working skill
+#### Scenario: Installing coNNtent yields a working skill
 
 - GIVEN a clean `~/.agents/`
-- WHEN the `video-script` bluepriNNt is installed
-- THEN `~/.agents/skills/nn-video-script/SKILL.md` and the package's `defaults/video-defaults_NN.md` exist and the skill's scripts find it
+- WHEN the `coNNtent` bluepriNNt is installed
+- THEN `~/.agents/skills/nn-conntent/SKILL.md` and the package's `defaults/video-defaults_NN.md` exist and the skill's scripts find it
 
 #### Scenario: Renderer change bumps the blueprint version
 
-- GIVEN a change under `video-script/skills/**`
+- GIVEN a change under `coNNtent/skills/**`
 - WHEN the manifest pin is validated
-- THEN the `video-script` `blueprint_version` is bumped
+- THEN the `coNNtent` `blueprint_version` is bumped
 
 #### Scenario: Versions are registered consistently
 
@@ -118,7 +118,7 @@ Test suites that live inside the embedded skill MUST be discovered and executed 
 
 #### Scenario: Moved suites still run
 
-- GIVEN the skill's suites under `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/`
+- GIVEN the skill's suites under `iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/`
 - WHEN `node scripts/verify.js` collects suites
 - THEN each remaining suite is in the executed set
 
@@ -140,7 +140,7 @@ The video script compiler MUST bind `Layer` elements to their parent `Scene` usi
 
 ### Requirement: Blueprint-Ships Draft Authoring Tools
 
-The skill MUST ship the draft authoring tools: `build-draft-html.mjs` (`draft.json` to a self-contained `review_console.html` with embedded thumbnails and a `reviewed.json` exporter) and `build-script-from-draft.mjs` (`reviewed.json` to a valid L3 `video-script` document named `<slug>_video-script_<s>_NN.md`). Thumbnails MUST be produced by the single `render-thumbnail.mjs` tool. The draft JSON schema MUST be named neutrally (`video-script.draft.v1`). The tools MUST read series values through the parameter cascade (series, then domain Video Defaults, then package Video Defaults), resolved by nn-core from the scope chain of the input file's folder (or `--series <dir>`). There MUST be no `video.series.json`, `--config` flag or built-in series config, and no legacy `_draft_<version>.html` alias. The generated script's frontmatter MUST be copied from the series scope document and its filename MUST use the Series slug. The tools MUST NOT write cascaded scene values that the engine resolves itself, MUST write a Preset choice as `presets:: [..]`, MUST NOT write a literal presenter `asset::`, MUST resolve `intro` through the cascade into the fixed scene's background `asset::`, and MUST NOT hardcode any series' preset names, scene slugs, background audio, filename pattern or model. The review console MUST export the renamed keys (`presets`, `background_audio`, `background_audio_volume`, `voice_speed`, `avatar_*`).
+The skill MUST ship the draft authoring tools: `build-draft-html.mjs` (`draft.json` to a self-contained `review_console.html` with embedded thumbnails and a `reviewed.json` exporter) and `build-script-from-draft.mjs` (`reviewed.json` to a valid L3 `coNNtent` document named `<slug>_coNNtent_<s>_NN.md`). Thumbnails MUST be produced by the single `render-thumbnail.mjs` tool. The draft JSON schema MUST be named neutrally (`coNNtent.draft.v1`). The tools MUST read series values through the parameter cascade (series, then domain Video Defaults, then package Video Defaults), resolved by nn-core from the scope chain of the input file's folder (or `--series <dir>`). There MUST be no `video.series.json`, `--config` flag or built-in series config, and no legacy `_draft_<version>.html` alias. The generated script's frontmatter MUST be copied from the series scope document and its filename MUST use the Series slug. The tools MUST NOT write cascaded scene values that the engine resolves itself, MUST write a Preset choice as `presets:: [..]`, MUST NOT write a literal presenter `asset::`, MUST resolve `intro` through the cascade into the fixed scene's background `asset::`, and MUST NOT hardcode any series' preset names, scene slugs, background audio, filename pattern or model. The review console MUST export the renamed keys (`presets`, `background_audio`, `background_audio_volume`, `voice_speed`, `avatar_*`).
 (Previously: the file names were `<slug>_draft_V_x-y-z.json`, `<slug>_reviewed.json` and `<slug>_review_console.html`, with a legacy `_draft_<version>.html` alias.)
 
 Source: D8, D9, D1 (review file names).
@@ -161,7 +161,7 @@ Source: D8, D9, D1 (review file names).
 
 - GIVEN a reviewed draft JSON in a series folder
 - WHEN `build-script-from-draft.mjs` runs
-- THEN it emits an L3 document that validates against the `video-script` blueprint with no schema errors
+- THEN it emits an L3 document that validates against the `coNNtent` blueprint with no schema errors
 
 #### Scenario: Review HTML is self-contained
 
@@ -260,7 +260,7 @@ no-op.
 
 ### Requirement: Package Ships Defaults, Skill Ships Neutral Fallbacks And A Slot Reference
 
-The `video-script` bluepriNNt package (not the skill) MUST ship `defaults/video-defaults_NN.md`,
+The `coNNtent` bluepriNNt package (not the skill) MUST ship `defaults/video-defaults_NN.md`,
 a `Video Defaults` document holding every cascade default (the `blueprint` level). The skill
 MUST ship exactly one neutral fallback component per slot (`title`, `lower-third`, `caption`,
 `quote`, `watermark`, `b-roll`), one neutral frame `frames/neutral.md`, and a reference doc
@@ -277,7 +277,7 @@ NOT ship sound files. All shipped files MUST be English-only and series-neutral.
 
 ### Requirement: Domain Adoption Copies The Video Defaults
 
-SKILL.md MUST instruct the agent, when a domain adopts the `video-script` bluepriNNt and its root has no `video-defaults_NN.md`, to copy the package's `defaults/video-defaults_NN.md` there unchanged. Domain tuning MUST be an edit of that copy, and a domain MAY add `# NN Preset` sections to it. No script MUST create it.
+SKILL.md MUST instruct the agent, when a domain adopts the `coNNtent` bluepriNNt and its root has no `video-defaults_NN.md`, to copy the package's `defaults/video-defaults_NN.md` there unchanged. Domain tuning MUST be an edit of that copy, and a domain MAY add `# NN Preset` sections to it. No script MUST create it.
 (Previously: no mention of domain Presets; the defaults scenario searched for `0.2` as a music-volume default.)
 
 #### Scenario: Adoption step is documented

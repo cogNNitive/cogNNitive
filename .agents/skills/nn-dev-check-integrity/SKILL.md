@@ -84,7 +84,7 @@ mandatory before promoting a `dev` batch to `main`.
 ### The runner can hang — bound it
 
 `check-integrity.js` is long and stalls in this environment (observed 2026-10-13: no output
-after the video-script suite; the isolated test runs fine). Never wait open-ended: watch the
+after the coNNtent suite; the isolated test runs fine). Never wait open-ended: watch the
 output length, and treat no change for 3 minutes as hung. On a hang, run
 `node scripts/verify.js` as the gate, **say so explicitly**, and record the hang as its own
 issue — it is not a batch blocker. `nn-dev-development` §4d already uses `verify.js` + CI as

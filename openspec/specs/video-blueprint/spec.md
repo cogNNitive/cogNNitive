@@ -2,23 +2,23 @@
 
 ## Purpose
 
-The Level 2 `video-script` blueprint is the canonical schema for native video scripts. It defines the `Video`, `Scene`, `Layer`, and `Template` Concepts and Fields using iNNfo `::` syntax and is the schema an L3 script document adopts via `parent_spec`. The retired `video` blueprint and its `@template` definitions no longer exist.
+The Level 2 `coNNtent` blueprint is the canonical schema for native video scripts. It defines the `Video`, `Scene`, `Layer`, and `Template` Concepts and Fields using iNNfo `::` syntax and is the schema an L3 script document adopts via `parent_spec`. The retired `video` blueprint and its `@template` definitions no longer exist.
 ## Requirements
 ### Requirement: Native L2 Video-Script Blueprint
 
-The Level 2 blueprint `video-script` MUST define the Concepts and Fields for a native video script (`Video`, `Scene`, `Layer`, `Preset`, plus `Video Defaults` and `Series`) using iNNfo `::` field syntax, and MUST be the schema an L3 script document adopts via `parent_spec`. The blueprint MUST NOT define VUS `scene_*` or `layer_*` fields.
+The Level 2 blueprint `coNNtent` MUST define the Concepts and Fields for a native video script (`Video`, `Scene`, `Layer`, `Preset`, plus `Video Defaults` and `Series`) using iNNfo `::` field syntax, and MUST be the schema an L3 script document adopts via `parent_spec`. The blueprint MUST NOT define VUS `scene_*` or `layer_*` fields.
 (Previously: the Concept list named `Template` in place of `Preset`.)
 
 #### Scenario: Blueprint defines the native concepts
 
-- GIVEN the Level 2 `video-script` blueprint
+- GIVEN the Level 2 `coNNtent` blueprint
 - WHEN it is inspected
 - THEN it defines `Video`, `Scene`, `Layer` and `Preset` Concepts with `::` Fields
 - AND it defines no `Template` Concept and no `scene_*` or `layer_*` fields
 
 #### Scenario: An L3 script adopts the blueprint
 
-- GIVEN an L3 script document whose `parent_spec` is the `video-script` blueprint
+- GIVEN an L3 script document whose `parent_spec` is the `coNNtent` blueprint
 - WHEN the document is validated
 - THEN its Concepts and Fields are checked against the blueprint
 
@@ -92,7 +92,7 @@ The blueprint MUST define an optional `presets` Field (`type:: select`, `multipl
 
 #### Scenario: Video declares presets
 
-- GIVEN a `video-script` script whose `Video` element declares `presets:: [Lucas, Studio Warm]`
+- GIVEN a `coNNtent` script whose `Video` element declares `presets:: [Lucas, Studio Warm]`
 - WHEN the script is validated
 - THEN it validates with no schema errors and no unresolved-reference diagnostic
 
@@ -128,7 +128,7 @@ The blueprint `validation.conditional_fields` MUST declare `presenter: [asset, p
 
 The change MUST set `blueprint_version` to `V_0-14-0` in `spec_NN.md`, set the package defaults `parent_spec` to the same version, regenerate both `catalog.json` files, and keep every release guard green.
 
-The draft console MUST NOT carry a literal `video-script_V_` version string; `build-draft-html.mjs` substitutes the version when it builds the console, and a test forbids a literal in the template.
+The draft console MUST NOT carry a literal `coNNtent_V_` version string; `build-draft-html.mjs` substitutes the version when it builds the console, and a test forbids a literal in the template.
 
 #### Scenario: Immutability guard accepts the bump
 
@@ -140,23 +140,23 @@ The draft console MUST NOT carry a literal `video-script_V_` version string; `bu
 
 - GIVEN the regenerated `iNNfo/specs/bluepriNNts/catalog.json` and `docs/innfo/blueprints/catalog.json`
 - WHEN the freshness and parity checks in `node scripts/verify.js` run
-- THEN both pass and both name `video-script` at `V_0-14-0`
+- THEN both pass and both name `coNNtent` at `V_0-14-0`
 
 #### Scenario: Defaults drift is fixed
 
 - GIVEN the package `defaults/video-defaults_NN.md`
 - WHEN its `parent_spec` is read
-- THEN it names `video-script_V_0-14-0`, not `V_0-13-6`
+- THEN it names `coNNtent_V_0-14-0`, not `V_0-13-6`
 
 #### Scenario: Console carries no literal version
 
 - GIVEN `draft-template.html`
-- WHEN it is searched for a literal `video-script_V_`
+- WHEN it is searched for a literal `coNNtent_V_`
 - THEN none is found and the built console carries the injected `V_0-14-0`
 
 ### Requirement: Blueprint Declares master_resolution With One Option
 
-The `video-script` blueprint MUST define `master_resolution` as a `select` Field of the `Video Defaults` Concept with the single option `1920x1920`, and the package `defaults/video-defaults_NN.md` MUST declare `master_resolution:: 1920x1920`.
+The `coNNtent` blueprint MUST define `master_resolution` as a `select` Field of the `Video Defaults` Concept with the single option `1920x1920`, and the package `defaults/video-defaults_NN.md` MUST declare `master_resolution:: 1920x1920`.
 
 Source: D3, D4, settled default 4.
 
@@ -186,7 +186,7 @@ Source: D3, D4, settled default 4.
 
 ### Requirement: Blueprint Text Describes A Single Square Master
 
-The `video-script` blueprint `spec_NN.md` MUST describe the Video `master` field as the episode's square master `<slug>_1920x1920.mp4` and the Layer `position` field as an overlay anchor inside the central safe square, and MUST NOT contain the 16:9 `center 12%` wording, a native dual-master (16:9 and 9:16) description or 9:16 position behaviour.
+The `coNNtent` blueprint `spec_NN.md` MUST describe the Video `master` field as the episode's square master `<slug>_1920x1920.mp4` and the Layer `position` field as an overlay anchor inside the central safe square, and MUST NOT contain the 16:9 `center 12%` wording, a native dual-master (16:9 and 9:16) description or 9:16 position behaviour.
 
 Source: D4.
 
@@ -218,7 +218,7 @@ Source: D11 release checklist, settled default 11.
 
 - GIVEN `origin/main` carries `V_0-14-0` (the presets release)
 - WHEN this change edits `spec_NN.md`
-- THEN `blueprint_version` is `V_0-14-1`, the package defaults `parent_spec` names `video-script_V_0-14-1`, and both catalogs name `V_0-14-1`
+- THEN `blueprint_version` is `V_0-14-1`, the package defaults `parent_spec` names `coNNtent_V_0-14-1`, and both catalogs name `V_0-14-1`
 
 #### Scenario: Catalogs and guards stay green
 

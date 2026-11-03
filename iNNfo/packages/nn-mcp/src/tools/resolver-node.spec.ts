@@ -492,17 +492,17 @@ describe('NodeSpecResolver', () => {
       const pkgPath = await hydrateBlueprintPackageAtomically(rootDir, 'video', 'V_0-8-0', {
         spec: '---\nblueprint_version: "V_0-8-0"\n---\n# Video\n',
         skills: {
-          'nn-video-script/SKILL.md': '# Skill\n',
-          'nn-video-script/scripts/lib/x.mjs': 'export const x = 1\n',
+          'nn-conntent/SKILL.md': '# Skill\n',
+          'nn-conntent/scripts/lib/x.mjs': 'export const x = 1\n',
         },
       })
 
-      expect(await readFile(join(pkgPath, 'skills', 'nn-video-script', 'SKILL.md'), 'utf-8')).toBe(
+      expect(await readFile(join(pkgPath, 'skills', 'nn-conntent', 'SKILL.md'), 'utf-8')).toBe(
         '# Skill\n',
       )
       expect(
         await readFile(
-          join(pkgPath, 'skills', 'nn-video-script', 'scripts', 'lib', 'x.mjs'),
+          join(pkgPath, 'skills', 'nn-conntent', 'scripts', 'lib', 'x.mjs'),
           'utf-8',
         ),
       ).toContain('export const x')
@@ -515,9 +515,9 @@ describe('NodeSpecResolver', () => {
       const { resolveBlueprintPackage } = await import('./resolver-node')
       const globalDir = join(rootDir, 'global_agents')
       const flatDir = join(globalDir, 'video')
-      await mkdir(join(flatDir, 'skills', 'nn-video-script'), { recursive: true })
+      await mkdir(join(flatDir, 'skills', 'nn-conntent'), { recursive: true })
       await writeFile(join(flatDir, 'spec_NN.md'), '---\nspec_version: "V_0-3-0"\n---')
-      await writeFile(join(flatDir, 'skills', 'nn-video-script', 'SKILL.md'), '# Skill')
+      await writeFile(join(flatDir, 'skills', 'nn-conntent', 'SKILL.md'), '# Skill')
 
       const res = await resolveBlueprintPackage(rootDir, 'video', undefined, { globalDir })
       expect(res).not.toBeNull()
@@ -525,7 +525,7 @@ describe('NodeSpecResolver', () => {
       expect(res?.isPackageDir).toBe(true)
       expect(res?.packagePath).toBe(flatDir)
       expect(res?.specFilePath).toBe(join(flatDir, 'spec_NN.md'))
-      expect(existsSync(join(res!.packagePath, 'skills', 'nn-video-script', 'SKILL.md'))).toBe(true)
+      expect(existsSync(join(res!.packagePath, 'skills', 'nn-conntent', 'SKILL.md'))).toBe(true)
     })
 
     it('Tier 3 flat install honors a requested version only when the frontmatter version matches', async () => {
@@ -812,16 +812,16 @@ describe('fetchBlueprintPackageFromRemote', () => {
     const spy = mockFetch(
       {
         '/video/spec_NN.md': '# Video spec',
-        '/video/skills/nn-video-script/SKILL.md': '# Skill',
-        '/video/skills/nn-video-script/scripts/lib/x.mjs': 'export const x = 1',
+        '/video/skills/nn-conntent/SKILL.md': '# Skill',
+        '/video/skills/nn-conntent/scripts/lib/x.mjs': 'export const x = 1',
         '/video/samples/a_NN.md': '# Sample',
         '/video/samples/nested/b_NN.md': '# Nested sample',
       },
       {
-        'video/skills/nn-video-script/scripts/lib?': [file('x.mjs')],
-        'video/skills/nn-video-script/scripts?': [dir('lib')],
-        'video/skills/nn-video-script?': [file('SKILL.md'), dir('scripts')],
-        'video/skills?': [dir('nn-video-script')],
+        'video/skills/nn-conntent/scripts/lib?': [file('x.mjs')],
+        'video/skills/nn-conntent/scripts?': [dir('lib')],
+        'video/skills/nn-conntent?': [file('SKILL.md'), dir('scripts')],
+        'video/skills?': [dir('nn-conntent')],
         'video/samples?': [file('a_NN.md'), dir('nested')],
       },
     )
@@ -831,8 +831,8 @@ describe('fetchBlueprintPackageFromRemote', () => {
     })
 
     expect(pkg.skills).toEqual({
-      'nn-video-script/SKILL.md': '# Skill',
-      'nn-video-script/scripts/lib/x.mjs': 'export const x = 1',
+      'nn-conntent/SKILL.md': '# Skill',
+      'nn-conntent/scripts/lib/x.mjs': 'export const x = 1',
     })
     expect(pkg.samples).toEqual({ 'a_NN.md': '# Sample' })
     expect(spy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('samples/nested'))).toBe(
@@ -843,11 +843,11 @@ describe('fetchBlueprintPackageFromRemote', () => {
   it('rejects (never returns a partial skills tree) when a nested skills/ listing fails', async () => {
     const dir = (name: string) => ({ name, type: 'dir', path: name })
     mockFetch(
-      { '/video/spec_NN.md': '# Video spec', '/video/skills/nn-video-script/SKILL.md': '# Skill' },
+      { '/video/spec_NN.md': '# Video spec', '/video/skills/nn-conntent/SKILL.md': '# Skill' },
       {
         // the nested `scripts` listing is absent -> 404 mid-tree
-        'video/skills/nn-video-script?': [file('SKILL.md'), dir('scripts')],
-        'video/skills?': [dir('nn-video-script')],
+        'video/skills/nn-conntent?': [file('SKILL.md'), dir('scripts')],
+        'video/skills?': [dir('nn-conntent')],
       },
     )
 
@@ -860,12 +860,12 @@ describe('fetchBlueprintPackageFromRemote', () => {
     mockFetch(
       {
         '/video/spec_NN.md': '# Video spec',
-        '/video/skills/nn-video-script/SKILL.md': '# Skill',
-        '/video/skills/nn-video-script/run.mjs': null,
+        '/video/skills/nn-conntent/SKILL.md': '# Skill',
+        '/video/skills/nn-conntent/run.mjs': null,
       },
       {
-        'video/skills/nn-video-script?': [file('SKILL.md'), file('run.mjs')],
-        'video/skills?': [{ name: 'nn-video-script', type: 'dir', path: 'nn-video-script' }],
+        'video/skills/nn-conntent?': [file('SKILL.md'), file('run.mjs')],
+        'video/skills?': [{ name: 'nn-conntent', type: 'dir', path: 'nn-conntent' }],
       },
     )
 
@@ -881,7 +881,7 @@ describe('fetchBlueprintPackageFromRemote', () => {
       { '/video/spec_NN.md': '---\nspec_version: "V_0-8-0"\n---\n# Video spec' },
       {
         // listing for skills/ itself fails with a non-404-shaped miss on a nested dir
-        'video/skills?': [{ name: 'nn-video-script', type: 'dir', path: 'nn-video-script' }],
+        'video/skills?': [{ name: 'nn-conntent', type: 'dir', path: 'nn-conntent' }],
       },
     )
 

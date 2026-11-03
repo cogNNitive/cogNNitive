@@ -34,9 +34,11 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts } = {}) {
+export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts, viewData } = {}) {
   const schemaSlot = schema || { concepts: [{ name: 'Fleet' }] }
   const configSlot = config || { needs: ['feedback-export'] }
+  // Absent viewData keeps the slot out, so the "no data" path is the real shell path.
+  const viewDataSlot = viewData === undefined ? '' : `<script type="application/json" id="nn-view-data">${JSON.stringify(viewData)}</script>`
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <div id="nn-layout">
@@ -52,6 +54,7 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
       <script type="application/json" id="nn-config">${JSON.stringify(configSlot)}</script>
       <script type="application/json" id="nn-schema">${JSON.stringify(schemaSlot)}</script>
       <script type="application/json" id="nn-model">${JSON.stringify(model)}</script>
+      ${viewDataSlot}
     </body></html>`,
     runScripts ? { url, runScripts } : { url },
   )

@@ -7,7 +7,7 @@ TBD - created by archiving change 2026-10-28-contextual-resolution. Update Purpo
 
 nn-core MUST expose exactly one function, `findScopeChain(path)`, that locates the domaiNN
 root and every enclosing sub-scope of `path`. Every consumer that needs a root or a scope
-(nn-mcp, workspace sync, the video-script skill scripts) MUST call it and MUST NOT
+(nn-mcp, workspace sync, the coNNtent skill scripts) MUST call it and MUST NOT
 implement its own upward walk. The function MUST NOT read the filesystem outside the
 directories on the path from `path` up to the root.
 

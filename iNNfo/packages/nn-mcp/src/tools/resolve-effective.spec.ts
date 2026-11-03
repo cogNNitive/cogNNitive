@@ -16,7 +16,7 @@ const GOLD = join(FIXTURES, 'video-golden')
 const ELFIX = join(FIXTURES, 'programas-golden')
 
 const P1 = 'programs/alpha/projects/p1/p1_NN.md'
-const SCRIPT = 'series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_innteresante_NN.md'
+const SCRIPT = 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md'
 const TUTORIAS = 'kNNowledge/tutorias_NN.md'
 const PRESTACION = 'Prestación de Servicios'
 

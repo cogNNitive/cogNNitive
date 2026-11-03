@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Ephemeral overlays (quote, lower-third, b-roll) are modeled as native `Layer` elements discriminated by the `type::` values defined in the `video-script` blueprint. Overlay content is declared through Layer Fields, and the scene compiler schedules overlays sequentially without temporal collision, ordering them by list order and applying configurable `enter_animation`/`exit_animation`.
+Ephemeral overlays (quote, lower-third, b-roll) are modeled as native `Layer` elements discriminated by the `type::` values defined in the `coNNtent` blueprint. Overlay content is declared through Layer Fields, and the scene compiler schedules overlays sequentially without temporal collision, ordering them by list order and applying configurable `enter_animation`/`exit_animation`.
 ## Requirements
 ### Requirement: Overlays Are Layer `type::` Kinds
 
 Ephemeral overlays MUST be modeled as `Layer` elements discriminated by the `type::` values
-`quote`, `lower-third`, and `b-roll`, as defined in the `video-script` blueprint. Overlay text
+`quote`, `lower-third`, and `b-roll`, as defined in the `coNNtent` blueprint. Overlay text
 and asset content MUST be declared through the Layer's own Fields, not through inline syntax.
 Overlays MUST be modelled as **intent**: the Layer declares the overlay's semantic content
 (text/asset, type, position, animations), and the renderer paints it from a HyperFrames block.

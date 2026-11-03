@@ -80,7 +80,7 @@ The skills manager MUST resolve `catalog.json` from the published URL when the r
 
 #### Scenario: Installed manager falls back to the URL
 - GIVEN a manager run from `~/.agents/` with no repo-relative catalog
-- WHEN `install --blueprint video-script` runs
+- WHEN `install --blueprint coNNtent` runs
 - THEN the catalog is fetched from the published URL
 - AND the blueprint content matches the adopted version
 

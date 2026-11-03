@@ -20,7 +20,7 @@ Defines manifest-driven distribution of blueprint procedures and their dynamic d
 #### Scenario: New-form procedure name
 - GIVEN a package with `procedures/generate_video_script_procedures_NN.md`
 - WHEN `list_template_procedures` runs
-- THEN it returns id `generate-video-script` with path `procedures/generate_video_script_procedures_NN.md`
+- THEN it returns id `generate-coNNtent` with path `procedures/generate_video_script_procedures_NN.md`
 
 #### Scenario: Frozen procedure name
 - GIVEN the frozen `workspace` package with `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md`
@@ -67,23 +67,23 @@ external entry.
 with no pin, integrity hash or license, and discovery returned only those fields.)
 
 #### Scenario: Embedded skill is listed with a resolved path
-- GIVEN the `video` package containing `skills/nn-video-script/SKILL.md`
+- GIVEN the `video` package containing `skills/nn-conntent/SKILL.md`
 - WHEN `list_blueprint_skills video` runs
-- THEN it returns an entry with name `nn-video-script`, `source_blueprint` `video`, and `embedded: true`
+- THEN it returns an entry with name `nn-conntent`, `source_blueprint` `video`, and `embedded: true`
 
 ### Requirement: Installing a bluepriNNt Projects Embedded Skills
 
 Installing a bluepriNNt through `skills-manager` MUST project each `skills/<name>/` folder into `~/.agents/skills/<name>/` using the existing projection helpers, so agent runtimes discover the skill at its stable user-facing path. Re-projection MUST NOT delete an existing `node_modules` directory inside the target skill folder. Installing a bluepriNNt with no `skills/` folder MUST project nothing.
 
 #### Scenario: Install projects the embedded skill
-- GIVEN the manifest declares the `video-script` bluepriNNt with an embedded `nn-video-script`
-- WHEN `skills-manager install` runs for `video-script`
-- THEN `~/.agents/skills/nn-video-script/SKILL.md` exists
+- GIVEN the manifest declares the `coNNtent` bluepriNNt with an embedded `nn-conntent`
+- WHEN `skills-manager install` runs for `coNNtent`
+- THEN `~/.agents/skills/nn-conntent/SKILL.md` exists
 - AND the skill's `scripts/` are present beneath it
 
 #### Scenario: Re-install keeps Remotion dependencies
-- GIVEN `~/.agents/skills/nn-video-script/node_modules/` already exists
-- WHEN the `video-script` bluepriNNt is installed or updated again
+- GIVEN `~/.agents/skills/nn-conntent/node_modules/` already exists
+- WHEN the `coNNtent` bluepriNNt is installed or updated again
 - THEN `node_modules/` is preserved
 - AND changed skill files are updated
 
@@ -93,14 +93,14 @@ A skill embedded in a bluepriNNt MUST NOT have its own entry in `manifest/source
 
 #### Scenario: No standalone manifest entry
 - GIVEN `manifest/source.yaml`
-- WHEN it is inspected for `nn-video-script`
+- WHEN it is inspected for `nn-conntent`
 - THEN no skill entry exists
-- AND the standalone `skills/nn-video-script/` folder does not exist
+- AND the standalone `skills/nn-conntent/` folder does not exist
 
 #### Scenario: Doc and registry checks stay green
 - GIVEN the embedded skill and no standalone entry
 - WHEN `node scripts/verify.js` runs
-- THEN the manifest-skills-to-docs-pages check passes without a standalone `nn-video-script` page
+- THEN the manifest-skills-to-docs-pages check passes without a standalone `nn-conntent` page
 
 ### Requirement: Scope-Aware Procedure Listing
 

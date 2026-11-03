@@ -8779,6 +8779,18 @@ function isDirectSpecEntryName(filePath, base) {
   const entry = (filePath.split(/[\\/]/).pop() ?? filePath).toLowerCase();
   return entry === "spec_nn.md" || entry === `${base.toLowerCase()}_nn.md` || entry.startsWith(`${base.toLowerCase()}_v_`);
 }
+async function packageDirOf(rootDir, base) {
+  const { readdir: readdir2 } = await import("node:fs/promises");
+  const { join: join5 } = await import("node:path");
+  const direct = join5(rootDir, "specs", "bluepriNNts", base);
+  try {
+    const entries = await readdir2(join5(rootDir, "specs", "bluepriNNts"), { withFileTypes: true });
+    const match = entries.find((e) => e.isDirectory() && e.name.toLowerCase() === base);
+    return match ? join5(rootDir, "specs", "bluepriNNts", match.name) : direct;
+  } catch {
+    return direct;
+  }
+}
 async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   const { readdir: readdir2, readFile: readFile3 } = await import("node:fs/promises");
   const { join: join5 } = await import("node:path");
@@ -8788,7 +8800,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   const parsed = parseSpecName(reqName);
   const base = parsed.base;
   const targetVersion = reqVersion ? normalizeVersion(reqVersion) : parsed.version;
-  const wsPackageBaseDir = join5(rootDir, "specs", "bluepriNNts", base);
+  const wsPackageBaseDir = await packageDirOf(rootDir, base);
   const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base);
   if (unversionedSpecFile && isDirectSpecEntryName(unversionedSpecFile, base)) {
     const content = await readFile3(unversionedSpecFile, "utf-8").catch(() => "");

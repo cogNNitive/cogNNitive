@@ -3,7 +3,7 @@
 /**
  * scripts/generate-video-parameters-doc.test.mjs
  *
- * Unit tests for the video-script parameter reference generator (plain node,
+ * Unit tests for the coNNtent parameter reference generator (plain node,
  * zero deps) plus a drift guard: the committed references/parameters.md must
  * equal the render of the real spec_NN.md.
  */
@@ -77,10 +77,10 @@ description:: Human title.
   assert.match(doc, /^<!-- GENERATED/, 'starts with the do-not-edit marker');
   assert.ok(doc.endsWith('\n'), 'ends with a newline');
 
-  // Columns: Parameter | Type | Values | Defaults | Series | Preset | Video | Scene | Layer
-  assert.strictEqual(row('tags'), '| `tags` | select (multi) | — | ● | ● | ● | ● | ● | ● |', '`*` marks every scope');
-  assert.strictEqual(row('fit'), '| `fit` | select | `cover`, `contain` | ● | · | · | · | ● | ● |');
-  assert.strictEqual(row('title'), '| `title` | string | — | · | · | · | ● | · | · |');
+  // Columns: Parameter | Type | Values | Defaults | Series | Kind | Preset | Video | Scene | Layer | Variant | Chrome | Provider | Model | Voice
+  assert.strictEqual(row('tags'), '| `tags` | select (multi) | — | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |', '`*` marks every scope');
+  assert.strictEqual(row('fit'), '| `fit` | select | `cover`, `contain` | ● | · | · | · | · | ● | ● | · | · | · | · | · |');
+  assert.strictEqual(row('title'), '| `title` | string | — | · | · | · | · | ● | · | · | · | · | · | · | · |');
 
   // Descriptions live in the details section (outside any table), verbatim.
   assert.match(doc, /### `fit`\n\nHow a media Layer fits its box \| with a pipe\.\n\nSettable at: `Layer`, `Scene`, `Video Defaults`\./);
@@ -104,9 +104,10 @@ description:: Human title.
 {
   const fields = parseFieldDefinitions(fs.readFileSync(SPEC_PATH, 'utf8'));
   assert.ok(fields.length > 30, `expected the real spec to declare >30 fields, got ${fields.length}`);
-  for (const name of ['presets', 'voice_model', 'background_audio', 'z_index', 'master_resolution']) {
+  for (const name of ['presets', 'voice_model', 'background_audio', 'z_index', 'output_formats', 'kind', 'review', 'style', 'source', 'capability', 'price_date']) {
     assert.ok(fields.some((f) => f.name === name), `real spec must declare ${name}`);
   }
+  assert.ok(!fields.some((f) => f.name === 'master_resolution'), 'master_resolution is retired');
   assert.ok(fs.existsSync(DOC_PATH), `${DOC_PATH} is missing; run node scripts/generate-video-parameters-doc.mjs`);
   const expected = renderParametersDoc(fields, parseConditionalFields(fs.readFileSync(SPEC_PATH, 'utf8')));
   assert.strictEqual(

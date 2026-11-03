@@ -350,7 +350,7 @@ const SLOW_SUITES = new Set([
   'test/console-sample-custom-view.test.mjs',
   'test/console-view-context.test.mjs',
   'test/init-domain-blueprints.test.mjs',
-  'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/video-engine-cli.test.mjs',
+  'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/video-engine-cli.test.mjs',
 ]);
 
 /**
@@ -361,8 +361,8 @@ const SERIAL_SUITES = new Set([
   // 'two waiters racing for a stale lock' uses staleMs=100 with a 30s heartbeat, so a CPU-starved
   // event loop makes the mtime rule rob a live holder (reproduced under 12 busy loops). The fix
   // (staleMs: 60000, the ghost PID is dead anyway) edits an embedded skill, which needs a
-  // video-script blueprint_version bump: left to the maintainer. Remove this entry with that fix.
-  'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/guard-hardening.test.mjs',
+  // coNNtent blueprint_version bump: left to the maintainer. Remove this entry with that fix.
+  'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/guard-hardening.test.mjs',
 ]);
 
 /**
@@ -464,7 +464,7 @@ function buildSteps(repoRoot, options = {}) {
     ...collectTestSuites(path.join(repoRoot, 'scripts')),
     ...collectTestSuites(path.join(repoRoot, 'skills')),
     ...collectTestSuites(path.join(repoRoot, 'test')),
-    // Skills embedded in a bluepriNNt (e.g. video/skills/nn-video-script). Vitest suites
+    // Skills embedded in a bluepriNNt (e.g. video/skills/nn-conntent). Vitest suites
     // are `*.spec.ts` under iNNfo/packages, so this tree is never double-run.
     ...collectTestSuites(path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts')),
   ];
@@ -482,6 +482,15 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
   steps.push(ro('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
   steps.push(ro('video-parameters-doc', 'Check Video Script Parameter Reference Fresh', 'scripts/generate-video-parameters-doc.mjs', '--check'));
+  // 0c. Field registry (design A11): the machine-readable list every engine consumer reads.
+  steps.push(
+    ro(
+      'field-registry',
+      'Check Field Registry Fresh',
+      'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs',
+      '--check',
+    ),
+  );
 
   // 1. Template Inventory Guard: every template folder is declared in manifest/source.yaml.
   steps.push({

@@ -15,7 +15,7 @@ const MANIFEST_ALLOWLIST = [
   'skills/nn-sources',
   'skills/nn-upgrade',
   'iNNfo/specs/bluepriNNts/console',
-  'iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script',
+  'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent',
 ];
 
 const ROOT_FORBIDDEN = new Set([

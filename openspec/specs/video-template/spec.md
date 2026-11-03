@@ -21,7 +21,7 @@ Source: D3, D6, D8.
 #### Scenario: No deprecated procedure is shipped
 - GIVEN the video template's `procedures` list
 - WHEN it is inspected
-- THEN `generate-video-script` is the only script-generation procedure and no entry is marked deprecated
+- THEN `generate-coNNtent` is the only script-generation procedure and no entry is marked deprecated
 
 #### Scenario: Single master and late description
 - GIVEN the procedure's steps
@@ -58,28 +58,28 @@ The `generate_video_script_NN.md` procedure MUST enforce an interactive consulta
 
 ### Requirement: Video bluepriNNt Owns Its Script Skill
 
-The `video-script` bluepriNNt package MUST embed `nn-video-script` under `skills/nn-video-script/`. The `video-script` `spec_NN.md` and `design-presets` references to the skill MUST describe it as embedded in the bluepriNNt. A change under `video-script/skills/**` MUST be accompanied by a `video-script` `blueprint_version` bump, a new `blueprints-v*` tag and a repin.
+The `coNNtent` bluepriNNt package MUST embed `nn-conntent` under `skills/nn-conntent/`. The `coNNtent` `spec_NN.md` and `design-presets` references to the skill MUST describe it as embedded in the bluepriNNt. A change under `coNNtent/skills/**` MUST be accompanied by a `coNNtent` `blueprint_version` bump, a new `blueprints-v*` tag and a repin.
 
-#### Scenario: Skill is discoverable from the video-script bluepriNNt
-- GIVEN the `video-script` package
-- WHEN `list_blueprint_skills video-script` runs
-- THEN `nn-video-script` is returned as an embedded skill
+#### Scenario: Skill is discoverable from the coNNtent bluepriNNt
+- GIVEN the `coNNtent` package
+- WHEN `list_blueprint_skills coNNtent` runs
+- THEN `nn-conntent` is returned as an embedded skill
 
 #### Scenario: Release tag accompanies the bump
-- GIVEN the `video-script` package with changed `skills/**` content and a bumped `blueprint_version`
+- GIVEN the `coNNtent` package with changed `skills/**` content and a bumped `blueprint_version`
 - WHEN the manifest pin is validated
 - THEN it resolves to a merged `blueprints-v*` tag that contains the new content
 
 ### Requirement: Procedures Reference The Installed Skill Path
 
-The `generate_video_script_procedures_NN.md` procedure MUST reference the skill's tools through the installed, stable location `~/.agents/skills/nn-video-script/scripts/...`, and MUST NOT reference `skills/nn-video-script/` at the repository root or a bluepriNNt-package-relative path.
+The `generate_video_script_procedures_NN.md` procedure MUST reference the skill's tools through the installed, stable location `~/.agents/skills/nn-conntent/scripts/...`, and MUST NOT reference `skills/nn-conntent/` at the repository root or a bluepriNNt-package-relative path.
 
 #### Scenario: NN Tools paths use the installed location
 - GIVEN the video generation procedure
 - WHEN its NN Tools commands are inspected
-- THEN every skill script path begins with `~/.agents/skills/nn-video-script/scripts/`
+- THEN every skill script path begins with `~/.agents/skills/nn-conntent/scripts/`
 
 #### Scenario: No repository-root skill path remains
 - GIVEN all `video` and `design-presets` package files
-- WHEN searched for `skills/nn-video-script/` not preceded by `~/.agents/`
+- WHEN searched for `skills/nn-conntent/` not preceded by `~/.agents/`
 - THEN the only matches are the embedded folder's own internal relative paths

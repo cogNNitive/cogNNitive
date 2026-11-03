@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines how the `video-script` skill installs its Remotion renderer runtime on demand through a single idempotent, consent-gated command. No vendored parser artifact is shipped; the engine consumes the structured iNNfo model.
+Defines how the `coNNtent` skill installs its Remotion renderer runtime on demand through a single idempotent, consent-gated command. No vendored parser artifact is shipped; the engine consumes the structured iNNfo model.
 ## Requirements
 ### Requirement: Consent-Gated On-Demand Engine Install
 
@@ -22,7 +22,7 @@ The skill MUST install its HyperFrames renderer runtime on demand through one id
 
 ### Requirement: HyperFrames Pin Is Enforced And Render Never Self-Installs
 
-Render scripts MUST resolve the CLI from the skill's own `node_modules/.bin/hyperframes` and verify the installed version equals the pin in the skill's `package.json` before running. A missing or different version MUST fail with `hyperframes-missing` or `hyperframes-version-mismatch: <found>≠<pin>` and the fix command (`skills-manager.js update video-script`). Render MUST NOT install anything itself, including through `npx --yes`.
+Render scripts MUST resolve the CLI from the skill's own `node_modules/.bin/hyperframes` and verify the installed version equals the pin in the skill's `package.json` before running. A missing or different version MUST fail with `hyperframes-missing` or `hyperframes-version-mismatch: <found>≠<pin>` and the fix command (`skills-manager.js update coNNtent`). Render MUST NOT install anything itself, including through `npx --yes`.
 
 #### Scenario: Wrong version blocks render
 - GIVEN HyperFrames Q is installed and the pin is P
@@ -37,7 +37,7 @@ Render scripts MUST resolve the CLI from the skill's own `node_modules/.bin/hype
 
 ### Requirement: Video Runtime Prerequisites Are Declared
 
-The `video-script` bluepriNNt MUST declare in `depends_on`: the HyperFrames CLI (by package name; the exact pin lives in the skill's `package.json` `dependencies`), the `ffmpeg` binary, a Node version floor, and its required env keys. A stage that needs a missing env key MUST fail fast, naming the key, before doing work.
+The `coNNtent` bluepriNNt MUST declare in `depends_on`: the HyperFrames CLI (by package name; the exact pin lives in the skill's `package.json` `dependencies`), the `ffmpeg` binary, a Node version floor, and its required env keys. A stage that needs a missing env key MUST fail fast, naming the key, before doing work.
 
 #### Scenario: Stage fails fast on a missing key
 - GIVEN a required env key is unset
@@ -45,7 +45,7 @@ The `video-script` bluepriNNt MUST declare in `depends_on`: the HyperFrames CLI 
 - THEN it fails immediately naming the key
 
 #### Scenario: Declaration is complete
-- GIVEN the `video-script` frontmatter
+- GIVEN the `coNNtent` frontmatter
 - WHEN `depends_on` is read
 - THEN it contains the CLI name, `ffmpeg`, the Node floor and the env keys
 - AND `package.json` `dependencies.hyperframes` is an exact version
