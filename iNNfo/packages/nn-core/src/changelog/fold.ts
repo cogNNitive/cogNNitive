@@ -24,23 +24,39 @@ export interface Relink {
 }
 
 /**
- * A `move_model` recorded as an identity change: every unit, element origin and
- * tombstone keyed under `from` (or a descendant `from/...`) is re-keyed to `to`
- * from `order` on. Recorded targets are never rewritten on disk (design A10).
+ * A `move_model` or `extract_instance` recorded as an identity change: every unit,
+ * element origin and tombstone keyed under `from` (or a descendant `from/...`) is
+ * re-keyed to `to` from `order` on. Recorded targets are never rewritten on disk
+ * (design A10, A11).
  */
 export interface Rekey {
   readonly from: string
   readonly to: string
-  /** Position of the move change in the canonical order. */
+  /** Position of the change in the canonical order. */
   readonly order: number
+  /**
+   * `extract_instance` only: the slugs the cut moved (root first, then the
+   * descendants). Only units of the source model whose element part is one of
+   * them re-key; everything the source kept stays put.
+   */
+  readonly slugs?: readonly string[]
+  /** `move` (an id change) or `extract` (a compact element that became a model). */
+  readonly kind?: 'move' | 'extract'
 }
 
 /**
- * Re-keys one unit key through a move. The model part is the prefix before `@`;
- * a descendant instance shares the prefix. When the model slug changes, the root
- * element's slug changes with it (`old@old-slug...` -> `new@new-slug...`).
+ * Re-keys one unit key through a move or an extraction. The model part is the
+ * prefix before `@`; a descendant instance shares the prefix. When the model slug
+ * changes, the root element's slug changes with it (`old@old-slug...` ->
+ * `new@new-slug...`). An extraction carries a slug set instead: only those
+ * elements move and each keeps its own slug.
  */
-export function rekeyKey(key: string, from: string, to: string): string {
+export function rekeyKey(
+  key: string,
+  from: string,
+  to: string,
+  slugs?: readonly string[],
+): string {
   const at = key.indexOf('@')
   const model = at === -1 ? key : key.slice(0, at)
   const rest = at === -1 ? '' : key.slice(at)
@@ -48,7 +64,16 @@ export function rekeyKey(key: string, from: string, to: string): string {
   if (model === from) newModel = to
   else if (model.startsWith(`${from}/`)) newModel = `${to}${model.slice(from.length)}`
   else return key
-  if (at === -1) return newModel
+  if (at === -1) {
+    // A bare model key names the model itself: an extraction moves elements, it
+    // never renames the source.
+    return slugs ? key : newModel
+  }
+  if (slugs) {
+    const first = rest.slice(1).split('&')[0] ?? ''
+    const moved = slugs.some((slug) => slug.toLowerCase() === first.toLowerCase())
+    return moved ? `${newModel}${rest}` : key
+  }
   const oldSlug = from.split('/').pop() ?? ''
   const newSlug = to.split('/').pop() ?? ''
   if (oldSlug !== newSlug) {
@@ -228,13 +253,18 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
         addRelink(model, oldName, newName, order)
         return
       }
-      case 'move_model': {
+      case 'move_model':
+      case 'extract_instance': {
         // The recorded target stays as written (the seal is immutable); the fold
-        // carries the identity forward from this order on (design A10).
-        const fromId = change.target
+        // carries the identity forward from this order on (design A10). An
+        // extraction re-keys only the slugs it moved (design A11).
+        const slugs = change.op === 'extract_instance' ? change.extractedSlugs : undefined
+        if (change.op === 'extract_instance' && (!slugs || slugs.length === 0)) return
+        const fromId =
+          change.op === 'extract_instance' ? change.target.split('@')[0]!.trim() : change.target
         const toId = change.to ?? ''
         if (!fromId || !toId || fromId === toId) return
-        const rekey = (key: string): string => rekeyKey(key, fromId, toId)
+        const rekey = (key: string): string => rekeyKey(key, fromId, toId, slugs)
         const rekeyMap = <V>(map: Map<string, V>, withKey: (value: V, key: string) => V): void => {
           for (const [key, value] of [...map]) {
             const next = rekey(key)
@@ -262,7 +292,13 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
             ...(tombstone.resolvedTarget !== undefined ? { resolvedTarget: rekey(tombstone.resolvedTarget) } : {}),
           }
         }
-        rekeys.push({ from: fromId, to: toId, order })
+        rekeys.push({
+          from: fromId,
+          to: toId,
+          order,
+          kind: change.op === 'extract_instance' ? 'extract' : 'move',
+          ...(slugs ? { slugs } : {}),
+        })
         return
       }
       case 'remove_element': {

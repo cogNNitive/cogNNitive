@@ -257,6 +257,110 @@ describe('a model touched by an applied change with no file entry (distributed-s
   })
 })
 
+describe('an extraction is drift-free and a hand-made layout is not (distributed-storage S6d)', () => {
+  const REGISTRY_BEFORE = `---
+spec_version: "V_0-4-0"
+level: 3
+title: "Innteresante Videos"
+---
+
+# NN Video
+## NN Video: Intro
+slug:: intro
+status:: published
+### NN Scene: 00 Gancho
+slug:: 00-gancho
+voice:: warm
+
+## NN Video: Nuevo
+slug:: nuevo
+status:: draft
+`
+
+  const REGISTRY_AFTER = `---
+spec_version: "V_0-4-0"
+level: 3
+title: "Innteresante Videos"
+---
+
+# NN Video
+## NN Video: Nuevo
+slug:: nuevo
+status:: draft
+`
+
+  const INSTANCE = `---
+spec_version: "V_0-4-0"
+level: 3
+title: "Intro"
+---
+
+# NN Video
+## NN Video: Intro
+slug:: intro
+status:: published
+### NN Scene: 00 Gancho
+slug:: 00-gancho
+voice:: warm
+`
+
+  const registryChanges = [
+    { id: 'c-01', op: 'add_model', target: 'InnteresanteVideos', blueprint_name: 'video-script_V_0-1-0' },
+    { id: 'c-02', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Intro', resolved_target: 'InnteresanteVideos@intro' },
+    { id: 'c-03', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Nuevo', resolved_target: 'InnteresanteVideos@nuevo' },
+    { id: 'c-04', op: 'add_element', target: 'InnteresanteVideos@Scene', name: '00 Gancho', resolved_target: 'InnteresanteVideos@00-gancho' },
+    { id: 'c-05', op: 'update_field', target: 'InnteresanteVideos@intro&status', to: 'published', resolved_target: 'InnteresanteVideos@intro&status' },
+    { id: 'c-06', op: 'update_field', target: 'InnteresanteVideos@00-gancho&voice', to: 'warm', resolved_target: 'InnteresanteVideos@00-gancho&voice' },
+    { id: 'c-07', op: 'update_field', target: 'InnteresanteVideos@nuevo&status', to: 'draft', resolved_target: 'InnteresanteVideos@nuevo&status' },
+  ] as const
+
+  const extractChange = {
+    id: 'c-08',
+    op: 'extract_instance',
+    target: 'InnteresanteVideos@intro',
+    to: 'innteresante/intro',
+    extracted_slugs: ['intro', '00-gancho'],
+  } as const
+
+  it('no UNIT_WITHOUT_RECORD or EDITED_WITHOUT_RECORD survives the migration', () => {
+    const log = logOf([{ changes: [...registryChanges] }, { changes: [extractChange] }])
+    const models = [modelOf(REGISTRY_AFTER, 'InnteresanteVideos'), modelOf(INSTANCE, 'innteresante/intro')]
+    const report = checkProvenance(log, models)
+
+    expect(report.diagnostics).toEqual([])
+    expect(report.ok).toBe(true)
+  })
+
+  it('the old target still resolves to the instance through the forward chain', () => {
+    const log = logOf([{ changes: [...registryChanges] }, { changes: [extractChange] }])
+
+    expect(log.history('InnteresanteVideos@intro&status').map((c) => c.id)).toEqual(['c-05'])
+    expect([...log.units('InnteresanteVideos')].map((u) => u.key)).toEqual([
+      'InnteresanteVideos@nuevo&status',
+    ])
+    expect([...log.units('innteresante/intro')].map((u) => u.key).sort()).toEqual([
+      'innteresante/intro@00-gancho&voice',
+      'innteresante/intro@intro&status',
+    ])
+  })
+
+  it('the same layout produced by hand is still reported as drift', () => {
+    // No extract change: the registry lost its Video and a new model appeared,
+    // both unrecorded. The fold must say so, not guess.
+    const log = logOf([{ changes: [...registryChanges] }])
+    const models = [modelOf(REGISTRY_AFTER, 'InnteresanteVideos'), modelOf(INSTANCE, 'innteresante/intro')]
+    const found = codes(checkProvenance(log, models))
+
+    // The registry lost elements an applied change created, and nothing records
+    // where they went: the fold must say so, never guess.
+    expect(found).toContain('EDITED_WITHOUT_RECORD')
+    const missing = checkProvenance(log, models).diagnostics.find(
+      (d) => d.code === 'EDITED_WITHOUT_RECORD' && /element .*intro/.test(d.message),
+    )
+    expect(missing?.message).toContain('InnteresanteVideos@intro')
+  })
+})
+
 describe('modes and scope', () => {
   it('strict mode reports errors', () => {
     const log = logOf([

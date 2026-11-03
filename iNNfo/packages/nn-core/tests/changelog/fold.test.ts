@@ -278,6 +278,78 @@ describe('fold: move_model rekeys the identity (distributed-storage S6b)', () =>
   })
 })
 
+describe('fold: extract_instance rekeys the extracted slug set (distributed-storage S6d)', () => {
+  /** A registry with two Videos, one carrying a Scene and a Layer. */
+  const registryLog = () =>
+    logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Intro', resolved_target: 'InnteresanteVideos@intro' },
+          { id: 'c-02', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Nuevo', resolved_target: 'InnteresanteVideos@nuevo' },
+          { id: 'c-03', op: 'update_field', target: 'InnteresanteVideos@intro&status', to: 'published', resolved_target: 'InnteresanteVideos@intro&status' },
+          { id: 'c-04', op: 'update_field', target: 'InnteresanteVideos@00-gancho&voice', to: 'warm', resolved_target: 'InnteresanteVideos@00-gancho&voice' },
+          { id: 'c-05', op: 'update_field', target: 'InnteresanteVideos@nuevo&status', to: 'draft', resolved_target: 'InnteresanteVideos@nuevo&status' },
+        ],
+      },
+      {
+        changes: [
+          {
+            id: 'c-06',
+            op: 'extract_instance',
+            target: 'InnteresanteVideos@intro',
+            to: 'innteresante/intro',
+            extracted_slugs: ['intro', '00-gancho'],
+          },
+        ],
+      },
+    ])
+
+  it('moves the units of the extracted slugs and leaves the rest in the source', () => {
+    const log = registryLog()
+
+    expect([...log.units('innteresante/intro')].map((u) => u.key)).toEqual([
+      'innteresante/intro@intro&status',
+      'innteresante/intro@00-gancho&voice',
+    ])
+    // What the source kept is untouched: an extraction is not a model rename.
+    expect([...log.units('InnteresanteVideos')].map((u) => u.key)).toEqual([
+      'InnteresanteVideos@nuevo&status',
+    ])
+    expect(log.elementOrigin('innteresante/intro@intro')?.id).toBe('c-01')
+    expect(log.elementOrigin('InnteresanteVideos@nuevo')?.id).toBe('c-02')
+  })
+
+  it('keeps the history of a moved unit reachable from the old address', () => {
+    const log = registryLog()
+
+    expect(log.history('InnteresanteVideos@intro&status').map((c) => c.id)).toEqual(['c-03'])
+    expect(log.history('innteresante/intro@intro&status').map((c) => c.id)).toEqual(['c-03'])
+    expect(log.history('InnteresanteVideos@00-gancho&voice').map((c) => c.id)).toEqual(['c-04'])
+  })
+
+  it('is not an identity change: the source keeps its id and no successor exists', () => {
+    const log = registryLog()
+
+    expect(log.identities('innteresante/intro')).toEqual([])
+    expect(log.identities('InnteresanteVideos')).toEqual([])
+    expect(log.successorOf('InnteresanteVideos')).toBeUndefined()
+  })
+
+  it('an extraction with no recorded slug set rekeys nothing', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'update_field', target: 'm@intro&status', to: 'published', resolved_target: 'm@intro&status' },
+        ],
+      },
+      { changes: [{ id: 'c-02', op: 'extract_instance', target: 'm@intro', to: 'n/intro' }] },
+    ])
+
+    expect([...log.units('m')].map((u) => u.key)).toEqual(['m@intro&status'])
+    expect([...log.units('n/intro')]).toEqual([])
+  })
+})
+
 describe('fold: artifacts', () => {
   it('produce_artifact is an artifact unit, not a model unit', () => {
     const log = logOf([

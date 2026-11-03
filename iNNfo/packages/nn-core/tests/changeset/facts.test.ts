@@ -42,7 +42,12 @@ const change = (over: Partial<ChangeItem> = {}): ChangeItem => ({
 
 describe('EXECUTION_FACT_KEYS', () => {
   it('is the single exported list of apply-written facts', () => {
-    expect(EXECUTION_FACT_KEYS).toEqual(['resolved_slug', 'resolved_target', 'evidence_sha256'])
+    expect(EXECUTION_FACT_KEYS).toEqual([
+      'resolved_slug',
+      'resolved_target',
+      'evidence_sha256',
+      'extracted_slugs',
+    ])
   })
 
   it('are excluded from the seal', () => {

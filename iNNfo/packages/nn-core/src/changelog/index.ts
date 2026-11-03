@@ -161,6 +161,8 @@ class ChangeLogImpl implements ChangeLog {
     // contributes its source, so a chained move yields the ids oldest first.
     for (let i = this.fold.rekeys.length - 1; i >= 0; i--) {
       const rekey = this.fold.rekeys[i]!
+      // An extraction is not an id change: the source model keeps its own id.
+      if (rekey.kind === 'extract') continue
       if (rekey.to !== current) continue
       former.push(rekey.from as ModelId)
       current = rekey.from
@@ -172,6 +174,7 @@ class ChangeLogImpl implements ChangeLog {
     let current: string = id
     let moved = false
     for (const rekey of this.fold.rekeys) {
+      if (rekey.kind === 'extract') continue
       if (current === rekey.from) current = rekey.to
       else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`
       else continue
@@ -188,7 +191,7 @@ class ChangeLogImpl implements ChangeLog {
     let key = unit
     for (const rekey of this.fold.rekeys) {
       if (rekey.order < order) continue
-      const next = rekeyKey(key, rekey.from, rekey.to)
+      const next = rekeyKey(key, rekey.from, rekey.to, rekey.slugs)
       if (next !== key) key = next
     }
     return key
