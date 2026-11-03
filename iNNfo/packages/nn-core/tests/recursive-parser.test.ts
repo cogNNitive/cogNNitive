@@ -472,6 +472,31 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
       }
     })
 
+    it('the same slug in two models is not a duplicate: node ids are scoped by the model', async () => {
+      const body = (text: string) => `
+# NN index
+
+* [[Database]]
+
+# NN Components
+
+## NN Components: Database
+  ${text}
+`
+      const root = fakeDir('workspace', [
+        ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['modelA_NN.md', 'modelB_NN.md']))],
+        ['modelA_NN.md', fakeFile('modelA_NN.md', makeModel('Model A', body('A')))],
+        ['modelB_NN.md', fakeFile('modelB_NN.md', makeModel('Model B', body('B')))],
+      ])
+
+      const result = await recursiveParse(root)
+      const databases = Object.values(result.nodes).filter((n) => n.kind === 'element' && n.name === 'Database')
+      expect(databases).toHaveLength(2)
+      expect(new Set(databases.map((n) => n.id)).size).toBe(2)
+      for (const node of databases) expect(node.id).toMatch(/^model[AB]@database$/)
+      expect(result.issues.filter((i) => i.severity === 'error')).toEqual([])
+    })
+
     it('still flags a sibling name collision within a single concept (intra-concept collisions keep their severity)', async () => {
       const modelA = makeModel(
         'Model A',

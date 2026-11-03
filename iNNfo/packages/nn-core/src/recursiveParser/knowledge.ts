@@ -19,6 +19,7 @@ import type { ParseContext, ParseIssue } from './types.js'
  * @param refPath - Source file path or URL of the model
  * @param refName - Derived name/identifier of the model (e.g. rootId)
  * @param identity - Optional identity registry for ID qualification
+ * @param options - `modelId`: the domain model id that prefixes element node ids (`<model-id>@<slug>`)
  * @returns An object containing the normalized KnowledgeNode records and parsed issues
  */
 export function normalizeSingleKnowledge(
@@ -26,12 +27,16 @@ export function normalizeSingleKnowledge(
   refPath: string,
   refName: string,
   identity?: IdentityRegistry,
+  options?: { modelId?: string },
 ): { nodes: Record<string, KnowledgeNode>; issues: ParseIssue[] } {
   const resolvedIdentity = identity ?? new IdentityRegistry()
   const ctx: ParseContext = {
     nodes: {},
     identity: resolvedIdentity,
     issues: [],
+    // Element node ids are `<model-id>@<slug>`. Inside a workspace parse the
+    // model name stands in for the id; a standalone parse uses the relative `@<slug>` form.
+    modelId: options?.modelId ?? (identity ? refName : undefined),
   }
 
   let parsed: ParsedKnowledge

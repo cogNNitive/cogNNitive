@@ -14,6 +14,7 @@ import {
   type SourceRef,
 } from '../sourceRef.js'
 import type { ParseContext } from './types.js'
+import { DuplicateNameError } from '../identity.js'
 import { addFieldAndMentionEdges } from './relationships.js'
 import type { ChangeLog } from '../changelog/index.js'
 import { splitEvidence } from '../changeset/evidence.js'
@@ -199,29 +200,6 @@ export function normalizeElementsIntoGraph(
     return undefined
   }
 
-  function resolveParentQualifiedId(el: ElementNode, seen: Set<string>): string {
-    const explicitId = resolveExplicitParentQualifiedId(el)
-    if (explicitId) return explicitId
-
-    const parentNode = resolveExplicitParentNode(el)
-    if (parentNode && !seen.has(el.name)) {
-      seen.add(el.name)
-      return resolveParentQualifiedId(parentNode, seen)
-    }
-
-    const taxonomyParentName = parentOfTaxonomy.get(el.name)
-    if (taxonomyParentName && !seen.has(el.name)) {
-      if (qualifiedIdByElementName.has(taxonomyParentName)) {
-        return qualifiedIdByElementName.get(taxonomyParentName)!
-      }
-      if (byName.has(taxonomyParentName)) {
-        seen.add(el.name)
-        return resolveParentQualifiedId(byName.get(taxonomyParentName)!, seen)
-      }
-    }
-    return rootId ? `${rootId}/${el.type}` : el.type
-  }
-
   function resolveActualParentId(el: ElementNode, seen: Set<string>): string | null {
     const explicitId = resolveExplicitParentQualifiedId(el)
     if (explicitId) return explicitId
@@ -247,9 +225,11 @@ export function normalizeElementsIntoGraph(
 
   for (const el of allElements) {
     try {
-      const parentQualifiedId = resolveParentQualifiedId(el, new Set())
       const actualParentId = resolveActualParentId(el, new Set())
-      const qualifiedId = ctx.identity.register(parentQualifiedId, el.name)
+      // Identity is the slug, scoped by the model: a repeated NAME is legal, a repeated slug is not.
+      const slug = el.slug ?? slugifyHeading(el.name)
+      ctx.identity.register(rootId, slug)
+      const qualifiedId = `${ctx.modelId ?? ''}@${slug}`
       if (!qualifiedIdByElementName.has(el.name)) {
         qualifiedIdByElementName.set(el.name, qualifiedId)
       }
@@ -280,13 +260,19 @@ export function normalizeElementsIntoGraph(
         ctx.nodes[rootId].childIds.push(qualifiedId)
       }
     } catch (err) {
+      const duplicate = err instanceof DuplicateNameError
       ctx.issues.push({
         path: `${sourcePath}#${el.name}`,
-        message: err instanceof Error ? err.message : String(err),
+        message: duplicate
+          ? `DUPLICATE_SLUG: slug "${err.duplicateName}" is carried by more than one element of model "${ctx.modelId ?? sourcePath}" (${el.type} "${el.name}" is dropped); give each element its own slug`
+          : err instanceof Error
+            ? err.message
+            : String(err),
         // This element is dropped from the graph, so the issue is an error,
         // not advice. It previously carried no severity at all, which left
         // hosts unable to triage it.
         severity: 'error',
+        ...(duplicate ? { code: 'DUPLICATE_SLUG' as const } : {}),
       })
     }
   }
