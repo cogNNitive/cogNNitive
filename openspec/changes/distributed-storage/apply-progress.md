@@ -19,7 +19,7 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S4b | 516 | `ds/s4b` | `ds/s4a` | open, partial (S4b.2 apply pending a decision) |
 | S5a | 519 | `ds/s5a` | `ds/s4b` | open, applied |
 | S5b | 522 | `ds/s5b` | `ds/s5a` | open, applied (866 hand-authored changed lines, `size:exception`) |
-| S6a | PR_PLACEHOLDER | `ds/s6a` | `ds/s5b` | open, applied (`size:exception`) |
+| S6a | 523 | `ds/s6a` | `ds/s5b` | open, applied (1,397 hand-authored changed lines, `size:exception`) |
 | S6b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
