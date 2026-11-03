@@ -131,6 +131,66 @@ describe('nn-console — rendered DOM', () => {
   })
 })
 
+describe('nn-console — reference rendering', () => {
+  const referenceModel = {
+    meta: {
+      title: 'Videos',
+      modelId: 'villabotijos-today/pepper-mapache',
+      changesBlueprintVersion: 'V_0-3-0',
+      models: [
+        {
+          id: 'villabotijos-today/pepper-mapache',
+          title: 'El mapache fuera de la ley',
+          version: 'V_0-1-0',
+          sha256: 'aa'.repeat(32),
+        },
+        { id: 'innteresante/intro', title: 'Intro', version: 'V_0-1-0', sha256: 'bb'.repeat(32) },
+      ],
+    },
+    collections: {
+      Video: ['innteresante/intro', 'villabotijos-today/pepper-mapache'],
+    },
+    elements: [
+      {
+        id: 'pepper-mapache',
+        concept: 'Video',
+        name: 'El mapache fuera de la ley',
+        fields: { sequel: 'innteresante/intro' },
+        sha256: 'aa'.repeat(32),
+      },
+    ],
+    matrices: [],
+  }
+
+  function renderReferenceShell(): void {
+    const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
+    const filled = shell
+      .replace(
+        /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
+        `$1${JSON.stringify(schemaFixture)}$2`,
+      )
+      .replace(
+        /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
+        `$1${JSON.stringify(referenceModel)}$2`,
+      )
+      .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
+    document.documentElement.innerHTML = filled
+  }
+
+  it('shows the target title for an address field while the payload keeps the address', () => {
+    renderReferenceShell()
+    bootConsole()
+
+    const link = document.querySelector('.nn-card .nn-field-reference-link') as HTMLAnchorElement
+    expect(link).toBeTruthy()
+    expect(link.textContent).toBe('Intro')
+    expect(link.getAttribute('data-address')).toBe('innteresante/intro')
+    // The rendered console never rewrites the stored value.
+    expect(referenceModel.elements[0].fields.sequel).toBe('innteresante/intro')
+  })
+})
+
+
 describe('nn-console — export gate', () => {
   let downloads: string[]
   let clickSpy: ReturnType<typeof vi.spyOn>

@@ -235,7 +235,7 @@ Transcribe it.
       assert.equal(modelJson.meta.models[0].filePath, 'business_V_0-2-5_NN.md')
       assert.equal(modelJson.meta.models[0].sha256, expectedHash)
       assert.equal(modelJson.meta.models[0].version, 'V_0-2-5')
-      assert.deepEqual(modelJson.meta.consoleScope.models, ['models/business_V_0-2-5'])
+      assert.deepEqual(modelJson.meta.consoleScope.models, ['business_V_0-2-5'])
       // The domain meta carries the shipped changes bluepriNNt version, so console exports stamp it.
       const changesSpec = await readFile(
         join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'changes', 'spec_NN.md'),
@@ -733,7 +733,7 @@ notes:: "Please review the tagline"
       await runInstalled(dir, ['business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
       const model = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
-      assert.deepEqual(model.meta.consoleScope.models, ['models/business_V_0-2-5'])
+      assert.deepEqual(model.meta.consoleScope.models, ['business_V_0-2-5'])
     })
   })
 
