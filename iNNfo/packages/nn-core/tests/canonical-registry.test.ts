@@ -364,4 +364,36 @@ describe('Canonical Template Registry & Offline Fallback', () => {
   })
 })
 
+describe('the L1 released with distributed storage resolves offline', () => {
+  const disk = (relative: string) => readFileSync(join(specsRoot, relative), 'utf-8')
+
+  it('anchors iNNfo V_0-7-0 in the canonical registry', () => {
+    const identifier = 'iNNfo_V_0-7-0_NN'
+    const entry = findCanonicalBlueprint(identifier)
+    expect(entry).not.toBeNull()
+    expect(entry?.name).toBe('innfo')
+    expect(entry?.version).toBe('V_0-7-0')
+    expect(findCanonicalBlueprint('innfo_v_0-7-0')?.version).toBe('V_0-7-0')
+    expect(findCanonicalBlueprint('specs/iNNfo_V_0-7-0_NN.md')?.version).toBe('V_0-7-0')
+    expect(
+      findCanonicalBlueprint(
+        'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md',
+      )?.version,
+    ).toBe('V_0-7-0')
+
+    const content = getCanonicalSpecContent(identifier)
+    expect(content).toBe(disk('iNNfo_V_0-7-0_NN.md').replace(/\r\n/g, '\n'))
+
+    // V_0-5-0 keeps resolving to V_0-5-0: the new anchor does not shadow it.
+    expect(findCanonicalBlueprint('iNNfo_V_0-5-0_NN')?.version).toBe('V_0-5-0')
+    expect(findCanonicalBlueprint('innfo')?.version).toBe('V_0-5-0')
+
+    // A model pinning the new L1 resolves its metaschema offline.
+    const meta = extractMetaschema(content!)
+    expect(meta).not.toBeNull()
+    const asTemplate = ['---', 'level: 2', 'title: Metaschema', '---', '', meta!, ''].join('\n')
+    expect(validateBlueprintAgainstMetaschema(asTemplate, content!).filter((d) => d.severity === 'error')).toEqual([])
+  })
+})
+
 

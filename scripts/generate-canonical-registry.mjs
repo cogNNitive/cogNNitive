@@ -38,6 +38,7 @@ const MAP = {
   DEFINNITION_SPEC_CONTENT: 'defiNNition_V_0-1-0_NN.md',
   INNFO_SPEC_CONTENT: 'iNNfo_V_0-3-0_NN.md',
   INNFO_V_0_5_0_SPEC_CONTENT: 'iNNfo_V_0-5-0_NN.md',
+  INNFO_V_0_7_0_SPEC_CONTENT: 'iNNfo_V_0-7-0_NN.md',
   DOMAINN_SPEC_CONTENT: 'bluepriNNts/domaiNN/spec_NN.md',
   BLANK_SPEC_CONTENT: 'bluepriNNts/blank/spec_NN.md',
   PROCEDURES_SPEC_CONTENT: 'bluepriNNts/procedures/spec_NN.md',
