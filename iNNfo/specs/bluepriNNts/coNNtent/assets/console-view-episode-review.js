@@ -309,9 +309,9 @@ registerView({
 
             var tierClass = 'nn-tier-' + String(variant.tier || 'media').toLowerCase()
             var vThumb = el('div', 'nn-visual-thumb ' + tierClass)
-            if (variant.thumbnail) {
+            if (variant.thumbnailSrc) {
               var vImg = doc.createElement('img')
-              vImg.src = variant.thumbnail
+              vImg.src = variant.thumbnailSrc
               vImg.alt = ''
               vThumb.appendChild(vImg)
             } else {
@@ -352,12 +352,13 @@ registerView({
               openInspector({
                 title: variant.slug,
                 badge: variant.tier,
-                image: variant.thumbnail,
+                image: variant.thumbnailSrc,
                 specs: [
                   ['Target', variant.target],
                   ['Camera', variant.camera],
                   ['Choreography', variant.choreography],
                   ['Duration', variant.durationS === null ? '' : variant.durationS + 's'],
+                  ['Thumbnail', variant.thumbnail],
                 ],
                 body: variant.storyboard,
               })
@@ -375,17 +376,19 @@ registerView({
           lSection.appendChild(el('div', 'nn-section-label', 'Layers'))
           var grid = el('div', 'nn-visual-grid')
           scene.layers.forEach(function (layer) {
-            var isImage = layer.asset && /\.(png|jpe?g|webp|gif)$/i.test(layer.asset)
             var card2 = el('div', 'nn-visual-card')
             card2.setAttribute('data-nn-layer', layer.slug)
             var thumb = el('div', 'nn-visual-thumb')
-            if (isImage) {
+            if (layer.assetSrc) {
               var img = doc.createElement('img')
-              img.src = layer.asset
+              img.src = layer.assetSrc
               img.alt = ''
               thumb.appendChild(img)
             } else {
-              thumb.appendChild(el('span', 'nn-visual-icon', layer.type || 'layer'))
+              // The console CSP only allows data: images, so anything not inlined (video,
+              // an oversized still, a missing file) is named instead of rendered broken.
+              var why = layer.assetKind === 'video' ? 'video' : layer.assetKind === 'image-too-large' ? 'large image' : layer.type || 'layer'
+              thumb.appendChild(el('span', 'nn-visual-icon', why))
             }
             var inspectLayer = el('button', 'nn-inspect', '⌕')
             inspectLayer.type = 'button'
@@ -407,10 +410,11 @@ registerView({
               openInspector({
                 title: layer.slug,
                 badge: layer.type,
-                image: isImage ? layer.asset : null,
+                image: layer.assetSrc,
                 specs: [
                   ['Type', layer.type],
                   ['Asset', layer.asset],
+                  ['Preview', layer.assetSrc ? 'inlined' : layer.assetKind === 'missing' ? 'file not found' : 'not inlined (' + layer.assetKind + ')'],
                   ['Text', layer.text],
                 ],
               })
