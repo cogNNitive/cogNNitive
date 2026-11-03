@@ -335,7 +335,20 @@ export async function collectWorkspaceDiagnostics(
   // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = createFsSourceResolver(rootDir)
   const log = buildChangeLog(snapshot)
+  // Parse-level errors name an element the graph DROPPED (today only a repeated
+  // slug). A host that reads the graph must report the loss: silent omission is
+  // the failure mode this pass exists to prevent. Warnings and info stay with
+  // the per-model validators, which already carry them.
+  const droppedElements: ReferenceDiagnostic[] = result.issues
+    .filter((issue) => issue.severity === 'error')
+    .map((issue) => ({
+      path: issue.path,
+      message: issue.message,
+      severity: 'error',
+      ...(issue.code ? { code: issue.code } : {}),
+    }))
   return [
+    ...droppedElements,
     ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
     ...collectEvidenceDiagnostics(rootDir),

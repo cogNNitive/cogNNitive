@@ -190,6 +190,31 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
     expect(JSON.stringify(diagnostics)).toBe(snapshot)
   })
 
+  it('collectWorkspaceDiagnostics reports an element dropped from the graph as an error naming model and element', async () => {
+    const { betaPath } = await writeWorkspace()
+    await writeFile(
+      betaPath,
+      modelContent(
+        'Beta',
+        [
+          '## NN Roles: Twin',
+          'slug:: twin',
+          '',
+          '## NN Roles: Twin Two',
+          'slug:: twin',
+          '',
+        ].join('\n'),
+      ),
+      'utf-8',
+    )
+    const diagnostics = await collectWorkspaceDiagnostics(rootDir, buildCache())
+    const dropped = diagnostics.filter((d) => d.code === 'DUPLICATE_SLUG')
+    expect(dropped).toHaveLength(1)
+    expect(dropped[0].severity).toBe('error')
+    expect(dropped[0].path).toContain('beta_V_0-1-0_linked_test_NN.md')
+    expect(dropped[0].message).toContain('Twin Two')
+  })
+
   it('collectWorkspaceDiagnostics returns unfiltered cross-model diagnostics for the whole tree with ONE recursiveParse', async () => {
     await writeWorkspace()
     const { recursiveParse: parseSpy } = await import('@cognnitive/nn-core')
