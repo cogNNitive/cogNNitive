@@ -24,6 +24,14 @@ describe('address module is browser-safe', () => {
   })
 })
 
+describe('schema/storage.ts is browser-safe', () => {
+  it('imports no node built-in', () => {
+    const source = readFileSync(join(__dirname, '..', 'src', 'schema', 'storage.ts'), 'utf8')
+    expect(source).not.toMatch(FORBIDDEN_IMPORT_RE)
+    expect(source).not.toMatch(/^import /m)
+  })
+})
+
 describe('Browser Entry Point', () => {
   it('exports pure spec resolver functions, interface and errors', () => {
     expect(browserExports).toHaveProperty('getSpecForLevel')

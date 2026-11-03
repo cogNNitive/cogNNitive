@@ -103,3 +103,230 @@ export function parsePlacement(template: string, opts: { hasContainer: boolean }
 
   return { ok: true, segments, slugIndex: segments.findIndex((s) => s.kind === 'slug') }
 }
+
+/** The effective storage of a concept: an undeclared concept is `compact`. */
+export function storageOf(concept: { storage?: ConceptStorage }): ConceptStorage {
+  return concept.storage ?? { mode: 'compact' }
+}
+
+function nonEmpty(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined
+}
+
+/**
+ * Reads the three Concept Definition properties from an element's fields.
+ * Returns `undefined` when none is present (the concept is compact). An
+ * unrecognised `storage::` value is kept in `unknownMode` for `validateStorage`.
+ */
+export function readStorage(fields: Record<string, unknown>): ConceptStorage | undefined {
+  const rawMode = nonEmpty(fields['storage'])
+  const container = nonEmpty(fields['container'])
+  const placement = nonEmpty(fields['placement'])
+  if (!rawMode && !container && !placement) return undefined
+
+  const storage: ConceptStorage = { mode: 'compact' }
+  if (rawMode) {
+    const mode = STORAGE_MODES.find((m) => m === rawMode.toLowerCase())
+    if (mode) storage.mode = mode
+    else storage.unknownMode = rawMode
+  }
+  if (container) storage.container = container
+  if (placement) storage.placement = placement
+  return storage
+}
+
+/** Minimal shape `validateStorage` needs; `Concept` satisfies it. */
+export interface StorageConcept {
+  name: string
+  storage?: ConceptStorage
+}
+
+export type StorageDiagnosticCode =
+  | 'STORAGE_UNKNOWN_MODE'
+  | 'PLACEMENT_REQUIRED'
+  | 'PLACEMENT_FORBIDDEN'
+  | 'PLACEMENT_INVALID'
+  | 'CONTAINER_NOT_DISTRIBUTED'
+  | 'CONTAINER_CYCLE'
+  | 'PLACEMENT_OVERLAP'
+
+export interface StorageDiagnostic {
+  path: string
+  message: string
+  severity: 'error'
+  code: StorageDiagnosticCode
+}
+
+/** Folder shape of an expanded placement: `{container}` replaced by the container's instance root. */
+type Expanded = PlacementSegment[]
+
+/**
+ * Validates the storage declarations of a composed concept set (design A1, A8):
+ * known mode, placement present exactly when distributed, placement grammar,
+ * a distributed container, no container cycle, and no two templates that can
+ * match the same folder.
+ */
+export function validateStorage(concepts: readonly StorageConcept[]): StorageDiagnostic[] {
+  const diagnostics: StorageDiagnostic[] = []
+  const byName = new Map(concepts.map((c) => [c.name.toLowerCase(), c]))
+  const report = (
+    code: StorageDiagnosticCode,
+    concept: string,
+    property: string,
+    detail: string,
+  ): void => {
+    diagnostics.push({
+      code,
+      severity: 'error',
+      path: `Concept Definition.${concept}.${property}`,
+      message: `${code}: concept "${concept}" - ${detail}`,
+    })
+  }
+
+  const parsed = new Map<string, { segments: PlacementSegment[]; slugIndex: number }>()
+
+  for (const concept of concepts) {
+    const storage = concept.storage
+    if (!storage) continue
+    const name = concept.name
+
+    if (storage.unknownMode !== undefined) {
+      report(
+        'STORAGE_UNKNOWN_MODE',
+        name,
+        'storage',
+        `storage "${storage.unknownMode}" is not a known mode; use one of: ${STORAGE_MODES.join(', ')}`,
+      )
+      continue
+    }
+
+    if (storage.mode === 'compact') {
+      if (storage.placement !== undefined || storage.container !== undefined) {
+        const property = storage.placement !== undefined ? 'placement' : 'container'
+        report(
+          'PLACEMENT_FORBIDDEN',
+          name,
+          property,
+          `a compact concept cannot declare ${property}::; declare storage:: distributed or remove it`,
+        )
+      }
+      continue
+    }
+
+    if (storage.placement === undefined) {
+      report(
+        'PLACEMENT_REQUIRED',
+        name,
+        'placement',
+        'a distributed concept must declare placement:: (for example placement:: "series/{slug}/"); add it',
+      )
+      continue
+    }
+    const result = parsePlacement(storage.placement, { hasContainer: storage.container !== undefined })
+    if (!result.ok) {
+      report('PLACEMENT_INVALID', name, 'placement', `${result.message}; fix the template`)
+      continue
+    }
+    if (storage.container !== undefined && !result.segments.some((s) => s.kind === 'container')) {
+      report(
+        'PLACEMENT_INVALID',
+        name,
+        'placement',
+        `container:: ${storage.container} is declared but placement "${storage.placement}" never names {container}; start the template with {container}/`,
+      )
+      continue
+    }
+    parsed.set(name.toLowerCase(), { segments: result.segments, slugIndex: result.slugIndex })
+  }
+
+  // Containers must exist and be distributed; the chain must not loop.
+  const next = new Map<string, string>()
+  for (const concept of concepts) {
+    const storage = concept.storage
+    if (!storage || storage.mode !== 'distributed' || storage.container === undefined) continue
+    const target = byName.get(storage.container.toLowerCase())
+    if (!target) {
+      report(
+        'CONTAINER_NOT_DISTRIBUTED',
+        concept.name,
+        'container',
+        `container "${storage.container}" is not a concept of this schema; declare it distributed or fix the name`,
+      )
+    } else if (target.storage?.mode !== 'distributed') {
+      report(
+        'CONTAINER_NOT_DISTRIBUTED',
+        concept.name,
+        'container',
+        `container "${target.name}" is not distributed, so it cannot hold instance models; declare storage:: distributed on "${target.name}"`,
+      )
+    } else {
+      next.set(concept.name.toLowerCase(), target.name.toLowerCase())
+    }
+  }
+
+  const cyclic = new Set<string>()
+  const seenCycles = new Set<string>()
+  for (const start of next.keys()) {
+    const path: string[] = []
+    let at: string | undefined = start
+    while (at !== undefined && !path.includes(at)) {
+      path.push(at)
+      at = next.get(at)
+    }
+    if (at === undefined) continue
+    const members = path.slice(path.indexOf(at))
+    members.forEach((m) => cyclic.add(m))
+    const key = [...members].sort().join('|')
+    if (seenCycles.has(key)) continue
+    seenCycles.add(key)
+    const names = members.map((m) => byName.get(m)!.name)
+    report(
+      'CONTAINER_CYCLE',
+      names[0],
+      'container',
+      `containers form a cycle (${[...names, names[0]].join(' -> ')}); break it so every chain ends at the domaiNN root`,
+    )
+  }
+
+  // Expansion: substitute the container's instance root folder for {container}.
+  const expand = (key: string): Expanded | null => {
+    const own = parsed.get(key)
+    if (!own || cyclic.has(key)) return null
+    if (own.segments[0].kind !== 'container') return own.segments
+    const containerKey = next.get(key)
+    const container = containerKey ? parsed.get(containerKey) : undefined
+    const containerFolder = containerKey ? expand(containerKey) : null
+    if (!container || !containerFolder) return null
+    return [...containerFolder.slice(0, container.slugIndex + 1), ...own.segments.slice(1)]
+  }
+  const folders = new Map<string, Expanded>()
+  for (const key of parsed.keys()) {
+    const folder = expand(key)
+    if (folder) folders.set(key, folder)
+  }
+
+  const keys = [...folders.keys()]
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = folders.get(keys[i])!
+      const b = folders.get(keys[j])!
+      if (a.length !== b.length) continue
+      const collide = a.every((seg, n) => {
+        const other = b[n]
+        if (seg.kind === 'slug' || other.kind === 'slug') return true
+        return seg.kind === 'literal' && other.kind === 'literal' && seg.value === other.value
+      })
+      if (!collide) continue
+      const first = byName.get(keys[i])!
+      const second = byName.get(keys[j])!
+      report(
+        'PLACEMENT_OVERLAP',
+        first.name,
+        'placement',
+        `placement "${first.storage?.placement}" can match the same folder as "${second.name}" ("${second.storage?.placement}"); give each concept its own folder shape`,
+      )
+    }
+  }
+
+  return diagnostics
+}

@@ -21,6 +21,23 @@ export type { IncludeResolver, ResolvedBlueprintSchema } from './compose.js'
 export { findDeclaredField } from './declaredField.js'
 
 export {
+  STORAGE_MODES,
+  parsePlacement,
+  readStorage,
+  storageOf,
+  validateStorage,
+} from './storage.js'
+export type {
+  ConceptStorage,
+  PlacementParse,
+  PlacementSegment,
+  StorageConcept,
+  StorageDiagnostic,
+  StorageDiagnosticCode,
+  StorageMode,
+} from './storage.js'
+
+export {
   extractMetaschema,
   validateBlueprintAgainstMetaschema,
   checkElementsAgainstSchema,

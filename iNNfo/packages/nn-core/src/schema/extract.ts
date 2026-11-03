@@ -8,6 +8,7 @@ import type {
 } from '../types/index.js'
 import { normalizeConceptType, normalizeFieldType } from '../types/parser.js'
 import { parseKnowledge } from '../parser/index.js'
+import { readStorage } from './storage.js'
 
 /**
  * Root primitives of the Metaplantilla Nivel 1 (V_0-5-0). A level-2 template
@@ -94,6 +95,8 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     }
     const conceptDescription = asString(el.fields['description'])
     if (conceptDescription) concept.description = conceptDescription
+    const storage = readStorage(el.fields)
+    if (storage) concept.storage = storage
     concepts.push(concept)
     fieldsByConcept.set(concept.name, [])
   }
