@@ -30,15 +30,12 @@ registerView({
       if (f && f.name) schemaFields[f.name] = f
     })
 
-    // The payload element id is what the store addresses; the facts key on the slug.
-    var idBySlug = {}
-    elements.forEach(function (e) {
-      if (!e) return
-      if (e.slug) idBySlug[String(e.slug)] = e.id
-      if (e.fields && e.fields.slug) idBySlug[String(e.fields.slug)] = e.id
-    })
-    var idOf = function (slug) {
-      return idBySlug[String(slug)] || String(slug)
+    // The payload addresses an element as `<modelId>@<elementSlug>`. Building the target
+    // from the episode's model id is the only collision-free way: two episodes can both
+    // own a Scene called `00-hook`, and keying by slug alone sent the edit to the wrong
+    // document.
+    var idOf = function (modelId, slug) {
+      return String(modelId) + '@' + String(slug)
     }
 
     function el(tag, className, text) {
@@ -221,7 +218,7 @@ registerView({
             return s.review !== 'approved'
           })
           .forEach(function (s) {
-            propose({ kind: 'correction', elementId: idOf(s.slug), field: 'review', proposed: 'approved' })
+            propose({ kind: 'correction', elementId: idOf(episode.modelId, s.slug), field: 'review', proposed: 'approved' })
           })
         counter.textContent = scenes.length + '/' + scenes.length + ' approved'
       })
@@ -258,7 +255,7 @@ registerView({
               chosen.push(name)
               chip.classList.add('is-active')
             }
-            propose({ kind: 'correction', elementId: idOf(episode.slug), field: 'presets', proposed: chosen.slice() })
+            propose({ kind: 'correction', elementId: idOf(episode.modelId, episode.slug), field: 'presets', proposed: chosen.slice() })
           })
           chips.appendChild(chip)
         })
@@ -268,6 +265,7 @@ registerView({
 
       scenes.forEach(function (scene) {
         var card = el('section', 'nn-scene-card')
+        card.setAttribute('data-nn-episode', episode.slug)
         card.setAttribute('data-nn-episode-scene', scene.slug)
         card.setAttribute('data-nn-scene', scene.slug)
 
@@ -303,7 +301,7 @@ registerView({
         narration.setAttribute('data-nn-narration', '')
         narration.value = scene.narration || ''
         narration.addEventListener('change', function () {
-          propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'narration', proposed: narration.value })
+          propose({ kind: 'correction', elementId: idOf(episode.modelId, scene.slug), field: 'narration', proposed: narration.value })
         })
         nSection.appendChild(narration)
         body.appendChild(nSection)
@@ -320,7 +318,7 @@ registerView({
           names.forEach(function (name) {
             paramsBox.appendChild(
               fieldRow(name, scene.fields[name] || { value: null, source: null, local: null }, 'Scene', function (value) {
-                propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: value })
+                propose({ kind: 'correction', elementId: idOf(episode.modelId, scene.slug), field: name, proposed: value })
               }),
             )
           })
@@ -378,7 +376,7 @@ registerView({
               event.stopPropagation()
               backgrounds.forEach(function (other) {
                 if (other.slug === layer.slug) return
-                propose({ kind: 'delete', elementId: idOf(other.slug), concept: 'Layer' })
+                propose({ kind: 'delete', elementId: idOf(episode.modelId, other.slug), concept: 'Layer' })
               })
               toast('Kept ' + layer.slug + ' as the background')
             })
@@ -389,7 +387,7 @@ registerView({
           del.setAttribute('data-nn-delete-layer', layer.slug)
           del.addEventListener('click', function (event) {
             event.stopPropagation()
-            propose({ kind: 'delete', elementId: idOf(layer.slug), concept: 'Layer' })
+            propose({ kind: 'delete', elementId: idOf(episode.modelId, layer.slug), concept: 'Layer' })
           })
           actions.appendChild(del)
           card2.appendChild(actions)
@@ -398,7 +396,7 @@ registerView({
           Object.keys(layer.fields || {}).forEach(function (name) {
             fields.appendChild(
               fieldRow(name, layer.fields[name], 'Layer', function (value) {
-                propose({ kind: 'correction', elementId: idOf(layer.slug), field: name, proposed: value })
+                propose({ kind: 'correction', elementId: idOf(episode.modelId, layer.slug), field: name, proposed: value })
               }),
             )
           })
@@ -465,7 +463,7 @@ registerView({
               Object.keys(layer.fields || {}).forEach(function (name) {
                 fields.appendChild(
                   fieldRow(name, layer.fields[name], 'Layer', function (value) {
-                    propose({ kind: 'correction', elementId: idOf(layer.slug), field: name, proposed: value })
+                    propose({ kind: 'correction', elementId: idOf(episode.modelId, layer.slug), field: name, proposed: value })
                   }),
                 )
               })
@@ -478,7 +476,7 @@ registerView({
                 useBtn.addEventListener('click', function () {
                   backgrounds.forEach(function (other) {
                     if (other.slug === layer.slug) return
-                    propose({ kind: 'delete', elementId: idOf(other.slug), concept: 'Layer' })
+                    propose({ kind: 'delete', elementId: idOf(episode.modelId, other.slug), concept: 'Layer' })
                   })
                   toast('Kept ' + layer.slug + ' as the background')
                 })
@@ -488,7 +486,7 @@ registerView({
               del.type = 'button'
               del.setAttribute('data-nn-delete-layer', layer.slug)
               del.addEventListener('click', function () {
-                propose({ kind: 'delete', elementId: idOf(layer.slug), concept: 'Layer' })
+                propose({ kind: 'delete', elementId: idOf(episode.modelId, layer.slug), concept: 'Layer' })
               })
               actions.appendChild(del)
               detail.appendChild(actions)
@@ -509,7 +507,7 @@ registerView({
                 apply.addEventListener('click', function () {
                   propose({
                     kind: 'correction',
-                    elementId: idOf(mediaBackground.slug),
+                    elementId: idOf(episode.modelId, mediaBackground.slug),
                     field: 'asset',
                     proposed: file.path,
                   })
@@ -589,7 +587,7 @@ registerView({
           if (scene.review === pair[0]) button.classList.add('is-active')
           else if (!scene.review && pair[0] === 'approved') button.classList.add('is-default')
           button.addEventListener('click', function () {
-            propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'review', proposed: pair[0] })
+            propose({ kind: 'correction', elementId: idOf(episode.modelId, scene.slug), field: 'review', proposed: pair[0] })
             verdictPill.textContent = pair[0]
             verdictPill.setAttribute('data-nn-verdict-pill', pair[0])
             Array.prototype.forEach.call(line.querySelectorAll('.nn-verdict'), function (b) {
@@ -611,7 +609,7 @@ registerView({
         save.setAttribute('data-nn-comment-save', '')
         save.addEventListener('click', function () {
           if (!comment.value.trim()) return
-          propose({ kind: 'comment', elementId: idOf(scene.slug), comment: comment.value })
+          propose({ kind: 'comment', elementId: idOf(episode.modelId, scene.slug), comment: comment.value })
         })
         line.appendChild(save)
         dSection.appendChild(line)
