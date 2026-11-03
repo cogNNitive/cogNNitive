@@ -32,7 +32,12 @@ export interface ProvenanceOptions {
 }
 
 export interface ProvenanceDiagnostic {
-  code: 'EDITED_WITHOUT_RECORD' | 'UNIT_WITHOUT_RECORD' | 'EVIDENCE_UNKNOWN' | 'EVIDENCE_SOURCE_CHANGED'
+  code:
+    | 'EDITED_WITHOUT_RECORD'
+    | 'UNIT_WITHOUT_RECORD'
+    | 'MODEL_WITHOUT_RECORD'
+    | 'EVIDENCE_UNKNOWN'
+    | 'EVIDENCE_SOURCE_CHANGED'
   severity: 'warning' | 'error'
   message: string
   /** Unit address the diagnostic is filed against, when it has one. */

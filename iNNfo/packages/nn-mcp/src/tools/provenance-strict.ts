@@ -144,6 +144,18 @@ async function replayModel(
   const composed = resolveBlueprintSchema(resolved.template.rawContent, resolved.resolveInclude)
   if (composed.errors.length > 0) return null
 
+  // An instance model is rebuilt through the SAME root element the apply used
+  // (design A9): the distributed concept the change named, its slug and its name.
+  const segments = entry.modelId.split('/')
+  const root =
+    typeof change.concept === 'string' && change.concept.trim() !== '' && segments.length > 1
+      ? {
+          concept: change.concept,
+          slug: segments[segments.length - 1]!,
+          ...(change.name ? { name: change.name } : {}),
+        }
+      : undefined
+
   const content = scaffoldKnowledgeDocument({
     id: entry.modelId,
     blueprintName,
@@ -152,6 +164,7 @@ async function replayModel(
     knowledgeVersion: change.knowledge_version,
     schema: composed.schema,
     blueprintFrontmatter: resolved.template.frontmatter as unknown as Record<string, unknown>,
+    ...(root ? { root } : {}),
   })
   const skeleton = parseKnowledge(content)
 
@@ -213,7 +226,20 @@ export async function checkDomainProvenance(
 
   for (const entry of models) {
     const creation = creationOf(log, createdIds, entry.modelId)
-    if (!creation) continue
+    if (!creation) {
+      // An instance model has no other construction: without its recorded
+      // `add_model` its skeleton cannot be replayed, and strict mode says so
+      // instead of skipping it silently (change-addressing-for-instance-models).
+      if (entry.modelId.includes('/')) {
+        diagnostics.push({
+          code: 'MODEL_WITHOUT_RECORD',
+          severity: 'error',
+          message: `MODEL_WITHOUT_RECORD: instance model "${entry.modelId}" has no applied add_model change, so its skeleton cannot be rebuilt and strict replay cannot check it; recreate it through add_model`,
+          unit: entry.modelId,
+        })
+      }
+      continue
+    }
     const replayed = await replayModel(rootDir, log, entry, creation)
     if (!replayed) continue
 
