@@ -23,7 +23,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S6b | 527 | `ds/s6b` | `ds/s6a` | open, applied (1284 hand-authored changed lines, `size:exception`) |
 | S6c | 530 | `ds/s6c` | `ds/s6b` | open, applied (724 hand-authored changed lines, `size:exception`) |
 | S6d | 534 | `ds/s6d` | `ds/s6c` | open, applied (~1,574 hand-authored changed lines, `size:exception`) |
-| S7a to S7d | n/a | n/a | n/a | not started |
+| S7a | — | `ds/s7a` | `ds/s6d` | open, applied (~576 hand-authored changed lines, `size:exception`) |
+| S7b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -672,6 +673,54 @@ Status: S6d.1 to S6d.9 done. `size:exception` (about 1,574 hand-authored changed
 - nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against a built worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 729 passed.
 - `node --test scripts/build-core-mirrors.test.mjs`: 1 pass, 0 fail. `node scripts/generate-canonical-registry.mjs` and `node scripts/build-console-payload.mjs` regenerated their mirrors; no hand-edited hash.
 - `node scripts/verify.js --fast`: exit 0 (205 steps).
+
+---
+
+## S7a - `video-script` V_0-15-0 and video engine (PR 17, branch `ds/s7a`, targets `ds/s6d`)
+
+Status: S7a.1 to S7a.11 done; S7a.12 at PR open.
+
+### RED
+- `tests/video-script-storage.test.ts` (NEW, 13 cases) failed 9: the shipped `video-script` declared no `storage`, so `Series`/`Video` read compact, every placement case classified as a registry or a compact model, and the version pin was `V_0-14-2` against `iNNfo_V_0-5-0`.
+- `tests/canonical-registry.test.ts` gained one describe (1 case); `findCanonicalBlueprint('iNNfo_V_0-7-0_NN')` returned null. A second case for `video-script_V_0-15-0` was written, failed, and then removed: the registry is the Core-only offline fallback (see Deviations 1).
+- Engine: `build-script-from-draft`, `series-root`, `series-scope` and `folder-contract-crosscheck` failed 9 of 42 (old stem shape, `_scope_NN.md` detection, no declared-placement cross-check).
+- `test/video-script-contract-additions.test.mjs` and `scripts/verify-inventory.test.js` went red on the version and inventory gates as the blueprint and the registry moved (see Deviations 4 and 5).
+
+### GREEN
+- **Blueprint**: `video-script` `V_0-15-0`, pin `iNNfo_V_0-7-0`; `Series` = `storage:: distributed` + `placement:: "series/{slug}/"`; `Video` = `storage:: distributed` + `container:: Series` + `placement:: "{container}/assets/{slug}/"`; `Scene`, `Layer`, `Preset`, `Video Defaults` stay compact. The Structure and guidance sections say the Series instance model IS the series scope document (`scope: true`), that a Video instance lives at `series/<s>/assets/<slug>/<slug>_video-script_NN.md`, and that a Scene or Layer is an element of that model, never a model. Defaults repin to `video-script_V_0-15-0`.
+- **Engine**: `scriptFilename(videoSlug)` writes `<slug>_video-script_NN.md`; `seriesDocumentFile` recognises a Series instance model by frontmatter `scope: true` among the folder's `_video-script_NN.md` documents (never by the retired `_scope_NN` name); `finalize-video` lists `_video-script_NN.md`; the draft console writes the same name; `folder-contract.md`, `parameters.md` (regenerated) and `series-template-convention.md` follow.
+- **Cross-check**: `folder-contract-crosscheck.test.mjs` reads the declared `placement::` templates from the blueprint and asserts that `folder-contract.md` and `SKILL.md` name the same `series/<s>/` and `series/<s>/assets/<slug>/` folders and the same two instance files.
+- **Registry**: a second `innfo` anchor embeds `iNNfo_V_0-7-0` byte-for-byte (`INNFO_V_0_7_0_SPEC_CONTENT`, a `MAP` line in `generate-canonical-registry.mjs`); `V_0-5-0` still resolves to `V_0-5-0` and a bare `innfo` still resolves to it.
+- **Scope regression**: `resolve-effective.spec.ts` adds an episode whose `fps` resolves from `<s>_video-script_NN.md` and whose winner is that document.
+- **Delta**: `video-folder-contract` gains a MODIFIED "Canonical Domain, Series And Episode Layout" with the instance-model names and a same-slug-two-series scenario (A-7).
+- **Skill**: `nn-video-script` `version:` bumped once, `V_0-15-7` -> `V_0-15-8`.
+
+### Evidence (mutation)
+- **Mutation 1 (declaration)**: removing `storage::`/`container::`/`placement::` from `Video` turned 7 of the 13 storage cases red (declaration, clean placement, mismatch, double storage, Scene addressing, two Scenes, second Video); restored, 13 pass.
+- **Mutation 2 (changes pin)**: setting `nature.structure: catalog` in the `changes` blueprint turned "keeps nature: members/derived and declares no storage" red; restored, 13 pass. That case passed at intake, so the mutation is its proof of bite.
+- **Mutation 3 (skew)**: raising the skew threshold to `byVersion.size < 3` turned the V_0-14-1 case red; restored, 13 pass.
+- **Mutation 4 (scope)**: making `probeDir` require `scope === 'yes'` turned 22 of the 57 resolve-effective cases red, including the new `fps` one; restored and rebuilt, 57 pass.
+
+### Deviations
+1. **`video-script_V_0-15-0` is NOT embedded in the canonical registry.** The registry is the Core-only offline fallback: `scripts/verify-inventory.test.js` pins it to the L0/L1 specs plus exactly the seven Core bluepriNNts, and embedding the blueprint also drags a retired name (`innfo-core`, inside the published blueprint prose) into a file `test/no-retired-references.test.mjs` does not allowlist. A `video-script` model still resolves its blueprint offline from the shipped package; the L1 anchor was the pending item.
+2. **`verify-inventory.test.js` now expects two `innfo` anchors** (V_0-5-0 and V_0-7-0) and the new `INNFO_V_0_7_0_SPEC_CONTENT` const. The green set is unchanged.
+3. **`test/video-script-contract-additions.test.mjs` pins the new versions** (`V_0-15-0` for the blueprint and its defaults). It is a gate that tracks the shipped blueprint, so it moves with it.
+4. **A deeper folder scope inside the episode folder is no longer expressible.** The episode script and a folder scope in the same folder would share `<slug>_video-script_NN.md`, so `series-scope.test.mjs` now puts the deeper scope in the intermediate `assets/` folder (the shape `series-root.test.mjs` already exercises). The cascade is unchanged.
+5. **Two fixtures gained `scope: true`.** A Series instance model IS the scope document, so `render-thumbnail-series.test.mjs` and the new file-based `loadSeriesDocument` case in `build-script-from-draft.test.mjs` declare the flag; without it they are a plain model and anchor nothing.
+6. **`parameters.md` is generated.** The Series line lives in `scripts/generate-video-parameters-doc.mjs`, not in the output; the file was regenerated rather than hand-edited.
+7. **The mechanical rename is in the engine commit.** Twelve test fixtures renamed `<s>_scope_NN.md` -> `<s>_video-script_NN.md` and `<slug>_video-script_<s>_NN.md` -> `<slug>_video-script_NN.md` (45 lines); keeping them apart would have left the suite red between commits.
+
+### Line counts (`git diff --numstat ds/s6d..HEAD`, before this tracking commit)
+- Hand-authored: the new core test 224, spec 49, `build-script-from-draft.mjs` 42, `folder-contract-crosscheck` 33, `build-script-from-draft.test.mjs` 27, `canonical-registry.test.ts` 32, `resolve-effective.spec.ts` 19, registry entry 17, SKILL 18, delta spec 40, and 63 across the remaining scripts, references and tests = about 576 changed lines, of which 45 are mechanical fixture renames.
+- Generated, excluded: `catalog.json` 4, `parameters.md` 2, the embedded L1 literal 1.
+- Forecast ~400: `size:exception`. The overrun is the shipped-blueprint integration test (the whole point of the slice) and the delta requirement.
+
+### Gate (S7a verification)
+- nn-core `tsc --noEmit`: exit 0. nn-core `vitest run` full: 215 files, 2442 passed.
+- nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against a rebuilt worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 730 passed.
+- `node --test "test/*.test.mjs"` in `nn-video-script`: 411 passed, 0 failed.
+- `node --test scripts/guard-template-immutability.test.js`: 1 pass. `node scripts/sync-versions.mjs --check`, `node scripts/blueprint-catalog.mjs --check`, `node scripts/generate-canonical-registry.mjs --check`, `node scripts/generate-video-parameters-doc.mjs` fresh, `node scripts/check-spec-version.mjs --check-urls`, `node scripts/check-openspec-deltas.mjs`: all green.
+- `node scripts/verify.js --fast`: exit 0. `node scripts/verify.js` full: exit 0.
 
 ---
 
