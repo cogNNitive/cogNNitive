@@ -41,17 +41,25 @@ export const SECTION_IDS = [
   'governance',
   'conversation-lifecycle',
   'citation-taxonomy',
+  'addressing-and-storage',
   'informative-grace',
 ]
 
 /** Which rules each end-user skill renders. */
 export const SKILL_SECTION_MAP = {
   nn: ['governance', 'conversation-lifecycle'],
-  'nn-innfo': ['governance', 'conversation-lifecycle', 'citation-taxonomy', 'informative-grace'],
+  'nn-innfo': [
+    'governance',
+    'conversation-lifecycle',
+    'citation-taxonomy',
+    'addressing-and-storage',
+    'informative-grace',
+  ],
   'nn-sources': [
     'governance',
     'conversation-lifecycle',
     'citation-taxonomy',
+    'addressing-and-storage',
     'informative-grace',
   ],
 }

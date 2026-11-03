@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-5-13"
-last_updated: 2026-10-18
+version: "V_0-5-14"
+last_updated: 2026-11-03
 metadata:
   source_type: "original"
   mcp: "nn-mcp"
@@ -82,6 +82,30 @@ domaiNN-relative `path@unit`, written in full (no implicit prefix), or a bracket
 list when one change cites several units. A `<unit>` is `@## Heading` (Markdown),
 `@RowID&col` (CSV), or `@/items/0/name` (JSON Pointer, RFC 6901). No `src-NNN` IDs,
 no line-number ranges, and never a `staging/` target.
+
+**Unified Addressing and Storage**
+
+1. **One grammar.** A kNNowledge unit is addressed `<hierarchical-id>[@<slug>[&<field>]]`,
+   plus the unchanged `@concept:<slug>`, `@matrix:<slug>` and `@<matrix>&<row>&<col>`
+   forms. A typed `reference` or `knowledge` field holds that address; a
+   same-document reference is relative (`@slug`).
+2. **Titles are display-only.** Never resolve or write a title as a target.
+   `[[Name]]`, `[[Title :: Name]]`, a bare stem, a path and `doc.md@## Heading`
+   are removed forms and are rejected (`ADDRESS_MALFORMED`,
+   `MODEL_CITED_BY_PATH`, `NN_DOCUMENT_CITED_BY_HEADING`). Prose and index
+   wikilinks are display text and stay untouched.
+3. **Storage is declared per concept.** `compact` instances are elements of one
+   document; `distributed` instances are one instance model each, at the
+   declared `placement`. A folder alone never makes a concept distributed.
+4. **One bluepriNNt version per bluepriNNt.** A domaiNN that pins a bluepriNNt at
+   several versions fails `check_domain` with `BLUEPRINT_VERSION_SKEW`. Fix it
+   with `nn-upgrade`, whose unit is the whole bluepriNNt group: it repins and
+   re-validates every member, or none.
+5. **Instance lifecycle.** Create with `add_model` and an explicit `concept::`
+   (container first); rename or move with `move_model`, retargeting every
+   referrer in the same changeset; convert a compact element with
+   `extract_instance`. Removing an instance model is NOT supported: no operation
+   deletes one, and a hand-deleted file is reported as `MODEL_WITHOUT_FILE`.
 
 **Informative Grace**
 
@@ -296,7 +320,7 @@ When the user selects option `[w]` (View & consult documentation):
 1. Present available iNNfo documentation categories and guides:
    - **Level 1 Core Specification**: the iNNfo specification, fetched with `nn-mcp_get_spec` (Primitives: Concepts, Fields, Matrices).
    - **Level 2 Canonical Templates**: Business, Procedures, Organization, Metrics, Projects, Innovation, Analysis, Documentation.
-   - **Syntactic & Structural Rules**: Heading conventions (`# NN`, `## NN`), typing heuristics, WikiLink reference formatting (`[[...]]`), and evidence grammar (`evidence:: <path>@<unit>`).
+   - **Syntactic & Structural Rules**: Heading conventions (`# NN`, `## NN`), typing heuristics, reference-field address syntax (`@<slug>`, `<hierarchical-id>@<slug>`), prose WikiLink display text (`[[...]]`), and evidence grammar (`evidence:: <path>@<unit>`).
    - **Artifact & Console Architecture**: Console shell, slot payloads, and interactive console runtimes.
 2. **Read-only consultation**: This workflow is purely informational and performs **zero workspace filesystem mutations**.
 
@@ -509,7 +533,7 @@ nn-mcp_apply_change({
 
 - **Behavior**:
   1. Raises `knowledge_version` by the requested level. The model is bumped exactly once per changeset: a `bump_version` change replaces the default patch bump of `apply_change`, it never adds to it. A higher level resets the lower ones.
-  2. The model file is never renamed (`kNNowledge/<stem>_NN.md` is invariant) and no reference elsewhere is rewritten.
+  2. A version bump never renames the model file or its folder; only `move_model` changes an instance model's path and id.
   3. An explicit `version` is refused (`INVALID_BUMP_LEVEL`); so is the unversioned provenance log.
   4. `freeze_slugs` follows the same rule: on a Level 3 model it is a changeset operation.
 - **Level 2 bluepriNNts**: `bump_version` on a bluepriNNt sets `blueprint_version` in place and writes directly (`{ bump }` or `{ version }`). `add_concept`, `add_field` and `set_marker` also stay direct on a bluepriNNt and are refused on a Level 3 model (`SCHEMA_OP_ON_LEVEL3`).
@@ -520,7 +544,8 @@ nn-mcp_apply_change({
 ## 6. Rename Safety & Referential Integrity
 
 When a Concept or Element must be renamed:
-* **Delegate to the MCP:** The agent does NOT perform blind manual find-and-replace. It uses `nn-mcp_apply_change` with the matching rename operation (`rename_concept` or `rename_element`) to guarantee deterministic updates of `[[Concept]]` WikiLinks, matrices, and cross-references.
+* **Delegate to the MCP:** The agent does NOT perform blind manual find-and-replace. It uses `nn-mcp_apply_change` with the matching rename operation (`rename_concept` or `rename_element`) to guarantee deterministic updates of typed reference addresses, matrices, and prose WikiLinks.
+* **Instance models have a move, not a rename.** To change an instance's slug or container, use `move_model` (never edit the folder by hand): it changes the hierarchical id, relocates the instance root folder, and rejects the move unless every referrer is retargeted in the same changeset (`MOVE_LEAVES_DANGLING_REFERENCES`). A version bump never renames a file; only `move_model` changes an instance model's path and id.
 
 ---
 
@@ -603,16 +628,16 @@ Would you like me to apply the recommended fix automatically?
 
 ---
 
-## 8d. Relationship Protocol & WikiLink Syntax in Reference Fields
+## 8d. Relationship Protocol & Address Syntax in Reference Fields
 
 There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matrix`, `graph_edge`, `sequence`) and two cross-linking mechanisms (`reference` fields and contextual mentions):
 
 1. **Taxonomic hierarchy (`hierarchy`)**: Declared **only** via nested WikiLink lists in the `# NN index` (`* [[Parent]]` -> `  * [[Child]]`).
-2. **Reference fields (`reference`)**: When a field has `type:: reference` in its app definition, its value in the Level 3 model **MUST be enclosed in WikiLink brackets `[[...]]`** (e.g. `location:: [[Dining-Room]]`). NEVER write the value as plain text (`location:: Dining-Room`), because that prevents incoming-reference detection in the editor.
+2. **Reference fields (`reference`)**: A `type:: reference` field holds an **address**, never a title and never a bare name. Same document: `@<slug>` (e.g. `location:: @dining-room`); cross-model: `<hierarchical-id>@<slug>` (e.g. `villabotijos-today/pepper-mapache@00-gancho`). The removed forms `[[Name]]` and `[[Title :: Name]]` are rejected with `ADDRESS_MALFORMED`.
 3. **Evaluable N-to-M relationships (`evaluable_matrix`)**: Expressed in `# NN matrices:` blocks for complex or scored relationships between concepts.
-4. **Contextual mentions**: Written as WikiLinks `[[Element]]` inside the prose Markdown description.
+4. **Contextual mentions**: WikiLinks `[[Element]]` inside prose are display text, not addressing, and stay.
 
-**Wizard / co-creation instruction**: During model creation or editing, the agent MUST guide or ask the user how they want to structure relationships (hierarchy in `# NN index`, a reference field `[[...]]`, or an N-to-M matrix).
+**Wizard / co-creation instruction**: During model creation or editing, the agent MUST guide or ask the user how they want to structure relationships (hierarchy in `# NN index`, a reference field holding an address, or an N-to-M matrix).
 
 ---
 
@@ -938,7 +963,7 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 6. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
 7. **Full MCP Delegation:** Query types, schemas, and validation from the `nn-mcp` server; do not guess or duplicate the grammar.
 8. **Index Block Scope (`# NN index`):** The `# NN index` is reserved exclusively for workspace manifest documents (`domaiNN_NN.md` / `index.md`) and Level 2 templates (defining the taxonomy hierarchy of Concepts). Level 3 domain data models (`kNNowledge/*_NN.md`) MUST NOT contain a root `# NN index` block; navigation in Level 3 models is derived dynamically from Concept and Element headings.
-9. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
+9. **Address syntax in references:** In every reference field (`type:: reference`), the value MUST be an address: `@<slug>` for a same-document target, or `<hierarchical-id>@<slug>` across models. Titles, bare names and the removed `[[Element]]` form are forbidden there; prose WikiLinks remain display text.
 10. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
 11. **Active Model Selection Gate:** Never perform editing, validation, audits, console export, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
 12. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
