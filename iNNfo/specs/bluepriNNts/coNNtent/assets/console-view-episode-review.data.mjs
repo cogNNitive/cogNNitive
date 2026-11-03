@@ -326,6 +326,24 @@ export async function collect({ rootDir } = {}) {
   const episodes = {}
   for (const doc of docs) {
     const episode = await loadEpisode(doc, cacheDir)
+    // Every media file of the episode, so the review can offer what is not used yet.
+    const mediaDir = join(doc.dir, 'media')
+    const files = await readdir(mediaDir).catch(() => [])
+    const used = new Set()
+    for (const scene of episode.scenes) {
+      for (const layer of scene.layers) if (layer.asset) used.add(layer.asset)
+    }
+    episode.media = []
+    for (const name of files.sort()) {
+      const asset = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: 'media/' + name })
+      episode.media.push({
+        name,
+        path: 'media/' + name,
+        src: asset.src,
+        kind: asset.kind,
+        used: used.has('media/' + name),
+      })
+    }
     const facts = (episodes[episode.slug] = episode)
     facts.realUsd = 0
     facts.staleRows = []
