@@ -164,7 +164,7 @@ async function runTests() {
 
   // 6. The blueprint contract itself (capability video-blueprint and video-presets).
   {
-    assert.match(SPEC, /^blueprint_version: "V_0-14-2"$/m, 'the blueprint declares V_0-14-2');
+    assert.match(SPEC, /^blueprint_version: "V_0-15-0"$/m, 'the blueprint declares V_0-15-0');
     assert.match(SPEC, /^## NN Concept Definition: Preset$/m, 'Preset is a top-level Concept');
     assert.doesNotMatch(SPEC, /^## NN Concept Definition: Template$/m, 'Template is gone');
     assert.doesNotMatch(SPEC, /^## NN Field Definition: Template$/m);
@@ -202,7 +202,7 @@ async function runTests() {
     assert.doesNotMatch(DEFAULTS, /voice_speed::|voice_emotion::|voice_tone::/);
     assert.match(DEFAULTS, /^voice_model:: minimax\/speech-2\.8-hd$/m);
     assert.match(DEFAULTS, /^background_audio_volume:: 0\.2$/m);
-    assert.match(DEFAULTS, /^parent_spec:\n  name: "video-script_V_0-14-2"$/m);
+    assert.match(DEFAULTS, /^parent_spec:\n  name: "video-script_V_0-15-0"$/m);
 
     // One declared master size; every delivery format is derived from it.
     const masterResolution = fieldDefinition('master_resolution');
