@@ -20,7 +20,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S5a | 519 | `ds/s5a` | `ds/s4b` | open, applied |
 | S5b | 522 | `ds/s5b` | `ds/s5a` | open, applied (866 hand-authored changed lines, `size:exception`) |
 | S6a | 523 | `ds/s6a` | `ds/s5b` | open, applied (1,397 hand-authored changed lines, `size:exception`) |
-| S6b to S7d | n/a | n/a | n/a | not started |
+| S6b | 527 | `ds/s6b` | `ds/s6a` | open, applied (1284 hand-authored changed lines, `size:exception`) |
+| S6c to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -549,4 +550,41 @@ Status: S6a.1 to S6a.8 done.
 - nn-core `tsc --noEmit`: exit 0; nn-core build: exit 0; nn-core `vitest run`: 214 files, 2392 passed.
 - nn-mcp typecheck (throwaway worktree config): exit 0; nn-mcp `vitest run`: 63 files, 700 passed (after deviation 6).
 - `node scripts/verify.js --fast`: see the PR body.
+
+## S6b - `move_model` and the `rekey` event (PR 14, branch `ds/s6b`, targets `ds/s6a`)
+
+Status: S6b.1 to S6b.10 done.
+
+### RED
+- `tests/changelog/fold.test.ts` gained 4 cases (container move, slug change, descendant prefix plus tombstone, chained identities). All 4 failed for real reasons: `move_model` was not a `ChangeOp`, the fold ignored it, and `identities` did not exist.
+- `src/tools/apply-change-facts.spec.ts` gained a self-contained S6b block (12 cases) whose first run failed 11 of 12 (the `rename_element` asset case passed for the wrong reason, see Evidence). Every failure was the missing feature (`MUTATION_FAILED`), never an assertion typo.
+- `test/apply-change-persist.test.ts` gained the rollback case; it exercises the existing injected-rename harness.
+- `tests/changeset/template.test.ts` failed 2 of 2 until the `changes` blueprint declared `move_model`.
+
+### GREEN
+- **Fold**: `FoldResult.rekeys` carries `{from, to, order}`. On `move_model` the fold rewrites units, epochs, element origins, cleared keys and tombstone copies from that order on; `rekeyKey` rewrites the model prefix (descendants included) and the root element slug when the model slug changes. `ChangeLog` builds its unit index with each change mapped forward through later rekeys, so `history(old)` and `history(new)` both return the whole chain, and `identities(id)` walks the chain backwards and returns the former ids oldest first.
+- **Apply**: a move plan is computed in Phase 1 from the domain index. A compact target is `MOVE_REQUIRES_INSTANCE`; an occupied id is `MODEL_EXISTS`; a missing or wrong container is `CONTAINER_MISSING`; an existing destination folder is `MOVE_DESTINATION_OCCUPIED`; a bad new id is `MOVE_INVALID_TARGET`. A slug change rewrites the root `slug::` (and `knowledge_slug`) in memory, so only that move bumps the model; a pure container move relocates without a version transition. Phase 2 renames the instance folder (carrying descendants and assets), then the stem, then writes the mutated body through the existing atomic persist. `performedMoves` is reversed first in `rollbackPersistence`, before the original content is restored at the original path.
+- **Placement gate** judges a moved model at its planned path, not at the old one, so a slug rename is not reported as `INSTANCE_SLUG_MISMATCH`.
+- **Referrers**: `src/tools/move-referrers.ts` scans every discovered model outside the moved folder, rewrites address tokens for the suggestion and reports `MOVE_LEAVES_DANGLING_REFERENCES` at apply unless every unit is retargeted by an `update_field` in the clean subset. `propose_changeset` runs the same scan and returns `missing_referrer_updates` on the error, ready to merge.
+- **Asset path deleted**: the `rename_element` asset-directory rename is gone; the legacy `mutate.spec.ts` expectation now pins the folder freeze.
+- **Surface**: `move_model` is in `CHANGE_OPS`; `moveModelProblems` rejects a missing `to` and an element/path address; the `changes` blueprint's `op` select, prose and `to` description declare it; the apply tool enum and descriptions list it; catalog, canonical registry, core mirror and console payload regenerated. `sync:versions`/`check:versions` ran via their node scripts.
+
+### Evidence
+- **Mutation 1**: removing the asset fixture to its realistic legacy location (`<model dir>/assets/<slug>`) turned the new `rename_element` case red against the shipped code, proving the case bites; deleting the code path made it green.
+- **Mutation 2**: dropping `to` from `PROPOSAL_KEYS` failed the new seal assertion ("a different destination is a different proposal"); reverted, all 20 parser cases pass.
+- The fold cases were red before implementation, so they needed no mutation.
+
+### Deviations
+1. **S6b.3 to S6b.7 share one commit.** The apply path, the referrer scan and the asset deletion are the same hunks of `apply-change.ts`; splitting would rewrite them twice. Recorded rather than fabricating a split.
+2. **Placement uses the pinned `parent_spec.name`.** `IndexedModel.blueprint.name` is version-less while `DomainIndex.placementFor` resolves declarations by the versioned name, so a version-less name resolves to an empty declaration map and reads every concept as compact.
+3. **The referrer scan does not consult the schema.** Under S3b typed fields are address-only, so any address token naming the old id is a reference; an untyped field holding the same shape is reported too (conservative, never guessed).
+4. **The rollback case injects the failure at the staging -> live rename**, after the folder rename, through the existing harness. A real Windows file lock is timing-dependent; the injected failure exercises the same reversal path deterministically.
+5. **`MOVE_DESTINATION_OCCUPIED` is a new code.** The task named the failure mode, not a code; the move pre-check needs one, so it is added next to the other move codes.
+6. **Two pre-existing tests were updated with the behaviour.** `mutate.spec.ts` asserted the deleted asset rename and `direct-operations.test.ts` classifies every `ChangeOp`; both now match what S6b ships.
+
+### Gate (S6b verification)
+- nn-core `tsc --noEmit`: exit 0; nn-core `vitest run`: 214 files, 2403 passed.
+- nn-mcp typecheck (throwaway worktree config): exit 0; nn-mcp `vitest run`: 63 files, 713 passed.
+- `node --test scripts/build-core-mirrors.test.mjs`: green.
+- `node scripts/verify.js --fast`: exit 0.
 
