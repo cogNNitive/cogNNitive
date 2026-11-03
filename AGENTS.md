@@ -63,6 +63,7 @@ All agents MUST adhere to the canonical iNNfo level nomenclature and vocabulary:
 - **Level 2**: `bluepriNNt` (domain schema; `template` and `app` are deprecated aliases)
 - **Level 3**: `kNNowledge` (domain data model; uncountable noun, e.g. "N kNNowledge documents")
 - **Container**: `domaiNN` (workspace container; a domaiNN is itself a kNNowledge document)
+- **Storage**: a concept is `compact` (its instances are elements of one document) or `distributed` (each instance is its own instance model); instance model, collection, placement rule and hierarchical id are kNNowledge-level concepts, not new levels. A title is display-only: addressing uses the hierarchical id and the element slug.
 
 Authoritative sources:
 - Machine-readable dictionary: [`iNNfo/specs/vocabulary.json`](iNNfo/specs/vocabulary.json)
