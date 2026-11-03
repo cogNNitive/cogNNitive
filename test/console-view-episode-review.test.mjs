@@ -42,7 +42,15 @@ const episode = (over = {}) => ({
       kind: 'hook',
       narration: 'Hello there',
       review: 'approved',
-      fields: { transition: null, background_audio_volume: null, voice_speed: 1.1, presets: null },
+      fields: {
+        transition: { value: 'fade', source: 'series', local: null },
+        voice_speed: { value: 1.1, source: 'scene', local: 1.1 },
+        background_audio_volume: { value: 0.2, source: 'domain', local: null },
+        presets: { value: null, source: null, local: null },
+        frame: { value: 'neutral', source: 'blueprint', local: null },
+        review: { value: 'approved', source: 'scene', local: 'approved' },
+        kind: { value: 'hook', source: 'scene', local: 'hook' },
+      },
       layers: [
         {
           slug: 'hook-avatar',
@@ -61,7 +69,15 @@ const episode = (over = {}) => ({
       kind: 'explain',
       narration: 'The details',
       review: 'needs-change',
-      fields: { transition: 'fade', background_audio_volume: null, voice_speed: null, presets: null },
+      fields: {
+        transition: { value: 'fade', source: 'scene', local: 'fade' },
+        voice_speed: { value: 1, source: 'blueprint', local: null },
+        background_audio_volume: { value: null, source: null, local: null },
+        presets: { value: null, source: null, local: null },
+        frame: { value: 'neutral', source: 'blueprint', local: null },
+        review: { value: 'needs-change', source: 'scene', local: 'needs-change' },
+        kind: { value: 'explain', source: 'scene', local: 'explain' },
+      },
       variants: [],
       layers: [],
     },
@@ -81,12 +97,25 @@ const PAYLOAD_MODEL = {
   matrices: [],
 }
 
+const PAYLOAD_SCHEMA = {
+  concepts: [{ name: 'Scene' }, { name: 'Video' }],
+  fields: [
+    { name: 'transition', type: 'select', options: ['fade', 'slide-left'], concept: 'Video' },
+    { name: 'voice_speed', type: 'number', concept: 'Scene' },
+    { name: 'background_audio_volume', type: 'number', concept: 'Scene' },
+    { name: 'presets', type: 'string', concept: 'Scene' },
+    { name: 'frame', type: 'string', concept: 'Scene' },
+    { name: 'review', type: 'select', options: ['approved', 'needs-change'], concept: 'Scene' },
+    { name: 'kind', type: 'string', concept: 'Scene' },
+  ],
+}
+
 function bootView({ viewData } = {}) {
   const registry = nnConsole.createViewRegistry()
   const factory = new Function('registerView', readFileSync(VIEW_FILE, 'utf8'))
   factory(registry.registrar('episode-review', 'probe'))
   const data = viewData === undefined ? { 'episode-review': { episodes: { 'ep-1': episode() } } } : viewData
-  const booted = bootConsole({ registry, model: PAYLOAD_MODEL, viewData: data })
+  const booted = bootConsole({ registry, model: PAYLOAD_MODEL, schema: PAYLOAD_SCHEMA, viewData: data })
   booted.document.querySelector('.nn-view-tab[data-tab="episode-review"]').click()
   const drafts = () => (booted.res && booted.res.state && booted.res.state.store ? booted.res.state.store.drafts() : [])
   const click = (sel) => {
@@ -135,8 +164,8 @@ describe('Episode review view — parity with the former console', () => {
     )
     const at = (needle) => labels.findIndex((l) => l.toLowerCase().includes(needle))
     assert.ok(at('narration') < at('layers'), 'narration comes before the layers')
-    assert.ok(at('layers') < at('cascade'), 'layers come before the cascade chips')
-    assert.ok(at('cascade') < at('verdict'), 'cascade comes before the verdict')
+    assert.ok(at('layers') < at('scene parameters'), 'layers come before the parameters')
+    assert.ok(at('scene parameters') < at('verdict'), 'parameters come before the verdict')
   })
 
   it('opens the same inspector for a layer', () => {
@@ -177,15 +206,41 @@ describe('Episode review view — parity with the former console', () => {
     assert.match(layers[1].textContent, /generated with AI/, 'a text layer shows its text')
   })
 
-  it('shows cascade chips with Override vs Inherited and edits them', () => {
+  it('renders every Scene field with its real cascade source', () => {
+    const { document } = bootView({})
+    openCard(document, 'opening')
+    const params = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-param]')].map((n) =>
+      n.getAttribute('data-nn-param'),
+    )
+    assert.ok(params.length > 3, 'the sheet is driven by the field set, not a hardcoded trio')
+    for (const expected of ['transition', 'voice_speed', 'background_audio_volume', 'presets', 'frame']) {
+      assert.ok(params.includes(expected), `${expected} is editable on the scene`)
+    }
+    assert.ok(!params.includes('review'), 'the verdict has its own control')
+    assert.ok(!params.includes('kind'), 'the kind is shown in the header')
+
+    const voice = document.querySelector('[data-nn-scene="opening"] [data-nn-param="voice_speed"]')
+    assert.match(voice.textContent, /Scene/, 'a declared value belongs to the Scene')
+    const transition = document.querySelector('[data-nn-scene="opening"] [data-nn-param="transition"]')
+    assert.match(transition.textContent, /series|domain|blueprint|video|unset/, 'an inherited value names its scope')
+  })
+
+  it('uses the widget of the field type instead of a text box everywhere', () => {
+    const { document } = bootView({})
+    openCard(document, 'opening')
+    const transition = document.querySelector('[data-nn-scene="opening"] [data-nn-param-input="transition"]')
+    assert.equal(transition.tagName, 'SELECT', 'a select field renders a select')
+    const options = [...transition.querySelectorAll('option')].map((o) => o.value)
+    assert.deepEqual(options, ['', 'fade', 'slide-left'], 'the options come from the schema, plus inherit')
+    const voice = document.querySelector('[data-nn-scene="opening"] [data-nn-param-input="voice_speed"]')
+    assert.equal(voice.tagName, 'INPUT')
+    assert.equal(voice.type, 'number', 'a number field renders a number input')
+  })
+
+  it('edits a parameter as update_field on the scene', () => {
     const { document, drafts } = bootView({})
     openCard(document, 'opening')
-    const voice = document.querySelector('[data-nn-scene="opening"] [data-nn-cascade="voice_speed"]')
-    assert.match(voice.textContent, /Override/, 'a declared value is an override')
-    const transition = document.querySelector('[data-nn-scene="opening"] [data-nn-cascade="transition"]')
-    assert.match(transition.textContent, /Inherited/, 'an absent value is inherited')
-
-    const input = transition.querySelector('[data-nn-cascade-input]')
+    const input = document.querySelector('[data-nn-scene="opening"] [data-nn-param-input="transition"]')
     input.value = 'fade'
     input.dispatchEvent(new document.defaultView.Event('change', { bubbles: true }))
     const op = drafts().find((d) => d.field === 'transition')

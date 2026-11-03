@@ -8504,7 +8504,65 @@ input[type="text"], input[type="search"], textarea, select {
 }
 .nn-lightbox-specs dt { font-weight: 700; opacity: 0.7; }
 .nn-lightbox-specs dd { margin: 0; }
-.nn-lightbox-storyboard { font-size: 13px; line-height: 1.5; }</style>
+.nn-lightbox-storyboard { font-size: 13px; line-height: 1.5; }
+/* ── Scene parameter sheet (field-driven) ───────────────────────────────────── */
+.nn-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px 14px;
+}
+.nn-param {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+}
+.nn-param-label {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+.nn-param-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: inherit;
+}
+.nn-verdict-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nn-verdict-line .nn-verdict { padding: 4px 12px; font-size: 12px; }
+.nn-verdict-line .nn-comment {
+  flex: 1 1 220px;
+  min-height: 0;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+.nn-visual-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}</style>
     <style>
       :root,
       [data-theme] {
@@ -10497,7 +10555,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T17:29:55.594Z",
+    "generated": "2026-11-03T17:57:47.110Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10508,7 +10566,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T17:29:55.398Z",
+        "citationsResolvedAt": "2026-11-03T17:57:47.009Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],

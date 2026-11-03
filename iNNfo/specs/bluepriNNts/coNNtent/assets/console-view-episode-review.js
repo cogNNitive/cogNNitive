@@ -24,6 +24,11 @@ registerView({
     var elements = Array.isArray(model.elements) ? model.elements : []
     var facts = ctx.viewData || {}
     var byEpisode = facts.episodes || {}
+    // Field types drive the override widgets: a select is a select, a number a number.
+    var schemaFields = {}
+    ;((ctx.payload.schema && ctx.payload.schema.fields) || []).forEach(function (f) {
+      if (f && f.name) schemaFields[f.name] = f
+    })
 
     // The payload element id is what the store addresses; the facts key on the slug.
     var idBySlug = {}
@@ -270,7 +275,14 @@ registerView({
             } else {
               // The console CSP only allows data: images, so anything not inlined (video,
               // an oversized still, a missing file) is named instead of rendered broken.
-              var why = layer.assetKind === 'video' ? 'video' : layer.assetKind === 'image-too-large' ? 'large image' : layer.type || 'layer'
+              var why =
+                layer.assetKind === 'video'
+                  ? '▶ video'
+                  : layer.assetKind === 'image-too-large'
+                    ? 'image too large'
+                    : layer.assetKind === 'missing'
+                      ? 'file not found'
+                      : layer.type || 'layer'
               thumb.appendChild(el('span', 'nn-visual-icon', why))
             }
             var inspectLayer = el('button', 'nn-inspect', '⌕')
@@ -308,40 +320,67 @@ registerView({
           body.appendChild(lSection)
         }
 
-        // ── 5. cascade chips ────────────────────────────────────────────────────
-        var cSection = el('div', 'nn-form-section')
-        cSection.appendChild(el('div', 'nn-section-label', 'Cascade resolution'))
-        var chipsBox = el('div', 'nn-cascade-chips')
-        ;[
-          ['transition', 'Transition'],
-          ['background_audio_volume', 'Music volume'],
-          ['voice_speed', 'Voice speed'],
-        ].forEach(function (pair) {
-          var field = pair[0]
-          var value = scene.fields ? scene.fields[field] : null
-          var has = value !== null && value !== undefined
-          var chip = el('div', 'nn-cascade-chip')
-          chip.setAttribute('data-nn-cascade', field)
-          chip.appendChild(el('span', 'nn-chip-label', pair[1] + ':'))
-          var input = doc.createElement('input')
-          input.className = 'nn-chip-input'
-          input.setAttribute('data-nn-cascade-input', field)
-          input.value = has ? String(value) : ''
-          input.placeholder = 'inherit'
-          input.addEventListener('change', function () {
-            propose({ kind: 'correction', elementId: idOf(scene.slug), field: field, proposed: input.value })
+        // ── 3. scene parameters (any Scene field, typed widget, real source) ────
+        var pSection = el('div', 'nn-form-section')
+        pSection.setAttribute('data-nn-params', '')
+        pSection.appendChild(el('div', 'nn-section-label', 'Scene parameters'))
+        var paramsBox = el('div', 'nn-params-grid')
+        Object.keys(scene.fields || {})
+          .filter(function (name) {
+            return name !== 'review' && name !== 'kind'
           })
-          chip.appendChild(input)
-          chip.appendChild(el('span', 'nn-src-badge', has ? 'Override' : 'Inherited'))
-          chipsBox.appendChild(chip)
-        })
-        cSection.appendChild(chipsBox)
-        body.appendChild(cSection)
+          .sort()
+          .forEach(function (name) {
+            var entry = scene.fields[name] || { value: null, source: null, local: null }
+            var def = schemaFields[name] || {}
+            var row = el('label', 'nn-param')
+            row.setAttribute('data-nn-param', name)
+            row.appendChild(el('span', 'nn-param-label', name))
 
-        // ── 6. verdict + reason ─────────────────────────────────────────────────
+            var input
+            if (def.type === 'select' && Array.isArray(def.options) && def.options.length > 0) {
+              input = doc.createElement('select')
+              var inherit = doc.createElement('option')
+              inherit.value = ''
+              inherit.textContent = '— inherit —'
+              input.appendChild(inherit)
+              def.options.forEach(function (option) {
+                var opt = doc.createElement('option')
+                opt.value = String(option)
+                opt.textContent = String(option)
+                input.appendChild(opt)
+              })
+              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
+            } else if (def.type === 'number') {
+              input = doc.createElement('input')
+              input.type = 'number'
+              input.step = 'any'
+              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
+              input.placeholder = entry.value === null ? 'inherit' : String(entry.value)
+            } else {
+              input = doc.createElement('input')
+              input.type = 'text'
+              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
+              input.placeholder = entry.value === null ? 'inherit' : String(entry.value)
+            }
+            input.className = 'nn-param-input'
+            input.setAttribute('data-nn-param-input', name)
+            input.addEventListener('change', function () {
+              propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: input.value })
+            })
+            row.appendChild(input)
+
+            var sourceLabel = entry.local !== null && entry.local !== undefined ? 'Scene' : entry.source || 'unset'
+            row.appendChild(el('span', 'nn-src-badge', sourceLabel))
+            paramsBox.appendChild(row)
+          })
+        pSection.appendChild(paramsBox)
+        body.appendChild(pSection)
+
+        // ── 4. verdict + reason, one compact line ───────────────────────────────
         var dSection = el('div', 'nn-form-section')
         dSection.appendChild(el('div', 'nn-section-label', 'Verdict'))
-        var controls = el('div', 'nn-verdict-controls')
+        var line = el('div', 'nn-verdict-line')
         ;[
           ['approved', 'Approve'],
           ['needs-change', 'Needs change'],
@@ -354,23 +393,29 @@ registerView({
             propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'review', proposed: pair[0] })
             verdictPill.textContent = pair[0]
             verdictPill.setAttribute('data-nn-verdict-pill', pair[0])
+            Array.prototype.forEach.call(line.querySelectorAll('.nn-verdict'), function (b) {
+              b.classList.remove('is-active')
+            })
+            button.classList.add('is-active')
           })
-          controls.appendChild(button)
+          line.appendChild(button)
         })
-        dSection.appendChild(controls)
 
-        var comment = el('textarea', 'nn-comment')
+        var comment = el('input', 'nn-comment')
+        comment.type = 'text'
         comment.setAttribute('data-nn-comment', '')
-        comment.placeholder = 'Why? (needed for needs-change)'
-        dSection.appendChild(comment)
-        var save = el('button', 'nn-btn', 'Save reason')
+        comment.placeholder = 'Reason (needed for needs-change)'
+        line.appendChild(comment)
+
+        var save = el('button', 'nn-verdict', 'Save reason')
         save.type = 'button'
         save.setAttribute('data-nn-comment-save', '')
         save.addEventListener('click', function () {
           if (!comment.value.trim()) return
           propose({ kind: 'comment', elementId: idOf(scene.slug), comment: comment.value })
         })
-        dSection.appendChild(save)
+        line.appendChild(save)
+        dSection.appendChild(line)
         body.appendChild(dSection)
 
         root.appendChild(card)
