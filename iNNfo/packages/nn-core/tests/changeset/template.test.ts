@@ -239,3 +239,59 @@ evidence:: decision
     expect(errors).toEqual([])
   })
 })
+
+describe('changes blueprint - extract_instance (distributed-storage S6d)', () => {
+  const changeset = `---
+spec_version: "V_0-5-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+knowledge_version: "V_0-1-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Extract a Video instance"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: extract_instance
+target:: InnteresanteVideos@intro
+to:: innteresante/intro
+blueprint_name:: video-script_V_0-1-0
+blueprint_url:: specs/bluepriNNts/video-script_V_0-1-0_NN.md
+evidence:: decision
+`
+
+  it('declares extract_instance in the closed op select', () => {
+    const composed = resolveBlueprintSchema(changesSpec, () => null)
+    const op = composed.schema.concepts
+      .find((c) => c.name === 'Change')!
+      .fields.find((f) => f.name === 'op')!
+    const options = ((op as { options?: unknown[] }).options ?? []).map((v) => String(v))
+    expect(options).toContain('extract_instance')
+  })
+
+  it('asserts the whole instance op set: move_model, extract_instance, add_model.concept', () => {
+    const composed = resolveBlueprintSchema(changesSpec, () => null)
+    const change = composed.schema.concepts.find((c) => c.name === 'Change')!
+    const op = change.fields.find((f) => f.name === 'op')!
+    const options = ((op as { options?: unknown[] }).options ?? []).map((v) => String(v))
+    expect(options).toEqual(expect.arrayContaining(['add_model', 'move_model', 'extract_instance']))
+    const concept = change.fields.find((f) => f.name === 'concept')!
+    expect(String((concept as { description?: string }).description ?? '')).toContain('add_model')
+  })
+
+  it('validates a changeset using extract_instance', () => {
+    const model = parseKnowledge(changeset)
+    const res = validateKnowledge(model, specDoc, null)
+    const errors = res.checks.filter((c) => c.severity === 'error')
+    expect(errors).toEqual([])
+  })
+})
