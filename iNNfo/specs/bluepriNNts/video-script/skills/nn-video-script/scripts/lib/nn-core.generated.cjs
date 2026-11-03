@@ -7398,6 +7398,7 @@ var import_node_path = require("node:path");
 
 // iNNfo/packages/nn-core/src/naming/contract.ts
 var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
+var SPEC_FILENAME = "spec_NN.md";
 var NN_SUFFIX_RE = /_NN\.md$/i;
 var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
 var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
@@ -7431,6 +7432,30 @@ function displayStem(basename2) {
 }
 function procedureIdOf(basename2) {
   return displayStem(baseOf(basename2)).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
+}
+var CORE_BLUEPRINT_ROLE = {
+  sidecar: "sidecar",
+  changes: "changeset",
+  workspace: "catalog",
+  sources: "catalog",
+  artifacts: "catalog"
+};
+function coreBlueprintKey(parentSpecName) {
+  return (parentSpecName ?? "").trim().toLowerCase().split("_")[0];
+}
+function roleOf(i) {
+  const base = baseOf(i.path);
+  const parsed = parseName(base);
+  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
+  if (parsed.sidecarOf !== void 0) return "sidecar";
+  const lower = base.toLowerCase();
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
+  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
+  const bp = coreBlueprintKey(i.parentSpecName);
+  if (bp === "procedures") {
+    return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
+  }
+  return CORE_BLUEPRINT_ROLE[bp] ?? "knowledge";
 }
 function isProcedureDocument(nameOrPath) {
   const parsed = parseName(baseOf(nameOrPath));
@@ -8789,6 +8814,164 @@ function bindSlots(def, fillSources, visible, floor, selectedIds, diagnostics) {
   return bindings;
 }
 
+// iNNfo/packages/nn-core/src/address/grammar.ts
+var HEAD = "[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*";
+var SLUG = "[\\p{Ll}\\p{Lo}\\p{N}]+(?:-+[\\p{Ll}\\p{Lo}\\p{N}]+)*";
+var FIELD = "[\\p{L}\\p{N}]+(?:[-_][\\p{L}\\p{N}]+)*";
+var CONCEPT = "[\\p{L}\\p{N}]+(?:(?:[ _]|-+)[\\p{L}\\p{N}]+)*";
+var HEAD_RE = new RegExp(`^${HEAD}$`);
+var SLUG_RE = new RegExp(`^${SLUG}$`, "u");
+var FIELD_RE = new RegExp(`^${FIELD}$`, "u");
+var CONCEPT_RE = new RegExp(`^${CONCEPT}$`, "u");
+var RESERVED_HEAD = "specs";
+var BODY_MARKER = "#body";
+var CONCEPT_PREFIX = "concept:";
+var MATRIX_PREFIX = "matrix:";
+
+// iNNfo/packages/nn-core/src/address/parse.ts
+var GRAMMAR_HINT = "use `<hierarchical-id>@<slug>` (for example `series-a/episode-1@scene-1`)";
+var URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
+var WINDOWS_ABSOLUTE_RE = /^[a-zA-Z]:[/\\]/;
+var LINE_ANCHOR_RE = /[#@]L\d+(-L\d+)?$/i;
+var SOURCE_EXTENSION_RE = /\.(md|csv|json)$/i;
+var CHANGES_STEM_RE = /_changes$/i;
+function malformed(segment, expected, removed) {
+  const shown = segment === "" ? "an empty segment" : `\`${segment}\``;
+  const error = {
+    kind: "error",
+    code: "ADDRESS_MALFORMED",
+    segment,
+    message: `Malformed address: ${shown} is not ${expected}; ${GRAMMAR_HINT}.`
+  };
+  return removed ? { ...error, removed } : error;
+}
+function removedForm(raw, form, shape) {
+  return {
+    kind: "error",
+    code: "ADDRESS_MALFORMED",
+    segment: raw,
+    removed: form,
+    message: `The ${form} \`${shape}\` is removed and is never resolved by title; ${GRAMMAR_HINT}.`
+  };
+}
+function parseSourceClass(path, raw) {
+  const base = path.slice(path.lastIndexOf("/") + 1);
+  const parsed = parseName(base);
+  const sourcePrefix = path.startsWith("sources/");
+  if (!sourcePrefix && parsed.kind === "nn" && parsed.sidecarOf === void 0) {
+    const isChangeset = CHANGES_STEM_RE.test(parsed.stem);
+    const role = roleOf({ path: base, parentSpecName: isChangeset ? "changes" : void 0 });
+    if (role === "changeset") {
+      return {
+        kind: "error",
+        code: "NN_DOCUMENT_CITED_BY_HEADING",
+        segment: raw,
+        message: `A changeset is not cited by heading (\`@## NN Change: <id>\` is removed); address a change by its model id and slug, ${GRAMMAR_HINT}.`
+      };
+    }
+    if (role === "knowledge") {
+      return {
+        kind: "error",
+        code: "MODEL_CITED_BY_PATH",
+        segment: path,
+        message: `A model is not cited by file path (\`${path}\`); ${GRAMMAR_HINT}.`
+      };
+    }
+  }
+  return { kind: "source", raw };
+}
+function parseModelId(part) {
+  const segments = part.split("/");
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    if (i === 0) {
+      if (!HEAD_RE.test(segment)) return malformed(segment, "a valid model-id head");
+    } else if (!SLUG_RE.test(segment)) {
+      return malformed(segment, "a lowercase slug");
+    }
+  }
+  return part;
+}
+function parseUnit(rest) {
+  const parts = rest.split("&");
+  const [head, second, third, ...extra] = parts;
+  if (extra.length > 0) return malformed(rest, "a unit with at most three parts");
+  if (head.startsWith(CONCEPT_PREFIX)) {
+    const concept = head.slice(CONCEPT_PREFIX.length);
+    if (!CONCEPT_RE.test(concept)) return malformed(head, "a concept name");
+    if (third !== void 0) return malformed(rest, "a concept unit with at most one field");
+    if (second === void 0) return { kind: "concept", concept };
+    if (!FIELD_RE.test(second)) return malformed(second, "a field name");
+    return { kind: "concept", concept, field: second };
+  }
+  if (head.startsWith(MATRIX_PREFIX)) {
+    const matrix = head.slice(MATRIX_PREFIX.length);
+    if (!SLUG_RE.test(matrix)) return malformed(head, "a matrix slug");
+    if (second !== void 0) return malformed(rest, "a matrix unit with no sub-unit");
+    return { kind: "matrix", matrix };
+  }
+  if (!SLUG_RE.test(head)) return malformed(head, "a lowercase slug");
+  if (second === void 0) return { kind: "element", slug: head };
+  if (third !== void 0) {
+    for (const segment of [second, third]) {
+      if (!SLUG_RE.test(segment)) return malformed(segment, "a lowercase slug");
+    }
+    return { kind: "cell", matrix: head, row: second, col: third };
+  }
+  if (second === BODY_MARKER) return { kind: "body", slug: head };
+  if (!FIELD_RE.test(second)) return malformed(second, "a field name");
+  return { kind: "element", slug: head, field: second };
+}
+function parseBlueprint(modelPart, rest) {
+  const family = modelPart.slice(RESERVED_HEAD.length + 1);
+  if (!HEAD_RE.test(family)) return malformed(family, "a blueprint family");
+  if (rest === null) return { kind: "blueprint", family, unit: null };
+  const unit = parseUnit(rest);
+  if ("code" in unit) return unit;
+  if (unit.kind !== "concept" && unit.kind !== "matrix") {
+    return malformed(rest, "a `concept:` or `matrix:` unit of a blueprint");
+  }
+  return { kind: "blueprint", family, unit };
+}
+function parseAddress(input) {
+  const raw = String(input ?? "").trim();
+  if (raw === "") return malformed("", "a value");
+  if (raw.startsWith("[[") || raw.endsWith("]]")) {
+    return raw.includes("::") ? removedForm(raw, "title-qualified reference", "[[Title :: Name]]") : removedForm(raw, "wikilink reference", "[[Name]]");
+  }
+  if (raw.includes(" :: ")) return removedForm(raw, "title-qualified reference", "[[Title :: Name]]");
+  if (URL_RE.test(raw) || raw.startsWith("/") || raw.startsWith("\\") || WINDOWS_ABSOLUTE_RE.test(raw)) {
+    return malformed(raw, "a model address (URLs and absolute paths are not addresses)");
+  }
+  if (LINE_ANCHOR_RE.test(raw)) return malformed(raw, "a model address (line anchors are not addresses)");
+  const at = raw.indexOf("@");
+  const modelPart = at === -1 ? raw : raw.slice(0, at);
+  const rest = at === -1 ? null : raw.slice(at + 1);
+  if (modelPart.includes("\\")) return malformed(modelPart, "a model id (path separators are not allowed)");
+  if (modelPart.split("/").includes("..")) return malformed("..", "a model-id segment");
+  if (SOURCE_EXTENSION_RE.test(modelPart)) return parseSourceClass(modelPart, raw);
+  if (modelPart === RESERVED_HEAD) {
+    return malformed(modelPart, "a model id (`specs` is reserved for blueprint addresses)");
+  }
+  if (modelPart.startsWith(`${RESERVED_HEAD}/`)) return parseBlueprint(modelPart, rest);
+  if (modelPart === "") {
+    if (rest === null || rest === "") return malformed("", "a unit after `@`");
+    const unit2 = parseUnit(rest);
+    return "code" in unit2 ? unit2 : { kind: "unit", model: null, unit: unit2 };
+  }
+  const model = parseModelId(modelPart);
+  if (typeof model !== "string") return model;
+  if (rest === null) return { kind: "model", model };
+  if (rest === "") return malformed("", "a unit after `@`");
+  const unit = parseUnit(rest);
+  return "code" in unit ? unit : { kind: "unit", model, unit };
+}
+
+// iNNfo/packages/nn-core/src/address/index.ts
+function isAddressError(value) {
+  return value.kind === "error";
+}
+
 // iNNfo/packages/nn-core/src/scope/elements.ts
 var RESERVED_FIELDS = /* @__PURE__ */ new Set(["slug", "isolate"]);
 var fail = (code, detail) => ({
@@ -8816,7 +8999,6 @@ function checkDecls(decls) {
   }
   return null;
 }
-var REFERENCE = /^\[\[([^\]]+)\]\]$/;
 function parentIndex(source, index, declIndex) {
   const decl = source.decls[declIndex];
   const parentConcept = source.decls[declIndex - 1].concept;
@@ -8830,15 +9012,21 @@ function parentIndex(source, index, declIndex) {
   }
   const field = decl.parent;
   const raw = child.fields[field];
-  const match = typeof raw === "string" ? REFERENCE.exec(raw.trim()) : null;
-  if (!match) return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} is not a [[title]] reference`);
-  const title = match[1].trim();
-  const candidates = source.elements.map((e, i) => ({ e, i })).filter(({ e }) => e.concept === parentConcept && e.title === title);
+  const parsed = typeof raw === "string" ? parseAddress(raw.trim()) : null;
+  if (parsed === null) return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} is not an @<slug> address`);
+  if (isAddressError(parsed)) {
+    return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} is not an @<slug> address (${parsed.message})`);
+  }
+  if (parsed.kind !== "unit" || parsed.model !== null || parsed.unit.kind !== "element") {
+    return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} is not an @<slug> address of this document`);
+  }
+  const slug = parsed.unit.slug;
+  const candidates = source.elements.map((e, i) => ({ e, i })).filter(({ e }) => e.concept === parentConcept && e.slug === slug);
   if (candidates.length === 0) {
-    return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} names no ${parentConcept} titled "${title}"`);
+    return fail("UNKNOWN_PARENT_ELEMENT", `${label}: field ${field} names no ${parentConcept} with slug "${slug}"`);
   }
   if (candidates.length > 1) {
-    return fail("AMBIGUOUS_PARENT_ELEMENT", `${label}: field ${field} matches ${candidates.length} ${parentConcept} elements titled "${title}"`);
+    return fail("AMBIGUOUS_PARENT_ELEMENT", `${label}: field ${field} matches ${candidates.length} ${parentConcept} elements with slug "${slug}"`);
   }
   return { ok: true, index: candidates[0].i };
 }

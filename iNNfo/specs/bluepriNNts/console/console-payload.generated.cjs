@@ -9229,137 +9229,6 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   return null;
 }
 
-// iNNfo/packages/nn-core/src/validator/crypto.ts
-function computeSha256(content) {
-  const utf8 = new TextEncoder().encode(content);
-  function rotr(n, x) {
-    return x >>> n | x << 32 - n;
-  }
-  const K = [
-    1116352408,
-    1899447441,
-    3049323471,
-    3921009573,
-    961987163,
-    1508970993,
-    2453635748,
-    2870763221,
-    3624381080,
-    310598401,
-    607225278,
-    1426881987,
-    1925078388,
-    2162078206,
-    2614888103,
-    3248222580,
-    3835390401,
-    4022224774,
-    264347078,
-    604807628,
-    770255983,
-    1249150122,
-    1555081692,
-    1996064986,
-    2554220882,
-    2821834349,
-    2952996808,
-    3210313671,
-    3336571891,
-    3584528711,
-    113926993,
-    338241895,
-    666307205,
-    773529912,
-    1294757372,
-    1396182291,
-    1695183700,
-    1986661051,
-    2177026350,
-    2456956037,
-    2730485921,
-    2820302411,
-    3259730800,
-    3345764771,
-    3516065817,
-    3600352804,
-    4094571909,
-    275423344,
-    430227734,
-    506948616,
-    659060556,
-    883997877,
-    958139571,
-    1322822218,
-    1537002063,
-    1747873779,
-    1955562222,
-    2024104815,
-    2227730452,
-    2361852424,
-    2428436474,
-    2756734187,
-    3204031479,
-    3329325298
-  ];
-  let H = [
-    1779033703,
-    3144134277,
-    1013904242,
-    2773480762,
-    1359893119,
-    2600822924,
-    528734635,
-    1541459225
-  ];
-  const len = utf8.length;
-  const bitLen = len * 8;
-  const padLen = (len + 8 >> 6 << 6) + 64;
-  const msg = new Uint8Array(padLen);
-  msg.set(utf8);
-  msg[len] = 128;
-  const view = new DataView(msg.buffer);
-  view.setUint32(padLen - 4, bitLen, false);
-  const W = new Int32Array(64);
-  for (let i = 0; i < padLen; i += 64) {
-    for (let t = 0; t < 16; t++) {
-      W[t] = view.getInt32(i + t * 4, false);
-    }
-    for (let t = 16; t < 64; t++) {
-      const s0 = rotr(7, W[t - 15]) ^ rotr(18, W[t - 15]) ^ W[t - 15] >>> 3;
-      const s1 = rotr(17, W[t - 2]) ^ rotr(19, W[t - 2]) ^ W[t - 2] >>> 10;
-      W[t] = W[t - 16] + s0 + W[t - 7] + s1 | 0;
-    }
-    let [a, b, c, d, e, f, g, h] = H;
-    for (let t = 0; t < 64; t++) {
-      const S1 = rotr(6, e) ^ rotr(11, e) ^ rotr(25, e);
-      const ch = e & f ^ ~e & g;
-      const temp1 = h + S1 + ch + K[t] + W[t] | 0;
-      const S0 = rotr(2, a) ^ rotr(13, a) ^ rotr(22, a);
-      const maj = a & b ^ a & c ^ b & c;
-      const temp2 = S0 + maj | 0;
-      h = g;
-      g = f;
-      f = e;
-      e = d + temp1 | 0;
-      d = c;
-      c = b;
-      b = a;
-      a = temp1 + temp2 | 0;
-    }
-    H = [
-      H[0] + a | 0,
-      H[1] + b | 0,
-      H[2] + c | 0,
-      H[3] + d | 0,
-      H[4] + e | 0,
-      H[5] + f | 0,
-      H[6] + g | 0,
-      H[7] + h | 0
-    ];
-  }
-  return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
-}
-
 // iNNfo/packages/nn-core/src/naming/contract.ts
 var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
 var SPEC_FILENAME = "spec_NN.md";
@@ -9498,43 +9367,6 @@ function isSidecarName(nameOrPath) {
   return SIDECAR_PATH_RE.test(nameOrPath);
 }
 
-// iNNfo/packages/nn-core/src/assertNever.ts
-function assertNever(value, context = "value") {
-  throw new Error(`Unhandled ${context}: ${JSON.stringify(value)}`);
-}
-
-// iNNfo/packages/nn-core/src/jsonPointer.ts
-var POINTER_RE = /^(?:\/(?:[^~/]|~[01])*)*$/;
-var ARRAY_INDEX_RE = /^(?:0|[1-9]\d*)$/;
-function isJsonPointer(pointer) {
-  return POINTER_RE.test(pointer);
-}
-var unescapeToken = (token) => token.replace(/~1/g, "/").replace(/~0/g, "~");
-function resolveJsonPointer(content, pointer) {
-  let current;
-  try {
-    current = JSON.parse(content);
-  } catch {
-    return { ok: false, reason: "invalid-json" };
-  }
-  if (!isJsonPointer(pointer)) return { ok: false, reason: "unknown-pointer" };
-  if (pointer === "") return { ok: true, value: current };
-  for (const raw of pointer.slice(1).split("/")) {
-    const token = unescapeToken(raw);
-    if (Array.isArray(current)) {
-      if (!ARRAY_INDEX_RE.test(token) || Number(token) >= current.length) {
-        return { ok: false, reason: "unknown-pointer" };
-      }
-      current = current[Number(token)];
-    } else if (current !== null && typeof current === "object" && Object.hasOwn(current, token)) {
-      current = current[token];
-    } else {
-      return { ok: false, reason: "unknown-pointer" };
-    }
-  }
-  return { ok: true, value: current };
-}
-
 // iNNfo/packages/nn-core/src/address/grammar.ts
 var HEAD = "[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*";
 var SLUG = "[\\p{Ll}\\p{Lo}\\p{N}]+(?:-+[\\p{Ll}\\p{Lo}\\p{N}]+)*";
@@ -9550,7 +9382,7 @@ var CONCEPT_PREFIX = "concept:";
 var MATRIX_PREFIX = "matrix:";
 
 // iNNfo/packages/nn-core/src/address/parse.ts
-var GRAMMAR_HINT = "use `<hierarchical-id>@<slug>` (for example `villabotijos-today/intro@00-gancho`)";
+var GRAMMAR_HINT = "use `<hierarchical-id>@<slug>` (for example `series-a/episode-1@scene-1`)";
 var URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
 var WINDOWS_ABSOLUTE_RE = /^[a-zA-Z]:[/\\]/;
 var LINE_ANCHOR_RE = /[#@]L\d+(-L\d+)?$/i;
@@ -9693,6 +9525,174 @@ function isAddressError(value) {
   return value.kind === "error";
 }
 
+// iNNfo/packages/nn-core/src/validator/crypto.ts
+function computeSha256(content) {
+  const utf8 = new TextEncoder().encode(content);
+  function rotr(n, x) {
+    return x >>> n | x << 32 - n;
+  }
+  const K = [
+    1116352408,
+    1899447441,
+    3049323471,
+    3921009573,
+    961987163,
+    1508970993,
+    2453635748,
+    2870763221,
+    3624381080,
+    310598401,
+    607225278,
+    1426881987,
+    1925078388,
+    2162078206,
+    2614888103,
+    3248222580,
+    3835390401,
+    4022224774,
+    264347078,
+    604807628,
+    770255983,
+    1249150122,
+    1555081692,
+    1996064986,
+    2554220882,
+    2821834349,
+    2952996808,
+    3210313671,
+    3336571891,
+    3584528711,
+    113926993,
+    338241895,
+    666307205,
+    773529912,
+    1294757372,
+    1396182291,
+    1695183700,
+    1986661051,
+    2177026350,
+    2456956037,
+    2730485921,
+    2820302411,
+    3259730800,
+    3345764771,
+    3516065817,
+    3600352804,
+    4094571909,
+    275423344,
+    430227734,
+    506948616,
+    659060556,
+    883997877,
+    958139571,
+    1322822218,
+    1537002063,
+    1747873779,
+    1955562222,
+    2024104815,
+    2227730452,
+    2361852424,
+    2428436474,
+    2756734187,
+    3204031479,
+    3329325298
+  ];
+  let H = [
+    1779033703,
+    3144134277,
+    1013904242,
+    2773480762,
+    1359893119,
+    2600822924,
+    528734635,
+    1541459225
+  ];
+  const len = utf8.length;
+  const bitLen = len * 8;
+  const padLen = (len + 8 >> 6 << 6) + 64;
+  const msg = new Uint8Array(padLen);
+  msg.set(utf8);
+  msg[len] = 128;
+  const view = new DataView(msg.buffer);
+  view.setUint32(padLen - 4, bitLen, false);
+  const W = new Int32Array(64);
+  for (let i = 0; i < padLen; i += 64) {
+    for (let t = 0; t < 16; t++) {
+      W[t] = view.getInt32(i + t * 4, false);
+    }
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotr(7, W[t - 15]) ^ rotr(18, W[t - 15]) ^ W[t - 15] >>> 3;
+      const s1 = rotr(17, W[t - 2]) ^ rotr(19, W[t - 2]) ^ W[t - 2] >>> 10;
+      W[t] = W[t - 16] + s0 + W[t - 7] + s1 | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotr(6, e) ^ rotr(11, e) ^ rotr(25, e);
+      const ch = e & f ^ ~e & g;
+      const temp1 = h + S1 + ch + K[t] + W[t] | 0;
+      const S0 = rotr(2, a) ^ rotr(13, a) ^ rotr(22, a);
+      const maj = a & b ^ a & c ^ b & c;
+      const temp2 = S0 + maj | 0;
+      h = g;
+      g = f;
+      f = e;
+      e = d + temp1 | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = temp1 + temp2 | 0;
+    }
+    H = [
+      H[0] + a | 0,
+      H[1] + b | 0,
+      H[2] + c | 0,
+      H[3] + d | 0,
+      H[4] + e | 0,
+      H[5] + f | 0,
+      H[6] + g | 0,
+      H[7] + h | 0
+    ];
+  }
+  return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+}
+
+// iNNfo/packages/nn-core/src/assertNever.ts
+function assertNever(value, context = "value") {
+  throw new Error(`Unhandled ${context}: ${JSON.stringify(value)}`);
+}
+
+// iNNfo/packages/nn-core/src/jsonPointer.ts
+var POINTER_RE = /^(?:\/(?:[^~/]|~[01])*)*$/;
+var ARRAY_INDEX_RE = /^(?:0|[1-9]\d*)$/;
+function isJsonPointer(pointer) {
+  return POINTER_RE.test(pointer);
+}
+var unescapeToken = (token) => token.replace(/~1/g, "/").replace(/~0/g, "~");
+function resolveJsonPointer(content, pointer) {
+  let current;
+  try {
+    current = JSON.parse(content);
+  } catch {
+    return { ok: false, reason: "invalid-json" };
+  }
+  if (!isJsonPointer(pointer)) return { ok: false, reason: "unknown-pointer" };
+  if (pointer === "") return { ok: true, value: current };
+  for (const raw of pointer.slice(1).split("/")) {
+    const token = unescapeToken(raw);
+    if (Array.isArray(current)) {
+      if (!ARRAY_INDEX_RE.test(token) || Number(token) >= current.length) {
+        return { ok: false, reason: "unknown-pointer" };
+      }
+      current = current[Number(token)];
+    } else if (current !== null && typeof current === "object" && Object.hasOwn(current, token)) {
+      current = current[token];
+    } else {
+      return { ok: false, reason: "unknown-pointer" };
+    }
+  }
+  return { ok: true, value: current };
+}
+
 // iNNfo/packages/nn-core/src/sourceRef.ts
 var SLUG2 = "[a-z0-9]+(?:-[a-z0-9]+)*";
 var RETIRED_PREFIX_RE = /^(?:sources\/(?:nn|original|export)|export|models)\//;
@@ -9726,7 +9726,7 @@ function parseSourceRef(input) {
   if (!resolved) return null;
   return {
     filePath: resolved.filePath,
-    fileName: basename2(resolved.filePath),
+    fileName: basename(resolved.filePath),
     slug: legacy[2] || void 0,
     kind: resolved.kind,
     raw: clean
@@ -9752,12 +9752,12 @@ function parseCitation(input) {
   if (!resolved) return null;
   return {
     filePath: resolved.filePath,
-    fileName: basename2(resolved.filePath),
+    fileName: basename(resolved.filePath),
     kind: resolved.kind,
     raw: clean
   };
 }
-function basename2(p) {
+function basename(p) {
   return p.split(/[/\\]/).pop() || p;
 }
 function cleanSourceItem(v) {
@@ -9958,7 +9958,7 @@ function parseModelUnitRef(raw) {
   const address = parseAddress(raw);
   if (isAddressError(address) || address.kind !== "unit" || address.model === null) return null;
   const { model, unit } = address;
-  const base = { filePath: model, fileName: basename2(model), kind: "model", raw };
+  const base = { filePath: model, fileName: basename(model), kind: "model", raw };
   switch (unit.kind) {
     case "element":
       return {
@@ -10005,7 +10005,7 @@ function parsePointerRef(resolved, rawPointer, raw) {
   if (pointer === null || !isJsonPointer(pointer)) return null;
   return {
     filePath: resolved.filePath,
-    fileName: basename2(resolved.filePath),
+    fileName: basename(resolved.filePath),
     kind: resolved.kind,
     unit: { kind: "pointer", pointer },
     subunits: [],
@@ -10035,7 +10035,7 @@ function parseKnowledgeUnitRef(input) {
     if (resolved.kind === "model") return null;
     return {
       filePath: resolved.filePath,
-      fileName: basename2(resolved.filePath),
+      fileName: basename(resolved.filePath),
       kind: "source",
       unit: { kind: "row", id: unitRaw },
       subunits,
@@ -10054,7 +10054,7 @@ function parseKnowledgeUnitRef(input) {
   };
   return {
     filePath: resolved.filePath,
-    fileName: basename2(resolved.filePath),
+    fileName: basename(resolved.filePath),
     slug: headed.slug,
     kind: resolved.kind,
     unit,
