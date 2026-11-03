@@ -251,6 +251,75 @@ describe('Canonical Template Registry & Offline Fallback', () => {
     )
   })
 
+  describe('iNNfo V_0-7-0 (distributed storage)', () => {
+    const l1 = (v: string) => readFileSync(join(specsRoot, `iNNfo_V_${v}_NN.md`), 'utf-8')
+    const v07 = () => l1('0-7-0')
+    const STORAGE_PROPS = ['storage', 'container', 'placement']
+    const asTemplate = (content: string) =>
+      ['---', 'level: 2', 'title: Metaschema', '---', '', extractMetaschema(content)!, ''].join('\n')
+    const conceptDefinitionFields = (content: string) =>
+      resolveBlueprintSchema(asTemplate(content)).schema.concepts
+        .find((c) => c.name === 'Concept Definition')!
+        .fields!.map((f) => f.name)
+
+    const l2 = (props: string) =>
+      [
+        '---',
+        'level: 2',
+        'title: "Storage L2"',
+        '---',
+        '',
+        '# NN Concept Definition',
+        '## NN Concept Definition: Series',
+        'type:: list',
+        props,
+        '',
+      ].join('\n')
+
+    it('is published as spec_version V_0-7-0 and keeps V_0-6-0 as a separate file', () => {
+      expect(v07()).toMatch(/^spec_version: "V_0-7-0"$/m)
+      expect(v07()).toContain('iNNfo_V_0-7-0_NN.md')
+      expect(l1('0-6-0')).toMatch(/^spec_version: "V_0-6-0"$/m)
+    })
+
+    it('declares storage, container and placement as Concept Definition properties', () => {
+      const names = conceptDefinitionFields(v07())
+      for (const prop of STORAGE_PROPS) expect(names, prop).toContain(prop)
+      for (const prop of STORAGE_PROPS) expect(conceptDefinitionFields(l1('0-6-0')), prop).not.toContain(prop)
+    })
+
+    it('documents the properties and the unified address grammar', () => {
+      const spec = v07()
+      for (const prop of STORAGE_PROPS) expect(spec).toContain(`\`${prop}\``)
+      expect(spec).toContain('## Unified Address Grammar')
+      expect(spec).not.toContain('## Universal Addressing Grammar')
+    })
+
+    it('stops warning on the three properties when the pinned L1 is V_0-7-0', () => {
+      const template = l2('storage:: distributed\nplacement:: "series/{slug}/"')
+      const unknown = (content: string) =>
+        validateBlueprintAgainstMetaschema(template, content)
+          .filter((d) => /not declared on Concept Definition/.test(d.message))
+          .map((d) => d.path)
+          .sort()
+      expect(unknown(v07())).toEqual([])
+      expect(unknown(l1('0-6-0'))).toEqual([
+        'Concept Definition.Series.placement',
+        'Concept Definition.Series.storage',
+      ])
+    })
+
+    it('rejects a storage value outside compact and distributed', () => {
+      const diags = validateBlueprintAgainstMetaschema(l2('storage:: scattered'), v07())
+      expect(diags.some((d) => d.severity === 'error' && d.path === 'Concept Definition.Series.storage')).toBe(true)
+    })
+
+    it('stays a fixpoint: the metaschema validates against itself', () => {
+      const diags = validateBlueprintAgainstMetaschema(asTemplate(v07()), v07())
+      expect(diags.filter((d) => d.severity === 'error')).toEqual([])
+    })
+  })
+
   it('resolves iNNfo V_0-5-0 offline from canonical registry and validates against itself', () => {
     const innfoUrl =
       'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md'
