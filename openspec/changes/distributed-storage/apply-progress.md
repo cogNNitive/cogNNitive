@@ -16,7 +16,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S3b | 510 | `ds/s3b` | `ds/s3a` | open, applied (`size:exception`) |
 | S3c | 512 | `ds/s3c` | `ds/s3b` | open, applied (resumed from an interrupted apply; one deviation in S3c.3) |
 | S4a | 514 | `ds/s4a` | `ds/s3c` | open, applied |
-| S4b to S7d | n/a | n/a | n/a | not started |
+| S4b | 516 | `ds/s4b` | `ds/s4a` | open, partial (S4b.2 apply pending a decision) |
+| S5a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
