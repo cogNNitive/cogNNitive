@@ -8095,6 +8095,227 @@ function parseKnowledge(content) {
   };
 }
 
+// iNNfo/packages/nn-core/src/schema/storage.ts
+var STORAGE_MODES = ["compact", "distributed"];
+var LITERAL_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+var RESERVED_LITERALS = /* @__PURE__ */ new Set(["archive", "staging", "specs", "backups"]);
+var SLUG_TOKEN = "{slug}";
+var CONTAINER_TOKEN = "{container}";
+function invalid(template, why) {
+  return {
+    ok: false,
+    code: "PLACEMENT_INVALID",
+    message: `placement "${template}" is invalid: ${why}`
+  };
+}
+function parsePlacement(template, opts) {
+  if (template.trim() === "") return invalid(template, "the template is empty");
+  if (template.includes("\\")) return invalid(template, 'use POSIX separators ("/"), not backslashes');
+  if (template.startsWith("/")) return invalid(template, "the path must be relative to the domaiNN root");
+  if (!template.endsWith("/")) return invalid(template, 'the template must end with "/"');
+  const parts = template.slice(0, -1).split("/");
+  const segments = [];
+  let slugCount = 0;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part === "") return invalid(template, "it contains an empty segment");
+    if (part === "..") return invalid(template, 'a ".." segment is not allowed');
+    if (part.startsWith(".")) return invalid(template, `segment "${part}" starts with "." (a "."-prefixed segment is not allowed)`);
+    if (part === SLUG_TOKEN) {
+      slugCount++;
+      segments.push({ kind: "slug" });
+      continue;
+    }
+    if (part === CONTAINER_TOKEN) {
+      if (i !== 0) return invalid(template, "{container} is allowed only as the first segment");
+      if (!opts.hasContainer) return invalid(template, "{container} requires the concept to declare container::");
+      segments.push({ kind: "container" });
+      continue;
+    }
+    if (part.includes("{") || part.includes("}")) {
+      return invalid(template, `unknown token "${part}"; the only tokens are {slug} and {container}`);
+    }
+    const folded = part.toLowerCase();
+    if (folded === "knowledge") {
+      return invalid(template, 'the literal "kNNowledge" is reserved for compact models');
+    }
+    if (RESERVED_LITERALS.has(part)) return invalid(template, `the literal "${part}" is reserved`);
+    if (i === 0 && part === "sources") return invalid(template, 'the literal "sources" is reserved at the domaiNN root');
+    if (!LITERAL_RE.test(part)) {
+      return invalid(template, `literal "${part}" must be kebab-case ([a-z0-9]+(-[a-z0-9]+)*)`);
+    }
+    segments.push({ kind: "literal", value: part });
+  }
+  if (slugCount === 0) return invalid(template, "it must contain exactly one {slug} (found none)");
+  if (slugCount > 1) return invalid(template, `it must contain exactly one {slug} (found ${slugCount})`);
+  return { ok: true, segments, slugIndex: segments.findIndex((s) => s.kind === "slug") };
+}
+function nonEmpty(v) {
+  return typeof v === "string" && v.trim() !== "" ? v.trim() : void 0;
+}
+function readStorage(fields) {
+  const rawMode = nonEmpty(fields["storage"]);
+  const container = nonEmpty(fields["container"]);
+  const placement = nonEmpty(fields["placement"]);
+  if (!rawMode && !container && !placement) return void 0;
+  const storage = { mode: "compact" };
+  if (rawMode) {
+    const mode = STORAGE_MODES.find((m) => m === rawMode.toLowerCase());
+    if (mode) storage.mode = mode;
+    else storage.unknownMode = rawMode;
+  }
+  if (container) storage.container = container;
+  if (placement) storage.placement = placement;
+  return storage;
+}
+function validateStorage(concepts) {
+  const diagnostics = [];
+  const byName = new Map(concepts.map((c) => [c.name.toLowerCase(), c]));
+  const report = (code, concept, property, detail) => {
+    diagnostics.push({
+      code,
+      severity: "error",
+      path: `Concept Definition.${concept}.${property}`,
+      message: `${code}: concept "${concept}" - ${detail}`
+    });
+  };
+  const parsed = /* @__PURE__ */ new Map();
+  for (const concept of concepts) {
+    const storage = concept.storage;
+    if (!storage) continue;
+    const name = concept.name;
+    if (storage.unknownMode !== void 0) {
+      report(
+        "STORAGE_UNKNOWN_MODE",
+        name,
+        "storage",
+        `storage "${storage.unknownMode}" is not a known mode; use one of: ${STORAGE_MODES.join(", ")}`
+      );
+      continue;
+    }
+    if (storage.mode === "compact") {
+      if (storage.placement !== void 0 || storage.container !== void 0) {
+        const property = storage.placement !== void 0 ? "placement" : "container";
+        report(
+          "PLACEMENT_FORBIDDEN",
+          name,
+          property,
+          `a compact concept cannot declare ${property}::; declare storage:: distributed or remove it`
+        );
+      }
+      continue;
+    }
+    if (storage.placement === void 0) {
+      report(
+        "PLACEMENT_REQUIRED",
+        name,
+        "placement",
+        'a distributed concept must declare placement:: (for example placement:: "series/{slug}/"); add it'
+      );
+      continue;
+    }
+    const result = parsePlacement(storage.placement, { hasContainer: storage.container !== void 0 });
+    if (!result.ok) {
+      report("PLACEMENT_INVALID", name, "placement", `${result.message}; fix the template`);
+      continue;
+    }
+    if (storage.container !== void 0 && !result.segments.some((s) => s.kind === "container")) {
+      report(
+        "PLACEMENT_INVALID",
+        name,
+        "placement",
+        `container:: ${storage.container} is declared but placement "${storage.placement}" never names {container}; start the template with {container}/`
+      );
+      continue;
+    }
+    parsed.set(name.toLowerCase(), { segments: result.segments, slugIndex: result.slugIndex });
+  }
+  const next = /* @__PURE__ */ new Map();
+  for (const concept of concepts) {
+    const storage = concept.storage;
+    if (!storage || storage.mode !== "distributed" || storage.container === void 0) continue;
+    const target = byName.get(storage.container.toLowerCase());
+    if (!target) {
+      report(
+        "CONTAINER_NOT_DISTRIBUTED",
+        concept.name,
+        "container",
+        `container "${storage.container}" is not a concept of this schema; declare it distributed or fix the name`
+      );
+    } else if (target.storage?.mode !== "distributed") {
+      report(
+        "CONTAINER_NOT_DISTRIBUTED",
+        concept.name,
+        "container",
+        `container "${target.name}" is not distributed, so it cannot hold instance models; declare storage:: distributed on "${target.name}"`
+      );
+    } else {
+      next.set(concept.name.toLowerCase(), target.name.toLowerCase());
+    }
+  }
+  const cyclic = /* @__PURE__ */ new Set();
+  const seenCycles = /* @__PURE__ */ new Set();
+  for (const start of next.keys()) {
+    const path2 = [];
+    let at = start;
+    while (at !== void 0 && !path2.includes(at)) {
+      path2.push(at);
+      at = next.get(at);
+    }
+    if (at === void 0) continue;
+    const members = path2.slice(path2.indexOf(at));
+    members.forEach((m) => cyclic.add(m));
+    const key = [...members].sort().join("|");
+    if (seenCycles.has(key)) continue;
+    seenCycles.add(key);
+    const names = members.map((m) => byName.get(m).name);
+    report(
+      "CONTAINER_CYCLE",
+      names[0],
+      "container",
+      `containers form a cycle (${[...names, names[0]].join(" -> ")}); break it so every chain ends at the domaiNN root`
+    );
+  }
+  const expand = (key) => {
+    const own = parsed.get(key);
+    if (!own || cyclic.has(key)) return null;
+    if (own.segments[0].kind !== "container") return own.segments;
+    const containerKey = next.get(key);
+    const container = containerKey ? parsed.get(containerKey) : void 0;
+    const containerFolder = containerKey ? expand(containerKey) : null;
+    if (!container || !containerFolder) return null;
+    return [...containerFolder.slice(0, container.slugIndex + 1), ...own.segments.slice(1)];
+  };
+  const folders = /* @__PURE__ */ new Map();
+  for (const key of parsed.keys()) {
+    const folder = expand(key);
+    if (folder) folders.set(key, folder);
+  }
+  const keys = [...folders.keys()];
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = folders.get(keys[i]);
+      const b = folders.get(keys[j]);
+      if (a.length !== b.length) continue;
+      const collide = a.every((seg, n) => {
+        const other = b[n];
+        if (seg.kind === "slug" || other.kind === "slug") return true;
+        return seg.kind === "literal" && other.kind === "literal" && seg.value === other.value;
+      });
+      if (!collide) continue;
+      const first = byName.get(keys[i]);
+      const second = byName.get(keys[j]);
+      report(
+        "PLACEMENT_OVERLAP",
+        first.name,
+        "placement",
+        `placement "${first.storage?.placement}" can match the same folder as "${second.name}" ("${second.storage?.placement}"); give each concept its own folder shape`
+      );
+    }
+  }
+  return diagnostics;
+}
+
 // iNNfo/packages/nn-core/src/schema/extract.ts
 var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
@@ -8140,6 +8361,8 @@ function extractBlueprintSchema(parsed) {
     };
     const conceptDescription = asString(el.fields["description"]);
     if (conceptDescription) concept.description = conceptDescription;
+    const storage = readStorage(el.fields);
+    if (storage) concept.storage = storage;
     concepts.push(concept);
     fieldsByConcept.set(concept.name, []);
   }
@@ -8307,10 +8530,15 @@ function applyAliasToSchema(schema, alias) {
         ...target_concepts ? { target_concepts } : {}
       };
     });
+    const storage = c.storage?.container ? {
+      ...c.storage,
+      container: conceptRenameLookup.get(c.storage.container.toLowerCase()) ?? c.storage.container
+    } : c.storage;
     return {
       ...c,
       name: newConceptName,
-      ...fields ? { fields } : {}
+      ...fields ? { fields } : {},
+      ...storage ? { storage } : {}
     };
   });
   const matrices = schema.matrices.map((mx) => {
@@ -8494,6 +8722,7 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
       delete local.globalFields;
     }
     attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel));
+    if (_depth === 0 && includes.length === 0) errors.push(...validateStorage(local.concepts));
     return { schema: local, errors };
   }
   if (_depth >= 10) {
@@ -8573,6 +8802,9 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
   }
   if (_depth === 0) {
     attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel));
+    if (!errors.some((e) => e.path.startsWith("includes.") && /could not be resolved/.test(e.message))) {
+      errors.push(...validateStorage(base.concepts));
+    }
   }
   return { schema: base, errors };
 }
