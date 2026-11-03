@@ -88,7 +88,11 @@ Diff the pinned and adopted schemas. Ask mapping questions **once per concept**,
 ### Phase B4 — Rehydrate & Validate
 Hydrate adopted bluepriNNts, update frontmatter (`parent_spec`, `blueprint_name`), bump version, and re-validate through MCP. On validation failure, restore from the backup.
 
-Repin **every member of the unit or none**. If any member fails re-validation, restore the whole unit from the backup and report the failing model's id — never leave a partly repinned group.
+Repin **every member of the unit or none**:
+```bash
+node skills/nn-upgrade/scripts/apply-upgrade-plan.js --workspace-dir <dir> --catalog-file <catalog.json> [--consent] [--dry-run]
+```
+The script takes the plan, refuses to write without `--consent`, re-checks `planHash` before the first write (`PLAN_STALE`), backs the workspace up, and restores every member if one fails re-validation (`UNIT_REVALIDATION_FAILED`, naming the failing model). If any member fails, restore the whole unit from the backup and report the failing model's id — never leave a partly repinned group.
 
 ---
 
