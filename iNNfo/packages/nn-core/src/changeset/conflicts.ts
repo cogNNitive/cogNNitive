@@ -134,8 +134,9 @@ export async function partitionChangeset(
       if (baseVer && elementIdent) {
         const staleRes = await checkStaleTarget(changesDir, targetModelSlug, elementIdent, baseVer)
         if (staleRes.stale) {
+          const code = staleRes.code ?? 'STALE_TARGET_DELETED'
           const msg = staleRes.message || `STALE_TARGET_DELETED: Target element was deleted after base_version ${baseVer}`
-          conflictDiagnostics.set(change.id, { code: 'STALE_TARGET_DELETED', message: msg })
+          conflictDiagnostics.set(change.id, { code, message: msg })
           change.status = 'conflict'
           change.resolution = msg
           conflictedSubset.push(change)

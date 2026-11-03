@@ -44,6 +44,59 @@ function createMockModelWithMatrix(
   }
 }
 
+/* ── impact keyed by hierarchical id (distributed-storage S6c) ─────────────── */
+
+function instanceModel(id: string, slug: string, elementNames: string[]) {
+  const model = createMockModelWithMatrix(slug, elementNames, [{ row: '00-gancho', col: 'read', value: 'yes' }])
+  // Instance models carry the root slug, not the model id, in `knowledge_slug`.
+  model.frontmatter.knowledge_slug = slug
+  return { id, model }
+}
+
+describe('impact keyed by hierarchical id (distributed-storage S6c)', () => {
+  it('equal-stem instances do not collapse: a reference to one does not block the other', () => {
+    const a = instanceModel('villabotijos-today/intro', 'intro', ['00-gancho'])
+    const b = instanceModel('innteresante/intro', 'intro', ['00-gancho'])
+    const pitch = createMockModelWithMatrix('pitch', ['section'])
+    pitch.elements.get('concept')![0].fields['related'] = 'innteresante/intro@00-gancho'
+
+    const loadedModels = new Map<string, ParsedKnowledge>([
+      [a.id, a.model],
+      [b.id, b.model],
+      ['innteresante/pitch', pitch],
+    ])
+    const workspace = new Map(loadedModels)
+
+    const againstA = evaluateBatchDeleteImpact(
+      [{ id: 'del-a', op: 'remove_element', target: 'villabotijos-today/intro@00-gancho' }],
+      loadedModels,
+      workspace,
+    )
+    expect(againstA.referenceConflicts.has('del-a')).toBe(false)
+
+    const againstB = evaluateBatchDeleteImpact(
+      [{ id: 'del-b', op: 'remove_element', target: 'innteresante/intro@00-gancho' }],
+      loadedModels,
+      workspace,
+    )
+    expect(againstB.referenceConflicts.get('del-b')).toContain('REFERENCED_BY: innteresante/pitch@section&related')
+  })
+
+  it('a same-model reference is matched on the full address, and cascaded cells stay within the model', () => {
+    const intro = instanceModel('villabotijos-today/intro', 'intro', ['00-gancho', 'other'])
+    intro.model.elements.get('concept')![1].fields['related'] = '00-gancho'
+
+    const loadedModels = new Map<string, ParsedKnowledge>([[intro.id, intro.model]])
+    const result = evaluateBatchDeleteImpact(
+      [{ id: 'del', op: 'remove_element', target: 'villabotijos-today/intro@00-gancho' }],
+      loadedModels,
+      new Map(loadedModels),
+    )
+    expect(result.referenceConflicts.get('del')).toContain('REFERENCED_BY: villabotijos-today/intro@other&related')
+    expect(result.matrixCascades.get('del')).toHaveLength(1)
+  })
+})
+
 describe('2B: Delete Impact, Matrix Cascade & Reference Scanning', () => {
   it('computeMatrixCascade finds cells matching target element on row or col', () => {
     const model = createMockModelWithMatrix('auth-mod', ['auth', 'billing'], [
