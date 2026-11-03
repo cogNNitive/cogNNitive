@@ -10,7 +10,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S1a | 500 | `ds/s1a` | `ds/s0` | open, applied (648 lines, `size:exception`) |
 | Docs (side PR) | 501 | `docs/distributed-storage` | `ds/s0` | open; vocabulary, skills and gate test stay in S7c |
 | S1b | 505 | `ds/s1b` | `ds/s1a` | open, applied (741 hand-authored changed lines, `size:exception`) |
-| S2a to S7d | n/a | n/a | n/a | not started |
+| S2a | n/a | `ds/s2a` | `ds/s1b` | applied locally (756 hand-authored lines incl. fixtures, `size:exception`); PR opened by the orchestrator |
+| S2b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -155,3 +156,59 @@ Status: S1b done (S1b.1 to S1b.10; PR 3 is opened by the orchestrator). `size:ex
 - `parseTargetAddress` reports but does not reject; the engine consumes `error` in S3a.
 - `KU_MALFORMED` now covers a model file path in the validator with the generic message; the specific removed-form message is available through `parseCitationResult` but not yet surfaced by `workspaceSources.ts`.
 - `canonicalUnitModelId` accepts any string (by design, decision 6).
+
+## S2a - Storage declaration schema and L1 `iNNfo_V_0-7-0` (PR 4, branch `ds/s2a`, targets `ds/s1b`)
+
+Status: S2a done (S2a.1 to S2a.6; PR 4 is opened by the orchestrator). `size:exception` applies (756 hand-authored lines against a ~350 forecast; no declared fallback split).
+
+### Claim check (before editing)
+- The three-property Concept Definition surface did not exist: `Concept` (in `types/parser.ts`, re-exported by `types/index.ts`) had no `storage`; `extract.ts` ignored the three properties; L1 `V_0-6-0` declares only `slug`, `type`, `icon`, `color`, `weight` for a Concept Definition, so a `storage::` line produced `Property "storage" is not declared on Concept Definition` warnings.
+- `scripts/sync-versions.mjs` does NOT regenerate `canonical-registry.ts` (it only syncs the MCP/core package versions and blueprint versions). The generator is `scripts/generate-canonical-registry.mjs`. The registry bundles `iNNfo` only at `V_0-5-0` (V_0-6-0 was published in `c8b81392` without being bundled), so the registry mirrors are byte-identical after this slice.
+- `manifest/source.yaml` registers only L2 blueprints (and `version:` on `changes` and `procedures`), no L1 entry: no edit needed. `npm run check:versions` equivalent (`node scripts/sync-versions.mjs --check`) is green.
+
+### Tasks and TDD evidence
+Commands run from `iNNfo/packages/nn-core`: `node ../../../node_modules/vitest/vitest.mjs run <file>`.
+- S2a.1 RED: `tests/schema/storage.test.ts` (placement table: 3 valid, 21 invalid rows): suite failed to load, `Cannot find module '../../src/schema/storage.js'` (right reason). S2a.2 GREEN: `parsePlacement`, `STORAGE_MODES`, types in `src/schema/storage.ts`; `Concept.storage` added to `src/types/parser.ts`: 25 passed. Commit `ecc4ab54`.
+- S2a.3 RED: the declaration-code, extraction and composition tests were added to the same file (42 tests): 15 failed (`storageOf` and `validateStorage` missing, `Concept.storage` never read, composed schema had no storage errors), the right reasons. S2a.4 GREEN: `readStorage` and `validateStorage` in `storage.ts`, `extract.ts` reads the properties, `compose.ts` validates the composed schema and renames the container through `applyAliasToSchema`, `schema/index.ts` exports: 42 passed after one test correction (my first overlap case used templates of different depth, which cannot overlap; fixed the test, not the code). Alias test RED proven by mutation: reverting the container rename in `compose.ts` failed `a concept alias renames the container reference with the concept` (1 failed, 42 passed), restored, 43 passed. Browser-safe: `tests/browser-safe.test.ts` +8 lines (storage.ts has no imports at all). Commit `ec43bac3`.
+- S2a.4 (canonical-registry test) RED: six new tests in `tests/canonical-registry.test.ts` (describe "iNNfo V_0-7-0 (distributed storage)"): 6 failed, `ENOENT iNNfo_V_0-7-0_NN.md` (right reason). S2a.5 GREEN: the L1 file created: 23 passed. The same tests prove F18 without a code change in `metaschema.ts` (see deviations): against `V_0-6-0`, a `storage::`/`placement::` L2 still warns; against `V_0-7-0` it does not. Commit `99c8e17b`.
+- Generated mirror: `console-payload.generated.cjs` (bundles the schema code) drifted, found by `verify --fast` ("Check Console Payload Mirror Fresh"); regenerated with `node scripts/build-console-payload.mjs`. Commit `chore(console): regenerate the console payload mirror`.
+- REFACTOR: none needed beyond keeping `storage.ts` import-free.
+
+### Design decisions inside S2a (beyond design A1, A2)
+1. `ConceptStorage = { mode, container?, placement?, unknownMode? }`. An unrecognised `storage::` value reads as `compact` with the raw text kept in `unknownMode`, so `validateStorage` can report `STORAGE_UNKNOWN_MODE` without the reader throwing. A concept with none of the three properties has `storage === undefined` (and `storageOf` returns `{ mode: 'compact' }`).
+2. A concept with only `placement::` or `container::` and no `storage::` reads as compact and gets `PLACEMENT_FORBIDDEN` (the declaration is never inferred).
+3. `container::` declared but the placement never names `{container}` is `PLACEMENT_INVALID` (spec: "a rule that cannot name a container"; design A2 says `{container}` forces physical nesting).
+4. `kNNowledge` is rejected case-folded (`knowledge/{slug}/` too), since the Windows file system does not tell them apart. `sources` is rejected only as the first segment (`{container}/sources/{slug}/` is legal); `archive`, `staging`, `specs`, `backups` are rejected at any position.
+5. `CONTAINER_NOT_DISTRIBUTED` also covers a container name that is not a concept of the schema (both names appear in the message). One `CONTAINER_CYCLE` per cycle, naming its members.
+6. `PLACEMENT_OVERLAP`: each placement is expanded (the container's instance root folder replaces `{container}`); two expansions of equal length overlap when every position is equal literals or at least one side is `{slug}`. The real `video-script` shape (`series/{slug}/`, `series/{slug}/assets/{slug}/`) does not overlap.
+7. Composition: `validateStorage` runs on the composed schema at depth 0 only, and is skipped when an include was declared but not resolved (no resolver, or "could not be resolved"), because the container may live in the missing include (no false positive on an incomplete schema). `applyAliasToSchema` also renames `container` with its concept.
+8. Diagnostic message shape follows design A12: `<CODE>: concept "<Name>" - <what is wrong>; <fix>`, plus the `code` field and `Concept Definition.<Name>.<property>` path.
+9. The L1 `V_0-7-0`: `V_0-6-0` verbatim except (a) frontmatter version and URL, and the description line, (b) the two stale example URLs and the self-description file name pointed to `V_0-7-0` (the `V_0-6-0` publish did the same for the URLs), (c) three rows, a "Storage Declaration" sub-section and an example under Concept Definition, (d) the three Field Definitions in the metaschema block (`storage` as `select [compact, distributed]`, `container` and `placement` as `string`), (e) the "Universal Addressing Grammar" section replaced by "Unified Address Grammar" (see deviations).
+
+### Deviations from tasks.md and the orchestrator brief
+1. Generator: tasks.md and the brief name the `sync-versions` generator for `canonical-registry.ts`; the real one is `scripts/generate-canonical-registry.mjs`, and `--check` reports no drift. `canonical-registry.ts` is NOT modified: the registry bundles no L1 later than `V_0-5-0` (precedent: `V_0-6-0` was not bundled either). If the verify phase wants `V_0-7-0` bundled (offline fallback for a pin), that is a registry entry plus a `MAP` line and belongs with the repin in S7a.
+2. `metaschema.ts` is not modified. The "stops warning when the pinned L1 is V_0-7-0 or later" behavior is data-driven: `validateBlueprintAgainstMetaschema` checks against the resolved L1 content, and the V_0-7-0 metaschema block declares the three properties. A code gate on the version would duplicate the L1 and contradict the spec-as-data design. The canonical-registry tests prove both sides (V_0-6-0 warns, V_0-7-0 does not).
+3. `Concept.storage` lives in `core/types/parser.ts` (the `Concept` interface), not `types/index.ts` (a barrel).
+4. `validateStorage` was written in S2a.4's GREEN (after its S2a.3 RED), not S2a.2, to keep strict TDD (a test existed before the code; S2a.2 only needed `parsePlacement` and the types).
+5. "Universal Addressing Grammar" is replaced, not kept beside the new section: the old section's table (legacy heading and `doc.md#heading` rows) and its 3-tier `[[target]]` precedence for typed references contradict decisions 5 and 6. Prose wikilink behavior (slug first, then name, `AMBIGUOUS_ELEMENT_NAME`) is restated in the new section (A-13). V_0-6-0 and earlier keep the old text.
+6. Exports: `schema/index.ts` exports the new API; `core/index.ts` and `core/browser.ts` (named export lists) are not touched; S2b imports the module directly or adds the names when it needs them.
+7. Fixtures: two files under `tests/fixtures/distributed-storage/` (`video-like_spec_NN.md`, `local-includer_spec_NN.md`); invalid declarations are built inline in the test with a small helper.
+
+### Line counts (`git diff --numstat ds/s1b..HEAD`)
+- Hand-authored production: `storage.ts` 332, `index.ts` 17, `compose.ts` 16, `extract.ts` 3, `types/parser.ts` 4 = 372.
+- Hand-authored tests and fixtures: `storage.test.ts` 256, `canonical-registry.test.ts` 69, `browser-safe.test.ts` 8, two fixtures 51 = 384. Total 756, 0 deletions in these files. Forecast ~350: `size:exception`. The overrun is the validation (cycle, overlap, container checks) and the 21-row grammar table; the module is one cohesive unit with no fallback split declared.
+- Generated or published, excluded: `iNNfo/specs/iNNfo_V_0-7-0_NN.md` 645 lines (585 are `V_0-6-0` verbatim, about 60 new), `console-payload.generated.cjs` 233+/1-.
+
+### Gate (S2a verification)
+- `node ../../../node_modules/typescript/bin/tsc --noEmit` (nn-core): exit 0.
+- nn-core `vitest run` full: 207 files, 2299 tests passed.
+- `node scripts/generate-canonical-registry.mjs --check`: exit 0; `node scripts/sync-versions.mjs --check`: exit 0.
+- `node --test scripts/guard-template-immutability.test.js`: exit 0 (V_0-6-0 untouched). `node --test scripts/spec-integrity.test.mjs`: 9 pass.
+- `node scripts/verify.js --fast`: exit 0 (after regenerating the console payload mirror). Full `node scripts/verify.js`: exit 0 ("All deterministic pre-checks passed").
+- nn-mcp not touched; its `dist/server.js` from S1b was reused for the drift guard.
+
+### For the verify phase
+- Confirm deviation 1 (L1 not bundled in the registry) and deviation 2 (no `metaschema.ts` code change).
+- Confirm decision 3 (`container::` requires `{container}` in the placement) and decision 4 (case-folded `kNNowledge`).
+- `validateStorage` is not yet wired into `validate_knowledge`/`check_domain` output beyond `resolveBlueprintSchema().errors`; consumers (S2b, S4a) pick it up.
+- The `video-script` and `changes` bluepriNNts still pin `V_0-6-0` and declare no storage: repin is S7a.
