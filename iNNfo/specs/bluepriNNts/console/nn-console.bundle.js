@@ -187,7 +187,7 @@ var nnAddress = (() => {
   var MATRIX_PREFIX = "matrix:";
 
   // iNNfo/packages/nn-core/src/address/parse.ts
-  var GRAMMAR_HINT = "use `<hierarchical-id>@<slug>` (for example `villabotijos-today/intro@00-gancho`)";
+  var GRAMMAR_HINT = "use `<hierarchical-id>@<slug>` (for example `series-a/episode-1@scene-1`)";
   var URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
   var WINDOWS_ABSOLUTE_RE = /^[a-zA-Z]:[/\\]/;
   var LINE_ANCHOR_RE = /[#@]L\d+(-L\d+)?$/i;
