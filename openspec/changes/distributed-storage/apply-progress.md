@@ -21,7 +21,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S5b | 522 | `ds/s5b` | `ds/s5a` | open, applied (866 hand-authored changed lines, `size:exception`) |
 | S6a | 523 | `ds/s6a` | `ds/s5b` | open, applied (1,397 hand-authored changed lines, `size:exception`) |
 | S6b | 527 | `ds/s6b` | `ds/s6a` | open, applied (1284 hand-authored changed lines, `size:exception`) |
-| S6c to S7d | n/a | n/a | n/a | not started |
+| S6c | 530 | `ds/s6c` | `ds/s6b` | open, applied (724 hand-authored changed lines, `size:exception`) |
+| S7a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -587,4 +588,46 @@ Status: S6b.1 to S6b.10 done.
 - nn-mcp typecheck (throwaway worktree config): exit 0; nn-mcp `vitest run`: 63 files, 713 passed.
 - `node --test scripts/build-core-mirrors.test.mjs`: green.
 - `node scripts/verify.js --fast`: exit 0.
+
+## S6c - Drift and identity-chain replay keyed by the model id (PR 15, branch `ds/s6c`, targets `ds/s6b`)
+
+Status: S6c.1 to S6c.10 done. `size:exception` (724 hand-authored changed lines against a ~350 forecast; no declared fallback split).
+
+### RED
+- `tests/changelog/drift.test.ts` gained a 5-case block. First run: 3 of 19 failed (`MODEL_WITHOUT_FILE` did not exist; the hand-deleted instance produced nothing). The two negative controls (present model, rename to a live model) passed before the implementation, so both were later proven to bite by mutation.
+- `test/provenance-strict.test.ts` gained the create -> edit -> rename replay case. It failed with `MODEL_WITHOUT_RECORD: villabotijos-today/welcome`: strict replay looked for the creation under the new id only.
+- `test/provenance-differential.test.ts` gained a distributed fixture and two move cases (no drift; a hand edit after the move is flagged). R5.
+- `test/provenance-contracts.test.ts` gained the fold-mode surface case (`check_domain.provenance` reports `MODEL_WITHOUT_FILE` when a touched model has no file). Green once the drift commit landed; the behaviour itself was proven red in the drift test.
+- `tests/changeset/history.test.ts` +3 and `impact.test.ts` +2: 4 of 14 failed (the rename chain did not stale the new id; impact keyed by `knowledge_slug` collapsed equal-stem instances and missed a same-model reference).
+- `tests/workspaceReferences.test.ts` +1: failed on the missing successor in a stale address.
+
+### GREEN
+- **Drift**: `MODEL_WITHOUT_FILE` names the id and the first applied change that touched it, warning in fold mode and error in strict. Coverage is computed from each entry's id plus `log.identities(id)`, so a `move_model` chain that ends in a live file is not drift and a hand-deleted instance is (A-5). Concept unit keys are compared in canonical slug form (`normalizeConceptKey`), so a changeset that recorded `model@concept:Goal` still matches a file whose concept is `goal`.
+- **Strict replay**: `creationOf` resolves the recorded `add_model` through the identity chain (current id plus `identities`, plus the changeset `models` map), the aliases set carries every id, and `move_model` joins the non-replay ops because the skeleton is already built under the current id. The renamed instance reproduces its file; the earlier changeset bytes and `proposal_sha` are untouched.
+- **Staleness**: `checkStaleTarget` derives the id set from `identities` (backward) and applies later moves forward, prefix-aware, so a removal recorded under an old id stales a change on the new id and vice versa. A pending change authored before a rename returns the new `STALE_TARGET_MOVED` naming the new id; `partitionChangeset` carries that code through. The 50-changeset cap and the epoch cut are unchanged.
+- **Impact**: `workspaceEntries` picks one id per model (preferring the `/`-keyed id, else the root slug), dedupes by document and scans once; `evaluateBatchDeleteImpact` looks the target model up by hierarchical id first. Equal stems no longer collapse and same-model references match on the full address.
+- **Successor**: `ChangeLog.successorOf(id)` walks the rekeys forward (prefix-aware), and `validateWorkspaceReferences` accepts an optional resolver that nn-mcp `validate.ts` fills from the log. The stale-address error keeps the old id and appends `recorded successor: "<new>"` plus `meta.successor` (A-11).
+- **Concept key**: `resolvedTarget.concept` strips a `concept:` prefix and emits `slugifyHeading(name)`, the form the grammar parses and `unitAddress.section` already produced. The read side (drift) accepts both forms, so no history key is rewritten.
+
+### Evidence (mutation)
+- **Mutation 1 (drift coverage)**: deleting the `identities` contribution from the covered set turned the "renamed by move_model ... is not drift" case red; restored, 19 passed.
+- **Mutation 2 (replay chain)**: replacing the chain with `[modelId]` turned the strict replay case red with `MODEL_WITHOUT_RECORD`; restored, 8 passed in the file.
+- The positive cases were red before implementation, so they needed no mutation.
+
+### Deviations
+1. **Concept-key read side shipped with the drift commit.** `drift.ts` owns both, so it landed with `MODEL_WITHOUT_FILE`; the write side (`resolved-target.ts`) has its own commit.
+2. **`STALE_TARGET_MOVED` is a new code.** The task named the behaviour, not a code; `StalenessCheckResult` gained it next to `STALE_TARGET_DELETED`.
+3. **`successorOf` is new on `ChangeLog`.** `identities` only walks backward; a stale reference needs the forward successor.
+4. **`validateWorkspaceReferences` gained an optional 4th parameter** instead of importing the change log into the nn-core validator; nn-mcp `validate.ts` already holds the log.
+5. **The differential move fixture is local** to `provenance-differential.test.ts` (video blueprint + series) because `move_model` needs a distributed instance; the compact seeded generator is unchanged.
+6. **Three pre-existing assertions were updated with the behaviour**: `resolved-target.test.ts` and `facts.test.ts` expect the concept slug; the drift "model never touched" case now expects the one `MODEL_WITHOUT_FILE` for the touched-but-missing model.
+7. **`npm` scripts were not used** (bin shims are absent in this worktree); every gate ran through `node ../../../node_modules/...`, and nn-core `dist` was rebuilt with `tsc` for the throwaway nn-mcp typecheck.
+
+### Gate (S6c verification)
+- nn-core `tsc --noEmit`: exit 0. nn-core `vitest run` full: 214 files, 2414 passed.
+- nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against the worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 717 passed.
+- `node --test scripts/build-core-mirrors.test.mjs`: 1 pass, 0 fail.
+- `node scripts/verify.js --fast`: exit 0 (205 steps) after regenerating the console-payload mirror.
+
+---
 
