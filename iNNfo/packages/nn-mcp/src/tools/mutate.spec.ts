@@ -850,7 +850,7 @@ describe('mutate tools', () => {
     })
   })
 
-  it('applyChange: rename_element renames associated asset directory if present', async () => {
+  it('applyChange: rename_element leaves the associated asset directory untouched', async () => {
     // Stub spec chain and template
     await writeFile(
       join(specsDir, 'iNNfo_V_0-1-0_NN.md'),
@@ -919,8 +919,10 @@ describe('mutate tools', () => {
     })
 
     expect(res.success).toBe(true)
+    // Slugs are immutable, so an asset folder keyed by slug never moves; the
+    // asset-directory rename was deleted in distributed-storage S6b.
+    expect(await readFile(join(oldAssetDir, 'data.txt'), 'utf-8')).toBe('hello')
     const newAssetDir = join(modelsDir, 'assets', 'renamed')
-    const st = await stat(newAssetDir)
-    expect(st.isDirectory()).toBe(true)
+    await expect(stat(newAssetDir)).rejects.toThrow()
   })
 })
