@@ -13,7 +13,8 @@
  */
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readdir } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -475,6 +476,73 @@ asset:: media/master.mp4
       const layer = data.episodes['ep-2'].scenes[0].layers[0]
       assert.equal(layer.assetSrc, '', 'a video is never inlined into the console')
       assert.equal(layer.assetKind, 'video', 'but it is named so the view can say what it is')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('reduces an oversized still into the ignored cache and inlines the small copy', async (t) => {
+    const promisify = (await import('node:util')).promisify
+    const run = promisify(execFile)
+    const hasFfmpeg = await run('ffmpeg', ['-version']).then(
+      () => true,
+      () => false,
+    )
+    if (!hasFfmpeg) {
+      t.skip('ffmpeg is not available on this machine')
+      return
+    }
+    const dir = join(root, 'series', 'demo', 'episodes', 'ep-3')
+    await mkdir(join(dir, 'media'), { recursive: true })
+    // A noisy 1600x900 frame compresses poorly, so it lands well over the inline cap.
+    await run('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc2=size=3200x2000',
+      '-vf',
+      'noise=alls=100:allf=t',
+      '-frames:v',
+      '1',
+      join(dir, 'media', 'huge.png'),
+    ])
+    await writeFile(
+      join(dir, 'ep-3_coNNtent_demo_NN.md'),
+      `---
+level: 3
+---
+
+# NN Video
+
+## NN Video: Three
+slug:: ep-3
+
+# NN Scene
+
+## NN Scene: S
+slug:: s
+
+Body.
+
+### NN Layer: Still
+slug:: still
+type:: media
+asset:: media/huge.png
+`,
+      'utf8',
+    )
+    try {
+      const { collect } = await import(pathToFileURL(DATA_FILE).href)
+      const data = await collect({ rootDir: root })
+      const layer = data.episodes['ep-3'].scenes[0].layers[0]
+      assert.equal(layer.assetKind, 'image-reduced', 'the original is too heavy to embed')
+      assert.match(layer.assetSrc, /^data:image\/jpeg;base64,/, 'the reduced copy is what gets inlined')
+
+      const cacheFiles = await readdir(join(root, '.cognnitive', 'cache', 'console-thumbs'))
+      assert.ok(cacheFiles.length > 0, 'the reduced copy is cached under the ignored .cognnitive/cache/')
     } finally {
       await rm(dir, { recursive: true, force: true })
     }

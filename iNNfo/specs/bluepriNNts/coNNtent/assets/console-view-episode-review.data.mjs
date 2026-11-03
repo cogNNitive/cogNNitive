@@ -12,38 +12,92 @@
  *
  * Nothing here runs in the browser: the console stays static and offline.
  */
-import { readFile, readdir } from 'node:fs/promises'
+import { readFile, readdir, mkdir, stat } from 'node:fs/promises'
 import { join, basename, extname, resolve } from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { createHash } from 'node:crypto'
 import { parseKnowledgeDocument } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
 import { isPriceStale } from '../skills/nn-conntent/scripts/lib/catalog.mjs'
+
+const execFileAsync = promisify(execFile)
 
 const FACTS_DIR = ['.cognnitive', 'video']
 const EPISODE_DIRS = ['episodes', 'assets']
 
-// The console CSP is `img-src data: blob:` — a file path can never load. The former
-// review console solved this by embedding its thumbnails as base64, and so do we. The cap
-// keeps one huge still from blowing the console's size budget.
-const INLINE_LIMIT_BYTES = 512 * 1024
+// The console CSP is `img-src data: blob:` — a file path can never load, so every preview
+// has to be embedded. A full still is far too heavy (the pilot holds a 6.3 MB avatar), so
+// a reduced copy is generated once and cached, exactly what the retired `draft_thumbs/`
+// used to be. The console only ever inlines the small copy.
+const INLINE_LIMIT_BYTES = 160 * 1024
+const THUMB_WIDTH = 480
+const THUMB_QUALITY = 6
 const INLINE_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif' }
 
+/** Cache dir for the review previews, inside the ignored `.cognnitive/cache/` tree. */
+function thumbCacheDir(rootDir) {
+  return join(String(rootDir || '.'), '.cognnitive', 'cache', 'console-thumbs')
+}
+
 /**
- * A raster asset under the cap becomes a data URI the console is allowed to render.
- * Anything else keeps its path, so the view can say "video, open it separately" instead
- * of rendering a broken <video> that the CSP blocks.
- * @param {string} episodeDir
- * @param {string} relPath
+ * A reduced copy of `src` in the cache dir, or null when ffmpeg is unavailable.
+ * The name hashes the source path and its mtime, so a re-rendered still gets a new thumb.
  */
-async function inlineAsset(episodeDir, relPath) {
+async function reducedCopy(src, cacheDir) {
+  const info = await stat(src).catch(() => null)
+  if (!info) return null
+  const key = createHash('sha256')
+    .update(src + ':' + String(info.mtimeMs) + ':' + String(info.size))
+    .digest('hex')
+    .slice(0, 24)
+  const dest = join(cacheDir, key + '.jpg')
+  const cached = await stat(dest).catch(() => null)
+  if (cached && cached.size > 0) return dest
+  try {
+    await mkdir(cacheDir, { recursive: true })
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-i',
+      src,
+      '-vf',
+      `scale='min(${THUMB_WIDTH},iw)':-2`,
+      '-q:v',
+      String(THUMB_QUALITY),
+      dest,
+    ])
+    return dest
+  } catch {
+    // No ffmpeg on this machine (or an unreadable source): the view names the asset instead.
+    return null
+  }
+}
+
+/**
+ * A raster asset becomes a `data:` URI the console is allowed to render. Oversized stills
+ * are reduced first. Anything else keeps its path, so the view can say "video, open it
+ * separately" instead of rendering a broken <video> that the CSP blocks.
+ * @param {{ episodeDir: string, cacheDir: string, relPath: string }} input
+ */
+async function inlineAsset({ episodeDir, cacheDir, relPath }) {
   const clean = String(relPath || '').trim()
   if (!clean) return { src: '', path: '', kind: '' }
   const type = INLINE_TYPES[extname(clean).toLowerCase()]
-  const kind = type ? 'image' : /\.(mp4|webm|mov)$/i.test(clean) ? 'video' : 'other'
-  if (!type) return { src: '', path: clean, kind }
+  if (!type) {
+    const kind = /\.(mp4|webm|mov)$/i.test(clean) ? 'video' : 'other'
+    return { src: '', path: clean, kind }
+  }
+  const file = resolve(episodeDir, clean)
   try {
-    const file = resolve(episodeDir, clean)
     const bytes = await readFile(file)
-    if (bytes.length > INLINE_LIMIT_BYTES) return { src: '', path: clean, kind: 'image-too-large' }
-    return { src: `data:${type};base64,${bytes.toString('base64')}`, path: clean, kind }
+    if (bytes.length <= INLINE_LIMIT_BYTES) {
+      return { src: `data:${type};base64,${bytes.toString('base64')}`, path: clean, kind: 'image' }
+    }
+    const thumb = await reducedCopy(file, cacheDir)
+    if (!thumb) return { src: '', path: clean, kind: 'image-too-large' }
+    const small = await readFile(thumb)
+    return { src: `data:image/jpeg;base64,${small.toString('base64')}`, path: clean, kind: 'image-reduced' }
   } catch {
     return { src: '', path: clean, kind: 'missing' }
   }
@@ -172,7 +226,7 @@ function sceneOf(scene, variants, layers) {
   }
 }
 
-async function loadEpisode(doc) {
+async function loadEpisode(doc, cacheDir) {
   const content = await readFile(doc.file, 'utf8')
   const model = parseKnowledgeDocument(content)
   const video = (model.elements.Video || [])[0] || {}
@@ -183,12 +237,12 @@ async function loadEpisode(doc) {
   // Resolve every asset once, here, where the episode folder is known.
   for (const scene of scenes) {
     for (const layer of scene.layers) {
-      const asset = await inlineAsset(doc.dir, layer.asset)
+      const asset = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: layer.asset })
       layer.assetSrc = asset.src
       layer.assetKind = asset.kind
     }
     for (const variant of scene.variants) {
-      const thumb = await inlineAsset(doc.dir, variant.thumbnail)
+      const thumb = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: variant.thumbnail })
       variant.thumbnailSrc = thumb.src
       variant.thumbnailKind = thumb.kind
     }
@@ -209,6 +263,7 @@ async function loadEpisode(doc) {
 export async function collect({ rootDir } = {}) {
   const root = String(rootDir || '.')
   const factsDir = join(root, ...FACTS_DIR)
+  const cacheDir = thumbCacheDir(root)
   const [ledger, timings, docs] = await Promise.all([
     readAll(factsDir, 'ledger'),
     readAll(factsDir, 'timings'),
@@ -217,7 +272,7 @@ export async function collect({ rootDir } = {}) {
 
   const episodes = {}
   for (const doc of docs) {
-    const episode = await loadEpisode(doc)
+    const episode = await loadEpisode(doc, cacheDir)
     const facts = (episodes[episode.slug] = episode)
     facts.realUsd = 0
     facts.staleRows = []
