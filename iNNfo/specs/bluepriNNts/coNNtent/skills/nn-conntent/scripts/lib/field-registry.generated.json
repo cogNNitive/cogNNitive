@@ -147,6 +147,16 @@
       "cascade": false,
       "description": "Series bumper media for this language, resolved under `series/<s>/assets/`."
     },
+    "camera": {
+      "concepts": [
+        "Variant"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Camera move of a visual Variant, for example `slow push-in` or `static`."
+    },
     "capability": {
       "concepts": [
         "Model"
@@ -161,6 +171,16 @@
       "multiple": false,
       "cascade": false,
       "description": "What the Model produces. Capability is declared, never inferred from the id."
+    },
+    "choreography": {
+      "concepts": [
+        "Variant"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "What moves inside the shot, in order, for a visual Variant."
     },
     "chrome": {
       "concepts": [
@@ -234,6 +254,16 @@
       "multiple": false,
       "cascade": true,
       "description": "What the episode is about, in one or two sentences. The agent writes it as part of the proposed changeset."
+    },
+    "duration_s": {
+      "concepts": [
+        "Variant"
+      ],
+      "type": "number",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration."
     },
     "enter_animation": {
       "concepts": [
@@ -666,6 +696,16 @@
       "cascade": true,
       "description": "Lifecycle position of the episode, written by the engine or the user through a changeset. `idea` carries a title and linked Sources only."
     },
+    "storyboard": {
+      "concepts": [
+        "Variant"
+      ],
+      "type": "markdown_inline",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose."
+    },
     "style": {
       "concepts": [
         "Layer"
@@ -704,13 +744,27 @@
     },
     "thumbnail": {
       "concepts": [
-        "Video"
+        "Variant"
       ],
       "type": "image",
       "options": [],
       "multiple": false,
-      "cascade": true,
-      "description": "The episode's cover image, resolved under the owning model's directory."
+      "cascade": false,
+      "description": "Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it."
+    },
+    "tier": {
+      "concepts": [
+        "Variant"
+      ],
+      "type": "select",
+      "options": [
+        "alta",
+        "media",
+        "rapida"
+      ],
+      "multiple": false,
+      "cascade": false,
+      "description": "Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count."
     },
     "timing": {
       "concepts": [

@@ -61,6 +61,55 @@ registerView({
       }, 2600)
     }
 
+    // Storyboard lightbox: the shot description of a visual variant, without leaving the page.
+    var lightbox = null
+    function openLightbox(variant) {
+      if (!lightbox) {
+        lightbox = el('div', 'nn-lightbox')
+        lightbox.setAttribute('data-nn-lightbox', '')
+        var card = el('div', 'nn-lightbox-card')
+        var close = el('button', 'nn-lightbox-close', '×')
+        close.type = 'button'
+        close.setAttribute('data-nn-lightbox-close', '')
+        close.addEventListener('click', function () {
+          lightbox.classList.remove('is-open')
+        })
+        card.appendChild(close)
+        lightbox.appendChild(card)
+        lightbox.addEventListener('click', function (event) {
+          if (event.target === lightbox) lightbox.classList.remove('is-open')
+        })
+        root.appendChild(lightbox)
+      }
+      var card2 = lightbox.querySelector('.nn-lightbox-card')
+      Array.prototype.slice.call(card2.children).forEach(function (child) {
+        if (!child.classList.contains('nn-lightbox-close')) card2.removeChild(child)
+      })
+      card2.appendChild(el('h3', null, variant.slug))
+      if (variant.tier) card2.appendChild(el('span', 'nn-tier-badge nn-tier-' + variant.tier, String(variant.tier).toUpperCase()))
+      if (variant.thumbnail) {
+        var shot = doc.createElement('img')
+        shot.className = 'nn-lightbox-shot'
+        shot.src = variant.thumbnail
+        shot.alt = ''
+        card2.appendChild(shot)
+      }
+      var specs = el('dl', 'nn-lightbox-specs')
+      ;[
+        ['Target', variant.target],
+        ['Camera', variant.camera],
+        ['Choreography', variant.choreography],
+        ['Duration', variant.durationS === null ? '' : variant.durationS + 's'],
+      ].forEach(function (pair) {
+        if (!pair[1]) return
+        specs.appendChild(el('dt', null, pair[0]))
+        specs.appendChild(el('dd', null, String(pair[1])))
+      })
+      card2.appendChild(specs)
+      if (variant.storyboard) card2.appendChild(el('p', 'nn-lightbox-storyboard', variant.storyboard))
+      lightbox.classList.add('is-open')
+    }
+
     var presets = elements
       .filter(function (e) {
         return e && e.concept === 'Preset'
@@ -184,11 +233,81 @@ registerView({
         })
         card.appendChild(body)
 
-        // ── editorial variants ──────────────────────────────────────────────────
-        if ((scene.variants || []).length > 0) {
+        // ── visual variants (motion tiers + storyboard) ─────────────────────────
+        var visualVariants = (scene.variants || []).filter(function (v) {
+          return v.tier || v.thumbnail
+        })
+        var textVariants = (scene.variants || []).filter(function (v) {
+          return !(v.tier || v.thumbnail)
+        })
+
+        if (visualVariants.length > 0) {
+          var gSection = el('div', 'nn-form-section')
+          gSection.appendChild(el('div', 'nn-section-label', 'Visual options (pick one)'))
+          var vGrid = el('div', 'nn-visual-grid')
+          visualVariants.forEach(function (variant) {
+            var vCard = el('div', 'nn-visual-card')
+            vCard.setAttribute('data-nn-visual', variant.slug)
+            vCard.setAttribute('data-nn-visual-tier', variant.tier || 'media')
+
+            var tierClass = 'nn-tier-' + String(variant.tier || 'media').toLowerCase()
+            var vThumb = el('div', 'nn-visual-thumb ' + tierClass)
+            if (variant.thumbnail) {
+              var vImg = doc.createElement('img')
+              vImg.src = variant.thumbnail
+              vImg.alt = ''
+              vThumb.appendChild(vImg)
+            } else {
+              vThumb.appendChild(el('span', 'nn-motion-stage-label', 'MOTION ' + String(variant.tier || '').toUpperCase()))
+            }
+            if (variant.tier) {
+              vThumb.appendChild(el('span', 'nn-tier-badge ' + tierClass, String(variant.tier).toUpperCase()))
+            }
+            var inspect = el('button', 'nn-inspect', '⌕')
+            inspect.type = 'button'
+            inspect.setAttribute('data-nn-inspect', variant.slug)
+            inspect.title = 'Inspect storyboard'
+            vThumb.appendChild(inspect)
+            vCard.appendChild(vThumb)
+
+            var vDetails = el('div', 'nn-visual-details')
+            vDetails.appendChild(el('div', 'nn-visual-title', variant.slug))
+            vDetails.appendChild(el('div', 'nn-visual-sub', 'for:: ' + variant.target))
+            if (variant.storyboard) {
+              vDetails.appendChild(el('div', 'nn-visual-desc', variant.storyboard.slice(0, 80)))
+            }
+            vCard.appendChild(vDetails)
+
+            vCard.addEventListener('click', function (event) {
+              if (event.target && event.target.getAttribute && event.target.getAttribute('data-nn-inspect')) return
+              propose({
+                kind: 'correction',
+                elementId: idOf(scene.slug),
+                field: variant.target === 'narration' ? 'narration' : variant.target,
+                proposed: variant.value,
+              })
+              Array.prototype.forEach.call(vGrid.querySelectorAll('.nn-visual-card'), function (c) {
+                c.classList.remove('is-selected')
+              })
+              vCard.classList.add('is-selected')
+            })
+
+            inspect.addEventListener('click', function (event) {
+              event.stopPropagation()
+              openLightbox(variant)
+            })
+
+            vGrid.appendChild(vCard)
+          })
+          gSection.appendChild(vGrid)
+          body.appendChild(gSection)
+        }
+
+        // ── textual variants (narration) ────────────────────────────────────────
+        if (textVariants.length > 0) {
           var vSection = el('div', 'nn-form-section')
           vSection.appendChild(el('div', 'nn-section-label', 'Editorial variants (select & edit)'))
-          scene.variants.forEach(function (variant) {
+          textVariants.forEach(function (variant) {
             var item = el('div', 'nn-variant-item')
             item.setAttribute('data-nn-variant', variant.slug)
             var top = el('div', 'nn-variant-top')

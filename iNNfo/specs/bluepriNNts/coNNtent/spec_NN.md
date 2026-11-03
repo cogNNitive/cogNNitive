@@ -190,6 +190,37 @@ concept:: Variant
 type:: string
 description:: The target the Variant proposes a value for: a Scene Field name or the reserved value `narration` for the scene body.
 
+## NN Field Definition: tier
+concept:: Variant
+type:: select
+options:: [alta, media, rapida]
+description:: Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count.
+
+## NN Field Definition: thumbnail
+concept:: Variant
+type:: image
+description:: Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it.
+
+## NN Field Definition: storyboard
+concept:: Variant
+type:: markdown_inline
+description:: The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose.
+
+## NN Field Definition: camera
+concept:: Variant
+type:: string
+description:: Camera move of a visual Variant, for example `slow push-in` or `static`.
+
+## NN Field Definition: choreography
+concept:: Variant
+type:: string
+description:: What moves inside the shot, in order, for a visual Variant.
+
+## NN Field Definition: duration_s
+concept:: Variant
+type:: number
+description:: Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration.
+
 ## NN Field Definition: role
 concept:: Scene Kind
 type:: string

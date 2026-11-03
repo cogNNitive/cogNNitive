@@ -8418,7 +8418,93 @@ input[type="text"], input[type="search"], textarea, select {
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
 }
-.nn-toast.is-open { opacity: 1; transform: translateY(0); }</style>
+.nn-toast.is-open { opacity: 1; transform: translateY(0); }
+/* ── Visual options, motion tiers and the storyboard lightbox ────────────────── */
+.nn-tier-alta { --tier-a: #7c3aed; --tier-b: #ec4899; }
+.nn-tier-media { --tier-a: #2563eb; --tier-b: #38bdf8; }
+.nn-tier-rapida { --tier-a: #059669; --tier-b: #10b981; }
+.nn-visual-thumb.nn-tier-alta,
+.nn-visual-thumb.nn-tier-media,
+.nn-visual-thumb.nn-tier-rapida {
+  position: relative;
+  background: linear-gradient(135deg, var(--tier-a), var(--tier-b));
+}
+.nn-motion-stage-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+.nn-tier-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.55);
+}
+.nn-inspect {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.6);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.nn-visual-card { cursor: pointer; }
+.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }
+.nn-lightbox {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  z-index: 80;
+}
+.nn-lightbox.is-open { display: flex; }
+.nn-lightbox-card {
+  position: relative;
+  width: min(560px, 92vw);
+  max-height: 84vh;
+  overflow: auto;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.nn-lightbox-card h3 { margin: 0 0 8px; font-size: 16px; }
+.nn-lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+.nn-lightbox-shot { width: 100%; border-radius: 10px; margin: 10px 0; }
+.nn-lightbox-specs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 10px 0;
+  font-size: 12.5px;
+}
+.nn-lightbox-specs dt { font-weight: 700; opacity: 0.7; }
+.nn-lightbox-specs dd { margin: 0; }
+.nn-lightbox-storyboard { font-size: 13px; line-height: 1.5; }</style>
     <style>
       :root,
       [data-theme] {
@@ -10411,7 +10497,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T16:05:05.191Z",
+    "generated": "2026-11-03T16:25:44.456Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10422,7 +10508,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T16:05:04.956Z",
+        "citationsResolvedAt": "2026-11-03T16:25:44.245Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],

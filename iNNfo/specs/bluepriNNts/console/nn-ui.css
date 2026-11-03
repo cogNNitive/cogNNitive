@@ -8389,3 +8389,89 @@ input[type="text"], input[type="search"], textarea, select {
   pointer-events: none;
 }
 .nn-toast.is-open { opacity: 1; transform: translateY(0); }
+/* ── Visual options, motion tiers and the storyboard lightbox ────────────────── */
+.nn-tier-alta { --tier-a: #7c3aed; --tier-b: #ec4899; }
+.nn-tier-media { --tier-a: #2563eb; --tier-b: #38bdf8; }
+.nn-tier-rapida { --tier-a: #059669; --tier-b: #10b981; }
+.nn-visual-thumb.nn-tier-alta,
+.nn-visual-thumb.nn-tier-media,
+.nn-visual-thumb.nn-tier-rapida {
+  position: relative;
+  background: linear-gradient(135deg, var(--tier-a), var(--tier-b));
+}
+.nn-motion-stage-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+.nn-tier-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.55);
+}
+.nn-inspect {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(15, 23, 42, 0.6);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.nn-visual-card { cursor: pointer; }
+.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }
+.nn-lightbox {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  z-index: 80;
+}
+.nn-lightbox.is-open { display: flex; }
+.nn-lightbox-card {
+  position: relative;
+  width: min(560px, 92vw);
+  max-height: 84vh;
+  overflow: auto;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.nn-lightbox-card h3 { margin: 0 0 8px; font-size: 16px; }
+.nn-lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+.nn-lightbox-shot { width: 100%; border-radius: 10px; margin: 10px 0; }
+.nn-lightbox-specs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 10px 0;
+  font-size: 12.5px;
+}
+.nn-lightbox-specs dt { font-weight: 700; opacity: 0.7; }
+.nn-lightbox-specs dd { margin: 0; }
+.nn-lightbox-storyboard { font-size: 13px; line-height: 1.5; }

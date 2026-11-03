@@ -125,6 +125,12 @@ function sceneOf(scene, variants, layers) {
         slug: String(v.slug || ''),
         target: String(v.fields?.for || ''),
         value: String(v.description || '').trim(),
+        tier: v.fields?.tier ? String(v.fields.tier) : '',
+        thumbnail: v.fields?.thumbnail ? String(v.fields.thumbnail) : '',
+        storyboard: v.fields?.storyboard ? String(v.fields.storyboard) : '',
+        camera: v.fields?.camera ? String(v.fields.camera) : '',
+        choreography: v.fields?.choreography ? String(v.fields.choreography) : '',
+        durationS: v.fields?.duration_s !== undefined ? Number(v.fields.duration_s) : null,
       })),
     layers: layers
       .filter((l) => l.parentSlug === sceneSlug)
