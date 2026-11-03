@@ -66,6 +66,82 @@ describe('createFsSourceResolver', () => {
     }
   })
 
+  it('resolves an imported-domain alias prefix inside the sibling domain', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'fs-resolver-alias-'))
+    try {
+      const originDir = join(tempDir, 'iNNtake_NN')
+      const consumerDir = join(tempDir, 'consumer_NN')
+      mkdirSync(join(originDir, 'sources', 'import', 'nnews'), { recursive: true })
+      mkdirSync(consumerDir, { recursive: true })
+
+      writeFileSync(
+        join(originDir, 'sources', 'import', 'nnews', 'article.md'),
+        '# Chess engine\n\n## Could a modern chess engine have defeated Kasparov\n\nBody\n',
+        'utf8',
+      )
+      writeFileSync(
+        join(consumerDir, 'domaiNN_NN.md'),
+        '# NN Imported Domain\n\n## NN Imported Domain: iNNtake\npath:: ../iNNtake_NN\n',
+        'utf8',
+      )
+      writeFileSync(join(consumerDir, 'secret.md'), '# Secret\n', 'utf8')
+
+      const resolver = createFsSourceResolver(consumerDir)
+
+      const result = resolver('iNNtake>sources/import/nnews/article.md', 'kNNowledge/model_NN.md')
+      expect(result.exists).toBe(true)
+      expect(result.content).toContain('Body')
+      expect(result.headings).toContain(
+        'could-a-modern-chess-engine-have-defeated-kasparov',
+      )
+
+      // The alias is a root, not a traversal hatch.
+      const escaped = resolver('iNNtake>../consumer_NN/secret.md', 'kNNowledge/model_NN.md')
+      expect(escaped.exists).toBe(false)
+
+      // An undeclared alias never resolves.
+      const undeclared = resolver('nnowhere>sources/x.md', 'kNNowledge/model_NN.md')
+      expect(undeclared.exists).toBe(false)
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('validates an alias-prefixed citation end to end', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'fs-resolver-alias-e2e-'))
+    try {
+      const originDir = join(tempDir, 'iNNtake_NN')
+      const consumerDir = join(tempDir, 'consumer_NN')
+      mkdirSync(join(originDir, 'sources', 'import'), { recursive: true })
+      mkdirSync(consumerDir, { recursive: true })
+      writeFileSync(
+        join(originDir, 'sources', 'import', 'article.md'),
+        '# Chess engine\n\n## Could a modern chess engine win\n\nBody\n',
+        'utf8',
+      )
+      writeFileSync(
+        join(consumerDir, 'domaiNN_NN.md'),
+        '# NN Imported Domain\n\n## NN Imported Domain: iNNtake\npath:: ../iNNtake_NN\n',
+        'utf8',
+      )
+
+      const { validateCitations } = await import('../src/validator/workspaceSources.js')
+      const diagnostics = validateCitations(
+        [
+          {
+            value: 'iNNtake>sources/import/article.md@## Could a modern chess engine win',
+            referringPath: 'kNNowledge/model_NN.md',
+            field: 'sources',
+          },
+        ],
+        createFsSourceResolver(consumerDir),
+      )
+      expect(diagnostics).toEqual([])
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
+
   it('refuses path traversal / escape out of candidate roots', () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'fs-resolver-escape-'))
     try {
