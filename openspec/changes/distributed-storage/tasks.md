@@ -212,11 +212,11 @@ Depends on: PR 7.
 Files: `core/identity.ts` (M, `IdentityRegistry.register(parent, slug)`); `core/recursiveParser/normalize.ts` (M, remove the name-keyed drop at lines 248-291); `core/recursiveParser/{types,topology,relationships,workspace}.ts` (M if node-id shape is consumed; confirm by Grep); `core-tests/recursive-parser.test.ts` (M).
 First failing test: two elements with the same name and distinct slugs are both in the graph.
 
-- [ ] S3c.1 [RED] [S] `recursive-parser.test.ts`: two Layers named `Gancho Presenter` with different slugs under one Scene are both present and no diagnostic is emitted; a repeated slug yields `DUPLICATE_SLUG` and the document is invalid; Scene `00-gancho` in two models is not a duplicate and the node ids are `villabotijos-today/pepper-mapache@00-gancho` and `innteresante/intro@00-gancho`; prefixed slugs stay valid. (stable-element-identity: A repeated element name is never dropped, Element slugs are scoped by the model id; hierarchical-identity: Element identity is scoped by the model id)
-- [ ] S3c.2 [GREEN] [S] Key the registry on slug; delete the name-keyed drop.
-- [ ] S3c.3 [RED] [S] Hosts: no element is omitted without an error; if registration ever rejects one, `validate_knowledge`, `check_domain` and the console build each surface an `error` naming model, parent and name (`mcp/tools/validate.spec.ts`, `core-tests/console-payload-builder.test.ts`). 
-- [ ] S3c.4 [GREEN] [S] Graph node ids use `<model-id>@<slug>` through an optional `modelId` parse option; a single-file parse without a domaiNN uses the relative `@<slug>` form. Adapt consumers of node ids.
-- [ ] S3c.5 [S] Mirrors, standard PR gate. Open PR 8.
+- [x] S3c.1 [RED] [S] `recursive-parser.test.ts`: two Layers named `Gancho Presenter` with different slugs under one Scene are both present and no diagnostic is emitted; a repeated slug yields `DUPLICATE_SLUG` and the document is invalid; Scene `00-gancho` in two models is not a duplicate and the node ids are `villabotijos-today/pepper-mapache@00-gancho` and `innteresante/intro@00-gancho`; prefixed slugs stay valid. (stable-element-identity: A repeated element name is never dropped, Element slugs are scoped by the model id; hierarchical-identity: Element identity is scoped by the model id)
+- [x] S3c.2 [GREEN] [S] Key the registry on slug; delete the name-keyed drop.
+- [x] S3c.3 [RED] [S] Hosts: no element is omitted without an error; if registration ever rejects one, `validate_knowledge`, `check_domain` and the console build each surface an `error` naming model, parent and name (`mcp/tools/validate.spec.ts`, `core-tests/console-payload-builder.test.ts`). 
+- [x] S3c.4 [GREEN] [S] Graph node ids use `<model-id>@<slug>` through an optional `modelId` parse option; a single-file parse without a domaiNN uses the relative `@<slug>` form. Adapt consumers of node ids.
+- [x] S3c.5 [S] Mirrors, standard PR gate. Open PR 8.
 
 Verification: `npm --workspace=@cognnitive/nn-core test -- recursive-parser console-payload`, `npm run verify:fast`.
 Rollback: revert; the name-keyed drop returns.

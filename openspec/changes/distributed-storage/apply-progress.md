@@ -11,10 +11,10 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | Docs (side PR) | 501 | `docs/distributed-storage` | `ds/s0` | open; vocabulary, skills and gate test stay in S7c |
 | S1b | 505 | `ds/s1b` | `ds/s1a` | open, applied (741 hand-authored changed lines, `size:exception`) |
 | S2a | 506 | `ds/s2a` | `ds/s1b` | open (756 hand-authored lines incl. fixtures, `size:exception`) |
-| S2b | n/a | `ds/s2b` | `ds/s2a` | applied locally, not pushed (about 1,636 hand-authored lines, `size:exception`; the S2b-i/S2b-ii split was not shipped, see the S2b section) |
-| S3a | PR_S3A | `ds/s3a` | `ds/s2b` | open, applied (`size:exception`) |
-| S3b | PR_S3B | `ds/s3b` | `ds/s3a` | open, applied (`size:exception`) |
-| S3c | PR_S3C | `ds/s3c` | `ds/s3b` | PENDING_S3C |
+| S2b | 508 | `ds/s2b` | `ds/s2a` | open, applied (about 1,636 hand-authored lines, `size:exception`; the S2b-i/S2b-ii split was not shipped, see the S2b section) |
+| S3a | 509 | `ds/s3a` | `ds/s2b` | open, applied (`size:exception`) |
+| S3b | 510 | `ds/s3b` | `ds/s3a` | open, applied (`size:exception`) |
+| S3c | PR_S3C | `ds/s3c` | `ds/s3b` | open, applied (resumed from an interrupted apply; one deviation in S3c.3) |
 | S4a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
@@ -343,3 +343,38 @@ Recorded before any edit: Q1 (scope `parent` is an `@slug` address) and Q2 (type
 - `node scripts/verify.js --fast`: exit 0.
 - Grep for `QUALIFIED_REF_RE|titleToNodeIds|resolveTargetModel` under `iNNfo/packages` (without bin/dist): no match.
 
+
+## S3c - Slug-keyed graph identity (PR 8, branch `ds/s3c`, targets `ds/s3b`)
+
+Status: S3c done (S3c.1 to S3c.5), one recorded deviation in S3c.3 (console host).
+
+### Resumed from an interrupted apply
+The slice was found half-applied and uncommitted in the apply worktree: the graph was already slug-keyed, `modelId` was already threaded, and `tests/slug-keyed-identity.test.ts` existed and passed 5/5. The MCP host test in `validate.spec.ts` had been left with an unterminated string literal (a syntax error that broke the whole file, so its suite never ran). The previous agent stopped mid-edit; no section was recorded here.
+
+Evidence recovered, not witnessed by this session: S3c.1/S3c.2 RED. The adopted `slug-keyed-identity.test.ts` passes; its failure state was not reproduced after the fact and is reported as adopted, not as a fresh RED.
+
+### Claim check (before editing)
+- `IdentityRegistry` keyed sibling uniqueness on the display NAME and `normalizeElementsIntoGraph` built ids as `Parent/Child` from a taxonomy ladder (`resolveParentQualifiedId`). Two elements sharing a name were therefore indistinguishable, and one was dropped.
+- `ParseIssue.code` was a closed union with no member for a dropped element, and `nn-mcp` consumed `recursiveParse().issues` NOWHERE: `collectWorkspaceDiagnostics` assembled only cross-model references, sources and evidence. A graph-dropped element was invisible to every host.
+- Only one parse issue in the whole parser carries `severity: 'error'` (`normalize.ts`, the duplicate-slug drop), so widening the workspace pass to error-severity parse issues cannot change any other diagnostic today.
+
+### RED (S3c.3, witnessed)
+`src/tools/validate.spec.ts` - "collectWorkspaceDiagnostics reports an element dropped from the graph as an error naming model and element": `expected [] to have a length of 1 but got +0`. Two elements carrying `slug:: twin` in one model are deduplicated by the graph and the loss reached no host.
+
+### GREEN (S3c.3)
+- `ParseIssue.code` gains `'DUPLICATE_SLUG'`; the drop site stamps it and keeps the prose message (`DUPLICATE_SLUG: slug ... is carried by more than one element of model ... (<type> "<name>" is dropped); give each element its own slug`), which names model, element and fix as design A12 requires.
+- `collectWorkspaceDiagnostics` now files every `severity: 'error'` parse issue as a `ReferenceDiagnostic` (path, code, message). Both consumers inherit it: `validate_knowledge` in workspace mode and `check_domain` (`checkWorkspace` composes the same pass). Warnings and info stay with the per-model validators.
+
+### Semantics kept
+Identity is the slug, scoped by the model. Two elements with the same NAME and different slugs are both present (`Gancho Presenter` with `gancho-presenter-a`/`-b`); two elements with the same NAME and no explicit slug share the derived slug and the second is `DUPLICATE_SLUG`, which is why the pre-existing sibling-collision test still passes unchanged in intent.
+
+### Deviations
+1. **S3c.3 console host deferred to S5b.** The console payload is built from `parseKnowledge(content)` (a single-file parse), not from the graph registry, so it never drops an element and has no diagnostics channel to file one into. `ConsolePayload` has no diagnostics slot; adding one ripples into the bundle, the shells and the committed fixture, which is S5b.1-S5b.4's remit (`console-payload-builder.test.ts` is named there too). No element can be silently omitted on that path today.
+2. `normalizeSingleKnowledge(...)` takes a new optional 5th argument `{ modelId }`. Inside a workspace parse the parser has no domain index, so `knowledge.ts` defaults it to the model name (`refName`) and a standalone parse keeps the relative `@<slug>` form. Passing the true hierarchical id from a host that already has a `DomainIndex` is S5b/S6 work; the option is the seam.
+
+### Gate (S3c verification)
+- nn-core `tsc --noEmit`: exit 0. nn-mcp typecheck against the worktree core (`tsconfig.tmp.json`, throwaway): exit 0.
+- nn-core `vitest run`: 212 files, 2365 passed. nn-mcp `vitest run`: 61 files, 658 passed.
+- Two nn-mcp tests hit their 30s timeout under full-suite load (`check-workspace.spec.ts` "summary_only", `concept-drift-and-gate.test.ts` "PARENT_RESOLUTION_FAILED"); both pass in isolation (15.7s and 12.4s) and pass in the second full run. Flaky under concurrency, not a regression.
+- `node scripts/build-core-mirrors.mjs`: no output change (the parser is not mirrored); `node --test scripts/build-core-mirrors.test.mjs`: 1 passed.
+- `node scripts/verify.js --fast`: exit 0.
