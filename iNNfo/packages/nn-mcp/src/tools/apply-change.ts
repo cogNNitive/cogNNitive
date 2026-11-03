@@ -1071,12 +1071,18 @@ export async function executeChangesetApply(
       }
       // An existing instance is a conflict, and it is the double-storage case the
       // registry is cleaned of with `remove_element`, never repaired by extract.
-      const occupied =
+      const occupiedById =
         domainIndex.byId(toId) !== undefined || (await stat(path).then((s) => s.isFile(), () => false))
-      if (occupied) {
+      // The destination folder is created by the extraction: if something already
+      // claims it, the migration would write into a foreign folder.
+      const occupiedFolder = await stat(dirname(path)).then((s) => s.isDirectory(), () => false)
+      if (occupiedById || occupiedFolder) {
+        const where = occupiedById
+          ? `instance "${toId}" already exists`
+          : `"${relative(rootDir, dirname(path)).replace(/\\/g, '/')}/" already exists`
         blockedChanges.set(change.id, {
-          code: 'MODEL_EXISTS',
-          message: `MODEL_EXISTS: instance "${toId}" already exists; extract_instance never overwrites it - remove the registry copy with remove_element instead`,
+          code: occupiedById ? 'MODEL_EXISTS' : 'EXTRACT_DESTINATION_OCCUPIED',
+          message: `${occupiedById ? 'MODEL_EXISTS' : 'EXTRACT_DESTINATION_OCCUPIED'}: ${where}, so extracting into "${toId}" would write into it; remove the registry copy with remove_element instead`,
         })
         // A-14: extracts of one source are one atomic migration. If one of them
         // cannot land, none of them is attempted.

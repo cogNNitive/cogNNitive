@@ -1384,4 +1384,29 @@ describe('extract_instance of a compact element (distributed-storage S6d)', () =
     expect(res.success).toBe(false)
     expect(res.errors![0]!.code).toBe('EXTRACT_REQUIRES_COMPACT')
   })
+
+  it('one occupied destination rejects the whole extraction group (A-14)', async () => {
+    // Something already claims the folder `nuevo` would land in. Nothing may be
+    // written for either element: the migration is all or nothing.
+    await mkdir(join(xSeriesDir, 'assets', 'nuevo'), { recursive: true })
+
+    const res = await applyExtract([EXTRACT_INTRO, EXTRACT_NUEVO])
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('conflict')
+    const occupied = res.errors!.find((e) => e.code === 'EXTRACT_DESTINATION_OCCUPIED')!
+    expect(occupied).toBeDefined()
+    expect(occupied.message).toContain('innteresante/nuevo')
+    // The sibling extraction of the same source is reported as depending on it.
+    const dependent = res.errors!.find((e) => e.code === 'DEPENDS_ON_CONFLICTED_CHANGE')!
+    expect(dependent).toBeDefined()
+    expect(dependent.message).toContain('c-01')
+
+    expect(existsSync(join(xRoot, INTRO_X_REL))).toBe(false)
+    expect(existsSync(join(xRoot, NUEVO_X_REL))).toBe(false)
+    // Both elements are still in the registry: the cut never ran.
+    const source = parseKnowledge(await readFile(join(xRoot, REGISTRY_REL), 'utf-8'))
+    expect((source.elements.get('Video') ?? []).map((v) => v.slug)).toEqual(['intro', 'nuevo'])
+    expect((source.elements.get('Scene') ?? []).map((s) => s.slug)).toEqual(['00-gancho'])
+  })
 })
