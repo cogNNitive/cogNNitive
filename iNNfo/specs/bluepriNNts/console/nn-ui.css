@@ -8604,3 +8604,19 @@ input[type="text"], input[type="search"], textarea, select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The selected background candidate and its data panel. */
+.nn-candidate-detail {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 10px;
+}
+.nn-candidate-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.nn-candidate-note { margin: 0 0 8px; font-size: 12px; opacity: 0.75; }
+.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }
