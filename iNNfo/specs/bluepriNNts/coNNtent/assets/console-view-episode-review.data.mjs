@@ -17,9 +17,18 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { parseKnowledgeDocument } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
+import { loadCascadeBags, resolve as resolveParam } from '../skills/nn-conntent/scripts/lib/video-scope.mjs'
 import { isPriceStale } from '../skills/nn-conntent/scripts/lib/catalog.mjs'
 
 const execFileAsync = promisify(execFile)
+
+// Which fields a Scene can override: read from the generated registry, never a hand list.
+const FIELD_REGISTRY = JSON.parse(
+  await readFile(new URL('../skills/nn-conntent/scripts/lib/field-registry.generated.json', import.meta.url), 'utf8'),
+)
+const SCENE_FIELDS = Object.entries(FIELD_REGISTRY.fields || {})
+  .filter(([, field]) => (field.concepts || []).includes('Scene'))
+  .map(([name]) => name)
 
 const FACTS_DIR = ['.cognnitive', 'video']
 const EPISODE_DIRS = ['episodes', 'assets']
@@ -193,13 +202,9 @@ function sceneOf(scene, layers) {
     kind: String(fields.kind || ''),
     narration: String(scene.description || '').trim(),
     review: String(fields.review || ''),
-    fields: {
-      transition: fields.transition ?? null,
-      background_audio: fields.background_audio ?? null,
-      background_audio_volume: fields.background_audio_volume ?? null,
-      voice_speed: fields.voice_speed ?? null,
-      presets: fields.presets ?? null,
-    },
+    // The scene's own declarations; the resolved view is computed in loadEpisode.
+    declared: { ...fields },
+    fields: {},
     // Nested elements declare their parent; that link is the whole point of parsing here.
     layers: layers
       .filter((l) => l.parentSlug === sceneSlug)
@@ -225,6 +230,23 @@ async function loadEpisode(doc, cacheDir) {
       const asset = await inlineAsset({ episodeDir: doc.dir, cacheDir, relPath: layer.asset })
       layer.assetSrc = asset.src
       layer.assetKind = asset.kind
+    }
+  }
+
+  // The cascade, resolved the way the engine resolves it: a Scene may override any Scene
+  // field, and the review has to say WHERE the winning value came from.
+  const bags = loadCascadeBags(doc.dir)
+  const videoBag = video.fields || {}
+  for (const scene of scenes) {
+    const sceneBag = { ...bags, video: videoBag, scene: scene.declared }
+    scene.fields = {}
+    for (const name of SCENE_FIELDS) {
+      const resolved = resolveParam(name, sceneBag)
+      scene.fields[name] = {
+        value: resolved.value,
+        source: resolved.source,
+        local: scene.declared[name] ?? null,
+      }
     }
   }
 
