@@ -408,7 +408,7 @@ Status: S4a done (S4a.1 to S4a.5).
 
 ## S4b - `nn-upgrade` / `nn-preflight` grouped plan (PR 10, branch `ds/s4b`, targets `ds/s4a`)
 
-Status: S4b.1 done, S4b.3 done. **S4b.2 is partial** (see Deviations): the plan is implemented and gated, the all-or-none APPLY is not.
+Status: S4b.1, S4b.2 and S4b.3 done. The apply lives in `nn-upgrade` (see Deviations 1).
 
 ### GREEN
 `upgrade-check.js` gains a pure, read-only grouped plan:
@@ -426,7 +426,7 @@ Evidence (`node upgrade-check.test.js`, all 11 cases green):
 `skills/nn-upgrade/SKILL.md` Flow B now states the unit rule (B0), the consent count (B1), the once-per-concept mapping (B3) and the all-or-none repin with whole-unit restore (B4).
 
 ### Deviations
-1. **S4b.2 is partial: no apply implementation.** `upgrade-check.js` is documented and tested as read-only ("it never mutates anything", preflight Tier-3), and the mutating machinery (backup, rehydrate, revalidate, restore) lives in `skills/nn-upgrade/scripts/`. Putting a file-writing `applyPlan` into the preflight scanner would give one script two contracts. The plan, the hash and the freshness gate — everything the apply phase needs to be safe — are in place and tested; the repin loop itself is unwritten. Options for the maintainer: (a) implement `applyPlan` in `nn-upgrade/scripts/` consuming this plan, (b) implement it in `upgrade-check.js` under an explicit `--apply` and accept the dual contract.
+1. **S4b.2 is partial: no apply implementation.** `upgrade-check.js` is documented and tested as read-only ("it never mutates anything", preflight Tier-3), and the mutating machinery (backup, rehydrate, revalidate, restore) lives in `skills/nn-upgrade/scripts/`. Putting a file-writing `applyPlan` into the preflight scanner would give one script two contracts. The plan, the hash and the freshness gate â€” everything the apply phase needs to be safe â€” are in place and tested; the repin loop itself is unwritten. Options for the maintainer: (a) implement `applyPlan` in `nn-upgrade/scripts/` consuming this plan, (b) implement it in `upgrade-check.js` under an explicit `--apply` and accept the dual contract.
 2. **The once-per-concept mapping question has no test.** B3 states it in the SKILL, but the mapping itself needs element-level parsing, which this scanner does not do. It belongs with the apply phase in (1).
 3. `planUpgrade` treats an `ahead` model (pinned newer than the catalog) as neither a member nor a target: pinning it to `adopted` would be a downgrade. It stays reported by `scanWorkspaceUpgrades` as `ahead`.
 
@@ -434,3 +434,23 @@ Evidence (`node upgrade-check.test.js`, all 11 cases green):
 - `node upgrade-check.test.js`: 11 cases green.
 - `node skills/nn-upgrade/scripts/{skill-contract,backup-workspace,migrate-domain}.test.js`: all green.
 - `node scripts/verify.js --fast`: exit 0.
+
+### S4b.2 GREEN - the apply, in `nn-upgrade`
+Implemented as `skills/nn-upgrade/scripts/apply-upgrade-plan.js` (maintainer's choice): `upgrade-check.js` keeps its documented read-only contract and the mutating half sits next to the backup it uses.
+
+- `repinContent(content, blueprint, version, mapping)`: rewrites `parent_spec.name` and the version token in `parent_spec.url`, applies the concept mapping (`## NN <from>:` -> `## NN <to>:`), and touches nothing else.
+- `applyUpgradePlan({ workspaceDir, plan, catalog, consent, validate, onMapping, concepts, dryRun, backupTarget })`:
+  - `PLAN_EMPTY` / `CONSENT_REQUIRED` (states the model count) / `PLAN_STALE` before the first write;
+  - backs the workspace up (`backupWorkspace`) before writing anything;
+  - asks the mapping ONCE per unit (`onMapping(concepts)`), applies the answer to every member;
+  - on any member failing `validate`, restores EVERY member written in the run and returns `UNIT_REVALIDATION_FAILED` with the failing paths - all-or-none across the whole run, not just the unit.
+- CLI: `--consent` gates the write, `--dry-run` reports without writing.
+
+Evidence (`node apply-upgrade-plan.test.js`, 5 cases green):
+- consent refused -> `CONSENT_REQUIRED`, `models: 3`, workspace byte-identical;
+- plan outgrown by one model -> `PLAN_STALE`, no write;
+- 24 instances -> `written: 24`, every pin moved, the single mapping answer reached all 24, backup manifest present;
+- one of the 24 failing re-validation -> `rolledBack: 24`, workspace byte-identical to before, failing path named;
+- `repinContent` leaves title and body untouched.
+
+The five cases passed on their first run, so both critical invariants were proven to bite by mutation: disabling the rollback turns the all-or-none case red ("the workspace is byte-identical after the rollback"), and disabling the consent gate turns the consent case red.
