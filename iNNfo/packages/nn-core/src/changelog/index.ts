@@ -101,6 +101,12 @@ export interface ChangeLog {
    * (design A10). Empty for an id that was never moved.
    */
   identities(id: ModelId): readonly ModelId[]
+  /**
+   * The id a recorded `move_model` gave this one, following the chain forward
+   * (`undefined` for an id that was never moved). Used to name the successor of
+   * a stale address (design A11).
+   */
+  successorOf(id: ModelId): ModelId | undefined
   /** Removal changes kept as tombstones. */
   readonly tombstones: readonly LoggedChange[]
 }
@@ -155,6 +161,18 @@ class ChangeLogImpl implements ChangeLog {
       current = rekey.from
     }
     return former.reverse()
+  }
+
+  successorOf(id: ModelId): ModelId | undefined {
+    let current: string = id
+    let moved = false
+    for (const rekey of this.fold.rekeys) {
+      if (current === rekey.from) current = rekey.to
+      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`
+      else continue
+      moved = true
+    }
+    return moved ? (current as ModelId) : undefined
   }
 
   /**

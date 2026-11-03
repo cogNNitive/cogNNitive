@@ -161,6 +161,19 @@ describe('validateWorkspaceReferences: addresses (cross-model-reference-validati
     expect(d.message).toContain('old/acme-org')
   })
 
+  it('a stale address names the recorded successor of a moved instance (A-11)', () => {
+    const { result, index } = twoModels('innteresante/intro@00-gancho')
+    const successor = (id: string) => (id === 'innteresante/intro' ? 'villabotijos-today/intro' : undefined)
+
+    const [d] = validateWorkspaceReferences(result, index, undefined, successor)
+    expect(d.code).toBe('REF_MODEL_NOT_FOUND')
+    expect(d.message).toContain('innteresante/intro')
+    expect(d.message).toContain('villabotijos-today/intro')
+
+    // Without a recorded move there is no successor to name.
+    expect(validateWorkspaceReferences(result, index)[0].message).not.toContain('recorded successor')
+  })
+
   it('the title-qualified form is rejected as a removed form and never resolved by title', () => {
     const { result, index } = twoModels('[[Acme Org :: Jane Doe]]')
     const diagnostics = validateWorkspaceReferences(result, index)

@@ -47,6 +47,7 @@ import type {
   BaselineEntry,
   BaselineDiff,
   LayoutDiagnostic,
+  ModelId,
 } from '@cognnitive/nn-core'
 import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations } from './domain-index.js'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
@@ -351,7 +352,9 @@ export async function collectWorkspaceDiagnostics(
     }))
   return [
     ...droppedElements,
-    ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index),
+    ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index, (id) =>
+      log.successorOf(id as ModelId),
+    ),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
     ...collectEvidenceDiagnostics(rootDir),
   ]

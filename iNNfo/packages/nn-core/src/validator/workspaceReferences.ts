@@ -171,6 +171,7 @@ function checkToken(
   ctx: TypedFieldValue,
   index: WorkspaceIndex,
   domain: DomainIndex,
+  successor?: (id: string) => string | undefined,
 ): ReferenceDiagnostic[] {
   const { root, element, concept, fieldDef } = ctx
   const path = diagnosticPath(root, concept, element, fieldDef)
@@ -208,13 +209,17 @@ function checkToken(
   const resolved = domain.resolve(parsed, from, fieldDef.target_concepts ? { concepts: fieldDef.target_concepts } : undefined)
   if (!resolved.ok) {
     const where = `${root.source.path} (${concept} "${element.name}", field "${fieldDef.name}")`
+    // A stale address after a recorded move names the old id AND its recorded
+    // successor (design A11), so the fix is unambiguous and never guessed.
+    const moved = parsed.model !== null && resolved.problem.code === 'REF_MODEL_NOT_FOUND' ? successor?.(parsed.model) : undefined
+    const hint = moved ? ` (recorded successor: "${moved}" — retarget the reference to it)` : ''
     return [
       {
         path,
-        message: `${resolved.problem.message}; referenced from ${where}`,
+        message: `${resolved.problem.message}; referenced from ${where}${hint}`,
         severity: 'error',
         code: resolved.problem.code,
-        meta: { field: fieldDef.name },
+        meta: { field: fieldDef.name, ...(moved ? { successor: moved } : {}) },
       },
     ]
   }
@@ -289,12 +294,18 @@ export function validateWorkspaceReferences(
   result: RecursiveParseResult,
   index: WorkspaceIndex,
   domain: DomainIndex = domainIndexOfResult(result),
+  /**
+   * The recorded successor of a moved model id (`ChangeLog.successorOf`). Hosts
+   * that hold the change log pass it so a stale address names where the instance
+   * went; without it the error still names the old id (design A11).
+   */
+  successor?: (id: string) => string | undefined,
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = [...validateMultivalueSyntax(result, index)]
   for (const value of iterateTypedFieldValues(result, index)) {
     const scalars = Array.isArray(value.raw) ? value.raw.map(String) : [String(value.raw)]
     if (scalars.some(isCommaJoinedMultivalue)) continue // reported once as MULTIVALUE_SYNTAX
-    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain))
+    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor))
   }
   return diagnostics
 }
