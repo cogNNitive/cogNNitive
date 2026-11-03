@@ -17,6 +17,7 @@ export const CHANGE_OPS = [
   'add_matrix',
   'comment',
   'add_model',
+  'move_model',
   'freeze_slugs',
   'bump_version',
   'update_element_text',

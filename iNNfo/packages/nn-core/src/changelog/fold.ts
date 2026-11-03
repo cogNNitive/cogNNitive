@@ -23,6 +23,41 @@ export interface Relink {
   readonly order: number
 }
 
+/**
+ * A `move_model` recorded as an identity change: every unit, element origin and
+ * tombstone keyed under `from` (or a descendant `from/...`) is re-keyed to `to`
+ * from `order` on. Recorded targets are never rewritten on disk (design A10).
+ */
+export interface Rekey {
+  readonly from: string
+  readonly to: string
+  /** Position of the move change in the canonical order. */
+  readonly order: number
+}
+
+/**
+ * Re-keys one unit key through a move. The model part is the prefix before `@`;
+ * a descendant instance shares the prefix. When the model slug changes, the root
+ * element's slug changes with it (`old@old-slug...` -> `new@new-slug...`).
+ */
+export function rekeyKey(key: string, from: string, to: string): string {
+  const at = key.indexOf('@')
+  const model = at === -1 ? key : key.slice(0, at)
+  const rest = at === -1 ? '' : key.slice(at)
+  let newModel: string
+  if (model === from) newModel = to
+  else if (model.startsWith(`${from}/`)) newModel = `${to}${model.slice(from.length)}`
+  else return key
+  if (at === -1) return newModel
+  const oldSlug = from.split('/').pop() ?? ''
+  const newSlug = to.split('/').pop() ?? ''
+  if (oldSlug !== newSlug) {
+    const [first, ...others] = rest.slice(1).split('&')
+    if (first === oldSlug) return `${newModel}@${[newSlug, ...others].join('&')}`
+  }
+  return `${newModel}${rest}`
+}
+
 /** A unit as the fold stores it: the canonical value and the change that set it. */
 export interface FoldedUnit {
   readonly key: string
@@ -46,6 +81,8 @@ export interface FoldResult {
   readonly elements: Map<string, LoggedChange>
   /** Model -> rename events, in canonical order. */
   readonly relinks: Map<string, Relink[]>
+  /** `move_model` identity changes, in canonical order. */
+  readonly rekeys: readonly Rekey[]
 }
 
 /**
@@ -124,6 +161,7 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
   const epochs = new Map<string, number>()
   const elements = new Map<string, LoggedChange>()
   const relinks = new Map<string, Relink[]>()
+  const rekeys: Rekey[] = []
 
   const addRelink = (model: string, from: string, to: string, order: number): void => {
     if (!from || !to) return
@@ -190,6 +228,43 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
         addRelink(model, oldName, newName, order)
         return
       }
+      case 'move_model': {
+        // The recorded target stays as written (the seal is immutable); the fold
+        // carries the identity forward from this order on (design A10).
+        const fromId = change.target
+        const toId = change.to ?? ''
+        if (!fromId || !toId || fromId === toId) return
+        const rekey = (key: string): string => rekeyKey(key, fromId, toId)
+        const rekeyMap = <V>(map: Map<string, V>, withKey: (value: V, key: string) => V): void => {
+          for (const [key, value] of [...map]) {
+            const next = rekey(key)
+            if (next === key) continue
+            map.delete(key)
+            map.set(next, withKey(value, next))
+          }
+        }
+        rekeyMap(units, (unit, key) => ({ ...unit, key }))
+        rekeyMap(epochs, (_value) => _value)
+        rekeyMap(elements, (_value) => _value)
+        for (const key of [...cleared]) {
+          const next = rekey(key)
+          if (next === key) continue
+          cleared.delete(key)
+          cleared.add(next)
+        }
+        for (let i = 0; i < tombstones.length; i++) {
+          const tombstone = tombstones[i]!
+          const target = rekey(tombstone.target)
+          if (target === tombstone.target) continue
+          tombstones[i] = {
+            ...tombstone,
+            target,
+            ...(tombstone.resolvedTarget !== undefined ? { resolvedTarget: rekey(tombstone.resolvedTarget) } : {}),
+          }
+        }
+        rekeys.push({ from: fromId, to: toId, order })
+        return
+      }
       case 'remove_element': {
         const { model, parts } = splitUnitKey(address)
         const key = elementKeyOf(address) || (parts[0] ? `${model}@${parts[0]}` : address)
@@ -227,7 +302,7 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
     }
   })
 
-  return { units, cleared, tombstones, epochs, elements, relinks }
+  return { units, cleared, tombstones, epochs, elements, relinks, rekeys }
 }
 
 /**

@@ -199,6 +199,85 @@ describe('fold: removal and epoch cut', () => {
   })
 })
 
+describe('fold: move_model rekeys the identity (distributed-storage S6b)', () => {
+  it('re-keys units and element origins, and history follows the chain', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_element', target: 'innteresante/intro@Video', name: 'Intro', resolved_target: 'innteresante/intro@intro' },
+          { id: 'c-02', op: 'update_field', target: 'innteresante/intro@intro&title', to: 'Intro', resolved_target: 'innteresante/intro@intro&title' },
+        ],
+      },
+      { changes: [{ id: 'c-03', op: 'move_model', target: 'innteresante/intro', to: 'villabotijos-today/intro' }] },
+      {
+        changes: [
+          { id: 'c-04', op: 'update_field', target: 'villabotijos-today/intro@intro&title', to: 'Intro v2', resolved_target: 'villabotijos-today/intro@intro&title' },
+        ],
+      },
+    ])
+
+    const units = [...log.units('villabotijos-today/intro')]
+    expect(units.map((u) => u.key)).toEqual(['villabotijos-today/intro@intro&title'])
+    expect(units[0]!.value).toBe('Intro v2')
+    // The old id no longer owns a unit: the fold re-keyed it.
+    expect([...log.units('innteresante/intro')]).toEqual([])
+    expect(log.elementOrigin('villabotijos-today/intro@intro')?.id).toBe('c-01')
+
+    // Both the old and the new address resolve to the full chain.
+    expect(log.history('villabotijos-today/intro@intro&title').map((c) => c.id)).toEqual(['c-02', 'c-04'])
+    expect(log.history('innteresante/intro@intro&title').map((c) => c.id)).toEqual(['c-02', 'c-04'])
+    expect(log.identities('villabotijos-today/intro')).toEqual(['innteresante/intro'])
+  })
+
+  it('maps old@old-slug units to new@new-slug when the slug changes', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_element', target: 'innteresante/intro@Video', name: 'Intro', resolved_target: 'innteresante/intro@intro' },
+          { id: 'c-02', op: 'update_field', target: 'innteresante/intro@intro&title', to: 'Intro', resolved_target: 'innteresante/intro@intro&title' },
+        ],
+      },
+      { changes: [{ id: 'c-03', op: 'move_model', target: 'innteresante/intro', to: 'innteresante/welcome' }] },
+    ])
+
+    const units = [...log.units('innteresante/welcome')]
+    expect(units.map((u) => u.key)).toEqual(['innteresante/welcome@welcome&title'])
+    // The root element slug changed with the model slug; the old key is gone.
+    expect([...log.units('innteresante/intro')]).toEqual([])
+    expect(log.history('innteresante/welcome@welcome&title').map((c) => c.id)).toEqual(['c-02'])
+    expect(log.history('innteresante/intro@intro&title').map((c) => c.id)).toEqual(['c-02'])
+  })
+
+  it('rewrites the prefix of descendant instances and re-keys tombstones', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'update_field', target: 'innteresante/intro@00-gancho&voice', to: 'warm', resolved_target: 'innteresante/intro@00-gancho&voice' },
+          { id: 'c-02', op: 'remove_element', target: 'innteresante/old', name: 'Old', resolved_target: 'innteresante/old' },
+        ],
+      },
+      { changes: [{ id: 'c-03', op: 'move_model', target: 'innteresante', to: 'villabotijos-today' }] },
+    ])
+
+    expect([...log.units('villabotijos-today/intro')].map((u) => u.key)).toEqual([
+      'villabotijos-today/intro@00-gancho&voice',
+    ])
+    const tombstone = log.tombstones[0]!
+    expect(tombstone.resolvedTarget ?? tombstone.target).toBe('villabotijos-today/old')
+  })
+
+  it('identities returns the former ids oldest first, and an unmoved id has none', () => {
+    const log = logOf([
+      { changes: [{ id: 'c-01', op: 'move_model', target: 'a', to: 'b' }] },
+      { changes: [{ id: 'c-02', op: 'move_model', target: 'b', to: 'c' }] },
+    ])
+    expect(log.identities('c')).toEqual(['a', 'b'])
+    expect(log.identities('b')).toEqual(['a'])
+    expect(log.identities('a')).toEqual([])
+    expect(log.identities('unrelated')).toEqual([])
+  })
+})
+
 describe('fold: artifacts', () => {
   it('produce_artifact is an artifact unit, not a model unit', () => {
     const log = logOf([
