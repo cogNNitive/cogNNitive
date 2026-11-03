@@ -2,7 +2,7 @@
  * Shared types of the domain index (design section 8). Pure and browser-safe.
  */
 
-import type { ModelId } from '../address/index.js'
+import type { AddressErrorCode, ModelId, Unit } from '../address/index.js'
 import type { ConceptStorage } from '../schema/storage.js'
 
 /** One discovered model, as plain data. `path` is domain-relative POSIX. */
@@ -53,3 +53,39 @@ export interface IndexedModel {
   blueprint: { name: string; version: string | null }
   storage: ModelStorage
 }
+
+export type ResolutionCode =
+  | 'REF_MODEL_NOT_FOUND'
+  | 'REF_ELEMENT_NOT_FOUND'
+  | 'REF_CONCEPT_MISMATCH'
+  | 'REF_BLUEPRINT_MISMATCH'
+  | 'ADDRESS_NOT_CANONICAL'
+  | AddressErrorCode
+
+export interface ResolutionProblem {
+  code: ResolutionCode
+  severity: 'error' | 'warning'
+  message: string
+}
+
+/** What the referencing field accepts (`target_concepts`, `target_template`); a mismatch only warns. */
+export interface ResolveExpectation {
+  concepts?: readonly string[]
+  blueprint?: string
+}
+
+export interface ElementRef {
+  concept: string
+  slug: string
+}
+
+export type AddressResolution =
+  | {
+      ok: true
+      model: IndexedModel
+      /** The addressed element; for an instance model id alone, its instance root. */
+      element: ElementRef | null
+      unit: Unit | null
+      warnings: ResolutionProblem[]
+    }
+  | { ok: false; problem: ResolutionProblem }
