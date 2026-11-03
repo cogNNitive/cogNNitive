@@ -5,15 +5,19 @@
 
 /** Model-id head: a compact stem or a top-level instance slug (`LC_programas_Tutorias`, `intro_video-script`). */
 export const HEAD = '[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*'
-/** Element, matrix, row and column slug; also every model-id segment after the head. */
-export const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
+/**
+ * Element, matrix, row and column slug; also every model-id segment after the head.
+ * Lowercase letters of any script and digits, joined by hyphens; a run of hyphens is the
+ * Concept/Element boundary (`nn-person--dr-egon`) that `slugifyHeading` writes.
+ */
+export const SLUG = '[\\p{Ll}\\p{Lo}\\p{N}]+(?:-+[\\p{Ll}\\p{Lo}\\p{N}]+)*'
 /** Field name. */
 export const FIELD = '[\\p{L}\\p{N}]+(?:[-_][\\p{L}\\p{N}]+)*'
 /** Concept name in `concept:<Name>`. */
-export const CONCEPT = '[\\p{L}\\p{N}]+(?:[ _-][\\p{L}\\p{N}]+)*'
+export const CONCEPT = '[\\p{L}\\p{N}]+(?:(?:[ _]|-+)[\\p{L}\\p{N}]+)*'
 
 export const HEAD_RE = new RegExp(`^${HEAD}$`)
-export const SLUG_RE = new RegExp(`^${SLUG}$`)
+export const SLUG_RE = new RegExp(`^${SLUG}$`, 'u')
 export const FIELD_RE = new RegExp(`^${FIELD}$`, 'u')
 export const CONCEPT_RE = new RegExp(`^${CONCEPT}$`, 'u')
 

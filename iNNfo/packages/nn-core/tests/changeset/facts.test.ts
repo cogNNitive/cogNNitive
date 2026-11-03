@@ -8,6 +8,10 @@ import {
 import { parseChangeset } from '../../src/changeset/parser.js'
 import { serializeChangeset } from '../../src/changeset/serializer.js'
 import type { ChangeItem } from '../../src/changeset/types.js'
+import { canonicalUnitModelId, resolvedTarget } from '../../src/changeset/resolved-target.js'
+import { unitAddress } from '../../src/console/unit-address.js'
+import { formatAddress, parseAddress } from '../../src/address/index.js'
+import type { ModelId } from '../../src/address/index.js'
 
 function doc(changeBlock: string, proposalShas?: string): string {
   return `---
@@ -125,5 +129,58 @@ describe('annotation round trip', () => {
   it('still parses a change that carries no seed', () => {
     const parsed = parseChangeset(doc(['## NN Change: c-01', 'op:: update_field', 'target:: m@e&f', 'to:: v'].join('\n')))
     expect(parsed.changes[0].seed).toBeUndefined()
+  })
+})
+
+describe('resolved targets are canonical unified addresses', () => {
+  it('accepts a hierarchical model id', () => {
+    expect(resolvedTarget.field('a/b', 's', 'f')).toBe('a/b@s&f')
+    expect(canonicalUnitModelId('a/b')).toBe('a/b')
+  })
+
+  it('equals formatAddress and the console unitAddress builders', () => {
+    const model = 'villabotijos-today/pepper-mapache'
+    expect(resolvedTarget.field(model, '00-gancho', 'voice')).toBe(
+      formatAddress({ kind: 'unit', model: model as ModelId, unit: { kind: 'element', slug: '00-gancho', field: 'voice' } }),
+    )
+    expect(resolvedTarget.field(model, '00-gancho', 'voice')).toBe(
+      unitAddress.value(`${model}@00-gancho`, 'voice'),
+    )
+    expect(resolvedTarget.body(model, '00-gancho')).toBe(
+      formatAddress({ kind: 'unit', model: model as ModelId, unit: { kind: 'body', slug: '00-gancho' } }),
+    )
+    expect(resolvedTarget.element(model, '00-gancho')).toBe(unitAddress.element(model, '00-gancho'))
+    expect(resolvedTarget.concept('strategy', 'Goal', 'owner')).toBe(
+      formatAddress({ kind: 'unit', model: 'strategy' as ModelId, unit: { kind: 'concept', concept: 'Goal', field: 'owner' } }),
+    )
+  })
+
+  it('builds a matrix cell target equal to unitAddress.cell', () => {
+    expect(resolvedTarget.cell('strategy', 'swot', 'r1', 'c1')).toBe(unitAddress.cell('strategy', 'swot', 'r1', 'c1'))
+  })
+
+  it('rejects a file path or a backslash as the model part', () => {
+    expect(() => resolvedTarget.field('kNNowledge/x_NN.md', 's', 'f')).toThrow(TypeError)
+    expect(() => resolvedTarget.element('a\\b', 's')).toThrow(TypeError)
+  })
+
+  it('rejects a slug that is not canonical', () => {
+    expect(() => resolvedTarget.element('m', 'Not A Slug')).toThrow(TypeError)
+  })
+})
+
+describe('unitAddress builders take hierarchical ids', () => {
+  it('accepts every segment of a hierarchical id and rejects an invalid one', () => {
+    expect(unitAddress.element('villabotijos-today/intro', '00-gancho')).toBe('villabotijos-today/intro@00-gancho')
+    expect(unitAddress.document('a/b/c')).toBe('a/b/c')
+    expect(() => unitAddress.element('a b', 's')).toThrow(TypeError)
+    expect(() => unitAddress.document('x.md')).toThrow(TypeError)
+    expect(() => unitAddress.cell('a//b', 'm', 'r', 'c')).toThrow(TypeError)
+  })
+
+  it('emits a concept address the grammar parses back, including the boundary slug', () => {
+    const address = unitAddress.section('strategy', 'Vision--Mission')
+    expect(address).toBe('strategy@concept:vision--mission')
+    expect(parseAddress(address)).toMatchObject({ kind: 'unit', unit: { kind: 'concept', concept: 'vision--mission' } })
   })
 })

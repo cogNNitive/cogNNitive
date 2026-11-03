@@ -204,3 +204,22 @@ describe('parseAddress - rejections (unified-reference-grammar: Removed forms ar
     expect(e.message).toContain('<hierarchical-id>@<slug>')
   })
 })
+
+describe('slugs as the frozen-slug generator writes them', () => {
+  it('accepts the Concept/Element boundary `--` in an element and a concept slug', () => {
+    expect(ok('m@nn-person--dr-egon')).toMatchObject({ unit: { kind: 'element', slug: 'nn-person--dr-egon' } })
+    expect(ok('strategy@concept:vision--mission')).toMatchObject({
+      unit: { kind: 'concept', concept: 'vision--mission' },
+    })
+  })
+
+  it('accepts a non-Latin lowercase slug', () => {
+    expect(ok('m@さくら-桜&owner')).toMatchObject({ unit: { kind: 'element', slug: 'さくら-桜', field: 'owner' } })
+  })
+
+  it('still rejects an uppercase letter, a leading or trailing hyphen', () => {
+    expect(fail('series/Intro@x').segment).toBe('Intro')
+    expect(fail('m@-x').code).toBe('ADDRESS_MALFORMED')
+    expect(fail('m@x-').code).toBe('ADDRESS_MALFORMED')
+  })
+})

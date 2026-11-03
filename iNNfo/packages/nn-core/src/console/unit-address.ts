@@ -14,23 +14,34 @@ function assertIdentifier(value: string, name: string): string {
   return trimmed
 }
 
+/** One model-id segment; a hierarchical id is these joined by a slash. */
+const MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
+
+function assertModelId(value: string, name: string): string {
+  const id = assertIdentifier(value, name)
+  if (!id.split('/').every((segment) => MODEL_SEGMENT_RE.test(segment))) {
+    throw new TypeError(`unitAddress: ${name} "${id}" is not a hierarchical model id`)
+  }
+  return id
+}
+
 export const unitAddress = {
   domain(): string {
     return 'domaiNN_NN.md'
   },
 
   document(modelId: string): string {
-    return assertIdentifier(modelId, 'modelId')
+    return assertModelId(modelId, 'modelId')
   },
 
   section(modelId: string, conceptName: string): string {
-    const m = assertIdentifier(modelId, 'modelId')
+    const m = assertModelId(modelId, 'modelId')
     const c = assertIdentifier(conceptName, 'conceptName')
     return `${m}@concept:${slugifyHeading(c)}`
   },
 
   element(modelId: string, elementSlug: string): string {
-    const m = assertIdentifier(modelId, 'modelId')
+    const m = assertModelId(modelId, 'modelId')
     const s = assertIdentifier(elementSlug, 'elementSlug')
     return `${m}@${s}`
   },
@@ -42,7 +53,7 @@ export const unitAddress = {
   },
 
   cell(modelId: string, matrixSlug: string, rowSlug: string, colSlug: string): string {
-    const m = assertIdentifier(modelId, 'modelId')
+    const m = assertModelId(modelId, 'modelId')
     const mat = assertIdentifier(matrixSlug, 'matrixSlug')
     const r = assertIdentifier(rowSlug, 'rowSlug')
     const c = assertIdentifier(colSlug, 'colSlug')
@@ -89,8 +100,6 @@ export interface ParsedUnitAddress {
   raw?: string
   filePath?: string
 }
-
-const MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
 
 function isValidModelPath(rawPath: string): boolean {
   if (!rawPath || /^https?:\/\//i.test(rawPath) || /^[a-zA-Z]:[/\\]/.test(rawPath)) return false
