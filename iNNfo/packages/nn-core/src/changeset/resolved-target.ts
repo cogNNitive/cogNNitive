@@ -66,11 +66,18 @@ export const resolvedTarget = {
     })
   },
 
-  /** `model@concept:<Name>` or `model@concept:<Name>&field` (the concept name as the change carried it). */
+  /**
+   * `model@concept:<slug>` or `model@concept:<slug>&field`. The concept segment
+   * is the concept's slug, the same form `unitAddress.section` emits and the
+   * grammar accepts (distribution-storage S6c); a change carrying the display
+   * name is normalized here instead of rewriting recorded history elsewhere.
+   */
   concept(model: string, conceptName: string, field?: string): string {
+    const raw = assertPresent(conceptName, 'conceptName')
+    const name = raw.startsWith('concept:') ? raw.slice('concept:'.length) : raw
     return unitTarget(model, {
       kind: 'concept',
-      concept: assertPresent(conceptName, 'conceptName'),
+      concept: slugifyHeading(name),
       ...(field ? { field: assertPresent(field, 'field') } : {}),
     })
   },

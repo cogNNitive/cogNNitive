@@ -151,7 +151,7 @@ describe('resolved targets are canonical unified addresses', () => {
     )
     expect(resolvedTarget.element(model, '00-gancho')).toBe(unitAddress.element(model, '00-gancho'))
     expect(resolvedTarget.concept('strategy', 'Goal', 'owner')).toBe(
-      formatAddress({ kind: 'unit', model: 'strategy' as ModelId, unit: { kind: 'concept', concept: 'Goal', field: 'owner' } }),
+      formatAddress({ kind: 'unit', model: 'strategy' as ModelId, unit: { kind: 'concept', concept: 'goal', field: 'owner' } }),
     )
   })
 
