@@ -10224,8 +10224,8 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-c46aa388",
-    "generated": "2026-11-03T17:53:35.482Z",
-    "changesBlueprintVersion": "V_0-6-0",
+    "generated": "2026-11-03T21:30:02.539Z",
+    "changesBlueprintVersion": "V_0-7-0",
     "models": [
       {
         "id": "TestLab_coverage_TestLab",
@@ -10234,8 +10234,8 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "family": "testlab",
         "version": "V_0-1-1",
-        "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T17:53:35.342Z",
+        "sha256": "593b5c26e0cdc52f70aab825ae5dab6421bcd9f2202c20a83d454e726ffdbba0",
+        "citationsResolvedAt": "2026-11-03T21:30:02.440Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -10255,7 +10255,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "TestLab",
         "family": "testlab",
         "version": "V_0-1-1",
-        "sha256": "a082dff2e7142427a023389d80b22e25ed4d41d4b28a6728cbe6f95d8dbfc824",
+        "sha256": "563f036d86dcf7d1ee576d08fb3d5aac3116ead5c5eec29ab1c028d02bb29be4",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_intake_TestLab_NN.md"
@@ -10276,7 +10276,7 @@ input[type="text"], input[type="search"], textarea, select {
         "blueprint": "procedures",
         "family": "procedures",
         "version": "V_0-1-0",
-        "sha256": "90deb98e9a35fd234503a43be7eeb6fe599304928152108f9c8adca99abec2c1",
+        "sha256": "1099ae7f13ad7c758ea4534715f88a0fbaaaeaa267efc2dc45fc19df20b8ce63",
         "citationsResolvedAt": null,
         "sources": [
           "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
@@ -10295,7 +10295,7 @@ input[type="text"], input[type="search"], textarea, select {
         "filePath": "\u003cchanges>",
         "blueprint": "changes",
         "family": "changes",
-        "version": "V_0-6-0",
+        "version": "V_0-7-0",
         "sha256": null,
         "citationsResolvedAt": null,
         "sources": [],
@@ -10328,18 +10328,11 @@ input[type="text"], input[type="search"], textarea, select {
         "summary": "Intake tray baseline element.",
         "long_description": "Baseline element with a short description. It cites the field notes findings section.",
         "manual": "test/fixtures/testlab/sources/import/manual.txt",
-        "sibling": "[[Element 2A]]",
+        "sibling": "@element-2a",
         "status": "draft"
       },
       "markers": {},
-      "hash": "19a616d1bfaa187c",
-      "relations": [
-        {
-          "field": "sibling",
-          "target": "TestLab_coverage_TestLab@element-2a",
-          "targetLabel": "Element 2A"
-        }
-      ],
+      "hash": "d0584124c69c66f8",
       "citations": {
         "sources": [
           {
@@ -10378,18 +10371,11 @@ input[type="text"], input[type="search"], textarea, select {
           "source": "field photo 2026-10-07"
         },
         "attachment": "./sources/import/manual.txt",
-        "sibling": "[[Element 2A]]",
+        "sibling": "@element-2a",
         "status": "reviewed"
       },
       "markers": {},
-      "hash": "75c92176dd578f12",
-      "relations": [
-        {
-          "field": "sibling",
-          "target": "TestLab_coverage_TestLab@element-2a",
-          "targetLabel": "Element 2A"
-        }
-      ],
+      "hash": "dade1bb1c76c9e73",
       "citations": {
         "sources": [
           {
@@ -10432,18 +10418,11 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Multi-node traceability source element.",
         "long_description": "Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.",
-        "sibling": "[[Element 2B]]",
+        "sibling": "@element-2b",
         "status": "published"
       },
       "markers": {},
-      "hash": "0e7438b6ad201987",
-      "relations": [
-        {
-          "field": "sibling",
-          "target": "TestLab_coverage_TestLab@element-2b",
-          "targetLabel": "Element 2B"
-        }
-      ],
+      "hash": "ecb3bb9949fc0864",
       "citations": {
         "sources": [
           {
@@ -10495,17 +10474,10 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Shift owner element.",
         "attachment": "./sources/import/manual.txt",
-        "owner": "[[Element 1A]]"
+        "owner": "@element-1a"
       },
       "markers": {},
-      "hash": "e8651c6b2bac1e89",
-      "relations": [
-        {
-          "field": "owner",
-          "target": "TestLab_coverage_TestLab@element-1a",
-          "targetLabel": "Element 1A"
-        }
-      ],
+      "hash": "d7472acae359fa17",
       "citations": {
         "sources": [
           {
@@ -10539,17 +10511,10 @@ input[type="text"], input[type="search"], textarea, select {
         ],
         "summary": "Handover owner element.",
         "attachment": "./sources/import/manual.txt",
-        "owner": "[[Element 1C (test)]]"
+        "owner": "@element-1c"
       },
       "markers": {},
-      "hash": "e409617a7425543d",
-      "relations": [
-        {
-          "field": "owner",
-          "target": "TestLab_coverage_TestLab@element-1c",
-          "targetLabel": "Element 1C (test)"
-        }
-      ],
+      "hash": "17fd6fd2c646daa2",
       "citations": {
         "sources": [
           {
@@ -11037,17 +11002,10 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Intake owner closes the intake matrix crossing with Intake element.",
       "fields": {
         "summary": "Owner derived from the JSON payload.",
-        "owner": "[[Intake element]]"
+        "owner": "@intake-element"
       },
       "markers": {},
-      "hash": "6300e6cb62eaa98a",
-      "relations": [
-        {
-          "field": "owner",
-          "target": "TestLab_intake_TestLab@intake-element",
-          "targetLabel": "Intake element"
-        }
-      ],
+      "hash": "a0b4379bf0bd9a2e",
       "modelId": "TestLab_intake_TestLab",
       "modelTitle": "TestLab Intake Model",
       "modelFile": "TestLab_intake_TestLab_NN.md",
@@ -11062,17 +11020,10 @@ input[type="text"], input[type="search"], textarea, select {
       "description": "Intake backup owner gives the reference field a second target so a reference edit is a real change.",
       "fields": {
         "summary": "Secondary owner derived from the PDF report.",
-        "owner": "[[Intake element]]"
+        "owner": "@intake-element"
       },
       "markers": {},
-      "hash": "858ba48af3b774a7",
-      "relations": [
-        {
-          "field": "owner",
-          "target": "TestLab_intake_TestLab@intake-element",
-          "targetLabel": "Intake element"
-        }
-      ],
+      "hash": "91a66d0aa91e0b20",
       "modelId": "TestLab_intake_TestLab",
       "modelTitle": "TestLab Intake Model",
       "modelFile": "TestLab_intake_TestLab_NN.md",
@@ -11090,7 +11041,7 @@ input[type="text"], input[type="search"], textarea, select {
         "number_field": 42,
         "boolean_field": true,
         "select_field": "reviewed",
-        "reference_field": "[[Intake backup owner]]",
+        "reference_field": "@intake-backup-owner",
         "image_field": "./sources/import/photo.png",
         "file_field": "./sources/import/report.pdf",
         "video_field": "./sources/import/demo.mp4",
@@ -11105,14 +11056,7 @@ input[type="text"], input[type="search"], textarea, select {
         ]
       },
       "markers": {},
-      "hash": "ff4268dbb23e1191",
-      "relations": [
-        {
-          "field": "reference_field",
-          "target": "TestLab_intake_TestLab@intake-backup-owner",
-          "targetLabel": "Intake backup owner"
-        }
-      ],
+      "hash": "d3b82a39db95231f",
       "history": [
         {
           "id": "r-01",
@@ -11228,8 +11172,8 @@ input[type="text"], input[type="search"], textarea, select {
             "excerpt": "## Findings\n\nTranscribed PDF report: incident volume grew 5x in one quarter. Response time held because the photo log removed rework. The containment grid needs one extra shift, nothing else.\n",
             "sha256": "testlab-placeholder-report"
           },
-          "from": "[[Intake owner]]",
-          "to": "[[Intake backup owner]]",
+          "from": "@intake-owner",
+          "to": "@intake-backup-owner",
           "resolution": "Applied successfully"
         },
         {
@@ -11526,8 +11470,8 @@ input[type="text"], input[type="search"], textarea, select {
               "author": "reviewer",
               "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
               "appliedAt": "2026-10-21T14:30:00.000Z",
-              "from": "[[Intake owner]]",
-              "to": "[[Intake backup owner]]"
+              "from": "@intake-owner",
+              "to": "@intake-backup-owner"
             }
           ],
           "origin": {
@@ -11536,8 +11480,8 @@ input[type="text"], input[type="search"], textarea, select {
             "author": "reviewer",
             "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
             "appliedAt": "2026-10-21T14:30:00.000Z",
-            "from": "[[Intake owner]]",
-            "to": "[[Intake backup owner]]"
+            "from": "@intake-owner",
+            "to": "@intake-backup-owner"
           }
         },
         "image_field": {
@@ -11842,26 +11786,14 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Open the Domain Console",
       "description": "Open domaiNN_console.html at the domain root. It is a single self-contained file: double-click it and it runs offline in any browser.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "task",
-        "next": "[[Enable Review Mode]]",
+        "next": "@enable-review-mode",
         "condition": "A generated console exists at the domain root",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "49a23f463e20bbbe",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        },
-        {
-          "field": "next",
-          "target": "TestLab_procedures_TestLab_procedures@enable-review-mode",
-          "targetLabel": "Enable Review Mode"
-        }
-      ],
+      "hash": "695672b247a4fb53",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -11875,26 +11807,14 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Enable Review Mode",
       "description": "Click \"Review mode\" in the top banner. Until this is on, element field anchors are not clickable and the review modal cannot be opened.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "task",
-        "next": "[[Open Element 1B]]",
+        "next": "@open-element-1b",
         "condition": "The domain console is open",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "bcc564e05cdffcdd",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        },
-        {
-          "field": "next",
-          "target": "TestLab_procedures_TestLab_procedures@open-element-1b",
-          "targetLabel": "Open Element 1B"
-        }
-      ],
+      "hash": "f94f70b7986f2a1d",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -11908,26 +11828,14 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Open Element 1B",
       "description": "Open the TestLab Coverage Model and click a field row of Element 1B (for example the \"photo\" row). The element modal opens with two tabs: Edit and History & Provenance.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "task",
-        "next": "[[Read the Changeset Lineage]]",
+        "next": "@read-the-changeset-lineage",
         "condition": "Review mode is enabled",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "26a5a416df00e22a",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        },
-        {
-          "field": "next",
-          "target": "TestLab_procedures_TestLab_procedures@read-the-changeset-lineage",
-          "targetLabel": "Read the Changeset Lineage"
-        }
-      ],
+      "hash": "0757b9b8b5e225a9",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -11941,26 +11849,14 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Read the Changeset Lineage",
       "description": "Switch to the \"History & Provenance\" tab. Under \"Changeset Lineage & Revision History\" you must see the applied review change fb-001: author \"reviewer\", the UTC timestamp 2026-10-10T12:00:00.000Z, and its note. If the section reads \"No recorded prior changesets\", the change did not reach the console and the lineage pipeline is broken.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "decision",
-        "next": "[[Propose a Change in the Console]]",
+        "next": "@propose-a-change-in-the-console",
         "condition": "The element modal is open on Element 1B",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "6112fd18b2485c28",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        },
-        {
-          "field": "next",
-          "target": "TestLab_procedures_TestLab_procedures@propose-a-change-in-the-console",
-          "targetLabel": "Propose a Change in the Console"
-        }
-      ],
+      "hash": "2aecadf02da0099e",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -11974,26 +11870,14 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Propose a Change in the Console",
       "description": "Change a field value or leave a comment in the element modal to record a draft. This is how a reviewer proposes a change without editing the model by hand.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "task",
-        "next": "[[Copy the Changeset Prompt]]",
+        "next": "@copy-the-changeset-prompt",
         "condition": "Review mode is enabled",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "add031bf8d7e0296",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        },
-        {
-          "field": "next",
-          "target": "TestLab_procedures_TestLab_procedures@copy-the-changeset-prompt",
-          "targetLabel": "Copy the Changeset Prompt"
-        }
-      ],
+      "hash": "f6fb369961fb995d",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -12007,20 +11891,13 @@ input[type="text"], input[type="search"], textarea, select {
       "name": "Copy the Changeset Prompt",
       "description": "Click \"Export changes\", then \"Copy Changeset Prompt\", and paste the result to the agent. The agent writes the changeset into changes/ and applies it; the engine seals the proposal and rewrites the touched field's citation, so the lineage grows with the next regeneration.",
       "fields": {
-        "parent": "[[TestLab Guided Verification]]",
+        "parent": "@testlab-guided-verification",
         "step_type": "task",
         "condition": "At least one draft is pending",
         "scope": "internal"
       },
       "markers": {},
-      "hash": "59fe70929e767b2c",
-      "relations": [
-        {
-          "field": "parent",
-          "target": "TestLab_procedures_TestLab_procedures@testlab-guided-verification",
-          "targetLabel": "TestLab Guided Verification"
-        }
-      ],
+      "hash": "e6a1f2a9e5cf892f",
       "modelId": "TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -12611,8 +12488,8 @@ input[type="text"], input[type="search"], textarea, select {
       "fields": {
         "op": "update_field",
         "target": "TestLab_intake_TestLab@modification-cases&reference_field",
-        "from": "[[Intake owner]]",
-        "to": "[[Intake backup owner]]",
+        "from": "@intake-owner",
+        "to": "@intake-backup-owner",
         "author": "reviewer",
         "status": "applied",
         "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
@@ -12633,7 +12510,7 @@ input[type="text"], input[type="search"], textarea, select {
           }
         ]
       },
-      "hash": "9603aa3d0f4712dd",
+      "hash": "9365c8b753def680",
       "modelId": "changes",
       "modelTitle": "Changes",
       "modelFile": "\u003cchanges>",
@@ -13261,8 +13138,8 @@ input[type="text"], input[type="search"], textarea, select {
           "evidence": "sources/import/report.pdf_sidecar_NN.md@## Findings",
           "applied_at": "2026-10-21T14:30:00.000Z",
           "batch": "testlab_reviewer_intake_changes_NN",
-          "from": "[[Intake owner]]",
-          "to": "[[Intake backup owner]]",
+          "from": "@intake-owner",
+          "to": "@intake-backup-owner",
           "resolution": "Applied successfully"
         },
         {
@@ -13506,7 +13383,7 @@ input[type="text"], input[type="search"], textarea, select {
           "name": "Intake owner",
           "fields": {
             "summary": "Owner derived from the JSON payload.",
-            "owner": "[[Intake element]]"
+            "owner": "@intake-element"
           },
           "resolution": "Applied successfully"
         },
@@ -13523,7 +13400,7 @@ input[type="text"], input[type="search"], textarea, select {
           "name": "Intake backup owner",
           "fields": {
             "summary": "Secondary owner derived from the PDF report.",
-            "owner": "[[Intake element]]"
+            "owner": "@intake-element"
           },
           "resolution": "Applied successfully"
         },
@@ -13543,7 +13420,7 @@ input[type="text"], input[type="search"], textarea, select {
             "number_field": "0",
             "boolean_field": "false",
             "select_field": "draft",
-            "reference_field": "[[Intake owner]]",
+            "reference_field": "@intake-owner",
             "url_field": "https://example.com/initial",
             "markdown_inline_field": "Initial **inline** markdown.",
             "markdown_file_field": "test/fixtures/testlab/sources/import/field-notes.md",
