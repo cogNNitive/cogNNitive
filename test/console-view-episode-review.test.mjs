@@ -51,6 +51,8 @@ const episode = (over = {}) => ({
           value: 'media/opening-alta.mp4',
           tier: 'alta',
           thumbnail: 'media/opening-alta.png',
+          thumbnailSrc: 'data:image/png;base64,iVBORw0KGgo=',
+          thumbnailKind: 'image',
           storyboard: 'Slow push-in on the desk, papers lift.',
           camera: 'slow push-in',
           choreography: 'papers lift, then settle',
@@ -69,8 +71,15 @@ const episode = (over = {}) => ({
         },
       ],
       layers: [
-        { slug: 'hook-avatar', type: 'avatar', asset: 'media/avatar.png', text: '' },
-        { slug: 'hook-watermark', type: 'text', asset: '', text: 'generated with AI' },
+        {
+          slug: 'hook-avatar',
+          type: 'avatar',
+          asset: 'media/avatar.png',
+          assetSrc: 'data:image/png;base64,iVBORw0KGgo=',
+          assetKind: 'image',
+          text: '',
+        },
+        { slug: 'hook-watermark', type: 'text', asset: '', assetSrc: '', assetKind: '', text: 'generated with AI' },
       ],
     },
     {
@@ -360,6 +369,7 @@ describe('Episode review data hook', () => {
     root = await mkdtemp(join(tmpdir(), 'nn-ep-review-'))
     const dir = join(root, 'series', 'demo', 'episodes', 'ep-1')
     await mkdir(join(dir, 'media'), { recursive: true })
+    await writeFile(join(dir, 'media', 'avatar.png'), Buffer.from('iVBORw0KGgo=', 'base64'))
     await mkdir(join(root, '.cognnitive', 'video'), { recursive: true })
     await writeFile(
       join(dir, 'ep-1_coNNtent_demo_NN.md'),
@@ -420,6 +430,54 @@ asset:: media/avatar.png
     const { collect } = await import(pathToFileURL(DATA_FILE).href)
     const data = await collect({ rootDir: root })
     assert.equal(data.episodes['ep-1'].realUsd, 0.25)
+  })
+
+  it('inlines a small raster asset as a data URI and never a video', async () => {
+    const { collect } = await import(pathToFileURL(DATA_FILE).href)
+    const data = await collect({ rootDir: root })
+    const scene = data.episodes['ep-1'].scenes.find((s) => s.slug === 'opening')
+    const layer = scene.layers.find((l) => l.slug === 'hook-avatar')
+    assert.match(layer.assetSrc, /^data:image\//, 'the console CSP only allows data: images')
+    assert.equal(layer.assetKind, 'image')
+  })
+
+  it('names an asset it cannot inline instead of emitting a broken source', async () => {
+    const dir = join(root, 'series', 'demo', 'episodes', 'ep-2')
+    await mkdir(dir, { recursive: true })
+    await writeFile(
+      join(dir, 'ep-2_coNNtent_demo_NN.md'),
+      `---
+level: 3
+---
+
+# NN Video
+
+## NN Video: Two
+slug:: ep-2
+
+# NN Scene
+
+## NN Scene: S
+slug:: s
+
+Body.
+
+### NN Layer: Clip
+slug:: clip
+type:: media
+asset:: media/master.mp4
+`,
+      'utf8',
+    )
+    try {
+      const { collect } = await import(pathToFileURL(DATA_FILE).href)
+      const data = await collect({ rootDir: root })
+      const layer = data.episodes['ep-2'].scenes[0].layers[0]
+      assert.equal(layer.assetSrc, '', 'a video is never inlined into the console')
+      assert.equal(layer.assetKind, 'video', 'but it is named so the view can say what it is')
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 
   it('returns no episodes when the domain has none', async () => {

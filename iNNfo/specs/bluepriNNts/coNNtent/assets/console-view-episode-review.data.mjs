@@ -13,12 +13,41 @@
  * Nothing here runs in the browser: the console stays static and offline.
  */
 import { readFile, readdir } from 'node:fs/promises'
-import { join, basename } from 'node:path'
+import { join, basename, extname, resolve } from 'node:path'
 import { parseKnowledgeDocument } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
 import { isPriceStale } from '../skills/nn-conntent/scripts/lib/catalog.mjs'
 
 const FACTS_DIR = ['.cognnitive', 'video']
 const EPISODE_DIRS = ['episodes', 'assets']
+
+// The console CSP is `img-src data: blob:` — a file path can never load. The former
+// review console solved this by embedding its thumbnails as base64, and so do we. The cap
+// keeps one huge still from blowing the console's size budget.
+const INLINE_LIMIT_BYTES = 512 * 1024
+const INLINE_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif' }
+
+/**
+ * A raster asset under the cap becomes a data URI the console is allowed to render.
+ * Anything else keeps its path, so the view can say "video, open it separately" instead
+ * of rendering a broken <video> that the CSP blocks.
+ * @param {string} episodeDir
+ * @param {string} relPath
+ */
+async function inlineAsset(episodeDir, relPath) {
+  const clean = String(relPath || '').trim()
+  if (!clean) return { src: '', path: '', kind: '' }
+  const type = INLINE_TYPES[extname(clean).toLowerCase()]
+  const kind = type ? 'image' : /\.(mp4|webm|mov)$/i.test(clean) ? 'video' : 'other'
+  if (!type) return { src: '', path: clean, kind }
+  try {
+    const file = resolve(episodeDir, clean)
+    const bytes = await readFile(file)
+    if (bytes.length > INLINE_LIMIT_BYTES) return { src: '', path: clean, kind: 'image-too-large' }
+    return { src: `data:${type};base64,${bytes.toString('base64')}`, path: clean, kind }
+  } catch {
+    return { src: '', path: clean, kind: 'missing' }
+  }
+}
 
 /** JSONL files in the facts folder whose name starts with `prefix`. */
 async function factFiles(dir, prefix) {
@@ -149,6 +178,22 @@ async function loadEpisode(doc) {
   const video = (model.elements.Video || [])[0] || {}
   const variants = model.elements.Variant || []
   const layers = model.elements.Layer || []
+  const scenes = (model.elements.Scene || []).map((s) => sceneOf(s, variants, layers))
+
+  // Resolve every asset once, here, where the episode folder is known.
+  for (const scene of scenes) {
+    for (const layer of scene.layers) {
+      const asset = await inlineAsset(doc.dir, layer.asset)
+      layer.assetSrc = asset.src
+      layer.assetKind = asset.kind
+    }
+    for (const variant of scene.variants) {
+      const thumb = await inlineAsset(doc.dir, variant.thumbnail)
+      variant.thumbnailSrc = thumb.src
+      variant.thumbnailKind = thumb.kind
+    }
+  }
+
   return {
     slug: doc.slug,
     series: doc.series,
@@ -157,7 +202,7 @@ async function loadEpisode(doc) {
     budget: video.fields?.budget ?? null,
     presets: video.fields?.presets ?? null,
     components: video.fields?.components ?? null,
-    scenes: (model.elements.Scene || []).map((s) => sceneOf(s, variants, layers)),
+    scenes,
   }
 }
 
