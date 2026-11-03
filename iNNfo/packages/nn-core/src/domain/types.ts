@@ -89,3 +89,16 @@ export type AddressResolution =
       warnings: ResolutionProblem[]
     }
   | { ok: false; problem: ResolutionProblem }
+
+/** One instance of a concept, wherever it is stored (design A8). */
+export interface CollectionMember {
+  concept: string
+  /** The model id for an instance root; `<model-id>@<slug>` for an element. */
+  address: string
+  slug: string
+  modelId: ModelId
+  path: string
+  storage: 'distributed' | 'compact'
+  /** Codes of the layout diagnostics that name this member's model; absent when clean. */
+  flags?: LayoutCode[]
+}

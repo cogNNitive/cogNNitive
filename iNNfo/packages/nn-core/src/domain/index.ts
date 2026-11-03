@@ -19,9 +19,11 @@ import {
 } from './placement.js'
 import type {
   AddressResolution,
+  CollectionMember,
   DomainModelInput,
   ElementRef,
   IndexedModel,
+  LayoutCode,
   LayoutDiagnostic,
   ResolutionProblem,
   ResolveExpectation,
@@ -37,6 +39,8 @@ export interface DomainIndex {
   byId(id: string): IndexedModel | undefined
   byPath(path: string): IndexedModel | undefined
   resolve(address: string | Address, from?: string, expect?: ResolveExpectation): AddressResolution
+  /** Every instance of `concept` across the domaiNN, whatever its storage form, ordered by id. */
+  collection(concept: string): readonly CollectionMember[]
   placementFor(concept: string, id: string, blueprint: string): { folder: string; file: string } | LayoutDiagnostic
   readonly diagnostics: readonly LayoutDiagnostic[]
 }
@@ -228,9 +232,37 @@ export function buildDomainIndex(
     return { ok: true, model, element, unit, warnings }
   }
 
+  let flagsByPath: Map<string, LayoutCode[]> | undefined
+  const collection = (concept: string): CollectionMember[] => {
+    if (!flagsByPath) {
+      flagsByPath = new Map()
+      for (const d of diagnostics) {
+        for (const path of d.paths) flagsByPath.set(path, [...new Set([...(flagsByPath.get(path) ?? []), d.code])])
+      }
+    }
+    const members: CollectionMember[] = []
+    for (const { model: m, input } of entries) {
+      const flags = flagsByPath.get(m.path)
+      for (const el of input.elements.filter((e) => e.concept.toLowerCase() === concept.toLowerCase())) {
+        const root = m.storage.kind === 'instance' && m.storage.concept.toLowerCase() === concept.toLowerCase()
+        members.push({
+          concept: el.concept,
+          address: root ? m.id : `${m.id}@${el.slug}`,
+          slug: el.slug,
+          modelId: m.id,
+          path: m.path,
+          storage: root ? 'distributed' : 'compact',
+          ...(flags ? { flags } : {}),
+        })
+      }
+    }
+    return members.sort((a, b) => byText(a.modelId, b.modelId) || byText(a.slug, b.slug) || byText(a.path, b.path))
+  }
+
   return {
     models,
     byId,
+    collection,
     byPath: (path) => pathMap.get(path),
     resolve,
     placementFor: (concept, id, blueprint) => {
