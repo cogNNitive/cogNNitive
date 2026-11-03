@@ -9,7 +9,7 @@ import {
   displayStem,
 } from '@cognnitive/nn-core'
 import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
-import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
+import { buildNodeDomainIndex, duplicateIdCollisions, type ModelIdCollisionDiagnostic } from './domain-index.js'
 
 /**
  * sync_workspace_manifest — the headless (MCP) caller of `reconcileManifest`
@@ -186,7 +186,7 @@ export async function syncWorkspaceManifest(
     dry_run: dryRun,
     manifest_path: manifestRelPath,
     changes,
-    collisions: modelIdCollisionDiagnostics(discovered.map((d) => d.path)),
+    collisions: duplicateIdCollisions((await buildNodeDomainIndex(root)).index),
     ...(diff !== undefined ? { diff } : {}),
     written,
   }

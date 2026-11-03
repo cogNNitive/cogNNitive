@@ -81,7 +81,7 @@ describe('listKnowledge nested domaiNN detection', () => {
     await mkdir(join(root, 'inner'), { recursive: true })
     await writeFile(join(root, 'inner', 'domaiNN_NN.md'), '# inner\n', 'utf-8')
     await writeFile(join(root, 'inner', 'Hidden_business_NN.md'), doc, 'utf-8')
-    expect((await listKnowledge(root)).map((m) => m.id)).toEqual(['Kept_business_NN'])
+    expect((await listKnowledge(root)).map((m) => m.id)).toEqual(['Kept_business'])
   })
 })
 
@@ -128,12 +128,12 @@ describe('list_models and ## NN Models agree', () => {
       const rel = relative(root, abs).split('\\').join('/')
       const frontmatter = parseFrontmatter(await readFile(abs, 'utf-8'))
       if (frontmatter && isReconcilableModel({ path: rel, frontmatter }, 'domaiNN_NN.md')) {
-        reconcilable.push(rel.split('/').pop()!.replace(/\.md$/, ''))
+        reconcilable.push(rel.split('/').pop()!.replace(/_NN\.md$/, ''))
       }
     }
     reconcilable.sort()
 
-    expect(listed).toEqual(['Acme_cogNNitive_NN', 'Client_business_NN', 'Other_projects_NN'])
+    expect(listed).toEqual(['Acme_cogNNitive', 'Client_business', 'Other_projects'])
     expect(reconcilable).toEqual(listed)
   })
 })

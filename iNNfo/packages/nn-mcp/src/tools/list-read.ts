@@ -8,8 +8,8 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { listKnowledge as coreListModels, parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
+import { parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
+import { buildNodeDomainIndex } from './domain-index.js'
 import type { KnowledgeInfo, ParsedKnowledge } from '@cognnitive/nn-core'
 
 /**
@@ -59,42 +59,28 @@ export function normalizeId(id: string): string {
 }
 
 /**
- * Scan a directory for iNNfo knowledge documents.
+ * Scan a directory for iNNfo knowledge documents. Ids come from the domain
+ * index: hierarchical, never a path, unchanged when a same-stem file is added
+ * elsewhere. A model with no id (unaddressable) is not listed.
  */
 export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
-  const rootModels = await coreListModels(rootDir)
-  const candidateDirs = [join(rootDir, 'kNNowledge')]
-  for (const dir of candidateDirs) {
-    try {
-      const { stat } = await import('node:fs/promises')
-      const st = await stat(dir)
-      if (st.isDirectory()) {
-        const subModels = await coreListModels(dir)
-        for (const m of subModels) {
-          if (!rootModels.some((rm) => rm.path === m.path)) {
-            rootModels.push(m)
-          }
-        }
-      }
-    } catch (err) {
-      /* v8 ignore start */
-      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        console.warn(`[list-read] Failed to scan dir ${dir}: ${err}`)
-      }
-      /* v8 ignore stop */
-    }
+  const { index, discovered } = await buildNodeDomainIndex(rootDir)
+  const byRel = new Map(discovered.map((d) => [d.input.path, d]))
+  const models: KnowledgeInfo[] = []
+  for (const m of index.models) {
+    const found = byRel.get(m.path)
+    if (found) models.push({ id: m.id, path: found.path, version: found.version })
   }
-  rootModels.sort((a, b) => a.id.localeCompare(b.id))
-  return rootModels
+  return models
 }
 
 /**
  * Read and parse an iNNfo model by its id.
- * The id is the filename stem (e.g. `Ghostbusters_V_0-1-0_business`
- * resolves to `Ghostbusters_V_0-1-0_business_NN.md`).
+ * The id is the hierarchical model id (a compact model's file stem without
+ * `_NN`, e.g. `Ghostbusters_V_0-1-0_business`; an instance model's `<container>/<slug>`).
  *
- * Searches the root and the conventional `kNNowledge/` subdirectory, trying
- * `<cleanId>_NN.md`, `<cleanId>.md`, `<cleanId>`, `<id>` and `<id>.md`.
+ * Resolution goes through `findKnowledgeFile` (domain index first, then
+ * non-model documents by stem); a path throws `MODEL_ADDRESSED_BY_PATH`.
  *
  * Returns null if the file doesn't exist or can't be parsed.
  *

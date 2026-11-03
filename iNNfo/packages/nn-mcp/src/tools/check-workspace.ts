@@ -35,7 +35,7 @@ import {
 import type { SpecCache } from '@cognnitive/nn-core'
 import { checkDomainProvenance } from './provenance-strict.js'
 import { listKnowledge } from './list-read.js'
-import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
+import { buildNodeDomainIndex, duplicateIdCollisions, type ModelIdCollisionDiagnostic } from './domain-index.js'
 import { deriveNameFromUrl } from './spec.js'
 import {
   collectWorkspaceDiagnostics,
@@ -380,7 +380,8 @@ export async function checkWorkspace(
   const report = {
     ...base,
     provenance,
-    collisions: modelIdCollisionDiagnostics(ctx.models.map((m) => m.path)),
+    // Temporary projection of DUPLICATE_MODEL_ID until `layout.diagnostics` (S4a).
+    collisions: duplicateIdCollisions((await buildNodeDomainIndex(rootDir)).index),
   }
 
   if (!options.summaryOnly) return report

@@ -26,8 +26,8 @@ export async function collectProvenanceModels(rootDir: string): Promise<Provenan
       continue
     }
     if (parsed.frontmatter.level !== 3) continue
-    // `listKnowledge` ids keep the `_NN` suffix; unit addresses never do.
-    const modelId = canonicalUnitModelId(info.id.replace(/_NN$/i, ''))
+    // `listKnowledge` ids come from the domain index and never carry `_NN`.
+    const modelId = canonicalUnitModelId(info.id)
     models.push({ modelId, model: parsed, path: info.path })
   }
   return models

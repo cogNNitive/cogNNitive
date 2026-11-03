@@ -228,9 +228,9 @@ describe('checkWorkspace (AD-5)', () => {
       {
         code: 'MODEL_ID_COLLISION',
         severity: 'warning',
-        id: 'status_V_0-1-0_business_NN',
+        id: 'status_V_0-1-0_business',
         paths: [`models/alpha/${dup}`, `models/beta/${dup}`],
-        message: expect.stringContaining('status_V_0-1-0_business_NN'),
+        message: expect.stringContaining('status_V_0-1-0_business'),
       },
     ])
     expect(report.collisions[0].message).toContain(`models/alpha/${dup}`)

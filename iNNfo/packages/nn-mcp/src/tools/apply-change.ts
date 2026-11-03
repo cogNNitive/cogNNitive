@@ -44,7 +44,7 @@ import type {
   ChangeStatus,
   BumpLevel,
 } from '@cognnitive/nn-core'
-import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, AmbiguousModelIdError } from './spec.js'
+import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { writeProposedChangeset } from './propose-changeset.js'
@@ -912,7 +912,7 @@ export async function executeChangesetApply(
       try {
         exists = Boolean(await findKnowledgeFile(rootDir, change.target))
       } catch (err) {
-        if (err instanceof AmbiguousModelIdError) exists = true
+        if (err instanceof ModelIdError) exists = true
         else throw err
       }
       if (exists) {
@@ -1024,7 +1024,7 @@ export async function executeChangesetApply(
         try {
           modelFile = await findKnowledgeFile(rootDir, modelSlug)
         } catch (err) {
-          if (err instanceof AmbiguousModelIdError) {
+          if (err instanceof ModelIdError) {
             return {
               success: false,
               changesetPath: relChangesetPath,
@@ -1705,7 +1705,7 @@ export async function applyChange(
     try {
       filePath = await findKnowledgeFile(rootDir, id)
     } catch (err) {
-      if (err instanceof AmbiguousModelIdError) {
+      if (err instanceof ModelIdError) {
         return { success: false, errors: [{ path: '', message: err.message }] }
       }
       throw err
@@ -1738,7 +1738,7 @@ export async function applyChange(
     try {
       filePath = await findKnowledgeFile(rootDir, id)
     } catch (err) {
-      if (err instanceof AmbiguousModelIdError) {
+      if (err instanceof ModelIdError) {
         return { success: false, errors: [{ path: '', message: err.message }] }
       }
       throw err

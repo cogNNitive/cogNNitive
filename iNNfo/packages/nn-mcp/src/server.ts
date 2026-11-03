@@ -34,7 +34,7 @@ import {
   hydrateBlueprint,
   listBlueprintProcedures,
   listBlueprintSkills,
-  AmbiguousModelIdError,
+  ModelIdError,
 } from './tools/spec.js'
 import {
   validateKnowledge,
@@ -865,7 +865,7 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
     if (!handler) return errorResult(`Unknown tool: ${name}`)
     return await handler(args)
   } catch (err) {
-    if (err instanceof AmbiguousModelIdError) {
+    if (err instanceof ModelIdError) {
       return {
         content: [
           {
@@ -873,7 +873,7 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
             text: JSON.stringify(
               {
                 ok: false,
-                code: 'AMBIGUOUS_MODEL_ID',
+                code: err.code,
                 id: err.id,
                 candidates: err.candidates,
                 message: err.message,

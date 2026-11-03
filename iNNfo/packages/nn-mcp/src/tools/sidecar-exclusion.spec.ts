@@ -36,7 +36,7 @@ describe('sidecars are never models in MCP discovery', () => {
 
   it('list_knowledge lists only the real model', async () => {
     const ids = (await listKnowledge(rootDir)).map((m) => m.id)
-    expect(ids).toEqual(['Acme_business_NN'])
+    expect(ids).toEqual(['Acme_business'])
   })
 
   it('workspace sync proposes only the real model for ## NN Models', async () => {

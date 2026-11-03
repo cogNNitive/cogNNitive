@@ -513,10 +513,20 @@ for (const series of SERIES) {
   check('explain: union of the blueprint `components` keeps the floor entries', union.value.length >= 1, `${union.value.length} entries`);
 }
 
+// Local reporting helper: ids are hierarchical now (domain index); this diagnostic script only counts repeated file stems.
+function stemCollisions(paths) {
+  const byStem = new Map();
+  for (const p of paths) {
+    const id = p.split('/').pop().replace(/\.md$/i, '');
+    byStem.set(id, [...(byStem.get(id) ?? []), p]);
+  }
+  return [...byStem].filter(([, ps]) => ps.length > 1).map(([id, ps]) => ({ id, paths: ps }));
+}
+
 // markers must not collide as model ids
 {
   const markers = listFiles(work).filter((f) => f.endsWith('_scope_NN.md') || f.endsWith('draft-scene-visuals_procedures_NN.md'));
-  check('added documents introduce no model-id collision', core.findStemCollisions(markers).length === 0, markers.join(', '));
+  check('added documents introduce no model-id collision', stemCollisions(markers).length === 0, markers.join(', '));
 }
 
 // other findings the adapters could not express or the data contradicts
@@ -535,7 +545,7 @@ for (const series of SERIES) {
   const singular = SERIES.filter((s) => existsSync(join(work, 'series', s, 'procedure')));
   finding(`procedures live in "series/<s>/procedure/" (singular) in ${singular.length} of ${SERIES.length} series, while loadScopeProcedures reads "<scope>/procedures/": video adoption must rename the folder or the loader must learn the name`);
   const nnDocs = listFiles(work).filter((f) => isNNName(f) && !f.startsWith('.moves_backup/') && !f.startsWith('sources/'));
-  const collisions = core.findStemCollisions(nnDocs);
+  const collisions = stemCollisions(nnDocs);
   finding(`model-id collisions among ${nnDocs.length} _NN.md documents (outside sources/ and .moves_backup/): ${collisions.length} (${collisions.slice(0, 6).map((c) => c.id + ' x' + c.paths.length).join(', ')}${collisions.length > 6 ? ', ...' : ''})`);
 }
 

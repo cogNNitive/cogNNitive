@@ -118,7 +118,7 @@ describe('console export round trip', () => {
       kind: 'correction',
       element_id: vision.id,
       element_slug: vision.slug,
-      knowledge_id: 'kNNowledge/strategy',
+      knowledge_id: 'strategy',
       concept: vision.concept,
       element: vision.name,
       base_hash: baseHash,
@@ -136,8 +136,9 @@ describe('console export round trip', () => {
     const byName = (name: string) => payload.model.elements.find((e) => e.name === name)!
     const vision = byName('Vision')
     const legacy = byName('Legacy Plan')
-    const modelId = payload.model.meta.modelId
-    expect(modelId).toBe('kNNowledge/strategy')
+    // The payload still carries the path-derived id until S5b; the engine addresses the domain index id.
+    expect(payload.model.meta.modelId).toBe('kNNowledge/strategy')
+    const modelId = 'strategy'
 
     const drafts: Draft[] = [
       {
@@ -208,7 +209,7 @@ describe('console export round trip', () => {
   it('carries base_hash and the engine accepts it when the element is unchanged', async () => {
     const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
     const vision = payload.model.elements.find((e) => e.name === 'Vision')!
-    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'kNNowledge/strategy')
+    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'strategy')
     const change = parseChangeset(text).changes[0]
     expect(change.base_hash).toBe(vision.hash)
 
@@ -221,7 +222,7 @@ describe('console export round trip', () => {
   it('rejects a change whose base_hash no longer matches and leaves the model untouched', async () => {
     const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
     const vision = payload.model.elements.find((e) => e.name === 'Vision')!
-    const text = exportChangeset([visionCorrection(vision, 'deadbeefdeadbeef')], 'kNNowledge/strategy')
+    const text = exportChangeset([visionCorrection(vision, 'deadbeefdeadbeef')], 'strategy')
     await writeFile(join(changesDir, 'stale_changes_NN.md'), text, 'utf-8')
 
     const result = await applyChange(root, 'changes/stale_changes_NN.md')
@@ -235,7 +236,7 @@ describe('console export round trip', () => {
   it('an exported author:: resolves as a human author', async () => {
     const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
     const vision = payload.model.elements.find((e) => e.name === 'Vision')!
-    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'kNNowledge/strategy')
+    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'strategy')
     expect(text).toContain('author:: tester')
 
     await writeFile(join(changesDir, 'author_changes_NN.md'), text, 'utf-8')
@@ -253,7 +254,7 @@ describe('console export round trip', () => {
     const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
     const vision = payload.model.elements.find((e) => e.name === 'Vision')!
     const clear: Draft = { ...visionCorrection(vision, vision.hash), proposed: '' }
-    const text = exportChangeset([clear], 'kNNowledge/strategy')
+    const text = exportChangeset([clear], 'strategy')
     expect(text).toMatch(/^to:: *$/m)
 
     await writeFile(join(changesDir, 'clear_changes_NN.md'), text, 'utf-8')
@@ -273,7 +274,7 @@ describe('console export round trip', () => {
   it('exports a new draft without concept or name as a comment', () => {
     const text = exportChangeset(
       [{ id: 'fb-001', kind: 'new', element_id: 'x', base_hash: '0123456789abcdef', concept: '', element: '' }],
-      'kNNowledge/strategy',
+      'strategy',
     )
     expect(parseChangeset(text).changes.map((c) => c.op)).toEqual(['comment'])
   })

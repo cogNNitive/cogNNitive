@@ -46,7 +46,7 @@ import type {
   BaselineEntry,
   BaselineDiff,
 } from '@cognnitive/nn-core'
-import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, AmbiguousModelIdError } from './spec.js'
+import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
 import { loadKnowledge } from './knowledge-io.js'
@@ -620,7 +620,7 @@ export async function validateKnowledge(
     try {
       filePath = await findKnowledgeFile(rootDir, id)
     } catch (err) {
-      if (err instanceof AmbiguousModelIdError) {
+      if (err instanceof ModelIdError) {
         return {
           valid: false,
           errors: [{ path: '', message: err.message, severity: 'error' }],
@@ -663,7 +663,13 @@ export async function validateKnowledge(
     return { ...delegated, suppressedCount: 0, staleEntries: [], backlog: null, summary: null }
   }
 
-  const resolvedModelPath = id ? await findKnowledgeFile(rootDir, id) : null
+  // With inline `content`, `id` is only a label (often a file name); a path is not an id to resolve.
+  const resolvedModelPath = id
+    ? await findKnowledgeFile(rootDir, id).catch((err: unknown) => {
+        if (err instanceof ModelIdError && err.code === 'MODEL_ADDRESSED_BY_PATH') return null
+        throw err
+      })
+    : null
   const modelPath = resolvedModelPath ?? (id ?? 'inline')
   const referringDir = resolvedModelPath ? dirname(resolvedModelPath) : rootDir
   const fileNameForCheck = id ? basename(resolvedModelPath ?? id) : 'inline_NN.md'
