@@ -129,6 +129,25 @@ describe('resolve_effective over element scopes', () => {
 })
 
 describe('storage is orthogonal to the scope chain (distributed-storage S5a)', () => {
+  it('an episode resolves fps from the Series instance model that carries scope: true (S7a)', async () => {
+    const dir = join(scratch, 'video-scope-fps')
+    mkdirSync(join(dir, 'series', 'demo-series', 'assets', 'intro'), { recursive: true })
+    writeFileSync(join(dir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n\n# NN domaiNN\n')
+    writeFileSync(
+      join(dir, 'series', 'demo-series', 'demo-series_video-script_NN.md'),
+      '---\nlevel: 3\nscope: true\ntitle: "Demo series"\n---\n\n# NN Series\n\n## NN Series: Demo series\nfps:: 25\n',
+    )
+    writeFileSync(
+      join(dir, 'series', 'demo-series', 'assets', 'intro', 'intro_video-script_NN.md'),
+      '---\nlevel: 3\ntitle: "Intro"\n---\n\n# NN Video\n\n## NN Video: Intro\n',
+    )
+    const path = 'series/demo-series/assets/intro/intro_video-script_NN.md'
+    const r = ok(await resolveEffective(dir, { path, key: 'fps', strategy: 'override' }, isolated))
+    expect([r.present, r.value]).toEqual([true, 25])
+    expect(r.winner?.scope).toBe('series/demo-series')
+    expect(r.winner?.doc).toBe('series/demo-series/demo-series_video-script_NN.md')
+  })
+
   it('an instance model inherits from the series scope through its own folder', async () => {
     const r = ok(await resolveEffective(GOLD, { path: SCRIPT, key: 'voice_id', strategy: 'override' }, isolated))
     // The supplier is the SERIES scope, not the instance model: distributing a
