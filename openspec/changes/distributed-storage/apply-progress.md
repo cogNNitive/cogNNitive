@@ -25,7 +25,7 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S6d | 534 | `ds/s6d` | `ds/s6c` | open, applied (~1,574 hand-authored changed lines, `size:exception`) |
 | S7a | 535 | `ds/s7a` | `ds/s6d` | open, applied (~576 hand-authored changed lines, `size:exception`) |
 | S7b | 536 | `ds/s7b` | `ds/s7a` | open, applied (~244 hand-authored changed lines, plus 543 mechanical corpus lines; `size:exception`) |
-| S7c | 19 | `ds/s7c` | `ds/s7b` | open, applied (~407 hand-authored changed lines + 48 generated; the side docs PR 501 is absorbed by merge; `size:exception`) |
+| S7c | 537 | `ds/s7c` | `ds/s7b` | open, applied (~407 hand-authored changed lines + 48 generated; the side docs PR 501 is absorbed by merge; `size:exception`) |
 | S7d | n/a | n/a | n/a | not started (maintainer stop) |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
