@@ -13,7 +13,7 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S2a | 506 | `ds/s2a` | `ds/s1b` | open (756 hand-authored lines incl. fixtures, `size:exception`) |
 | S2b | n/a | `ds/s2b` | `ds/s2a` | applied locally, not pushed (about 1,636 hand-authored lines, `size:exception`; the S2b-i/S2b-ii split was not shipped, see the S2b section) |
 | S3a | PR_S3A | `ds/s3a` | `ds/s2b` | open, applied (`size:exception`) |
-| S3b | PR_S3B | `ds/s3b` | `ds/s3a` | PENDING_S3B |
+| S3b | PR_S3B | `ds/s3b` | `ds/s3a` | open, applied (`size:exception`) |
 | S3c | PR_S3C | `ds/s3c` | `ds/s3b` | PENDING_S3C |
 | S4a to S7d | n/a | n/a | n/a | not started |
 
@@ -305,3 +305,41 @@ Status: S3a done (S3a.1 to S3a.7). `size:exception` applies (about 690 hand-auth
 ### For the verify phase
 - Confirm decision 2 (lenient default) and the perf cost: every `findKnowledgeFile` call builds one index (reads and parses every model of the domaiNN); a per-apply index is S6a.
 - Confirm deviation 2 (video-script bump pulled forward).
+
+## S3b - References: title resolution deleted; address-only typed fields (PR 7, branch `ds/s3b`, targets `ds/s3a`)
+
+Status: S3b done (S3b.1 to S3b.12). `size:exception` applies (459 added and 1,128 deleted hand-authored lines; forecast ~400; no declared fallback split was used).
+
+### Q1 and Q2 (S3b.1)
+Recorded before any edit: Q1 (scope `parent` is an `@slug` address) and Q2 (typed `[[Name]]` is removed, corpus cost in S7b) were resolved by the maintainer on 2026-11-03 (see the decisions block of `tasks.md`).
+
+### Claim check (before editing)
+- `workspaceReferences.ts` carried `QUALIFIED_REF_RE`, the title and file-name ladders and `resolveTargetModel`; `workspaceIndex.ts` carried `titleToNodeIds`, `fileNameToNodeIds`, `nodeElementConcepts` and the duplicate-title issue; `content.ts` bypassed the qualified form in `conv-wikilinks`.
+- The graph (`RecursiveParseResult`) holds no domain index; `validateWorkspaceReferences` only saw nodes. A bridge was needed.
+
+### What changed
+- `validateWorkspaceReferences(result, index, domain?)` runs over a `DomainIndex` (built from the graph by the new `domainIndexOfResult` unless the host passes one; `nn-mcp` passes the disk-backed index). Typed `reference`/`knowledge` fields hold addresses: a removed form (`[[Title :: Name]]`, `[[Name]]`, a bare title) is `ADDRESS_MALFORMED`; a relative `@slug` is left to the per-file validator; an absolute address resolves exactly through `DomainIndex.resolve` (`REF_MODEL_NOT_FOUND`, `REF_ELEMENT_NOT_FOUND`, `ADDRESS_NOT_CANONICAL`; `REF_CONCEPT_MISMATCH` and `REF_BLUEPRINT_MISMATCH` warn). `MULTIVALUE_SYNTAX` keeps its code and now means a comma-joined address list outside `[a, b]` (A-12).
+- `references.ts`: a typed `reference` value is address-only (relative `@slug` resolved by slug; other-model addresses are delegated). Implicit reference fields (`location`, `room`, ...) are not typed by the template and keep the by-name path; wikilink targets (`resolveReferenceTarget`, matrix headers) keep slug-first then name with `AMBIGUOUS_ELEMENT_NAME` (A-13).
+- `workspaceIndex.ts`: the three maps and the duplicate-title issue are gone; `content.ts`: the `conv-wikilinks` bypass is gone and the removed form is named in the message.
+- `scope/elements.ts`: `parent` resolves `@slug` (relative address); `[[title]]` is `UNKNOWN_PARENT_ELEMENT` naming the field; `scope-chain` delta spec has the MODIFIED requirement "Element Scope Parent Given By A Reference Field" (S3b.10). `programas-golden/tutorias_NN.md` migrated to `@programa-alfa` etc.
+- `recursiveParser/knowledge.ts`: the FR-005 info note now names `<model-id>@<slug>`.
+
+### TDD evidence
+- The new reference behavior was written before the tests that pin it, so the RED proof is the legacy suites turning red against the new code: nn-core full run showed 33 failures across `workspaceReferences`, `workspace-taxonomy-submodels`, `index`, `phase5-references-ledger`, `matrix-header-context-resolution` (each asserting the removed behavior), then the suites were rewritten to the new contract (not weakened: removed forms are now asserted as errors; wikilink ambiguity is pinned through `resolveReferenceTarget`) and went green. `tests/workspaceReferences.test.ts` was rewritten (21 tests). Deviation from strict RED-first; flagged for verify.
+- `scope/elements.spec.ts` and `fs-elements.spec.ts` were updated to `@slug` (2 red against the new code, then green).
+
+### Corpus gate (S3b.11)
+`node scripts/verify.js --fast` stayed green with no sample or fixture migration: no shipped sample, fixture or use-case workspace that verify exercises holds a typed `[[Name]]` value in a declared `reference` field, so the S7b mechanical commits were NOT pulled forward. The S7b inventory (A-18) is still due.
+
+### Deviations
+1. `core/validator/index.ts`/`core/index.ts`: `QUALIFIED_REF_RE`, `parseQualifiedRef` and `QualifiedRef` are no longer exported; `domainIndexOfResult` is exported instead. `propose-changeset.ts` and `server.ts` had no hit of the removed symbols (the task's guess).
+2. `GRAMMAR_HINT` example in `address/parse.ts` changed to `series-a/episode-1@scene-1`: the video-script scope mirror bundles it and a video-script guard test forbids the token `00-gancho` in the engine scripts.
+3. Per-file validation of a `knowledge`-typed field still treats values as submodel paths (untouched).
+
+### Gate (S3b verification)
+- nn-core `tsc --noEmit`: exit 0; nn-mcp typecheck (throwaway paths config): exit 0.
+- nn-core `vitest run`: 211 files, 2359 passed. nn-mcp `vitest run`: 61 files, 657 passed.
+- `node scripts/check-openspec-deltas.mjs`: OK. Mirrors regenerated (core, preflight, console payload, console bundle, address module).
+- `node scripts/verify.js --fast`: exit 0.
+- Grep for `QUALIFIED_REF_RE|titleToNodeIds|resolveTargetModel` under `iNNfo/packages` (without bin/dist): no match.
+
