@@ -9,7 +9,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S0 | 495 | `ds/s0` | tracker | open, applied |
 | S1a | 500 | `ds/s1a` | `ds/s0` | open, applied (648 lines, `size:exception`) |
 | Docs (side PR) | 501 | `docs/distributed-storage` | `ds/s0` | open; vocabulary, skills and gate test stay in S7c |
-| S1b to S7d | n/a | n/a | n/a | not started |
+| S1b | 3 (to open) | `ds/s1b` | `ds/s1a` | applied (741 hand-authored changed lines, `size:exception`) |
+| S2a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -98,3 +99,59 @@ Status: S1a done (S1a.1 to S1a.6). Nothing outside the new module and its tests 
 - Confirm the `size:exception` call on PR 2 (648 lines against a ~350 forecast).
 - `parseAddress` returns `source` for any `.md|.csv|.json` value that is not a model or changeset document, including sidecars; S1b delegates real source parsing to the existing `sourceRef` branch.
 - The parser accepts concept names containing a space; S1b should confirm canonical `concept:` addresses stay slug-like (`unitAddress.section` slugifies the concept, the address module does not).
+
+## S1b - Wire the grammar into citations, targets and resolved targets (PR 3, branch `ds/s1b`, targets `ds/s1a`)
+
+Status: S1b done (S1b.1 to S1b.10; PR 3 is opened by the orchestrator). `size:exception` applies (741 hand-authored changed lines against a ~380 forecast; the slice has no declared fallback split).
+
+### Claim check (before editing)
+- `sourceRef.ts` `resolveUnitPath` resolved any `_NN.md` by `roleOf` (kind `model` for knowledge) and any extensionless `[A-Za-z0-9_-]` stem as a model; hierarchical ids were not resolvable.
+- `parseTargetAddress` (nn-mcp `change-args.ts`) never throws and is also called on `produce_artifact` path targets and on legacy display-name targets (matrix names with spaces). The tasks.md line numbers (`parseCitation` 114, `resolveUnitPath` 444, `canonicalUnitModelId` 15) were correct.
+- `unit-address.ts` builders only trimmed; `parseUnitAddress` already split hierarchical ids.
+
+### Tasks and TDD evidence
+- S1b.1 RED: new `describe` blocks in `src/sourceRef.spec.ts` (hierarchical id, field/body, cell/concept/matrix, raw-file citations, mixed `sources::` list, model path and changeset heading failures, `resolveUnitPathResult`, retired prefixes). Command (cwd `iNNfo/packages/nn-core`): `node ../../../node_modules/vitest/vitest.mjs run src/sourceRef.spec.ts`: 42 tests, 14 failed (missing exports and old behavior: `kNNowledge/...` still resolved, hierarchical ids returned null).
+- S1b.2 GREEN: same command, 42 passed. `parseModelUnitRef` maps `parseAddress` onto the existing `SourceRef` unit kinds; `parseCitationResult` and `resolveUnitPathResult` carry the reason; the `MODEL_ID` regex is deleted. The full nn-core run then showed 18 legacy assertions pinned to the removed forms; they were updated, not weakened: `parseCitation.test.ts`, `sourceRef.unit.spec.ts` (fixtures moved to `sources/import/ghostbusters.md`), `validateCitations.test.ts`, `workspaceSources.test.ts` (plus new `KU_MALFORMED` cases), `use-cases-workspaces.test.ts` (resolver maps a model id to `kNNowledge/<id>_NN.md`). Re-run after resume: full nn-core 206 files, 2236 passed.
+- S1b.3 RED: `tests/changeset/facts.test.ts` (+57 lines): 4 failed of 15 (builders did not reject a file path, a backslash or a non-canonical slug; `unitAddress` accepted `a b`; `concept:vision--mission` did not parse). Also RED in `tests/address/parse.test.ts`: 2 failed (`--` slug, non-Latin slug).
+- S1b.4 GREEN: `resolved-target.ts` delegates to `formatAddress`; `unit-address.ts` validates each model-id segment with `^[A-Za-z0-9][A-Za-z0-9_-]*$` (one shared constant); `address/grammar.ts` widened. Full nn-core: 206 files, 2246 passed. Mirrors regenerated: `node scripts/export-address-module.mjs`, `node scripts/build-console-bundle.mjs`, `node scripts/build-console-payload.mjs`.
+- S1b.5 RED: `nn-mcp/src/tools/change-args.spec.ts` (NEW, 5 tests): 3 failed (no `error` field). Command (cwd `iNNfo/packages/nn-mcp`): `node ../../../node_modules/vitest/vitest.mjs run src/tools/change-args.spec.ts`.
+- S1b.6 GREEN: 5 passed; full nn-mcp 60 files, 653 passed.
+- S1b.7 RED then GREEN: `tests/browser-safe.test.ts` +3 tests (3 failed, then 12 passed). Exports: `parseAddress`, `formatAddress`, `isAddressError`, the address types, `parseCitationResult` and `resolveUnitPathResult` from `index.ts` and `browser.ts`; the address functions and `parseCitationResult` from `trannsformPrimitives.ts`. Ran `node scripts/build-core-mirrors.mjs` and `node --test scripts/build-core-mirrors.test.mjs` (1 pass, 0 fail), and `node scripts/build-preflight-primitives.mjs` (found by `verify --fast`; regenerated the `nn-upgrade` mirror).
+- S1b.8 REFACTOR: `MODEL_ID` (sourceRef) deleted and the matrix/concept/element model branch of `parseKnowledgeUnitRef` (about 70 lines) removed; `unit-address.ts` `MODEL_SEGMENT_RE` is now the single copy used by the builders and `isValidModelPath`.
+- S1b.9: `node test/run.js` in `skills/nn-sources`: 564 passed, 0 failed; no edits to `src-lib/{impact-checker,gc,duplicate-guards}.js` were needed.
+- S1b.10: gate below.
+
+### Decisions
+1. Concept addresses (carried over from S1a). The living `knowledge-unit-address` spec makes the canonical `concept:` segment a slug (`unitAddress.section` is `slugifyHeading`), while `resolvedTarget.concept` has always stored the concept name as the change carried it (`m@concept:Goal`, pinned by `resolved-target.test.ts` and frozen in recorded history, where equality is by exact string). Decision: the `unitAddress` builders stay slugged; `resolvedTarget.concept` keeps the name as given but now goes through `formatAddress` (an invalid name throws); the parser keeps accepting a space and now also `--` runs (`vision--mission` is what `unitAddress.section('strategy','Vision--Mission')` emits, and it did not parse). Normalizing recorded concept targets to slugs would rewrite history keys, so it belongs with the identity-chain work (S6c). Flagged for verify.
+2. Slug grammar widened (S1a module): `SLUG` is now lowercase letters of any script plus digits with hyphen runs, with the unicode flag. Reason: frozen slugs come from `slugifyHeading`, which emits `--` (the Concept/Element boundary) and non-Latin letters; a strict ASCII slug would make `resolvedTarget.*` throw on legitimate frozen slugs. Uppercase and leading or trailing hyphens are still rejected.
+3. Failure channel: `parseCitation` and `resolveUnitPath` keep their `| null` signatures (callers and the CJS mirrors depend on them); the reason comes from the new `parseCitationResult` and `resolveUnitPathResult`. The spec wording "resolveUnitPath returns a diagnostic" is met by the sibling function.
+4. `resolveUnitPath` now ignores a trailing `@<unit>` (it classifies the path part), so the spec scenarios that pass a full citation work.
+5. `parseTargetAddress` keeps the lenient split and adds `error?: AddressError`. It cannot throw: it is called on `produce_artifact` path targets and on display-name targets the apply engine still resolves by name until the index-backed resolution (S3a). The engine rejecting on `error` is S3a.
+6. `canonicalUnitModelId` stays lenient (strips the version token only): `provenance-strict.ts` passes a whole target to it. The rejection of `.md` paths and backslashes lives in the `resolvedTarget.*` builders (through `formatAddress`) and the unit-address builders.
+7. Retired prefixes (`sources/nn|original|export/`, `export/`, `models/`): the living spec says they dangle with no special message, and also that a kNNowledge `_NN.md` path is rejected. Both are honored: a model-looking path under a retired prefix still resolves as a plain path (the `validateCitations` test is unchanged); any other `_NN.md` knowledge or changeset path is rejected. One small `RETIRED_PREFIX_RE` constant in `sourceRef.ts`.
+8. An extensionless path under `sources/` is never a model id (`RAW_AREA_RE`), preserving the old `parseCitation('sources/import/notes') === null` behavior; `address/` still does not reserve `sources` (S1a decision).
+9. A prefixed matrix cell (`m@matrix:x&r&c`) is no longer accepted (the grammar allows `matrix:` alone; cells are `m@x&r&c`). No emitter existed in the repo.
+
+### Deviations from tasks.md
+1. Fixture migration outside the listed files: `docs/cognitive_nn/use-cases/{consulting-sales,freelance-designer,startup-founder,youtube-creator}/artifacts_NN.md` (7 `sources::` lines `kNNowledge/X_NN.md` rewritten to the id `X`) and the resolver in `tests/use-cases-workspaces.test.ts`. Reason: those workspaces are validated by a nn-core test and cited models by path, a removed form. Accepted by the coordinator. Bulk docs and corpus remain S7b and S7c.
+2. Extra grammar change in `address/grammar.ts` (decision 2) with extra tests in `tests/address/parse.test.ts`.
+3. `parseCitationResult`, `resolveUnitPathResult` and the `CitationResult` and `UnitPathResult` types are not named in tasks.md.
+4. The `preflight-primitives` and `nn-upgrade` mirrors, `console-payload.generated.cjs` and `nn-console.bundle.js` were also regenerated.
+5. nn-mcp typecheck: `tsc --noEmit -p tsconfig.json` resolves `@cognnitive/nn-core` types through the junction to the primary's stale `dist`; it was run with a throwaway `tsconfig.tmp.json` (a `paths` entry to this worktree's `nn-core/dist/index.d.ts`), deleted afterwards. The nn-mcp `dist/server.js` was built with a throwaway tsup config that aliases nn-core to the worktree dist (deleted). Environmental.
+
+### Line counts (`git diff --numstat ds/s1a..HEAD` before this tracking commit)
+- Hand-authored: 549 insertions and 192 deletions = 741 changed lines. Production src 348+/133-; nn-core tests 128+/48-; `change-args.spec.ts` 42+; `change-args.ts` 24+/4-; fixtures 7+/7-.
+- Generated, excluded from the budget: `console-payload.generated.cjs` 253+/91-, `nn-address.generated.js` 258+/91-, nn-sources core mirror 298+/87-, nn-upgrade core mirror 10+, `nn-console.bundle.js` (regenerated).
+- Over the 400-line budget (forecast ~380): the rewrite of legacy assertions and the new tests are most of it. `size:exception`.
+
+### Gate (S1b verification)
+- nn-core `vitest run` full: 206 files, 2246 tests passed. nn-core `tsc --noEmit`: exit 0; `tsc` build: exit 0.
+- nn-mcp `vitest run` full: 60 files, 653 passed. nn-mcp typecheck (throwaway paths config): exit 0.
+- `node --test scripts/build-core-mirrors.test.mjs`: 1 pass. nn-sources suite (`node test/run.js`): 564 passed, 0 failed.
+- `node scripts/verify.js --fast`: all deterministic pre-checks passed (204 steps) with nn-mcp `dist/server.js` built as above.
+
+### For the verify phase
+- Confirm decision 1 (recorded concept targets stay name-as-carried) and decision 2 (slug grammar widening).
+- `parseTargetAddress` reports but does not reject; the engine consumes `error` in S3a.
+- `KU_MALFORMED` now covers a model file path in the validator with the generic message; the specific removed-form message is available through `parseCitationResult` but not yet surfaced by `workspaceSources.ts`.
+- `canonicalUnitModelId` accepts any string (by design, decision 6).
