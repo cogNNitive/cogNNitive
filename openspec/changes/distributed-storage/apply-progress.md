@@ -17,7 +17,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S3c | 512 | `ds/s3c` | `ds/s3b` | open, applied (resumed from an interrupted apply; one deviation in S3c.3) |
 | S4a | 514 | `ds/s4a` | `ds/s3c` | open, applied |
 | S4b | 516 | `ds/s4b` | `ds/s4a` | open, partial (S4b.2 apply pending a decision) |
-| S5a to S7d | n/a | n/a | n/a | not started |
+| S5a | PR_S5A | `ds/s5a` | `ds/s4b` | open, applied |
+| S5b to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -454,3 +455,27 @@ Evidence (`node apply-upgrade-plan.test.js`, 5 cases green):
 - `repinContent` leaves title and body untouched.
 
 The five cases passed on their first run, so both critical invariants were proven to bite by mutation: disabling the rollback turns the all-or-none case red ("the workspace is byte-identical after the rollback"), and disabling the consent gate turns the consent case red.
+
+## S5a - Collections: `query_units`, `list_knowledge` (PR 11, branch `ds/s5a`, targets `ds/s4b`)
+
+Status: S5a.1 to S5a.6 done.
+
+### RED
+`src/tools/collections.spec.ts` (NEW, 9 cases) failed 7/9: `collection:` was not a selector, `list_knowledge` carried no blueprint/storage/placement and no `collection` argument. `resolve-effective.spec.ts` gained 3 cases that failed only because the fixture keys were guessed wrong (see Deviations), not because the fold was wrong.
+
+### GREEN
+- `queryUnits` accepts `collection:<Concept>?filter[&filter...][&projection]`. It resolves the concept's collection through the domain index, runs the query over each member, and scopes the run to the concept (`conceptSlug`): a Video instance also holds its Scenes, so an unscoped `status=` filter matched the Scene too and reported one Video twice.
+- The per-member snapshot is keyed by the MODEL ID, so the URIs `runQuery` builds already carry the address. A file path stops being an identity once storage distributes.
+- An unknown concept is an ERROR naming the concept, not an empty success: "no member" and "no match" are different answers.
+- `listKnowledge(rootDir, { collection? })` returns `{ id, path, version, blueprint, storage, placement? }` sorted by id. A misplaced instance is listed and flagged `PLACEMENT_MISMATCH` (discovery is path-agnostic; the finding is what marks it), never hidden.
+- `list_knowledge` in `server.ts` gains the `collection` argument and its description states the shape.
+- `resolve-effective.spec.ts` gains three characterization cases proving storage is orthogonal to the scope chain: an instance inherits from its series scope, instances of different series never share a supplier, and an instance folder without `scope: true` is not in the chain.
+
+### Deviations
+1. **Collection URIs keep heading text, not slugs.** `serializeKnowledgeUnitRef` deliberately emits `@## NN Scene: 00-gancho` (the human-readable form an author types); the first draft of the test expected `@00-gancho`. The test was wrong, the serializer's rule stands, and the address still carries the owning instance (`<model-id>@## ...`).
+2. **`collection:` needs element slugs for element-level selectors.** The index reports `CollectionMember.modelId` (not `id`), and a heading without `slug::` serializes as text; the fixture now freezes the Scene slug the way real models do.
+
+### Gate (S5a verification)
+- nn-mcp `tsc --noEmit` (worktree core): exit 0.
+- nn-mcp `vitest run`: 63 files, 679 passed. `collections.spec.ts`: 9 passed. `resolve-effective.spec.ts`: 56 passed.
+- `node scripts/verify.js --fast`: see the PR body.
