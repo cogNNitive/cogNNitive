@@ -68,7 +68,7 @@ export interface ResolutionProblem {
   message: string
 }
 
-/** What the referencing field accepts (`target_concepts`, `target_template`); a mismatch only warns. */
+/** What the referencing field accepts (`target_concepts`, `target_blueprint`); a mismatch only warns. */
 export interface ResolveExpectation {
   concepts?: readonly string[]
   blueprint?: string
