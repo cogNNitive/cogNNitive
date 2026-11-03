@@ -235,6 +235,18 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
         problems.push(`${label}: move_model "to" must be the new instance model id`)
       }
       break
+    case 'extract_instance':
+      // `target` is the source element address; `to` is the instance id it becomes.
+      if (!target.includes('@') || target.includes('&')) {
+        problems.push(`${label}: extract_instance target must be <compact-id>@<slug> (the source element)`)
+      }
+      if (!change.to) problems.push(`${label}: extract_instance requires "to" (the new instance model id)`)
+      else if (!change.to.includes('/') || change.to.includes('@') || change.to.includes('\\')) {
+        problems.push(`${label}: extract_instance "to" must be the new instance model id`)
+      }
+      need('blueprint_name')
+      need('blueprint_url')
+      break
     default:
       break
   }

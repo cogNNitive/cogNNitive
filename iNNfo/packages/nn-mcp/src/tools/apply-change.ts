@@ -2461,6 +2461,22 @@ export async function applyChange(
     }
   }
 
+  // extract_instance creates a model and cuts another one: an unrecorded cut is
+  // exactly the drift the migration exists to avoid (design A11).
+  if (op === 'extract_instance') {
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'op',
+          code: 'EXTRACT_INSTANCE_REQUIRES_CHANGESET',
+          message:
+            'EXTRACT_INSTANCE_REQUIRES_CHANGESET: extract_instance migrates a compact element into its own model and is only valid inside a changeset; use propose_changeset',
+        },
+      ],
+    }
+  }
+
   // Direct operations are a closed, classified set. Maintenance and schema operations
   // alter no Level-3 content, so they run straight against the engine and leave no
   // changeset. Anything that is neither a ChangeOp nor in those lists is rejected.
