@@ -202,6 +202,61 @@ describe('evidence drift', () => {
   })
 })
 
+describe('a model touched by an applied change with no file entry (distributed-storage S6c)', () => {
+  const touchedChange = { id: 'c-01', op: 'update_field', target: 'villabotijos-today/intro@grow&owner', to: 'Ana', resolved_target: 'villabotijos-today/intro@grow&owner' } as const
+
+  it('MODEL_WITHOUT_FILE names the id and the change, as a warning in fold mode', () => {
+    const log = logOf([{ changes: [touchedChange] }])
+    const report = checkProvenance(log, [])
+    const d = report.diagnostics.find((x) => x.code === 'MODEL_WITHOUT_FILE')
+    expect(d).toMatchObject({ severity: 'warning', changeId: 'c-01', unit: 'villabotijos-today/intro' })
+    expect(d?.message).toContain('villabotijos-today/intro')
+    expect(d?.message).toContain('c-01')
+    expect(report.ok).toBe(true)
+  })
+
+  it('is an error in strict mode', () => {
+    const log = logOf([{ changes: [touchedChange] }])
+    const report = checkProvenance(log, [], { strict: true })
+    const d = report.diagnostics.find((x) => x.code === 'MODEL_WITHOUT_FILE')
+    expect(d?.severity).toBe('error')
+    expect(report.ok).toBe(false)
+  })
+
+  it('is silent when the model is present', () => {
+    const log = logOf([{ changes: [touchedChange] }])
+    const models = [modelOf(MODEL.replace('owner:: Ana', ''), 'villabotijos-today/intro')]
+    expect(codes(checkProvenance(log, models))).not.toContain('MODEL_WITHOUT_FILE')
+  })
+
+  it('a model renamed by move_model whose chain ends in a live model is not drift', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'update_field', target: 'innteresante/intro@grow&owner', to: 'Ana', resolved_target: 'innteresante/intro@grow&owner' },
+          { id: 'c-02', op: 'move_model', target: 'innteresante/intro', to: 'villabotijos-today/intro' },
+        ],
+      },
+    ])
+    const models = [modelOf(MODEL, 'villabotijos-today/intro')]
+    expect(codes(checkProvenance(log, models))).not.toContain('MODEL_WITHOUT_FILE')
+  })
+
+  it('a hand-deleted instance is reported (A-5)', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+          { id: 'c-02', op: 'update_field', target: 'villabotijos-today/intro@intro&title', to: 'Intro', resolved_target: 'villabotijos-today/intro@intro&title' },
+        ],
+      },
+    ])
+    const d = checkProvenance(log, []).diagnostics.find((x) => x.code === 'MODEL_WITHOUT_FILE')
+    expect(d).toMatchObject({ unit: 'villabotijos-today/intro' })
+    expect(d?.message).toContain('villabotijos-today/intro')
+  })
+})
+
 describe('modes and scope', () => {
   it('strict mode reports errors', () => {
     const log = logOf([
@@ -222,6 +277,10 @@ describe('modes and scope', () => {
     const log = logOf([
       { changes: [{ id: 'c-01', op: 'update_field', target: 'other@grow&owner', to: 'Ana', resolved_target: 'other@grow&owner' }] },
     ])
-    expect(checkProvenance(log, [modelOf(MODEL)]).diagnostics).toEqual([])
+    // `m` is not checked; the touched-but-missing `other` is the only diagnostic
+    // (distributed-storage S6c).
+    expect(checkProvenance(log, [modelOf(MODEL)]).diagnostics.map((d) => [d.code, d.unit])).toEqual([
+      ['MODEL_WITHOUT_FILE', 'other'],
+    ])
   })
 })

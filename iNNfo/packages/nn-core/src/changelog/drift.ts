@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Drift: the fold must reproduce the file (change-provenance).
  *
  * `checkProvenance` compares every live unit of the log with every unit the model
@@ -11,6 +11,7 @@
  * optionally, a sha resolver for the evidence anchors.
  */
 import type { ChangeLog, LoggedChange } from './index.js'
+import type { ModelId } from '../address/index.js'
 import { canonicalValue, splitUnitKey } from './fold.js'
 import type { ParsedKnowledge, ElementNode } from '../types/index.js'
 import { slugifyHeading } from '../sourceRef.js'
@@ -36,6 +37,7 @@ export interface ProvenanceDiagnostic {
     | 'EDITED_WITHOUT_RECORD'
     | 'UNIT_WITHOUT_RECORD'
     | 'MODEL_WITHOUT_RECORD'
+    | 'MODEL_WITHOUT_FILE'
     | 'EVIDENCE_UNKNOWN'
     | 'EVIDENCE_SOURCE_CHANGED'
   severity: 'warning' | 'error'
@@ -61,6 +63,22 @@ function canonicalFromValue(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map((v) => String(v)).join(', ')}]`
   if (typeof value === 'string') return canonicalValue(value)
   return String(value)
+}
+
+/**
+ * A concept unit key in its canonical form: the concept segment is the concept
+ * slug (`model@concept:goal`). Earlier changesets recorded the display name
+ * (`model@concept:Goal`); both sides compare in the slug form so no recorded
+ * history is rewritten (distributed-storage S6c).
+ */
+function normalizeConceptKey(key: string): string {
+  const { model, parts } = splitUnitKey(key)
+  if (parts.length === 0 || !parts[0].startsWith('concept:')) return key
+  const name = parts[0].slice('concept:'.length)
+  const slug = slugifyHeading(name)
+  if (slug === name) return key
+  const rest = parts.length > 1 ? `&${parts.slice(1).join('&')}` : ''
+  return `${model}@concept:${slug}${rest}`
 }
 
 function isKeyword(item: string): boolean {
@@ -91,13 +109,13 @@ function fileUnits(modelId: string, model: ParsedKnowledge): Map<string, string>
     }
     const text = model.rawSections?.[concept]
     const conceptText = canonicalFromValue(text)
-    if (conceptText !== '') units.set(`${modelId}@concept:${concept}`, conceptText)
+    if (conceptText !== '') units.set(`${modelId}@concept:${slugifyHeading(concept)}`, conceptText)
   }
 
   for (const [concept, fields] of Object.entries(model.conceptFields ?? {})) {
     for (const [field, value] of Object.entries(fields)) {
       const canonical = canonicalFromValue(value)
-      if (canonical !== '') units.set(`${modelId}@concept:${concept}&${field}`, canonical)
+      if (canonical !== '') units.set(`${modelId}@concept:${slugifyHeading(concept)}&${field}`, canonical)
     }
   }
 
@@ -178,19 +196,41 @@ export function checkProvenance(
   const mode: 'fold' | 'strict' = strict ? 'strict' : 'fold'
   const severity: 'warning' | 'error' = strict ? 'error' : 'warning'
   const diagnostics: ProvenanceDiagnostic[] = []
-  const touched = new Set<string>()
+  /** Touched model id -> the first applied change that touched it. */
+  const touched = new Map<string, LoggedChange>()
   for (const change of log.all) {
     if (!change.applied) continue
     const model = modelOfUnit(change.resolvedTarget ?? change.target)
-    if (model) touched.add(model)
+    if (model && !touched.has(model)) touched.set(model, change)
   }
 
   diagnostics.push(...evidenceDiagnostics(log, options, severity))
 
+  // An id the log touched is covered by a live entry when it is the entry's id or
+  // one of the ids the entry carried before a recorded move (design A10). A
+  // rename whose chain ends in a live model is therefore not drift; a model that
+  // vanished without a recorded move is (A-5).
+  const covered = new Set<string>()
   for (const entry of models) {
-    if (!touched.has(entry.modelId)) continue
+    covered.add(entry.modelId)
+    for (const former of log.identities(entry.modelId as ModelId)) covered.add(former)
+  }
+  for (const [modelId, change] of touched) {
+    if (covered.has(modelId)) continue
+    diagnostics.push({
+      code: 'MODEL_WITHOUT_FILE',
+      severity,
+      message: `MODEL_WITHOUT_FILE: model "${modelId}" is touched by change "${change.id}" but has no file entry; restore the file or record the change`,
+      unit: modelId,
+      changeId: change.id,
+    })
+  }
+
+  for (const entry of models) {
+    if (!touched.has(entry.modelId) && !log.identities(entry.modelId as ModelId).some((former) => touched.has(former))) continue
     const units = fileUnits(entry.modelId, entry.model)
-    const live = new Map([...log.units(entry.modelId)].map((unit) => [unit.key, unit]))
+    const live = new Map([...log.units(entry.modelId)].map((unit) => [normalizeConceptKey(unit.key), unit]))
+    const cleared = new Set([...log.cleared].map(normalizeConceptKey))
 
     for (const [key, actual] of units) {
       const unit = live.get(key)
@@ -206,7 +246,7 @@ export function checkProvenance(
             changeId: unit.origin.id,
           })
         }
-      } else if (log.cleared.has(key)) {
+      } else if (cleared.has(key)) {
         diagnostics.push({
           code: 'EDITED_WITHOUT_RECORD',
           severity,
