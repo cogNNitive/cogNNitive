@@ -1,8 +1,6 @@
 # Delta for video-folder-contract
 
-Living spec read: `openspec/specs/video-folder-contract/spec.md`. The folder layout itself does not change: episodes stay at `series/<s>/assets/<slug>/`, series anchors stay `<s>_scope_NN.md`, three-level asset scoping, the no-upward-escape rule, ephemeral engine directories, deliverables in place, `build/` and the gitignore block are unchanged. What changes is the status of the layout: it stops being a convention of this contract and becomes the placement rule that the `video-script` bluepriNNt declares (`concept-storage-declaration`), validated by `placement-validation`. The file name of the episode script also stops depending on a domain-unique stem.
-
-Verification needed (design): the requirement "Canonical Domain, Series And Episode Layout" still names the script file `<slug>_video-script_<s>_NN.md`. If the stem derivation chosen by design differs, that requirement must be re-stated at the same time; this delta does not preempt it.
+Living spec read: `openspec/specs/video-folder-contract/spec.md`. The folder layout itself does not change: episodes stay at `series/<s>/assets/<slug>/`, three-level asset scoping, the no-upward-escape rule, ephemeral engine directories, deliverables in place, `build/` and the gitignore block are unchanged. What changes is the status of the layout: it stops being a convention of this contract and becomes the placement rule that the `video-script` bluepriNNt declares (`concept-storage-declaration`), validated by `placement-validation`. The file names of the series anchor and of the episode script change with the instance-model naming rule (`nn-naming-contract`), and the requirement "Canonical Domain, Series And Episode Layout" is re-stated here (A-7) so archiving leaves no contradictory text.
 
 ## MODIFIED Requirements
 
@@ -46,6 +44,42 @@ The episode script MUST keep a domain-indexed name that satisfies the instance-m
 - GIVEN a real-domain procedure file with a Spanish name
 - WHEN the canonical layout is applied to a new episode
 - THEN the existing file keeps its name and the contract states that new names are English
+
+### Requirement: Canonical Domain, Series And Episode Layout
+
+Every video domaiNN MUST use one layout: the domain root holds at least `domaiNN_NN.md`, `video-defaults_NN.md`, `video-guard.json`, `.gitignore` and `.cognnitive/`, MAY hold `sounds/`, `components/`, `frames/`, `procedures/`, `assets/<library>/` and any other domaiNN content, and MUST NOT hold engine output; each series at `series/<s>/` holds its Series instance model `<s>_video-script_NN.md` (frontmatter `scope: true`, the series scope document) plus optional `shared/<kind>/`, `sounds/`, `components/`, `frames/`, `procedures/`, and its episodes at `series/<s>/assets/<slug>/`.
+
+An episode folder `E` MUST contain `<slug>_video-script_NN.md`, `draft.json`, `reviewed.json`, `review_console.html`, `draft_thumbs/`, `media/`, `animations/<project>/`, `asset_plan.md`, `asset_plan.approved.json`, `description.md`, the deliverables of "Deliverables Are Written In Place", and `build/`, each optional until its producing step has run. The folder name `assets/` is accepted as meaning both the domain library and the episode container, because both follow the iNNfo `{modelDir}/assets/` rule.
+
+(Previously: the series anchor was `<s>_scope_NN.md` and the episode script was `<slug>_video-script_<s>_NN.md`.)
+
+Source: D1.
+
+#### Scenario: Episodes stay where they are
+
+- GIVEN a domain whose episodes live at `series/<s>/assets/<slug>/`
+- WHEN the canonical layout is checked
+- THEN no episode folder needs to move and no episode folder is missing
+
+#### Scenario: Fully produced episode matches the layout
+
+- GIVEN an episode that has run estimate, compile, avatar synthesis, render, thumbnails and finalize
+- WHEN its folder is listed
+- THEN every entry is named in the canonical layout and every engine-generated file is under `build/`
+
+#### Scenario: Series anchor is the only series file required
+
+- GIVEN a series folder holding only `<s>_video-script_NN.md`
+- WHEN the layout is checked
+- THEN the series is valid and no `series_NN.md`, `series_rules.md`, `script_template.md` or `video.series.json` is required
+
+#### Scenario: Episode script name carries no series name
+
+- GIVEN episode `intro` in series `villabotijos-today` and in series `innteresante`
+- WHEN both scripts are written
+- THEN both files are named `intro_video-script_NN.md`
+- AND they keep distinct hierarchical ids `villabotijos-today/intro` and `innteresante/intro`
+
 
 ## ADDED Requirements
 
