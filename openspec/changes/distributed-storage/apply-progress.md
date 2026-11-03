@@ -12,7 +12,10 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S1b | 505 | `ds/s1b` | `ds/s1a` | open, applied (741 hand-authored changed lines, `size:exception`) |
 | S2a | 506 | `ds/s2a` | `ds/s1b` | open (756 hand-authored lines incl. fixtures, `size:exception`) |
 | S2b | n/a | `ds/s2b` | `ds/s2a` | applied locally, not pushed (about 1,636 hand-authored lines, `size:exception`; the S2b-i/S2b-ii split was not shipped, see the S2b section) |
-| S3a to S7d | n/a | n/a | n/a | not started |
+| S3a | PR_S3A | `ds/s3a` | `ds/s2b` | open, applied (`size:exception`) |
+| S3b | PR_S3B | `ds/s3b` | `ds/s3a` | PENDING_S3B |
+| S3c | PR_S3C | `ds/s3c` | `ds/s3b` | PENDING_S3C |
+| S4a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -265,3 +268,40 @@ Commands run from `iNNfo/packages/nn-core`: `node ../../../node_modules/vitest/v
 - Confirm the A-16 url rule (decision 7) does not raise false skew errors on the testlab fixtures; a model whose name pins a version but whose `parent_spec.url` is local is currently an incomparable pin and so triggers a finding.
 - Compact ids are the file stem as is (design A5); a stem outside the address grammar (non-ASCII, spaces, dots) is indexed but cannot be parsed back by `parseAddress`. S3a and S4a must decide whether that is a layout error.
 - `INSTANCE_SHADOWS_ELEMENT_ASSETS` compares slugs only (design A2); it does not check that the instance placement actually uses an `assets` literal.
+
+## S3a - Node adapter; replace the four id producers (PR 6, branch `ds/s3a`, targets `ds/s2b`)
+
+Status: S3a done (S3a.1 to S3a.7). `size:exception` applies (about 690 hand-authored changed lines outside pure deletions, plus 381 pure-deletion lines; forecast ~380).
+
+### Claim check (before editing)
+- Id producers found: core `listKnowledge` (collision flip to a path form), `scope/model-index.ts` (`buildModelIndex`/`resolveModelId`, package-stem alias, `AMBIGUOUS_MODEL_ID`), `scope/stem-collision.ts` + `mcp/tools/model-collisions.ts`, and `findKnowledgeFile` in `mcp/tools/spec.ts`. `core/workspace/discoverModels.ts` only holds `isReconcilableModel` (no element list): the discovery with `(concept, slug)` lives in `helpers.ts` instead (see deviations).
+- Many existing tests pin models with a fake `https://example.com/...` blueprint URL, models without any `parent_spec`, and ids that keep `_NN`.
+
+### Tasks and TDD evidence
+- S3a.1 RED: `nn-mcp/src/tools/domain-index.spec.ts` (3 tests) failed to load (module missing). S3a.2 GREEN: `mcp/tools/domain-index.ts` (`buildNodeDomainIndex`: discovery, one warm-up per distinct `(name, url)`, a synchronous `StorageDeclarationsResolver`, `pathOf(id)`); 3 passed.
+- S3a.3 RED/GREEN: `helpers.test.ts` +3 tests (id is not a path, equal stems keep their id and are never rewritten to a path, a misplaced file is listed, a changeset never is) and `domain-index.spec.ts` +1 (hierarchical-id-only resolution: a bare slug or stem does not resolve, a path throws `MODEL_ADDRESSED_BY_PATH`, an unresolved `intro` lists `innteresante/intro, villa/intro`). Legacy assertions that pinned the old ids (`_NN` kept, collision flipped to a path) were updated, not weakened (`helpers.test`, `discovery.test`, `list-read.spec`, `server.spec`, `sidecar-exclusion.spec`, `workspace-sync.spec`, `check-workspace.spec`, `submodel-discovery.test`, `spec.spec`).
+- S3a.4 GREEN: core `listKnowledge` and `discoverDomainModels` use `buildDomainIndex`; `findKnowledgeFile` resolves through the index.
+- S3a.5 GREEN: the consumers keep calling `findKnowledgeFile`/`listKnowledge`; `check_domain` and `sync_domain_manifest` project `DUPLICATE_MODEL_ID` into the temporary `collisions` field (`duplicateIdCollisions`).
+- S3a.6: deleted `scope/{model-index,stem-collision}.ts` and their specs, `mcp/tools/model-collisions.ts` (381 pure-deletion lines); `scope/index.ts`, `purity.spec.ts`, the golden script (local stem helper) and the video-script scope mirror updated.
+
+### Decisions
+1. `AmbiguousModelIdError` is replaced by `ModelIdError` with `code` `MODEL_ADDRESSED_BY_PATH | DUPLICATE_MODEL_ID` (candidates are paths). No `AMBIGUOUS_MODEL_ID` remains.
+2. Declared storage is read from LOCAL tiers only (a local `parent_spec.url`, the workspace/global package tiers); no network. By default an unresolvable bluepriNNt is read as declaring no storage (models stay compact and listed); `buildNodeDomainIndex(root, { strict: true })` gives `MODEL_UNADDRESSABLE` and no id (R3). Reason: the existing corpus pins fake URLs and a model must stay readable offline. Flag for verify: with the default, a distributed model whose bluepriNNt is not local gets a compact id.
+3. `findKnowledgeFile` resolves non-model documents (entrypoint, plain documents, models without `parent_spec`, specs with `includeSpecs`) through a stem lookup restricted to files discovery does not list, so a bare stem of an indexed instance model never resolves. A trailing `_NN` on the id is tolerated; `.md` or `\` is `MODEL_ADDRESSED_BY_PATH` (except with `includeSpecs`, where specs are documents). With `includeSpecs` a `<folder>/spec_NN.md` package is still addressed by its folder (blueprint package, not a model).
+4. Console payload still carries the path-derived id until S5b; `console-export-roundtrip.test.ts` addresses the engine with the index id (`strategy`) and keeps the payload assertion.
+
+### Deviations
+1. `discoverModels.ts` not modified; `discoverDomainModels` (helpers.ts) returns each model's `(concept, slug)` list.
+2. Bumped `video-script` `blueprint_version` V_0-14-1 -> V_0-14-2 (spec, defaults parent pin, two assertions in `test/video-script-contract-additions.test.mjs`, catalog regenerated): the Template Immutability Guard requires a bump whenever an embedded skill mirror changes, and the scope mirror changed because `model-index`/`stem-collision` left `scope/index.ts`. S7a still moves it to V_0-15-0.
+3. `scripts/build-core-mirrors.test.mjs` no longer expects `resolveModelId` in the scope mirror.
+4. The mcp `listKnowledge` no longer rescans `kNNowledge/` as a second root (the first scan already recurses into it, and it would have produced ids relative to `kNNowledge/`).
+
+### Gate (S3a verification)
+- nn-core `tsc --noEmit`: exit 0. nn-mcp typecheck with a throwaway `tsconfig.tmp.json` (paths to the worktree nn-core `dist`; not committed): exit 0.
+- nn-core `vitest run` full: 211 files, 2363 passed. nn-mcp `vitest run` full: 61 files, 657 passed.
+- `node scripts/build-core-mirrors.mjs --check`, `node --test scripts/build-core-mirrors.test.mjs`, `node scripts/guard-template-immutability.js`, `sync-versions --check`, `blueprint-catalog --check`: exit 0.
+- `node scripts/verify.js --fast`: exit 0.
+
+### For the verify phase
+- Confirm decision 2 (lenient default) and the perf cost: every `findKnowledgeFile` call builds one index (reads and parses every model of the domaiNN); a per-apply index is S6a.
+- Confirm deviation 2 (video-script bump pulled forward).
