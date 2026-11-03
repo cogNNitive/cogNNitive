@@ -1,3 +1,5 @@
+import type { ConceptStorage } from '../schema/storage.js'
+
 /** Concept `type::` values. The `as const` array is the single source of
  *  truth; `ConceptType` is derived from it so the two cannot drift. */
 export const CONCEPT_TYPES = [
@@ -140,6 +142,8 @@ export interface Concept {
   tags?: string[]
   /** Optional human-readable explanation of what the concept represents. */
   description?: string
+  /** Storage declaration (`storage::`, `container::`, `placement::`). Absent means `compact`. */
+  storage?: ConceptStorage
 }
 
 
