@@ -8847,7 +8847,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-6-0", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-7-0", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/schema/nature.ts
@@ -10346,14 +10346,17 @@ function addModelProblems(change) {
       problems.push(`change "${id}": add_model must not carry "${key}"`);
     }
   }
-  if (change.concept !== void 0 || change.fields !== void 0 || change.slug !== void 0) {
-    problems.push(`change "${id}": add_model must not carry element payload (concept, slug, fields)`);
+  if (change.fields !== void 0 || change.slug !== void 0) {
+    problems.push(`change "${id}": add_model must not carry element payload (slug, fields)`);
   }
   if (!change.blueprint_name) problems.push(`change "${id}": add_model requires "blueprint_name"`);
   if (!change.blueprint_url) problems.push(`change "${id}": add_model requires "blueprint_url"`);
   const target = change.target;
-  if (!target || target.includes("@") || target.includes("&") || target.includes("..") || /^[a-zA-Z]:/.test(target) || /[\\/]/.test(target)) {
-    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`);
+  const hierarchical = typeof change.concept === "string" && change.concept.trim() !== "";
+  if (!target || target.includes("@") || target.includes("&") || target.includes("..") || /^[a-zA-Z]:/.test(target) || (hierarchical ? target.includes("\\") : /[\\/]/.test(target))) {
+    problems.push(
+      hierarchical ? `change "${id}": add_model target must be a hierarchical model id (no "@", "&", "..", backslashes, or absolute path)` : `change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`
+    );
   }
   return problems;
 }
