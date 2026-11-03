@@ -147,3 +147,51 @@ evidence:: [sources/import/a.md@## One]
     expect(options).toContain('produce_artifact')
   })
 })
+
+describe('changes blueprint — add_model of a distributed instance (distributed-storage S6a)', () => {
+  const changeset = `---
+spec_version: "V_0-5-0"
+level: 3
+knowledge_version: "V_0-1-0"
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Create a Video instance"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: add_model
+target:: villabotijos-today/new-episode
+concept:: Video
+blueprint_name:: "video-script_V_0-15-0"
+blueprint_url:: "specs/bluepriNNts/video-script/spec_NN.md"
+name:: "New Episode"
+evidence:: decision
+`
+
+  it('validates a changeset whose add_model names the concept it instantiates', () => {
+    const model = parseKnowledge(changeset)
+    const res = validateKnowledge(model, specDoc, null)
+    const errors = res.checks.filter((c) => c.severity === 'error')
+    expect(errors).toEqual([])
+  })
+
+  it('declares concept for add_model, not only for element operations', () => {
+    const composed = resolveBlueprintSchema(changesSpec, () => null)
+    const change = composed.schema.concepts.find((c) => c.name === 'Change')!
+    const concept = change.fields.find((f) => f.name === 'concept')!
+    expect(concept.type).toBe('string')
+    const description = String((concept as { description?: string }).description ?? '')
+    expect(description).toContain('add_model')
+    expect(description).toContain('distributed')
+  })
+})
