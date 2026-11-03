@@ -22,6 +22,7 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S6a | 523 | `ds/s6a` | `ds/s5b` | open, applied (1,397 hand-authored changed lines, `size:exception`) |
 | S6b | 527 | `ds/s6b` | `ds/s6a` | open, applied (1284 hand-authored changed lines, `size:exception`) |
 | S6c | 530 | `ds/s6c` | `ds/s6b` | open, applied (724 hand-authored changed lines, `size:exception`) |
+| S6d | (opening) | `ds/s6d` | `ds/s6c` | open, applied (~1,574 hand-authored changed lines, `size:exception`) |
 | S7a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
@@ -628,6 +629,49 @@ Status: S6c.1 to S6c.10 done. `size:exception` (724 hand-authored changed lines 
 - nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against the worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 717 passed.
 - `node --test scripts/build-core-mirrors.test.mjs`: 1 pass, 0 fail.
 - `node scripts/verify.js --fast`: exit 0 (205 steps) after regenerating the console-payload mirror.
+
+## S6d - `extract_instance` (PR 16, branch `ds/s6d`, targets `ds/s6c`)
+
+Status: S6d.1 to S6d.9 done. `size:exception` (about 1,574 hand-authored changed lines against a ~400 forecast; no pre-declared fallback split).
+
+### RED
+- `src/tools/apply-change-facts.spec.ts` gained a self-contained extraction block (8 cases) over a compact registry that lists two Videos, one carrying a nested Scene and Layer. First run failed 7/7 for real reasons: `parseChangeset` rejected the op ("Invalid changeset op: extract_instance"), no placement was computed and nothing was written.
+- `tests/changelog/fold.test.ts` gained 4 cases; `tests/changelog/drift.test.ts` gained 3. The fold cases are the S6d.3 pair: the rekey must move units, element origins and history of the extracted slugs only, leave the rest of the source, and stay out of the identity chain.
+- `test/provenance-strict.test.ts` gained 2 cases and failed with `MODEL_WITHOUT_RECORD: innteresante/intro`: an extracted instance had no creation record, so strict replay refused to check it.
+- `tests/changeset/template.test.ts` gained 3 cases; the op select did not carry `extract_instance`.
+
+### GREEN
+- **Subtree cut** (`core/mutate.ts`): `subtreeOf(model, slug, concept?)` reads the element plus every descendant found by `parentSlug`, transitively and across concepts, root first; `extract_instance` (a real mutation handler, so strict replay uses the same code) removes exactly that set and returns it as `MutationResult.extracted`. Field values, prose and citation fields are the parsed nodes, so nothing is re-recorded.
+- **Skeleton seeding** (`core/scaffold/knowledge.ts`): `seedExtractedModel(model, subtree)` replaces the skeleton's placeholder list for each concept the subtree holds and keeps the placeholders of the concepts it does not. Apply and its replay call it, so the file is identical by construction.
+- **Changeset plumbing**: `extract_instance` joins `CHANGE_OPS`; `extractInstanceProblems` rejects an address that is not `<compact-id>@<slug>`, a non-hierarchical `to`, a missing blueprint and any element payload. `extracted_slugs` is a new execution fact (`EXECUTION_FACT_KEYS`), so it is an annotation line, is excluded from `proposal_sha`, and the immutability check now derives its annotation regex from that same list instead of a hand-kept one.
+- **Apply**: an extraction plan runs in Phase 1 with every check before any write — `EXTRACT_INVALID_TARGET`, `MODEL_NOT_FOUND`, `EXTRACT_REQUIRES_COMPACT`, `EXTRACT_ELEMENT_NOT_FOUND` (lists the slugs the source holds), `BLUEPRINT_UNRESOLVED`, `EXTRACT_NOT_DISTRIBUTED` (names the concept and the distributed ones), `EXTRACT_SLUG_MISMATCH`, `CONTAINER_MISSING`, and a conflict (`MODEL_EXISTS` or `EXTRACT_DESTINATION_OCCUPIED`) that also blocks every other extraction of the same source with `DEPENDS_ON_CONFLICTED_CHANGE` (A-14). Phase 1 cuts, scaffolds, seeds and registers the new entry as `created`; Phase 2 writes it through the existing atomic persist and folder cleanup. The source is bumped once, the extracted models record `result_version` only.
+- **Fold**: `Rekey` gained `slugs` and `kind`; `rekeyKey` takes an optional slug set and moves only those elements, keeping each slug (so `InnteresanteVideos@00-gancho` becomes `innteresante/intro@00-gancho`). `identities` and `successorOf` skip extraction rekeys: the source keeps its own id and never becomes a former id of the instance. `ChangeLog` exposes `rekeys`.
+- **Drift**: a rekey destination counts as touched, so an extracted instance is checked like any other model (this is what makes a hand edit after an extraction visible in fold mode too).
+- **Strict replay**: `creationOf` accepts `extract_instance` as a recorded creation; `replayTo` replays the source up to the cut (exclusive log index), lifts the subtree into the same skeleton, then replays the new-id changes. The log now also projects `blueprint_name`, `blueprint_url` and `knowledge_version`, so a creation is replayable without reading the file.
+- **Surface**: `changes` bluepriNNt `V_0-7-0` (edited in place, not bumped again) declares the op with the field descriptions it uses; `propose_changeset` validates the payload; a direct `apply_change` refuses the op with `EXTRACT_INSTANCE_REQUIRES_CHANGESET`.
+
+### Evidence (mutation)
+- **Mutation 1 (subtree depth)**: dropping the `parentSlug` queue push in `subtreeOf` turned "subtreeOf returns the root, its Scene and its Layer" and "removes exactly the selected subtree" red (only `intro` and `00-gancho` came back); restored, 23 pass in `tests/mutate.test.ts`.
+- **Mutation 2 (fold rekey)**: setting the rekey slug set to `undefined` in the fold turned the two new fold cases red (`log.units('innteresante/intro')` empty); restored, 19 pass.
+- **Mutation 3 (group propagation)**: skipping the `DEPENDS_ON_CONFLICTED_CHANGE` loop let the sibling extraction apply, so the changeset ended `partially_applied` with `success: true`; restored, 44 pass in `apply-change-facts.spec.ts`.
+- **Mutation 4 (replay seeding)**: disabling `seedExtractedModel` in `replayTo` turned the strict case red with `EDITED_WITHOUT_RECORD: innteresante/intro`; restored, 10 pass.
+- The `tests/mutate.test.ts` cases were written after the cut existed (the apply work unit already needed it), so they were proven by mutation 1 rather than by a first red run.
+
+### Deviations
+1. **The extraction records its slug set as an execution fact.** Design A11 says the fold rekeys "the extracted slug set", but a sealed change cannot carry data that is only knowable at apply time. `extracted_slugs` is written by apply, excluded from the seal, and read back by the fold; it is the only new change property.
+2. **`EXTRACT_SLUG_MISMATCH` is a new code.** The instance slug IS the id's last segment (`INSTANCE_SLUG_MISMATCH`), so extracting `intro` into `innteresante/welcome` would immediately produce an invalid instance. The task named no code; this one names the rule.
+3. **`EXTRACT_DESTINATION_OCCUPIED` is a new code**, mirroring `MOVE_DESTINATION_OCCUPIED`: an existing destination folder is a conflict, not a silent write into a foreign folder. `add_model` has no such check because it writes into an existing container folder by design.
+4. **The destination concept comes from the source element, not from `concept::`.** A-15 makes `concept::` explicit-only for `add_model`; for an extraction the element already IS an instance of its concept, so the payload carries no `concept` and the engine reads it from the cut. A `concept` on the change, if present, only scopes the lookup.
+5. **The source of the migration is found by its path-derived compact id.** `add_model` writes `<id>_<blueprint>_NN.md`, so a model created that way is discovered as `<id>_<blueprint>`; a hand-authored registry (`X_NN.md`) is discovered as `X`. This is the existing S2b/S3a id rule, not a new one, and the tests name the id they actually have.
+6. **The `replayTo` refactor replaced `replayModel`.** The extraction forced one replay function with an exclusive log index and a recursive source replay; keeping both would have duplicated 60 lines. `checkDomainProvenance` now calls `replayTo`.
+7. **`propose_changeset`'s new validation branch has no dedicated case.** It mirrors `extractInstanceProblems`, which the apply tests exercise; the propose path itself is covered only by the existing suite staying green.
+8. **`mcp-tests/apply-change-models.test.ts` was not edited** (same as S6a): the compact cases are unchanged and still pass, and the instance cases live in `apply-change-facts.spec.ts`, which the task names as the first failing test.
+
+### Gate (S6d verification)
+- nn-core `tsc --noEmit`: exit 0. nn-core `vitest run` full: 214 files, 2428 passed.
+- nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against a built worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 729 passed.
+- `node --test scripts/build-core-mirrors.test.mjs`: 1 pass, 0 fail. `node scripts/generate-canonical-registry.mjs` and `node scripts/build-console-payload.mjs` regenerated their mirrors; no hand-edited hash.
+- `node scripts/verify.js --fast`: exit 0 (205 steps).
 
 ---
 
