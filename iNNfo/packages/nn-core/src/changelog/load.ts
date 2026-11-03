@@ -44,6 +44,9 @@ export interface ChangeLike {
   name?: string
   slug?: string
   resolved_slug?: string
+  blueprint_name?: string
+  blueprint_url?: string
+  knowledge_version?: string
   notes?: string
   resolution?: string
   fields?: Record<string, string>
@@ -105,6 +108,9 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       concept: change.concept,
       name: change.name,
       slug: change.slug,
+      blueprintName: change.blueprint_name,
+      blueprintUrl: change.blueprint_url,
+      knowledgeVersion: change.knowledge_version,
       resolvedSlug: change.resolved_slug,
       notes: change.notes,
       resolution: change.resolution,

@@ -25,8 +25,10 @@ import {
   replayMutations,
   resolveBlueprintSchema,
   scaffoldKnowledgeDocument,
+  seedExtractedModel,
   serializeKnowledge,
   slugifyHeading,
+  subtreeOf,
   type ChangeItem,
   type FileSnapshot,
   type LoggedChange,
@@ -38,7 +40,7 @@ import {
 } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
 import { resolveBlueprintWithCache } from './spec.js'
-import { mutationArgsForChange } from './change-args.js'
+import { mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { collectProvenanceModels } from './provenance-models.js'
 
 export interface StrictProvenanceOptions {
@@ -119,7 +121,20 @@ function creationOf(
   const chain = [modelId, ...log.identities(modelId as ModelId)].map((id) => id.toLowerCase())
   const chainSet = new Set(chain)
   for (const change of log.all) {
-    if (!change.applied || change.op !== 'add_model') continue
+    if (!change.applied) continue
+    if (change.op === 'extract_instance') {
+      // An extracted instance has no `add_model`: the extraction IS its creation,
+      // and its body is seeded from the source (design A11).
+      const destination = canonicalUnitModelId(String(change.to ?? '').toLowerCase())
+      if (!destination) continue
+      const recorded = createdIds.get(change.changeset)
+      const createdThis = recorded
+        ? [...recorded].some((id) => chainSet.has(canonicalUnitModelId(id).toLowerCase()))
+        : chainSet.has(destination)
+      if (!createdThis) continue
+      return { change, aliases: new Set<string>([...chain, destination.toLowerCase()]) }
+    }
+    if (change.op !== 'add_model') continue
     const addressedId = canonicalUnitModelId(change.target)
     const recorded = createdIds.get(change.changeset)
     const createdThis =
@@ -132,16 +147,30 @@ function creationOf(
   return null
 }
 
-/** Rebuilds one model from its `add_model` skeleton and replays its changes. */
-async function replayModel(
+/**
+ * Rebuilds one model from its recorded creation and replays its changes.
+ *
+ * `until` is an exclusive index into the canonical log: an extraction replays
+ * the SOURCE as it stood at the moment of the cut, not its final state (design
+ * A11). An `extract_instance` creation seeds the new skeleton from that source
+ * replay through the same helper the apply engine uses.
+ */
+async function replayTo(
   rootDir: string,
   log: ReturnType<typeof buildChangeLog>,
-  entry: ProvenanceModel,
-  creation: { change: LoggedChange; aliases: Set<string> },
+  createdIds: ReadonlyMap<string, Set<string>>,
+  modelId: string,
+  until: number = Number.POSITIVE_INFINITY,
+  depth = 0,
 ): Promise<ParsedKnowledge | null> {
+  if (depth > 8 || !modelId) return null
+  const creation = creationOf(log, createdIds, modelId)
+  if (!creation) return null
   const change = creation.change as LoggedChange & Partial<ChangeItem>
-  const blueprintName = String(change.blueprint_name ?? entry.model.frontmatter.parent_spec?.name ?? '')
-  const blueprintUrl = String(change.blueprint_url ?? entry.model.frontmatter.parent_spec?.url ?? '')
+  // The blueprint of the model being replayed comes from its own creation
+  // change: the source of an extraction has no ProvenanceModel entry here.
+  const blueprintName = String(change.blueprintName ?? '')
+  const blueprintUrl = String(change.blueprintUrl ?? '')
   if (!blueprintName || !blueprintUrl) return null
 
   let resolved
@@ -151,36 +180,46 @@ async function replayModel(
     return null
   }
   if (!resolved.template) return null
-
   const composed = resolveBlueprintSchema(resolved.template.rawContent, resolved.resolveInclude)
   if (composed.errors.length > 0) return null
 
-  // An instance model is rebuilt through the SAME root element the apply used
-  // (design A9): the distributed concept the change named, its slug and its name.
-  const segments = entry.modelId.split('/')
-  const root =
-    typeof change.concept === 'string' && change.concept.trim() !== '' && segments.length > 1
-      ? {
-          concept: change.concept,
-          slug: segments[segments.length - 1]!,
-          ...(change.name ? { name: change.name } : {}),
-        }
-      : undefined
+  let subtree: ReturnType<typeof subtreeOf> = null
+  let root: { concept: string; slug: string; name?: string } | undefined
+  const segments = modelId.split('/')
+  if (change.op === 'extract_instance') {
+    const target = parseTargetAddress(String(change.target ?? ''))
+    const extractOrder = log.all.indexOf(creation.change)
+    const sourceDoc = await replayTo(rootDir, log, createdIds, target.modelSlug, Math.max(extractOrder, 0), depth + 1)
+    if (!sourceDoc) return null
+    const slug = (target.parts[0] ?? '').trim()
+    subtree = slug ? subtreeOf(sourceDoc, slug) : null
+    if (!subtree) return null
+    root = {
+      concept: subtree.concept,
+      slug: segments[segments.length - 1]!,
+      ...(change.name ? { name: change.name } : { name: subtree.elements[0]!.node.name }),
+    }
+  } else if (typeof change.concept === 'string' && change.concept.trim() !== '' && segments.length > 1) {
+    root = {
+      concept: change.concept,
+      slug: segments[segments.length - 1]!,
+      ...(change.name ? { name: change.name } : {}),
+    }
+  }
 
   const content = scaffoldKnowledgeDocument({
-    id: entry.modelId,
+    id: modelId,
     blueprintName,
     blueprintUrl,
     title: change.name,
-    knowledgeVersion: change.knowledge_version,
+    knowledgeVersion: change.knowledgeVersion,
     schema: composed.schema,
     blueprintFrontmatter: resolved.template.frontmatter as unknown as Record<string, unknown>,
     ...(root ? { root } : {}),
   })
   const skeleton = parseKnowledge(content)
+  if (subtree) seedExtractedModel(skeleton, subtree)
 
-  // An `add_element` change records the concept it created; the replay needs it
-  // for a later remove/rename even after the element is gone from the file.
   const conceptByElement = new Map<string, string>()
   for (const item of log.all) {
     if (!item.applied || item.op !== 'add_element' || !item.concept) continue
@@ -190,11 +229,12 @@ async function replayModel(
   }
 
   const ops = log.all
+    .slice(0, until)
     .filter(
       (item) => item.applied && !NON_REPLAY_OPS.has(item.op) && creation.aliases.has(modelOfChange(item).toLowerCase()),
     )
     .map((item) => {
-      const args = mutationArgsForChange(loggedAsChange(item), entry.model, composed.schema)
+      const args = mutationArgsForChange(loggedAsChange(item), skeleton, composed.schema)
       if (!args.conceptName) {
         const ident = String(args.elementName ?? '')
         const fallback = conceptByElement.get(slugifyHeading(ident)) ?? conceptByElement.get(ident.toLowerCase())
@@ -251,7 +291,7 @@ export async function checkDomainProvenance(
       }
       continue
     }
-    const replayed = await replayModel(rootDir, log, entry, creation)
+    const replayed = await replayTo(rootDir, log, createdIds, entry.modelId)
     if (!replayed) continue
 
     // The expected body is the replay's serialization; the actual body is the

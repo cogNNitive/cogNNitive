@@ -14,7 +14,7 @@ import type { ChangeItem, ChangeOp, ChangeStatus } from '../changeset/types.js'
 import type { ModelId } from '../address/index.js'
 import { splitEvidence } from '../changeset/evidence.js'
 import { compareChanges } from './order.js'
-import { elementKeyOf, foldChanges, rekeyKey, type FoldResult } from './fold.js'
+import { elementKeyOf, foldChanges, rekeyKey, type FoldResult, type Rekey } from './fold.js'
 import { unitsFromFold, type UnitState } from './units.js'
 
 /** One change as the log exposes it: the change plus its changeset context. */
@@ -52,6 +52,10 @@ export interface LoggedChange {
   readonly concept?: string
   readonly name?: string
   readonly slug?: string
+  /** `add_model` / `extract_instance`: the bluepriNNt the created model conforms to. */
+  readonly blueprintName?: string
+  readonly blueprintUrl?: string
+  readonly knowledgeVersion?: string
   /** Apply annotation: the frozen slug `add_element` resolved to. */
   readonly resolvedSlug?: string
   readonly notes?: string
@@ -114,6 +118,11 @@ export interface ChangeLog {
   successorOf(id: ModelId): ModelId | undefined
   /** Removal changes kept as tombstones. */
   readonly tombstones: readonly LoggedChange[]
+  /**
+   * Every rekey the log carries (`move_model`, `extract_instance`): the ids and
+   * slug sets that moved, in canonical order.
+   */
+  readonly rekeys: readonly Rekey[]
 }
 
 /**
@@ -264,6 +273,10 @@ class ChangeLogImpl implements ChangeLog {
 
   get tombstones(): readonly LoggedChange[] {
     return this.fold.tombstones
+  }
+
+  get rekeys(): readonly Rekey[] {
+    return this.fold.rekeys
   }
 
   /** Canonical position of a change: its index in the sorted `all` list. */

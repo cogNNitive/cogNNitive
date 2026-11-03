@@ -429,3 +429,125 @@ describe('strict provenance of instance models (distributed-storage S6a)', () =>
     expect(strict.ok).toBe(false)
   })
 })
+
+/* ── strict replay of an extracted instance (distributed-storage S6d) ─────── */
+
+const xRoot = join(import.meta.dirname!, '..', 'temp-test-provenance-extract')
+const xChangesDir = join(xRoot, 'changes')
+const xSpecsDir = join(xRoot, 'specs')
+const xBlueprintsDir = join(xSpecsDir, 'bluepriNNts')
+const xSeriesDir = join(xRoot, 'series', 'innteresante')
+const xRegistryRel = 'kNNowledge/InnteresanteVideos_video-script_NN.md'
+const xIntroRel = 'series/innteresante/assets/intro/intro_video-script_NN.md'
+
+/** The S6a blueprint plus a `status` select on Video, so a value can be checked. */
+const EXTRACT_BLUEPRINT = VIDEO_BLUEPRINT.replace(
+  '# NN Field Definition',
+  [
+    '## NN Field Definition: status',
+    'concept:: Video',
+    'type:: select',
+    'options:: [draft, published]',
+    '',
+    '# NN Field Definition',
+  ].join('\n'),
+)
+
+const CREATE_REGISTRY: ChangeItem[] = [
+  {
+    id: 'c-01',
+    op: 'add_model',
+    target: 'InnteresanteVideos',
+    blueprint_name: VIDEO_BLUEPRINT_NAME,
+    blueprint_url: VIDEO_BLUEPRINT_REL,
+    name: 'Innteresante Videos',
+  },
+  // The scaffold also seeds one placeholder per distributed concept; drop the
+  // Video one so the registry only holds the episodes it really lists.
+  { id: 'c-02', op: 'remove_element', target: 'InnteresanteVideos@example-video', concept: 'Video' },
+  { id: 'c-03', op: 'add_element', target: 'InnteresanteVideos@Video', concept: 'Video', name: 'Intro' },
+  { id: 'c-04', op: 'add_element', target: 'InnteresanteVideos@Video', concept: 'Video', name: 'Nuevo' },
+  { id: 'c-05', op: 'update_field', target: 'InnteresanteVideos@intro&status', to: 'published' },
+  { id: 'c-06', op: 'update_field', target: 'InnteresanteVideos@nuevo&status', to: 'draft' },
+]
+
+const EXTRACT_INTRO: ChangeItem = {
+  id: 'c-01',
+  op: 'extract_instance',
+  target: 'InnteresanteVideos_video-script@intro',
+  to: 'innteresante/intro',
+  blueprint_name: VIDEO_BLUEPRINT_NAME,
+  blueprint_url: VIDEO_BLUEPRINT_REL,
+}
+
+async function writeExtractCs(changes: ChangeItem[], name: string): Promise<string> {
+  const withEvidence = changes.map((c) => (c.evidence === undefined ? { ...c, evidence: 'decision' } : c))
+  const doc = {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      level: 3 as const,
+      parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
+      blueprint_version: 'V_0-6-0',
+      status: 'proposed' as const,
+      proposal_sha: computeProposalSha(withEvidence),
+    },
+    changes: withEvidence,
+  }
+  await writeFile(join(xChangesDir, name), serializeChangeset(doc), 'utf-8')
+  return 'changes/' + name
+}
+
+describe('strict replay of an extracted instance (distributed-storage S6d)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(xRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rm(xRoot, { recursive: true, force: true })
+    for (const dir of [xChangesDir, xBlueprintsDir, xSeriesDir, join(xRoot, 'kNNowledge')]) await mkdir(dir, { recursive: true })
+    await writeFile(join(xSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(xSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(xBlueprintsDir, 'video-script_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
+    await writeFile(join(xSeriesDir, 'innteresante_video-script_NN.md'), seriesModel('innteresante', 'Innteresante'), 'utf-8')
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rm(xRoot, { recursive: true, force: true })
+  })
+
+  it('seeds the new instance from the source and reports no drift', async () => {
+    const created = await applyChange(xRoot, await writeExtractCs(CREATE_REGISTRY, 'create_changes_NN.md'))
+    if (!created.success) console.log('DEBUG create:', JSON.stringify(created.errors))
+    expect(created.success).toBe(true)
+    const extracted = await applyChange(xRoot, await writeExtractCs([EXTRACT_INTRO], 'extract_changes_NN.md'))
+    if (!extracted.success) console.log('DEBUG extract:', JSON.stringify(extracted.errors))
+    expect(extracted.success).toBe(true)
+
+    const intro = await readFile(join(xRoot, xIntroRel), 'utf-8')
+    expect(intro).toContain('## NN Video: Intro')
+    expect(intro).toContain('status:: published')
+
+    const strict = await checkDomainProvenance(xRoot, { strict: true })
+    expect(strict.diagnostics.map((d) => `${d.code}: ${d.unit ?? ''}`)).toEqual([])
+    expect(strict.ok).toBe(true)
+
+    // The reduced registry replays too: its placeholder and `nuevo` remain.
+    const registry = await readFile(join(xRoot, xRegistryRel), 'utf-8')
+    expect(registry).toContain('## NN Video: Nuevo')
+    expect(registry).not.toContain('## NN Video: Intro')
+  })
+
+  it('flags a hand edit of the extracted instance as drift', async () => {
+    expect((await applyChange(xRoot, await writeExtractCs(CREATE_REGISTRY, 'create_changes_NN.md'))).success).toBe(true)
+    expect((await applyChange(xRoot, await writeExtractCs([EXTRACT_INTRO], 'extract_changes_NN.md'))).success).toBe(true)
+
+    const path = join(xRoot, xIntroRel)
+    const content = await readFile(path, 'utf-8')
+    await writeFile(path, content.replace('status:: published', 'status:: draft'), 'utf-8')
+
+    const strict = await checkDomainProvenance(xRoot, { strict: true })
+    const drift = strict.diagnostics.filter((d) => d.code === 'EDITED_WITHOUT_RECORD')
+    expect(drift).toHaveLength(1)
+    expect(strict.ok).toBe(false)
+  })
+})

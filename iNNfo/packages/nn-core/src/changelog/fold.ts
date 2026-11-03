@@ -42,6 +42,8 @@ export interface Rekey {
   readonly slugs?: readonly string[]
   /** `move` (an id change) or `extract` (a compact element that became a model). */
   readonly kind?: 'move' | 'extract'
+  /** The change that carried the rekey. */
+  readonly change?: LoggedChange
 }
 
 /**
@@ -297,6 +299,7 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
           to: toId,
           order,
           kind: change.op === 'extract_instance' ? 'extract' : 'move',
+          change,
           ...(slugs ? { slugs } : {}),
         })
         return

@@ -203,6 +203,14 @@ export function checkProvenance(
     const model = modelOfUnit(change.resolvedTarget ?? change.target)
     if (model && !touched.has(model)) touched.set(model, change)
   }
+  // A rekey moves units (and element origins) under a model id no change ever
+  // targeted directly: an extracted instance and a moved model are both touched
+  // by the change that carried the rekey, so their files are still checked
+  // (design A10, A11).
+  for (const rekey of log.rekeys) {
+    if (touched.has(rekey.to)) continue
+    if (rekey.change) touched.set(rekey.to, rekey.change)
+  }
 
   diagnostics.push(...evidenceDiagnostics(log, options, severity))
 
