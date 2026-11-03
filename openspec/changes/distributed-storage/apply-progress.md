@@ -24,7 +24,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S6c | 530 | `ds/s6c` | `ds/s6b` | open, applied (724 hand-authored changed lines, `size:exception`) |
 | S6d | 534 | `ds/s6d` | `ds/s6c` | open, applied (~1,574 hand-authored changed lines, `size:exception`) |
 | S7a | 535 | `ds/s7a` | `ds/s6d` | open, applied (~576 hand-authored changed lines, `size:exception`) |
-| S7b to S7d | n/a | n/a | n/a | not started |
+| S7b | PR-TBD | `ds/s7b` | `ds/s7a` | open, applied (~244 hand-authored changed lines, plus 543 mechanical corpus lines; `size:exception`) |
+| S7c, S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -673,6 +674,65 @@ Status: S6d.1 to S6d.9 done. `size:exception` (about 1,574 hand-authored changed
 - nn-mcp typecheck (throwaway `tsconfig.tmp.json`, against a built worktree core): exit 0. nn-mcp `vitest run` full: 63 files, 729 passed.
 - `node --test scripts/build-core-mirrors.test.mjs`: 1 pass, 0 fail. `node scripts/generate-canonical-registry.mjs` and `node scripts/build-console-payload.mjs` regenerated their mirrors; no hand-edited hash.
 - `node scripts/verify.js --fast`: exit 0 (205 steps).
+
+---
+
+## S7b - Corpus: samples and fixtures on addresses and the distributed layout (PR 18, branch `ds/s7b`, targets `ds/s7a`)
+
+Status: S7b.1 to S7b.5 done; S7b.6 at PR open.
+
+### S7b.1 inventory (A-18)
+Corpus = every L3 (`level: 3`) kNNowledge document the repository ships or tests against: `bp/*/samples/`, `test/_samples_nn/`, `test/ecosystem_NN/`, `test/fixtures/testlab/`, `test/simulation/fixtures/`, `nn-core/tests/fixtures/`, `nn-mcp/test/`, `docs/cognitive_nn/use-cases/` — 117 documents. Blueprint *package* content (`spec_NN.md`, `procedures/`, `defaults/`) is excluded: it is not a kNNowledge document.
+
+Before the migration: **543 typed-field wikilink lines in 35 files**; `[[T :: N]]` values: **0**; 69 prose wikilink lines (index blocks, bodies) stay.
+
+| Sample file under `bp/*/samples/` | typed `[[Name]]` lines |
+|---|---|
+| `business` V_0-2-0, V_0-2-1, V_0-5-1 | 5 each |
+| `documentation` V_0-4-0 | 13 |
+| `innovation` V_0-4-0 | 6 |
+| `metrics` V_0-5-1 | 14 |
+| `organization` V_0-4-1 | 5 |
+| `procedures` V_0-5-0 | 40 |
+| `projects` V_0-4-0 | 11 |
+
+A-18 resolved: the design's 8 undercounts. **9** sample files carry a typed wikilink, not 8 — `business` has three published versions, not one. `design-presets` has `[[DesignPreset]]` only as an index line (prose), so it needs no migration. The rest of the 35: the seven SSOT mirrors in `test/_samples_nn/kNNowledge/`, five `test/_samples_nn/procedures/` models (192 lines), the ecosystem catalogs (79), testlab (29) and the `simulacro-refactorizacion` samples (45).
+
+### RED
+`tests/corpus-address-scan.test.ts` (NEW, 4 cases) — (unified-reference-grammar: Removed forms are rejected):
+1. no typed field in the corpus carries `[[Name]]`;
+2. every `@slug` in a typed field names an element of its own document;
+3. the video golden fixture uses the distributed layout and the S7a stems.
+First run: 3 of 4 failed with **543 offending typed fields** and the 4 retired video stems, plus one `@programa-fantasma` (a deliberate dangling fixture). After allowlisting that one intentional dangle (`scope/elements.spec.ts` asserts `UNKNOWN_PARENT_ELEMENT` on it) the gate failed on exactly the two dimensions above. Baselines are asserted too: the scan requires more than 100 documents and more than 3 video fixtures, so an empty scan cannot pass for the wrong reason.
+
+### GREEN
+- **Addresses.** All 543 typed-field wikilinks became `@slug` (relative address, same model) across 35 documents. The seven projected samples were migrated at the SSOT (`test/_samples_nn/kNNowledge/`) and the blueprint copies verified with `node scripts/sync-samples.mjs --check` (green), not hand-edited. Prose wikilinks untouched.
+- **Video golden fixture.** `innteresante_scope_NN.md` -> `innteresante_video-script_NN.md`, `villabotijos-today_scope_NN.md` -> `villabotijos-today_video-script_NN.md`, `bosco-verticale_video-script_innteresante_NN.md` -> `bosco-verticale_video-script_NN.md`, `boa-constrictor-suelta_video-script_villabotijos-today_NN.md` -> `boa-constrictor-suelta_video-script_NN.md`. Consumers follow: `scope/golden.spec.ts`, `scope/fs-elements.spec.ts`, `nn-mcp/src/tools/resolve-effective.spec.ts`, `scripts/dev/{scope-drift.test.mjs,adopt-video-plan.mjs,lib/series-values.mjs,series-values.test.mjs,validate-scope-golden.mjs}`.
+- **Testlab console.** Regenerated with `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`; the embedded changeset payloads now carry `@intake-*`.
+
+### Evidence (mutation)
+- **Mutation 1 (typed form)**: putting `next:: [[Site PKE Scanning]]` back into one sample turned the corpus gate red (1 of 4 failed); restored, 4 pass.
+- **Mutation 2 (retired stem)**: renaming the series scope document back to `innteresante_scope_NN.md` turned the layout case red; restored, 4 pass.
+
+### Deviations
+1. **No sample re-issue and no `knowledge_version` bump.** S7b.3 says to create new sample versions and delete the superseded ones. Taken literally that renames `Ghostbusters_V_0-5-1_business_NN.md` and `Ghostbusters_V_0-5-1_metrics_NN.md`, which are cited by name in `business/spec_NN.md` and `metrics/spec_NN.md` — editing a blueprint spec forces a `blueprint_version` bump in two blueprints, a version migration that belongs to S7d. The historical `Ghostbusters_V_0-2-0_business_NN.md` is additionally cited by the write-once L1 `iNNfo/specs/business-model_V_0-3-0_NN.md`. The samples ALSO cannot be version-renamed without a schema change (the guard's own docstring: "a bump changes the sample's schema/content, not just the number"), and `samples/` is explicitly exempt from the immutability guard. The content was migrated in place; no file name, pin or catalog moved. This is the one place S7b departs from its task text.
+2. **Blueprint procedure bodies are not migrated** (`bp/*/procedures/`, `spec_NN.md`): 20 files still use typed `[[Name]]` inside procedure step bodies. They are package content, not kNNowledge documents, and the shipped-blueprint edit cascade (blueprint versions, defaults, catalogs) is S7c/S7d territory. The corpus gate scopes to L3 models by construction (`level: 3` and the `bluepriNNts/<bp>/samples` rule), so this is a documented boundary, not an oversight.
+3. **`innteresante_video_NN.md` is deleted, not migrated.** It held `## NN Video` elements in a series folder — the registry-copy shape S7a now rejects as double storage. The element-override case it carried (`golden.spec.ts`, "the voice_id of a ## NN Video block") moved to the episode's own Video: `voice_id:: Villabotijos02` on `boa-constrictor-suelta`, asserted to win over `series/villabotijos-today`. No capability lost.
+4. **`scripts/dev/*` follow the new marker name.** S7a's file list did not reach `scripts/dev`, so `adopt-video-plan.mjs` still wrote `<s>_scope_NN.md` and `series-values.mjs` read it. Both now use `<s>_video-script_NN.md`; the legacy fallbacks (`_video_NN.md` voice majority, `script_template.md`) stay for old workspaces. `scope-drift.test.mjs` unit counts drop (2 -> 1 and 5 -> 3) because the series folder no longer holds a second Video.
+5. **Testlab changeset payloads rewritten.** `[[Intake element]]`/`[[Intake owner]]` became `@intake-element`/`@intake-owner` in the two changeset fixtures: they are the values the changes write into typed reference fields, and the applied model already carries the addresses.
+6. **`metaplantilla-specs.test.ts` assertions follow the corpus.** Four assertions pinned the sample's literal `[[...]]` values; they now pin the addresses.
+
+### Line counts (`git diff --numstat ds/s7a..HEAD`)
+- Hand-authored: the new corpus test 165, `golden.spec.ts` 24, `scope-drift.test.mjs` 22, `scripts/dev` tooling 9, `metaplantilla-specs.test.ts` 8, `fs-elements.spec.ts` 12, `resolve-effective.spec.ts` 4 = about 244 changed lines.
+- Mechanical corpus (excluded from the budget): 543 typed-field lines over 35 documents, plus 4 fixture renames and 1 deletion.
+- Generated (excluded): `test/fixtures/testlab/domaiNN_console.html`.
+
+### Gate (S7b verification)
+- nn-core `tsc --noEmit`: exit 0. nn-core vitest: 216 files, 2446 passed.
+- nn-mcp typecheck (throwaway `tsconfig.tmp.json`, src only, against the worktree core): exit 0. nn-mcp vitest: 63 files, 730 passed.
+- `tests/corpus-address-scan.test.ts`: 4 passed.
+- `node --test scripts/dev/{scope-drift,adopt-video-plan,series-values}.test.mjs`: 22 passed. `node --test scripts/guard-template-immutability.test.js`: 1 passed (deletions pass).
+- `node scripts/verify.js --only=sample`: exit 0. `node scripts/verify.js --fast`: exit 0. `node scripts/verify.js` (full): exit 0.
 
 ---
 

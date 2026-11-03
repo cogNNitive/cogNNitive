@@ -416,11 +416,11 @@ Depends on: PR 17.
 Files: sample files under `bp/*/samples/*_NN.md` (NEW with a patch-bumped `knowledge_version`; (D) the superseded ones); fixtures under `core-tests/fixtures/**` (M); `test/fixtures/testlab/**` (M, regenerate the console fixture); `test/simulation/fixtures/**` (path from design.md; not found by Glob at planning, confirm at apply); catalogs and references to deleted samples (M); NEW `core-tests/corpus-address-scan.test.ts`.
 First failing test (`core-tests/corpus-address-scan.test.ts`): every kNNowledge document under samples and fixtures validates with no removed-form or `ADDRESS_MALFORMED` diagnostic.
 
-- [ ] S7b.1 [S] Inventory (A-18): list sample files whose typed reference or model fields contain `[[Name]]` or `[[T :: N]]`, with counts; record in `apply-progress.md`. A single-bracket Grep finds 10 sample files today, the design names 8.
-- [ ] S7b.2 [RED] [S] Corpus scan test as above, plus: no reference to a deleted sample file remains; the immutability guard passes the deletions. (unified-reference-grammar: Removed forms are rejected)
-- [ ] S7b.3 [GREEN] [S] Create the new sample versions through the repo's own change path where practical (changes applied to a copy), delete the superseded files, update catalogs and references. Migrate typed `[[Name]]` to `@slug`; prose wikilinks stay.
-- [ ] S7b.4 [GREEN] [P] Migrate fixtures under `core-tests/fixtures/**`, `test/fixtures/testlab/**`, `test/simulation/fixtures/**`; regenerate `test/fixtures/testlab/domaiNN_console.html` (`node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`) and commit it.
-- [ ] S7b.5 [S] If S3b.11 already pulled the corpus forward, reduce this PR to the remainder and say so in the PR body.
+- [x] S7b.1 [S] Inventory (A-18): list sample files whose typed reference or model fields contain `[[Name]]` or `[[T :: N]]`, with counts; record in `apply-progress.md`. A single-bracket Grep finds 10 sample files today, the design names 8.
+- [x] S7b.2 [RED] [S] Corpus scan test as above, plus: no reference to a deleted sample file remains; the immutability guard passes the deletions. (unified-reference-grammar: Removed forms are rejected)
+- [x] S7b.3 [GREEN] [S] Create the new sample versions through the repo's own change path where practical (changes applied to a copy), delete the superseded files, update catalogs and references. Migrate typed `[[Name]]` to `@slug`; prose wikilinks stay.
+- [x] S7b.4 [GREEN] [P] Migrate fixtures under `core-tests/fixtures/**`, `test/fixtures/testlab/**`, `test/simulation/fixtures/**`; regenerate `test/fixtures/testlab/domaiNN_console.html` (`node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`) and commit it.
+- [x] S7b.5 [S] If S3b.11 already pulled the corpus forward, reduce this PR to the remainder and say so in the PR body.
 - [ ] S7b.6 [S] Standard PR gate. Open PR 18.
 
 Verification: `npm --workspace=@cognnitive/nn-core test -- corpus`, `node scripts/verify.js --only=sample`, `npm run verify:fast`.
