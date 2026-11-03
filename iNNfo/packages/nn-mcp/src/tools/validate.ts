@@ -29,6 +29,7 @@ import {
   findCanonicalBlueprint,
   CANONICAL_BLUEPRINTS,
   checkRemovedMarkerConstructs,
+  fileLocalDiagnostics,
 } from '@cognnitive/nn-core'
 import type {
   SpecDocument,
@@ -45,8 +46,9 @@ import type {
   ValidationBaseline,
   BaselineEntry,
   BaselineDiff,
+  LayoutDiagnostic,
 } from '@cognnitive/nn-core'
-import { buildNodeDomainIndex } from './domain-index.js'
+import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations } from './domain-index.js'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
@@ -415,8 +417,34 @@ async function runWorkspaceValidation(
   return [...diagnostics, ...drift]
 }
 
-/* ── validate_model ──────────────────────────────────────────── */
+/**
+ * File-local layout findings of one model (design A10). Placement is a property
+ * of the FILE and of the bluepriNNt it pins, so `validate_knowledge` reports it
+ * without a domaiNN. Version skew and duplicated identities stay domain-level:
+ * they have no single owner, and `check_domain` is the only writer.
+ */
+async function fileLocalLayout(
+  rootDir: string,
+  relPath: string,
+  model: ParsedKnowledge,
+): Promise<LayoutDiagnostic[]> {
+  const parent = model.frontmatter['parent_spec'] as { name?: string; url?: string } | undefined
+  const name = typeof parent?.name === 'string' ? parent.name : undefined
+  if (!name) return []
+  const declarations = (await loadDeclarations(rootDir, { name, url: parent?.url })) ?? new Map()
+  return fileLocalDiagnostics(
+    {
+      path: relPath,
+      frontmatter: model.frontmatter,
+      elements: [...model.elements].flatMap(([concept, elements]) =>
+        elements.map((el) => ({ concept, slug: el.slug ?? slugify(el.name) })),
+      ),
+    },
+    declarations,
+  )
+}
 
+/* ── validate_model ──────────────────────────────────────────── */
 /**
  * Differential validation against a versioned known-errors baseline.
  *
@@ -890,6 +918,37 @@ export async function validateKnowledge(
 
   // Phase 4: Workspace-scope cross-model validation
   let valid = errors.length === 0
+
+  // Layout (design A12). A single file reports its OWN placement — no domaiNN
+  // needed (A10). In workspace mode the domain pass reports placement, identity
+  // and skew together, so it is the only writer and nothing is reported twice.
+  const relModelPath = resolvedModelPath
+    ? relative(rootDir, resolvedModelPath).replace(/\\/g, '/')
+    : null
+  const layoutDiagnostics =
+    workspace && id && modelPath !== 'inline'
+      ? (await domainLayoutDiagnostics(rootDir)).diagnostics.filter((d) =>
+          relModelPath ? d.paths.includes(relModelPath) : false,
+        )
+      : relModelPath
+        ? await fileLocalLayout(rootDir, relModelPath, model)
+        : []
+  for (const diag of layoutDiagnostics) {
+    const decorated = {
+      path: diag.paths[0] ?? relModelPath ?? '',
+      message: diag.message,
+      severity: diag.severity,
+      code: diag.code,
+      filePath: modelPath,
+    }
+    if (diag.severity === 'error') {
+      errors.push(decorated)
+      valid = false
+    } else {
+      warningsWithFile.push(decorated)
+    }
+  }
+
   if (workspace && id && modelPath !== 'inline') {
     const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
     for (const diag of workspaceDiagnostics) {

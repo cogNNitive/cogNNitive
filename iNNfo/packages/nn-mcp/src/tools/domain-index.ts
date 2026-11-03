@@ -13,6 +13,7 @@ import {
   type Concept,
   type DiscoveredDomainModel,
   type DomainIndex,
+  type LayoutDiagnostic,
   type StorageDeclarationsResolver,
 } from '@cognnitive/nn-core'
 import { isLocalPath, toLocalFilePath } from './resolver-node.js'
@@ -40,9 +41,10 @@ export interface NodeDomainIndex {
 
 /**
  * Declared storage of one bluepriNNt from local tiers only (a local `url`, the
- * workspace/global package tiers). Null when no local copy exists.
+ * workspace/global package tiers). Null when no local copy exists. Exported for
+ * `validate_knowledge`'s single-file layout pass (A10).
  */
-async function loadDeclarations(rootDir: string, parent: { name: string; url?: string }): Promise<Declarations | null> {
+export async function loadDeclarations(rootDir: string, parent: { name: string; url?: string }): Promise<Declarations | null> {
   let content: string | null = null
   const local = parent.url && isLocalPath(parent.url) ? toLocalFilePath(parent.url, rootDir) : null
   if (local) content = await readFile(local, 'utf-8').catch(() => null)
@@ -96,8 +98,7 @@ export async function buildNodeDomainIndex(rootDir: string, opts: NodeDomainInde
   }
 }
 
-/** A model id carried by several files, in the shape `check_domain` and `sync_domain_manifest` report. */
-export interface ModelIdCollisionDiagnostic {
+/** A model id carried by several files, in the shape `sync_domain_manifest` reports. */export interface ModelIdCollisionDiagnostic {
   code: 'MODEL_ID_COLLISION'
   severity: 'info' | 'warning'
   id: string
@@ -107,7 +108,8 @@ export interface ModelIdCollisionDiagnostic {
 
 /**
  * Repeated model ids, read from the index's `DUPLICATE_MODEL_ID` findings.
- * Temporary projection: S4a replaces `collisions` with `layout.diagnostics`.
+ * `sync_domain_manifest` keeps this flat projection; `check_domain` reports the
+ * same finding through `layout.diagnostics` (design A12).
  */
 export function duplicateIdCollisions(index: DomainIndex): ModelIdCollisionDiagnostic[] {
   return index.diagnostics
@@ -119,4 +121,29 @@ export function duplicateIdCollisions(index: DomainIndex): ModelIdCollisionDiagn
       paths: [...d.paths].sort(),
       message: d.message,
     }))
+}
+
+export interface DomainLayout {
+  /** Placement, identity and version-uniformity findings of the whole domaiNN (design A12). */
+  diagnostics: LayoutDiagnostic[]
+  /** The index the findings were read from, so a caller does not rebuild it. */
+  index: DomainIndex
+}
+
+/**
+ * The layout pass of a domaiNN (design A12): the domain index already carries the
+ * placement, identity and version-uniformity findings (it appends `versionSkew`),
+ * so this adapter is the one place a host reads them from. Rebuilding the skew
+ * here would report every skew twice.
+ *
+ * Domain-level on purpose: a duplicated id and a skew have no single owner, so
+ * they are reported here instead of in a model's `errors`. `validate_knowledge`
+ * files the ones that name its own model (A12, second bullet).
+ */
+export async function domainLayoutDiagnostics(
+  rootDir: string,
+  opts: NodeDomainIndexOptions = {},
+): Promise<DomainLayout> {
+  const nodeIndex = await buildNodeDomainIndex(rootDir, opts)
+  return { diagnostics: [...nodeIndex.index.diagnostics], index: nodeIndex.index }
 }
