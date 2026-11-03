@@ -46,10 +46,10 @@ describe('loadElementChain over the tutorias fixture', () => {
     ])
   })
 
-  it('reads the element values through the parser: references stay [[Title]] text, slug is not a value', () => {
+  it('reads the element values through the parser: references stay @slug text, slug is not a value', () => {
     const { loaded: l } = loaded(TUTORIAS, PRESTACION, 'pedido-002')
     const target = l.nodes.at(-1)
-    expect(target?.values).toEqual({ programa_ref: '[[Programa Beta]]', numero_pedido: 2, precio_hora_tutoria: '90' })
+    expect(target?.values).toEqual({ programa_ref: '@programa-beta', numero_pedido: 2, precio_hora_tutoria: '90' })
     expect(l.nodes[1].values).toEqual({ idioma: 'ca' })
   })
 
@@ -68,7 +68,7 @@ describe('loadElementChain over the tutorias fixture', () => {
     expect(r.ok).toBe(false)
     if (!r.ok) {
       expect(r.code).toBe('UNKNOWN_PARENT_ELEMENT')
-      expect(r.detail).toContain('Programa Fantasma')
+      expect(r.detail).toContain('programa-fantasma')
     }
   })
 

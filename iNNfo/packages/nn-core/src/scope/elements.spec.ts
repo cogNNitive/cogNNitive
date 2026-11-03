@@ -83,19 +83,19 @@ describe('elementChain: isolate', () => {
   })
 })
 
-describe('elementChain: parent reference', () => {
+describe('elementChain: parent address', () => {
   const withRef = (ref: ElementSource['elements'][number]['fields'][string] | undefined, extra: ScopeElement[] = []) =>
     source([el('Inner', 'Early', ref === undefined ? {} : { outer_ref: ref }), el('Outer', 'Target'), ...extra], {
       decls: [{ concept: 'Outer' }, { concept: 'Inner', parent: 'outer_ref' }],
     })
 
-  it('resolves a [[title]] reference whatever the document order', () => {
-    const src = withRef('[[Target]]')
+  it('resolves an @slug address whatever the document order', () => {
+    const src = withRef('@target')
     expect(chainOf(src, 'Inner', 'early').map((n) => n.id)).toEqual([`${DOC}#Outer/target`, `${DOC}#Inner/early`])
   })
 
-  it('a reference names the parent even when a nearer outer element exists', () => {
-    const src = source([el('Outer', 'Far'), el('Outer', 'Near'), el('Inner', 'Leaf', { outer_ref: '[[Far]]' })], {
+  it('an address names the parent even when a nearer outer element exists', () => {
+    const src = source([el('Outer', 'Far'), el('Outer', 'Near'), el('Inner', 'Leaf', { outer_ref: '@far' })], {
       decls: [{ concept: 'Outer' }, { concept: 'Inner', parent: 'outer_ref' }],
     })
     expect(chainOf(src, 'Inner', 'leaf')[0].id).toBe(`${DOC}#Outer/far`)
@@ -103,17 +103,18 @@ describe('elementChain: parent reference', () => {
 
   it.each([
     ['field absent', undefined],
-    ['not a [[title]] reference', 'Target'],
+    ['not an @slug address', 'Target'],
+    ['a [[title]] reference (removed form)', '[[Target]]'],
     ['not a string', 7],
-    ['names no element', '[[Nobody]]'],
+    ['names no element', '@nobody'],
   ])('%s is UNKNOWN_PARENT_ELEMENT', (_label, ref) => {
     const r = elementChain(withRef(ref as never), { concept: 'Inner', slug: 'early' })
     expect(r).toMatchObject({ ok: false, code: 'UNKNOWN_PARENT_ELEMENT' })
     expect(r.ok ? '' : r.detail).toContain('outer_ref')
   })
 
-  it('a title shared by two outer elements is AMBIGUOUS_PARENT_ELEMENT, never a pick', () => {
-    const src = withRef('[[Target]]', [el('Outer', 'Target', {}, 'target-2')])
+  it('a slug shared by two outer elements is AMBIGUOUS_PARENT_ELEMENT, never a pick', () => {
+    const src = withRef('@target', [el('Outer', 'Target Two', {}, 'target')])
     const r = elementChain(src, { concept: 'Inner', slug: 'early' })
     expect(r).toMatchObject({ ok: false, code: 'AMBIGUOUS_PARENT_ELEMENT' })
   })
