@@ -402,7 +402,7 @@ First failing test (`core-tests/video-script-storage.test.ts`): the shipped `vid
 - [x] S7a.9 [S] Immutability and catalog gates: `node --test scripts/guard-template-immutability.test.js` (a strictly greater `blueprint_version` passes), `npm run check:versions`, catalog freshness and parity.
 - [x] S7a.10 [S] Skill `version:` bumped exactly once.
 - [x] S7a.11 [S] Edit the `video-folder-contract` delta: add a MODIFIED entry for "Canonical Domain, Series And Episode Layout" restating the script name and the series anchor name (A-7).
-- [ ] S7a.12 [S] Standard PR gate. Open PR 17.
+- [x] S7a.12 [S] Standard PR gate. Open PR 17.
 
 Verification: `npm --workspace=@cognnitive/nn-core test -- video-script-storage`, `node --test iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/*.test.mjs` (or `node scripts/verify.js --only=video-script`), `npm run verify:fast`.
 Rollback: revert; the released `video-script` stays at `V_0-14-1`.
