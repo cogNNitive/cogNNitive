@@ -36,6 +36,12 @@ Legend: ● can be written at this scope, · cannot.
 | `kind` | select | — | · | · | · | · | · | ● | · | · | · | · | · | · |
 | `review` | select | `approved`, `needs-change` | · | · | · | · | · | ● | · | · | · | · | · | · |
 | `for` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `tier` | select | `alta`, `media`, `rapida` | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `thumbnail` | image | — | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `storyboard` | markdown_inline | — | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `camera` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `choreography` | string | — | · | · | · | · | · | · | · | ● | · | · | · | · |
+| `duration_s` | number | — | · | · | · | · | · | · | · | ● | · | · | · | · |
 | `role` | string | — | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `narration` | select | `on`, `off` | · | · | ● | · | · | · | · | · | · | · | · | · |
 | `max_duration` | number | — | · | · | ● | · | · | · | · | · | · | · | · | · |
@@ -173,6 +179,42 @@ Settable at: `Scene`.
 ### `for`
 
 The target the Variant proposes a value for: a Scene Field name or the reserved value `narration` for the scene body.
+
+Settable at: `Variant`.
+
+### `tier`
+
+Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count.
+
+Settable at: `Variant`.
+
+### `thumbnail`
+
+Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it.
+
+Settable at: `Variant`.
+
+### `storyboard`
+
+The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose.
+
+Settable at: `Variant`.
+
+### `camera`
+
+Camera move of a visual Variant, for example `slow push-in` or `static`.
+
+Settable at: `Variant`.
+
+### `choreography`
+
+What moves inside the shot, in order, for a visual Variant.
+
+Settable at: `Variant`.
+
+### `duration_s`
+
+Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration.
 
 Settable at: `Variant`.
 

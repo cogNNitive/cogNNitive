@@ -45,6 +45,28 @@ const episode = (over = {}) => ({
       variants: [
         { slug: 'alt-a', target: 'narration', value: 'Alternative hook A' },
         { slug: 'alt-b', target: 'narration', value: 'Alternative hook B' },
+        {
+          slug: 'motion-alta',
+          target: 'visual',
+          value: 'media/opening-alta.mp4',
+          tier: 'alta',
+          thumbnail: 'media/opening-alta.png',
+          storyboard: 'Slow push-in on the desk, papers lift.',
+          camera: 'slow push-in',
+          choreography: 'papers lift, then settle',
+          durationS: 6,
+        },
+        {
+          slug: 'motion-rapida',
+          target: 'visual',
+          value: 'media/opening-rapida.mp4',
+          tier: 'rapida',
+          thumbnail: '',
+          storyboard: 'Static frame with a caption wipe.',
+          camera: 'static',
+          choreography: 'caption wipe',
+          durationS: 3,
+        },
       ],
       layers: [
         { slug: 'hook-avatar', type: 'avatar', asset: 'media/avatar.png', text: '' },
@@ -121,6 +143,56 @@ describe('Episode review view — parity with the former console', () => {
     assert.equal(cards[0].querySelector('[data-nn-verdict-pill]').textContent, 'approved')
     assert.equal(cards[1].querySelector('[data-nn-verdict-pill]').textContent, 'needs-change')
     assert.ok(cards[0].querySelector('.nn-scene-header'), 'the header toggles the card')
+  })
+
+  it('renders the visual options with their motion tier and picks one', () => {
+    const { document, drafts, click } = bootView({})
+    openCard(document, 'opening')
+    const cards = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-visual]')]
+    assert.deepEqual(
+      cards.map((c) => c.getAttribute('data-nn-visual')),
+      ['motion-alta', 'motion-rapida'],
+      'visual variants are rendered in a grid',
+    )
+    assert.equal(cards[0].getAttribute('data-nn-visual-tier'), 'alta')
+    assert.ok(cards[0].querySelector('.nn-tier-badge'), 'the tier is badged on the thumbnail')
+    assert.ok(cards[0].querySelector('img'), 'a variant with a thumbnail shows it')
+    assert.match(cards[1].textContent + cards[1].innerHTML, /MOTION RAPIDA/, 'a variant without one shows its tier')
+
+    cards[1].dispatchEvent(new document.defaultView.Event('click', { bubbles: true }))
+    const op = drafts().find((d) => d.field === 'visual')
+    assert.ok(op, 'picking a visual option is a field change on its target')
+    assert.equal(op.proposed, 'media/opening-rapida.mp4')
+    assert.equal(op.element_id, 's-1')
+  })
+
+  it('opens the storyboard lightbox with the shot details', () => {
+    const { document, click } = bootView({})
+    openCard(document, 'opening')
+    click('[data-nn-inspect="motion-alta"]')
+    const box = document.querySelector('[data-nn-lightbox]')
+    assert.ok(box, 'the lightbox exists')
+    assert.ok(box.classList.contains('is-open'), 'it opens')
+    assert.match(box.textContent, /Slow push-in on the desk/, 'the storyboard text is shown')
+    assert.match(box.textContent, /slow push-in/, 'the camera move is shown')
+    assert.match(box.textContent, /papers lift/, 'the choreography is shown')
+    assert.match(box.textContent, /6s/, 'the nominal duration is shown')
+
+    click('[data-nn-lightbox-close]')
+    assert.equal(box.classList.contains('is-open'), false, 'it closes')
+  })
+
+  it('keeps the narration variants out of the visual grid', () => {
+    const { document } = bootView({})
+    openCard(document, 'opening')
+    const visuals = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-visual]')].map((c) =>
+      c.getAttribute('data-nn-visual'),
+    )
+    assert.ok(!visuals.includes('alt-a'), 'a narration variant is not a visual card')
+    const texts = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-variant]')].map((c) =>
+      c.getAttribute('data-nn-variant'),
+    )
+    assert.deepEqual(texts, ['alt-a', 'alt-b'], 'and it stays in the textual list')
   })
 
   it('shows the editorial variants of the scene and picks one as update_field', () => {
@@ -230,9 +302,12 @@ describe('Episode review view — parity with the former console', () => {
     assert.match(cost, /1\.50/, 'the budget is shown')
   })
 
-  it('bakes in no motion tier label', () => {
+  it('renders tier labels only when the model carries them', () => {
     const { document } = bootView({})
-    assert.doesNotMatch(document.querySelector('[data-nn-episode-review]').textContent, /ALTA|MEDIA|R[ÁA]PIDA/)
+    // The tier vocabulary lives in the blueprint and arrives through the data hook; the
+    // view must not invent one. A scene with no visual variant shows no tier at all.
+    const explain = document.querySelector('[data-nn-scene="explain"]')
+    assert.doesNotMatch(explain.textContent, /ALTA|MEDIA|R[ÁA]PIDA|MOTION/)
   })
 
   it('shows an empty state when the domain has no ported episode', () => {
