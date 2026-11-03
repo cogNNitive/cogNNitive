@@ -18,7 +18,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S4a | 514 | `ds/s4a` | `ds/s3c` | open, applied |
 | S4b | 516 | `ds/s4b` | `ds/s4a` | open, partial (S4b.2 apply pending a decision) |
 | S5a | 519 | `ds/s5a` | `ds/s4b` | open, applied |
-| S5b to S7d | n/a | n/a | n/a | not started |
+| S5b | n/a | `ds/s5b` | `ds/s5a` | open, applied (866 hand-authored changed lines, `size:exception`) |
+| S6a to S7d | n/a | n/a | n/a | not started |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -479,3 +480,31 @@ Status: S5a.1 to S5a.6 done.
 - nn-mcp `tsc --noEmit` (worktree core): exit 0.
 - nn-mcp `vitest run`: 63 files, 679 passed. `collections.spec.ts`: 9 passed. `resolve-effective.spec.ts`: 56 passed.
 - `node scripts/verify.js --fast`: see the PR body.
+
+## S5b - Console: model ids, exact cell keys, collections, title autocomplete (PR 12, branch `ds/s5b`, targets `ds/s5a`)
+
+Status: S5b.1 to S5b.5 done.
+
+### RED
+- `tests/console/payload-builder-identity.test.ts` (NEW, 9 cases) failed 5/9 before any implementation: `modelId` ignored the caller and fell back to a `kNNowledge/...` path, two models with the same matrix and axis slugs read each other's cell provenance, and `collections` did not exist. The 4 that already passed are the today-correct halves (same-model cell lookup, the title-slug fallback, no collections, compact and distributed titles).
+- `tests/console-reference-autocomplete.test.ts` (NEW, 9 jsdom cases) failed 9/9 with `UI.buildReferenceIndex is not a function`: there was no reference index, no title rendering, no autocomplete and no title-and-address message.
+
+### GREEN
+- `buildConsolePayload` takes an explicit `modelId` and a `collections` slot. It stays pure and browser-safe: it never reads a domaiNN, so the caller that owns the index passes the id. `normalizeModelId` is deleted; the standalone fallback is documented in the builder and covered by a test.
+- Cell provenance is keyed exactly: `<model-id>@<matrix-slug>&<row-slug>&<col-slug>`. The suffix map is gone, so a console that aggregates models can no longer read another model's history (F5).
+- `ui-kit`: `buildReferenceIndex` (collections + model titles + element names), `referenceCandidates` (a field's `target_concepts`, filtered by title substring), `relativeAddress`, `referenceError`. A field storing an address renders the target's title in a link that carries the address in `data-address`, while the payload keeps the address; `FieldReferenceWidget` is a combobox over `title - address` that writes the address (relative when the target lives in the same model) and writes nothing until a candidate is picked.
+- `review.js`: candidates come from the reference index scoped to `target_concepts` (a reference may cross models, which is what the address grammar is for), the edit modal receives the model id so a same-model target is written `@slug`, and the error message names the title and the address of every candidate. The retarget value is the element address, not `[[Name]]`.
+- `nn-runtime.js`: builds the reference index at boot from the payload `collections` slot and `meta.models`, threads it into the element cards and the review controller, and a reference link focuses the addressed instance's first card.
+
+### Deviations
+1. **The export CLI does not pass `modelId` yet.** `scripts/export-console.mjs` has no domain index (it scans files itself), so it keeps calling the builder without the option and every exported console keeps the standalone stem id. The caller-side contract (an explicit `modelId`) and the exact cell keys are in place; wiring the CLI to `buildDomainIndex` is a separate, larger change that the S5b file list does not include. The fixture's ids therefore did not change in this slice.
+2. **The standalone fallback is the display stem, not a path.** `business_V_0-2-5_NN.md` now yields `business_V_0-2-5` where the old `normalizeModelId` yielded `models/business_V_0-2-5`. Two assertions in `scripts/export-console.test.mjs`, one in `tests/console-payload.test.ts` and one in `tests/console-payload-builder.test.ts` were updated to the new semantics; `tests/console/cell-provenance.test.ts` now passes the `modelId` its changeset uses.
+3. **A console exported without the collections slot falls back to the elements it holds** (addressed `<model-id>@<slug>`), so a standalone console still offers its own elements. A domain console with the slot never uses the fallback.
+4. **The editor message, not the domain validator, shows title and address.** `REF_MODEL_NOT_FOUND` lives in the browser-safe index, which carries no titles; the title-and-address message is implemented where the titles exist (the console editor). Recorded here rather than widening the index types in a console slice.
+
+### Gate (S5b verification)
+- nn-core `tsc --noEmit`: exit 0. nn-mcp typecheck (throwaway worktree config): exit 0.
+- `vitest run tests/console tests/console-reference-autocomplete.test.ts tests/console-dom.test.ts`: 42 files, 304 passed.
+- `node --test scripts/export-console.test.mjs`: 52 passed. `node --test test/console-edit-modal-types.test.mjs`: 13 passed. `node --test test/console-s3b-parity.test.mjs`: 16 passed.
+- `node scripts/verify.js --fast`: green. Full `node scripts/verify.js`: 227 steps, exit 0.
+- Bundle and testlab fixture regenerated with the shipped scripts; no inline hash edited by hand.
