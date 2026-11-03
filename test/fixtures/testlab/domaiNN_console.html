@@ -8231,7 +8231,194 @@ input[type="text"], input[type="search"], textarea, select {
   border-radius: 50%;
   background: #2563eb;
 }
-</style>
+
+/* ── Episode review view (coNNtent) ─────────────────────────────────────────── */
+.nn-episode-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+.nn-episode-head h2 { margin: 0; font-size: 17px; }
+.nn-counter { font-size: 12px; font-weight: 600; color: #2563eb; }
+.nn-episode-cost { margin: 0; font-size: 12.5px; color: #64748b; }
+.nn-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.nn-btn:hover { border-color: #2563eb; color: #2563eb; }
+.nn-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+}
+.nn-src-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.14);
+  color: #2563eb;
+}
+.nn-scene-card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 12px;
+  margin: 12px 16px;
+  overflow: hidden;
+}
+.nn-scene-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nn-chevron { font-size: 12px; opacity: 0.7; }
+.nn-scene-title-group { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.nn-scene-title { font-weight: 600; }
+.nn-scene-summary {
+  font-size: 12px;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nn-scene-body { display: none; padding: 4px 14px 14px; }
+.nn-scene-body.is-open { display: block; }
+.nn-form-section { margin-top: 14px; }
+.nn-section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+  margin-bottom: 6px;
+}
+.nn-narration,
+.nn-variant-input,
+.nn-comment,
+.nn-chip-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: inherit;
+}
+.nn-narration { min-height: 70px; }
+.nn-comment { min-height: 52px; margin-top: 8px; }
+.nn-variant-item {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+.nn-variant-item.is-selected { border-color: #2563eb; }
+.nn-variant-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.nn-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(148, 163, 184, 0.7);
+  background: transparent;
+  cursor: pointer;
+}
+.nn-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.nn-visual-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.nn-visual-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  background: rgba(148, 163, 184, 0.1);
+}
+.nn-visual-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.nn-visual-icon { font-size: 11px; text-transform: uppercase; opacity: 0.6; }
+.nn-visual-details { padding: 8px 10px; }
+.nn-visual-title { font-size: 12.5px; font-weight: 600; }
+.nn-visual-sub { font-size: 11.5px; opacity: 0.65; }
+.nn-visual-desc { font-size: 11.5px; margin-top: 4px; }
+.nn-cascade-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.nn-cascade-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 12px;
+}
+.nn-chip-input { width: 110px; padding: 4px 8px; font-size: 12px; }
+.nn-verdict-controls { display: flex; gap: 8px; }
+.nn-verdict {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.nn-verdict.is-active { border-color: #2563eb; background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 600; }
+.nn-preset-selector { padding: 10px 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
+.nn-preset-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.nn-chip {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.nn-chip.is-active { border-color: #2563eb; background: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.nn-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 12.5px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+.nn-toast.is-open { opacity: 1; transform: translateY(0); }</style>
     <style>
       :root,
       [data-theme] {
@@ -10224,7 +10411,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T12:35:02.506Z",
+    "generated": "2026-11-03T16:05:05.191Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10235,7 +10422,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T12:35:02.379Z",
+        "citationsResolvedAt": "2026-11-03T16:05:04.956Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
