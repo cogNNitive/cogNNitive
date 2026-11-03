@@ -55,12 +55,31 @@ const episode = (over = {}) => ({
         {
           slug: 'hook-avatar',
           type: 'avatar',
+          kind: 'background',
           asset: 'media/avatar.png',
           assetSrc: 'data:image/png;base64,iVBORw0KGgo=',
           assetKind: 'image',
           text: '',
+          declared: { type: 'avatar', asset: 'media/avatar.png' },
+          fields: {
+            asset: { value: 'media/avatar.png', source: 'scene', local: 'media/avatar.png' },
+            avatar_model: { value: 'wavespeed-ai/infinitetalk-fast', source: 'domain', local: null },
+          },
         },
-        { slug: 'hook-watermark', type: 'text', asset: '', assetSrc: '', assetKind: '', text: 'generated with AI' },
+        {
+          slug: 'hook-watermark',
+          type: 'text',
+          kind: 'overlay',
+          asset: '',
+          assetSrc: '',
+          assetKind: '',
+          text: 'generated with AI',
+          declared: { type: 'text', text: 'generated with AI' },
+          fields: {
+            text: { value: 'generated with AI', source: 'scene', local: 'generated with AI' },
+            position: { value: 'bottom', source: 'blueprint', local: null },
+          },
+        },
       ],
     },
     {
@@ -93,6 +112,8 @@ const PAYLOAD_MODEL = {
     { id: 's-2', concept: 'Scene', name: 'Explain', slug: 'explain', hash: 'c'.repeat(16), fields: { slug: 'explain' } },
     { id: 'p-1', concept: 'Preset', name: 'Lucas', slug: 'lucas', hash: 'd'.repeat(16), fields: { slug: 'lucas' } },
     { id: 'p-2', concept: 'Preset', name: 'Studio Warm', slug: 'studio-warm', hash: 'e'.repeat(16), fields: {} },
+    { id: 'l-1', concept: 'Layer', name: 'Hook Avatar', slug: 'hook-avatar', hash: 'f'.repeat(16), fields: { slug: 'hook-avatar' } },
+    { id: 'l-2', concept: 'Layer', name: 'Hook Watermark', slug: 'hook-watermark', hash: '0'.repeat(16), fields: { slug: 'hook-watermark' } },
   ],
   matrices: [],
 }
@@ -163,8 +184,9 @@ describe('Episode review view — parity with the former console', () => {
       n.textContent.trim(),
     )
     const at = (needle) => labels.findIndex((l) => l.toLowerCase().includes(needle))
-    assert.ok(at('narration') < at('layers'), 'narration comes before the layers')
-    assert.ok(at('layers') < at('scene parameters'), 'layers come before the parameters')
+    assert.ok(at('narration') < at('background'), 'narration comes before the background')
+    assert.ok(at('background') < at('overlays'), 'the background comes before the overlays')
+    assert.ok(at('overlays') < at('scene parameters'), 'overlays come before the parameters')
     assert.ok(at('scene parameters') < at('verdict'), 'parameters come before the verdict')
   })
 
@@ -203,7 +225,43 @@ describe('Episode review view — parity with the former console', () => {
     const layers = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-layer]')]
     assert.deepEqual(layers.map((l) => l.getAttribute('data-nn-layer')), ['hook-avatar', 'hook-watermark'])
     assert.ok(layers[0].querySelector('img'), 'a raster asset renders as an image')
-    assert.match(layers[1].textContent, /generated with AI/, 'a text layer shows its text')
+    assert.equal(
+      layers[1].querySelector('[data-nn-param-input="text"]').value,
+      'generated with AI',
+      'a text layer shows its text in an editable field',
+    )
+  })
+
+  it('separates backgrounds from overlays', () => {
+    const { document } = bootView({})
+    openCard(document, 'opening')
+    const bg = document.querySelector('[data-nn-scene="opening"] [data-nn-backgrounds]')
+    const ov = document.querySelector('[data-nn-scene="opening"] [data-nn-overlays]')
+    assert.ok(bg, 'there is a background section')
+    assert.ok(ov, 'there is an overlay section')
+    assert.match(bg.textContent, /fills the frame/)
+    assert.match(ov.textContent, /on top of the frame/)
+    const bgLayers = [...bg.querySelectorAll('[data-nn-layer]')].map((l) => l.getAttribute('data-nn-layer'))
+    const ovLayers = [...ov.querySelectorAll('[data-nn-layer]')].map((l) => l.getAttribute('data-nn-layer'))
+    assert.deepEqual(bgLayers, ['hook-avatar'], 'an avatar layer fills the frame')
+    assert.deepEqual(ovLayers, ['hook-watermark'], 'a text layer is an overlay')
+  })
+
+  it('offers use-as-background on backgrounds and delete on every layer', () => {
+    const { document, drafts, click } = bootView({})
+    openCard(document, 'opening')
+    assert.ok(
+      document.querySelector('[data-nn-scene="opening"] [data-nn-use-background="hook-avatar"]'),
+      'a background can be chosen',
+    )
+    assert.equal(
+      document.querySelector('[data-nn-scene="opening"] [data-nn-use-background="hook-watermark"]'),
+      null,
+      'an overlay cannot be the background',
+    )
+    click('[data-nn-scene="opening"] [data-nn-delete-layer="hook-watermark"]')
+    const del = drafts().find((d) => d.kind === 'delete')
+    assert.ok(del, 'deleting a layer is a delete proposal')
   })
 
   it('renders every Scene field with its real cascade source', () => {

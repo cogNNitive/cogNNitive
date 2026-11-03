@@ -30,6 +30,38 @@ const SCENE_FIELDS = Object.entries(FIELD_REGISTRY.fields || {})
   .filter(([, field]) => (field.concepts || []).includes('Scene'))
   .map(([name]) => name)
 
+// A Layer declares only the fields its behaviour type can use: an avatar Layer has an
+// avatar model, a text overlay has a placement and a style, and nothing else is noise.
+const LAYER_FIELDS_BY_TYPE = {
+  avatar: ['asset', 'prompt', 'avatar_model', 'avatar_resolution'],
+  media: ['asset', 'prompt', 'fit', 'placement'],
+  text: ['text', 'source', 'style', 'position', 'z_index'],
+  animation: ['asset', 'style', 'position', 'z_index', 'enter_animation', 'exit_animation', 'timing'],
+}
+
+/** An unknown legacy type still gets a usable field set instead of an empty card. */
+function layerFieldsFor(type) {
+  return LAYER_FIELDS_BY_TYPE[type] || LAYER_FIELDS_BY_TYPE.text
+}
+
+// A Scene field only shows when the scene can actually use it: no avatar Layer means no
+// avatar model to choose, no narration means no voice parameters.
+const SCENE_FIELD_NEEDS = {
+  avatar_model: ['avatar'],
+  image_model: ['media'],
+  image_size: ['media'],
+  voice: ['narration'],
+  voice_model: ['narration'],
+  voice_speed: ['narration'],
+  voice_emotion: ['narration'],
+}
+
+/** Background Layers fill the frame; the rest are overlays painted on top of it. */
+function layerKindOf(type, fields) {
+  if (fields?.style) return 'overlay'
+  return type === 'avatar' || type === 'media' ? 'background' : 'overlay'
+}
+
 const FACTS_DIR = ['.cognnitive', 'video']
 const EPISODE_DIRS = ['episodes', 'assets']
 
@@ -213,6 +245,9 @@ function sceneOf(scene, layers) {
         type: String(l.fields?.type || ''),
         asset: String(l.fields?.asset || ''),
         text: String(l.fields?.text || ''),
+        kind: layerKindOf(String(l.fields?.type || ''), l.fields),
+        declared: { ...(l.fields || {}) },
+        fields: {},
       })),
   }
 }
@@ -234,18 +269,34 @@ async function loadEpisode(doc, cacheDir) {
   }
 
   // The cascade, resolved the way the engine resolves it: a Scene may override any Scene
-  // field, and the review has to say WHERE the winning value came from.
+  // field, and a Layer may override any field its type can use.
   const bags = loadCascadeBags(doc.dir)
   const videoBag = video.fields || {}
   for (const scene of scenes) {
+    const layerBag = {}
+    for (const layer of scene.layers) layerBag[layer.slug] = layer.declared
     const sceneBag = { ...bags, video: videoBag, scene: scene.declared }
+
+    const types = new Set(scene.layers.map((l) => l.type))
+    const hasNarration = scene.narration.length > 0
     scene.fields = {}
     for (const name of SCENE_FIELDS) {
+      const needs = SCENE_FIELD_NEEDS[name]
+      if (needs && !needs.some((need) => (need === 'narration' ? hasNarration : types.has(need)))) continue
       const resolved = resolveParam(name, sceneBag)
-      scene.fields[name] = {
-        value: resolved.value,
-        source: resolved.source,
-        local: scene.declared[name] ?? null,
+      scene.fields[name] = { value: resolved.value, source: resolved.source, local: scene.declared[name] ?? null }
+    }
+    scene.relevantFields = Object.keys(scene.fields).sort()
+
+    for (const layer of scene.layers) {
+      const fields = layerFieldsFor(layer.type)
+      for (const name of fields) {
+        const resolved = resolveParam(name, { ...sceneBag, layer: layer.declared })
+        layer.fields[name] = {
+          value: resolved.value,
+          source: resolved.source,
+          local: layer.declared[name] ?? null,
+        }
       }
     }
   }

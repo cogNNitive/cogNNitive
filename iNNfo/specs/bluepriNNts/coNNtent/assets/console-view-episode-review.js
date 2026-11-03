@@ -48,6 +48,56 @@ registerView({
       return node
     }
 
+    /**
+     * One editable field: the widget of its schema type, the effective value in the input
+     * (an inherited value is the value), and the badge naming where it came from.
+     */
+    function fieldRow(name, entry, ownerLabel, onChange) {
+      var def = schemaFields[name] || {}
+      var row = el('label', 'nn-param')
+      row.setAttribute('data-nn-param', name)
+      row.appendChild(el('span', 'nn-param-label', name))
+
+      var effective = entry.local !== null && entry.local !== undefined ? entry.local : entry.value
+      var input
+      if (def.type === 'select' && Array.isArray(def.options) && def.options.length > 0) {
+        input = doc.createElement('select')
+        // The effective value is what the field shows; the empty option is how an
+        // override is removed, so the scene falls back to the cascade again.
+        var inheritOpt = doc.createElement('option')
+        inheritOpt.value = ''
+        inheritOpt.textContent = '— inherit —'
+        input.appendChild(inheritOpt)
+        def.options.forEach(function (option) {
+          var opt = doc.createElement('option')
+          opt.value = String(option)
+          opt.textContent = String(option)
+          input.appendChild(opt)
+        })
+        if (effective !== null && effective !== undefined) input.value = String(effective)
+      } else if (def.type === 'number') {
+        input = doc.createElement('input')
+        input.type = 'number'
+        input.step = 'any'
+        if (effective !== null && effective !== undefined) input.value = String(effective)
+      } else {
+        input = doc.createElement('input')
+        input.type = 'text'
+        if (effective !== null && effective !== undefined) input.value = String(effective)
+      }
+      input.className = 'nn-param-input'
+      input.setAttribute('data-nn-param-input', name)
+      input.addEventListener('change', function () {
+        onChange(input.value)
+      })
+      row.appendChild(input)
+
+      var owns = entry.local !== null && entry.local !== undefined
+      var badge = owns ? ownerLabel : entry.source || 'unset'
+      row.appendChild(el('span', 'nn-src-badge', badge))
+      return row
+    }
+
     function propose(change) {
       try {
         ctx.store.propose(change)
@@ -258,124 +308,143 @@ registerView({
         nSection.appendChild(narration)
         body.appendChild(nSection)
 
-        // ── 2. layers ───────────────────────────────────────────────────────────
-        if ((scene.layers || []).length > 0) {
-          var lSection = el('div', 'nn-form-section')
-          lSection.appendChild(el('div', 'nn-section-label', 'Layers'))
-          var grid = el('div', 'nn-visual-grid')
-          scene.layers.forEach(function (layer) {
-            var card2 = el('div', 'nn-visual-card')
-            card2.setAttribute('data-nn-layer', layer.slug)
-            var thumb = el('div', 'nn-visual-thumb')
-            if (layer.assetSrc) {
-              var img = doc.createElement('img')
-              img.src = layer.assetSrc
-              img.alt = ''
-              thumb.appendChild(img)
-            } else {
-              // The console CSP only allows data: images, so anything not inlined (video,
-              // an oversized still, a missing file) is named instead of rendered broken.
-              var why =
-                layer.assetKind === 'video'
-                  ? '▶ video'
-                  : layer.assetKind === 'image-too-large'
-                    ? 'image too large'
-                    : layer.assetKind === 'missing'
-                      ? 'file not found'
-                      : layer.type || 'layer'
-              thumb.appendChild(el('span', 'nn-visual-icon', why))
-            }
-            var inspectLayer = el('button', 'nn-inspect', '⌕')
-            inspectLayer.type = 'button'
-            inspectLayer.setAttribute('data-nn-inspect-layer', layer.slug)
-            inspectLayer.title = 'Inspect layer'
-            thumb.appendChild(inspectLayer)
-            card2.appendChild(thumb)
+        // ── 2. backgrounds (full-frame) and overlays (painted on top) ───────────
+        var backgrounds = (scene.layers || []).filter(function (l) {
+          return l.kind === 'background'
+        })
+        var overlays = (scene.layers || []).filter(function (l) {
+          return l.kind !== 'background'
+        })
 
-            var details = el('div', 'nn-visual-details')
-            details.appendChild(el('div', 'nn-visual-title', layer.slug))
-            details.appendChild(
-              el('div', 'nn-visual-sub', layer.type + (layer.asset ? ' · ' + layer.asset.split('/').pop() : '')),
-            )
-            if (layer.text) details.appendChild(el('div', 'nn-visual-desc', layer.text))
-            card2.appendChild(details)
+        function layerCard(layer, isBackground) {
+          var card2 = el('div', 'nn-visual-card')
+          card2.setAttribute('data-nn-layer', layer.slug)
+          card2.setAttribute('data-nn-layer-kind', layer.kind)
+          var thumb = el('div', 'nn-visual-thumb')
+          if (layer.assetSrc) {
+            var img = doc.createElement('img')
+            img.src = layer.assetSrc
+            img.alt = ''
+            thumb.appendChild(img)
+          } else {
+            var why =
+              layer.assetKind === 'video'
+                ? '▶ video'
+                : layer.assetKind === 'image-too-large'
+                  ? 'image too large'
+                  : layer.assetKind === 'missing'
+                    ? 'file not found'
+                    : layer.type || 'layer'
+            thumb.appendChild(el('span', 'nn-visual-icon', why))
+          }
+          var inspectLayer = el('button', 'nn-inspect', '⌕')
+          inspectLayer.type = 'button'
+          inspectLayer.setAttribute('data-nn-inspect-layer', layer.slug)
+          inspectLayer.title = 'Inspect layer'
+          thumb.appendChild(inspectLayer)
+          card2.appendChild(thumb)
 
-            inspectLayer.addEventListener('click', function (event) {
+          var details = el('div', 'nn-visual-details')
+          details.appendChild(el('div', 'nn-visual-title', layer.slug))
+          details.appendChild(el('div', 'nn-visual-sub', layer.type + (layer.asset ? ' · ' + layer.asset.split('/').pop() : '')))
+          card2.appendChild(details)
+
+          var actions = el('div', 'nn-layer-actions')
+          if (isBackground) {
+            var useBtn = el('button', 'nn-mini-btn', 'Use as background')
+            useBtn.type = 'button'
+            useBtn.setAttribute('data-nn-use-background', layer.slug)
+            useBtn.addEventListener('click', function (event) {
               event.stopPropagation()
-              openInspector({
-                title: layer.slug,
-                badge: layer.type,
-                image: layer.assetSrc,
-                specs: [
-                  ['Type', layer.type],
-                  ['Asset', layer.asset],
-                  ['Preview', layer.assetSrc ? 'inlined' : layer.assetKind === 'missing' ? 'file not found' : 'not inlined (' + layer.assetKind + ')'],
-                  ['Text', layer.text],
-                ],
+              backgrounds.forEach(function (other) {
+                if (other.slug === layer.slug) return
+                propose({ kind: 'delete', elementId: idOf(other.slug), concept: 'Layer' })
               })
+              toast('Kept ' + layer.slug + ' as the background')
             })
-            grid.appendChild(card2)
+            actions.appendChild(useBtn)
+          }
+          var del = el('button', 'nn-mini-btn is-danger', 'Delete')
+          del.type = 'button'
+          del.setAttribute('data-nn-delete-layer', layer.slug)
+          del.addEventListener('click', function (event) {
+            event.stopPropagation()
+            propose({ kind: 'delete', elementId: idOf(layer.slug), concept: 'Layer' })
           })
-          lSection.appendChild(grid)
-          body.appendChild(lSection)
+          actions.appendChild(del)
+          card2.appendChild(actions)
+
+          var fields = el('div', 'nn-layer-fields')
+          Object.keys(layer.fields || {}).forEach(function (name) {
+            fields.appendChild(
+              fieldRow(name, layer.fields[name], 'Layer', function (value) {
+                propose({ kind: 'correction', elementId: idOf(layer.slug), field: name, proposed: value })
+              }),
+            )
+          })
+          card2.appendChild(fields)
+
+          inspectLayer.addEventListener('click', function (event) {
+            event.stopPropagation()
+            openInspector({
+              title: layer.slug,
+              badge: layer.type,
+              image: layer.assetSrc,
+              specs: [
+                ['Type', layer.type],
+                ['Layer kind', layer.kind],
+                ['Asset', layer.asset],
+                ['Preview', layer.assetSrc ? 'inlined' : layer.assetKind === 'missing' ? 'file not found' : 'not inlined (' + layer.assetKind + ')'],
+                ['Text', layer.text],
+              ],
+            })
+          })
+          return card2
         }
 
-        // ── 3. scene parameters (any Scene field, typed widget, real source) ────
-        var pSection = el('div', 'nn-form-section')
-        pSection.setAttribute('data-nn-params', '')
-        pSection.appendChild(el('div', 'nn-section-label', 'Scene parameters'))
-        var paramsBox = el('div', 'nn-params-grid')
-        Object.keys(scene.fields || {})
-          .filter(function (name) {
-            return name !== 'review' && name !== 'kind'
+        if (backgrounds.length > 0) {
+          var bSection = el('div', 'nn-form-section')
+          bSection.setAttribute('data-nn-backgrounds', '')
+          bSection.appendChild(el('div', 'nn-section-label', 'Background (fills the frame)'))
+          var bGrid = el('div', 'nn-visual-grid')
+          backgrounds.forEach(function (layer) {
+            bGrid.appendChild(layerCard(layer, true))
           })
-          .sort()
-          .forEach(function (name) {
-            var entry = scene.fields[name] || { value: null, source: null, local: null }
-            var def = schemaFields[name] || {}
-            var row = el('label', 'nn-param')
-            row.setAttribute('data-nn-param', name)
-            row.appendChild(el('span', 'nn-param-label', name))
+          bSection.appendChild(bGrid)
+          body.appendChild(bSection)
+        }
 
-            var input
-            if (def.type === 'select' && Array.isArray(def.options) && def.options.length > 0) {
-              input = doc.createElement('select')
-              var inherit = doc.createElement('option')
-              inherit.value = ''
-              inherit.textContent = '— inherit —'
-              input.appendChild(inherit)
-              def.options.forEach(function (option) {
-                var opt = doc.createElement('option')
-                opt.value = String(option)
-                opt.textContent = String(option)
-                input.appendChild(opt)
-              })
-              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
-            } else if (def.type === 'number') {
-              input = doc.createElement('input')
-              input.type = 'number'
-              input.step = 'any'
-              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
-              input.placeholder = entry.value === null ? 'inherit' : String(entry.value)
-            } else {
-              input = doc.createElement('input')
-              input.type = 'text'
-              input.value = entry.local === null || entry.local === undefined ? '' : String(entry.local)
-              input.placeholder = entry.value === null ? 'inherit' : String(entry.value)
-            }
-            input.className = 'nn-param-input'
-            input.setAttribute('data-nn-param-input', name)
-            input.addEventListener('change', function () {
-              propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: input.value })
-            })
-            row.appendChild(input)
-
-            var sourceLabel = entry.local !== null && entry.local !== undefined ? 'Scene' : entry.source || 'unset'
-            row.appendChild(el('span', 'nn-src-badge', sourceLabel))
-            paramsBox.appendChild(row)
+        if (overlays.length > 0) {
+          var oSection = el('div', 'nn-form-section')
+          oSection.setAttribute('data-nn-overlays', '')
+          oSection.appendChild(el('div', 'nn-section-label', 'Overlays (on top of the frame)'))
+          var oGrid = el('div', 'nn-visual-grid')
+          overlays.forEach(function (layer) {
+            oGrid.appendChild(layerCard(layer, false))
           })
-        pSection.appendChild(paramsBox)
-        body.appendChild(pSection)
+          oSection.appendChild(oGrid)
+          body.appendChild(oSection)
+        }
+
+        // ── 3. scene parameters (only the fields this scene can use) ─────────────
+        var names = (scene.relevantFields || Object.keys(scene.fields || {})).filter(function (name) {
+          return name !== 'review' && name !== 'kind'
+        })
+        if (names.length > 0) {
+          var pSection = el('div', 'nn-form-section')
+          pSection.setAttribute('data-nn-params', '')
+          pSection.appendChild(el('div', 'nn-section-label', 'Scene parameters'))
+          var paramsBox = el('div', 'nn-params-grid')
+          names.forEach(function (name) {
+            paramsBox.appendChild(
+              fieldRow(name, scene.fields[name] || { value: null, source: null, local: null }, 'Scene', function (value) {
+                propose({ kind: 'correction', elementId: idOf(scene.slug), field: name, proposed: value })
+              }),
+            )
+          })
+          pSection.appendChild(paramsBox)
+          body.appendChild(pSection)
+        }
 
         // ── 4. verdict + reason, one compact line ───────────────────────────────
         var dSection = el('div', 'nn-form-section')
