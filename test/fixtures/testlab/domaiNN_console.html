@@ -8562,7 +8562,42 @@ input[type="text"], input[type="search"], textarea, select {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   opacity: 0.75;
-}</style>
+}
+/* The default action of an unreviewed scene: primary-looking, but not yet chosen. */
+.nn-verdict.is-default {
+  border-color: rgba(37, 99, 235, 0.65);
+  color: #2563eb;
+  font-weight: 600;
+}
+.nn-verdict.is-default:hover { background: rgba(37, 99, 235, 0.12); }
+/* Layer cards need room: a thumbnail plus four to seven labelled fields. */
+.nn-layer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.nn-layer-grid .nn-visual-thumb { aspect-ratio: 16 / 9; }
+.nn-layer-grid .nn-visual-card { padding-bottom: 4px; }
+.nn-layer-actions { display: flex; gap: 6px; padding: 0 10px 6px; flex-wrap: wrap; }
+.nn-mini-btn {
+  font: inherit;
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.nn-mini-btn:hover { border-color: #2563eb; color: #2563eb; }
+.nn-mini-btn.is-danger:hover { border-color: #dc2626; color: #dc2626; }
+.nn-layer-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px 10px;
+  padding: 4px 10px 10px;
+}
+.nn-layer-fields .nn-param-input { font-size: 12px; }</style>
     <style>
       :root,
       [data-theme] {
@@ -10555,7 +10590,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T18:41:50.716Z",
+    "generated": "2026-11-03T18:57:52.620Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10566,7 +10601,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T18:41:50.602Z",
+        "citationsResolvedAt": "2026-11-03T18:57:52.497Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
