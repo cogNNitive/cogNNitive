@@ -46,6 +46,7 @@ import type {
   BaselineEntry,
   BaselineDiff,
 } from '@cognnitive/nn-core'
+import { buildNodeDomainIndex } from './domain-index.js'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
@@ -329,13 +330,13 @@ export async function collectWorkspaceDiagnostics(
   })
   const index = buildWorkspaceIndex(result)
 
-  // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
+  // Cross-model address references (resolved through the domain index) + `sources::` Citations,
   // the latter resolved against real files under the workspace root. One read
   // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = createFsSourceResolver(rootDir)
   const log = buildChangeLog(snapshot)
   return [
-    ...validateWorkspaceReferences(result, index),
+    ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
     ...collectEvidenceDiagnostics(rootDir),
   ]

@@ -113,7 +113,7 @@ async function writeWorkspace(): Promise<{ alphaPath: string; betaPath: string }
     alphaPath,
     modelContent(
       'Alpha',
-      '## NN Roles: RoleA\nlinked:: [[beta_V_0-1-0_linked_test :: GhostElement]]\n',
+      '## NN Roles: RoleA\nlinked:: beta_V_0-1-0_linked_test@ghost-element\n',
     ),
     'utf-8',
   )
@@ -195,7 +195,7 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
     const { recursiveParse: parseSpy } = await import('@cognnitive/nn-core')
     const diagnostics = await collectWorkspaceDiagnostics(rootDir, buildCache())
     expect(parseSpy).toHaveBeenCalledTimes(1)
-    const crossModel = diagnostics.find((d) => d.message.includes('Dangling cross-model reference'))
+    const crossModel = diagnostics.find((d) => d.message.includes('REF_ELEMENT_NOT_FOUND'))
     expect(crossModel).toBeDefined()
     expect(crossModel!.path).toContain('alpha_V_0-1-0_linked_test_NN.md')
   })
@@ -223,9 +223,9 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
       true,
     )
     const alphaOwned = alpha.errors.some((e) =>
-      e.message.includes('Dangling cross-model reference'),
+      e.message.includes('REF_ELEMENT_NOT_FOUND'),
     )
-    const betaOwned = beta.errors.some((e) => e.message.includes('Dangling cross-model reference'))
+    const betaOwned = beta.errors.some((e) => e.message.includes('REF_ELEMENT_NOT_FOUND'))
     expect(alphaOwned).toBe(true)
     expect(betaOwned).toBe(false)
   })

@@ -6,6 +6,7 @@ import {
   validateKnowledge,
 } from '../src/index.js'
 import { ElementsMap, type Concept, type ParsedKnowledge } from '../src/types/index.js'
+import { buildElementIndexes, resolveReferenceTarget } from '../src/validator/references.js'
 import { checkFrontmatterInvariants } from '../src/validator/knowledge-checks.js'
 import { Diagnostics } from '../src/diagnostics.js'
 
@@ -145,11 +146,13 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
       { name: 'Project', type: 'list', fields: [{ name: 'link', type: 'reference' }] },
     ]
 
+    // A typed field value is address-only: the `[[...]]` form is a removed form, never resolved by name.
     const fieldDiags = validateElementFieldReferences(model, templateConcepts)
-    const ambiguousField = fieldDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
-    expect(ambiguousField).toBeDefined()
-    expect(ambiguousField!.severity).toBe('error')
-    expect(ambiguousField!.message).toContain('Status')
+    const removedForm = fieldDiags.find((d) => d.code === 'ADDRESS_MALFORMED')
+    expect(removedForm).toBeDefined()
+    expect(removedForm!.severity).toBe('error')
+    // A wikilink target (matrix header, prose) keeps the by-name path and its ambiguity error.
+    expect(resolveReferenceTarget('Status', buildElementIndexes(model)).ambiguous).toBe(true)
 
     // The matrix row is disambiguated by the matrix's declared source concept,
     // so no ambiguity diagnostic is emitted for the header itself.
@@ -243,7 +246,7 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(unfrozen!.severity).toBe('warning')
   })
 
-  it('5.1.5 References resolve by exact slug then exact display name; no separator-normalized fallback', () => {
+  it('5.1.5 Typed references resolve by exact slug address only; matrix headers keep slug then exact display name, no separator-normalized fallback', () => {
     const elements = new ElementsMap()
     elements.set('Widgets', [
       {
@@ -262,7 +265,7 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
         slugExplicit: true,
         description: '',
         fields: {
-          bySlug: '[[element-2a]]',
+          bySlug: '@element-2a',
           byName: '[[Element - 2A]]',
           byUnderscore: '[[Element_2A]]',
           byDashVariant: '[[Element – 2A]]',
@@ -310,9 +313,9 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     const fieldErrors = (name: string): boolean =>
       fieldDiags.some((d) => d.severity === 'error' && d.path.endsWith(`.fields.${name}`))
 
-    // Exact slug and exact display name both resolve.
+    // Only the slug address resolves; a name in a typed field is a removed form.
     expect(fieldErrors('bySlug')).toBe(false)
-    expect(fieldErrors('byName')).toBe(false)
+    expect(fieldErrors('byName')).toBe(true)
     // Separator variants (underscore, typographic dash) do NOT resolve.
     expect(fieldErrors('byUnderscore')).toBe(true)
     expect(fieldErrors('byDashVariant')).toBe(true)
@@ -322,7 +325,7 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     expect(matrixErrors).toHaveLength(2)
   })
 
-  it('5.1.6 Two elements named Total Revenue make [[Total Revenue]] an AMBIGUOUS_ELEMENT_NAME error', () => {
+  it('5.1.6 Two elements named Total Revenue make the wikilink [[Total Revenue]] an AMBIGUOUS_ELEMENT_NAME error', () => {
     const elements = new ElementsMap()
     elements.set('Revenue', [
       {
@@ -383,10 +386,13 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
       { name: 'Cost', type: 'list', fields: [{ name: 'link', type: 'reference' }] },
     ]
 
+    // A typed field value is address-only: the `[[...]]` form is a removed form, never resolved by name.
     const fieldDiags = validateElementFieldReferences(model, templateConcepts)
-    const ambiguousField = fieldDiags.find((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME')
-    expect(ambiguousField).toBeDefined()
-    expect(ambiguousField!.severity).toBe('error')
+    const removedForm = fieldDiags.find((d) => d.code === 'ADDRESS_MALFORMED')
+    expect(removedForm).toBeDefined()
+    expect(removedForm!.severity).toBe('error')
+    // A wikilink target (matrix header, prose) keeps the by-name path and its ambiguity error.
+    expect(resolveReferenceTarget('Total Revenue', buildElementIndexes(model)).ambiguous).toBe(true)
 
     // The matrix row is disambiguated by the matrix's declared source concept,
     // so no ambiguity diagnostic is emitted for the header itself.

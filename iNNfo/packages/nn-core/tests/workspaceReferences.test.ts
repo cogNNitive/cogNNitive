@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  QUALIFIED_REF_RE,
-  parseQualifiedRef,
-  collectQualifiedReferenceCandidates,
   validateWorkspaceReferences,
   MissingWorkspaceIndexError,
 } from '../src/validator/workspaceReferences'
@@ -20,198 +17,7 @@ function makeSchema(concepts: Concept[]): BlueprintSchema {
   return { concepts, markers: [], matrices: [], taxonomy: [] }
 }
 
-function emptyIndex(overrides: Partial<WorkspaceIndex> = {}): WorkspaceIndex {
-  return {
-    pathToNodeId: {},
-    titleToNodeIds: {},
-    fileNameToNodeIds: {},
-    nodeBlueprint: {},
-    nodeElementConcepts: {},
-    nodeSchema: {},
-    extraParents: {},
-    missing: [],
-    issues: [],
-    ...overrides,
-  }
-}
-
-/** Builds a minimal root + one child element node, wired via parentId/childIds. */
-function makeRootAndElement(opts: {
-  elementType: string
-  fields: Record<string, unknown>
-  description?: string
-}): { result: RecursiveParseResult; root: KnowledgeNode; element: KnowledgeNode } {
-  const root: KnowledgeNode = {
-    id: 'root-1',
-    name: 'root_01',
-    parentId: null,
-    childIds: ['elem-1'],
-    type: 'document',
-    kind: 'root',
-    fields: { title: field('Root Model') },
-    markers: {},
-    relationships: [],
-    rawSections: {},
-    source: { path: 'root_01.md' },
-  }
-  const element: KnowledgeNode = {
-    id: 'elem-1',
-    name: 'Jane Doe',
-    parentId: 'root-1',
-    childIds: [],
-    type: opts.elementType,
-    kind: 'element',
-    fields: Object.fromEntries(Object.entries(opts.fields).map(([k, v]) => [k, field(v)])),
-    markers: {},
-    relationships: [],
-    rawSections: opts.description ? { description: opts.description } : {},
-    source: { path: 'root_01.md' },
-  }
-  const result: RecursiveParseResult = {
-    nodes: { [root.id]: root, [element.id]: element },
-    rootIds: [root.id],
-    issues: [],
-  }
-  return { result, root, element }
-}
-
-describe('QUALIFIED_REF_RE / parseQualifiedRef', () => {
-  it('qualified-ref-parsing: only the qualified `[[Title :: Element]]` form parses', () => {
-    const cases: Array<[string, { modelTitle: string; elementName: string } | null]> = [
-      ['[[A :: B]]', { modelTitle: 'A', elementName: 'B' }],
-      ['[[ A::B ]]', { modelTitle: 'A', elementName: 'B' }],
-      ['[[A]]', null],
-      ['A :: B', null],
-      ['[[A :: B :: C]]', { modelTitle: 'A', elementName: 'B :: C' }],
-    ]
-
-    for (const [input, expected] of cases) {
-      const result = parseQualifiedRef(input)
-      if (expected === null) {
-        expect(result, `expected null for ${JSON.stringify(input)}`).toBeNull()
-      } else {
-        expect(result, `expected a match for ${JSON.stringify(input)}`).not.toBeNull()
-        expect(result!.modelTitle).toBe(expected.modelTitle)
-        expect(result!.elementName).toBe(expected.elementName)
-        expect(result!.raw).toBe(input)
-      }
-    }
-  })
-
-  it('QUALIFIED_REF_RE is anchored (no partial-string matches)', () => {
-    expect(QUALIFIED_REF_RE.test('prefix [[A :: B]] suffix')).toBe(false)
-    expect(QUALIFIED_REF_RE.test('[[A :: B]]')).toBe(true)
-  })
-})
-
-describe('collectQualifiedReferenceCandidates', () => {
-  it('untyped-field-ignored: only reference/model typed fields are collected, string fields are not', () => {
-    const schema = makeSchema([
-      {
-        name: 'Person',
-        type: 'text',
-        fields: [
-          { name: 'bio', type: 'string' },
-          { name: 'contact', type: 'reference' },
-        ],
-      },
-    ])
-    const { result } = makeRootAndElement({
-      elementType: 'Person',
-      fields: {
-        bio: '[[Acme Org :: Jane Doe]]', // qualified-shaped, but the field is untyped (string)
-        contact: '[[Acme Org :: Jane Doe]]', // typed reference — must be collected
-      },
-    })
-    const index = emptyIndex({ nodeSchema: { 'root-1': schema } })
-
-    const candidates = collectQualifiedReferenceCandidates(result, index)
-
-    expect(candidates).toHaveLength(1)
-    expect(candidates[0].fieldDef.name).toBe('contact')
-    expect(candidates[0].ref).toEqual({
-      modelTitle: 'Acme Org',
-      elementName: 'Jane Doe',
-      raw: '[[Acme Org :: Jane Doe]]',
-    })
-  })
-
-  it('a `model`-typed field is collected the same as a `reference`-typed field', () => {
-    const schema = makeSchema([
-      {
-        name: 'Models',
-        type: 'knowledge',
-        fields: [{ name: 'manifest', type: 'knowledge' }],
-      },
-    ])
-    const { result } = makeRootAndElement({
-      elementType: 'Models',
-      fields: { manifest: '[[Acme Org :: Jane Doe]]' },
-    })
-    const index = emptyIndex({ nodeSchema: { 'root-1': schema } })
-
-    const candidates = collectQualifiedReferenceCandidates(result, index)
-
-    expect(candidates).toHaveLength(1)
-    expect(candidates[0].fieldDef.type).toBe('knowledge')
-  })
-
-  it('prose-not-scanned: qualified-looking text in element prose (rawSections.description) is not a field value and is never collected', () => {
-    const schema = makeSchema([
-      {
-        name: 'Person',
-        type: 'text',
-        fields: [{ name: 'contact', type: 'reference' }],
-      },
-    ])
-    const { result, element } = makeRootAndElement({
-      elementType: 'Person',
-      fields: { contact: '[[Acme Org :: Jane Doe]]' },
-      description: 'See also [[Other Model :: Someone Else]] for context.',
-    })
-    const index = emptyIndex({ nodeSchema: { 'root-1': schema } })
-
-    // Sanity: the prose text really is qualified-ref shaped and really is on the node.
-    expect(element.rawSections.description).toContain('[[Other Model :: Someone Else]]')
-
-    const candidates = collectQualifiedReferenceCandidates(result, index)
-
-    expect(candidates).toHaveLength(1)
-    expect(candidates[0].ref.modelTitle).toBe('Acme Org')
-  })
-
-  it('intra-model-refs-untouched: an unqualified `[[Element]]` value in a typed field is not collected', () => {
-    const schema = makeSchema([
-      {
-        name: 'Person',
-        type: 'text',
-        fields: [{ name: 'contact', type: 'reference' }],
-      },
-    ])
-    const { result } = makeRootAndElement({
-      elementType: 'Person',
-      fields: { contact: '[[Jane Doe]]' },
-    })
-    const index = emptyIndex({ nodeSchema: { 'root-1': schema } })
-
-    const candidates = collectQualifiedReferenceCandidates(result, index)
-
-    expect(candidates).toHaveLength(0)
-  })
-
-  it('no-schema-node-skipped: a root with no resolvable template schema is skipped gracefully, not an error', () => {
-    const { result } = makeRootAndElement({
-      elementType: 'Person',
-      fields: { contact: '[[Acme Org :: Jane Doe]]' },
-    })
-    const index = emptyIndex() // nodeSchema deliberately empty — resolver never produced one
-
-    expect(() => collectQualifiedReferenceCandidates(result, index)).not.toThrow()
-    expect(collectQualifiedReferenceCandidates(result, index)).toHaveLength(0)
-  })
-})
-
-/** Builds a root node directly (bypassing `recursiveParse`), for multi-model `checkOne` fixtures. */
+/** Builds a root node directly (bypassing `recursiveParse`); `parent_spec` makes it a discoverable model. */
 function makeRoot(opts: {
   id: string
   path: string
@@ -229,7 +35,7 @@ function makeRoot(opts: {
     kind: 'root',
     fields: {
       ...(opts.title !== undefined ? { title: field(opts.title) } : {}),
-      ...(opts.parentSpec ? { parent_spec: field(opts.parentSpec) } : {}),
+      parent_spec: field(opts.parentSpec ?? { name: 'business_V_0-1-0' }),
     },
     markers: {},
     relationships: [],
@@ -239,18 +45,21 @@ function makeRoot(opts: {
   }
 }
 
-/** Builds an element node wired under `parentId`, for multi-model `checkOne` fixtures. */
+/** Builds an element node wired under `parentId`. The slug is derived from the name unless given. */
 function makeElement(opts: {
   id: string
   name: string
   parentId: string
   parentPath: string
   elementType: string
+  slug?: string
   fields?: Record<string, unknown>
+  description?: string
 }): KnowledgeNode {
   return {
     id: opts.id,
     name: opts.name,
+    slug: opts.slug,
     parentId: opts.parentId,
     childIds: [],
     type: opts.elementType,
@@ -258,12 +67,12 @@ function makeElement(opts: {
     fields: Object.fromEntries(Object.entries(opts.fields ?? {}).map(([k, v]) => [k, field(v)])),
     markers: {},
     relationships: [],
-    rawSections: {},
+    rawSections: opts.description ? { description: opts.description } : {},
     source: { path: opts.parentPath },
   }
 }
 
-/** Assembles a `RecursiveParseResult` from flat nodes and derives its `WorkspaceIndex` via PR4's real `buildWorkspaceIndex` (dogfooding the index this validator consumes). */
+/** Assembles a `RecursiveParseResult` from flat nodes and derives its `WorkspaceIndex` via the real `buildWorkspaceIndex`. */
 function workspace(
   nodesArr: KnowledgeNode[],
   issues: ParseIssue[] = [],
@@ -275,494 +84,192 @@ function workspace(
   return { result, index: buildWorkspaceIndex(result) }
 }
 
-describe('validateWorkspaceReferences — checkOne', () => {
-  it('resolves-valid-cross-model-ref: a valid qualified reference produces zero diagnostics', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const target = makeRoot({
-      id: 'target',
-      path: 'acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'acme_org.md',
-      elementType: 'Person',
-    })
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[Acme Org :: Jane Doe]]' },
-    })
+const PERSON = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
 
-    const { result, index } = workspace([target, jane, referrer, founderElem])
+/**
+ * Two models: `acme_org_NN.md` (id `acme_org`, Person elements `jane-doe` and `john-smith`)
+ * and `referrer_NN.md` (id `referrer`) whose Founder element holds `value` in the typed field `fundadores`.
+ */
+function twoModels(
+  value: unknown,
+  fieldDef: Partial<Concept['fields'][number]> = {},
+  targetOpts: { parentSpec?: { name: string; url?: string } } = {},
+): { result: RecursiveParseResult; index: WorkspaceIndex } {
+  const referrerSchema = makeSchema([
+    { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference', ...fieldDef }] },
+  ])
+  const target = makeRoot({
+    id: 'target',
+    path: 'acme_org_NN.md',
+    title: 'Acme Org',
+    templateSchema: PERSON,
+    childIds: ['jane', 'john'],
+    ...targetOpts,
+  })
+  const jane = makeElement({ id: 'jane', name: 'Jane Doe', parentId: 'target', parentPath: 'acme_org_NN.md', elementType: 'Person' })
+  const john = makeElement({ id: 'john', name: 'John Smith', parentId: 'target', parentPath: 'acme_org_NN.md', elementType: 'Person' })
+  const referrer = makeRoot({
+    id: 'referrer',
+    path: 'referrer_NN.md',
+    title: 'Referrer',
+    templateSchema: referrerSchema,
+    childIds: ['founder'],
+  })
+  const founder = makeElement({
+    id: 'founder',
+    name: 'Some Founder',
+    parentId: 'referrer',
+    parentPath: 'referrer_NN.md',
+    elementType: 'Founder',
+    fields: { fundadores: value },
+  })
+  return workspace([target, jane, john, referrer, founder])
+}
 
-    // Sanity: no duplicate-title noise from the index that would confound the assertion below.
-    expect(index.issues).toHaveLength(0)
-
+describe('validateWorkspaceReferences: addresses (cross-model-reference-validation)', () => {
+  it('a valid cross-model address resolves with no diagnostics', () => {
+    const { result, index } = twoModels('acme_org@jane-doe')
     expect(validateWorkspaceReferences(result, index)).toEqual([])
   })
 
-  it('dangling-model-errors: an unresolvable model title reports one error diagnostic', () => {
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[Nonexistent Model :: Jane Doe]]' },
-    })
-
-    const { result, index } = workspace([referrer, founderElem])
+  it('a dangling model names the address and the referencing location', () => {
+    const { result, index } = twoModels('ghost@jane-doe')
     const diagnostics = validateWorkspaceReferences(result, index)
-
     expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('error')
-    expect(diagnostics[0].message).toContain('Nonexistent Model')
-    expect(diagnostics[0].message).toContain('not present in this workspace')
+    expect(diagnostics[0]).toMatchObject({ severity: 'error', code: 'REF_MODEL_NOT_FOUND' })
+    expect(diagnostics[0].message).toContain('ghost@jane-doe')
+    expect(diagnostics[0].message).toContain('referrer_NN.md')
+    expect(diagnostics[0].path).toBe('referrer_NN.md#elements.Founder.Some Founder.fields.fundadores')
   })
 
-  it('dangling-element-errors: a resolvable model with a missing element reports one error diagnostic', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const target = makeRoot({
-      id: 'target',
-      path: 'acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'acme_org.md',
-      elementType: 'Person',
-    })
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[Acme Org :: Nonexistent Person]]' },
-    })
-
-    const { result, index } = workspace([target, jane, referrer, founderElem])
+  it('a dangling element in an existing model is REF_ELEMENT_NOT_FOUND', () => {
+    const { result, index } = twoModels('acme_org@nobody')
     const diagnostics = validateWorkspaceReferences(result, index)
-
-    expect(diagnostics).toHaveLength(1)
+    expect(diagnostics.map((d) => d.code)).toEqual(['REF_ELEMENT_NOT_FOUND'])
     expect(diagnostics[0].severity).toBe('error')
-    expect(diagnostics[0].message).toContain('Nonexistent Person')
-    expect(diagnostics[0].message).toContain('Acme Org')
   })
 
-  it('dangling-model-mentions-missing-file: the MODEL_NOT_FOUND hint appears when a missing submodel basename matches the target', () => {
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[acme_org :: Jane Doe]]' },
-    })
-    const issues: ParseIssue[] = [
-      {
-        path: 'submodels/acme_org.md',
-        message: 'referenced but not found',
-        severity: 'error',
-        code: 'MODEL_NOT_FOUND',
-      },
-    ]
-
-    const { result, index } = workspace([referrer, founderElem], issues)
-
-    // Sanity: the missing-file basename really is what checkOne must match against.
-    expect(index.missing).toContain('submodels/acme_org.md')
-
-    const diagnostics = validateWorkspaceReferences(result, index)
-
-    expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('error')
-    expect(diagnostics[0].message).toContain('not present in this workspace')
-    expect(diagnostics[0].message).toContain('the file was not found')
+  it('a bare slug resolves neither as a model nor as an element', () => {
+    const { result, index } = twoModels('jane-doe')
+    expect(validateWorkspaceReferences(result, index).map((d) => d.code)).toEqual(['REF_MODEL_NOT_FOUND'])
   })
 
-  it('duplicate-title-error: the index reports the duplicate title once; checkOne reports use-site ambiguity separately, not a re-emission', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const rootA = makeRoot({
-      id: 'root-a',
-      path: 'a/acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane-a'],
-    })
-    const janeA = makeElement({
-      id: 'jane-a',
-      name: 'Jane Doe',
-      parentId: 'root-a',
-      parentPath: 'a/acme_org.md',
-      elementType: 'Person',
-    })
-    const rootB = makeRoot({
-      id: 'root-b',
-      path: 'b/acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane-b'],
-    })
-    const janeB = makeElement({
-      id: 'jane-b',
-      name: 'Jane Doe',
-      parentId: 'root-b',
-      parentPath: 'b/acme_org.md',
-      elementType: 'Person',
-    })
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[Acme Org :: Jane Doe]]' },
-    })
-
-    const { result, index } = workspace([rootA, janeA, rootB, janeB, referrer, founderElem])
-
-    // PR4's buildWorkspaceIndex already emitted the duplicate-title error.
-    const duplicateIssues = index.issues.filter((i) => i.message.includes('Duplicate model title'))
-    expect(duplicateIssues).toHaveLength(1)
-    expect(duplicateIssues[0].severity).toBe('error')
-
-    const diagnostics = validateWorkspaceReferences(result, index)
-
-    // checkOne reports exactly one use-site ambiguity error — not a second copy of the duplicate-title error.
-    expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('error')
-    expect(diagnostics[0].message).toContain('Ambiguous cross-model reference')
-    expect(diagnostics[0].message).not.toContain('Duplicate model title')
+  it('a stale address after a move names the old id', () => {
+    const { result, index } = twoModels('old/acme-org@jane-doe')
+    const [d] = validateWorkspaceReferences(result, index)
+    expect(d.code).toBe('REF_MODEL_NOT_FOUND')
+    expect(d.message).toContain('old/acme-org')
   })
 
-  it('filename-fallback-resolves: a title-less model resolves via fileNameToNodeIds with zero diagnostics', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const target = makeRoot({
-      id: 'target',
-      path: 'kNNowledge/acme_org.md',
-      templateSchema: targetSchema,
-      childIds: ['jane'],
-    }) // no title
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'kNNowledge/acme_org.md',
-      elementType: 'Person',
-    })
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[acme_org :: Jane Doe]]' },
-    })
+  it('the title-qualified form is rejected as a removed form and never resolved by title', () => {
+    const { result, index } = twoModels('[[Acme Org :: Jane Doe]]')
+    const diagnostics = validateWorkspaceReferences(result, index)
+    expect(diagnostics).toHaveLength(1)
+    expect(diagnostics[0]).toMatchObject({ severity: 'error', code: 'ADDRESS_MALFORMED' })
+    expect(diagnostics[0].message).toContain('title-qualified reference')
+  })
 
-    const { result, index } = workspace([target, jane, referrer, founderElem])
+  it('a bare wikilink in a typed field is a removed form too', () => {
+    const { result, index } = twoModels('[[Jane Doe]]')
+    expect(validateWorkspaceReferences(result, index).map((d) => d.code)).toEqual(['ADDRESS_MALFORMED'])
+  })
 
-    // Sanity: title-based resolution is genuinely unavailable; only the filename ladder tier can resolve this.
-    expect(Object.keys(index.titleToNodeIds)).not.toContain('acme_org')
-    expect(index.fileNameToNodeIds['acme_org']).toEqual(['target'])
+  it('an absolute self-reference is ADDRESS_NOT_CANONICAL', () => {
+    const { result, index } = twoModels('referrer@some-founder')
+    const diagnostics = validateWorkspaceReferences(result, index)
+    expect(diagnostics.map((d) => d.code)).toEqual(['ADDRESS_NOT_CANONICAL'])
+    expect(diagnostics[0].message).toContain('@some-founder')
+  })
 
+  it('a relative @slug is left to the per-file validator', () => {
+    const { result, index } = twoModels('@some-founder')
     expect(validateWorkspaceReferences(result, index)).toEqual([])
   })
 
-  it('normalized-title-fallback-warns: a dash-variant title resolves via the normalized ladder tier with one warning, no error', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const target = makeRoot({
-      id: 'target',
-      path: 'acme-org.md',
-      title: 'Acme-Org',
-      templateSchema: targetSchema,
-      childIds: ['jane'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'acme-org.md',
-      elementType: 'Person',
-    })
-    const referrerSchema = makeSchema([
-      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      // En dash (U+2013), not the ASCII hyphen the target's title actually uses.
-      fields: { fundadores: '[[Acme–Org :: Jane Doe]]' },
-    })
-
-    const { result, index } = workspace([target, jane, referrer, founderElem])
+  it('a target_concepts mismatch warns, and does not error', () => {
+    const { result, index } = twoModels('acme_org@jane-doe', { target_concepts: ['Company'] })
     const diagnostics = validateWorkspaceReferences(result, index)
-
-    expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('warning')
-    expect(diagnostics[0].message).toContain('separator normalization')
+    expect(diagnostics.map((d) => [d.severity, d.code])).toEqual([['warning', 'REF_CONCEPT_MISMATCH']])
   })
 
-  it('concept-mismatch-warns: a target_concepts mismatch reports one warning, no error', () => {
-    const targetSchema = makeSchema([{ name: 'Employee', type: 'text', fields: [] }])
-    const target = makeRoot({
-      id: 'target',
-      path: 'acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'acme_org.md',
-      elementType: 'Employee', // not Founder — the field only accepts Founder
-    })
-    const referrerSchema = makeSchema([
-      {
-        name: 'Founder',
-        type: 'text',
-        fields: [{ name: 'fundadores', type: 'reference', target_concepts: ['Founder'] }],
-      },
-    ])
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['founder-elem'],
-    })
-    const founderElem = makeElement({
-      id: 'founder-elem',
-      name: 'Some Founder',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Founder',
-      fields: { fundadores: '[[Acme Org :: Jane Doe]]' },
-    })
+  it('a target_blueprint mismatch warns, and a match is silent', () => {
+    const mismatch = twoModels('acme_org@jane-doe', { target_blueprint: 'projects' }, { parentSpec: { name: 'business_V_0-1-0' } })
+    expect(
+      validateWorkspaceReferences(mismatch.result, mismatch.index).map((d) => [d.severity, d.code]),
+    ).toEqual([['warning', 'REF_BLUEPRINT_MISMATCH']])
 
-    const { result, index } = workspace([target, jane, referrer, founderElem])
-    const diagnostics = validateWorkspaceReferences(result, index)
-
-    expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('warning')
-    expect(diagnostics[0].message).toContain('Employee')
-    expect(diagnostics[0].message).toContain('target_concepts')
+    const match = twoModels('acme_org@jane-doe', { target_blueprint: 'business_V_0-1-0' }, { parentSpec: { name: 'business_V_0-1-0' } })
+    expect(validateWorkspaceReferences(match.result, match.index)).toEqual([])
   })
 
-  it('template-mismatch-warns: a target_blueprint mismatch reports one warning, no error', () => {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const target = makeRoot({
-      id: 'target',
-      path: 'business_co.md',
-      title: 'Business Co',
-      templateSchema: targetSchema,
-      parentSpec: { name: 'procedures_V_0-2-0' },
-      childIds: ['jane'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'business_co.md',
-      elementType: 'Person',
-    })
+  it('an address inside prose, an untyped field or a node without schema is never scanned', () => {
     const referrerSchema = makeSchema([
-      {
-        name: 'Models',
-        type: 'knowledge',
-        fields: [{ name: 'business_model', type: 'knowledge', target_blueprint: 'business_V_0-2-0' }],
-      },
+      { name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }, { name: 'note', type: 'string' }] },
     ])
+    const referrer = makeRoot({ id: 'r', path: 'r_NN.md', templateSchema: referrerSchema, childIds: ['f'] })
+    const founder = makeElement({
+      id: 'f',
+      name: 'F',
+      parentId: 'r',
+      parentPath: 'r_NN.md',
+      elementType: 'Founder',
+      fields: { note: 'ghost@nobody' },
+      description: 'see ghost@nobody',
+    })
+    const ws = workspace([referrer, founder])
+    expect(validateWorkspaceReferences(ws.result, ws.index)).toEqual([])
+
+    const noSchema = twoModels('ghost@nobody')
+    delete (noSchema.index.nodeSchema as Record<string, unknown>)['referrer']
+    expect(validateWorkspaceReferences(noSchema.result, noSchema.index)).toEqual([])
+  })
+
+  it('equal titles are legal: no duplicate-title issue, both models stay addressable', () => {
+    const a = makeRoot({ id: 'a', path: 'org_one_NN.md', title: 'Acme Org', templateSchema: PERSON, childIds: ['ea'] })
+    const ea = makeElement({ id: 'ea', name: 'Ann', parentId: 'a', parentPath: 'org_one_NN.md', elementType: 'Person' })
+    const b = makeRoot({ id: 'b', path: 'org_two_NN.md', title: 'Acme Org', templateSchema: PERSON, childIds: ['eb'] })
+    const eb = makeElement({ id: 'eb', name: 'Bob', parentId: 'b', parentPath: 'org_two_NN.md', elementType: 'Person' })
     const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['ref-elem'],
+      id: 'r',
+      path: 'r_NN.md',
+      templateSchema: makeSchema([{ name: 'Founder', type: 'text', fields: [{ name: 'fundadores', type: 'reference' }] }]),
+      childIds: ['f'],
     })
-    const refElem = makeElement({
-      id: 'ref-elem',
-      name: 'Some Ref',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Models',
-      fields: { business_model: '[[Business Co :: Jane Doe]]' },
+    const f = makeElement({
+      id: 'f',
+      name: 'F',
+      parentId: 'r',
+      parentPath: 'r_NN.md',
+      elementType: 'Founder',
+      fields: { fundadores: ['org_one@ann', 'org_two@bob'] },
     })
-
-    const { result, index } = workspace([target, jane, referrer, refElem])
-    const diagnostics = validateWorkspaceReferences(result, index)
-
-    expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].severity).toBe('warning')
-    expect(diagnostics[0].message).toContain('business_V_0-2-0')
-    expect(diagnostics[0].message).toContain('procedures_V_0-2-0')
+    const { result, index } = workspace([a, ea, b, eb, referrer, f])
+    expect(index.issues).toEqual([])
+    expect(validateWorkspaceReferences(result, index)).toEqual([])
   })
 })
 
-describe('validateWorkspaceReferences — canonical multivalue syntax (validator-robustness Unit 2)', () => {
-  function twoPersonWorkspace(fieldValue: unknown): {
-    result: RecursiveParseResult
-    index: WorkspaceIndex
-  } {
-    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
-    const referrerSchema = makeSchema([
-      { name: 'Team', type: 'text', fields: [{ name: 'members', type: 'reference' }] },
-    ])
-    const target = makeRoot({
-      id: 'target',
-      path: 'acme_org.md',
-      title: 'Acme Org',
-      templateSchema: targetSchema,
-      childIds: ['jane', 'john'],
-    })
-    const jane = makeElement({
-      id: 'jane',
-      name: 'Jane Doe',
-      parentId: 'target',
-      parentPath: 'acme_org.md',
-      elementType: 'Person',
-    })
-    const john = makeElement({
-      id: 'john',
-      name: 'John Smith',
-      parentId: 'target',
-      parentPath: 'acme_org.md',
-      elementType: 'Person',
-    })
-    const referrer = makeRoot({
-      id: 'referrer',
-      path: 'referrer.md',
-      title: 'Referrer',
-      templateSchema: referrerSchema,
-      childIds: ['team-elem'],
-    })
-    const teamElem = makeElement({
-      id: 'team-elem',
-      name: 'Core Team',
-      parentId: 'referrer',
-      parentPath: 'referrer.md',
-      elementType: 'Team',
-      fields: { members: fieldValue },
-    })
-    return workspace([target, jane, john, referrer, teamElem])
-  }
-
-  it('Canonical multivalue accepted: YAML sequence of qualified refs resolves clean', () => {
-    const { result, index } = twoPersonWorkspace([
-      '[[Acme Org :: Jane Doe]]',
-      '[[Acme Org :: John Smith]]',
-    ])
-    expect(index.issues).toHaveLength(0)
+describe('validateWorkspaceReferences: address lists (MULTIVALUE_SYNTAX)', () => {
+  it('a YAML sequence of addresses resolves clean', () => {
+    const { result, index } = twoModels(['acme_org@jane-doe', 'acme_org@john-smith'])
     expect(validateWorkspaceReferences(result, index)).toEqual([])
   })
 
-  it('Canonical multivalue accepted: newline-separated qualified refs resolve clean', () => {
-    const { result, index } = twoPersonWorkspace(
-      '[[Acme Org :: Jane Doe]]\n[[Acme Org :: John Smith]]',
-    )
-    expect(collectQualifiedReferenceCandidates(result, index)).toHaveLength(2)
+  it('newline-separated addresses resolve clean', () => {
+    const { result, index } = twoModels('acme_org@jane-doe\nacme_org@john-smith')
     expect(validateWorkspaceReferences(result, index)).toEqual([])
   })
 
-  it('Non-canonical fails with code and migration hint: comma-joined refs', () => {
-    const { result, index } = twoPersonWorkspace(
-      '[[Acme Org :: Jane Doe]], [[Acme Org :: John Smith]]',
-    )
+  it('a comma-joined scalar fails with the stable code and a hint, with no resolution noise', () => {
+    const { result, index } = twoModels('acme_org@jane-doe, acme_org@john-smith')
     const diagnostics = validateWorkspaceReferences(result, index)
     expect(diagnostics).toHaveLength(1)
-    expect(diagnostics[0].code).toBe('MULTIVALUE_SYNTAX')
-    expect(diagnostics[0].promptHint).toContain('[[Acme Org :: Jane Doe]]')
+    expect(diagnostics[0]).toMatchObject({ severity: 'error', code: 'MULTIVALUE_SYNTAX' })
+    expect(diagnostics[0].promptHint).toContain('acme_org@jane-doe\nacme_org@john-smith')
   })
 })
 
-describe('conv-wikilinks — qualified cross-model reference bypass (H4)', () => {
-  /** Minimal level-3 document with a `# NN index` (so `hasIndex` is true)
-   *  and one `Founder` element carrying a `fundadores` field whose value
-   *  is the wikilink under test. */
+describe('conv-wikilinks: the title-qualified form is no longer bypassed', () => {
   function referrerDoc(wikilinkValue: string): string {
     return `---
 spec_version: "V_0-3-0"
@@ -785,69 +292,47 @@ fundadores:: ${wikilinkValue}
 `
   }
 
-  function conveWikilinksCheck(content: string) {
+  function wikilinksCheck(content: string) {
     const report = validateFormatContent(content, 'referrer_V_1-0-0_NN.md')
     const check = report.checks.find((c) => c.id === 'conv-wikilinks')
     if (!check) throw new Error('conv-wikilinks check did not run (hasIndex must be true)')
     return check
   }
 
-  it('valid qualified reference produces no conv-wikilinks warning', () => {
-    const check = conveWikilinksCheck(referrerDoc('[[Acme Org :: Jane Doe]]'))
-    expect(check.passed).toBe(true)
-    expect(check.message).toBeUndefined()
-  })
-
-  it('invalid qualified reference is bypassed here (not the generic warning) — validateWorkspaceReferences reports it instead', () => {
-    // Per-file conv-wikilinks must NOT emit the generic "N undefined
-    // reference(s)" warning for a qualified value, valid or not — existence
-    // is workspace-graph knowledge it deliberately does not have. The
-    // "dangling-model-errors" test above proves validateWorkspaceReferences
-    // is the one that reports this specific case.
-    const check = conveWikilinksCheck(referrerDoc('[[Nonexistent Model :: Jane Doe]]'))
-    expect(check.passed).toBe(true)
-    expect(check.message).toBeUndefined()
-  })
-
-  it('non-qualified local wikilink is still checked normally', () => {
-    const check = conveWikilinksCheck(referrerDoc('[[Ghost]]'))
+  it('a title-qualified value is reported as a removed form', () => {
+    const check = wikilinksCheck(referrerDoc('[[Acme Org :: Jane Doe]]'))
     expect(check.passed).toBe(false)
-    expect(check.message).toContain('undefined reference')
+    expect(check.message).toContain('removed')
+  })
+
+  it('a non-qualified local wikilink is still checked normally', () => {
+    const check = wikilinksCheck(referrerDoc('[[Ghost]]'))
+    expect(check.passed).toBe(false)
     expect(check.message).toContain('ghost')
-  })
-
-  it('a value containing "::" but not matching the qualified form is not silently hidden', () => {
-    // "Broken::" has no text after the separator, so it does not match the
-    // precise `[[<text> :: <text>]]` pattern and must stay subject to
-    // normal local-reference checking.
-    const check = conveWikilinksCheck(referrerDoc('[[Broken::]]'))
-    expect(check.passed).toBe(false)
-    expect(check.message).toContain('undefined reference')
   })
 })
 
-describe('validateWorkspaceReferences — missing WorkspaceIndex guard', () => {
-  it('throws a named, actionable error instead of a raw TypeError when index is omitted', () => {
-    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
+describe('validateWorkspaceReferences: missing WorkspaceIndex guard', () => {
+  function single(): RecursiveParseResult {
+    const root = makeRoot({ id: 'root-1', path: 'root_NN.md', childIds: [] })
+    return { nodes: { [root.id]: root }, rootIds: [root.id], issues: [] }
+  }
 
-    // @ts-expect-error — deliberately calling without the required `index` argument
-    expect(() => validateWorkspaceReferences(result)).toThrow(MissingWorkspaceIndexError)
-    // @ts-expect-error — deliberately calling without the required `index` argument
-    expect(() => validateWorkspaceReferences(result)).toThrow(/buildWorkspaceIndex/)
+  it('throws a named, actionable error instead of a raw TypeError when index is omitted', () => {
+    // @ts-expect-error - deliberately calling without the required `index` argument
+    expect(() => validateWorkspaceReferences(single())).toThrow(MissingWorkspaceIndexError)
+    // @ts-expect-error - deliberately calling without the required `index` argument
+    expect(() => validateWorkspaceReferences(single())).toThrow(/buildWorkspaceIndex/)
   })
 
   it('throws the same named error when index is null', () => {
-    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
-
-    expect(() => validateWorkspaceReferences(result, null as unknown as WorkspaceIndex)).toThrow(
+    expect(() => validateWorkspaceReferences(single(), null as unknown as WorkspaceIndex)).toThrow(
       MissingWorkspaceIndexError,
     )
   })
 
   it('a real WorkspaceIndex built via buildWorkspaceIndex does not trigger the guard', () => {
-    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
-    const index = buildWorkspaceIndex(result)
-
-    expect(() => validateWorkspaceReferences(result, index)).not.toThrow()
+    const result = single()
+    expect(() => validateWorkspaceReferences(result, buildWorkspaceIndex(result))).not.toThrow()
   })
 })

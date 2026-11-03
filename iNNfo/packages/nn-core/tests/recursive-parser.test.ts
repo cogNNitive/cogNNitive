@@ -458,17 +458,17 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
 
       // The parser MUST NOT tell the user to rename the element — shared
       // identity across models is the intended shape of a multi-model
-      // workspace, and `[[Model Title :: Element Name]]` already
-      // disambiguates it (AD-7 / shipped-sample-workspace R6).
+      // workspace, and the address `<model-id>@<slug>` disambiguates it
+      // (AD-7 / shipped-sample-workspace R6).
       const renameAdvice = result.issues.filter(
         (i) => i.message.includes('appears in both') && i.message.includes('consider renaming'),
       )
       expect(renameAdvice).toHaveLength(0)
 
-      // It MAY record an info-level note naming the qualified-reference form.
+      // It MAY record an info-level note naming the address form.
       const infoNotes = result.issues.filter((i) => i.severity === 'info' && i.message.includes('Database'))
       for (const note of infoNotes) {
-        expect(note.message).toContain('::')
+        expect(note.message).toContain('<model-id>@<slug>')
       }
     })
 
