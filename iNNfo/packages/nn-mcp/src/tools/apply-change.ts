@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm, stat, rename, readdir, open } from 'node:fs/promises'
+import { readFile, writeFile, rm, rmdir, mkdir, stat, rename, readdir, open } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { basename, dirname, join, relative, isAbsolute } from 'node:path'
 import {
@@ -24,6 +24,7 @@ import {
   createFsSourceResolver,
   resolveCitation,
   scaffoldKnowledgeDocument,
+  fileLocalDiagnostics,
   roleOf,
   canonicalUnitModelId,
   resolvedTarget,
@@ -45,6 +46,7 @@ import type {
   BumpLevel,
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
+import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { writeProposedChangeset } from './propose-changeset.js'
@@ -800,7 +802,8 @@ export async function executeChangesetApply(
     for (const [index, change] of csDoc.changes.entries()) {
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
-      if (!isSafeRelativeId(change.target) || /[\\/]/.test(change.target)) {
+      const hierarchical = typeof change.concept === 'string' && change.concept.trim() !== ''
+      if (!isSafeRelativeId(change.target) || (hierarchical ? change.target.includes('\\') : /[\\/]/.test(change.target))) {
         return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`, change.id)
       }
       if (addModelIndex.has(key)) {
@@ -808,6 +811,106 @@ export async function executeChangesetApply(
       }
       addModelIndex.set(key, index)
     }
+
+    /**
+     * Where each `add_model` writes and, for an instance model, which root element
+     * its skeleton carries (design A9). A change without `concept`, or naming a
+     * compact concept, has no plan and keeps the `kNNowledge/<id>_NN.md` path.
+     */
+    interface AddModelPlan {
+      /** Workspace-relative folder with a trailing slash. */
+      folder: string
+      file: string
+      /** Absolute path of the model file. */
+      path: string
+      /** Root element of a distributed instance model. */
+      root?: { concept: string; slug: string; name?: string }
+    }
+    const addModelPlans = new Map<string, AddModelPlan>()
+    const plannedConcepts = new Map<string, string>()
+    let nodeIndexCache: Awaited<ReturnType<typeof buildNodeDomainIndex>> | null = null
+    const nodeIndex = async () => (nodeIndexCache ??= await buildNodeDomainIndex(rootDir))
+
+    for (const [index, change] of csDoc.changes.entries()) {
+      if (change.op !== 'add_model') continue
+      const concept = typeof change.concept === 'string' ? change.concept.trim() : ''
+      if (!concept) continue
+      const blueprintName = String(change.blueprint_name ?? '')
+      const blueprintUrl = String(change.blueprint_url ?? '')
+      const declared = await loadDeclarations(rootDir, { name: blueprintName, url: blueprintUrl })
+      const declaredStorage = declared
+        ? [...declared].find(([name]) => name.toLowerCase() === concept.toLowerCase())?.[1]
+        : undefined
+      const { index: domainIndex } = await nodeIndex()
+      const placed = domainIndex.placementFor(concept, change.target, blueprintName)
+      if (!('folder' in placed)) {
+        // No declarations means the bluepriNNt itself never resolved: report that
+        // cause (the same code and wording the load phase uses) rather than the
+        // placement it prevented.
+        if (!declared) {
+          return rejectPhase1(
+            'BLUEPRINT_UNRESOLVED',
+            change.target,
+            `change "${change.id}": bluepriNNt "${blueprintName}" could not be resolved from "${blueprintUrl}"`,
+          )
+        }
+        if (!declaredStorage) {
+          return rejectProposal(
+            'ADD_MODEL_INVALID_TARGET',
+            change.target,
+            `change "${change.id}": bluepriNNt "${blueprintName}" declares no concept "${concept}"`,
+            change.id,
+          )
+        }
+        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}": ${placed.message}`, change.id)
+      }
+      // A compact concept declared explicitly stays on the compact branch: its
+      // target is a plain id and the file keeps the `kNNowledge/` name rules.
+      if (placed.folder === 'kNNowledge/') continue
+      const filePath = join(rootDir, placed.folder, placed.file)
+      if (!isInsideRoot(rootDir, filePath)) {
+        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `model id "${change.target}" resolves outside the domain`, change.id)
+      }
+      const segments = change.target.split('/')
+      const slug = segments[segments.length - 1]!
+      const containerId = segments.slice(0, -1).join('/')
+      if (containerId) {
+        const containerConcept = declaredStorage?.container
+        const createdAt = addModelIndex.get(containerId.toLowerCase())
+        const holderConcept = plannedConcepts.get(containerId.toLowerCase())
+        const holder = createdAt === undefined ? domainIndex.byId(containerId) : undefined
+        if (createdAt !== undefined && createdAt > index) {
+          return rejectProposal(
+            'ADD_MODEL_ORDER',
+            change.target,
+            `change "${change.id}" targets container "${containerId}" before the add_model change that creates it`,
+            change.id,
+          )
+        }
+        const holderIsContainer =
+          holderConcept !== undefined
+            ? containerConcept === undefined || holderConcept.toLowerCase() === containerConcept.toLowerCase()
+            : holder?.storage.kind === 'instance' &&
+              (containerConcept === undefined || holder.storage.concept.toLowerCase() === containerConcept.toLowerCase())
+        if (!holderIsContainer) {
+          const expected = containerConcept ? `an instance of ${containerConcept}` : 'an instance model'
+          return rejectProposal(
+            'CONTAINER_MISSING',
+            change.target,
+            `change "${change.id}": container "${containerId}" is not ${expected}; create the container model first`,
+            change.id,
+          )
+        }
+      }
+      addModelPlans.set(change.id, {
+        folder: placed.folder,
+        file: placed.file,
+        path: filePath,
+        root: { concept, slug, ...(change.name ? { name: change.name } : {}) },
+      })
+      plannedConcepts.set(change.target.toLowerCase(), concept)
+    }
+
     for (const [index, change] of csDoc.changes.entries()) {
       if (change.op === 'comment' || change.op === 'add_model' || change.op === 'produce_artifact') continue
       const targetModel = parseTargetAddress(change.target).modelSlug
@@ -908,12 +1011,18 @@ export async function executeChangesetApply(
     for (const change of csDoc.changes) {
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
+      const plan = addModelPlans.get(change.id)
       let exists = false
       try {
         exists = Boolean(await findKnowledgeFile(rootDir, change.target))
       } catch (err) {
         if (err instanceof ModelIdError) exists = true
         else throw err
+      }
+      // The id can be free while the placement path is already taken: add_model
+      // never writes over a file, whether or not that file is a model.
+      if (!exists && plan) {
+        exists = await stat(plan.path).then((s) => s.isFile(), () => false)
       }
       if (exists) {
         existingAddModelIds.add(key)
@@ -929,7 +1038,7 @@ export async function executeChangesetApply(
             message: `DEPENDS_ON_CONFLICTED_CHANGE: change "${other.id}" depends on add_model change "${change.id}", which conflicted`,
           })
         }
-      } else {
+      } else if (!plan) {
         needsKnowledgeDir = true
       }
     }
@@ -965,6 +1074,7 @@ export async function executeChangesetApply(
 
       if (change.op === 'add_model') {
         const cleanId = normalizeId(change.target)
+        const plan = addModelPlans.get(change.id)
         const blueprintName = change.blueprint_name as string
         const blueprintUrl = change.blueprint_url as string
         let resolvedBlueprint: Awaited<ReturnType<typeof resolveBlueprintWithCache>> | null = null
@@ -999,8 +1109,9 @@ export async function executeChangesetApply(
           knowledgeVersion: change.knowledge_version,
           schema: composed.schema,
           blueprintFrontmatter: resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>,
+          ...(plan?.root ? { root: plan.root } : {}),
         })
-        const filePath = join(rootDir, 'kNNowledge', `${cleanId}_NN.md`)
+        const filePath = plan ? plan.path : join(rootDir, 'kNNowledge', `${cleanId}_NN.md`)
         if (!isInsideRoot(rootDir, filePath)) {
           return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `model id "${change.target}" resolves outside the domain`)
         }
@@ -1037,13 +1148,40 @@ export async function executeChangesetApply(
           throw err
         }
         if (!modelFile) {
+          // A target model part that does not resolve is reported with the ids that
+          // share its last segment, and a filename stem is named as the removed form
+          // it is (changeset-document-model): neither is ever guessed.
+          const { index: di } = await nodeIndex()
+          const stem = di.models.find((m) => displayStem(basename(m.path)) === modelSlug)
+          if (stem) {
+            return {
+              success: false,
+              changesetPath: relChangesetPath,
+              status: 'rejected',
+              models: {},
+              appliedCount: 0,
+              errors: [
+                {
+                  path: change.target,
+                  message: `MODEL_ADDRESSED_BY_STEM: "${modelSlug}" is a filename stem, not a model id; address "${stem.id}" instead`,
+                  code: 'MODEL_ADDRESSED_BY_STEM',
+                },
+              ],
+            }
+          }
+          const last = modelSlug.split('/').pop()
+          const candidates = di.models
+            .filter((m) => m.id !== modelSlug && m.id.split('/').pop() === last)
+            .map((m) => m.id)
+          const hint =
+            candidates.length > 0 ? `; no model has that id (candidates: ${candidates.join(', ')})` : ''
           return {
             success: false,
             changesetPath: relChangesetPath,
             status: 'rejected',
             models: {},
             appliedCount: 0,
-            errors: [{ path: change.target, message: `Model not found: ${modelSlug}` }],
+            errors: [{ path: change.target, message: `Model not found: ${modelSlug}${hint}` }],
           }
         }
         const model = await loadKnowledge(modelFile)
@@ -1343,6 +1481,34 @@ export async function executeChangesetApply(
       }
     }
 
+    // Placement gate (design A9, A12): an instance model this changeset touches must
+    // sit where its concept's rule puts it, or the address it was just changed
+    // through is already wrong. Compact models keep their behaviour unchanged.
+    for (const [, entry] of loadedModels) {
+      if (!entry.mutated || !entry.modelSlug.includes('/')) continue
+      const parent = entry.model.frontmatter.parent_spec as { name?: string; url?: string } | undefined
+      if (!parent?.name) continue
+      const declarations = await loadDeclarations(rootDir, { name: parent.name, url: parent.url })
+      if (!declarations) continue
+      const elements: Array<{ concept: string; slug: string }> = []
+      for (const [concept, nodes] of entry.model.elements) {
+        for (const node of nodes) if (node.slug) elements.push({ concept, slug: node.slug })
+      }
+      const rel = relative(rootDir, entry.filePath).replace(/\\/g, '/')
+      const findings = fileLocalDiagnostics(
+        { path: rel, frontmatter: entry.model.frontmatter, elements },
+        declarations,
+      ).filter((d) => d.severity === 'error')
+      if (findings.length > 0) {
+        return recordRejection(
+          findings.map((d) => ({ path: rel, message: d.message, code: 'VALIDATION_FAILED' })),
+          undefined,
+          undefined,
+          false,
+        )
+      }
+    }
+
     // Proposal immutability (D1): the write-back must keep every normative line of every
     // change block byte-identical to the input. A difference aborts before Phase 2:
     // nothing is written and the lock is released (the surrounding finally).
@@ -1378,6 +1544,24 @@ export async function executeChangesetApply(
     // Pre-record original content of existing mutated models for full cross-model rollback (#188)
     const originalModelsBackup = new Map<string, string>()
     const persistedFiles = new Set<string>()
+    /** Folders this run created, deepest last: a failed persist removes exactly these. */
+    const createdDirectories: string[] = []
+    const ensureDirectory = async (dir: string): Promise<void> => {
+      const missing: string[] = []
+      let current = dir
+      for (;;) {
+        const present = await stat(current).then((s) => s.isDirectory(), () => false)
+        if (present) break
+        missing.push(current)
+        const parent = dirname(current)
+        if (parent === current) break
+        current = parent
+      }
+      for (const path of missing.reverse()) {
+        await mkdir(path)
+        createdDirectories.push(path)
+      }
+    }
     for (const [, entry] of loadedModels) {
       if (entry.mutated && !entry.created) {
         try {
@@ -1417,6 +1601,11 @@ export async function executeChangesetApply(
         await rm(join(dirname(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {})
         await rm(join(dirname(entry.filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {})
       }
+      // 4. Remove the folders this run created, deepest first, and only when the
+      // rollback left them empty: a folder that already held files stays.
+      for (const path of [...createdDirectories].sort((a, b) => b.length - a.length)) {
+        await rmdir(path).catch(() => {})
+      }
     }
 
     try {
@@ -1431,6 +1620,8 @@ export async function executeChangesetApply(
         const modelStem = displayStem(basename(modelFile))
         const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
 
+        // An instance model may live in folders that do not exist yet (design A9).
+        await ensureDirectory(dirname(modelFile))
         const serialized = serializeKnowledge(entry.model)
         await writeAndSync(stagingPath, serialized)
         await persistAtomic(stagingPath, modelFile)

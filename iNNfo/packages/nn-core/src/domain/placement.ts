@@ -116,7 +116,9 @@ export function placementFor(
   }
   const bad = segments.find((s) => !SLUG_RE.test(s))
   if (bad !== undefined) return invalid(`segment "${bad}" is not a lowercase slug`)
-  return { folder: expectedFolder(rule, segments), file: instanceFileName(segments[depth - 1], blueprint) }
+  // The file name derives from the version-less bluepriNNt name, exactly as
+  // `checkInstanceName` expects it (`localDiagnostics` compares the two).
+  return { folder: expectedFolder(rule, segments), file: instanceFileName(segments[depth - 1], blueprintNameOf(blueprint)) }
 }
 
 type Registry = Extract<NonNullable<Extract<Classification, { kind: 'compact' }>['problem']>, { type: 'registry' }>

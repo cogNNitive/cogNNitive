@@ -156,8 +156,13 @@ export function isChangeOp(val: unknown): val is ChangeOp {
 /**
  * Structural problems of one `add_model` change, as human-readable messages naming the
  * change id. An empty list means the change is well formed. `add_model` creates a model:
- * it requires `target` (a plain model id), `blueprint_name` and `blueprint_url`, and it
- * carries no precondition (`from`, `to`, `base_hash`) and no element payload.
+ * it requires `target`, `blueprint_name` and `blueprint_url`, and it carries no
+ * precondition (`from`, `to`, `base_hash`) and no element payload.
+ *
+ * `target` is a plain model id, UNLESS the change names the distributed concept it
+ * instantiates (`concept`, design A9): then it is the instance's hierarchical id
+ * (`<container-id>/<slug>`) and its folder and file are derived from the concept's
+ * declared placement by the apply engine, never from the id's spelling.
  */
 export function addModelProblems(change: ChangeItem): string[] {
   if (change.op !== 'add_model') return []
@@ -168,21 +173,26 @@ export function addModelProblems(change: ChangeItem): string[] {
       problems.push(`change "${id}": add_model must not carry "${key}"`)
     }
   }
-  if (change.concept !== undefined || change.fields !== undefined || change.slug !== undefined) {
-    problems.push(`change "${id}": add_model must not carry element payload (concept, slug, fields)`)
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": add_model must not carry element payload (slug, fields)`)
   }
   if (!change.blueprint_name) problems.push(`change "${id}": add_model requires "blueprint_name"`)
   if (!change.blueprint_url) problems.push(`change "${id}": add_model requires "blueprint_url"`)
   const target = change.target
+  const hierarchical = typeof change.concept === 'string' && change.concept.trim() !== ''
   if (
     !target ||
     target.includes('@') ||
     target.includes('&') ||
     target.includes('..') ||
     /^[a-zA-Z]:/.test(target) ||
-    /[\\/]/.test(target)
+    (hierarchical ? target.includes('\\') : /[\\/]/.test(target))
   ) {
-    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`)
+    problems.push(
+      hierarchical
+        ? `change "${id}": add_model target must be a hierarchical model id (no "@", "&", "..", backslashes, or absolute path)`
+        : `change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`,
+    )
   }
   return problems
 }

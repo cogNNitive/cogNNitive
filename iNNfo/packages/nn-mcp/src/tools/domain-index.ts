@@ -68,6 +68,8 @@ export async function buildNodeDomainIndex(rootDir: string, opts: NodeDomainInde
 
   // Warm-up: resolve each distinct (name, url) once, so the port below can be synchronous.
   const warmed = new Map<string, Declarations | null>()
+  /** First resolution per bluepriNNt NAME, for callers that know no url (`DomainIndex.placementFor`). */
+  const warmedByName = new Map<string, Declarations | null>()
   for (const { input } of discovered) {
     const spec = input.frontmatter['parent_spec']
     const name = typeof spec === 'string' ? spec : (spec as { name?: unknown } | undefined)?.name
@@ -75,11 +77,15 @@ export async function buildNodeDomainIndex(rootDir: string, opts: NodeDomainInde
     const url = typeof spec === 'object' && spec !== null ? (spec as { url?: unknown }).url : undefined
     const parent = { name, url: typeof url === 'string' ? url : undefined }
     const key = keyOf(parent.name, parent.url)
-    if (!warmed.has(key)) warmed.set(key, await loadDeclarations(rootDir, parent))
+    if (!warmed.has(key)) {
+      const declarations = await loadDeclarations(rootDir, parent)
+      warmed.set(key, declarations)
+      if (!warmedByName.has(parent.name)) warmedByName.set(parent.name, declarations)
+    }
   }
 
   const resolver: StorageDeclarationsResolver = ({ name, url }) => {
-    const found = warmed.get(keyOf(name, url)) ?? null
+    const found = warmed.get(keyOf(name, url)) ?? warmedByName.get(name) ?? null
     return found ?? (opts.strict ? null : new Map())
   }
 

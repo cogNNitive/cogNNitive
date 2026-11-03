@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
-import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, rm, readdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { parseChangeset, verifyProposalSha } from '@cognnitive/nn-core'
+import {
+  parseChangeset,
+  verifyProposalSha,
+  computeProposalSha,
+  serializeChangeset,
+  parseKnowledge,
+} from '@cognnitive/nn-core'
+import type { ChangeItem } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
 import { applyChange } from './apply-change'
+import { validateKnowledge } from './validate'
+import { rmWithRetry } from '../../test/helpers/fs-retry'
 import type { ConsoleWriter } from './console-regeneration'
 
 const root = join(import.meta.dirname!, '..', '..', 'temp-test-facts')
@@ -194,5 +204,657 @@ describe('execution facts at apply', () => {
     const times = doc.changes.map((c) => c.applied_at)
     expect(new Set(times).size).toBe(1)
     expect(times[0]! > future).toBe(true)
+  })
+})
+
+/* ── add_model of a distributed instance (distributed-storage S6a) ───────────
+ *
+ * A self-contained domaiNN whose local bluepriNNt declares `Series` and `Video`
+ * as distributed (design A1/A2): `Series` is the container stored at
+ * `series/{slug}/`, a `Video` instance at `{container}/assets/{slug}/`. The
+ * placement path is therefore real, not mocked, and no network is needed.
+ */
+const iRoot = join(import.meta.dirname!, '..', '..', 'temp-test-facts-instance')
+const iChangesDir = join(iRoot, 'changes')
+const iSpecsDir = join(iRoot, 'specs')
+const iBlueprintsDir = join(iSpecsDir, 'bluepriNNts')
+const iKnowledgeDir = join(iRoot, 'kNNowledge')
+const iSeriesDir = join(iRoot, 'series', 'villabotijos-today')
+const EPISODE_REL = 'series/villabotijos-today/assets/new-episode/new-episode_video-script_NN.md'
+
+const VIDEO_BLUEPRINT_NAME = 'video-script_V_0-1-0'
+const VIDEO_BLUEPRINT_REL = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+
+const VIDEO_BLUEPRINT = [
+  '---',
+  'spec_version: "V_0-1-0"',
+  'level: 2',
+  'title: "Video"',
+  'parent_spec:',
+  '  name: "iNNfo_V_0-7-0"',
+  '  url: "specs/iNNfo_V_0-7-0_NN.md"',
+  '---',
+  '',
+  '# NN Concept Definition',
+  '',
+  '## NN Concept Definition: Series',
+  'type:: list',
+  'storage:: distributed',
+  'placement:: series/{slug}/',
+  '',
+  '## NN Concept Definition: Video',
+  'type:: list',
+  'container:: Series',
+  'storage:: distributed',
+  'placement:: {container}/assets/{slug}/',
+  '',
+  '## NN Concept Definition: Scene',
+  'type:: list',
+  '',
+  '# NN Field Definition',
+  '',
+  '## NN Field Definition: voice',
+  'concept:: Scene',
+  'type:: string',
+  '',
+  '## NN Field Definition: mood',
+  'concept:: Scene',
+  'type:: select',
+  'options:: [calm, tense]',
+  '',
+].join('\n')
+
+const LEVEL1_CONTENT = [
+  '---',
+  'spec_version: "V_0-7-0"',
+  'level: 1',
+  'title: "iNNfo"',
+  'parent_spec:',
+  '  name: "defiNNe_V_0-1-0"',
+  '  url: "specs/defiNNe_V_0-1-0_NN.md"',
+  '---',
+  '',
+].join('\n')
+
+const LEVEL0_CONTENT = ['---', 'spec_version: "V_0-1-0"', 'level: 0', 'title: "defiNNe"', '---', ''].join('\n')
+
+/** A `Series` instance model: the container a `Video` instance hangs from. */
+function seriesModel(slug: string, title: string): string {
+  return [
+    '---',
+    'level: 3',
+    `title: "${title}"`,
+    'knowledge_version: "V_0-1-0"',
+    'parent_spec:',
+    `  name: "${VIDEO_BLUEPRINT_NAME}"`,
+    `  url: "${VIDEO_BLUEPRINT_REL}"`,
+    '---',
+    '',
+    '# NN Series',
+    '',
+    `## NN Series: ${title}`,
+    `slug:: ${slug}`,
+    '',
+  ].join('\n')
+}
+
+/** A `Video` instance model holding one `Scene`. */
+function videoModel(slug: string, title: string, scene: { name: string; slug: string; voice: string }): string {
+  return [
+    '---',
+    'level: 3',
+    `title: "${title}"`,
+    'knowledge_version: "V_0-1-0"',
+    'parent_spec:',
+    `  name: "${VIDEO_BLUEPRINT_NAME}"`,
+    `  url: "${VIDEO_BLUEPRINT_REL}"`,
+    '---',
+    '',
+    '# NN Video',
+    '',
+    `## NN Video: ${title}`,
+    `slug:: ${slug}`,
+    '',
+    '# NN Scene',
+    '',
+    `## NN Scene: ${scene.name}`,
+    `slug:: ${scene.slug}`,
+    `voice:: ${scene.voice}`,
+    'mood:: calm',
+    '',
+  ].join('\n')
+}
+
+async function writeInstanceFile(rel: string, content: string): Promise<string> {
+  const abs = join(iRoot, rel)
+  await mkdir(join(abs, '..'), { recursive: true })
+  await writeFile(abs, content, 'utf-8')
+  return abs
+}
+
+async function writeInstanceCs(changes: ChangeItem[], name = 'instance_changes_NN.md'): Promise<string> {
+  const withEvidence = changes.map((c) => (c.evidence === undefined ? { ...c, evidence: 'decision' } : c))
+  const doc = {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      level: 3 as const,
+      parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
+      blueprint_version: 'V_0-6-0',
+      status: 'proposed' as const,
+      proposal_sha: computeProposalSha(withEvidence),
+    },
+    changes: withEvidence,
+  }
+  await writeFile(join(iChangesDir, name), serializeChangeset(doc), 'utf-8')
+  return 'changes/' + name
+}
+
+const ADD_EPISODE: ChangeItem = {
+  id: 'c-01',
+  op: 'add_model',
+  target: 'villabotijos-today/new-episode',
+  concept: 'Video',
+  blueprint_name: VIDEO_BLUEPRINT_NAME,
+  blueprint_url: VIDEO_BLUEPRINT_REL,
+  name: 'New Episode',
+}
+
+async function applyInstance(changes: ChangeItem[], name?: string) {
+  const cs = await writeInstanceCs(changes, name)
+  return applyChange(iRoot, cs)
+}
+
+describe('add_model of a distributed instance (distributed-storage S6a)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(iRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rmWithRetry(iRoot)
+    for (const dir of [iChangesDir, iBlueprintsDir, iKnowledgeDir, iSeriesDir]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(
+      join(iSeriesDir, 'villabotijos-today_video-script_NN.md'),
+      seriesModel('villabotijos-today', 'Villabotijos Today'),
+      'utf-8',
+    )
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(iRoot)
+  })
+
+  it('creates the model at its placement path with the root element and no kNNowledge file', async () => {
+    const res = await applyInstance([ADD_EPISODE])
+
+    expect(res.success).toBe(true)
+    expect(res.status).toBe('applied')
+    expect(existsSync(join(iRoot, EPISODE_REL))).toBe(true)
+    // Not written under kNNowledge/, and the folder there is never required.
+    expect(await readdir(iKnowledgeDir)).toEqual([])
+    expect(res.errors).toBeUndefined()
+
+    const created = parseKnowledge(await readFile(join(iRoot, EPISODE_REL), 'utf-8'))
+    const videos = created.elements.get('Video') ?? []
+    expect(videos).toHaveLength(1)
+    expect(videos[0]!.slug).toBe('new-episode')
+    expect(videos[0]!.slugExplicit).toBe(true)
+    expect(videos[0]!.name).toBe('New Episode')
+    expect(created.frontmatter.title).toBe('New Episode')
+
+    const validated = await validateKnowledge(iRoot, 'villabotijos-today/new-episode', undefined, undefined, false, {
+      checkFreshness: false,
+    })
+    expect(validated.errors).toEqual([])
+    expect(validated.valid).toBe(true)
+
+    // A created model records its result version only.
+    expect(res.models!['villabotijos-today/new-episode']).toEqual({
+      result_version: String(created.frontmatter.knowledge_version),
+    })
+    const applied = parseChangeset(await readFile(join(iRoot, 'changes', 'instance_changes_NN.md'), 'utf-8'))
+    expect(applied.frontmatter.models!['villabotijos-today/new-episode']).not.toHaveProperty('base_version')
+    expect(applied.changes[0]!.status).toBe('applied')
+    expect(applied.changes[0]!.target).toBe('villabotijos-today/new-episode')
+  })
+
+  it('does not scaffold a second element of a distributed concept', async () => {
+    const res = await applyInstance([ADD_EPISODE])
+    expect(res.success).toBe(true)
+    const text = await readFile(join(iRoot, EPISODE_REL), 'utf-8')
+    // A second `Video` or a `Series` element would make the file a registry
+    // (two roots, mixed storage): the skeleton holds the root and the compact
+    // concepts only.
+    expect(text).not.toContain('Example Video')
+    expect(text).not.toContain('Example Series')
+    expect(text).toContain('Example Scene')
+  })
+
+  it('rejects a missing container naming it and writes nothing', async () => {
+    const res = await applyInstance([{ ...ADD_EPISODE, target: 'no-such-series/intro' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors![0]!.code).toBe('CONTAINER_MISSING')
+    expect(res.errors![0]!.message).toContain('no-such-series')
+    expect(existsSync(join(iRoot, 'series', 'no-such-series'))).toBe(false)
+    expect(existsSync(join(iRoot, 'kNNowledge'))).toBe(true)
+    expect(await readdir(iKnowledgeDir)).toEqual([])
+  })
+
+  it('accepts a container created earlier in the same changeset', async () => {
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'add_model',
+        target: 'new-series',
+        concept: 'Series',
+        blueprint_name: VIDEO_BLUEPRINT_NAME,
+        blueprint_url: VIDEO_BLUEPRINT_REL,
+        name: 'New Series',
+      },
+      { ...ADD_EPISODE, id: 'c-02', target: 'new-series/intro', name: 'Intro' },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(existsSync(join(iRoot, 'series/new-series/new-series_video-script_NN.md'))).toBe(true)
+    expect(existsSync(join(iRoot, 'series/new-series/assets/intro/intro_video-script_NN.md'))).toBe(true)
+    expect(Object.keys(res.models!).sort()).toEqual(['new-series', 'new-series/intro'])
+  })
+
+  it('rejects an instance created before the container that holds it', async () => {
+    const res = await applyInstance([
+      { ...ADD_EPISODE, id: 'c-01', target: 'later-series/intro' },
+      {
+        id: 'c-02',
+        op: 'add_model',
+        target: 'later-series',
+        concept: 'Series',
+        blueprint_name: VIDEO_BLUEPRINT_NAME,
+        blueprint_url: VIDEO_BLUEPRINT_REL,
+        name: 'Later Series',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors![0]!.code).toBe('ADD_MODEL_ORDER')
+    expect(existsSync(join(iRoot, 'series', 'later-series'))).toBe(false)
+  })
+
+  it('an existing id is a conflict and the file stays byte-identical', async () => {
+    const path = await writeInstanceFile(
+      'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md',
+      videoModel('pepper-mapache', 'Pepper Mapache', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+    )
+    const before = await readFile(path, 'utf-8')
+
+    const res = await applyInstance([
+      { ...ADD_EPISODE, target: 'villabotijos-today/pepper-mapache' },
+      {
+        id: 'c-02',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@00-gancho&voice',
+        from: 'warm',
+        to: 'cold',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('conflict')
+    const codes = res.errors!.map((e) => e.code)
+    expect(codes).toContain('MODEL_EXISTS')
+    expect(codes).toContain('DEPENDS_ON_CONFLICTED_CHANGE')
+    expect(await readFile(path, 'utf-8')).toBe(before)
+  })
+
+  it('an occupied placement path is a conflict even when it is not a model', async () => {
+    // A stale non-model file where the instance would land: the id is free but
+    // the path is taken, and add_model never overwrites a file.
+    const path = await writeInstanceFile(
+      'series/villabotijos-today/assets/taken/taken_video-script_NN.md',
+      'not a model\n',
+    )
+    const before = await readFile(path, 'utf-8')
+
+    const res = await applyInstance([{ ...ADD_EPISODE, target: 'villabotijos-today/taken' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MODEL_EXISTS')
+    expect(await readFile(path, 'utf-8')).toBe(before)
+  })
+
+  it('an unresolvable bluepriNNt writes nothing', async () => {
+    const res = await applyInstance([
+      {
+        ...ADD_EPISODE,
+        blueprint_name: 'ghost_V_0-1-0',
+        blueprint_url: 'specs/bluepriNNts/ghost_V_0-1-0_NN.md',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors![0]!.code).toBe('BLUEPRINT_UNRESOLVED')
+    expect(existsSync(join(iRoot, 'series/villabotijos-today/assets/new-episode'))).toBe(false)
+  })
+
+  it('a failed persist removes the folders it created', async () => {
+    // A directory squatting on the second instance's staging path makes the
+    // write throw after the first instance has been persisted.
+    await mkdir(join(iSeriesDir, 'assets', 'zeta', 'zeta_video-script.tmp'), { recursive: true })
+
+    const outcome = await applyInstance([
+      { ...ADD_EPISODE, id: 'c-01', target: 'villabotijos-today/new-a', name: 'New A' },
+      { ...ADD_EPISODE, id: 'c-02', target: 'villabotijos-today/zeta', name: 'Zeta' },
+    ]).then(
+      (res) => res,
+      (err: unknown) => err as Error,
+    )
+    if (!(outcome instanceof Error)) expect(outcome.success).toBe(false)
+
+    expect(existsSync(join(iSeriesDir, 'assets', 'new-a'))).toBe(false)
+    expect(existsSync(join(iSeriesDir, 'new-a_video-script_NN.md'))).toBe(false)
+    expect(existsSync(join(iSeriesDir, 'zeta_video-script_NN.md'))).toBe(false)
+    // The pre-existing folder the test created is not ours to delete.
+    expect(existsSync(join(iSeriesDir, 'assets', 'zeta'))).toBe(true)
+    expect(existsSync(join(iRoot, 'changes', '.lock'))).toBe(false)
+  })
+
+  it('a compact add_model is unchanged', async () => {
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'add_model',
+        target: 'acme',
+        blueprint_name: VIDEO_BLUEPRINT_NAME,
+        blueprint_url: VIDEO_BLUEPRINT_REL,
+        name: 'ACME',
+      },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(await readdir(iKnowledgeDir)).toEqual(['acme_video-script_NN.md'])
+    expect(existsSync(join(iRoot, 'series', 'acme'))).toBe(false)
+  })
+})
+
+
+/* ── targeting and atomicity of instance changes (S6a.3) ─────────────────── */
+
+/** Two Videos with the same slug in different series: equal stems, distinct ids. */
+const PEPPER_REL = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md'
+const INTRO_A_REL = 'series/villabotijos-today/assets/intro/intro_video-script_NN.md'
+const INTRO_B_REL = 'series/innteresante/assets/intro/intro_video-script_NN.md'
+
+async function writeThreeVideos(): Promise<Record<string, string>> {
+  await mkdir(join(iRoot, 'series', 'innteresante'), { recursive: true })
+  await writeFile(
+    join(iRoot, 'series', 'innteresante', 'innteresante_video-script_NN.md'),
+    seriesModel('innteresante', 'Innteresante'),
+    'utf-8',
+  )
+  return {
+    pepper: await writeInstanceFile(
+      PEPPER_REL,
+      videoModel('pepper-mapache', 'Pepper Mapache', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+    ),
+    introA: await writeInstanceFile(
+      INTRO_A_REL,
+      videoModel('intro', 'Intro', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+    ),
+    introB: await writeInstanceFile(
+      INTRO_B_REL,
+      videoModel('intro', 'Intro', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+    ),
+  }
+}
+
+describe('change targets of instance models (distributed-storage S6a)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(iRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rmWithRetry(iRoot)
+    for (const dir of [iChangesDir, iBlueprintsDir, iKnowledgeDir, iSeriesDir]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(
+      join(iSeriesDir, 'villabotijos-today_video-script_NN.md'),
+      seriesModel('villabotijos-today', 'Villabotijos Today'),
+      'utf-8',
+    )
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(iRoot)
+  })
+
+  it('updates the placement file and stamps the hierarchical address', async () => {
+    const paths = await writeThreeVideos()
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(await readFile(paths.pepper!, 'utf-8')).toContain('voice:: raspy')
+    expect(await readFile(paths.introA!, 'utf-8')).toContain('voice:: warm')
+    const doc = parseChangeset(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
+    expect(doc.changes[0]!.resolved_target).toBe('villabotijos-today/pepper-mapache@00-gancho&voice')
+    expect(res.models!['villabotijos-today/pepper-mapache']).toEqual({
+      base_version: 'V_0-1-0',
+      result_version: 'V_0-1-1',
+    })
+  })
+
+  it('an unknown model id is reported with the id and writes no file', async () => {
+    const paths = await writeThreeVideos()
+    const before = await readFile(paths.pepper!, 'utf-8')
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'villabotijos-today/missing@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.message).join(' ')).toContain('villabotijos-today/missing')
+    expect(await readFile(paths.pepper!, 'utf-8')).toBe(before)
+  })
+
+  it('a bare slug is reported with both candidates and resolves neither', async () => {
+    const paths = await writeThreeVideos()
+    const before = await readFile(paths.introA!, 'utf-8')
+
+    const res = await applyInstance([
+      { id: 'c-01', op: 'update_field', target: 'intro@00-gancho&voice', from: 'warm', to: 'raspy' },
+    ])
+
+    expect(res.success).toBe(false)
+    const message = res.errors!.map((e) => e.message).join(' ')
+    expect(message).toContain('intro')
+    expect(message).toContain('innteresante/intro')
+    expect(message).toContain('villabotijos-today/intro')
+    expect(await readFile(paths.introA!, 'utf-8')).toBe(before)
+  })
+
+  it('rejects a filename stem as a removed form', async () => {
+    const paths = await writeThreeVideos()
+    const before = await readFile(paths.pepper!, 'utf-8')
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'pepper-mapache_video-script@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    const message = res.errors!.map((e) => e.message).join(' ')
+    expect(message).toContain('filename stem')
+    expect(message).toContain('villabotijos-today/pepper-mapache')
+    expect(await readFile(paths.pepper!, 'utf-8')).toBe(before)
+  })
+
+  it('a recorded target keeps resolving when a same-slug Video is added elsewhere', async () => {
+    const paths = await writeThreeVideos()
+    expect(
+      (
+        await applyInstance([
+          {
+            id: 'c-01',
+            op: 'update_field',
+            target: 'innteresante/intro@00-gancho&voice',
+            from: 'warm',
+            to: 'raspy',
+          },
+        ])
+      ).success,
+    ).toBe(true)
+
+    expect(
+      (
+        await applyInstance(
+          [
+            {
+              ...ADD_EPISODE,
+              id: 'c-01',
+              target: 'villabotijos-today/pepper-mapache-two',
+              name: 'Pepper Mapache Two',
+            },
+          ],
+          'second_changes_NN.md',
+        )
+      ).success,
+    ).toBe(true)
+
+    expect(await readFile(paths.introB!, 'utf-8')).toContain('voice:: raspy')
+    expect(await readFile(paths.introA!, 'utf-8')).toContain('voice:: warm')
+    const doc = parseChangeset(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
+    expect(doc.changes[0]!.resolved_target).toBe('innteresante/intro@00-gancho&voice')
+  })
+
+  it('three instances with one invalid write none of them', async () => {
+    const paths = await writeThreeVideos()
+    // The third file is already outside its bluepriNNt (an undeclared concept), so
+    // the whole-file validation of the result fails: nothing may be persisted.
+    await writeFile(paths.introB!, `${await readFile(paths.introB!, 'utf-8')}\n# NN Unicorn\n\n## NN Unicorn: Sparkle\n\n`, 'utf-8')
+    const before = {
+      pepper: await readFile(paths.pepper!, 'utf-8'),
+      introA: await readFile(paths.introA!, 'utf-8'),
+      introB: await readFile(paths.introB!, 'utf-8'),
+    }
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+      {
+        id: 'c-02',
+        op: 'update_field',
+        target: 'villabotijos-today/intro@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+      {
+        id: 'c-03',
+        op: 'update_field',
+        target: 'innteresante/intro@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors!.map((e) => e.code)).toContain('VALIDATION_FAILED')
+    expect(await readFile(paths.pepper!, 'utf-8')).toBe(before.pepper)
+    expect(await readFile(paths.introA!, 'utf-8')).toBe(before.introA)
+    expect(await readFile(paths.introB!, 'utf-8')).toBe(before.introB)
+  })
+
+  it('three valid instances record one entry per id with its own versions', async () => {
+    await writeThreeVideos()
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+      {
+        id: 'c-02',
+        op: 'update_field',
+        target: 'villabotijos-today/intro@00-gancho&voice',
+        from: 'warm',
+        to: 'breathy',
+      },
+      {
+        id: 'c-03',
+        op: 'update_field',
+        target: 'innteresante/intro@00-gancho&voice',
+        from: 'warm',
+        to: 'flat',
+      },
+    ])
+
+    expect(res.success).toBe(true)
+    expect(Object.keys(res.models!).sort()).toEqual([
+      'innteresante/intro',
+      'villabotijos-today/intro',
+      'villabotijos-today/pepper-mapache',
+    ])
+    for (const transition of Object.values(res.models!)) {
+      expect(transition.base_version).toBe('V_0-1-0')
+      expect(transition.result_version).toBe('V_0-1-1')
+    }
+  })
+
+  it('a misplaced instance aborts before any write', async () => {
+    const misplaced = await writeInstanceFile(
+      'series/villabotijos-today/videos/intro/intro_video-script_NN.md',
+      videoModel('intro', 'Intro', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
+    )
+    const before = await readFile(misplaced, 'utf-8')
+
+    const res = await applyInstance([
+      {
+        id: 'c-01',
+        op: 'update_field',
+        target: 'villabotijos-today/intro@00-gancho&voice',
+        from: 'warm',
+        to: 'raspy',
+      },
+    ])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.message).join(' ')).toContain('PLACEMENT_MISMATCH')
+    expect(await readFile(misplaced, 'utf-8')).toBe(before)
   })
 })
