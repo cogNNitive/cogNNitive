@@ -1,10 +1,13 @@
 /* coNNtent/assets/console-view-episode-review.js — the Episode review view
    (change 2026-11-02-video-script-v1, decisions D10 / A3 / A12).
 
-   Rebuilt to the shape of the former standalone review console: collapsible scene cards
-   with the editorial hook variants, the narration body, the layers of each scene, the
-   cascade chips (transition / background audio volume / voice speed) showing Override vs
-   Inherited, a per-scene preset selector, and the verdict + reason.
+   Rebuilt to the shape of the former standalone review console. Each scene is a
+   collapsible card holding, in reading order: the narration body, its editorial
+   variants, the visual options with their motion tier, the layers, the cascade chips
+   (transition / background audio volume / voice speed) and the verdict with its reason.
+
+   One generic inspector serves every asset: the storyboard of a visual option and the
+   asset of a layer open the same modal instead of two bespoke overlays.
 
    Every edit is a proposal through the console's store, which the review controller
    exports as a changeset: narration, a chosen variant, a cascade override and the verdict
@@ -61,53 +64,61 @@ registerView({
       }, 2600)
     }
 
-    // Storyboard lightbox: the shot description of a visual variant, without leaving the page.
-    var lightbox = null
-    function openLightbox(variant) {
-      if (!lightbox) {
-        lightbox = el('div', 'nn-lightbox')
-        lightbox.setAttribute('data-nn-lightbox', '')
-        var card = el('div', 'nn-lightbox-card')
+    var root = null
+    var inspector = null
+
+    /**
+     * One modal for every asset. A visual option opens it with its storyboard; a layer
+     * opens it with its image and its declaration. Same shell, different content.
+     * @param {{ title: string, badge?: string, image?: string, specs?: Array<[string, string]>, body?: string }} view
+     */
+    function openInspector(view) {
+      if (!inspector) {
+        inspector = el('div', 'nn-lightbox')
+        inspector.setAttribute('data-nn-lightbox', '')
+        var shell = el('div', 'nn-lightbox-card')
         var close = el('button', 'nn-lightbox-close', '×')
         close.type = 'button'
         close.setAttribute('data-nn-lightbox-close', '')
         close.addEventListener('click', function () {
-          lightbox.classList.remove('is-open')
+          inspector.classList.remove('is-open')
         })
-        card.appendChild(close)
-        lightbox.appendChild(card)
-        lightbox.addEventListener('click', function (event) {
-          if (event.target === lightbox) lightbox.classList.remove('is-open')
+        shell.appendChild(close)
+        inspector.appendChild(shell)
+        inspector.addEventListener('click', function (event) {
+          if (event.target === inspector) inspector.classList.remove('is-open')
         })
-        root.appendChild(lightbox)
+        root.appendChild(inspector)
       }
-      var card2 = lightbox.querySelector('.nn-lightbox-card')
-      Array.prototype.slice.call(card2.children).forEach(function (child) {
-        if (!child.classList.contains('nn-lightbox-close')) card2.removeChild(child)
+      var card = inspector.querySelector('.nn-lightbox-card')
+      Array.prototype.slice.call(card.children).forEach(function (child) {
+        if (!child.classList.contains('nn-lightbox-close')) card.removeChild(child)
       })
-      card2.appendChild(el('h3', null, variant.slug))
-      if (variant.tier) card2.appendChild(el('span', 'nn-tier-badge nn-tier-' + variant.tier, String(variant.tier).toUpperCase()))
-      if (variant.thumbnail) {
+
+      card.appendChild(el('h3', null, view.title))
+      if (view.badge) {
+        card.appendChild(el('span', 'nn-tier-badge nn-tier-' + String(view.badge).toLowerCase(), String(view.badge).toUpperCase()))
+      }
+      if (view.image) {
         var shot = doc.createElement('img')
         shot.className = 'nn-lightbox-shot'
-        shot.src = variant.thumbnail
+        shot.src = view.image
         shot.alt = ''
-        card2.appendChild(shot)
+        card.appendChild(shot)
       }
-      var specs = el('dl', 'nn-lightbox-specs')
-      ;[
-        ['Target', variant.target],
-        ['Camera', variant.camera],
-        ['Choreography', variant.choreography],
-        ['Duration', variant.durationS === null ? '' : variant.durationS + 's'],
-      ].forEach(function (pair) {
-        if (!pair[1]) return
-        specs.appendChild(el('dt', null, pair[0]))
-        specs.appendChild(el('dd', null, String(pair[1])))
+      var specs = (view.specs || []).filter(function (pair) {
+        return pair[1] !== '' && pair[1] !== null && pair[1] !== undefined
       })
-      card2.appendChild(specs)
-      if (variant.storyboard) card2.appendChild(el('p', 'nn-lightbox-storyboard', variant.storyboard))
-      lightbox.classList.add('is-open')
+      if (specs.length > 0) {
+        var dl = el('dl', 'nn-lightbox-specs')
+        specs.forEach(function (pair) {
+          dl.appendChild(el('dt', null, pair[0]))
+          dl.appendChild(el('dd', null, String(pair[1])))
+        })
+        card.appendChild(dl)
+      }
+      if (view.body) card.appendChild(el('p', 'nn-lightbox-storyboard', view.body))
+      inspector.classList.add('is-open')
     }
 
     var presets = elements
@@ -118,7 +129,7 @@ registerView({
         return String(p.name || (p.fields && p.fields.slug) || p.id)
       })
 
-    var root = el('div')
+    root = el('div')
     root.setAttribute('data-nn-episode-review', '')
     ctx.container.appendChild(root)
 
@@ -165,11 +176,12 @@ registerView({
 
       var cost = el('p', 'nn-episode-cost')
       cost.setAttribute('data-nn-episode-cost', '')
-      var head2 =
+      cost.textContent =
         'spent $' +
         (Number(episode.realUsd) || 0).toFixed(4) +
-        (episode.budget === null || episode.budget === undefined ? ' · budget unset' : ' · budget $' + Number(episode.budget).toFixed(2))
-      cost.textContent = head2
+        (episode.budget === null || episode.budget === undefined
+          ? ' · budget unset'
+          : ' · budget $' + Number(episode.budget).toFixed(2))
       head.appendChild(cost)
       root.appendChild(head)
 
@@ -221,9 +233,7 @@ registerView({
         var overridden = Object.keys(scene.fields || {}).filter(function (k) {
           return scene.fields[k] !== null && scene.fields[k] !== undefined
         })
-        header.appendChild(
-          el('span', 'nn-src-badge', overridden.length > 0 ? 'Scene Override' : 'Cascade Default'),
-        )
+        header.appendChild(el('span', 'nn-src-badge', overridden.length > 0 ? 'Scene Override' : 'Cascade Default'))
         card.appendChild(header)
 
         var body = el('div', 'nn-scene-body')
@@ -233,16 +243,63 @@ registerView({
         })
         card.appendChild(body)
 
-        // ── visual variants (motion tiers + storyboard) ─────────────────────────
-        var visualVariants = (scene.variants || []).filter(function (v) {
-          return v.tier || v.thumbnail
+        // ── 1. narration ────────────────────────────────────────────────────────
+        var nSection = el('div', 'nn-form-section')
+        nSection.appendChild(el('div', 'nn-section-label', 'Narration body (text → TTS)'))
+        var narration = el('textarea', 'nn-narration')
+        narration.setAttribute('data-nn-narration', '')
+        narration.value = scene.narration || ''
+        narration.addEventListener('change', function () {
+          propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'narration', proposed: narration.value })
         })
+        nSection.appendChild(narration)
+        body.appendChild(nSection)
+
+        // ── 2. editorial (textual) variants ─────────────────────────────────────
         var textVariants = (scene.variants || []).filter(function (v) {
           return !(v.tier || v.thumbnail)
         })
+        if (textVariants.length > 0) {
+          var vSection = el('div', 'nn-form-section')
+          vSection.appendChild(el('div', 'nn-section-label', 'Editorial variants (select & edit)'))
+          textVariants.forEach(function (variant) {
+            var item = el('div', 'nn-variant-item')
+            item.setAttribute('data-nn-variant', variant.slug)
+            var top = el('div', 'nn-variant-top')
+            var ring = el('button', 'nn-radio')
+            ring.type = 'button'
+            ring.setAttribute('data-nn-variant-pick', variant.slug)
+            ring.setAttribute('data-nn-variant-target', variant.target)
+            top.appendChild(ring)
+            top.appendChild(el('span', null, 'for:: ' + variant.target))
+            item.appendChild(top)
 
+            var area = el('textarea', 'nn-variant-input')
+            area.setAttribute('data-nn-variant-text', variant.slug)
+            area.value = variant.value
+            item.appendChild(area)
+
+            ring.addEventListener('click', function () {
+              propose({
+                kind: 'correction',
+                elementId: idOf(scene.slug),
+                field: variant.target === 'narration' ? 'narration' : variant.target,
+                proposed: area.value,
+              })
+              item.classList.add('is-selected')
+            })
+            vSection.appendChild(item)
+          })
+          body.appendChild(vSection)
+        }
+
+        // ── 3. visual options (motion tiers + storyboard) ───────────────────────
+        var visualVariants = (scene.variants || []).filter(function (v) {
+          return v.tier || v.thumbnail
+        })
         if (visualVariants.length > 0) {
           var gSection = el('div', 'nn-form-section')
+          gSection.setAttribute('data-nn-visual-section', '')
           gSection.appendChild(el('div', 'nn-section-label', 'Visual options (pick one)'))
           var vGrid = el('div', 'nn-visual-grid')
           visualVariants.forEach(function (variant) {
@@ -273,9 +330,7 @@ registerView({
             var vDetails = el('div', 'nn-visual-details')
             vDetails.appendChild(el('div', 'nn-visual-title', variant.slug))
             vDetails.appendChild(el('div', 'nn-visual-sub', 'for:: ' + variant.target))
-            if (variant.storyboard) {
-              vDetails.appendChild(el('div', 'nn-visual-desc', variant.storyboard.slice(0, 80)))
-            }
+            if (variant.storyboard) vDetails.appendChild(el('div', 'nn-visual-desc', variant.storyboard.slice(0, 80)))
             vCard.appendChild(vDetails)
 
             vCard.addEventListener('click', function (event) {
@@ -294,7 +349,18 @@ registerView({
 
             inspect.addEventListener('click', function (event) {
               event.stopPropagation()
-              openLightbox(variant)
+              openInspector({
+                title: variant.slug,
+                badge: variant.tier,
+                image: variant.thumbnail,
+                specs: [
+                  ['Target', variant.target],
+                  ['Camera', variant.camera],
+                  ['Choreography', variant.choreography],
+                  ['Duration', variant.durationS === null ? '' : variant.durationS + 's'],
+                ],
+                body: variant.storyboard,
+              })
             })
 
             vGrid.appendChild(vCard)
@@ -303,64 +369,17 @@ registerView({
           body.appendChild(gSection)
         }
 
-        // ── textual variants (narration) ────────────────────────────────────────
-        if (textVariants.length > 0) {
-          var vSection = el('div', 'nn-form-section')
-          vSection.appendChild(el('div', 'nn-section-label', 'Editorial variants (select & edit)'))
-          textVariants.forEach(function (variant) {
-            var item = el('div', 'nn-variant-item')
-            item.setAttribute('data-nn-variant', variant.slug)
-            var top = el('div', 'nn-variant-top')
-            var ring = el('button', 'nn-radio')
-            ring.type = 'button'
-            ring.setAttribute('data-nn-variant-pick', variant.slug)
-            ring.setAttribute('data-nn-variant-target', variant.target)
-            top.appendChild(ring)
-            top.appendChild(el('span', null, 'for:: ' + variant.target))
-            item.appendChild(top)
-
-            var area = el('textarea', 'nn-variant-input')
-            area.setAttribute('data-nn-variant-text', variant.slug)
-            area.value = variant.value
-            item.appendChild(area)
-
-            ring.addEventListener('click', function () {
-              var field = variant.target === 'narration' ? 'narration' : variant.target
-              propose({
-                kind: 'correction',
-                elementId: idOf(scene.slug),
-                field: field,
-                proposed: area.value,
-              })
-              item.classList.add('is-selected')
-            })
-            vSection.appendChild(item)
-          })
-          body.appendChild(vSection)
-        }
-
-        // ── narration ───────────────────────────────────────────────────────────
-        var nSection = el('div', 'nn-form-section')
-        nSection.appendChild(el('div', 'nn-section-label', 'Narration body (text → TTS)'))
-        var narration = el('textarea', 'nn-narration')
-        narration.setAttribute('data-nn-narration', '')
-        narration.value = scene.narration || ''
-        narration.addEventListener('change', function () {
-          propose({ kind: 'correction', elementId: idOf(scene.slug), field: 'narration', proposed: narration.value })
-        })
-        nSection.appendChild(narration)
-        body.appendChild(nSection)
-
-        // ── layers ──────────────────────────────────────────────────────────────
+        // ── 4. layers ───────────────────────────────────────────────────────────
         if ((scene.layers || []).length > 0) {
           var lSection = el('div', 'nn-form-section')
           lSection.appendChild(el('div', 'nn-section-label', 'Layers'))
           var grid = el('div', 'nn-visual-grid')
           scene.layers.forEach(function (layer) {
+            var isImage = layer.asset && /\.(png|jpe?g|webp|gif)$/i.test(layer.asset)
             var card2 = el('div', 'nn-visual-card')
             card2.setAttribute('data-nn-layer', layer.slug)
             var thumb = el('div', 'nn-visual-thumb')
-            if (layer.asset && /\.(png|jpe?g|webp|gif)$/i.test(layer.asset)) {
+            if (isImage) {
               var img = doc.createElement('img')
               img.src = layer.asset
               img.alt = ''
@@ -368,19 +387,41 @@ registerView({
             } else {
               thumb.appendChild(el('span', 'nn-visual-icon', layer.type || 'layer'))
             }
+            var inspectLayer = el('button', 'nn-inspect', '⌕')
+            inspectLayer.type = 'button'
+            inspectLayer.setAttribute('data-nn-inspect-layer', layer.slug)
+            inspectLayer.title = 'Inspect layer'
+            thumb.appendChild(inspectLayer)
             card2.appendChild(thumb)
+
             var details = el('div', 'nn-visual-details')
             details.appendChild(el('div', 'nn-visual-title', layer.slug))
-            details.appendChild(el('div', 'nn-visual-sub', layer.type + (layer.asset ? ' · ' + layer.asset.split('/').pop() : '')))
+            details.appendChild(
+              el('div', 'nn-visual-sub', layer.type + (layer.asset ? ' · ' + layer.asset.split('/').pop() : '')),
+            )
             if (layer.text) details.appendChild(el('div', 'nn-visual-desc', layer.text))
             card2.appendChild(details)
+
+            inspectLayer.addEventListener('click', function (event) {
+              event.stopPropagation()
+              openInspector({
+                title: layer.slug,
+                badge: layer.type,
+                image: isImage ? layer.asset : null,
+                specs: [
+                  ['Type', layer.type],
+                  ['Asset', layer.asset],
+                  ['Text', layer.text],
+                ],
+              })
+            })
             grid.appendChild(card2)
           })
           lSection.appendChild(grid)
           body.appendChild(lSection)
         }
 
-        // ── cascade chips ───────────────────────────────────────────────────────
+        // ── 5. cascade chips ────────────────────────────────────────────────────
         var cSection = el('div', 'nn-form-section')
         cSection.appendChild(el('div', 'nn-section-label', 'Cascade resolution'))
         var chipsBox = el('div', 'nn-cascade-chips')
@@ -401,12 +442,7 @@ registerView({
           input.value = has ? String(value) : ''
           input.placeholder = 'inherit'
           input.addEventListener('change', function () {
-            propose({
-              kind: 'correction',
-              elementId: idOf(scene.slug),
-              field: field,
-              proposed: input.value,
-            })
+            propose({ kind: 'correction', elementId: idOf(scene.slug), field: field, proposed: input.value })
           })
           chip.appendChild(input)
           chip.appendChild(el('span', 'nn-src-badge', has ? 'Override' : 'Inherited'))
@@ -415,7 +451,7 @@ registerView({
         cSection.appendChild(chipsBox)
         body.appendChild(cSection)
 
-        // ── verdict + reason ────────────────────────────────────────────────────
+        // ── 6. verdict + reason ─────────────────────────────────────────────────
         var dSection = el('div', 'nn-form-section')
         dSection.appendChild(el('div', 'nn-section-label', 'Verdict'))
         var controls = el('div', 'nn-verdict-controls')

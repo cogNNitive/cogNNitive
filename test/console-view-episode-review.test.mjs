@@ -145,6 +145,44 @@ describe('Episode review view — parity with the former console', () => {
     assert.ok(cards[0].querySelector('.nn-scene-header'), 'the header toggles the card')
   })
 
+  it('orders the card as narration → variants → visuals → layers → cascade → verdict', () => {
+    const { document } = bootView({})
+    openCard(document, 'opening')
+    const labels = [...document.querySelectorAll('[data-nn-scene="opening"] .nn-section-label')].map((n) =>
+      n.textContent.trim(),
+    )
+    const at = (needle) => labels.findIndex((l) => l.toLowerCase().includes(needle))
+    assert.ok(at('narration') < at('editorial'), 'narration comes before its variants')
+    assert.ok(at('editorial') < at('visual'), 'variants come before the visual options')
+    assert.ok(at('visual') < at('layers'), 'visual options come before the layers')
+    assert.ok(at('layers') < at('cascade'), 'layers come before the cascade chips')
+    assert.ok(at('cascade') < at('verdict'), 'cascade comes before the verdict')
+  })
+
+  it('opens the same inspector for a layer', () => {
+    const { document, click } = bootView({})
+    openCard(document, 'opening')
+    click('[data-nn-inspect-layer="hook-avatar"]')
+    const box = document.querySelector('[data-nn-lightbox]')
+    assert.ok(box, 'the shared modal exists')
+    assert.ok(box.classList.contains('is-open'))
+    assert.match(box.textContent, /hook-avatar/, 'it names the layer')
+    assert.match(box.textContent, /avatar/, 'it shows the layer type')
+    assert.match(box.textContent, /avatar\.png/, 'it shows the asset')
+    assert.ok(box.querySelector('img'), 'and previews the asset')
+  })
+
+  it('reuses one modal for variants and layers', () => {
+    const { document, click } = bootView({})
+    openCard(document, 'opening')
+    click('[data-nn-inspect="motion-alta"]')
+    const first = document.querySelectorAll('[data-nn-lightbox]').length
+    click('[data-nn-inspect-layer="hook-avatar"]')
+    const second = document.querySelectorAll('[data-nn-lightbox]').length
+    assert.equal(first, 1, 'one modal for the storyboard')
+    assert.equal(second, 1, 'the layer reuses it instead of adding a second overlay')
+  })
+
   it('renders the visual options with their motion tier and picks one', () => {
     const { document, drafts, click } = bootView({})
     openCard(document, 'opening')
