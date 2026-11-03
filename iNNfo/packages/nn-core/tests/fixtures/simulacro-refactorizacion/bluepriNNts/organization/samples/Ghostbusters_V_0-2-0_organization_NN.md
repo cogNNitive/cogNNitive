@@ -89,7 +89,7 @@ Administrative seat managing office intake, dispatching, and financial accounts.
 # NN Person
 
 ## NN Person: Dr. Egon Spengler
-position_ref:: [[Chief Scientist]]
+position_ref:: @chief-scientist
 compensation:: Equal partner equity share (25%), $75,000 base salary, full laboratory access.
 contributions:: Invented the Proton Pack, PKE Meter, and Containment Grid; leads theoretical ecto-physics research.
 image:: assets/people/egon_spengler.png
@@ -97,7 +97,7 @@ tags:: [founder, partner, physics, inventor]
 Dr. Egon Spengler is the chief intellectual architect of Ghostbusters Inc., specializing in quantum ecto-physics and high-energy particle containment.
 
 ## NN Person: Dr. Peter Venkman
-position_ref:: [[Operations Director]]
+position_ref:: @operations-director
 compensation:: Equal partner equity share (25%), $75,000 base salary, commercial bonus commissions.
 contributions:: Leads client negotiations, marketing, press relations, and operational decision-making.
 image:: assets/people/peter_venkman.png
@@ -105,7 +105,7 @@ tags:: [founder, partner, commercial, PR]
 Dr. Peter Venkman brings psychological insight, commercial charisma, and public leadership to the firm's business operations.
 
 ## NN Person: Dr. Raymond Stantz
-position_ref:: [[Staff Scientist & Engineer]]
+position_ref:: @staff-scientist-engineer
 compensation:: Equal partner equity share (25%), $75,000 base salary, equipment trade access.
 contributions:: Co-developed the Proton Pack, maintains Ecto-1, and conducts field entrapment operations.
 image:: assets/people/raymond_stantz.png
@@ -113,7 +113,7 @@ tags:: [founder, partner, engineer, mechanic]
 Dr. Ray Stantz combines deep enthusiasm for occult history with practical mechanical and engineering expertise.
 
 ## NN Person: Winston Zeddemore
-position_ref:: [[Field Specialist]]
+position_ref:: @field-specialist
 compensation:: $60,000 base salary, overtime hazard pay ($500 per captured class-V entity), healthcare benefits.
 contributions:: Operates heavy field hardware, manages Ecto-1 driving duties, and executes frontline captures.
 image:: assets/people/winston_zeddemore.png
@@ -121,7 +121,7 @@ tags:: [partner, field-operations, heavy-equipment, veteran]
 Winston Zeddemore joined the team during peak NYC spectral activity, providing steady discipline and reliable execution under pressure.
 
 ## NN Person: Janine Melnitz
-position_ref:: [[Office Administrator]]
+position_ref:: @office-administrator
 compensation:: $48,000 base salary, full health insurance, overtime dispatch bonuses.
 contributions:: Handles emergency intake calls, manages billing and legal notices, and monitors the containment grid warning alarms.
 image:: assets/people/janine_melnitz.png

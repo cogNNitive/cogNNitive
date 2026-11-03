@@ -21,13 +21,13 @@ Intake element is the element the reviewer renamed nothing on; its description i
 ## NN Concept 2: Intake owner
 slug:: intake-owner
 summary:: Owner derived from the JSON payload.
-owner:: [[Intake element]]
+owner:: @intake-element
 Intake owner closes the intake matrix crossing with Intake element.
 
 ## NN Concept 2: Intake backup owner
 slug:: intake-backup-owner
 summary:: Secondary owner derived from the PDF report.
-owner:: [[Intake element]]
+owner:: @intake-element
 Intake backup owner gives the reference field a second target so a reference edit is a real change.
 
 # NN Modification Cases
@@ -38,7 +38,7 @@ string_field:: Reviewed string value
 number_field:: 42
 boolean_field:: true
 select_field:: reviewed
-reference_field:: [[Intake backup owner]]
+reference_field:: @intake-backup-owner
 image_field:: test/fixtures/testlab/sources/import/photo.png
 file_field:: test/fixtures/testlab/sources/import/report.pdf
 video_field:: test/fixtures/testlab/sources/import/demo.mp4

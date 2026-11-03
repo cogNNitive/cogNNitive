@@ -254,10 +254,10 @@ Reviews the pull request.
     const work = parsed.elements.get('Work')!
     const triage = work.find((e) => e.name === 'Emergency Call Triage')!
     expect(triage.fields['step_type']).toBe('event')
-    expect(triage.fields['parent']).toBe('[[Standard Ghost Containment Protocol]]')
-    expect(triage.fields['output']).toBe('[[Dispatch Ticket]]')
+    expect(triage.fields['parent']).toBe('@standard-ghost-containment-protocol')
+    expect(triage.fields['output']).toBe('@dispatch-ticket')
     const standard = work.find((e) => e.name === 'Standard Ghost Containment Protocol')!
-    expect(standard.fields['next']).toBe('[[Subterranean Containment Grid Shutdown Recovery]]')
+    expect(standard.fields['next']).toBe('@subterranean-containment-grid-shutdown-recovery')
     expect(parsed.matrices.some((m) => m.name.toLowerCase() === 'work-roles matrix')).toBe(true)
   })
 
@@ -276,7 +276,7 @@ Reviews the pull request.
     const tasks = parsed.elements.get('Task')!
     expect(tasks).toHaveLength(4)
     const laserTask = tasks.find((t) => t.name === 'Install Auxiliary Laser Matrix')!
-    expect(laserTask.fields['depends_on']).toBe('[[Calibrate Particle Accelerators]]')
+    expect(laserTask.fields['depends_on']).toBe('@calibrate-particle-accelerators')
     expect(laserTask.fields['duration']).toBe('10d')
     expect(laserTask.fields['status']).toBe('in_progress')
     expect(parsed.matrices).toHaveLength(3)

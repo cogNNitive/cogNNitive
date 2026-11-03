@@ -24,94 +24,94 @@ step_type:: task
 parent:: -
 next:: -
 condition:: Tabular data files (.csv, .xlsx, .json) present in import folder
-input:: [[Raw Tabular Data Directory]]
-output:: [[Verified Target Domain Model]]
+input:: @raw-tabular-data-directory
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[AI Agent]]
+tool:: @ai-agent
 scope:: internal
 Ingest tabular files, inspect column schemas and records, normalize raw tables to Markdown under sources/nn/, map rows to semantic Level 3 domain elements (e.g., Costs, Revenue, Products, Inventory), and validate model integrity.
 
 ## NN Work: Discover Raw Tabular Files
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: task
-next:: [[Verify and Deduplicate Tabular Sources]]
+next:: @verify-and-deduplicate-tabular-sources
 condition:: Ingestion workflow triggered
-input:: [[Raw Tabular Data Directory]]
-output:: [[Unprocessed Tabular List]]
+input:: @raw-tabular-data-directory
+output:: @unprocessed-tabular-list
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Scan sources/import/ or drop folders for tabular spreadsheets (.xlsx, .csv, .tsv, .json).
 
 ## NN Work: Verify and Deduplicate Tabular Sources
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: decision
-next:: [[Parse and Synthesize Tabular Schema]]
+next:: @parse-and-synthesize-tabular-schema
 condition:: Tabular list generated
-input:: [[Unprocessed Tabular List]]
-output:: [[Verified Tabular Ingestion Queue]]
+input:: @unprocessed-tabular-list
+output:: @verified-tabular-ingestion-queue
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Compute SHA-256 hashes of tabular files to ensure updated or new files only are processed.
 
 ## NN Work: Parse and Synthesize Tabular Schema
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: task
-next:: [[Map Table Rows to Domain Model Elements]]
+next:: @map-table-rows-to-domain-model-elements
 condition:: Ingestion queue validated
-input:: [[Verified Tabular Ingestion Queue]]
-output:: [[Tabular Schema and Data Summary]]
+input:: @verified-tabular-ingestion-queue
+output:: @tabular-schema-and-data-summary
 output_status:: verified
-tool:: [[Tabular Data Parser]]
+tool:: @tabular-data-parser
 scope:: external
 Parse tabular columns, data types, header rows, and aggregated statistical summaries using external data parsing tools.
 
 ## NN Work: Map Table Rows to Domain Model Elements
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: decision
-next:: [[Normalize Tabular Source to Markdown]]
+next:: @normalize-tabular-source-to-markdown
 condition:: Schema parsed
-input:: [[Tabular Schema and Data Summary]]
-output:: [[Model Entity Mapping Plan]]
+input:: @tabular-schema-and-data-summary
+output:: @model-entity-mapping-plan
 output_status:: verified
-tool:: [[AI Agent]]
+tool:: @ai-agent
 scope:: internal
 Map table columns to concept fields and table rows to target Level 3 model elements. Confirm field mappings with the workspace maintainer.
 
 ## NN Work: Normalize Tabular Source to Markdown
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: task
-next:: [[Populate and Bind Domain Model Elements]]
+next:: @populate-and-bind-domain-model-elements
 condition:: Mapping plan approved
-input:: [[Model Entity Mapping Plan]]
-output:: [[Normalized Markdown Sources]]
+input:: @model-entity-mapping-plan
+output:: @normalized-markdown-sources
 output_status:: verified
-tool:: [[nn-sources Scanner]]
+tool:: @nn-sources-scanner
 scope:: internal
 Convert raw tabular files into structured Markdown tables under sources/nn/ with scanner provenance frontmatter.
 
 ## NN Work: Populate and Bind Domain Model Elements
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: task
-next:: [[Validate Target Model]]
+next:: @validate-target-model
 condition:: Normalized table created
-input:: [[Normalized Markdown Sources]]
-output:: [[Updated Domain Model]]
+input:: @normalized-markdown-sources
+output:: @updated-domain-model
 output_status:: verified
-tool:: [[File Editor]]
+tool:: @file-editor
 scope:: internal
 Instantiate or update Level 3 model elements with properties extracted from table rows and bind provenance citations in sources::.
 
 ## NN Work: Validate Target Model
-parent:: [[Import and Structure Tabular Data]]
+parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: -
 condition:: Domain model populated
-input:: [[Updated Domain Model]]
-output:: [[Verified Target Domain Model]]
+input:: @updated-domain-model
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[nn-mcp]]
+tool:: @nn-mcp
 scope:: internal
 Validate the populated domain model using nn-mcp to ensure reference integrity and schema compliance.
 

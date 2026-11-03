@@ -16,7 +16,7 @@ const GOLD = join(FIXTURES, 'video-golden')
 const ELFIX = join(FIXTURES, 'programas-golden')
 
 const P1 = 'programs/alpha/projects/p1/p1_NN.md'
-const SCRIPT = 'series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_innteresante_NN.md'
+const SCRIPT = 'series/innteresante/assets/bosco-verticale/bosco-verticale_video-script_NN.md'
 const TUTORIAS = 'kNNowledge/tutorias_NN.md'
 const PRESTACION = 'Prestación de Servicios'
 
@@ -158,7 +158,7 @@ describe('storage is orthogonal to the scope chain (distributed-storage S5a)', (
   })
 
   it('instances of different series never share a supplier', async () => {
-    const other = 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_video-script_villabotijos-today_NN.md'
+    const other = 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_video-script_NN.md'
     const a = ok(await resolveEffective(GOLD, { path: SCRIPT, key: 'music_volume', strategy: 'override', target: { concept: 'Scene', slug: '03-cierre' } }, isolated))
     const b = ok(await resolveEffective(GOLD, { path: other, key: 'music_volume', strategy: 'override' }, isolated))
     // Membership in a collection adds, removes and reorders nothing: each clone

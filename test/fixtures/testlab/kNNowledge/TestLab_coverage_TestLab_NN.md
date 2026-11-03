@@ -15,7 +15,7 @@ sources:: [sources/import/field-notes.md@## Findings]
 summary:: Intake tray baseline element.
 long_description:: Baseline element with a short description. It cites the field notes findings section.
 manual:: test/fixtures/testlab/sources/import/manual.txt
-sibling:: [[Element 2A]]
+sibling:: @element-2a
 status:: draft
 Element 1A is the intake baseline. It is cited by the weekly report and referenced back from Concept 2.
 
@@ -27,7 +27,7 @@ long_description:: Element 1B carries the image and file stress fields. The phot
 photo:: test/fixtures/testlab/sources/import/photo.png
 photo_metadata:: {"title": "Three-tray workbench", "author": "TestLab crew", "source": "field photo 2026-10-07"}
 attachment:: test/fixtures/testlab/sources/import/manual.txt
-sibling:: [[Element 2A]]
+sibling:: @element-2a
 status:: reviewed
 Element 1B is the review target. See the console feedback item fb-001 in artifacts/testlab-review.json.
 
@@ -36,7 +36,7 @@ slug:: element-1c
 sources:: [sources/import/dataset.json@/items/0/name]
 summary:: Multi-node traceability source element.
 long_description:: Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.
-sibling:: [[Element 2B]]
+sibling:: @element-2b
 status:: published
 Element 1C closes the Concept 1 triangle.
 
@@ -47,7 +47,7 @@ slug:: element-2a
 sources:: [sources/import/field-notes.md@## Findings]
 summary:: Shift owner element.
 attachment:: test/fixtures/testlab/sources/import/manual.txt
-owner:: [[Element 1A]]
+owner:: @element-1a
 Element 2A owns the intake baseline and is the first crossing of the Concept 1-Concept 2 matrix.
 
 ## NN Concept 2: Element 2B
@@ -55,7 +55,7 @@ slug:: element-2b
 sources:: [sources/import/dataset.csv@m-002]
 summary:: Handover owner element.
 attachment:: test/fixtures/testlab/sources/import/manual.txt
-owner:: [[Element 1C (test)]]
+owner:: @element-1c
 Element 2B owns the multi-node element and is the second crossing of the Concept 1-Concept 2 matrix.
 
 # NN Edge Cases

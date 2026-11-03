@@ -24,106 +24,106 @@ step_type:: task
 parent:: -
 next:: -
 condition:: Video recordings or screencasts present in import folder
-input:: [[Raw Video Recordings Directory]]
-output:: [[Verified Target Domain Model]]
+input:: @raw-video-recordings-directory
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[AI Agent]]
+tool:: @ai-agent
 scope:: internal
 Ingest video sources, orchestrate audio extraction/ASR and keyframe slide OCR via external tooling, consolidate into multimodal Markdown under sources/nn/ with companion media linking, bind to domain model elements, and validate integrity.
 
 ## NN Work: Discover Raw Video Files
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Verify and Deduplicate Video Sources]]
+next:: @verify-and-deduplicate-video-sources
 condition:: Ingestion workflow triggered
-input:: [[Raw Video Recordings Directory]]
-output:: [[Unprocessed Video List]]
+input:: @raw-video-recordings-directory
+output:: @unprocessed-video-list
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Scan sources/import/ or drop directories for video files (.mp4, .mkv, .webm, .mov) lacking transcription or visual summary.
 
 ## NN Work: Verify and Deduplicate Video Sources
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: decision
-next:: [[Extract Audio and Key Visual Slides]]
+next:: @extract-audio-and-key-visual-slides
 condition:: Video list generated
-input:: [[Unprocessed Video List]]
-output:: [[Verified Video Ingestion Queue]]
+input:: @unprocessed-video-list
+output:: @verified-video-ingestion-queue
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Compute SHA-256 hashes for video files and verify against existing normalized sources in sources/nn/ to avoid duplicate compute.
 
 ## NN Work: Extract Audio and Key Visual Slides
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Transcribe Speech and OCR Slides]]
+next:: @transcribe-speech-and-ocr-slides
 condition:: Ingestion queue validated
-input:: [[Verified Video Ingestion Queue]]
-output:: [[Extracted Audio and Keyframe Images]]
+input:: @verified-video-ingestion-queue
+output:: @extracted-audio-and-keyframe-images
 output_status:: verified
-tool:: [[Media Processing Tool]]
+tool:: @media-processing-tool
 scope:: external
 Extract audio track to 16 kHz mono WAV and extract key visual slides or chapter scene changes using ffmpeg.
 
 ## NN Work: Transcribe Speech and OCR Slides
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Stage Consolidated Multimodal Document]]
+next:: @stage-consolidated-multimodal-document
 condition:: Audio and keyframes extracted
-input:: [[Extracted Audio and Keyframe Images]]
-output:: [[Consolidated Transcript and Visual Text]]
+input:: @extracted-audio-and-keyframe-images
+output:: @consolidated-transcript-and-visual-text
 output_status:: verified
-tool:: [[Multimodal Extraction Engine]]
+tool:: @multimodal-extraction-engine
 scope:: external
 Run speech-to-text on the audio track and OCR on extracted keyframes to generate aligned speech transcripts with embedded slide summaries.
 
 ## NN Work: Stage Consolidated Multimodal Document
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Normalize Multimodal Source with Media Link]]
+next:: @normalize-multimodal-source-with-media-link
 condition:: Multimodal text synthesized
-input:: [[Consolidated Transcript and Visual Text]]
-output:: [[Staged Multimodal Import Files]]
+input:: @consolidated-transcript-and-visual-text
+output:: @staged-multimodal-import-files
 output_status:: verified
-tool:: [[File Editor]]
+tool:: @file-editor
 scope:: internal
 Stage generated Markdown document in sources/import/ matching the base name of the source video for companion media pairing.
 
 ## NN Work: Normalize Multimodal Source with Media Link
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Bind Video Source to Target Entity]]
+next:: @bind-video-source-to-target-entity
 condition:: Multimodal document staged
-input:: [[Staged Multimodal Import Files]]
-output:: [[Normalized Markdown Sources]]
+input:: @staged-multimodal-import-files
+output:: @normalized-markdown-sources
 output_status:: verified
-tool:: [[nn-sources Scanner]]
+tool:: @nn-sources-scanner
 scope:: internal
 Run nn-sources scanner to produce sources/nn/ Markdown with media_file companion linking and provenance frontmatter.
 
 ## NN Work: Bind Video Source to Target Entity
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
-next:: [[Validate Target Model]]
+next:: @validate-target-model
 condition:: Normalized source created
-input:: [[Normalized Markdown Sources]]
-output:: [[Updated Domain Model]]
+input:: @normalized-markdown-sources
+output:: @updated-domain-model
 output_status:: verified
-tool:: [[File Editor]]
+tool:: @file-editor
 scope:: internal
 Update the sources:: field of the target Element (e.g. Procedures, Training, Documentation) in the active domain model.
 
 ## NN Work: Validate Target Model
-parent:: [[Import and Process Multimodal Video]]
+parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: -
 condition:: Domain model updated
-input:: [[Updated Domain Model]]
-output:: [[Verified Target Domain Model]]
+input:: @updated-domain-model
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[nn-mcp]]
+tool:: @nn-mcp
 scope:: internal
 Validate updated domain model via nn-mcp to ensure reference integrity.
 

@@ -55,7 +55,7 @@ target:: TestLab_intake_TestLab@Concept 2
 concept:: Concept 2
 name:: Intake owner
 slug:: intake-owner
-fields:: {"summary":"Owner derived from the JSON payload.","owner":"[[Intake element]]"}
+fields:: {"summary":"Owner derived from the JSON payload.","owner":"@intake-element"}
 evidence:: sources/import/dataset.json@/items/0/name
 author:: admin
 status:: applied
@@ -70,7 +70,7 @@ target:: TestLab_intake_TestLab@Concept 2
 concept:: Concept 2
 name:: Intake backup owner
 slug:: intake-backup-owner
-fields:: {"summary":"Secondary owner derived from the PDF report.","owner":"[[Intake element]]"}
+fields:: {"summary":"Secondary owner derived from the PDF report.","owner":"@intake-element"}
 evidence:: sources/import/report.pdf_sidecar_NN.md@## Findings
 author:: admin
 status:: applied
@@ -85,7 +85,7 @@ target:: TestLab_intake_TestLab@Modification Cases
 concept:: Modification Cases
 name:: Modification cases
 slug:: modification-cases
-fields:: {"string_field":"Initial string value","number_field":"0","boolean_field":"false","select_field":"draft","reference_field":"[[Intake owner]]","url_field":"https://example.com/initial","markdown_inline_field":"Initial **inline** markdown.","markdown_file_field":"test/fixtures/testlab/sources/import/field-notes.md","knowledge_field":"kNNowledge/TestLab_coverage_TestLab_NN.md","address_field":"TestLab_intake_TestLab@intake-element"}
+fields:: {"string_field":"Initial string value","number_field":"0","boolean_field":"false","select_field":"draft","reference_field":"@intake-owner","url_field":"https://example.com/initial","markdown_inline_field":"Initial **inline** markdown.","markdown_file_field":"test/fixtures/testlab/sources/import/field-notes.md","knowledge_field":"kNNowledge/TestLab_coverage_TestLab_NN.md","address_field":"TestLab_intake_TestLab@intake-element"}
 evidence:: sources/import/report.pdf_sidecar_NN.md@## Findings
 author:: admin
 status:: applied

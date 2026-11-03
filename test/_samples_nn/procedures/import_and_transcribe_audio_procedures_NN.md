@@ -24,94 +24,94 @@ step_type:: task
 parent:: -
 next:: -
 condition:: Raw audio recordings present in import or external drop folder
-input:: [[Raw Audio Recordings Directory]]
-output:: [[Verified Target Domain Model]]
+input:: @raw-audio-recordings-directory
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[AI Agent]]
+tool:: @ai-agent
 scope:: internal
 Ingest unprocessed audio recordings, orchestrate speech-to-text transcription via external ASR tooling, normalize transcripts into sources/nn/ with companion media linking, bind normalized sources to target domain model elements, and validate semantic integrity.
 
 ## NN Work: Discover Raw Audio Files
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
-next:: [[Verify and Deduplicate Sources]]
+next:: @verify-and-deduplicate-sources
 condition:: Ingestion workflow triggered
-input:: [[Raw Audio Recordings Directory]]
-output:: [[Unprocessed Audio List]]
+input:: @raw-audio-recordings-directory
+output:: @unprocessed-audio-list
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Scan the audio drop or import folder (e.g., sources/import/ or external watch root) to identify audio files (.mp3, .wav, .m4a, .ogg) that lack corresponding transcript files (.txt, .srt).
 
 ## NN Work: Verify and Deduplicate Sources
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: decision
-next:: [[Transcribe Audio via External ASR]]
+next:: @transcribe-audio-via-external-asr
 condition:: Unprocessed audio list generated
-input:: [[Unprocessed Audio List]]
-output:: [[Verified Audio Ingestion Queue]]
+input:: @unprocessed-audio-list
+output:: @verified-audio-ingestion-queue
 output_status:: verified
-tool:: [[Command Line Interface]]
+tool:: @command-line-interface
 scope:: internal
 Compute SHA-256 hashes for discovered audio files and verify against existing normalized sources in sources/nn/ and sources/archive/ to prevent duplicate processing.
 
 ## NN Work: Transcribe Audio via External ASR
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
-next:: [[Stage Transcriptions with Media Link]]
+next:: @stage-transcriptions-with-media-link
 condition:: Ingestion queue validated
-input:: [[Verified Audio Ingestion Queue]]
-output:: [[Raw Transcript and Subtitles]]
+input:: @verified-audio-ingestion-queue
+output:: @raw-transcript-and-subtitles
 output_status:: verified
-tool:: [[ASR Transcription Engine]]
+tool:: @asr-transcription-engine
 scope:: external
 Convert audio to 16 kHz mono WAV via ffmpeg (chunking long files if needed) and transcribe speech using an external ASR engine (faster-whisper, Whisper API, or whisper.cpp). Generate text transcripts and timestamped SRT subtitle files.
 
 ## NN Work: Stage Transcriptions with Media Link
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
-next:: [[Normalize Sources via Scanner]]
+next:: @normalize-sources-via-scanner
 condition:: Transcripts generated
-input:: [[Raw Transcript and Subtitles]]
-output:: [[Staged Source Import Files]]
+input:: @raw-transcript-and-subtitles
+output:: @staged-source-import-files
 output_status:: verified
-tool:: [[File Editor]]
+tool:: @file-editor
 scope:: internal
 Place generated .txt transcriptions into sources/import/ matching the base name of the source audio file to enable automatic same-stem companion media pairing.
 
 ## NN Work: Normalize Sources via Scanner
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
-next:: [[Bind Normalized Source to Target Entity]]
+next:: @bind-normalized-source-to-target-entity
 condition:: Transcripts staged in sources/import/
-input:: [[Staged Source Import Files]]
-output:: [[Normalized Markdown Sources]]
+input:: @staged-source-import-files
+output:: @normalized-markdown-sources
 output_status:: verified
-tool:: [[nn-sources Scanner]]
+tool:: @nn-sources-scanner
 scope:: internal
 Run the nn-sources scanner to convert staged text into sources/nn/ Markdown files with mandatory provenance frontmatter (source_file, media_file, sha256, normalized_at).
 
 ## NN Work: Bind Normalized Source to Target Entity
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
-next:: [[Validate Target Model]]
+next:: @validate-target-model
 condition:: Normalized sources created
-input:: [[Normalized Markdown Sources]]
-output:: [[Updated Domain Model]]
+input:: @normalized-markdown-sources
+output:: @updated-domain-model
 output_status:: verified
-tool:: [[File Editor]]
+tool:: @file-editor
 scope:: internal
 Update the sources:: field of the target Element in the active domain model with the normalized source path. Confirm entity mappings with the user when ambiguous.
 
 ## NN Work: Validate Target Model
-parent:: [[Import and Transcribe Audio Sources]]
+parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: -
 condition:: Domain model updated
-input:: [[Updated Domain Model]]
-output:: [[Verified Target Domain Model]]
+input:: @updated-domain-model
+output:: @verified-target-domain-model
 output_status:: verified
-tool:: [[nn-mcp]]
+tool:: @nn-mcp
 scope:: internal
 Execute validate_knowledge on the target domain model via nn-mcp to ensure reference integrity and schema compliance.
 

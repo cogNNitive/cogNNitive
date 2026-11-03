@@ -125,7 +125,7 @@ function episodesOf(root, series) {
   const out = [];
   for (const e of readdirSync(assets, { withFileTypes: true })) {
     if (!e.isDirectory()) continue;
-    const doc = `${e.name}_video-script_${series}_NN.md`;
+    const doc = `${e.name}_video-script_NN.md`;
     if (existsSync(join(assets, e.name, doc))) out.push({ slug: e.name, doc: `series/${series}/assets/${e.name}/${doc}` });
   }
   return out;
@@ -172,7 +172,7 @@ async function runElements() {
     for (const series of SERIES) {
       const v = seriesValues(work, series);
       const fields = [`background_audio:: ${v.music}`, v.volume === null ? null : `background_audio_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice:: ${v.voice}`].filter(Boolean).join('\n');
-      write(work, `series/${series}/${series}_scope_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
+      write(work, `series/${series}/${series}_video-script_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
 
       const rows = [];
       for (const ep of episodesOf(work, series)) {
@@ -396,7 +396,7 @@ for (const series of SERIES) {
   const v = values[series];
   const fillYaml = Object.entries(fills[series]).map(([k, t]) => `    ${k}: ${JSON.stringify(t)}`).join('\n');
   const fields = [`background_audio:: ${v.music}`, v.volume === null ? null : `background_audio_volume:: ${v.volume}`, v.transition ? `transition:: ${v.transition}` : null, `voice:: ${v.voice}`].filter(Boolean).join('\n');
-  write(work, `series/${series}/${series}_scope_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\nfills:\n  draft-scene-visuals:\n${fillYaml}\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
+  write(work, `series/${series}/${series}_video-script_NN.md`, `---\nlevel: 3\n${parentSpec('series_V_0-1-0')}title: "${series}"\nscope: true\nfills:\n  draft-scene-visuals:\n${fillYaml}\n---\n\n# NN Series\n\n## NN Series: ${series}\n${fields}\n`);
   for (const ep of episodesOf(work, series)) {
     const p = join(work, ep.doc);
     const t = readFileSync(p, 'utf-8');
@@ -525,7 +525,7 @@ function stemCollisions(paths) {
 
 // markers must not collide as model ids
 {
-  const markers = listFiles(work).filter((f) => f.endsWith('_scope_NN.md') || f.endsWith('draft-scene-visuals_procedures_NN.md'));
+  const markers = listFiles(work).filter((f) => f.endsWith('_video-script_NN.md') || f.endsWith('draft-scene-visuals_procedures_NN.md'));
   check('added documents introduce no model-id collision', stemCollisions(markers).length === 0, markers.join(', '));
 }
 
