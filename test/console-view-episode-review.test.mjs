@@ -193,14 +193,12 @@ describe('Episode review view — parity with the former console', () => {
   it('opens the same inspector for a layer', () => {
     const { document, click } = bootView({})
     openCard(document, 'opening')
-    click('[data-nn-inspect-layer="hook-avatar"]')
+    click('[data-nn-inspect-layer="hook-watermark"]')
     const box = document.querySelector('[data-nn-lightbox]')
     assert.ok(box, 'the shared modal exists')
     assert.ok(box.classList.contains('is-open'))
-    assert.match(box.textContent, /hook-avatar/, 'it names the layer')
-    assert.match(box.textContent, /avatar/, 'it shows the layer type')
-    assert.match(box.textContent, /avatar\.png/, 'it shows the asset')
-    assert.ok(box.querySelector('img'), 'and previews the asset')
+    assert.match(box.textContent, /hook-watermark/, 'it names the layer')
+    assert.match(box.textContent, /text/, 'it shows the layer type')
   })
 
 
@@ -306,7 +304,7 @@ describe('Episode review view — parity with the former console', () => {
     assert.equal(op.element_id, 's-1')
   })
 
-  it('offers the unused media of the episode and points a media background at it', () => {
+  it('lists media files as background candidates and applies one to the media background', () => {
     const scene = episode()
     scene.media = [
       { name: 'used.png', path: 'media/used.png', src: 'data:image/png;base64,AA', kind: 'image', used: true },
@@ -318,30 +316,50 @@ describe('Episode review view — parity with the former console', () => {
       viewData: { 'episode-review': { episodes: { 'ep-1': scene } } },
     })
     openCard(document, 'opening')
-    const chips = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-pick-media]')].map((c) =>
-      c.getAttribute('data-nn-pick-media'),
+    const ids = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-candidate]')].map((c) =>
+      c.getAttribute('data-nn-candidate'),
     )
-    assert.deepEqual(chips, ['media/free.png'], 'only the files no layer uses are offered')
-    assert.match(
-      document.querySelector('[data-nn-scene="opening"] .nn-subsection-label').textContent,
-      /Available media/,
-    )
+    assert.ok(ids.includes('layer:hook-avatar'), 'a declared background is a candidate')
+    assert.ok(ids.includes('file:media/free.png'), 'a free media file is a candidate too')
+    assert.ok(!ids.includes('file:media/used.png'), 'a file a layer already uses is not offered twice')
 
-    click('[data-nn-pick-media="media/free.png"]')
+    click('[data-nn-candidate="file:media/free.png"]')
+    const detail = document.querySelector('[data-nn-scene="opening"] [data-nn-candidate-detail]')
+    assert.equal(detail.getAttribute('data-nn-candidate-detail'), 'media/free.png', 'clicking shows its data')
+    assert.match(detail.textContent, /Not a Layer yet/)
+
+    click('[data-nn-apply-media="media/free.png"]')
     const op = drafts().find((d) => d.field === 'asset')
     assert.ok(op, 'picking media points the background at it')
     assert.equal(op.proposed, 'media/free.png')
     assert.equal(op.element_id, 'l-1', 'it targets the media background layer')
   })
 
-  it('disables the picker when the scene has no media background', () => {
+  it('selecting a candidate shows its data and only that one', () => {
+    const { document, click } = bootView({})
+    openCard(document, 'opening')
+    // The first background is selected on render.
+    let detail = document.querySelector('[data-nn-scene="opening"] [data-nn-candidate-detail]')
+    assert.equal(detail.getAttribute('data-nn-candidate-detail'), 'hook-avatar')
+    assert.match(detail.textContent, /avatar_model/, 'its fields are shown')
+
+    const cards = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-candidate]')]
+    assert.equal(cards.filter((c) => c.classList.contains('is-selected')).length, 1, 'one selected at a time')
+    click('[data-nn-candidate="layer:hook-avatar"]')
+    detail = document.querySelector('[data-nn-scene="opening"] [data-nn-candidate-detail]')
+    assert.equal(detail.getAttribute('data-nn-candidate-detail'), 'hook-avatar')
+  })
+
+  it('explains when a free media file cannot become the background', () => {
     const scene = episode()
     scene.media = [{ name: 'free.png', path: 'media/free.png', src: '', kind: 'image', used: false }]
-    const { document } = bootView({ viewData: { 'episode-review': { episodes: { 'ep-1': scene } } } })
+    scene.scenes[0].layers = [scene.scenes[0].layers[0]] // avatar only, no media background
+    const { document, click } = bootView({ viewData: { 'episode-review': { episodes: { 'ep-1': scene } } } })
     openCard(document, 'opening')
-    const chip = document.querySelector('[data-nn-scene="opening"] [data-nn-pick-media]')
-    assert.ok(chip.disabled, 'a view cannot add a layer, so the chip is inert and says why')
-    assert.match(chip.title, /no media background/i)
+    click('[data-nn-candidate="file:media/free.png"]')
+    const detail = document.querySelector('[data-nn-scene="opening"] [data-nn-candidate-detail]')
+    assert.match(detail.textContent, /cannot add elements/i, 'it says why instead of failing silently')
+    assert.equal(document.querySelector('[data-nn-apply-media]'), null, 'and offers no apply button')
   })
 
   it('preselects Approve visually without marking the scene approved', () => {

@@ -8633,7 +8633,23 @@ input[type="text"], input[type="search"], textarea, select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}</style>
+}
+/* The selected background candidate and its data panel. */
+.nn-candidate-detail {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 10px;
+}
+.nn-candidate-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.nn-candidate-note { margin: 0 0 8px; font-size: 12px; opacity: 0.75; }
+.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }</style>
     <style>
       :root,
       [data-theme] {
@@ -10626,7 +10642,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T19:11:09.910Z",
+    "generated": "2026-11-03T19:42:05.314Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10637,7 +10653,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T19:11:09.802Z",
+        "citationsResolvedAt": "2026-11-03T19:42:05.200Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],

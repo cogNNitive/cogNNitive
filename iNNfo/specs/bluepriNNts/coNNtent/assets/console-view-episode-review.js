@@ -422,59 +422,143 @@ registerView({
           return card2
         }
 
-        if (backgrounds.length > 0 || (episode.media || []).length > 0) {
+        // One list of background candidates: the declared avatar/media Layers plus every
+        // media file the episode has on disk and no Layer uses yet. Clicking one selects it
+        // and shows its data, exactly like the selected Layer.
+        var freeMedia = (episode.media || []).filter(function (file) {
+          return !file.used && (file.kind === 'image' || file.kind === 'image-reduced' || file.kind === 'video')
+        })
+        var mediaBackground = backgrounds.filter(function (l) {
+          return l.type === 'media'
+        })[0]
+        var candidates = []
+        backgrounds.forEach(function (layer) {
+          candidates.push({ id: 'layer:' + layer.slug, kind: 'layer', layer: layer, label: layer.slug, sub: layer.type })
+        })
+        freeMedia.forEach(function (file) {
+          candidates.push({ id: 'file:' + file.path, kind: 'file', file: file, label: file.name, sub: 'media file' })
+        })
+
+        if (candidates.length > 0) {
           var bSection = el('div', 'nn-form-section')
           bSection.setAttribute('data-nn-backgrounds', '')
-          bSection.appendChild(el('div', 'nn-section-label', 'Background (fills the frame)'))
-          var bGrid = el('div', 'nn-layer-grid')
-          backgrounds.forEach(function (layer) {
-            bGrid.appendChild(layerCard(layer, true))
-          })
-          bSection.appendChild(bGrid)
+          bSection.appendChild(el('div', 'nn-section-label', 'Background candidates (fills the frame)'))
 
-          // What the episode already has on disk. Picking one sets the asset of this
-          // scene's media background; a scene with no media background cannot take it,
-          // because a view can only edit declared elements, not add new ones.
-          var mediaBackground = backgrounds.filter(function (l) {
-            return l.type === 'media'
-          })[0]
-          var free = (episode.media || []).filter(function (file) {
-            return !file.used && (file.kind === 'image' || file.kind === 'image-reduced' || file.kind === 'video')
-          })
-          if (free.length > 0) {
-            bSection.appendChild(el('div', 'nn-subsection-label', 'Available media (' + free.length + ')'))
-            var mGrid = el('div', 'nn-media-strip')
-            free.forEach(function (file) {
-              var chip = el('button', 'nn-media-chip')
-              chip.type = 'button'
-              chip.setAttribute('data-nn-pick-media', file.path)
-              if (!mediaBackground) {
-                chip.disabled = true
-                chip.title = 'This scene has no media background layer to point at'
-              }
-              if (file.src) {
-                var thumb = doc.createElement('img')
-                thumb.src = file.src
-                thumb.alt = ''
-                chip.appendChild(thumb)
-              } else {
-                chip.appendChild(el('span', 'nn-visual-icon', file.kind === 'video' ? '▶ video' : 'no preview'))
-              }
-              chip.appendChild(el('span', 'nn-media-name', file.name))
-              chip.addEventListener('click', function () {
-                if (!mediaBackground) return
-                propose({
-                  kind: 'correction',
-                  elementId: idOf(mediaBackground.slug),
-                  field: 'asset',
-                  proposed: file.path,
-                })
-              })
-              mGrid.appendChild(chip)
+          var bGrid = el('div', 'nn-layer-grid')
+          var detail = el('div', 'nn-candidate-detail')
+          var selectedId = candidates[0].id
+
+          function selectCandidate(candidate) {
+            selectedId = candidate.id
+            Array.prototype.forEach.call(bGrid.querySelectorAll('.nn-visual-card'), function (node) {
+              node.classList.toggle('is-selected', node.getAttribute('data-nn-candidate') === selectedId)
             })
-            bSection.appendChild(mGrid)
+            detail.innerHTML = ''
+            if (candidate.kind === 'layer') {
+              var layer = candidate.layer
+              detail.setAttribute('data-nn-candidate-detail', layer.slug)
+              var head = el('div', 'nn-candidate-head')
+              head.appendChild(el('strong', null, layer.slug))
+              head.appendChild(el('span', 'nn-badge', layer.type))
+              detail.appendChild(head)
+              var fields = el('div', 'nn-layer-fields')
+              Object.keys(layer.fields || {}).forEach(function (name) {
+                fields.appendChild(
+                  fieldRow(name, layer.fields[name], 'Layer', function (value) {
+                    propose({ kind: 'correction', elementId: idOf(layer.slug), field: name, proposed: value })
+                  }),
+                )
+              })
+              detail.appendChild(fields)
+              var actions = el('div', 'nn-layer-actions')
+              if (layer.type === 'media' || layer.type === 'avatar') {
+                var useBtn = el('button', 'nn-mini-btn', 'Use as background')
+                useBtn.type = 'button'
+                useBtn.setAttribute('data-nn-use-background', layer.slug)
+                useBtn.addEventListener('click', function () {
+                  backgrounds.forEach(function (other) {
+                    if (other.slug === layer.slug) return
+                    propose({ kind: 'delete', elementId: idOf(other.slug), concept: 'Layer' })
+                  })
+                  toast('Kept ' + layer.slug + ' as the background')
+                })
+                actions.appendChild(useBtn)
+              }
+              var del = el('button', 'nn-mini-btn is-danger', 'Delete')
+              del.type = 'button'
+              del.setAttribute('data-nn-delete-layer', layer.slug)
+              del.addEventListener('click', function () {
+                propose({ kind: 'delete', elementId: idOf(layer.slug), concept: 'Layer' })
+              })
+              actions.appendChild(del)
+              detail.appendChild(actions)
+            } else {
+              var file = candidate.file
+              detail.setAttribute('data-nn-candidate-detail', file.path)
+              var head2 = el('div', 'nn-candidate-head')
+              head2.appendChild(el('strong', null, file.name))
+              head2.appendChild(el('span', 'nn-badge', file.kind))
+              detail.appendChild(head2)
+              var note = el('p', 'nn-candidate-note')
+              if (mediaBackground) {
+                note.textContent = 'Not a Layer yet. Use it as the background of this scene:'
+                detail.appendChild(note)
+                var apply = el('button', 'nn-mini-btn', 'Use as background')
+                apply.type = 'button'
+                apply.setAttribute('data-nn-apply-media', file.path)
+                apply.addEventListener('click', function () {
+                  propose({
+                    kind: 'correction',
+                    elementId: idOf(mediaBackground.slug),
+                    field: 'asset',
+                    proposed: file.path,
+                  })
+                })
+                detail.appendChild(apply)
+              } else {
+                note.textContent =
+                  'Not a Layer yet, and this scene has no media background to point at. A console view cannot add elements.'
+                detail.appendChild(note)
+              }
+            }
           }
+
+          candidates.forEach(function (candidate) {
+            var card2 = el('div', 'nn-visual-card')
+            card2.setAttribute('data-nn-candidate', candidate.id)
+            card2.setAttribute('data-nn-candidate-kind', candidate.kind)
+            if (candidate.kind === 'layer') card2.setAttribute('data-nn-layer', candidate.layer.slug)
+
+            var thumb = el('div', 'nn-visual-thumb')
+            var src = candidate.kind === 'layer' ? candidate.layer.assetSrc : candidate.file.src
+            if (src) {
+              var img = doc.createElement('img')
+              img.src = src
+              img.alt = ''
+              thumb.appendChild(img)
+            } else {
+              var what = candidate.kind === 'layer' ? candidate.layer.assetKind : candidate.file.kind
+              thumb.appendChild(
+                el('span', 'nn-visual-icon', what === 'video' ? '▶ video' : what === 'image-too-large' ? 'image too large' : candidate.sub),
+              )
+            }
+            card2.appendChild(thumb)
+
+            var details = el('div', 'nn-visual-details')
+            details.appendChild(el('div', 'nn-visual-title', candidate.label))
+            details.appendChild(el('div', 'nn-visual-sub', candidate.sub))
+            card2.appendChild(details)
+
+            card2.addEventListener('click', function () {
+              selectCandidate(candidate)
+            })
+            bGrid.appendChild(card2)
+          })
+
+          bSection.appendChild(bGrid)
+          bSection.appendChild(detail)
           body.appendChild(bSection)
+          selectCandidate(candidates[0])
         }
 
         if (overlays.length > 0) {
