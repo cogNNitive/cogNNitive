@@ -404,3 +404,32 @@ Status: S4a done (S4a.1 to S4a.5).
 - nn-core `tsc --noEmit`: exit 0. nn-mcp typecheck (throwaway paths config, against the worktree core): exit 0.
 - `src/tools/layout.spec.ts`: 9 passed. nn-mcp `vitest run`: 62 files, 667 passed.
 - `node scripts/verify.js --fast`: see the PR body.
+
+## S4b - `nn-upgrade` / `nn-preflight` grouped plan (PR 10, branch `ds/s4b`, targets `ds/s4a`)
+
+Status: S4b.1 done, S4b.3 done. **S4b.2 is partial** (see Deviations): the plan is implemented and gated, the all-or-none APPLY is not.
+
+### GREEN
+`upgrade-check.js` gains a pure, read-only grouped plan:
+- `planUpgrade(workspaceDir, catalog)` returns one unit per bluepriNNt. The unit is the WHOLE group (every model pinning it, `current` included), not just its stale members: consent to upgrade a bluepriNNt covers every model that pins it, and a group already holding two pins is the skew the plan resolves. A group with no `upgrade-available` member produces no unit.
+- `members[]` carries `{ path, pinned, moves }`; `count` is the unit size; `pinned` lists every distinct pin; `skew` is `pinned.length > 1`.
+- `planHash` is a SHA-256 over every member path and its current pin, per unit and for the whole plan. `isPlanFresh(plan, workspaceDir, catalog)` re-plans and compares, so a model added or repinned between consent and apply aborts the run.
+- `describePlan(plan)` is the consent text: it states the number of models in each unit and prints `SKEW:` before the upgrade line when the group was already skewed.
+- CLI: `--plan` is opt-in and additive. Without it the invocation prints exactly what it printed before.
+
+Evidence (`node upgrade-check.test.js`, all 11 cases green):
+- 24 Video instances on `V_0-14-1` plan as ONE unit of 24, and the consent text says `24 model(s)`.
+- A model added after planning makes `isPlanFresh` false and changes `planHash`.
+- A unit already holding `V_0-1-0` and `V_0-2-0` reports `skew: true`, lists both pins, targets the adopted version, and `describePlan` starts with `SKEW:`.
+
+`skills/nn-upgrade/SKILL.md` Flow B now states the unit rule (B0), the consent count (B1), the once-per-concept mapping (B3) and the all-or-none repin with whole-unit restore (B4).
+
+### Deviations
+1. **S4b.2 is partial: no apply implementation.** `upgrade-check.js` is documented and tested as read-only ("it never mutates anything", preflight Tier-3), and the mutating machinery (backup, rehydrate, revalidate, restore) lives in `skills/nn-upgrade/scripts/`. Putting a file-writing `applyPlan` into the preflight scanner would give one script two contracts. The plan, the hash and the freshness gate — everything the apply phase needs to be safe — are in place and tested; the repin loop itself is unwritten. Options for the maintainer: (a) implement `applyPlan` in `nn-upgrade/scripts/` consuming this plan, (b) implement it in `upgrade-check.js` under an explicit `--apply` and accept the dual contract.
+2. **The once-per-concept mapping question has no test.** B3 states it in the SKILL, but the mapping itself needs element-level parsing, which this scanner does not do. It belongs with the apply phase in (1).
+3. `planUpgrade` treats an `ahead` model (pinned newer than the catalog) as neither a member nor a target: pinning it to `adopted` would be a downgrade. It stays reported by `scanWorkspaceUpgrades` as `ahead`.
+
+### Gate (S4b verification)
+- `node upgrade-check.test.js`: 11 cases green.
+- `node skills/nn-upgrade/scripts/{skill-contract,backup-workspace,migrate-domain}.test.js`: all green.
+- `node scripts/verify.js --fast`: exit 0.

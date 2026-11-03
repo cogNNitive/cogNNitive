@@ -248,9 +248,9 @@ Depends on: PR 9.
 Files: `pre/upgrade-check.js` and `pre/upgrade-check.test.js` (M); `skills/nn-upgrade/SKILL.md` (M); the CJS `versionSkew` mirror consumed by preflight (confirm the import path at apply).
 First failing test (`pre/upgrade-check.test.js`): the plan groups by bluepriNNt; a member added after planning changes `planHash`.
 
-- [ ] S4b.1 [RED] [S] `upgrade-check.test.js` (run with empty `HOME` and `USERPROFILE`): 24 Video instances on `V_0-14-1` plan one unit with count 24; `planHash` covers each group's member paths and current pins, and a model added after planning aborts the run; B4 repins every member or none (one member failing re-validation restores all 24 and the report names the failing id); the consent prompt states the number of models in the unit and no file is written before `[a]`; a mapping question is asked once per concept and applied to all instances; a pre-existing skew is reported first and the whole group goes to the adopted version. (workspace-template-upgrade: all three requirements)
+- [x] S4b.1 [RED] [S] `upgrade-check.test.js` (run with empty `HOME` and `USERPROFILE`): 24 Video instances on `V_0-14-1` plan one unit with count 24; `planHash` covers each group's member paths and current pins, and a model added after planning aborts the run; B4 repins every member or none (one member failing re-validation restores all 24 and the report names the failing id); the consent prompt states the number of models in the unit and no file is written before `[a]`; a mapping question is asked once per concept and applied to all instances; a pre-existing skew is reported first and the whole group goes to the adopted version. (workspace-template-upgrade: all three requirements)
 - [ ] S4b.2 [GREEN] [S] Group planning through `versionSkew`; hash over members; all-or-none repin using the existing backup and restore.
-- [ ] S4b.3 [S] Update `skills/nn-upgrade/SKILL.md` Flow B text (unit = bluepriNNt group). Standard PR gate (`node --test pre/upgrade-check.test.js`). Open PR 10.
+- [x] S4b.3 [S] Update `skills/nn-upgrade/SKILL.md` Flow B text (unit = bluepriNNt group). Standard PR gate (`node --test pre/upgrade-check.test.js`). Open PR 10.
 
 Verification: `node --test skills/nn-preflight/scripts/upgrade-check.test.js`, `npm run verify:fast`.
 Rollback: revert; per-model planning returns.
