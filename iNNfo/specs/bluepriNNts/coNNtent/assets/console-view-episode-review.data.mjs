@@ -303,6 +303,9 @@ async function loadEpisode(doc, cacheDir) {
 
   return {
     slug: doc.slug,
+    // The console payload addresses an element as <modelId>@<elementSlug>, so the view
+    // needs the document stem to build a target that cannot collide with another episode.
+    modelId: basename(doc.file).replace(/_NN\.md$/, ''),
     series: doc.series,
     title: String(video.fields?.title || video.name || doc.slug),
     status: String(video.fields?.status || ''),
