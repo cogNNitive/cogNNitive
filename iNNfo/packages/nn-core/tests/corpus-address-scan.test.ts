@@ -132,6 +132,9 @@ describe('corpus scan: every shipped sample and fixture model uses addresses (S7
     const offenders: string[] = []
     for (const file of files) {
       const text = readFileSync(file, 'utf-8')
+      // A changeset addresses OTHER models by definition (rename from/to, field
+      // payloads); its own document is not the resolution context.
+      if (/^\s+name:\s*['"]?changes['"]?\s*$/m.test(text.split(/^---\s*$/m)[1] ?? '')) continue
       const slugs = elementSlugs(text)
       const rel = relative(REPO_ROOT, file)
       const allowedDangle = INTENTIONAL_DANGLING.get(rel)
