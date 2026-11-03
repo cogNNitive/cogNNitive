@@ -216,7 +216,7 @@ async function runTests() {
     assert.match(SPEC, /^    text: \[text, source\]$/m, 'the blueprint frontmatter agrees');
 
     // New cascade and record fields.
-    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'published_url', 'kind', 'review', 'for']) {
+    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'published_url', 'kind', 'review']) {
       assert.ok(fieldDefinition(name), `${name} is declared`);
     }
     assert.match(fieldDefinition('status'), /^options:: \[idea, draft, approved, produced, published, archived\]$/m);
@@ -249,10 +249,10 @@ async function runTests() {
     assert.doesNotMatch(SPEC, /\bdual\b/);
 
     // The catalog schema lives in the blueprint; the instance is an L3 document.
-    for (const concept of ['Scene Kind', 'Chrome', 'Variant', 'Provider', 'Model', 'Voice']) {
+    for (const concept of ['Scene Kind', 'Chrome', 'Provider', 'Model', 'Voice']) {
       assert.match(SPEC, new RegExp(`^## NN Concept Definition: ${concept}$`, 'm'), `${concept} is a Concept`);
     }
-    for (const field of ['role', 'max_duration', 'variants', 'fixed', 'chrome', 'watermark', 'cta', 'bumper', 'api_base', 'capability', 'controls', 'price_unit', 'price_date', 'allowed', 'voice_id']) {
+    for (const field of ['role', 'max_duration', 'fixed', 'chrome', 'watermark', 'cta', 'bumper', 'api_base', 'capability', 'controls', 'price_unit', 'price_date', 'allowed', 'voice_id']) {
       assert.ok(fieldDefinition(field), `${field} is declared`);
     }
     console.log('OK V_0-15-0 contract: four Layer types, kind/review/variant, catalog schema, no budget or language default');

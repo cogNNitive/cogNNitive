@@ -468,3 +468,34 @@ merge commit `34b22907`.
   - `PLANNED_CONSUMERS` keeps the authoring fields of closed slices and the three
     publication fields (`script`, `published_url`, `thumbnail`).
 
+
+## Reversal 2026-11-03 - the `Variant` concept is removed
+
+Decision A3 is reversed at the maintainer's request after building it. The concept added
+seven fields, a concept definition, a `produce` retirement step, a field-registry and
+`parameters.md` entry each, and a grid plus a storyboard modal in the review view.
+
+The evidence for reversal came from the pilot's own data: `consulting-sales` had **five
+narration variants in one scene of one episode** and **zero visual variants anywhere**.
+The only real use â€” comparing five opening lines â€” is served by editing the narration in
+place, which the view already does and which the changeset history records.
+
+- Removed from `spec_NN.md`: the `Variant` concept, the `for` / `tier` / `thumbnail` /
+  `storyboard` / `camera` / `choreography` / `duration_s` fields, and the Scene Kind
+  `variants` limit.
+- Removed from `produce.mjs`: the approval step that retired every Variant.
+- Removed from the review view and its data hook: the visual grid, the textual variant
+  list and the tier bits of the inspector (the inspector stays, for layers).
+- Regenerated: field registry, `parameters.md`, console bundle, testlab fixture.
+- The three demo Variants written into the pilot were removed.
+
+If the capability comes back, it is narrower and it does not need this concept: assets
+live in `media/`, so "three avatar candidates" is N files plus a picker that sets the
+Layer's `asset::` â€” one field, no new concept.
+
+**Debt left by this reversal:** the delta specs under
+`openspec/changes/2026-11-02-video-script-v1/specs/` still describe the Variant capability
+(52 mentions across nine files). The deterministic gate validates their structure, not
+their agreement with the blueprint, so they must be rewritten before this change is
+archived.
+

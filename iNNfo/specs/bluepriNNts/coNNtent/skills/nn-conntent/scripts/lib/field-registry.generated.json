@@ -147,16 +147,6 @@
       "cascade": false,
       "description": "Series bumper media for this language, resolved under `series/<s>/assets/`."
     },
-    "camera": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "string",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "Camera move of a visual Variant, for example `slow push-in` or `static`."
-    },
     "capability": {
       "concepts": [
         "Model"
@@ -171,16 +161,6 @@
       "multiple": false,
       "cascade": false,
       "description": "What the Model produces. Capability is declared, never inferred from the id."
-    },
-    "choreography": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "string",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "What moves inside the shot, in order, for a visual Variant."
     },
     "chrome": {
       "concepts": [
@@ -255,16 +235,6 @@
       "cascade": true,
       "description": "What the episode is about, in one or two sentences. The agent writes it as part of the proposed changeset."
     },
-    "duration_s": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "number",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "Nominal duration of a visual Variant in seconds. Informative: the scene length always comes from the narration."
-    },
     "enter_animation": {
       "concepts": [
         "Layer"
@@ -312,16 +282,6 @@
       "multiple": false,
       "cascade": true,
       "description": "Placement of an engine-inserted scene: `none`, `first`, `last` or `after:<kind>` (after the first scene of that kind). The episode does not declare fixed scenes; the engine inserts them with the kind's `asset`."
-    },
-    "for": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "string",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "The target the Variant proposes a value for: a Scene Field name or the reserved value `narration` for the scene body."
     },
     "frame": {
       "concepts": [
@@ -632,7 +592,7 @@
       ],
       "multiple": false,
       "cascade": true,
-      "description": "Whether the script review gate stops the run. `skip` picks the first Variant per target and treats the script as approved; it never bypasses the budget gate. Defaults to `required`."
+      "description": "Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`."
     },
     "sizes": {
       "concepts": [
@@ -696,16 +656,6 @@
       "cascade": true,
       "description": "Lifecycle position of the episode, written by the engine or the user through a changeset. `idea` carries a title and linked Sources only."
     },
-    "storyboard": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "markdown_inline",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "The shot description of a visual Variant: what the camera does and what happens on screen, in plain prose."
-    },
     "style": {
       "concepts": [
         "Layer"
@@ -744,27 +694,13 @@
     },
     "thumbnail": {
       "concepts": [
-        "Variant"
+        "Video"
       ],
       "type": "image",
       "options": [],
       "multiple": false,
-      "cascade": false,
-      "description": "Optional preview image of a visual Variant, shown in the review grid so a candidate can be judged without rendering it."
-    },
-    "tier": {
-      "concepts": [
-        "Variant"
-      ],
-      "type": "select",
-      "options": [
-        "alta",
-        "media",
-        "rapida"
-      ],
-      "multiple": false,
-      "cascade": false,
-      "description": "Motion tier of a visual Variant: `alta` is the richest treatment, `media` the balanced one, `rapida` the cheapest. Ordering only; the engine never enforces a count."
+      "cascade": true,
+      "description": "The episode's cover image, resolved under the owning model's directory."
     },
     "timing": {
       "concepts": [
@@ -824,16 +760,6 @@
       "multiple": false,
       "cascade": false,
       "description": "Required Layer behaviour type. `avatar` is a lip-synced paid job; `media` is an image or a video; `text` is overlay text; `animation` mounts an authored HyperFrames project as a sub-composition. Appearance and visual components come from Presets, never from the type."
-    },
-    "variants": {
-      "concepts": [
-        "Scene Kind"
-      ],
-      "type": "number",
-      "options": [],
-      "multiple": false,
-      "cascade": true,
-      "description": "Maximum number of Variant candidates per target field of a scene of this kind. Defaults to 1 (no alternatives)."
     },
     "voice": {
       "concepts": [
