@@ -306,6 +306,44 @@ describe('Episode review view — parity with the former console', () => {
     assert.equal(op.element_id, 's-1')
   })
 
+  it('offers the unused media of the episode and points a media background at it', () => {
+    const scene = episode()
+    scene.media = [
+      { name: 'used.png', path: 'media/used.png', src: 'data:image/png;base64,AA', kind: 'image', used: true },
+      { name: 'free.png', path: 'media/free.png', src: 'data:image/png;base64,BB', kind: 'image', used: false },
+    ]
+    // A scene whose background is a media layer can take the pick.
+    scene.scenes[0].layers[0] = { ...scene.scenes[0].layers[0], type: 'media', kind: 'background' }
+    const { document, drafts, click } = bootView({
+      viewData: { 'episode-review': { episodes: { 'ep-1': scene } } },
+    })
+    openCard(document, 'opening')
+    const chips = [...document.querySelectorAll('[data-nn-scene="opening"] [data-nn-pick-media]')].map((c) =>
+      c.getAttribute('data-nn-pick-media'),
+    )
+    assert.deepEqual(chips, ['media/free.png'], 'only the files no layer uses are offered')
+    assert.match(
+      document.querySelector('[data-nn-scene="opening"] .nn-subsection-label').textContent,
+      /Available media/,
+    )
+
+    click('[data-nn-pick-media="media/free.png"]')
+    const op = drafts().find((d) => d.field === 'asset')
+    assert.ok(op, 'picking media points the background at it')
+    assert.equal(op.proposed, 'media/free.png')
+    assert.equal(op.element_id, 'l-1', 'it targets the media background layer')
+  })
+
+  it('disables the picker when the scene has no media background', () => {
+    const scene = episode()
+    scene.media = [{ name: 'free.png', path: 'media/free.png', src: '', kind: 'image', used: false }]
+    const { document } = bootView({ viewData: { 'episode-review': { episodes: { 'ep-1': scene } } } })
+    openCard(document, 'opening')
+    const chip = document.querySelector('[data-nn-scene="opening"] [data-nn-pick-media]')
+    assert.ok(chip.disabled, 'a view cannot add a layer, so the chip is inert and says why')
+    assert.match(chip.title, /no media background/i)
+  })
+
   it('preselects Approve visually without marking the scene approved', () => {
     const { document, drafts, click } = bootView({})
     // A scene with no verdict yet.

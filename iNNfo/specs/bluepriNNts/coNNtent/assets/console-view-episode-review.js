@@ -422,7 +422,7 @@ registerView({
           return card2
         }
 
-        if (backgrounds.length > 0) {
+        if (backgrounds.length > 0 || (episode.media || []).length > 0) {
           var bSection = el('div', 'nn-form-section')
           bSection.setAttribute('data-nn-backgrounds', '')
           bSection.appendChild(el('div', 'nn-section-label', 'Background (fills the frame)'))
@@ -431,6 +431,49 @@ registerView({
             bGrid.appendChild(layerCard(layer, true))
           })
           bSection.appendChild(bGrid)
+
+          // What the episode already has on disk. Picking one sets the asset of this
+          // scene's media background; a scene with no media background cannot take it,
+          // because a view can only edit declared elements, not add new ones.
+          var mediaBackground = backgrounds.filter(function (l) {
+            return l.type === 'media'
+          })[0]
+          var free = (episode.media || []).filter(function (file) {
+            return !file.used && (file.kind === 'image' || file.kind === 'image-reduced' || file.kind === 'video')
+          })
+          if (free.length > 0) {
+            bSection.appendChild(el('div', 'nn-subsection-label', 'Available media (' + free.length + ')'))
+            var mGrid = el('div', 'nn-media-strip')
+            free.forEach(function (file) {
+              var chip = el('button', 'nn-media-chip')
+              chip.type = 'button'
+              chip.setAttribute('data-nn-pick-media', file.path)
+              if (!mediaBackground) {
+                chip.disabled = true
+                chip.title = 'This scene has no media background layer to point at'
+              }
+              if (file.src) {
+                var thumb = doc.createElement('img')
+                thumb.src = file.src
+                thumb.alt = ''
+                chip.appendChild(thumb)
+              } else {
+                chip.appendChild(el('span', 'nn-visual-icon', file.kind === 'video' ? '▶ video' : 'no preview'))
+              }
+              chip.appendChild(el('span', 'nn-media-name', file.name))
+              chip.addEventListener('click', function () {
+                if (!mediaBackground) return
+                propose({
+                  kind: 'correction',
+                  elementId: idOf(mediaBackground.slug),
+                  field: 'asset',
+                  proposed: file.path,
+                })
+              })
+              mGrid.appendChild(chip)
+            })
+            bSection.appendChild(mGrid)
+          }
           body.appendChild(bSection)
         }
 

@@ -8597,7 +8597,43 @@ input[type="text"], input[type="search"], textarea, select {
   gap: 6px 10px;
   padding: 4px 10px 10px;
 }
-.nn-layer-fields .nn-param-input { font-size: 12px; }</style>
+.nn-layer-fields .nn-param-input { font-size: 12px; }
+/* Media already on disk, offered as a background. */
+.nn-subsection-label {
+  margin: 12px 0 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+.nn-media-strip { display: flex; gap: 10px; flex-wrap: wrap; }
+.nn-media-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 132px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nn-media-chip:hover { border-color: #2563eb; }
+.nn-media-chip img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.nn-media-name {
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}</style>
     <style>
       :root,
       [data-theme] {
@@ -10590,7 +10626,7 @@ input[type="text"], input[type="search"], textarea, select {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-4f899b4a",
-    "generated": "2026-11-03T18:57:52.620Z",
+    "generated": "2026-11-03T19:11:09.910Z",
     "changesBlueprintVersion": "V_0-6-0",
     "models": [
       {
@@ -10601,7 +10637,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "fbbbdc83b527a54a479ea8a5588c52a0e56af785d94ea10a0d956f3fa7ba0a31",
-        "citationsResolvedAt": "2026-11-03T18:57:52.497Z",
+        "citationsResolvedAt": "2026-11-03T19:11:09.802Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
