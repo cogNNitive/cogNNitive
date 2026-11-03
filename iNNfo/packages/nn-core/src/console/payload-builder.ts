@@ -115,18 +115,34 @@ export interface ConsolePayload {
     meta: ConsolePayloadMeta
     elements: ConsolePayloadElement[]
     matrices: ConsolePayloadMatrix[]
+    /**
+     * One collection per concept: the member addresses of `collection(C)`, as the
+     * domain index resolved them. Filled by the caller that HAS the index; the
+     * builder never reads a domaiNN itself.
+     */
+    collections?: Record<string, string[]>
   }
 }
 
 export interface BuildConsolePayloadOptions {
   content: string
   path?: string
+  /**
+   * The model's hierarchical `ModelId`, from the domain index. Identity is the
+   * index's job: a model discovered under `series/x/assets/intro/` is
+   * `x/intro`, which no path apple can derive. When absent the caller has no
+   * index (a standalone single-file build), and `standaloneModelId` derives the
+   * compact stem from the file name.
+   */
+  modelId?: string
   schema?: any
   resolver?: SourceResolver
   changesets?: ChangesetRecord[]
   generated?: string
   /** Blueprint procedure catalog to attach to the schema slot (parent + includes). */
   procedures?: ConsoleProcedureSlot[]
+  /** `collection(Concept)` member addresses, resolved by the caller from the index. */
+  collections?: Record<string, string[]>
 }
 
 const WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g
@@ -151,12 +167,20 @@ function extractWikilinksFromValue(val: unknown): { target: string; label?: stri
 }
 
 /**
- * Normalizes modelId to domain-relative POSIX path minus extension.
+ * The id of a model the caller could not give an index id for: the compact stem
+ * of the file name (`pepper-mapache_video-script_NN.md` -> `pepper-mapache`), or
+ * the title slug when there is no file name. A standalone single-file build can
+ * know this much and no more; a placed instance model needs the domain index
+ * (its id is its container chain, not its file name), so callers with an index
+ * MUST pass `modelId`.
  */
-export function normalizeModelId(filePath?: string, fallbackTitle?: string): string {
-  if (!filePath) return fallbackTitle ? slugify(fallbackTitle) : 'model'
-  const normalized = filePath.split('\\').join('/')
-  return displayStem(normalized.replace(/^.*?\/(kNNowledge|models)\//i, '$1/'))
+function standaloneModelId(filePath?: string, fallbackTitle?: string): string {
+  if (filePath) {
+    const base = filePath.split(/[\\/]/).pop() ?? ''
+    const stem = displayStem(base)
+    if (stem) return stem
+  }
+  return fallbackTitle ? slugify(fallbackTitle) : 'model'
 }
 
 /**
@@ -171,7 +195,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? '') : 'Model') || 'Model'
   const template = fm.target_blueprint || fm.blueprint || fm.template || undefined
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
-  const modelId = normalizeModelId(modelPath, title)
+  const modelId = options.modelId || standaloneModelId(modelPath, title)
 
   // One log for the whole payload: element history, per-field origin and cell
   // origin all read it (built once, never per element).
@@ -179,15 +203,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     Array.isArray(changesets) && changesets.length > 0
       ? buildChangeLogFromChangesets(changesets as unknown as ChangesetLike[])
       : undefined
-  const cellUnitBySuffix = new Map<string, string>()
-  if (changeLog) {
-    for (const unit of changeLog.units()) {
-      const at = unit.key.indexOf('@')
-      if (at === -1) continue
-      const suffix = unit.key.slice(at + 1)
-      if (!cellUnitBySuffix.has(suffix)) cellUnitBySuffix.set(suffix, unit.key)
-    }
-  }
 
   // Elements (Pass 1: instantiate elements and compute hashes)
   const rawElements: {
@@ -354,17 +369,16 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
           slug: elementsByName.get(c.toLowerCase())?.slug || slugify(c),
         }
       }
-      // Cell units are `model@<matrix-slug>&<row-slug>&<col-slug>`. The console
-      // aggregates models, and the payload `modelId` is a path, so the unit is
-      // looked up by its suffix (matrix + axis slugs), first live match wins.
+      // Cell units are `<model-id>@<matrix-slug>&<row-slug>&<col-slug>`. The key is
+      // exact: a console aggregates models, and two models can hold a matrix with
+      // the same name and the same axis slugs, so a suffix match would read the
+      // other model's history (F5).
       let cellProvenance: Record<string, Record<string, UnitProvenance>> | undefined
       if (changeLog) {
         const matrixSlug = slugify(mat.name)
         for (const cell of mat.cells ?? []) {
           if (String(cell.value ?? '').trim() === '') continue
-          const suffix = `${matrixSlug}&${headRows[cell.row]?.slug}&${headCols[cell.col]?.slug}`
-          const unitKey = cellUnitBySuffix.get(suffix)
-          if (!unitKey) continue
+          const unitKey = `${modelId}@${matrixSlug}&${headRows[cell.row]?.slug}&${headCols[cell.col]?.slug}`
           const origin = changeLog.origin(unitKey)
           if (!origin) continue
           cellProvenance ??= {}
@@ -437,6 +451,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       meta,
       elements,
       matrices,
+      ...(options.collections ? { collections: options.collections } : {}),
     },
   }
 }

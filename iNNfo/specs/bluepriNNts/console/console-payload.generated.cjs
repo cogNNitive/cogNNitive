@@ -7399,7 +7399,6 @@ __export(index_exports, {
   isSidecarName: () => isSidecarName,
   latestOfFamily: () => latestOfFamily,
   loadChangesetRecords: () => loadChangesetRecords,
-  normalizeModelId: () => normalizeModelId,
   normalizeToolId: () => normalizeToolId,
   parentSpecNameOf: () => parentSpecNameOf,
   parseChangesetTarget: () => parseChangesetTarget,
@@ -11714,10 +11713,13 @@ function extractWikilinksFromValue(val) {
   }
   return [];
 }
-function normalizeModelId(filePath, fallbackTitle) {
-  if (!filePath) return fallbackTitle ? slugify(fallbackTitle) : "model";
-  const normalized = filePath.split("\\").join("/");
-  return displayStem(normalized.replace(/^.*?\/(kNNowledge|models)\//i, "$1/"));
+function standaloneModelId(filePath, fallbackTitle) {
+  if (filePath) {
+    const base = filePath.split(/[\\/]/).pop() ?? "";
+    const stem = displayStem(base);
+    if (stem) return stem;
+  }
+  return fallbackTitle ? slugify(fallbackTitle) : "model";
 }
 function buildConsolePayload(options) {
   const { content, path: modelPath, schema: inputSchema, resolver, changesets, generated } = options;
@@ -11727,17 +11729,8 @@ function buildConsolePayload(options) {
   const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? "") : "Model") || "Model";
   const template = fm.target_blueprint || fm.blueprint || fm.template || void 0;
   const modelVersion = fm.knowledge_version || fm.version || "V_0-1-0";
-  const modelId = normalizeModelId(modelPath, title);
+  const modelId = options.modelId || standaloneModelId(modelPath, title);
   const changeLog = Array.isArray(changesets) && changesets.length > 0 ? buildChangeLogFromChangesets(changesets) : void 0;
-  const cellUnitBySuffix = /* @__PURE__ */ new Map();
-  if (changeLog) {
-    for (const unit of changeLog.units()) {
-      const at = unit.key.indexOf("@");
-      if (at === -1) continue;
-      const suffix = unit.key.slice(at + 1);
-      if (!cellUnitBySuffix.has(suffix)) cellUnitBySuffix.set(suffix, unit.key);
-    }
-  }
   const rawElements = [];
   const elementsByName = /* @__PURE__ */ new Map();
   const elementsById = /* @__PURE__ */ new Map();
@@ -11869,9 +11862,7 @@ function buildConsolePayload(options) {
         const matrixSlug = slugify(mat.name);
         for (const cell of mat.cells ?? []) {
           if (String(cell.value ?? "").trim() === "") continue;
-          const suffix = `${matrixSlug}&${headRows[cell.row]?.slug}&${headCols[cell.col]?.slug}`;
-          const unitKey = cellUnitBySuffix.get(suffix);
-          if (!unitKey) continue;
+          const unitKey = `${modelId}@${matrixSlug}&${headRows[cell.row]?.slug}&${headCols[cell.col]?.slug}`;
           const origin = changeLog.origin(unitKey);
           if (!origin) continue;
           cellProvenance ??= {};
@@ -11932,7 +11923,8 @@ function buildConsolePayload(options) {
     model: {
       meta,
       elements,
-      matrices
+      matrices,
+      ...options.collections ? { collections: options.collections } : {}
     }
   };
 }
@@ -12314,7 +12306,6 @@ function unitHome(address) {
   isSidecarName,
   latestOfFamily,
   loadChangesetRecords,
-  normalizeModelId,
   normalizeToolId,
   parentSpecNameOf,
   parseChangesetTarget,

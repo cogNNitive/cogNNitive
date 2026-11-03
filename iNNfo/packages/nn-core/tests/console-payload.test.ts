@@ -50,7 +50,9 @@ lead:: [[NonExistentElement]]
       path: 'kNNowledge/business/Ghostbusters_V_1-0-0_NN.md',
     })
 
-    expect(payload.model.meta.modelId).toBe('kNNowledge/business/Ghostbusters_V_1-0-0')
+    // No index is available in a standalone build, so the id is the file stem: a
+    // `kNNowledge/...` path is never an identity.
+    expect(payload.model.meta.modelId).toBe('Ghostbusters_V_1-0-0')
     expect(payload.model.meta.sources).toEqual(['kNNowledge/business/Ghostbusters_V_1-0-0_NN.md'])
     expect(payload.model.meta.title).toBe('Ghostbusters Business Model')
     expect(payload.model.meta.template).toBe('business_V_0-2-1')
