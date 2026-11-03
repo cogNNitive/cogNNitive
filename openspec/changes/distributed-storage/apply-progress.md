@@ -25,7 +25,8 @@ Strategy: chained PRs, `feature-branch-chain`, tracker `feature/distributed-stor
 | S6d | 534 | `ds/s6d` | `ds/s6c` | open, applied (~1,574 hand-authored changed lines, `size:exception`) |
 | S7a | 535 | `ds/s7a` | `ds/s6d` | open, applied (~576 hand-authored changed lines, `size:exception`) |
 | S7b | 536 | `ds/s7b` | `ds/s7a` | open, applied (~244 hand-authored changed lines, plus 543 mechanical corpus lines; `size:exception`) |
-| S7c, S7d | n/a | n/a | n/a | not started |
+| S7c | 19 | `ds/s7c` | `ds/s7b` | open, applied (~407 hand-authored changed lines + 48 generated; the side docs PR 501 is absorbed by merge; `size:exception`) |
+| S7d | n/a | n/a | n/a | not started (maintainer stop) |
 
 Pending decisions: none blocking. Labels: the repo has no `size:exception` label; the exception is recorded in each PR body.
 
@@ -781,6 +782,163 @@ Status: S7a.1 to S7a.11 done; S7a.12 at PR open.
 - `node --test "test/*.test.mjs"` in `nn-video-script`: 411 passed, 0 failed.
 - `node --test scripts/guard-template-immutability.test.js`: 1 pass. `node scripts/sync-versions.mjs --check`, `node scripts/blueprint-catalog.mjs --check`, `node scripts/generate-canonical-registry.mjs --check`, `node scripts/generate-video-parameters-doc.mjs` fresh, `node scripts/check-spec-version.mjs --check-urls`, `node scripts/check-openspec-deltas.mjs`: all green.
 - `node scripts/verify.js --fast`: exit 0. `node scripts/verify.js` full: exit 0.
+
+---
+
+## S7c - Vocabulary, skills, shared rules, docs and the final gate test (PR 19, branch `ds/s7c`, targets `ds/s7b`)
+
+Status: S7c.1 to S7c.7 done. `size:exception`: about 407 hand-authored changed lines
+plus 48 generated, against the ~400 budget; the slice also absorbs the side docs PR 501
+by merge (800 changed lines authored there, not re-authored here).
+
+### Claim check (before editing)
+- The docs PR 501 was **not** an ancestor of the chain (`git merge-base --is-ancestor`
+  said no): its three commits were cut from the pre-S0 planning tip. Reconciling its
+  tables required bringing them into the chain, so this slice merges
+  `docs/distributed-storage` into `ds/s7c` (a clean merge; its only shared file with the
+  chain, `tasks.md`, already carried the same resolved text). PR 501 can be closed in
+  favour of PR 19 without re-review.
+- The gate test's forbidden symbols are already absent from live code (S3b deleted
+  `QUALIFIED_REF_RE`, `parseQualifiedRef`, `titleToNodeIds`, `fileNameToNodeIds`,
+  `resolveTargetModel`; S3a deleted `AMBIGUOUS_MODEL_ID` and the stem-collision module),
+  so the test passes on first run and was proven to bite by three mutations.
+- `scripts/verify.js` discovers `scripts/**/*.test.{js,mjs}` by shape (step 0b), so the
+  new test needs no allowlist entry.
+- `iNNfo/AGENTS.md` does not exist; the root `AGENTS.md` block is the only one, and it was
+  extended with the storage line.
+- `src-lib/{impact-checker,gc,duplicate-guards}.js` hold **source** citations only
+  (`path@unit`), which S7c.4 leaves unchanged; no code edit was needed.
+
+### Tasks
+- [x] S7c.1 [RED] `scripts/no-removed-address-forms.test.mjs` (142 lines): scans 345
+  live source files (core/mcp `src`, `skills`, `scripts`, the console tree) and fails on
+  any of the ten retired symbols, on any code that inspects `@## NN Change:` (message
+  assignments pass, a parser would fail), and on any title/name lookup in
+  `address/parse.ts` or `domain/index.ts`.
+- [x] S7c.2 `vocabulary.json` gains seven terms (compact storage, distributed storage,
+  instance model, collection, placement rule, hierarchical id, title) and five retired
+  rows (title-qualified reference, wikilink reference value, stem id, path-flipped id,
+  `AMBIGUOUS_MODEL_ID`); version V_0-3-0 -> V_0-4-0. Each storage entry states it is a
+  kNNowledge-level concept, not a new level, and that an instance model is a kNNowledge
+  document; none uses "catalog"; `collection` names the same word as the `changes`
+  `members` collection. Page regenerated and `--check` green.
+- [x] S7c.3 New shared rule `addressing-and-storage` (one grammar, titles display-only,
+  per-concept storage, one bluepriNNt version per bluepriNNt with `nn-upgrade` group
+  semantics, instance create/move/extract, removal unsupported); rendered into
+  `nn-innfo` and `nn-sources`. `nn-innfo/SKILL.md` also corrects the four hand-written
+  places that still demanded `[[...]]` in reference fields or said a model file is never
+  renamed.
+- [x] S7c.4 `skills/nn-sources/citations.md`: model citations become
+  `<model-id>@<element-slug>[&<field>]`; raw-file citations (incl. `_sidecar_NN.md`
+  headings, CSV rows, JSON pointers) unchanged. `src-lib/*` needed no change (see Claim
+  check).
+- [x] S7c.5 Shared-rules mirrors regenerated (`node scripts/build-skill-shared-rules.mjs`);
+  `nn-innfo` V_0-5-13 -> V_0-5-14 and `nn-sources` V_3-5-5 -> V_3-5-6, each bumped once.
+- [x] S7c.6 A-4 note verified in the absorbed docs: `check_domain` errors on any
+  bluepriNNt pinned at several versions, for compact and distributed models alike.
+- [x] S7c.7 Standard PR gate plus full `node scripts/verify.js` and the nn-sources suite.
+
+### Docs reconciliation (final code names, severity and shape)
+Grepped from the shipped code rather than the existing docs. Added or corrected in
+`storage-and-identity.md`, `distribute-a-concept.md` and `validator-behavior.md`:
+
+| Code | Severity | Shape the code emits |
+|---|---|---|
+| `PLACEMENT_MISMATCH` | error | `path holds C "slug" - C instances live at <folder>; move the file there` |
+| `INSTANCE_NAME_MISMATCH` | error | `path - the instance in folder <slug>/ must be named <expected>; rename the file` |
+| `INSTANCE_SLUG_MISMATCH` | error | `path - root C has slug "x" but its folder is "y"; set slug:: y or move the folder` |
+| `CONTAINER_MISSING` | error | `path - container C "<id>" is not an instance of C (expected a model in <folder>); ...` |
+| `DUPLICATE_MODEL_ID` | error | `id "<id>" is carried by <paths> - ids must be unique in a domaiNN; rename or move one` |
+| `DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL` | error | `path - C is distributed but this model holds N C elements (...), which would be instances ...; run extract_instance ... or remove_element` |
+| `MIXED_INSTANCE_MODEL` | error | `path - holds elements of two distributed concepts (...); each distributed concept is its own model` |
+| `MODEL_UNADDRESSABLE` | error | `path - bluepriNNt "X" cannot be resolved, so the model has no id; pin a resolvable bluepriNNt` |
+| `RESERVED_MODEL_ID` | error | `path - id "<id>" starts with "specs", which is reserved for blueprint addresses; rename ...` |
+| `MODEL_ID_INVALID` | error | `id "<id>" for C - <why>; fix the id` |
+| `INSTANCE_SHADOWS_ELEMENT_ASSETS` | warning | `path - folder <dir>/ is used by the C instance "<id>" and by the assets of element "slug" in <path>; ...` |
+| `BLUEPRINT_VERSION_SKEW` | error | `bluepriNNt "X" (concepts: ...) - pinned at N versions across M models: ...; a domaiNN uses one version per bluepriNNt, run nn-upgrade` |
+| `DUPLICATE_SLUG` | error | `DUPLICATE_SLUG: slug ... is carried by more than one element of model ...; give each element its own slug` |
+| `MODEL_WITHOUT_FILE` | warning (fold) / error (strict) | `MODEL_WITHOUT_FILE: model "<id>" is touched by change "<id>" but has no file entry; ...` |
+| `STALE_TARGET_MOVED` | error (conflict) | `STALE_TARGET_MOVED: model "<old>" was renamed to "<new>" after base_version <v>; retarget ...` |
+| `MOVE_REQUIRES_INSTANCE`, `MOVE_INVALID_TARGET`, `MOVE_DESTINATION_OCCUPIED`, `MOVE_LEAVES_DANGLING_REFERENCES` | error (changeset) | `CODE: <path>: <what is wrong>; <fix>` |
+| `EXTRACT_INVALID_TARGET`, `EXTRACT_REQUIRES_COMPACT`, `EXTRACT_ELEMENT_NOT_FOUND`, `EXTRACT_NOT_DISTRIBUTED`, `EXTRACT_SLUG_MISMATCH`, `EXTRACT_DESTINATION_OCCUPIED` | error (changeset) | `CODE: <path>: <what is wrong>; <fix>` |
+| `ADD_MODEL_INVALID_TARGET`, `ADD_MODEL_DUPLICATE`, `ADD_MODEL_ORDER` | error (changeset) | `CODE: <path>: <what is wrong>` |
+
+Two doc errors were corrected: the skew example said `is pinned` and `; run nn-upgrade`
+where the code prints `- pinned` and `, run nn-upgrade`, and the add-model table labelled
+the container failure "Container named in the message" instead of `CONTAINER_MISSING`.
+
+### TDD evidence
+- S7c.1 passed on first run (the symbols are already deleted), so it was proven to bite by
+  three mutations, each observed red and reverted:
+  1. `const QUALIFIED_REF_RE = /x/` added to `address/format.ts` -> `still references the
+     removed address machinery "QUALIFIED_REF_RE"` (fail 1).
+  2. `raw.startsWith('@## NN Change')` added to `address/format.ts` -> `parses a "@## NN
+     Change:" citation` (fail 1).
+  3. a `byName` token in `domain/index.ts` -> `must not resolve an address by title or
+     display name` (fail 1).
+  Then the file was restored and 1/1 passed.
+- The vocabulary guard and the shared-rules parity test were red first only in the
+  generator sense: adding `addressing-and-storage` to `SECTION_IDS` without the source
+  section makes `build-skill-shared-rules.test.mjs` fail (`source must define a '## rule:
+  addressing-and-storage' section`); the section was written before running it, so the
+  parity test is a regression net here rather than a first red.
+
+### Deviations and recorded follow-ups
+1. **PR 501 is absorbed by merge.** Only the tracker reaches `main`; leaving the docs on a
+   side branch cut from pre-S0 meant they would never ship. The merge is a plain `--no-ff`
+   of `docs/distributed-storage`; PR 501 should be closed.
+2. **`scripts/export-console.mjs` still does not pass `modelId` (S5b's main gap).** It
+   scans files itself and loads only `console-payload.generated.cjs`, which exports no
+   `buildDomainIndex`; wiring it needs either the index exported into that mirror or id
+   derivation reimplemented in the script, plus a regenerated bundle and the committed
+   testlab fixture. Recorded as a follow-up, not patched here: it is a console-export
+   change with its own generated surface, not a docs/vocabulary change.
+3. **Blueprint procedure bodies still carry typed `[[Name]]`** (20 files under
+   `bp/*/procedures/`). Recorded as a follow-up after inspection: those `parent`, `next`,
+   `input`, `output` and `tool` values are `type:: reference` fields on **package
+   procedure documents**, and the shipped procedure stepper (`nn-runtime.js`
+   `resolveParentId` / `nextTargetsOf`) resolves them by element name while
+   `payload-builder.ts` still builds `relations` only from `[[...]]`. Rewriting them to
+   `@slug` without teaching the stepper and the payload builder the address form would
+   silently break every procedure stepper, and that fix plus the console bundle and
+   fixture regeneration is a console slice, not S7c.
+4. `src-lib/*` unchanged (source citations only, see Claim check).
+5. `vocabulary.json`'s own `version` field moves to V_0-4-0; nothing pins it (the guard
+   checks structure, not the number).
+
+### Line counts (`git diff --numstat origin/ds/s7b..HEAD`)
+- S7c hand-authored: gate test 142, `vocabulary.json` 100, shared rules 26,
+  `build-skill-shared-rules.mjs` 9, `nn-innfo/SKILL.md` 45, `nn-sources/SKILL.md` 30,
+  `citations.md` 4, `AGENTS.md` 1, docs reconciliation 36 = about 407 changed lines.
+- Generated (excluded): `docs/documentation/content/vocabulary.md` 48.
+- Absorbed from PR 501 (authored there, mechanical for this slice): 787 insertions and
+  13 deletions across 16 docs files.
+- Over 400: `size:exception`.
+
+### Gate (S7c verification)
+- nn-core `tsc --noEmit`: exit 0. nn-mcp `tsc --noEmit -p tsconfig.tmp.json` (throwaway
+  paths config against the rebuilt worktree core; deleted): exit 0.
+- `node --test scripts/no-removed-address-forms.test.mjs`: 1 passed.
+  `node --test scripts/build-skill-shared-rules.test.mjs`: 1 passed.
+  `node iNNfo/specs/scripts/test-vocabulary.js`: 67 passed, 0 failed.
+- `node scripts/generate-vocabulary-doc.mjs --check` and
+  `node scripts/build-skill-shared-rules.mjs --check`: both green.
+- `node skills/nn-sources/test/run.js`: 564 passed, 0 failed, exit 0 on re-run (the first
+  run reported the same totals but exited 1 with no failing case in the log; flaky
+  environment, re-run clean).
+- `node scripts/verify.js --fast`: 206 steps, exit 0.
+- `node scripts/verify.js` (full): exit 0, "All deterministic pre-checks passed".
+- nn-core/nn-mcp vitest suites were not re-run: no TypeScript source changed in this slice.
+
+### For the verify phase / S7d
+- S7d is the only remaining slice: register the new L1 and the suite versions, regenerate
+  catalogs and `canonical-registry.ts`, rehearse `verify.js --release` and
+  `validate-manifest.js --channel stable` in a detached worktree, merge the tracker with a
+  merge commit (never squash), and cut the tags the maintainer confirms (Q3: the
+  `lineage-as-changes` `templates-v*` tag ships in the same release). Nothing in S7c has a
+  release-time code path; the docs describe behaviour that S7d releases.
+- The two recorded follow-ups (export-console `modelId`; procedure bodies) are outside the
+  distributed-storage release gate and should become their own change or issue.
 
 ---
 
