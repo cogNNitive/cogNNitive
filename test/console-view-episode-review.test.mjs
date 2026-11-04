@@ -28,6 +28,7 @@ const DATA_FILE = join(ASSETS, 'console-view-episode-review.data.mjs')
 
 const episode = (over = {}) => ({
   slug: 'ep-1',
+  modelId: 'ep-1_coNNtent_demo',
   series: 'demo',
   title: 'Episode One',
   status: 'draft',
@@ -107,13 +108,13 @@ const episode = (over = {}) => ({
 const PAYLOAD_MODEL = {
   meta: { title: 'Video Domain', modelId: 'video', changesBlueprintVersion: 'V_0-3-0' },
   elements: [
-    { id: 'ep-1', concept: 'Video', name: 'Episode One', slug: 'ep-1', hash: 'a'.repeat(16), fields: { slug: 'ep-1' } },
-    { id: 's-1', concept: 'Scene', name: 'Opening', slug: 'opening', hash: 'b'.repeat(16), fields: { slug: 'opening' } },
-    { id: 's-2', concept: 'Scene', name: 'Explain', slug: 'explain', hash: 'c'.repeat(16), fields: { slug: 'explain' } },
+    { id: 'ep-1_coNNtent_demo@ep-1', concept: 'Video', name: 'Episode One', slug: 'ep-1', hash: 'a'.repeat(16), fields: { slug: 'ep-1' } },
+    { id: 'ep-1_coNNtent_demo@opening', concept: 'Scene', name: 'Opening', slug: 'opening', hash: 'b'.repeat(16), fields: { slug: 'opening' } },
+    { id: 'ep-1_coNNtent_demo@explain', concept: 'Scene', name: 'Explain', slug: 'explain', hash: 'c'.repeat(16), fields: { slug: 'explain' } },
     { id: 'p-1', concept: 'Preset', name: 'Lucas', slug: 'lucas', hash: 'd'.repeat(16), fields: { slug: 'lucas' } },
     { id: 'p-2', concept: 'Preset', name: 'Studio Warm', slug: 'studio-warm', hash: 'e'.repeat(16), fields: {} },
-    { id: 'l-1', concept: 'Layer', name: 'Hook Avatar', slug: 'hook-avatar', hash: 'f'.repeat(16), fields: { slug: 'hook-avatar' } },
-    { id: 'l-2', concept: 'Layer', name: 'Hook Watermark', slug: 'hook-watermark', hash: '0'.repeat(16), fields: { slug: 'hook-watermark' } },
+    { id: 'ep-1_coNNtent_demo@hook-avatar', concept: 'Layer', name: 'Hook Avatar', slug: 'hook-avatar', hash: 'f'.repeat(16), fields: { slug: 'hook-avatar' } },
+    { id: 'ep-1_coNNtent_demo@hook-watermark', concept: 'Layer', name: 'Hook Watermark', slug: 'hook-watermark', hash: '0'.repeat(16), fields: { slug: 'hook-watermark' } },
   ],
   matrices: [],
 }
@@ -214,7 +215,7 @@ describe('Episode review view — parity with the former console', () => {
     area.dispatchEvent(new document.defaultView.Event('change', { bubbles: true }))
     const op = drafts().find((d) => d.field === 'narration')
     assert.equal(op.proposed, 'Rewritten narration')
-    assert.equal(op.element_id, 's-1')
+    assert.equal(op.element_id, 'ep-1_coNNtent_demo@opening')
   })
 
   it('renders the layers of the scene with their asset', () => {
@@ -301,7 +302,7 @@ describe('Episode review view — parity with the former console', () => {
     input.dispatchEvent(new document.defaultView.Event('change', { bubbles: true }))
     const op = drafts().find((d) => d.field === 'transition')
     assert.equal(op.proposed, 'fade')
-    assert.equal(op.element_id, 's-1')
+    assert.equal(op.element_id, 'ep-1_coNNtent_demo@opening')
   })
 
   it('lists media files as background candidates and applies one to the media background', () => {
@@ -332,7 +333,7 @@ describe('Episode review view — parity with the former console', () => {
     const op = drafts().find((d) => d.field === 'asset')
     assert.ok(op, 'picking media points the background at it')
     assert.equal(op.proposed, 'media/free.png')
-    assert.equal(op.element_id, 'l-1', 'it targets the media background layer')
+    assert.equal(op.element_id, 'ep-1_coNNtent_demo@hook-avatar', 'it targets the media background layer')
   })
 
   it('selecting a candidate shows its data and only that one', () => {
@@ -395,14 +396,14 @@ describe('Episode review view — parity with the former console', () => {
     click('[data-nn-scene="explain"] [data-nn-verdict="approved"]')
     const verdict = drafts().find((d) => d.field === 'review')
     assert.equal(verdict.proposed, 'approved')
-    assert.equal(verdict.element_id, 's-2')
+    assert.equal(verdict.element_id, 'ep-1_coNNtent_demo@explain')
 
     const box = document.querySelector('[data-nn-scene="explain"] [data-nn-comment]')
     box.value = 'the pacing drags'
     click('[data-nn-scene="explain"] [data-nn-comment-save]')
     const comment = drafts().find((d) => d.kind === 'comment')
     assert.equal(comment.comment, 'the pacing drags')
-    assert.equal(comment.element_id, 's-2')
+    assert.equal(comment.element_id, 'ep-1_coNNtent_demo@explain')
   })
 
   it('approves every scene at once and keeps the counter honest', () => {
@@ -413,7 +414,7 @@ describe('Episode review view — parity with the former console', () => {
     click('[data-nn-approve-all="ep-1"]')
     const approvals = drafts().filter((d) => d.field === 'review' && d.proposed === 'approved')
     assert.equal(approvals.length, 1, 'only the unapproved scene is proposed')
-    assert.equal(approvals[0].element_id, 's-2')
+    assert.equal(approvals[0].element_id, 'ep-1_coNNtent_demo@explain')
     assert.match(counter.textContent, /2\/2 approved/, 'the counter follows the action')
   })
 

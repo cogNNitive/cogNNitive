@@ -216,6 +216,10 @@ function parseArgs(argv) {
 async function findModelFiles(dir) {
   const out = []
   const skip = new Set(['node_modules', '.git', '.cogNNitive', 'artifacts', 'dist', 'docs'])
+  // `series/<s>/assets/` is the pre-V_0-15-0 episode layout: the contract says those folders
+  // are ignored and reorganised by hand, so the console must not list them next to the
+  // real `episodes/` documents (it produced two models per episode, with colliding slugs).
+  const LEGACY_EPISODE = /(^|[\\/])series[\\/][^\\/]+[\\/]assets([\\/]|$)/
   async function walk(d) {
     let entries
     try {
@@ -225,7 +229,10 @@ async function findModelFiles(dir) {
     }
     for (const e of entries) {
       if (e.isDirectory()) {
-        if (!skip.has(e.name)) await walk(join(d, e.name))
+        const next = join(d, e.name)
+        if (skip.has(e.name)) continue
+        if (LEGACY_EPISODE.test(relative(dir, next))) continue
+        await walk(next)
       } else if (
         e.isFile() &&
         payloadHelper.isNNName(e.name) &&
