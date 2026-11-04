@@ -139,6 +139,9 @@ function removeLink(p) {
  * never traversed, so the primary is never touched.
  */
 function removeNodeModulesLinks(dir) {
+  for (const rel of INSTALL_DIRS) {
+    removeLink(join(dir, rel, 'node_modules'))
+  }
   let entries
   try {
     entries = readdirSync(dir, { withFileTypes: true })

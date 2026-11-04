@@ -98,7 +98,7 @@ async function renderTarget(target, esbuild) {
   const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
   return rawCode
     .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
-    .replace(/(?:\.\.\/)+[\w.-]+\/iNNfo\//g, 'iNNfo/')
+    .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')
 }
 
 function getArg(flag) {

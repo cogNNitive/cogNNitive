@@ -43,24 +43,33 @@ function run(args) {
 async function runTests() {
   console.log('Running build-core-mirrors unit tests...')
 
-  // Test 1: render mode writes all requireable CJS bundles
+  // Test 1: render mode writes all requireable CJS bundles to isolated temp files
   {
-    const res = run([])
-    assert.strictEqual(res.status, 0, res.stderr)
-    for (const target of COMMITTED_TARGETS) {
-      assert.ok(fs.existsSync(target), `bundle written: ${path.basename(target)}`)
-      const mod = require(target)
-      if (target.includes('nn-sources')) {
-        for (const fn of ['slugifyHeading', 'parseCitation', 'createFsSourceResolver', 'validateCitations', 'projectLineage']) {
-          assert.strictEqual(typeof mod[fn], 'function', `nn-sources mirror exports ${fn}`)
-        }
-      } else if (target.includes('coNNtent')) {
-        for (const fn of ['findDomainRoot', 'resolve', 'findScopeChain', 'loadChain', 'loadElementChain', 'elementChain', 'driftReport', 'resolveProcedures']) {
-          assert.strictEqual(typeof mod[fn], 'function', `coNNtent scope mirror exports ${fn}`)
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'core-mirrors-render-'))
+    try {
+      const targets = [
+        { name: 'trannsform', file: path.join(tmp, 'trannsform.generated.cjs') },
+        { name: 'coNNtent', file: path.join(tmp, 'coNNtent.generated.cjs') },
+      ]
+      for (const t of targets) {
+        const res = run(['--target', t.name, '--out', t.file])
+        assert.strictEqual(res.status, 0, res.stderr)
+        assert.ok(fs.existsSync(t.file), `bundle written: ${path.basename(t.file)}`)
+        const mod = require(t.file)
+        if (t.name === 'trannsform') {
+          for (const fn of ['slugifyHeading', 'parseCitation', 'createFsSourceResolver', 'validateCitations', 'projectLineage']) {
+            assert.strictEqual(typeof mod[fn], 'function', `nn-sources mirror exports ${fn}`)
+          }
+        } else if (t.name === 'coNNtent') {
+          for (const fn of ['findDomainRoot', 'resolve', 'findScopeChain', 'loadChain', 'loadElementChain', 'elementChain', 'driftReport', 'resolveProcedures']) {
+            assert.strictEqual(typeof mod[fn], 'function', `coNNtent scope mirror exports ${fn}`)
+          }
         }
       }
+      console.log('✔ Test 1: all core mirrors rendered and export required functions')
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
     }
-    console.log('✔ Test 1: all core mirrors rendered and export required functions')
   }
 
   // Test 2: --check succeeds when clean
