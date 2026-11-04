@@ -6,23 +6,31 @@ Bake resolved citations into the console at export time, and let a reviewer hold
 ## Requirements
 ### Requirement: Compile-time citation payload
 
-Citations MUST be resolved once per element at build time by the single shared builder (`buildConsolePayload`), through an injected resolver, by the CLI. The result MUST be embedded as `el.citations: { "<citationFieldName>": ResolvedCitation[] }` plus document-level `meta.citationsResolvedAt` (and `citationsResolvedAt` per entry of `meta.models`); this per-field map is the only shape emitted. No citation resolution MUST happen at console runtime; the shipped HTML MUST render only from the embedded payload.
-(Previously: also covered the procedure path via the `build_console_payload` MCP tool, with a scenario comparing both producers.)
+Citations MUST be resolved once per element at build time by the single shared builder (`buildConsolePayload`), through an injected resolver, by the CLI. The citations of a unit MUST be its origin: the `evidence` entries of the last applied change that set it (see `change-provenance`), never the value of a model field. The result MUST be embedded as `el.citations: { "<fieldName>": ResolvedCitation[] }`, keyed by the field whose value the change set, plus document-level `meta.citationsResolvedAt` (and `citationsResolvedAt` per entry of `meta.models`); this per-field map is the only shape emitted. An element-level origin (the evidence of its `add_element` change) MUST be emitted under the key `element`. A unit with `unknown` evidence and a unit with no applied change MUST be emitted with an unattributed marker. No citation resolution MUST happen at console runtime; the shipped HTML MUST render only from the embedded payload.
+(Previously: the map was keyed by citation-typed field names read from the model.)
 
-#### Scenario: Citations embedded per element
-
-- GIVEN a model with an element carrying a populated `sources` field and a `precio_source` field
+#### Scenario: Citations embedded per field
+- GIVEN an element whose `owner` was set by an applied change with `evidence: [A, B]`
 - WHEN the CLI builds the console
-- THEN the element has `el.citations.sources` and `el.citations.precio_source`, each an array of `ResolvedCitation`
+- THEN the element has `el.citations.owner` with two `ResolvedCitation` entries
+
+#### Scenario: Element-level origin
+- GIVEN an element created by an applied `add_element` with evidence `A`
+- WHEN the CLI builds the console
+- THEN `el.citations.element` holds the resolved `A`
+
+#### Scenario: Superseded evidence is not shown as origin
+- GIVEN `owner` set first with evidence `A` and later with evidence `B`
+- WHEN the console is built
+- THEN `el.citations.owner` holds `B` only
+- AND the history (Lineage tab) still lists both changes
 
 #### Scenario: Document-level resolution timestamp
-
 - GIVEN a build that resolves at least one citation
 - WHEN it completes
 - THEN `meta.citationsResolvedAt` is set
 
 #### Scenario: No runtime resolution
-
 - GIVEN a compiled console opened via `file://` with no network and no MCP session
 - WHEN citation icons and the detail dialog are used
 - THEN all data comes from the embedded `el.citations`
@@ -39,38 +47,40 @@ An element compiled without a `citations` payload MUST render exactly as it did 
 
 ### Requirement: Origin-typed citation icons
 
-The runtime card renderer (`nnUI.ElementCard`, driven by `nnConsole`) MUST place one icon per citation-typed field with resolved citations, as follows:
+The runtime card renderer (`nnUI.ElementCard`, driven by `nnConsole`) MUST place one icon per unit that has an origin, as follows:
 
-- For `sources`-family fields, the icon MUST be placed on the element header.
-- For any other citation-typed field, the icon MUST be placed on that field's row.
-- The icon MUST have one visually distinct variant per `origin` (`agent`, `human`, `document`; the resolver never emits a `reviewer` origin), plus a distinct warning variant used when any entry for that field has `error` set. The `human` variant MUST be visually distinct from both the `agent` variant and the `document` variant.
+- For the element-level origin (`el.citations.element`), the icon MUST be placed on the element header.
+- For any field with an origin, the icon MUST be placed on that field's row.
+- For a matrix cell with an origin, the icon MUST be placed on that cell.
+- The icon MUST have one visually distinct variant per `origin` (`agent`, `human`, `document`; the resolver never emits a `reviewer` origin), plus a distinct warning variant used when any entry for that unit has `error` set or when the evidence is `unknown`. The `human` variant MUST be visually distinct from both the `agent` variant and the `document` variant.
 - Icons MUST be inline SVG/CSS with no new runtime dependency.
-- A plain field (e.g. `precio`) MUST NOT receive an icon derived from a citation-typed sibling field (e.g. `precio_source`); only the citation-typed field itself is icon-eligible.
+- A field without an applied change MUST NOT receive an origin icon.
 
-The header-level placement MUST hold in a runtime-rendered card even when the `sources` field is not otherwise shown as a field row, and MUST be verified in jsdom.
-(Previously: the placement was defined for `renderElement()` of the model viewer; the runtime only attached icons to existing field rows.)
+The header-level placement MUST hold in a runtime-rendered card even when no field row is shown, and MUST be verified in jsdom.
+(Previously: icons were placed from `sources`-family and `citation`-typed fields; companion `_source` fields no longer exist.)
 
-#### Scenario: Header icon for a sources-family field
-
-- GIVEN an element whose `el.citations.sources` has one resolved entry with `origin: "document"`
+#### Scenario: Header icon for the element origin
+- GIVEN an element whose `el.citations.element` has one resolved entry with `origin: "document"`
 - WHEN the runtime renders the element in jsdom
 - THEN the document-origin icon appears on the element header
 
-#### Scenario: Row icon for a non-sources citation field
-
-- GIVEN an element whose `el.citations.precio_source` has one resolved entry with `origin: "agent"`
+#### Scenario: Row icon for a field origin
+- GIVEN an element whose `el.citations.price` has one resolved entry with `origin: "agent"`
 - WHEN the element renders
-- THEN the agent-origin icon appears on the `precio_source` field's row, and the plain `precio` field row shows no icon
+- THEN the agent-origin icon appears on the `price` field's row, and a field with no applied change shows no icon
 
-#### Scenario: Warning variant on resolution error
+#### Scenario: Matrix cell icon
+- GIVEN a matrix cell whose origin is an applied change with a human author
+- WHEN the matrix renders
+- THEN the human-origin icon appears on that cell
 
-- GIVEN a citation entry with `error` set
-- WHEN the icon for that field renders
-- THEN the warning variant is shown instead of an origin-typed variant
+#### Scenario: Warning variant on resolution error or unknown evidence
+- GIVEN a citation entry with `error` set, and another unit whose evidence is `unknown`
+- WHEN the icons render
+- THEN the warning variant is shown for both instead of an origin-typed variant
 
 #### Scenario: Human origin distinguishable from agent and document
-
-- GIVEN two elements, one with a `sources` citation at `origin: "agent"` and another at `origin: "human"`
+- GIVEN two fields, one whose origin author is an agent and another whose origin author is a human
 - WHEN both render
 - THEN the two icons are visually distinct from each other and from the `document` variant
 
@@ -115,33 +125,6 @@ Each cited source MUST render as ONE card (`article.nn-cite-card`) whose left ed
 - WHEN its card renders
 - THEN the metadata list has no empty `dd` for anchor, version, sha256 or error
 
-### Requirement: Consoles emit `nn-model.meta.sources`
-
-The console payload builder (single source of `nn-model.meta`, inherited by `export-console`) MUST set `nn-model.meta.sources` to a single FILE-LEVEL citation of the kNNowledge document the console was compiled from, e.g. `["kNNowledge/Client_NN.md"]` (bare path, no anchor). It MUST NOT copy or union that document's element-level citations; the kNNowledge-to-Source edges are already written once in the kNNowledge body. The file-level hop is staleness-checked by `meta.sha256`. The `export-meta` convention MUST be deleted: nothing MAY emit or read it. The contract example MUST show an `@` citation.
-(Previously: also named the MCP `build_console_payload` tool as an inheritor, and carried a scenario for a pre-export console lacking `meta.sources`; greenfield, no compatibility scenario is kept.)
-
-#### Scenario: Compiled console cites its kNNowledge document
-- GIVEN a kNNowledge document `kNNowledge/Client_NN.md` whose elements cite `sources/nn/interview.md@## Clients`
-- WHEN the console is compiled
-- THEN `nn-model.meta.sources` equals `["kNNowledge/Client_NN.md"]`
-- AND it does not contain `sources/nn/interview.md@## Clients`
-- AND the lineage projection reads it as the console's single upstream edge
-
-#### Scenario: Console with no element citations still cites its document
-- GIVEN a kNNowledge document with no `sources::` anywhere
-- WHEN the console is compiled
-- THEN `nn-model.meta.sources` is still `["kNNowledge/<document>_NN.md"]`
-
-#### Scenario: Chain resolves through the document
-- GIVEN a console citing `kNNowledge/Client_NN.md`
-- WHEN lineage is traced from the console
-- THEN it reaches the Sources through the kNNowledge document's own `sources::`, not through copied edges
-
-#### Scenario: `export-meta` absent
-- GIVEN the repository after this change
-- WHEN searched for `export-meta`
-- THEN no code, contract, or template reads or emits it
-
 ### Requirement: Console runtime slug parity with core
 
 The console runtime `slugify` in `iNNfo/specs/bluepriNNts/console/nn-runtime.js` MUST produce identical output to the innfo-core slug algorithm for the same input, and MUST be shared from core through the existing payload mirror rather than re-implemented.
@@ -155,4 +138,3 @@ The console runtime `slugify` in `iNNfo/specs/bluepriNNts/console/nn-runtime.js`
 - GIVEN the repository
 - WHEN searched for slugify implementations outside innfo-core and its generated mirror
 - THEN none is found
-

@@ -73,18 +73,29 @@ innfo-core MUST export `writeOnce(root, target, bytes, options)` (target is `{di
 
 ### Requirement: Garbage collection proposes and deletes only with consent
 
-The GC planner (`planGc`) MUST be a pure function over the families and the set of cited paths, returning the family members that are not the latest of their family and are cited by no `sources` citation in the workspace (lineage-driven; a citation of a member's sidecar counts as a citation of that member). It MUST NOT delete. The CLI exposes it as `--gc` (dry run) and `--gc --apply --yes --paths <list>`. Deleting (`applyGc`) MUST require an explicit user-confirmed list, MUST recompute the plan and delete only the intersection of the confirmed list and that fresh plan, and MUST also delete each deleted member's sidecar. Non-interactive runs (CI, `verify`) MUST NOT pass `--apply` and MUST NOT delete.
+The GC planner (`planGc`) MUST be a pure function over the families and the set of cited paths, returning the family members that are not the latest of their family and are cited by no evidence of any applied change in the workspace (`citedPaths` = all-time evidence, see `computed-lineage-view`; a citation of a member's sidecar counts as a citation of that member). It MUST NOT delete. It MUST NEVER propose a changeset under `changes/`. The CLI exposes it as `--gc` (dry run) and `--gc --apply --yes --paths <list>`. Deleting (`applyGc`) MUST require an explicit user-confirmed list, MUST recompute the plan and delete only the intersection of the confirmed list and that fresh plan, and MUST also delete each deleted member's sidecar. Non-interactive runs (CI, `verify`) MUST NOT pass `--apply` and MUST NOT delete.
+(Previously: cited meant cited by a `sources` citation in the workspace, lineage-driven.)
 
 #### Scenario: Cited old member is retained
-- GIVEN a family of three members where the first is cited by a kNNowledge file
+- GIVEN a family of three members where the first is the evidence of an applied change
 - WHEN the planner runs
 - THEN the first member is not in the proposal
 - AND the latest member is not in the proposal
+
+#### Scenario: Superseded evidence still protects
+- GIVEN a member cited only by a change whose value was later overwritten
+- WHEN the planner runs
+- THEN the member is not in the proposal
 
 #### Scenario: Uncited old member is proposed, not deleted
 - GIVEN an uncited non-latest member
 - WHEN the planner runs
 - THEN it appears in the proposal and remains on disk
+
+#### Scenario: Changesets are never proposed
+- GIVEN any changeset under `changes/`
+- WHEN the planner runs
+- THEN no changeset is in the proposal
 
 #### Scenario: Consent required
 - GIVEN a proposal
@@ -101,20 +112,9 @@ The GC planner (`planGc`) MUST be a pure function over the families and the set 
 - WHEN the apply step runs
 - THEN both the member and its sidecar are removed
 
-### Requirement: The lineage record is exempt
-
-`*_cogNNitive_NN.md` MUST be a living document updated in place; `writeOnce` and the family rules MUST NOT apply to it, and GC never proposes it. The managed-section regeneration and journal append continue as defined by `lineage-record-sync`.
-
-A file is an *artifact* for the lineage record only if it is a timestamped family member or declares upstream `sources`. A hand-written markdown file with neither is not an artifact node and is not projected into the lineage record.
-
-#### Scenario: Record refresh keeps one file
-- GIVEN a workspace with `Acme_cogNNitive_NN.md`
-- WHEN `--lineage` runs after a change
-- THEN the same file is updated and no suffixed copy is created
-
 ### Requirement: Producers adopt write-once
 
-The following MUST write through `writeOnce`: the impact report (`impact-checker.js`), transformer output (`transformer.js`), curated CSV (`curate-csv.js`), raw imports, conversation promotion, the compile and video procedures' outputs, the `--view` console export, and `scanner.js` outputs that previously used fixed names. Model and domain consoles are NOT write-once: they are overwritten at a stable path by the shared console writer (`console-regeneration`). Running any write-once producer twice on unchanged input MUST write no new file; changed input MUST write a new suffixed file and leave earlier bytes identical. A curated CSV MUST be a write-once artifact distinct from its raw file. (Previously: the console export (`export-console.mjs`) was listed as a write-once producer.)
+The following MUST write through `writeOnce`: the impact report (`impact-checker.js`), transformer output (`transformer.js`), curated CSV (`curate-csv.js`), raw imports, conversation promotion, the compile and video procedures' outputs, the `--view` console export, and `scanner.js` outputs that previously used fixed names. Model and domain consoles are NOT write-once: they are overwritten at a stable path by the shared console writer (`console-regeneration`). Running any write-once producer twice on unchanged input MUST write no new file; changed input MUST write a new suffixed file and leave earlier bytes identical. A curated CSV MUST be a write-once artifact distinct from its raw file. Every producer of a non-regenerable artifact (transformer output, curated CSV, compile and video outputs) MUST also emit a ready `produce_artifact` payload (see `artifact-production-change`); the impact report and consoles are regenerable views and are exempt. (Previously: the console export (`export-console.mjs`) was listed as a write-once producer; producers had no record obligation.)
 
 #### Scenario: Second run is a no-op
 - GIVEN a producer that has run once
@@ -131,10 +131,16 @@ The following MUST write through `writeOnce`: the impact report (`impact-checker
 - WHEN curation runs
 - THEN the curated CSV is a separate suffixed file in `artifacts/` and `sales.csv` is unchanged
 
+#### Scenario: Curated CSV emits its record payload
+- GIVEN a curation run that wrote a new member
+- WHEN it completes
+- THEN a `produce_artifact` payload naming the member as target and the raw as evidence is emitted
+
 #### Scenario: Consoles are exempt
 - GIVEN a single-model scoped console exported twice with a model change in between
 - WHEN the console folder is listed
 - THEN it holds one `<stem>_console.html`, not a suffixed family
+- AND no `produce_artifact` payload is emitted for it
 
 ### Requirement: Order never comes from the clock
 
@@ -144,4 +150,3 @@ Ordering, tie-breaks, and "latest" MUST derive only from the names. mtime and cr
 - GIVEN a member written from a machine whose clock is behind, producing a lower suffix than an existing member
 - WHEN the latest is resolved
 - THEN the member with the higher name order is latest
-

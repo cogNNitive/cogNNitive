@@ -5,7 +5,6 @@
 One parser and one filesystem resolver gain JSON Pointer as a third unit kind and drop the retired folder prefixes. Exhaustive unit dispatch means no unit kind is silently ignored.
 
 ## Requirements
-
 ### Requirement: innfo-core exports one `parseCitation`
 
 innfo-core MUST export a single `parseCitation(value)` returning a structured citation (`path` and an optional `unit` whose `kind` is `header`, `row`, or `pointer`; a CSV `row` may carry a `subunit`) for the canonical `@` grammar: markdown heading anchors, CSV `RowID&column`, and JSON Pointer. It MUST be the only consumer-facing parser and serializer; no consumer outside innfo-core MAY implement citation parsing or serialization.
@@ -56,10 +55,10 @@ innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceR
 
 ### Requirement: `#slug` is a legacy read path inside innfo-core only
 
-innfo-core MAY parse `path#slug` citations solely to keep write-once specs and frozen samples readable. Each such parse MUST emit the `KU_DEPRECATED_HASH` warning. `#slug` citations MUST NOT be written by any producer, and no consumer outside innfo-core MAY parse them.
+innfo-core MAY parse `path#slug` citations solely to keep write-once specs and frozen samples readable. Each such parse MUST emit the `KU_DEPRECATED_HASH` warning. `#slug` citations MUST NOT be written by any producer, and no consumer outside innfo-core MAY parse them. A `#slug` value is only reachable as the evidence of a change; `sources::` fields do not exist in kNNowledge.
 
 #### Scenario: Legacy slug is readable with a warning
-- GIVEN a frozen sample with `sources:: sources/import/a.md#intro`
+- GIVEN an applied change with `evidence:: sources/import/a.md#intro`
 - WHEN `validateWorkspaceSources` runs
 - THEN the reference resolves and a `KU_DEPRECATED_HASH` warning is reported
 
@@ -97,28 +96,19 @@ innfo-core MAY parse `path#slug` citations solely to keep write-once specs and f
 - WHEN the validator runs
 - THEN it reports `KU_BINARY_TARGET` suggesting `sources/import/report.pdf_sidecar_NN.md`
 
-### Requirement: Artifact frontmatter and console meta citations are validated
-
-`validateWorkspaceSources` MUST validate citations in markdown artifact frontmatter `sources:` and in console `nn-model.meta.sources`, with the same diagnostics as kNNowledge body `sources::`.
-
-#### Scenario: Dangling artifact citation
-- GIVEN `artifacts/report_20261002T101500Z.md` with frontmatter `sources: [sources/import/missing.md@## Intro]` and no such file
-- WHEN `validateWorkspaceSources` runs
-- THEN a `KU_DANGLING_FILE` error is reported for the artifact
-
-#### Scenario: Console meta citation validated
-- GIVEN a console whose `nn-model.meta.sources` cites a missing heading
-- WHEN `validateWorkspaceSources` runs
-- THEN an anchor-resolution diagnostic is reported
-
 ### Requirement: Lineage projection is an innfo-core export
 
-innfo-core MUST export the lineage projection function (parsed workspace to record view sections) as public API with unit tests. Relative imports MUST carry `.js` (NodeNext).
+innfo-core MUST export the computed lineage projection function `projectLineage` (parsed workspace, sidecars and applied changes to the computed view defined by `computed-lineage-view`) as public API with unit tests. It MUST NOT produce record sections. Relative imports MUST carry `.js` (NodeNext). (Previously: the function returned record view sections.)
 
 #### Scenario: Projection export is importable from Node ESM
 - GIVEN the built innfo-core package
 - WHEN a Node ESM script imports the projection from the package entry
 - THEN the import succeeds
+
+#### Scenario: Projection returns a view, not record text
+- GIVEN a workspace
+- WHEN the projection runs
+- THEN it returns structured sources, models, artifacts and edges, and no markdown sections
 
 ### Requirement: JSON Pointer is a unit kind
 
