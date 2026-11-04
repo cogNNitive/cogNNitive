@@ -4,10 +4,10 @@
 > rename (Batches 3–4) is the high-churn half and lands separately.
 
 ## Batch 1: Core Lineage Types & Planning
-- [ ] 1.1 Define `LineageAuditResult`, `ReconciliationPlan`, `ReconciliationUnit` and `LineageChangeOp` in `iNNfo/packages/nn-core/src/changeset/lineage/`.
-- [ ] 1.2 Implement the pure planner: group models by blueprint name, collect `pinnedVersions`, compute `targetVersion` from `catalog.json`, flag `hasSkew`, and compute a deterministic `planHash` over canonicalized member paths and pins.
-- [ ] 1.3 Implement `isPlanFresh(plan, workspaceDir)` returning false on any added, removed or repinned member.
-- [ ] 1.4 Add unit tests in `iNNfo/packages/nn-core/tests/` for grouping, skew detection and `planHash` stability under key ordering.
+- [x] 1.1 Define `LineageAuditResult`, `ReconciliationPlan`, `ReconciliationUnit` and `LineageMutationOp` in `iNNfo/packages/nn-core/src/changeset/lineage/`.
+- [x] 1.2 Implement the pure planner: group models by blueprint name, collect `pinnedVersions`, compute `targetVersion` from `catalog.json`, flag `hasSkew`, and compute a deterministic `planHash` over canonicalized member paths and pins.
+- [x] 1.3 Implement `isPlanFresh(plan, models)` (pure — the caller supplies the current model pins) returning false on any added, removed or repinned member of a planned unit.
+- [x] 1.4 Add unit tests in `iNNfo/packages/nn-core/tests/` for grouping, skew detection and `planHash` stability under key ordering.
 
 > Note: the catalog already emits `name`, `adopted` and `versions[].blueprint_version` (`scripts/blueprint-catalog.mjs`; asserted in `scripts/blueprint-catalog.test.mjs`). No catalog change is required here — do not add a parallel metadata field.
 

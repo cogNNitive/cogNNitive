@@ -171,6 +171,20 @@ export type {
   FreshnessField,
   TemplateResolution,
 } from './workspace/integrity/report.js'
+export {
+  lineageAudit,
+  buildReconciliationPlan,
+  isPlanFresh,
+} from './changeset/lineage/plan.js'
+export type {
+  LineageMutationOp,
+  LineageModelInput,
+  LineageAuditEntry,
+  LineageAuditResult,
+  BlueprintSkew,
+  ReconciliationUnit,
+  ReconciliationPlan,
+} from './changeset/lineage/types.js'
 export { listKnowledge, discoverDomainModels, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo, DiscoveredDomainModel } from './helpers.js'
 export {
