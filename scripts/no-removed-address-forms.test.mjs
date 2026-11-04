@@ -172,7 +172,7 @@ const QUALIFIED_FORM = /\[\[[^\]]*::[^\]]*\]\]/g
 const QUALIFIED_ALLOWED = {
   'openspec/specs/cross-model-reference-validation/spec.md': 2,
   'openspec/specs/unified-reference-grammar/spec.md': 3,
-  'openspec/specs/video-presets/spec.md': 1,
+  'openspec/specs/conntent-presets/spec.md': 1,
 }
 
 for (const file of specs) {
