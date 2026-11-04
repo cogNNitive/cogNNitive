@@ -145,36 +145,6 @@ nested subtree is not absorbed into the outer manifest.
 - WHEN the outer domaiNN's models are discovered
 - THEN no model under `outer/vendor/inner/` is listed in the outer manifest
 
-### Requirement: Model Id Collision Resolves via Domain-Relative Path (Option A)
-
-Resolution of a colliding model id across scopes MUST accept domain-relative paths, and bare stem lookup of a colliding model id MUST report an AMBIGUOUS_MODEL_ID error naming every candidate path.
-
-- An unambiguous domain-relative path (e.g. `series/alpha/status_01`) MUST always resolve to the target document.
-- Resolving the bare stem MUST produce an `AMBIGUOUS_MODEL_ID` error listing candidate paths, and MUST NOT silently choose one (first-wins walk deleted).
-- Discoveries (`list_knowledge`) emit the bare stem when unique, and the domain-relative path when colliding.
-
-#### Scenario: Sibling scopes share a stem and bare lookup is an error
-
-- GIVEN `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
-- WHEN resolving bare model id `status_01`
-- THEN an `AMBIGUOUS_MODEL_ID` error is returned naming id `status_01` and candidates `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
-
-#### Scenario: Sibling scopes share a stem and domain-relative path resolves
-
-- GIVEN `portfolio/programs/alpha/status_01_NN.md` and `portfolio/programs/beta/status_01_NN.md`
-- WHEN resolving `portfolio/programs/alpha/status_01`
-- THEN resolution succeeds and returns `portfolio/programs/alpha/status_01_NN.md`
-
-#### Scenario: Same stem in different domaiNNs is fine
-
-- GIVEN `outer/status_01.md` and `outer/vendor/inner/status_01.md`, where `inner` has its own `domaiNN_NN.md`
-- WHEN each domaiNN is discovered
-- THEN no collision is reported
-
-- GIVEN `outer/status_01.md` and `outer/vendor/inner/status_01.md`, where `inner` has its own `domaiNN_NN.md`
-- WHEN each domaiNN is discovered
-- THEN no collision is reported
-
 ### Requirement: Marker Move Changes Effective Values Warning
 
 Tooling that previews a document move to a location with a different chain MUST warn for each key whose effective value would change, naming the key and the supplying scope on each side; building the preview itself is optional (Lote 2+, Q1b).
@@ -198,9 +168,12 @@ An element adapter MUST turn each element of a concept listed in the document fr
 heading depth, for example) MUST NOT become a node. The parent of an element of a listed
 concept other than the first MUST be, without `parent`, the nearest preceding element in
 document order of the previous listed concept, and with `parent: <field>` the element of the
-previous listed concept whose title is the `[[title]]` reference held in that field (exact,
-unique match). The adapter MUST NOT guess: an unresolved or ambiguous parent MUST be a
-structured error. The fields `slug` and `isolate` of an element MUST NOT be values. An element
+previous listed concept named by the relative address `@<slug>` held in that field. The
+removed form `[[title]]` MUST NOT be resolved by title: a value that is not an `@<slug>`
+address of an element of the previous listed concept in the same document MUST be reported
+as `UNKNOWN_PARENT_ELEMENT` naming the field and the removed form. Two elements of the parent
+concept carrying the same slug MUST be reported as `AMBIGUOUS_PARENT_ELEMENT`. The adapter
+MUST NOT guess: an unresolved or ambiguous parent MUST be a structured error. The fields `slug` and `isolate` of an element MUST NOT be values. An element
 with the strict boolean `isolate:: true` MUST end the chain at itself, like a folder scope;
 any other value (for example the text `"true"`) MUST NOT. A document that has both
 `scope: true` and `scope_elements` MUST be rejected. Node ids MUST be domain-relative, stable
@@ -222,19 +195,20 @@ reads the filesystem).
 
 #### Scenario: Parent given by a reference field
 
-- GIVEN `scope_elements: [{ concept: A }, { concept: B, parent: a_ref }]` and a `B` element with `a_ref:: [[Title of a1]]` placed anywhere in the document
-- WHEN the chain of that `B` element is requested
-- THEN its parent is the `A` element titled `Title of a1`, whatever the document order
+- GIVEN `scope_elements: [{ concept: A }, { concept: B, parent: a_ref }]` and an `A` element with the slug `a1`
+- WHEN a `B` element holds `a_ref:: @a1` and its chain is requested
+- THEN its chain contains the `A` element `a1` and then the `B` element
+- AND a value `[[Title of a1]]` in the same field is `UNKNOWN_PARENT_ELEMENT`, and no element is found by title
 
 #### Scenario: Unknown parent reference
 
-- GIVEN a `B` element whose `parent` field is absent, is not a `[[title]]` reference, or names no `A` element
+- GIVEN a `B` element whose `parent` field is missing, is not an `@<slug>` address of the same document, or names no `A` element
 - WHEN its chain is requested
 - THEN the result is the error `UNKNOWN_PARENT_ELEMENT` with a detail naming the element and the field
 
 #### Scenario: Ambiguous parent reference
 
-- GIVEN two `A` elements with the same title and a `B` element referencing that title
+- GIVEN two `A` elements with the same slug and a `B` element addressing that slug
 - WHEN its chain is requested
 - THEN the result is the error `AMBIGUOUS_PARENT_ELEMENT`, and no parent is chosen
 

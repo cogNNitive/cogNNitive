@@ -16,13 +16,14 @@ TBD - created by archiving change unified-knowledge-unit-badges. Update Purpose 
 - `unitAddress.field(family: string, conceptName: string, fieldName: string)`: returns `specs/<family>@concept:<concept-slug>&<fieldName>`
 - `unitAddress.matrix(family: string, matrixSlug: string)`: returns `specs/<family>@matrix:<matrixSlug>`
 
-Builders MUST NOT accept empty strings for required identifiers. Model ids MUST be extensionless workspace-relative POSIX paths without leading or trailing slashes, dots, or backslashes.
+Builders MUST NOT accept empty strings for required identifiers. A model id MUST be a hierarchical id: one or more segments, each matching `^[A-Za-z0-9][A-Za-z0-9_-]*$`, without leading or trailing separators, dots or backslashes. A filename stem MUST NOT resolve as a model id (the builders cannot tell a stem from a one-segment id; resolution against the domaiNN does), and a domain-relative path flipped on stem collision MUST NOT exist.
+(Previously: model ids were extensionless workspace-relative POSIX paths, which in practice were either a filename stem or, on collision, a domain-relative path.)
 
 #### Scenario: Element and value addresses match changeset targets
-- GIVEN model id `"kNNowledge/TestLab_coverage_TestLab"` and element slug `"element-1b"`
-- WHEN `unitAddress.element` and `unitAddress.value(..., "photo")` are called
-- THEN the element address is `"kNNowledge/TestLab_coverage_TestLab@element-1b"`
-- AND the value address is `"kNNowledge/TestLab_coverage_TestLab@element-1b&photo"`
+- GIVEN model id `"villabotijos-today/pepper-mapache"` and element slug `"00-gancho"`
+- WHEN `unitAddress.element` and `unitAddress.value(..., "voice")` are called
+- THEN the element address is `"villabotijos-today/pepper-mapache@00-gancho"`
+- AND the value address is `"villabotijos-today/pepper-mapache@00-gancho&voice"`
 - AND both match the changeset `target::` syntax verbatim
 
 #### Scenario: Section address uses concept prefix
@@ -40,6 +41,12 @@ Builders MUST NOT accept empty strings for required identifiers. Model ids MUST 
 - GIVEN family `"business"` and concept name `"Goal"`
 - WHEN `unitAddress.concept("business", "Goal")` is called
 - THEN the result is `"specs/business@concept:goal"`
+
+#### Scenario: Stem does not resolve as a model id
+- GIVEN the instance model `villabotijos-today/pepper-mapache` whose file stem is `pepper-mapache_video-script`
+- WHEN `pepper-mapache_video-script` is resolved as a model id in the domaiNN
+- THEN it is unresolved
+- AND it is not rewritten to `villabotijos-today/pepper-mapache`
 
 ---
 

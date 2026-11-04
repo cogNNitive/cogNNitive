@@ -6,34 +6,33 @@ Typed source references follow the base change's single `parseCitation` and add 
 ## Requirements
 ### Requirement: Single shared source-reference parser
 
-`@cognnitive/innfo-core` MUST expose `parseCitation(value)` and `slugifyHeading(text)`. `innfo-mcp` and the console runtime MUST consume them. The structured result MUST carry either a workspace-relative `path` or an extension-less `knowledge_slug`, and an optional `unit`. The `unit.kind` MUST be one of:
+`@cognnitive/innfo-core` MUST expose `parseCitation(value)` and `slugifyHeading(text)`. `innfo-mcp` and the console runtime MUST consume them. The structured result MUST carry either a workspace-relative `path` (raw files) or a hierarchical model id (kNNowledge units), and an optional `unit`. The `unit.kind` MUST be one of:
 - `header` (`{ kind: 'header', slug: string }`) for Markdown headings (`.md`).
 - `row` (`{ kind: 'row', row: number, column?: string }`) for CSV rows/cells (`.csv`).
 - `pointer` (`{ kind: 'pointer', pointer: string }`) for JSON Pointers (`.json`).
-- `element` (`{ kind: 'element', slug: string }`) for semantic model elements (`knowledge_slug@slug`). Subunits MAY specify an element field (`knowledge_slug@slug&field`).
-- `matrix` (`{ kind: 'matrix', matrixSlug: string, rowSlug?: string, colSlug?: string }`) for semantic model matrices and matrix cells (`knowledge_slug@matrix&row&col`).
+- `element` (`{ kind: 'element', slug: string }`) for semantic model elements (`<model-id>@slug`). Subunits MAY specify an element field (`<model-id>@slug&field`).
+- `matrix` (`{ kind: 'matrix', matrixSlug: string, rowSlug?: string, colSlug?: string }`) for semantic model matrices and matrix cells (`<model-id>@matrix&row&col`).
 
-When a citation target lacks a file extension and conforms to the model id format `[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*` (the file stem of `kNNowledge/<stem>_NN.md`, which keeps its case and may contain underscores and hyphens, for example `cognnitive_repository` or `Client_business`), it MUST be parsed as a model id reference rather than a file path. Heading, element, matrix and row slugs keep the lowercase slug format `[a-z0-9]+(?:-[a-z0-9]+)*`. A value with no `@` MUST parse as a document-level citation with no `unit`. No default prefix MUST be added to paths or model slugs. Existing path-based citations (`.md`, `.csv`, `.json`) MUST continue to parse identically without breaking changes.
-
-(Previously: The parser required citation targets to be workspace-relative file paths with explicit file extensions, and the unit kind was strictly derived from file extensions into one of 'header', 'row', or 'pointer'.) (Previously: `innfo-editor` was also a required consumer.)
+When a citation target lacks a file extension and conforms to the hierarchical id format (one or more segments separated by the id separator, each matching `[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*`), it MUST be parsed as a model id reference rather than a file path. The parser does not look at the filesystem; whether the id names an existing model is decided by workspace validation. Heading, element, matrix and row slugs keep the lowercase slug format `[a-z0-9]+(?:-[a-z0-9]+)*`. A value with no `@` MUST parse as a document-level citation with no `unit`. No default prefix MUST be added to paths or model ids. Existing raw-file citations (`.md`, `.csv`, `.json`) MUST continue to parse identically.
+(Previously: the model id was the file stem of `kNNowledge/<stem>_NN.md` matching `[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*`, and `knowledge_slug@slug` was the model citation.)
 
 #### Scenario: Parse model element citation
-- GIVEN the citation string `core-business@revenue-growth`
+- GIVEN the citation string `villabotijos-today/pepper-mapache@00-gancho`
 - WHEN `parseCitation` executes
-- THEN the result has target `core-business` as model slug
-- AND the unit is of kind `element` with slug `revenue-growth`
+- THEN the result has target `villabotijos-today/pepper-mapache` as model id
+- AND the unit is of kind `element` with slug `00-gancho`
 
 #### Scenario: Parse model element field citation
-- GIVEN the citation string `core-business@revenue-growth&target_value`
+- GIVEN the citation string `villabotijos-today/pepper-mapache@00-gancho-presenter&asset`
 - WHEN `parseCitation` executes
-- THEN the result has target `core-business` as model slug
-- AND the unit is of kind `element` with slug `revenue-growth`
-- AND the subunits array contains `target_value`
+- THEN the result has target `villabotijos-today/pepper-mapache` as model id
+- AND the unit is of kind `element` with slug `00-gancho-presenter`
+- AND the subunits array contains `asset`
 
 #### Scenario: Parse matrix cell citation
-- GIVEN the citation string `portfolio@coverage-matrix&security&compliance`
+- GIVEN the citation string `portfolio/coverage@coverage-matrix&security&compliance`
 - WHEN `parseCitation` executes
-- THEN the result has target `portfolio` as model slug
+- THEN the result has target `portfolio/coverage` as model id
 - AND the unit is of kind `matrix` with `matrixSlug: "coverage-matrix"`, `rowSlug: "security"`, and `colSlug: "compliance"`
 
 #### Scenario: Existing Markdown heading citation remains unchanged
@@ -110,23 +109,30 @@ When `recursiveParse` and the graph builder normalize a workspace, the resulting
 
 ### Requirement: Semantic Model Citation Target Resolution
 
-When resolving citations that target a `knowledge_slug`, `innfo-core` and workspace validators MUST resolve the target against workspace models declaring matching `knowledge_slug` in frontmatter or matching the model stem name. If the target model cannot be resolved, an error diagnostic MUST be emitted. If the model is found but the referenced element slug or matrix slug does not exist, an anchor diagnostic MUST be emitted naming the unresolved slug.
+When resolving citations that target a model, `innfo-core` and workspace validators MUST resolve the target by hierarchical id against the models of the domaiNN. Resolution by `knowledge_slug`, by filename stem, or by title MUST NOT exist. If the target model cannot be resolved, an error diagnostic MUST be emitted listing candidate ids that share the given last segment. If the model is found but the referenced element slug or matrix slug does not exist, an anchor diagnostic MUST be emitted naming the unresolved slug.
+(Previously: the target resolved against `knowledge_slug` in frontmatter or the model stem name.)
 
 #### Scenario: Citation to existing model element resolves cleanly
-- GIVEN a workspace containing a model with `knowledge_slug: sales-plan` containing element slug `q4-target`
-- AND an element citing `sales-plan@q4-target`
+- GIVEN a model `villabotijos-today/pepper-mapache` containing element slug `00-gancho`
+- AND an element citing `villabotijos-today/pepper-mapache@00-gancho`
 - WHEN workspace source validation executes
 - THEN the citation resolves successfully without diagnostics
 
-#### Scenario: Citation to nonexistent model slug emits diagnostic
-- GIVEN an element citing `missing-model@some-element`
-- AND no model in the workspace declares `knowledge_slug: missing-model`
+#### Scenario: Citation to nonexistent model emits diagnostic
+- GIVEN an element citing `villabotijos-today/missing@00-gancho`
+- AND no model has that id
 - WHEN workspace source validation executes
 - THEN a diagnostic reporting the missing model target is emitted
 
+#### Scenario: Citation by bare slug lists candidates
+- GIVEN `villabotijos-today/intro` and `innteresante/intro` and a citation `intro@00-gancho`
+- WHEN workspace source validation executes
+- THEN a diagnostic lists both ids as candidates
+- AND the citation resolves to neither
+
 #### Scenario: Citation to nonexistent element slug emits diagnostic
-- GIVEN a workspace containing model `sales-plan`
-- AND an element citing `sales-plan@nonexistent-slug`
+- GIVEN a workspace containing model `villabotijos-today/pepper-mapache`
+- AND an element citing `villabotijos-today/pepper-mapache@nonexistent-slug`
 - WHEN workspace source validation executes
 - THEN an anchor-resolution diagnostic reporting the unresolved element slug is emitted
 

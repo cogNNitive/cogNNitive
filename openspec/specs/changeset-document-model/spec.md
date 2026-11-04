@@ -64,27 +64,25 @@ Changeset documents MUST be classified with role `'changeset'` by `roleOf` in `i
 
 Each change in a changeset document MUST be represented as an element heading `## NN Change: <id>` conforming to the `changes` blueprint concept `Change`. Each change MUST specify an `op` property.
 
-The target format (`target::`) for content operations MUST equal the canonical unit address defined by `knowledge-unit-address`:
-1. `update_field`: Mutates a field on an existing element. `target` is `<model_slug>@<element_slug>&<field_name>`, matching the canonical own value address.
-2. `update_concept_field`: Mutates a concept-level field. `target` is `<model_slug>@concept:<concept_slug>&<field_name>`, matching the canonical concept value address.
-3. `add_element`: Adds a new element to a concept in a model. `target` is `<model_slug>`. It carries no inline field values (see "`add_element` carries no inline fields").
-4. `remove_element`: Removes an element. `target` is `<model_slug>@<element_slug>`.
-5. `rename_element`: Renames an element's display name. `target` is `<model_slug>@<element_slug>`.
-6. `rename_concept`: Renames a concept's display name. `target` is `<model_slug>@concept:<concept_slug>`.
-7. `update_matrix_cell`: Updates or inserts a cell in a matrix. `target` is `<model_slug>@<matrix_slug>&<row_slug>&<col_slug>`, matching the canonical matrix cell address.
+The target format (`target::`) for content operations MUST equal the unified address defined by `unified-reference-grammar` and `knowledge-unit-address`, with the model part a hierarchical id (`<model_id>`):
+1. `update_field`: Mutates a field on an existing element. `target` is `<model_id>@<element_slug>&<field_name>`, matching the canonical own value address.
+2. `update_concept_field`: Mutates a concept-level field. `target` is `<model_id>@concept:<concept_slug>&<field_name>`, matching the canonical concept value address.
+3. `add_element`: Adds a new element to a concept in a model. `target` is `<model_id>`.
+4. `remove_element`: Removes an element. `target` is `<model_id>@<element_slug>`.
+5. `rename_element`: Renames an element's display name. `target` is `<model_id>@<element_slug>`.
+6. `rename_concept`: Renames a concept's display name. `target` is `<model_id>@concept:<concept_slug>`.
+7. `update_matrix_cell`: Updates or inserts a cell in a matrix. `target` is `<model_id>@<matrix_slug>&<row_slug>&<col_slug>`, matching the canonical matrix cell address.
 8. `comment`: Represents review feedback or discussion annotations. `target` MAY be any valid canonical unit address (including structure definitions, sections, elements, values, cells, or Sources).
-9. `add_model`: Creates a new Level-3 kNNowledge document. `target` is `<model_slug>`.
-10. `add_matrix`: Adds a matrix to a model. `target` is `<model_slug>`. Its header elements are supplied by `seed` (see "`add_element` carries no inline fields").
-11. `update_element_text`: Replaces the prose body of an element (`ElementNode.description`), named to mirror `update_concept_text`. `target` is `<model_slug>@<element_slug>`, `from` is the current prose and `to` the new prose. `notes` never writes the prose body. `update_field` on the field name `description` MUST be rejected with `USE_UPDATE_ELEMENT_TEXT`.
-12. `produce_artifact`: Records that an artifact was produced (defined by `artifact-production-change`). `target` is a workspace-relative artifact path.
+9. `add_model`: Creates a new Level-3 kNNowledge document. `target` is `<model_id>`; for an instance of a distributed concept it is the hierarchical id (container chain plus slug), and the change identifies the distributed concept (see `instance-model-lifecycle`).
 
-(Previously: nine operations, which did not include `add_matrix`, `update_element_text` or `produce_artifact`.)
+A target whose model part is a filename stem, a title, or a domain-relative path flipped on collision MUST be rejected as a removed form.
+(Previously: `<model_slug>` in every target, informally either a stem or a path; `add_model` took a flat `<model_slug>`.)
 
 #### Scenario: Element and value targets equal canonical addresses
 - GIVEN a changeset with `op:: update_field`
-- WHEN targeted at field `"vision"` of element `"statement"` in model `"strategy"`
-- THEN `target` is `"strategy@statement&vision"`
-- AND this string equals `unitAddress.value("strategy@statement", "vision")`
+- WHEN targeted at field `"voice"` of element `"00-gancho"` in model `"villabotijos-today/pepper-mapache"`
+- THEN `target` is `"villabotijos-today/pepper-mapache@00-gancho&voice"`
+- AND this string equals `unitAddress.value("villabotijos-today/pepper-mapache@00-gancho", "voice")`
 
 #### Scenario: Matrix cell target equals canonical cell address
 - GIVEN a changeset with `op:: update_matrix_cell`
@@ -98,26 +96,16 @@ The target format (`target::`) for content operations MUST equal the canonical u
 - THEN `target` is `"specs/business@concept:goal&owner"`
 - AND `op` is `"comment"`
 
-#### Scenario: Prose body op is valid and distinct from fields
-- GIVEN a change `op:: update_element_text`, `target:: strategy@statement`, `from:: Old text`, `to:: New text`
-- WHEN the changeset is validated and applied
-- THEN the element prose body is `New text`
-- AND no `description::` line is written
+#### Scenario: add_model for an instance model
+- GIVEN an `add_model` change creating a Video in series `innteresante`
+- WHEN its target is written
+- THEN it is `innteresante/new-episode`
 
-#### Scenario: update_field on description is rejected
-- GIVEN a change `op:: update_field`, `target:: strategy@statement&description`
-- WHEN it is validated
-- THEN it is rejected with `USE_UPDATE_ELEMENT_TEXT` and nothing is written
-
-#### Scenario: Prose precondition
-- GIVEN an element whose prose is `Current`
-- WHEN `update_element_text` carries `from:: Other`
-- THEN the change is a `PRECONDITION_FAILED` conflict and nothing is written
-
-#### Scenario: Path target for artifacts
-- GIVEN a change `op:: produce_artifact` with `target:: artifacts/r_20261002T101500Z.md`
-- WHEN the changeset is validated
-- THEN the target is accepted as a path and not as a model address
+#### Scenario: Stem target is rejected
+- GIVEN an `update_field` change with target `pepper-mapache_video-script@00-gancho&voice`
+- WHEN the changeset is parsed and validated
+- THEN the target is reported as a removed form
+- AND the change is not applied
 
 ### Requirement: Cryptographic Proposal Sealing (`proposal_sha`)
 
@@ -298,3 +286,21 @@ The changeset model MUST NOT define any behaviour for the persisted lineage reco
 - GIVEN the repository after this change
 - WHEN searched for `RECORD_UNVERSIONED` in live code and specs
 - THEN there are no matches
+
+### Requirement: The `models` map is keyed by hierarchical id
+
+The frontmatter `models` map of a changeset MUST be keyed by the hierarchical id of each affected model, with one entry per model file. This supersedes the living wording "map of affected model slugs". An `add_model` entry carries only `result_version`.
+
+#### Scenario: Keys are ids
+- GIVEN an applied changeset touching `villabotijos-today/pepper-mapache` and `innteresante/intro`
+- WHEN its frontmatter is read
+- THEN `models` has the keys `villabotijos-today/pepper-mapache` and `innteresante/intro`, each with `base_version` and `result_version`
+
+### Requirement: Instance operations belong to the closed `op` set
+
+The operations that rename an instance model, move it to another container, and migrate a concept from compact to distributed (see `instance-model-lifecycle` and `instance-model-migration`) MUST be `ChangeOp`s listed in the closed `op` options of the `changes` bluepriNNt, so a changeset using them validates and is sealed like any other. Their names and fields are design decisions.
+
+#### Scenario: Changeset with an instance operation validates
+- GIVEN a changeset holding a rename of `innteresante/intro`
+- WHEN it is validated against the `changes` bluepriNNt
+- THEN no invalid-`op` diagnostic is reported

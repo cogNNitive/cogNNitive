@@ -7,7 +7,8 @@ One parser and one filesystem resolver gain JSON Pointer as a third unit kind an
 ## Requirements
 ### Requirement: innfo-core exports one `parseCitation`
 
-innfo-core MUST export a single `parseCitation(value)` returning a structured citation (`path` and an optional `unit` whose `kind` is `header`, `row`, or `pointer`; a CSV `row` may carry a `subunit`) for the canonical `@` grammar: markdown heading anchors, CSV `RowID&column`, and JSON Pointer. It MUST be the only consumer-facing parser and serializer; no consumer outside innfo-core MAY implement citation parsing or serialization.
+innfo-core MUST export a single `parseCitation(value)` returning a structured citation (`path` and an optional `unit` whose `kind` is `header`, `row`, or `pointer`; a CSV `row` may carry a `subunit`) for the canonical `@` grammar of raw files: markdown heading anchors, CSV `RowID&column`, and JSON Pointer. A value whose target is a kNNowledge unit MUST be parsed by the unified grammar (`<hierarchical-id>[@<slug>[&<field>]]`) and returned as a kNNowledge unit address, not as a path. `parseCitation` MUST be the only consumer-facing parser and serializer; no consumer outside innfo-core MAY implement citation parsing or serialization.
+(Previously: a bare path to a kNNowledge file was a valid file-level citation, and `kNNowledge/...@## <Heading>` was a valid heading citation.)
 
 #### Scenario: Markdown heading citation
 - GIVEN `sources/import/interview.md@## Clients`
@@ -24,10 +25,16 @@ innfo-core MUST export a single `parseCitation(value)` returning a structured ci
 - WHEN `parseCitation` runs
 - THEN it returns a `pointer` unit with `pointer` `/items/0/name`
 
-#### Scenario: Bare path is a file-level citation
+#### Scenario: kNNowledge unit citation uses the unified grammar
+- GIVEN `villabotijos-today/pepper-mapache@00-gancho`
+- WHEN `parseCitation` runs
+- THEN it returns a kNNowledge unit address with model `villabotijos-today/pepper-mapache` and element `00-gancho`
+
+#### Scenario: Path to a kNNowledge file is not a citation
 - GIVEN `kNNowledge/Client_business_NN.md`
 - WHEN `parseCitation` runs
-- THEN it returns the path with no unit and no `KU_DEPRECATED_HASH` warning
+- THEN it returns a failure naming the unified grammar to use
+- AND it does not throw
 
 #### Scenario: Malformed citation
 - GIVEN `sources/import/a.md@L10-L20`
@@ -69,12 +76,14 @@ innfo-core MAY parse `path#slug` citations solely to keep write-once specs and f
 
 ### Requirement: Citation paths are workspace-relative with no implicit prefix
 
-`resolveUnitPath` MUST accept any domaiNN-relative path to a `md`, `csv`, or `json` file, with no implicit `sources/nn/` prefix and no branches for retired folders. A path under a retired folder (`sources/nn/`, `sources/original/`, `sources/export/`, `export/`, `models/`) simply does not exist and so dangles (`KU_DANGLING_FILE`); the legacy layout detector, not the resolver, explains why. A path under `sources/archive/` that still exists on disk resolves as a plain path. A unit citation aimed at a binary raw file MUST yield `KU_BINARY_TARGET` with a suggestion to cite `<file>.<ext>_sidecar_NN.md`. A path under `staging/` is an excluded path and is not citable.
+`resolveUnitPath` MUST accept any domaiNN-relative path to a `md`, `csv`, or `json` file that is not a kNNowledge or changeset `_NN.md` document, with no implicit `sources/nn/` prefix and no branches for retired folders. A path under a retired folder (`sources/nn/`, `sources/original/`, `sources/export/`, `export/`, `models/`) simply does not exist and so dangles (`KU_DANGLING_FILE`); the legacy layout detector, not the resolver, explains why. A path under `sources/archive/` that still exists on disk resolves as a plain path. A unit citation aimed at a binary raw file MUST yield `KU_BINARY_TARGET` with a suggestion to cite `<file>.<ext>_sidecar_NN.md`. A path under `staging/` is an excluded path and is not citable. A path to a kNNowledge or changeset `_NN.md` document, with or without an anchor, MUST yield a diagnostic naming the unified grammar instead of resolving.
+(Previously: `kNNowledge/` paths with heading anchors resolved as plain paths.)
 
-#### Scenario: `kNNowledge/` resolves
+#### Scenario: `kNNowledge/` path is rejected with a pointer to the grammar
 - GIVEN `kNNowledge/Client_business_NN.md@## NN Stakeholders: Enterprise Clients`
 - WHEN `resolveUnitPath` runs
-- THEN it resolves to that file
+- THEN it does not resolve
+- AND the diagnostic names the form as removed and points to `<hierarchical-id>@<slug>`
 
 #### Scenario: Import path resolves
 - GIVEN `sources/import/a.md@## Intro`
@@ -143,3 +152,12 @@ For `.json` targets the portion after `@` MUST be a JSON Pointer (RFC 6901) held
 - GIVEN `sources/import/a.md@/items/0`
 - WHEN validated
 - THEN a malformed-citation diagnostic is reported
+
+### Requirement: The `@## NN Change:` citation form is not parsed
+
+No code path MUST parse `<path>@## NN Change: <id>` as a citation: the form is removed, and the parser MUST NOT accept it. How a change record is cited instead (for example through a hierarchical id of the changeset document) is a design decision; until then such a value is a malformed citation.
+
+#### Scenario: Change-heading citation fails
+- GIVEN `changes/lc_tutorias_20261012T173127Z_changes_NN.md@## NN Change: c-09`
+- WHEN `parseCitation` runs
+- THEN it returns a failure naming the form as removed
