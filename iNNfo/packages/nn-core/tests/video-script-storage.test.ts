@@ -52,7 +52,7 @@ const codesOf = (...inputs: DomainModelInput[]) =>
 describe('video-script declares its storage (video-blueprint; design A16, section 5)', () => {
   it('pins bluepriNNt V_0-15-0 against iNNfo V_0-7-0', () => {
     expect(VIDEO_SCRIPT).toMatch(/^blueprint_version: "V_0-15-0"$/m)
-    expect(VIDEO_SCRIPT).toMatch(/^  name: "iNNfo_V_0-7-0"$/m)
+    expect(VIDEO_SCRIPT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 
   it('declares Series and Video distributed, with the Video nested in its Series', () => {
@@ -183,7 +183,7 @@ describe('changes regression (changes-collection)', () => {
   const CHANGES = read('bluepriNNts/changes/spec_NN.md')
 
   it('keeps nature: members/derived and declares no storage', () => {
-    expect(CHANGES).toMatch(/^nature:\n  structure: members\n  ownership: derived$/m)
+    expect(CHANGES).toMatch(/^nature:\n {2}structure: members\n {2}ownership: derived$/m)
     expect(CHANGES).not.toContain('storage:: ')
     expect(CHANGES).toMatch(/^blueprint_version: "V_0-7-0"$/m)
   })
