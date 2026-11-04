@@ -198,16 +198,6 @@ evidence:: No export-okf script, procedure or skill exists; iNNfo/packages/nn-co
 merged_from:: okf-type-frontmatter, okf-index-md, okf-version
 batch:: b4e-okf-export
 
-## NN Item: attested-computation
-value:: M
-effort:: L
-risk:: M
-status:: open
-lane:: heavy
-verdict:: current
-evidence:: NN Executions is defined (openspec/specs/workspace-executions-provenance/spec.md:5-20) but no executor, attester or Attested field exists anywhere under iNNfo/.
-batch:: b4f-attested-computation
-
 ## NN Item: product-site-projection
 value:: M
 effort:: L
@@ -363,13 +353,6 @@ state:: planned
 order:: 11
 lane:: heavy
 items:: okf-export-projector
-risk:: M
-state:: planned
-
-## NN Batch: b4f-attested-computation
-order:: 12
-lane:: heavy
-items:: attested-computation
 risk:: M
 state:: planned
 
