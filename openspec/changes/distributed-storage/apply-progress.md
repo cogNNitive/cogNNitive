@@ -915,6 +915,17 @@ the container failure "Container named in the message" instead of `CONTAINER_MIS
   13 deletions across 16 docs files.
 - Over 400: `size:exception`.
 
+### External gate: CI on the chain tip (2026-11-04)
+The chain's 19 PRs never triggered CI: `ci.yml` listens on pushes to `main`/`dev`/`session/**` and on PRs whose base is `main` or `dev`, and every link here is `ds/<slice>` based on `ds/<slice-1>`. Local gates were the only evidence until the chain tip was dispatched by hand:
+
+`gh workflow run ci.yml --ref ds/s7c` — run 41746355996 on `c9887c60`: **verify, quality, spec-integrity, site and ui-smoke all success**, `publish-web` skipped (main-gated).
+
+The first dispatch (run 41745072387) failed on two findings the local gates had hidden and this commit fixes:
+1. `skills/nn-innfo/SKILL.md` was a stale generated render (missing the `collection` argument of `list_knowledge` and `move_model` in `propose_changeset`). Locally the guard passed because the worktree's `nn-mcp` `dist/` was older than the sources; CI builds from scratch and renders all 24 tools.
+2. Two `no-regex-spaces` lint errors in `video-script-storage.test.ts`.
+
+Lesson for S7d: entry conditions that introspect the built MCP cannot be trusted from this worktree while its `dist/` lags the sources. Rehearse the release in a clean worktree with both packages rebuilt.
+
 ### Gate (S7c verification)
 - nn-core `tsc --noEmit`: exit 0. nn-mcp `tsc --noEmit -p tsconfig.tmp.json` (throwaway
   paths config against the rebuilt worktree core; deleted): exit 0.
