@@ -91,6 +91,9 @@ async function renderTarget(target, esbuild) {
     platform: 'node',
     target: 'node20',
     absWorkingDir: REPO_ROOT,
+    alias: {
+      '@cognnitive/nn-core': path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js'),
+    },
     write: false,
     legalComments: 'none',
     banner: { js: target.banner },

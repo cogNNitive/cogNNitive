@@ -15977,6 +15977,14 @@ var init_element_history = __esm({
   }
 });
 
+// iNNfo/packages/nn-core/dist/console/files-inventory.js
+var init_files_inventory = __esm({
+  "iNNfo/packages/nn-core/dist/console/files-inventory.js"() {
+    "use strict";
+    init_contract();
+  }
+});
+
 // iNNfo/packages/nn-core/dist/imports/parser.js
 function parseDomainImports(domainContent) {
   const parsed = parseKnowledge2(domainContent);
@@ -16265,6 +16273,7 @@ var init_payload_builder = __esm({
     init_element_history();
     init_element_history();
     init_load();
+    init_files_inventory();
   }
 });
 
@@ -16322,6 +16331,7 @@ var init_console = __esm({
     "use strict";
     init_citations();
     init_element_history();
+    init_files_inventory();
     init_fs_source_resolver();
     init_output_path();
     init_payload_builder();

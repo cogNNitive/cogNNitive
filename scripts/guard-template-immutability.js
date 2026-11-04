@@ -115,7 +115,9 @@ function isCanonicalBlueprint(relPath) {
  * `.../bluepriNNts/video/defaults/video-defaults_NN.md` both -> `.../bluepriNNts/video/spec_NN.md`.
  */
 function ownerSpecOf(relPath) {
-  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults|catalog)\/.+/);
+  const p = relPath.replace(/\\/g, '/');
+  if (/\.generated\.[a-z0-9]+$/i.test(p)) return null;
+  const m = p.match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults|catalog)\/.+/);
   return m ? `${m[1]}${m[2]}/spec_NN.md` : null;
 }
 
