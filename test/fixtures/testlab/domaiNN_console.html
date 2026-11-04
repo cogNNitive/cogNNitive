@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-hv0kmvrFsaGkdH23JeF4121RL6ng71YCECo0Y7rQjzM=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-/4+ukuiJsxpIkzFLM7llI/+1A0FNvFYC8sRuQAi/HrY=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -8649,7 +8649,669 @@ input[type="text"], input[type="search"], textarea, select {
   font-size: 13px;
 }
 .nn-candidate-note { margin: 0 0 8px; font-size: 12px; opacity: 0.75; }
-.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }</style>
+.nn-visual-card.is-selected { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb inset; }
+
+/* ── Domain Console Files Section ─────────────────────────────────── */
+.nn-files-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.nn-files-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--surface-2);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.nn-files-view-toggle button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.nn-files-view-toggle button:hover {
+  color: var(--text);
+}
+
+.nn-files-view-toggle button.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.nn-files-stat-pill {
+  font-size: 0.78rem;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+.nn-files-view-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+
+.nn-files-split {
+  display: flex;
+  flex: 1;
+  min-height: 560px;
+}
+
+.nn-files-sidebar {
+  width: 320px;
+  min-width: 270px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 14px 10px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nn-files-detail {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: var(--surface);
+}
+
+/* Category Tree */
+.nn-category-group {
+  margin-bottom: 8px;
+}
+
+.nn-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  user-select: none;
+  transition: background 0.12s ease;
+}
+
+.nn-category-header:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nn-category-header-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nn-category-header .chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+  font-size: 0.7rem;
+}
+
+.nn-category-header.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.nn-category-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.nn-category-tree {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nn-category-tree.collapsed {
+  display: none;
+}
+
+.nn-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-decoration: none;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.nn-file-row:hover {
+  background: var(--surface-2);
+}
+
+.nn-file-row.active {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nn-file-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.nn-file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nn-file-size {
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.nn-badge-warning {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 16%, var(--surface));
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface));
+}
+
+.nn-tree-depth-0 { padding-left: 8px; }
+.nn-tree-depth-1 { padding-left: 20px; }
+.nn-tree-depth-2 { padding-left: 32px; }
+.nn-tree-depth-3 { padding-left: 44px; }
+.nn-tree-depth-4 { padding-left: 56px; }
+
+/* Workspace Dashboard */
+.nn-files-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.nn-files-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.nn-kpi-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.nn-kpi-card .kpi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.nn-kpi-card .kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.nn-kpi-card .kpi-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.nn-storage-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nn-storage-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.nn-storage-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.nn-storage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.nn-storage-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nn-storage-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.nn-watch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.nn-watch-table th,
+.nn-watch-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.nn-watch-table th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.nn-watch-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.nn-watch-status-dot.active { background: #10b981; }
+.nn-watch-status-dot.idle { background: #f59e0b; }
+.nn-watch-status-dot.offline { background: #ef4444; }
+
+.nn-files-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nn-integrity-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--surface));
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+/* File Detail Card */
+.nn-file-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.nn-file-detail-breadcrumb {
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nn-file-detail-breadcrumb a {
+  color: var(--link);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.nn-file-detail-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.nn-file-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+
+.nn-file-detail-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.nn-file-detail-path {
+  font-size: 0.82rem;
+  font-family: var(--mono);
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.nn-file-attrs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.nn-file-attr {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nn-file-attr-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.nn-file-attr-value {
+  font-size: 0.82rem;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.nn-hash-copy {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nn-hash-copy:hover {
+  color: var(--primary);
+}
+
+.nn-lineage-tier {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.nn-lineage-tier-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.nn-lineage-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 5-Stage Pipeline Flow */
+.nn-files-pipeline {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 16px 8px;
+  min-height: 520px;
+}
+
+.nn-pipeline-stage {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+.nn-pipeline-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.nn-pipeline-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.nn-pipeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nn-pipeline-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.nn-pipeline-card.nn-pipeline-highlight {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+}
+
+.nn-pipeline-card.dimmed {
+  opacity: 0.25;
+  filter: grayscale(0.8);
+}
+
+.nn-pipeline-card-name {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nn-pipeline-card-sub {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+/* Native Modal File Preview Dialog */
+#nn-file-preview-dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: min(960px, 94vw);
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+#nn-file-preview-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+#nn-file-preview-dialog .nn-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+}
+
+#nn-file-preview-dialog .nn-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+#nn-file-preview-dialog .nn-modal-header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#nn-file-preview-dialog .nn-modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+#nn-file-preview-dialog .nn-file-preview-size {
+  font-size: 0.78rem;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+#nn-file-preview-dialog .nn-modal-close {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#nn-file-preview-dialog .nn-modal-close:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+#nn-file-preview-dialog .nn-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#nn-file-preview-dialog .nn-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+
+pre.nn-file-preview-code {
+  margin: 0;
+  padding: 16px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  overflow: auto;
+  max-height: 60vh;
+  border-radius: var(--radius-sm);
+  white-space: pre;
+}
+
+.nn-file-preview-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-height: 60vh;
+  padding: 16px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.nn-file-preview-image img {
+  max-width: 100%;
+  max-height: 55vh;
+  object-fit: contain;
+}
+
+.nn-file-binary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+</style>
     <style>
       :root,
       [data-theme] {
@@ -8990,10 +9652,45 @@ input[type="text"], input[type="search"], textarea, select {
           <div id="nn-matrices"></div>
         </div>
         <div id="nn-tab-review" class="nn-tab-panel"></div>
+        <section id="nn-tab-files" class="nn-tab-panel" role="tabpanel" aria-labelledby="nn-tab-btn-files" hidden>
+          <div class="nn-files-toolbar">
+            <div class="nn-files-view-toggle">
+              <button type="button" class="nn-btn nn-btn-sm active" id="nn-files-mode-explorer" data-mode="explorer">Split Explorer</button>
+              <button type="button" class="nn-btn nn-btn-sm" id="nn-files-mode-pipeline" data-mode="pipeline">Pipeline Flow</button>
+            </div>
+            <div class="nn-files-toolbar-actions">
+              <span id="nn-files-active-stat" class="nn-files-stat-pill"></span>
+            </div>
+          </div>
+          <div class="nn-files-view-container view-mode-explorer">
+            <div class="nn-files-split">
+              <aside class="nn-files-sidebar" id="nn-files-sidebar" aria-label="Workspace Files Categories"></aside>
+              <div class="nn-files-detail" id="nn-files-detail" aria-label="File Details and Dashboard"></div>
+            </div>
+            <div class="nn-files-pipeline" id="nn-files-pipeline" aria-label="5-Stage Pipeline Flow" style="display: none;"></div>
+          </div>
+        </section>
       </main>
     </div>
 
     <dialog id="nn-ref-dialog" aria-label="Referenced element details"></dialog>
+    <dialog id="nn-file-preview-dialog" class="nn-edit-modal" aria-labelledby="nn-file-preview-title">
+      <div class="nn-modal-content">
+        <header class="nn-modal-header">
+          <div class="nn-modal-header-main">
+            <h2 id="nn-file-preview-title">File Preview</h2>
+            <span id="nn-file-preview-badge" class="nn-badge"></span>
+            <span id="nn-file-preview-size" class="nn-file-preview-size"></span>
+          </div>
+          <button type="button" class="nn-modal-close" id="nn-file-preview-close" aria-label="Close dialog">&times;</button>
+        </header>
+        <div id="nn-file-preview-body" class="nn-modal-body"></div>
+        <footer class="nn-modal-footer">
+          <button type="button" class="nn-btn nn-btn-secondary" id="nn-file-preview-copy">Copy Content</button>
+          <button type="button" class="nn-btn nn-btn-outline" id="nn-file-preview-dismiss">Close</button>
+        </footer>
+      </div>
+    </dialog>
 
     <script type="application/json" id="nn-config">
 {
@@ -9007,7 +9704,7 @@ input[type="text"], input[type="search"], textarea, select {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v0.33.0/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v0.33.1/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js"
   }
 }
@@ -10641,8 +11338,8 @@ input[type="text"], input[type="search"], textarea, select {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-225696ab",
-    "generated": "2026-11-04T07:49:16.191Z",
+    "domainId": "testlab-61a5e012",
+    "generated": "2026-11-04T16:51:03.973Z",
     "changesBlueprintVersion": "V_0-7-0",
     "models": [
       {
@@ -10653,7 +11350,7 @@ input[type="text"], input[type="search"], textarea, select {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "593b5c26e0cdc52f70aab825ae5dab6421bcd9f2202c20a83d454e726ffdbba0",
-        "citationsResolvedAt": "2026-11-04T07:49:15.875Z",
+        "citationsResolvedAt": "2026-11-04T16:51:01.727Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -13875,7 +14572,345 @@ input[type="text"], input[type="search"], textarea, select {
         }
       ]
     }
-  ]
+  ],
+  "files": {
+    "inventory": [
+      {
+        "id": "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js",
+        "path": "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js",
+        "category": "artifact",
+        "size": 540041,
+        "sha256": "026774aae2ad2e10d0b685055807ff096231fc0bb7ccc4e6ea9c3d7d84f89e8a",
+        "mimeType": "text/javascript",
+        "mtime": "2026-11-01T18:13:25.746Z",
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "/*!\n * innfo-console.bundle.js — single-file console runtime + renderers.\n * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.\n * Version 0.9.9. Regenerate on every console release.\n * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-model-viewer.js, render-procedure-stepper.js.\n */\n\n/* ===== innfo-slug.generat",
+        "snippetTruncated": true
+      },
+      {
+        "id": "artifacts/TestLab_coverage_TestLab_console/innfo-ui.css",
+        "path": "artifacts/TestLab_coverage_TestLab_console/innfo-ui.css",
+        "category": "artifact",
+        "size": 220143,
+        "sha256": "ed1a466475f21eb0d271aed66a208bd169c3dc3445fa436367fd25b64e682971",
+        "mimeType": "text/css",
+        "mtime": "2026-11-01T18:13:25.750Z",
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "/*!\n * innfo-ui.css — DaisyUI component styles mapped to iNNfo semantic design tokens.\n * Offline-first, standalone component classes: .table, .card, .modal, .tabs, .drawer, .badge, .steps, .stats\n */\n\n:root, [data-theme] {\n  color-scheme: light;\n  --b1: var(--innfo-surface, #ffffff);\n  --b2: var(--innfo-surface-2, #f4f4f5);\n  --b3: var(--innfo-border, #e5e5e5);\n  --bc: var(--innfo-text, #0a0a0a);\n  --p: var(--innfo-accent, #171717);\n  --pc: #ffffff;\n  --s: var(--innfo-concept-2, #8b5cf6);\n  -",
+        "snippetTruncated": true
+      },
+      {
+        "id": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-console.bundle_20261013T045336Z.js",
+        "path": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-console.bundle_20261013T045336Z.js",
+        "category": "artifact",
+        "size": 540041,
+        "sha256": "026774aae2ad2e10d0b685055807ff096231fc0bb7ccc4e6ea9c3d7d84f89e8a",
+        "mimeType": "text/javascript",
+        "mtime": "2026-11-01T18:13:25.754Z",
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "/*!\n * innfo-console.bundle.js — single-file console runtime + renderers.\n * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.\n * Version 0.9.9. Regenerate on every console release.\n * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-model-viewer.js, render-procedure-stepper.js.\n */\n\n/* ===== innfo-slug.generat",
+        "snippetTruncated": true
+      },
+      {
+        "id": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-ui.css",
+        "path": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-ui.css",
+        "category": "artifact",
+        "size": 220143,
+        "sha256": "ed1a466475f21eb0d271aed66a208bd169c3dc3445fa436367fd25b64e682971",
+        "mimeType": "text/css",
+        "mtime": "2026-11-01T18:13:25.757Z",
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "/*!\n * innfo-ui.css — DaisyUI component styles mapped to iNNfo semantic design tokens.\n * Offline-first, standalone component classes: .table, .card, .modal, .tabs, .drawer, .badge, .steps, .stats\n */\n\n:root, [data-theme] {\n  color-scheme: light;\n  --b1: var(--innfo-surface, #ffffff);\n  --b2: var(--innfo-surface-2, #f4f4f5);\n  --b3: var(--innfo-border, #e5e5e5);\n  --bc: var(--innfo-text, #0a0a0a);\n  --p: var(--innfo-accent, #171717);\n  --pc: #ffffff;\n  --s: var(--innfo-concept-2, #8b5cf6);\n  -",
+        "snippetTruncated": true
+      },
+      {
+        "id": "artifacts/testlab-report.md",
+        "path": "artifacts/testlab-report.md",
+        "category": "artifact",
+        "size": 466,
+        "sha256": "29352997586b6c4c6c719acaae1a93c08c08719c14ce596119ec439ca0162042",
+        "mimeType": "text/markdown",
+        "mtime": "2026-11-01T18:13:25.759Z",
+        "citationsCount": 2,
+        "excerptCount": 2,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "# TestLab weekly report\n\n## Result\n\nCoverage model verified this week: Concept 1 elements 1A/1B/1C cite field notes and the CSV row m-001, Concept 2 elements cite the JSON pointer and the manual, edge cases cite the transcribed PDF, the photo sidecar, the video transcript, and the audio transcript. Next step is the review pass on Element 1B.\n\n## Upstream\n\nDerived from TestLab_coverage_TestLab_NN.md. Reusable as a second-hop source: cite this file at @## Result.\n",
+        "snippetTruncated": false
+      },
+      {
+        "id": "artifacts/testlab-review.json",
+        "path": "artifacts/testlab-review.json",
+        "category": "artifact",
+        "size": 906,
+        "sha256": "992a4114fae4b797af1febdf2524891274cfc800b108bc3e8b0b5dad9872ef60",
+        "mimeType": "application/json",
+        "mtime": "2026-11-01T18:13:25.761Z",
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "{\"artifact\": \"testlab_console.html\", \"artifact_version\": \"0.1.0\", \"author\": \"reviewer\", \"exported_at\": \"2026-10-07T00:00:00Z\", \"items\": [{\"base_hash\": \"testlab-1b\", \"comment\": \"Element 1B photo caption should name the three trays.\", \"element\": \"Element 1B\", \"field\": \"photo\", \"id\": \"fb-001\", \"kind\": \"correction\", \"original\": \"workbench photo\", \"proposed\": \"three-tray workbench photo\", \"target\": {\"concept\": \"Concept 1\", \"element\": \"Element 1B\", \"element_id\": \"concept-1-element-1b\", \"field\": \"photo",
+        "snippetTruncated": true
+      },
+      {
+        "id": "sources/import/dataset.csv",
+        "path": "sources/import/dataset.csv",
+        "category": "source",
+        "size": 95,
+        "sha256": "1ed915129fb10c21dbb447529ae89fe6657db76da575bda8978e4a2784afb953",
+        "mimeType": "text/csv",
+        "mtime": "2026-11-01T18:13:25.780Z",
+        "sidecar": {
+          "path": "sources/import/dataset.csv_sidecar_NN.md",
+          "exists": false,
+          "valid": false
+        },
+        "citationsCount": 10,
+        "excerptCount": 9,
+        "changesCount": 1,
+        "uncited": false,
+        "snippet": "id,metric,value\nm-001,capture_rate,0.94\nm-002,handover_delay_min,12\nm-003,photo_log_trust,0.98\n",
+        "snippetTruncated": false
+      },
+      {
+        "id": "sources/import/dataset.json",
+        "path": "sources/import/dataset.json",
+        "category": "source",
+        "size": 90,
+        "sha256": "46d988af1d20c9a597c85a589926ea92423ab0d9598ff425c381ed3f05ecc712",
+        "mimeType": "application/json",
+        "mtime": "2026-11-01T18:13:25.781Z",
+        "sidecar": {
+          "path": "sources/import/dataset.json_sidecar_NN.md",
+          "exists": false,
+          "valid": false
+        },
+        "citationsCount": 3,
+        "excerptCount": 3,
+        "changesCount": 0,
+        "uncited": false,
+        "snippet": "{\"items\": [{\"name\": \"intake-form\", \"trust\": 0.41}, {\"name\": \"photo-log\", \"trust\": 0.98}]}\n",
+        "snippetTruncated": false
+      },
+      {
+        "id": "sources/import/demo.mp4",
+        "path": "sources/import/demo.mp4",
+        "category": "source",
+        "size": 61,
+        "sha256": "2267d312d07c1c84afb5a220f0c2f9f9a2785e02b31be1a49ee5d647048eed4f",
+        "mimeType": "application/octet-stream",
+        "mtime": "2026-11-01T18:13:25.783Z",
+        "sidecar": {
+          "path": "sources/import/demo.mp4_sidecar_NN.md",
+          "exists": true,
+          "valid": false,
+          "sourceFile": "demo.mp4",
+          "error": "Missing or malformed sha256"
+        },
+        "citationsCount": 2,
+        "excerptCount": 2,
+        "changesCount": 0,
+        "uncited": false
+      },
+      {
+        "id": "sources/import/field-notes.md",
+        "path": "sources/import/field-notes.md",
+        "category": "source",
+        "size": 301,
+        "sha256": "131da2deaf145347779242f35200a4301abfe53ea8d865ed7d4ceb40dd8044cb",
+        "mimeType": "text/markdown",
+        "mtime": "2026-11-01T18:13:25.785Z",
+        "sidecar": {
+          "path": "sources/import/field-notes.md_sidecar_NN.md",
+          "exists": false,
+          "valid": false
+        },
+        "citationsCount": 9,
+        "excerptCount": 8,
+        "changesCount": 1,
+        "uncited": false,
+        "snippet": "# Field notes\n\n## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n\n## Key Points\n\nIntake, photo log, handover note. In that order of trust.\n",
+        "snippetTruncated": false
+      },
+      {
+        "id": "sources/import/interview.mp3",
+        "path": "sources/import/interview.mp3",
+        "category": "source",
+        "size": 61,
+        "sha256": "f7de538a6bec7af706ada46dc59602d0d96216a07b398b2a8feee4c5dd627112",
+        "mimeType": "application/octet-stream",
+        "mtime": "2026-11-01T18:13:25.787Z",
+        "sidecar": {
+          "path": "sources/import/interview.mp3_sidecar_NN.md",
+          "exists": true,
+          "valid": false,
+          "sourceFile": "interview.mp3",
+          "error": "Missing or malformed sha256"
+        },
+        "citationsCount": 2,
+        "excerptCount": 2,
+        "changesCount": 0,
+        "uncited": false
+      },
+      {
+        "id": "sources/import/manual.txt",
+        "path": "sources/import/manual.txt",
+        "category": "source",
+        "size": 263,
+        "sha256": "92a87483f21917aaeb7cab8392131c711d4945176a973009f12421fa1f2c1a60",
+        "mimeType": "text/plain",
+        "mtime": "2026-11-01T18:13:25.791Z",
+        "sidecar": {
+          "path": "sources/import/manual.txt_sidecar_NN.md",
+          "exists": false,
+          "valid": false
+        },
+        "citationsCount": 0,
+        "excerptCount": 0,
+        "changesCount": 0,
+        "uncited": true,
+        "snippet": "TestLab operations manual (plain-text stand-in for a binary attachment).\n\nSection 1: intake. Fill the form before touching any equipment.\nSection 2: photo log. One photo per step, no exceptions.\nSection 3: handover. The note you write is the shift you hand over.\n",
+        "snippetTruncated": false
+      },
+      {
+        "id": "sources/import/photo.png",
+        "path": "sources/import/photo.png",
+        "category": "source",
+        "size": 13058,
+        "sha256": "d4e807aeb09cb4ad4dc6f1cedb9055aa0e7d3b0141db0932da87a376353efeee",
+        "mimeType": "image/png",
+        "mtime": "2026-11-01T18:13:25.793Z",
+        "sidecar": {
+          "path": "sources/import/photo.png_sidecar_NN.md",
+          "exists": true,
+          "valid": false,
+          "sourceFile": "photo.png",
+          "error": "Missing or malformed sha256"
+        },
+        "citationsCount": 2,
+        "excerptCount": 2,
+        "changesCount": 0,
+        "uncited": false
+      },
+      {
+        "id": "sources/import/report.pdf",
+        "path": "sources/import/report.pdf",
+        "category": "source",
+        "size": 61,
+        "sha256": "751f547f46625a4c0efdaebdd42b518a13b0e565aa252a64e4e8a85de8880663",
+        "mimeType": "application/pdf",
+        "mtime": "2026-11-01T18:13:25.796Z",
+        "sidecar": {
+          "path": "sources/import/report.pdf_sidecar_NN.md",
+          "exists": true,
+          "valid": false,
+          "sourceFile": "report.pdf",
+          "error": "Missing or malformed sha256"
+        },
+        "citationsCount": 6,
+        "excerptCount": 6,
+        "changesCount": 0,
+        "uncited": false
+      }
+    ],
+    "watchRoots": [
+      {
+        "path": "sources",
+        "status": "active",
+        "fileCount": 8,
+        "lastSync": "2026-11-01T18:13:25.796Z"
+      },
+      {
+        "path": "artifacts",
+        "status": "active",
+        "fileCount": 6,
+        "lastSync": "2026-11-01T18:13:25.761Z"
+      }
+    ],
+    "stats": {
+      "totalFiles": 14,
+      "totalBytes": 1535730,
+      "categoryCounts": {
+        "watch_root": 2,
+        "source": 8,
+        "imported_domain": 0,
+        "asset": 0,
+        "evidence": 0,
+        "artifact": 6
+      },
+      "storageByCategory": {
+        "watch_root": 0,
+        "source": 13990,
+        "imported_domain": 0,
+        "asset": 0,
+        "evidence": 0,
+        "artifact": 1521740
+      },
+      "sourceCoverageRate": 0.875,
+      "uncitedSourceCount": 1,
+      "sidecarMissingCount": 4,
+      "sidecarInvalidCount": 4,
+      "sidecarMismatchCount": 0,
+      "excerptCount": 34
+    },
+    "lineage": {
+      "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js": {
+        "artifactId": "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js",
+        "artifactPath": "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      },
+      "artifacts/TestLab_coverage_TestLab_console/innfo-ui.css": {
+        "artifactId": "artifacts/TestLab_coverage_TestLab_console/innfo-ui.css",
+        "artifactPath": "artifacts/TestLab_coverage_TestLab_console/innfo-ui.css",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      },
+      "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-console.bundle_20261013T045336Z.js": {
+        "artifactId": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-console.bundle_20261013T045336Z.js",
+        "artifactPath": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-console.bundle_20261013T045336Z.js",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      },
+      "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-ui.css": {
+        "artifactId": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-ui.css",
+        "artifactPath": "artifacts/TestLab_procedures_TestLab_procedures_console/innfo-ui.css",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      },
+      "artifacts/testlab-report.md": {
+        "artifactId": "artifacts/testlab-report.md",
+        "artifactPath": "artifacts/testlab-report.md",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      },
+      "artifacts/testlab-review.json": {
+        "artifactId": "artifacts/testlab-review.json",
+        "artifactPath": "artifacts/testlab-review.json",
+        "unitIds": [],
+        "changesetIds": [],
+        "sourcePaths": []
+      }
+    }
+  }
 }
 </script>
     <script type="application/json" id="nn-view-data">
@@ -13886,7 +14921,7 @@ input[type="text"], input[type="search"], textarea, select {
 /*!
  * nn-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.33.0. Regenerate on every console release.
+ * Version 0.33.1. Regenerate on every console release.
  * Composed (in dependency order): nn-slug.generated.js, nn-address.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, nn-preact-init.js, uplot.iife.min.js, visuals.js, nn-icons.js, ui-kit.js, review.js, studio.js, nn-runtime.js, render-procedure-stepper.js.
  */
 
@@ -15557,6 +16592,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     pin: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>',
     chart: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
     target: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
+    folder: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
     explorer: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
     matrices: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line>',
     timeline: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path>',
@@ -25709,8 +26745,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // Built-in tabs, registered per boot (they are not in the registry).
   function builtinViews(doc, config, model, meta, shell, schema) {
     var views = []
+    // Files sits after the knowledge/changes band and only exists when the
+    // payload carries a precomputed inventory.
+    var filesPayload = model && model.files
+    var hasFiles =
+      !!filesPayload &&
+      ((Array.isArray(filesPayload.inventory) && filesPayload.inventory.length > 0) ||
+        (Array.isArray(filesPayload.watchRoots) && filesPayload.watchRoots.length > 0))
+    var scoped = consoleScopeOf(meta)
     // A standalone --view artifact mounts that view alone.
-    if (consoleScopeOf(meta)) return views
+    if (scoped) {
+      if (scoped === 'files' && hasFiles) {
+        views.push({ id: 'files', title: 'Files', icon: 'folder', order: 25, tone: 'core', panelId: 'nn-tab-files' })
+      }
+      return views
+    }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
       views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
     }
@@ -25719,6 +26768,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     if (Array.isArray(model && model.matrices) && model.matrices.length > 0) {
       views.push({ id: 'matrices', title: 'Matrices', icon: 'matrices', order: 30, tone: 'core', panelId: 'nn-tab-matrices' })
+    }
+    // Files sits right after the knowledge/changes band and only exists when the
+    // payload carries a precomputed inventory.
+    if (hasFiles) {
+      views.push({ id: 'files', title: 'Files', icon: 'folder', order: 25, tone: 'core', panelId: 'nn-tab-files' })
     }
     return views
   }
@@ -25754,6 +26808,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             out.q = decodeURIComponent(part.slice(2))
           } catch {
             out.q = ''
+          }
+        } else if (part.indexOf('path=') === 0) {
+          try {
+            out.path = decodeURIComponent(part.slice(5))
+          } catch {
+            out.path = ''
           }
         } else if (part && !out.tab) {
           out.tab = part
@@ -26272,6 +27332,768 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var rest = at === -1 ? t : t.slice(at + 1)
     var segs = rest.split('&')
     return segs.length > 1 ? segs[1].trim() : ''
+  }
+
+  /* ---------------------------------------------------------------------------
+     Files view.
+     Read-only inventory explorer over `model.files` (precomputed by
+     export-console). Split Explorer (tree + detail) is the primary view; the
+     5-stage Pipeline Flow is the secondary one. There is deliberately no
+     mutation, edit or delete affordance anywhere in this view.
+     ------------------------------------------------------------------------- */
+
+  var FILES_CATEGORIES = [
+    { id: 'watch_root', title: 'Watch Folders' },
+    { id: 'source', title: 'Sources' },
+    { id: 'imported_domain', title: 'Imported Domains' },
+    { id: 'asset', title: 'Assets' },
+    { id: 'evidence', title: 'Evidence' },
+    { id: 'artifact', title: 'Artifacts' },
+  ]
+
+  var FILES_CATEGORY_LABEL = {
+    watch_root: 'watch root',
+    source: 'source',
+    imported_domain: 'imported domain',
+    asset: 'asset',
+    evidence: 'evidence',
+    artifact: 'artifact',
+  }
+
+  var FILES_PIPELINE_STAGES = [
+    { id: 'origins', title: 'Origins' },
+    { id: 'sources', title: 'Sources' },
+    { id: 'changes', title: 'Changes' },
+    { id: 'units', title: 'Units' },
+    { id: 'artifacts', title: 'Artifacts' },
+  ]
+
+  function filesFmtBytes(bytes) {
+    var n = Number(bytes) || 0
+    if (n < 1024) return n + ' B'
+    if (n < 1048576) return round1(n / 1024) + ' KB'
+    if (n < 1073741824) return round1(n / 1048576) + ' MB'
+    return round1(n / 1073741824) + ' GB'
+  }
+
+  function round1(n) {
+    return Math.round(n * 10) / 10
+  }
+
+  function filesBaseName(p) {
+    var s = String(p || '')
+    var i = s.lastIndexOf('/')
+    return i === -1 ? s : s.slice(i + 1)
+  }
+
+  function filesPct(rate) {
+    return Math.round((Number(rate) || 0) * 100) + '%'
+  }
+
+  function renderFilesTab(doc, files, opts) {
+    var host = doc.getElementById('nn-tab-files')
+    if (!host || !files || !Array.isArray(files.inventory)) return
+    opts = opts || {}
+    host.removeAttribute('hidden')
+
+    var sidebar = doc.getElementById('nn-files-sidebar')
+    var detail = doc.getElementById('nn-files-detail')
+    var pipeline = doc.getElementById('nn-files-pipeline')
+    var split = host.querySelector('.nn-files-split')
+    var statPill = doc.getElementById('nn-files-active-stat')
+    var explorerBtn = doc.getElementById('nn-files-mode-explorer')
+    var pipelineBtn = doc.getElementById('nn-files-mode-pipeline')
+    var dialog = doc.getElementById('nn-file-preview-dialog')
+
+    var inventory = files.inventory
+    var stats = files.stats || {}
+    var watchRoots = Array.isArray(files.watchRoots) ? files.watchRoots : []
+    var lineage = files.lineage || {}
+    var elements = Array.isArray(opts.elements) ? opts.elements : []
+    var byPath = {}
+    inventory.forEach(function (f) {
+      if (f && f.path) byPath[f.path] = f
+    })
+
+    // Which units cite which file, matched the same way export does. A unit cites
+    // the sidecar document, so the path is folded back to its subject file.
+    var SIDECAR_SUFFIX = '_sidecar_NN.md'
+    function citationSubject(raw) {
+      var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
+      if (norm.length > SIDECAR_SUFFIX.length && norm.slice(-SIDECAR_SUFFIX.length) === SIDECAR_SUFFIX) {
+        return norm.slice(0, norm.length - SIDECAR_SUFFIX.length)
+      }
+      return norm
+    }
+
+    var unitsByPath = {}
+    elements.forEach(function (e) {
+      if (!e || !e.citations) return
+      Object.keys(e.citations).forEach(function (field) {
+        var list = e.citations[field]
+        if (!Array.isArray(list)) return
+        list.forEach(function (cit) {
+          var raw = cit && (cit.path || cit.href)
+          if (!raw) return
+          var norm = citationSubject(raw)
+          inventory.forEach(function (f) {
+            if (f.path === norm || f.path.endsWith('/' + norm) || norm.endsWith('/' + f.path)) {
+              if (!unitsByPath[f.path]) unitsByPath[f.path] = []
+              if (unitsByPath[f.path].indexOf(e.id) < 0) unitsByPath[f.path].push(e.id)
+            }
+          })
+        })
+      })
+    })
+
+    var state = { mode: 'explorer', selected: '', collapsed: {}, query: '' }
+
+    var elementsById = {}
+    elements.forEach(function (e) {
+      if (e && e.id) elementsById[e.id] = e
+    })
+
+    function kuBadge(unitId) {
+      var target = elementsById[unitId]
+      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      if (target && target.concept) ref.concept = target.concept
+      if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', ref.label)
+      try {
+        return UI.Ku('element', ref, {
+          doc: doc,
+          onAction: function (action, descriptor) {
+            if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
+          },
+        })
+      } catch {
+        return el('span', 'nn-badge', ref.label)
+      }
+    }
+
+    function matchesQuery(entry) {
+      if (!state.query) return true
+      return entry.path.toLowerCase().indexOf(state.query) >= 0
+    }
+
+    /* ---- sidebar ---------------------------------------------------------- */
+
+    function renderSidebar() {
+      if (!sidebar) return
+      sidebar.innerHTML = ''
+
+      var search = doc.createElement('input')
+      search.type = 'search'
+      search.className = 'nn-input'
+      search.setAttribute('placeholder', 'Filter files by path\u2026')
+      search.setAttribute('aria-label', 'Filter files by path')
+      search.value = state.query
+      search.addEventListener('input', function () {
+        state.query = String(search.value || '').toLowerCase().trim()
+        renderSidebar()
+      })
+      sidebar.appendChild(search)
+
+      var anyGroup = false
+      FILES_CATEGORIES.forEach(function (cat) {
+        var members = inventory.filter(function (f) {
+          return f.category === cat.id && matchesQuery(f)
+        })
+        if (!members.length) return
+        anyGroup = true
+        var collapsed = state.collapsed[cat.id] === true
+        var group = el('div', 'nn-category-group')
+        var head = el('div', 'nn-category-header' + (collapsed ? ' collapsed' : ''))
+        head.setAttribute('role', 'button')
+        head.setAttribute('tabindex', '0')
+        head.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+        var headMain = el('span', 'nn-category-header-main')
+        var chevron = el('span', 'chevron', collapsed ? '\u25B8' : '\u25BE')
+        chevron.setAttribute('aria-hidden', 'true')
+        headMain.appendChild(chevron)
+        headMain.appendChild(el('span', null, cat.title))
+        head.appendChild(headMain)
+        head.appendChild(el('span', 'nn-category-badge', String(members.length)))
+        function toggle() {
+          state.collapsed[cat.id] = !collapsed
+          renderSidebar()
+        }
+        head.addEventListener('click', toggle)
+        head.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault()
+            toggle()
+          }
+        })
+        group.appendChild(head)
+
+        if (!collapsed) {
+          var tree = el('div', 'nn-category-tree')
+          members.forEach(function (entry) {
+            var row = el('div', 'nn-file-row' + (state.selected === entry.path ? ' active' : ''))
+            row.setAttribute('role', 'button')
+            row.setAttribute('tabindex', '0')
+            row.setAttribute('data-path', entry.path)
+            row.setAttribute('title', entry.path)
+            var icon = el('span', 'nn-file-icon', entry.category === 'artifact' ? '\u25A0' : '\u25A1')
+            icon.setAttribute('aria-hidden', 'true')
+            row.appendChild(icon)
+            row.appendChild(el('span', 'nn-file-name', filesBaseName(entry.path)))
+            row.appendChild(el('span', 'nn-file-size', filesFmtBytes(entry.size)))
+            if (entry.uncited || (entry.sidecar && entry.sidecar.exists === false)) {
+              var warn = el('span', 'nn-badge-warning', '!')
+              warn.setAttribute('title', entry.uncited ? 'Not cited by any knowledge unit or change' : 'No sidecar')
+              row.appendChild(warn)
+            }
+            function open() {
+              selectFile(entry.path)
+            }
+            row.addEventListener('click', open)
+            row.addEventListener('keydown', function (ev) {
+              if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault()
+                open()
+              }
+            })
+            tree.appendChild(row)
+          })
+          group.appendChild(tree)
+        }
+        sidebar.appendChild(group)
+      })
+
+      if (!anyGroup) sidebar.appendChild(el('p', 'nn-files-empty', 'No files match this filter.'))
+    }
+
+    /* ---- workspace dashboard ---------------------------------------------- */
+
+    function renderDashboard() {
+      if (!detail) return
+      detail.innerHTML = ''
+      var dash = el('div', 'nn-files-dashboard')
+
+      var kpis = el('div', 'nn-files-kpis')
+      function kpi(label, value, sub) {
+        var card = el('div', 'nn-kpi-card')
+        card.appendChild(el('div', 'kpi-label', label))
+        card.appendChild(el('div', 'kpi-value', value))
+        if (sub) card.appendChild(el('div', 'kpi-sub', sub))
+        kpis.appendChild(card)
+      }
+      kpi('Files', String(stats.totalFiles || inventory.length), 'indexed in this workspace')
+      kpi('Footprint', filesFmtBytes(stats.totalBytes || 0), 'total bytes on disk')
+      kpi('Source coverage', filesPct(stats.sourceCoverageRate), (stats.uncitedSourceCount || 0) + ' uncited')
+      kpi(
+        'Sidecars',
+        String((stats.sidecarMissingCount || 0) + (stats.sidecarInvalidCount || 0) + (stats.sidecarMismatchCount || 0)),
+        'missing, invalid or stale',
+      )
+      dash.appendChild(kpis)
+
+      var byCategory = stats.storageByCategory || {}
+      var segments = el('div', 'nn-storage-bar')
+      var legend = el('div', 'nn-storage-legend')
+      var palette = ['#3b82f6', '#8b5cf6', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444']
+      FILES_CATEGORIES.forEach(function (cat, i) {
+        var bytes = byCategory[cat.id] || 0
+        if (!bytes) return
+        var pct = stats.totalBytes ? (bytes / stats.totalBytes) * 100 : 0
+        var seg = el('div', 'nn-storage-segment')
+        seg.style.width = pct.toFixed(2) + '%'
+        seg.style.background = palette[i % palette.length]
+        seg.setAttribute('title', cat.title + ': ' + filesFmtBytes(bytes))
+        segments.appendChild(seg)
+        var item = el('span', 'nn-storage-legend-item')
+        var dot = el('span', 'nn-storage-legend-dot')
+        dot.style.background = palette[i % palette.length]
+        item.appendChild(dot)
+        item.appendChild(el('span', null, cat.title + ' ' + filesFmtBytes(bytes)))
+        legend.appendChild(item)
+      })
+      var storageWrap = el('div', 'nn-storage-bar-wrap')
+      storageWrap.appendChild(el('h3', 'nn-files-section-title', 'Storage distribution'))
+      storageWrap.appendChild(segments)
+      storageWrap.appendChild(legend)
+      dash.appendChild(storageWrap)
+
+      if (watchRoots.length) {
+        var table = doc.createElement('table')
+        table.className = 'nn-watch-table'
+        // Watch-root rows are filesystem facts, not knowledge-unit references, so
+        // the Ku tree guard's exemption marker applies to the whole table.
+        table.setAttribute('data-ku-exempt', '1')
+        var thead = doc.createElement('thead')
+        var hr = doc.createElement('tr')
+        ;['Root', 'Status', 'Files', 'Last change'].forEach(function (h) {
+          hr.appendChild(el('th', null, h))
+        })
+        thead.appendChild(hr)
+        table.appendChild(thead)
+        var tbody = doc.createElement('tbody')
+        watchRoots.forEach(function (root) {
+          var tr = doc.createElement('tr')
+          var tdRoot = doc.createElement('td')
+          tdRoot.appendChild(el('code', null, String(root.path)))
+          tr.appendChild(tdRoot)
+          var tdStatus = doc.createElement('td')
+          var dot = el('span', 'nn-watch-status-dot ' + (root.status || 'idle'))
+          tdStatus.appendChild(dot)
+          tdStatus.appendChild(el('span', null, ' ' + String(root.status || 'idle')))
+          tr.appendChild(tdStatus)
+          tr.appendChild(el('td', null, String(root.fileCount || 0)))
+          tr.appendChild(el('td', null, root.lastSync ? String(root.lastSync) : '\u2014'))
+          tbody.appendChild(tr)
+        })
+        table.appendChild(tbody)
+        var rootsWrap = el('div', 'nn-files-roots')
+        rootsWrap.appendChild(el('h3', 'nn-files-section-title', 'Watch roots'))
+        rootsWrap.appendChild(table)
+        dash.appendChild(rootsWrap)
+      }
+
+      var alerts = el('div', 'nn-files-alerts')
+      function alert(count, one, many) {
+        if (!count) return
+        var card = el('div', 'nn-integrity-alert')
+        card.appendChild(el('strong', null, String(count)))
+        card.appendChild(el('span', null, ' ' + (count === 1 ? one : many)))
+        alerts.appendChild(card)
+      }
+      alert(
+        stats.uncitedSourceCount,
+        'source file is never cited by a knowledge unit or a change',
+        'source files are never cited by a knowledge unit or a change',
+      )
+      alert(stats.sidecarMissingCount, 'file has no sidecar', 'files have no sidecar')
+      alert(
+        stats.sidecarInvalidCount,
+        'sidecar has an invalid frontmatter',
+        'sidecars have an invalid frontmatter',
+      )
+      alert(
+        stats.sidecarMismatchCount,
+        'sidecar digest no longer matches its file',
+        'sidecar digests no longer match their file',
+      )
+      if (alerts.childNodes.length) {
+        var alertsWrap = el('div', 'nn-files-section')
+        alertsWrap.appendChild(el('h3', 'nn-files-section-title', 'Integrity signals'))
+        alertsWrap.appendChild(alerts)
+        dash.appendChild(alertsWrap)
+      }
+
+      detail.appendChild(dash)
+    }
+
+    /* ---- per-file detail -------------------------------------------------- */
+
+    function renderFileDetail(entry) {
+      if (!detail) return
+      detail.innerHTML = ''
+      var card = el('div', 'nn-file-detail-card')
+
+      var crumb = el('div', 'nn-file-detail-breadcrumb')
+      var back = doc.createElement('a')
+      back.setAttribute('href', '#files')
+      back.textContent = 'Workspace overview'
+      back.addEventListener('click', function (ev) {
+        ev.preventDefault()
+        selectFile('')
+      })
+      crumb.appendChild(back)
+      crumb.appendChild(el('span', null, ' / ' + entry.path))
+      card.appendChild(crumb)
+
+      var header = el('div', 'nn-file-detail-header')
+      header.appendChild(el('h2', 'nn-file-detail-title', filesBaseName(entry.path)))
+      header.appendChild(el('span', 'nn-badge', FILES_CATEGORY_LABEL[entry.category] || entry.category))
+      card.appendChild(header)
+      card.appendChild(el('p', 'nn-file-detail-path', entry.path))
+
+      var attrs = el('div', 'nn-file-attrs-grid')
+      function attr(label, value, extra) {
+        var cell = el('div', 'nn-file-attr')
+        cell.appendChild(el('span', 'nn-file-attr-label', label))
+        var val = el('span', 'nn-file-attr-value', value)
+        if (extra) val.appendChild(extra)
+        cell.appendChild(val)
+        attrs.appendChild(cell)
+      }
+      attr('Size', filesFmtBytes(entry.size))
+      attr('Type', String(entry.mimeType || ''))
+      attr('Modified', entry.mtime ? String(entry.mtime) : '\u2014')
+      var copy = doc.createElement('button')
+      copy.type = 'button'
+      copy.className = 'nn-hash-copy'
+      copy.textContent = String(entry.sha256 || '').slice(0, 16)
+      copy.setAttribute('title', 'Copy full SHA-256')
+      copy.addEventListener('click', function () {
+        var text = String(entry.sha256 || '')
+        var view = doc.defaultView
+        if (view && view.navigator && view.navigator.clipboard) {
+          try {
+            view.navigator.clipboard.writeText(text)
+          } catch {
+            /* clipboard unavailable offline */
+          }
+        }
+        copy.textContent = 'copied'
+        if (view && view.setTimeout) {
+          view.setTimeout(function () {
+            copy.textContent = text.slice(0, 16)
+          }, 1200)
+        }
+      })
+      attr('SHA-256', '', copy)
+      card.appendChild(attrs)
+
+      if (entry.sidecar) {
+        var side = el('div', 'nn-file-section')
+        side.appendChild(el('h3', 'nn-files-section-title', 'Sidecar'))
+        var status = el('p', 'nn-file-sidecar-status')
+        if (!entry.sidecar.exists) {
+          status.textContent = 'No sidecar for this file.'
+        } else if (!entry.sidecar.valid) {
+          status.textContent = 'Sidecar is not valid: ' + String(entry.sidecar.error || 'unknown error')
+        } else {
+          status.textContent =
+            'Sidecar ' +
+            String(entry.sidecar.path || '') +
+            (entry.sidecar.sha256Matches === false
+              ? ' — digest does not match the file (stale sidecar).'
+              : ' — digest matches the file.')
+        }
+        side.appendChild(status)
+        card.appendChild(side)
+      }
+
+      var citedUnits = unitsByPath[entry.path] || []
+      var citSection = el('div', 'nn-file-section')
+      citSection.appendChild(
+        el('h3', 'nn-files-section-title', 'Knowledge units (' + String(citedUnits.length) + ')'),
+      )
+      if (citedUnits.length) {
+        var list = el('div', 'nn-lineage-units')
+        citedUnits.forEach(function (uid) {
+          list.appendChild(kuBadge(uid))
+        })
+        citSection.appendChild(list)
+      } else {
+        citSection.appendChild(
+          el('p', 'nn-file-hint', 'No knowledge unit cites this file, and no change uses it as evidence.'),
+        )
+      }
+      card.appendChild(citSection)
+
+      var line = lineage[entry.path]
+      if (line) {
+        var tiers = el('div', 'nn-lineage-tier')
+        tiers.appendChild(el('h3', 'nn-lineage-tier-title', 'Reverse lineage'))
+        var chain = el('div', 'nn-lineage-units')
+        ;(line.unitIds || []).forEach(function (uid) {
+          chain.appendChild(kuBadge(uid))
+        })
+        tiers.appendChild(chain)
+        if ((line.changesetIds || []).length) {
+          tiers.appendChild(el('p', 'nn-lineage-sub', 'Changes: ' + line.changesetIds.join(', ')))
+        }
+        if ((line.sourcePaths || []).length) {
+          tiers.appendChild(el('p', 'nn-lineage-sub', 'Original files: ' + line.sourcePaths.join(', ')))
+        }
+        card.appendChild(tiers)
+      }
+
+      var actions = el('div', 'nn-file-actions')
+      var openBtn = doc.createElement('button')
+      openBtn.type = 'button'
+      openBtn.className = 'nn-btn nn-btn-secondary'
+      openBtn.textContent = 'Open / Preview'
+      openBtn.addEventListener('click', function () {
+        openPreview(entry)
+      })
+      actions.appendChild(openBtn)
+      card.appendChild(actions)
+
+      detail.appendChild(card)
+    }
+
+    /* ---- pipeline view ---------------------------------------------------- */
+
+    function renderPipeline() {
+      if (!pipeline) return
+      pipeline.innerHTML = ''
+      var sourcesStage = inventory.filter(function (f) {
+        return f.category === 'source' || f.category === 'imported_domain'
+      })
+      var artifactsStage = inventory.filter(function (f) {
+        return f.category === 'artifact'
+      })
+      var unitSet = {}
+      Object.keys(unitsByPath).forEach(function (p) {
+        unitsByPath[p].forEach(function (uid) {
+          unitSet[uid] = true
+        })
+      })
+      Object.keys(lineage).forEach(function (k) {
+        ;(lineage[k].unitIds || []).forEach(function (uid) {
+          unitSet[uid] = true
+        })
+      })
+      var unitIds = Object.keys(unitSet).sort()
+      // Changes come from the domain's own changeset records; lineage only adds
+      // the highlighting, so the column is never empty when changes exist.
+      var changeRecords = Array.isArray(opts.changes) ? opts.changes : []
+      var changeNode = {}
+      changeRecords.forEach(function (cs) {
+        var path = String((cs && cs.path) || '')
+        var id = path
+          .split('/')
+          .pop()
+          .replace(/_changes_NN\.md$/i, '')
+        if (id) changeNode[id] = { name: (cs && cs.title) || id, sub: (cs && cs.status) || 'changeset' }
+      })
+      Object.keys(lineage).forEach(function (k) {
+        ;(lineage[k].changesetIds || []).forEach(function (id) {
+          if (!changeNode[id]) changeNode[id] = { name: id, sub: 'changeset' }
+        })
+      })
+      var changeIds = Object.keys(changeNode).sort()
+
+      var content = {
+        origins: watchRoots.map(function (r) {
+          return { id: 'root:' + r.path, name: r.path, sub: (r.fileCount || 0) + ' files · ' + (r.status || 'idle') }
+        }),
+        sources: sourcesStage.map(function (f) {
+          return { id: 'file:' + f.path, name: filesBaseName(f.path), sub: FILES_CATEGORY_LABEL[f.category] + ' · ' + filesFmtBytes(f.size) }
+        }),
+        changes: changeIds.map(function (id) {
+          return { id: 'change:' + id, name: changeNode[id].name, sub: changeNode[id].sub }
+        }),
+        units: unitIds.map(function (id) {
+          var target = elementsById[id]
+          return {
+            id: 'unit:' + id,
+            name: (target && (target.name || target.slug)) || id,
+            sub: 'knowledge unit',
+          }
+        }),
+        artifacts: artifactsStage.map(function (f) {
+          return { id: 'file:' + f.path, name: filesBaseName(f.path), sub: filesFmtBytes(f.size) }
+        }),
+      }
+
+      FILES_PIPELINE_STAGES.forEach(function (stage) {
+        var col = el('div', 'nn-pipeline-stage')
+        var head = el('div', 'nn-pipeline-stage-head')
+        head.appendChild(el('span', null, stage.title))
+        head.appendChild(el('span', 'nn-category-badge', String(content[stage.id].length)))
+        col.appendChild(head)
+        var cards = el('div', 'nn-pipeline-cards')
+        content[stage.id].forEach(function (item) {
+          var card = el('div', 'nn-pipeline-card')
+          card.setAttribute('data-node', item.id)
+          card.appendChild(el('span', 'nn-pipeline-card-name', item.name))
+          card.appendChild(el('span', 'nn-pipeline-card-sub', item.sub))
+          card.addEventListener('mouseenter', function () {
+            highlight(item.id)
+          })
+          card.addEventListener('mouseleave', clearHighlight)
+          card.addEventListener('click', function () {
+            var path = item.id.indexOf('file:') === 0 ? item.id.slice(5) : ''
+            if (path && byPath[path]) selectFile(path)
+          })
+          cards.appendChild(card)
+        })
+        col.appendChild(cards)
+        pipeline.appendChild(col)
+      })
+    }
+
+    // Hover tracing: a source lights up the units that cite it and the artifacts
+    // whose reverse lineage points back at it. Everything else dims.
+    function connectedTo(nodeId) {
+      var out = {}
+      out[nodeId] = true
+      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
+      if (!path) return out
+      var units = unitsByPath[path] || []
+      units.forEach(function (uid) {
+        out['unit:' + uid] = true
+      })
+      Object.keys(lineage).forEach(function (artifactPath) {
+        var entry = lineage[artifactPath]
+        var hit =
+          (entry.sourcePaths || []).indexOf(path) >= 0 ||
+          (entry.unitIds || []).some(function (uid) {
+            return units.indexOf(uid) >= 0
+          })
+        if (hit) {
+          out['file:' + artifactPath] = true
+          ;(entry.changesetIds || []).forEach(function (id) {
+            out['change:' + id] = true
+          })
+        }
+      })
+      return out
+    }
+
+    function highlight(nodeId) {
+      var keep = connectedTo(nodeId)
+      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
+      ;[].slice.call(cards).forEach(function (card) {
+        var id = card.getAttribute('data-node')
+        card.classList.toggle('nn-pipeline-highlight', id === nodeId)
+        card.classList.toggle('dimmed', !keep[id])
+      })
+    }
+
+    function clearHighlight() {
+      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
+      ;[].slice.call(cards).forEach(function (card) {
+        card.classList.remove('dimmed')
+        card.classList.remove('nn-pipeline-highlight')
+      })
+    }
+
+    /* ---- preview dialog --------------------------------------------------- */
+
+    function openPreview(entry) {
+      if (!dialog) return
+      var title = doc.getElementById('nn-file-preview-title')
+      var badge = doc.getElementById('nn-file-preview-badge')
+      var size = doc.getElementById('nn-file-preview-size')
+      var body = doc.getElementById('nn-file-preview-body')
+      if (title) title.textContent = filesBaseName(entry.path)
+      if (badge) badge.textContent = FILES_CATEGORY_LABEL[entry.category] || entry.category
+      if (size) size.textContent = filesFmtBytes(entry.size)
+      if (!body) return
+      body.innerHTML = ''
+
+      var mime = String(entry.mimeType || '')
+      var truncated = entry.snippetTruncated === true
+      if (typeof entry.snippet === 'string' && mime.indexOf('image/') !== 0) {
+        var pre = el('pre', 'nn-file-preview-code')
+        var code = doc.createElement('code')
+        // textContent: file content is never parsed as markup (XSS invariant).
+        code.textContent = entry.snippet
+        pre.appendChild(code)
+        body.appendChild(pre)
+        if (truncated) {
+          body.appendChild(
+            el('p', 'nn-file-preview-note', 'Preview truncated. The complete file stays in the workspace.'),
+          )
+        }
+      } else {
+        var card = el('div', 'nn-file-binary-card')
+        card.appendChild(el('p', null, 'This file is not inlined in the console payload.'))
+        card.appendChild(el('p', 'nn-file-attr-value', 'SHA-256: ' + String(entry.sha256 || '')))
+        card.appendChild(el('p', 'nn-file-attr-value', 'Workspace path: ' + entry.path))
+        body.appendChild(card)
+      }
+
+      var copyBtn = doc.getElementById('nn-file-preview-copy')
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          var view = doc.defaultView
+          if (view && view.navigator && view.navigator.clipboard && typeof entry.snippet === 'string') {
+            try {
+              view.navigator.clipboard.writeText(entry.snippet)
+            } catch {
+              /* clipboard unavailable */
+            }
+          }
+        }
+      }
+      if (typeof dialog.showModal === 'function') dialog.showModal()
+      else dialog.setAttribute('open', 'open')
+    }
+
+    function closePreview() {
+      if (!dialog) return
+      if (typeof dialog.close === 'function') dialog.close()
+      else dialog.removeAttribute('open')
+    }
+
+    if (dialog && !dialog.getAttribute('data-nn-bound')) {
+      dialog.setAttribute('data-nn-bound', '1')
+      var closeBtn = doc.getElementById('nn-file-preview-close')
+      var dismissBtn = doc.getElementById('nn-file-preview-dismiss')
+      if (closeBtn) closeBtn.addEventListener('click', closePreview)
+      if (dismissBtn) dismissBtn.addEventListener('click', closePreview)
+      dialog.addEventListener('click', function (ev) {
+        if (ev.target === dialog) closePreview()
+      })
+    }
+
+    /* ---- state ------------------------------------------------------------ */
+
+    function setMode(mode) {
+      state.mode = mode === 'pipeline' ? 'pipeline' : 'explorer'
+      if (explorerBtn) explorerBtn.classList.toggle('active', state.mode === 'explorer')
+      if (pipelineBtn) pipelineBtn.classList.toggle('active', state.mode === 'pipeline')
+      if (split) split.style.display = state.mode === 'explorer' ? 'flex' : 'none'
+      if (pipeline) pipeline.style.display = state.mode === 'pipeline' ? 'flex' : 'none'
+      if (statPill) {
+        statPill.textContent =
+          state.mode === 'explorer'
+            ? String(inventory.length) + ' files'
+            : String(FILES_PIPELINE_STAGES.length) + ' stages'
+      }
+    }
+
+    function selectFile(path) {
+      state.selected = path && byPath[path] ? path : ''
+      if (state.selected) {
+        renderFileDetail(byPath[state.selected])
+        try {
+          if (doc.location) doc.location.hash = '#files&path=' + encodeURIComponent(state.selected)
+        } catch {
+          /* file:// may refuse hash writes */
+        }
+      } else {
+        renderDashboard()
+        try {
+          if (doc.location) doc.location.hash = '#files'
+        } catch {
+          /* ignore */
+        }
+      }
+      renderSidebar()
+    }
+
+    if (explorerBtn) explorerBtn.addEventListener('click', function () { setMode('explorer') })
+    if (pipelineBtn) pipelineBtn.addEventListener('click', function () { setMode('pipeline') })
+
+    renderSidebar()
+    renderDashboard()
+    renderPipeline()
+    setMode('explorer')
+
+    // Deep link: #files&path=<encoded workspace path>
+    function hashPath() {
+      var h = doc.location ? String(doc.location.hash || '') : ''
+      var mm = /(?:^#|&)path=([^&]+)/.exec(h)
+      if (!mm) return ''
+      try {
+        return decodeURIComponent(mm[1])
+      } catch {
+        return ''
+      }
+    }
+
+    var onHashPath = function () {
+      var wanted = hashPath()
+      if (wanted && byPath[wanted]) {
+        if (wanted !== state.selected) selectFile(wanted)
+        return
+      }
+      if (!wanted && state.selected && /^#files(?![&\w])/.test(String(doc.location.hash || ''))) {
+        selectFile('')
+      }
+    }
+    if (doc.defaultView) doc.defaultView.addEventListener('hashchange', onHashPath)
+
+    var initial = hashPath()
+    if (initial && byPath[initial]) selectFile(initial)
   }
 
   // One Changes tab: Unsent on top (the only change signal a model view carries),
@@ -28859,6 +30681,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderDocumentView(active, docElements, concepts, (meta && (meta.modelId || meta.model)) || '')
     }
     renderMatrices(active, matrices, concepts, (meta && (meta.modelId || meta.model)) || '')
+    renderFilesTab(active, model && model.files, {
+      elements: elements,
+      changes: (model && Array.isArray(model.changes) ? model.changes : []),
+      onReveal: function (descriptor) {
+        revealUnit(descriptor)
+      },
+    })
     renderMetamodelView(active, schema, matrices, elements)
 
     var searchBox = active.getElementById('nn-search')
