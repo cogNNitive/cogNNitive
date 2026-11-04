@@ -14364,6 +14364,14 @@ var init_report = __esm({
   }
 });
 
+// iNNfo/packages/nn-core/dist/changeset/lineage/plan.js
+var init_plan = __esm({
+  "iNNfo/packages/nn-core/dist/changeset/lineage/plan.js"() {
+    "use strict";
+    init_versionStatus();
+  }
+});
+
 // iNNfo/packages/nn-core/dist/scope/root.js
 function isFile2(path) {
   try {
@@ -16297,7 +16305,7 @@ var init_unit_address = __esm({
 });
 
 // iNNfo/packages/nn-core/dist/writeOnce/plan.js
-var init_plan = __esm({
+var init_plan2 = __esm({
   "iNNfo/packages/nn-core/dist/writeOnce/plan.js"() {
     "use strict";
     init_contract();
@@ -16321,7 +16329,7 @@ var init_fs = __esm({
     "use strict";
     init_sidecar();
     init_contract();
-    init_plan();
+    init_plan2();
   }
 });
 
@@ -16341,7 +16349,7 @@ var init_console = __esm({
     init_load();
     init_parser2();
     init_contract();
-    init_plan();
+    init_plan2();
     init_fs();
     init_element_hash();
   }
@@ -16377,7 +16385,7 @@ var init_lineage = __esm({
 var init_writeOnce = __esm({
   "iNNfo/packages/nn-core/dist/writeOnce/index.js"() {
     "use strict";
-    init_plan();
+    init_plan2();
     init_fs();
   }
 });
@@ -17868,6 +17876,7 @@ var init_dist = __esm({
     init_discoverModels();
     init_versionStatus();
     init_report();
+    init_plan();
     init_helpers();
     init_mutate();
     init_envelope();
