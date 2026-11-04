@@ -28,7 +28,6 @@ frame:: neutral
 output_formats:: [1920x1920, 1080x1920, 1920x1080, 1080x1080]
 script_review:: required
 components:: [title=title, lower-third=lower-third, caption=caption, quote=quote, watermark=watermark, b-roll=b-roll]
-sounds:: [scene-boundary=whoosh]
 
 The blueprint-level `Video Defaults`: every cascade parameter's baseline value, shipped in
 the bluepriNNt package. A domain adopts it by copying this document to its root as
