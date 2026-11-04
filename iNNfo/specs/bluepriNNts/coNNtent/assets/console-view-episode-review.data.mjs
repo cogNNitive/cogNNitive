@@ -35,7 +35,7 @@ const SCENE_FIELDS = Object.entries(FIELD_REGISTRY.fields || {})
 const LAYER_FIELDS_BY_TYPE = {
   avatar: ['asset', 'prompt', 'avatar_model', 'avatar_resolution'],
   media: ['asset', 'prompt', 'fit', 'placement'],
-  text: ['text', 'source', 'style', 'position', 'z_index'],
+  text: ['text', 'text_from', 'style', 'position', 'z_index'],
   animation: ['asset', 'style', 'position', 'z_index', 'enter_animation', 'exit_animation', 'timing'],
 }
 
@@ -186,7 +186,7 @@ async function readAll(dir, prefix) {
   return rows
 }
 
-/** Episode documents under `series/<s>/episodes/<slug>/`. */
+/** Episode documents under `series/<s>/assets/<slug>/`. */
 async function episodeDocs(rootDir) {
   const seriesRoot = join(String(rootDir || '.'), 'series')
   let series

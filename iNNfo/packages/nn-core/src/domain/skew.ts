@@ -26,15 +26,24 @@ export const versionTokenOf = (name: string): string | null => VERSION_TOKEN_RE.
 const MESSAGE_PATHS = 3
 const META_PATHS = 10
 
-function pinOf(m: SkewModel): { blueprint: string; version: string; incomparable?: Incomparable } | null {
+function pinOf(m: SkewModel): {
+  blueprint: string
+  key: string
+  version: string
+  incomparable?: Incomparable
+} | null {
   const { name, url } = parentSpecOf(m.frontmatter)
   if (!name?.trim()) return null
-  const blueprint = blueprintNameOf(name).toLowerCase()
+  // Group case-insensitively (`coNNtent` and `conntent` are one bluepriNNt) but keep the
+  // authored casing: the finding is user-facing and must name the bluepriNNt as it is
+  // spelled in its spec.
+  const blueprint = blueprintNameOf(name)
+  const key = blueprint.toLowerCase()
   const token = versionTokenOf(name)
-  if (!token) return { blueprint, version: 'unpinned', incomparable: 'unpinned' }
+  if (!token) return { blueprint, key, version: 'unpinned', incomparable: 'unpinned' }
   const classifiable = !url?.trim() || parsePinnedUrl(url) !== null || parseUnversionedBlueprintName(url) !== null
-  if (!classifiable) return { blueprint, version: 'unclassifiable-url', incomparable: 'unclassifiable-url' }
-  return { blueprint, version: token.toUpperCase() }
+  if (!classifiable) return { blueprint, key, version: 'unclassifiable-url', incomparable: 'unclassifiable-url' }
+  return { blueprint, key, version: token.toUpperCase() }
 }
 
 /**
@@ -43,17 +52,24 @@ function pinOf(m: SkewModel): { blueprint: string; version: string; incomparable
  * distinct values, never counted as uniform, and are listed under `meta.incomparable`.
  */
 export function versionSkew(models: readonly SkewModel[]): LayoutDiagnostic[] {
-  const groups = new Map<string, { path: string; version: string; incomparable?: Incomparable; concepts: readonly string[] }[]>()
+  const groups = new Map<
+    string,
+    {
+      blueprint: string
+      members: { path: string; version: string; incomparable?: Incomparable; concepts: readonly string[] }[]
+    }
+  >()
   for (const m of models) {
     const pin = pinOf(m)
     if (!pin) continue
-    const members = groups.get(pin.blueprint) ?? []
-    members.push({ path: m.path, version: pin.version, incomparable: pin.incomparable, concepts: m.concepts ?? [] })
-    groups.set(pin.blueprint, members)
+    const group = groups.get(pin.key) ?? { blueprint: pin.blueprint, members: [] }
+    group.members.push({ path: m.path, version: pin.version, incomparable: pin.incomparable, concepts: m.concepts ?? [] })
+    groups.set(pin.key, group)
   }
 
   const findings: LayoutDiagnostic[] = []
-  for (const [blueprint, members] of [...groups].sort(([a], [b]) => byText(a, b))) {
+  for (const [key, { blueprint, members }] of [...groups].sort(([a], [b]) => byText(a, b))) {
+    void key
     const byVersion = new Map<string, string[]>()
     for (const { version, path } of members) byVersion.set(version, [...(byVersion.get(version) ?? []), path])
     if (byVersion.size < 2) continue

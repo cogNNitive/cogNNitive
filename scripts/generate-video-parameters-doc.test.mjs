@@ -104,7 +104,7 @@ description:: Human title.
 {
   const fields = parseFieldDefinitions(fs.readFileSync(SPEC_PATH, 'utf8'));
   assert.ok(fields.length > 30, `expected the real spec to declare >30 fields, got ${fields.length}`);
-  for (const name of ['presets', 'voice_model', 'background_audio', 'z_index', 'output_formats', 'kind', 'review', 'style', 'source', 'capability', 'price_date']) {
+  for (const name of ['presets', 'voice_model', 'background_audio', 'z_index', 'output_formats', 'kind', 'review', 'style', 'text_from', 'capability', 'price_date']) {
     assert.ok(fields.some((f) => f.name === name), `real spec must declare ${name}`);
   }
   assert.ok(!fields.some((f) => f.name === 'master_resolution'), 'master_resolution is retired');

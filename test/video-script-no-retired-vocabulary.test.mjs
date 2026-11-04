@@ -87,7 +87,7 @@ test('the blueprint declares the current field names only', () => {
       `retired Field Definition "${retired}" must be gone`,
     );
   }
-  for (const current of ['presets', 'voice_model', 'voice_speed', 'voice_emotion', 'avatar', 'avatar_model', 'intro', 'background_audio', 'background_audio_volume', 'z_index', 'image_model', 'image_size', 'language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'kind', 'review', 'style', 'source', 'placement', 'timing', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'watermark', 'cta', 'bumper', 'music', 'api_base', 'provider', 'api_id', 'capability', 'controls', 'sizes', 'adapter', 'price', 'price_unit', 'price_date', 'price_source', 'stale_after_days', 'allowed', 'voice_id']) {
+  for (const current of ['presets', 'voice_model', 'voice_speed', 'voice_emotion', 'avatar', 'avatar_model', 'intro', 'background_audio', 'background_audio_volume', 'z_index', 'image_model', 'image_size', 'language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'kind', 'review', 'style', 'text_from', 'placement', 'timing', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'watermark', 'cta', 'bumper', 'music', 'api_base', 'provider', 'api_id', 'capability', 'controls', 'sizes', 'adapter', 'price', 'price_unit', 'price_date', 'price_source', 'stale_after_days', 'allowed', 'voice_id']) {
     assert.match(spec, new RegExp(`^## NN Field Definition: ${current}$`, 'm'), `${current} is declared`);
   }
 });

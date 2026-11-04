@@ -9,7 +9,7 @@ const codesOf = (...inputs: DomainModelInput[]) => diagnose(...inputs).map((d) =
 
 describe('layout diagnostics (placement-validation; design A12)', () => {
   it('PLACEMENT_MISMATCH shows the expected folder and keeps the model listed', () => {
-    const misplaced = model('series/x/videos/intro/intro_video-script_NN.md', [['Video', 'intro']])
+    const misplaced = model('series/x/videos/intro/intro_coNNtent_NN.md', [['Video', 'intro']])
     const index = buildDomainIndex([seriesModel('x'), misplaced], resolver)
     expect(index.diagnostics).toEqual([
       expect.objectContaining({
@@ -18,39 +18,39 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
         paths: [misplaced.path],
         id: 'x/intro',
         message:
-          'PLACEMENT_MISMATCH: series/x/videos/intro/intro_video-script_NN.md holds Video "intro" - Video instances live at series/x/assets/intro/; move the file there',
+          'PLACEMENT_MISMATCH: series/x/videos/intro/intro_coNNtent_NN.md holds Video "intro" - Video instances live at series/x/assets/intro/; move the file there',
       }),
     ])
     expect(index.byPath(misplaced.path)?.id).toBe('x/intro')
   })
 
   it('PLACEMENT_MISMATCH without a derivable container shows the container folder template', () => {
-    const lost = model('kNNowledge/pepper-mapache_video-script_NN.md', [['Video', 'pepper-mapache']])
+    const lost = model('kNNowledge/pepper-mapache_coNNtent_NN.md', [['Video', 'pepper-mapache']])
     const [d] = diagnose(lost)
     expect(d.code).toBe('PLACEMENT_MISMATCH')
     expect(d.message).toContain('series/{slug}/assets/pepper-mapache/')
   })
 
   it('INSTANCE_NAME_MISMATCH shows the expected file name', () => {
-    const wrong = model('series/x/assets/pepper-mapache/intro_video-script_NN.md', [['Video', 'pepper-mapache']])
+    const wrong = model('series/x/assets/pepper-mapache/intro_coNNtent_NN.md', [['Video', 'pepper-mapache']])
     expect(diagnose(seriesModel('x'), wrong)).toEqual([
       expect.objectContaining({
         code: 'INSTANCE_NAME_MISMATCH',
         paths: [wrong.path],
         message:
-          'INSTANCE_NAME_MISMATCH: series/x/assets/pepper-mapache/intro_video-script_NN.md - the instance in folder pepper-mapache/ must be named pepper-mapache_video-script_NN.md; rename the file',
+          'INSTANCE_NAME_MISMATCH: series/x/assets/pepper-mapache/intro_coNNtent_NN.md - the instance in folder pepper-mapache/ must be named pepper-mapache_coNNtent_NN.md; rename the file',
       }),
     ])
   })
 
   it('INSTANCE_SLUG_MISMATCH names the folder slug as the expected one', () => {
-    const wrong = model('series/x/assets/intro/intro_video-script_NN.md', [['Video', 'other']])
+    const wrong = model('series/x/assets/intro/intro_coNNtent_NN.md', [['Video', 'other']])
     const index = buildDomainIndex([seriesModel('x'), wrong], resolver)
     expect(index.diagnostics).toEqual([
       expect.objectContaining({
         code: 'INSTANCE_SLUG_MISMATCH',
         message:
-          'INSTANCE_SLUG_MISMATCH: series/x/assets/intro/intro_video-script_NN.md - root Video has slug "other" but its folder is "intro"; set slug:: intro or move the folder',
+          'INSTANCE_SLUG_MISMATCH: series/x/assets/intro/intro_coNNtent_NN.md - root Video has slug "other" but its folder is "intro"; set slug:: intro or move the folder',
       }),
     ])
     expect(index.byPath(wrong.path)?.id).toBe('x/intro')
@@ -63,7 +63,7 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
         code: 'CONTAINER_MISSING',
         paths: [orphan.path],
         message:
-          'CONTAINER_MISSING: series/no-such-series/assets/intro/intro_video-script_NN.md - container Series "no-such-series" is not an instance of Series (expected a model in series/no-such-series/); add it or move the file',
+          'CONTAINER_MISSING: series/no-such-series/assets/intro/intro_coNNtent_NN.md - container Series "no-such-series" is not an instance of Series (expected a model in series/no-such-series/); add it or move the file',
       }),
     ])
     expect(codesOf(seriesModel('no-such-series'), orphan)).toEqual([])
@@ -102,7 +102,7 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
   })
 
   it('MIXED_INSTANCE_MODEL names both concepts', () => {
-    const mixed = model('series/x/x_video-script_NN.md', [
+    const mixed = model('series/x/x_coNNtent_NN.md', [
       ['Series', 'x'],
       ['Video', 'intro'],
     ])
@@ -111,13 +111,13 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
         code: 'MIXED_INSTANCE_MODEL',
         paths: [mixed.path],
         message:
-          'MIXED_INSTANCE_MODEL: series/x/x_video-script_NN.md - holds elements of two distributed concepts (Series, Video); each distributed concept is its own model',
+          'MIXED_INSTANCE_MODEL: series/x/x_coNNtent_NN.md - holds elements of two distributed concepts (Series, Video); each distributed concept is its own model',
       }),
     ])
   })
 
   it('INSTANCE_SHADOWS_ELEMENT_ASSETS warns when an element slug of the container equals an instance slug', () => {
-    const series = model('series/x/x_video-script_NN.md', [
+    const series = model('series/x/x_coNNtent_NN.md', [
       ['Series', 'x'],
       ['Scene', 'intro'],
     ])
@@ -125,7 +125,7 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
     expect(d).toMatchObject({
       code: 'INSTANCE_SHADOWS_ELEMENT_ASSETS',
       severity: 'warning',
-      paths: [series.path, 'series/x/assets/intro/intro_video-script_NN.md'],
+      paths: [series.path, 'series/x/assets/intro/intro_coNNtent_NN.md'],
     })
     expect(d.message).toContain('series/x/assets/intro/')
     expect(codesOf(seriesModel('x'), videoModel('x', 'intro'))).toEqual([])
@@ -148,14 +148,14 @@ describe('layout diagnostics (placement-validation; design A12)', () => {
 
 describe('fileLocalDiagnostics (single-file validation; A-10)', () => {
   it('reports placement for one file without the domaiNN', () => {
-    const misplaced = model('kNNowledge/pepper-mapache_video-script_NN.md', [['Video', 'pepper-mapache']])
+    const misplaced = model('kNNowledge/pepper-mapache_coNNtent_NN.md', [['Video', 'pepper-mapache']])
     expect(fileLocalDiagnostics(misplaced, VIDEO_SCRIPT).map((d) => d.code)).toEqual(['PLACEMENT_MISMATCH'])
   })
 
   it('reports naming, slug and cardinality findings', () => {
-    const name = model('series/x/assets/a/b_video-script_NN.md', [['Video', 'a']])
-    const slug = model('series/x/assets/a/a_video-script_NN.md', [['Video', 'z']])
-    const two = model('series/x/assets/a/a_video-script_NN.md', [
+    const name = model('series/x/assets/a/b_coNNtent_NN.md', [['Video', 'a']])
+    const slug = model('series/x/assets/a/a_coNNtent_NN.md', [['Video', 'z']])
+    const two = model('series/x/assets/a/a_coNNtent_NN.md', [
       ['Video', 'a'],
       ['Video', 'b'],
     ])
@@ -168,6 +168,6 @@ describe('fileLocalDiagnostics (single-file validation; A-10)', () => {
 
   it('stays silent on a conforming file and leaves cross-file findings to the index', () => {
     expect(fileLocalDiagnostics(videoModel('no-such-series', 'intro'), VIDEO_SCRIPT)).toEqual([])
-    expect(fileLocalDiagnostics(model('kNNowledge/x_video-script_NN.md', [['Scene', 'a']]), VIDEO_SCRIPT)).toEqual([])
+    expect(fileLocalDiagnostics(model('kNNowledge/x_coNNtent_NN.md', [['Scene', 'a']]), VIDEO_SCRIPT)).toEqual([])
   })
 })

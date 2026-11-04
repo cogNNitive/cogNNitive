@@ -137,9 +137,9 @@ const moveChangesDir = join(moveRoot, 'changes')
 const moveSpecsDir = join(moveRoot, 'specs')
 const moveBlueprintsDir = join(moveSpecsDir, 'bluepriNNts')
 const moveSeriesDir = join(moveRoot, 'series', 'villabotijos-today')
-const MOVE_EPISODE_REL = 'series/villabotijos-today/assets/welcome/welcome_video-script_NN.md'
-const MOVE_BLUEPRINT_NAME = 'video-script_V_0-1-0'
-const MOVE_BLUEPRINT_REL = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+const MOVE_EPISODE_REL = 'series/villabotijos-today/assets/welcome/welcome_coNNtent_NN.md'
+const MOVE_BLUEPRINT_NAME = 'coNNtent_V_0-1-0'
+const MOVE_BLUEPRINT_REL = 'specs/bluepriNNts/coNNtent_V_0-1-0_NN.md'
 
 const MOVE_BLUEPRINT = [
   '---',
@@ -221,8 +221,8 @@ describe('fold and strict replay agree across a move (distributed-storage S6c)',
       '---\nspec_version: "V_0-7-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
       'utf-8',
     )
-    await writeFile(join(moveBlueprintsDir, 'video-script_V_0-1-0_NN.md'), MOVE_BLUEPRINT, 'utf-8')
-    await writeFile(join(moveSeriesDir, 'villabotijos-today_video-script_NN.md'), MOVE_SERIES, 'utf-8')
+    await writeFile(join(moveBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), MOVE_BLUEPRINT, 'utf-8')
+    await writeFile(join(moveSeriesDir, 'villabotijos-today_coNNtent_NN.md'), MOVE_SERIES, 'utf-8')
   })
 
   afterEach(async () => {
@@ -343,9 +343,9 @@ const xChangesDir = join(xRoot, 'changes')
 const xSpecsDir = join(xRoot, 'specs')
 const xBlueprintsDir = join(xSpecsDir, 'bluepriNNts')
 const xSeriesDir = join(xRoot, 'series', 'innteresante')
-const X_INTRO_REL = 'series/innteresante/assets/intro/intro_video-script_NN.md'
-const X_BLUEPRINT_NAME = 'video-script_V_0-1-0'
-const X_BLUEPRINT_REL = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+const X_INTRO_REL = 'series/innteresante/assets/intro/intro_coNNtent_NN.md'
+const X_BLUEPRINT_NAME = 'coNNtent_V_0-1-0'
+const X_BLUEPRINT_REL = 'specs/bluepriNNts/coNNtent_V_0-1-0_NN.md'
 
 /** The S6a blueprint shape without compact concepts: no placeholder field units. */
 const X_BLUEPRINT = [
@@ -417,7 +417,7 @@ const EXTRACT_INTRO: ChangeItem[] = [
   {
     id: 'c-01',
     op: 'extract_instance',
-    target: 'InnteresanteVideos_video-script@intro',
+    target: 'InnteresanteVideos_coNNtent@intro',
     to: 'innteresante/intro',
     blueprint_name: X_BLUEPRINT_NAME,
     blueprint_url: X_BLUEPRINT_REL,
@@ -438,8 +438,8 @@ describe('fold and strict replay agree across an extraction (distributed-storage
       '---\nspec_version: "V_0-7-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
       'utf-8',
     )
-    await writeFile(join(xBlueprintsDir, 'video-script_V_0-1-0_NN.md'), X_BLUEPRINT, 'utf-8')
-    await writeFile(join(xSeriesDir, 'innteresante_video-script_NN.md'), MOVE_SERIES.replace('villabotijos-today', 'innteresante').replace('Villabotijos Today', 'Innteresante'), 'utf-8')
+    await writeFile(join(xBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), X_BLUEPRINT, 'utf-8')
+    await writeFile(join(xSeriesDir, 'innteresante_coNNtent_NN.md'), MOVE_SERIES.replace('villabotijos-today', 'innteresante').replace('Villabotijos Today', 'Innteresante'), 'utf-8')
   })
 
   afterEach(async () => {

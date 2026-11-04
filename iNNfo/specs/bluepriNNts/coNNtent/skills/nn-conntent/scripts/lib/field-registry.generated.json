@@ -617,18 +617,6 @@
       "cascade": true,
       "description": "Keyed list of engine-event→sound-name bindings (`event=name`, e.g. `[scene-boundary=whoosh]`). Resolves per key through the Universal Parameter Cascade. Engine code names no sound."
     },
-    "source": {
-      "concepts": [
-        "Layer"
-      ],
-      "type": "select",
-      "options": [
-        "narration"
-      ],
-      "multiple": false,
-      "cascade": false,
-      "description": "For a `text` Layer: the reserved value `narration` renders the owning Scene's body prose. Mutually exclusive with `text`."
-    },
     "stale_after_days": {
       "concepts": [
         "Model"
@@ -691,6 +679,18 @@
       "multiple": false,
       "cascade": false,
       "description": "Inline text for a `text` Layer. One of `text` or `source` is required."
+    },
+    "text_from": {
+      "concepts": [
+        "Layer"
+      ],
+      "type": "select",
+      "options": [
+        "narration"
+      ],
+      "multiple": false,
+      "cascade": false,
+      "description": "For a `text` Layer: the reserved value `narration` renders the owning Scene's body prose. Mutually exclusive with `text`."
     },
     "thumbnail": {
       "concepts": [
@@ -859,7 +859,7 @@
     ],
     "text": [
       "text",
-      "source"
+      "text_from"
     ],
     "animation": [
       "asset"

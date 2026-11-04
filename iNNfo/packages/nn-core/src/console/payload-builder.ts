@@ -168,7 +168,7 @@ function extractWikilinksFromValue(val: unknown): { target: string; label?: stri
 
 /**
  * The id of a model the caller could not give an index id for: the compact stem
- * of the file name (`pepper-mapache_video-script_NN.md` -> `pepper-mapache`), or
+ * of the file name (`pepper-mapache_coNNtent_NN.md` -> `pepper-mapache`), or
  * the title slug when there is no file name. A standalone single-file build can
  * know this much and no more; a placed instance model needs the domain index
  * (its id is its container chain, not its file name), so callers with an index

@@ -58,7 +58,7 @@ describe('DomainIndex.collection (distributed-collection-resolution; design A8)'
   })
 
   it('keeps a misplaced instance in the collection and flags it', () => {
-    const misplaced = model('series/x/videos/intro/intro_video-script_NN.md', [['Video', 'intro']])
+    const misplaced = model('series/x/videos/intro/intro_coNNtent_NN.md', [['Video', 'intro']])
     const index = buildDomainIndex([seriesModel('x'), videoModel('x', 'ok'), misplaced], resolver)
     const members = index.collection('Video')
     expect(members.map((m) => m.address)).toEqual(['x/intro', 'x/ok'])

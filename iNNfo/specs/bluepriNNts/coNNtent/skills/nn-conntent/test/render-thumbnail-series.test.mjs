@@ -41,7 +41,7 @@ title:: Other Series
 
 function withSeries(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-thumb-series-'));
-  fs.writeFileSync(path.join(dir, 'other-series_video-script_NN.md'), SERIES_CONTENT, 'utf8');
+  fs.writeFileSync(path.join(dir, 'other-series_coNNtent_NN.md'), SERIES_CONTENT, 'utf8');
   try {
     fn(dir);
   } finally {

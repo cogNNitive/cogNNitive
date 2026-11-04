@@ -55,7 +55,7 @@ async function runTests() {
           assert.strictEqual(typeof mod[fn], 'function', `nn-sources mirror exports ${fn}`)
         }
       } else if (target.includes('coNNtent')) {
-        for (const fn of ['findDomainRoot', 'resolve', 'findScopeChain', 'loadChain', 'loadElementChain', 'elementChain', 'driftReport', 'resolveProcedures', 'resolveModelId']) {
+        for (const fn of ['findDomainRoot', 'resolve', 'findScopeChain', 'loadChain', 'loadElementChain', 'elementChain', 'driftReport', 'resolveProcedures']) {
           assert.strictEqual(typeof mod[fn], 'function', `coNNtent scope mirror exports ${fn}`)
         }
       }

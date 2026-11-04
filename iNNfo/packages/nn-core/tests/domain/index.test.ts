@@ -21,10 +21,10 @@ describe('buildDomainIndex ids (hierarchical-identity; design A5)', () => {
   it('derives the worked table of A5', () => {
     const index = buildDomainIndex(domain(), resolver)
     expect(idsByPath(index.models)).toEqual({
-      'series/villabotijos-today/villabotijos-today_video-script_NN.md': 'villabotijos-today',
-      'series/innteresante/innteresante_video-script_NN.md': 'innteresante',
-      'series/villabotijos-today/assets/intro/intro_video-script_NN.md': 'villabotijos-today/intro',
-      'series/innteresante/assets/intro/intro_video-script_NN.md': 'innteresante/intro',
+      'series/villabotijos-today/villabotijos-today_coNNtent_NN.md': 'villabotijos-today',
+      'series/innteresante/innteresante_coNNtent_NN.md': 'innteresante',
+      'series/villabotijos-today/assets/intro/intro_coNNtent_NN.md': 'villabotijos-today/intro',
+      'series/innteresante/assets/intro/intro_coNNtent_NN.md': 'innteresante/intro',
       'kNNowledge/LC_programas_Tutorias_NN.md': 'LC_programas_Tutorias',
     })
     expect(index.diagnostics).toEqual([])
@@ -59,18 +59,18 @@ describe('buildDomainIndex ids (hierarchical-identity; design A5)', () => {
   it('keeps every other id when a file with the same stem is added elsewhere', () => {
     const before = buildDomainIndex(domain(), resolver)
     const added = videoModel('innteresante', 'pepper-mapache')
-    const sameStem = model('series/other/assets/intro/intro_video-script_NN.md', [['Video', 'intro']])
+    const sameStem = model('series/other/assets/intro/intro_coNNtent_NN.md', [['Video', 'intro']])
     const after = buildDomainIndex([...domain(), added, sameStem], resolver)
     for (const m of before.models) expect(after.byPath(m.path)?.id).toBe(m.id)
     expect(after.byPath(sameStem.path)?.id).toBe('other/intro')
-    expect(after.byId('innteresante/intro')?.path).toBe('series/innteresante/assets/intro/intro_video-script_NN.md')
+    expect(after.byId('innteresante/intro')?.path).toBe('series/innteresante/assets/intro/intro_coNNtent_NN.md')
   })
 
   it('does not resolve a bare stem or a bare slug', () => {
     const index = buildDomainIndex(domain(), resolver)
-    expect(index.byId('intro_video-script')).toBeUndefined()
+    expect(index.byId('intro_coNNtent')).toBeUndefined()
     expect(index.byId('intro')).toBeUndefined()
-    expect(index.byPath('series/innteresante/assets/intro/intro_video-script_NN.md')?.id).toBe('innteresante/intro')
+    expect(index.byPath('series/innteresante/assets/intro/intro_coNNtent_NN.md')?.id).toBe('innteresante/intro')
   })
 
   it('keeps a compact id when a same-stem file appears, and reports the duplicate', () => {
@@ -83,23 +83,23 @@ describe('buildDomainIndex ids (hierarchical-identity; design A5)', () => {
 
 describe('buildDomainIndex identity diagnostics', () => {
   it('reports DUPLICATE_MODEL_ID with every path and resolves neither file', () => {
-    const second = model('series/innteresante/assets/intro/intro2_video-script_NN.md', [['Video', 'intro']])
+    const second = model('series/innteresante/assets/intro/intro2_coNNtent_NN.md', [['Video', 'intro']])
     const index = buildDomainIndex([seriesModel('innteresante'), videoModel('innteresante', 'intro'), second], resolver)
     const dup = index.diagnostics.filter((d) => d.code === 'DUPLICATE_MODEL_ID')
     expect(dup).toHaveLength(1)
     expect(dup[0].severity).toBe('error')
     expect(dup[0].paths).toEqual([
-      'series/innteresante/assets/intro/intro2_video-script_NN.md',
-      'series/innteresante/assets/intro/intro_video-script_NN.md',
+      'series/innteresante/assets/intro/intro2_coNNtent_NN.md',
+      'series/innteresante/assets/intro/intro_coNNtent_NN.md',
     ])
     expect(dup[0].message).toBe(
-      'DUPLICATE_MODEL_ID: id "innteresante/intro" is carried by series/innteresante/assets/intro/intro2_video-script_NN.md, series/innteresante/assets/intro/intro_video-script_NN.md - ids must be unique in a domaiNN; rename or move one',
+      'DUPLICATE_MODEL_ID: id "innteresante/intro" is carried by series/innteresante/assets/intro/intro2_coNNtent_NN.md, series/innteresante/assets/intro/intro_coNNtent_NN.md - ids must be unique in a domaiNN; rename or move one',
     )
     expect(index.byId('innteresante/intro')).toBeUndefined()
   })
 
   it('reports RESERVED_MODEL_ID for the blueprint head and gives the model no id', () => {
-    const reserved = model('series/specs/specs_video-script_NN.md', [['Series', 'specs']])
+    const reserved = model('series/specs/specs_coNNtent_NN.md', [['Series', 'specs']])
     const index = buildDomainIndex([reserved], resolver)
     expect(index.models).toEqual([])
     expect(index.diagnostics).toMatchObject([{ code: 'RESERVED_MODEL_ID', severity: 'error', paths: [reserved.path] }])
@@ -131,9 +131,9 @@ describe('buildDomainIndex identity diagnostics', () => {
 
   it('computes placement through the index with the pinned bluepriNNt declarations', () => {
     const index = buildDomainIndex([], resolver)
-    expect(index.placementFor('Video', 'villabotijos-today/intro', 'video-script')).toEqual({
+    expect(index.placementFor('Video', 'villabotijos-today/intro', 'coNNtent')).toEqual({
       folder: 'series/villabotijos-today/assets/intro/',
-      file: 'intro_video-script_NN.md',
+      file: 'intro_coNNtent_NN.md',
     })
     expect(index.placementFor('Video', 'a/b', 'unresolvable')).toMatchObject({ code: 'MODEL_UNADDRESSABLE' })
   })
@@ -167,7 +167,7 @@ describe('DomainIndex.resolve (design section 6; A-11)', () => {
     const message = !bare.ok ? bare.problem.message : ''
     expect(message).toContain('innteresante/intro')
     expect(message).toContain('villabotijos-today/intro')
-    const stem = index.resolve('intro_video-script')
+    const stem = index.resolve('intro_coNNtent')
     expect(stem).toMatchObject({ ok: false, problem: { code: 'REF_MODEL_NOT_FOUND' } })
     expect(!stem.ok && stem.problem.message).not.toContain('innteresante/intro')
   })
@@ -203,13 +203,13 @@ describe('DomainIndex.resolve (design section 6; A-11)', () => {
     expect(r.ok && r.warnings.map((w) => w.code)).toEqual(['REF_CONCEPT_MISMATCH', 'REF_BLUEPRINT_MISMATCH'])
     const fine = index.resolve('villabotijos-today/intro@00-gancho', undefined, {
       concepts: ['scene'],
-      blueprint: 'Video-Script',
+      blueprint: 'CoNntent',
     })
     expect(fine.ok && fine.warnings).toEqual([])
   })
 
   it('does not resolve an id carried by two files', () => {
-    const second = model('series/innteresante/assets/intro/intro2_video-script_NN.md', [['Video', 'intro']])
+    const second = model('series/innteresante/assets/intro/intro2_coNNtent_NN.md', [['Video', 'intro']])
     const dup = buildDomainIndex([seriesModel('innteresante'), videoModel('innteresante', 'intro'), second], resolver)
     expect(dup.resolve('innteresante/intro')).toMatchObject({ ok: false, problem: { code: 'REF_MODEL_NOT_FOUND' } })
   })

@@ -16,7 +16,7 @@ import { rmWithRetry } from '../../test/helpers/fs-retry'
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-collections')
 const specsDir = join(rootDir, 'specs')
 const blueprintsDir = join(specsDir, 'bluepriNNts')
-const BP = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+const BP = 'specs/bluepriNNts/coNNtent_V_0-1-0_NN.md'
 
 const BLUEPRINT = [
   '---',
@@ -66,7 +66,7 @@ function frontmatter(title: string): string[] {
     `title: "${title}"`,
     'knowledge_version: "V_0-1-0"',
     'parent_spec:',
-    '  name: "video-script_V_0-1-0"',
+    '  name: "coNNtent_V_0-1-0"',
     `  url: "${BP}"`,
     '---',
     '',
@@ -104,18 +104,18 @@ async function buildDomain(): Promise<void> {
   await write(BP, BLUEPRINT)
   await write('specs/iNNfo_V_0-7-0_NN.md', LEVEL1)
   await write('specs/defiNNe_V_0-1-0_NN.md', LEVEL0)
-  await write('series/villabotijos-today/villabotijos-today_video-script_NN.md', seriesModel('villabotijos-today'))
-  await write('series/innteresante/innteresante_video-script_NN.md', seriesModel('innteresante'))
+  await write('series/villabotijos-today/villabotijos-today_coNNtent_NN.md', seriesModel('villabotijos-today'))
+  await write('series/innteresante/innteresante_coNNtent_NN.md', seriesModel('innteresante'))
   await write(
-    'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md',
+    'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_coNNtent_NN.md',
     videoModel('pepper-mapache', 'published'),
   )
   await write(
-    'series/villabotijos-today/assets/intro/intro_video-script_NN.md',
+    'series/villabotijos-today/assets/intro/intro_coNNtent_NN.md',
     videoModel('intro', 'draft'),
   )
   await write(
-    'series/innteresante/assets/intro/intro_video-script_NN.md',
+    'series/innteresante/assets/intro/intro_coNNtent_NN.md',
     videoModel('intro', 'published'),
   )
 }
@@ -168,12 +168,12 @@ describe('query_units over a collection (distributed-storage S5a)', () => {
 
   it('gives the same logical result for a compact copy', async () => {
     await write(
-      'flat/flat_video-script_NN.md',
+      'flat/flat_coNNtent_NN.md',
       [...frontmatter('Flat'), '# NN Video', '', '## NN Video: solo', 'status:: published', ''].join('\n'),
     )
     const result = await queryUnits(rootDir, 'collection:Video?status=published')
     const owners = result.uris.map((uri) => uri.split('@')[0])
-    expect(owners).toContain('flat_video-script')
+    expect(owners).toContain('flat_coNNtent')
     expect(owners).toContain('innteresante/intro')
     expect(owners).toContain('villabotijos-today/pepper-mapache')
   })
@@ -195,7 +195,7 @@ describe('list_knowledge exposes collections (distributed-storage S5a)', () => {
     expect(ids).toEqual([...ids].sort())
     const video = models.find((m) => m.id === 'villabotijos-today/pepper-mapache')
     expect(video).toBeDefined()
-    expect(video!.blueprint).toBe('video-script')
+    expect(video!.blueprint).toBe('coNNtent')
     expect(video!.storage).toEqual({ kind: 'instance', concept: 'Video' })
   })
 
@@ -210,11 +210,11 @@ describe('list_knowledge exposes collections (distributed-storage S5a)', () => {
 
   it('lists a misplaced instance with its placement finding', async () => {
     await write(
-      'series/villabotijos-today/videos/stray/stray_video-script_NN.md',
+      'series/villabotijos-today/videos/stray/stray_coNNtent_NN.md',
       videoModel('stray', 'published'),
     )
     const videos = await listKnowledge(rootDir, { collection: 'Video' })
-    const stray = videos.find((m) => m.path.endsWith('stray_video-script_NN.md'))
+    const stray = videos.find((m) => m.path.endsWith('stray_coNNtent_NN.md'))
     expect(stray).toBeDefined()
     expect(stray!.placement).toBe('PLACEMENT_MISMATCH')
   })

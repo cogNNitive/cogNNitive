@@ -51,15 +51,15 @@ function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-project-layout-'));
   fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
   const series = path.join(root, 'series', 's');
-  const episode = path.join(series, 'episodes', 'e');
+  const episode = path.join(series, 'assets', 'e');
   fs.mkdirSync(path.join(episode, 'media'), { recursive: true });
   fs.writeFileSync(
-    path.join(series, 's_scope_NN.md'),
+    path.join(series, 's_coNNtent_NN.md'),
     '---\nlevel: 3\nscope: true\ntitle: "S"\n---\n\n# NN Series\n\n## NN Series: S\nslug:: s\n',
     'utf8',
   );
   fs.writeFileSync(path.join(episode, 'media', 'bg.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-  const scriptPath = path.join(episode, 'e_coNNtent_s_NN.md');
+  const scriptPath = path.join(episode, 'e_coNNtent_NN.md');
   fs.writeFileSync(scriptPath, SAMPLE, 'utf8');
   return { root, series, episode, scriptPath, cacheDir: path.join(root, 'cache') };
 }

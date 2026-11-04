@@ -88,8 +88,8 @@ function fixture() {
   );
   const series = path.join(root, 'series', 's');
   fs.mkdirSync(series, { recursive: true });
-  fs.writeFileSync(path.join(series, 's_series_NN.md'), seriesDoc, 'utf8');
-  const ep = path.join(series, 'episodes', 'ep');
+  fs.writeFileSync(path.join(series, 's_coNNtent_NN.md'), seriesDoc, 'utf8');
+  const ep = path.join(series, 'assets', 'ep');
   fs.mkdirSync(path.join(ep, 'media'), { recursive: true });
   fs.writeFileSync(path.join(ep, 'ep_NN.md'), episodeDoc, 'utf8');
   fs.writeFileSync(path.join(ep, 'media', 'shot.png'), 'png', 'utf8');

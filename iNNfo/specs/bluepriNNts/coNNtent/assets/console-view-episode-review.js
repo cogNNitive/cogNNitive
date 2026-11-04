@@ -189,7 +189,7 @@ registerView({
 
     var slugs = Object.keys(byEpisode)
     if (slugs.length === 0) {
-      root.appendChild(el('p', 'empty-state', 'No episode in this domaiNN yet. Port an episode under series/<s>/episodes/.'))
+      root.appendChild(el('p', 'empty-state', 'No episode in this domaiNN yet. Port an episode under series/<s>/assets/.'))
       return {}
     }
 

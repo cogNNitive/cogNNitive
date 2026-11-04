@@ -13,11 +13,11 @@ tools that enforce it.
   .cognnitive/{cache/video/{tts,images,temp}, video-ledger.jsonl, pending-predictions.jsonl, locks/}
   sounds/  components/  frames/  procedures/  assets/<library>/     # optional, plus any other domaiNN content
   series/<s>/
-    <s>_scope_NN.md                        # the only series anchor (frontmatter `scope: true`)
+    <s>_coNNtent_NN.md                        # the only series anchor (frontmatter `scope: true`)
     shared/<kind>/  sounds/  components/  frames/  procedures/      # optional
     assets/<library>/                      # series-level media (bumper, logo, music, avatar images)
-    episodes/<slug>/
-      <slug>_coNNtent_<s>_NN.md        # the Video record and its script
+    assets/<slug>/
+      <slug>_coNNtent_NN.md        # the Video record and its script
       media/  animations/<project>/
       asset_plan.md
       description.md                        # the publication body

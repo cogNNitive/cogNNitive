@@ -220,10 +220,10 @@ const iSpecsDir = join(iRoot, 'specs')
 const iBlueprintsDir = join(iSpecsDir, 'bluepriNNts')
 const iKnowledgeDir = join(iRoot, 'kNNowledge')
 const iSeriesDir = join(iRoot, 'series', 'villabotijos-today')
-const EPISODE_REL = 'series/villabotijos-today/assets/new-episode/new-episode_video-script_NN.md'
+const EPISODE_REL = 'series/villabotijos-today/assets/new-episode/new-episode_coNNtent_NN.md'
 
-const VIDEO_BLUEPRINT_NAME = 'video-script_V_0-1-0'
-const VIDEO_BLUEPRINT_REL = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+const VIDEO_BLUEPRINT_NAME = 'coNNtent_V_0-1-0'
+const VIDEO_BLUEPRINT_REL = 'specs/bluepriNNts/coNNtent_V_0-1-0_NN.md'
 
 const VIDEO_BLUEPRINT = [
   '---',
@@ -378,9 +378,9 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     }
     await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
     await writeFile(
-      join(iSeriesDir, 'villabotijos-today_video-script_NN.md'),
+      join(iSeriesDir, 'villabotijos-today_coNNtent_NN.md'),
       seriesModel('villabotijos-today', 'Villabotijos Today'),
       'utf-8',
     )
@@ -464,8 +464,8 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     ])
 
     expect(res.success).toBe(true)
-    expect(existsSync(join(iRoot, 'series/new-series/new-series_video-script_NN.md'))).toBe(true)
-    expect(existsSync(join(iRoot, 'series/new-series/assets/intro/intro_video-script_NN.md'))).toBe(true)
+    expect(existsSync(join(iRoot, 'series/new-series/new-series_coNNtent_NN.md'))).toBe(true)
+    expect(existsSync(join(iRoot, 'series/new-series/assets/intro/intro_coNNtent_NN.md'))).toBe(true)
     expect(Object.keys(res.models!).sort()).toEqual(['new-series', 'new-series/intro'])
   })
 
@@ -490,7 +490,7 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
 
   it('an existing id is a conflict and the file stays byte-identical', async () => {
     const path = await writeInstanceFile(
-      'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md',
+      'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_coNNtent_NN.md',
       videoModel('pepper-mapache', 'Pepper Mapache', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
     )
     const before = await readFile(path, 'utf-8')
@@ -518,7 +518,7 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     // A stale non-model file where the instance would land: the id is free but
     // the path is taken, and add_model never overwrites a file.
     const path = await writeInstanceFile(
-      'series/villabotijos-today/assets/taken/taken_video-script_NN.md',
+      'series/villabotijos-today/assets/taken/taken_coNNtent_NN.md',
       'not a model\n',
     )
     const before = await readFile(path, 'utf-8')
@@ -548,7 +548,7 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
   it('a failed persist removes the folders it created', async () => {
     // A directory squatting on the second instance's staging path makes the
     // write throw after the first instance has been persisted.
-    await mkdir(join(iSeriesDir, 'assets', 'zeta', 'zeta_video-script.tmp'), { recursive: true })
+    await mkdir(join(iSeriesDir, 'assets', 'zeta', 'zeta_coNNtent.tmp'), { recursive: true })
 
     const outcome = await applyInstance([
       { ...ADD_EPISODE, id: 'c-01', target: 'villabotijos-today/new-a', name: 'New A' },
@@ -560,8 +560,8 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     if (!(outcome instanceof Error)) expect(outcome.success).toBe(false)
 
     expect(existsSync(join(iSeriesDir, 'assets', 'new-a'))).toBe(false)
-    expect(existsSync(join(iSeriesDir, 'new-a_video-script_NN.md'))).toBe(false)
-    expect(existsSync(join(iSeriesDir, 'zeta_video-script_NN.md'))).toBe(false)
+    expect(existsSync(join(iSeriesDir, 'new-a_coNNtent_NN.md'))).toBe(false)
+    expect(existsSync(join(iSeriesDir, 'zeta_coNNtent_NN.md'))).toBe(false)
     // The pre-existing folder the test created is not ours to delete.
     expect(existsSync(join(iSeriesDir, 'assets', 'zeta'))).toBe(true)
     expect(existsSync(join(iRoot, 'changes', '.lock'))).toBe(false)
@@ -580,7 +580,7 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     ])
 
     expect(res.success).toBe(true)
-    expect(await readdir(iKnowledgeDir)).toEqual(['acme_video-script_NN.md'])
+    expect(await readdir(iKnowledgeDir)).toEqual(['acme_coNNtent_NN.md'])
     expect(existsSync(join(iRoot, 'series', 'acme'))).toBe(false)
   })
 })
@@ -589,14 +589,14 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
 /* ── targeting and atomicity of instance changes (S6a.3) ─────────────────── */
 
 /** Two Videos with the same slug in different series: equal stems, distinct ids. */
-const PEPPER_REL = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md'
-const INTRO_A_REL = 'series/villabotijos-today/assets/intro/intro_video-script_NN.md'
-const INTRO_B_REL = 'series/innteresante/assets/intro/intro_video-script_NN.md'
+const PEPPER_REL = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_coNNtent_NN.md'
+const INTRO_A_REL = 'series/villabotijos-today/assets/intro/intro_coNNtent_NN.md'
+const INTRO_B_REL = 'series/innteresante/assets/intro/intro_coNNtent_NN.md'
 
 async function writeThreeVideos(): Promise<Record<string, string>> {
   await mkdir(join(iRoot, 'series', 'innteresante'), { recursive: true })
   await writeFile(
-    join(iRoot, 'series', 'innteresante', 'innteresante_video-script_NN.md'),
+    join(iRoot, 'series', 'innteresante', 'innteresante_coNNtent_NN.md'),
     seriesModel('innteresante', 'Innteresante'),
     'utf-8',
   )
@@ -626,9 +626,9 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
     }
     await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
     await writeFile(
-      join(iSeriesDir, 'villabotijos-today_video-script_NN.md'),
+      join(iSeriesDir, 'villabotijos-today_coNNtent_NN.md'),
       seriesModel('villabotijos-today', 'Villabotijos Today'),
       'utf-8',
     )
@@ -707,7 +707,7 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
       {
         id: 'c-01',
         op: 'update_field',
-        target: 'pepper-mapache_video-script@00-gancho&voice',
+        target: 'pepper-mapache_coNNtent@00-gancho&voice',
         from: 'warm',
         to: 'raspy',
       },
@@ -842,7 +842,7 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
 
   it('a misplaced instance aborts before any write', async () => {
     const misplaced = await writeInstanceFile(
-      'series/villabotijos-today/videos/intro/intro_video-script_NN.md',
+      'series/villabotijos-today/videos/intro/intro_coNNtent_NN.md',
       videoModel('intro', 'Intro', { name: '00 Gancho', slug: '00-gancho', voice: 'warm' }),
     )
     const before = await readFile(misplaced, 'utf-8')
@@ -936,10 +936,10 @@ describe('move_model of an instance (distributed-storage S6b)', () => {
     }
     await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
     await writeFile(join(iBlueprintsDir, 'plain_V_0-1-0_NN.md'), PLAIN_BLUEPRINT, 'utf-8')
-    await writeFile(join(iSeriesDir, 'villabotijos-today_video-script_NN.md'), seriesModel('villabotijos-today', 'Villabotijos Today'), 'utf-8')
-    await writeFile(join(OTHER_SERIES_DIR, 'otra_video-script_NN.md'), seriesModel('otra', 'Otra'), 'utf-8')
+    await writeFile(join(iSeriesDir, 'villabotijos-today_coNNtent_NN.md'), seriesModel('villabotijos-today', 'Villabotijos Today'), 'utf-8')
+    await writeFile(join(OTHER_SERIES_DIR, 'otra_coNNtent_NN.md'), seriesModel('otra', 'Otra'), 'utf-8')
     await writeFile(join(iKnowledgeDir, 'notes_NN.md'), PLAIN_MODEL, 'utf-8')
   })
 
@@ -1002,7 +1002,7 @@ describe('move_model of an instance (distributed-storage S6b)', () => {
     const res = await applyInstance([MOVE_INTRO_TO_WELCOME])
 
     expect(res.success).toBe(true)
-    const newRel = 'series/villabotijos-today/assets/welcome/welcome_video-script_NN.md'
+    const newRel = 'series/villabotijos-today/assets/welcome/welcome_coNNtent_NN.md'
     expect(existsSync(join(iRoot, newRel))).toBe(true)
     expect(existsSync(paths.introA!)).toBe(false)
     expect(existsSync(join(iSeriesDir, 'assets', 'intro'))).toBe(false)
@@ -1030,7 +1030,7 @@ describe('move_model of an instance (distributed-storage S6b)', () => {
     ])
 
     expect(res.success).toBe(true)
-    const movedRel = 'series/otra/assets/intro/intro_video-script_NN.md'
+    const movedRel = 'series/otra/assets/intro/intro_coNNtent_NN.md'
     expect(existsSync(join(iRoot, movedRel))).toBe(true)
     expect(existsSync(paths.introB!)).toBe(false)
     expect(await readFile(join(iRoot, movedRel), 'utf-8')).toBe(before)
@@ -1153,11 +1153,11 @@ const xSpecsDir = join(xRoot, 'specs')
 const xBlueprintsDir = join(xSpecsDir, 'bluepriNNts')
 const xKnowledgeDir = join(xRoot, 'kNNowledge')
 const xSeriesDir = join(xRoot, 'series', 'innteresante')
-const xSeriesModelRel = 'series/innteresante/innteresante_video-script_NN.md'
+const xSeriesModelRel = 'series/innteresante/innteresante_coNNtent_NN.md'
 
 const REGISTRY_REL = 'kNNowledge/InnteresanteVideos_NN.md'
-const INTRO_X_REL = 'series/innteresante/assets/intro/intro_video-script_NN.md'
-const NUEVO_X_REL = 'series/innteresante/assets/nuevo/nuevo_video-script_NN.md'
+const INTRO_X_REL = 'series/innteresante/assets/intro/intro_coNNtent_NN.md'
+const NUEVO_X_REL = 'series/innteresante/assets/nuevo/nuevo_coNNtent_NN.md'
 
 /** The S6a blueprint plus one `Video` field and the Video -> Scene -> Layer taxonomy. */
 const EXTRACT_BLUEPRINT = VIDEO_BLUEPRINT.replace(
@@ -1263,7 +1263,7 @@ describe('extract_instance of a compact element (distributed-storage S6d)', () =
     }
     await writeFile(join(xSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(xSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(xBlueprintsDir, 'video-script_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
+    await writeFile(join(xBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
     await writeFile(join(xRoot, xSeriesModelRel), seriesModel('innteresante', 'Innteresante'), 'utf-8')
     await writeFile(join(xRoot, REGISTRY_REL), REGISTRY_MODEL, 'utf-8')
   })

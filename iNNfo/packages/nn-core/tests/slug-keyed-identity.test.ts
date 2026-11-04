@@ -5,8 +5,8 @@ const FRONT = `---
 spec_version: "V_0-3-0"
 level: 3
 parent_spec:
-  name: video-script_V_0-15-0
-  url: https://example.com/video-script_V_0-15-0_NN.md
+  name: coNNtent_V_0-15-0
+  url: https://example.com/coNNtent_V_0-15-0_NN.md
 ---
 `
 
@@ -22,7 +22,7 @@ slug:: gancho-presenter-a
 ## NN Layer: Gancho Presenter
 slug:: gancho-presenter-b
 `
-    const r = normalizeSingleKnowledge(md, 'intro_video-script_NN.md', 'intro_video-script')
+    const r = normalizeSingleKnowledge(md, 'intro_coNNtent_NN.md', 'intro_coNNtent')
     expect(elementsOf(r).map((n) => n.slug).sort()).toEqual(['gancho-presenter-a', 'gancho-presenter-b'])
     expect(r.issues.filter((i) => i.severity === 'error' || i.severity === undefined)).toEqual([])
   })
@@ -35,7 +35,7 @@ slug:: same
 ## NN Layer: Two
 slug:: same
 `
-    const r = normalizeSingleKnowledge(md, 'intro_video-script_NN.md', 'intro_video-script', undefined, {
+    const r = normalizeSingleKnowledge(md, 'intro_coNNtent_NN.md', 'intro_coNNtent', undefined, {
       modelId: 'villa/intro',
     })
     const errors = r.issues.filter((i) => i.severity === 'error')

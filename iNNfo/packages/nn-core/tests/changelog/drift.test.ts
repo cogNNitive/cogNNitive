@@ -305,7 +305,7 @@ voice:: warm
 `
 
   const registryChanges = [
-    { id: 'c-01', op: 'add_model', target: 'InnteresanteVideos', blueprint_name: 'video-script_V_0-1-0' },
+    { id: 'c-01', op: 'add_model', target: 'InnteresanteVideos', blueprint_name: 'coNNtent_V_0-1-0' },
     { id: 'c-02', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Intro', resolved_target: 'InnteresanteVideos@intro' },
     { id: 'c-03', op: 'add_element', target: 'InnteresanteVideos@Video', name: 'Nuevo', resolved_target: 'InnteresanteVideos@nuevo' },
     { id: 'c-04', op: 'add_element', target: 'InnteresanteVideos@Scene', name: '00 Gancho', resolved_target: 'InnteresanteVideos@00-gancho' },

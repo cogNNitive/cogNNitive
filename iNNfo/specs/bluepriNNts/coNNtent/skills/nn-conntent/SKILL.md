@@ -163,7 +163,7 @@ below is what `produce` does; the primitive commands are for debugging a single 
 | `scripts/asset-cost-estimator.mjs` | Pre-generation provider options catalog, per-scene character/layer calculator, and production cost estimator. |
 | `scripts/lib/compile.mjs` | The compile primitive: validates, resolves the cascade, synthesizes missing assets, stages them and writes `hyperframes/manifest.json`. `--dry-run` previews spend. |
 | `scripts/lib/render.mjs` | The render primitive: takes the script, compiles, and writes the master in place. The size comes from `output_formats`. |
-| `scripts/lib/series-doc.mjs` | Reads a Series' `<series>_scope_NN.md` document (title, slug, fields). |
+| `scripts/lib/series-doc.mjs` | Reads a Series' `<series>_coNNtent_NN.md` document (title, slug, fields). |
 | `scripts/prune-duplicates.mjs` | Reports (or, with `--apply`, deletes) episode files whose exact bytes and extension already exist in the provider cache. The cache entry is never touched. |
 | `scripts/render-formats.mjs` | The one derivation from the master: `_1080x1920` and `_1920x1080` are the central 1080 crops, `_1080x1080` is a lanczos scale, and `--fill blur` is an opt-in with a `_blur` suffix. |
 | `scripts/render-thumbnail.mjs` | Programmatic thumbnail compositor: renders a one-frame HyperFrames composition (base image + typography + brand pill) through the pinned CLI. `--series <dir>` (or the cascade from `--out`) fills subtitle/badge from the Series `title`; font/accent come from the resolved `frame` tokens. |

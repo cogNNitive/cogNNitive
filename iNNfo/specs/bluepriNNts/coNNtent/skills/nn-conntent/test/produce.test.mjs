@@ -44,7 +44,7 @@ title: "Probe episode"
 # NN Video
 
 ## NN Video: Probe
-slug:: probe
+slug:: e
 title:: Probe
 status:: ${status}${budget === null ? '' : `\nbudget:: ${budget}`}
 script_review:: ${review}
@@ -70,17 +70,24 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
   );
   fs.copyFileSync(path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'), path.join(root, 'video-defaults_NN.md'));
   fs.mkdirSync(path.join(root, 'changes'), { recursive: true });
+  // The distributed blueprint chain resolves down to the level-0 leaf; there is no
+  // network in tests, and the registry only covers a spec whose parent is a URL.
+  fs.writeFileSync(
+    path.join(root, 'specs', 'defiNNe_V_0-1-0_NN.md'),
+    '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "L0"\n---\n\n# NN DefiNNition\n',
+    'utf8',
+  );
   const seriesDir = path.join(root, 'series', 's');
-  const episode = path.join(seriesDir, 'episodes', 'e');
+  const episode = path.join(seriesDir, 'assets', 'e');
   fs.mkdirSync(episode, { recursive: true });
   if (series) {
     fs.writeFileSync(
-      path.join(seriesDir, 's_series_NN.md'),
+      path.join(seriesDir, 's_coNNtent_NN.md'),
       '---\nlevel: 3\nscope: true\nparent_spec:\n  name: "coNNtent_V_0-15-0"\n  url: "https://example.invalid/coNNtent/spec_NN.md"\ntitle: "S"\n---\n\n# NN Series\n\n## NN Series: S\nslug:: s\nlanguage:: es\n',
       'utf8',
     );
   }
-  const scriptPath = path.join(episode, 'e_coNNtent_s_NN.md');
+  const scriptPath = path.join(episode, 'e_coNNtent_NN.md');
   fs.writeFileSync(scriptPath, doc, 'utf8');
   return { root, episode, scriptPath };
 }
@@ -364,9 +371,9 @@ author: "agent"
 
 ## NN Change: c-01
 op:: update_field
-target:: e_coNNtent_s@probe&bogus_key
+target:: s/e@e&bogus_key
 to:: "nope"
-evidence:: series/s/episodes/e/e_coNNtent_s_NN.md@## NN Scene: One
+evidence:: decision
 `,
       'utf8',
     );
@@ -402,9 +409,9 @@ author: "agent"
 
 ## NN Change: c-01
 op:: update_field
-target:: e_coNNtent_s@one&kind
+target:: s/e@one&kind
 to:: "Libre"
-evidence:: series/s/episodes/e/e_coNNtent_s_NN.md@## NN Scene: One
+evidence:: decision
 `,
       'utf8',
     );

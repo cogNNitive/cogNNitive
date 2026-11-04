@@ -228,9 +228,9 @@ const mChangesDir = join(mRoot, 'changes')
 const mSpecsDir = join(mRoot, 'specs')
 const mSeriesDir = join(mRoot, 'series', 'villabotijos-today')
 const mAssetsDir = join(mSeriesDir, 'assets')
-const INTRO_PATH = join(mAssetsDir, 'intro', 'intro_video-script_NN.md')
+const INTRO_PATH = join(mAssetsDir, 'intro', 'intro_coNNtent_NN.md')
 const WELCOME_DIR = join(mAssetsDir, 'welcome')
-const WELCOME_PATH = join(WELCOME_DIR, 'welcome_video-script_NN.md')
+const WELCOME_PATH = join(WELCOME_DIR, 'welcome_coNNtent_NN.md')
 
 const MOVE_BLUEPRINT = [
   '---',
@@ -263,8 +263,8 @@ const MOVE_SERIES = [
   'title: "Villabotijos Today"',
   'knowledge_version: "V_0-1-0"',
   'parent_spec:',
-  '  name: "video-script_V_0-1-0"',
-  '  url: "specs/bluepriNNts/video-script_V_0-1-0_NN.md"',
+  '  name: "coNNtent_V_0-1-0"',
+  '  url: "specs/bluepriNNts/coNNtent_V_0-1-0_NN.md"',
   '---',
   '',
   '# NN Series',
@@ -280,8 +280,8 @@ const MOVE_INTRO = [
   'title: "Intro"',
   'knowledge_version: "V_0-1-0"',
   'parent_spec:',
-  '  name: "video-script_V_0-1-0"',
-  '  url: "specs/bluepriNNts/video-script_V_0-1-0_NN.md"',
+  '  name: "coNNtent_V_0-1-0"',
+  '  url: "specs/bluepriNNts/coNNtent_V_0-1-0_NN.md"',
   '---',
   '',
   '# NN Video',
@@ -323,8 +323,8 @@ describe('move_model persistence is crash safe (distributed-storage S6b)', () =>
       '---\nspec_version: "V_0-7-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
       'utf-8',
     )
-    await writeFile(join(mSpecsDir, 'bluepriNNts', 'video-script_V_0-1-0_NN.md'), MOVE_BLUEPRINT, 'utf-8')
-    await writeFile(join(mSeriesDir, 'villabotijos-today_video-script_NN.md'), MOVE_SERIES, 'utf-8')
+    await writeFile(join(mSpecsDir, 'bluepriNNts', 'coNNtent_V_0-1-0_NN.md'), MOVE_BLUEPRINT, 'utf-8')
+    await writeFile(join(mSeriesDir, 'villabotijos-today_coNNtent_NN.md'), MOVE_SERIES, 'utf-8')
     await writeFile(INTRO_PATH, MOVE_INTRO, 'utf-8')
     await writeMoveChangeset()
   })
@@ -344,7 +344,7 @@ describe('move_model persistence is crash safe (distributed-storage S6b)', () =>
     await expect(applyChange(mRoot, 'changes/move_changes_NN.md')).rejects.toThrow(/simulated lock/)
     expect(await readFile(INTRO_PATH, 'utf-8')).toBe(MOVE_INTRO)
     expect(existsSync(WELCOME_DIR)).toBe(false)
-    expect(existsSync(join(mAssetsDir, 'intro', 'intro_video-script.tmp'))).toBe(false)
+    expect(existsSync(join(mAssetsDir, 'intro', 'intro_coNNtent.tmp'))).toBe(false)
 
     // The lock is released and the move can be retried.
     injected.renameFailure = null

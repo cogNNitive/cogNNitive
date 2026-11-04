@@ -11,48 +11,48 @@ import { parseChangeset } from '../src/changeset/parser'
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 const read = (relative: string) => readFileSync(join(specsRoot, relative), 'utf-8')
 
-const VIDEO_SCRIPT = read('bluepriNNts/video-script/spec_NN.md')
+const CONNTENT = read('bluepriNNts/coNNtent/spec_NN.md')
 
-/** The declarations the SHIPPED `video-script` bluepriNNt carries, not a test double. */
+/** The declarations the SHIPPED `coNNtent` bluepriNNt carries, not a test double. */
 const declared = ((): ReadonlyMap<string, ConceptStorage> => {
-  const schema = extractBlueprintSchemaFromContent(VIDEO_SCRIPT)
+  const schema = extractBlueprintSchemaFromContent(CONNTENT)
   return new Map<string, ConceptStorage>(schema.concepts.map((c) => [c.name, c.storage ?? { mode: 'compact' }]))
 })()
 
 const storageOf = (concept: string): ConceptStorage | undefined => declared.get(concept)
 
-/** Resolves video-script to its real declarations; every other bluepriNNt declares nothing. */
+/** Resolves coNNtent to its real declarations; every other bluepriNNt declares nothing. */
 const resolver = ({ name }: { name: string }) =>
-  blueprintNameOf(name).toLowerCase() === 'video-script' ? declared : new Map<string, ConceptStorage>()
+  blueprintNameOf(name).toLowerCase() === 'conntent' ? declared : new Map<string, ConceptStorage>()
 
 function model(
   path: string,
   elements: ReadonlyArray<[concept: string, slug: string]>,
-  pin = 'video-script_V_0-15-0',
+  pin = 'coNNtent_V_0-15-0',
 ): DomainModelInput {
   return {
     path,
-    frontmatter: { level: 3, parent_spec: { name: pin, url: 'specs/bluepriNNts/video-script/spec_NN.md' } },
+    frontmatter: { level: 3, parent_spec: { name: pin, url: 'specs/bluepriNNts/coNNtent/spec_NN.md' } },
     elements: elements.map(([concept, slug]) => ({ concept, slug })),
   }
 }
 
 const seriesModel = (slug: string, pin?: string) =>
-  model(`series/${slug}/${slug}_video-script_NN.md`, [['Series', slug]], pin)
+  model(`series/${slug}/${slug}_coNNtent_NN.md`, [['Series', slug]], pin)
 const episodeModel = (
   series: string,
   slug: string,
   extra: ReadonlyArray<[string, string]> = [],
   pin?: string,
-) => model(`series/${series}/assets/${slug}/${slug}_video-script_NN.md`, [['Video', slug], ...extra], pin)
+) => model(`series/${series}/assets/${slug}/${slug}_coNNtent_NN.md`, [['Video', slug], ...extra], pin)
 
 const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
 
-describe('video-script declares its storage (video-blueprint; design A16, section 5)', () => {
+describe('coNNtent declares its storage (video-blueprint; design A16, section 5)', () => {
   it('pins bluepriNNt V_0-15-0 against iNNfo V_0-7-0', () => {
-    expect(VIDEO_SCRIPT).toMatch(/^blueprint_version: "V_0-15-0"$/m)
-    expect(VIDEO_SCRIPT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
+    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-15-0"$/m)
+    expect(CONNTENT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 
   it('declares Series and Video distributed, with the Video nested in its Series', () => {
@@ -93,7 +93,7 @@ describe('episodes follow the declared placement (placement-validation)', () => 
   })
 
   it('reports PLACEMENT_MISMATCH for an episode under kNNowledge/', () => {
-    const misplaced = model('kNNowledge/pepper-mapache_video-script_NN.md', [['Video', 'pepper-mapache']])
+    const misplaced = model('kNNowledge/pepper-mapache_coNNtent_NN.md', [['Video', 'pepper-mapache']])
     const [finding] = buildDomainIndex([misplaced], resolver).diagnostics
     expect(finding.code).toBe('PLACEMENT_MISMATCH')
     expect(finding.severity).toBe('error')
@@ -102,7 +102,7 @@ describe('episodes follow the declared placement (placement-validation)', () => 
 
   it('reports double storage when the same Video is also a registry element', () => {
     const instance = episodeModel('villabotijos-today', 'pepper-mapache')
-    const registry = model('kNNowledge/VillabotijosToday_video-script_NN.md', [['Video', 'pepper-mapache']])
+    const registry = model('kNNowledge/VillabotijosToday_coNNtent_NN.md', [['Video', 'pepper-mapache']])
     const [finding] = buildDomainIndex([seriesModel('villabotijos-today'), instance, registry], resolver).diagnostics
     expect(finding.code).toBe('DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL')
     expect(finding.paths).toEqual([registry.path, instance.path])
@@ -110,7 +110,7 @@ describe('episodes follow the declared placement (placement-validation)', () => 
   })
 })
 
-describe('Scenes and Layers are elements, not models (video-script-model)', () => {
+describe('Scenes and Layers are elements, not models (coNNtent-model)', () => {
   const domain = () =>
     buildDomainIndex(
       [
@@ -146,7 +146,7 @@ describe('Scenes and Layers are elements, not models (video-script-model)', () =
   })
 
   it('rejects a second Video in one script (one Video per script)', () => {
-    const two = model('series/villabotijos-today/assets/intro/intro_video-script_NN.md', [
+    const two = model('series/villabotijos-today/assets/intro/intro_coNNtent_NN.md', [
       ['Video', 'intro'],
       ['Video', 'outro'],
     ])
@@ -159,15 +159,15 @@ describe('Scenes and Layers are elements, not models (video-script-model)', () =
 
 describe('existing episodes pinning other versions (video-blueprint; placement-validation)', () => {
   it('reports a V_0-14-1 episode among V_0-15-0 as skew and leaves its pin untouched', () => {
-    const old = episodeModel('villabotijos-today', 'intro', [], 'video-script_V_0-14-1')
+    const old = episodeModel('villabotijos-today', 'intro', [], 'coNNtent_V_0-14-1')
     const current = episodeModel('villabotijos-today', 'nuevo')
     const index = buildDomainIndex([seriesModel('villabotijos-today'), old, current], resolver)
     const finding = index.diagnostics.find((d) => d.code === 'BLUEPRINT_VERSION_SKEW')
     expect(finding).toBeDefined()
-    expect(finding!.message).toContain('bluepriNNt "video-script"')
+    expect(finding!.message).toContain('bluepriNNt "coNNtent"')
     expect(finding!.paths).toContain(old.path)
     expect(finding!.paths).toContain(current.path)
-    expect(index.byPath(old.path)?.blueprint).toEqual({ name: 'video-script', version: 'V_0-14-1' })
+    expect(index.byPath(old.path)?.blueprint).toEqual({ name: 'coNNtent', version: 'V_0-14-1' })
   })
 
   it('reports no placement finding for a model pinning a non-declaring bluepriNNt', () => {

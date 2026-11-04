@@ -3,7 +3,7 @@
  * `format.ts`. Pure and browser-safe: no `fs`, no `path`.
  */
 
-/** Model-id head: a compact stem or a top-level instance slug (`LC_programas_Tutorias`, `intro_video-script`). */
+/** Model-id head: a compact stem or a top-level instance slug (`LC_programas_Tutorias`, `intro_coNNtent`). */
 export const HEAD = '[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*'
 /**
  * Element, matrix, row and column slug; also every model-id segment after the head.

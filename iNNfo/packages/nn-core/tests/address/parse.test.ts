@@ -30,7 +30,7 @@ describe('parseAddress - valid addresses (unified-reference-grammar: One grammar
   })
 
   it('treats a stem with a blueprint suffix as a syntactically valid id', () => {
-    expect(ok('intro_video-script')).toEqual({ kind: 'model', model: 'intro_video-script' })
+    expect(ok('intro_coNNtent')).toEqual({ kind: 'model', model: 'intro_coNNtent' })
   })
 
   it('parses an element without a field', () => {

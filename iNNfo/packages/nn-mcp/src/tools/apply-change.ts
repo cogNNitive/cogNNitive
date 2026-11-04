@@ -1323,7 +1323,7 @@ export async function executeChangesetApply(
         }
       }
       // The index resolves declarations by the pinned bluepriNNt NAME, which keeps its
-      // version token (`video-script_V_0-1-0`); a version-less name resolves empty.
+      // version token (`coNNtent_V_0-1-0`); a version-less name resolves empty.
       const blueprintName = parent?.name ?? from.blueprint.name
       const placed = domainIndex.placementFor(concept, toId, blueprintName)
       if (!('folder' in placed)) {

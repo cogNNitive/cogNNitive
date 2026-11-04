@@ -159,10 +159,10 @@ const iChangesDir = join(iRoot, 'changes')
 const iSpecsDir = join(iRoot, 'specs')
 const iBlueprintsDir = join(iSpecsDir, 'bluepriNNts')
 const iSeriesDir = join(iRoot, 'series', 'villabotijos-today')
-const EPISODE_REL = 'series/villabotijos-today/assets/new-episode/new-episode_video-script_NN.md'
+const EPISODE_REL = 'series/villabotijos-today/assets/new-episode/new-episode_coNNtent_NN.md'
 
-const VIDEO_BLUEPRINT_NAME = 'video-script_V_0-1-0'
-const VIDEO_BLUEPRINT_REL = 'specs/bluepriNNts/video-script_V_0-1-0_NN.md'
+const VIDEO_BLUEPRINT_NAME = 'coNNtent_V_0-1-0'
+const VIDEO_BLUEPRINT_REL = 'specs/bluepriNNts/coNNtent_V_0-1-0_NN.md'
 
 const VIDEO_BLUEPRINT = [
   '---',
@@ -283,9 +283,9 @@ describe('strict provenance of instance models (distributed-storage S6a)', () =>
     for (const dir of [iChangesDir, iBlueprintsDir, iSeriesDir]) await mkdir(dir, { recursive: true })
     await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(iBlueprintsDir, 'video-script_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
     await writeFile(
-      join(iSeriesDir, 'villabotijos-today_video-script_NN.md'),
+      join(iSeriesDir, 'villabotijos-today_coNNtent_NN.md'),
       seriesModel('villabotijos-today', 'Villabotijos Today'),
       'utf-8',
     )
@@ -419,7 +419,7 @@ describe('strict provenance of instance models (distributed-storage S6a)', () =>
   it('reports an instance with no recorded creation as not strictly checkable', async () => {
     const dir = join(iRoot, 'series', 'villabotijos-today', 'assets', 'hand-made')
     await mkdir(dir, { recursive: true })
-    await writeFile(join(dir, 'hand-made_video-script_NN.md'), UNRECORDED_VIDEO, 'utf-8')
+    await writeFile(join(dir, 'hand-made_coNNtent_NN.md'), UNRECORDED_VIDEO, 'utf-8')
 
     const strict = await checkDomainProvenance(iRoot, { strict: true })
     const unrecorded = strict.diagnostics.filter((d) => d.code === 'MODEL_WITHOUT_RECORD')
@@ -437,8 +437,8 @@ const xChangesDir = join(xRoot, 'changes')
 const xSpecsDir = join(xRoot, 'specs')
 const xBlueprintsDir = join(xSpecsDir, 'bluepriNNts')
 const xSeriesDir = join(xRoot, 'series', 'innteresante')
-const xRegistryRel = 'kNNowledge/InnteresanteVideos_video-script_NN.md'
-const xIntroRel = 'series/innteresante/assets/intro/intro_video-script_NN.md'
+const xRegistryRel = 'kNNowledge/InnteresanteVideos_coNNtent_NN.md'
+const xIntroRel = 'series/innteresante/assets/intro/intro_coNNtent_NN.md'
 
 /** The S6a blueprint plus a `status` select on Video, so a value can be checked. */
 const EXTRACT_BLUEPRINT = VIDEO_BLUEPRINT.replace(
@@ -474,7 +474,7 @@ const CREATE_REGISTRY: ChangeItem[] = [
 const EXTRACT_INTRO: ChangeItem = {
   id: 'c-01',
   op: 'extract_instance',
-  target: 'InnteresanteVideos_video-script@intro',
+  target: 'InnteresanteVideos_coNNtent@intro',
   to: 'innteresante/intro',
   blueprint_name: VIDEO_BLUEPRINT_NAME,
   blueprint_url: VIDEO_BLUEPRINT_REL,
@@ -505,8 +505,8 @@ describe('strict replay of an extracted instance (distributed-storage S6d)', () 
     for (const dir of [xChangesDir, xBlueprintsDir, xSeriesDir, join(xRoot, 'kNNowledge')]) await mkdir(dir, { recursive: true })
     await writeFile(join(xSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeFile(join(xSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
-    await writeFile(join(xBlueprintsDir, 'video-script_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
-    await writeFile(join(xSeriesDir, 'innteresante_video-script_NN.md'), seriesModel('innteresante', 'Innteresante'), 'utf-8')
+    await writeFile(join(xBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), EXTRACT_BLUEPRINT, 'utf-8')
+    await writeFile(join(xSeriesDir, 'innteresante_coNNtent_NN.md'), seriesModel('innteresante', 'Innteresante'), 'utf-8')
   })
 
   afterEach(async () => {

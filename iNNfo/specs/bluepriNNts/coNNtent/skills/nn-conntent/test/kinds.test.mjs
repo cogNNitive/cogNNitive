@@ -68,8 +68,8 @@ function fixture() {
   fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
   const series = path.join(root, 'series', 'test');
   fs.mkdirSync(series, { recursive: true });
-  fs.writeFileSync(path.join(series, 'test_series_NN.md'), seriesDoc, 'utf8');
-  const episode = path.join(series, 'episodes', 'ep');
+  fs.writeFileSync(path.join(series, 'test_coNNtent_NN.md'), seriesDoc, 'utf8');
+  const episode = path.join(series, 'assets', 'ep');
   fs.mkdirSync(episode, { recursive: true });
   return { root, episode };
 }

@@ -10,7 +10,7 @@ const BLUEPRINT = [
   '---',
   'level: 2',
   'title: "Video Script"',
-  'blueprint_name: "video-script"',
+  'blueprint_name: "coNNtent"',
   'blueprint_version: "V_0-1-0"',
   '---',
   '',
@@ -31,7 +31,7 @@ const BLUEPRINT = [
   '',
 ].join('\n')
 
-function model(blueprintUrl: string, concept: string, name: string, bp = 'video-script_V_0-1-0'): string {
+function model(blueprintUrl: string, concept: string, name: string, bp = 'coNNtent_V_0-1-0'): string {
   return [
     '---',
     'level: 3',
@@ -53,7 +53,7 @@ describe('buildNodeDomainIndex', () => {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'nn-domain-index-'))
     await mkdir(join(root, 'bp'), { recursive: true })
-    await writeFile(join(root, 'bp', 'video-script_NN.md'), BLUEPRINT, 'utf-8')
+    await writeFile(join(root, 'bp', 'coNNtent_NN.md'), BLUEPRINT, 'utf-8')
   })
   afterEach(async () => {
     await rm(root, { recursive: true, force: true })
@@ -65,11 +65,11 @@ describe('buildNodeDomainIndex', () => {
   }
 
   it('builds hierarchical ids for two series that each hold a Video named intro', async () => {
-    const url = 'bp/video-script_NN.md'
-    await put('series/villa/villa_video-script_NN.md', model(url, 'Series', 'villa'))
-    await put('series/innteresante/innteresante_video-script_NN.md', model(url, 'Series', 'innteresante'))
-    await put('series/villa/assets/intro/intro_video-script_NN.md', model(url, 'Video', 'intro'))
-    await put('series/innteresante/assets/intro/intro_video-script_NN.md', model(url, 'Video', 'intro'))
+    const url = 'bp/coNNtent_NN.md'
+    await put('series/villa/villa_coNNtent_NN.md', model(url, 'Series', 'villa'))
+    await put('series/innteresante/innteresante_coNNtent_NN.md', model(url, 'Series', 'innteresante'))
+    await put('series/villa/assets/intro/intro_coNNtent_NN.md', model(url, 'Video', 'intro'))
+    await put('series/innteresante/assets/intro/intro_coNNtent_NN.md', model(url, 'Video', 'intro'))
 
     const { index, pathOf } = await buildNodeDomainIndex(root)
     expect(index.models.map((m) => m.id)).toEqual([
@@ -78,7 +78,7 @@ describe('buildNodeDomainIndex', () => {
       'villa',
       'villa/intro',
     ])
-    expect(pathOf('villa/intro')).toBe(join(root, 'series', 'villa', 'assets', 'intro', 'intro_video-script_NN.md'))
+    expect(pathOf('villa/intro')).toBe(join(root, 'series', 'villa', 'assets', 'intro', 'intro_coNNtent_NN.md'))
     expect(pathOf('intro')).toBeNull()
   })
 
@@ -97,18 +97,18 @@ describe('buildNodeDomainIndex', () => {
   })
 
   it('resolves by hierarchical id only: a bare slug or stem does not resolve, a path throws, candidates are listed', async () => {
-    const url = 'bp/video-script_NN.md'
-    await put('series/villa/villa_video-script_NN.md', model(url, 'Series', 'villa'))
-    await put('series/innteresante/innteresante_video-script_NN.md', model(url, 'Series', 'innteresante'))
-    await put('series/villa/assets/intro/intro_video-script_NN.md', model(url, 'Video', 'intro'))
-    await put('series/innteresante/assets/intro/intro_video-script_NN.md', model(url, 'Video', 'intro'))
+    const url = 'bp/coNNtent_NN.md'
+    await put('series/villa/villa_coNNtent_NN.md', model(url, 'Series', 'villa'))
+    await put('series/innteresante/innteresante_coNNtent_NN.md', model(url, 'Series', 'innteresante'))
+    await put('series/villa/assets/intro/intro_coNNtent_NN.md', model(url, 'Video', 'intro'))
+    await put('series/innteresante/assets/intro/intro_coNNtent_NN.md', model(url, 'Video', 'intro'))
 
     expect(await findKnowledgeFile(root, 'villa/intro')).toBe(
-      join(root, 'series', 'villa', 'assets', 'intro', 'intro_video-script_NN.md'),
+      join(root, 'series', 'villa', 'assets', 'intro', 'intro_coNNtent_NN.md'),
     )
     expect(await findKnowledgeFile(root, 'intro')).toBeNull()
-    expect(await findKnowledgeFile(root, 'intro_video-script')).toBeNull()
-    await expect(readKnowledge(root, 'series/villa/assets/intro/intro_video-script_NN.md')).rejects.toMatchObject({
+    expect(await findKnowledgeFile(root, 'intro_coNNtent')).toBeNull()
+    await expect(readKnowledge(root, 'series/villa/assets/intro/intro_coNNtent_NN.md')).rejects.toMatchObject({
       code: 'MODEL_ADDRESSED_BY_PATH',
     })
 

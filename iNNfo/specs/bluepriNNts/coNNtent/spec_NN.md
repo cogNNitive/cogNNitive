@@ -3,8 +3,8 @@ spec_version: "V_0-5-0"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-5-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"
+  name: "iNNfo_V_0-7-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md"
 blueprint_name: "coNNtent"
 blueprint_version: "V_0-15-0"
 title: "coNNtent App"
@@ -22,7 +22,7 @@ validation:
   conditional_fields:
     avatar: [asset, prompt]
     media: [asset, prompt]
-    text: [text, source]
+    text: [text, text_from]
     animation: [asset]
 ---
 
@@ -48,6 +48,9 @@ icon:: clapperboard
 type:: list
 color:: blue
 weight:: 100
+storage:: distributed
+container:: Series
+placement:: "{container}/assets/{slug}/"
 
 ## NN Concept Definition: Scene
 slug:: scene
@@ -76,6 +79,8 @@ icon:: layers
 type:: list
 color:: teal
 weight:: 60
+storage:: distributed
+placement:: "series/{slug}/"
 
 ## NN Concept Definition: Scene Kind
 slug:: scene-kind
@@ -298,7 +303,7 @@ type:: select
 options:: [title, lower-third, caption, watermark, quote]
 description:: For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>.html`, episode → series → domain → skill fallback), so a Series can restyle it without a new type.
 
-## NN Field Definition: source
+## NN Field Definition: text_from
 concept:: Layer
 type:: select
 options:: [narration]
@@ -512,9 +517,10 @@ reach the document only through changesets applied by the apply engine.
 
 ## Structure
 
-- **Video** — exactly one per document. Carries the episode record (`status`,
-  `published_url`, `script`, `master`, `thumbnail`), the human `title` and the pinned
-  `blueprint_version` in the document frontmatter.
+- **Video** — a distributed concept: one Video instance model per episode, at
+  `series/<s>/assets/<slug>/<slug>_coNNtent_NN.md`, holding exactly one Video element.
+  Carries the episode record (`status`, `published_url`, `script`, `master`, `thumbnail`),
+  the human `title` and the pinned `blueprint_version` in the document frontmatter.
 - **Scene** — child of Video. Order equals the order of the `# NN index` list; no `order::`
   field exists. Its free-form prose BODY is the narration, synthesized by TTS and timed by
   the engine. It states a required `kind::` and may carry `review::`, `presets::` and the
@@ -528,8 +534,10 @@ reach the document only through changesets applied by the apply engine.
   CTA, bumper, music) applied by kind.
 - **Preset** — top-level Concept with no fields of its own. An element may carry only the
   Fields whose `concept::` lists `Preset`, plus the global `tags` and its reserved `slug`.
-- **Series** — a real series. Its scope document supplies the `series` cascade level, the
-  Scene Kinds and the Chrome elements.
+- **Series** — a distributed concept: one Series instance model per series, at
+  `series/<s>/<s>_coNNtent_NN.md`. That model IS the scope document: it carries frontmatter
+  `scope: true` and supplies the `series` cascade level, the Scene Kinds and the Chrome
+  elements. The engine recognises it by `scope: true`, never by file name.
 - **Video Defaults** — the `blueprint` and `domain` cascade levels; the only place where
   `daily_budget` is settable.
 - **Provider**, **Model**, **Voice** — the catalog schema. The package ships one reference
@@ -565,7 +573,7 @@ resolved value through the Universal Parameter Cascade.
 |----------|-------------------|
 | `avatar` | `asset` or `prompt` |
 | `media` | `asset` or `prompt` |
-| `text` | `text` or `source` |
+| `text` | `text` or `text_from` |
 | `animation` | `asset` |
 
 `avatar_model` is never required: it has a blueprint default. `style` is required on `text`
@@ -604,8 +612,8 @@ and the error names the replacement when one exists.
 
 ### Summary
 
-The root Concept: exactly one Video element per document, carrying the episode record and
-the script.
+The root Concept: exactly one Video element per Video instance model, carrying the episode
+record and the script.
 
 ### Description
 
@@ -618,7 +626,8 @@ the same document violates the one-video-per-script constraint.
 
 ### Methodologies
 
-- Keep exactly one Video element; it is the single entry point of the document.
+- Keep exactly one Video element per instance model; it is the single entry point of the
+  document.
 - Never add ordering, duration or timing fields to the Video.
 - Point `script`, `master` and `thumbnail` at one file each, resolved under the owning
   model's directory.
@@ -672,7 +681,7 @@ syntactic ownership, setting `parentSlug` to the parent Scene slug. Separate top
 The required `type::` selects `avatar`, `media`, `text` or `animation`; any other value is
 rejected with the four accepted types named and no alias. The fields a Layer accepts are
 conditional on `type::`. A `media` Layer declares `placement::` and `timing::`. A `text`
-Layer declares `style::` and exactly one of `text::` or `source:: narration`. An `animation`
+Layer declares `style::` and exactly one of `text::` or `text_from:: narration`. An `animation`
 Layer carries an `asset::` pointing at an authored HyperFrames project. Appearance — colour,
 typography, motion, shadow — comes from a Preset or from the named component, never from the
 type.
@@ -732,13 +741,14 @@ the format's Scene Kinds and Chrome.
 
 ### Description
 
-The episode's nearest ancestor holding a scope document — a `_NN.md` file with frontmatter
-`scope: true`, canonically `<s>_series_NN.md` — is its series root. That document supplies
-the `series` level of the Universal Parameter Cascade, the `Scene Kind` elements, the
-`Chrome` elements (one per language) and the series-level `language`, `budget` and
-`output_formats`. An episode outside a series folder (or a marker at the domain root) has no
-`series` level. A series folder holds at most one Series document. Legacy markers such as
-`series_NN.md` anchor nothing and supply no kinds.
+The episode's nearest ancestor holding a Series instance model — a `_NN.md` file with
+frontmatter `scope: true`, canonically `<s>_coNNtent_NN.md` — is its series root. That
+document supplies the `series` level of the Universal Parameter Cascade, the `Scene Kind`
+elements, the `Chrome` elements (one per language) and the series-level `language`, `budget`
+and `output_formats`. An episode outside a series folder (or a marker at the domain root)
+has no `series` level. A series folder holds at most one Series document. Legacy markers
+such as `series_NN.md` and the older `<s>_scope_NN.md` name anchor nothing and supply no
+kinds.
 
 ### Methodologies
 

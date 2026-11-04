@@ -157,8 +157,8 @@ describe('corpus scan: every shipped sample and fixture model uses addresses (S7
     const retired = videoCorpus.filter((file) => {
       const name = file.split(sep).pop() ?? ''
       if (/_scope_NN\.md$/.test(name)) return true
-      // `<slug>_video-script_<series>_NN.md` carried the series name in the instance stem.
-      return /_video-script_[a-z0-9][a-z0-9-]*_NN\.md$/.test(name) && !/^[a-z0-9-]+_video-script_NN\.md$/.test(name)
+      // `<slug>_coNNtent_<series>_NN.md` carried the series name in the instance stem.
+      return /_coNNtent_[a-z0-9][a-z0-9-]*_NN\.md$/.test(name) && !/^[a-z0-9-]+_coNNtent_NN\.md$/.test(name)
     })
     expect(retired.map((f) => relative(REPO_ROOT, f))).toEqual([])
   })

@@ -2,7 +2,7 @@ import type { ConceptStorage } from '../../src/schema/storage'
 import type { DomainModelInput, StorageDeclarationsResolver } from '../../src/domain/types'
 import { blueprintNameOf } from '../../src/naming/contract'
 
-/** The `video-script` shape of design A16: Series and Video distributed, Scene and Preset compact. */
+/** The `coNNtent` shape of design A16: Series and Video distributed, Scene and Preset compact. */
 export const VIDEO_SCRIPT: ReadonlyMap<string, ConceptStorage> = new Map<string, ConceptStorage>([
   ['Series', { mode: 'distributed', placement: 'series/{slug}/' }],
   ['Video', { mode: 'distributed', container: 'Series', placement: '{container}/assets/{slug}/' }],
@@ -10,10 +10,10 @@ export const VIDEO_SCRIPT: ReadonlyMap<string, ConceptStorage> = new Map<string,
   ['Preset', { mode: 'compact' }],
 ])
 
-/** Resolves `video-script`; `unresolvable` yields null; every other bluepriNNt declares no storage. */
+/** Resolves `coNNtent`; `unresolvable` yields null; every other bluepriNNt declares no storage. */
 export const resolver: StorageDeclarationsResolver = ({ name }) => {
   const bp = blueprintNameOf(name).toLowerCase()
-  if (bp === 'video-script') return VIDEO_SCRIPT
+  if (bp === 'conntent') return VIDEO_SCRIPT
   if (bp === 'unresolvable') return null
   return new Map()
 }
@@ -21,7 +21,7 @@ export const resolver: StorageDeclarationsResolver = ({ name }) => {
 export function model(
   path: string,
   elements: ReadonlyArray<[concept: string, slug: string]> = [],
-  parentSpec: Record<string, unknown> | string = { name: 'video-script_V_0-15-0' },
+  parentSpec: Record<string, unknown> | string = { name: 'coNNtent_V_0-15-0' },
 ): DomainModelInput {
   return {
     path,
@@ -31,7 +31,7 @@ export function model(
 }
 
 export const seriesModel = (slug: string) =>
-  model(`series/${slug}/${slug}_video-script_NN.md`, [['Series', slug]])
+  model(`series/${slug}/${slug}_coNNtent_NN.md`, [['Series', slug]])
 
 export const videoModel = (series: string, slug: string, extra: ReadonlyArray<[string, string]> = []) =>
-  model(`series/${series}/assets/${slug}/${slug}_video-script_NN.md`, [['Video', slug], ...extra])
+  model(`series/${series}/assets/${slug}/${slug}_coNNtent_NN.md`, [['Video', slug], ...extra])

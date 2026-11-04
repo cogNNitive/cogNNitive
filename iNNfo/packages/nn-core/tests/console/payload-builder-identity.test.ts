@@ -27,7 +27,7 @@ slug:: element-2a
 | Element 1A | high |
 `
 
-const PLACEMENT_PATH = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_video-script_NN.md'
+const PLACEMENT_PATH = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_coNNtent_NN.md'
 
 const cellChange = (modelId: string, id: string, evidence: string) => ({
   id,
@@ -65,7 +65,7 @@ describe('payload modelId is the domain index id', () => {
     // which no file name can express, so a caller WITHOUT an index gets the display stem and
     // nothing more. This is the documented standalone fallback, not an id producer.
     const payload = buildConsolePayload({ content: MODEL('Intro'), path: PLACEMENT_PATH })
-    expect(payload.model.meta.modelId).toBe('pepper-mapache_video-script')
+    expect(payload.model.meta.modelId).toBe('pepper-mapache_coNNtent')
     expect(payload.model.meta.modelId).not.toContain('/')
   })
 

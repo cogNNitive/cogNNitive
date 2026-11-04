@@ -1,7 +1,8 @@
 /**
  * nn-conntent/scripts/lib/series-doc.mjs
  *
- * Reads a Series' `<series>_scope_NN.md` scope document. The series scope document
+ * Reads a Series' `<series>_coNNtent_NN.md` Series instance model, which doubles as the
+ * scope document. The series scope document
  * is the only series-side input the engine needs outside the cascade: its title and
  * its identity. It outlived the draft pipeline (Slice 7b) because `render-thumbnail`
  * stamps the series title onto a thumbnail and the series root is what makes an
@@ -48,9 +49,10 @@ export function dropFrontmatterKeys(frontmatter, keys = MARKER_ONLY_KEYS) {
 }
 
 /**
- * The series document of a folder: its unique `<series>_scope_NN.md` scope
- * document. Returns null when there is none or the name is ambiguous. The legacy
- * `series_NN.md` is not a series document any more.
+ * The series document of a folder: its unique `<series>_coNNtent_NN.md` Series instance
+ * model, which doubles as the scope document. Returns null when there is none or the name
+ * is ambiguous. The legacy `<series>_scope_NN.md` and `series_NN.md` are not series
+ * documents any more.
  * @param {string} seriesDir
  * @returns {{ file: string, marker: boolean } | null}
  */
@@ -62,13 +64,13 @@ export function seriesDocumentFile(seriesDir) {
   } catch {
     return null;
   }
-  const markers = entries.filter((f) => f.endsWith('_scope_NN.md')).sort();
+  const markers = entries.filter((f) => f.endsWith('_coNNtent_NN.md')).sort();
   return markers.length === 1 ? { file: path.join(dir, markers[0]), marker: true } : null;
 }
 
 /**
- * Reads the Series document from a series folder (its `<series>_scope_NN.md`
- * scope document). Scope-only keys are dropped, and its slug comes from the
+ * Reads the Series document from a series folder (its `<series>_coNNtent_NN.md` Series
+ * instance model). Scope-only keys are dropped, and its slug comes from the
  * filename stem because a scope document declares no `slug::` field.
  * @param {string} seriesDir
  * @returns {{ frontmatter: string, slug: string, title: string, fields: Record<string, string> }}
@@ -77,7 +79,7 @@ export function loadSeriesDocument(seriesDir) {
   const found = seriesDocumentFile(seriesDir);
   if (!found) {
     throw new Error(
-      `no series document in ${path.resolve(seriesDir)}: expected a <series>_scope_NN.md scope document`,
+      `no series document in ${path.resolve(seriesDir)}: expected a <series>_coNNtent_NN.md Series instance model`,
     );
   }
   const content = fs.readFileSync(found.file, 'utf8');
@@ -85,7 +87,7 @@ export function loadSeriesDocument(seriesDir) {
   const el = (model.elements.Series || [])[0] || {};
   const fields = el.fields || {};
   const title = fields.title || model.frontmatter.title || el.name || '';
-  const fromStem = path.basename(found.file).replace(/_scope_NN\.md$/, '');
+  const fromStem = path.basename(found.file).replace(/_coNNtent_NN\.md$/, '');
   return {
     frontmatter: found.marker
       ? dropFrontmatterKeys(extractFrontmatter(content))

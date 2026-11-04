@@ -139,8 +139,8 @@ title: "Instance creation"
 op:: add_model
 target:: villabotijos-today/new-episode
 concept:: Video
-blueprint_name:: "video-script_V_0-15-0"
-blueprint_url:: "specs/bluepriNNts/video-script/spec_NN.md"
+blueprint_name:: "coNNtent_V_0-15-0"
+blueprint_url:: "specs/bluepriNNts/coNNtent/spec_NN.md"
 name:: "New Episode"
 evidence:: decision
 `

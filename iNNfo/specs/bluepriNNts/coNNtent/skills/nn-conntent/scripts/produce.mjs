@@ -51,7 +51,7 @@ export const EXIT_BUDGET = 11;
 export const EXIT_ERROR = 1;
 
 export const PROPOSAL_FILENAME = 'proposal_changes_NN.md';
-const EPISODE_DOC_RE = /_coNNtent_[a-z0-9-]+_NN\.md$/i;
+const EPISODE_DOC_RE = /_coNNtent_NN\.md$/i;
 
 /** The derivation preset whose dimensions are exactly `size`, or null. */
 function presetForSize(size) {
@@ -86,14 +86,28 @@ export function resolveEpisodePath(input) {
   if (docs.length !== 1) {
     throw new ProduceStop(
       'episode-document-not-found',
-      `Expected exactly one <slug>_coNNtent_<s>_NN.md in ${abs}, found ${docs.length}.`,
+      `Expected exactly one <slug>_coNNtent_NN.md in ${abs}, found ${docs.length}.`,
     );
   }
   return path.join(abs, docs[0]);
 }
 
-/** The model id the changeset target uses: the document stem without the `_NN` suffix. */
-export const modelIdOf = (scriptPath) => path.basename(scriptPath, '.md').replace(/_NN$/, '');
+/**
+ * The model id the changeset target uses. `Video` is a distributed concept, so an
+ * episode is an instance model addressed by its container chain and its own slug
+ * (`<series>/<episode>`), never by its file stem (`e_coNNtent`). A document that is not
+ * placed under `<container>/assets/<slug>/` keeps the compact-model rule: the stem.
+ */
+export const modelIdOf = (scriptPath) => {
+  const folder = path.dirname(scriptPath);
+  const slug = path.basename(folder);
+  const parent = path.basename(path.dirname(folder));
+  if (parent === 'assets') {
+    const container = path.basename(path.dirname(path.dirname(folder)));
+    if (container) return `${container}/${slug}`;
+  }
+  return path.basename(scriptPath, '.md').replace(/_NN$/, '');
+};
 
 /**
  * Intake: validate the proposal on a throwaway copy, then apply it for real and set

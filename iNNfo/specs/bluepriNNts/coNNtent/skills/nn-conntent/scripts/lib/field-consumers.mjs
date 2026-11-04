@@ -89,7 +89,7 @@ export const PLANNED_CONSUMERS = {
   thumbnail: '10',
   intro: '5',
   style: '5',
-  source: '5',
+  text_from: '5',
   placement: '5',
   timing: '5',
 };

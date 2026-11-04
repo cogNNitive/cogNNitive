@@ -8366,24 +8366,26 @@ var META_PATHS = 10;
 function pinOf(m) {
   const { name, url } = parentSpecOf(m.frontmatter);
   if (!name?.trim()) return null;
-  const blueprint = blueprintNameOf(name).toLowerCase();
+  const blueprint = blueprintNameOf(name);
+  const key = blueprint.toLowerCase();
   const token = versionTokenOf(name);
-  if (!token) return { blueprint, version: "unpinned", incomparable: "unpinned" };
+  if (!token) return { blueprint, key, version: "unpinned", incomparable: "unpinned" };
   const classifiable = !url?.trim() || parsePinnedUrl(url) !== null || parseUnversionedBlueprintName(url) !== null;
-  if (!classifiable) return { blueprint, version: "unclassifiable-url", incomparable: "unclassifiable-url" };
-  return { blueprint, version: token.toUpperCase() };
+  if (!classifiable) return { blueprint, key, version: "unclassifiable-url", incomparable: "unclassifiable-url" };
+  return { blueprint, key, version: token.toUpperCase() };
 }
 function versionSkew(models) {
   const groups = /* @__PURE__ */ new Map();
   for (const m of models) {
     const pin = pinOf(m);
     if (!pin) continue;
-    const members = groups.get(pin.blueprint) ?? [];
-    members.push({ path: m.path, version: pin.version, incomparable: pin.incomparable, concepts: m.concepts ?? [] });
-    groups.set(pin.blueprint, members);
+    const group = groups.get(pin.key) ?? { blueprint: pin.blueprint, members: [] };
+    group.members.push({ path: m.path, version: pin.version, incomparable: pin.incomparable, concepts: m.concepts ?? [] });
+    groups.set(pin.key, group);
   }
   const findings = [];
-  for (const [blueprint, members] of [...groups].sort(([a], [b]) => byText(a, b))) {
+  for (const [key, { blueprint, members }] of [...groups].sort(([a], [b]) => byText(a, b))) {
+    void key;
     const byVersion = /* @__PURE__ */ new Map();
     for (const { version, path: path4 } of members) byVersion.set(version, [...byVersion.get(version) ?? [], path4]);
     if (byVersion.size < 2) continue;

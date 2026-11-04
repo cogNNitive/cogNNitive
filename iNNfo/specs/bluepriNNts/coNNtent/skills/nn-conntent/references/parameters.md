@@ -57,7 +57,7 @@ Legend: ● can be written at this scope, · cannot.
 | `placement` | select | `full`, `inset` | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `timing` | select | `scene`, `slot` | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `style` | select | `title`, `lower-third`, `caption`, `watermark`, `quote` | · | · | · | · | · | · | ● | · | · | · | · | · |
-| `source` | select | `narration` | · | · | · | · | · | · | ● | · | · | · | · | · |
+| `text_from` | select | `narration` | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `asset` | file | — | · | · | ● | · | · | · | ● | · | · | · | · | · |
 | `prompt` | string | — | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `text` | markdown_inline | — | · | · | · | · | · | · | ● | · | · | · | · | · |
@@ -103,7 +103,7 @@ A Layer's `type::` decides which Fields it needs. At least one of the listed Fie
 |---|---|
 | `avatar` | `asset`, `prompt` |
 | `media` | `asset`, `prompt` |
-| `text` | `text`, `source` |
+| `text` | `text`, `text_from` |
 | `animation` | `asset` |
 
 ## Parameter details
@@ -300,7 +300,7 @@ For a `text` Layer: the visual component to render. The component implementation
 
 Settable at: `Layer`.
 
-### `source`
+### `text_from`
 
 For a `text` Layer: the reserved value `narration` renders the owning Scene's body prose. Mutually exclusive with `text`.
 

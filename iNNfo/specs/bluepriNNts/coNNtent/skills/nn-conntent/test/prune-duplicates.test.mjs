@@ -22,7 +22,7 @@ function fixture() {
   const cache = path.join(root, '.cognnitive', 'cache', 'video');
   fs.mkdirSync(path.join(cache, 'images'), { recursive: true });
   fs.mkdirSync(path.join(cache, 'tts'), { recursive: true });
-  const episode = path.join(root, 'series', 's', 'episodes', 'e');
+  const episode = path.join(root, 'series', 's', 'assets', 'e');
   fs.mkdirSync(path.join(episode, 'media'), { recursive: true });
 
   const cached = Buffer.from('identical-bytes');

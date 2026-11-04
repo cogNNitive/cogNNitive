@@ -36,7 +36,7 @@ test('the registry carries the blueprint identity and the conditional-fields tab
   assert.deepEqual(registry.conditional_fields, {
     avatar: ['asset', 'prompt'],
     media: ['asset', 'prompt'],
-    text: ['text', 'source'],
+    text: ['text', 'text_from'],
     animation: ['asset'],
   });
 });

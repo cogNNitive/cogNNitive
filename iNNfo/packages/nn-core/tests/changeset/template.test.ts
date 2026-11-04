@@ -172,8 +172,8 @@ title: "Create a Video instance"
 op:: add_model
 target:: villabotijos-today/new-episode
 concept:: Video
-blueprint_name:: "video-script_V_0-15-0"
-blueprint_url:: "specs/bluepriNNts/video-script/spec_NN.md"
+blueprint_name:: "coNNtent_V_0-15-0"
+blueprint_url:: "specs/bluepriNNts/coNNtent/spec_NN.md"
 name:: "New Episode"
 evidence:: decision
 `
@@ -264,8 +264,8 @@ title: "Extract a Video instance"
 op:: extract_instance
 target:: InnteresanteVideos@intro
 to:: innteresante/intro
-blueprint_name:: video-script_V_0-1-0
-blueprint_url:: specs/bluepriNNts/video-script_V_0-1-0_NN.md
+blueprint_name:: coNNtent_V_0-1-0
+blueprint_url:: specs/bluepriNNts/coNNtent_V_0-1-0_NN.md
 evidence:: decision
 `
 

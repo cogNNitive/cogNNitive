@@ -200,20 +200,20 @@ async function runTests() {
     for (const retired of ['presenter', 'talking_avatar', 'talking-avatar', 'background', 'b-roll', 'title', 'lower-third', 'caption', 'brand', 'quote', 'watermark']) {
       assert.doesNotMatch(typeDef, new RegExp(`\\b${retired}\\b`), `the type Field does not offer "${retired}"`);
     }
-    // `style` carries the five text components, `source` the reserved narration value.
+    
     assert.match(fieldDefinition('style'), /^options:: \[title, lower-third, caption, watermark, quote\]$/m);
-    assert.match(fieldDefinition('source'), /^options:: \[narration\]$/m);
+    assert.match(fieldDefinition('text_from'), /^options:: \[narration\]$/m);
     assert.match(fieldDefinition('placement'), /^options:: \[full, inset\]$/m);
     assert.match(fieldDefinition('timing'), /^options:: \[scene, slot\]$/m);
 
     assert.deepStrictEqual(CONDITIONAL_FIELDS, {
       avatar: ['asset', 'prompt'],
       media: ['asset', 'prompt'],
-      text: ['text', 'source'],
+      text: ['text', 'text_from'],
       animation: ['asset'],
     });
     assert.match(SPEC, /^    avatar: \[asset, prompt\]$/m, 'the blueprint frontmatter agrees');
-    assert.match(SPEC, /^    text: \[text, source\]$/m, 'the blueprint frontmatter agrees');
+    assert.match(SPEC, /^    text: \[text, text_from\]$/m, 'the blueprint frontmatter agrees');
 
     // New cascade and record fields.
     for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'published_url', 'kind', 'review']) {
