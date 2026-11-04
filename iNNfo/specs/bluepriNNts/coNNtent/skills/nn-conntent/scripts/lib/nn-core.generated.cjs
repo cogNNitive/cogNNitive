@@ -7378,7 +7378,7 @@ var require_dist = __commonJS({
   }
 });
 
-// iNNfo/packages/nn-core/dist/types/parser.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/types/parser.js
 function normalizeConceptType(type) {
   if (type === "model")
     return "knowledge";
@@ -7391,7 +7391,7 @@ function normalizeFieldType(type) {
 }
 var ElementsMap2;
 var init_parser = __esm({
-  "iNNfo/packages/nn-core/dist/types/parser.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/types/parser.js"() {
     "use strict";
     ElementsMap2 = class {
       _map = /* @__PURE__ */ new Map();
@@ -7436,30 +7436,30 @@ var init_parser = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/types/validation.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/types/validation.js
 var init_validation = __esm({
-  "iNNfo/packages/nn-core/dist/types/validation.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/types/validation.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/types/io.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/types/io.js
 var init_io = __esm({
-  "iNNfo/packages/nn-core/dist/types/io.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/types/io.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/types/graph.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/types/graph.js
 var init_graph = __esm({
-  "iNNfo/packages/nn-core/dist/types/graph.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/types/graph.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/types/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/types/index.js
 var init_types = __esm({
-  "iNNfo/packages/nn-core/dist/types/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/types/index.js"() {
     "use strict";
     init_parser();
     init_validation();
@@ -7468,16 +7468,16 @@ var init_types = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/layout.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/layout.js
 var CANONICAL_DOMAIN_ENTRYPOINT;
 var init_layout = __esm({
-  "iNNfo/packages/nn-core/dist/layout.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/layout.js"() {
     "use strict";
     CANONICAL_DOMAIN_ENTRYPOINT = "domaiNN_NN.md";
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/slug.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/slug.js
 function nfc2(text) {
   return text.normalize("NFC");
 }
@@ -7488,12 +7488,12 @@ function slugify2(name) {
   return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
 }
 var init_slug = __esm({
-  "iNNfo/packages/nn-core/dist/parser/slug.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/slug.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/markdown.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/markdown.js
 function normalizeSource2(text) {
   const withoutBom = text.charCodeAt(0) === 65279 ? text.replace(/^\uFEFF+/, "") : text;
   return withoutBom.replace(/\r\n?/g, "\n");
@@ -7525,14 +7525,14 @@ function parseTableRow2(line) {
 }
 var YAML_BLOCK_RE2, BOM_CHAR2;
 var init_markdown = __esm({
-  "iNNfo/packages/nn-core/dist/parser/markdown.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/markdown.js"() {
     "use strict";
     YAML_BLOCK_RE2 = /^---\r?\n([\s\S]*?)\r?\n---/;
     BOM_CHAR2 = String.fromCharCode(65279);
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/yaml.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/yaml.js
 function parseYaml3(yamlStr, onError) {
   const sanitized = yamlStr.charCodeAt(0) === 65279 ? yamlStr.replace(/^\uFEFF+/, "") : yamlStr;
   try {
@@ -7680,7 +7680,7 @@ function parseFrontmatter2(content, onError) {
 }
 var import_yaml8, NORMALIZERS2;
 var init_yaml = __esm({
-  "iNNfo/packages/nn-core/dist/parser/yaml.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/yaml.js"() {
     "use strict";
     import_yaml8 = __toESM(require_dist(), 1);
     init_markdown();
@@ -7697,7 +7697,7 @@ var init_yaml = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/taxonomy.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/taxonomy.js
 function parseIndexBlock2(content) {
   const edges = [];
   const lines = normalizeSource2(content).split("\n");
@@ -7737,13 +7737,13 @@ function printTaxonomyNode2(name, allEdges, lines, depth, ancestors = /* @__PURE
   }
 }
 var init_taxonomy = __esm({
-  "iNNfo/packages/nn-core/dist/parser/taxonomy.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/taxonomy.js"() {
     "use strict";
     init_markdown();
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/sections.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/sections.js
 function sectionName2(rawTitle) {
   const fm = rawTitle.match(SECTION_RE2);
   if (fm) {
@@ -7984,7 +7984,7 @@ function getSectionType2(rawTitle) {
 }
 var UNIFIED_ELEMENT_RE2, PROPERTY_RE2, SECTION_RE2;
 var init_sections = __esm({
-  "iNNfo/packages/nn-core/dist/parser/sections.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/sections.js"() {
     "use strict";
     init_markdown();
     UNIFIED_ELEMENT_RE2 = /^\s*(#{2,6})\s+NN\s+([^:\n]+?):\s+(.*)$/;
@@ -7993,7 +7993,7 @@ var init_sections = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/serializer.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/serializer.js
 function serializePropertyValue2(value, rawText) {
   if (rawText !== void 0 && rawTextStillMatches2(rawText, value)) {
     return rawText;
@@ -8356,7 +8356,7 @@ function serializeKnowledge2(model) {
 }
 var import_yaml10, CONSTRUCTED_FRONTMATTER_KEYS2;
 var init_serializer = __esm({
-  "iNNfo/packages/nn-core/dist/parser/serializer.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/serializer.js"() {
     "use strict";
     init_yaml();
     import_yaml10 = __toESM(require_dist(), 1);
@@ -8386,7 +8386,7 @@ var init_serializer = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/core.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/core.js
 function deriveElementSlugs2(elements) {
   const usedSlugs = /* @__PURE__ */ new Map();
   const colliding = /* @__PURE__ */ new Map();
@@ -8577,7 +8577,7 @@ function parseKnowledge2(content) {
   };
 }
 var init_core = __esm({
-  "iNNfo/packages/nn-core/dist/parser/core.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/core.js"() {
     "use strict";
     init_types();
     init_markdown();
@@ -8588,9 +8588,9 @@ var init_core = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/parser/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/parser/index.js
 var init_parser2 = __esm({
-  "iNNfo/packages/nn-core/dist/parser/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/parser/index.js"() {
     "use strict";
     init_slug();
     init_slug();
@@ -8604,7 +8604,7 @@ var init_parser2 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/storage.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/storage.js
 function invalid(template, why) {
   return {
     ok: false,
@@ -8810,7 +8810,7 @@ function validateStorage(concepts) {
 }
 var STORAGE_MODES, LITERAL_RE, RESERVED_LITERALS, SLUG_TOKEN, CONTAINER_TOKEN;
 var init_storage = __esm({
-  "iNNfo/packages/nn-core/dist/schema/storage.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/storage.js"() {
     "use strict";
     STORAGE_MODES = ["compact", "distributed"];
     LITERAL_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -8820,7 +8820,7 @@ var init_storage = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/extract.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/extract.js
 function asString(v) {
   return typeof v === "string" && v.trim() !== "" ? v : void 0;
 }
@@ -8983,7 +8983,7 @@ function extractBlueprintSchema(parsed) {
 }
 var CONCEPT_DEFINITION, FIELD_DEFINITION, MATRIX_DEFINITION;
 var init_extract = __esm({
-  "iNNfo/packages/nn-core/dist/schema/extract.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/extract.js"() {
     "use strict";
     init_parser();
     init_parser2();
@@ -8994,7 +8994,7 @@ var init_extract = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/compose.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/compose.js
 function canonicalValue2(v, key) {
   if (Array.isArray(v)) {
     const items = v.map((x) => canonicalValue2(x));
@@ -9328,7 +9328,7 @@ function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__P
 }
 var SET_LIKE_KEYS;
 var init_compose = __esm({
-  "iNNfo/packages/nn-core/dist/schema/compose.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/compose.js"() {
     "use strict";
     init_parser2();
     init_extract();
@@ -9337,7 +9337,7 @@ var init_compose = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/declaredField.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/declaredField.js
 function findDeclaredField(schema, conceptType, fieldName) {
   const concept = schema?.concepts.find((c) => c.name.toLowerCase() === (conceptType ?? "").toLowerCase());
   const field = concept?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase());
@@ -9346,12 +9346,12 @@ function findDeclaredField(schema, conceptType, fieldName) {
   return { name: field.name, type: field.type };
 }
 var init_declaredField = __esm({
-  "iNNfo/packages/nn-core/dist/schema/declaredField.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/declaredField.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/field-values.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/field-values.js
 function valueKey(v) {
   if (v === null || v === void 0)
     return "";
@@ -9443,15 +9443,15 @@ function validateFieldValue(def, value, path) {
   return diagnostics;
 }
 var init_field_values = __esm({
-  "iNNfo/packages/nn-core/dist/schema/field-values.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/field-values.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/constants.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/constants.js
 var RESERVED_CONCEPT_NAMES, WIDGET_CONFIG_KEYS;
 var init_constants = __esm({
-  "iNNfo/packages/nn-core/dist/validator/constants.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/constants.js"() {
     "use strict";
     init_parser();
     RESERVED_CONCEPT_NAMES = /* @__PURE__ */ new Set(["Concepts", "Elements", "Markers"]);
@@ -9465,7 +9465,7 @@ var init_constants = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/metaschema.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/metaschema.js
 function checkElementsAgainstSchema(elementGroups, concepts, opts = {}) {
   const unknownProperty = opts.unknownProperty ?? "warning";
   const conceptByName = new Map(concepts.map((c) => [c.name.toLowerCase(), c]));
@@ -9516,7 +9516,7 @@ function checkElementsAgainstSchema(elementGroups, concepts, opts = {}) {
 }
 var REQUIRED_BY_PRIMITIVE;
 var init_metaschema = __esm({
-  "iNNfo/packages/nn-core/dist/schema/metaschema.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/metaschema.js"() {
     "use strict";
     init_parser2();
     init_extract();
@@ -9530,7 +9530,7 @@ var init_metaschema = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/canonical-registry.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/canonical-registry.js
 function normalizeKey(str3) {
   return str3.trim().toLowerCase().replace(/\.(md|markdown)$/i, "").replace(/_(nn|format|f)$/i, "");
 }
@@ -9588,7 +9588,7 @@ function findCanonicalBlueprint(identifier) {
 }
 var INNFO_V_0_5_0_SPEC_CONTENT, DEFINNITION_SPEC_CONTENT, PROCEDURES_SPEC_CONTENT, SOURCES_SPEC_CONTENT, ARTIFACTS_SPEC_CONTENT, SIDECAR_SPEC_CONTENT, CHANGES_SPEC_CONTENT, DOMAINN_SPEC_CONTENT, BLANK_SPEC_CONTENT, INNFO_V_0_7_0_SPEC_CONTENT, CANONICAL_BLUEPRINTS;
 var init_canonical_registry = __esm({
-  "iNNfo/packages/nn-core/dist/schema/canonical-registry.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/canonical-registry.js"() {
     "use strict";
     INNFO_V_0_5_0_SPEC_CONTENT = '---\nspec_version: "V_0-5-0"\nspec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"\nlevel: 1\nparent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"\ntitle: "iNNfo Meta-bluepriNNt Specification"\ndescription: "Level-1 meta-bluepriNNt defining the root primitives (Concept Definition, Field Definition, Matrix Definition), multi-concept targets, multi-valued fields, widgets, concept-level inheritance, stable element identity via immutable slugs, and the unified NN syntax: `# NN` sections, `## NN` elements, and `key:: value` properties."\nauthor: "innV0 Team"\nstatus: "Draft"\n---\n\n> [!NOTE]\n> This is an **iNNfo document** \u2014 a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).\n\n# iNNfo Meta-bluepriNNt Specification\n\n## A concrete specification for semantic modeling with concepts, elements, fields, markers, and relationships, expressed through the unified NN syntax and a self-describing meta-bluepriNNt\n\n## Philosophy\n\niNNfo is designed around five principles:\n\n1. **Rich specs, lean models**: Specification documents (levels 0\u20132) are semantically rich. kNNowledge documents (level 3) carry only data and a parent pointer. The application resolves and caches the parent chain.\n2. **Self-describing**: Every iNNfo document is valid Markdown with YAML frontmatter and the unified `NN` syntax. No proprietary tooling required to read it.\n3. **Meta-bluepriNNt**: The level-1 specification is itself a *meta-bluepriNNt*. Level-2 bluepriNNts are ordinary iNNfo documents that instantiate the root primitives \u2014 `Concept Definition`, `Field Definition`, and `Matrix Definition` \u2014 as ordinary elements in their body. There is no separate declaration format.\n4. **Relationship polymorphism**: Relationships between concepts and elements are expressed through a typed system \u2014 hierarchy, evaluable matrices, graph edges, and sequences.\n5. **Stable identity via immutable slugs**: Every entity (element, concept, matrix) possesses an explicit, immutable slug identifier (`slug::`). Display names are decoupled from identity and scoped to their concept, allowing identical display names across distinct concepts. Once assigned, a slug is permanent across renames and edits.\n\n## Objectives\n\n- Define a unified, minimal syntax: `# NN <Concept>`, `## NN <Concept>: <Element>`, immutable `slug::` declarations, and `key:: value` properties.\n- Define the **Metaplantilla Nivel 1**: the root primitives that every level-2 bluepriNNt instantiates.\n- Establish immutable slugs for elements, concepts, and matrices to preserve citations and graph stability across renames (D1).\n- Support cross-concept duplicate display names while scoping sibling display names within each concept (D3).\n- Define extension-less model identity (`model_slug`) and universal `@` addressing grammar for elements, fields, and matrix cells (D4, D5).\n- Enforce slug freezing (`freeze_slugs`) on mutation and domain-wide upgrades (D19).\n- Remove the `concepts:` / `markers:` / `matrices:` frontmatter blocks from level-2 bluepriNNts; their schema is expressed as body elements.\n- Enable machine parsing, validation, and visual rendering of kNNowledge via the parent chain resolver.\n- Maintain full human readability and Git-diffability.\n- Ensure that kNNowledge files are lightweight and never duplicate specification content.\n\n## Unified Syntax\n\niNNfo uses three structural markers. The `NN` token is required and distinguishes iNNfo structure from ordinary Markdown.\n\n| Construct | Syntax | Example |\n|---|---|---|\n| Concept section | `# NN <Concept>` (H1) | `# NN Stakeholders` |\n| Element | `## NN <Concept>: <Element>` (H2) | `## NN Stakeholders: Customer` |\n| Nested Element | `#{3,6} NN <Concept>: <Element>` (H3\u2013H6) | `### NN Layer: Title` |\n| Identity slug | `slug:: <slug>` (first property line) | `slug:: customer` |\n| Property | `key:: value` (consecutive lines) | `importance:: high` |\n\nA **Concept** is a named type declared by a bluepriNNt. A Concept section is introduced by an H1 heading `# NN <Concept>`.\n\nAn **Element** is a single instance of a Concept, declared as an H2 heading `## NN <Concept>: <Element>` within the Concept section. The `<Concept>` token names the owning concept (it MUST match the enclosing section concept for top-level H2 headings).\n\n### Hierarchical Element Headings (Level-3 Documents)\n\nLevel-3 kNNowledge documents may author child elements inline beneath their parent element using deeper Markdown headings (`### NN`, `#### NN`, up to `###### NN`), without requiring separate top-level `# NN <ChildConcept>` sections.\n\n- **Nesting Rules**: A child heading `#{3,6} NN <ChildConcept>: <Element>` attaches to the nearest shallower element heading on the heading stack. The parentage relationship (`ParentConcept -> ChildConcept`) MUST be declared as a valid direct parent-child edge in the governing bluepriNNt\'s `# NN index` (`schema.taxonomy`). Disallowed nesting is rejected by validation (`INVALID_NESTED_CONCEPT`).\n- **Parent Identity**: The child element receives `parentSlug` referencing the parent element\'s slug.\n- **Prose Separation**: Any prose body authored for the parent element belongs exclusively to the parent and concludes immediately before the child\'s heading.\n- **Backward Compatibility**: Flat H2 headings in separate `# NN <ChildConcept>` sections remain 100% valid and supported.\n\nAn **Element Slug** is declared on the line immediately following the `## NN` heading via `slug:: <slug>`. The slug MUST be lowercase kebab-case conforming to `^[a-z0-9]+(?:-[a-z0-9]+)*$`. The slug is immutable: renaming an element modifies its display name in the `## NN` heading but preserves `slug::` unchanged.\n\nA **Field** is a typed key-value property of an Element. Element properties are written on consecutive `key:: value` lines immediately after the `slug::` line (or heading), before any free-form description text.\n\n```markdown\n# NN Stakeholders\n\n## NN Stakeholders: Customer\nslug:: customer\nimportance:: high\nneeds:: [speed, accuracy]\nCustomer description text follows the properties.\n```\n\nProperty values follow a small value grammar:\n\n- Plain text \u2014 `relationship_model:: Dedicated`\n- Quoted text \u2014 `brand_name:: "Acme Inc."`\n- Numbers \u2014 `weight:: 90`\n- Booleans \u2014 `published:: true`\n- Inline arrays \u2014 `options:: [Ideation, MVP, Validation]`\n- Inline objects (JSON) \u2014 `config:: {"a": 1}`\n\nThere is exactly ONE syntax. Older documents that use the legacy `_NN` markers or\nfenced ```yaml blocks are not supported and MUST be migrated to the unified syntax.\n\n## Universal Addressing Grammar\n\nSource references and citations support semantic addressing across documents without relying on fragile headings or filesystem extensions:\n\n| Target | Grammar Syntax | Resolves To |\n|---|---|---|\n| Entire Model | `model_slug` | Model document root |\n| Element | `model_slug@element-slug` | Specific element instance |\n| Element Field | `model_slug@element-slug&field_name` | Value of an element field |\n| Matrix | `model_slug@matrix-slug` | Specific matrix definition/table |\n| Matrix Cell | `model_slug@matrix-slug&row-slug&col-slug` | Specific cell at row \xD7 col |\n| Heading (Legacy) | `doc.md@## Heading` or `doc.md#heading` | Headings/sections fallback |\n\nWithin the same model or domain, references (`[[target]]`) resolve with the following 3-tier precedence:\n1. Exact element slug match (`element.slug`).\n2. Exact display name match (legacy fallback).\n3. Normalized display name match (case and punctuation insensitive fallback).\n\nIf a display name reference matches multiple elements belonging to different concepts, the reference is rejected as ambiguous (`AMBIGUOUS_ELEMENT_NAME`). Authors MUST qualify the reference or use the element\'s unique `slug`.\n\n## Root Primitives (Metaplantilla Nivel 1)\n\nA level-2 **bluepriNNt** is an iNNfo document (level 2) that instantiates the root primitives. Each primitive is a reserved Concept name whose Elements carry the schema of the bluepriNNt.\n\n| Primitive | Reserved Concept | Purpose | Instantiation |\n|---|---|---|---|\n| `Concept Definition` | `# NN Concept Definition` | Declares one Concept of the bluepriNNt | `## NN Concept Definition: <Name>` |\n| `Field Definition` | `# NN Field Definition` | Declares one typed Field of a Concept | `## NN Field Definition: <Name>` |\n| `Matrix Definition` | `# NN Matrix Definition` | Declares one evaluable Matrix | `## NN Matrix Definition: <Name>` |\n\n### Concept Definition\n\nDeclares a Concept. The Element name is the Concept name. Allowed properties:\n\n| Property | Type | Description |\n|---|---|---|\n| `slug` | string | Explicit kebab-case slug identifier |\n| `type` | `text` \\| `category` \\| `weight` \\| `list` \\| `steps` \\| `sequence` \\| `knowledge` \\| `model` | Representation of the Concept (required) |\n| `icon` | string | Lucide icon identifier |\n| `color` | string | Theme color |\n| `weight` | number | Display priority (higher = more prominent) |\n\n```markdown\n# NN Concept Definition\n\n## NN Concept Definition: Stakeholders\nslug:: stakeholders\nicon:: users\ntype:: weight\ncolor:: blue\nweight:: 80\n```\n\n### Field Definition\n\nDeclares a typed Field of a Concept. The Element name is the Field name. Allowed properties:\n\n| Property | Type | Description |\n|---|---|---|\n| `slug` | string | Explicit kebab-case slug identifier |\n| `concept` | string or array | Name of the owning Concept Definition, list of Concepts, or `*` for all non-text concepts (required) |\n| `type` | `string` \\| `number` \\| `boolean` \\| `select` \\| `reference` \\| `markdown_inline` \\| `markdown_file` \\| `image` \\| `file` \\| `video` \\| `audio` \\| `url` \\| `knowledge` \\| `model` \\| `address` \\| `citation` | Field type (required) |\n| `multiple` | boolean | Multi-valued field flag (allowed only on `type:: select`) |\n| `widget` | `boolean` \\| `cycle` \\| `scale` \\| `set` \\| `text` | Field interaction widget |\n| `widget_config` | object | Widget configuration parameters (JSON object) |\n| `options` | array | Allowed values for `select` fields |\n| `target_concepts` | array | Target concepts for `reference` fields |\n| `description` | string | Human-readable explanation |\n| `target_blueprint` | string | Required bluepriNNt name or URL for fields of type knowledge |\n\n```markdown\n# NN Field Definition\n\n## NN Field Definition: status\nconcept:: Stakeholders\ntype:: select\noptions:: [Ideation, MVP, Validation]\n\n## NN Field Definition: tags\nconcept:: *\ntype:: select\nmultiple:: true\n```\n\n**Reference Fields (`type:: reference`).** Property values for fields declared with `type:: reference` MUST be formatted using WikiLink syntax `[[Target Element]]` (e.g. `location:: [[Sal\xF3n-Comedor]]`). Bare string values without WikiLink delimiters are not parsed as active element-to-element graph references.\n\n**Knowledge Fields (`type:: knowledge` or `type:: model`).** A Field of any Concept MAY be declared `type:: knowledge` or `type:: model`. Its value is a domain-relative path, a `./`-relative path, or a WikiLink wrapping either (`[[kNNowledge/acme_business_NN.md]]`). When the Field declares `target_blueprint`, the referenced kNNowledge document\'s `parent_spec` MUST identify that bluepriNNt. Knowledge fields are followed during domaiNN traversal, so a document referenced by two parents appears once in the graph with both incoming edges \u2014 a diamond is not a cycle.\n\n**Citation Fields (`type:: citation`).** A Field declared `type:: citation` holds a pointer list to the Source documents it derives from, using the same bracketed grammar as the reserved `sources::` property (`[sources/nn/<filename>#<heading-slug>, ...]`). Unlike `reference` and `knowledge`, its values are validated by the `KU_*` integrity checks and are read into the element\'s source citations.\n\n**Address Fields (`type:: address`).** A Field declared `type:: address` holds one structural address `<target>@<unit>`: `<target>` is a workspace-relative path or a `knowledge_slug`; `<unit>` is `## Heading`, `RowID&col`, `/json/pointer`, `element-slug`, `element-slug&field`, or `matrix&row&col`. Its value MUST resolve to an existing unit; a dangling address is an **error**. `address` is the base of the address grammar: `citation` is an `address` that additionally asserts derivation (evidence), and `knowledge` is an `address` that is traversed. All three share the same parser.\n\n**Qualified Cross-Knowledge References.** A `reference` or `knowledge` Field MAY target an Element in another kNNowledge document in the same domaiNN using the qualified form `[[Document Title :: Element Name]]` or `[[model_slug@element-slug]]`.\n\n### Matrix Definition\n\nDeclares an evaluable Matrix. The Element name is the Matrix name. Allowed properties:\n\n| Property | Type | Description |\n|---|---|---|\n| `slug` | string | Explicit kebab-case slug identifier |\n| `source` | string | Source Concept (rows) \u2014 required |\n| `target` | string | Target Concept or reserved pseudo-Concept (columns) \u2014 required |\n| `values` | array | Allowed cell values (empty cell `-` and boolean marker `X` are always accepted) |\n| `widget` | `boolean` \\| `cycle` \\| `scale` \\| `set` \\| `text` | Cell interaction widget |\n| `widget_config` | object | Widget-specific configuration \u2014 see Widget Configuration |\n| `description` | string | Human-readable explanation |\n\n```markdown\n# NN Matrix Definition\n\n## NN Matrix Definition: problems-value propositions matrix\nslug:: problems-value-propositions\nsource:: Problems\ntarget:: Value propositions\nwidget:: set\nvalues:: [Max, Very High, High]\n```\n\n### Widget Configuration\n\n`widget_config` is an OPTIONAL inline JSON object that parameterizes the cell\ninteraction widget. It MUST be valid JSON on a single line.\n\n| Widget | Key | Type | Default | Description |\n|---|---|---|---|---|\n| `scale` | `min` | number | `0` | Minimum numeric score |\n| | `max` | number | `100` | Maximum numeric score |\n| | `step` | number | `1` | Step increment |\n| | `unit` | string | `""` | Optional display suffix (e.g. `"%"` or `"pts"`) |\n| `set` | `max_selections` | number | `undefined` | Maximum number of simultaneous selections |\n| `cycle` | (none) | | | Cycle through values in order |\n| `boolean` | `true_label` | string | `"X"` | Display text when true |\n| | `false_label` | string | `"-"` | Display text when false |\n| `text` | `max_length` | number | `200` | Character limit for cell input |\n\n### Free Matrices\n\nAn evaluable relationship between two domain Concepts (e.g. `Problems` \xD7 `Value propositions`).\n\n```markdown\n# NN matrices: problems-value propositions matrix\n\n| Problems | Solution A | Solution B |\n|---|---|---|\n| High latency | Max | High |\n| Data loss | Max | Very High |\n```\n\n### Relationship Types Block (Frontmatter)\n\nLevel-2 bluepriNNts MAY declare custom graph edge types in frontmatter under\n`relationship_types:`. A relationship type defines a typed directed connection\nbetween elements.\n\n```yaml\n---\nrelationship_types:\n  depends_on:\n    directed: true\n    label: "Depends on"\n    inverse: "Required by"\n    color: "#e06c75"\n    style: "dashed"\n  influences:\n    directed: true\n    label: "Influences"\n    color: "#61afef"\n    style: "solid"\n---\n```\n\nGraph edges are written in the kNNowledge document\'s element section using `->` syntax:\n\n```markdown\n## NN Work: Deploy\ndepends_on -> [[Build]]\ninfluences -> [[Monitoring]]\n```\n\n### Custom Guidance Headings in BluepriNNts\n\nLevel-2 bluepriNNts MAY include prose documentation sections after the schema definitions.\nThese sections provide human-readable guidance for authors and AI assistants filling out\nkNNowledge documents based on the bluepriNNt.\n\nTo prevent guidance text from being parsed as model elements, bluepriNNt authors MUST use\nregular Markdown headings (without the `NN` token) for guidance sections:\n\n```markdown\n# Concept Guidance Documentation\n\n## Stakeholders\n### Summary\nStakeholders are individuals, groups, or organizations that have an interest in or are affected by the system.\n\n### Identification Strategy\n1. Identify direct users who interact with the system daily.\n2. Identify decision makers who approve funding and strategy.\n3. Identify external parties subject to compliance or regulation.\n\n### Fields Reference\n- `importance`: Relative business impact (high, medium, low).\n- `needs`: Bulleted list of explicit operational requirements.\n```\n\n- Headings starting with `# NN` or `## NN` are **structural** (parsed as schema).\n- Headings starting with `#` or `##` (without `NN`) are **descriptive** (ignored by the schema parser).\n\n## Level 2 BluepriNNt Structure\n\nA level 2 bluepriNNt MUST follow this structure:\n\nFrontmatter:\n\n```yaml\n---\nspec_version: "V_0-5-0"\nspec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/<name>/spec_NN.md"\nlevel: 2\nparent_spec:\n  name: "iNNfo_V_0-5-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"\ntitle: "<BluepriNNt Title>"\nblueprint_name: "<blueprint-name>"\nblueprint_version: "V_x-y-z"\nincludes:                        # OPTIONAL \u2014 additive schema composition\n  - name: "<blueprint>"\n    url: "<immutable-URL>"\nrelationship_types:              # OPTIONAL \u2014 custom graph edges\n  ...\n---\n```\n\n### Schema Composition (`includes`)\n\nA level-2 bluepriNNt MAY declare `includes:`, an array of `{name, url}` references to\npeer level-2 bluepriNNts. `includes` composes the schemas of the included bluepriNNts into\nthe including bluepriNNt additively.\n\n#### Collision Rules\n\nWhen two included bluepriNNts (or an included bluepriNNt and the including bluepriNNt) declare a\nDefinition with the same name:\n\n1. If their canonical forms are **identical**, the collision is resolved cleanly: they\n   carry a shared Definition and still compose.\n2. If their canonical forms **differ**, it is a validation ERROR that MUST name\n   both source documents and the Definition.\n\nThe **canonical form** of a Definition is its parsed body with: property order\nnormalized, surrounding whitespace in values trimmed, and set-like arrays\n(`options`, `target_concepts`) treated as order-insensitive. Every\nactual value \u2014 `type`, `source`, `target`, `values`, `weight`,\n`description`, a Concept\'s Field set, etc. \u2014 is significant. This rule applies\nacross the whole `includes` graph (transitively, depth-first, left to right); the\n`includes` cycle check is unaffected (a diamond is not a cycle).\n\nBody:\n\n```markdown\n> [!NOTE]\n> This is an **iNNfo document**...\n\n# NN index\n* [[...]]  (the blueprint\'s root concepts)\n\n# NN Concept Definition\n## NN Concept Definition: <Concept>\nslug:: <concept-slug>\nicon:: <icon>\ntype:: <type>\ncolor:: <color>\nweight:: <n>\n\n# NN Field Definition\n## NN Field Definition: <Field>\nslug:: <field-slug>\nconcept:: <Concept>\ntype:: <type>\noptions:: [...]\ntarget_concepts:: [...]\n\n# NN Matrix Definition\n## NN Matrix Definition: <Matrix>\nslug:: <matrix-slug>\nsource:: <Concept>\ntarget:: <Concept>\nvalues:: [..]\nwidget:: set\n\n# <Blueprint Name>       (prose: Philosophy, Objectives, Specification)\n# Concept Guidance Documentation   (## <Concept> with ### Summary/Description/...)\n```\n\n## Level 3 kNNowledge Structure (Lightweight)\n\n```yaml\n---\nspec_version: "V_0-5-0"\nspec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md"\nmodel_slug: "<model-slug>"\nworkspace_id: "<workspace-id>"\nlevel: 3\nparent_spec:\n  name: "<blueprint-name>"\n  url: "<immutable-url>"\nknowledge_version: "V_x-y-z"\ntitle: "..."\n---\n\n> [!NOTE]\n> ...\n# NN index\n...\n# NN Concept\ntags:: [inherited-tag]\n\n## NN Concept: Element\nslug:: <element-slug>\nkey:: value\n...\n```\n\n## DomaiNN Structure\n\nAn iNNfo DomaiNN is a workspace directory containing one or more kNNowledge documents. The entry point is a\n`domaiNN_NN.md` (or root index) file at the DomaiNN root.\n\nStandard directory conventions:\n- `knowledge_dir`: `kNNowledge/`\n- `blueprints_dir`: `specs/bluepriNNts/`\n\n## Immutable Versioning Policy\n\n- **Published specs are frozen.** Once a specification version is released, its file is\n  never modified. Corrections or improvements require a new spec version.\n- **Migrating a kNNowledge document** to a new spec version means creating a new copy of the document\n  adapted to the new version.\n- **Parent chain resolution** always resolves to the version the document was authored\n  against.\n\n## Removed Constructs\n\nThe following are NOT part of iNNfo:\n\n- **FOLDER mode / `_F` markers** \u2014 documents are single files using `NN` markers only.\n- **Hierarchy matrices** \u2014 hierarchy is expressed only through the index block.\n- **`_FORMAT.md` filenames** \u2014 the canonical suffix is `_NN.md`.\n- **`* _NN` element bullets and fenced ```yaml property blocks** \u2014 replaced by the\n  unified `## NN` headings and `key:: value` properties.\n- **Marker Definition and item-markers matrix** \u2014 replaced by typed Field Definitions and concept-level values.\n\n## Metaschema (Self-Description)\n\nThe root primitives are described by the prose tables above **and** expressed\nmechanically, in iNNfo\'s own syntax, by the metaschema below. An application MUST\nbe able to validate any level-2 bluepriNNt by resolving this metaschema and checking\nthe bluepriNNt\'s `\u2026 Definition` elements against it.\n\n### The Metaschema\n\n```markdown\n# NN Concept Definition\n\n## NN Concept Definition: Concept Definition\ntype:: list\n\n## NN Concept Definition: Field Definition\ntype:: list\n\n## NN Concept Definition: Matrix Definition\ntype:: list\n\n# NN Field Definition\n\n## NN Field Definition: type\nconcept:: Concept Definition\ntype:: select\noptions:: [text, category, weight, list, steps, sequence, knowledge, model]\ndescription:: Representation of the Concept (required).\n\n## NN Field Definition: icon\nconcept:: Concept Definition\ntype:: string\ndescription:: Lucide icon identifier.\n\n## NN Field Definition: color\nconcept:: Concept Definition\ntype:: string\ndescription:: Theme color.\n\n## NN Field Definition: weight\nconcept:: Concept Definition\ntype:: string\ndescription:: Display priority (higher = more prominent).\n\n## NN Field Definition: concept\nconcept:: Field Definition\ntype:: string\ndescription:: Name of the owning Concept Definition, list of concepts, or * (required).\n\n## NN Field Definition: type\nconcept:: Field Definition\ntype:: select\noptions:: [string, number, boolean, select, reference, markdown_inline, markdown_file, image, file, video, audio, url, knowledge, model, address, citation]\ndescription:: Field type (required).\n\n## NN Field Definition: multiple\nconcept:: Field Definition\ntype:: boolean\ndescription:: Multi-valued field flag (allowed only on select fields).\n\n## NN Field Definition: widget\nconcept:: Field Definition\ntype:: select\noptions:: [boolean, cycle, scale, set, text]\ndescription:: Field interaction widget.\n\n## NN Field Definition: widget_config\nconcept:: Field Definition\ntype:: string\ndescription:: Widget-specific configuration (inline JSON object).\n\n## NN Field Definition: options\nconcept:: Field Definition\ntype:: string\ndescription:: Allowed values for select fields (inline array).\n\n## NN Field Definition: target_concepts\nconcept:: Field Definition\ntype:: string\ndescription:: Target concepts for reference fields (inline array).\n\n## NN Field Definition: target_blueprint\nconcept:: Field Definition\ntype:: string\ndescription:: Required blueprint name or URL for fields of type knowledge or model.\n\n## NN Field Definition: description\nconcept:: Field Definition\ntype:: string\ndescription:: Human-readable explanation.\n\n## NN Field Definition: source\nconcept:: Matrix Definition\ntype:: string\ndescription:: Source Concept (rows) \u2014 required.\n\n## NN Field Definition: target\nconcept:: Matrix Definition\ntype:: string\ndescription:: Target Concept or reserved pseudo-Concept (columns) \u2014 required.\n\n## NN Field Definition: values\nconcept:: Matrix Definition\ntype:: string\ndescription:: Allowed cell values (inline array). Empty cell - and boolean marker X are always accepted.\n\n## NN Field Definition: widget\nconcept:: Matrix Definition\ntype:: select\noptions:: [boolean, cycle, scale, set, text]\ndescription:: Cell interaction widget.\n\n## NN Field Definition: widget_config\nconcept:: Matrix Definition\ntype:: string\ndescription:: Widget-specific configuration (inline JSON object).\n\n## NN Field Definition: description\nconcept:: Matrix Definition\ntype:: string\ndescription:: Human-readable explanation.\n```\n\n### Bootstrap Axiom\n\nThe metaschema is written in the very syntax it constrains. Its own conformance is\nthe single irreducible axiom of the system: an application **asserts** \u2014 it does\nnot derive \u2014 that the metaschema\'s `Field Definition` elements are valid\n`Field Definition` instances. Every other conformance check in the ecosystem\n(L2 against L1, L3 against L2) is mechanical and follows from it. This mirrors MOF\nbeing defined in MOF and `Ecore.ecore` describing Ecore.\n\n## Self-Description\n\nThis document (`iNNfo_V_0-5-0_NN.md`) is itself a level 1 specification following\ndefiNNition. It declares `parent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"` and defines\nthe root primitives \u2014 plus the mechanical metaschema above \u2014 that every\nlevel-2 bluepriNNt instantiates.\n';
     DEFINNITION_SPEC_CONTENT = '---\nspec_version: "V_0-1-0"\nspec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"\nlevel: 0\ntitle: "defiNNition \u2014 The Definition of Definitions"\ndescription: "Meta-specification for the CogNNitive ecosystem. Defines the structure, versioning, normative language, terminology discipline, and dependency resolution for all derived specifications."\nauthor: "CogNNitive Team"\nstatus: "Draft"\n---\n\n> [!NOTE]\n> This is an **iNNfo document** \u2014 a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).\n\n# defiNNition \u2014 The Definition of Definitions\n\n## A meta-specification for defining structured, versioned, and machine-readable technical specifications\n\n## Philosophy\n\ndefiNNition is built on four foundational values:\n\n1. **Hierarchical Consistency**: Every specification belongs to a level in a defined hierarchy. Each level inherits the constraints of the levels above it and adds its own.\n2. **Explicit Dependencies via Parent Chain**: Every specification declares a reference to its parent, resolvable to an exact document and immutable URL. From any document, the full chain up to level 0 is resolvable.\n3. **Rich Specs, Lean Models**: Specification documents (levels 0\u20132) are semantically rich \u2014 they carry Philosophy, Objectives, full specification text. Models (level 3) are lightweight \u2014 they carry only data and a pointer to their parent template.\n4. **Cacheable Resolution**: The parent chain can be resolved at load time and cached locally, making any model functionally self-contained without duplicating specification content.\n\n## Objectives\n\n- **Standardize** how specifications in the CogNNitive ecosystem are structured, versioned, and referenced.\n- **Enable dependency resolution** across specification levels via the parent chain.\n- **Provide a normative language** (RFC 2119) that all derived specifications must use.\n- **Enforce terminology discipline** so every entity has one canonical name across the ecosystem.\n- **Ensure URL persistence** so every specification version is retrievable indefinitely.\n- **Define the spec resolver protocol** so applications can auto-download and cache the parent chain.\n\n## Specification\n\n### Hierarchy of Levels\n\n| Level | Role | Example |\n|---|---|---|\n| **0** | Meta-specification | `defiNNition` |\n| **1** | Concrete specification | `iNNfo` |\n| **2** | bluepriNNt | `business`, `procedures`, `organization`, `kb` |\n| **3** | kNNowledge | `Ghostbusters` |\n\nRules:\n\n- A level N specification MUST declare `level: N` in its frontmatter.\n- A level 1 specification MUST declare `parent` as a string containing the URL, pointing to its level 0 parent.\n- A level 2 or level 3 specification MUST declare `parent_spec` as an object with `name` and `url` fields, pointing to its parent (the level 1 specification for a level 2 template; the level 2 template for a level 3 model).\n- A level 0 specification MUST NOT declare a `parent` or `parent_spec`.\n- Each level ADDS constraints. It MUST NOT relax constraints from the level above.\n\n### Terminology Discipline\n\nEvery specification defines its entities once and uses exactly one canonical name for\neach throughout its normative text. This applies to all derived specifications:\n\n- A specification MUST include a glossary that names each entity it defines.\n- Normative text MUST use only those canonical names. Synonyms MUST NOT be used\n  interchangeably for a defined entity.\n- Implementation-only vocabulary \u2014 in particular the word **"node"** (a runtime graph\n  representation) \u2014 MUST NOT appear in normative specification text.\n\nThe canonical entity vocabulary for semantic models is defined by iNNfo (level 1).\n\n### Parent Reference Fields\n\nThe field used to point to the parent document differs by level:\n\n- **Level 1** uses `parent`, a string containing the URL of the parent document:\n\n  ```yaml\n  parent: "<immutable-URL-to-the-parent-document>"\n  ```\n\n  - `parent`: an immutable URL (RECOMMENDED: git tag-based) pointing to the raw parent document. The application resolves this URL to find the parent.\n\n- **Level 2 and level 3** use `parent_spec`, an object with `name` and `url`:\n\n  ```yaml\n  parent_spec:\n    name: "<parent-document-name>"\n    url: "<immutable-URL-to-the-parent-document>"\n  ```\n\n  - `parent_spec.name`: an identifier for the parent document. The application uses this as the resolved document\'s identity in the parent chain (not merely re-derived from the URL).\n  - `parent_spec.url`: an immutable URL (RECOMMENDED: git tag-based) pointing to the raw parent document. The application resolves this URL to find the parent.\n\nA level 0 specification MUST NOT include `parent` or `parent_spec`.\n\n### Spec Resolver Protocol\n\n> **Note for application implementors**: This section describes the RECOMMENDED behavior for applications that consume iNNfo models. It is not a requirement for spec authors.\n\nWhen an application loads a level 3 model, it SHOULD resolve the full parent chain:\n\n1. Read the model\'s `parent_spec.url`.\n2. If the parent file is NOT already cached in a `specs/` subdirectory next to the model, download it from the URL.\n3. Save it to `specs/<parent_basename>_NN.md` (where `parent_basename` is derived from the URL, stripping directories and suffixes).\n4. Read the downloaded spec\'s parent reference \u2014 `parent_spec.url` if it is a level 2 template, or `parent` if it is the level 1 specification \u2014 and repeat until reaching level 0 (no parent).\n5. On subsequent loads, check `specs/` first. Only download missing files.\n6. If the model\'s `parent_spec.url` changes (version bump), the application detects the mismatch and downloads the new parent.\n\nThe cached directory structure:\n\n```\n\u{1F4C2} <Model>_V_x-y-z_<Template>/\n  \u{1F4C4} <Model>_V_x-y-z_<Template>_NN.md\n  \u{1F4C2} specs/\n    \u{1F4C4} <parent_name>_NN.md        \u2190 level 2 (template)\n    \u{1F4C4} <grandparent_name>_NN.md   \u2190 level 1 (iNNfo)\n    \u{1F4C4} <great-grandparent_name>_NN.md  \u2190 level 0 (defiNNition)\n```\n\n### Normative Language (RFC 2119)\n\nWhen a specification makes a normative statement (a rule, requirement, or constraint), it MUST use these keywords with RFC 2119 semantics:\n\n| Keyword | Meaning |\n|---|---|\n| **MUST** / **REQUIRED** / **SHALL** | Absolute requirement |\n| **MUST NOT** / **SHALL NOT** | Absolute prohibition |\n| **SHOULD** / **RECOMMENDED** | Valid reasons to ignore may exist |\n| **SHOULD NOT** / **NOT RECOMMENDED** | Valid reasons to accept may exist |\n| **MAY** / **OPTIONAL** | Truly optional |\n\nPurely descriptive or explanatory text (tables of concepts, examples, taxonomy listings) is NOT required to use RFC 2119 keywords.\n\n### Required Frontmatter Structure\n\nAll specifications MUST begin with a YAML frontmatter block.\n\n**Level 0 (defiNNition)**\n\n```yaml\n---\nspec_version: "V_x-y-z"\nspec_url: "<immutable-URL>"\nlevel: 0\ntitle: "..."\ndescription: "..."\nauthor: "..."\nstatus: "Draft | Stable | Deprecated"\n---\n```\n\nNo `parent` or `parent_spec`.\n\n**Level 1 (concrete specifications)**\n\n```yaml\n---\nspec_version: "V_x-y-z"\nspec_url: "<immutable-URL>"\nlevel: 1\nparent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"\ntitle: "..."\ndescription: "..."\n---\n```\n\n**Level 2 (bluepriNNts)**\n\n```yaml\n---\nspec_version: "V_x-y-z"\nspec_url: "<immutable-URL>"\nlevel: 2\nparent_spec:\n  name: "iNNfo_V_0-3-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"\ntitle: "..."\nblueprint_version: "V_x-y-z"\nincludes:                        # OPTIONAL \u2014 additive schema composition\n  - name: "<base-blueprint>"\n    url: "<immutable-URL>"\nrelationship_types: {...}\n---\n```\n\nA level 2 bluepriNNt\'s `concepts`, `fields`, `markers`, and `matrices` are NOT\nfrontmatter blocks. They are declared in the body as elements that instantiate\nthe four root primitives defined by iNNfo (level 1); see the iNNfo specification.\n`includes` composes the schemas of peer bluepriNNts additively \u2014 it is horizontal\n(bluepriNNt \u222A bluepriNNt), unlike the vertical `parent_spec` chain; see iNNfo.\n\n**Level 3 (kNNowledge) \u2014 Lightweight**\n\n```yaml\n---\nlevel: 3\nparent_spec:\n  name: "<blueprint-name>"\n  url: "<immutable-URL-to-blueprint>"\nknowledge_version: "V_x-y-z"\ntitle: "..."\n---\n```\n\nA level 3 kNNowledge document MUST NOT inline the bluepriNNt definition; it MUST rely on the `parent_spec.url` + spec resolver to obtain its schema.\n\n**Frontmatter Extensibility**\n\nSpecifications MAY include additional fields beyond those required above. Applications MUST ignore unrecognized fields. Additional fields MUST NOT contradict or override the required fields defined here.\n\n### File Naming Convention\n\nAll specification and kNNowledge files use the `_NN.md` suffix.\n\n| Level | Pattern | Example |\n|---|---|---|\n| 0 | `<Name>_V_x-y-z_NN.md` | `defiNNition_V_0-1-0_NN.md` |\n| 1 | `<Name>_V_x-y-z_NN.md` | `iNNfo_V_0-3-0_NN.md` |\n| 2 | `<Blueprint>_V_x-y-z_NN.md` | `business_V_0-1-0_NN.md` |\n| 3 | `<Knowledge>_V_x-y-z_<Blueprint>_NN.md` | `Ghostbusters_V_0-1-0_business_NN.md` |\n\nFiles live in a single flat `specs/` tree, with no per-version snapshot directories:\n\n```\nspecs/\n\u251C\u2500\u2500 defiNNition_V_x-y-z_NN.md  \u2190 level 0 specs, directly at the root\n\u251C\u2500\u2500 iNNfo_V_x-y-z_NN.md        \u2190 level 1 specs, directly at the root\n\u2514\u2500\u2500 templates/                 \u2190 level 2 bluepriNNts\n    \u251C\u2500\u2500 <blueprint>/\n    \u2502   \u251C\u2500\u2500 <blueprint>_V_x-y-z_NN.md\n    \u2502   \u2514\u2500\u2500 samples/\n    \u2502       \u2514\u2500\u2500 <Knowledge>_V_x-y-z_<blueprint>_NN.md\n    \u2514\u2500\u2500 ...\n```\n\nLevel 0 and level 1 specifications sit directly under `specs/` \u2014 there is no\n`level0/`/`level1/` subfolder. Each level 2 bluepriNNt lives under\n`specs/templates/<blueprint-name>/`, and that bluepriNNt\'s shipped samples live\nunder `specs/templates/<blueprint-name>/samples/`. There is no `latest/` alias:\nevery file already carries its own version in its filename (see\n**Versioning**), so a consumer always resolves an exact, versioned path.\n\n### Versioning\n\nAll versions use Semantic Versioning with hyphen separators: `V_MAJOR-MINOR-PATCH`.\n\n| Increment | When to apply |\n|---|---|\n| **MAJOR** | Breaking change in structure or semantics |\n| **MINOR** | Backward-compatible addition |\n| **PATCH** | Bug fix, clarification, examples |\n\nVersioning is filename-encoded and immutable: a specification\'s version is the\n`V_x-y-z` segment already present in its own filename (see **File Naming\nConvention**) \u2014 not a directory it is copied into.\n\n- A version bump MUST always create a new file (e.g.\n  `specs/templates/procedures/procedures_V_0-2-0_NN.md` alongside the existing\n  `procedures_V_0-1-0_NN.md`). It MUST NOT rename or overwrite the previous\n  version\'s file in place.\n- Once published, a specification file MUST NOT be edited or deleted while any\n  kNNowledge document still references it. Corrections and errata are published as a new\n  PATCH version, not as an in-place edit.\n- There is no `latest/` alias and no parallel version-snapshot directory (e.g.\n  `v0.2.0/`, `v0.2.1/`). A `parent_spec.url` or `parent` reference MUST always\n  point at a specific versioned filename.\n\n### Specification URL Persistence\n\n- The `spec_url` MUST point to an immutable version of the specification.\n- RECOMMENDED: use a git tag: `https://raw.githubusercontent.com/cogNNitive/<repo>/v<version>/<path>`\n- Once a version is published under a given URL, its content MUST NOT change.\n- Corrections and errata MUST be published as a new PATCH version.\n\n### Required Body Sections (Levels 0, 1, 2)\n\nThe document body of any level 0, 1, or 2 specification MUST include these sections as H2 headings, in this exact order, with no other section before the one-sentence summary:\n\n```\n## <one-sentence-summary>\n\n## Philosophy\n\n## Objectives\n\n## Specification\n\n## Template\n\n## Examples\n```\n\nThe `<one-sentence-summary>` placeholder means a brief H2 heading that summarizes the specification in one sentence.\n\nLevel 3 kNNowledge documents MUST NOT include these sections. They contain only data.\n\n### Document Notice\n\nThe first content in the Markdown body \u2014 immediately after the frontmatter \u2014 MUST be a GFM `> [!NOTE]` admonition. This applies to ALL levels (0\u20133).\n\n### Cross-References\n\nInternal cross-references MUST use stable heading names, not section numbers. Sections are unnumbered so that references remain valid as the document evolves.\n\n### Compliance Checklist\n\nA document is defiNNition-compliant only if ALL of the following hold:\n\n1. Filename matches the level convention (see **File Naming Convention**).\n2. Frontmatter contains `spec_version` in `V_MAJOR-MINOR-PATCH` form (see **Versioning**).\n3. Frontmatter contains a resolvable `spec_url` (see **Specification URL Persistence**).\n4. Frontmatter contains `level`.\n5. If level = 1: frontmatter contains `parent` as a string URL. If level = 2 or 3: frontmatter contains `parent_spec` as an object with `name` and `url`.\n6. If level \u2264 2: body contains the required sections in order (see **Required Body Sections**).\n7. If level = 3: body does NOT contain the required sections.\n8. Body begins with the required Document Notice (see **Document Notice**).\n9. Normative language uses RFC 2119 keywords (see **Normative Language**).\n10. Normative text obeys the **Terminology Discipline** (canonical names only; no "node").\n\n## Template\n\n### Level 3 kNNowledge Template (Lightweight)\n\n```markdown\n---\nlevel: 3\nparent_spec:\n  name: "<blueprint-name>"\n  url: "<immutable-url-to-blueprint>"\nknowledge_version: "V_x-y-z"\ntitle: "Document Name"\n---\n\n> [!NOTE]\n> This is an **iNNfo document** \u2014 a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).\n\n# _NN index\n...\n\n# _NN ConceptName\n...\n```\n\n## Examples\n\n### Full Parent Chain Resolution\n\nFrom the sample kNNowledge `specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md`:\n\n```yaml\n# Ghostbusters (level 3)\nparent_spec:\n  name: "business_V_0-1-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"\n\n# business_V_0-1-0 (level 2)\nparent_spec:\n  name: "iNNfo_V_0-3-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"\n\n# iNNfo_V_0-3-0 (level 1)\nparent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNition_V_0-1-0_NN.md"\n\n# defiNNition_V_0-1-0 (level 0) \u2014 this document\n# No parent \u2014 root of the chain\n```\n\n### Cached Directory After First Load\n\n```\n\u{1F4C2} Ghostbusters_V_0-1-0_business/\n  \u{1F4C4} Ghostbusters_V_0-1-0_business_NN.md\n  \u{1F4C2} specs/\n    \u{1F4C2} templates/business/\n      \u{1F4C4} business_V_0-1-0_NN.md\n    \u{1F4C4} iNNfo_V_0-3-0_NN.md\n    \u{1F4C4} defiNNition_V_0-1-0_NN.md\n```\n';
@@ -9786,16 +9786,16 @@ var init_canonical_registry = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/nature.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/nature.js
 var init_nature = __esm({
-  "iNNfo/packages/nn-core/dist/schema/nature.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/nature.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/schema/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/schema/index.js
 var init_schema = __esm({
-  "iNNfo/packages/nn-core/dist/schema/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/schema/index.js"() {
     "use strict";
     init_extract();
     init_compose();
@@ -9807,7 +9807,7 @@ var init_schema = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/resolver.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/resolver.js
 function getSpecForLevel(cache, level) {
   for (const doc of cache.specs.values()) {
     if (doc.level === level)
@@ -10200,7 +10200,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
 }
 var SpecResolutionError, PACKAGE_NON_VERSION_DIRS;
 var init_resolver = __esm({
-  "iNNfo/packages/nn-core/dist/resolver.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/resolver.js"() {
     "use strict";
     init_parser2();
     SpecResolutionError = class extends Error {
@@ -10226,10 +10226,10 @@ var init_resolver = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/diagnostics.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/diagnostics.js
 var Diagnostics;
 var init_diagnostics = __esm({
-  "iNNfo/packages/nn-core/dist/diagnostics.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/diagnostics.js"() {
     "use strict";
     Diagnostics = class {
       _errors = [];
@@ -10296,7 +10296,7 @@ var init_diagnostics = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/elementIndex.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/elementIndex.js
 function conceptsByElementName(model) {
   const map = /* @__PURE__ */ new Map();
   for (const [conceptName, elements] of model.elements.entries()) {
@@ -10311,13 +10311,13 @@ function conceptsByElementName(model) {
 }
 var IMPLICIT_REF_FIELDS;
 var init_elementIndex = __esm({
-  "iNNfo/packages/nn-core/dist/validator/elementIndex.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/elementIndex.js"() {
     "use strict";
     IMPLICIT_REF_FIELDS = /* @__PURE__ */ new Set(["location", "room", "component", "parent_component"]);
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/blueprintMatching.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/blueprintMatching.js
 function matchesTargetBlueprint(expectedBlueprint, actual) {
   const expected = expectedBlueprint.trim().toLowerCase();
   const actualName = (actual.name ?? "").trim().toLowerCase();
@@ -10325,12 +10325,12 @@ function matchesTargetBlueprint(expectedBlueprint, actual) {
   return actualName === expected || actualUrl === expected || actualUrl.endsWith(`/${expected}`) || actualUrl.endsWith(`/${expected}.md`) || actualUrl.endsWith(`/${expected}_NN.md`) || actualName.endsWith(expected);
 }
 var init_blueprintMatching = __esm({
-  "iNNfo/packages/nn-core/dist/validator/blueprintMatching.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/blueprintMatching.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/naming/contract.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/naming/contract.js
 function baseOf2(path) {
   const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
   return i < 0 ? path : path.slice(i + 1);
@@ -10483,7 +10483,7 @@ function isSidecarName2(nameOrPath) {
 }
 var ENTRYPOINT_FILENAME2, SPEC_FILENAME2, SIDECAR_BLUEPRINT, NN_SUFFIX_RE2, SIDECAR_PATH_RE2, STAMP_SUFFIX_RE2, IGNORED_DIRECTORIES, CORE_BLUEPRINT_ROLE2, pad, VERSION_TOKEN_RE, STRUCTURAL_STEM_RE;
 var init_contract = __esm({
-  "iNNfo/packages/nn-core/dist/naming/contract.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/naming/contract.js"() {
     "use strict";
     init_nature();
     ENTRYPOINT_FILENAME2 = "domaiNN_NN.md";
@@ -10506,10 +10506,10 @@ var init_contract = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/address/grammar.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/address/grammar.js
 var HEAD2, SLUG2, FIELD2, CONCEPT2, HEAD_RE2, SLUG_RE2, FIELD_RE2, CONCEPT_RE2, RESERVED_HEAD2, BODY_MARKER2, CONCEPT_PREFIX2, MATRIX_PREFIX2;
 var init_grammar = __esm({
-  "iNNfo/packages/nn-core/dist/address/grammar.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/address/grammar.js"() {
     "use strict";
     HEAD2 = "[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*";
     SLUG2 = "[\\p{Ll}\\p{Lo}\\p{N}]+(?:-+[\\p{Ll}\\p{Lo}\\p{N}]+)*";
@@ -10526,7 +10526,7 @@ var init_grammar = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/address/parse.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/address/parse.js
 function malformed2(segment, expected, removed) {
   const shown = segment === "" ? "an empty segment" : `\`${segment}\``;
   const error = {
@@ -10687,7 +10687,7 @@ function parseAddress2(input) {
 }
 var GRAMMAR_HINT2, URL_RE2, WINDOWS_ABSOLUTE_RE2, LINE_ANCHOR_RE2, SOURCE_EXTENSION_RE2, CHANGES_STEM_RE2;
 var init_parse = __esm({
-  "iNNfo/packages/nn-core/dist/address/parse.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/address/parse.js"() {
     "use strict";
     init_contract();
     init_grammar();
@@ -10700,7 +10700,7 @@ var init_parse = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/address/format.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/address/format.js
 function check(value, pattern, what) {
   if (!pattern.test(value))
     throw new TypeError(`formatAddress: \`${value}\` is not ${what}`);
@@ -10741,25 +10741,25 @@ function formatAddress2(address) {
   }
 }
 var init_format = __esm({
-  "iNNfo/packages/nn-core/dist/address/format.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/address/format.js"() {
     "use strict";
     init_grammar();
   }
 });
 
-// iNNfo/packages/nn-core/dist/address/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/address/index.js
 function isAddressError2(value) {
   return value.kind === "error";
 }
 var init_address = __esm({
-  "iNNfo/packages/nn-core/dist/address/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/address/index.js"() {
     "use strict";
     init_parse();
     init_format();
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/references.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/references.js
 function buildElementIndexes(model) {
   const bySlug = /* @__PURE__ */ new Map();
   const byName = /* @__PURE__ */ new Map();
@@ -11012,7 +11012,7 @@ function validateElementFieldReferences(model, templateConcepts, options) {
   return diagnostics;
 }
 var init_references = __esm({
-  "iNNfo/packages/nn-core/dist/validator/references.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/references.js"() {
     "use strict";
     init_elementIndex();
     init_blueprintMatching();
@@ -11020,7 +11020,7 @@ var init_references = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/hierarchy.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/hierarchy.js
 function validateTaxonomyHierarchy(model, templateConcepts, templateTaxonomy) {
   const diagnostics = [];
   const effectiveTaxonomy = templateTaxonomy && templateTaxonomy.length > 0 ? templateTaxonomy : model.taxonomy;
@@ -11121,13 +11121,13 @@ function validateTaxonomyHierarchy(model, templateConcepts, templateTaxonomy) {
   return diagnostics;
 }
 var init_hierarchy = __esm({
-  "iNNfo/packages/nn-core/dist/validator/hierarchy.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/hierarchy.js"() {
     "use strict";
     init_elementIndex();
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/crypto.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/crypto.js
 function computeSha2562(content) {
   const utf8 = new TextEncoder().encode(content);
   function rotr(n, x) {
@@ -11258,12 +11258,12 @@ function computeSha2562(content) {
   return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
 }
 var init_crypto = __esm({
-  "iNNfo/packages/nn-core/dist/validator/crypto.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/crypto.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/knowledge-checks.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/knowledge-checks.js
 function checkFrontmatterInvariants(model, d) {
   const fm = model.frontmatter;
   if (!fm.level) {
@@ -11542,7 +11542,7 @@ function checkMatrixCells(model, templateMatrices, d) {
 }
 var REQUIRED_GUIDANCE_H3S, PARSE_CACHE_LIMIT, parseCache, PROVENANCE_BAN_FLOOR;
 var init_knowledge_checks = __esm({
-  "iNNfo/packages/nn-core/dist/validator/knowledge-checks.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/knowledge-checks.js"() {
     "use strict";
     init_schema();
     init_parser2();
@@ -11555,7 +11555,7 @@ var init_knowledge_checks = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/removed-constructs.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/removed-constructs.js
 function checkRemovedMarkerConstructs(parsed, filePath) {
   const markerDefs = parsed.elements.get(MARKER_DEFINITION) ?? [];
   const markers = markerDefs.map((el) => el.name);
@@ -11607,14 +11607,14 @@ function checkRemovedMarkerConstructs(parsed, filePath) {
 }
 var MARKER_DEFINITION;
 var init_removed_constructs = __esm({
-  "iNNfo/packages/nn-core/dist/validator/removed-constructs.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/removed-constructs.js"() {
     "use strict";
     init_markdown();
     MARKER_DEFINITION = "Marker Definition";
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/knowledge.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/knowledge.js
 function reportCheckFromWarning(w, templateName) {
   return {
     id: w.code === "TEMPLATE_CACHE_STALE" ? `template-freshness-${templateName ?? "spec"}` : w.code || w.path || "warning",
@@ -11742,7 +11742,7 @@ function validateKnowledge(model, template, _formatSpec, resolveIncludeOrOptions
   return { ...res, checks, summary };
 }
 var init_knowledge = __esm({
-  "iNNfo/packages/nn-core/dist/validator/knowledge.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/knowledge.js"() {
     "use strict";
     init_schema();
     init_diagnostics();
@@ -11754,9 +11754,9 @@ var init_knowledge = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/content.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/content.js
 var init_content = __esm({
-  "iNNfo/packages/nn-core/dist/validator/content.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/content.js"() {
     "use strict";
     init_parser2();
     init_constants();
@@ -11766,9 +11766,9 @@ var init_content = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/document.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/document.js
 var init_document = __esm({
-  "iNNfo/packages/nn-core/dist/validator/document.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/document.js"() {
     "use strict";
     init_parser2();
     init_markdown();
@@ -11778,15 +11778,15 @@ var init_document = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/syntax.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/syntax.js
 var init_syntax = __esm({
-  "iNNfo/packages/nn-core/dist/validator/syntax.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/syntax.js"() {
     "use strict";
     init_parser2();
   }
 });
 
-// iNNfo/packages/nn-core/dist/domain/classify.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/domain/classify.js
 function parentSpecOf(frontmatter) {
   const url = frontmatter["parent_spec"]?.url;
   return { name: parentSpecNameOf(frontmatter), url: typeof url === "string" ? url : void 0 };
@@ -11857,7 +11857,7 @@ function idOf2(input, c) {
 }
 var byText, basenameOf;
 var init_classify = __esm({
-  "iNNfo/packages/nn-core/dist/domain/classify.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/domain/classify.js"() {
     "use strict";
     init_grammar();
     init_contract();
@@ -11866,7 +11866,7 @@ var init_classify = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/domain/placement.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/domain/placement.js
 function layoutDiagnostic(code, message, paths, extra = {}) {
   const { severity = "error", ...rest } = extra;
   return { code, severity, message: `${code}: ${message}`, paths, ...rest };
@@ -11988,7 +11988,7 @@ function fileLocalDiagnostics(input, declarations) {
 }
 var slugCount;
 var init_placement = __esm({
-  "iNNfo/packages/nn-core/dist/domain/placement.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/domain/placement.js"() {
     "use strict";
     init_grammar();
     init_contract();
@@ -11998,7 +11998,7 @@ var init_placement = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/workspace/integrity/versionStatus.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/workspace/integrity/versionStatus.js
 function parseSemVer(v) {
   const m = String(v).match(VERSION_RE2);
   if (!m)
@@ -12034,13 +12034,13 @@ function parseUnversionedBlueprintName(url) {
 }
 var VERSION_RE2;
 var init_versionStatus = __esm({
-  "iNNfo/packages/nn-core/dist/workspace/integrity/versionStatus.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/workspace/integrity/versionStatus.js"() {
     "use strict";
     VERSION_RE2 = /V_(\d+)-(\d+)-(\d+)/i;
   }
 });
 
-// iNNfo/packages/nn-core/dist/domain/skew.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/domain/skew.js
 function pinOf(m) {
   const { name, url } = parentSpecOf(m.frontmatter);
   if (!name?.trim())
@@ -12094,7 +12094,7 @@ function versionSkew(models) {
 }
 var VERSION_TOKEN_RE2, versionTokenOf, MESSAGE_PATHS, META_PATHS;
 var init_skew = __esm({
-  "iNNfo/packages/nn-core/dist/domain/skew.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/domain/skew.js"() {
     "use strict";
     init_contract();
     init_versionStatus();
@@ -12107,7 +12107,7 @@ var init_skew = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/domain/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/domain/index.js
 function buildDomainIndex(inputs, declarations) {
   const diagnostics = [];
   const resolved = /* @__PURE__ */ new Map();
@@ -12280,7 +12280,7 @@ ${url ?? ""}`;
   };
 }
 var init_domain = __esm({
-  "iNNfo/packages/nn-core/dist/domain/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/domain/index.js"() {
     "use strict";
     init_address();
     init_grammar();
@@ -12293,17 +12293,17 @@ var init_domain = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/paths.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/paths.js
 var init_paths = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/paths.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/paths.js"() {
     "use strict";
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/workspaceReferences.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/workspaceReferences.js
 var init_workspaceReferences = __esm({
-  "iNNfo/packages/nn-core/dist/validator/workspaceReferences.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/workspaceReferences.js"() {
     "use strict";
     init_address();
     init_domain();
@@ -12313,17 +12313,17 @@ var init_workspaceReferences = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/assertNever.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/assertNever.js
 function assertNever2(value, context = "value") {
   throw new Error(`Unhandled ${context}: ${JSON.stringify(value)}`);
 }
 var init_assertNever = __esm({
-  "iNNfo/packages/nn-core/dist/assertNever.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/assertNever.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/jsonPointer.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/jsonPointer.js
 function isJsonPointer2(pointer) {
   return POINTER_RE.test(pointer);
 }
@@ -12355,7 +12355,7 @@ function resolveJsonPointer(content, pointer) {
 }
 var POINTER_RE, ARRAY_INDEX_RE, unescapeToken;
 var init_jsonPointer = __esm({
-  "iNNfo/packages/nn-core/dist/jsonPointer.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/jsonPointer.js"() {
     "use strict";
     POINTER_RE = /^(?:\/(?:[^~/]|~[01])*)*$/;
     ARRAY_INDEX_RE = /^(?:0|[1-9]\d*)$/;
@@ -12363,15 +12363,15 @@ var init_jsonPointer = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/naming/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/naming/index.js
 var init_naming = __esm({
-  "iNNfo/packages/nn-core/dist/naming/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/naming/index.js"() {
     "use strict";
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/sourceRef.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/sourceRef.js
 function malformedCitation(raw) {
   return {
     kind: "error",
@@ -12774,7 +12774,7 @@ function parseKnowledgeUnitRef(input) {
 }
 var SLUG3, RETIRED_PREFIX_RE, SOURCE_FILE_RE, RAW_AREA_RE, REMOVED_PATH_FORMS, HEADER_UNIT;
 var init_sourceRef = __esm({
-  "iNNfo/packages/nn-core/dist/sourceRef.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/sourceRef.js"() {
     "use strict";
     init_slug();
     init_assertNever();
@@ -12790,7 +12790,7 @@ var init_sourceRef = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/csvTable.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/csvTable.js
 function parseCsvTable(content, options = {}) {
   const delimiter = options.delimiter ?? ",";
   const records = [];
@@ -12852,13 +12852,13 @@ function parseCsvTable(content, options = {}) {
   return { headers: headerRow.map((h) => normalizeName(h)), rows: body, malformed: false };
 }
 var init_csvTable = __esm({
-  "iNNfo/packages/nn-core/dist/csvTable.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/csvTable.js"() {
     "use strict";
     init_sourceRef();
   }
 });
 
-// iNNfo/packages/nn-core/dist/unitResolve.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/unitResolve.js
 function resolveElementUnit(content, unit, subunits) {
   const headings = extractHeadings(content);
   const lines = content.split("\n");
@@ -13073,7 +13073,7 @@ function sectionOwnLines(content, slug) {
 }
 var FIELD_LINE;
 var init_unitResolve = __esm({
-  "iNNfo/packages/nn-core/dist/unitResolve.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/unitResolve.js"() {
     "use strict";
     init_csvTable();
     init_assertNever();
@@ -13083,18 +13083,18 @@ var init_unitResolve = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/querySections.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/querySections.js
 var init_querySections = __esm({
-  "iNNfo/packages/nn-core/dist/querySections.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/querySections.js"() {
     "use strict";
     init_sourceRef();
     init_unitResolve();
   }
 });
 
-// iNNfo/packages/nn-core/dist/queryUnits.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/queryUnits.js
 var init_queryUnits = __esm({
-  "iNNfo/packages/nn-core/dist/queryUnits.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/queryUnits.js"() {
     "use strict";
     init_sourceRef();
     init_csvTable();
@@ -13102,7 +13102,7 @@ var init_queryUnits = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/types.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/types.js
 function isBumpLevel(val) {
   return typeof val === "string" && BUMP_LEVELS.includes(val);
 }
@@ -13189,7 +13189,7 @@ function extractInstanceProblems2(change) {
 }
 var CHANGE_OPS2, BUMP_LEVELS;
 var init_types2 = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/types.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/types.js"() {
     "use strict";
     CHANGE_OPS2 = [
       "update_field",
@@ -13215,7 +13215,7 @@ var init_types2 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/parser.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/parser.js
 function stripQuotes2(str3) {
   const trimmed = str3.trim();
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -13461,7 +13461,7 @@ function parseChangeset2(rawContent) {
 }
 var import_yaml13, CHANGESET_FRONTMATTER_INVALID2;
 var init_parser3 = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/parser.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/parser.js"() {
     "use strict";
     import_yaml13 = __toESM(require_dist(), 1);
     init_types2();
@@ -13470,7 +13470,7 @@ var init_parser3 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/evidence.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/evidence.js
 function isKeyword(value) {
   return EVIDENCE_KEYWORDS.includes(value.toLowerCase());
 }
@@ -13493,14 +13493,14 @@ function splitEvidence2(value) {
 }
 var EVIDENCE_KEYWORDS;
 var init_evidence = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/evidence.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/evidence.js"() {
     "use strict";
     init_sourceRef();
     EVIDENCE_KEYWORDS = ["decision", "unknown"];
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/order.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/order.js
 function changeStamp(changeset) {
   return changesetStampOf2(String(changeset ?? ""))?.stamp ?? "";
 }
@@ -13520,13 +13520,13 @@ function compareChanges2(a, b) {
   return a.index - b.index;
 }
 var init_order = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/order.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/order.js"() {
     "use strict";
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/references.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/references.js
 function updateReferenceString2(text, oldName, newName) {
   if (!text || typeof text !== "string")
     return text;
@@ -13577,13 +13577,13 @@ function updateWikiLinks2(text, oldName, newName) {
   });
 }
 var init_references2 = __esm({
-  "iNNfo/packages/nn-core/dist/references.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/references.js"() {
     "use strict";
     init_slug();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/fold.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/fold.js
 function rekeyKey2(key, from, to, slugs) {
   const at = key.indexOf("@");
   const model = at === -1 ? key : key.slice(0, at);
@@ -13825,7 +13825,7 @@ function applyRelinks2(unit, relinks) {
   return value;
 }
 var init_fold = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/fold.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/fold.js"() {
     "use strict";
     init_sections();
     init_sourceRef();
@@ -13833,7 +13833,7 @@ var init_fold = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/units.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/units.js
 function unitsFromFold2(fold, model) {
   const out = [];
   for (const unit of fold.units.values()) {
@@ -13855,15 +13855,15 @@ function unitsFromFold2(fold, model) {
   return out;
 }
 var init_units = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/units.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/units.js"() {
     "use strict";
     init_fold();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/drift.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/drift.js
 var init_drift = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/drift.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/drift.js"() {
     "use strict";
     init_fold();
     init_sourceRef();
@@ -13871,7 +13871,7 @@ var init_drift = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/index.js
 function unitOf(change) {
   return change.resolvedTarget ?? change.target;
 }
@@ -13880,7 +13880,7 @@ function createChangeLog2(changes) {
 }
 var ChangeLogImpl;
 var init_changelog = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/index.js"() {
     "use strict";
     init_evidence();
     init_order();
@@ -14043,7 +14043,7 @@ var init_changelog = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/load.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/load.js
 function isChangesetPath(path) {
   const name = path.split("/").pop() ?? "";
   if (!isNNName2(name) || isSidecarName2(name))
@@ -14094,7 +14094,7 @@ function buildChangeLogFromChangesets2(changesets) {
   return createChangeLog2(changes);
 }
 var init_load = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/load.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/load.js"() {
     "use strict";
     init_contract();
     init_parser3();
@@ -14103,7 +14103,7 @@ var init_load = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/resolved-target.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/resolved-target.js
 function canonicalUnitModelId(model) {
   return String(model ?? "").trim().replace(VERSION_TOKEN_RE3, "");
 }
@@ -14122,7 +14122,7 @@ function axisSlug(label, frozenSlug) {
 }
 var VERSION_TOKEN_RE3, resolvedTarget;
 var init_resolved_target = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/resolved-target.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/resolved-target.js"() {
     "use strict";
     init_address();
     init_sourceRef();
@@ -14176,9 +14176,9 @@ var init_resolved_target = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/lineage/project.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/lineage/project.js
 var init_project = __esm({
-  "iNNfo/packages/nn-core/dist/lineage/project.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/lineage/project.js"() {
     "use strict";
     init_yaml();
     init_core();
@@ -14189,9 +14189,9 @@ var init_project = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/workspaceSources.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/workspaceSources.js
 var init_workspaceSources = __esm({
-  "iNNfo/packages/nn-core/dist/validator/workspaceSources.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/workspaceSources.js"() {
     "use strict";
     init_csvTable();
     init_assertNever();
@@ -14205,9 +14205,9 @@ var init_workspaceSources = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/index.js
 var init_validator = __esm({
-  "iNNfo/packages/nn-core/dist/validator/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/index.js"() {
     "use strict";
     init_knowledge();
     init_document();
@@ -14221,38 +14221,38 @@ var init_validator = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/identity.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/identity.js
 var init_identity = __esm({
-  "iNNfo/packages/nn-core/dist/identity.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/identity.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/metamodel.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/metamodel.js
 var init_metamodel = __esm({
-  "iNNfo/packages/nn-core/dist/metamodel.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/metamodel.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/relationships.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/relationships.js
 var init_relationships = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/relationships.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/relationships.js"() {
     "use strict";
     init_schema();
   }
 });
 
-// iNNfo/packages/nn-core/dist/matrix.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/matrix.js
 var init_matrix = __esm({
-  "iNNfo/packages/nn-core/dist/matrix.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/matrix.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/normalize.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/normalize.js
 var init_normalize = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/normalize.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/normalize.js"() {
     "use strict";
     init_schema();
     init_slug();
@@ -14264,9 +14264,9 @@ var init_normalize = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/knowledge.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/knowledge.js
 var init_knowledge2 = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/knowledge.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/knowledge.js"() {
     "use strict";
     init_parser2();
     init_identity();
@@ -14277,17 +14277,17 @@ var init_knowledge2 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/topology.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/topology.js
 var init_topology = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/topology.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/topology.js"() {
     "use strict";
     init_paths();
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/workspace.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspace.js
 var init_workspace = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/workspace.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspace.js"() {
     "use strict";
     init_identity();
     init_paths();
@@ -14300,17 +14300,17 @@ var init_workspace = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/workspaceId.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspaceId.js
 var init_workspaceId = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/workspaceId.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspaceId.js"() {
     "use strict";
     init_paths();
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/workspaceIndex.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspaceIndex.js
 var init_workspaceIndex = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/workspaceIndex.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/workspaceIndex.js"() {
     "use strict";
     init_paths();
     init_workspaceId();
@@ -14318,9 +14318,9 @@ var init_workspaceIndex = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/recursiveParser/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/index.js
 var init_recursiveParser = __esm({
-  "iNNfo/packages/nn-core/dist/recursiveParser/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/recursiveParser/index.js"() {
     "use strict";
     init_paths();
     init_relationships();
@@ -14332,39 +14332,39 @@ var init_recursiveParser = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/fs-types.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/fs-types.js
 var init_fs_types = __esm({
-  "iNNfo/packages/nn-core/dist/fs-types.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/fs-types.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/workspace/reconcileManifest.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/workspace/reconcileManifest.js
 var init_reconcileManifest = __esm({
-  "iNNfo/packages/nn-core/dist/workspace/reconcileManifest.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/workspace/reconcileManifest.js"() {
     "use strict";
     init_paths();
   }
 });
 
-// iNNfo/packages/nn-core/dist/workspace/discoverModels.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/workspace/discoverModels.js
 var init_discoverModels = __esm({
-  "iNNfo/packages/nn-core/dist/workspace/discoverModels.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/workspace/discoverModels.js"() {
     "use strict";
     init_paths();
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/workspace/integrity/report.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/workspace/integrity/report.js
 var init_report = __esm({
-  "iNNfo/packages/nn-core/dist/workspace/integrity/report.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/workspace/integrity/report.js"() {
     "use strict";
     init_versionStatus();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/root.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/root.js
 function isFile2(path) {
   try {
     return (0, import_node_fs6.statSync)(path).isFile();
@@ -14377,7 +14377,7 @@ function isDomainRoot2(dir) {
 }
 var import_node_fs6, import_node_path6;
 var init_root = __esm({
-  "iNNfo/packages/nn-core/dist/scope/root.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/root.js"() {
     "use strict";
     import_node_fs6 = require("node:fs");
     import_node_path6 = require("node:path");
@@ -14385,7 +14385,7 @@ var init_root = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/helpers.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/helpers.js
 function resolveKnowledgeVersion(frontmatter) {
   const v = frontmatter.knowledge_version;
   return typeof v === "string" && v.trim() !== "" ? v.trim() : null;
@@ -14456,7 +14456,7 @@ async function discoverDomainModels(rootDir) {
 }
 var import_promises, import_node_path7, MD_FILE_RE, IGNORED_DIRS;
 var init_helpers = __esm({
-  "iNNfo/packages/nn-core/dist/helpers.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/helpers.js"() {
     "use strict";
     import_promises = require("node:fs/promises");
     import_node_path7 = require("node:path");
@@ -14469,7 +14469,7 @@ var init_helpers = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/mutate.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/mutate.js
 function requireArgs(args, keys) {
   const values = {};
   const missing = [];
@@ -15711,7 +15711,7 @@ function generateIndex(model, args) {
 }
 var MUTATION_HANDLERS, LEVEL2_ONLY_OPS, LEVEL3_ONLY_OPS;
 var init_mutate = __esm({
-  "iNNfo/packages/nn-core/dist/mutate.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/mutate.js"() {
     "use strict";
     init_types();
     init_schema();
@@ -15745,29 +15745,29 @@ var init_mutate = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/envelope.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/envelope.js
 var init_envelope = __esm({
-  "iNNfo/packages/nn-core/dist/envelope.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/envelope.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/validator/baseline.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/validator/baseline.js
 var init_baseline = __esm({
-  "iNNfo/packages/nn-core/dist/validator/baseline.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/validator/baseline.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/merge.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/merge.js
 var init_merge = __esm({
-  "iNNfo/packages/nn-core/dist/merge.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/merge.js"() {
     "use strict";
     init_types();
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/citations.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/citations.js
 function normalizeToolId(value) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -15955,7 +15955,7 @@ function resolveCitation(raw, field, resolver, modelPath = "") {
 }
 var EXCERPT_CHAR_CAP, CHANGE_CONCEPT, KNOWN_AGENT_TOOL_IDS, NORMALIZED_KNOWN_AGENT_TOOL_IDS;
 var init_citations = __esm({
-  "iNNfo/packages/nn-core/dist/console/citations.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/citations.js"() {
     "use strict";
     init_dist();
     init_assertNever();
@@ -15966,9 +15966,9 @@ var init_citations = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/element-history.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/element-history.js
 var init_element_history = __esm({
-  "iNNfo/packages/nn-core/dist/console/element-history.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/element-history.js"() {
     "use strict";
     init_parser3();
     init_contract();
@@ -15977,7 +15977,7 @@ var init_element_history = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/imports/parser.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/imports/parser.js
 function parseDomainImports(domainContent) {
   const parsed = parseKnowledge2(domainContent);
   const domains = [];
@@ -16042,13 +16042,13 @@ function parseDomainImports(domainContent) {
   return { domains, imports };
 }
 var init_parser4 = __esm({
-  "iNNfo/packages/nn-core/dist/imports/parser.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/imports/parser.js"() {
     "use strict";
     init_parser2();
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/fs-source-resolver.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/fs-source-resolver.js
 function readDomainAliases(rootDir) {
   const aliases = /* @__PURE__ */ new Map();
   const entryPath = (0, import_node_path8.join)(rootDir, CANONICAL_DOMAIN_ENTRYPOINT);
@@ -16176,7 +16176,7 @@ function createFsSourceResolver(rootDir) {
 }
 var import_node_fs7, import_node_path8;
 var init_fs_source_resolver = __esm({
-  "iNNfo/packages/nn-core/dist/console/fs-source-resolver.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/fs-source-resolver.js"() {
     "use strict";
     import_node_fs7 = require("node:fs");
     import_node_path8 = require("node:path");
@@ -16186,14 +16186,14 @@ var init_fs_source_resolver = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/output-path.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/output-path.js
 var init_output_path = __esm({
-  "iNNfo/packages/nn-core/dist/console/output-path.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/output-path.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/element-hash.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/element-hash.js
 function canonicalJsonStringify(value) {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
@@ -16235,22 +16235,22 @@ function hashParsedElement2(concept, node) {
   });
 }
 var init_element_hash = __esm({
-  "iNNfo/packages/nn-core/dist/console/element-hash.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/element-hash.js"() {
     "use strict";
     init_crypto();
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/slot.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/slot.js
 var init_slot = __esm({
-  "iNNfo/packages/nn-core/dist/console/slot.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/slot.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/payload-builder.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/payload-builder.js
 var init_payload_builder = __esm({
-  "iNNfo/packages/nn-core/dist/console/payload-builder.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/payload-builder.js"() {
     "use strict";
     init_dist();
     init_crypto();
@@ -16268,9 +16268,9 @@ var init_payload_builder = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/schema-resolution.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/schema-resolution.js
 var init_schema_resolution = __esm({
-  "iNNfo/packages/nn-core/dist/console/schema-resolution.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/schema-resolution.js"() {
     "use strict";
     init_parser2();
     init_resolver();
@@ -16279,26 +16279,26 @@ var init_schema_resolution = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/unit-address.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/unit-address.js
 var init_unit_address = __esm({
-  "iNNfo/packages/nn-core/dist/console/unit-address.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/unit-address.js"() {
     "use strict";
     init_sourceRef();
   }
 });
 
-// iNNfo/packages/nn-core/dist/writeOnce/plan.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/plan.js
 var init_plan = __esm({
-  "iNNfo/packages/nn-core/dist/writeOnce/plan.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/plan.js"() {
     "use strict";
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/cognitivize/sidecar.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/sidecar.js
 var import_yaml15, SIDECAR_SPEC_URL;
 var init_sidecar = __esm({
-  "iNNfo/packages/nn-core/dist/cognitivize/sidecar.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/sidecar.js"() {
     "use strict";
     import_yaml15 = __toESM(require_dist(), 1);
     init_contract();
@@ -16306,9 +16306,9 @@ var init_sidecar = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/writeOnce/fs.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/fs.js
 var init_fs = __esm({
-  "iNNfo/packages/nn-core/dist/writeOnce/fs.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/fs.js"() {
     "use strict";
     init_sidecar();
     init_contract();
@@ -16316,9 +16316,9 @@ var init_fs = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/console/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/console/index.js
 var init_console = __esm({
-  "iNNfo/packages/nn-core/dist/console/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/console/index.js"() {
     "use strict";
     init_citations();
     init_element_history();
@@ -16337,44 +16337,44 @@ var init_console = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/lineage/fs-snapshot.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/lineage/fs-snapshot.js
 var init_fs_snapshot = __esm({
-  "iNNfo/packages/nn-core/dist/lineage/fs-snapshot.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/lineage/fs-snapshot.js"() {
     "use strict";
     init_core();
     init_contract();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changelog/node.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changelog/node.js
 var init_node = __esm({
-  "iNNfo/packages/nn-core/dist/changelog/node.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changelog/node.js"() {
     "use strict";
     init_fs_snapshot();
     init_load();
   }
 });
 
-// iNNfo/packages/nn-core/dist/lineage/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/lineage/index.js
 var init_lineage = __esm({
-  "iNNfo/packages/nn-core/dist/lineage/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/lineage/index.js"() {
     "use strict";
     init_project();
   }
 });
 
-// iNNfo/packages/nn-core/dist/writeOnce/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/index.js
 var init_writeOnce = __esm({
-  "iNNfo/packages/nn-core/dist/writeOnce/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/writeOnce/index.js"() {
     "use strict";
     init_plan();
     init_fs();
   }
 });
 
-// iNNfo/packages/nn-core/dist/cognitivize/cognitivize.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/cognitivize.js
 var init_cognitivize = __esm({
-  "iNNfo/packages/nn-core/dist/cognitivize/cognitivize.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/cognitivize.js"() {
     "use strict";
     init_contract();
     init_fs();
@@ -16382,16 +16382,16 @@ var init_cognitivize = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/cognitivize/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/index.js
 var init_cognitivize2 = __esm({
-  "iNNfo/packages/nn-core/dist/cognitivize/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/cognitivize/index.js"() {
     "use strict";
     init_cognitivize();
     init_sidecar();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/utils.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/utils.js
 function escapeRegex2(str3) {
   return str3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -16403,12 +16403,12 @@ function extractModelSlug2(target) {
   return target.trim();
 }
 var init_utils = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/utils.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/utils.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/hasher.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/hasher.js
 function canonicalizeValue2(val) {
   if (val === null || val === void 0)
     return void 0;
@@ -16452,7 +16452,7 @@ function verifyProposalSha(doc) {
 }
 var import_node_crypto2, EXECUTION_FACT_KEYS2, PROPOSAL_KEYS2;
 var init_hasher = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/hasher.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/hasher.js"() {
     "use strict";
     import_node_crypto2 = require("node:crypto");
     EXECUTION_FACT_KEYS2 = [
@@ -16482,7 +16482,7 @@ var init_hasher = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/serializer.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/serializer.js
 function formatShaList2(shas) {
   return `[${shas.join(", ")}]`;
 }
@@ -16686,7 +16686,7 @@ function serializeChangeset2(doc) {
 }
 var import_yaml16, ANNOTATION_KEYS2, ANNOTATION_RE2, CHANGE_HEADING_RE2;
 var init_serializer2 = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/serializer.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/serializer.js"() {
     "use strict";
     import_yaml16 = __toESM(require_dist(), 1);
     init_hasher();
@@ -16696,7 +16696,7 @@ var init_serializer2 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/lock.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/lock.js
 async function acquireLock(rootDir, changesetName, timeoutMs = 6e4) {
   const lockDir = (0, import_node_path9.join)(rootDir, "changes");
   await (0, import_promises2.mkdir)(lockDir, { recursive: true });
@@ -16773,14 +16773,14 @@ async function acquireLock(rootDir, changesetName, timeoutMs = 6e4) {
 }
 var import_promises2, import_node_path9;
 var init_lock = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/lock.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/lock.js"() {
     "use strict";
     import_promises2 = require("node:fs/promises");
     import_node_path9 = require("node:path");
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/slugs.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/slugs.js
 function getClaimedSlugsForModel(modelSlug, loadedModels) {
   const claimed = /* @__PURE__ */ new Set();
   const model = loadedModels.get(modelSlug) || Array.from(loadedModels.values()).find((m) => m.frontmatter.knowledge_slug?.toLowerCase() === modelSlug.toLowerCase());
@@ -16894,14 +16894,14 @@ function resolveBatchSlugs(changes, loadedModels) {
   };
 }
 var init_slugs = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/slugs.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/slugs.js"() {
     "use strict";
     init_slug();
     init_utils();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/impact.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/impact.js
 function workspaceEntries(workspaceModels) {
   const best = /* @__PURE__ */ new Map();
   for (const [key, model] of workspaceModels) {
@@ -17131,14 +17131,14 @@ function evaluateBatchDeleteImpact(changes, loadedModels, workspaceModels) {
   };
 }
 var init_impact = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/impact.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/impact.js"() {
     "use strict";
     init_slug();
     init_utils();
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/history.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/history.js
 async function scanHistory(changesDir, maxScan) {
   const history = { changesets: [], transitions: /* @__PURE__ */ new Map() };
   let entries;
@@ -17253,7 +17253,7 @@ async function checkStaleTarget2(changesDir, modelSlug, elementSlug, baseVersion
 }
 var import_promises3, import_node_path10;
 var init_history = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/history.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/history.js"() {
     "use strict";
     import_promises3 = require("node:fs/promises");
     import_node_path10 = require("node:path");
@@ -17264,7 +17264,7 @@ var init_history = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/conflicts.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/conflicts.js
 async function partitionChangeset(changes, loadedModels, changesDir, modelBaseVersions, referenceConflicts, blockedChanges) {
   const cleanSubset = [];
   const conflictedSubset = [];
@@ -17526,7 +17526,7 @@ async function partitionChangeset(changes, loadedModels, changesDir, modelBaseVe
   };
 }
 var init_conflicts = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/conflicts.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/conflicts.js"() {
     "use strict";
     init_slug();
     init_sourceRef();
@@ -17537,9 +17537,9 @@ var init_conflicts = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/changeset/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/changeset/index.js
 var init_changeset = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/changeset/index.js"() {
     "use strict";
     init_types2();
     init_evidence();
@@ -17556,7 +17556,7 @@ var init_changeset = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scaffold/knowledge.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/knowledge.js
 function isDistributedConcept(concept) {
   return concept.storage?.mode === "distributed";
 }
@@ -17666,7 +17666,7 @@ function seedExtractedModel(model, subtree) {
 }
 var DEFAULT_KNOWLEDGE_VERSION, FALLBACK_SPEC_VERSION, FALLBACK_SPEC_URL;
 var init_knowledge3 = __esm({
-  "iNNfo/packages/nn-core/dist/scaffold/knowledge.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/knowledge.js"() {
     "use strict";
     init_slug();
     DEFAULT_KNOWLEDGE_VERSION = "V_0-1-0";
@@ -17675,48 +17675,48 @@ var init_knowledge3 = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scaffold/domain.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/domain.js
 var init_domain2 = __esm({
-  "iNNfo/packages/nn-core/dist/scaffold/domain.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/domain.js"() {
     "use strict";
     init_slug();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scaffold/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/index.js
 var init_scaffold = __esm({
-  "iNNfo/packages/nn-core/dist/scaffold/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scaffold/index.js"() {
     "use strict";
     init_knowledge3();
     init_domain2();
   }
 });
 
-// iNNfo/packages/nn-core/dist/imports/types.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/imports/types.js
 var init_types3 = __esm({
-  "iNNfo/packages/nn-core/dist/imports/types.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/imports/types.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/imports/snapshot.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/imports/snapshot.js
 var init_snapshot = __esm({
-  "iNNfo/packages/nn-core/dist/imports/snapshot.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/imports/snapshot.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/imports/diff.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/imports/diff.js
 var init_diff = __esm({
-  "iNNfo/packages/nn-core/dist/imports/diff.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/imports/diff.js"() {
     "use strict";
     init_snapshot();
   }
 });
 
-// iNNfo/packages/nn-core/dist/imports/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/imports/index.js
 var init_imports = __esm({
-  "iNNfo/packages/nn-core/dist/imports/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/imports/index.js"() {
     "use strict";
     init_types3();
     init_parser4();
@@ -17725,16 +17725,16 @@ var init_imports = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/chain.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/chain.js
 var init_chain = __esm({
-  "iNNfo/packages/nn-core/dist/scope/chain.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/chain.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/fs-chain.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-chain.js
 var init_fs_chain = __esm({
-  "iNNfo/packages/nn-core/dist/scope/fs-chain.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-chain.js"() {
     "use strict";
     init_contract();
     init_parser2();
@@ -17743,25 +17743,25 @@ var init_fs_chain = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/json.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/json.js
 var init_json = __esm({
-  "iNNfo/packages/nn-core/dist/scope/json.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/json.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/fs-layers.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-layers.js
 var init_fs_layers = __esm({
-  "iNNfo/packages/nn-core/dist/scope/fs-layers.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-layers.js"() {
     "use strict";
     init_parser2();
     init_json();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/fs-procedures.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-procedures.js
 var init_fs_procedures = __esm({
-  "iNNfo/packages/nn-core/dist/scope/fs-procedures.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-procedures.js"() {
     "use strict";
     init_contract();
     init_parser2();
@@ -17769,32 +17769,32 @@ var init_fs_procedures = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/resolve.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/resolve.js
 var init_resolve = __esm({
-  "iNNfo/packages/nn-core/dist/scope/resolve.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/resolve.js"() {
     "use strict";
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/procedures.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/procedures.js
 var init_procedures = __esm({
-  "iNNfo/packages/nn-core/dist/scope/procedures.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/procedures.js"() {
     "use strict";
     init_resolve();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/elements.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/elements.js
 var init_elements = __esm({
-  "iNNfo/packages/nn-core/dist/scope/elements.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/elements.js"() {
     "use strict";
     init_address();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/fs-elements.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-elements.js
 var init_fs_elements = __esm({
-  "iNNfo/packages/nn-core/dist/scope/fs-elements.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/fs-elements.js"() {
     "use strict";
     init_parser2();
     init_elements();
@@ -17804,17 +17804,17 @@ var init_fs_elements = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/drift.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/drift.js
 var init_drift2 = __esm({
-  "iNNfo/packages/nn-core/dist/scope/drift.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/drift.js"() {
     "use strict";
     init_resolve();
   }
 });
 
-// iNNfo/packages/nn-core/dist/scope/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/scope/index.js
 var init_scope = __esm({
-  "iNNfo/packages/nn-core/dist/scope/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/scope/index.js"() {
     "use strict";
     init_root();
     init_chain();
@@ -17829,9 +17829,9 @@ var init_scope = __esm({
   }
 });
 
-// iNNfo/packages/nn-core/dist/index.js
+// ../cogNNitive/iNNfo/packages/nn-core/dist/index.js
 var init_dist = __esm({
-  "iNNfo/packages/nn-core/dist/index.js"() {
+  "../cogNNitive/iNNfo/packages/nn-core/dist/index.js"() {
     "use strict";
     init_types();
     init_layout();
