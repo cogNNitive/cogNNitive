@@ -19,18 +19,18 @@
 - [x] 2.5 Unit test `buildLineageChangeset` and atomic application across both compact models and distributed collection models.
 
 ## Batch 3: `nn-update` Skill & Reconciliation Engine
-- [ ] 3.1 Create `skills/nn-update/` from `skills/nn-upgrade/`; rename internal routines from `upgrade` to `lineageReconcile` / `update`.
-- [ ] 3.2 Delete `repinContent` and its call site in `scripts/apply-upgrade-plan.js`; the reconcile step must call `buildLineageChangeset()` and apply through the transaction pipeline. Keep the all-or-none rollback and the pre-write workspace backup (`scripts/backup-workspace.js`).
-- [ ] 3.3 Reduce `skills/nn-upgrade/` to a thin deprecation pointer that forwards to `nn-update` and logs a notice.
-- [ ] 3.4 Update `manifest/source.yaml` (`skills` entry), `scripts/lib/skills-commands.js` and `skills/nn-skills-lifecycle/scripts/skills-manager.js` for the new skill name.
-- [ ] 3.5 Add automated tests: multi-model distributed reconciliation, all-or-none on validation failure, and the deprecation pointer.
+- [x] 3.1 Create `skills/nn-update/` from `skills/nn-upgrade/`; rename internal routines from `upgrade` to `lineageReconcile` / `update`.
+- [x] 3.2 Delete `repinContent` and its call site in `scripts/apply-upgrade-plan.js`; the reconcile step must call `buildLineageChangeset()` and apply through the transaction pipeline. Keep the all-or-none rollback and the pre-write workspace backup (`scripts/backup-workspace.js`).
+- [x] 3.3 Reduce `skills/nn-upgrade/` to a thin deprecation pointer that forwards to `nn-update` and logs a notice.
+- [x] 3.4 Update `manifest/source.yaml` (`skills` entry), `scripts/lib/skills-commands.js` and `skills/nn-skills-lifecycle/scripts/skills-manager.js` for the new skill name.
+- [x] 3.5 Add automated tests: multi-model distributed reconciliation, all-or-none on validation failure, and the deprecation pointer.
 
 ## Batch 4: Preflight, Vocabulary Migration & Docs
-- [ ] 4.1 Rename `skills/nn-preflight/scripts/upgrade-check.js` to `lineage-audit.js` (keep `upgrade-check.js` as a deprecated shim for one release) and support `--audit-lineage`.
-- [ ] 4.2 Emit canonical keys (`update-available`, `updateStatus`) alongside the deprecated (`upgrade-available`) aliases; update `skills/nn-preflight/SKILL.md` (Tier 3 section) and `preflight-check.js`.
-- [ ] 4.3 Update every reference to the retired vocabulary in primary documentation and living specs: `docs/documentation/content/skills/*`, `_sidebar.md`, `ai-index.yaml`, and the `nn-innfo` / `nn-sources` skill text that links to `nn-upgrade`.
-- [ ] 4.4 Update preflight tests and add a regression test asserting the deprecated keys still parse.
+- [x] 4.1 Rename `skills/nn-preflight/scripts/upgrade-check.js` to `lineage-audit.js` (keep `upgrade-check.js` as a deprecated shim for one release) and support `--audit-lineage`.
+- [x] 4.2 Emit canonical keys (`update-available`, `updateStatus`) alongside the deprecated (`upgrade-available`) aliases; update `skills/nn-preflight/SKILL.md` (Tier 3 section) and `preflight-check.js`.
+- [ ] 4.3 Update every reference to the retired vocabulary in primary documentation: `docs/documentation/content/skills/*`, `_sidebar.md`, `ai-index.yaml`. (Done for the `nn-innfo` / `nn-sources` / `nn-preflight` skill text and the shared-rules source; the `docs/` pages still name `nn-upgrade` and are deferred, because the docs suite has its own derived-facts guards.)
+- [x] 4.4 Update preflight tests and add a regression test asserting the deprecated keys still parse.
 
 ## Batch 5: OpenSpec Delta Sync & Verification
-- [ ] 5.1 Run `node scripts/check-openspec-deltas.mjs` and confirm every delta block is well formed.
-- [ ] 5.2 Run `node scripts/verify.js` and confirm zero regressions across packages, mirrors and skills.
+- [x] 5.1 Run `node scripts/check-openspec-deltas.mjs` and confirm every delta block is well formed.
+- [x] 5.2 Run `node scripts/verify.js` and confirm zero regressions across packages, mirrors and skills.

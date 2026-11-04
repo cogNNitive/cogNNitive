@@ -76,16 +76,17 @@ const BUNDLE_TARGETS = [
       ' */\n// @ts-nocheck',
   },
   {
-    name: 'nn-upgrade-core',
+    name: 'nn-update-core',
     // Several core modules behind one synthetic entry (the barrel would pull the whole package).
     contents: [
       "export { planDomainScaffold } from './src/scaffold/domain.ts'",
       "export { parseKnowledge, serializeKnowledge } from './src/parser/index.ts'",
-      "export { freeze_slugs } from './src/mutate.ts'",
+      "export { applyMutation, freeze_slugs } from './src/mutate.ts'",
+      "export { buildLineageChangeset } from './src/changeset/lineage/builder.ts'",
     ].join('\n'),
     resolveDir: path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core'),
     platform: 'node',
-    out: path.join(REPO_ROOT, 'skills', 'nn-upgrade', 'scripts', 'lib', 'nn-core.generated.cjs'),
+    out: path.join(REPO_ROOT, 'skills', 'nn-update', 'scripts', 'lib', 'nn-core.generated.cjs'),
     banner:
       '/**\n' +
       ' * GENERATED FILE — DO NOT EDIT.\n' +

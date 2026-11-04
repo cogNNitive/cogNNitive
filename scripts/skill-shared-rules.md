@@ -87,7 +87,7 @@ no line-number ranges, and never a `staging/` target.
    declared `placement`. A folder alone never makes a concept distributed.
 4. **One bluepriNNt version per bluepriNNt.** A domaiNN that pins a bluepriNNt at
    several versions fails `check_domain` with `BLUEPRINT_VERSION_SKEW`. Fix it
-   with `nn-upgrade`, whose unit is the whole bluepriNNt group: it repins and
+   with `nn-update`, whose unit is the whole bluepriNNt group: it repins and
    re-validates every member, or none.
 5. **Instance lifecycle.** Create with `add_model` and an explicit `concept::`
    (container first); rename or move with `move_model`, retargeting every
