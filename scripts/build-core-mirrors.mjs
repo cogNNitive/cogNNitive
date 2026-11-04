@@ -93,7 +93,6 @@ async function renderTarget(target, esbuild) {
     absWorkingDir: REPO_ROOT,
     write: false,
     legalComments: 'none',
-    treeShaking: true,
     banner: { js: target.banner },
   })
   const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
