@@ -2,9 +2,14 @@ name: CI & Verify
 
 on:
   push:
-    branches: [ main, dev, 'session/**' ]
+    # Chain work lives on `ds/**` and `feature/**` branches. Without them a whole
+    # stacked chain can be pushed with no run at all (the distributed-storage chain
+    # was: 19 PRs, zero CI runs).
+    branches: [ main, dev, 'session/**', 'ds/**', 'feature/**' ]
+  # No base filter. A chained PR targets its predecessor branch, never main/dev, so a
+  # base allowlist silently skips every PR of the chain. Every PR runs the gate; that
+  # is the point of the gate.
   pull_request:
-    branches: [ main, dev ]
   workflow_dispatch:
 
 permissions:
