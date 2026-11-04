@@ -12,11 +12,11 @@
 > Note: the catalog already emits `name`, `adopted` and `versions[].blueprint_version` (`scripts/blueprint-catalog.mjs`; asserted in `scripts/blueprint-catalog.test.mjs`). No catalog change is required here — do not add a parallel metadata field.
 
 ## Batch 2: Changeset Lineage Mutation Engine
-- [ ] 2.1 Add the lineage operations to the shared contract: `repin_blueprint`, `rename_field`, `set_field_default` in `CHANGE_OPS` (`iNNfo/packages/nn-core/src/changeset/types.ts`), with their structural validators in `extractInstanceProblems`-style form.
-- [ ] 2.2 Implement `buildLineageChangeset()` in `iNNfo/packages/nn-core/src/changeset/lineage/builder.ts` as a **pure** AST transform: `parseKnowledge()` on the model, schema diff against the target blueprint, emit a `ChangesetDocument`.
-- [ ] 2.3 Implement the mutations themselves in the core mutation layer (`iNNfo/packages/nn-core/src/mutate.ts`) so the ops behave like every other op. Do **not** write directly from the skill.
-- [ ] 2.4 Verify the ops execute through the existing transaction pipeline in `iNNfo/packages/nn-mcp/src/tools/apply-change.ts` (`executeChangesetApply`) — the apply engine lives in `nn-mcp`, not in `nn-core`; a change that needs both sides must cross that boundary explicitly, never by importing `nn-mcp` from `nn-core`.
-- [ ] 2.5 Unit test `buildLineageChangeset` and atomic application across both compact models and distributed collection models.
+- [x] 2.1 Add the lineage operations to the shared contract: `repin_blueprint`, `rename_field`, `set_field_default` in `CHANGE_OPS` (`iNNfo/packages/nn-core/src/changeset/types.ts`), with their structural validators in `extractInstanceProblems`-style form.
+- [x] 2.2 Implement `buildLineageChangeset()` in `iNNfo/packages/nn-core/src/changeset/lineage/builder.ts` as a **pure** AST transform: `parseKnowledge()` on the model, schema diff against the target blueprint, emit a `ChangesetDocument`.
+- [x] 2.3 Implement the mutations themselves in the core mutation layer (`iNNfo/packages/nn-core/src/mutate.ts`) so the ops behave like every other op. Do **not** write directly from the skill.
+- [x] 2.4 Verify the ops execute through the existing transaction pipeline in `iNNfo/packages/nn-mcp/src/tools/apply-change.ts` (`executeChangesetApply`) — the apply engine lives in `nn-mcp`, not in `nn-core`; a change that needs both sides must cross that boundary explicitly, never by importing `nn-mcp` from `nn-core`.
+- [x] 2.5 Unit test `buildLineageChangeset` and atomic application across both compact models and distributed collection models.
 
 ## Batch 3: `nn-update` Skill & Reconciliation Engine
 - [ ] 3.1 Create `skills/nn-update/` from `skills/nn-upgrade/`; rename internal routines from `upgrade` to `lineageReconcile` / `update`.

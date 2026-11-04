@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseTargetAddress } from './change-args.js'
+import { mutationArgsForChange, parseTargetAddress } from './change-args.js'
+import { parseKnowledge } from '@cognnitive/nn-core'
+import type { ChangeItem } from '@cognnitive/nn-core'
 
 describe('parseTargetAddress on the unified address grammar', () => {
   it('splits a hierarchical id, an element and a field', () => {
@@ -38,5 +40,52 @@ describe('parseTargetAddress on the unified address grammar', () => {
     const r = parseTargetAddress('m@Goal 1&owner')
     expect(r).toMatchObject({ modelSlug: 'm', remainder: 'Goal 1&owner', parts: ['Goal 1', 'owner'] })
     expect(r.error?.code).toBe('ADDRESS_MALFORMED')
+  })
+})
+
+describe('mutationArgsForChange on the lineage operations', () => {
+  const model = parseKnowledge(
+    [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: "coNNtent_V_0-14-1"',
+      '  url: "https://example.test/coNNtent_V_0-14-1_NN.md"',
+      '---',
+      '',
+      '# NN Scene',
+      '',
+      '## NN Scene: Intro',
+      'synopsis:: The opening',
+      '',
+    ].join('\n'),
+  )
+
+  const args = (change: Partial<ChangeItem>) =>
+    mutationArgsForChange({ id: 'c1', evidence: 'decision', ...change } as ChangeItem, model)
+
+  it('maps repin_blueprint to the target pin and its url', () => {
+    expect(
+      args({
+        op: 'repin_blueprint',
+        target: 'series',
+        from: 'coNNtent_V_0-14-1',
+        to: 'coNNtent_V_0-15-0',
+        blueprint_url: 'https://example.test/coNNtent_V_0-15-0_NN.md',
+      }),
+    ).toEqual({
+      to: 'coNNtent_V_0-15-0',
+      blueprintUrl: 'https://example.test/coNNtent_V_0-15-0_NN.md',
+      from: 'coNNtent_V_0-14-1',
+    })
+  })
+
+  it('maps rename_field and set_field_default', () => {
+    expect(
+      args({ op: 'rename_field', target: 'series', from: 'synopsis', to: 'overview' }),
+    ).toEqual({ from: 'synopsis', to: 'overview', conceptName: undefined })
+    expect(
+      args({ op: 'set_field_default', target: 'series', name: 'spoiler', to: 'no' }),
+    ).toEqual({ fieldName: 'spoiler', to: 'no', conceptName: undefined })
   })
 })
