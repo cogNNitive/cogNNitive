@@ -69,6 +69,25 @@ export function formatNNName(stem: string, blueprint: string): string {
   return conforms ? `${stem}_NN.md` : `${stem}_${blueprint}_NN.md`
 }
 
+/**
+ * File name of an instance model (design A4): derived from the slug of the folder that holds
+ * it, never from the container or the concept. Equal names in different folders are legal
+ * because instance identity is hierarchical.
+ */
+export function instanceFileName(folderSlug: string, blueprint: string): string {
+  return formatNNName(folderSlug, blueprint)
+}
+
+/** `null` when `path` carries the name derived from `folderSlug`; otherwise the expected name. */
+export function checkInstanceName(
+  path: string,
+  folderSlug: string,
+  blueprint: string,
+): { expected: string } | null {
+  const expected = instanceFileName(folderSlug, blueprint)
+  return baseOf(path).toLowerCase() === expected.toLowerCase() ? null : { expected }
+}
+
 export function formatMemberName(key: string, ext: string, stamp?: UtcStamp): string {
   const suffix = stamp ? `_${stamp.stamp}${stamp.seq > 1 ? `-${stamp.seq}` : ''}` : ''
   return `${key}${suffix}${ext ? `.${ext}` : ''}`

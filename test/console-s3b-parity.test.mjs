@@ -205,26 +205,36 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       assert.equal(modal.querySelector('input[type="text"]'), null, 'no free-text input for a select')
     })
 
-    it('reference candidates are the target concepts of the same model, proposing [[Name]]', () => {
+    it('reference candidates come from the target concepts of the collection, by address', () => {
       const { document, controller, idOf } = boot()
       const window = document.defaultView
       assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'owner' }), true)
       const modal = document.querySelector('.nn-edit-modal')
-      const names = [...modal.querySelectorAll('datalist option')].map((o) => o.value).sort()
-      assert.deepEqual(names, ['Ana', 'Ben'], 'Person elements of the same model only')
+      const options = [...modal.querySelectorAll('[data-nn-reference-option]')].map((o) => o.textContent)
+      // Every Person in the domaiNN, titled and addressed (a range, not a bare name).
+      assert.ok(options.some((t) => /^Ana - /.test(t)), 'Ana is offered with her address')
+      assert.ok(options.some((t) => /^Ben - /.test(t)), 'Ben is offered with his address')
+      assert.ok(!options.some((t) => /^Alpha - /.test(t)), 'an Initiative is not a Person')
       const input = modal.querySelector('.nn-edit-reference input')
-      input.value = 'Ben'
+      const ben = [...modal.querySelectorAll('[data-nn-reference-option]')].find((o) => /^Ben - /.test(o.textContent))
+      ben.dispatchEvent(new window.Event('click', { bubbles: true }))
+      // Same model: the relative form of the address is what gets written.
+      assert.equal(input.value, '@ben')
       modal.querySelector('.nn-edit-btn-save').dispatchEvent(new window.Event('click', { bubbles: true }))
       const stored = Object.keys(window.localStorage).map((k) => window.localStorage.getItem(k)).join('|')
-      assert.ok(stored.includes('[[Ben]]'), 'the draft proposes [[Ben]]')
+      assert.ok(stored.includes('@ben'), 'the draft stores the address, not the title')
     })
 
-    it('a reference with no declared targets offers the same model and no other', () => {
+    it('a reference with no declared targets offers every concept of the collection', () => {
       const { document, controller, idOf } = boot()
       assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'peer' }), true)
-      const names = [...document.querySelectorAll('.nn-edit-modal datalist option')].map((o) => o.value)
-      assert.ok(['Alpha', 'Beta', 'Ana', 'Ben'].every((n) => names.includes(n)))
-      assert.ok(!names.includes('Zed') && !names.includes('Retail'), 'no element of the other model')
+      const options = [...document.querySelectorAll('.nn-edit-modal [data-nn-reference-option]')].map((o) => o.textContent)
+      assert.ok(options.some((t) => /^Alpha - /.test(t)))
+      assert.ok(options.some((t) => /^Beta - /.test(t)))
+      assert.ok(options.some((t) => /^Ana - /.test(t)))
+      // The collection is domaiNN-wide: another model's Persons are in it.
+      assert.ok(options.some((t) => /^Zed - /.test(t)))
+      assert.ok(options.some((t) => /^Retail - /.test(t)))
     })
 
     it('a declared video renders a player, and so does a remote declared video', () => {

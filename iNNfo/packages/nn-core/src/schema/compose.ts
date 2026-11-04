@@ -9,6 +9,7 @@ import type {
 } from '../types/index.js'
 import { parseKnowledge } from '../parser/index.js'
 import { type BlueprintSchema, extractBlueprintSchema } from './extract.js'
+import { validateStorage } from './storage.js'
 
 /* ── Additive template composition (`includes`) ─────────────────
  *
@@ -132,10 +133,18 @@ export function applyAliasToSchema(schema: BlueprintSchema, alias?: AliasMap): B
       }
     })
 
+    const storage = c.storage?.container
+      ? {
+          ...c.storage,
+          container: conceptRenameLookup.get(c.storage.container.toLowerCase()) ?? c.storage.container,
+        }
+      : c.storage
+
     return {
       ...c,
       name: newConceptName,
       ...(fields ? { fields } : {}),
+      ...(storage ? { storage } : {}),
     }
   })
 
@@ -415,6 +424,9 @@ export function resolveBlueprintSchema(
       delete local.globalFields
     }
     attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel))
+    // With includes declared but no resolver the schema is incomplete (a container may live in an
+    // include), so the storage check only runs on a schema that is whole.
+    if (_depth === 0 && includes.length === 0) errors.push(...validateStorage(local.concepts))
     return { schema: local, errors }
   }
 
@@ -505,6 +517,10 @@ export function resolveBlueprintSchema(
 
   if (_depth === 0) {
     attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel))
+    // A composition that failed to resolve an include is incomplete, same as above.
+    if (!errors.some((e) => e.path.startsWith('includes.') && /could not be resolved/.test(e.message))) {
+      errors.push(...validateStorage(base.concepts))
+    }
   }
 
   return { schema: base, errors }

@@ -440,9 +440,9 @@ describe('validateWorkspaceSources — LEGACY_DERIVATION_KEY (D3)', () => {
 describe('validateWorkspaceSources — single citation edge updates', () => {
   it('accepts file-level bare paths without emitting KU_DEPRECATED_HASH', () => {
     const diags = validateWorkspaceSources(
-      resultWith(['kNNowledge/Client_NN.md', 'artifacts/report.md', 'sources/import/guide.md']),
+      resultWith(['villabotijos-today/intro', 'artifacts/report.md', 'sources/import/guide.md']),
       resolver({
-        'kNNowledge/Client_NN.md': true,
+        'villabotijos-today/intro': true,
         'artifacts/report.md': true,
         'sources/import/guide.md': true,
       }),
@@ -452,11 +452,19 @@ describe('validateWorkspaceSources — single citation edge updates', () => {
 
   it('reports KU_DANGLING_FILE for dangling file-level bare paths', () => {
     const diags = validateWorkspaceSources(
-      resultWith('kNNowledge/Missing_NN.md'),
+      resultWith('villabotijos-today/missing'),
       resolver({}),
     )
     expect(diags).toHaveLength(1)
     expect(diags[0].code).toBe('KU_DANGLING_FILE')
+  })
+
+  it('reports a kNNowledge file path as a malformed citation (model-by-path is removed)', () => {
+    const diags = validateWorkspaceSources(
+      resultWith('kNNowledge/Client_NN.md'),
+      resolver({ 'kNNowledge/Client_NN.md': true }),
+    )
+    expect(diags.map((d) => d.code)).toEqual(['KU_MALFORMED'])
   })
 
   it('reports a models/ citation as a plain dangling file', () => {

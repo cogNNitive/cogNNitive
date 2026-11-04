@@ -212,7 +212,7 @@ describe('checkWorkspace (AD-5)', () => {
     await rmWithRetry(rootDir)
   })
 
-  it('reports a repeated model id as a warning naming the id and every path, without failing the pass', async () => {
+  it('reports a repeated model id as a layout error naming the id and every path', async () => {
     stubNetwork()
     await mkdir(join(modelsDir, 'alpha'), { recursive: true })
     await mkdir(join(modelsDir, 'beta'), { recursive: true })
@@ -224,24 +224,22 @@ describe('checkWorkspace (AD-5)', () => {
     const report = await checkWorkspace(rootDir, { offline: true })
 
     expect(report.models).toHaveLength(3)
-    expect(report.collisions).toEqual([
-      {
-        code: 'MODEL_ID_COLLISION',
-        severity: 'warning',
-        id: 'status_V_0-1-0_business_NN',
-        paths: [`models/alpha/${dup}`, `models/beta/${dup}`],
-        message: expect.stringContaining('status_V_0-1-0_business_NN'),
-      },
-    ])
-    expect(report.collisions[0].message).toContain(`models/alpha/${dup}`)
-    expect(report.collisions[0].message).toContain(`models/beta/${dup}`)
+    const dupIds = report.layout.diagnostics.filter((d) => d.code === 'DUPLICATE_MODEL_ID')
+    expect(dupIds).toHaveLength(1)
+    expect(dupIds[0].severity).toBe('error')
+    expect(dupIds[0].id).toBe('status_V_0-1-0_business')
+    expect(dupIds[0].paths).toEqual([`models/alpha/${dup}`, `models/beta/${dup}`])
+    expect(dupIds[0].message).toContain(`models/alpha/${dup}`)
+    expect(dupIds[0].message).toContain(`models/beta/${dup}`)
+    expect(report.layout.ok).toBe(false)
   })
 
-  it('reports no collisions when every model id is unique', async () => {
+  it('reports no layout diagnostics when every model id is unique', async () => {
     stubNetwork()
     await writeModels(2)
     const report = await checkWorkspace(rootDir, { offline: true })
-    expect(report.collisions).toEqual([])
+    expect(report.layout.diagnostics).toEqual([])
+    expect(report.layout.ok).toBe(true)
   })
 
   it('hydrates a missing template package through the temp cache and never writes into the tree', async () => {
@@ -374,7 +372,7 @@ describe('checkWorkspace (AD-5)', () => {
     ).toBe(true)
   }, 30000)
 
-  it('summary_only caps the collision list like the model list and flags the cut', async () => {
+  it('summary_only caps the layout list like the model list and flags the cut', async () => {
     stubNetwork()
     await mkdir(join(modelsDir, 'alpha'), { recursive: true })
     await mkdir(join(modelsDir, 'beta'), { recursive: true })
@@ -385,12 +383,12 @@ describe('checkWorkspace (AD-5)', () => {
     }
 
     const full = await checkWorkspace(rootDir, { offline: true })
-    expect(full.collisions).toHaveLength(30)
-    expect(full.collisionsTruncated).toBeUndefined()
+    expect(full.layout.diagnostics).toHaveLength(30)
+    expect(full.layoutTruncated).toBeUndefined()
 
     const summary = await checkWorkspace(rootDir, { offline: true, summaryOnly: true })
-    expect(summary.collisions).toHaveLength(25)
-    expect(summary.collisionsTruncated).toBe(true)
+    expect(summary.layout.diagnostics).toHaveLength(25)
+    expect(summary.layoutTruncated).toBe(true)
     expect(summary.truncated).toBe(true)
     expect(summary.aggregate.modelsScanned).toBe(60)
   }, 30000)

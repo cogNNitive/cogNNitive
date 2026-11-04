@@ -12,7 +12,7 @@ import {
   listBlueprintSkills,
   findKnowledgeFile,
   deriveNameFromUrl,
-  AmbiguousModelIdError,
+  ModelIdError,
 } from './spec'
 import { validateKnowledge, validateBlueprint } from './mutate'
 
@@ -540,24 +540,29 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     expect(result.errors).toHaveLength(0)
   })
 
-  it('Option A: findKnowledgeFile throws AmbiguousModelIdError on colliding stems and resolves path', async () => {
+  it('findKnowledgeFile throws DUPLICATE_MODEL_ID on equal ids and never resolves a path', async () => {
     const scope1 = join(rootDir, 'series', 'alpha')
     const scope2 = join(rootDir, 'series', 'beta')
     await mkdir(scope1, { recursive: true })
     await mkdir(scope2, { recursive: true })
-    await writeFile(join(scope1, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
-    await writeFile(join(scope2, 'script_NN.md'), '---\nlevel: 3\n---\n', 'utf-8')
+    const model = '---\nlevel: 3\nparent_spec:\n  name: business_V_0-2-0\n  url: https://example.com/business_V_0-2-0_NN.md\n---\n'
+    await writeFile(join(scope1, 'script_NN.md'), model, 'utf-8')
+    await writeFile(join(scope2, 'script_NN.md'), model, 'utf-8')
 
-    // Bare stem collides -> throws AmbiguousModelIdError listing candidates
-    await expect(findKnowledgeFile(rootDir, 'script_NN')).rejects.toThrow(AmbiguousModelIdError)
-    await expect(findKnowledgeFile(rootDir, 'script')).rejects.toThrow(AmbiguousModelIdError)
+    // Equal ids: neither file resolves, and the error lists every path
+    await expect(findKnowledgeFile(rootDir, 'script')).rejects.toMatchObject({
+      code: 'DUPLICATE_MODEL_ID',
+      candidates: ['series/alpha/script_NN.md', 'series/beta/script_NN.md'],
+    })
+    await expect(findKnowledgeFile(rootDir, 'script_NN')).rejects.toThrow(ModelIdError)
 
-    // Path-qualified resolves cleanly
-    const p1 = await findKnowledgeFile(rootDir, 'series/alpha/script_NN')
-    expect(p1).toBe(join(scope1, 'script_NN.md'))
-
-    const p2 = await findKnowledgeFile(rootDir, 'series/beta/script')
-    expect(p2).toBe(join(scope2, 'script_NN.md'))
+    // A path is never an id
+    await expect(findKnowledgeFile(rootDir, 'series/alpha/script_NN.md')).rejects.toMatchObject({
+      code: 'MODEL_ADDRESSED_BY_PATH',
+    })
+    await expect(findKnowledgeFile(rootDir, 'series\\alpha\\script')).rejects.toMatchObject({
+      code: 'MODEL_ADDRESSED_BY_PATH',
+    })
   })
 
   // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named

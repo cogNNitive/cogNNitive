@@ -23,8 +23,6 @@ import {
   isProcedureDocument,
   procedureIdOf,
   resolveProcedures,
-  buildModelIndex,
-  resolveModelId,
   isDomainRoot,
 } from '@cognnitive/nn-core'
 import { listScopedProcedures } from './scoped-procedures.js'
@@ -76,22 +74,27 @@ export function deriveNameFromUrl(url: string): string {
 
 import { normalizeId } from './list-read.js'
 import { isSafeRelativeId } from './path-guard.js'
+import { buildNodeDomainIndex } from './domain-index.js'
 
 export { normalizeId }
 
 /**
- * Locate a kNNowledge document on disk by id.
- *
- * Searches the root directory, `kNNowledge/` and the conventional `kNNowledge/` subdirectory.
- * Supports nested relative paths (e.g. `subsystems/auth/tokens_NN.md`).
+ * A model id that cannot be resolved to exactly one file: a path was passed in
+ * place of an id (`MODEL_ADDRESSED_BY_PATH`), or the id is carried by several
+ * files (`DUPLICATE_MODEL_ID`, `candidates` lists every path).
  */
-export class AmbiguousModelIdError extends Error {
-  readonly code = 'AMBIGUOUS_MODEL_ID'
+export class ModelIdError extends Error {
+  readonly code: 'MODEL_ADDRESSED_BY_PATH' | 'DUPLICATE_MODEL_ID'
   readonly id: string
   readonly candidates: string[]
-  constructor(id: string, candidates: string[]) {
-    super(`Model id "${id}" is ambiguous. Candidates: ${candidates.join(', ')}`)
-    this.name = 'AmbiguousModelIdError'
+  constructor(code: ModelIdError['code'], id: string, candidates: string[]) {
+    super(
+      code === 'MODEL_ADDRESSED_BY_PATH'
+        ? `MODEL_ADDRESSED_BY_PATH: "${id}" is a path, not a model id; use the hierarchical id (for example "series-slug/video-slug" or the file stem without _NN)`
+        : `DUPLICATE_MODEL_ID: id "${id}" is carried by ${candidates.join(', ')}; ids must be unique in a domaiNN - rename or move one`,
+    )
+    this.name = 'ModelIdError'
+    this.code = code
     this.id = id
     this.candidates = candidates
   }
@@ -130,9 +133,14 @@ async function collectDomainFiles(
 /**
  * Locate a kNNowledge document on disk by id.
  *
- * Implements Option A of contextual-resolution L2.4:
- * Resolves bare stems when unique across the domaiNN; accepts domain-relative paths;
- * throws AmbiguousModelIdError when a bare stem collides across documents.
+ * A model is found through the domain index: its id is the hierarchical id
+ * (a compact model's file stem without `_NN`, an instance model's
+ * `<container>/<slug>` id). A path (`.md`, `\`) is never an id and throws
+ * `MODEL_ADDRESSED_BY_PATH`; an id carried by several files throws
+ * `DUPLICATE_MODEL_ID`; a bare stem or slug of an instance model does not resolve.
+ * A document that is not a model (domaiNN entrypoint, plain document) is found
+ * by its stem without `_NN`. `includeSpecs` also searches `specs/`, where paths
+ * are accepted (specs are documents, not models).
  */
 export async function findKnowledgeFile(
   rootDir: string,
@@ -140,17 +148,61 @@ export async function findKnowledgeFile(
   opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
   if (!isSafeRelativeId(id)) return null
+  const wanted = id.trim()
+  if (!opts?.includeSpecs && (/\.md$/i.test(wanted) || wanted.includes('\\'))) {
+    throw new ModelIdError('MODEL_ADDRESSED_BY_PATH', id, [])
+  }
+  const bare = wanted.replace(/\.md$/i, '').replace(/(_NN)+$/i, '')
+
+  if (!opts?.includeSpecs) {
+    const { index, pathOf, discovered } = await buildNodeDomainIndex(rootDir)
+    const exact = pathOf(bare)
+    if (exact) return exact
+    const lower = bare.toLowerCase()
+    const sameText = index.models.filter((m) => m.id.toLowerCase() === lower)
+    const ids = [...new Set(sameText.map((m) => m.id))]
+    if (ids.length === 1) {
+      const path = pathOf(ids[0])
+      if (path) return path
+    }
+    if (sameText.length > 0) {
+      throw new ModelIdError('DUPLICATE_MODEL_ID', id, sameText.map((m) => m.path))
+    }
+    // Not a model: look among the documents that discovery does not list.
+    const modelPaths = new Set(discovered.map((d) => d.path))
+    return await findDocument(rootDir, bare, modelPaths, opts)
+  }
+  return await findDocument(rootDir, bare, new Set(), opts)
+}
+
+/** A non-model document whose stem (or domain-relative path) without `_NN` equals `bare`. */
+async function findDocument(
+  rootDir: string,
+  bare: string,
+  excluded: ReadonlySet<string>,
+  opts?: { includeSpecs?: boolean },
+): Promise<string | null> {
   const relPaths: string[] = []
   await collectDomainFiles(rootDir, rootDir, relPaths, opts)
-  const index = buildModelIndex(relPaths)
-  const resolution = resolveModelId(index, id)
-  if (resolution.ok) {
-    return join(rootDir, resolution.path)
+  const lower = bare.toLowerCase()
+  const strip = (p: string) => p.replace(/\.md$/i, '').replace(/(_NN)+$/i, '').toLowerCase()
+  const hits = relPaths.filter((rel) => {
+    if (excluded.has(join(rootDir, rel))) return false
+    if (!/\.md$/i.test(rel) && rel.toLowerCase() !== lower) return false
+    const base = rel.split('/').pop() ?? rel
+    if (strip(rel) === lower || (!lower.includes('/') && strip(base) === lower)) return true
+    // A blueprint package is addressed by its folder: `.../custom/spec_NN.md` is `custom`.
+    if (opts?.includeSpecs && /^spec(_NN)?\.md$/i.test(base)) {
+      const folder = rel.split('/').slice(-2, -1)[0]
+      return folder !== undefined && !['specs', 'bluepriNNts'].includes(folder) && folder.toLowerCase() === lower
+    }
+    return false
+  })
+  if (hits.length === 0) return null
+  if (hits.length > 1) {
+    throw new ModelIdError('DUPLICATE_MODEL_ID', bare, hits.map((h) => join(rootDir, h)))
   }
-  if (resolution.code === 'AMBIGUOUS_MODEL_ID') {
-    throw new AmbiguousModelIdError(id, [...resolution.candidates])
-  }
-  return null
+  return join(rootDir, hits[0])
 }
 
 /**

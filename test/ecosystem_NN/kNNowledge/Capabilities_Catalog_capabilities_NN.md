@@ -102,225 +102,225 @@ Automated document processing, format normalization, and artifact compilation pi
 
 ## NN Capability: CAP-01: Formal Semantic Structuring
   cap_code:: "CAP-01"
-  domain:: [[DOM-01: Domain Semantic Modeling & Domain Templates]]
-  primary_benefit:: [[BEN-02: Eliminating the Blank Page Problem]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-01-domain-semantic-modeling-domain-templates
+  primary_benefit:: @ben-02-eliminating-the-blank-page-problem
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Universal domain modeling based on strictly typed concepts, elements, properties, and explicit relationships.
 
 ## NN Capability: CAP-02: Canonical Template Catalog
   cap_code:: "CAP-02"
-  domain:: [[DOM-01: Domain Semantic Modeling & Domain Templates]]
-  primary_benefit:: [[BEN-02: Eliminating the Blank Page Problem]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-01-domain-semantic-modeling-domain-templates
+  primary_benefit:: @ben-02-eliminating-the-blank-page-problem
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Extensive library of pre-validated ontologies for procedures, organizations, projects, and catalogs.
 
 ## NN Capability: CAP-03: Metamodel Customization & Specialization
   cap_code:: "CAP-03"
-  domain:: [[DOM-01: Domain Semantic Modeling & Domain Templates]]
-  primary_benefit:: [[BEN-02: Eliminating the Blank Page Problem]]
-  interface:: [[INT-02: Model Context Protocol (MCP Server)]]
+  domain:: @dom-01-domain-semantic-modeling-domain-templates
+  primary_benefit:: @ben-02-eliminating-the-blank-page-problem
+  interface:: @int-02-model-context-protocol-mcp-server
   maturity:: "Production"
 
 Capability to design custom Level 2 templates with specific fields, validation rules, and domain constraints.
 
 ## NN Capability: CAP-04: Modular Model Composition (includes)
   cap_code:: "CAP-04"
-  domain:: [[DOM-01: Domain Semantic Modeling & Domain Templates]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-02: Model Context Protocol (MCP Server)]]
+  domain:: @dom-01-domain-semantic-modeling-domain-templates
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-02-model-context-protocol-mcp-server
   maturity:: "Production"
 
 Additive composition of peer templates and multi-model hierarchies for complex, scalable systems.
 
 ## NN Capability: CAP-05: Dynamic Taxonomy & Ad-Hoc Tags
   cap_code:: "CAP-05"
-  domain:: [[DOM-01: Domain Semantic Modeling & Domain Templates]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-01-domain-semantic-modeling-domain-templates
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Transversal tagging and lightweight categorization across concepts without modifying formal specifications.
 
 ## NN Capability: CAP-06: Local-First Storage & Absolute Privacy
   cap_code:: "CAP-06"
-  domain:: [[DOM-02: Knowledge Sovereignty & Open Formats]]
-  primary_benefit:: [[BEN-01: Zero Vendor Lock-in & Total Privacy]]
-  interface:: [[INT-03: Local File System & Git Tooling]]
+  domain:: @dom-02-knowledge-sovereignty-open-formats
+  primary_benefit:: @ben-01-zero-vendor-lock-in-total-privacy
+  interface:: @int-03-local-file-system-git-tooling
   maturity:: "Production"
 
 All data resides exclusively on local storage without mandatory cloud synchronizations or privacy leaks.
 
 ## NN Capability: CAP-07: Universal Markdown Plain-Text Format
   cap_code:: "CAP-07"
-  domain:: [[DOM-02: Knowledge Sovereignty & Open Formats]]
-  primary_benefit:: [[BEN-01: Zero Vendor Lock-in & Total Privacy]]
-  interface:: [[INT-03: Local File System & Git Tooling]]
+  domain:: @dom-02-knowledge-sovereignty-open-formats
+  primary_benefit:: @ben-01-zero-vendor-lock-in-total-privacy
+  interface:: @int-03-local-file-system-git-tooling
   maturity:: "Production"
 
 Pure text files readable and editable across any software ecosystem, guaranteeing perpetual longevity.
 
 ## NN Capability: CAP-08: Native Git Version Control & Auditing
   cap_code:: "CAP-08"
-  domain:: [[DOM-02: Knowledge Sovereignty & Open Formats]]
-  primary_benefit:: [[BEN-01: Zero Vendor Lock-in & Total Privacy]]
-  interface:: [[INT-03: Local File System & Git Tooling]]
+  domain:: @dom-02-knowledge-sovereignty-open-formats
+  primary_benefit:: @ben-01-zero-vendor-lock-in-total-privacy
+  interface:: @int-03-local-file-system-git-tooling
   maturity:: "Production"
 
 Full branch history, diff reviews, pull requests, and multi-user collaboration using Git standards.
 
 ## NN Capability: CAP-09: Complete Zero Vendor Lock-in
   cap_code:: "CAP-09"
-  domain:: [[DOM-02: Knowledge Sovereignty & Open Formats]]
-  primary_benefit:: [[BEN-01: Zero Vendor Lock-in & Total Privacy]]
-  interface:: [[INT-03: Local File System & Git Tooling]]
+  domain:: @dom-02-knowledge-sovereignty-open-formats
+  primary_benefit:: @ben-01-zero-vendor-lock-in-total-privacy
+  interface:: @int-03-local-file-system-git-tooling
   maturity:: "Production"
 
 Freedom to migrate, export, or parse knowledge bases with custom scripts without proprietary hurdles.
 
 ## NN Capability: CAP-10: Fine-Grained Heading & Line Provenance
   cap_code:: "CAP-10"
-  domain:: [[DOM-03: Fine-Grained Traceability & Auditability]]
-  primary_benefit:: [[BEN-03: Bulletproof Auditability & Trust]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-03-fine-grained-traceability-auditability
+  primary_benefit:: @ben-03-bulletproof-auditability-trust
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Direct linkage of every modeled claim to its exact source file heading slug or line range.
 
 ## NN Capability: CAP-11: Cryptographic SHA-256 Source Hashing
   cap_code:: "CAP-11"
-  domain:: [[DOM-03: Fine-Grained Traceability & Auditability]]
-  primary_benefit:: [[BEN-03: Bulletproof Auditability & Trust]]
-  interface:: [[INT-04: trannsform & Ingestion Engine]]
+  domain:: @dom-03-fine-grained-traceability-auditability
+  primary_benefit:: @ben-03-bulletproof-auditability-trust
+  interface:: @int-04-trannsform-ingestion-engine
   maturity:: "Production"
 
 Automatic detection of altered, stale, or tampered source documents across the knowledge lifecycle.
 
 ## NN Capability: CAP-12: Anti-Hallucination Origin Auditing
   cap_code:: "CAP-12"
-  domain:: [[DOM-03: Fine-Grained Traceability & Auditability]]
-  primary_benefit:: [[BEN-03: Bulletproof Auditability & Trust]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-03-fine-grained-traceability-auditability
+  primary_benefit:: @ben-03-bulletproof-auditability-trust
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Verifiable provenance enabling users to substantiate any assertion to stakeholders and auditors.
 
 ## NN Capability: CAP-13: Automated Referential Integrity Validation
   cap_code:: "CAP-13"
-  domain:: [[DOM-03: Fine-Grained Traceability & Auditability]]
-  primary_benefit:: [[BEN-03: Bulletproof Auditability & Trust]]
-  interface:: [[INT-02: Model Context Protocol (MCP Server)]]
+  domain:: @dom-03-fine-grained-traceability-auditability
+  primary_benefit:: @ben-03-bulletproof-auditability-trust
+  interface:: @int-02-model-context-protocol-mcp-server
   maturity:: "Production"
 
 Real-time detection of broken WikiLinks, dangling references, and undeclared parent concepts.
 
 ## NN Capability: CAP-14: Workspace Health Diagnostics & Remediation
   cap_code:: "CAP-14"
-  domain:: [[DOM-03: Fine-Grained Traceability & Auditability]]
-  primary_benefit:: [[BEN-03: Bulletproof Auditability & Trust]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-03-fine-grained-traceability-auditability
+  primary_benefit:: @ben-03-bulletproof-auditability-trust
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Interactive diagnostics panel with categorized warnings, severity ratings, and one-click fixes.
 
 ## NN Capability: CAP-15: Deterministic AI MCP Interoperability
   cap_code:: "CAP-15"
-  domain:: [[DOM-04: AI Pair-Modeling & Intelligent Assistance]]
-  primary_benefit:: [[BEN-04: Hallucination-Free AI Collaboration]]
-  interface:: [[INT-02: Model Context Protocol (MCP Server)]]
+  domain:: @dom-04-ai-pair-modeling-intelligent-assistance
+  primary_benefit:: @ben-04-hallucination-free-ai-collaboration
+  interface:: @int-02-model-context-protocol-mcp-server
   maturity:: "Production"
 
 Standardized tool execution allowing AI agents to read, inspect, and mutate models deterministically.
 
 ## NN Capability: CAP-16: Architecture Assistant & Semantic Auditor
   cap_code:: "CAP-16"
-  domain:: [[DOM-04: AI Pair-Modeling & Intelligent Assistance]]
-  primary_benefit:: [[BEN-04: Hallucination-Free AI Collaboration]]
-  interface:: [[INT-02: Model Context Protocol (MCP Server)]]
+  domain:: @dom-04-ai-pair-modeling-intelligent-assistance
+  primary_benefit:: @ben-04-hallucination-free-ai-collaboration
+  interface:: @int-02-model-context-protocol-mcp-server
   maturity:: "Production"
 
 Intelligent evaluation of model logical consistency, completeness, and structural robustness.
 
 ## NN Capability: CAP-17: Multiformat Ingestion & Normalization
   cap_code:: "CAP-17"
-  domain:: [[DOM-04: AI Pair-Modeling & Intelligent Assistance]]
-  primary_benefit:: [[BEN-02: Eliminating the Blank Page Problem]]
-  interface:: [[INT-04: trannsform & Ingestion Engine]]
+  domain:: @dom-04-ai-pair-modeling-intelligent-assistance
+  primary_benefit:: @ben-02-eliminating-the-blank-page-problem
+  interface:: @int-04-trannsform-ingestion-engine
   maturity:: "Production"
 
 Automated conversion of PDF, Word, Excel, and raw text into clean, structured Markdown with frontmatter.
 
 ## NN Capability: CAP-18: Guided Procedure Execution
   cap_code:: "CAP-18"
-  domain:: [[DOM-04: AI Pair-Modeling & Intelligent Assistance]]
-  primary_benefit:: [[BEN-04: Hallucination-Free AI Collaboration]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-04-ai-pair-modeling-intelligent-assistance
+  primary_benefit:: @ben-04-hallucination-free-ai-collaboration
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Interactive wizard guiding users step-by-step through operational workflows declared in the model.
 
 ## NN Capability: CAP-19: Assisted Semantic Search & Navigation
   cap_code:: "CAP-19"
-  domain:: [[DOM-04: AI Pair-Modeling & Intelligent Assistance]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-04-ai-pair-modeling-intelligent-assistance
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Natural-language and structured search across cross-cutting concepts, tags, and relations.
 
 ## NN Capability: CAP-20: Hierarchical Visual Navigation Tree
   cap_code:: "CAP-20"
-  domain:: [[DOM-05: Multidimensional Visual Exploration]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-05-multidimensional-visual-exploration
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Interactive navigation tree expanding concepts and elements from macro overview to fine detail.
 
 ## NN Capability: CAP-21: 2D/3D Topological Graph Visualization
   cap_code:: "CAP-21"
-  domain:: [[DOM-05: Multidimensional Visual Exploration]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-05-multidimensional-visual-exploration
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Force-directed network graph visualizing interconnected nodes, central hubs, and dependency clusters.
 
 ## NN Capability: CAP-22: Interactive N:M Relational Matrices
   cap_code:: "CAP-22"
-  domain:: [[DOM-05: Multidimensional Visual Exploration]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-05-multidimensional-visual-exploration
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Cross-tabulation grids featuring interactive cell widgets (switches, cycles, scales, and status markers).
 
 ## NN Capability: CAP-23: Tabular Concept Sheets & Bulk Editing
   cap_code:: "CAP-23"
-  domain:: [[DOM-05: Multidimensional Visual Exploration]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-05-multidimensional-visual-exploration
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Spreadsheet-like tabular interface for rapid data entry, sorting, and multi-attribute filtering.
 
 ## NN Capability: CAP-24: Dynamic Timelines & Gantt Scheduling
   cap_code:: "CAP-24"
-  domain:: [[DOM-05: Multidimensional Visual Exploration]]
-  primary_benefit:: [[BEN-05: 360-Degree Holistic Insight]]
-  interface:: [[INT-01: iNNfo Modeler (Visual UI)]]
+  domain:: @dom-05-multidimensional-visual-exploration
+  primary_benefit:: @ben-05-360-degree-holistic-insight
+  interface:: @int-01-innfo-modeler-visual-ui
   maturity:: "Production"
 
 Automatic chronological rendering for models declaring time-bound tasks, milestones, or sequences.
 
 ## NN Capability: CAP-25: Self-Contained HTML Dashboard Generation
   cap_code:: "CAP-25"
-  domain:: [[DOM-06: Autonomous Artifact Generation]]
-  primary_benefit:: [[BEN-06: Effortless Executive Communication]]
-  interface:: [[INT-04: trannsform & Ingestion Engine]]
+  domain:: @dom-06-autonomous-artifact-generation
+  primary_benefit:: @ben-06-effortless-executive-communication
+  interface:: @int-04-trannsform-ingestion-engine
   maturity:: "Production"
 
 Compilation of living models into portable, standalone HTML apps with embedded styles and interactivity.

@@ -1,6 +1,7 @@
 import type { Concept, ElementNode, ParsedKnowledge } from '../types/index.js'
 import { IMPLICIT_REF_FIELDS } from './elementIndex.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
+import { isAddressError, parseAddress } from '../address/index.js'
 
 export interface ReferenceDiagnostic {
   path: string
@@ -275,42 +276,69 @@ export function validateElementFieldReferences(
             continue
           }
 
-          let isCrossModel = false
-          if (value.startsWith('[') && value.includes(']')) {
-            isCrossModel = true
-          } else if (value.includes('::')) {
-            isCrossModel = true
-          }
-
-          if (isCrossModel) {
-            // Deliberate delegation, not an omission (AD-06): the qualified
-            // form `[[Model Title :: Element Name]]` is validated
-            // workspace-wide by validator/workspaceReferences.ts, which is
-            // the only pass that can see sibling models. This per-file
-            // validator stays graph-free by design and keeps bypassing any
-            // `::`/`[...]`-shaped value exactly as before.
+          // Implicit reference fields (`location`, `room`, ...) are not typed by the
+          // template: they keep the by-name resolution of a wikilink target.
+          if (!fieldDef || fieldDef.type !== 'reference') {
+            const implicitPath = `elements.${conceptName}.${el.name}.fields.${fieldName}`
+            const resolvedByName = resolveReferenceTarget(value, indexes)
+            if (!resolvedByName.found) {
+              diagnostics.push({
+                path: implicitPath,
+                message: `Dangling reference: field "${fieldName}" value "${rawValue}" does not match any element name`,
+                severity: 'error',
+              })
+            } else if (resolvedByName.ambiguous) {
+              diagnostics.push({
+                path: implicitPath,
+                message: `Ambiguous element reference "${rawValue}": matches multiple elements across concepts (${resolvedByName.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+                severity: 'error',
+                code: 'AMBIGUOUS_ELEMENT_NAME',
+              })
+            }
             continue
           }
 
-          const resolved = resolveReferenceTarget(value, indexes)
-          if (!resolved.found) {
+          // A typed value is address-only: no name fallback and no wikilink form.
+          // Titles are display data; `[[Name]]` and `[[Title :: Name]]` are removed.
+          const parsed = parseAddress(rawValue)
+          const fieldPath = `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`
+          if (isAddressError(parsed)) {
             diagnostics.push({
-              path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
-              message: `Dangling reference: field "${fieldDef?.name ?? fieldName}" value "${rawValue}" does not match any element name`,
+              path: fieldPath,
+              message: `${parsed.code}: field "${fieldDef?.name ?? fieldName}" value "${rawValue}" - ${parsed.message}`,
               severity: 'error',
+              code: parsed.code,
+              promptHint: 'Write the target as an address: `@<slug>` inside this model, `<hierarchical-id>@<slug>` for another.',
+              meta: { field: fieldDef?.name ?? fieldName },
             })
             continue
           }
-
-          if (resolved.ambiguous) {
+          if (parsed.kind === 'blueprint' || parsed.kind === 'source') {
             diagnostics.push({
-              path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
-              message: `Ambiguous element reference "${rawValue}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+              path: fieldPath,
+              message: `ADDRESS_MALFORMED: field "${fieldDef?.name ?? fieldName}" value "${rawValue}" - not a model address; use \`@<slug>\` or \`<hierarchical-id>@<slug>\``,
               severity: 'error',
-              code: 'AMBIGUOUS_ELEMENT_NAME',
+              code: 'ADDRESS_MALFORMED',
+              meta: { field: fieldDef?.name ?? fieldName },
             })
             continue
           }
+          // An address naming another model is resolved workspace-wide
+          // (validator/workspaceReferences.ts, the only pass that sees sibling models).
+          if (parsed.kind === 'model' || parsed.model !== null) continue
+
+          const slug = 'slug' in parsed.unit ? parsed.unit.slug : ''
+          const matches = slug ? (indexes.bySlug.get(slug.toLowerCase()) ?? []) : []
+          if (matches.length === 0) {
+            diagnostics.push({
+              path: fieldPath,
+              message: `REF_ELEMENT_NOT_FOUND: field "${fieldDef?.name ?? fieldName}" value "${rawValue}" - this model has no element with that slug; use one of its slugs`,
+              severity: 'error',
+              code: 'REF_ELEMENT_NOT_FOUND',
+            })
+            continue
+          }
+          const resolved = { found: true as const, elements: matches, matchedName: matches[0].name }
 
           if (fieldDef?.target_concepts && fieldDef.target_concepts.length > 0) {
             const owningConcepts = new Set(resolved.elements!.map((e) => e.type.toLowerCase()))

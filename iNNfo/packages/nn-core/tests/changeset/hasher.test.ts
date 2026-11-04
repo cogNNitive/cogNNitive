@@ -227,3 +227,27 @@ describe('Proposal Hasher: add_model keys are sealed', () => {
     expect(computeProposalSha([plain])).toBe(computeProposalSha([{ ...plain }]))
   })
 })
+
+describe('Proposal Hasher — add_model concept (distributed-storage S6a)', () => {
+  const base: ChangeItem = {
+    id: 'c-01',
+    op: 'add_model',
+    target: 'acme',
+    blueprint_name: 'business',
+    blueprint_url: 'https://example.test/business/spec_NN.md',
+    name: 'ACME',
+    knowledge_version: 'V_0-1-0',
+  }
+
+  it('a compact add_model without concept keeps its recorded seal', () => {
+    // Frozen value taken from the seal computed before the `concept` option
+    // existed: a change that does not carry the key must hash exactly as before.
+    expect(computeProposalSha([base])).toBe(
+      '87c276f7b7491d01d40154e16eabad0e68fbce8eb551ba9ba64b635a4d286bc3',
+    )
+  })
+
+  it('the concept of a distributed instance is part of the seal', () => {
+    expect(computeProposalSha([{ ...base, concept: 'Video' }])).not.toBe(computeProposalSha([base]))
+  })
+})

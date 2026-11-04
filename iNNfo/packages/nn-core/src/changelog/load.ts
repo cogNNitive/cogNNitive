@@ -37,12 +37,16 @@ export interface ChangeLike {
   evidence?: string
   evidence_sha256?: readonly string[]
   resolved_target?: string
+  extracted_slugs?: readonly string[]
   from?: string
   to?: string
   concept?: string
   name?: string
   slug?: string
   resolved_slug?: string
+  blueprint_name?: string
+  blueprint_url?: string
+  knowledge_version?: string
   notes?: string
   resolution?: string
   fields?: Record<string, string>
@@ -98,11 +102,15 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       evidence: change.evidence,
       evidenceItems: splitEvidence(change.evidence),
       evidenceSha256: change.evidence_sha256,
+      extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
       concept: change.concept,
       name: change.name,
       slug: change.slug,
+      blueprintName: change.blueprint_name,
+      blueprintUrl: change.blueprint_url,
+      knowledgeVersion: change.knowledge_version,
       resolvedSlug: change.resolved_slug,
       notes: change.notes,
       resolution: change.resolution,

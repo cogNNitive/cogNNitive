@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseChangeset } from '../../src/changeset/parser.js'
 import { serializeChangeset } from '../../src/changeset/serializer.js'
+import { computeProposalSha } from '../../src/changeset/hasher.js'
 
 const L3 = [
   '---',
@@ -113,5 +114,111 @@ describe('Changeset Serializer — raw-text preservation', () => {
     expect(structural).not.toContain('> [!NOTE]')
     expect(structural).not.toContain('iNNfo document**')
     expect(structural).toContain('# NN index')
+  })
+})
+
+describe('Changeset Parser & Serializer — add_model of a distributed instance (S6a)', () => {
+  const changeset = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+status: proposed
+title: "Instance creation"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: add_model
+target:: villabotijos-today/new-episode
+concept:: Video
+blueprint_name:: "video-script_V_0-15-0"
+blueprint_url:: "specs/bluepriNNts/video-script/spec_NN.md"
+name:: "New Episode"
+evidence:: decision
+`
+
+  it('parses the concept of a distributed add_model and a hierarchical target', () => {
+    const doc = parseChangeset(changeset)
+    const change = doc.changes[0]!
+
+    expect(change.op).toBe('add_model')
+    expect(change.target).toBe('villabotijos-today/new-episode')
+    expect(change.concept).toBe('Video')
+  })
+
+  it('seals the concept into proposal_sha and re-serializes it byte for byte', () => {
+    const doc = parseChangeset(changeset)
+    const sealed = computeProposalSha(doc.changes)
+    doc.frontmatter.proposal_sha = sealed
+
+    const out = serializeChangeset(doc)
+    expect(out).toContain('concept:: Video')
+    expect(out).toContain('target:: villabotijos-today/new-episode')
+
+    const reparsed = parseChangeset(out)
+    expect(reparsed.changes[0]!.concept).toBe('Video')
+    expect(computeProposalSha(reparsed.changes)).toBe(sealed)
+
+    // The concept is proposal input, not an execution annotation.
+    expect(computeProposalSha([{ ...doc.changes[0]!, concept: 'Series' }])).not.toBe(sealed)
+  })
+
+  it('renders the concept structurally when the document is built in memory', () => {
+    const doc = parseChangeset(changeset)
+    const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural).toContain('concept:: Video')
+  })
+
+  it('still rejects a hierarchical add_model target that names no concept', () => {
+    expect(() =>
+      parseChangeset(changeset.replace('concept:: Video\n', '')),
+    ).toThrow(/plain model id/)
+  })
+})
+
+describe('Changeset Serializer — move_model (distributed-storage S6b)', () => {
+  const changeset = `---
+spec_version: "V_0-5-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-7-0"
+status: proposed
+proposal_sha: "0000000000000000000000000000000000000000000000000000000000000000"
+title: "Move an instance"
+---
+
+# NN Change
+
+## NN Change: c-01
+op:: move_model
+target:: villabotijos-today/intro
+to:: villabotijos-today/welcome
+evidence:: decision
+`
+
+  it('preserves op and to byte for byte through the raw path', () => {
+    const doc = parseChangeset(changeset)
+    expect(doc.changes[0]).toMatchObject({ op: 'move_model', to: 'villabotijos-today/welcome' })
+    const out = serializeChangeset(doc)
+    expect(out).toContain('op:: move_model\n')
+    expect(out).toContain('to:: villabotijos-today/welcome\n')
+    expect(parseChangeset(out).changes[0]!.to).toBe('villabotijos-today/welcome')
+  })
+
+  it('renders move_model structurally when the document is built in memory', () => {
+    const doc = parseChangeset(changeset)
+    const structural = serializeChangeset({ frontmatter: doc.frontmatter, changes: doc.changes })
+    expect(structural).toContain('op:: move_model')
+    expect(structural).toContain('to:: villabotijos-today/welcome')
   })
 })

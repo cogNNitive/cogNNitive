@@ -146,6 +146,18 @@ describe('check_domain.provenance', () => {
     expect(drift[0].severity).toBe('warning')
   })
 
+  it('surfaces MODEL_WITHOUT_FILE when a touched model has no file entry (distributed-storage S6c)', async () => {
+    await applyBaseline()
+    await rm(await modelPath())
+
+    const report = await checkDomain(root, { offline: true })
+    const missing = report.provenance.diagnostics.filter((d) => d.code === 'MODEL_WITHOUT_FILE')
+    expect(missing).toHaveLength(1)
+    expect(missing[0]!.severity).toBe('warning')
+    expect(missing[0]!.message).toContain('acme_strategy')
+    expect(missing[0]!.changeId).toBeTruthy()
+  })
+
   it('surfaces 130 EVIDENCE_UNKNOWN diagnostics for an unknown-evidence corpus', async () => {
     const changes: ChangeItem[] = [
       ADD_MODEL,

@@ -5,7 +5,8 @@
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import { parseFrontmatter } from './parser/index.js'
+import { parseFrontmatter, parseKnowledge } from './parser/index.js'
+import { buildDomainIndex, type DomainModelInput, type StorageDeclarationsResolver } from './domain/index.js'
 import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 import { isDomainRoot } from './scope/root.js'
 
@@ -24,7 +25,7 @@ export function resolveKnowledgeVersion(frontmatter: Record<string, unknown>): s
 /* ── Model scanning ──────────────────────────────────────────── */
 
 export interface KnowledgeInfo {
-  /** Short model identifier (filename stem, used as `id` in MCP tools) */
+  /** Hierarchical model id from the domain index (compact stem without `_NN`, or an instance id) */
   id: string
   /** Absolute filesystem path */
   path: string
@@ -54,10 +55,23 @@ function isIgnoredDir(name: string): boolean {
  * predicate. Only `_NN.md` candidates are ever read from disk.
  */
 interface RawModelCandidate {
-  bareStem: string
   relPath: string
   path: string
   version: string | null
+  input: DomainModelInput
+}
+
+/** `(concept, slug)` of every element of a document; a document that does not parse has none. */
+function elementsOf(content: string): DomainModelInput['elements'] {
+  try {
+    const out: Array<{ concept: string; slug: string }> = []
+    for (const [concept, nodes] of parseKnowledge(content).elements.entries()) {
+      for (const node of nodes) if (node.slug) out.push({ concept, slug: node.slug })
+    }
+    return out
+  } catch {
+    return []
+  }
 }
 
 async function collectModels(dir: string, rootDir: string, candidates: RawModelCandidate[]): Promise<void> {
@@ -81,8 +95,9 @@ async function collectModels(dir: string, rootDir: string, candidates: RawModelC
     if (isExcludedPath(relPath)) continue
 
     let frontmatter: Record<string, unknown> | null = null
+    let content = ''
     try {
-      const content = await readFile(filePath, 'utf-8')
+      content = await readFile(filePath, 'utf-8')
       frontmatter = parseFrontmatter(content)
     } catch (err) {
       /* v8 ignore start */
@@ -95,41 +110,59 @@ async function collectModels(dir: string, rootDir: string, candidates: RawModelC
     if (!frontmatter) continue
     if (!isModelCandidate({ path: relPath, frontmatter })) continue
 
-    const bareStem = entry.name.replace(MD_FILE_RE, '')
     const version = resolveKnowledgeVersion(frontmatter)
 
-    candidates.push({ bareStem, relPath, path: filePath, version })
+    candidates.push({ relPath, path: filePath, version, input: { path: relPath, frontmatter, elements: elementsOf(content) } })
   }
 }
 
+/** A discovered model: the plain-data input of the domain index plus its absolute path. */
+export interface DiscoveredDomainModel {
+  input: DomainModelInput
+  path: string
+  version: string | null
+}
+
 /**
- * Scan a root directory (recursively) for discoverable iNNfo model files
- * (`_NN.md`, `level: 3`, resolvable `parent_spec` — see
- * `isModelCandidate`). Skips `backups`, `archive`, `specs`,
- * `node_modules`, `.git`, any dot-directory, and any nested domaiNN (a
- * directory holding its own `domaiNN_NN.md`).
- *
- * Implements Option A: emits the bare stem when unique, and the
- * domain-relative path form when the stem collides.
- * Returns an array of `KnowledgeInfo` sorted by id.
+ * Walk a domaiNN and describe every discoverable model as domain-index input
+ * (skips `backups`, `archive`, `specs`, `node_modules`, `.git`, dot-directories
+ * and nested domaiNNs). Discovery is path-agnostic: a misplaced instance is
+ * still listed.
  */
-export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
+export async function discoverDomainModels(rootDir: string): Promise<DiscoveredDomainModel[]> {
   const candidates: RawModelCandidate[] = []
   await collectModels(rootDir, rootDir, candidates)
+  return candidates.map((c) => ({ input: c.input, path: c.path, version: c.version }))
+}
 
-  // Pass 2: detect stem collisions and assign id form
-  const stemCounts = new Map<string, number>()
-  for (const c of candidates) {
-    const key = c.bareStem.toLowerCase()
-    stemCounts.set(key, (stemCounts.get(key) ?? 0) + 1)
+/** Resolver used when the caller supplies none: no bluepriNNt declares storage, every model is compact. */
+const NO_DECLARATIONS: StorageDeclarationsResolver = () => new Map()
+
+/**
+ * Scan a root directory (recursively) for discoverable iNNfo model files
+ * (`_NN.md`, `level: 3`, resolvable `parent_spec` - see `isModelCandidate`).
+ *
+ * Ids come from the domain index: a compact model's id is its file stem
+ * without `_NN`; an instance model's id is hierarchical. No id is a path, and
+ * a stem shared by two files is never rewritten (the index reports
+ * `DUPLICATE_MODEL_ID`; both files are listed under that id).
+ * Returns an array of `KnowledgeInfo` sorted by id.
+ */
+export async function listKnowledge(
+  rootDir: string,
+  opts?: { declarations?: StorageDeclarationsResolver },
+): Promise<KnowledgeInfo[]> {
+  const found = await discoverDomainModels(rootDir)
+  const byRel = new Map(found.map((f) => [f.input.path, f]))
+  const index = buildDomainIndex(
+    found.map((f) => f.input),
+    opts?.declarations ?? NO_DECLARATIONS,
+  )
+  const models: KnowledgeInfo[] = []
+  for (const m of index.models) {
+    const f = byRel.get(m.path)
+    if (f) models.push({ id: m.id, path: f.path, version: f.version })
   }
-
-  const models: KnowledgeInfo[] = candidates.map((c) => {
-    const count = stemCounts.get(c.bareStem.toLowerCase()) ?? 1
-    const id = count > 1 ? c.relPath.replace(MD_FILE_RE, '') : c.bareStem
-    return { id, path: c.path, version: c.version }
-  })
-
-  models.sort((a, b) => a.id.localeCompare(b.id))
+  models.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) || (a.path < b.path ? -1 : 1))
   return models
 }

@@ -13,3 +13,4 @@ scope_elements:
 ## NN Video: boa-constrictor-suelta
 slug:: boa-constrictor-suelta
 title:: boa-constrictor-suelta
+voice_id:: Villabotijos02

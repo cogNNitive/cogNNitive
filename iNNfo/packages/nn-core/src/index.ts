@@ -68,8 +68,7 @@ export {
   validateReferences,
   validateElementFieldReferences,
   validateTaxonomyHierarchy,
-  QUALIFIED_REF_RE,
-  parseQualifiedRef,
+  domainIndexOfResult,
   validateWorkspaceReferences,
   validateWorkspaceSources,
   validateCitations,
@@ -80,23 +79,37 @@ export type {
   DocumentValidation,
   SubmodelResolver,
   ValidateKnowledgeOptions,
-  QualifiedRef,
   SourceResolver,
   SourceResolution,
   CitationSite,
   CitationDiagnostic,
 } from './validator/index.js'
 
+export { parseAddress, formatAddress, isAddressError } from './address/index.js'
+export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './address/index.js'
+export { buildDomainIndex, fileLocalDiagnostics, versionSkew } from './domain/index.js'
+export type {
+  AddressResolution,
+  CollectionMember,
+  DomainIndex,
+  DomainModelInput,
+  IndexedModel,
+  LayoutCode,
+  LayoutDiagnostic,
+  StorageDeclarationsResolver,
+} from './domain/index.js'
 export {
   parseCitation,
+  parseCitationResult,
   resolveUnitPath,
+  resolveUnitPathResult,
   splitSourceFieldValue,
   levenshteinDistance,
   slugifyHeading,
   extractHeadings,
   resolveHeadingSection,
 } from './sourceRef.js'
-export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type { Citation, CitationResult, UnitPathResult, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export { serializeKnowledgeUnitRef, slugifyUnitHeading, normalizeName } from './sourceRef.js'
 export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
 export { unitLabel } from './sourceRef.js'
@@ -158,17 +171,18 @@ export type {
   FreshnessField,
   TemplateResolution,
 } from './workspace/integrity/report.js'
-export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
-export type { KnowledgeInfo } from './helpers.js'
+export { listKnowledge, discoverDomainModels, resolveKnowledgeVersion } from './helpers.js'
+export type { KnowledgeInfo, DiscoveredDomainModel } from './helpers.js'
 export {
   applyMutation,
   listMutationOperations,
   freeze_slugs,
   replayMutations,
+  subtreeOf,
   updateReferenceString,
   updateWikiLinks,
 } from './mutate.js'
-export type { MutationResult, ReplayOperation, ReplayResult } from './mutate.js'
+export type { ExtractedSubtree, MutationResult, ReplayOperation, ReplayResult } from './mutate.js'
 export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
 export type { VersionedEnvelope } from './envelope.js'
 export { Diagnostics } from './diagnostics.js'

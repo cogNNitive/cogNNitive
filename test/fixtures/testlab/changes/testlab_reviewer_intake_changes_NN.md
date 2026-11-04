@@ -96,8 +96,8 @@ resolution:: Applied successfully
 ## NN Change: r-07
 op:: update_field
 target:: TestLab_intake_TestLab@modification-cases&reference_field
-from:: [[Intake owner]]
-to:: [[Intake backup owner]]
+from:: @intake-owner
+to:: @intake-backup-owner
 evidence:: sources/import/report.pdf_sidecar_NN.md@## Findings
 author:: reviewer
 status:: applied

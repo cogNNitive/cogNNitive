@@ -30,12 +30,13 @@ import {
   type TemplateResolutionResult,
   type IntegrityDiagnostic,
   type CatalogSource,
+  type LayoutDiagnostic,
   type ProvenanceReport,
 } from '@cognnitive/nn-core'
 import type { SpecCache } from '@cognnitive/nn-core'
 import { checkDomainProvenance } from './provenance-strict.js'
 import { listKnowledge } from './list-read.js'
-import { modelIdCollisionDiagnostics, type ModelIdCollisionDiagnostic } from './model-collisions.js'
+import { domainLayoutDiagnostics } from './domain-index.js'
 import { deriveNameFromUrl } from './spec.js'
 import {
   collectWorkspaceDiagnostics,
@@ -346,9 +347,9 @@ async function provenanceWithArtifacts(rootDir: string, strict: boolean): Promis
 /**
  * Run the workspace integrity check. Returns the builder's consolidated
  * report. With `summaryOnly`, `models` carries only rows with validation
- * errors or `upgrade-available` (capped at 25) and `collisions` is capped at 25 too;
- * `truncated: true` says either cap was hit and `collisionsTruncated: true` that the
- * collision list was; `aggregate` always reflects the full set.
+ * errors or `upgrade-available` (capped at 25) and `layout.diagnostics` is capped
+ * at 25 too; `truncated: true` says either cap was hit and `layoutTruncated: true`
+ * that the layout list was; `aggregate` always reflects the full set.
  */
 export async function checkWorkspace(
   rootDir: string,
@@ -356,15 +357,19 @@ export async function checkWorkspace(
 ): Promise<
   WorkspaceIntegrityReport & {
     truncated?: boolean
-    collisionsTruncated?: boolean
+    layoutTruncated?: boolean
     /**
      * Provenance report: fold mode by default, strict replay with
      * `{strict: true}` (the unit drift is then the replay comparison).
      * Carries the `EVIDENCE_UNKNOWN` diagnostics the flat list used to hold.
      */
     provenance: ProvenanceReport
-    /** Repeated model ids (filename stems): warnings that name the id and every path. */
-    collisions: ModelIdCollisionDiagnostic[]
+    /**
+     * Placement, identity and version-uniformity findings (design A12). `ok` is
+     * false when any diagnostic is an error; domain-level facts live here and
+     * never in a model's `errors`.
+     */
+    layout: { ok: boolean; diagnostics: LayoutDiagnostic[] }
   }
 > {
   const ctx: CheckContext = {
@@ -377,10 +382,14 @@ export async function checkWorkspace(
   }
   const base = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
   const provenance = await provenanceWithArtifacts(rootDir, options.strict === true)
+  const layoutDiagnostics = (await domainLayoutDiagnostics(rootDir)).diagnostics
   const report = {
     ...base,
     provenance,
-    collisions: modelIdCollisionDiagnostics(ctx.models.map((m) => m.path)),
+    layout: {
+      ok: layoutDiagnostics.every((d) => d.severity !== 'error'),
+      diagnostics: layoutDiagnostics,
+    },
   }
 
   if (!options.summaryOnly) return report
@@ -389,14 +398,19 @@ export async function checkWorkspace(
     (m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available',
   )
   const modelsCut = included.length > 25
-  const collisionsCut = report.collisions.length > 25
+  const layoutCut = report.layout.diagnostics.length > 25
   return {
     ...report,
     models: modelsCut ? included.slice(0, 25) : included,
-    collisions: collisionsCut ? report.collisions.slice(0, 25) : report.collisions,
+    layout: {
+      ok: report.layout.ok,
+      diagnostics: layoutCut
+        ? report.layout.diagnostics.slice(0, 25)
+        : report.layout.diagnostics,
+    },
     aggregate: summarizeWorkspaceIntegrity(report.models),
-    ...(modelsCut || collisionsCut ? { truncated: true } : {}),
-    ...(collisionsCut ? { collisionsTruncated: true } : {}),
+    ...(modelsCut || layoutCut ? { truncated: true } : {}),
+    ...(layoutCut ? { layoutTruncated: true } : {}),
   }
 }
 

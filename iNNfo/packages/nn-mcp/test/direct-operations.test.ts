@@ -88,7 +88,7 @@ describe('direct apply_change operations are a closed, classified set', () => {
       expect(owners, `operation "${op}"`).toHaveLength(1)
     }
     // ... and every classified operation is real (a ChangeOp may be apply-only).
-    const apply_only = new Set(['comment', 'add_model', 'produce_artifact'])
+    const apply_only = new Set(['comment', 'add_model', 'move_model', 'produce_artifact'])
     for (const [name, ops] of Object.entries(lists)) {
       for (const op of ops) {
         expect(implemented.has(op) || (name === 'ChangeOp' && apply_only.has(op)), `${name}.${op}`).toBe(true)

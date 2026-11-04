@@ -3,6 +3,25 @@ import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
 import { extractModelSlug } from './utils.js'
 
+/**
+ * A workspace model with the hierarchical id that names it. The map may carry
+ * aliases (`knowledge_slug`, filename stem); the id is the key that names a
+ * model, so an entry whose key contains `/` wins, else the root slug, else the
+ * key. Deduped by model identity: the same document is scanned once.
+ */
+function workspaceEntries(workspaceModels: Map<string, ParsedKnowledge>): Array<[string, ParsedKnowledge]> {
+  const best = new Map<ParsedKnowledge, string>()
+  for (const [key, model] of workspaceModels) {
+    const current = best.get(model)
+    if (current === undefined) best.set(model, key)
+    else if (!current.includes('/') && key.includes('/')) best.set(model, key)
+  }
+  return [...best].map(([model, key]) => {
+    const id = key.includes('/') ? key : model.frontmatter.knowledge_slug || key
+    return [id.toLowerCase(), model]
+  })
+}
+
 export interface CascadedMatrixCell {
   matrixName: string
   row: string
@@ -106,8 +125,7 @@ export function scanIncomingReferences(
   const crossModelTarget = `${tModelLower}@${tSlugLower}`
   const crossModelTargetName = `${tModelLower}@${tNameLower}`
 
-  for (const [mKey, model] of workspaceModels.entries()) {
-    const currentModelSlug = (model.frontmatter.knowledge_slug || mKey).toLowerCase()
+  for (const [currentModelSlug, model] of workspaceEntries(workspaceModels)) {
     if (!model.elements) continue
 
     for (const [, elements] of model.elements.entries()) {
@@ -283,7 +301,10 @@ export function evaluateBatchDeleteImpact(
     if (change.op !== 'remove_element') continue
 
     const targetModelSlug = extractModelSlug(change.target)
+    // Keyed by hierarchical id first: `knowledge_slug` is the root element's slug
+    // for an instance model and is not unique across instances (design A15).
     const model =
+      workspaceEntries(loadedModels).find(([id]) => id === targetModelSlug.toLowerCase())?.[1] ||
       loadedModels.get(targetModelSlug) ||
       Array.from(loadedModels.values()).find(
         (m) => m.frontmatter.knowledge_slug?.toLowerCase() === targetModelSlug.toLowerCase(),

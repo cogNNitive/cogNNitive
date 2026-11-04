@@ -5,8 +5,12 @@
  * `resolved_target` is an execution fact: built from the model id (no version
  * token) and the frozen slugs the change addressed, so history survives a
  * rename and never collides across punctuation or models. History and origin
- * match by exact string equality on these addresses.
+ * match by exact string equality on these addresses. Every builder delegates to
+ * `formatAddress`, the one serializer of the unified address grammar, so a value
+ * the grammar would reject is never recorded.
  */
+import { formatAddress } from '../address/index.js'
+import type { ModelId, Unit } from '../address/index.js'
 import { slugifyHeading } from '../sourceRef.js'
 
 /** `acme_V_0-1-0` → `acme`. A version token is never part of a unit address. */
@@ -24,6 +28,10 @@ function assertPresent(value: string, name: string): string {
   return trimmed
 }
 
+function unitTarget(model: string, unit: Unit): string {
+  return formatAddress({ kind: 'unit', model: canonicalUnitModelId(model) as ModelId, unit })
+}
+
 /**
  * An axis slug: the frozen slug of the element named by the label, else the
  * label slugified.
@@ -36,31 +44,47 @@ export function axisSlug(label: string, frozenSlug?: string): string {
 export const resolvedTarget = {
   /** `model@frozen-slug&field` */
   field(model: string, elementSlug: string, field: string): string {
-    return `${canonicalUnitModelId(model)}@${assertPresent(elementSlug, 'elementSlug')}&${assertPresent(field, 'field')}`
+    return unitTarget(model, {
+      kind: 'element',
+      slug: assertPresent(elementSlug, 'elementSlug'),
+      field: assertPresent(field, 'field'),
+    })
   },
 
   /** `model@frozen-slug&#body` */
   body(model: string, elementSlug: string): string {
-    return `${canonicalUnitModelId(model)}@${assertPresent(elementSlug, 'elementSlug')}&#body`
+    return unitTarget(model, { kind: 'body', slug: assertPresent(elementSlug, 'elementSlug') })
   },
 
   /** `model@matrix-slug&row-slug&col-slug` */
   cell(model: string, matrixSlug: string, rowSlug: string, colSlug: string): string {
-    return (
-      `${canonicalUnitModelId(model)}@${assertPresent(matrixSlug, 'matrixSlug')}` +
-      `&${assertPresent(rowSlug, 'rowSlug')}&${assertPresent(colSlug, 'colSlug')}`
-    )
+    return unitTarget(model, {
+      kind: 'cell',
+      matrix: assertPresent(matrixSlug, 'matrixSlug'),
+      row: assertPresent(rowSlug, 'rowSlug'),
+      col: assertPresent(colSlug, 'colSlug'),
+    })
   },
 
-  /** `model@concept:<Name>` or `model@concept:<Name>&field` */
+  /**
+   * `model@concept:<slug>` or `model@concept:<slug>&field`. The concept segment
+   * is the concept's slug, the same form `unitAddress.section` emits and the
+   * grammar accepts (distribution-storage S6c); a change carrying the display
+   * name is normalized here instead of rewriting recorded history elsewhere.
+   */
   concept(model: string, conceptName: string, field?: string): string {
-    const base = `${canonicalUnitModelId(model)}@concept:${assertPresent(conceptName, 'conceptName')}`
-    return field ? `${base}&${assertPresent(field, 'field')}` : base
+    const raw = assertPresent(conceptName, 'conceptName')
+    const name = raw.startsWith('concept:') ? raw.slice('concept:'.length) : raw
+    return unitTarget(model, {
+      kind: 'concept',
+      concept: slugifyHeading(name),
+      ...(field ? { field: assertPresent(field, 'field') } : {}),
+    })
   },
 
   /** `model@frozen-slug` (an element-level change) */
   element(model: string, elementSlug: string): string {
-    return `${canonicalUnitModelId(model)}@${assertPresent(elementSlug, 'elementSlug')}`
+    return unitTarget(model, { kind: 'element', slug: assertPresent(elementSlug, 'elementSlug') })
   },
 
   /** A workspace-relative artifact path, POSIX separators. */

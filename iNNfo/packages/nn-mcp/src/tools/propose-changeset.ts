@@ -24,9 +24,10 @@ import {
   resolveCitation,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
-import { findKnowledgeFile, AmbiguousModelIdError } from './spec.js'
+import { findKnowledgeFile, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
+import { findDanglingReferrers } from './move-referrers.js'
 
 /**
  * The single writer of proposed changesets. Every code path that leaves a sealed
@@ -148,6 +149,11 @@ export interface ProposalError {
   path: string
   message: string
   code: string
+  /**
+   * `MOVE_LEAVES_DANGLING_REFERENCES` only: the `update_field` changes that would
+   * retarget every referrer, ready to merge into the proposal (design A10).
+   */
+  missing_referrer_updates?: ChangeItem[]
 }
 
 /** Keys each operation requires, beyond `op` (add_model has its own check). */
@@ -220,6 +226,27 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
         problems.push(`${label}: bump_version requires "to" to be one of ${BUMP_LEVELS.join(', ')}`)
       }
       break
+    case 'move_model':
+      if (target.includes('@') || target.includes('&') || /\.[a-z]+$/i.test(target)) {
+        problems.push(`${label}: move_model target must be the old instance model id`)
+      }
+      if (!change.to) problems.push(`${label}: move_model requires "to" (the new instance model id)`)
+      else if (change.to.includes('@') || change.to.includes('&') || change.to.includes('\\')) {
+        problems.push(`${label}: move_model "to" must be the new instance model id`)
+      }
+      break
+    case 'extract_instance':
+      // `target` is the source element address; `to` is the instance id it becomes.
+      if (!target.includes('@') || target.includes('&')) {
+        problems.push(`${label}: extract_instance target must be <compact-id>@<slug> (the source element)`)
+      }
+      if (!change.to) problems.push(`${label}: extract_instance requires "to" (the new instance model id)`)
+      else if (!change.to.includes('/') || change.to.includes('@') || change.to.includes('\\')) {
+        problems.push(`${label}: extract_instance "to" must be the new instance model id`)
+      }
+      need('blueprint_name')
+      need('blueprint_url')
+      break
     default:
       break
   }
@@ -245,17 +272,17 @@ async function modelExists(rootDir: string, modelId: string): Promise<boolean> {
   try {
     return Boolean(await findKnowledgeFile(rootDir, modelId))
   } catch (err) {
-    if (err instanceof AmbiguousModelIdError) return true
+    if (err instanceof ModelIdError) return true
     throw err
   }
 }
 
-async function checkModelTarget(rootDir: string, modelId: string): Promise<'FOUND' | 'NOT_FOUND' | 'AMBIGUOUS'> {
+async function checkModelTarget(rootDir: string, modelId: string): Promise<'FOUND' | 'NOT_FOUND' | ModelIdError> {
   try {
     const f = await findKnowledgeFile(rootDir, modelId)
     return f ? 'FOUND' : 'NOT_FOUND'
   } catch (err) {
-    if (err instanceof AmbiguousModelIdError) return 'AMBIGUOUS'
+    if (err instanceof ModelIdError) return err
     throw err
   }
 }
@@ -323,8 +350,8 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       errors.push({ path: label, code: 'ADD_MODEL_ORDER', message: `ADD_MODEL_ORDER: ${label} targets "${modelId}" before the add_model that creates it` })
     } else {
       const status = await checkModelTarget(rootDir, modelId)
-      if (status === 'AMBIGUOUS') {
-        errors.push({ path: label, code: 'AMBIGUOUS_MODEL_ID', message: `AMBIGUOUS_MODEL_ID: ${label}: model "${modelId}" is ambiguous` })
+      if (status instanceof ModelIdError) {
+        errors.push({ path: label, code: status.code, message: `${label}: ${status.message}` })
       } else if (status === 'NOT_FOUND') {
         errors.push({ path: label, code: 'MODEL_NOT_FOUND', message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain` })
       }
@@ -361,6 +388,44 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
           message: `CITATION_UNRESOLVED: operations[${index}] cites "${item}" which does not resolve (${resolved.error ?? 'NOT_FOUND'})`,
         })
       }
+    }
+  }
+  // A move whose referrers are not retargeted in the same proposal is reported with
+  // the update_field changes that would fix it (design A10, the lineage-as-changes A9
+  // payload pattern). Apply runs the same scan, so the proposal never surprises it.
+  if (errors.length === 0) {
+    const retargets = new Map<string, string>()
+    for (const change of operations) {
+      if (change.op !== 'update_field' || change.to === undefined) continue
+      retargets.set(change.target, change.to)
+    }
+    for (const [index, change] of operations.entries()) {
+      if (change.op !== 'move_model' || !change.target || !change.to) continue
+      const fromPath = await findKnowledgeFile(rootDir, change.target).catch(() => null)
+      if (!fromPath) continue
+      const dangling = await findDanglingReferrers(
+        rootDir,
+        { fromId: change.target, toId: change.to, fromPath },
+        retargets,
+      )
+      if (dangling.length === 0) continue
+      errors.push({
+        path: `operations[${index}]`,
+        code: 'MOVE_LEAVES_DANGLING_REFERENCES',
+        message:
+          `MOVE_LEAVES_DANGLING_REFERENCES: moving "${change.target}" to "${change.to}" leaves ` +
+          `${dangling.length} reference(s) pointing at the old id (${dangling.map((d) => d.unit).join(', ')}); ` +
+          `add the missing update_field changes`,
+        missing_referrer_updates: dangling.map(
+          (d): ChangeItem => ({
+            id: '',
+            op: 'update_field',
+            target: d.unit,
+            to: d.suggested,
+            evidence: 'unknown',
+          }),
+        ),
+      })
     }
   }
   if (errors.length > 0) return errors

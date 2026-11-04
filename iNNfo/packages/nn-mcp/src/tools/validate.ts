@@ -29,6 +29,7 @@ import {
   findCanonicalBlueprint,
   CANONICAL_BLUEPRINTS,
   checkRemovedMarkerConstructs,
+  fileLocalDiagnostics,
 } from '@cognnitive/nn-core'
 import type {
   SpecDocument,
@@ -45,8 +46,11 @@ import type {
   ValidationBaseline,
   BaselineEntry,
   BaselineDiff,
+  LayoutDiagnostic,
+  ModelId,
 } from '@cognnitive/nn-core'
-import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, AmbiguousModelIdError } from './spec.js'
+import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations } from './domain-index.js'
+import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
 import { loadKnowledge } from './knowledge-io.js'
@@ -329,13 +333,28 @@ export async function collectWorkspaceDiagnostics(
   })
   const index = buildWorkspaceIndex(result)
 
-  // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
+  // Cross-model address references (resolved through the domain index) + `sources::` Citations,
   // the latter resolved against real files under the workspace root. One read
   // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = createFsSourceResolver(rootDir)
   const log = buildChangeLog(snapshot)
+  // Parse-level errors name an element the graph DROPPED (today only a repeated
+  // slug). A host that reads the graph must report the loss: silent omission is
+  // the failure mode this pass exists to prevent. Warnings and info stay with
+  // the per-model validators, which already carry them.
+  const droppedElements: ReferenceDiagnostic[] = result.issues
+    .filter((issue) => issue.severity === 'error')
+    .map((issue) => ({
+      path: issue.path,
+      message: issue.message,
+      severity: 'error',
+      ...(issue.code ? { code: issue.code } : {}),
+    }))
   return [
-    ...validateWorkspaceReferences(result, index),
+    ...droppedElements,
+    ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index, (id) =>
+      log.successorOf(id as ModelId),
+    ),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
     ...collectEvidenceDiagnostics(rootDir),
   ]
@@ -401,8 +420,34 @@ async function runWorkspaceValidation(
   return [...diagnostics, ...drift]
 }
 
-/* ── validate_model ──────────────────────────────────────────── */
+/**
+ * File-local layout findings of one model (design A10). Placement is a property
+ * of the FILE and of the bluepriNNt it pins, so `validate_knowledge` reports it
+ * without a domaiNN. Version skew and duplicated identities stay domain-level:
+ * they have no single owner, and `check_domain` is the only writer.
+ */
+async function fileLocalLayout(
+  rootDir: string,
+  relPath: string,
+  model: ParsedKnowledge,
+): Promise<LayoutDiagnostic[]> {
+  const parent = model.frontmatter['parent_spec'] as { name?: string; url?: string } | undefined
+  const name = typeof parent?.name === 'string' ? parent.name : undefined
+  if (!name) return []
+  const declarations = (await loadDeclarations(rootDir, { name, url: parent?.url })) ?? new Map()
+  return fileLocalDiagnostics(
+    {
+      path: relPath,
+      frontmatter: model.frontmatter,
+      elements: [...model.elements].flatMap(([concept, elements]) =>
+        elements.map((el) => ({ concept, slug: el.slug ?? slugify(el.name) })),
+      ),
+    },
+    declarations,
+  )
+}
 
+/* ── validate_model ──────────────────────────────────────────── */
 /**
  * Differential validation against a versioned known-errors baseline.
  *
@@ -620,7 +665,7 @@ export async function validateKnowledge(
     try {
       filePath = await findKnowledgeFile(rootDir, id)
     } catch (err) {
-      if (err instanceof AmbiguousModelIdError) {
+      if (err instanceof ModelIdError) {
         return {
           valid: false,
           errors: [{ path: '', message: err.message, severity: 'error' }],
@@ -663,7 +708,13 @@ export async function validateKnowledge(
     return { ...delegated, suppressedCount: 0, staleEntries: [], backlog: null, summary: null }
   }
 
-  const resolvedModelPath = id ? await findKnowledgeFile(rootDir, id) : null
+  // With inline `content`, `id` is only a label (often a file name); a path is not an id to resolve.
+  const resolvedModelPath = id
+    ? await findKnowledgeFile(rootDir, id).catch((err: unknown) => {
+        if (err instanceof ModelIdError && err.code === 'MODEL_ADDRESSED_BY_PATH') return null
+        throw err
+      })
+    : null
   const modelPath = resolvedModelPath ?? (id ?? 'inline')
   const referringDir = resolvedModelPath ? dirname(resolvedModelPath) : rootDir
   const fileNameForCheck = id ? basename(resolvedModelPath ?? id) : 'inline_NN.md'
@@ -870,6 +921,37 @@ export async function validateKnowledge(
 
   // Phase 4: Workspace-scope cross-model validation
   let valid = errors.length === 0
+
+  // Layout (design A12). A single file reports its OWN placement — no domaiNN
+  // needed (A10). In workspace mode the domain pass reports placement, identity
+  // and skew together, so it is the only writer and nothing is reported twice.
+  const relModelPath = resolvedModelPath
+    ? relative(rootDir, resolvedModelPath).replace(/\\/g, '/')
+    : null
+  const layoutDiagnostics =
+    workspace && id && modelPath !== 'inline'
+      ? (await domainLayoutDiagnostics(rootDir)).diagnostics.filter((d) =>
+          relModelPath ? d.paths.includes(relModelPath) : false,
+        )
+      : relModelPath
+        ? await fileLocalLayout(rootDir, relModelPath, model)
+        : []
+  for (const diag of layoutDiagnostics) {
+    const decorated = {
+      path: diag.paths[0] ?? relModelPath ?? '',
+      message: diag.message,
+      severity: diag.severity,
+      code: diag.code,
+      filePath: modelPath,
+    }
+    if (diag.severity === 'error') {
+      errors.push(decorated)
+      valid = false
+    } else {
+      warningsWithFile.push(decorated)
+    }
+  }
+
   if (workspace && id && modelPath !== 'inline') {
     const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
     for (const diag of workspaceDiagnostics) {

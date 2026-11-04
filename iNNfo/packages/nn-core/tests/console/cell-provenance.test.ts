@@ -64,6 +64,7 @@ describe('console matrix cell provenance', () => {
     const payload = buildConsolePayload({
       content: MODEL,
       path: 'kNNowledge/Impact_NN.md',
+      modelId: 'impact',
       changesets: [CHANGESET],
     })
 

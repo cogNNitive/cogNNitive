@@ -189,9 +189,9 @@ describe('syncWorkspaceManifest', () => {
       {
         code: 'MODEL_ID_COLLISION',
         severity: 'warning',
-        id: 'status_NN',
+        id: 'status',
         paths: ['alpha/status_NN.md', 'beta/status_NN.md'],
-        message: expect.stringContaining('status_NN'),
+        message: expect.stringContaining('status'),
       },
     ])
     expect(result.changes.map((c) => c.path).sort()).toEqual(['alpha/status_NN.md', 'beta/status_NN.md'])

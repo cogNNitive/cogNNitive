@@ -26,14 +26,14 @@ const FLOOR = {
 }
 
 const EPISODES = {
-  innteresante: join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_innteresante_NN.md'),
+  innteresante: join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_NN.md'),
   'villabotijos-today': join(
     GOLD,
     'series',
     'villabotijos-today',
     'assets',
     'boa-constrictor-suelta',
-    'boa-constrictor-suelta_coNNtent_villabotijos-today_NN.md',
+    'boa-constrictor-suelta_coNNtent_NN.md',
   ),
 }
 
@@ -86,7 +86,7 @@ describe('music and voice reproduce the values of the series today', () => {
     const { loaded } = load(EPISODES['villabotijos-today'])
     expect(value(loaded, 'music').explain.winner).toEqual({
       scope: 'series/villabotijos-today',
-      doc: 'series/villabotijos-today/villabotijos-today_scope_NN.md',
+      doc: 'series/villabotijos-today/villabotijos-today_coNNtent_NN.md',
     })
     expect(value(loaded, 'music_volume').explain.overridden.map((o) => [o.scope, o.value])).toEqual([
       ['bluepriNNt:video-golden', 0.2],
@@ -117,8 +117,7 @@ describe('music and voice reproduce the values of the series today', () => {
   })
 })
 
-const SCRIPT_DOC = 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md'
-const SERIES_VIDEOS = join(GOLD, 'series', 'innteresante', 'innteresante_video_NN.md')
+const SCRIPT_DOC = 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_NN.md'
 
 function scene(slug: string) {
   const r = loadElementChain(EPISODES.innteresante, { concept: 'Scene', slug }, { floorDoc: FLOOR })
@@ -159,16 +158,19 @@ describe('element scopes: scenes and videos resolve per element, with explain', 
     ])
   })
 
-  it('the voice_id of a ## NN Video block of the series document resolves from that element', () => {
-    const r = loadElementChain(SERIES_VIDEOS, { concept: 'Video', slug: 'bosco-verticale' })
+  it('the voice_id of a ## NN Video block of an episode resolves from that element', () => {
+    // Under the distributed layout the Video IS the episode's instance model: there is
+    // no registry copy of it in the series folder (that shape is double storage, S7a).
+    const villaDoc = 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_coNNtent_NN.md'
+    const r = loadElementChain(EPISODES['villabotijos-today'], { concept: 'Video', slug: 'boa-constrictor-suelta' }, { floorDoc: FLOOR })
     if (!r.ok) throw new Error(`${r.code}: ${r.detail}`)
     const voice = value(r.loaded, 'voice_id')
-    expect(voice.value).toBe('LucasCervera02')
+    expect(voice.value).toBe('Villabotijos02')
     expect(voice.explain.winner).toEqual({
-      scope: 'series/innteresante/innteresante_video_NN.md#Video/bosco-verticale',
-      doc: 'series/innteresante/innteresante_video_NN.md',
+      scope: `${villaDoc}#Video/boa-constrictor-suelta`,
+      doc: villaDoc,
     })
-    expect(voice.explain.overridden.map((o) => o.scope)).toEqual(['series/innteresante'])
+    expect(voice.explain.overridden.map((o) => o.scope)).toEqual(['series/villabotijos-today'])
   })
 
   it('the scene falls back to the series voice_id; the villabotijos Video still resolves its series values', () => {

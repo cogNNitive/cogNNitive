@@ -325,8 +325,8 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-knowledge@1')
       expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual([
-        'Alpha_V_1-0-0_business_NN',
-        'Beta_V_1-0-0_business_NN',
+        'Alpha_V_1-0-0_business',
+        'Beta_V_1-0-0_business',
       ])
     })
 
@@ -338,7 +338,7 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       const result = await client.callTool({ name: 'list_knowledge', arguments: { domain: otherRoot } })
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-knowledge@1')
-      expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual(['Only_V_1-0-0_NN'])
+      expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual(['Only_V_1-0-0'])
     })
   })
 

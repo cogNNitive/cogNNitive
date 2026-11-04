@@ -19,6 +19,7 @@ import type { ParseContext, ParseIssue } from './types.js'
  * @param refPath - Source file path or URL of the model
  * @param refName - Derived name/identifier of the model (e.g. rootId)
  * @param identity - Optional identity registry for ID qualification
+ * @param options - `modelId`: the domain model id that prefixes element node ids (`<model-id>@<slug>`)
  * @returns An object containing the normalized KnowledgeNode records and parsed issues
  */
 export function normalizeSingleKnowledge(
@@ -26,12 +27,16 @@ export function normalizeSingleKnowledge(
   refPath: string,
   refName: string,
   identity?: IdentityRegistry,
+  options?: { modelId?: string },
 ): { nodes: Record<string, KnowledgeNode>; issues: ParseIssue[] } {
   const resolvedIdentity = identity ?? new IdentityRegistry()
   const ctx: ParseContext = {
     nodes: {},
     identity: resolvedIdentity,
     issues: [],
+    // Element node ids are `<model-id>@<slug>`. Inside a workspace parse the
+    // model name stands in for the id; a standalone parse uses the relative `@<slug>` form.
+    modelId: options?.modelId ?? (identity ? refName : undefined),
   }
 
   let parsed: ParsedKnowledge
@@ -197,9 +202,9 @@ export async function parseAndRegisterKnowledge(
   // Track element names per model (FR-005). Shared identity across models is
   // LEGAL (AD-7 / shipped-sample-workspace R6) — the same person, place, or
   // concept can legitimately appear in more than one model in a workspace,
-  // and `[[Model Title :: Element Name]]` is the disambiguation mechanism
-  // the format already provides. Do NOT advise the user to rename; only
-  // record an info-level note naming the qualified form. Intra-document
+  // and the address `<model-id>@<slug>` is the disambiguation mechanism the
+  // format provides (titles are display data, never keys). Do NOT advise the
+  // user to rename; only record an info-level note naming the address form. Intra-document
   // collisions are a different, still-enforced case (normalizeElementsIntoGraph
   // rejects them before this point).
   for (const node of Object.values(result.nodes)) {
@@ -210,7 +215,7 @@ export async function parseAndRegisterKnowledge(
           ctx.issues.push({
             path: '<root>',
             severity: 'info',
-            message: `Element "${node.name}" resolves across multiple models ("${existingModel}" and "${refName}"). Use "${existingModel} :: ${node.name}" or "${refName} :: ${node.name}" to address a specific one.`,
+            message: `Element "${node.name}" resolves across multiple models ("${existingModel}" and "${refName}"). Address a specific one as "<model-id>@<slug>".`,
           })
         }
       } else {

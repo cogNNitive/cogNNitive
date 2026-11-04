@@ -11,9 +11,10 @@
  * `node.ts`.
  */
 import type { ChangeItem, ChangeOp, ChangeStatus } from '../changeset/types.js'
+import type { ModelId } from '../address/index.js'
 import { splitEvidence } from '../changeset/evidence.js'
 import { compareChanges } from './order.js'
-import { elementKeyOf, foldChanges, type FoldResult } from './fold.js'
+import { elementKeyOf, foldChanges, rekeyKey, type FoldResult, type Rekey } from './fold.js'
 import { unitsFromFold, type UnitState } from './units.js'
 
 /** One change as the log exposes it: the change plus its changeset context. */
@@ -41,11 +42,20 @@ export interface LoggedChange {
   readonly evidence?: string
   /** Execution fact: one sha256 per evidence item, in evidence order. */
   readonly evidenceSha256?: readonly string[]
+  /**
+   * Execution fact (`extract_instance`): the element slugs the change moved into
+   * its new model, root first. The fold re-keys exactly this set (design A11).
+   */
+  readonly extractedSlugs?: readonly string[]
   readonly from?: string
   readonly to?: string
   readonly concept?: string
   readonly name?: string
   readonly slug?: string
+  /** `add_model` / `extract_instance`: the bluepriNNt the created model conforms to. */
+  readonly blueprintName?: string
+  readonly blueprintUrl?: string
+  readonly knowledgeVersion?: string
   /** Apply annotation: the frozen slug `add_element` resolved to. */
   readonly resolvedSlug?: string
   readonly notes?: string
@@ -95,8 +105,24 @@ export interface ChangeLog {
   readonly elements: ReadonlyMap<string, LoggedChange>
   /** The change that created or removed the element at `elementKey`, if any. */
   elementOrigin(elementKey: string): LoggedChange | undefined
+  /**
+   * The model ids this id carried before the one it names now, oldest first
+   * (design A10). Empty for an id that was never moved.
+   */
+  identities(id: ModelId): readonly ModelId[]
+  /**
+   * The id a recorded `move_model` gave this one, following the chain forward
+   * (`undefined` for an id that was never moved). Used to name the successor of
+   * a stale address (design A11).
+   */
+  successorOf(id: ModelId): ModelId | undefined
   /** Removal changes kept as tombstones. */
   readonly tombstones: readonly LoggedChange[]
+  /**
+   * Every rekey the log carries (`move_model`, `extract_instance`): the ids and
+   * slug sets that moved, in canonical order.
+   */
+  readonly rekeys: readonly Rekey[]
 }
 
 /**
@@ -115,22 +141,69 @@ class ChangeLogImpl implements ChangeLog {
 
   constructor(changes: readonly LoggedChange[]) {
     this.all = [...changes].sort(compareChanges)
-    for (const change of this.all) {
-      if (!change.applied) continue
-      const unit = unitOf(change)
+    this.fold = foldChanges(this.all)
+    this.all.forEach((change, order) => {
+      if (!change.applied) return
+      // History is keyed by the id the unit carries TODAY: a change recorded
+      // before a move is mapped forward through every later rekey, so the
+      // pre-move history stays attached (design A10).
+      const unit = this.forwardKey(unitOf(change), order)
       const bucket = this.byUnit.get(unit)
       if (bucket) bucket.push(change)
       else this.byUnit.set(unit, [change])
-    }
-    this.fold = foldChanges(this.all)
+    })
   }
 
   /** Applied changes of a unit, cut at the latest add_element of its element. */
   history(unit: string): readonly LoggedChange[] {
-    const bucket = this.byUnit.get(unit) ?? []
-    const epoch = this.fold.epochs.get(elementKeyOf(unit))
+    const key = this.forwardKey(unit)
+    const bucket = this.byUnit.get(key) ?? []
+    const epoch = this.fold.epochs.get(elementKeyOf(key))
     if (epoch === undefined) return bucket
     return bucket.filter((change) => this.orderOf(change) > epoch)
+  }
+
+  identities(id: ModelId): readonly ModelId[] {
+    const former: ModelId[] = []
+    let current: string = id
+    // Walk the chain backwards: each move whose destination is the current id
+    // contributes its source, so a chained move yields the ids oldest first.
+    for (let i = this.fold.rekeys.length - 1; i >= 0; i--) {
+      const rekey = this.fold.rekeys[i]!
+      // An extraction is not an id change: the source model keeps its own id.
+      if (rekey.kind === 'extract') continue
+      if (rekey.to !== current) continue
+      former.push(rekey.from as ModelId)
+      current = rekey.from
+    }
+    return former.reverse()
+  }
+
+  successorOf(id: ModelId): ModelId | undefined {
+    let current: string = id
+    let moved = false
+    for (const rekey of this.fold.rekeys) {
+      if (rekey.kind === 'extract') continue
+      if (current === rekey.from) current = rekey.to
+      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`
+      else continue
+      moved = true
+    }
+    return moved ? (current as ModelId) : undefined
+  }
+
+  /**
+   * Maps a unit key forward through the rekeys recorded AFTER `order` (all of
+   * them when `order` is omitted). The first move a unit predates re-keys it.
+   */
+  private forwardKey(unit: string, order = -1): string {
+    let key = unit
+    for (const rekey of this.fold.rekeys) {
+      if (rekey.order < order) continue
+      const next = rekeyKey(key, rekey.from, rekey.to, rekey.slugs)
+      if (next !== key) key = next
+    }
+    return key
   }
 
   origin(unit: string): LoggedChange | undefined {
@@ -202,6 +275,10 @@ class ChangeLogImpl implements ChangeLog {
     return this.fold.tombstones
   }
 
+  get rekeys(): readonly Rekey[] {
+    return this.fold.rekeys
+  }
+
   /** Canonical position of a change: its index in the sorted `all` list. */
   private orderOf(change: LoggedChange): number {
     return this.orderIndex.get(change) ?? -1
@@ -229,11 +306,13 @@ export {
   canonicalValue,
   elementKeyOf,
   foldChanges,
+  rekeyKey,
   splitUnitKey,
   unitKindOf,
   type FoldedUnit,
   type FoldResult,
   type FoldUnitKind,
+  type Rekey,
   type Relink,
 } from './fold.js'
 export { unitsFromFold, type UnitState } from './units.js'

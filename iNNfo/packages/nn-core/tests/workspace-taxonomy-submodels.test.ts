@@ -390,7 +390,7 @@ path:: model_a_01.md
   })
 
   describe('buildWorkspaceIndex', () => {
-    it('index-basic-maps: a 3-model workspace populates pathToNodeId, titleToNodeIds, fileNameToNodeIds, nodeBlueprint', async () => {
+    it('index-basic-maps: a 3-model workspace populates pathToNodeId and nodeBlueprint and holds no title or file-name map', async () => {
       const files: Record<string, string> = {
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
@@ -447,13 +447,8 @@ title: Model B
       expect(index.pathToNodeId['model_a_01.md']).toBe(aNode.id)
       expect(index.pathToNodeId['model_b_01.md']).toBe(bNode.id)
 
-      expect(index.titleToNodeIds['root workspace']).toEqual([rootNode.id])
-      expect(index.titleToNodeIds['model a']).toEqual([aNode.id])
-      expect(index.titleToNodeIds['model b']).toEqual([bNode.id])
-
-      expect(index.fileNameToNodeIds['domainn']).toEqual([rootNode.id])
-      expect(index.fileNameToNodeIds['model_a_01']).toEqual([aNode.id])
-      expect(index.fileNameToNodeIds['model_b_01']).toEqual([bNode.id])
+      // Titles, file names and element names are display data: the index keys identity by none of them.
+      expect(Object.keys(index).filter((k) => /title|filename|elementconcepts/i.test(k))).toEqual([])
 
       expect(index.nodeBlueprint[rootNode.id]).toEqual({
         name: 'workspace_spec_01',
@@ -465,7 +460,7 @@ title: Model B
       })
     })
 
-    it('index-duplicate-title-error: two models sharing a title are both indexed and flagged as an error issue', async () => {
+    it('index-duplicate-title-is-legal: two models sharing a title are both indexed and raise no issue', async () => {
       const files: Record<string, string> = {
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
@@ -517,21 +512,12 @@ title: Acme Org
       const orgOneNode = Object.values(result.nodes).find((n) => n.name === 'org_one_01')!
       const orgTwoNode = Object.values(result.nodes).find((n) => n.name === 'org_two_01')!
 
-      expect(index.titleToNodeIds['acme org']).toHaveLength(2)
-      expect(index.titleToNodeIds['acme org']).toEqual(
-        expect.arrayContaining([orgOneNode.id, orgTwoNode.id]),
-      )
-
-      const duplicateIssues = index.issues.filter((i) =>
-        i.message.includes('Duplicate model title'),
-      )
-      expect(duplicateIssues).toHaveLength(1)
-      expect(duplicateIssues[0].severity).toBe('error')
-      expect(duplicateIssues[0].message).toContain('org_one_01.md')
-      expect(duplicateIssues[0].message).toContain('org_two_01.md')
+      expect(index.pathToNodeId['org_one_01.md']).toBe(orgOneNode.id)
+      expect(index.pathToNodeId['org_two_01.md']).toBe(orgTwoNode.id)
+      expect(index.issues).toEqual([])
     })
 
-    it('index-filename-repeat-is-not-an-error: same basename in different directories is ambiguity, not an error', () => {
+    it('index-filename-repeat-is-not-an-error: same basename in different directories is indexed by path and raises no issue', () => {
       // Two distinct root nodes deliberately share the same source basename
       // (`biz_01.md`) under different directories, constructed directly
       // against a synthetic RecursiveParseResult. Reaching this shape via
@@ -585,10 +571,8 @@ title: Acme Org
 
       const index = buildWorkspaceIndex(syntheticResult)
 
-      expect(index.fileNameToNodeIds['biz_01']).toHaveLength(2)
-      expect(index.fileNameToNodeIds['biz_01']).toEqual(
-        expect.arrayContaining([nodeA.id, nodeB.id]),
-      )
+      expect(index.pathToNodeId['a/biz_01.md']).toBe(nodeA.id)
+      expect(index.pathToNodeId['b/biz_01.md']).toBe(nodeB.id)
       expect(index.issues).toHaveLength(0)
     })
 
@@ -756,7 +740,7 @@ title: Model A
       expect(index.nodeSchema[rootNode.id]).toBe(fallbackSchema)
     })
 
-    it('index-element-concepts-normalized: an element name with a typographic dash resolves via both its exact and separator-normalized keys', async () => {
+    it('index-no-element-name-map: element names are not indexed (identity is the slug)', async () => {
       const files: Record<string, string> = {
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
@@ -778,12 +762,7 @@ description:: Living-dining room.
       const result = await recursiveParse(rootHandle)
       const index = buildWorkspaceIndex(result)
 
-      const rootNode = Object.values(result.nodes).find((n) => n.name === 'domaiNN')!
-      const exactKey = 'salón–comedor'
-      const normalizedKey = 'salón-comedor'
-
-      expect(index.nodeElementConcepts[rootNode.id][exactKey]).toEqual(['Rooms'])
-      expect(index.nodeElementConcepts[rootNode.id][normalizedKey]).toEqual(['Rooms'])
+      expect(Object.keys(index).filter((k) => /elementconcepts/i.test(k))).toEqual([])
     })
 
     it('index-workspace-id: the entrypoint frontmatter workspace_id is surfaced on the index', async () => {

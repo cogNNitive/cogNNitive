@@ -8,7 +8,7 @@ export interface ParseIssue {
   message: string
   severity?: 'info' | 'warning' | 'error'
   /** Stable machine-readable discriminator. Additive; existing issues keep it undefined. */
-  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND' | 'MISSING_ENTRYPOINT'
+  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND' | 'MISSING_ENTRYPOINT' | 'DUPLICATE_SLUG'
 }
 
 import type { ModelDagTopology } from './topology.js'
@@ -41,6 +41,8 @@ export interface ParseContext {
   identity: IdentityRegistry
   issues: ParseIssue[]
   visitedPaths?: Set<string>
+  /** The model id that prefixes element node ids (`<model-id>@<slug>`); absent means the relative `@<slug>` form. */
+  modelId?: string
   /** Optional change log: source edges come from its live evidence (G13). */
   changeLog?: ChangeLog
 }

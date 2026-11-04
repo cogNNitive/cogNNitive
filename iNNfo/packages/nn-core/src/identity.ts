@@ -10,18 +10,19 @@ export class DuplicateNameError extends Error {
 }
 
 /**
- * Tracks sibling name uniqueness per parent and builds qualified ids
- * (ancestor chain joined `Parent/Child`). Node identity is name-unique
- * among siblings; qualified path disambiguates across branches.
- * Collisions throw a DuplicateNameError instead of silently disambiguating.
+ * Tracks key uniqueness per parent and builds qualified ids (parent id joined
+ * `Parent/Key`). Documents register by name under the workspace root; elements
+ * register by SLUG under their document (a name is display data: two elements
+ * may share one, a slug is the identity). Collisions throw a DuplicateNameError
+ * instead of silently disambiguating.
  */
 export class IdentityRegistry {
   private siblingNames = new Map<string | null, Set<string>>()
 
   /**
-   * Registers a node name under its parent's qualified id (null for root).
-   * Returns the qualified id for this node. If the sibling name already
-   * exists (collision), throws a DuplicateNameError.
+   * Registers a key (a document name, or an element slug) under its parent's
+   * qualified id (null for root). Returns the qualified id for this node. If
+   * the key already exists under that parent (collision), throws a DuplicateNameError.
    */
   register(parentQualifiedId: string | null, name: string): string {
     const siblings = this.siblingNames.get(parentQualifiedId) ?? new Set<string>()

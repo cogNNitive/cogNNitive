@@ -5,6 +5,7 @@ import {
   validateElementFieldReferences,
 } from '../src/index.js'
 import type { Concept } from '../src/types/index.js'
+import { buildElementIndexes, resolveReferenceTarget } from '../src/validator/references.js'
 
 /**
  * Matrix cell row/column headers are references by display name. When two
@@ -154,11 +155,13 @@ describe('matrix header context resolution', () => {
       validateReferences(parsed).filter((d) => d.code === 'AMBIGUOUS_ELEMENT_NAME'),
     ).toHaveLength(0)
 
-    // ...but the field reference stays ambiguous (error); matrix context is not used.
-    const ambiguousField = validateElementFieldReferences(parsed, templateConcepts).find(
-      (d) => d.code === 'AMBIGUOUS_ELEMENT_NAME',
+    // ...a typed field value is address-only, so `[[name]]` there is a removed form (never resolved by name)...
+    const removedForm = validateElementFieldReferences(parsed, templateConcepts).find(
+      (d) => d.code === 'ADDRESS_MALFORMED',
     )
-    expect(ambiguousField).toBeDefined()
-    expect(ambiguousField!.severity).toBe('error')
+    expect(removedForm).toBeDefined()
+    expect(removedForm!.severity).toBe('error')
+    // ...and a wikilink target without matrix context stays an ambiguity.
+    expect(resolveReferenceTarget(dup, buildElementIndexes(parsed)).ambiguous).toBe(true)
   })
 })

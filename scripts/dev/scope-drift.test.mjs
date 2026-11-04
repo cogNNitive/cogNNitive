@@ -54,14 +54,16 @@ const json = (...args) => {
 }
 const rowOf = (report, scope, key) => report.rows.find((r) => r.scope === scope && r.key === key)
 
-test('GOLD with --unit doc: the series volume is deviated by one of two scripts', () => {
+test('GOLD with --unit doc: the series volume is deviated by one script', () => {
   const report = json(GOLD, '--unit', 'doc', '--ignore', 'slug,title')
   assert.equal(report.v, 1)
   const row = rowOf(report, 'series/innteresante', 'music_volume')
   assert.ok(row, 'row for the series volume')
   assert.deepEqual(row.baseline.value, 0.4)
   assert.equal(row.baseline.present, true)
-  assert.deepEqual(row.units, { total: 2, deviating: 1, uniform: false })
+  // Under the distributed layout the series holds exactly one Video (its instance model),
+  // so one unit inherits the series volume, not two.
+  assert.deepEqual(row.units, { total: 1, deviating: 1, uniform: false })
   assert.deepEqual(row.variants.map((v) => [v.value, v.units]), [[0.06, 1]])
 })
 
@@ -69,7 +71,7 @@ test('GOLD with --unit doc: a series value every script inherits is uniform', ()
   const report = json(GOLD, '--unit', 'doc')
   const row = rowOf(report, 'series/innteresante', 'voice_id')
   assert.equal(row.baseline.value, 'LucasCervera02')
-  assert.deepEqual(row.units, { total: 2, deviating: 0, uniform: true })
+  assert.deepEqual(row.units, { total: 1, deviating: 0, uniform: true })
   const other = rowOf(report, 'series/villabotijos-today', 'music_volume')
   assert.deepEqual(other.units, { total: 1, deviating: 0, uniform: true })
 })
@@ -77,18 +79,18 @@ test('GOLD with --unit doc: a series value every script inherits is uniform', ()
 test('GOLD with the default unit counts the leaf elements', () => {
   const report = json(GOLD, '--ignore', 'slug,title')
   const row = rowOf(report, 'series/innteresante', 'music_volume')
-  // 3 Scenes of the script plus 2 Video elements of the series document; the script's own
-  // Video is the parent of its Scenes, so it is not a leaf.
-  assert.deepEqual(row.units, { total: 5, deviating: 1, uniform: false })
+  // 3 Scenes of the script; the script's own Video is the parent of its Scenes, so it is
+  // not a leaf. There is no second (registry) Video in the series folder: that shape is
+  // double storage under the distributed layout.
+  assert.deepEqual(row.units, { total: 3, deviating: 1, uniform: false })
 })
 
 test('--json output equals driftReport over the same chains', async () => {
   const core = await import(pathToFileURL(join(REPO, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js')).href)
-  const bosco = join(GOLD, 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md')
-  const boa = join(GOLD, 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_coNNtent_villabotijos-today_NN.md')
-  const videos = join(GOLD, 'series/innteresante/innteresante_video_NN.md')
+  const bosco = join(GOLD, 'series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_NN.md')
+  const boa = join(GOLD, 'series/villabotijos-today/assets/boa-constrictor-suelta/boa-constrictor-suelta_coNNtent_NN.md')
   const chains = []
-  for (const [doc, concept] of [[bosco, 'Scene'], [boa, 'Video'], [videos, 'Video']]) {
+  for (const [doc, concept] of [[bosco, 'Scene'], [boa, 'Video'], [boa, 'Scene']]) {
     const listed = core.listScopeElements(doc)
     assert.equal(listed.ok, true)
     for (const el of listed.elements.filter((e) => e.concept === concept)) {

@@ -1,3 +1,4 @@
+import { isAddressError, parseAddress } from '../address/index.js'
 import type { JsonValue, ScopeNode } from './types.js'
 
 /**
@@ -10,7 +11,7 @@ import type { JsonValue, ScopeNode } from './types.js'
 /** One entry of the document frontmatter key `scope_elements`, outermost concept first. */
 export interface ElementScopeDecl {
   concept: string
-  /** Field holding a `[[title]]` reference to the parent element (previous listed concept). */
+  /** Field holding an `@<slug>` address of the parent element (previous listed concept). */
   parent?: string
 }
 
@@ -82,8 +83,6 @@ function checkDecls(decls: readonly ElementScopeDecl[]): string | null {
   return null
 }
 
-const REFERENCE = /^\[\[([^\]]+)\]\]$/
-
 type Parent = { ok: true; index: number } | { ok: false; code: ElementErrorCode; detail: string }
 
 /** The index of the parent of `elements[index]`, whose concept is listed at `declIndex > 0`. */
@@ -102,17 +101,23 @@ function parentIndex(source: ElementSource, index: number, declIndex: number): P
 
   const field = decl.parent
   const raw = child.fields[field]
-  const match = typeof raw === 'string' ? REFERENCE.exec(raw.trim()) : null
-  if (!match) return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} is not a [[title]] reference`)
-  const title = match[1].trim()
+  const parsed = typeof raw === 'string' ? parseAddress(raw.trim()) : null
+  if (parsed === null) return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} is not an @<slug> address`)
+  if (isAddressError(parsed)) {
+    return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} is not an @<slug> address (${parsed.message})`)
+  }
+  if (parsed.kind !== 'unit' || parsed.model !== null || parsed.unit.kind !== 'element') {
+    return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} is not an @<slug> address of this document`)
+  }
+  const slug = parsed.unit.slug
   const candidates = source.elements
     .map((e, i) => ({ e, i }))
-    .filter(({ e }) => e.concept === parentConcept && e.title === title)
+    .filter(({ e }) => e.concept === parentConcept && e.slug === slug)
   if (candidates.length === 0) {
-    return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} names no ${parentConcept} titled "${title}"`)
+    return fail('UNKNOWN_PARENT_ELEMENT', `${label}: field ${field} names no ${parentConcept} with slug "${slug}"`)
   }
   if (candidates.length > 1) {
-    return fail('AMBIGUOUS_PARENT_ELEMENT', `${label}: field ${field} matches ${candidates.length} ${parentConcept} elements titled "${title}"`)
+    return fail('AMBIGUOUS_PARENT_ELEMENT', `${label}: field ${field} matches ${candidates.length} ${parentConcept} elements with slug "${slug}"`)
   }
   return { ok: true, index: candidates[0].i }
 }

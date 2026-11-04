@@ -116,6 +116,8 @@ describe('Canonical Use Case Workspaces', () => {
           let full = join(wsPath, refPath)
           if (!existsSync(full)) full = join(wsPath, 'sources', 'nn', refPath)
           if (!existsSync(full)) full = join(wsPath, 'sources', 'import', refPath)
+          // A model citation is an id; its file is `kNNowledge/<id>_NN.md` in a compact domaiNN.
+          if (!existsSync(full)) full = join(wsPath, 'kNNowledge', `${refPath}_NN.md`)
           if (!existsSync(full)) return { exists: false }
           const content = readFileSync(full, 'utf-8')
           return { exists: true, content, headings: extractHeadings(content).map((h) => h.slug) }

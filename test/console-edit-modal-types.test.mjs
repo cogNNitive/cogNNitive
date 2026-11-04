@@ -200,41 +200,49 @@ describe('Markdown and reference widgets (S3b groups 10-11)', () => {
     assert.equal(edited.getSaved().proposed, 'changed\n\n# H')
   })
 
-  it('a reference proposes [[Display Name]] and keeps an unchanged value as it was', () => {
-    const candidates = [{ id: 'ana', name: 'Ana', concept: 'Person' }, { id: 'ben', name: 'Ben', concept: 'Person' }]
-    const t = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+  it('a reference autocompletes over title and address, and writes the address', () => {
+    const candidates = [
+      { address: 'innteresante/intro', title: 'Intro' },
+      { address: 'villabotijos-today/intro', title: 'Intro' },
+      { address: 'villabotijos-today/pepper-mapache', title: 'El mapache fuera de la ley' },
+    ]
+    const t = mount({ title: 'Edit sequel', fieldName: 'sequel', type: 'reference', value: 'villabotijos-today/intro', candidates })
     assert.deepEqual(
-      [...t.modal.querySelectorAll('datalist option')].map((o) => o.value),
-      ['Ana', 'Ben'],
+      [...t.modal.querySelectorAll('[data-nn-reference-option]')].map((o) => o.textContent),
+      ['Intro - innteresante/intro', 'Intro - villabotijos-today/intro', 'El mapache fuera de la ley - villabotijos-today/pepper-mapache'],
     )
     t.save()
-    assert.equal(t.getSaved().proposed, '[[Ana]]')
-    const changed = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
-    changed.modal.querySelector('.nn-edit-reference input').value = 'Ben'
+    assert.equal(t.getSaved().proposed, 'villabotijos-today/intro', 'an unchanged value proposes the original address')
+    const changed = mount({ title: 'Edit sequel', fieldName: 'sequel', type: 'reference', value: 'villabotijos-today/intro', candidates })
+    changed.modal.querySelector('.nn-edit-reference input').value = 'innteresante/intro'
     changed.save()
-    assert.equal(changed.getSaved().proposed, '[[Ben]]')
-    const blank = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+    assert.equal(changed.getSaved().proposed, 'innteresante/intro', 'the selected address is what is stored')
+    const blank = mount({ title: 'Edit sequel', fieldName: 'sequel', type: 'reference', value: 'villabotijos-today/intro', candidates })
     blank.modal.querySelector('.nn-edit-reference input').value = ''
     blank.save()
-    assert.equal(blank.getSaved().proposed, '')
+    assert.equal(blank.getSaved().proposed, '', 'a blank value clears the reference')
   })
 
 
-  it('a reference only accepts a name among the candidates, case-insensitively, and no brackets', () => {
-    const candidates = [{ id: 'ana', name: 'Ana', concept: 'Person' }, { id: 'ben', name: 'Ben', concept: 'Person' }]
+  it('a reference only accepts an address among the candidates', () => {
+    const candidates = [
+      { address: 'innteresante/intro', title: 'Intro' },
+      { address: 'villabotijos-today/intro', title: 'Intro' },
+    ]
     const typed = (text) => {
-      const t = mount({ title: 'Edit owner', fieldName: 'owner', type: 'reference', value: '[[Ana]]', candidates })
+      const t = mount({ title: 'Edit sequel', fieldName: 'sequel', type: 'reference', value: 'villabotijos-today/intro', candidates })
       t.modal.querySelector('.nn-edit-reference input').value = text
       t.save()
       return t
     }
-    const unknown = typed('Nobody')
-    assert.equal(unknown.saveCount(), 0, 'an unknown name is not saved')
+    const unknown = typed('Intro')
+    assert.equal(unknown.saveCount(), 0, 'a title is not an address: nothing is saved')
     assert.notEqual(unknown.errorBox().style.display, 'none', 'the error box is shown')
-    assert.equal(typed('Ana]] x [[Ben').saveCount(), 0, 'brackets in the name are rejected')
-    assert.equal(typed('[[Nobody]]').saveCount(), 0, 'a wrapped unknown name is rejected too')
-    const lower = typed('ben')
-    assert.equal(lower.saveCount(), 1)
-    assert.equal(lower.getSaved().proposed, '[[Ben]]', 'proposes the candidate display name')
+    // The message names the title and the address of every candidate.
+    assert.match(unknown.errorBox().textContent, /"Intro" \(innteresante\/intro\)/)
+    assert.equal(typed('[[Intro]]').saveCount(), 0, 'the removed bracket form is rejected')
+    const exact = typed('innteresante/intro')
+    assert.equal(exact.saveCount(), 1)
+    assert.equal(exact.getSaved().proposed, 'innteresante/intro', 'an exact address is accepted')
   })
 })

@@ -6,7 +6,7 @@
  * The scattered series values of a video domain, read from whichever source the
  * series uses today, in precedence order:
  *
- *   1. the series scope marker `<series>_scope_NN.md` (post-adoption truth)
+ *   1. the series scope marker `<series>_video-script_NN.md` (post-adoption truth)
  *   3. `script_template.md` (`music`, `music_volume`, `transition`)
  *   4. the registered-voice field repeated in the `## NN Video` blocks of `<Series>_video_NN.md`
  *
@@ -36,7 +36,7 @@ function readIf(root, rel) {
  */
 export function seriesValues(root, series) {
   const dir = join('series', series);
-  const marker = readIf(root, join(dir, `${series}_scope_NN.md`));
+  const marker = readIf(root, join(dir, `${series}_video-script_NN.md`));
   const template = readIf(root, join(dir, 'script_template.md')) ?? '';
 
   const entries = existsSync(join(root, dir)) ? readdirSync(join(root, dir)) : [];

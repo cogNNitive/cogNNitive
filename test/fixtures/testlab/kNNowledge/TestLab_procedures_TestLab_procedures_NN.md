@@ -37,52 +37,52 @@ End-to-end walkthrough that proves the changeset lineage pipeline: open the gene
 
 ## NN Work: Open the Domain Console
 slug:: open-the-domain-console
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: task
-next:: [[Enable Review Mode]]
+next:: @enable-review-mode
 condition:: A generated console exists at the domain root
 scope:: internal
 Open domaiNN_console.html at the domain root. It is a single self-contained file: double-click it and it runs offline in any browser.
 
 ## NN Work: Enable Review Mode
 slug:: enable-review-mode
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: task
-next:: [[Open Element 1B]]
+next:: @open-element-1b
 condition:: The domain console is open
 scope:: internal
 Click "Review mode" in the top banner. Until this is on, element field anchors are not clickable and the review modal cannot be opened.
 
 ## NN Work: Open Element 1B
 slug:: open-element-1b
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: task
-next:: [[Read the Changeset Lineage]]
+next:: @read-the-changeset-lineage
 condition:: Review mode is enabled
 scope:: internal
 Open the TestLab Coverage Model and click a field row of Element 1B (for example the "photo" row). The element modal opens with two tabs: Edit and History & Provenance.
 
 ## NN Work: Read the Changeset Lineage
 slug:: read-the-changeset-lineage
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: decision
-next:: [[Propose a Change in the Console]]
+next:: @propose-a-change-in-the-console
 condition:: The element modal is open on Element 1B
 scope:: internal
 Switch to the "History & Provenance" tab. Under "Changeset Lineage & Revision History" you must see the applied review change fb-001: author "reviewer", the UTC timestamp 2026-10-10T12:00:00.000Z, and its note. If the section reads "No recorded prior changesets", the change did not reach the console and the lineage pipeline is broken.
 
 ## NN Work: Propose a Change in the Console
 slug:: propose-a-change-in-the-console
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: task
-next:: [[Copy the Changeset Prompt]]
+next:: @copy-the-changeset-prompt
 condition:: Review mode is enabled
 scope:: internal
 Change a field value or leave a comment in the element modal to record a draft. This is how a reviewer proposes a change without editing the model by hand.
 
 ## NN Work: Copy the Changeset Prompt
 slug:: copy-the-changeset-prompt
-parent:: [[TestLab Guided Verification]]
+parent:: @testlab-guided-verification
 step_type:: task
 condition:: At least one draft is pending
 scope:: internal

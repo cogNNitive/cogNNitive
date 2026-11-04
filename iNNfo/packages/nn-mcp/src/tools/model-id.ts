@@ -9,13 +9,20 @@ import { canonicalModelId, type ChangeItem } from '@cognnitive/nn-core'
  */
 export type ModelIdAliases = Map<string, string>
 
-/** Lower-cased alias -> canonical id, for every `add_model` change that names a bluepriNNt. */
-export function modelIdAliases(changes: ReadonlyArray<Pick<ChangeItem, 'op' | 'target' | 'blueprint_name'>>): ModelIdAliases {
+/** Lower-cased alias -> canonical id, for every compact `add_model` change that names a bluepriNNt. */
+export function modelIdAliases(
+  changes: ReadonlyArray<Pick<ChangeItem, 'op' | 'target' | 'blueprint_name' | 'concept'>>,
+): ModelIdAliases {
   const aliases: ModelIdAliases = new Map()
   const created: Array<{ original: string; canonical: string }> = []
   for (const change of changes) {
     if (change.op !== 'add_model' || !change.target || !change.blueprint_name) continue
+    // Stem aliasing is a compact-model rule (design A9): a change that names the
+    // concept it instantiates, or a hierarchical id, is an instance model whose id
+    // IS the caller's id — `canonicalModelId` would append the bluepriNNt to it.
+    if (change.concept !== undefined && change.concept.trim() !== '') continue
     const original = change.target.trim()
+    if (original.includes('/')) continue
     created.push({ original, canonical: canonicalModelId(original, change.blueprint_name) })
   }
   // Canonical ids win over another model's original id, so an alias can never hijack a sibling.

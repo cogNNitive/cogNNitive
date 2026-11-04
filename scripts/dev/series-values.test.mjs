@@ -77,7 +77,7 @@ test('the scope marker wins over JSON and template', () => {
     {
       'script_template.md': TEMPLATE,
       'video.series.json': JSON.stringify({ defaultMusic: '../../shared/json.mp3', defaultMusicVolume: '0.1' }),
-      'demo_scope_NN.md': '---\nlevel: 3\nscope: true\n---\n\n# NN Series\n\n## NN Series: demo\nmusic:: ../../shared/marker.mp3\nmusic_volume:: 0.06\ntransition:: none\nvoice_id:: MarkerVoice\n',
+      'demo_video-script_NN.md': '---\nlevel: 3\nscope: true\n---\n\n# NN Series\n\n## NN Series: demo\nmusic:: ../../shared/marker.mp3\nmusic_volume:: 0.06\ntransition:: none\nvoice_id:: MarkerVoice\n',
     },
     (root) => {
       const v = seriesValues(root, 'demo');

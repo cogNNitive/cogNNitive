@@ -66,8 +66,8 @@ describe('listKnowledge', () => {
     const models = await listKnowledge(rootDir)
 
     expect(models.map((m) => m.id)).toEqual([
-      'Alpha_V_1-0-0_business_NN',
-      'Beta_V_1-0-0_business_NN',
+      'Alpha_V_1-0-0_business',
+      'Beta_V_1-0-0_business',
     ])
     expect(models[0].version).toBe('V_1-0-0')
   })

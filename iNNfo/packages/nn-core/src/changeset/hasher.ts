@@ -9,6 +9,7 @@ export const EXECUTION_FACT_KEYS = [
   'resolved_slug',
   'resolved_target',
   'evidence_sha256',
+  'extracted_slugs',
 ] as const
 
 export type ExecutionFactKey = (typeof EXECUTION_FACT_KEYS)[number]

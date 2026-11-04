@@ -49,14 +49,29 @@ export type {
   CitationDiagnostic,
 } from './validator/index.js'
 
+export { parseAddress, formatAddress, isAddressError } from './address/index.js'
+export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './address/index.js'
+export { buildDomainIndex, fileLocalDiagnostics, versionSkew } from './domain/index.js'
+export type {
+  AddressResolution,
+  CollectionMember,
+  DomainIndex,
+  DomainModelInput,
+  IndexedModel,
+  LayoutCode,
+  LayoutDiagnostic,
+  StorageDeclarationsResolver,
+} from './domain/index.js'
 export {
   parseCitation,
+  parseCitationResult,
   resolveUnitPath,
+  resolveUnitPathResult,
   slugifyHeading,
   extractHeadings,
   resolveHeadingSection,
 } from './sourceRef.js'
-export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type { Citation, CitationResult, UnitPathResult, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,

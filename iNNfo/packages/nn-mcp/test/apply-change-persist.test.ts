@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { computeProposalSha, serializeChangeset } from '@cognnitive/nn-core'
@@ -218,5 +218,140 @@ describe('apply persist is crash safe', () => {
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toContain('Accelerate clean energy')
     expect(injected.renameEpermAttempts).toBe(0)
     expect(existsSync(join(knowledgeDir, 'strategy.tmp'))).toBe(false)
+  })
+})
+
+/* ── move_model: the folder rename is inside the same rollback (S6b.3, R4) ── */
+
+const mRoot = join(import.meta.dirname!, '..', 'temp-test-move-persist')
+const mChangesDir = join(mRoot, 'changes')
+const mSpecsDir = join(mRoot, 'specs')
+const mSeriesDir = join(mRoot, 'series', 'villabotijos-today')
+const mAssetsDir = join(mSeriesDir, 'assets')
+const INTRO_PATH = join(mAssetsDir, 'intro', 'intro_video-script_NN.md')
+const WELCOME_DIR = join(mAssetsDir, 'welcome')
+const WELCOME_PATH = join(WELCOME_DIR, 'welcome_video-script_NN.md')
+
+const MOVE_BLUEPRINT = [
+  '---',
+  'spec_version: "V_0-1-0"',
+  'level: 2',
+  'title: "Video"',
+  'parent_spec:',
+  '  name: "iNNfo_V_0-7-0"',
+  '  url: "specs/iNNfo_V_0-7-0_NN.md"',
+  '---',
+  '',
+  '# NN Concept Definition',
+  '',
+  '## NN Concept Definition: Series',
+  'type:: list',
+  'storage:: distributed',
+  'placement:: series/{slug}/',
+  '',
+  '## NN Concept Definition: Video',
+  'type:: list',
+  'container:: Series',
+  'storage:: distributed',
+  'placement:: {container}/assets/{slug}/',
+  '',
+].join('\n')
+
+const MOVE_SERIES = [
+  '---',
+  'level: 3',
+  'title: "Villabotijos Today"',
+  'knowledge_version: "V_0-1-0"',
+  'parent_spec:',
+  '  name: "video-script_V_0-1-0"',
+  '  url: "specs/bluepriNNts/video-script_V_0-1-0_NN.md"',
+  '---',
+  '',
+  '# NN Series',
+  '',
+  '## NN Series: Villabotijos Today',
+  'slug:: villabotijos-today',
+  '',
+].join('\n')
+
+const MOVE_INTRO = [
+  '---',
+  'level: 3',
+  'title: "Intro"',
+  'knowledge_version: "V_0-1-0"',
+  'parent_spec:',
+  '  name: "video-script_V_0-1-0"',
+  '  url: "specs/bluepriNNts/video-script_V_0-1-0_NN.md"',
+  '---',
+  '',
+  '# NN Video',
+  '',
+  '## NN Video: Intro',
+  'slug:: intro',
+  '',
+].join('\n')
+
+async function writeMoveChangeset(): Promise<void> {
+  const changes: ChangeItem[] = [
+    { id: 'c-01', op: 'move_model', target: 'villabotijos-today/intro', to: 'villabotijos-today/welcome', evidence: 'decision' },
+  ]
+  const doc = {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      level: 3 as const,
+      parent_spec: { name: 'changes' as const, url: 'https://example.test/changes/spec_NN.md' },
+      blueprint_version: 'V_0-7-0',
+      status: 'proposed' as const,
+      proposal_sha: computeProposalSha(changes),
+    },
+    changes,
+  }
+  await writeFile(join(mChangesDir, 'move_changes_NN.md'), serializeChangeset(doc), 'utf-8')
+}
+
+describe('move_model persistence is crash safe (distributed-storage S6b)', () => {
+  beforeEach(async () => {
+    injected.renameFailure = null
+    injected.renameFailForPath = null
+    await rm(mRoot, { recursive: true, force: true })
+    for (const dir of [mChangesDir, join(mSpecsDir, 'bluepriNNts'), dirname(INTRO_PATH)]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(mSpecsDir, 'defiNNe_V_0-1-0_NN.md'), '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNe"\n---\n', 'utf-8')
+    await writeFile(
+      join(mSpecsDir, 'iNNfo_V_0-7-0_NN.md'),
+      '---\nspec_version: "V_0-7-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
+      'utf-8',
+    )
+    await writeFile(join(mSpecsDir, 'bluepriNNts', 'video-script_V_0-1-0_NN.md'), MOVE_BLUEPRINT, 'utf-8')
+    await writeFile(join(mSeriesDir, 'villabotijos-today_video-script_NN.md'), MOVE_SERIES, 'utf-8')
+    await writeFile(INTRO_PATH, MOVE_INTRO, 'utf-8')
+    await writeMoveChangeset()
+  })
+
+  afterEach(async () => {
+    injected.renameFailure = null
+    injected.renameFailForPath = null
+    await rm(mRoot, { recursive: true, force: true })
+  })
+
+  it('restores folder, file, id and the lock when the persist fails after the folder rename', async () => {
+    // The folder rename already succeeded when the staging -> live rename fails:
+    // this is the R4/T-6 failure mode, injected at the same instant.
+    injected.renameFailForPath = 'welcome'
+    injected.renameFailure = new Error('simulated lock on the moved model')
+
+    await expect(applyChange(mRoot, 'changes/move_changes_NN.md')).rejects.toThrow(/simulated lock/)
+    expect(await readFile(INTRO_PATH, 'utf-8')).toBe(MOVE_INTRO)
+    expect(existsSync(WELCOME_DIR)).toBe(false)
+    expect(existsSync(join(mAssetsDir, 'intro', 'intro_video-script.tmp'))).toBe(false)
+
+    // The lock is released and the move can be retried.
+    injected.renameFailure = null
+    injected.renameFailForPath = null
+    const retry = await applyChange(mRoot, 'changes/move_changes_NN.md')
+    expect(retry.success).toBe(true)
+    expect(existsSync(WELCOME_PATH)).toBe(true)
+    expect(existsSync(INTRO_PATH)).toBe(false)
   })
 })

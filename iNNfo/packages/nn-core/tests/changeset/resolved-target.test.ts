@@ -30,9 +30,11 @@ describe('resolvedTarget', () => {
     expect(resolvedTarget.cell('m', 'swot', 'risk-one', 'q1')).toBe('m@swot&risk-one&q1')
   })
 
-  it('builds a concept address with and without a field', () => {
-    expect(resolvedTarget.concept('m', 'Goal')).toBe('m@concept:Goal')
-    expect(resolvedTarget.concept('m', 'Goal', 'owner')).toBe('m@concept:Goal&owner')
+  it('builds a concept address with the canonical concept slug, with and without a field', () => {
+    expect(resolvedTarget.concept('m', 'Goal')).toBe('m@concept:goal')
+    expect(resolvedTarget.concept('m', 'Goal', 'owner')).toBe('m@concept:goal&owner')
+    expect(resolvedTarget.concept('m', 'Vision Mission')).toBe('m@concept:vision-mission')
+    expect(resolvedTarget.concept('m', 'concept:Vision--Mission')).toBe('m@concept:vision--mission')
   })
 
   it('builds an element address', () => {

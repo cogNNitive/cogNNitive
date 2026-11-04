@@ -2,7 +2,6 @@ import { ValidationCheck, ValidationReport } from '../types/index.js'
 import { parseKnowledge, stripFrontmatter } from '../parser/index.js'
 import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants.js'
 import { CONCEPT_DEFINITION } from '../schema/index.js'
-import { QUALIFIED_REF_RE } from './workspaceReferences.js'
 import { parseName, checkNameInvariant, blueprintNameOf } from '../naming/contract.js'
 import { checkRemovedMarkerConstructs } from './removed-constructs.js'
 
@@ -459,18 +458,11 @@ export function validateFormatContent(
 
   // 13. Wikilinks reference
   if (hasIndex) {
-    // Qualified cross-model references (`[[Model Title :: Element Name]]`)
-    // are validated workspace-wide by `validateWorkspaceReferences()`, which
-    // is the only pass that can see sibling models. This per-file convention
-    // check bypasses any wikilink matching the precise qualified form —
-    // mirroring the `AD-06` delegation in `references.ts` — so a genuinely
-    // undefined qualified reference is reported once, by the workspace
-    // checker, not duplicated here as a generic "undefined reference(s)"
-    // warning. A value containing `::` that does NOT match the qualified
-    // form (e.g. missing text on either side) is deliberately NOT bypassed.
+    // The title-qualified form `[[Title :: Name]]` is removed: it is no longer
+    // bypassed here, so it surfaces below as an undefined reference that names
+    // the removed form. Cross-model targets are addresses (`<id>@<slug>`).
     const allWikilinks = [...content.matchAll(WIKILINK_RE)]
       .map((m) => m[1])
-      .filter((inner) => !QUALIFIED_REF_RE.test(`[[${inner}]]`))
       .map((inner) => inner.toLowerCase())
     const conceptNames = new Set<string>()
     for (const key of parsed.elements.keys()) {
@@ -493,7 +485,7 @@ export function validateFormatContent(
       passed: undefinedRefs.length === 0,
       message:
         undefinedRefs.length > 0
-          ? `${undefinedRefs.length} undefined reference(s): ${undefinedRefs.slice(0, 5).join(', ')}${undefinedRefs.length > 5 ? '…' : ''}`
+          ? `${undefinedRefs.length} undefined reference(s): ${undefinedRefs.slice(0, 5).join(', ')}${undefinedRefs.length > 5 ? '…' : ''}${undefinedRefs.some((w) => w.includes('::')) ? ' (the title-qualified form [[Title :: Name]] is removed; use <hierarchical-id>@<slug>)' : ''}`
           : undefined,
     })
   }

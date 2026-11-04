@@ -329,3 +329,58 @@ notes:: Migrated from the old domain
     expect(() => parseChangeset(badTarget)).toThrow(/plain model id/)
   })
 })
+
+describe('move_model (distributed-storage S6b)', () => {
+  const header = [
+    '---',
+    'spec_version: "V_0-4-0"',
+    'level: 3',
+    'parent_spec:',
+    '  name: changes',
+    '  url: "https://example.test/changes/spec_NN.md"',
+    'blueprint_version: "V_0-7-0"',
+    'status: proposed',
+    '---',
+    '',
+    '# NN Change',
+    '',
+  ].join('\n')
+
+  it('parses move_model with its to and seals the pair', () => {
+    const doc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: 'V_0-7-0',
+        status: 'proposed',
+      },
+      changes: [
+        { id: 'c-01', op: 'move_model', target: 'villabotijos-today/intro', to: 'villabotijos-today/welcome' },
+      ],
+    }
+    doc.frontmatter.proposal_sha = computeProposalSha(doc.changes)
+    const parsed = parseChangeset(serializeChangeset(doc))
+    expect(parsed.changes[0]).toMatchObject({
+      op: 'move_model',
+      target: 'villabotijos-today/intro',
+      to: 'villabotijos-today/welcome',
+    })
+    expect(computeProposalSha(parsed.changes)).toBe(parsed.frontmatter.proposal_sha)
+    // `to` is part of the seal: a different destination is a different proposal.
+    expect(
+      computeProposalSha([{ ...parsed.changes[0]!, to: 'villabotijos-today/other' }]),
+    ).not.toBe(parsed.frontmatter.proposal_sha)
+  })
+
+  it('rejects a move_model with no to, naming the change id', () => {
+    const body = `${header}## NN Change: c-01\nop:: move_model\ntarget:: villabotijos-today/intro\n`
+    expect(() => parseChangeset(body)).toThrow(/c-01/)
+    expect(() => parseChangeset(body)).toThrow(/move_model/)
+  })
+
+  it('rejects a move_model whose to is an element address', () => {
+    const body = `${header}## NN Change: c-01\nop:: move_model\ntarget:: villabotijos-today/intro\nto:: villabotijos-today/welcome@welcome\n`
+    expect(() => parseChangeset(body)).toThrow(/move_model/)
+  })
+})

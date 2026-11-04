@@ -69,6 +69,32 @@ list when one change cites several units. A `<unit>` is `@## Heading` (Markdown)
 `@RowID&col` (CSV), or `@/items/0/name` (JSON Pointer, RFC 6901). No `src-NNN` IDs,
 no line-number ranges, and never a `staging/` target.
 
+## rule: addressing-and-storage
+
+**Unified Addressing and Storage**
+
+1. **One grammar.** A kNNowledge unit is addressed `<hierarchical-id>[@<slug>[&<field>]]`,
+   plus the unchanged `@concept:<slug>`, `@matrix:<slug>` and `@<matrix>&<row>&<col>`
+   forms. A typed `reference` or `knowledge` field holds that address; a
+   same-document reference is relative (`@slug`).
+2. **Titles are display-only.** Never resolve or write a title as a target.
+   `[[Name]]`, `[[Title :: Name]]`, a bare stem, a path and `doc.md@## Heading`
+   are removed forms and are rejected (`ADDRESS_MALFORMED`,
+   `MODEL_CITED_BY_PATH`, `NN_DOCUMENT_CITED_BY_HEADING`). Prose and index
+   wikilinks are display text and stay untouched.
+3. **Storage is declared per concept.** `compact` instances are elements of one
+   document; `distributed` instances are one instance model each, at the
+   declared `placement`. A folder alone never makes a concept distributed.
+4. **One bluepriNNt version per bluepriNNt.** A domaiNN that pins a bluepriNNt at
+   several versions fails `check_domain` with `BLUEPRINT_VERSION_SKEW`. Fix it
+   with `nn-upgrade`, whose unit is the whole bluepriNNt group: it repins and
+   re-validates every member, or none.
+5. **Instance lifecycle.** Create with `add_model` and an explicit `concept::`
+   (container first); rename or move with `move_model`, retargeting every
+   referrer in the same changeset; convert a compact element with
+   `extract_instance`. Removing an instance model is NOT supported: no operation
+   deletes one, and a hand-deleted file is reported as `MODEL_WITHOUT_FILE`.
+
 ## rule: informative-grace
 
 **Informative Grace**

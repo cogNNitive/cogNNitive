@@ -61,8 +61,8 @@ describe('listKnowledge (recursive scan)', () => {
     const models = await listKnowledge(root)
     const ids = models.map((m) => m.id)
 
-    expect(ids).toContain('Root_V_0-1-0_NN')
-    expect(ids).toContain('Nested_V_0-2-0_NN')
+    expect(ids).toContain('Root_V_0-1-0')
+    expect(ids).toContain('Nested_V_0-2-0')
     expect(ids).not.toContain('Backup_V_0-0-1_NN')
     expect(ids).not.toContain('Old_V_0-0-1_NN')
     expect(ids).not.toContain('Spec_NN')
@@ -70,7 +70,7 @@ describe('listKnowledge (recursive scan)', () => {
     expect(ids).not.toContain('Git_V_0-0-1_NN')
     expect(ids).not.toContain('index')
 
-    const nested = models.find((m) => m.id === 'Nested_V_0-2-0_NN')
+    const nested = models.find((m) => m.id === 'Nested_V_0-2-0')
     expect(nested).toBeDefined()
     expect(nested!.version).toBe('V_0-2-0')
     expect(nested!.path).toBe(join(root, 'kNNowledge', 'subdir', 'Nested_V_0-2-0_NN.md'))
@@ -127,6 +127,39 @@ describe('listKnowledge (recursive scan)', () => {
     const models = await listKnowledge(root)
     const ids = models.map((m) => m.id)
 
-    expect(ids).toEqual(['Acme_V_1-0-0_business_NN'])
+    expect(ids).toEqual(['Acme_V_1-0-0_business'])
+  })
+
+  it('ids are not paths and an equal stem in two folders is never rewritten to a path', async () => {
+    const root = await makeRoot()
+    await mkdir(join(root, 'a'), { recursive: true })
+    await mkdir(join(root, 'b'), { recursive: true })
+    await writeFile(join(root, 'a', 'Same_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    await writeFile(join(root, 'b', 'Same_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    await writeFile(join(root, 'Solo_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    const models = await listKnowledge(root)
+    // the duplicate id is reported by the index, never rewritten into a path form
+    expect(models.map((m) => m.id)).toEqual(['Same_business', 'Same_business', 'Solo_business'])
+    expect(models.some((m) => m.id.includes('/') || m.id.endsWith('.md'))).toBe(false)
+  })
+
+  it('an id is unchanged when a same-stem file is added elsewhere', async () => {
+    const root = await makeRoot()
+    await writeFile(join(root, 'Solo_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    const before = (await listKnowledge(root)).map((m) => m.id)
+    await mkdir(join(root, 'other'), { recursive: true })
+    await writeFile(join(root, 'other', 'Solo_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    const after = (await listKnowledge(root)).map((m) => m.id)
+    expect(before).toEqual(['Solo_business'])
+    expect(after[0]).toBe('Solo_business')
+  })
+
+  it('lists a misplaced file under kNNowledge and never lists a changeset', async () => {
+    const root = await makeRoot()
+    await mkdir(join(root, 'kNNowledge', 'deep', 'er'), { recursive: true })
+    await writeFile(join(root, 'kNNowledge', 'deep', 'er', 'Odd_business_NN.md'), MODEL_FRONTMATTER, 'utf-8')
+    await mkdir(join(root, 'changes'), { recursive: true })
+    await writeFile(join(root, 'changes', 'x_changes_NN.md'), MODEL_FRONTMATTER.replace('business_V_0-2-0', 'changes_V_0-1-0'), 'utf-8')
+    expect((await listKnowledge(root)).map((m) => m.id)).toEqual(['Odd_business'])
   })
 })

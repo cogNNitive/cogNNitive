@@ -5,7 +5,7 @@
  * Dry-run adoption planner for video domains.
  * Emits the plan for:
  *   - adding domaiNN_NN.md if missing
- *   - adding one <series>_scope_NN.md per series folder (hoisting scattered series values)
+ *   - adding one <series>_video-script_NN.md per series folder (hoisting scattered series values)
  *   - renaming series/<slug>/procedure/ -> series/<slug>/procedures/
  *   - reporting before/after drift report
  *
@@ -78,7 +78,7 @@ if (existsSync(seriesBase) && statSync(seriesBase).isDirectory()) {
     }
 
     // Check scope marker
-    const markerName = `${seriesSlug}_scope_NN.md`;
+    const markerName = `${seriesSlug}_video-script_NN.md`;
     const markerPath = join(seriesDir, markerName);
     const hasMarker = existsSync(markerPath);
 

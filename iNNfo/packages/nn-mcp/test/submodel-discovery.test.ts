@@ -41,9 +41,10 @@ title: Security Tokens
       const foundPath = await findKnowledgeFile(tempDir, 'Tokens_V_0-1-0_security')
       expect(foundPath).toBe(filePath)
 
-      // Test findKnowledgeFile by raw filename
-      const foundByFilename = await findKnowledgeFile(tempDir, 'Tokens_V_0-1-0_security_NN.md')
-      expect(foundByFilename).toBe(filePath)
+      // A file name is a path, never an id (MODEL_ADDRESSED_BY_PATH)
+      await expect(findKnowledgeFile(tempDir, 'Tokens_V_0-1-0_security_NN.md')).rejects.toMatchObject({
+        code: 'MODEL_ADDRESSED_BY_PATH',
+      })
 
       // Test readKnowledge by clean stem
       const model = await readKnowledge(tempDir, 'Tokens_V_0-1-0_security')

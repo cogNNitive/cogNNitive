@@ -9,11 +9,9 @@ export { validateReferences, validateElementFieldReferences } from './references
 export type { ReferenceDiagnostic, SubmodelResolver } from './references.js'
 export { validateTaxonomyHierarchy } from './hierarchy.js'
 export {
-  QUALIFIED_REF_RE,
-  parseQualifiedRef,
+  domainIndexOfResult,
   validateWorkspaceReferences,
 } from './workspaceReferences.js'
-export type { QualifiedRef } from './workspaceReferences.js'
 export { validateWorkspaceSources, validateCitations } from './workspaceSources.js'
 export type {
   SourceResolver,

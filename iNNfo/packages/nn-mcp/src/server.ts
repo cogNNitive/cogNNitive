@@ -34,7 +34,7 @@ import {
   hydrateBlueprint,
   listBlueprintProcedures,
   listBlueprintSkills,
-  AmbiguousModelIdError,
+  ModelIdError,
 } from './tools/spec.js'
 import {
   validateKnowledge,
@@ -99,12 +99,17 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'list_knowledge',
       annotations: { readOnlyHint: true },
-      description: 'Scan the knowledge directory and list all iNNfo knowledge documents',
+      description:
+        'Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept\'s members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)',
       inputSchema: {
         type: 'object',
         properties: {
           domain: { type: 'string', description: 'Optional override domain directory to scan' },
           root: { type: 'string', description: 'Optional override domain directory to scan (alias for domain)' },
+          collection: {
+            type: 'string',
+            description: 'Return the members of this concept\'s collection instead of every model (e.g. "Video")',
+          },
         },
       },
     },
@@ -309,6 +314,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
               'remove_element',
               'rename_concept',
               'rename_element',
+              'move_model',
               'update_concept_field',
               'remove_matrix',
               'add_matrix',
@@ -321,7 +327,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For add_matrix: { matrixName, source, targetConcept, columns?, rows? } (source/targetConcept are the row/column axis concepts; columns/rows seed the grid and default to the axis concepts elements). For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For add_matrix: { matrixName, source, targetConcept, columns?, rows? } (source/targetConcept are the row/column axis concepts; columns/rows seed the grid and default to the axis concepts elements). For move_model: { to } (the new instance model id; the call id is the old one). For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',
@@ -364,7 +370,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
-        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_element_text, remove_matrix, add_matrix, comment, add_model, freeze_slugs, bump_version, produce_artifact); the tool does not interpret conversations. ' +
+        'You derive the operations (update_field, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_element_text, remove_matrix, add_matrix, comment, add_model, move_model, freeze_slugs, bump_version, produce_artifact); the tool does not interpret conversations. ' +
         'Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. ' +
         'The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset.',
       inputSchema: {
@@ -373,7 +379,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           operations: {
             type: 'array',
             description:
-              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, notes, evidence, base_hash, author. There is no fields key: add_element creates the element only and each field is its own update_field change (no from at creation). update_element_text writes the element prose body (target model@element). add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id. freeze_slugs and bump_version target a bare model id; bump_version carries its level (patch, minor or major) in to. evidence is the change\'s provenance: one citation string, or the literal decision / unknown. There is no sources key.',
+              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, notes, evidence, base_hash, author. There is no fields key: add_element creates the element only and each field is its own update_field change (no from at creation). update_element_text writes the element prose body (target model@element). add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id. move_model carries the old instance model id in target and the new one in to, and requires an update_field retargeting every referrer in the same proposal. freeze_slugs and bump_version target a bare model id; bump_version carries its level (patch, minor or major) in to. evidence is the change\'s provenance: one citation string, or the literal decision / unknown. There is no sources key.',
             items: { type: 'object' },
           },
           title: { type: 'string', description: 'Title of the changeset.' },
@@ -865,7 +871,7 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
     if (!handler) return errorResult(`Unknown tool: ${name}`)
     return await handler(args)
   } catch (err) {
-    if (err instanceof AmbiguousModelIdError) {
+    if (err instanceof ModelIdError) {
       return {
         content: [
           {
@@ -873,7 +879,7 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
             text: JSON.stringify(
               {
                 ok: false,
-                code: 'AMBIGUOUS_MODEL_ID',
+                code: err.code,
                 id: err.id,
                 candidates: err.candidates,
                 message: err.message,
@@ -894,7 +900,8 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
 
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const knowledge = await listKnowledge(root)
+  const collection = typeof args.collection === 'string' && args.collection.trim() ? args.collection.trim() : undefined
+  const knowledge = await listKnowledge(root, collection ? { collection } : {})
   return textResult(JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2))
 }
 

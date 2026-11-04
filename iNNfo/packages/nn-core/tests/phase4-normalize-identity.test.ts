@@ -36,8 +36,9 @@ desc:: Vendor Name
     expect(productEl).toBeDefined()
     expect(vendorEl).toBeDefined()
     expect(productEl!.id).not.toBe(vendorEl!.id)
-    expect(productEl!.id).toContain('Product/Name')
-    expect(vendorEl!.id).toContain('Vendor/Name')
+    // Identity is the slug, scoped by the model (`<model-id>@<slug>`; relative `@<slug>` without a model id)
+    expect(productEl!.id).toBe('@product-name')
+    expect(vendorEl!.id).toBe('@vendor-name')
   })
 
   it('4.1.2 Sibling elements with duplicate display names under the same concept are rejected with a duplicate sibling error', () => {

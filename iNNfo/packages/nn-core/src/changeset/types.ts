@@ -17,6 +17,8 @@ export const CHANGE_OPS = [
   'add_matrix',
   'comment',
   'add_model',
+  'move_model',
+  'extract_instance',
   'freeze_slugs',
   'bump_version',
   'update_element_text',
@@ -93,6 +95,13 @@ export interface ChangeItem {
   resolved_target?: string
   /** Execution fact: one sha256 per evidence entry, in evidence order. Outside the seal. */
   evidence_sha256?: string[]
+  /**
+   * Execution fact (`extract_instance` only): the element slugs that moved into
+   * the new instance model — the instance root first, then every descendant the
+   * cut carried. The fold re-keys exactly this slug set (design A11), so it is
+   * written by apply and excluded from `proposal_sha`.
+   */
+  extracted_slugs?: string[]
   /** Per-change execution fact: when the change was applied, UTC (excluded from proposal_sha). */
   applied_at?: string
   /** Per-change execution fact: the batch identity, the changeset stem (excluded from proposal_sha). */
@@ -156,8 +165,13 @@ export function isChangeOp(val: unknown): val is ChangeOp {
 /**
  * Structural problems of one `add_model` change, as human-readable messages naming the
  * change id. An empty list means the change is well formed. `add_model` creates a model:
- * it requires `target` (a plain model id), `blueprint_name` and `blueprint_url`, and it
- * carries no precondition (`from`, `to`, `base_hash`) and no element payload.
+ * it requires `target`, `blueprint_name` and `blueprint_url`, and it carries no
+ * precondition (`from`, `to`, `base_hash`) and no element payload.
+ *
+ * `target` is a plain model id, UNLESS the change names the distributed concept it
+ * instantiates (`concept`, design A9): then it is the instance's hierarchical id
+ * (`<container-id>/<slug>`) and its folder and file are derived from the concept's
+ * declared placement by the apply engine, never from the id's spelling.
  */
 export function addModelProblems(change: ChangeItem): string[] {
   if (change.op !== 'add_model') return []
@@ -168,21 +182,101 @@ export function addModelProblems(change: ChangeItem): string[] {
       problems.push(`change "${id}": add_model must not carry "${key}"`)
     }
   }
-  if (change.concept !== undefined || change.fields !== undefined || change.slug !== undefined) {
-    problems.push(`change "${id}": add_model must not carry element payload (concept, slug, fields)`)
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": add_model must not carry element payload (slug, fields)`)
   }
   if (!change.blueprint_name) problems.push(`change "${id}": add_model requires "blueprint_name"`)
   if (!change.blueprint_url) problems.push(`change "${id}": add_model requires "blueprint_url"`)
   const target = change.target
+  const hierarchical = typeof change.concept === 'string' && change.concept.trim() !== ''
   if (
     !target ||
     target.includes('@') ||
     target.includes('&') ||
     target.includes('..') ||
     /^[a-zA-Z]:/.test(target) ||
-    /[\\/]/.test(target)
+    (hierarchical ? target.includes('\\') : /[\\/]/.test(target))
   ) {
-    problems.push(`change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`)
+    problems.push(
+      hierarchical
+        ? `change "${id}": add_model target must be a hierarchical model id (no "@", "&", "..", backslashes, or absolute path)`
+        : `change "${id}": add_model target must be a plain model id (no "@", "&", "..", path separators, or absolute path)`,
+    )
+  }
+  return problems
+}
+
+/**
+ * Structural problems of one `move_model` change, as human-readable messages naming
+ * the change id. `move_model` renames or relocates an instance model: it carries the
+ * old model id in `target` and the new one in `to`, and nothing else.
+ */
+export function moveModelProblems(change: ChangeItem): string[] {
+  if (change.op !== 'move_model') return []
+  const problems: string[] = []
+  const id = change.id
+  const bareModelId = (value: string): boolean =>
+    value.length > 0 &&
+    !value.includes('@') &&
+    !value.includes('&') &&
+    !value.includes('\\') &&
+    !value.includes('..') &&
+    !/^[a-zA-Z]:/.test(value) &&
+    value !== '.'
+  // `/` is legal: an instance id is hierarchical.
+  const target = String(change.target ?? '').trim()
+  if (!target || !bareModelId(target) || target.startsWith('/')) {
+    problems.push(`change "${id}": move_model target must be the old instance model id`)
+  }
+  const to = String(change.to ?? '').trim()
+  if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`)
+  else if (!bareModelId(to) || to.startsWith('/')) {
+    problems.push(`change "${id}": move_model "to" must be the new instance model id`)
+  }
+  return problems
+}
+
+/**
+ * Structural problems of one `extract_instance` change (design A11), as
+ * human-readable messages naming the change id. `extract_instance` migrates a
+ * compact element into its own distributed model: `target` is the source address
+ * (`<compact-id>@<slug>`), `to` is the instance id it becomes, and the change
+ * carries the destination bluepriNNt (`blueprint_name` / `blueprint_url`) and
+ * nothing else — the element payload already lives in the source.
+ */
+export function extractInstanceProblems(change: ChangeItem): string[] {
+  if (change.op !== 'extract_instance') return []
+  const problems: string[] = []
+  const id = change.id
+  for (const key of ['from', 'base_hash'] as const) {
+    if (change[key] !== undefined) {
+      problems.push(`change "${id}": extract_instance must not carry "${key}"`)
+    }
+  }
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`)
+  }
+  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`)
+  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`)
+  const target = String(change.target ?? '').trim()
+  const at = target.indexOf('@')
+  const modelPart = at === -1 ? target : target.slice(0, at)
+  const elementPart = at === -1 ? '' : target.slice(at + 1)
+  const unsafe = (value: string): boolean =>
+    value.includes('&') ||
+    value.includes('\\') ||
+    value.includes('..') ||
+    /^[a-zA-Z]:/.test(value) ||
+    value.startsWith('/')
+  if (!modelPart || !elementPart || unsafe(modelPart) || unsafe(elementPart)) {
+    problems.push(
+      `change "${id}": extract_instance target must be the source element address (<compact-id>@<slug>)`,
+    )
+  }
+  const to = String(change.to ?? '').trim()
+  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
+  else if (!to.includes('/') || unsafe(to)) {
+    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`)
   }
   return problems
 }

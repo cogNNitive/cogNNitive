@@ -110,6 +110,85 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
     expect(result.stale).toBe(false)
   })
 
+  it('keys staleness by model id: the same slug in another instance does not stale (distributed-storage S6c)', async () => {
+    await makeAppliedChangeset(
+      '2026-10-01-01-delete-intro_changes_NN.md',
+      'villabotijos-today/intro',
+      'V_0-1-1',
+      'V_0-1-2',
+      [
+        {
+          id: 'c1',
+          op: 'remove_element',
+          target: 'villabotijos-today/intro@00-gancho',
+          status: 'applied',
+        },
+      ],
+    )
+
+    expect((await checkStaleTarget(tmpDir, 'innteresante/intro', '00-gancho', 'V_0-1-0')).stale).toBe(false)
+    expect((await checkStaleTarget(tmpDir, 'villabotijos-today/intro', '00-gancho', 'V_0-1-0')).stale).toBe(true)
+  })
+
+  it('follows the identity chain: a removal under the old id stales a change on the new id', async () => {
+    await makeAppliedChangeset(
+      '2026-10-01-01-delete-intro_changes_NN.md',
+      'innteresante/intro',
+      'V_0-1-1',
+      'V_0-1-2',
+      [
+        {
+          id: 'c1',
+          op: 'remove_element',
+          target: 'innteresante/intro@00-gancho',
+          status: 'applied',
+        },
+      ],
+    )
+    await makeAppliedChangeset(
+      '2026-10-01-02-rename_changes_NN.md',
+      'innteresante/intro',
+      'V_0-1-2',
+      'V_0-1-3',
+      [
+        {
+          id: 'c2',
+          op: 'move_model',
+          target: 'innteresante/intro',
+          to: 'innteresante/welcome',
+          status: 'applied',
+        },
+      ],
+    )
+
+    expect((await checkStaleTarget(tmpDir, 'innteresante/welcome', '00-gancho', 'V_0-1-0')).stale).toBe(true)
+  })
+
+  it('a pending change authored against a renamed instance names the new id', async () => {
+    await makeAppliedChangeset(
+      '2026-10-01-01-rename_changes_NN.md',
+      'innteresante/intro',
+      'V_0-1-1',
+      'V_0-1-2',
+      [
+        {
+          id: 'c1',
+          op: 'move_model',
+          target: 'innteresante/intro',
+          to: 'innteresante/welcome',
+          status: 'applied',
+        },
+      ],
+    )
+
+    const result = await checkStaleTarget(tmpDir, 'innteresante/intro', '00-gancho', 'V_0-1-0')
+    expect(result.stale).toBe(true)
+    expect(result.code).toBe('STALE_TARGET_MOVED')
+    expect(result.message).toContain('innteresante/welcome')
+    // A different instance with the same slug is never dragged along.
+    expect((await checkStaleTarget(tmpDir, 'innteresante/pitch', '00-gancho', 'V_0-1-0')).stale).toBe(false)
+  })
+
   it('bounds scan to 50 changesets', async () => {
     // Generate 60 mock changesets; oldest one deletes cache
     await makeAppliedChangeset(

@@ -2,23 +2,11 @@ import type { ConceptField, KnowledgeNode } from '../types/index.js'
 import type { RecursiveParseResult } from '../recursiveParser/types.js'
 import type { WorkspaceIndex } from '../recursiveParser/workspaceIndex.js'
 import type { ReferenceDiagnostic } from './references.js'
-import { normalizeSeparators } from '../parser/slug.js'
-import { stripMdSuffix, basename } from '../recursiveParser/paths.js'
+import { isAddressError, parseAddress } from '../address/index.js'
+import { buildDomainIndex, type DomainIndex, type StorageDeclarationsResolver } from '../domain/index.js'
+import { normalizePathKey } from '../recursiveParser/paths.js'
+import { slugify } from '../parser/slug.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
-
-/**
- * `[[Model Title :: Element Name]]` — the ONLY cross-model reference form
- * (no `path#slug`, no bare `[[Element Name]]` across models). Only the
- * first `::` is treated as the title/element delimiter; everything after it
- * (including any further `::`) belongs to the element name.
- */
-export const QUALIFIED_REF_RE = /^\[\[\s*([^\]]+?)\s*::\s*([^\]]+?)\s*\]\]$/
-
-export interface QualifiedRef {
-  modelTitle: string
-  elementName: string
-  raw: string
-}
 
 /**
  * Thrown when a workspace-scope validator is called without a resolvable
@@ -54,9 +42,9 @@ export const MULTIVALUE_SYNTAX_CODE = 'MULTIVALUE_SYNTAX'
 /**
  * Splits one raw field value into its canonical multivalue tokens: a YAML
  * sequence already arrives as an array (one token per item); a scalar holds
- * one `[[Model Title :: Element Name]]` per line (newline-separated). Commas
- * NEVER split — `[[A :: x]], [[B :: y]]` is the observed footgun and fails
- * with `MULTIVALUE_SYNTAX` instead of resolving silently.
+ * one address per line (newline-separated). Commas NEVER split: an address
+ * list is written as the standard `[a, b]` field list, and a comma-joined
+ * scalar fails with `MULTIVALUE_SYNTAX` instead of resolving silently.
  */
 export function splitCanonicalMultivalue(value: string): string[] {
   return value
@@ -65,38 +53,13 @@ export function splitCanonicalMultivalue(value: string): string[] {
     .filter((token) => token.length > 0)
 }
 
-/** True when a scalar value comma-joins two `[[...]]` references on one line
- *  (e.g. `[[A :: x]], [[B :: y]]`) — the non-canonical multivalue form. */
+/** True when a scalar value joins several addresses with commas on one line (`@a, @b`). */
 export function isCommaJoinedMultivalue(value: string): boolean {
-  return /\]\]\s*,\s*\[\[/.test(value)
+  return value.includes(',') && !/^\s*\[[^\]]*\]\s*$/.test(value)
 }
 
-/**
- * Parses a single field value as a qualified cross-model reference.
- * Returns `null` for anything else (unqualified `[[Element]]`, positional
- * `path#slug` syntax, bare text, etc.) — those stay the per-file validator's
- * job (`references.ts`, AD-06).
- */
-export function parseQualifiedRef(value: string): QualifiedRef | null {
-  const match = QUALIFIED_REF_RE.exec(value.trim())
-  if (!match) return null
-  const [, modelTitle, elementName] = match
-  if (!modelTitle || !elementName) return null
-  return { modelTitle, elementName, raw: value }
-}
-
-/** A typed-field value that parsed as a qualified reference, with everything `checkOne` needs. */
-export interface QualifiedRefCandidate {
-  /** The document root that owns `element` (walked up from `element.parentId`). */
-  root: KnowledgeNode
-  /** The element node whose field held the qualified reference. */
-  element: KnowledgeNode
-  /** The element's owning concept name (`element.type`). */
-  concept: string
-  /** The template's field definition that declared this value `reference`/`model` typed. */
-  fieldDef: ConceptField
-  ref: QualifiedRef
-}
+/** Domain-relative POSIX path, case preserved (ids derive from file stems, so the case is identity). */
+const posixPath = (path: string): string => path.replace(/\\/g, '/').replace(/^\.\//, '')
 
 /** Walks `parentId` up from `node` until a `kind === 'root'` node is found. */
 function findRootAncestor(result: RecursiveParseResult, node: KnowledgeNode): KnowledgeNode | undefined {
@@ -110,7 +73,34 @@ function findRootAncestor(result: RecursiveParseResult, node: KnowledgeNode): Kn
   return current
 }
 
-/** A `reference`/`model` typed field value on an element node, with everything
+/**
+ * The domain index of a parsed workspace: one `DomainModelInput` per root
+ * node (domain-relative path, frontmatter, `(concept, slug)` of every element).
+ * Hosts that already hold a richer index (declared storage) pass their own.
+ */
+export function domainIndexOfResult(
+  result: RecursiveParseResult,
+  declarations: StorageDeclarationsResolver = () => new Map(),
+): DomainIndex {
+  const inputs = Object.values(result.nodes)
+    .filter((n) => n.kind === 'root' && n.source?.path)
+    .map((root) => {
+      const frontmatter: Record<string, unknown> = {}
+      for (const [key, fieldValue] of Object.entries(root.fields)) frontmatter[key] = fieldValue.value
+      const elements: Array<{ concept: string; slug: string }> = []
+      const stack = [...root.childIds]
+      while (stack.length > 0) {
+        const node = result.nodes[stack.pop()!]
+        if (!node || node.kind === 'root') continue
+        if (node.kind === 'element') elements.push({ concept: node.type, slug: node.slug ?? slugify(node.name) })
+        stack.push(...(node.childIds ?? []))
+      }
+      return { path: posixPath(root.source.path), frontmatter, elements }
+    })
+  return buildDomainIndex(inputs, declarations)
+}
+
+/** A `reference`/`knowledge` typed field value on an element node, with everything
  *  workspace-scope passes need: the owning document root, the element, its
  *  concept name, the template field definition, and the raw stored value. */
 interface TypedFieldValue {
@@ -122,10 +112,10 @@ interface TypedFieldValue {
 }
 
 /**
- * Iterates every `reference`/`model` typed field value on every element node
- * whose document root has a resolvable template schema — the shared traversal
- * for candidate collection and multivalue-syntax validation, so both passes
- * agree on which values are in scope.
+ * Iterates every `reference`/`knowledge` typed field value on every element node
+ * whose document root has a resolvable template schema - the shared traversal
+ * for address validation and multivalue-syntax validation, so both passes
+ * agree on which values are in scope. Prose and untyped fields are never scanned.
  */
 function* iterateTypedFieldValues(
   result: RecursiveParseResult,
@@ -158,33 +148,11 @@ function* iterateTypedFieldValues(
   }
 }
 
-/**
- * AD-07: re-scans the values `normalizeElementsIntoGraph` already
- * materialized on `KnowledgeNode.fields` — zero additional parses. Iterates
- * every element node, resolves its owning document root and the root's
- * stashed/resolved `BlueprintSchema` (`index.nodeSchema`), and collects every
- * `reference`/`model` typed field value that parses as a qualified
- * cross-model reference (typed fields only, v1 — prose and untyped fields
- * are never scanned).
- */
-export function collectQualifiedReferenceCandidates(
-  result: RecursiveParseResult,
-  index: WorkspaceIndex,
-): QualifiedRefCandidate[] {
-  const candidates: QualifiedRefCandidate[] = []
-
-  for (const { root, element, concept, fieldDef, raw } of iterateTypedFieldValues(result, index)) {
-    const values = Array.isArray(raw)
-      ? raw.flatMap((v) => splitCanonicalMultivalue(String(v)))
-      : splitCanonicalMultivalue(String(raw))
-    for (const v of values) {
-      const ref = parseQualifiedRef(String(v))
-      if (!ref) continue // unqualified => the per-file validator's job (AD-06)
-      candidates.push({ root, element, concept, fieldDef, ref })
-    }
-  }
-
-  return candidates
+/** The tokens of a stored value: one per YAML item, one per line of a scalar. */
+function tokensOf(raw: unknown): string[] {
+  return Array.isArray(raw)
+    ? raw.flatMap((v) => splitCanonicalMultivalue(String(v)))
+    : splitCanonicalMultivalue(String(raw))
 }
 
 /** Builds the `elements.<Concept>.<Element>.fields.<field>` diagnostic path, prefixed by the referring model's file path so a workspace-scope diagnostic is attributable to a file. */
@@ -192,171 +160,99 @@ function diagnosticPath(root: KnowledgeNode, concept: string, element: Knowledge
   return `${root.source.path}#elements.${concept}.${element.name}.fields.${fieldDef.name}`
 }
 
-/** Node id -> source file path, falling back to the id itself when the node can't be found. */
-function pathForNodeId(id: string, result: RecursiveParseResult): string {
-  return result.nodes[id]?.source?.path ?? id
-}
-
 /**
- * Resolution ladder (AD-05): `titleToNodeIds[t]` exact -> `fileNameToNodeIds[t]`
- * exact -> `titleToNodeIds[normalizeSeparators(t)]` -> `fileNameToNodeIds[normalizeSeparators(t)]`.
- * Stops at the first tier that produces any hit (whether 1 or many) — later
- * tiers are only tried when the current tier is completely empty.
+ * Checks one address token of a typed field: malformed or removed forms are
+ * errors (`[[Title :: Name]]`, `[[Name]]`, a bare title), a relative `@slug`
+ * is the per-file validator's job, and an absolute address must resolve
+ * exactly through the domain index. Concept and bluepriNNt membership only warn.
  */
-function resolveTargetModel(
-  modelTitle: string,
+function checkToken(
+  token: string,
+  ctx: TypedFieldValue,
   index: WorkspaceIndex,
-): { nodeIds: string[]; exact: boolean } {
-  const lower = modelTitle.trim().toLowerCase()
-  const normalized = normalizeSeparators(lower)
-
-  const exactTitle = index.titleToNodeIds[lower] ?? []
-  if (exactTitle.length > 0) return { nodeIds: exactTitle, exact: true }
-
-  const exactFile = index.fileNameToNodeIds[lower] ?? []
-  if (exactFile.length > 0) return { nodeIds: exactFile, exact: true }
-
-  const normalizedTitle = index.titleToNodeIds[normalized] ?? []
-  if (normalizedTitle.length > 0) return { nodeIds: normalizedTitle, exact: false }
-
-  const normalizedFile = index.fileNameToNodeIds[normalized] ?? []
-  return { nodeIds: normalizedFile, exact: false }
-}
-
-/**
- * When `index.missing` (paths referenced but never parsed, `ParseIssue` code
- * `MODEL_NOT_FOUND`) contains a path whose basename matches the unresolved
- * target, returns a hint sentence to append to the dangling-model error.
- */
-function missingFileHint(modelTitle: string, index: WorkspaceIndex): string {
-  const target = normalizeSeparators(modelTitle.trim().toLowerCase())
-  const hasMatch = index.missing.some((missingPath) => {
-    const base = normalizeSeparators(stripMdSuffix(basename(missingPath)).toLowerCase())
-    return base === target
-  })
-  return hasMatch ? ' (a reference to that file exists but the file was not found)' : ''
-}
-
-/**
- * Runs the four ordered checks for a single qualified reference: target
- * model exists, target element exists, concept membership, template
- * membership. Short-circuits after check 1 or 2 fails — checks 3 and 4 only
- * run once the target model and element both resolved.
- *
- * Severities are fixed by proposal decision 5: `error` for dangling
- * model/element and ambiguity; `warning` for concept mismatch, template
- * mismatch, and normalized-fallback matches.
- *
- * Duplicate-title errors are produced by `buildWorkspaceIndex` (PR4) and
- * surfaced by hosts from `index.issues`; this function never re-emits them —
- * it only reports *use-site* ambiguity (a specific reference resolving to
- * more than one model).
- */
-function checkOne(
-  root: KnowledgeNode,
-  element: KnowledgeNode,
-  concept: string,
-  fieldDef: ConceptField,
-  ref: QualifiedRef,
-  index: WorkspaceIndex,
-  result: RecursiveParseResult,
+  domain: DomainIndex,
+  successor?: (id: string) => string | undefined,
 ): ReferenceDiagnostic[] {
-  const diagnostics: ReferenceDiagnostic[] = []
+  const { root, element, concept, fieldDef } = ctx
   const path = diagnosticPath(root, concept, element, fieldDef)
+  const parsed = parseAddress(token)
 
-  // Check 1: target model exists.
-  const { nodeIds, exact } = resolveTargetModel(ref.modelTitle, index)
-
-  if (nodeIds.length === 0) {
-    diagnostics.push({
-      path,
-      message: `Dangling cross-model reference: model "${ref.modelTitle}" is not present in this workspace${missingFileHint(ref.modelTitle, index)}`,
-      severity: 'error',
-    })
-    return diagnostics
-  }
-
-  if (nodeIds.length > 1) {
-    const paths = nodeIds.map((id) => pathForNodeId(id, result))
-    diagnostics.push({
-      path,
-      message: `Ambiguous cross-model reference: model title "${ref.modelTitle}" matches ${nodeIds.length} models (${paths.join(', ')})`,
-      severity: 'error',
-    })
-    return diagnostics
-  }
-
-  const targetId = nodeIds[0]
-
-  if (!exact) {
-    diagnostics.push({
-      path,
-      message: `Cross-model reference "${ref.raw}" matched model "${pathForNodeId(targetId, result)}" only after separator normalization`,
-      severity: 'warning',
-    })
-  }
-
-  // Check 2: target element exists.
-  const elementConceptsForTarget = index.nodeElementConcepts[targetId] ?? {}
-  const elementKey = ref.elementName.trim().toLowerCase()
-  const normalizedElementKey = normalizeSeparators(elementKey)
-  const exactOwners = elementConceptsForTarget[elementKey]
-  const normalizedOwners = elementConceptsForTarget[normalizedElementKey]
-  const owningConcepts = exactOwners ?? normalizedOwners
-
-  if (!owningConcepts) {
-    diagnostics.push({
-      path,
-      message: `Dangling cross-model reference: element "${ref.elementName}" does not exist in model "${ref.modelTitle}"`,
-      severity: 'error',
-    })
-    return diagnostics
-  }
-
-  if (!exactOwners) {
-    diagnostics.push({
-      path,
-      message: `Cross-model reference "${ref.raw}" matched element "${ref.elementName}" in model "${ref.modelTitle}" only after separator normalization`,
-      severity: 'warning',
-    })
-  }
-
-  // Check 3: concept membership.
-  if (fieldDef.target_concepts && fieldDef.target_concepts.length > 0) {
-    const allowed = fieldDef.target_concepts.map((c) => c.toLowerCase())
-    const allowedMatch = owningConcepts.some((c) => allowed.includes(c.toLowerCase()))
-    if (!allowedMatch) {
-      diagnostics.push({
+  if (isAddressError(parsed)) {
+    // A `knowledge` field holds submodel file paths; those stay with the per-file resolver.
+    if (fieldDef.type === 'knowledge' && parsed.code === 'MODEL_CITED_BY_PATH') return []
+    return [
+      {
         path,
-        message: `Cross-model reference "${ref.raw}" in field "${fieldDef.name}" resolves to element "${ref.elementName}" in model "${ref.modelTitle}" but that element belongs to concept(s) "${owningConcepts.join(', ')}" which is not in target_concepts of the field`,
-        severity: 'warning',
-      })
-    }
+        message: `${parsed.code}: field "${fieldDef.name}" value "${token}" - ${parsed.message}`,
+        severity: 'error',
+        code: parsed.code,
+        promptHint: 'Write the target as an address: `<hierarchical-id>@<slug>` (or `@<slug>` inside the same model).',
+        meta: { field: fieldDef.name },
+      },
+    ]
+  }
+  if (parsed.kind === 'blueprint' || parsed.kind === 'source') {
+    if (fieldDef.type === 'knowledge') return []
+    return [
+      {
+        path,
+        message: `ADDRESS_MALFORMED: field "${fieldDef.name}" value "${token}" - not a model address; use \`<hierarchical-id>@<slug>\``,
+        severity: 'error',
+        code: 'ADDRESS_MALFORMED',
+        meta: { field: fieldDef.name },
+      },
+    ]
+  }
+  if (parsed.model === null) return [] // relative `@slug`: the per-file validator resolves it
+
+  const from = domain.byPath(posixPath(root.source.path))?.id
+  const resolved = domain.resolve(parsed, from, fieldDef.target_concepts ? { concepts: fieldDef.target_concepts } : undefined)
+  if (!resolved.ok) {
+    const where = `${root.source.path} (${concept} "${element.name}", field "${fieldDef.name}")`
+    // A stale address after a recorded move names the old id AND its recorded
+    // successor (design A11), so the fix is unambiguous and never guessed.
+    const moved = parsed.model !== null && resolved.problem.code === 'REF_MODEL_NOT_FOUND' ? successor?.(parsed.model) : undefined
+    const hint = moved ? ` (recorded successor: "${moved}" — retarget the reference to it)` : ''
+    return [
+      {
+        path,
+        message: `${resolved.problem.message}; referenced from ${where}${hint}`,
+        severity: 'error',
+        code: resolved.problem.code,
+        meta: { field: fieldDef.name, ...(moved ? { successor: moved } : {}) },
+      },
+    ]
   }
 
-  // Check 4: template membership.
+  const diagnostics: ReferenceDiagnostic[] = resolved.warnings.map((w) => ({
+    path,
+    message: w.message,
+    severity: 'warning' as const,
+    code: w.code,
+    meta: { field: fieldDef.name },
+  }))
   if (fieldDef.target_blueprint) {
-    const actualBlueprint = index.nodeBlueprint[targetId]
-    const matches = actualBlueprint ? matchesTargetBlueprint(fieldDef.target_blueprint, actualBlueprint) : false
-    if (!matches) {
-      const actualLabel = actualBlueprint?.name ?? actualBlueprint?.url ?? 'unknown'
+    const targetNodeId = index.pathToNodeId[normalizePathKey(resolved.model.path)]
+    const actual = targetNodeId ? index.nodeBlueprint[targetNodeId] : undefined
+    if (!actual || !matchesTargetBlueprint(fieldDef.target_blueprint, actual)) {
       diagnostics.push({
         path,
-        message: `Cross-model reference "${ref.raw}" in field "${fieldDef.name}" expects template "${fieldDef.target_blueprint}", but model "${ref.modelTitle}" uses template "${actualLabel}"`,
+        message: `REF_BLUEPRINT_MISMATCH: ${token} - field "${fieldDef.name}" expects bluepriNNt "${fieldDef.target_blueprint}", but model "${resolved.model.id}" uses "${actual?.name ?? actual?.url ?? 'unknown'}"; point it at a model of that bluepriNNt`,
         severity: 'warning',
+        code: 'REF_BLUEPRINT_MISMATCH',
+        meta: { field: fieldDef.name },
       })
     }
   }
-
   return diagnostics
 }
 
 /**
- * Reports one `MULTIVALUE_SYNTAX` error per reference/`model` typed field
- * value that comma-joins qualified references (`[[A :: x]], [[B :: y]]`).
- * The hint migrates to the canonical form with the actual values, one per
- * line. Runs before resolution: a non-canonical value never resolves, so no
- * dangling/ambiguity noise is emitted alongside the syntax error.
+ * Reports one `MULTIVALUE_SYNTAX` error per reference typed field value that
+ * joins several addresses with commas outside the standard `[a, b]` list. The
+ * hint shows the canonical form with the actual values, one per line. Runs
+ * before resolution: a non-canonical value never resolves, so no dangling
+ * noise is emitted alongside the syntax error.
  */
 export function validateMultivalueSyntax(
   result: RecursiveParseResult,
@@ -369,15 +265,16 @@ export function validateMultivalueSyntax(
     for (const scalar of scalars) {
       if (!isCommaJoinedMultivalue(scalar)) continue
       const tokens = scalar
-        .split(/\s*,\s*(?=\[\[)/)
+        .replace(/^\s*\[|\]\s*$/g, '')
+        .split(/\s*,\s*/)
         .map((token) => token.trim())
         .filter((token) => token.length > 0)
       diagnostics.push({
         path: diagnosticPath(root, concept, element, fieldDef),
-        message: `Non-canonical multivalue reference syntax in field "${fieldDef.name}": comma-joined values are not resolved; use a YAML sequence or one [[Model Title :: Element Name]] per line`,
+        message: `Non-canonical multivalue reference syntax in field "${fieldDef.name}": comma-joined values are not resolved; use a YAML sequence or one address per line`,
         severity: 'error',
         code: MULTIVALUE_SYNTAX_CODE,
-        promptHint: `Replace the comma-joined value with one reference per line or a YAML sequence, e.g.:\n${tokens.join('\n')}`,
+        promptHint: `Replace the comma-joined value with one address per line or a YAML sequence, e.g.:\n${tokens.join('\n')}`,
         meta: { field: fieldDef.name, tokenCount: tokens.length },
       })
     }
@@ -387,30 +284,28 @@ export function validateMultivalueSyntax(
 }
 
 /**
- * Validates every qualified cross-model reference (`[[Model Title ::
- * Element Name]]`) found in `reference`/`model` typed element fields across
- * the whole parsed workspace. Must run after the host's own
- * `recursiveParse()` and `buildWorkspaceIndex()` — never in place of
- * per-file `validateDocument`/`validateKnowledge`, which deliberately bypasses
- * the qualified form (AD-06).
+ * Validates every address held by `reference`/`knowledge` typed element
+ * fields across the whole parsed workspace through the domain index (built
+ * from `result` unless the host passes its own). Must run after the host's own
+ * `recursiveParse()` and `buildWorkspaceIndex()`; per-file validation keeps
+ * the relative `@slug` form.
  */
 export function validateWorkspaceReferences(
   result: RecursiveParseResult,
   index: WorkspaceIndex,
+  domain: DomainIndex = domainIndexOfResult(result),
+  /**
+   * The recorded successor of a moved model id (`ChangeLog.successorOf`). Hosts
+   * that hold the change log pass it so a stale address names where the instance
+   * went; without it the error still names the old id (design A11).
+   */
+  successor?: (id: string) => string | undefined,
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = [...validateMultivalueSyntax(result, index)]
-  for (const candidate of collectQualifiedReferenceCandidates(result, index)) {
-    diagnostics.push(
-      ...checkOne(
-        candidate.root,
-        candidate.element,
-        candidate.concept,
-        candidate.fieldDef,
-        candidate.ref,
-        index,
-        result,
-      ),
-    )
+  for (const value of iterateTypedFieldValues(result, index)) {
+    const scalars = Array.isArray(value.raw) ? value.raw.map(String) : [String(value.raw)]
+    if (scalars.some(isCommaJoinedMultivalue)) continue // reported once as MULTIVALUE_SYNTAX
+    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor))
   }
   return diagnostics
 }

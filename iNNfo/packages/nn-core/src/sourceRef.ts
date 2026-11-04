@@ -14,6 +14,8 @@ import { nfc, stripCombiningMarks } from './parser/slug.js'
 import { assertNever } from './assertNever.js'
 import { isJsonPointer } from './jsonPointer.js'
 import { roleOf } from './naming/index.js'
+import { isAddressError, parseAddress } from './address/index.js'
+import type { AddressError } from './address/index.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -74,12 +76,41 @@ export type Citation = SourceRef & { legacyHash?: true }
 
 export const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
+export type CitationResult = { ok: true; citation: Citation } | { ok: false; error: AddressError }
+
+export type UnitPathResult =
+  | { ok: true; value: { filePath: string; kind: 'source' | 'model' } }
+  | { ok: false; error: AddressError }
+
+/** Folders that no longer exist; a path under one gets no special meaning and dangles in the validator. */
+const RETIRED_PREFIX_RE = /^(?:sources\/(?:nn|original|export)|export|models)\//
+const SOURCE_FILE_RE = /\.(md|csv|json)$/i
+/** `sources/` holds raw files only: an extensionless path under it is never a model id. */
+const RAW_AREA_RE = /^sources\//
+const REMOVED_PATH_FORMS = new Set(['MODEL_CITED_BY_PATH', 'NN_DOCUMENT_CITED_BY_HEADING'])
+
+function malformedCitation(raw: string): AddressError {
+  return {
+    kind: 'error',
+    code: 'ADDRESS_MALFORMED',
+    segment: raw,
+    message: `Malformed citation \`${raw}\`; use \`<path>@<unit>\` for a raw file or \`<hierarchical-id>@<slug>\` for a kNNowledge unit.`,
+  }
+}
+
 /**
- * A model id: the `<stem>` of `kNNowledge/<stem>_NN.md`. Stems keep their case
- * and may contain underscores and hyphens (`cognnitive_repository`,
- * `Client_business`); they never contain dots, spaces or separators.
+ * The removed-form error when `pathAndUnit` cites a kNNowledge or changeset document by
+ * file path (or a changeset by heading); null for every other value, including paths under
+ * a retired folder.
  */
-const MODEL_ID = '[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*'
+function removedPathForm(pathAndUnit: string): AddressError | null {
+  const at = pathAndUnit.indexOf('@')
+  const pathOnly = at === -1 ? pathAndUnit : pathAndUnit.slice(0, at)
+  const forward = pathOnly.split(/[/\\]/).join('/')
+  if (!SOURCE_FILE_RE.test(forward) || RETIRED_PREFIX_RE.test(forward)) return null
+  const classified = parseAddress(at === -1 ? forward : forward + pathAndUnit.slice(at))
+  return isAddressError(classified) && REMOVED_PATH_FORMS.has(classified.code) ? classified : null
+}
 
 /**
  * Parse a single field value as a source reference.
@@ -144,6 +175,17 @@ export function parseCitation(input: string): Citation | null {
     kind: resolved.kind,
     raw: clean,
   }
+}
+
+/**
+ * `parseCitation` with the reason for a failure. A model file path and a changeset
+ * heading are named as removed forms; any other failure is a generic malformed citation.
+ */
+export function parseCitationResult(input: string): CitationResult {
+  const citation = parseCitation(input)
+  if (citation) return { ok: true, citation }
+  const raw = typeof input === 'string' ? input.trim() : ''
+  return { ok: false, error: removedPathForm(raw) ?? malformedCitation(raw) }
 }
 
 function basename(p: string): string {
@@ -441,25 +483,81 @@ export function normalizeName(name: string): string {
     .replace(/[^a-z0-9_\-\p{L}\p{N}]+/gu, '')
 }
 
+/**
+ * Resolve the path part of a citation, with the reason for a failure. A bare hierarchical
+ * model id resolves as a model; a raw-file path (`.md`, `.csv`, `.json`) resolves as a
+ * source, with or without a trailing `@<unit>`. A kNNowledge or changeset `_NN.md` path
+ * does not resolve and the error names the unified grammar.
+ */
+export function resolveUnitPathResult(rawPath: string): UnitPathResult {
+  const trimmed = rawPath.trim()
+  const fail = (): UnitPathResult => ({ ok: false, error: malformedCitation(trimmed) })
+  const at = trimmed.indexOf('@')
+  const pathOnly = at === -1 ? trimmed : trimmed.slice(0, at)
+  if (!pathOnly || /^https?:\/\//i.test(pathOnly)) return fail()
+  const segments = pathOnly.split(/[/\\]/)
+  if (segments.some((s) => s === '..')) return fail()
+  const forward = segments.join('/')
+  if (!SOURCE_FILE_RE.test(forward)) {
+    if (RAW_AREA_RE.test(forward)) return fail()
+    const address = parseAddress(pathOnly)
+    if (isAddressError(address)) return { ok: false, error: address }
+    return address.kind === 'model' ? { ok: true, value: { filePath: pathOnly, kind: 'model' } } : fail()
+  }
+  if (/^[a-zA-Z]:[/\\]/.test(pathOnly) || pathOnly.startsWith('/')) return fail()
+  const removed = removedPathForm(trimmed)
+  if (removed) return { ok: false, error: removed }
+  return {
+    ok: true,
+    value: { filePath: forward, kind: roleOf({ path: forward }) === 'knowledge' ? 'model' : 'source' },
+  }
+}
+
 export function resolveUnitPath(
   rawPath: string,
 ): { filePath: string; kind: 'source' | 'model' } | null {
-  const trimmed = rawPath.trim()
-  if (!trimmed || /^https?:\/\//i.test(trimmed)) return null
-  const segments = trimmed.split(/[/\\]/)
-  if (segments.some((s) => s === '..')) return null
-  const forward = segments.join('/')
-  const isMd = /\.md$/i.test(forward)
-  const isCsv = /\.csv$/i.test(forward)
-  const isJson = /\.json$/i.test(forward)
-  if (!isMd && !isCsv && !isJson) {
-    if (new RegExp(`^${MODEL_ID}$`).test(trimmed)) {
-      return { filePath: trimmed, kind: 'model' }
+  const result = resolveUnitPathResult(rawPath)
+  return result.ok ? result.value : null
+}
+
+/** A `<hierarchical-id>@<unit>` citation of a kNNowledge unit, mapped onto the SourceRef unit kinds. */
+function parseModelUnitRef(raw: string): SourceRef | null {
+  if (RAW_AREA_RE.test(raw)) return null
+  const address = parseAddress(raw)
+  if (isAddressError(address) || address.kind !== 'unit' || address.model === null) return null
+  const { model, unit } = address
+  const base = { filePath: model, fileName: basename(model), kind: 'model' as const, raw }
+  switch (unit.kind) {
+    case 'element':
+      return {
+        ...base,
+        slug: unit.slug,
+        unit: { kind: 'element', slug: unit.slug },
+        subunits: unit.field === undefined ? [] : [unit.field],
+      }
+    case 'body':
+      return { ...base, slug: unit.slug, unit: { kind: 'element', slug: unit.slug }, subunits: ['#body'] }
+    case 'cell':
+      return {
+        ...base,
+        slug: unit.matrix,
+        unit: { kind: 'matrix', matrixSlug: unit.matrix, rowSlug: unit.row, colSlug: unit.col },
+        subunits: [unit.row, unit.col],
+      }
+    case 'matrix':
+      return { ...base, slug: unit.matrix, unit: { kind: 'matrix', matrixSlug: unit.matrix }, subunits: [] }
+    case 'concept': {
+      const slug = slugifyHeading(unit.concept)
+      return {
+        ...base,
+        slug,
+        unit: { kind: 'header', level: 1, text: slug, slug },
+        subunits: unit.field === undefined ? [] : [unit.field],
+      }
     }
-    return null
+    default:
+      return assertNever(unit, 'address unit kind')
   }
-  if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
-  return { filePath: forward, kind: roleOf({ path: forward }) === 'knowledge' ? 'model' : 'source' }
 }
 
 function decodeSegment(segment: string): string | null {
@@ -508,6 +606,8 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
   const clean = input.trim()
   const at = clean.indexOf('@')
   if (at === -1) return null
+  // No file extension: a kNNowledge unit, parsed by the unified address grammar.
+  if (!SOURCE_FILE_RE.test(clean.slice(0, at))) return parseModelUnitRef(clean)
   const resolved = resolveUnitPath(clean.slice(0, at))
   if (!resolved) return null
   if (/\.json$/i.test(resolved.filePath)) return parsePointerRef(resolved, clean.slice(at + 1), clean)
@@ -520,76 +620,6 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
     decoded.push(text.trim())
   }
   const [unitRaw, ...subunits] = decoded
-  if (!/\.(md|csv|json)$/i.test(resolved.filePath)) {
-    if (unitRaw.startsWith('concept:')) {
-      const slug = unitRaw.slice('concept:'.length)
-      if (!new RegExp(`^${SLUG}$`).test(slug)) return null
-      const unit: HeaderUnit = {
-        kind: 'header',
-        level: 1,
-        text: slug,
-        slug,
-      }
-      return {
-        filePath: resolved.filePath,
-        fileName: basename(resolved.filePath),
-        slug,
-        kind: 'model',
-        unit,
-        subunits,
-        raw: clean,
-      }
-    }
-    if (unitRaw.startsWith('matrix:')) {
-      const slug = unitRaw.slice('matrix:'.length)
-      if (!new RegExp(`^${SLUG}$`).test(slug)) return null
-      const unit: MatrixUnit = {
-        kind: 'matrix',
-        matrixSlug: slug,
-        ...(subunits.length === 2 ? { rowSlug: subunits[0], colSlug: subunits[1] } : {}),
-      }
-      return {
-        filePath: resolved.filePath,
-        fileName: basename(resolved.filePath),
-        slug,
-        kind: 'model',
-        unit,
-        subunits,
-        raw: clean,
-      }
-    }
-    if (!new RegExp(`^${SLUG}$`).test(unitRaw)) return null
-    if (subunits.length === 2) {
-      const unit: MatrixUnit = {
-        kind: 'matrix',
-        matrixSlug: unitRaw,
-        rowSlug: subunits[0],
-        colSlug: subunits[1],
-      }
-      return {
-        filePath: resolved.filePath,
-        fileName: basename(resolved.filePath),
-        slug: unitRaw,
-        kind: 'model',
-        unit,
-        subunits,
-        raw: clean,
-      }
-    }
-    const unit: ElementUnit = {
-      kind: 'element',
-      slug: unitRaw,
-    }
-    return {
-      filePath: resolved.filePath,
-      fileName: basename(resolved.filePath),
-      slug: unitRaw,
-      kind: 'model',
-      unit,
-      subunits,
-      raw: clean,
-    }
-  }
   const isCsv = /\.csv$/i.test(resolved.filePath)
   if (isCsv) {
     if (resolved.kind === 'model') return null

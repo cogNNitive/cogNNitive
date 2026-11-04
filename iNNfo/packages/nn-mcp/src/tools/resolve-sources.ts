@@ -24,7 +24,7 @@ import type {
   ResolvedCitation,
 } from '@cognnitive/nn-core'
 import { readKnowledge } from './list-read.js'
-import { findKnowledgeFile, resolveBlueprintWithCache, AmbiguousModelIdError } from './spec.js'
+import { findKnowledgeFile, resolveBlueprintWithCache, ModelIdError } from './spec.js'
 import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 
 export {
@@ -52,7 +52,7 @@ export async function resolveSources(
   try {
     modelPath = await findKnowledgeFile(rootDir, input.model)
   } catch (err) {
-    if (err instanceof AmbiguousModelIdError) {
+    if (err instanceof ModelIdError) {
       return [
         {
           path: input.model,

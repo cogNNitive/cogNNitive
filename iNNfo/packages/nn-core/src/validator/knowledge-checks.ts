@@ -328,6 +328,37 @@ export function checkSchemaConformance(
   }
 }
 
+/** First L1 that reserves `sources::` and scopes `citation` to `changes.evidence`. */
+const PROVENANCE_BAN_FLOOR = 'V_0-6-0'
+
+function versionParts(token: string): [number, number, number] | undefined {
+  const m = /^V_(\d+)-(\d+)-(\d+)$/i.exec(token)
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : undefined
+}
+
+/**
+ * True when `scope` names an L1 (`iNNfo_V_x-y-z`) at or after `floor`. The
+ * comparison is numeric per component (`V_0-10-0` is later than `V_0-6-0`), and
+ * only L1 tokens count: a bluepriNNt version such as `business_V_0-9-0` is not
+ * an L1 pin.
+ */
+export function l1AtLeast(scope: string, floor: string): boolean {
+  const min = versionParts(floor)
+  if (!min) return false
+  for (const m of scope.matchAll(/iNNfo_(V_\d+-\d+-\d+)/gi)) {
+    const v = versionParts(m[1])
+    if (!v) continue
+    for (let i = 0; i < 3; i++) {
+      if (v[i] !== min[i]) {
+        if (v[i] > min[i]) return true
+        break
+      }
+      if (i === 2) return true
+    }
+  }
+  return false
+}
+
 /**
  * Provenance ban on L3 (change-provenance A13): a kNNowledge document declares
  * no citation syntax of its own.
@@ -342,8 +373,9 @@ export function checkSchemaConformance(
  *
  * L2 templates are exempt: they DEFINE the `citation` type. The ban is scoped by
  * L1 version: it fires only for a document whose bluepriNNt (or whose own
- * `parent_spec`) pins V_0-6-0, the L1 that reserves `sources::` and scopes
- * `citation` to `changes.evidence`. A document pinned to an older L1 stays valid
+ * `parent_spec`) pins an L1 at or after V_0-6-0, the L1 that reserves `sources::`
+ * and scopes `citation` to `changes.evidence` (`l1AtLeast`, numeric comparison,
+ * so a repin to a later L1 cannot disable it). A document pinned to an older L1 stays valid
  * under that L1 — the bluepriNNts that adopt V_0-6-0 are the ones this change
  * repins (`changes`, `sidecar`, `visual-catalog`, A14).
  */
@@ -358,7 +390,7 @@ export function checkProvenanceBan(
   const parentName = String(parent.name ?? '')
   const parentUrl = String(parent.url ?? '')
   const scope = `${l1Version ?? ''} ${parentName} ${parentUrl}`
-  if (!/V_0-6-0/i.test(scope)) return
+  if (!l1AtLeast(scope, PROVENANCE_BAN_FLOOR)) return
   const isChangesDocument = parentName.trim().toLowerCase().startsWith('changes')
 
   for (const [concept, elements] of model.elements.entries()) {

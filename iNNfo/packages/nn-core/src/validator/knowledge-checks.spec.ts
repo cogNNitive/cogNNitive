@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { Diagnostics } from '../diagnostics.js'
 import { ElementsMap, type ParsedKnowledge } from '../types/index.js'
-import { checkFrontmatterInvariants, checkBlueprintDocumentation } from './knowledge-checks.js'
+import {
+  checkFrontmatterInvariants,
+  checkBlueprintDocumentation,
+  checkProvenanceBan,
+} from './knowledge-checks.js'
 
 function frontmatterModel(fm: Record<string, unknown>): ParsedKnowledge {
   return {
@@ -173,5 +177,57 @@ describe('diagnostic-signal-quality (H8) — aggregate template documentation wa
 
     expect(d.warnings).toHaveLength(0)
     expect(d.valid).toBe(true)
+  })
+})
+
+describe('checkProvenanceBan - L1 version gate (distributed-storage A17)', () => {
+  function modelWithSources(): ParsedKnowledge {
+    const model = frontmatterModel({
+      level: 3,
+      parent_spec: { name: 'business_V_0-2-0', url: 'https://example.com/business_NN.md' },
+      knowledge_version: 'V_0-1-0',
+    })
+    model.elements.set('Goal', [
+      {
+        name: 'Reach the market',
+        description: '',
+        fields: { sources: 'sources/import/a.md' },
+        markers: {},
+      },
+    ])
+    return model
+  }
+
+  const codesFor = (l1Version: string): string[] => {
+    const d = new Diagnostics()
+    checkProvenanceBan(modelWithSources(), undefined, d, l1Version)
+    return d.errors.map((e) => e.code ?? '')
+  }
+
+  it('bans sources:: when the pinned L1 is exactly V_0-6-0', () => {
+    expect(codesFor('iNNfo_V_0-6-0')).toContain('SOURCES_FIELD_BANNED')
+  })
+
+  it('still bans sources:: when the pinned L1 is the later V_0-7-0', () => {
+    expect(codesFor('iNNfo_V_0-7-0')).toContain('SOURCES_FIELD_BANNED')
+  })
+
+  it('compares versions numerically: V_0-10-0 is later than V_0-6-0', () => {
+    expect(codesFor('iNNfo_V_0-10-0')).toContain('SOURCES_FIELD_BANNED')
+  })
+
+  it('does not ban sources:: under an older L1 such as V_0-5-9', () => {
+    expect(codesFor('iNNfo_V_0-5-9')).toEqual([])
+  })
+
+  it('does not treat a bluepriNNt version as the L1 version', () => {
+    const d = new Diagnostics()
+    const model = modelWithSources()
+    model.frontmatter = {
+      ...model.frontmatter!,
+      parent_spec: { name: 'business_V_0-9-0', url: 'https://example.com/business_V_0-9-0_NN.md' },
+    }
+    checkProvenanceBan(model, undefined, d, 'iNNfo_V_0-5-0')
+    expect(d.errors).toEqual([])
   })
 })

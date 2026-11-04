@@ -418,10 +418,12 @@ describe('identity collision throws error (R-IE-02)', () => {
       '',
       '# NN Work',
       '## NN Work: Review',
+      'slug:: work-review',
       '  First.',
       '',
       '# NN Steps',
       '## NN Steps: Review',
+      'slug:: steps-review',
       '  Second — same name across concepts.',
       '',
     ].join('\n')
@@ -456,10 +458,12 @@ describe('identity collision throws error (R-IE-02)', () => {
       '',
       '# NN Work',
       '## NN Work: Review',
+      'slug:: work-review',
       '  First review.',
       '',
       '# NN Steps',
       '## NN Steps: Review',
+      'slug:: steps-review',
       '  Colliding review.',
       '',
     ].join('\n')
@@ -1091,23 +1095,23 @@ target_concepts:: [${targetConcepts.join(', ')}]`
   }
 
   it('passes when a reference field value resolves to an existing element', () => {
-    const result = validateKnowledge(buildModel('Jardín Exterior', true), buildTemplate() as any, null)
+    const result = validateKnowledge(buildModel('@jardin-exterior', true), buildTemplate() as any, null)
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
 
   it('rejects a dangling reference field value (location:: Jardín Exterior)', () => {
-    const result = validateKnowledge(buildModel('Jardín Exterior', false), buildTemplate() as any, null)
+    const result = validateKnowledge(buildModel('@jardin-exterior', false), buildTemplate() as any, null)
     expect(result.valid).toBe(false)
-    const err = result.errors.find((e) => e.message.includes('does not match any element name'))
+    const err = result.errors.find((e) => e.message.includes('has no element with that slug'))
     expect(err).toBeDefined()
     expect(err!.path).toBe('elements.Work.Patio.fields.location')
     expect(err!.message).toContain('"location"')
-    expect(err!.message).toContain('Jardín Exterior')
+    expect(err!.message).toContain('@jardin-exterior')
   })
 
   it('passes when the resolved element belongs to an allowed target_concept', () => {
-    const model = buildModel('Jardín Exterior', true)
+    const model = buildModel('@jardin-exterior', true)
     const result = validateKnowledge(model, buildTemplate(['Gardens']) as any, null)
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
@@ -1132,7 +1136,7 @@ target_concepts:: [${targetConcepts.join(', ')}]`
         '',
         '# NN Work',
         '## NN Work: Patio',
-        'location:: Workspace',
+        'location:: @workspace',
         '  A patio.',
         '## NN Work: Workspace',
         '  A work space.',
@@ -2133,7 +2137,7 @@ describe('implicit and explicit reference validation (P1)', () => {
         '# NN Items',
         '## NN Items: Sombrilla',
         '## NN Items: Mesa de jardín',
-        'custom_ref:: Mesa de jardín',
+        'custom_ref:: @mesa-de-jardin',
         '',
       ].join('\n'),
     )

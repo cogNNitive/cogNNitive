@@ -458,18 +458,43 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
 
       // The parser MUST NOT tell the user to rename the element — shared
       // identity across models is the intended shape of a multi-model
-      // workspace, and `[[Model Title :: Element Name]]` already
-      // disambiguates it (AD-7 / shipped-sample-workspace R6).
+      // workspace, and the address `<model-id>@<slug>` disambiguates it
+      // (AD-7 / shipped-sample-workspace R6).
       const renameAdvice = result.issues.filter(
         (i) => i.message.includes('appears in both') && i.message.includes('consider renaming'),
       )
       expect(renameAdvice).toHaveLength(0)
 
-      // It MAY record an info-level note naming the qualified-reference form.
+      // It MAY record an info-level note naming the address form.
       const infoNotes = result.issues.filter((i) => i.severity === 'info' && i.message.includes('Database'))
       for (const note of infoNotes) {
-        expect(note.message).toContain('::')
+        expect(note.message).toContain('<model-id>@<slug>')
       }
+    })
+
+    it('the same slug in two models is not a duplicate: node ids are scoped by the model', async () => {
+      const body = (text: string) => `
+# NN index
+
+* [[Database]]
+
+# NN Components
+
+## NN Components: Database
+  ${text}
+`
+      const root = fakeDir('workspace', [
+        ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['modelA_NN.md', 'modelB_NN.md']))],
+        ['modelA_NN.md', fakeFile('modelA_NN.md', makeModel('Model A', body('A')))],
+        ['modelB_NN.md', fakeFile('modelB_NN.md', makeModel('Model B', body('B')))],
+      ])
+
+      const result = await recursiveParse(root)
+      const databases = Object.values(result.nodes).filter((n) => n.kind === 'element' && n.name === 'Database')
+      expect(databases).toHaveLength(2)
+      expect(new Set(databases.map((n) => n.id)).size).toBe(2)
+      for (const node of databases) expect(node.id).toMatch(/^model[AB]@database$/)
+      expect(result.issues.filter((i) => i.severity === 'error')).toEqual([])
     })
 
     it('still flags a sibling name collision within a single concept (intra-concept collisions keep their severity)', async () => {

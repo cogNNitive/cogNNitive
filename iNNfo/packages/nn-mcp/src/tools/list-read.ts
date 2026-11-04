@@ -8,8 +8,8 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { listKnowledge as coreListModels, parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
+import { parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
+import { buildNodeDomainIndex } from './domain-index.js'
 import type { KnowledgeInfo, ParsedKnowledge } from '@cognnitive/nn-core'
 
 /**
@@ -58,43 +58,77 @@ export function normalizeId(id: string): string {
   return normalized
 }
 
+/** One row of `list_knowledge`: the model identity plus what a domaiNN-wide reader needs. */
+export interface ListedKnowledgeInfo extends KnowledgeInfo {
+  /** Pinned bluepriNNt name, or undefined for a model with no `parent_spec`. */
+  blueprint?: string
+  /** How the concept is stored; `instance` names the root concept. */
+  storage?: { kind: 'compact' } | { kind: 'instance'; concept: string }
+  /** Set when the layout pass flags this model: today only a placement mismatch. */
+  placement?: 'PLACEMENT_MISMATCH'
+}
+
+export interface ListKnowledgeOptions {
+  /**
+   * Return the members of one concept's collection instead of every model
+   * (design A12: a collection spans storage forms). Sorted by id.
+   */
+  collection?: string
+}
+
 /**
- * Scan a directory for iNNfo knowledge documents.
+ * Scan a directory for iNNfo knowledge documents. Ids come from the domain
+ * index: hierarchical, never a path, unchanged when a same-stem file is added
+ * elsewhere. A model with no id (unaddressable) is not listed.
  */
-export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
-  const rootModels = await coreListModels(rootDir)
-  const candidateDirs = [join(rootDir, 'kNNowledge')]
-  for (const dir of candidateDirs) {
-    try {
-      const { stat } = await import('node:fs/promises')
-      const st = await stat(dir)
-      if (st.isDirectory()) {
-        const subModels = await coreListModels(dir)
-        for (const m of subModels) {
-          if (!rootModels.some((rm) => rm.path === m.path)) {
-            rootModels.push(m)
-          }
-        }
-      }
-    } catch (err) {
-      /* v8 ignore start */
-      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        console.warn(`[list-read] Failed to scan dir ${dir}: ${err}`)
-      }
-      /* v8 ignore stop */
-    }
+export async function listKnowledge(
+  rootDir: string,
+  options: ListKnowledgeOptions = {},
+): Promise<ListedKnowledgeInfo[]> {
+  const { index, discovered } = await buildNodeDomainIndex(rootDir)
+  const byRel = new Map(discovered.map((d) => [d.input.path, d]))
+
+  // A misplaced instance is still discoverable (discovery is path-agnostic);
+  // it is listed and flagged rather than hidden.
+  const misplaced = new Set(
+    index.diagnostics
+      .filter((d) => d.code === 'PLACEMENT_MISMATCH')
+      .flatMap((d) => d.paths),
+  )
+
+  const wanted =
+    options.collection === undefined
+      ? index.models
+      : index.collection(options.collection).map((member) => index.byPath(member.path)).filter(
+          (model): model is NonNullable<typeof model> => model !== undefined,
+        )
+
+  const models: ListedKnowledgeInfo[] = []
+  for (const m of wanted) {
+    const found = byRel.get(m.path)
+    if (!found) continue
+    models.push({
+      id: m.id,
+      path: found.path,
+      version: found.version,
+      blueprint: m.blueprint.name,
+      storage:
+        m.storage.kind === 'instance'
+          ? { kind: 'instance', concept: m.storage.concept }
+          : { kind: 'compact' },
+      ...(misplaced.has(m.path) ? { placement: 'PLACEMENT_MISMATCH' as const } : {}),
+    })
   }
-  rootModels.sort((a, b) => a.id.localeCompare(b.id))
-  return rootModels
+  return models.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 }
 
 /**
  * Read and parse an iNNfo model by its id.
- * The id is the filename stem (e.g. `Ghostbusters_V_0-1-0_business`
- * resolves to `Ghostbusters_V_0-1-0_business_NN.md`).
+ * The id is the hierarchical model id (a compact model's file stem without
+ * `_NN`, e.g. `Ghostbusters_V_0-1-0_business`; an instance model's `<container>/<slug>`).
  *
- * Searches the root and the conventional `kNNowledge/` subdirectory, trying
- * `<cleanId>_NN.md`, `<cleanId>.md`, `<cleanId>`, `<id>` and `<id>.md`.
+ * Resolution goes through `findKnowledgeFile` (domain index first, then
+ * non-model documents by stem); a path throws `MODEL_ADDRESSED_BY_PATH`.
  *
  * Returns null if the file doesn't exist or can't be parsed.
  *

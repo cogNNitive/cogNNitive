@@ -15,7 +15,7 @@ import type { Resolution } from './resolve.js'
 const ELFIX = fileURLToPath(new URL('../../tests/fixtures/programas-golden', import.meta.url))
 const GOLD = fileURLToPath(new URL('../../tests/fixtures/video-golden', import.meta.url))
 const TUTORIAS = join(ELFIX, 'kNNowledge', 'tutorias_NN.md')
-const SCRIPT = join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_innteresante_NN.md')
+const SCRIPT = join(GOLD, 'series', 'innteresante', 'assets', 'bosco-verticale', 'bosco-verticale_coNNtent_NN.md')
 const FLOOR = {
   label: 'video-golden',
   path: fileURLToPath(
@@ -46,10 +46,10 @@ describe('loadElementChain over the tutorias fixture', () => {
     ])
   })
 
-  it('reads the element values through the parser: references stay [[Title]] text, slug is not a value', () => {
+  it('reads the element values through the parser: references stay @slug text, slug is not a value', () => {
     const { loaded: l } = loaded(TUTORIAS, PRESTACION, 'pedido-002')
     const target = l.nodes.at(-1)
-    expect(target?.values).toEqual({ programa_ref: '[[Programa Beta]]', numero_pedido: 2, precio_hora_tutoria: '90' })
+    expect(target?.values).toEqual({ programa_ref: '@programa-beta', numero_pedido: 2, precio_hora_tutoria: '90' })
     expect(l.nodes[1].values).toEqual({ idioma: 'ca' })
   })
 
@@ -68,7 +68,7 @@ describe('loadElementChain over the tutorias fixture', () => {
     expect(r.ok).toBe(false)
     if (!r.ok) {
       expect(r.code).toBe('UNKNOWN_PARENT_ELEMENT')
-      expect(r.detail).toContain('Programa Fantasma')
+      expect(r.detail).toContain('programa-fantasma')
     }
   })
 
@@ -91,7 +91,7 @@ describe('loadElementChain over the tutorias fixture', () => {
 
 describe('loadElementChain without an element target', () => {
   it('yields only the folder nodes for a document that declares no scope_elements', () => {
-    const series = join(GOLD, 'series', 'innteresante', 'innteresante_scope_NN.md')
+    const series = join(GOLD, 'series', 'innteresante', 'innteresante_coNNtent_NN.md')
     const r = loadElementChain(series, null)
     expect(r.ok && r.loaded.nodes.map((n) => n.id)).toEqual(['', 'series/innteresante'])
   })
@@ -102,7 +102,7 @@ describe('loadElementChain without an element target', () => {
   })
 
   it('asks for an element of a document that declares none as UNKNOWN_ELEMENT', () => {
-    const series = join(GOLD, 'series', 'innteresante', 'innteresante_scope_NN.md')
+    const series = join(GOLD, 'series', 'innteresante', 'innteresante_coNNtent_NN.md')
     const r = loadElementChain(series, { concept: 'Scene', slug: '02-noticia' })
     expect(r.ok === false && r.code).toBe('UNKNOWN_ELEMENT')
   })
@@ -155,7 +155,7 @@ describe('listScopeElements', () => {
   })
 
   it('lists nothing for a document that declares no scope_elements', () => {
-    const r = listScopeElements(join(GOLD, 'series', 'innteresante', 'innteresante_scope_NN.md'))
+    const r = listScopeElements(join(GOLD, 'series', 'innteresante', 'innteresante_coNNtent_NN.md'))
     expect(r.ok && r.elements).toEqual([])
   })
 })
@@ -165,7 +165,7 @@ describe('resolution over the loaded element chain', () => {
     const { loaded: l } = loaded(SCRIPT, 'Scene', '02-noticia', { floorDoc: FLOOR })
     const r = one(resolve(l, 'music_volume', 'override'))
     expect(r.value).toBe(0.06)
-    expect(r.explain.winner?.scope).toBe('series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_innteresante_NN.md#Scene/02-noticia')
+    expect(r.explain.winner?.scope).toBe('series/innteresante/assets/bosco-verticale/bosco-verticale_coNNtent_NN.md#Scene/02-noticia')
     expect(r.explain.overridden.map((o) => [o.scope, o.value])).toEqual([
       ['series/innteresante', 0.4],
       ['bluepriNNt:video-golden', 0.2],
@@ -315,7 +315,7 @@ describe('loadElementChains', () => {
   })
 
   it('has no chains for a document that declares no scope_elements', () => {
-    const r = loadElementChains(join(GOLD, 'series', 'innteresante', 'innteresante_scope_NN.md'))
+    const r = loadElementChains(join(GOLD, 'series', 'innteresante', 'innteresante_coNNtent_NN.md'))
     expect(r.ok && r.chains).toEqual([])
   })
 
