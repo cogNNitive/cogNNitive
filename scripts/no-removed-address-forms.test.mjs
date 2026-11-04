@@ -159,6 +159,22 @@ assert.ok(
   `the spec scan must read the living specs, not an empty set (found ${specs.length} files)`,
 )
 
+/**
+ * The qualified `[[Title :: Name]]` reference is retired too: addressing uses the
+ * hierarchical id and the element slug, and a title is display-only. A living spec
+ * may still show the form only to reject it, so the same counted allowlist applies:
+ * `unified-reference-grammar` defines the rejection, `video-presets` proves the
+ * `preset-syntax` error, and `cross-model-reference-validation` records the
+ * replacement in its Purpose and a `(Previously:)` note.
+ */
+const QUALIFIED_FORM = /\[\[[^\]]*::[^\]]*\]\]/g
+/** rel path -> expected occurrences. */
+const QUALIFIED_ALLOWED = {
+  'openspec/specs/cross-model-reference-validation/spec.md': 2,
+  'openspec/specs/unified-reference-grammar/spec.md': 3,
+  'openspec/specs/video-presets/spec.md': 1,
+}
+
 for (const file of specs) {
   const rel = path.relative(ROOT, file).split(path.sep).join('/')
   const text = fs.readFileSync(file, 'utf8')
@@ -171,6 +187,12 @@ for (const file of specs) {
       `${rel} names the removed address machinery "${symbol}" ${seen} time(s); a living spec must not require it (add a counted allowlist entry only for a retirement note)`,
     )
   }
+  const qualified = text.match(QUALIFIED_FORM)?.length ?? 0
+  assert.strictEqual(
+    qualified,
+    QUALIFIED_ALLOWED[rel] ?? 0,
+    `${rel} shows the retired qualified reference "[[Title :: Name]]" ${qualified} time(s); a living spec may show it only to reject it (pin it in QUALIFIED_ALLOWED)`,
+  )
 }
 
 // An address resolves exactly through the domain index; a title is display-only.
