@@ -953,3 +953,41 @@ Lesson for S7d: entry conditions that introspect the built MCP cannot be trusted
 
 ---
 
+
+## S7d - Release (PR 20, merged to `main` as `142cd459`)
+
+Status: S7d done. **Released 2026-11-04.**
+
+### Tag set (four keys, cut one at a time, each watched to completion)
+| Key | Tag | Why |
+|---|---|---|
+| `nn-mcp` | `nn-mcp-v0.35.0` | 51 files since v0.34.0; package bumped 0.34.0 -> 0.35.0 in lockstep with nn-core |
+| `blueprints` | `blueprints-v0.53.0` | 48 files since v0.52.0: per-concept storage, L1 `V_0-7-0`, `video-script` V_0-15-0, `changes` V_0-7-0 |
+| `nn-console` | `nn-console-v0.33.0` | 43 files; authored 0.33.0 was already on `main`, tag was pending (v0.32.0 was the last) |
+| `skills` | `skills-v2.35.0` | 46 files since v2.34.0: address grammar, upgrade units, vocabulary |
+
+`RELEASE_ENABLED=true`, so all four published for real: the stable manifest in `cogNNitive-web/docs/use/manifest.md` now pins exactly these four tags.
+
+### What S7d changed in the repo
+- `nn-core` and `nn-mcp` `package.json` to `0.35.0`; `sync-versions` propagated the lockstep version and the `^0.35.0` dep range; `package-lock.json` workspace entries updated (the lockfile-agreement guard checks them); the tracked `bin/nn-mcp.bundle.js` rebuilt because tsup inlines the version.
+- `manifest/source.yaml` needed no edit: `video-script`, `business`, `metrics` and `strategy` are not pinned individually, they ship with the `blueprints` key; the `changes` entry was already at `V_0-7-0`; `iNNfo_V_0-7-0` is anchored in `canonical-registry.ts` from S7a and `sync-versions --check` confirms parity.
+
+### Gates
+- `node scripts/verify.js --release`: exit 0 (228 steps) on the release content.
+- `node scripts/verify.js --release` also ran inside the release workflow for every tag ("Run Deterministic Verification" green).
+- CI on `main` at `142cd459` (run 41786709762): **verify, quality, spec-integrity, site, ui-smoke, publish-web all success**.
+- Release runs 41786752742 / 41787216225 / 41787680022 / 41788012545: all success, post-publish smoke advisory step green.
+
+### S7d.6 sweep
+- Title-based resolution (`titleToNodeIds`, `resolveTargetModel`): **0 hits** in `iNNfo/packages/*/src`.
+- `@## NN Change:` in live code: 5 hits, all legitimate — `address/parse.ts` names the removed form **to reject it** (required by S1a), and four `resolve-sources.spec.ts` fixtures prove the rejection. No parsing remains.
+- `video_NN` / `LC_programas` live in user domaiNNs, not this repo; nothing in this change migrates them (the layout diagnostics report them instead).
+
+### Deviations
+1. **The rehearsal ran in the toolchain worktree, not a detached one**, with both packages rebuilt from scratch and a disposable alias config so `@cognnitive/nn-core` resolved to the worktree build. That addresses the trap that actually bit us (a stale `dist/` hiding the docs-facts guard); a bare detached worktree here would have had no dependencies at all.
+2. **`validate-manifest.js --channel stable` cannot be green in this repo, before or after.** The stable manifest is assembled and pushed by the release workflow into `cogNNitive-web`; this repo only ever holds the preview one. The check that matters — the published manifest pinning the released tags — is verified against `cogNNitive-web` and passed.
+3. **`validate-manifest.js --channel preview` is red and was red before this change** (24 violations: the web repo's `main` advanced past the commit pins in `docs/use/manifest-next.md`). `manifest-next.md` is byte-identical to the pre-release `main`, so the chain did not cause it; per the release guidance it is not fixed as a rider.
+4. The `lineage-as-changes` change had already been archived on `main` (`98b333ba`) before this release; its content shipped in the same `templates`/`blueprints` tag, as Q3 decided.
+
+### Rollback
+Before the tags: revert the tracker merge. After: revert `142cd459`'s merge on `main`, re-pin `channels.stable.refs` to `blueprints-v0.52.0` / `nn-mcp-v0.34.0` / `nn-console-v0.32.0` / `skills-v2.34.0`.
