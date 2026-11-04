@@ -44,6 +44,8 @@ The update process is the **Blueprint Lineage Reconciliation**, reconciling the 
 
 3. **`LineageChangesetBuilder`**:
    - Replaces the legacy regex string replacements (`repinContent`).
+   - Lives in `nn-core` as a **pure AST transform**: it never touches the filesystem and
+     never writes. See *Package Boundary* below.
    - For each model in a reconciliation unit:
      1. Parses model content using `parseKnowledge()`.
      2. Diffs the pinned schema against the target blueprint schema.
@@ -95,6 +97,26 @@ The update process is the **Blueprint Lineage Reconciliation**, reconciling the 
 - **Distributed Storage**:
   - Each concept instance is its own standalone instance model document in a collection directory (e.g. `scenes/<scene-slug>_NN.md`).
   - Schema mapping decisions (such as renamed fields or concept headers) are determined once per concept and applied to every instance document in the collection through individual Changeset operations within the atomic batch.
+
+## Package Boundary: nn-core vs nn-mcp
+
+The changeset contract is defined in `nn-core`, but its **application** engine lives in
+`nn-mcp`. A lineage operation therefore spans two packages, and the split must be explicit:
+
+| Concern | Package | Artifact |
+|---|---|---|
+| Operation taxonomy and structural validation | `nn-core` | `CHANGE_OPS`, `changeset/types.ts` |
+| AST → `ChangesetDocument` builder (pure) | `nn-core` | `changeset/lineage/builder.ts` |
+| Element mutation for the new ops | `nn-core` | `mutate.ts` |
+| Parsing, validation, transaction, provenance | `nn-mcp` | `tools/apply-change.ts` (`executeChangesetApply`) |
+
+Rules:
+
+- `nn-core` MUST NOT import `nn-mcp`. The builder returns a document; it does not apply it.
+- The skill MUST NOT write files. It calls the same transaction pipeline every other change
+  uses, so a lineage mutation is recorded and reversible like any applied changeset.
+- Any operation added to `CHANGE_OPS` MUST have a structural validator and a mutation
+  implementation before it can appear in a generated plan.
 
 ## Backwards Compatibility & Aliasing
 

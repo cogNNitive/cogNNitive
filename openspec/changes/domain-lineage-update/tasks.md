@@ -1,34 +1,36 @@
 # Tasks: Domain Lineage Update Implementation
 
-## Batch 1: Core Lineage Types & Vocabulary Alignment
-- [ ] 1.1 Define `LineageAuditResult`, `ReconciliationPlan`, `ReconciliationUnit`, and `LineageChangeOp` in `iNNfo/packages/nn-core/src/scope/` or `changeset/`.
-- [ ] 1.2 Update `scripts/template-catalog.mjs` to emit canonical lineage metadata (`adopted`, `versions`) alongside legacy aliases.
-- [ ] 1.3 Add unit tests in `nn-core/tests/` for lineage planning and group unit resolution.
+> The mutation engine (Batches 1–2) ships first and is useful on its own. The vocabulary
+> rename (Batches 3–4) is the high-churn half and lands separately.
+
+## Batch 1: Core Lineage Types & Planning
+- [ ] 1.1 Define `LineageAuditResult`, `ReconciliationPlan`, `ReconciliationUnit` and `LineageChangeOp` in `iNNfo/packages/nn-core/src/changeset/lineage/`.
+- [ ] 1.2 Implement the pure planner: group models by blueprint name, collect `pinnedVersions`, compute `targetVersion` from `catalog.json`, flag `hasSkew`, and compute a deterministic `planHash` over canonicalized member paths and pins.
+- [ ] 1.3 Implement `isPlanFresh(plan, workspaceDir)` returning false on any added, removed or repinned member.
+- [ ] 1.4 Add unit tests in `iNNfo/packages/nn-core/tests/` for grouping, skew detection and `planHash` stability under key ordering.
+
+> Note: the catalog already emits `name`, `adopted` and `versions[].blueprint_version` (`scripts/blueprint-catalog.mjs`; asserted in `scripts/blueprint-catalog.test.mjs`). No catalog change is required here — do not add a parallel metadata field.
 
 ## Batch 2: Changeset Lineage Mutation Engine
-- [ ] 2.1 Implement `buildLineageChangeset()` in `iNNfo/packages/nn-core/src/changeset/lineage-builder.ts`:
-  - Typed AST-based `repin_blueprint` mutation (updating `parent_spec.name`, `parent_spec.url`, `blueprint_version`).
-  - AST-based `rename_concept` mutation for section heading updates.
-  - AST-based `rename_field` mutation for attribute updates.
-  - AST-based `set_field_default` mutation for newly required schema fields.
-- [ ] 2.2 Wire lineage mutations into `applyMutation()` and `executeChangesetApply()` so lineage changesets execute through the standard Changeset transaction pipeline.
-- [ ] 2.3 Unit test `buildLineageChangeset` and atomic application across both compact models and distributed collection models.
+- [ ] 2.1 Add the lineage operations to the shared contract: `repin_blueprint`, `rename_field`, `set_field_default` in `CHANGE_OPS` (`iNNfo/packages/nn-core/src/changeset/types.ts`), with their structural validators in `extractInstanceProblems`-style form.
+- [ ] 2.2 Implement `buildLineageChangeset()` in `iNNfo/packages/nn-core/src/changeset/lineage/builder.ts` as a **pure** AST transform: `parseKnowledge()` on the model, schema diff against the target blueprint, emit a `ChangesetDocument`.
+- [ ] 2.3 Implement the mutations themselves in the core mutation layer (`iNNfo/packages/nn-core/src/mutate.ts`) so the ops behave like every other op. Do **not** write directly from the skill.
+- [ ] 2.4 Verify the ops execute through the existing transaction pipeline in `iNNfo/packages/nn-mcp/src/tools/apply-change.ts` (`executeChangesetApply`) — the apply engine lives in `nn-mcp`, not in `nn-core`; a change that needs both sides must cross that boundary explicitly, never by importing `nn-mcp` from `nn-core`.
+- [ ] 2.5 Unit test `buildLineageChangeset` and atomic application across both compact models and distributed collection models.
 
 ## Batch 3: `nn-update` Skill & Reconciliation Engine
-- [ ] 3.1 Create `skills/nn-update/` (or refactor `skills/nn-upgrade/` as canonical `nn-update`):
-  - Rename internal routines from `upgrade` to `lineageReconcile` / `update`.
-  - Replace `repinContent` regex string patching with `buildLineageChangeset()` and `executeChangesetApply()`.
-  - Maintain the all-or-none rollback and pre-write workspace backup safety gates.
-- [ ] 3.2 Provide `skills/nn-upgrade/` as a thin deprecation pointer to `nn-update` for backwards compatibility.
-- [ ] 3.3 Add automated tests for multi-model distributed concept reconciliation and all-or-none validation failures.
+- [ ] 3.1 Create `skills/nn-update/` from `skills/nn-upgrade/`; rename internal routines from `upgrade` to `lineageReconcile` / `update`.
+- [ ] 3.2 Delete `repinContent` and its call site in `scripts/apply-upgrade-plan.js`; the reconcile step must call `buildLineageChangeset()` and apply through the transaction pipeline. Keep the all-or-none rollback and the pre-write workspace backup (`scripts/backup-workspace.js`).
+- [ ] 3.3 Reduce `skills/nn-upgrade/` to a thin deprecation pointer that forwards to `nn-update` and logs a notice.
+- [ ] 3.4 Update `manifest/source.yaml` (`skills` entry), `scripts/lib/skills-commands.js` and `skills/nn-skills-lifecycle/scripts/skills-manager.js` for the new skill name.
+- [ ] 3.5 Add automated tests: multi-model distributed reconciliation, all-or-none on validation failure, and the deprecation pointer.
 
-## Batch 4: Preflight Integration & Vocabulary Migration
-- [ ] 4.1 Update `skills/nn-preflight/scripts/upgrade-check.js` (aliased as `lineage-audit.js`):
-  - Support `--audit-lineage` flag.
-  - Emit canonical classification keys (`update-available`, `updateStatus`).
-  - Expose `--plan` with typed `ReconciliationPlan`.
-- [ ] 4.2 Update preflight test suites to verify new terminology and compatibility with legacy consumers.
+## Batch 4: Preflight, Vocabulary Migration & Docs
+- [ ] 4.1 Rename `skills/nn-preflight/scripts/upgrade-check.js` to `lineage-audit.js` (keep `upgrade-check.js` as a deprecated shim for one release) and support `--audit-lineage`.
+- [ ] 4.2 Emit canonical keys (`update-available`, `updateStatus`) alongside the deprecated (`upgrade-available`) aliases; update `skills/nn-preflight/SKILL.md` (Tier 3 section) and `preflight-check.js`.
+- [ ] 4.3 Update every reference to the retired vocabulary in primary documentation and living specs: `docs/documentation/content/skills/*`, `_sidebar.md`, `ai-index.yaml`, and the `nn-innfo` / `nn-sources` skill text that links to `nn-upgrade`.
+- [ ] 4.4 Update preflight tests and add a regression test asserting the deprecated keys still parse.
 
 ## Batch 5: OpenSpec Delta Sync & Verification
-- [ ] 5.1 Run `node scripts/check-openspec-deltas.test.mjs` and ensure all OpenSpec deltas and schemas agree.
-- [ ] 5.2 Run workspace `node scripts/verify.js` to ensure zero regressions across all packages, mirrors, and skills.
+- [ ] 5.1 Run `node scripts/check-openspec-deltas.mjs` and confirm every delta block is well formed.
+- [ ] 5.2 Run `node scripts/verify.js` and confirm zero regressions across packages, mirrors and skills.
