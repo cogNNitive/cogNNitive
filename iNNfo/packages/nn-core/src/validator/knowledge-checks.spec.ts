@@ -216,11 +216,11 @@ describe('checkProvenanceBan - L1 version gate (distributed-storage A17)', () =>
     expect(codesFor('iNNfo_V_0-10-0')).toContain('SOURCES_FIELD_BANNED')
   })
 
-  it('does not ban sources:: under an older L1 such as V_0-5-9', () => {
-    expect(codesFor('iNNfo_V_0-5-9')).toEqual([])
+  it('bans sources:: under an older L1 too: the ban is version-independent', () => {
+    expect(codesFor('iNNfo_V_0-5-9')).toContain('SOURCES_FIELD_BANNED')
   })
 
-  it('does not treat a bluepriNNt version as the L1 version', () => {
+  it('bans sources:: whatever the parent pin looks like', () => {
     const d = new Diagnostics()
     const model = modelWithSources()
     model.frontmatter = {
@@ -228,6 +228,6 @@ describe('checkProvenanceBan - L1 version gate (distributed-storage A17)', () =>
       parent_spec: { name: 'business_V_0-9-0', url: 'https://example.com/business_V_0-9-0_NN.md' },
     }
     checkProvenanceBan(model, undefined, d, 'iNNfo_V_0-5-0')
-    expect(d.errors).toEqual([])
+    expect(d.errors.map((e) => e.code)).toContain('SOURCES_FIELD_BANNED')
   })
 })
