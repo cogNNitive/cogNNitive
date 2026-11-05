@@ -745,22 +745,25 @@
     }
 
     function openModalFor(anchorData, target) {
+      var targetEl = elementsById[anchorData.elementId]
+      var modalTitle = anchorData.info && targetEl ? (targetEl.name || anchorData.elementId) : target.title
       var modal = UI.EditModal(
         {
-          title: target.title,
+          title: modalTitle,
+          element: targetEl,
+          elementId: anchorData.elementId,
+          concept: targetEl && targetEl.concept,
           fieldName: target.fieldName,
           type: target.type,
           value: target.value,
           options: target.options,
           candidates: target.candidates,
           modelId: target.modelId,
-          citations: target.citations,
           history: target.history,
           isComment: !!target.isComment,
           structure: !!target.structure,
           reviewer: typeof options.getReviewer === 'function' ? String(options.getReviewer() || '') : '',
           warning: (function () {
-            var targetEl = elementsById[anchorData.elementId]
             var hasHash = !!(targetEl && typeof targetEl.hash === 'string' && BASE_HASH_PATTERN.test(targetEl.hash))
             if (targetEl && !hasHash) {
               return (
@@ -772,8 +775,8 @@
           })(),
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
-          connections: connectionsFor(elementsById[anchorData.elementId]),
-          startTab: anchorData.info ? 'history' : 'edit',
+          connections: connectionsFor(targetEl),
+          startTab: anchorData.info ? 'view' : (anchorData.edit ? 'edit' : 'view'),
         },
         {
           doc: doc,

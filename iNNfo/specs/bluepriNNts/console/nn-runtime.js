@@ -2554,13 +2554,6 @@
 
     var buildElementCard = function (element) {
       var fields = []
-      var elCitations = element && isObject(element.citations) ? element.citations : {}
-      var sourcesEntries = []
-      Object.keys(elCitations).forEach(function (k) {
-        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
-          sourcesEntries = sourcesEntries.concat(elCitations[k])
-        }
-      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
@@ -2582,7 +2575,6 @@
                   : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
             }
           }
-          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
@@ -2599,7 +2591,6 @@
                   index: targetCMeta && targetCMeta.index,
                 }
               : undefined,
-            citations: fieldCites,
           })
         })
       }
@@ -2628,14 +2619,6 @@
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
-          head:
-            UI && typeof UI.CitationIcons === 'function'
-              ? UI.CitationIcons('sources', sourcesEntries, {
-                  onOpen: function () {
-                    renderCitationDialog(doc, 'sources', sourcesEntries)
-                  },
-                })
-              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onTag: actions && actions.onTag,

@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-j0jXJBxhlVRGZZpbEWTB0VdtaoHvysDvNg9rF/WLsdo=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GuDXBamO36MOzmeBoWS6W05qoSRkYpFFnI00+hFI67s=' 'sha256-zC9fVwLc2q24v4oZn4Fteg3v+oeo5flE7QnTeXYGe/0=' 'sha256-4BakFr9B7k7vTNs7WaAC3TizluFw/OU+mWJ5aKCYGuo=' 'sha256-soSXjK2mmrYGjTKfxADrnupPRdn7nsM/OFZxV6is0ww=' 'sha256-HC9bZfocKnXqqgewkCBULbXASSUDmREJr3JYVEKI+JU=' 'sha256-ARDX3RKWShyoDagjlGvT8l0KMybANvtfFkhXWWniMy0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -11372,7 +11372,7 @@ pre.nn-file-preview-code {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-936b099c",
-    "generated": "2026-11-05T15:49:30.529Z",
+    "generated": "2026-11-05T17:37:55.223Z",
     "changesBlueprintVersion": "V_0-8-1",
     "models": [
       {
@@ -11383,7 +11383,7 @@ pre.nn-file-preview-code {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "593b5c26e0cdc52f70aab825ae5dab6421bcd9f2202c20a83d454e726ffdbba0",
-        "citationsResolvedAt": "2026-11-05T15:49:30.219Z",
+        "citationsResolvedAt": "2026-11-05T17:37:55.073Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
@@ -16200,7 +16200,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '@media (max-width:640px){.nn-change-toast{left:1rem;right:1rem;max-width:none}}',
     '.nn-popover-comment,.nn-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.nn-annotation-popover{width:100%}.nn-new-element{width:100%}}',
-    '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:880px;width:min(880px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-sheet-view{display:flex;flex-direction:column;gap:14px;padding:4px 0}',
+    '.nn-sheet-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
+    '.nn-sheet-id{font-family:var(--nn-mono);font-size:.82rem;color:var(--nn-muted);background:var(--nn-surface-2);padding:2px 8px;border-radius:4px}',
+    '.nn-sheet-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;background:var(--nn-surface);border:1px solid var(--nn-border);border-radius:var(--nn-radius);padding:14px 18px}',
+    '.nn-sheet-field-row{display:flex;flex-direction:column;gap:3px;min-width:0}',
+    '.nn-sheet-field-label{font-size:.78rem;font-weight:600;color:var(--nn-muted);text-transform:uppercase;letter-spacing:.3px}',
+    '.nn-sheet-field-val{font-size:.88rem;color:var(--nn-text);word-break:break-word}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -18818,18 +18825,83 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       modal.appendChild(proposeAs)
     }
 
-    // Unified Modal Navigation: Tabs (Edit vs Lineage)
+    // Unified Modal Navigation: Tabs (View, Edit, Changes, Connections)
     var navTabs = makeEl(doc, 'div', 'nn-modal-tabs')
-    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'Edit')
+    var tabBtnView = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'View')
+    tabBtnView.setAttribute('type', 'button')
+    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
     var tabBtnHistory = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
+    navTabs.appendChild(tabBtnView)
     navTabs.appendChild(tabBtnEdit)
     navTabs.appendChild(tabBtnHistory)
     navTabs.appendChild(tabBtnConnections)
     modal.appendChild(navTabs)
+
+    // Panel 0: View (Element Sheet / Unit Inspector)
+    var panelView = makeEl(doc, 'div', 'nn-modal-tab-panel nn-view-modal-body')
+    panelView.setAttribute('data-tab', 'view')
+
+    var el = data.element
+    if (el) {
+      var sheetWrap = makeEl(doc, 'div', 'nn-sheet-view')
+      var metaSection = makeEl(doc, 'div', 'nn-sheet-meta')
+      if (el.concept) {
+        var cChip = makeEl(doc, 'span', 'nn-ku-concept-chip', el.concept)
+        metaSection.appendChild(cChip)
+      }
+      if (el.id) {
+        var idChip = makeEl(doc, 'span', 'nn-sheet-id', el.id)
+        metaSection.appendChild(idChip)
+      }
+      sheetWrap.appendChild(metaSection)
+
+      if (el.description) {
+        sheetWrap.appendChild(makeEl(doc, 'p', 'nn-card-desc', el.description))
+      }
+
+      var fieldsObj = el.fields && typeof el.fields === 'object' ? el.fields : {}
+      var fieldKeys = Object.keys(fieldsObj)
+      if (fieldKeys.length) {
+        var fieldsSection = makeEl(doc, 'div', 'nn-sheet-fields')
+        fieldKeys.forEach(function (fk) {
+          var fRow = makeEl(doc, 'div', 'nn-sheet-field-row')
+          var fLabel = makeEl(doc, 'span', 'nn-sheet-field-label', fk)
+          var fVal = makeEl(doc, 'span', 'nn-sheet-field-val')
+          var rawVal = fieldsObj[fk]
+          if (rawVal === true || rawVal === false) {
+            fVal.textContent = String(rawVal)
+            fVal.className += ' nn-field-bool'
+          } else if (rawVal !== null && typeof rawVal === 'object') {
+            fVal.textContent = JSON.stringify(rawVal)
+          } else {
+            fVal.textContent = String(rawVal == null ? '' : rawVal)
+          }
+          fRow.appendChild(fLabel)
+          fRow.appendChild(fVal)
+          fieldsSection.appendChild(fRow)
+        })
+        sheetWrap.appendChild(fieldsSection)
+      }
+      panelView.appendChild(sheetWrap)
+    } else {
+      var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
+      var rows = [
+        ['Kind', data.kind || 'element'],
+        ['Address', data.address || data.modelId || ''],
+        ['Value', data.value != null ? String(data.value) : ''],
+      ]
+      rows.forEach(function (pair) {
+        if (!pair[1]) return
+        dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
+        dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
+      })
+      panelView.appendChild(dl)
+    }
+    modal.appendChild(panelView)
 
     // Panel 1: Edit Form
     var panelEdit = makeEl(doc, 'div', 'nn-modal-tab-panel nn-edit-modal-body')
@@ -18974,8 +19046,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     saveError.style.display = 'none'
 
     // Tab switcher events
-    var tabButtons = { edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
-    var tabPanels = { edit: panelEdit, history: panelHistory, connections: panelConnections }
+    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
     function showTab(name) {
       Object.keys(tabButtons).forEach(function (k) {
         tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
@@ -18984,6 +19056,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       actions.style.display = name === 'edit' ? '' : 'none'
       if (name !== 'edit') saveError.style.display = 'none'
     }
+    tabBtnView.addEventListener('click', function () {
+      showTab('view')
+    })
     tabBtnEdit.addEventListener('click', function () {
       showTab('edit')
     })
@@ -18994,8 +19069,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       showTab('connections')
     })
 
-    var startTab = data.startTab === 'history' ? 'history' : data.startTab === 'connections' ? 'connections' : 'edit'
-    if (startTab !== 'edit') showTab(startTab)
+    var startTab = data.startTab || 'view'
+    showTab(startTab)
 
     saveBtn.addEventListener('click', function () {
       if (isComment && String(commentTa.value).trim() === '') {
@@ -20301,12 +20376,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     actions.appendChild(actionButton('info', 'info', 'Unit info', opts.onInfo))
     actions.appendChild(actionButton('reveal', 'arrow-up-right', 'Reveal in context', opts.onReveal))
-    var citations = ref && ref.citations && Array.isArray(ref.citations.sources) ? ref.citations.sources : null
-    if (citations && citations.length) {
-      actions.appendChild(
-        actionButton('citations', 'cite-document', citations.length + ' citations', opts.onCitations),
-      )
-    }
     if (desc.editability !== 'none') {
       var editBtn = actionButton('edit', 'pencil', 'Edit unit', opts.onEdit)
       if (desc.editability === 'structure') editBtn.setAttribute('data-ku-structure', 'true')
@@ -20481,8 +20550,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     head.appendChild(closeBtn)
     dlg.appendChild(head)
 
-    var body = makeEl(doc, 'div', 'nn-edit-modal-body')
-    body.appendChild(
+    // Navigation Tabs (View, Edit, Changes, Connections)
+    var navTabs = makeEl(doc, 'div', 'nn-modal-tabs')
+    var tabBtnView = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'View')
+    tabBtnView.setAttribute('type', 'button')
+    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Edit')
+    tabBtnEdit.setAttribute('type', 'button')
+    var tabBtnHistory = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Changes')
+    tabBtnHistory.setAttribute('type', 'button')
+    var tabBtnConnections = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Connections')
+    tabBtnConnections.setAttribute('type', 'button')
+    navTabs.appendChild(tabBtnView)
+    navTabs.appendChild(tabBtnEdit)
+    navTabs.appendChild(tabBtnHistory)
+    navTabs.appendChild(tabBtnConnections)
+    dlg.appendChild(navTabs)
+
+    // Panel 0: View (Sheet definition & facts)
+    var panelView = makeEl(doc, 'div', 'nn-modal-tab-panel nn-view-modal-body')
+    panelView.setAttribute('data-tab', 'view')
+    panelView.appendChild(
       makeEl(doc, 'p', 'nn-ku-info-sub', descriptor.nature + ', lives in ' + descriptor.home),
     )
     var rows = [
@@ -20505,8 +20592,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', k))
       dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(facts[k])))
     })
-    body.appendChild(dl)
-    dlg.appendChild(body)
+    panelView.appendChild(dl)
+    dlg.appendChild(panelView)
+
+    // Panel 1: Edit
+    var panelEdit = makeEl(doc, 'div', 'nn-modal-tab-panel nn-edit-modal-body')
+    panelEdit.setAttribute('data-tab', 'edit')
+    panelEdit.style.display = 'none'
+    if (descriptor.editability === 'structure') {
+      var warn = makeEl(doc, 'div', 'nn-edit-warn')
+      warn.innerHTML = '<strong>Structural BluepriNNt Unit:</strong> Changes to this unit affect schema contracts across the domain.'
+      panelEdit.appendChild(warn)
+    } else if (descriptor.editability === 'none') {
+      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'This unit is read-only (evidence source or container).'))
+    } else {
+      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'Use review mode or edit controls to propose changes.'))
+    }
+    dlg.appendChild(panelEdit)
+
+    // Panel 2: Changes
+    var panelHistory = makeEl(doc, 'div', 'nn-modal-tab-panel nn-history-modal-body')
+    panelHistory.setAttribute('data-tab', 'history')
+    panelHistory.style.display = 'none'
+    panelHistory.appendChild(makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes targeting this unit.'))
+    dlg.appendChild(panelHistory)
+
+    // Panel 3: Connections
+    var panelConnections = makeEl(doc, 'div', 'nn-modal-tab-panel nn-connections-modal-body')
+    panelConnections.setAttribute('data-tab', 'connections')
+    panelConnections.style.display = 'none'
+    panelConnections.appendChild(makeEl(doc, 'p', 'nn-ku-info-sub', 'Connections and usages for ' + (descriptor.label || descriptor.address)))
+    dlg.appendChild(panelConnections)
+
+    // Tab switcher events
+    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
+    function showTab(name) {
+      Object.keys(tabButtons).forEach(function (k) {
+        tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
+        tabPanels[k].style.display = k === name ? 'block' : 'none'
+      })
+    }
+    tabBtnView.addEventListener('click', function () { showTab('view') })
+    tabBtnEdit.addEventListener('click', function () { showTab('edit') })
+    tabBtnHistory.addEventListener('click', function () { showTab('history') })
+    tabBtnConnections.addEventListener('click', function () { showTab('connections') })
 
     var foot = makeEl(doc, 'div', 'nn-edit-modal-foot')
     if (typeof opts.onReveal === 'function') {
@@ -21349,22 +21479,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function openModalFor(anchorData, target) {
+      var targetEl = elementsById[anchorData.elementId]
+      var modalTitle = anchorData.info && targetEl ? (targetEl.name || anchorData.elementId) : target.title
       var modal = UI.EditModal(
         {
-          title: target.title,
+          title: modalTitle,
+          element: targetEl,
+          elementId: anchorData.elementId,
+          concept: targetEl && targetEl.concept,
           fieldName: target.fieldName,
           type: target.type,
           value: target.value,
           options: target.options,
           candidates: target.candidates,
           modelId: target.modelId,
-          citations: target.citations,
           history: target.history,
           isComment: !!target.isComment,
           structure: !!target.structure,
           reviewer: typeof options.getReviewer === 'function' ? String(options.getReviewer() || '') : '',
           warning: (function () {
-            var targetEl = elementsById[anchorData.elementId]
             var hasHash = !!(targetEl && typeof targetEl.hash === 'string' && BASE_HASH_PATTERN.test(targetEl.hash))
             if (targetEl && !hasHash) {
               return (
@@ -21376,8 +21509,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           })(),
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
-          connections: connectionsFor(elementsById[anchorData.elementId]),
-          startTab: anchorData.info ? 'history' : 'edit',
+          connections: connectionsFor(targetEl),
+          startTab: anchorData.info ? 'view' : (anchorData.edit ? 'edit' : 'view'),
         },
         {
           doc: doc,
@@ -25888,13 +26021,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var buildElementCard = function (element) {
       var fields = []
-      var elCitations = element && isObject(element.citations) ? element.citations : {}
-      var sourcesEntries = []
-      Object.keys(elCitations).forEach(function (k) {
-        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
-          sourcesEntries = sourcesEntries.concat(elCitations[k])
-        }
-      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
@@ -25916,7 +26042,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                   : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
             }
           }
-          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
@@ -25933,7 +26058,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                   index: targetCMeta && targetCMeta.index,
                 }
               : undefined,
-            citations: fieldCites,
           })
         })
       }
@@ -25962,14 +26086,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
-          head:
-            UI && typeof UI.CitationIcons === 'function'
-              ? UI.CitationIcons('sources', sourcesEntries, {
-                  onOpen: function () {
-                    renderCitationDialog(doc, 'sources', sourcesEntries)
-                  },
-                })
-              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onTag: actions && actions.onTag,
