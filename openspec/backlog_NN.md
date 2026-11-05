@@ -48,12 +48,24 @@ captured:: 2026-10-31
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: retired
 lane:: heavy
-verdict:: current
-evidence:: Re-measured 2026-11-05. No blueprint declares type:: audio: the only blueprint with video and file is coNNtent, and its Series and Video concepts are storage:: distributed (spec_NN.md:51,82), so a flat sample under test/_samples_nn cannot validate against it. Attempting it showed the real cost: adding the field forces coNNtent V_0-15-1, which ripples into its vendored skill (field-registry, parameters), the catalog, docs and the produce tests that pin V_0-15-0. That is a coordinated coNNtent release, not a batch item. NOT DONE for that reason; it needs its own change with a coNNtent-only release.
+verdict:: obsolete
+evidence:: Retired 2026-11-05 after checking the blueprint instead of the title. coNNtent already models audio where it matters: `background_audio::` and `background_audio_volume::` on Scene and Preset with the parameter cascade (spec_NN.md:231,239-247), the per-series music bed, and the TTS fields (`voice`, `voice_model`, `rate`, `delivery`) that the blueprint documents as the synthesized-audio cache identity. The episode audio itself is muxed into `master::`. An `audio::` field on Video would be a second source of truth for data already carried by master and the TTS cache, and would invite drift. The item was really about console coverage of `type:: audio`, which is a test, not a schema change.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
 batch:: b2-published-blueprints
+
+## NN Item: console-audio-render-coverage
+value:: L
+effort:: S
+risk:: L
+status:: shipped
+lane:: light
+verdict:: current
+evidence:: Shipped 2026-11-05. test/console-s3b-parity.test.mjs now declares a `type:: audio` field in its fixture blueprint and asserts the exported console renders it as `audio.nn-field-media` with a rebased relative src, and never as a video element. Before this the console's audio branch (ui-kit.js renderFieldMedia) had no end-to-end coverage; a schema change was never needed.
+done_when:: The console parity fixture declares a `type:: audio` field and asserts the exported console renders an audio element for it.
+batch:: b2-published-blueprints
+
 
 ## NN Item: sources-blueprint-drift
 value:: M
@@ -357,9 +369,9 @@ batch:: b3e-console-payload-size
 ## NN Batch: b2-published-blueprints
 order:: 1
 lane:: heavy
-items:: sample-media-fields
+items:: sample-media-fields, console-audio-render-coverage
 risk:: M
-state:: in-progress
+state:: done
 
 ## NN Batch: b3a-source-import-guards
 order:: 2
