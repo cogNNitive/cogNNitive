@@ -7382,18 +7382,23 @@
             revealUnit(descriptor)
             return
           }
+          var handled = false
           var ctrl = state.controller
           if (ctrl && typeof ctrl.handleKuAction === 'function') {
-            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
-            return
+            handled = ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
           }
-          if (action === 'info' || action === 'changes') {
+          if (!handled && (action === 'info' || action === 'changes')) {
             var withFacts = Object.assign({}, descriptor, {
               facts: Object.assign({}, (descriptor && descriptor.facts) || {}, unitFacts(descriptor)),
             })
-            var panel = UI.KuInfoPanel(withFacts)
+            var panel = UI.KuInfoPanel(withFacts, {
+              onReveal: function () {
+                revealUnit(descriptor)
+              },
+            })
             if (active.body) active.body.appendChild(panel)
             if (panel && typeof panel.showModal === 'function') panel.showModal()
+            else if (panel) panel.setAttribute('open', 'true')
           }
         },
       })

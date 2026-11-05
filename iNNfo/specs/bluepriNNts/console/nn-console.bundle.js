@@ -1061,7 +1061,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />",
   "clipboard-check": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" /> <path d=\"m9 14 2 2 4-4\" />",
   "receipt": "<path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z\" /> <path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\" /> <path d=\"M12 17.5v-11\" />",
-  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />"
+  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />",
+  "more-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"currentColor\" /> <circle cx=\"12\" cy=\"5\" r=\"1.5\" fill=\"currentColor\" /> <circle cx=\"12\" cy=\"19\" r=\"1.5\" fill=\"currentColor\" />"
 };
 
   function getIconPaths(name) {
@@ -1411,8 +1412,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted);cursor:pointer;flex:0 0 auto}',
     '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text);background:var(--nn-surface-2)}',
     '.nn-ku-more:focus-visible{outline:2px solid var(--nn-focus);outline-offset:1px}',
-    '.nn-ku-actions{position:fixed;z-index:60;display:none;align-items:center;gap:.1em;padding:.2em;background:var(--nn-surface);border:1px solid var(--nn-border);border-radius:var(--nn-radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap}',
-    '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:inline-flex}',
+    '.nn-ku-actions{display:none !important}',
+    '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
     '.nn-ku-action{appearance:none;border:1px solid transparent;background:transparent;color:var(--nn-muted);font:inherit;padding:.1em .3em;border-radius:var(--nn-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px}',
     '.nn-ku-action:hover{color:var(--nn-text);border-color:var(--nn-border);background:var(--nn-surface-2)}',
     '.nn-ku-action[data-ku-action=edit]:hover{color:var(--nn-link)}',
@@ -1468,8 +1469,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-nn-component=element-card] .nn-card-thumb--empty,[data-nn-component=element-card] .nn-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--nn-accent));background:var(--card-concept-bg,var(--nn-surface-2));border:1.5px solid var(--card-concept-color,var(--nn-border))}',
     '[data-nn-component=element-card] .nn-card-count{font-size:.75rem;font-weight:600;color:var(--nn-muted);background:var(--nn-surface-2);border:1px solid var(--nn-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
-    '[data-nn-component=element-card] .nn-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--nn-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--nn-radius-sm);flex:0 0 auto}',
-    '[data-nn-component=element-card] .nn-card-toggle:hover{color:var(--nn-text);border-color:var(--nn-border);background:var(--nn-surface)}',
+    '[data-nn-component=element-card] .nn-card-toggle{appearance:none;border:1px solid var(--nn-border);background:var(--nn-surface-2);color:var(--nn-text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;min-height:28px;padding:0;border-radius:var(--nn-radius-sm);flex:0 0 auto;transition:background-color .15s ease,border-color .15s ease;z-index:2;position:relative}',
+    '[data-nn-component=element-card] .nn-card-toggle:hover{color:var(--nn-text);border-color:var(--nn-muted);background:var(--nn-surface)}',
     '[data-nn-component=element-card] .nn-card-toggle .nn-icon{transition:transform .15s ease}',
     '[data-nn-component=element-card][data-open=true] .nn-card-toggle .nn-icon{transform:rotate(180deg)}',
     '[data-nn-component=element-card][data-open=false] .nn-card-body{display:none}',
@@ -1701,6 +1702,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     shield: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
     wrench: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
     'git-branch': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>',
+    'more-vertical': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle><circle cx="12" cy="5" r="1.5" fill="currentColor"></circle><circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>',
   }
 
   function icon(name, size, cls) {
@@ -2908,13 +2910,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (open) mountBody()
       card.setAttribute('data-open', open ? 'true' : 'false')
       var tg = head.querySelector('.nn-card-toggle')
-      if (tg) tg.setAttribute('aria-expanded', open ? 'true' : 'false')
+      if (tg) {
+        tg.setAttribute('aria-expanded', open ? 'true' : 'false')
+        tg.setAttribute('title', open ? 'Collapse sheet details' : 'Expand sheet details')
+        tg.setAttribute('aria-label', open ? 'Collapse sheet details' : 'Expand sheet details')
+      }
     }
 
     if (collapsible) {
       var toggle = makeEl(doc, 'button', 'nn-card-toggle')
       toggle.setAttribute('type', 'button')
-      toggle.setAttribute('aria-label', 'Toggle details')
+      toggle.setAttribute('aria-label', open ? 'Collapse sheet details' : 'Expand sheet details')
+      toggle.setAttribute('title', open ? 'Collapse sheet details' : 'Expand sheet details')
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
       toggle.innerHTML = icon('chevron', 16)
       toggle.addEventListener('click', function (ev) {
@@ -2925,7 +2932,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       head.addEventListener('click', function (ev) {
         var t = ev && ev.target
-        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea')) {
+        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea, [data-ku-more]')) {
           return
         }
         setOpen(!open)
@@ -5258,8 +5265,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '.nn-ku--block{display:flex;width:100%;padding:.5em .7em}',
       '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted,#64748b);cursor:pointer}',
       '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
-      '.nn-ku-actions{position:fixed;z-index:60;display:none;align-items:center;gap:.15em;padding:.2em;background:var(--nn-surface,#fff);border:1px solid var(--nn-border,#e5e5e5);border-radius:.4em;box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap}',
-      '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:inline-flex}',
+      '.nn-ku-actions{display:none !important}',
+      '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
       '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted,#64748b)}',
       '.nn-ku-action:hover{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
       // No mode gates: an edit only ever creates a draft, so the pencil is always
@@ -5311,14 +5318,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     badge.setAttribute('aria-label', desc.nature + ', lives in ' + desc.home + ': ' + desc.label)
     wrap.appendChild(badge)
 
-    // ONE affordance sits beside the badge; everything else floats below on demand.
+    // ONE affordance sits beside the badge; clicking it directly opens the unit modal.
     var more = makeEl(doc, 'button', 'nn-ku-more')
     more.setAttribute('type', 'button')
     more.setAttribute('data-ku-more', 'true')
     more.setAttribute('aria-expanded', 'false')
-    more.setAttribute('aria-label', 'Actions for ' + desc.label)
-    more.innerHTML =
-      '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>'
+    more.setAttribute('aria-label', 'Details for ' + desc.label)
+    more.setAttribute('title', 'Details for ' + desc.label)
+    more.innerHTML = icon('more-vertical', 14)
     wrap.setAttribute('data-ku-open', 'false')
     wrap.appendChild(more)
 
@@ -5405,30 +5412,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function onClick(ev) {
       var t = ev && ev.target
       if (!t || !t.closest) return
-      // The "+" toggles the flyout; only one is open at a time.
+      // The kebab button directly opens the unit modal.
       var moreEl = t.closest('[data-ku-more]')
       if (moreEl) {
-        var owner = moreEl.closest('.nn-ku-wrap')
-        var wasOpen = !!(owner && owner.getAttribute('data-ku-open') === 'true')
+        if (ev && ev.preventDefault) ev.preventDefault()
+        if (ev && ev.stopPropagation) ev.stopPropagation()
         closeFlyouts()
-        if (owner && !wasOpen) {
-          owner.setAttribute('data-ku-open', 'true')
-          moreEl.setAttribute('aria-expanded', 'true')
-          // The flyout is position:fixed, so an `overflow` ancestor (a table wrapper)
-          // can no longer clip it. Anchor it to the badge, clamped to the viewport.
-          var fly = owner.querySelector('.nn-ku-actions')
-          if (fly && owner.getBoundingClientRect) {
-            var rect = owner.getBoundingClientRect()
-            var view = doc.defaultView
-            var vw = view && view.innerWidth ? view.innerWidth : 0
-            var fw = fly.getBoundingClientRect ? fly.getBoundingClientRect().width : 0
-            var left = rect.left
-            if (vw && fw && left + fw > vw - 8) left = Math.max(8, vw - fw - 8)
-            fly.style.left = left + 'px'
-            fly.style.top = rect.bottom + 5 + 'px'
-          }
+        var desc = descriptorOf(moreEl)
+        if (desc && typeof opts.onAction === 'function') {
+          opts.onAction('info', desc, ev)
         }
-        if (ev.preventDefault) ev.preventDefault()
         return
       }
       var actionEl = t.closest('[data-ku-action]')
@@ -5503,18 +5496,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     )
   }
 
-  function KuInfoPanel(descriptor) {
+  function KuInfoPanel(descriptor, opts) {
     if (!descriptor || typeof descriptor !== 'object') {
       throw new TypeError('KuInfoPanel: descriptor required')
     }
-    var doc = resolveDoc(null)
-    var dlg = makeEl(doc, 'dialog', 'nn-ku-info-panel')
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    var dlg = makeEl(doc, 'dialog', 'nn-edit-modal nn-ku-info-panel')
     dlg.setAttribute('data-nn-component', 'ku-info-panel')
     dlg.setAttribute('role', 'dialog')
+    dlg.setAttribute('aria-modal', 'true')
+
+    function dismiss() {
+      if (typeof dlg.close === 'function') dlg.close()
+      else dlg.removeAttribute('open')
+      if (dlg.parentNode) dlg.parentNode.removeChild(dlg)
+    }
+    function cancel() {
+      dismiss()
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    }
+
+    var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var h = makeEl(doc, 'h2', 'nn-ku-info-title', descriptor.label || descriptor.address)
     h.setAttribute('tabindex', '-1')
-    dlg.appendChild(h)
-    dlg.appendChild(
+    head.appendChild(h)
+    var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
+    closeBtn.addEventListener('click', cancel)
+    head.appendChild(closeBtn)
+    dlg.appendChild(head)
+
+    var body = makeEl(doc, 'div', 'nn-edit-modal-body')
+    body.appendChild(
       makeEl(doc, 'p', 'nn-ku-info-sub', descriptor.nature + ', lives in ' + descriptor.home),
     )
     var rows = [
@@ -5531,13 +5546,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
       dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
     })
-    dlg.appendChild(dl)
     var facts = descriptor.facts || {}
     Object.keys(facts).forEach(function (k) {
       if (facts[k] == null || facts[k] === '') return
       dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', k))
       dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(facts[k])))
     })
+    body.appendChild(dl)
+    dlg.appendChild(body)
+
+    var foot = makeEl(doc, 'div', 'nn-edit-modal-foot')
+    if (typeof opts.onReveal === 'function') {
+      var revBtn = makeEl(doc, 'button', 'nn-btn nn-btn-ghost', 'Reveal in context')
+      revBtn.setAttribute('type', 'button')
+      revBtn.addEventListener('click', function () {
+        dismiss()
+        opts.onReveal(descriptor)
+      })
+      foot.appendChild(revBtn)
+    }
+    var okBtn = makeEl(doc, 'button', 'nn-btn nn-btn-primary', 'Close')
+    okBtn.setAttribute('type', 'button')
+    okBtn.addEventListener('click', cancel)
+    foot.appendChild(okBtn)
+    dlg.appendChild(foot)
+
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target === dlg) cancel()
+    })
+    dlg.addEventListener('close', function () {
+      if (dlg.parentNode) dlg.parentNode.removeChild(dlg)
+    })
+
     return dlg
   }
 
@@ -15723,18 +15763,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             revealUnit(descriptor)
             return
           }
+          var handled = false
           var ctrl = state.controller
           if (ctrl && typeof ctrl.handleKuAction === 'function') {
-            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
-            return
+            handled = ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
           }
-          if (action === 'info' || action === 'changes') {
+          if (!handled && (action === 'info' || action === 'changes')) {
             var withFacts = Object.assign({}, descriptor, {
               facts: Object.assign({}, (descriptor && descriptor.facts) || {}, unitFacts(descriptor)),
             })
-            var panel = UI.KuInfoPanel(withFacts)
+            var panel = UI.KuInfoPanel(withFacts, {
+              onReveal: function () {
+                revealUnit(descriptor)
+              },
+            })
             if (active.body) active.body.appendChild(panel)
             if (panel && typeof panel.showModal === 'function') panel.showModal()
+            else if (panel) panel.setAttribute('open', 'true')
           }
         },
       })
