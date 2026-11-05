@@ -171,10 +171,10 @@ batch:: b4b-query-unification
 value:: M
 effort:: M
 risk:: H
-status:: open
+status:: retired
 lane:: heavy
-verdict:: current
-evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1229-1246 returns rejected for the whole file when schema validation fails on any touched model, and parse or blueprint-resolution failures reject the whole file too (:405-423). Re-verified 2026-11-05: unchanged. This is the only item of b4c still open, and it is a deliberate atomicity choice, not a bug: a mutation failure or a post-mutation validation failure rejects the whole changeset without recording it (the file stays `proposed` and retryable), while a precondition conflict already applies the rest and ends `partially_applied` (:2150). Making per-change failures skip instead of abort would change the documented all-or-none contract for every consumer, so it needs its own design note before any code.
+verdict:: obsolete
+evidence:: Retired 2026-11-05 by openspec/decisions/changeset-all-or-none.md: the all-or-none rejection is the contract every consumer relies on (the proposal_sha seal, the group unit in nn-update, retryability). Precondition conflicts already take the partial path (apply-change.ts:2150). A future need would be an explicit allow_partial opt-in, never a silent default. The original symptom (a 613-operation backfill blocked by six unaddressable elements) was fixed at its root by issue 491.
 batch:: b4c-changeset-contract
 
 ## NN Item: workspace-manifest-section-ownership
@@ -414,7 +414,7 @@ order:: 9
 lane:: heavy
 items:: changeset-per-change-skip
 risk:: H
-state:: planned
+state:: done
 
 ## NN Batch: b4d-manifest-section-ownership
 order:: 10
