@@ -141,8 +141,14 @@
     '.nn-popover-comment,.nn-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.nn-annotation-popover{width:100%}.nn-new-element{width:100%}}',
     '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:880px;width:min(880px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-modal-nested{max-width:740px;width:min(740px,calc(100vw - 48px));box-shadow:0 24px 64px rgba(0,0,0,.35)}',
+    '.nn-modal-nested::backdrop{background:rgba(0,0,0,.45)}',
     '.nn-view-modal-body{padding:16px 20px}',
     '.nn-view-modal-body .nn-card{border:none;box-shadow:none;background:transparent;padding:0;margin:0}',
+    '.nn-field-view-box{display:flex;flex-direction:column;gap:16px;padding:4px 0}',
+    '.nn-field-view-subtitle{margin:0 0 8px 0;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--nn-muted)}',
+    '.nn-field-view-val-section{padding:14px;background:var(--nn-surface-2);border-radius:var(--nn-radius-md,8px);border:1px solid var(--nn-border)}',
+    '.nn-field-view-val-text{font-size:.92rem;line-height:1.5;color:var(--nn-text);word-break:break-word}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -1741,10 +1747,14 @@
         }, { doc: doc }),
       )
     }
+    var elSlug = data.id
+    if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+      elSlug = elSlug.slice(unitModel.length + 1)
+    }
     badgesWrap.appendChild(
       Ku('element', {
         model: unitModel,
-        id: data.id,
+        id: elSlug,
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
@@ -1952,7 +1962,7 @@
                 ref: fr.ref,
                 citations: fr.citations,
                 model: unitModel,
-                element: data.id,
+                element: elSlug || data.id,
                 inherited: inheritedInfo,
               },
               {
@@ -2707,7 +2717,14 @@
     head.appendChild(title)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
     closeBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    modal.addEventListener('cancel', function (ev) {
+      if (ev && ev.preventDefault) ev.preventDefault()
       if (typeof modal.close === 'function') modal.close()
       else modal.removeAttribute('open')
       if (opts && typeof opts.onCancel === 'function') opts.onCancel()
@@ -2782,7 +2799,7 @@
     panelView.setAttribute('data-tab', 'view')
 
     var el = data.element
-    if (el) {
+    if (el && !data.fieldName) {
       var cardFields = []
       var fieldsSource = Array.isArray(el.fields) ? el.fields.slice() : []
       if (!fieldsSource.length && el.fields && typeof el.fields === 'object') {
@@ -2856,6 +2873,73 @@
         },
       )
       panelView.appendChild(card)
+    } else if (data.fieldName) {
+      var fieldBox = makeEl(doc, 'div', 'nn-field-view-box')
+      var headBadges = makeEl(doc, 'div', 'nn-card-badges')
+      var unitModel = (opts && (opts.modelId || opts.model)) || data.modelId || (el && (el.modelId || el.model)) || ''
+      if (data.concept) {
+        headBadges.appendChild(
+          Ku('section', {
+            model: unitModel,
+            concept: data.concept,
+            label: data.concept,
+          }, { doc: doc }),
+        )
+      }
+      if (el) {
+        var elSlug = el.id
+        if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+          elSlug = elSlug.slice(unitModel.length + 1)
+        }
+        headBadges.appendChild(
+          Ku('element', {
+            model: unitModel,
+            id: elSlug,
+            label: el.name || el.id,
+          }, { doc: doc }),
+        )
+      }
+      headBadges.appendChild(
+        Ku('field', {
+          model: unitModel,
+          concept: data.concept || '',
+          name: data.fieldName,
+          label: data.fieldName,
+        }, { doc: doc }),
+      )
+      fieldBox.appendChild(headBadges)
+
+      var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
+      var fieldRows = [
+        ['Field', data.fieldName],
+        ['Declared Type', data.type || 'string'],
+        ['Element', el ? (el.name || el.id) : (data.elementId || '')],
+        ['Concept', data.concept || ''],
+      ]
+      fieldRows.forEach(function (pair) {
+        if (!pair[1]) return
+        dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
+        dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
+      })
+      fieldBox.appendChild(dl)
+
+      var valSection = makeEl(doc, 'div', 'nn-field-view-val-section')
+      valSection.appendChild(makeEl(doc, 'h4', 'nn-field-view-subtitle', 'Current Value'))
+      var valNode = null
+      if (typeof FieldValue === 'function') {
+        valNode = FieldValue({
+          name: data.fieldName,
+          value: data.value,
+          type: data.type,
+        }, { doc: doc })
+      }
+      if (!valNode) {
+        valNode = makeEl(doc, 'div', 'nn-field-view-val-text', String(data.value == null ? '' : data.value))
+      }
+      valSection.appendChild(valNode)
+      fieldBox.appendChild(valSection)
+
+      panelView.appendChild(fieldBox)
     } else {
       var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
       var rows = [
@@ -2975,6 +3059,11 @@
     var histSection = makeEl(doc, 'div', 'nn-history-section')
     histSection.appendChild(makeEl(doc, 'h3', 'nn-history-title', 'Changes'))
     var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    if (data.fieldName) {
+      historyItems = historyItems.filter(function (h) {
+        return h && (h.field === data.fieldName || (typeof h.target === 'string' && h.target.endsWith('&' + data.fieldName)))
+      })
+    }
     historyItems.sort(function (a, b) {
       return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
     })
@@ -2994,7 +3083,7 @@
       })
     } else {
       histSection.appendChild(
-        makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes for this element.'),
+        makeEl(doc, 'div', 'nn-history-empty', data.fieldName ? 'No recorded changes for this field.' : 'No recorded changes for this element.'),
       )
     }
     panelHistory.appendChild(histSection)
@@ -4096,9 +4185,13 @@
         ? api.unitAddress.section(ref.model, ref.concept || ref.inheritedFrom || ref.name)
         : String(ref.model || '') + '@concept:' + slug(ref.concept || ref.inheritedFrom || ref.name)
     }
+    var elId = ref.element || ref.id
+    if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+      elId = elId.slice(ref.model.length + 1)
+    }
     return api && api.unitAddress
-      ? api.unitAddress.element(ref.model, ref.element || ref.id)
-      : String(ref.model || '') + '@' + slug(ref.element || ref.id)
+      ? api.unitAddress.element(ref.model, elId)
+      : String(ref.model || '') + '@' + slug(elId)
   }
 
   function unitAddressFor(kind, ref) {
@@ -4116,7 +4209,11 @@
           case 'section':
             return api.unitAddress.section(ref.model, ref.concept || ref.name)
           case 'element':
-            return api.unitAddress.element(ref.model, ref.id || ref.element)
+            var elId = ref.id || ref.element
+            if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+              elId = elId.slice(ref.model.length + 1)
+            }
+            return api.unitAddress.element(ref.model, elId)
           case 'value':
             if (ref.row && ref.col) {
               return api.unitAddress.cell(
@@ -4147,7 +4244,11 @@
       case 'section':
         return m + '@concept:' + slug(ref.concept || ref.name)
       case 'element':
-        return m + '@' + slug(ref.id || ref.element)
+        var fallbackElId = ref.id || ref.element
+        if (typeof fallbackElId === 'string' && m && fallbackElId.startsWith(m + '@')) {
+          fallbackElId = fallbackElId.slice(m.length + 1)
+        }
+        return m + '@' + slug(fallbackElId)
       case 'value':
         if (ref.row && ref.col) {
           return (

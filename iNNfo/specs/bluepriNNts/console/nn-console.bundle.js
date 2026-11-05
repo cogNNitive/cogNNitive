@@ -1248,8 +1248,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-popover-comment,.nn-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.nn-annotation-popover{width:100%}.nn-new-element{width:100%}}',
     '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:880px;width:min(880px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-modal-nested{max-width:740px;width:min(740px,calc(100vw - 48px));box-shadow:0 24px 64px rgba(0,0,0,.35)}',
+    '.nn-modal-nested::backdrop{background:rgba(0,0,0,.45)}',
     '.nn-view-modal-body{padding:16px 20px}',
     '.nn-view-modal-body .nn-card{border:none;box-shadow:none;background:transparent;padding:0;margin:0}',
+    '.nn-field-view-box{display:flex;flex-direction:column;gap:16px;padding:4px 0}',
+    '.nn-field-view-subtitle{margin:0 0 8px 0;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--nn-muted)}',
+    '.nn-field-view-val-section{padding:14px;background:var(--nn-surface-2);border-radius:var(--nn-radius-md,8px);border:1px solid var(--nn-border)}',
+    '.nn-field-view-val-text{font-size:.92rem;line-height:1.5;color:var(--nn-text);word-break:break-word}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -2848,10 +2854,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }, { doc: doc }),
       )
     }
+    var elSlug = data.id
+    if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+      elSlug = elSlug.slice(unitModel.length + 1)
+    }
     badgesWrap.appendChild(
       Ku('element', {
         model: unitModel,
-        id: data.id,
+        id: elSlug,
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
@@ -3059,7 +3069,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                 ref: fr.ref,
                 citations: fr.citations,
                 model: unitModel,
-                element: data.id,
+                element: elSlug || data.id,
                 inherited: inheritedInfo,
               },
               {
@@ -3814,7 +3824,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     head.appendChild(title)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
     closeBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    modal.addEventListener('cancel', function (ev) {
+      if (ev && ev.preventDefault) ev.preventDefault()
       if (typeof modal.close === 'function') modal.close()
       else modal.removeAttribute('open')
       if (opts && typeof opts.onCancel === 'function') opts.onCancel()
@@ -3889,7 +3906,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelView.setAttribute('data-tab', 'view')
 
     var el = data.element
-    if (el) {
+    if (el && !data.fieldName) {
       var cardFields = []
       var fieldsSource = Array.isArray(el.fields) ? el.fields.slice() : []
       if (!fieldsSource.length && el.fields && typeof el.fields === 'object') {
@@ -3963,6 +3980,73 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
       )
       panelView.appendChild(card)
+    } else if (data.fieldName) {
+      var fieldBox = makeEl(doc, 'div', 'nn-field-view-box')
+      var headBadges = makeEl(doc, 'div', 'nn-card-badges')
+      var unitModel = (opts && (opts.modelId || opts.model)) || data.modelId || (el && (el.modelId || el.model)) || ''
+      if (data.concept) {
+        headBadges.appendChild(
+          Ku('section', {
+            model: unitModel,
+            concept: data.concept,
+            label: data.concept,
+          }, { doc: doc }),
+        )
+      }
+      if (el) {
+        var elSlug = el.id
+        if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+          elSlug = elSlug.slice(unitModel.length + 1)
+        }
+        headBadges.appendChild(
+          Ku('element', {
+            model: unitModel,
+            id: elSlug,
+            label: el.name || el.id,
+          }, { doc: doc }),
+        )
+      }
+      headBadges.appendChild(
+        Ku('field', {
+          model: unitModel,
+          concept: data.concept || '',
+          name: data.fieldName,
+          label: data.fieldName,
+        }, { doc: doc }),
+      )
+      fieldBox.appendChild(headBadges)
+
+      var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
+      var fieldRows = [
+        ['Field', data.fieldName],
+        ['Declared Type', data.type || 'string'],
+        ['Element', el ? (el.name || el.id) : (data.elementId || '')],
+        ['Concept', data.concept || ''],
+      ]
+      fieldRows.forEach(function (pair) {
+        if (!pair[1]) return
+        dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
+        dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
+      })
+      fieldBox.appendChild(dl)
+
+      var valSection = makeEl(doc, 'div', 'nn-field-view-val-section')
+      valSection.appendChild(makeEl(doc, 'h4', 'nn-field-view-subtitle', 'Current Value'))
+      var valNode = null
+      if (typeof FieldValue === 'function') {
+        valNode = FieldValue({
+          name: data.fieldName,
+          value: data.value,
+          type: data.type,
+        }, { doc: doc })
+      }
+      if (!valNode) {
+        valNode = makeEl(doc, 'div', 'nn-field-view-val-text', String(data.value == null ? '' : data.value))
+      }
+      valSection.appendChild(valNode)
+      fieldBox.appendChild(valSection)
+
+      panelView.appendChild(fieldBox)
     } else {
       var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
       var rows = [
@@ -4082,6 +4166,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var histSection = makeEl(doc, 'div', 'nn-history-section')
     histSection.appendChild(makeEl(doc, 'h3', 'nn-history-title', 'Changes'))
     var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    if (data.fieldName) {
+      historyItems = historyItems.filter(function (h) {
+        return h && (h.field === data.fieldName || (typeof h.target === 'string' && h.target.endsWith('&' + data.fieldName)))
+      })
+    }
     historyItems.sort(function (a, b) {
       return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
     })
@@ -4101,7 +4190,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     } else {
       histSection.appendChild(
-        makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes for this element.'),
+        makeEl(doc, 'div', 'nn-history-empty', data.fieldName ? 'No recorded changes for this field.' : 'No recorded changes for this element.'),
       )
     }
     panelHistory.appendChild(histSection)
@@ -5203,9 +5292,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ? api.unitAddress.section(ref.model, ref.concept || ref.inheritedFrom || ref.name)
         : String(ref.model || '') + '@concept:' + slug(ref.concept || ref.inheritedFrom || ref.name)
     }
+    var elId = ref.element || ref.id
+    if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+      elId = elId.slice(ref.model.length + 1)
+    }
     return api && api.unitAddress
-      ? api.unitAddress.element(ref.model, ref.element || ref.id)
-      : String(ref.model || '') + '@' + slug(ref.element || ref.id)
+      ? api.unitAddress.element(ref.model, elId)
+      : String(ref.model || '') + '@' + slug(elId)
   }
 
   function unitAddressFor(kind, ref) {
@@ -5223,7 +5316,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           case 'section':
             return api.unitAddress.section(ref.model, ref.concept || ref.name)
           case 'element':
-            return api.unitAddress.element(ref.model, ref.id || ref.element)
+            var elId = ref.id || ref.element
+            if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+              elId = elId.slice(ref.model.length + 1)
+            }
+            return api.unitAddress.element(ref.model, elId)
           case 'value':
             if (ref.row && ref.col) {
               return api.unitAddress.cell(
@@ -5254,7 +5351,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       case 'section':
         return m + '@concept:' + slug(ref.concept || ref.name)
       case 'element':
-        return m + '@' + slug(ref.id || ref.element)
+        var fallbackElId = ref.id || ref.element
+        if (typeof fallbackElId === 'string' && m && fallbackElId.startsWith(m + '@')) {
+          fallbackElId = fallbackElId.slice(m.length + 1)
+        }
+        return m + '@' + slug(fallbackElId)
       case 'value':
         if (ref.row && ref.col) {
           return (
@@ -5866,6 +5967,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (el && isObject(el.rawFields) && Object.prototype.hasOwnProperty.call(el.rawFields, key)) {
       return el.rawFields[key]
     }
+    if (el && Array.isArray(el.fields)) {
+      var match = el.fields.find(function (f) {
+        return f && f.name === key
+      })
+      if (match) return match.value
+    }
     return el && el.fields ? el.fields[key] : undefined
   }
 
@@ -6251,15 +6358,37 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var needs = Array.isArray(options.needs) ? options.needs : []
     var store = options.store
     var elementsById = {}
-    elements.forEach(function (el) {
-      if (el && el.id) elementsById[el.id] = el
-    })
+    function indexElement(el) {
+      if (!el) return
+      if (el.id) elementsById[el.id] = el
+      if (el.slug && !elementsById[el.slug]) elementsById[el.slug] = el
+      if (typeof el.id === 'string') {
+        var at = el.id.indexOf('@')
+        if (at !== -1) {
+          var bare = el.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = el
+        }
+      }
+    }
+    elements.forEach(indexElement)
+
+    function resolveElement(id, modelId) {
+      if (!id) return null
+      if (elementsById[id]) return elementsById[id]
+      if (modelId && elementsById[modelId + '@' + id]) return elementsById[modelId + '@' + id]
+      if (typeof id === 'string') {
+        var at = id.indexOf('@')
+        if (at !== -1 && elementsById[id.slice(at + 1)]) return elementsById[id.slice(at + 1)]
+      }
+      return null
+    }
 
     // No review mode: an edit only ever creates a draft, so there is nothing to
     // "arm". Decoration and the edit affordance are always live; the changeset bar
     // is driven by the DRAFTS (see syncChangesetBar), not by a mode switch.
     var enabled = true
     var openPopover = null
+    var modalStack = []
     var lastAnchor = null
     var toastEl = null
     var toastTimer = null
@@ -6300,7 +6429,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function closePopover() {
       if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover)
+      if (modalStack.length > 0) {
+        openPopover = modalStack.pop()
+        if (openPopover && typeof openPopover.focus === 'function') {
+          openPopover.focus()
+        }
+      } else {
+        openPopover = null
+      }
+    }
+
+    function closeAllPopovers() {
+      if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover)
       openPopover = null
+      while (modalStack.length > 0) {
+        var m = modalStack.pop()
+        if (m && m.parentNode) m.parentNode.removeChild(m)
+      }
     }
 
     function valueKeyOf(v) {
@@ -6445,14 +6590,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: [],
         }
       }
-      var el = elementsById[anchorData.elementId]
+      var el = resolveElement(anchorData.elementId, anchorData.modelId)
       if (!el || typeof UI.EditModal !== 'function') return null
       var base = {
         citations: flattenCitations(el.citations),
         history: Array.isArray(el.history) ? el.history : [],
       }
       if (anchorData.relRetarget) {
-        var relTargetEl = elementsById[anchorData.relTarget]
+        var relTargetEl = resolveElement(anchorData.relTarget, anchorData.modelId)
         return {
           title: 'Retarget ' + (el.name || anchorData.elementId) + ' \u2192 ' + anchorData.relField,
           fieldName: anchorData.relField,
@@ -6469,7 +6614,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       var field = anchorData.field
-      if (!field) return null
+      if (!field) {
+        return {
+          title: el.name || anchorData.elementId,
+          fieldName: null,
+          value: null,
+          citations: base.citations,
+          history: base.history,
+          modelId: el.modelId || meta.modelId,
+        }
+      }
       if (field === '__name') {
         return {
           title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 name',
@@ -6555,8 +6709,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function openModalFor(anchorData, target) {
-      var targetEl = elementsById[anchorData.elementId]
-      var modalTitle = anchorData.info && targetEl ? (targetEl.name || anchorData.elementId) : target.title
+      var targetEl = resolveElement(anchorData.elementId, anchorData.modelId)
+      var modalTitle = target.title
+      if (anchorData.info) {
+        if (anchorData.field) {
+          modalTitle = (targetEl ? (targetEl.name || anchorData.elementId) : anchorData.elementId) + ' \u2192 ' + anchorData.field
+        } else if (targetEl) {
+          modalTitle = targetEl.name || anchorData.elementId
+        }
+      }
       var modal = UI.EditModal(
         {
           title: modalTitle,
@@ -6586,7 +6747,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
           connections: connectionsFor(targetEl),
-          startTab: anchorData.info ? 'view' : (anchorData.edit ? 'edit' : 'view'),
+          startTab: anchorData.startTab || (anchorData.info ? 'view' : (anchorData.edit ? 'edit' : 'view')),
         },
         {
           doc: doc,
@@ -6611,10 +6772,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           onCancel: function () {
             closePopover()
-            if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
+            if (!openPopover && lastAnchor && typeof lastAnchor.focus === 'function') {
+              lastAnchor.focus()
+            }
           },
         },
       )
+      if (modalStack.length > 0) {
+        modal.classList.add('nn-modal-nested')
+        modal.setAttribute('data-nested-modal', 'true')
+      }
       doc.body.appendChild(modal)
       openPopover = modal
       if (typeof modal.showModal === 'function') {
@@ -6631,7 +6798,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Validate first: an invalid call must not close the open popover or
       // move the focus anchor.
       var target = kuModalTarget(anchorData)
-      var el = elementsById[anchorData.elementId]
+      var el = resolveElement(anchorData.elementId, anchorData.modelId)
       if (!target && anchorData.comment && el) {
         target = {
           title: 'Comment on ' + (el.name || anchorData.elementId),
@@ -6648,7 +6815,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // inside the modal being replaced does not count.
       var focused = doc.activeElement
       if (openPopover && focused && openPopover.contains(focused)) focused = lastAnchor
-      closePopover()
+
+      if (openPopover) {
+        if (openPopover.tagName === 'DIALOG') {
+          modalStack.push(openPopover)
+        } else if (openPopover.parentNode) {
+          openPopover.parentNode.removeChild(openPopover)
+          openPopover = null
+        }
+      }
+
       lastAnchor = focused && focused !== doc.body ? focused : null
       if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
       if (anchorData.structure) target = Object.assign({}, target, { structure: true })
@@ -6668,7 +6844,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Tag membership is a `correction` on the `tags` Field carrying the full
       // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
-        var elTag = elementsById[anchorData.elementId]
+        var elTag = resolveElement(anchorData.elementId, anchorData.modelId)
         var curTags = effectiveTagsOf(elTag)
         var nextTags = curTags.filter(function (t) {
           return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
@@ -6711,9 +6887,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               ? 'Annotate field'
               : 'Annotate element',
       }
-      if (anchorData.field && elementsById[anchorData.elementId]) {
-        var el = elementsById[anchorData.elementId]
-        data.original = docFieldValue(el, anchorData.field)
+      var targetEl = resolveElement(anchorData.elementId, anchorData.modelId)
+      if (anchorData.field && targetEl) {
+        data.original = docFieldValue(targetEl, anchorData.field)
       }
       var pop = UI.AnnotationPopover(data, {
         doc: doc,
@@ -6829,7 +7005,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function openNew() {
       var concepts = schemaConcepts()
       if (!concepts.length || typeof UI.NewElementModal !== 'function') return false
-      closePopover()
+      if (openPopover) {
+        if (openPopover.tagName === 'DIALOG') {
+          modalStack.push(openPopover)
+        } else if (openPopover.parentNode) {
+          openPopover.parentNode.removeChild(openPopover)
+          openPopover = null
+        }
+      }
       var modal = UI.NewElementModal(
         {
           concepts: concepts.map(function (c) {
@@ -6895,7 +7078,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var tag = target && target.tagName ? String(target.tagName).toLowerCase() : ''
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return
       if (target && target.isContentEditable) return
-      if (openPopover) return
+      if (openPopover || (modalStack && modalStack.length)) return
 
       var visible = []
       Array.prototype.forEach.call(
@@ -7382,7 +7565,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (subs.length === 1) {
         return { elementId: unit, modelId: model, field: subs[0] }
       }
-      return { elementId: unit, modelId: model, field: '__name' }
+      return { elementId: unit, modelId: model, field: null }
     }
 
     // One descriptor-driven entry point for every Ku action. `Ku` never knows
