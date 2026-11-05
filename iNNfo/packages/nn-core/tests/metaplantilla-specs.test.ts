@@ -227,7 +227,7 @@ Reviews the pull request.
       'bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md',
       'bluepriNNts/organization/samples/Ghostbusters_V_0-4-1_organization_NN.md',
       'bluepriNNts/procedures/samples/Ghostbusters_V_0-5-1_procedures_NN.md',
-      'bluepriNNts/projects/samples/Ghostbusters_V_0-4-1_projects_NN.md',
+      'bluepriNNts/projects/samples/Ghostbusters_V_0-4-3_projects_NN.md',
     ]) {
       const content = readSpec(p)
       const body = content.replace(/^---[\s\S]*?---\n/, '')
@@ -271,7 +271,7 @@ Reviews the pull request.
   })
 
   it('parses the Ghostbusters projects sample with dependencies and RACI matrix', () => {
-    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-4-1_projects_NN.md')
+    const content = readSpec('bluepriNNts/projects/samples/Ghostbusters_V_0-4-3_projects_NN.md')
     const parsed = parseKnowledge(content)
     const tasks = parsed.elements.get('Task')!
     expect(tasks).toHaveLength(4)

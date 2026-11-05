@@ -172,6 +172,7 @@ exports[`Field Definition Concept Targets and Includes Composition (Task 1.8) > 
   "Phases": [
     "end_date",
     "health",
+    "order",
     "phase_status",
     "start_date",
     "tags",
