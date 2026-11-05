@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-6-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-6-0_NN.md"
-blueprint_version: "V_0-4-2"
+blueprint_version: "V_0-4-3"
 title: "Projects App"
 procedures:
   - id: "calculate-critical-path"
@@ -153,6 +153,11 @@ type:: string
 ## NN Field Definition: end_date
 concept:: Phases
 type:: string
+
+## NN Field Definition: order
+concept:: Phases
+type:: number
+description:: Position of the phase inside the project's sequence. Reorder by updating it with one update_field change per phase in the same changeset.
 
 ## NN Field Definition: impact
 concept:: Risk
@@ -377,6 +382,7 @@ Phases break the project lifecycle into a sequence of stages that structure plan
 - Name phases after the decision they end, not after the work they contain.
 - Give every phase an entrance and an exit criterion.
 - Avoid more than seven phases; merge the ones that share a criterion.
+- Order the phases with the `order` field. To reorder, emit one `update_field` per changed phase in the same changeset (`<model>@<phase>&order`), never a direct file edit: the changeset is what makes the reorder atomic and recorded.
 
 ### Prompts
 
