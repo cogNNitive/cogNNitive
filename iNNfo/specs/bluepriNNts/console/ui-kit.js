@@ -149,6 +149,7 @@
     '.nn-field-view-subtitle{margin:0 0 8px 0;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--nn-muted)}',
     '.nn-field-view-val-section{padding:14px;background:var(--nn-surface-2);border-radius:var(--nn-radius-md,8px);border:1px solid var(--nn-border)}',
     '.nn-field-view-val-text{font-size:.92rem;line-height:1.5;color:var(--nn-text);word-break:break-word}',
+    '.nn-change-diff-preview{font-family:var(--nn-mono);font-size:.78rem;background:var(--nn-surface-2);color:var(--nn-text);padding:2px 8px;border-radius:var(--nn-radius-sm);border:1px solid var(--nn-border);max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:4px}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -2187,6 +2188,47 @@
     var op = opts.op || entry.op || draftOp(entry)
     var head = []
 
+    // Diff preview: original -> changed (visible both collapsed and expanded)
+    var diff = cardDiff(op, entry)
+    if (diff) {
+      var diffEl = makeEl(doc, 'span', 'nn-change-diff-preview', diff)
+      diffEl.setAttribute('title', diff)
+      head.push(diffEl)
+    }
+
+    // Evidence / citation icon in header (visible both collapsed and expanded)
+    var rawEvidence =
+      variant === 'draft' ? entry.sources || entry.evidence : entry.evidence || entry.sources
+    var evidenceList =
+      rawEvidence == null ? [] : Array.isArray(rawEvidence) ? rawEvidence : [rawEvidence]
+    var headerCitations = []
+    if (entry.evidenceCitation) {
+      headerCitations.push(entry.evidenceCitation)
+    } else if (evidenceList.length) {
+      evidenceList.forEach(function (src) {
+        if (src == null || src === '') return
+        headerCitations.push({
+          origin: typeof src === 'object' && src.origin ? src.origin : 'document',
+          path: typeof src === 'object' && src.path ? src.path : String(src),
+          exists: true,
+          field: 'evidence',
+        })
+      })
+    }
+    if (headerCitations.length && typeof CitationIcons === 'function') {
+      var citeWrap = CitationIcons('evidence', headerCitations, {
+        doc: doc,
+        onOpen: opts.onCite,
+      })
+      if (Array.isArray(citeWrap)) {
+        citeWrap.forEach(function (n) {
+          if (n) head.push(n)
+        })
+      } else if (citeWrap) {
+        head.push(citeWrap)
+      }
+    }
+
     if (variant === 'draft' && typeof StatusBadge === 'function') {
       var badge = StatusBadge({ status: 'local', label: COPY.unsent })
       badge.classList.add('nn-change-card-badge')
@@ -3074,8 +3116,8 @@
             { entry: h, variant: 'applied' },
             {
               doc: doc,
-              collapsible: false,
-              open: true,
+              collapsible: true,
+              open: false,
               onCite: opts && typeof opts.onEvidence === 'function' ? opts.onEvidence : undefined,
             },
           ),

@@ -176,4 +176,76 @@ describe('Unified KU Inspector Modal - Element Sheet View', () => {
     assert.equal(remainingModals[0], elModal, 'Parent element modal is preserved intact')
     assert.equal(remainingModals[0].querySelector('.nn-edit-modal-head h2').textContent, 'Element 1A')
   })
+
+  test('EditModal Changes tab renders collapsed change sheets with diff preview and evidence icon', () => {
+    const dom = new JSDOM('<!DOCTYPE html><html><head></head><body></body></html>')
+    const { document } = dom.window
+
+    const element = {
+      id: 'TestLab_coverage_TestLab@element-1a',
+      name: 'Element 1A',
+      concept: 'Concept 1',
+      history: [
+        {
+          id: 'ch-001',
+          op: 'update_field',
+          target: 'TestLab_coverage_TestLab@element-1a&status',
+          field: 'status',
+          from: 'draft',
+          to: 'published',
+          author: 'lucas',
+          timestamp: '2026-11-05T10:00:00Z',
+          evidence: 'sources/review-evidence.md',
+          evidenceCitation: {
+            origin: 'document',
+            path: 'sources/review-evidence.md',
+            exists: true,
+            field: 'evidence',
+          },
+        },
+      ],
+    }
+
+    const modal = ui.EditModal(
+      {
+        title: element.name,
+        element: element,
+        elementId: element.id,
+        concept: element.concept,
+        history: element.history,
+        startTab: 'history',
+      },
+      {
+        doc: document,
+      },
+    )
+
+    document.body.appendChild(modal)
+
+    const historyPanel = modal.querySelector('.nn-history-modal-body')
+    assert.ok(historyPanel, 'History panel exists')
+
+    const changeCard = historyPanel.querySelector('[data-nn-component="element-card"]')
+    assert.ok(changeCard, 'Change card rendered as ElementCard')
+
+    // Must be collapsible and start collapsed
+    assert.equal(changeCard.getAttribute('data-open'), 'false', 'Change card starts collapsed')
+    const toggle = changeCard.querySelector('.nn-card-toggle')
+    assert.ok(toggle, 'Toggle button exists')
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false', 'Toggle is not expanded')
+
+    // Must contain diff preview with from -> to in header
+    const diffPreview = changeCard.querySelector('.nn-change-diff-preview')
+    assert.ok(diffPreview, 'Diff preview pill rendered in card head')
+    assert.match(diffPreview.textContent, /draft\s*→\s*published/, 'Diff shows original and changed values with arrow')
+
+    // Must contain evidence citation icon in header
+    const citeIcon = changeCard.querySelector('.nn-card-head .cite-icon')
+    assert.ok(citeIcon, 'Citation icon rendered in card head')
+    assert.equal(citeIcon.getAttribute('data-origin'), 'document', 'Evidence citation has document origin')
+
+    // Clicking header expands the card
+    toggle.click()
+    assert.equal(changeCard.getAttribute('data-open'), 'true', 'Card expands on toggle click')
+  })
 })
