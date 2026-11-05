@@ -51,7 +51,7 @@ risk:: L
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: Checked 2026-10-31 and stopped: no blueprint declares type:: audio, and only coNNtent declares video and file but has no sample under test/_samples_nn (samples there are write-through mirrors synced into iNNfo/specs/bluepriNNts/*/samples by scripts/sync-samples.mjs). A sample with audio, video and file fields therefore needs a published blueprint change (audio field type, version bump, repin) plus a new sample mapping, which exceeds the light lane. test/console-s3b-parity.test.mjs:52-58,230-235 still covers video with an inline fixture.
+evidence:: Re-checked 2026-11-05: no blueprint declares type:: audio, and no sample under test/_samples_nn carries audio, video and file. Still current. The work needs a coNNtent field addition, a new sample and the console parity assertion, so it is the largest of the batch.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
 batch:: b2-published-blueprints
 
@@ -59,10 +59,10 @@ batch:: b2-published-blueprints
 value:: M
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/sources/spec_NN.md:65,81,89,113-114,119 and visual-catalog/spec_NN.md:123,292 plus visual-catalog/procedures/ingest_visual_catalog_procedures_NN.md:174 name sources/original/ and sources/nn/, retired per openspec/specs/workspace-directory-conventions/spec.md:5 and docs/documentation/content/vocabulary.md:133.
+evidence:: Shipped in the bp-batch-1 session (2026-11-05). sources, visual-catalog and its procedure no longer name sources/original/ or sources/nn/: raw assets live in sources/import/ and the normalized text lives in the co-located sidecar. sources went V_0-3-2 -> V_0-3-3, visual-catalog V_0-3-3 -> V_0-3-4, and regen.js refreshed canonical-registry.ts and catalog.json.
 merged_from:: skills-blueprints-hygiene-sources-drift, cognitivize-in-place-spec-rename
 done_when:: sources, visual-catalog and its procedure no longer name retired folders, with blueprint_version bumped and canonical-registry.ts and catalog.json regenerated.
 batch:: b2-published-blueprints
@@ -71,10 +71,10 @@ batch:: b2-published-blueprints
 value:: L
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/business-model/spec_NN.md:294,300 define Contributions and Compensations only as Concept Definitions with no guidance sections; analysis has no Validation section; validator rule at iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:260. Issue 228 is wider than this Item: it also names the projects concepts, a policy decision for system blueprints and the l3-index-ignored reconciliation.
+evidence:: Shipped in the bp-batch-1 session (2026-11-05). analysis, business-model and projects now carry Summary, Description, Methodologies and Prompts for every concept (Validation, Contributions, Compensations and Procedure had no section at all). A local audit over all blueprints reports them complete; the remaining gaps (artifacts, blank, changes, documentation, domaiNN, sidecar, sources) are outside this item.
 done_when:: business-model, analysis and projects carry the missing Summary, Description, Methodologies and Prompts sections and the validator reports no PARENT_CONCEPT_GUIDANCE_INCOMPLETE for them.
 ref:: issue-228
 batch:: b2-published-blueprints
@@ -83,10 +83,10 @@ batch:: b2-published-blueprints
 value:: L
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/changes/spec_NN.md:40,150 list rename_element but never explain the slug freeze; the cascade is only stated informally at docs/documentation/content/skills/nn-innfo.md:72-75 (WikiLinks, matrices and cross-references renamed); a cheaper home exists at docs/documentation/content/reference/mcp-tools.md:24.
+evidence:: Shipped in the bp-batch-1 session (2026-11-05). The changes blueprint documents the cascade in one place: the display name changes, the slug is immutable, and taxonomy labels, matrix row/column labels, wikilinks, declared reference/knowledge fields and relationships[].target are rewritten in the same atomic apply. changes went V_0-8-0 -> V_0-8-1.
 done_when:: The rename_element cascade and slug freeze are documented in one place.
 ref:: issue-244
 batch:: b2-published-blueprints
@@ -95,10 +95,10 @@ batch:: b2-published-blueprints
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: No order field exists outside iNNfo/specs/bluepriNNts/documentation/spec_NN.md:89,126, and CHANGE_OPS in iNNfo/packages/nn-core/src/changeset/types.ts:7-20 has no reorder op. Decision 2026-10-31: model order as a number field named order moved with update_field; the reorder changeset op is the rejected alternative and a console drag and drop writes order through update_field.
+evidence:: Shipped in the bp-batch-1 session (2026-11-05). Only projects declares a sequence concept (Phases), so it gained an order number field and the reorder recipe (one update_field per changed phase in the same changeset) in its Phases guidance. coNNtent stays excluded. projects went V_0-4-2 -> V_0-4-3.
 merged_from:: issue-222, console-element-reorder
 done_when:: The blueprints where ordering matters declare order as a number field and the recipe for reordering by update_field is documented. The coNNtent blueprint is excluded: its spec_NN.md:293,399 forbid an order:: field and order Scenes by the # NN index list. The issue text names docs/innfo/documentation/manual-editing-risks.md, which no longer exists (the docs/innfo tree was dropped), so the recipe needs a new home.
 ref:: issue-222
@@ -111,7 +111,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/business/procedures/ contains only usage_procedures_NN.md with no gates or methodology links; the blueprint is at V_0-5-1.
+evidence:: iNNfo/specs/bluepriNNts/business/procedures/ still contains only usage_procedures_NN.md, with no gates or methodology links (business is at V_0-5-2). Re-checked 2026-11-05. NOT BRIEFABLE: the item has no done_when, so it needs refinement before implementation; which activities deserve a gate is a product decision, not a mechanical fix.
 batch:: b2-published-blueprints
 
 ## NN Item: source-import-guards
@@ -356,9 +356,9 @@ batch:: b3e-console-payload-size
 ## NN Batch: b2-published-blueprints
 order:: 1
 lane:: heavy
-items:: sample-media-fields, sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion
+items:: sample-media-fields, business-guided-completion
 risk:: M
-state:: planned
+state:: in-progress
 
 ## NN Batch: b3a-source-import-guards
 order:: 2
