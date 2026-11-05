@@ -9142,53 +9142,58 @@ input[type="text"], input[type="search"], textarea, select {
   padding-bottom: 8px;
 }
 
-.nn-pipeline-cards {
+.nn-pipeline-nodes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
   max-height: calc(100vh - 280px);
 }
 
-.nn-pipeline-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+.nn-pipeline-node {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: opacity 0.15s ease, filter 0.15s ease;
 }
 
-.nn-pipeline-card:hover {
-  border-color: var(--primary);
-  transform: translateY(-1px);
+.nn-pipeline-node .nn-ku-wrap {
+  width: 100%;
+  min-width: 0;
 }
 
-.nn-pipeline-card.nn-pipeline-highlight {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+.nn-pipeline-node .nn-ku-wrap > .nn-ku,
+.nn-pipeline-node > .nn-ku {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.nn-pipeline-card.dimmed {
-  opacity: 0.25;
-  filter: grayscale(0.8);
-}
-
-.nn-pipeline-card-name {
-  display: block;
-  font-weight: 600;
+.nn-pipeline-node .nn-ku-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.nn-pipeline-card-sub {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-family: var(--mono);
+.nn-pipeline-node:hover .nn-ku {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface-2));
+}
+
+.nn-pipeline-node:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.nn-pipeline-node.nn-pipeline-highlight .nn-ku,
+.nn-pipeline-node.nn-pipeline-selected .nn-ku {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.nn-pipeline-node.dimmed {
+  opacity: 0.25;
+  filter: grayscale(0.8);
 }
 
 /* Native Modal File Preview Dialog */

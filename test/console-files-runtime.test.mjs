@@ -186,7 +186,7 @@ describe('Files tab runtime', () => {
     assert.ok(code.textContent.includes('<script>alert(1)</script>'), 'content stays literal text')
   })
 
-  it('switches to the pipeline view and traces a source', () => {
+  it('switches to the pipeline view and selects a source by click', () => {
     const document = bootFromShell(FILES_MODEL)
     document.querySelector('.nn-view-tab[data-tab="files"]').click()
     document.getElementById('nn-files-mode-pipeline').click()
@@ -197,18 +197,31 @@ describe('Files tab runtime', () => {
     assert.ok(pipeline.textContent.includes('Origins'))
     assert.ok(pipeline.textContent.includes('Artifacts'))
     const changeStage = [...stages].find((s) => s.textContent.includes('Changes'))
-    assert.equal(changeStage.querySelectorAll('.nn-pipeline-card').length, 1, 'changes come from the domain changesets')
+    assert.equal(changeStage.querySelectorAll('.nn-pipeline-node').length, 1, 'changes come from the domain changesets')
     assert.ok(changeStage.textContent.includes('Initial change'), 'the changeset title is shown')
 
-    const sourceCard = [...pipeline.querySelectorAll('.nn-pipeline-card')].find((c) =>
-      c.textContent.includes('spec.md'),
+    // Nodes are badges, never cards: units keep the canonical Ku badge.
+    const unitNodes = [...stages]
+      .find((s) => s.textContent.includes('Units'))
+      .querySelectorAll('.nn-pipeline-node')
+    assert.ok(unitNodes.length > 0, 'units stage has nodes')
+    assert.ok(unitNodes[0].querySelector('.nn-ku-wrap [data-nn-component="ku-unit"]'), 'unit nodes use the Ku badge')
+
+    const sourceNode = [...pipeline.querySelectorAll('.nn-pipeline-node')].find((n) =>
+      n.textContent.includes('spec.md'),
     )
-    sourceCard.dispatchEvent(new document.defaultView.Event('mouseenter'))
-    assert.ok(sourceCard.classList.contains('nn-pipeline-highlight'))
-    const artifactCard = [...pipeline.querySelectorAll('.nn-pipeline-card')].find((c) =>
-      c.textContent.includes('summary.html'),
+    // Hover no longer traces: selection is an explicit click.
+    sourceNode.dispatchEvent(new document.defaultView.Event('mouseenter'))
+    assert.ok(!sourceNode.classList.contains('nn-pipeline-selected'), 'hover does not select')
+    sourceNode.click()
+    assert.ok(sourceNode.classList.contains('nn-pipeline-selected'), 'click selects the node')
+    assert.equal(sourceNode.getAttribute('aria-pressed'), 'true')
+    const artifactNode = [...pipeline.querySelectorAll('.nn-pipeline-node')].find((n) =>
+      n.textContent.includes('summary.html'),
     )
-    assert.ok(artifactCard && !artifactCard.classList.contains('dimmed'), 'lineage link stays lit')
+    assert.ok(artifactNode && !artifactNode.classList.contains('dimmed'), 'lineage link stays lit')
+    sourceNode.click()
+    assert.ok(!sourceNode.classList.contains('nn-pipeline-selected'), 'second click clears the selection')
   })
 
   it('deep-links to a file through #files&path=', () => {

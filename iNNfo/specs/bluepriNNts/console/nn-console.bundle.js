@@ -12909,6 +12909,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // Which units cite which file, matched the same way export does. A unit cites
     // the sidecar document, so the path is folded back to its subject file.
+    // Changesets are materialized as `Change` pseudo-units (`<batch>#<id>`); they
+    // are NOT knowledge units and get their own bucket and badge.
     var SIDECAR_SUFFIX = '_sidecar_NN.md'
     function citationSubject(raw) {
       var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
@@ -12918,9 +12920,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return norm
     }
 
+    function isChangeUnit(e) {
+      return !!(e && e.concept === 'Change' && String(e.id).indexOf('#') >= 0)
+    }
+
+    // `testlab_admin_intake_changes_NN#a-01` -> `testlab_admin_intake` (the
+    // changeset node id the pipeline Changes column uses).
+    function changeNodeIdOf(unitId) {
+      return String(unitId).split('#')[0].replace(/_changes_NN$/, '')
+    }
+
     var unitsByPath = {}
+    var changesByPath = {}
     elements.forEach(function (e) {
       if (!e || !e.citations) return
+      var asChange = isChangeUnit(e)
       Object.keys(e.citations).forEach(function (field) {
         var list = e.citations[field]
         if (!Array.isArray(list)) return
@@ -12930,15 +12944,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var norm = citationSubject(raw)
           inventory.forEach(function (f) {
             if (f.path === norm || f.path.endsWith('/' + norm) || norm.endsWith('/' + f.path)) {
-              if (!unitsByPath[f.path]) unitsByPath[f.path] = []
-              if (unitsByPath[f.path].indexOf(e.id) < 0) unitsByPath[f.path].push(e.id)
+              var bucket = asChange ? changesByPath : unitsByPath
+              var key = asChange ? changeNodeIdOf(e.id) : e.id
+              if (!bucket[f.path]) bucket[f.path] = []
+              if (bucket[f.path].indexOf(key) < 0) bucket[f.path].push(key)
             }
           })
         })
       })
     })
 
-    var state = { mode: 'explorer', selected: '', collapsed: {}, query: '' }
+    var state = { mode: 'explorer', selected: '', pipelineSelected: '', collapsed: {}, query: '' }
 
     var elementsById = {}
     elements.forEach(function (e) {
@@ -12949,6 +12965,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var target = elementsById[unitId]
       var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
       if (target && target.concept) ref.concept = target.concept
+      // The address needs the owning model: without it the badge renders a bare
+      // `@slug`, which is not a parseable unit address.
+      if (target && target.modelId) ref.model = target.modelId
       if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', ref.label)
       try {
         return UI.Ku('element', ref, {
@@ -12960,6 +12979,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       } catch {
         return el('span', 'nn-badge', ref.label)
       }
+    }
+
+    // A non-KU node still reads like a console badge: same `nn-ku` shell and
+    // nature grammar, no unit affordances (it is not a knowledge unit).
+    var NON_KU_BADGE = {
+      origins: { kind: 'document', nature: 'container', home: 'domain' },
+      sources: { kind: 'source', nature: 'content', home: 'source' },
+      changes: { kind: 'section', nature: 'container', home: 'model' },
+      artifacts: { kind: 'source', nature: 'content', home: 'source' },
+      change: { kind: 'section', nature: 'container', home: 'model' },
+    }
+
+    function similarBadge(kindKey, label, title) {
+      var spec = NON_KU_BADGE[kindKey] || NON_KU_BADGE.sources
+      var badge = el('span', 'nn-ku nn-similar-badge')
+      badge.setAttribute('data-ku-kind', spec.kind)
+      badge.setAttribute('data-ku-nature', spec.nature)
+      badge.setAttribute('data-ku-home', spec.home)
+      if (title) badge.setAttribute('title', title)
+      badge.appendChild(el('span', 'nn-ku-label', label))
+      return badge
     }
 
     function matchesQuery(entry) {
@@ -13259,6 +13299,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var citedUnits = unitsByPath[entry.path] || []
+      var citedChanges = changesByPath[entry.path] || []
       var citSection = el('div', 'nn-file-section')
       citSection.appendChild(
         el('h3', 'nn-files-section-title', 'Knowledge units (' + String(citedUnits.length) + ')'),
@@ -13271,10 +13312,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         citSection.appendChild(list)
       } else {
         citSection.appendChild(
-          el('p', 'nn-file-hint', 'No knowledge unit cites this file, and no change uses it as evidence.'),
+          el(
+            'p',
+            'nn-file-hint',
+            citedChanges.length
+              ? 'No knowledge unit cites this file directly; the changes below reference it.'
+              : 'No knowledge unit cites this file, and no change uses it as evidence.',
+          ),
         )
       }
       card.appendChild(citSection)
+
+      if (citedChanges.length) {
+        var changeSection = el('div', 'nn-file-section')
+        changeSection.appendChild(
+          el('h3', 'nn-files-section-title', 'Changes (' + String(citedChanges.length) + ')'),
+        )
+        var changeList = el('div', 'nn-lineage-units')
+        citedChanges.forEach(function (csId) {
+          changeList.appendChild(similarBadge('change', csId))
+        })
+        changeSection.appendChild(changeList)
+        card.appendChild(changeSection)
+      }
 
       var line = lineage[entry.path]
       if (line) {
@@ -13364,6 +13424,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var target = elementsById[id]
           return {
             id: 'unit:' + id,
+            unitId: id,
             name: (target && (target.name || target.slug)) || id,
             sub: 'knowledge unit',
           }
@@ -13379,29 +13440,77 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         head.appendChild(el('span', null, stage.title))
         head.appendChild(el('span', 'nn-category-badge', String(content[stage.id].length)))
         col.appendChild(head)
-        var cards = el('div', 'nn-pipeline-cards')
+        var nodes = el('div', 'nn-pipeline-nodes')
         content[stage.id].forEach(function (item) {
-          var card = el('div', 'nn-pipeline-card')
-          card.setAttribute('data-node', item.id)
-          card.appendChild(el('span', 'nn-pipeline-card-name', item.name))
-          card.appendChild(el('span', 'nn-pipeline-card-sub', item.sub))
-          card.addEventListener('mouseenter', function () {
-            highlight(item.id)
-          })
-          card.addEventListener('mouseleave', clearHighlight)
-          card.addEventListener('click', function () {
-            var path = item.id.indexOf('file:') === 0 ? item.id.slice(5) : ''
-            if (path && byPath[path]) selectFile(path)
-          })
-          cards.appendChild(card)
+          nodes.appendChild(pipelineNode(stage.id, item))
         })
-        col.appendChild(cards)
+        col.appendChild(nodes)
         pipeline.appendChild(col)
+      })
+
+      // Clicking the empty area of the flow clears the pinned selection.
+      pipeline.onclick = function (ev) {
+        if (ev && ev.target === pipeline) clearPipelineSelection()
+      }
+    }
+
+    function pipelineNode(stageId, item) {
+      var node = el('div', 'nn-pipeline-node')
+      node.setAttribute('data-node', item.id)
+      node.setAttribute('role', 'button')
+      node.setAttribute('tabindex', '0')
+      node.setAttribute('aria-pressed', 'false')
+      node.setAttribute('title', item.name + ' \u2014 ' + item.sub)
+      // Units use the official console badge; every other stage is not a KU and
+      // gets the matching non-unit badge.
+      var badge =
+        stageId === 'units' && item.unitId
+          ? kuBadge(item.unitId)
+          : similarBadge(stageId, item.name, item.sub)
+      node.appendChild(badge)
+      node.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        selectPipelineNode(item.id)
+      })
+      node.addEventListener('keydown', function (ev) {
+        var key = ev && ev.key
+        if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return
+        if (ev.preventDefault) ev.preventDefault()
+        selectPipelineNode(item.id)
+      })
+      return node
+    }
+
+    // Selection replaces the old hover trace: a click pins the node and its
+    // connected chain; clicking the same node (or the empty column area) clears.
+    function selectPipelineNode(nodeId) {
+      state.pipelineSelected = state.pipelineSelected === nodeId ? '' : nodeId
+      syncPipelineSelection()
+      // A file node keeps its explorer detail in sync with the pinned node.
+      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
+      if (state.pipelineSelected && path && byPath[path]) selectFile(path)
+    }
+
+    function clearPipelineSelection() {
+      state.pipelineSelected = ''
+      syncPipelineSelection()
+    }
+
+    function syncPipelineSelection() {
+      if (!pipeline) return
+      if (state.pipelineSelected) highlight(state.pipelineSelected)
+      else clearHighlight()
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var on = node.getAttribute('data-node') === state.pipelineSelected
+        node.classList.toggle('nn-pipeline-selected', on)
+        node.setAttribute('aria-pressed', on ? 'true' : 'false')
       })
     }
 
-    // Hover tracing: a source lights up the units that cite it and the artifacts
-    // whose reverse lineage points back at it. Everything else dims.
+    // Selection tracing: a source lights up the units that cite it, the changes
+    // that use it as evidence, and the artifacts whose reverse lineage points
+    // back at it. Everything else dims.
     function connectedTo(nodeId) {
       var out = {}
       out[nodeId] = true
@@ -13410,6 +13519,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var units = unitsByPath[path] || []
       units.forEach(function (uid) {
         out['unit:' + uid] = true
+      })
+      ;(changesByPath[path] || []).forEach(function (csId) {
+        out['change:' + csId] = true
       })
       Object.keys(lineage).forEach(function (artifactPath) {
         var entry = lineage[artifactPath]
@@ -13430,19 +13542,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function highlight(nodeId) {
       var keep = connectedTo(nodeId)
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        var id = card.getAttribute('data-node')
-        card.classList.toggle('nn-pipeline-highlight', id === nodeId)
-        card.classList.toggle('dimmed', !keep[id])
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var id = node.getAttribute('data-node')
+        node.classList.toggle('nn-pipeline-highlight', id === nodeId)
+        node.classList.toggle('dimmed', !keep[id])
       })
     }
 
     function clearHighlight() {
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        card.classList.remove('dimmed')
-        card.classList.remove('nn-pipeline-highlight')
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        node.classList.remove('dimmed')
+        node.classList.remove('nn-pipeline-highlight')
       })
     }
 
