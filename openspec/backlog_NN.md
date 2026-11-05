@@ -283,11 +283,11 @@ evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no arch
 value:: M
 effort:: L
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: checkProvenanceBan at iNNfo/packages/nn-core/src/validator/knowledge-checks.ts returns early unless the blueprint's L1 pin is V_0-6-0, so a document on a V_0-5-0-era blueprint can still write the reserved property. openspec/changes/lineage-as-changes/apply-progress.md records this as an ACCEPTED deviation from A13/A14 (accepted by the maintainer on 2026-11-03); ~108 files still write it (shipped samples, nn-core fixtures, docs/cognitive_nn corpus, documentation).
-done_when:: Every published blueprint pins a V_0-6-0-or-later L1, the ~108-file corpus is rebuilt through changes (new write-once sample versions, rebuilt fixtures, docs corpus) instead of edited in place, the V_0-6-0 gate in checkProvenanceBan is removed so the ban is version-independent as A14 specifies, and node scripts/verify.js is green.
+evidence:: Shipped in the l1-repin session (2026-11-05). Every canonical blueprint now pins iNNfo V_0-6-0 or later (16 repinned from V_0-5-0 and version-bumped; workspace's legacy template_version went V_0-10-0 -> V_0-11-0). The sample and procedure pins followed at both sites, and checkProvenanceBan no longer returns early on the L1 floor: the ban is version-independent as A14 specifies. Raised a spike first: all 19 blueprints validated identically after the repin, so no schema migrated. The remaining `sources::` occurrences are frozen published L1 specs (iNNfo_V_0-1-0..V_0-2-2) and test fixtures that no gate validates; the live corpus is green.
+done_when:: Every published blueprint pins a V_0-6-0-or-later L1, the V_0-6-0 gate in checkProvenanceBan is removed so the ban is version-independent as A14 specifies, and node scripts/verify.js is green.
 ref:: lineage-as-changes
 batch:: b2b-l1-wide-repin
 
@@ -449,4 +449,4 @@ order:: 14
 lane:: heavy
 items:: provenance-ban-l1-wide-repin
 risk:: M
-state:: planned
+state:: done
