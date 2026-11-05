@@ -13182,8 +13182,8 @@ function extractInstanceProblems2(change) {
   const to = String(change.to ?? "").trim();
   if (!to)
     problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
-  else if (!to.includes("/") || unsafe(to)) {
-    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`);
+  else if (unsafe(to) || to.startsWith("/") || to.endsWith("/") || to.includes("//")) {
+    problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`);
   }
   return problems;
 }
@@ -15055,8 +15055,8 @@ function updateField(model, args, schema) {
     }
     const parts = clean.split("&");
     if (parts.length >= 2) {
-      elementName = parts[0];
-      fieldName = parts[1];
+      fieldName = parts[parts.length - 1];
+      elementName = parts.slice(0, -1).join("&");
     } else if (parts.length === 1 && !elementName) {
       elementName = parts[0];
     }
@@ -17079,7 +17079,7 @@ function scanIncomingReferences(workspaceModels, targetModelSlug, targetElementS
       const mSlug = extractModelSlug2(change.target).toLowerCase();
       const atIdx = change.target.indexOf("@");
       const targetRemainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : "";
-      const ampIdx = targetRemainder.indexOf("&");
+      const ampIdx = targetRemainder.lastIndexOf("&");
       if (ampIdx !== -1) {
         const elIdent = targetRemainder.slice(0, ampIdx).toLowerCase();
         const fieldIdent = targetRemainder.slice(ampIdx + 1);
@@ -17184,7 +17184,7 @@ function evaluateBatchDeleteImpact(changes, loadedModels, workspaceModels) {
       const atIdx2 = change.target.indexOf("@");
       const mSlug = extractModelSlug2(change.target).toLowerCase();
       const remainder = atIdx2 !== -1 ? change.target.slice(atIdx2 + 1) : "";
-      const ampIdx = remainder.indexOf("&");
+      const ampIdx = remainder.lastIndexOf("&");
       let conceptIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx).trim() : remainder.trim();
       if (conceptIdent.toLowerCase().startsWith("concept:")) {
         conceptIdent = conceptIdent.slice("concept:".length).trim();
@@ -17449,7 +17449,8 @@ async function partitionChangeset(changes, loadedModels, changesDir, modelBaseVe
     }
     const atIdx = change.target.indexOf("@");
     const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : "";
-    const ampIdx = remainder.indexOf("&");
+    const fieldOp = change.op === "update_field" || change.op === "update_concept_field";
+    const ampIdx = fieldOp ? remainder.lastIndexOf("&") : remainder.indexOf("&");
     const rawElementIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder;
     const elementIdent = (rawElementIdent || change.slug || change.name || "").trim();
     if (changesDir && (change.op === "update_field" || change.op === "update_element_text" || change.op === "remove_element" || change.op === "rename_element")) {
@@ -21096,8 +21097,8 @@ function extractInstanceProblems(change) {
   }
   const to = String(change.to ?? "").trim();
   if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
-  else if (!to.includes("/") || unsafe(to)) {
-    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`);
+  else if (unsafe(to) || to.startsWith("/") || to.endsWith("/") || to.includes("//")) {
+    problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`);
   }
   return problems;
 }
@@ -21772,8 +21773,11 @@ function findElementInModel(model, conceptName, elementIdent) {
 function mutationArgsForChange(change, model, schema) {
   const { parts, remainder } = parseTargetAddress(change.target);
   if (change.op === "update_field") {
-    const elIdent = parts[0];
-    const fieldIdent = parts.length > 1 ? parts[1] : "";
+    const atIdx = change.target.indexOf("@");
+    const remainder2 = atIdx !== -1 ? change.target.slice(atIdx + 1) : change.target;
+    const ampIdx = remainder2.lastIndexOf("&");
+    const elIdent = ampIdx !== -1 ? remainder2.slice(0, ampIdx) : remainder2;
+    const fieldIdent = ampIdx !== -1 ? remainder2.slice(ampIdx + 1) : "";
     return {
       conceptName: change.concept,
       elementName: elIdent,
@@ -22259,9 +22263,13 @@ function resolvedTargetForChange(change, model, modelId) {
   const { parts } = parseTargetAddress(change.target);
   switch (change.op) {
     case "update_field": {
-      const [elIdent, field] = parts;
+      const atIdx = change.target.indexOf("@");
+      const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : change.target;
+      const ampIdx = remainder.lastIndexOf("&");
+      const elIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder;
+      const field = ampIdx !== -1 ? remainder.slice(ampIdx + 1) : "";
       if (!field) return void 0;
-      const el = elementByLabel(model, elIdent ?? "");
+      const el = elementByLabel(model, elIdent);
       return el?.slug ? resolvedTarget.field(modelId, el.slug, field) : void 0;
     }
     case "update_element_text": {

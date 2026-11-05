@@ -174,8 +174,8 @@ risk:: H
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1229-1246 returns rejected for the whole file when schema validation fails on any touched model, and parse or blueprint-resolution failures reject the whole file too (:405-423).
-batch:: b4c-changeset-skip
+evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1229-1246 returns rejected for the whole file when schema validation fails on any touched model, and parse or blueprint-resolution failures reject the whole file too (:405-423). Re-verified 2026-11-05: unchanged. This is the only item of b4c still open, and it is a deliberate atomicity choice, not a bug: a mutation failure or a post-mutation validation failure rejects the whole changeset without recording it (the file stays `proposed` and retryable), while a precondition conflict already applies the rest and ends `partially_applied` (:2150). Making per-change failures skip instead of abort would change the documented all-or-none contract for every consumer, so it needs its own design note before any code.
+batch:: b4c-changeset-contract
 
 ## NN Item: workspace-manifest-section-ownership
 value:: M
@@ -295,25 +295,25 @@ batch:: b2b-l1-wide-repin
 value:: H
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/changeset/types.ts:278 rejects any `to` without a `/`, while a distributed concept with no `container::` has a one-segment id (types.ts:173 documents the `<container-id>/<slug>` shape only), so compact-to-distributed migration is closed for exactly the concepts that are distributed at the top level. Verified 2026-11-04.
+evidence:: Shipped in the changeset-contract session. extractInstanceProblems no longer demands a `/` in `to`; it accepts `<slug>` and `<container>/<slug>` and rejects only a malformed id. Covered by iNNfo/packages/nn-core/tests/changeset-address.test.ts.
 done_when:: extract_instance accepts a one-segment instance id when the target concept declares no container, with a test covering the container-less path.
 ref:: issue-542
-batch:: b4c-changeset-skip
+batch:: b4c-changeset-contract
 
 ## NN Item: changeset-address-ampersand
 value:: M
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/changeset/conflicts.ts:118 and changeset/impact.ts:116,266,317 split `model@element&field` at the FIRST `&`, so an element whose title contains `&` produces a field name that cannot resolve; iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts:173-177 also rejects the `{concept, name, fields}` shape without naming the expected keys. Verified 2026-11-04. Defects A and B of the same issue are already fixed: propose-changeset.ts:533-539 rejects `sources` explicitly and console-regeneration.ts:145-149 returns openError instead of crashing.
+evidence:: Shipped in the changeset-contract session. The field is now the LAST `&` segment in conflicts.ts, impact.ts (update_field and update_concept_field), change-args.ts and mutate.ts, so an element name containing `&` resolves; the update_field shape error names the expected keys and the add_element alternative. Covered by iNNfo/packages/nn-core/tests/changeset-address.test.ts.
 done_when:: An element title containing `&` or `@` can be targeted by update_field through both apply_change and propose_changeset, and the update_field shape error names the expected keys.
 ref:: issue-491
-batch:: b4c-changeset-skip
+batch:: b4c-changeset-contract
 
 ## NN Item: console-local-parent-spec
 value:: M
@@ -412,7 +412,7 @@ state:: planned
 ## NN Batch: b4c-changeset-contract
 order:: 9
 lane:: heavy
-items:: changeset-per-change-skip, extract-container-less, changeset-address-ampersand
+items:: changeset-per-change-skip
 risk:: H
 state:: planned
 

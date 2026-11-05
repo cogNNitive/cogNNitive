@@ -113,7 +113,8 @@ export function scanIncomingReferences(
       const mSlug = extractModelSlug(change.target).toLowerCase()
       const atIdx = change.target.indexOf('@')
       const targetRemainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : ''
-      const ampIdx = targetRemainder.indexOf('&')
+      // The field is the last segment; an element name may contain `&`.
+      const ampIdx = targetRemainder.lastIndexOf('&')
       if (ampIdx !== -1) {
         const elIdent = targetRemainder.slice(0, ampIdx).toLowerCase()
         const fieldIdent = targetRemainder.slice(ampIdx + 1)
@@ -263,7 +264,7 @@ export function evaluateBatchDeleteImpact(
       const atIdx = change.target.indexOf('@')
       const mSlug = extractModelSlug(change.target).toLowerCase()
       const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : ''
-      const ampIdx = remainder.indexOf('&')
+      const ampIdx = remainder.lastIndexOf('&')
       let conceptIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx).trim() : remainder.trim()
       if (conceptIdent.toLowerCase().startsWith('concept:')) {
         conceptIdent = conceptIdent.slice('concept:'.length).trim()

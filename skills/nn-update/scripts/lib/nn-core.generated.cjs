@@ -9235,8 +9235,8 @@ function updateField(model, args, schema) {
     }
     const parts = clean.split("&");
     if (parts.length >= 2) {
-      elementName = parts[0];
-      fieldName = parts[1];
+      fieldName = parts[parts.length - 1];
+      elementName = parts.slice(0, -1).join("&");
     } else if (parts.length === 1 && !elementName) {
       elementName = parts[0];
     }

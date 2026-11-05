@@ -115,7 +115,9 @@ export async function partitionChangeset(
     // Extract target remainder
     const atIdx = change.target.indexOf('@')
     const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : ''
-    const ampIdx = remainder.indexOf('&')
+    // The field is the LAST segment: an element name may itself contain `&`.
+    const fieldOp = change.op === 'update_field' || change.op === 'update_concept_field'
+    const ampIdx = fieldOp ? remainder.lastIndexOf('&') : remainder.indexOf('&')
     const rawElementIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder
     const elementIdent = (rawElementIdent || change.slug || change.name || '').trim()
 
