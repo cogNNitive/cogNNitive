@@ -24,7 +24,7 @@ const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 export const SAMPLE_MAPPINGS = [
   {
     source: 'Ghostbusters_analysis_NN.md',
-    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-4-1_analysis_NN.md')
+    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-4-2_analysis_NN.md')
   },
   {
     source: 'Ghostbusters_business_NN.md',
@@ -32,7 +32,7 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_business-model_NN.md',
-    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-4-2_business-model_NN.md')
+    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-4-3_business-model_NN.md')
   },
   {
     source: 'Ghostbusters_documentation_NN.md',
@@ -56,7 +56,7 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_projects_NN.md',
-    target: path.join('projects', 'samples', 'Ghostbusters_V_0-4-1_projects_NN.md')
+    target: path.join('projects', 'samples', 'Ghostbusters_V_0-4-2_projects_NN.md')
   },
   {
     source: 'Ghostbusters_repository_NN.md',

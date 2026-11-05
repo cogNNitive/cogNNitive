@@ -3,7 +3,7 @@
   "blueprints": {
     "analysis": {
       "name": "analysis",
-      "adopted": "V_0-4-1",
+      "adopted": "V_0-4-2",
       "tier": "free",
       "access": "public",
       "when_to_use": null,
@@ -11,7 +11,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-4-1",
+          "blueprint_version": "V_0-4-2",
           "spec_version": "V_0-5-0",
           "title": "Analysis App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/analysis/spec_NN.md"
@@ -71,7 +71,7 @@
     },
     "business-model": {
       "name": "business-model",
-      "adopted": "V_0-4-2",
+      "adopted": "V_0-4-3",
       "tier": "free",
       "access": "public",
       "when_to_use": null,
@@ -79,7 +79,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-4-2",
+          "blueprint_version": "V_0-4-3",
           "spec_version": "V_0-5-0",
           "title": "Business Model App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md"
@@ -243,7 +243,7 @@
     },
     "projects": {
       "name": "projects",
-      "adopted": "V_0-4-1",
+      "adopted": "V_0-4-2",
       "tier": "free",
       "access": "public",
       "when_to_use": null,
@@ -251,7 +251,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-4-1",
+          "blueprint_version": "V_0-4-2",
           "spec_version": "V_0-5-0",
           "title": "Projects App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md"
