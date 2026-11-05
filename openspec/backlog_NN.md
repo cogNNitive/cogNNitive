@@ -266,7 +266,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: The coNNtent blueprint ships no procedures/ folder (9 other blueprints do) and its spec_NN.md never declares one, although openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
+evidence:: The coNNtent blueprint ships a procedures/ folder containing only usage_procedures_NN.md (checked 2026-11-04): neither draft-scene-visuals nor produce-video exists, and openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 ref:: issue-429
 
@@ -291,33 +291,107 @@ done_when:: Every published blueprint pins a V_0-6-0-or-later L1, the ~108-file 
 ref:: lineage-as-changes
 batch:: b2b-l1-wide-repin
 
+## NN Item: extract-container-less
+value:: H
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/packages/nn-core/src/changeset/types.ts:278 rejects any `to` without a `/`, while a distributed concept with no `container::` has a one-segment id (types.ts:173 documents the `<container-id>/<slug>` shape only), so compact-to-distributed migration is closed for exactly the concepts that are distributed at the top level. Verified 2026-11-04.
+done_when:: extract_instance accepts a one-segment instance id when the target concept declares no container, with a test covering the container-less path.
+ref:: issue-542
+batch:: b4c-changeset-skip
+
+## NN Item: changeset-address-ampersand
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/packages/nn-core/src/changeset/conflicts.ts:118 and changeset/impact.ts:116,266,317 split `model@element&field` at the FIRST `&`, so an element whose title contains `&` produces a field name that cannot resolve; iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts:173-177 also rejects the `{concept, name, fields}` shape without naming the expected keys. Verified 2026-11-04. Defects A and B of the same issue are already fixed: propose-changeset.ts:533-539 rejects `sources` explicitly and console-regeneration.ts:145-149 returns openError instead of crashing.
+done_when:: An element title containing `&` or `@` can be targeted by update_field through both apply_change and propose_changeset, and the update_field shape error names the expected keys.
+ref:: issue-491
+batch:: b4c-changeset-skip
+
+## NN Item: console-local-parent-spec
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/packages/nn-core/src/console/schema-resolution.ts:80,88 uses parent_spec.url only for a canonical lookup (findCanonicalBlueprint); no branch resolves it as a workspace-relative path, so a Level-3 model pointing at `specs/<name>_NN.md` exports with a derived schema. Verified 2026-11-04.
+done_when:: A model whose parent_spec.url is a workspace-relative path exports the console with that blueprint's schema and views, covered by a test under test/.
+ref:: issue-487
+batch:: b3d-console-shell-and-resolver
+
+## NN Item: console-shell-actions
+value:: M
+effort:: M
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/specs/bluepriNNts/console/ui-kit.js:3417-3469 renders "Save Snapshot" and "Copy AI Prompt" as always-visible inline buttons in the navbar group; there is no collapse menu, and views still have no generic chip/field editor component. Verified 2026-11-04.
+done_when:: The header actions collapse behind one menu at narrow widths, and a generic chip/field editor component is available to views.
+ref:: issue-490
+batch:: b3d-console-shell-and-resolver
+
+## NN Item: console-payload-size
+value:: H
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: scripts/console-views.mjs:525 fixes warnBytes 5_000_000 and failBytes 15_000_000, and scripts/export-console.mjs:1302 throws CONSOLE_TOO_LARGE before the first write; the payload is one pretty-printed JSON array, so a valid domain above 15 MB exports nothing at all. Verified 2026-11-04.
+done_when:: The export degrades instead of aborting (compact payload or lazily loaded chunks), a domain above the current fail threshold still exports, and the size gate reports the chosen strategy.
+ref:: issue-488
+batch:: b3e-console-payload-size
+
 # NN Batch
 
 ## NN Batch: b2-published-blueprints
-order:: 3
+order:: 1
 lane:: heavy
 items:: sample-media-fields, sources-blueprint-drift, blueprint-guidance-gaps, changes-rename-cascade-docs, element-order-field, business-guided-completion
 risk:: M
 state:: planned
 
 ## NN Batch: b3a-source-import-guards
-order:: 4
+order:: 2
 lane:: light
 items:: source-import-guards
 risk:: L
 state:: planned
 
 ## NN Batch: b3b-metrics-scenario-compare
-order:: 5
+order:: 3
 lane:: light
 items:: metrics-scenario-compare
 risk:: L
 state:: planned
 
 ## NN Batch: b3c-markers-review
-order:: 6
+order:: 4
 lane:: light
 items:: markers-review
+risk:: M
+state:: planned
+
+## NN Batch: b3d-console-shell-and-resolver
+order:: 5
+lane:: light
+items:: console-local-parent-spec, console-shell-actions
+risk:: M
+state:: planned
+
+## NN Batch: b3e-console-payload-size
+order:: 6
+lane:: heavy
+items:: console-payload-size
 risk:: M
 state:: planned
 
@@ -335,10 +409,10 @@ items:: query-language-unification
 risk:: H
 state:: planned
 
-## NN Batch: b4c-changeset-skip
+## NN Batch: b4c-changeset-contract
 order:: 9
 lane:: heavy
-items:: changeset-per-change-skip
+items:: changeset-per-change-skip, extract-container-less, changeset-address-ampersand
 risk:: H
 state:: planned
 
@@ -357,21 +431,21 @@ risk:: M
 state:: planned
 
 ## NN Batch: b4g-product-site
-order:: 13
+order:: 12
 lane:: heavy
 items:: product-site-projection
 risk:: M
 state:: planned
 
 ## NN Batch: b9-packages-to-root
-order:: 14
+order:: 13
 lane:: heavy
 items:: packages-to-root
 risk:: H
 state:: planned
 
 ## NN Batch: b2b-l1-wide-repin
-order:: 15
+order:: 14
 lane:: heavy
 items:: provenance-ban-l1-wide-repin
 risk:: M
