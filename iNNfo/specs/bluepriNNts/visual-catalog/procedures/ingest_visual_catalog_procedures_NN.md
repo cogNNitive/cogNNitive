@@ -171,7 +171,7 @@ description:: Deterministic validation of the catalogue (`validate_knowledge`) a
 
 ## NN Artifact: Raw Visual Sources
 type:: input
-description:: The raw image files staged in sources/import/ (or sources/original/).
+description:: The raw image files staged in sources/import/ .
 
 ## NN Artifact: Normalized Source
 type:: intermediate
