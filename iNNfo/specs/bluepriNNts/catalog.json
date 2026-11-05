@@ -7,11 +7,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -28,11 +24,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -49,11 +41,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -70,11 +58,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -91,11 +75,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -112,11 +92,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": "Level-2 blueprint defining the normative document model for graph mutations, proposals, reviews, and version transitions in cogNNitive.",
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -133,7 +109,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-      "release_tag": "blueprints-v0.53.1",
+      "release_tag": null,
       "embedded_skills": [
         "nn-conntent"
       ],
@@ -152,11 +128,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -173,11 +145,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -194,11 +162,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -215,11 +179,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -236,11 +196,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -257,11 +213,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -278,11 +230,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -299,11 +247,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -320,11 +264,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -375,11 +315,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
@@ -396,11 +332,7 @@
       "tier": "free",
       "access": "public",
       "when_to_use": null,
-<<<<<<< HEAD
-      "release_tag": "blueprints-v0.53.1",
-=======
       "release_tag": null,
->>>>>>> origin/dev
       "embedded_skills": [],
       "versions": [
         {
