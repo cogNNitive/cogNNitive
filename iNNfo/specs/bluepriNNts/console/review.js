@@ -780,6 +780,7 @@
         },
         {
           doc: doc,
+          byId: elementsById,
           onEvidence:
             typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {

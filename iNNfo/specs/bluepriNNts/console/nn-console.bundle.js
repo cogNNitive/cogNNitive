@@ -1248,13 +1248,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-popover-comment,.nn-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.nn-annotation-popover{width:100%}.nn-new-element{width:100%}}',
     '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:880px;width:min(880px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
-    '.nn-sheet-view{display:flex;flex-direction:column;gap:14px;padding:4px 0}',
-    '.nn-sheet-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
-    '.nn-sheet-id{font-family:var(--nn-mono);font-size:.82rem;color:var(--nn-muted);background:var(--nn-surface-2);padding:2px 8px;border-radius:4px}',
-    '.nn-sheet-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;background:var(--nn-surface);border:1px solid var(--nn-border);border-radius:var(--nn-radius);padding:14px 18px}',
-    '.nn-sheet-field-row{display:flex;flex-direction:column;gap:3px;min-width:0}',
-    '.nn-sheet-field-label{font-size:.78rem;font-weight:600;color:var(--nn-muted);text-transform:uppercase;letter-spacing:.3px}',
-    '.nn-sheet-field-val{font-size:.88rem;color:var(--nn-text);word-break:break-word}',
+    '.nn-view-modal-body{padding:16px 20px}',
+    '.nn-view-modal-body .nn-card{border:none;box-shadow:none;background:transparent;padding:0;margin:0}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -2850,7 +2845,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-        }),
+        }, { doc: doc }),
       )
     }
     badgesWrap.appendChild(
@@ -2860,7 +2855,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
-      }),
+      }, { doc: doc }),
     )
     head.appendChild(badgesWrap)
 
@@ -3068,6 +3063,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                 inherited: inheritedInfo,
               },
               {
+                doc: doc,
                 onRef: opts && opts.onRef,
                 onCite: opts && opts.onCite,
                 onKnowledge: opts && opts.onKnowledge,
@@ -3894,46 +3890,79 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var el = data.element
     if (el) {
-      var sheetWrap = makeEl(doc, 'div', 'nn-sheet-view')
-      var metaSection = makeEl(doc, 'div', 'nn-sheet-meta')
-      if (el.concept) {
-        var cChip = makeEl(doc, 'span', 'nn-ku-concept-chip', el.concept)
-        metaSection.appendChild(cChip)
-      }
-      if (el.id) {
-        var idChip = makeEl(doc, 'span', 'nn-sheet-id', el.id)
-        metaSection.appendChild(idChip)
-      }
-      sheetWrap.appendChild(metaSection)
-
-      if (el.description) {
-        sheetWrap.appendChild(makeEl(doc, 'p', 'nn-card-desc', el.description))
-      }
-
-      var fieldsObj = el.fields && typeof el.fields === 'object' ? el.fields : {}
-      var fieldKeys = Object.keys(fieldsObj)
-      if (fieldKeys.length) {
-        var fieldsSection = makeEl(doc, 'div', 'nn-sheet-fields')
-        fieldKeys.forEach(function (fk) {
-          var fRow = makeEl(doc, 'div', 'nn-sheet-field-row')
-          var fLabel = makeEl(doc, 'span', 'nn-sheet-field-label', fk)
-          var fVal = makeEl(doc, 'span', 'nn-sheet-field-val')
-          var rawVal = fieldsObj[fk]
-          if (rawVal === true || rawVal === false) {
-            fVal.textContent = String(rawVal)
-            fVal.className += ' nn-field-bool'
-          } else if (rawVal !== null && typeof rawVal === 'object') {
-            fVal.textContent = JSON.stringify(rawVal)
-          } else {
-            fVal.textContent = String(rawVal == null ? '' : rawVal)
+      var cardFields = []
+      var fieldsSource = Array.isArray(el.fields) ? el.fields.slice() : []
+      if (!fieldsSource.length && el.fields && typeof el.fields === 'object') {
+        Object.keys(el.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
+          var val = el.fields[k]
+          var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
+          var target = null
+          if (Array.isArray(el.relations)) {
+            var relMatch = el.relations.find(function (r) {
+              return r && r.field === k && r.target
+            })
+            if (relMatch) {
+              var tRec = (opts && opts.byId && opts.byId[relMatch.target]) || null
+              target = {
+                id: relMatch.target,
+                label: relMatch.targetLabel || (tRec && tRec.name) || cleanKey || relMatch.target,
+                concept: relMatch.targetConcept || (tRec && tRec.concept),
+                slot: relMatch.targetSlot || (tRec && tRec._conceptSlot),
+                color: relMatch.targetColor || (tRec && tRec._conceptColor),
+                hexColor: relMatch.targetHexColor || (tRec && tRec._conceptHexColor),
+              }
+            }
           }
-          fRow.appendChild(fLabel)
-          fRow.appendChild(fVal)
-          fieldsSection.appendChild(fRow)
+          if (!target && typeof val === 'string' && val.startsWith('@')) {
+            var slug = val.slice(1)
+            var tRec = (opts && opts.byId && (opts.byId[slug] || opts.byId[val])) || null
+            target = {
+              id: slug,
+              label: tRec && tRec.name ? tRec.name : val,
+              concept: tRec && tRec.concept,
+              slot: tRec && tRec._conceptSlot,
+              color: tRec && tRec._conceptColor,
+              hexColor: tRec && tRec._conceptHexColor,
+            }
+          }
+          cardFields.push({
+            name: k,
+            value: val,
+            ref: target || undefined,
+          })
         })
-        sheetWrap.appendChild(fieldsSection)
+      } else {
+        cardFields = fieldsSource.filter(function (f) {
+          return f && f.name !== 'sources' && f.name !== 'source'
+        })
       }
-      panelView.appendChild(sheetWrap)
+
+      var card = ElementCard(
+        {
+          id: el.id,
+          name: el.name || el.id || '',
+          conceptId: el.concept,
+          description: el.description,
+          fields: cardFields,
+          history: el.history,
+          tags: el.tags,
+          relations: el.relations,
+          incomingRelations: el.incomingRelations,
+          path: el.path || el.location,
+        },
+        {
+          doc: doc,
+          collapsible: false,
+          open: true,
+          modelId: data.modelId || el.modelId || '',
+          byId: (opts && opts.byId) || {},
+          onRef: opts && opts.onRef,
+          onCite: opts && opts.onCite,
+          onKnowledge: opts && opts.onKnowledge,
+        },
+      )
+      panelView.appendChild(card)
     } else {
       var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
       var rows = [
@@ -6561,6 +6590,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           doc: doc,
+          byId: elementsById,
           onEvidence:
             typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
@@ -11070,6 +11100,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var fields = []
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
           var val = element.fields[k]
           var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
           var target =
@@ -13548,7 +13579,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (body && isObject(element.fields)) {
       var dl = el('dl', 'nn-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
-        if (!dl) return
+        if (!dl || k === 'sources' || k === 'source') return
         var dt = el('dt', null, null)
         if (UI && typeof UI.Ku === 'function') {
           dt.appendChild(

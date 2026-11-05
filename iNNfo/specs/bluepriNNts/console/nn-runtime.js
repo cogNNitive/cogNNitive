@@ -2556,6 +2556,7 @@
       var fields = []
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
           var val = element.fields[k]
           var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
           var target =
@@ -5034,7 +5035,7 @@
     if (body && isObject(element.fields)) {
       var dl = el('dl', 'nn-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
-        if (!dl) return
+        if (!dl || k === 'sources' || k === 'source') return
         var dt = el('dt', null, null)
         if (UI && typeof UI.Ku === 'function') {
           dt.appendChild(
