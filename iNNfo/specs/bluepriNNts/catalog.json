@@ -292,6 +292,23 @@
         }
       ]
     },
+    "source-package": {
+      "name": "source-package",
+      "adopted": "V_0-4-0",
+      "tier": "free",
+      "access": "public",
+      "when_to_use": null,
+      "release_tag": null,
+      "embedded_skills": [],
+      "versions": [
+        {
+          "blueprint_version": "V_0-4-0",
+          "spec_version": "V_0-7-0",
+          "title": "Source Package App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/source-package/spec_NN.md"
+        }
+      ]
+    },
     "sources": {
       "name": "sources",
       "adopted": "V_0-3-3",
