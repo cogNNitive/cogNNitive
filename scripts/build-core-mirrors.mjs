@@ -18,7 +18,7 @@
  *   node scripts/build-core-mirrors.mjs [--check] [--target <name>] [--out <file>]
  *
  *   --check   render targets and compare to committed files; exit 1 on drift.
- *   --target  render only one target ('trannsform' | 'coNNtent').
+ *   --target  render only one target ('trannsform' | 'coNNtent' | 'update').
  *   --out     override output file (single-target mode only).
  */
 
@@ -46,8 +46,7 @@ const TARGETS = [
       ' */\n// @ts-nocheck',
   },
   {
-    name: 'coNNtent',
-    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
+    name: 'coNNtent',    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
     out: path.join(
       REPO_ROOT,
       'iNNfo',

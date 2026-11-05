@@ -9614,7 +9614,10 @@ var CHANGE_OPS = [
   "freeze_slugs",
   "bump_version",
   "update_element_text",
-  "produce_artifact"
+  "produce_artifact",
+  "repin_blueprint",
+  "rename_field",
+  "set_field_default"
 ];
 function isChangeStatus(val) {
   return typeof val === "string" && ["proposed", "applied", "partially_applied", "rejected", "conflict"].includes(val);

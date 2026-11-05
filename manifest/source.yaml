@@ -30,12 +30,18 @@ skills:
     path: skills/nn-preflight
     ref_key: skills
     description: Environment readiness gate (Tier 1/Tier 2/Tier 3) and canonical skill-location reference.
+  - name: nn-update
+    repo: cogNNitive/cogNNitive-web
+    path: skills/nn-update
+    ref_key: skills
+    requires: [nn-preflight]
+    description: Guided, consent-gated Blueprint Lineage Reconciliation of a domaiNN to the latest adopted iNNfo Level-2 bluepriNNts.
   - name: nn-upgrade
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-upgrade
     ref_key: skills
-    requires: [nn-preflight]
-    description: Guided, consent-gated migration of a domaiNN to the latest adopted iNNfo Level-2 blueprints.
+    requires: [nn-update]
+    description: Deprecated alias of nn-update; forwards to it and logs a notice.
   - name: nn-site-generator
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-site-generator

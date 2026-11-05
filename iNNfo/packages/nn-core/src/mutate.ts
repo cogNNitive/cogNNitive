@@ -219,8 +219,7 @@ function modelHasUnfrozenElements(model: ParsedKnowledge): boolean {
 }
 
 const MUTATION_HANDLERS: Record<string, MutationHandler> = {
-  add_concept: (model, args) => addConcept(model, args),
-  add_field: (model, args) => addField(model, args),
+  add_concept: (model, args) => addConcept(model, args),  add_field: (model, args) => addField(model, args),
   add_element: (model, args, schema) => addElement(model, args, schema),
   update_field: (model, args, schema) => updateField(model, args, schema),
   remove_element: (model, args) => removeElement(model, args),
@@ -235,11 +234,154 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
   extract_instance: (model, args) => extractInstance(model, args),
+  repin_blueprint: (model, args) => repinBlueprint(model, args),
+  rename_field: (model, args) => renameFieldKey(model, args),
+  set_field_default: (model, args) => setFieldDefault(model, args),
 }
 
 /** Names of every operation the mutation engine implements. */
 export function listMutationOperations(): string[] {
   return Object.keys(MUTATION_HANDLERS)
+}
+
+/**
+ * `repin_blueprint`: move a model's `parent_spec` (name and url) and its
+ * `blueprint_version` pin to a target blueprint version. The lineage
+ * reconciliation generates this instead of patching frontmatter text.
+ *
+ * Args: `to` (target `parent_spec.name`), `blueprintUrl` (target url) and an
+ * optional `from` used as a precondition on the current name.
+ */
+function repinBlueprint(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+  const to = typeof args.to === 'string' ? args.to.trim() : ''
+  const url = typeof args.blueprintUrl === 'string' ? args.blueprintUrl.trim() : ''
+  const from = typeof args.from === 'string' ? args.from.trim() : ''
+
+  if (!to) {
+    return { success: false, errors: [{ path: 'to', message: 'repin_blueprint requires "to"' }] }
+  }
+  if (!url) {
+    return {
+      success: false,
+      errors: [{ path: 'blueprintUrl', message: 'repin_blueprint requires "blueprintUrl"' }],
+    }
+  }
+
+  const fm = model.frontmatter as Record<string, any>
+  const current = fm.parent_spec?.name
+  if (from && typeof current === 'string' && current.toLowerCase() !== from.toLowerCase()) {
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'from',
+          message: `repin_blueprint precondition failed: the model is pinned to "${current}", not "${from}"`,
+        },
+      ],
+    }
+  }
+
+  const version = to.match(/V_\d+-\d+-\d+/)?.[0]
+  fm.parent_spec = { ...(fm.parent_spec ?? {}), name: to, url }
+  if (version) fm.blueprint_version = version
+  return { success: true }
+}
+
+/**
+ * `rename_field`: rename a field key on every element that carries it, so a
+ * blueprint field rename lands as data, not as text replacement.
+ *
+ * Args: `from`, `to` and an optional `conceptName` scope.
+ */
+function renameFieldKey(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+  const from = typeof args.from === 'string' ? args.from.trim() : ''
+  const to = typeof args.to === 'string' ? args.to.trim() : ''
+  const scope = typeof args.conceptName === 'string' ? args.conceptName.trim() : ''
+
+  if (!from || !to) {
+    return {
+      success: false,
+      errors: [{ path: '', message: 'rename_field requires "from" and "to"' }],
+    }
+  }
+  if (from.toLowerCase() === to.toLowerCase()) {
+    return {
+      success: false,
+      errors: [{ path: 'to', message: 'rename_field "from" and "to" are the same field' }],
+    }
+  }
+
+  let renamed = 0
+  for (const [concept, elements] of model.elements.entries()) {
+    if (scope && concept.toLowerCase() !== scope.toLowerCase()) continue
+    for (const el of elements) {
+      const key = Object.keys(el.fields).find((k) => k.toLowerCase() === from.toLowerCase())
+      if (!key) continue
+      const value = el.fields[key]
+      delete el.fields[key]
+      el.fields[to] = value
+      const rawFields = (el as Record<string, any>).rawFields as Record<string, string> | undefined
+      if (rawFields && rawFields[key] !== undefined) {
+        const raw = rawFields[key]
+        delete rawFields[key]
+        rawFields[to] = raw
+      }
+      renamed += 1
+    }
+  }
+
+  if (renamed === 0) {
+    return {
+      success: true,
+      warnings: [{ path: '', message: `rename_field: no element carries "${from}"` }],
+    }
+  }
+  return { success: true }
+}
+
+/**
+ * `set_field_default`: populate a field that the newer blueprint introduced, on
+ * every element that lacks it. Existing values are never overwritten.
+ *
+ * Args: `fieldName`, `value` (or `to`) and an optional `conceptName` scope.
+ */
+function setFieldDefault(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
+  const fieldName =
+    typeof args.fieldName === 'string'
+      ? args.fieldName.trim()
+      : typeof args.name === 'string'
+        ? args.name.trim()
+        : ''
+  const value = args.value !== undefined ? args.value : args.to
+  const scope = typeof args.conceptName === 'string' ? args.conceptName.trim() : ''
+
+  if (!fieldName) {
+    return { success: false, errors: [{ path: 'name', message: 'set_field_default requires "name"' }] }
+  }
+  if (value === undefined) {
+    return { success: false, errors: [{ path: 'to', message: 'set_field_default requires "to"' }] }
+  }
+
+  let filled = 0
+  for (const [concept, elements] of model.elements.entries()) {
+    if (scope && concept.toLowerCase() !== scope.toLowerCase()) continue
+    for (const el of elements) {
+      const existing = Object.keys(el.fields).find(
+        (k) => k.toLowerCase() === fieldName.toLowerCase(),
+      )
+      if (existing) continue
+      el.fields[fieldName] = value
+      filled += 1
+    }
+  }
+
+  if (filled === 0) {
+    return {
+      success: true,
+      warnings: [{ path: '', message: `set_field_default: every element already has "${fieldName}"` }],
+    }
+  }
+  return { success: true }
 }
 
 /**
