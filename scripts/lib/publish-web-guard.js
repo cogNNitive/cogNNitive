@@ -13,6 +13,7 @@ const path = require('node:path');
 
 const MANIFEST_ALLOWLIST = [
   'skills/nn-sources',
+  'skills/nn-update',
   'skills/nn-upgrade',
   'iNNfo/specs/bluepriNNts/console',
   'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent',
