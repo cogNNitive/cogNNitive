@@ -30,6 +30,44 @@ import { deriveFieldOrigin, deriveValueHistory } from './element-history.js'
 import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 import type { UnitProvenance } from './element-history.js'
+import type {
+  FileCategory,
+  FileSidecarStatus,
+  FileInventoryEntry,
+  WatchRootDescriptor,
+  FilesStats,
+  ArtifactReverseLineageEntry,
+  ConsolePayloadFiles,
+  FileLineageArtifact,
+  FileLineageChangeset,
+  FileLineageElement,
+} from './files-inventory.js'
+
+export type {
+  FileCategory,
+  FileSidecarStatus,
+  FileInventoryEntry,
+  WatchRootDescriptor,
+  FilesStats,
+  ArtifactReverseLineageEntry,
+  ConsolePayloadFiles,
+  FileLineageArtifact,
+  FileLineageChangeset,
+  FileLineageElement,
+}
+export {
+  classifyFileCategory,
+  computeFileSha256,
+  mimeTypeFromPath,
+  isSidecarPath,
+  isSourceLike,
+  isTextMime,
+  parseAndValidateSidecar,
+  resolveArtifactReverseLineage,
+  sidecarPathFor,
+  sidecarSubjectPath,
+  calculateFilesStats,
+} from './files-inventory.js'
 
 export { computeSha256 }
 
@@ -121,6 +159,8 @@ export interface ConsolePayload {
      * builder never reads a domaiNN itself.
      */
     collections?: Record<string, string[]>
+    changes?: ChangesetRecord[]
+    files?: ConsolePayloadFiles
   }
 }
 

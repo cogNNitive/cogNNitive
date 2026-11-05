@@ -47,7 +47,7 @@ const ALLOWLIST = [
   { pattern: 'scripts/lib/nn-name-regex-guard.js', reason: 'this guard carries the pattern table itself' },
   { pattern: 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },
   { pattern: 'iNNfo/packages/nn-core/src/workspace/integrity/versionStatus.ts', reason: 'parses pinned published-spec URLs (spec identity, not workspace files)' },
-  { pattern: 'skills/nn-upgrade/scripts/backup-workspace.js', reason: 'local-time backup folder name, not a write-once family stamp; revisited with the backup rework' },
+  { pattern: 'skills/nn-update/scripts/backup-workspace.js', reason: 'local-time backup folder name, not a write-once family stamp; revisited with the backup rework' },
 ];
 
 const SCOPE_RE = [

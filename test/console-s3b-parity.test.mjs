@@ -57,6 +57,10 @@ type:: video
 concept:: Initiative
 type:: video
 
+## NN Field Definition: voice
+concept:: Initiative
+type:: audio
+
 ## NN Field Definition: brief
 concept:: Initiative
 type:: markdown_inline
@@ -80,6 +84,7 @@ tags:: [core]
   peer:: [[Beta]]
   demo:: sources/demo.mp4
   clip:: https://example.com/v.mp4
+  voice:: sources/voiceover.m4a
   brief:: **bold** and [bad](javascript:alert(1))
   home:: [[kNNowledge/pricing_NN.md]]
   sources:: sources/nn/interview.md@## Clients
@@ -127,6 +132,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     await writeFile(join(root, 'models', 'pricing_NN.md'), PRICING, 'utf-8')
     await mkdir(join(root, 'sources', 'nn'), { recursive: true })
     await writeFile(join(root, 'sources', 'demo.mp4'), 'x', 'utf-8')
+    await writeFile(join(root, 'sources', 'voiceover.m4a'), 'x', 'utf-8')
     await writeFile(join(root, 'sources', 'nn', 'interview.md'), '# Interview\n\n## Clients\nAcme buys.\n', 'utf-8')
     await execFileAsync(process.execPath, [scriptPath, root, '--domain', '--no-open'])
     const html = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
@@ -242,6 +248,14 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       const srcs = [...document.querySelectorAll('video.nn-field-media')].map((v) => v.getAttribute('src'))
       assert.ok(srcs.includes('./sources/demo.mp4'))
       assert.ok(srcs.includes('https://example.com/v.mp4'))
+    })
+
+    it('a declared audio field renders an audio element, not a video one', () => {
+      const { document } = boot()
+      const audios = [...document.querySelectorAll('audio.nn-field-media')].map((a) => a.getAttribute('src'))
+      assert.ok(audios.includes('./sources/voiceover.m4a'), audios.join(','))
+      const videos = [...document.querySelectorAll('video.nn-field-media')].map((v) => v.getAttribute('src'))
+      assert.ok(!videos.includes('./sources/voiceover.m4a'), 'audio must not render as video')
     })
   })
 

@@ -63,7 +63,8 @@ The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and pos
 
 ### Requirement: CLI Delegates to the Shared Builder and Fails Loudly
 
-`scripts/export-console.mjs` MUST obtain its payload only from `buildConsolePayload`, loaded from `console-payload.generated.cjs` in the resolved `consoleDir`. If the mirror cannot be loaded the CLI MUST exit non-zero with an error naming the mirror path. `fallbackBuildPayload` MUST NOT exist.
+`scripts/export-console.mjs` MUST obtain its payload only from `buildConsolePayload`, loaded from `console-payload.generated.cjs` in the resolved `consoleDir`, and MAY add only the `viewData` key collected through the view data hook of `console-view-registry`. If the mirror cannot be loaded the CLI MUST exit non-zero with an error naming the mirror path. `fallbackBuildPayload` MUST NOT exist.
+(Previously: the payload was only the builder output, with no `viewData` addition.)
 
 #### Scenario: Mirror missing
 
@@ -73,9 +74,15 @@ The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and pos
 
 #### Scenario: CLI output matches builder
 
-- GIVEN a model
+- GIVEN a model and views with no data modules
 - WHEN the CLI compiles it
 - THEN the embedded payload equals the builder output
+
+#### Scenario: Only viewData is added
+
+- GIVEN a view with a data module
+- WHEN the CLI compiles the model
+- THEN the embedded payload equals the builder output plus the `viewData` key and nothing else
 
 ### Requirement: Real domain identity and model-qualified element ids
 

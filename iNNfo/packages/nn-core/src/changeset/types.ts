@@ -23,6 +23,9 @@ export const CHANGE_OPS = [
   'bump_version',
   'update_element_text',
   'produce_artifact',
+  'repin_blueprint',
+  'rename_field',
+  'set_field_default',
 ] as const
 
 /** Version levels a `bump_version` change may request (carried in `to`). */
@@ -275,9 +278,55 @@ export function extractInstanceProblems(change: ChangeItem): string[] {
   }
   const to = String(change.to ?? '').trim()
   if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
-  else if (!to.includes('/') || unsafe(to)) {
-    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`)
+  // A distributed concept with no `container::` has a one-segment id, so the
+  // shape is decided by the concept, not here: only reject a malformed id.
+  else if (unsafe(to) || to.startsWith('/') || to.endsWith('/') || to.includes('//')) {
+    problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`)
   }
+  return problems
+}
+
+/**
+ * Structural problems of a lineage operation (`repin_blueprint`, `rename_field`,
+ * `set_field_default`), as human-readable messages naming the change id. An empty
+ * list means the change is well formed. All three target a bare model id and
+ * carry no element payload.
+ */
+export function lineageChangeProblems(change: ChangeItem): string[] {
+  const op = change.op
+  if (op !== 'repin_blueprint' && op !== 'rename_field' && op !== 'set_field_default') return []
+  const problems: string[] = []
+  const id = change.id
+
+  if (change.target.includes('@')) {
+    problems.push(`change "${id}": ${op} targets a bare model id, not an element address`)
+  }
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": ${op} must not carry element payload (slug, fields)`)
+  }
+
+  if (op === 'repin_blueprint') {
+    if (!change.to) problems.push(`change "${id}": repin_blueprint requires "to" (the target parent_spec.name)`)
+    if (!change.blueprint_url) {
+      problems.push(`change "${id}": repin_blueprint requires "blueprint_url"`)
+    }
+  }
+
+  if (op === 'rename_field') {
+    if (!change.from) problems.push(`change "${id}": rename_field requires "from" (the current field name)`)
+    if (!change.to) problems.push(`change "${id}": rename_field requires "to" (the new field name)`)
+    if (change.from && change.to && change.from.toLowerCase() === change.to.toLowerCase()) {
+      problems.push(`change "${id}": rename_field "from" and "to" are the same field`)
+    }
+  }
+
+  if (op === 'set_field_default') {
+    if (!change.name) problems.push(`change "${id}": set_field_default requires "name" (the field name)`)
+    if (change.to === undefined) {
+      problems.push(`change "${id}": set_field_default requires "to" (the default value)`)
+    }
+  }
+
   return problems
 }
 

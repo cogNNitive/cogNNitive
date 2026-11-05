@@ -84,7 +84,7 @@ describe('scaffoldKnowledgeDocument: byte-identical to the pre-change init_knowl
 })
 
 describe('scaffoldKnowledgeDocument: spec_version follows the bluepriNNt parent_spec', () => {
-  it('takes spec_version and spec_url from the bluepriNNt parent_spec (blank -> iNNfo_V_0-5-0)', () => {
+  it('takes spec_version and spec_url from the bluepriNNt parent_spec (blank -> iNNfo_V_0-6-0)', () => {
     const out = scaffoldKnowledgeDocument({
       id: 'BlankModel_blank',
       blueprintName: 'blank',
@@ -92,8 +92,8 @@ describe('scaffoldKnowledgeDocument: spec_version follows the bluepriNNt parent_
       ...inputsFor(BLANK_SPEC),
     })
     const fm = parseKnowledge(out).frontmatter as unknown as Record<string, unknown>
-    expect(fm.spec_version).toBe('V_0-5-0')
-    expect(fm.spec_url).toBe('https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md')
+    expect(fm.spec_version).toBe('V_0-6-0')
+    expect(fm.spec_url).toBe('https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-6-0_NN.md')
   })
 
   it('takes them from a local stub parent_spec too', () => {

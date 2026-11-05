@@ -185,7 +185,7 @@ describe('changes regression (changes-collection)', () => {
   it('keeps nature: members/derived and declares no storage', () => {
     expect(CHANGES).toMatch(/^nature:\n {2}structure: members\n {2}ownership: derived$/m)
     expect(CHANGES).not.toContain('storage:: ')
-    expect(CHANGES).toMatch(/^blueprint_version: "V_0-7-0"$/m)
+    expect(CHANGES).toMatch(/^blueprint_version: "V_0-8-1"$/m)
   })
 
   it('keeps a Change unit id as <batch>#<change-id> and never an instance model', () => {

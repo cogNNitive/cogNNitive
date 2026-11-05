@@ -390,7 +390,9 @@ export function checkProvenanceBan(
   const parentName = String(parent.name ?? '')
   const parentUrl = String(parent.url ?? '')
   const scope = `${l1Version ?? ''} ${parentName} ${parentUrl}`
-  if (!l1AtLeast(scope, PROVENANCE_BAN_FLOOR)) return
+  // A14: the ban is version-independent. Every L3 document declares no citation
+  // of its own, whatever L1 its bluepriNNt pins.
+  void scope
   const isChangesDocument = parentName.trim().toLowerCase().startsWith('changes')
 
   for (const [concept, elements] of model.elements.entries()) {

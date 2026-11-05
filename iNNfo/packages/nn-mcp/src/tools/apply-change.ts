@@ -386,9 +386,14 @@ function resolvedTargetForChange(
   const { parts } = parseTargetAddress(change.target)
   switch (change.op) {
     case 'update_field': {
-      const [elIdent, field] = parts
+      // The field is the last segment; the element may contain `&`.
+      const atIdx = change.target.indexOf('@')
+      const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : change.target
+      const ampIdx = remainder.lastIndexOf('&')
+      const elIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder
+      const field = ampIdx !== -1 ? remainder.slice(ampIdx + 1) : ''
       if (!field) return undefined
-      const el = elementByLabel(model, elIdent ?? '')
+      const el = elementByLabel(model, elIdent)
       return el?.slug ? resolvedTarget.field(modelId, el.slug, field) : undefined
     }
     case 'update_element_text': {

@@ -18,7 +18,7 @@
  *   node scripts/build-core-mirrors.mjs [--check] [--target <name>] [--out <file>]
  *
  *   --check   render targets and compare to committed files; exit 1 on drift.
- *   --target  render only one target ('trannsform' | 'coNNtent').
+ *   --target  render only one target ('trannsform' | 'coNNtent' | 'update').
  *   --out     override output file (single-target mode only).
  */
 
@@ -46,8 +46,7 @@ const TARGETS = [
       ' */\n// @ts-nocheck',
   },
   {
-    name: 'coNNtent',
-    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
+    name: 'coNNtent',    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
     out: path.join(
       REPO_ROOT,
       'iNNfo',
@@ -91,12 +90,17 @@ async function renderTarget(target, esbuild) {
     platform: 'node',
     target: 'node20',
     absWorkingDir: REPO_ROOT,
+    alias: {
+      '@cognnitive/nn-core': path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js'),
+    },
     write: false,
     legalComments: 'none',
     banner: { js: target.banner },
   })
   const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
-  return rawCode.replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
+  return rawCode
+    .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
+    .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')
 }
 
 function getArg(flag) {
@@ -139,6 +143,25 @@ async function main() {
         console.log(`build-core-mirrors: OK — ${rel} is up to date.`)
       } else {
         console.error(`build-core-mirrors: DRIFT — ${rel} is stale. Re-run without --check.`)
+        if (committed) {
+          const rLines = rendered.split('\n')
+          const cLines = committed.split('\n')
+          console.error(`Rendered lines: ${rLines.length}, Committed lines: ${cLines.length}`)
+          for (let i = 0; i < Math.max(rLines.length, cLines.length); i++) {
+            if (rLines[i] !== cLines[i]) {
+              console.error(`Diff at line ${i + 1}:`)
+              console.error(`  Rendered : ${JSON.stringify(rLines[i])}`)
+              console.error(`  Committed: ${JSON.stringify(cLines[i])}`)
+              for (let k = 1; k <= 3; k++) {
+                if (rLines[i + k] !== undefined || cLines[i + k] !== undefined) {
+                  console.error(`  +${k} R: ${JSON.stringify(rLines[i + k])}`)
+                  console.error(`  +${k} C: ${JSON.stringify(cLines[i + k])}`)
+                }
+              }
+              break
+            }
+          }
+        }
         hasDrift = true
       }
     } else {

@@ -87,8 +87,13 @@ export function mutationArgsForChange(
   const { parts, remainder } = parseTargetAddress(change.target)
 
   if (change.op === 'update_field') {
-    const elIdent = parts[0]
-    const fieldIdent = parts.length > 1 ? parts[1] : ''
+    // The field is the LAST segment of the address: an element name may contain
+    // `&` (issue 491 C), so splitting on the first one targets the wrong field.
+    const atIdx = change.target.indexOf('@')
+    const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : change.target
+    const ampIdx = remainder.lastIndexOf('&')
+    const elIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder
+    const fieldIdent = ampIdx !== -1 ? remainder.slice(ampIdx + 1) : ''
     return {
       conceptName: change.concept,
       elementName: elIdent,
@@ -135,8 +140,22 @@ export function mutationArgsForChange(
     }
   }
 
-  if (change.op === 'remove_element') {
-    const elIdent = change.name || parts[0] || remainder
+  if (change.op === 'repin_blueprint') {
+    // The lineage operation that replaces the legacy regex repin: `to` is the
+    // target parent_spec.name and `blueprint_url` the target url. `from` is an
+    // optional precondition on the current pin.
+    return { to: change.to, blueprintUrl: change.blueprint_url, from: change.from }
+  }
+
+  if (change.op === 'rename_field') {
+    return { from: change.from, to: change.to, conceptName: change.concept }
+  }
+
+  if (change.op === 'set_field_default') {
+    return { fieldName: change.name, to: change.to, conceptName: change.concept }
+  }
+
+  if (change.op === 'remove_element') {    const elIdent = change.name || parts[0] || remainder
     const conceptName = change.concept ?? findElementInModel(model, undefined, elIdent)?.concept
     return { conceptName, elementName: elIdent }
   }

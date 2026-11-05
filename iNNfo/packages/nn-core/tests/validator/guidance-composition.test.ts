@@ -108,19 +108,13 @@ describe('guidance check on the shipped business bluepriNNt', () => {
   const resolveInclude = (ref: { name: string }): string | null =>
     existsSync(join(dir, ref.name, 'spec_NN.md')) ? read(ref.name) : null
 
-  it('reports exactly the 13 concepts whose own blueprint lacks complete guidance', () => {
+  it('reports no incomplete guidance: every composed concept documents itself', () => {
     const result = validateKnowledge(parseKnowledge(MODEL), parseKnowledge(read('business')) as never, null, resolveInclude)
     const w = result.warnings.find((x) => x.code === 'PARENT_CONCEPT_GUIDANCE_INCOMPLETE')
-    const names = (w?.meta as { concepts: Array<{ name: string }> }).concepts.map((c) => c.name).sort()
-    expect(names).toEqual(
-      [
-        'Contributions', 'Compensations', 'Procedure', // business-model
-        'Validation', 'Suggestions', 'Keys', // analysis
-        'Project', 'Milestone', 'Phases', 'Deliverable', 'Task', 'Risk', 'Project roles', // projects
-      ].sort(),
-    )
-    expect(names).toHaveLength(13)
-    // sanity: the composed schema is far larger than the incomplete subset
+    // business-model, analysis and projects gained the missing sections, so the
+    // shipped business blueprint is a clean composition.
+    expect(w).toBeUndefined()
+    // sanity: the composed schema really is large, so the clean result is meaningful
     expect(resolveBlueprintSchema(read('business'), resolveInclude).schema.concepts.length).toBeGreaterThan(40)
   })
 })

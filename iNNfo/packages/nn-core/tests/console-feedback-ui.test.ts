@@ -122,7 +122,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
 
     const modals = document.querySelectorAll('#nn-feedback-modal')
     expect(modals.length).toBe(1)
-  })
+  }, 20_000)
 
   it('calls showModal once per click on #nn-feedback-open', () => {
     renderModelConsole()

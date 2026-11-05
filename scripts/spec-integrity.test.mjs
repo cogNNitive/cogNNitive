@@ -58,20 +58,24 @@ test('iNNfo_V_0-5-0 stays byte-identical (write-once)', () => {
   assert.match(read(path.join(ROOT, rel)), /spec_version:\s*"V_0-5-0"/)
 })
 
-test('only changes, sidecar and visual-catalog pin V_0-6-0', () => {
-  const expected = ['changes', 'sidecar', 'visual-catalog']
+test('no canonical blueprint pins an L1 below V_0-6-0', () => {
+  // The floor is V_0-6-0: it reserves `sources::` for provenance, so a
+  // blueprint under it cannot express the current provenance model.
   const dir = path.join(SPECS, 'bluepriNNts')
-  const pinned = fs
+  const below = fs
     .readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .filter((name) => {
       const p = BLUEPRINT(name)
       if (!fs.existsSync(p)) return false
-      return /iNNfo_V_0-6-0/i.test(read(p))
+      const pin = read(p).match(/name:\s*"iNNfo_V_(\d+)-(\d+)-(\d+)"/)
+      if (!pin) return false
+      const [major, minor] = [Number(pin[1]), Number(pin[2])]
+      return major === 0 && minor < 6
     })
     .sort()
-  assert.deepEqual(pinned, [...expected].sort())
+  assert.deepEqual(below, [], 'every canonical blueprint pins iNNfo V_0-6-0 or later')
 })
 
 test('visual-catalog source fields are not citation', () => {
@@ -107,8 +111,8 @@ test('the three superseded samples are replaced by versions without sources::', 
   }
 
   const replacements = [
-    [dir('business-model'), 'Ghostbusters_V_0-4-2_business-model_NN.md'],
-    [dir('metrics'), 'Ghostbusters_V_0-5-1_metrics_NN.md'],
+    [dir('business-model'), 'Ghostbusters_V_0-4-3_business-model_NN.md'],
+    [dir('metrics'), 'Ghostbusters_V_0-5-2_metrics_NN.md'],
     [dir('organization'), 'Ghostbusters_V_0-4-1_organization_NN.md'],
   ]
   for (const [d, name] of replacements) {
