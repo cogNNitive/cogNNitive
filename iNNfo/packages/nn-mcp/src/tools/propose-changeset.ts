@@ -170,7 +170,13 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
   const hasElement = target.includes('@') && target.split('@')[1].trim() !== ''
   switch (change.op) {
     case 'update_field':
-      if (!target.includes('&')) problems.push(`${label}: update_field target must be model@element&field`)
+      if (!target.includes('&')) {
+        problems.push(
+          `${label}: update_field needs target "model@element&field" plus "to". ` +
+            `The {concept, name, fields} shape belongs to add_element; for update_field use ` +
+            `target: "<model>@<element>&<field>", to: "<value>".`,
+        )
+      }
       // An empty `to` is a clear: it removes the field line. Only a missing
       // `to` (undefined/null) is invalid.
       if (change.to === undefined || change.to === null) {

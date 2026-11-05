@@ -10433,8 +10433,8 @@ function extractInstanceProblems(change) {
   }
   const to = String(change.to ?? "").trim();
   if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
-  else if (!to.includes("/") || unsafe(to)) {
-    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`);
+  else if (unsafe(to) || to.startsWith("/") || to.endsWith("/") || to.includes("//")) {
+    problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`);
   }
   return problems;
 }

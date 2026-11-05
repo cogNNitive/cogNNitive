@@ -278,8 +278,10 @@ export function extractInstanceProblems(change: ChangeItem): string[] {
   }
   const to = String(change.to ?? '').trim()
   if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
-  else if (!to.includes('/') || unsafe(to)) {
-    problems.push(`change "${id}": extract_instance "to" must be a hierarchical instance model id`)
+  // A distributed concept with no `container::` has a one-segment id, so the
+  // shape is decided by the concept, not here: only reject a malformed id.
+  else if (unsafe(to) || to.startsWith('/') || to.endsWith('/') || to.includes('//')) {
+    problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`)
   }
   return problems
 }

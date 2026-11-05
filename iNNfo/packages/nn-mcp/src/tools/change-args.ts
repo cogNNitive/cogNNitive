@@ -87,8 +87,13 @@ export function mutationArgsForChange(
   const { parts, remainder } = parseTargetAddress(change.target)
 
   if (change.op === 'update_field') {
-    const elIdent = parts[0]
-    const fieldIdent = parts.length > 1 ? parts[1] : ''
+    // The field is the LAST segment of the address: an element name may contain
+    // `&` (issue 491 C), so splitting on the first one targets the wrong field.
+    const atIdx = change.target.indexOf('@')
+    const remainder = atIdx !== -1 ? change.target.slice(atIdx + 1) : change.target
+    const ampIdx = remainder.lastIndexOf('&')
+    const elIdent = ampIdx !== -1 ? remainder.slice(0, ampIdx) : remainder
+    const fieldIdent = ampIdx !== -1 ? remainder.slice(ampIdx + 1) : ''
     return {
       conceptName: change.concept,
       elementName: elIdent,
