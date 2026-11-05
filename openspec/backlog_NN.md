@@ -51,7 +51,7 @@ risk:: L
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: Re-checked 2026-11-05: no blueprint declares type:: audio, and no sample under test/_samples_nn carries audio, video and file. Still current. The work needs a coNNtent field addition, a new sample and the console parity assertion, so it is the largest of the batch.
+evidence:: Re-measured 2026-11-05. No blueprint declares type:: audio: the only blueprint with video and file is coNNtent, and its Series and Video concepts are storage:: distributed (spec_NN.md:51,82), so a flat sample under test/_samples_nn cannot validate against it. Attempting it showed the real cost: adding the field forces coNNtent V_0-15-1, which ripples into its vendored skill (field-registry, parameters), the catalog, docs and the produce tests that pin V_0-15-0. That is a coordinated coNNtent release, not a batch item. NOT DONE for that reason; it needs its own change with a coNNtent-only release.
 done_when:: A sample under test/_samples_nn declares type:: audio, type:: video and type:: file fields, and test/console-s3b-parity.test.mjs asserts the exported console renders audio and video from that sample instead of an inline fixture. If console sources change, rebuild the bundle and regenerate the testlab fixture as nn-dev-development 2d requires.
 batch:: b2-published-blueprints
 
@@ -108,10 +108,11 @@ batch:: b2-published-blueprints
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/business/procedures/ still contains only usage_procedures_NN.md, with no gates or methodology links (business is at V_0-5-2). Re-checked 2026-11-05. NOT BRIEFABLE: the item has no done_when, so it needs refinement before implementation; which activities deserve a gate is a product decision, not a mechanical fix.
+evidence:: Shipped in the b2-finish session (2026-11-05). business/procedures/model_a_business_procedures_NN.md walks the model from segments to numbers with four hard gates (exchange closed, analysis validated, phases ordered, domain validation clean) and links each step to the guidance that explains it. The usage procedure stays the entry point.
+done_when:: business/procedures/ ships at least one procedure with explicit gates that link to the guidance of the concepts it walks, alongside usage_procedures_NN.md.
 batch:: b2-published-blueprints
 
 ## NN Item: source-import-guards
@@ -356,7 +357,7 @@ batch:: b3e-console-payload-size
 ## NN Batch: b2-published-blueprints
 order:: 1
 lane:: heavy
-items:: sample-media-fields, business-guided-completion
+items:: sample-media-fields
 risk:: M
 state:: in-progress
 
