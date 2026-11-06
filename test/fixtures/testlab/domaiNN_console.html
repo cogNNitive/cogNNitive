@@ -11377,7 +11377,7 @@ pre.nn-file-preview-code {
     "model": "testlab",
     "modelId": "testlab",
     "domainId": "testlab-936b099c",
-    "generated": "2026-11-05T20:23:13.831Z",
+    "generated": "2026-11-06T14:52:28.573Z",
     "changesBlueprintVersion": "V_0-8-1",
     "models": [
       {
@@ -11388,11 +11388,11 @@ pre.nn-file-preview-code {
         "family": "testlab",
         "version": "V_0-1-1",
         "sha256": "593b5c26e0cdc52f70aab825ae5dab6421bcd9f2202c20a83d454e726ffdbba0",
-        "citationsResolvedAt": "2026-11-05T20:23:13.701Z",
+        "citationsResolvedAt": "2026-11-06T14:52:28.144Z",
         "sources": [
           "kNNowledge/TestLab_coverage_TestLab_NN.md"
         ],
-        "changeCount": 1,
+        "changeCount": 2,
         "ownership": "authored",
         "conceptNames": [
           "Concept 1",
@@ -11452,12 +11452,12 @@ pre.nn-file-preview-code {
         "sha256": null,
         "citationsResolvedAt": null,
         "sources": [],
-        "changeCount": 28,
+        "changeCount": 34,
         "ownership": "derived",
         "conceptNames": [
           "Change"
         ],
-        "elementCount": 28
+        "elementCount": 34
       }
     ],
     "domain": {
@@ -11498,6 +11498,36 @@ pre.nn-file-preview-code {
           }
         ]
       },
+      "history": [
+        {
+          "id": "cov-02",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1a",
+          "author": "admin",
+          "timestamp": "2026-10-01T09:00:00.000Z",
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/field-notes.md",
+            "href": "sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          },
+          "concept": "Concept 1",
+          "name": "Element 1A",
+          "fields": {
+            "summary": "Intake tray baseline element.",
+            "long_description": "Baseline element with a short description. It cites the field notes findings section.",
+            "manual": "test/fixtures/testlab/sources/import/manual.txt",
+            "sibling": "@element-2a",
+            "status": "draft"
+          },
+          "resolution": "Applied successfully"
+        }
+      ],
       "modelId": "TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -11549,6 +11579,68 @@ pre.nn-file-preview-code {
           }
         ]
       },
+      "history": [
+        {
+          "id": "cov-03",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1b",
+          "author": "admin",
+          "timestamp": "2026-10-01T09:00:00.000Z",
+          "status": "applied",
+          "evidence": "sources/import/dataset.csv@m-001",
+          "evidenceCitation": {
+            "path": "sources/import/dataset.csv",
+            "href": "sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-001,capture_rate,0.94"
+          },
+          "concept": "Concept 1",
+          "name": "Element 1B",
+          "fields": {
+            "summary": "Photo log element with image and file fields.",
+            "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
+            "photo": "test/fixtures/testlab/sources/import/photo.png",
+            "photo_metadata": "{\"title\": \"Three-tray workbench\", \"author\": \"TestLab crew\", \"source\": \"field photo 2026-10-07\"}",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "sibling": "@element-2a",
+            "status": "reviewed"
+          },
+          "resolution": "Applied successfully"
+        },
+        {
+          "id": "fb-001",
+          "op": "comment",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1b&photo",
+          "author": "reviewer",
+          "timestamp": "2026-10-10T12:00:00.000Z",
+          "notes": "Review note: verify the changeset lineage for Element 1B.",
+          "status": "applied",
+          "evidence": "decision",
+          "evidenceCitation": {
+            "path": "decision",
+            "exists": true,
+            "field": "evidence",
+            "origin": "human"
+          }
+        }
+      ],
+      "provenance": {
+        "photo": {
+          "history": [
+            {
+              "changeId": "fb-001",
+              "op": "comment",
+              "author": "reviewer",
+              "evidence": "decision",
+              "appliedAt": "2026-10-10T12:00:00.000Z"
+            }
+          ],
+          "origin": null
+        }
+      },
       "modelId": "TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -11589,6 +11681,33 @@ pre.nn-file-preview-code {
         ]
       },
       "history": [
+        {
+          "id": "cov-04",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+          "author": "admin",
+          "timestamp": "2026-10-01T09:00:00.000Z",
+          "status": "applied",
+          "evidence": "sources/import/dataset.json@/items/0/name",
+          "evidenceCitation": {
+            "path": "sources/import/dataset.json",
+            "href": "sources/import/dataset.json",
+            "anchor": "/items/0/name",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "intake-form"
+          },
+          "concept": "Concept 1",
+          "name": "Element 1C",
+          "fields": {
+            "summary": "Multi-node traceability source element.",
+            "long_description": "Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.",
+            "sibling": "@element-2b",
+            "status": "published"
+          },
+          "resolution": "Applied successfully"
+        },
         {
           "id": "fb-001",
           "op": "rename_element",
@@ -11643,6 +11762,34 @@ pre.nn-file-preview-code {
           }
         ]
       },
+      "history": [
+        {
+          "id": "cov-05",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2a",
+          "author": "admin",
+          "timestamp": "2026-10-01T09:00:00.000Z",
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md@## Findings",
+          "evidenceCitation": {
+            "path": "sources/import/field-notes.md",
+            "href": "sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          },
+          "concept": "Concept 2",
+          "name": "Element 2A",
+          "fields": {
+            "summary": "Shift owner element.",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "owner": "@element-1a"
+          },
+          "resolution": "Applied successfully"
+        }
+      ],
       "modelId": "TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -11680,6 +11827,34 @@ pre.nn-file-preview-code {
           }
         ]
       },
+      "history": [
+        {
+          "id": "cov-06",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2b",
+          "author": "admin",
+          "timestamp": "2026-10-01T09:00:00.000Z",
+          "status": "applied",
+          "evidence": "sources/import/dataset.csv@m-002",
+          "evidenceCitation": {
+            "path": "sources/import/dataset.csv",
+            "href": "sources/import/dataset.csv",
+            "anchor": "m-002",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-002,handover_delay_min,12"
+          },
+          "concept": "Concept 2",
+          "name": "Element 2B",
+          "fields": {
+            "summary": "Handover owner element.",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "owner": "@element-1c"
+          },
+          "resolution": "Applied successfully"
+        }
+      ],
       "modelId": "TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -13056,6 +13231,222 @@ pre.nn-file-preview-code {
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
       "modelDir": "kNNowledge",
       "location": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Copy the Changeset Prompt"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-01",
+      "slug": "testlab_admin_coverage_changes_NN#cov-01",
+      "concept": "Change",
+      "name": "add_model TestLab_coverage_TestLab",
+      "description": "",
+      "fields": {
+        "op": "add_model",
+        "target": "TestLab_coverage_TestLab",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/field-notes.md@## Findings",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          }
+        ]
+      },
+      "hash": "8f405997e1be3c3d",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-01"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-02",
+      "slug": "testlab_admin_coverage_changes_NN#cov-02",
+      "concept": "Change",
+      "name": "add_element kNNowledge/TestLab_coverage_TestLab@element-1a",
+      "description": "",
+      "fields": {
+        "op": "add_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-1a",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/field-notes.md@## Findings",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          }
+        ]
+      },
+      "hash": "bdf24125661d9088",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-02"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-03",
+      "slug": "testlab_admin_coverage_changes_NN#cov-03",
+      "concept": "Change",
+      "name": "add_element kNNowledge/TestLab_coverage_TestLab@element-1b",
+      "description": "",
+      "fields": {
+        "op": "add_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-1b",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/dataset.csv@m-001",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-001,capture_rate,0.94"
+          }
+        ]
+      },
+      "hash": "978a822e3abce7e6",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-03"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-04",
+      "slug": "testlab_admin_coverage_changes_NN#cov-04",
+      "concept": "Change",
+      "name": "add_element kNNowledge/TestLab_coverage_TestLab@element-1c",
+      "description": "",
+      "fields": {
+        "op": "add_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/dataset.json@/items/0/name",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/dataset.json",
+            "href": "./sources/import/dataset.json",
+            "anchor": "/items/0/name",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "intake-form"
+          }
+        ]
+      },
+      "hash": "75f32925d4219877",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-04"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-05",
+      "slug": "testlab_admin_coverage_changes_NN#cov-05",
+      "concept": "Change",
+      "name": "add_element kNNowledge/TestLab_coverage_TestLab@element-2a",
+      "description": "",
+      "fields": {
+        "op": "add_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-2a",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/field-notes.md@## Findings",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/field-notes.md",
+            "href": "./sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n"
+          }
+        ]
+      },
+      "hash": "85ebead2807ec16f",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-05"
+    },
+    {
+      "id": "testlab_admin_coverage_changes_NN#cov-06",
+      "slug": "testlab_admin_coverage_changes_NN#cov-06",
+      "concept": "Change",
+      "name": "add_element kNNowledge/TestLab_coverage_TestLab@element-2b",
+      "description": "",
+      "fields": {
+        "op": "add_element",
+        "target": "kNNowledge/TestLab_coverage_TestLab@element-2b",
+        "author": "admin",
+        "status": "applied",
+        "evidence": "sources/import/dataset.csv@m-002",
+        "applied_at": "2026-10-01T09:00:00.000Z"
+      },
+      "markers": {},
+      "citations": {
+        "evidence": [
+          {
+            "path": "sources/import/dataset.csv",
+            "href": "./sources/import/dataset.csv",
+            "anchor": "m-002",
+            "exists": true,
+            "field": "evidence",
+            "origin": "document",
+            "excerpt": "m-002,handover_delay_min,12"
+          }
+        ]
+      },
+      "hash": "db0123442346e84a",
+      "modelId": "changes",
+      "modelTitle": "Changes",
+      "modelFile": "\u003cchanges>",
+      "modelDir": "changes",
+      "ownership": "derived",
+      "location": "testlab_admin_coverage_changes_NN@## NN Change: cov-06"
     },
     {
       "id": "testlab_admin_intake_changes_NN#a-01",
@@ -14447,7 +14838,8 @@ pre.nn-file-preview-code {
           "op": "comment",
           "target": "TestLab Coverage Model@concept-1-element-1b&photo",
           "notes": "Review note: verify the changeset lineage for Element 1B.",
-          "evidence": "decision"
+          "evidence": "decision",
+          "resolved_target": "kNNowledge/TestLab_coverage_TestLab@element-1b&photo"
         }
       ]
     },
@@ -14609,6 +15001,124 @@ pre.nn-file-preview-code {
           "resolution": "Applied successfully"
         }
       ]
+    },
+    {
+      "path": "changes/testlab_admin_coverage_changes_NN.md",
+      "title": "Admin: initialize the TestLab coverage model from field notes and datasets",
+      "status": "applied",
+      "author": "admin",
+      "appliedAt": "2026-10-01T09:00:00.000Z",
+      "changes": [
+        {
+          "id": "cov-01",
+          "op": "add_model",
+          "target": "TestLab_coverage_TestLab",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md@## Findings",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "name": "TestLab Coverage Model",
+          "resolution": "Created model \"TestLab_coverage_TestLab\""
+        },
+        {
+          "id": "cov-02",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1a",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md@## Findings",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "concept": "Concept 1",
+          "name": "Element 1A",
+          "fields": {
+            "summary": "Intake tray baseline element.",
+            "long_description": "Baseline element with a short description. It cites the field notes findings section.",
+            "manual": "test/fixtures/testlab/sources/import/manual.txt",
+            "sibling": "@element-2a",
+            "status": "draft"
+          },
+          "resolution": "Applied successfully"
+        },
+        {
+          "id": "cov-03",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1b",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/dataset.csv@m-001",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "concept": "Concept 1",
+          "name": "Element 1B",
+          "fields": {
+            "summary": "Photo log element with image and file fields.",
+            "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
+            "photo": "test/fixtures/testlab/sources/import/photo.png",
+            "photo_metadata": "{\"title\": \"Three-tray workbench\", \"author\": \"TestLab crew\", \"source\": \"field photo 2026-10-07\"}",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "sibling": "@element-2a",
+            "status": "reviewed"
+          },
+          "resolution": "Applied successfully"
+        },
+        {
+          "id": "cov-04",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-1c",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/dataset.json@/items/0/name",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "concept": "Concept 1",
+          "name": "Element 1C",
+          "fields": {
+            "summary": "Multi-node traceability source element.",
+            "long_description": "Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.",
+            "sibling": "@element-2b",
+            "status": "published"
+          },
+          "resolution": "Applied successfully"
+        },
+        {
+          "id": "cov-05",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2a",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/field-notes.md@## Findings",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "concept": "Concept 2",
+          "name": "Element 2A",
+          "fields": {
+            "summary": "Shift owner element.",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "owner": "@element-1a"
+          },
+          "resolution": "Applied successfully"
+        },
+        {
+          "id": "cov-06",
+          "op": "add_element",
+          "target": "kNNowledge/TestLab_coverage_TestLab@element-2b",
+          "author": "admin",
+          "status": "applied",
+          "evidence": "sources/import/dataset.csv@m-002",
+          "applied_at": "2026-10-01T09:00:00.000Z",
+          "batch": "testlab_admin_coverage_changes_NN",
+          "concept": "Concept 2",
+          "name": "Element 2B",
+          "fields": {
+            "summary": "Handover owner element.",
+            "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+            "owner": "@element-1c"
+          },
+          "resolution": "Applied successfully"
+        }
+      ]
     }
   ],
   "files": {
@@ -14716,8 +15226,8 @@ pre.nn-file-preview-code {
           "exists": false,
           "valid": false
         },
-        "citationsCount": 10,
-        "excerptCount": 9,
+        "citationsCount": 12,
+        "excerptCount": 11,
         "changesCount": 1,
         "uncited": false,
         "snippet": "id,metric,value\nm-001,capture_rate,0.94\nm-002,handover_delay_min,12\nm-003,photo_log_trust,0.98\n",
@@ -14736,8 +15246,8 @@ pre.nn-file-preview-code {
           "exists": false,
           "valid": false
         },
-        "citationsCount": 3,
-        "excerptCount": 3,
+        "citationsCount": 4,
+        "excerptCount": 4,
         "changesCount": 0,
         "uncited": false,
         "snippet": "{\"items\": [{\"name\": \"intake-form\", \"trust\": 0.41}, {\"name\": \"photo-log\", \"trust\": 0.98}]}\n",
@@ -14779,8 +15289,8 @@ pre.nn-file-preview-code {
           "exists": false,
           "valid": false
         },
-        "citationsCount": 9,
-        "excerptCount": 8,
+        "citationsCount": 12,
+        "excerptCount": 11,
         "changesCount": 1,
         "uncited": false,
         "snippet": "# Field notes\n\n## Findings\n\nThe first walkthrough confirmed three repeatable observations: the intake form is skipped under time pressure, the photo log is the most trusted record, and the handover note decides the next shift.\n\n## Key Points\n\nIntake, photo log, handover note. In that order of trust.\n",
@@ -14914,7 +15424,7 @@ pre.nn-file-preview-code {
       "sidecarMissingCount": 4,
       "sidecarInvalidCount": 0,
       "sidecarMismatchCount": 0,
-      "excerptCount": 34
+      "excerptCount": 40
     },
     "lineage": {
       "artifacts/TestLab_coverage_TestLab_console/innfo-console.bundle_20261013T045336Z.js": {
