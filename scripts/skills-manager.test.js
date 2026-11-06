@@ -371,6 +371,59 @@ agent-bootstrap:
   }
 }
 
+// 7b. Hermes Agent projection via --agent hermes
+{
+  const manifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      repo: cogNNitive/actioNN
+      path: skills/nn-sample
+      version: "1.0.0"
+      commit: "1111111111111111111111111111111111111111"
+---
+# Manifest`;
+
+  const server = await serveManifestOnce(manifest);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-hermes-'));
+  const skillsDir = path.join(tmpDir, 'skills');
+  const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+  const skillSample = path.join(skillsDir, 'nn-sample');
+  fs.mkdirSync(skillSample, { recursive: true });
+  fs.writeFileSync(path.join(skillSample, 'SKILL.md'), '# Canonical Sample', 'utf-8');
+
+  fs.writeFileSync(stateFile, JSON.stringify({
+    manifest: server.url,
+    skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+    blueprints: {},
+  }, null, 2), 'utf-8');
+
+  try {
+    const res = await spawnAsync([
+      managerScript, 'update',
+      '--skills-dir', skillsDir,
+      '--state', stateFile,
+      '--agent', 'hermes',
+      '--yes',
+    ], {
+      env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir, SM_MANIFEST_URL: server.url },
+    });
+
+    assert.strictEqual(res.status, 0, `cmdUpdate should succeed for hermes. Stderr: ${res.stderr}`);
+    assert(fs.existsSync(path.join(tmpDir, '.hermes', 'skills', 'nn-sample', 'SKILL.md')), 'Projected to hermes');
+
+    const updatedState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    assert(updatedState.projections && updatedState.projections.hermes, 'State records hermes projections');
+    assert(updatedState.projections.hermes.skills['nn-sample'], 'State records projected skill for hermes');
+
+    console.log('✔ cmdUpdate Hermes projection test passed');
+  } finally {
+    await server.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 // 8. --scope workspace skips projection
 {
   const { projectSkillsToAgents } = require('./lib/skills-commands.js');

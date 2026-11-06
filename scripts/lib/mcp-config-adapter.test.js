@@ -8,6 +8,7 @@ const {
   registerMcpForOpenCode,
   registerMcpForClaude,
   registerMcpForAntigravity,
+  registerMcpForHermes,
   registerMcpAuto,
   readJsonClean,
   writeJsonClean,
@@ -135,6 +136,7 @@ async function testMcpAdapter() {
       assert(results.some(r => r.agent === 'opencode' && r.updated), 'Target all updated OpenCode');
       assert(results.some(r => r.agent === 'claude' && r.updated), 'Target all updated Claude');
       assert(results.some(r => r.agent === 'antigravity' && r.updated), 'Target all updated Antigravity');
+      assert(results.some(r => r.agent === 'hermes' && r.updated), 'Target all updated Hermes');
       console.log('✔ Multi-agent registration (all) passed');
     }
 
@@ -165,6 +167,45 @@ async function testMcpAdapter() {
       assert.ok(!claude.mcpServers['innfo-mcp'], 'the stale innfo-mcp mcpServers key is removed');
       assert.ok(claude.mcpServers['nn-mcp'], 'nn-mcp is registered in mcpServers');
       console.log('✔ D10 stale innfo-mcp config-key migration passed');
+    }
+
+    // 7. Hermes Agent registration (YAML, curator disabling, stale innfo-mcp migration, idempotency)
+    {
+      const hermesDir = path.join(tmpDir, '.hermes');
+      fs.mkdirSync(hermesDir, { recursive: true });
+      const configFile = path.join(hermesDir, 'config.yaml');
+      fs.writeFileSync(configFile, [
+        'onboarding:',
+        '  run: false',
+        'mcp_servers:',
+        '  other-tool:',
+        '    command: python',
+        '    args:',
+        '      - run.py',
+        '    enabled: true',
+        '  innfo-mcp:',
+        '    command: node',
+        '    args:',
+        '      - old-innfo.bundle.js',
+        '    enabled: true',
+        'curator:',
+        '  enabled: true',
+      ].join('\n') + '\n', 'utf-8');
+
+      const bundlePath = path.join(tmpDir, 'nn-mcp.bundle.js');
+      const result = registerMcpForHermes({ configFile, serverName: 'nn-mcp', bundlePath });
+      assert.strictEqual(result.updated, true, 'Hermes config updated');
+
+      const content = fs.readFileSync(configFile, 'utf-8');
+      assert.ok(!content.includes('innfo-mcp:'), 'stale innfo-mcp removed from Hermes config');
+      assert.ok(content.includes('nn-mcp:'), 'nn-mcp registered in Hermes config');
+      assert.ok(content.includes('other-tool:'), 'other tools preserved in Hermes config');
+      assert.ok(content.includes('curator:\n  enabled: false') || content.includes('curator:\r\n  enabled: false'), 'curator disabled');
+
+      // Idempotency: second call changes nothing
+      const again = registerMcpForHermes({ configFile, serverName: 'nn-mcp', bundlePath });
+      assert.strictEqual(again.updated, false, 'second registration is a no-op');
+      console.log('✔ Hermes Agent MCP registration and curator guard passed');
     }
 
     console.log('All mcp-config-adapter unit tests passed successfully!');

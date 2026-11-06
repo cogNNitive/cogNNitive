@@ -83,7 +83,7 @@ function parseArgs(argv) {
  */
 function usage() {
   console.log(`Usage:
-  node scripts/skills-manager.js bootstrap [--scope <global|workspace>] [--agent <auto|opencode|claude|antigravity>] [--yes]
+  node scripts/skills-manager.js bootstrap [--scope <global|workspace>] [--agent <auto|all|opencode|claude|antigravity|hermes>] [--yes]
   node scripts/skills-manager.js status    [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>]
   node scripts/skills-manager.js install   [--skills-dir <dir>] [--blueprints-dir <dir>] [--state <file>] [--blueprint <name>] [--yes]
   node scripts/skills-manager.js install-external --name <n> --repo <owner/repo> --path <skills/x> --commit <40-hex> [--sha256 <64-hex>] [--skills-dir <dir>] [--state <file>] [--yes]
@@ -100,7 +100,7 @@ Commands:
 
 Flags:
   --scope <scope>         Installation scope: global (default, ~/.agents/) or workspace (./.agents/)
-  --agent <agent>         Target agent for MCP/Skills: auto (default), all, opencode, claude, antigravity
+  --agent <agent>         Target agent for MCP/Skills: auto (default), all, opencode, claude, antigravity, hermes
   --skills-dir <dir>      Skills directory (default: ~/.agents/skills)
   --blueprints-dir <dir>  Blueprints directory (default: ~/.agents/bluepriNNts; --templates-dir accepted as legacy alias)
   --mcp-dir <dir>         MCP bundle directory (default: ~/.agents/mcp)

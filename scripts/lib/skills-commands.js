@@ -1888,6 +1888,7 @@ function projectSkillsToAgents({
   const opencodeSkillsDir = path.join(homedir, '.config', 'opencode', 'skills');
   const claudeSkillsDir = path.join(homedir, '.claude', 'skills');
   const geminiSkillsDir = path.join(homedir, '.gemini', 'config', 'skills');
+  const hermesSkillsDir = path.join(homedir, '.hermes', 'skills');
 
   if (normalizedAgent === 'opencode' || normalizedAgent === 'all') {
     agentTargets.push({ agent: 'opencode', dir: opencodeSkillsDir });
@@ -1897,6 +1898,9 @@ function projectSkillsToAgents({
   }
   if (normalizedAgent === 'antigravity' || normalizedAgent === 'all') {
     agentTargets.push({ agent: 'antigravity', dir: geminiSkillsDir });
+  }
+  if (normalizedAgent === 'hermes' || normalizedAgent === 'all') {
+    agentTargets.push({ agent: 'hermes', dir: hermesSkillsDir });
   }
 
   if (normalizedAgent === 'auto') {
@@ -1908,6 +1912,9 @@ function projectSkillsToAgents({
     }
     if (fs.existsSync(path.join(homedir, '.gemini')) || process.env.ANTIGRAVITY || process.env.GEMINI_CLI) {
       agentTargets.push({ agent: 'antigravity', dir: geminiSkillsDir });
+    }
+    if (fs.existsSync(path.join(homedir, '.hermes')) || process.env.HERMES || process.env.HERMES_HOME) {
+      agentTargets.push({ agent: 'hermes', dir: hermesSkillsDir });
     }
     if (agentTargets.length === 0) {
       agentTargets.push({ agent: 'opencode', dir: opencodeSkillsDir });
