@@ -431,10 +431,11 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       document.body.appendChild(modal)
 
       const tabs = modal.querySelectorAll('.nn-modal-tab-btn')
-      assert.equal(tabs.length, 3, 'Renders exactly 3 tabs')
-      assert.equal(tabs[0].textContent, 'Edit')
-      assert.equal(tabs[1].textContent, 'Changes')
-      assert.equal(tabs[2].textContent, 'Connections')
+      assert.equal(tabs.length, 4, 'Renders exactly 4 tabs')
+      assert.equal(tabs[0].textContent, 'View')
+      assert.equal(tabs[1].textContent, 'Edit')
+      assert.equal(tabs[2].textContent, 'Changes')
+      assert.equal(tabs[3].textContent, 'Connections')
 
       const tabEdit = modal.querySelector('.nn-modal-tab-panel[data-tab="edit"]')
       const tabHistory = modal.querySelector('.nn-modal-tab-panel[data-tab="history"]')
