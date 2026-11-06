@@ -1091,3 +1091,22 @@ health:: critical
   })
 })
 
+describe('console size budget', () => {
+  it('stripConsoleCitations drops the resolved citations and counts the elements', async () => {
+    const { stripConsoleCitations } = await import('./console-views.mjs')
+    const payload = {
+      model: { elements: [{ id: 'a', citations: { refs: [] } }, { id: 'b' }, { id: 'c', citations: {} }] },
+    }
+
+    assert.equal(stripConsoleCitations(payload), 2)
+    assert.equal(payload.model.elements[0].citations, undefined)
+    assert.equal(payload.model.elements[1].citations, undefined)
+  })
+
+  it('stripConsoleCitations tolerates a payload without elements', async () => {
+    const { stripConsoleCitations } = await import('./console-views.mjs')
+    assert.equal(stripConsoleCitations({}), 0)
+    assert.equal(stripConsoleCitations(null), 0)
+  })
+})
+

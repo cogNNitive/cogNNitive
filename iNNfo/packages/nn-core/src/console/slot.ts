@@ -46,11 +46,12 @@ export interface ConsoleProcedureSlot {
 }
 
 /**
- * Serializes a console slot object to formatted JSON with `<` escaped as `\u003c`
- * to prevent breaking `<script>` tags when embedded in HTML.
+ * Serializes a console slot object to JSON with `<` escaped as `\u003c` to prevent
+ * breaking `<script>` tags when embedded in HTML. Compact on purpose: the payload is
+ * the largest part of a console and indentation alone costs ~17% of it (issue #488).
  */
 export function serializeConsoleSlot(value: unknown): string {
-  return JSON.stringify(value, null, 2).replace(/</g, '\\u003c')
+  return JSON.stringify(value).replace(/</g, '\\u003c')
 }
 
 /** Flattens `concept.fields` into `{concept, name, type, options?, target_concepts?, ...}` entries. */
