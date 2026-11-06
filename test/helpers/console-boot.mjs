@@ -45,7 +45,11 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
         <nav id="nn-rail"></nav>
         <header id="nn-feedback-banner"></header>
         <main>
-          <div class="nn-toolbar"><input id="nn-search" type="search" /></div>
+          <div class="nn-toolbar">
+            <input id="nn-search" type="search" />
+            <div id="nn-filter-facets"></div>
+            <div id="nn-active-filters"></div>
+          </div>
           <div id="nn-doc"></div>
           <div id="nn-content"></div>
           <div id="nn-matrices"></div>

@@ -1160,7 +1160,7 @@
     }
   }
 
-  function renderFilterBar(doc, state, onQueryChange, activeQuery) {
+  function renderFilterBar(doc, state, onQueryChange, activeQuery, sortState, onSortChange) {
     var host = doc.getElementById('nn-filter-facets')
     var activeHost = doc.getElementById('nn-active-filters')
     if (!host) return
@@ -1588,6 +1588,129 @@
         if (typeof onQueryChange === 'function') onQueryChange('')
       })
       host.appendChild(clearBtn)
+    }
+
+    // 5. Sort Dropdown (available across all explorer view modes)
+    if (state && Array.isArray(state.elements) && state.elements.length > 0 && typeof onSortChange === 'function') {
+      var sWrap = el('div', 'nn-facet-dropdown nn-sort-dropdown')
+      sWrap.style.marginLeft = 'auto'
+
+      var isSorted = Boolean(sortState && sortState.key)
+      var sBtn = el('button', 'nn-facet-btn' + (isSorted ? ' active' : ''))
+      sBtn.setAttribute('type', 'button')
+      sBtn.id = 'nn-sort-btn'
+
+      var sortIconName = !isSorted ? 'arrow-up-down' : (sortState.dir === 'desc' ? 'arrow-down' : 'arrow-up')
+      var sIcon = typeof nnIcons !== 'undefined' ? nnIcons.getSvg(sortIconName, { size: 14 }) : '⇅'
+      var sLabel = isSorted
+        ? 'Sort: ' + sortState.key + (sortState.dir === 'desc' ? ' ↓' : ' ↑')
+        : 'Sort'
+      sBtn.innerHTML = sIcon + ' <span>' + sLabel + '</span> <span style="font-size: 10px;">▼</span>'
+
+      var sMenu = el('div', 'nn-facet-menu nn-sort-menu')
+      sMenu.style.right = '0'
+      sMenu.style.left = 'auto'
+      sMenu.style.minWidth = '220px'
+
+      // Direction selector
+      var dirHeader = el('div', 'text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-1 pb-1 border-b border-slate-100 flex items-center justify-between')
+      var dirTitle = el('span', null, 'Direction')
+      dirHeader.appendChild(dirTitle)
+
+      var dirGroup = el('div', 'inline-flex gap-1')
+      var ascBtn = el('button', 'btn btn-xs ' + ((!sortState || sortState.dir !== 'desc') ? 'btn-primary' : 'btn-ghost text-slate-500'), '↑ Asc')
+      ascBtn.setAttribute('type', 'button')
+      ascBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        onSortChange(sortState && sortState.key ? sortState.key : 'name', 'asc')
+      })
+
+      var descBtn = el('button', 'btn btn-xs ' + (sortState && sortState.dir === 'desc' ? 'btn-primary' : 'btn-ghost text-slate-500'), '↓ Desc')
+      descBtn.setAttribute('type', 'button')
+      descBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        onSortChange(sortState && sortState.key ? sortState.key : 'name', 'desc')
+      })
+
+      dirGroup.appendChild(ascBtn)
+      dirGroup.appendChild(descBtn)
+      dirHeader.appendChild(dirGroup)
+      sMenu.appendChild(dirHeader)
+
+      // Section: Fields
+      var fieldSectionHeader = el('div', 'text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 pt-2 pb-1 border-b border-slate-100', 'Sort By Field')
+      sMenu.appendChild(fieldSectionHeader)
+
+      var baseSortOptions = [
+        { key: '', label: 'Default (Document order)' },
+        { key: 'name', label: 'Name' },
+        { key: 'concept', label: 'Concept' },
+        { key: 'tags', label: 'Tags' },
+      ]
+
+      var sortFields = []
+      if (Array.isArray(fieldNames)) {
+        fieldNames.forEach(function (fn) {
+          if (fn !== 'name' && fn !== 'concept' && fn !== 'tags') {
+            sortFields.push(fn)
+          }
+        })
+      }
+
+      var allSortOptions = baseSortOptions.concat(sortFields.map(function (fn) {
+        return { key: fn, label: fn }
+      }))
+
+      allSortOptions.forEach(function (opt) {
+        var item = el('button', 'nn-facet-item w-full text-left flex items-center justify-between')
+        item.setAttribute('type', 'button')
+        var isCurrent = (sortState && sortState.key === opt.key) || ((!sortState || !sortState.key) && opt.key === '')
+        if (isCurrent) {
+          item.classList.add('bg-slate-50', 'font-bold')
+        }
+
+        var labelSpan = el('span', 'flex-1 truncate ' + (isCurrent ? 'text-primary font-bold' : 'text-slate-700'), opt.label)
+        item.appendChild(labelSpan)
+
+        if (isCurrent && opt.key !== '') {
+          var checkSpan = el('span', 'text-xs text-primary font-bold ml-1', sortState.dir === 'desc' ? '↓' : '↑')
+          item.appendChild(checkSpan)
+        }
+
+        item.addEventListener('click', function (e) {
+          e.stopPropagation()
+          sMenu.classList.remove('open')
+          if (opt.key === '') {
+            onSortChange(null)
+          } else {
+            var newDir = (sortState && sortState.key === opt.key && sortState.dir === 'asc') ? 'desc' : (sortState && sortState.dir ? sortState.dir : 'asc')
+            onSortChange(opt.key, newDir)
+          }
+        })
+        sMenu.appendChild(item)
+      })
+
+      sBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        var isOpen = sMenu.classList.contains('open')
+        doc.querySelectorAll('.nn-facet-menu').forEach(function (menu) { menu.classList.remove('open') })
+        if (!isOpen) sMenu.classList.add('open')
+      })
+
+      if (isSorted) {
+        var sClear = el('span', 'nn-facet-clear', '×')
+        sClear.setAttribute('role', 'button')
+        sClear.setAttribute('title', 'Clear sorting')
+        sClear.addEventListener('click', function (e) {
+          e.stopPropagation()
+          onSortChange(null)
+        })
+        sBtn.appendChild(sClear)
+      }
+
+      sWrap.appendChild(sBtn)
+      sWrap.appendChild(sMenu)
+      host.appendChild(sWrap)
     }
 
     // 4. Render Active Filter Pills grouped by Boolean Clause (with explicit AND / OR connectors)
@@ -2530,12 +2653,12 @@
     return out
   }
 
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions, modelId, referenceIndex) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId, actions, modelId, referenceIndex, sortState) {
     var content = doc.getElementById('nn-content')
     if (!content) return
     content.innerHTML = ''
 
-    var projectedElements = projectElements(elements, drafts)
+    var projectedElements = sortElements(projectElements(elements, drafts), sortState)
     if (!projectedElements.length) return mountEmptyFilterState(content)
 
     var visuals = typeof self !== 'undefined' && self.nnVisuals ? self.nnVisuals : null
@@ -2723,13 +2846,13 @@
     )
   }
 
-  function mountElementBadges(doc, elements, drafts, concepts, refs, modelId) {
+  function mountElementBadges(doc, elements, drafts, concepts, refs, modelId, sortState) {
     var content = doc.getElementById('nn-content')
     if (!content) return
     content.innerHTML = ''
     var wrap = el('div', 'nn-element-badges-wrap')
     wrap.setAttribute('data-nn-component', 'element-badges-view')
-    var projectedElements = projectElements(elements, drafts)
+    var projectedElements = sortElements(projectElements(elements, drafts), sortState)
     if (!projectedElements.length) return mountEmptyFilterState(content)
     chunked(wrap, projectedElements, function (pageElements) {
       var frag = doc.createDocumentFragment()
@@ -2763,13 +2886,13 @@
     content.appendChild(wrap)
   }
 
-  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions, modelId) {
+  function mountElementMiniCards(doc, elements, drafts, concepts, refs, incomingById, actions, modelId, sortState) {
     var content = doc.getElementById('nn-content')
     if (!content) return
     content.innerHTML = ''
     var grid = el('div', 'nn-element-minicards-grid')
     grid.setAttribute('data-nn-component', 'element-minicards-view')
-    var projectedElements = projectElements(elements, drafts)
+    var projectedElements = sortElements(projectElements(elements, drafts), sortState)
     if (!projectedElements.length) return mountEmptyFilterState(content)
     chunked(grid, projectedElements, function (pageElements) {
       var frag = doc.createDocumentFragment()
@@ -2818,31 +2941,48 @@
 
   // Numeric-aware compare: pure-numeric strings sort as numbers, else locale.
   function compareElementValues(a, b) {
-    var sa = a == null ? '' : String(a)
-    var sb = b == null ? '' : String(b)
+    var sa = a == null ? '' : (Array.isArray(a) ? a.join(', ') : String(a)).trim()
+    var sb = b == null ? '' : (Array.isArray(b) ? b.join(', ') : String(b)).trim()
     if (/^\s*-?\d+(\.\d+)?\s*$/.test(sa) && /^\s*-?\d+(\.\d+)?\s*$/.test(sb)) {
       return parseFloat(sa) - parseFloat(sb)
     }
-    return sa.localeCompare(sb)
+    return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' })
   }
 
   function tableValueOf(element, key) {
-    if (key === 'name') return element.name
-    if (key === 'concept') return element.concept
+    if (!element) return ''
+    if (key === 'name') return element.name || ''
+    if (key === 'concept') return element.concept || ''
+    if (key === 'id') return element.id || ''
+    if (key === 'description') return element.description || ''
     if (key === 'tags') return getElementEffectiveTags(element).join(', ')
-    return element.fields ? element.fields[key] : ''
+    if (element.fields && element.fields[key] != null) return element.fields[key]
+    if (element.inherited && element.inherited[key] != null) {
+      var iv = element.inherited[key]
+      return iv && typeof iv === 'object' && 'value' in iv ? iv.value : iv
+    }
+    return ''
   }
 
-  function sortTableElements(projected, sortState) {
+  function sortElements(projected, sortState) {
     if (!sortState || !sortState.key) return projected
     var key = sortState.key
     var dir = sortState.dir === 'desc' ? -1 : 1
-    return projected.slice().sort(function (a, b) {
-      var c = compareElementValues(tableValueOf(a, key), tableValueOf(b, key))
-      if (c === 0) c = compareElementValues(a.name, b.name)
+    return (Array.isArray(projected) ? projected : []).slice().sort(function (a, b) {
+      var valA = tableValueOf(a, key)
+      var valB = tableValueOf(b, key)
+      var hasA = valA != null && valA !== ''
+      var hasB = valB != null && valB !== ''
+      if (!hasA && !hasB) return 0
+      if (!hasA) return 1
+      if (!hasB) return -1
+      var c = compareElementValues(valA, valB)
+      if (c === 0) c = compareElementValues(a.name || a.id || '', b.name || b.id || '')
       return c * dir
     })
   }
+
+  var sortTableElements = sortElements
 
   function displayCellText(value) {
     if (value == null) return ''
@@ -7169,18 +7309,28 @@
           refresh(activeSearchQuery)
         }, (meta && (meta.modelId || meta.model)) || '')
       } else if (explorerView === 'badges') {
-        mountElementBadges(active, filteredElements, currentDrafts, concepts, refs, (meta && (meta.modelId || meta.model)) || '')
+        mountElementBadges(active, filteredElements, currentDrafts, concepts, refs, (meta && (meta.modelId || meta.model)) || '', sortState)
       } else if (explorerView === 'cards') {
-        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions, (meta && (meta.modelId || meta.model)) || '')
+        mountElementMiniCards(active, filteredElements, currentDrafts, concepts, refs, incomingById, cardActions, (meta && (meta.modelId || meta.model)) || '', sortState)
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions, (meta && (meta.modelId || meta.model)) || '', state.referenceIndex)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId, cardActions, (meta && (meta.modelId || meta.model)) || '', state.referenceIndex, sortState)
         focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {
         var sBox = active.getElementById('nn-search')
         if (sBox) sBox.value = nextQuery
         refresh(nextQuery)
-      }, activeSearchQuery)
+      }, activeSearchQuery, sortState, function (nextKey, nextDir) {
+        if (nextKey === null) {
+          sortState.key = ''
+          sortState.dir = 'asc'
+        } else {
+          sortState.key = nextKey
+          if (nextDir) sortState.dir = nextDir
+          else if (!sortState.dir) sortState.dir = 'asc'
+        }
+        refresh(activeSearchQuery)
+      })
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
@@ -7579,7 +7729,9 @@
     mountElementTable: mountElementTable,
     mountElementBadges: mountElementBadges,
     mountElementMiniCards: mountElementMiniCards,
+    mountElementCards: mountElementCards,
     renderExplorerToolbar: renderExplorerToolbar,
+    sortElements: sortElements,
     sortTableElements: sortTableElements,
     renderMediaDialog: renderMediaDialog,
     renderFieldDetailDialog: renderFieldDetailDialog,
