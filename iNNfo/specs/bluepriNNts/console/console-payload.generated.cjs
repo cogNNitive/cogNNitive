@@ -12187,7 +12187,7 @@ function consoleOutputPath(scope) {
 
 // iNNfo/packages/nn-core/src/console/slot.ts
 function serializeConsoleSlot(value) {
-  return JSON.stringify(value, null, 2).replace(/</g, "\\u003c");
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 function flattenConceptFields(concepts) {
   const out = [];
