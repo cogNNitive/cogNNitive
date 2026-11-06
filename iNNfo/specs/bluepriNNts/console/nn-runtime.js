@@ -4189,12 +4189,29 @@
 
     var elementsById = {}
     elements.forEach(function (e) {
-      if (e && e.id) elementsById[e.id] = e
+      if (!e) return
+      if (e.id) elementsById[e.id] = e
+      if (e.slug && !elementsById[e.slug]) elementsById[e.slug] = e
+      if (typeof e.id === 'string') {
+        var at = e.id.indexOf('@')
+        if (at !== -1) {
+          var bare = e.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = e
+        }
+        var hash = e.id.indexOf('#')
+        if (hash !== -1) {
+          var bareHash = e.id.slice(hash + 1)
+          if (!elementsById[bareHash]) elementsById[bareHash] = e
+        }
+      }
     })
 
     function kuBadge(unitId) {
       var target = elementsById[unitId]
-      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      var ref = {
+        id: (target && target.id) ? target.id : String(unitId),
+        label: (target && (target.name || target.slug)) || String(unitId),
+      }
       if (target && target.concept) ref.concept = target.concept
       // The address needs the owning model: without it the badge renders a bare
       // `@slug`, which is not a parseable unit address.
@@ -4203,8 +4220,8 @@
       try {
         return UI.Ku('element', ref, {
           doc: doc,
-          onAction: function (action, descriptor) {
-            if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
+          onReveal: function (descriptor) {
+            if (typeof opts.onReveal === 'function') opts.onReveal(descriptor)
           },
         })
       } catch {
@@ -4213,23 +4230,35 @@
     }
 
     // A non-KU node still reads like a console badge: same `nn-ku` shell and
-    // nature grammar, no unit affordances (it is not a knowledge unit).
+    // nature grammar, custom icon, semantic colors, but no unit affordances.
     var NON_KU_BADGE = {
-      origins: { kind: 'document', nature: 'container', home: 'domain' },
-      sources: { kind: 'source', nature: 'content', home: 'source' },
-      changes: { kind: 'section', nature: 'container', home: 'model' },
-      artifacts: { kind: 'source', nature: 'content', home: 'source' },
-      change: { kind: 'section', nature: 'container', home: 'model' },
+      origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+      artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
     }
 
     function similarBadge(kindKey, label, title) {
+      if (UI && typeof UI.ConceptBadge === 'function') {
+        return UI.ConceptBadge(kindKey, label, { title: title, doc: doc })
+      }
       var spec = NON_KU_BADGE[kindKey] || NON_KU_BADGE.sources
-      var badge = el('span', 'nn-ku nn-similar-badge')
+      var badge = el('span', 'nn-ku nn-concept-badge')
       badge.setAttribute('data-ku-kind', spec.kind)
       badge.setAttribute('data-ku-nature', spec.nature)
       badge.setAttribute('data-ku-home', spec.home)
       if (title) badge.setAttribute('title', title)
-      badge.appendChild(el('span', 'nn-ku-label', label))
+      if (spec.icon && typeof nnIcons !== 'undefined' && typeof nnIcons.getSvg === 'function') {
+        var iconEl = el('span', 'nn-ku-icon')
+        iconEl.setAttribute('aria-hidden', 'true')
+        iconEl.innerHTML = nnIcons.getSvg(spec.icon, { size: 13 })
+        badge.appendChild(iconEl)
+      }
+      badge.appendChild(el('span', 'nn-ku-label', String(label == null ? '' : label)))
       return badge
     }
 
@@ -4706,7 +4735,7 @@
         if (
           target &&
           typeof target.closest === 'function' &&
-          target.closest('[data-ku-more], [data-ku-action], .nn-ku-action, .nn-ku-change-pip')
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
         ) {
           return
         }
@@ -4715,6 +4744,14 @@
       node.addEventListener('keydown', function (ev) {
         var key = ev && ev.key
         if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
         if (ev.preventDefault) ev.preventDefault()
         selectPipelineNode(item.id)
       })

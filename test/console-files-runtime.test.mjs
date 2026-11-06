@@ -236,6 +236,56 @@ describe('Files tab runtime', () => {
     assert.equal(artifactNode.style.order, '', 'clearing restores connected node order')
   })
 
+  it('opens the unit modal when clicking the three vertical dots on a pipeline unit node', () => {
+    const document = bootFromShell(FILES_MODEL)
+    document.querySelector('.nn-view-tab[data-tab="files"]').click()
+    document.getElementById('nn-files-mode-pipeline').click()
+    const pipeline = document.getElementById('nn-files-pipeline')
+    const unitNode = pipeline.querySelector('.nn-pipeline-node[data-node^="unit:"]')
+    assert.ok(unitNode, 'unit node exists')
+    // Click unit node to select it first (as reported by user)
+    unitNode.click()
+    assert.ok(unitNode.classList.contains('nn-pipeline-selected'), 'unit node is selected')
+    const moreBtn = unitNode.querySelector('[data-ku-more]')
+    assert.ok(moreBtn, 'kebab button exists')
+    const beforeModal = document.querySelector('dialog[open], .nn-modal, [data-nn-component="edit-modal"], [data-nn-component="ku-info-panel"]')
+    assert.equal(beforeModal, null, 'no modal before clicking kebab')
+    moreBtn.click()
+    const modal = document.querySelector('dialog[open], .nn-modal, [data-nn-component="edit-modal"], [data-nn-component="ku-info-panel"]')
+    assert.ok(modal, 'modal is opened after clicking kebab')
+  })
+
+  it('renders formal badges with icons and semantic kind for origins, sources, changes, and artifacts', () => {
+    const document = bootFromShell(FILES_MODEL)
+    document.querySelector('.nn-view-tab[data-tab="files"]').click()
+    document.getElementById('nn-files-mode-pipeline').click()
+    const pipeline = document.getElementById('nn-files-pipeline')
+
+    // Origins badge check
+    const originBadge = pipeline.querySelector('.nn-pipeline-stage:nth-child(1) .nn-ku[data-ku-kind="origin"]')
+    assert.ok(originBadge, 'origins stage uses data-ku-kind="origin"')
+    assert.equal(originBadge.getAttribute('data-ku-nature'), 'container')
+    assert.ok(originBadge.querySelector('.nn-ku-icon'), 'origin badge has icon')
+
+    // Sources badge check
+    const sourceBadge = pipeline.querySelector('.nn-pipeline-stage:nth-child(2) .nn-ku[data-ku-kind="source"]')
+    assert.ok(sourceBadge, 'sources stage uses data-ku-kind="source"')
+    assert.equal(sourceBadge.getAttribute('data-ku-nature'), 'content')
+    assert.ok(sourceBadge.querySelector('.nn-ku-icon'), 'source badge has icon')
+
+    // Changes badge check
+    const changeBadge = pipeline.querySelector('.nn-pipeline-stage:nth-child(3) .nn-ku[data-ku-kind="change"]')
+    assert.ok(changeBadge, 'changes stage uses data-ku-kind="change"')
+    assert.equal(changeBadge.getAttribute('data-ku-nature'), 'container')
+    assert.ok(changeBadge.querySelector('.nn-ku-icon'), 'change badge has icon')
+
+    // Artifacts badge check
+    const artifactBadge = pipeline.querySelector('.nn-pipeline-stage:nth-child(5) .nn-ku[data-ku-kind="artifact"]')
+    assert.ok(artifactBadge, 'artifacts stage uses data-ku-kind="artifact"')
+    assert.equal(artifactBadge.getAttribute('data-ku-nature'), 'content')
+    assert.ok(artifactBadge.querySelector('.nn-ku-icon'), 'artifact badge has icon')
+  })
+
   it('deep-links to a file through #files&path=', () => {
     const document = bootFromShell(FILES_MODEL)
     document.location.hash = '#files&path=' + encodeURIComponent('sources/import/orphan.txt')

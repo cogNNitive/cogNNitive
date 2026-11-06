@@ -5293,6 +5293,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     element: 'content',
     value: 'content',
     source: 'content',
+    origin: 'container',
+    change: 'container',
+    artifact: 'content',
   }
 
   // Change A: a unit's edit affordance derives from its model's declared
@@ -5516,11 +5519,50 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
       '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted,#64748b)}',
       '.nn-ku-action:hover{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
+      '.nn-ku[data-ku-kind=change]{border:1.5px solid var(--nn-amber,#d97706);background:color-mix(in srgb,var(--nn-amber,#d97706) 12%,var(--nn-surface,#fff));--c:var(--nn-amber,#d97706)}',
+      '.nn-ku[data-ku-kind=change]>.nn-ku-icon,.nn-ku[data-ku-kind=change]>.nn-ku-label{color:var(--nn-amber-text,#b45309)}',
+      '.nn-ku[data-ku-kind=origin]{border:1.5px solid var(--nn-purple,#8b5cf6);background:color-mix(in srgb,var(--nn-purple,#8b5cf6) 12%,var(--nn-surface,#fff));--c:var(--nn-purple,#8b5cf6)}',
+      '.nn-ku[data-ku-kind=origin]>.nn-ku-icon,.nn-ku[data-ku-kind=origin]>.nn-ku-label{color:var(--nn-purple-text,#7c3aed)}',
+      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--nn-slate,#64748b) 10%,var(--nn-surface,#fff));--c:var(--nn-slate,#64748b)}',
+      '.nn-ku[data-ku-kind=artifact]>.nn-ku-icon,.nn-ku[data-ku-kind=artifact]>.nn-ku-label{color:var(--nn-slate-text,#475569)}',
+      '.nn-ku[data-ku-kind=source]{border:1px solid color-mix(in srgb,var(--nn-cyan,#0284c7) 35%,var(--nn-border,#cbd5e1));background:color-mix(in srgb,var(--nn-cyan,#0284c7) 10%,var(--nn-surface,#fff));--c:var(--nn-cyan,#0284c7)}',
+      '.nn-ku[data-ku-kind=source]>.nn-ku-icon,.nn-ku[data-ku-kind=source]>.nn-ku-label{color:var(--nn-cyan-text,#0369a1)}',
       // No mode gates: an edit only ever creates a draft, so the pencil is always
       // emitted and always live. Structure edits warn inside the modal instead.
       '.nn-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
     ].join('')
     doc.head.appendChild(style)
+  }
+
+  var CONCEPT_BADGE_SPECS = {
+    origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+    origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+    source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+    sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+    change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+    changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+    artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+    artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+  }
+
+  function ConceptBadge(kindKey, label, opts) {
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    ensureKuCss(doc)
+    var spec = CONCEPT_BADGE_SPECS[kindKey] || CONCEPT_BADGE_SPECS.sources
+    var badge = makeEl(doc, 'span', 'nn-ku nn-concept-badge')
+    badge.setAttribute('data-ku-kind', spec.kind)
+    badge.setAttribute('data-ku-nature', spec.nature)
+    badge.setAttribute('data-ku-home', spec.home)
+    if (opts.title) badge.setAttribute('title', opts.title)
+    if (spec.icon) {
+      var iconEl = makeEl(doc, 'span', 'nn-ku-icon')
+      iconEl.setAttribute('aria-hidden', 'true')
+      iconEl.innerHTML = icon(spec.icon, 13)
+      badge.appendChild(iconEl)
+    }
+    badge.appendChild(makeEl(doc, 'span', 'nn-ku-label', String(label == null ? '' : label)))
+    return badge
   }
 
   function Ku(kind, ref, opts) {
@@ -5900,6 +5942,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     setUnitChanges: setUnitChanges,
     setModelOwnership: setModelOwnership,
     Ku: Ku,
+    ConceptBadge: ConceptBadge,
+    conceptBadge: ConceptBadge,
+    CONCEPT_BADGE_SPECS: CONCEPT_BADGE_SPECS,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
@@ -12958,12 +13003,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var elementsById = {}
     elements.forEach(function (e) {
-      if (e && e.id) elementsById[e.id] = e
+      if (!e) return
+      if (e.id) elementsById[e.id] = e
+      if (e.slug && !elementsById[e.slug]) elementsById[e.slug] = e
+      if (typeof e.id === 'string') {
+        var at = e.id.indexOf('@')
+        if (at !== -1) {
+          var bare = e.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = e
+        }
+        var hash = e.id.indexOf('#')
+        if (hash !== -1) {
+          var bareHash = e.id.slice(hash + 1)
+          if (!elementsById[bareHash]) elementsById[bareHash] = e
+        }
+      }
     })
 
     function kuBadge(unitId) {
       var target = elementsById[unitId]
-      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      var ref = {
+        id: (target && target.id) ? target.id : String(unitId),
+        label: (target && (target.name || target.slug)) || String(unitId),
+      }
       if (target && target.concept) ref.concept = target.concept
       // The address needs the owning model: without it the badge renders a bare
       // `@slug`, which is not a parseable unit address.
@@ -12972,8 +13034,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       try {
         return UI.Ku('element', ref, {
           doc: doc,
-          onAction: function (action, descriptor) {
-            if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
+          onReveal: function (descriptor) {
+            if (typeof opts.onReveal === 'function') opts.onReveal(descriptor)
           },
         })
       } catch {
@@ -12982,23 +13044,35 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     // A non-KU node still reads like a console badge: same `nn-ku` shell and
-    // nature grammar, no unit affordances (it is not a knowledge unit).
+    // nature grammar, custom icon, semantic colors, but no unit affordances.
     var NON_KU_BADGE = {
-      origins: { kind: 'document', nature: 'container', home: 'domain' },
-      sources: { kind: 'source', nature: 'content', home: 'source' },
-      changes: { kind: 'section', nature: 'container', home: 'model' },
-      artifacts: { kind: 'source', nature: 'content', home: 'source' },
-      change: { kind: 'section', nature: 'container', home: 'model' },
+      origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+      artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
     }
 
     function similarBadge(kindKey, label, title) {
+      if (UI && typeof UI.ConceptBadge === 'function') {
+        return UI.ConceptBadge(kindKey, label, { title: title, doc: doc })
+      }
       var spec = NON_KU_BADGE[kindKey] || NON_KU_BADGE.sources
-      var badge = el('span', 'nn-ku nn-similar-badge')
+      var badge = el('span', 'nn-ku nn-concept-badge')
       badge.setAttribute('data-ku-kind', spec.kind)
       badge.setAttribute('data-ku-nature', spec.nature)
       badge.setAttribute('data-ku-home', spec.home)
       if (title) badge.setAttribute('title', title)
-      badge.appendChild(el('span', 'nn-ku-label', label))
+      if (spec.icon && typeof nnIcons !== 'undefined' && typeof nnIcons.getSvg === 'function') {
+        var iconEl = el('span', 'nn-ku-icon')
+        iconEl.setAttribute('aria-hidden', 'true')
+        iconEl.innerHTML = nnIcons.getSvg(spec.icon, { size: 13 })
+        badge.appendChild(iconEl)
+      }
+      badge.appendChild(el('span', 'nn-ku-label', String(label == null ? '' : label)))
       return badge
     }
 
@@ -13475,7 +13549,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (
           target &&
           typeof target.closest === 'function' &&
-          target.closest('[data-ku-more], [data-ku-action], .nn-ku-action, .nn-ku-change-pip')
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
         ) {
           return
         }
@@ -13484,6 +13558,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       node.addEventListener('keydown', function (ev) {
         var key = ev && ev.key
         if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
         if (ev.preventDefault) ev.preventDefault()
         selectPipelineNode(item.id)
       })
