@@ -13469,7 +13469,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           : similarBadge(stageId, item.name, item.sub)
       node.appendChild(badge)
       node.addEventListener('click', function (ev) {
-        if (ev && ev.stopPropagation) ev.stopPropagation()
+        // Badge affordances (kebab, actions, change pip) belong to the KU
+        // framework: do not swallow them, and do not select on their click.
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], [data-ku-action], .nn-ku-action, .nn-ku-change-pip')
+        ) {
+          return
+        }
         selectPipelineNode(item.id)
       })
       node.addEventListener('keydown', function (ev) {

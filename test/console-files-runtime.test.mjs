@@ -206,6 +206,13 @@ describe('Files tab runtime', () => {
       .querySelectorAll('.nn-pipeline-node')
     assert.ok(unitNodes.length > 0, 'units stage has nodes')
     assert.ok(unitNodes[0].querySelector('.nn-ku-wrap [data-nn-component="ku-unit"]'), 'unit nodes use the Ku badge')
+    const unitKebab = unitNodes[0].querySelector('.nn-ku-more')
+    assert.ok(unitKebab, 'unit nodes expose the official Ku affordance')
+    unitKebab.click()
+    assert.ok(
+      !unitNodes[0].classList.contains('nn-pipeline-selected'),
+      'the badge kebab acts on the unit and never selects the node',
+    )
 
     const sourceNode = [...pipeline.querySelectorAll('.nn-pipeline-node')].find((n) =>
       n.textContent.includes('spec.md'),
