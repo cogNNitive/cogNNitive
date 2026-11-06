@@ -9191,6 +9191,11 @@ input[type="text"], input[type="search"], textarea, select {
   background: color-mix(in srgb, var(--primary) 10%, var(--surface));
 }
 
+.nn-pipeline-node.nn-pipeline-connected .nn-ku {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface-2));
+}
+
 .nn-pipeline-node.dimmed {
   opacity: 0.25;
   filter: grayscale(0.8);

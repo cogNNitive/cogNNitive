@@ -13510,33 +13510,115 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // Selection tracing: a source lights up the units that cite it, the changes
     // that use it as evidence, and the artifacts whose reverse lineage points
-    // back at it. Everything else dims.
+    // back at it. Tracing works bidirectionally from any stage (origins, sources,
+    // changes, units, artifacts). Everything else dims.
     function connectedTo(nodeId) {
       var out = {}
       out[nodeId] = true
-      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
-      if (!path) return out
-      var units = unitsByPath[path] || []
-      units.forEach(function (uid) {
-        out['unit:' + uid] = true
-      })
-      ;(changesByPath[path] || []).forEach(function (csId) {
-        out['change:' + csId] = true
-      })
-      Object.keys(lineage).forEach(function (artifactPath) {
-        var entry = lineage[artifactPath]
-        var hit =
-          (entry.sourcePaths || []).indexOf(path) >= 0 ||
-          (entry.unitIds || []).some(function (uid) {
-            return units.indexOf(uid) >= 0
+
+      if (nodeId.indexOf('file:') === 0) {
+        var path = nodeId.slice(5)
+        watchRoots.forEach(function (r) {
+          if (path.indexOf(r.path) === 0) out['root:' + r.path] = true
+        })
+        var units = unitsByPath[path] || []
+        units.forEach(function (uid) {
+          out['unit:' + uid] = true
+        })
+        ;(changesByPath[path] || []).forEach(function (csId) {
+          out['change:' + csId] = true
+        })
+        if (lineage[path]) {
+          var entry = lineage[path]
+          ;(entry.sourcePaths || []).forEach(function (sp) {
+            out['file:' + sp] = true
+            watchRoots.forEach(function (r) {
+              if (sp.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
           })
-        if (hit) {
-          out['file:' + artifactPath] = true
-          ;(entry.changesetIds || []).forEach(function (id) {
-            out['change:' + id] = true
+          ;(entry.unitIds || []).forEach(function (uid) {
+            out['unit:' + uid] = true
+          })
+          ;(entry.changesetIds || []).forEach(function (csId) {
+            out['change:' + csId] = true
           })
         }
-      })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          var hit =
+            (entry.sourcePaths || []).indexOf(path) >= 0 ||
+            (entry.unitIds || []).some(function (uid) {
+              return units.indexOf(uid) >= 0
+            })
+          if (hit) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('unit:') === 0) {
+        var uid = nodeId.slice(5)
+        Object.keys(unitsByPath).forEach(function (p) {
+          if ((unitsByPath[p] || []).indexOf(uid) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(changesByPath[p] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+        var targetEl = elementsById[uid]
+        if (targetEl && Array.isArray(targetEl.history)) {
+          targetEl.history.forEach(function (h) {
+            if (h.batch) out['change:' + h.batch.replace(/_changes_NN$/, '')] = true
+          })
+        }
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.unitIds || []).indexOf(uid) >= 0) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('change:') === 0) {
+        var csId = nodeId.slice(7)
+        Object.keys(changesByPath).forEach(function (p) {
+          if ((changesByPath[p] || []).indexOf(csId) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(unitsByPath[p] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+          }
+        })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.changesetIds || []).indexOf(csId) >= 0) {
+            out['file:' + artifactPath] = true
+          }
+        })
+      } else if (nodeId.indexOf('root:') === 0) {
+        var rootPath = nodeId.slice(5)
+        inventory.forEach(function (f) {
+          if (f.path.indexOf(rootPath) === 0) {
+            out['file:' + f.path] = true
+            ;(unitsByPath[f.path] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+            ;(changesByPath[f.path] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+      }
+
       return out
     }
 
@@ -13545,8 +13627,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
       ;[].slice.call(nodes).forEach(function (node) {
         var id = node.getAttribute('data-node')
-        node.classList.toggle('nn-pipeline-highlight', id === nodeId)
-        node.classList.toggle('dimmed', !keep[id])
+        var isSelected = id === nodeId
+        var isConnected = !!keep[id]
+        node.classList.toggle('nn-pipeline-highlight', isSelected)
+        node.classList.toggle('nn-pipeline-connected', isConnected && !isSelected)
+        node.classList.toggle('dimmed', !isConnected)
+        if (isSelected) {
+          node.style.order = '-2'
+        } else if (isConnected) {
+          node.style.order = '-1'
+        } else {
+          node.style.order = '0'
+        }
+      })
+      // Reset scroll to top on all stages so elevated items are immediately visible
+      var cols = pipeline.querySelectorAll('.nn-pipeline-nodes')
+      ;[].slice.call(cols).forEach(function (col) {
+        col.scrollTop = 0
       })
     }
 
@@ -13555,6 +13652,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ;[].slice.call(nodes).forEach(function (node) {
         node.classList.remove('dimmed')
         node.classList.remove('nn-pipeline-highlight')
+        node.classList.remove('nn-pipeline-connected')
+        node.style.order = ''
       })
     }
 

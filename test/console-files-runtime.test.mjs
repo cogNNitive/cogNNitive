@@ -216,12 +216,17 @@ describe('Files tab runtime', () => {
     sourceNode.click()
     assert.ok(sourceNode.classList.contains('nn-pipeline-selected'), 'click selects the node')
     assert.equal(sourceNode.getAttribute('aria-pressed'), 'true')
+    assert.equal(sourceNode.style.order, '-2', 'selected node is ordered first (-2)')
     const artifactNode = [...pipeline.querySelectorAll('.nn-pipeline-node')].find((n) =>
       n.textContent.includes('summary.html'),
     )
     assert.ok(artifactNode && !artifactNode.classList.contains('dimmed'), 'lineage link stays lit')
+    assert.equal(artifactNode.style.order, '-1', 'connected node in artifact stage floats to top (-1)')
+    assert.ok(artifactNode.classList.contains('nn-pipeline-connected'), 'connected node gets connected class')
     sourceNode.click()
     assert.ok(!sourceNode.classList.contains('nn-pipeline-selected'), 'second click clears the selection')
+    assert.equal(sourceNode.style.order, '', 'clearing restores natural order')
+    assert.equal(artifactNode.style.order, '', 'clearing restores connected node order')
   })
 
   it('deep-links to a file through #files&path=', () => {
