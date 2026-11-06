@@ -28,27 +28,22 @@ describe('S1b: draft count stays live without reload', () => {
     assert.match(document.querySelector('.nn-review-count').textContent, /^0 pending changes/)
   })
 
-  it('saving a draft keeps the mounted card node and focus', () => {
+  it('saving a draft keeps the mounted card node', () => {
     const { document, res } = bootConsole()
     res.controller.enable()
     const card = document.querySelector('#nn-content [data-element-id="ecto-1"]')
     assert.ok(card, 'card mounted')
-    // Open the tag-proposal popover, then park focus on another control of the
-    // card; a card remount would drop that focus when the draft is saved.
-    const Ev = document.defaultView.Event
-    card.querySelector('[data-nn-ctl="tag-add"]').dispatchEvent(new Ev('click', { bubbles: true }))
-    document.querySelector('.nn-popover-comment').value = 'looks wrong'
     const control = card.querySelector('.nn-ku-more')
     assert.ok(control, 'name pencil control decorated')
-    control.focus()
-    assert.equal(document.activeElement, control, 'control focused before saving')
 
-    document.querySelector('.nn-popover-save').dispatchEvent(new Ev('click', { bubbles: true }))
+    // Editing happens in the unit modal now, so the card is not the saved surface
+    // any more: what must survive is the card's DOM identity, not a focus parked on
+    // it (the popover-era assertion this test used to make).
+    addCommentDraft(document)
 
     const after = document.querySelector('#nn-content [data-element-id="ecto-1"]')
     assert.equal(after, card, 'card DOM node identity preserved')
     assert.ok(card.contains(control), 'control still inside the same card')
-    assert.equal(document.activeElement, control, 'focus stays on the same control')
     assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*1/)
     assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
     assert.match(document.querySelector('.nn-review-count').textContent, /^1 pending change/)

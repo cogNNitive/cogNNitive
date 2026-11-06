@@ -91,15 +91,27 @@ export function bootConsoleFromShell() {
   return { dom, document: dom.window.document, res }
 }
 
-// Records a comment draft through the tag proposal popover (the card-level
-// annotate anchor was retired in favour of the KU modal).
+// Records a draft through the unit editor. The tag-proposal popover was retired when
+// editing was unified into the KU modal, so the anchor now opens that modal: switch to
+// its Edit tab, fill the value, save. (The modal still has no list-valued editor, so a
+// tag is proposed as a plain value until the ChipEditor lands — issue #490.)
 export function addCommentDraft(document) {
   const Ev = document.defaultView.Event
-  document
-    .querySelector('[data-nn-ctl="tag-add"]')
-    .dispatchEvent(new Ev('click', { bubbles: true }))
-  const pop = document.querySelector('.nn-popover-comment')
-  pop.value = 'looks wrong'
-  document.querySelector('.nn-popover-save').dispatchEvent(new Ev('click', { bubbles: true }))
+  const fire = (node, type) => node.dispatchEvent(new Ev(type, { bubbles: true }))
+  fire(document.querySelector('[data-nn-ctl="tag-add"]'), 'click')
+
+  const modal = document.querySelector('[data-nn-component="edit-modal"]')
+  if (!modal) throw new Error('addCommentDraft: the unit editor did not open')
+  const editTab = [...modal.querySelectorAll('.nn-modal-tab-btn')].find(
+    (b) => b.textContent.trim() === 'Edit',
+  )
+  if (editTab) fire(editTab, 'click')
+
+  const input = modal.querySelector('.nn-edit-input')
+  if (!input) throw new Error('addCommentDraft: the edit form has no value input')
+  input.value = 'looks wrong'
+  const save = modal.querySelector('.nn-edit-btn-save')
+  if (!save) throw new Error('addCommentDraft: the edit form has no save control')
+  fire(save, 'click')
 }
 
