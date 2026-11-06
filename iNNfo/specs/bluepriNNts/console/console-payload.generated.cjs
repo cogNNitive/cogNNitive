@@ -12479,7 +12479,19 @@ function buildConsolePayload(options) {
 var import_node_path3 = require("node:path");
 var import_node_fs3 = require("node:fs");
 var import_promises2 = require("node:fs/promises");
+async function resolveLocalSpecPath(rootDir, url) {
+  if (!url || /^(?:https?|data|file):/i.test(url)) return null;
+  const absolute = (0, import_node_path3.isAbsolute)(url) ? url : (0, import_node_path3.resolve)(rootDir, url);
+  const rel = (0, import_node_path3.relative)(rootDir, absolute);
+  if (rel.startsWith("..") || (0, import_node_path3.isAbsolute)(rel)) return null;
+  return (0, import_node_fs3.existsSync)(absolute) ? absolute : null;
+}
 async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir, warnings) {
+  const local = await resolveLocalSpecPath(rootDir, url);
+  if (local !== null) {
+    const content = await (0, import_promises2.readFile)(local, "utf-8").catch(() => null);
+    if (content !== null) return { content, dir: (0, import_node_path3.dirname)(local) };
+  }
   const version = url ? parseSpecName((0, import_node_path3.basename)(url)).version : void 0;
   const resolveOnce = async (refName) => {
     const pkg = await resolveBlueprintPackage(rootDir, refName, version, { globalDir, skillsDir });
