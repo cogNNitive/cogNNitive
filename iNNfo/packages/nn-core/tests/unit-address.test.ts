@@ -171,6 +171,18 @@ describe('parseUnitAddress parser (Task 1.3)', () => {
     expect(parsed?.filePath).toBe('sources/data.csv')
   })
 
+  it('parses a mirror address as a source chip', () => {
+    const parsed = parseUnitAddress('sources/sync/org/organization_NN.md@gerente')
+    expect(parsed?.kind).toBe('source')
+    expect(parsed?.filePath).toBe('sources/sync/org/organization_NN.md')
+    expect(parsed?.slug).toBe('gerente')
+    expect(parsed?.subunits).toEqual([])
+    const field = parseUnitAddress('sources/sync/org/x_NN.md@gerente&name')
+    expect(field?.kind).toBe('source')
+    expect(field?.subunits).toEqual(['name'])
+    expect(unitHome('sources/sync/org/x_NN.md@slug')).toBe('source')
+  })
+
   it('rejects invalid addresses', () => {
     expect(parseUnitAddress('sources/import/notes')).toBeNull() // extensionless typo in source
     expect(parseUnitAddress('../model@element')).toBeNull()

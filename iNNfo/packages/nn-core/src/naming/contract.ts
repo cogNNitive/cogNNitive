@@ -293,7 +293,7 @@ export function parentSpecNameOf(frontmatter: Record<string, unknown>): string |
  * such as an old domain imported as a source, is evidence, never a model. The folder name
  * is matched case-insensitively because Windows folders keep whatever casing they were made with.
  */
-function isUnderRootSources(path: string): boolean {
+export function isUnderRootSources(path: string): boolean {
   return segmentsOf(path)[0]?.toLowerCase() === 'sources'
 }
 

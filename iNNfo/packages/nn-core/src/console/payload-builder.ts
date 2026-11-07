@@ -34,7 +34,7 @@ import type {
   FileCategory,
   FileSidecarStatus,
   FileInventoryEntry,
-  WatchRootDescriptor,
+  OriginDescriptor,
   FilesStats,
   ArtifactReverseLineageEntry,
   ConsolePayloadFiles,
@@ -47,7 +47,7 @@ export type {
   FileCategory,
   FileSidecarStatus,
   FileInventoryEntry,
-  WatchRootDescriptor,
+  OriginDescriptor,
   FilesStats,
   ArtifactReverseLineageEntry,
   ConsolePayloadFiles,
@@ -67,6 +67,8 @@ export {
   sidecarPathFor,
   sidecarSubjectPath,
   calculateFilesStats,
+  buildOrigins,
+  isMirrorFile,
 } from './files-inventory.js'
 
 export { computeSha256 }

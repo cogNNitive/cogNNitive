@@ -151,15 +151,16 @@ blueprint_version: "1.0.0"
       'sidecar documents must not appear as files',
     )
 
-    assert.ok(Array.isArray(files.watchRoots), 'files.watchRoots must be an array')
-    assert.ok(files.watchRoots.length > 0)
-    assert.ok(files.watchRoots.every((r) => r.path && r.status))
+    assert.deepEqual(files.origins, [], 'no Synchronization and no sidecar origin keys: no origins')
+    assert.equal('watchRoots' in files, false, 'the payload has no watchRoots')
 
     assert.ok(files.stats, 'files.stats must be defined')
     assert.equal(files.stats.totalFiles, files.inventory.length)
     assert.equal(typeof files.stats.totalBytes, 'number')
     assert.ok(files.stats.categoryCounts)
     assert.ok(files.stats.storageByCategory)
+    assert.equal('watch_root' in files.stats.categoryCounts, false)
+    assert.equal('imported_domain' in files.stats.categoryCounts, false)
     assert.equal(typeof files.stats.sourceCoverageRate, 'number')
     assert.ok(files.stats.sourceCoverageRate <= 1 && files.stats.sourceCoverageRate >= 0)
     assert.equal(files.stats.uncitedSourceCount, 2, 'orphan.txt and drift.md are both uncited')
@@ -176,6 +177,61 @@ blueprint_version: "1.0.0"
     const first = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
     const second = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
     assert.deepEqual(first, second, 'no wall-clock timestamps may leak into the payload')
+  })
+
+  it('never derives an origin from a folder name', async () => {
+    await mkdir(join(tempDir, 'external'), { recursive: true })
+    await writeFile(join(tempDir, 'external', 'note.txt'), 'outside the layout', 'utf8')
+    const files = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
+    assert.deepEqual(files.origins, [])
+    assert.equal('watchRoots' in files, false)
+  })
+
+  it('builds origins from the Synchronization catalog and the mirror files', async () => {
+    await mkdir(join(tempDir, 'sources', 'sync', 'org'), { recursive: true })
+    await writeFile(join(tempDir, 'sources', 'sync', 'org', 'organization_NN.md'), '# Organization\n', 'utf8')
+    await writeFile(
+      join(tempDir, 'sources', 'sources_NN.md'),
+      [
+        '---',
+        'level: 3',
+        'parent_spec:',
+        '  name: "sources"',
+        'knowledge_version: "V_0-1-0"',
+        'title: "Sources"',
+        '---',
+        '',
+        '# NN index',
+        '',
+        '* [[Synchronization]]',
+        '',
+        '# NN Synchronization',
+        '',
+        '## NN Synchronization: Organization',
+        '  alias:: org',
+        '  origin_uri:: ../organization',
+        '  kind:: folder',
+        '  state:: active',
+        '',
+      ].join('\n'),
+      'utf8',
+    )
+    const files = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
+    assert.deepEqual(files.origins, [
+      {
+        id: 'org',
+        alias: 'org',
+        origin: '../organization',
+        kind: 'folder',
+        state: 'active',
+        files: ['sources/sync/org/organization_NN.md'],
+      },
+    ])
+    const mirror = files.inventory.find((e) => e.path === 'sources/sync/org/organization_NN.md')
+    assert.equal(mirror.category, 'source')
+    assert.equal(mirror.sidecar, undefined, 'a mirror has no sidecar by design')
+    // Only orphan.txt: the mirror and the catalog are models, exempt from sidecars.
+    assert.equal(files.stats.sidecarMissingCount, 1, 'mirrored models and the catalog are not sidecar gaps')
   })
 
   it('bounds preview snippets per file and globally', async () => {

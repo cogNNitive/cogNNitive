@@ -14,6 +14,7 @@ export const DOMAIN_BLUEPRINT_URL =
 export const DOMAIN_DIRS = [
   'kNNowledge',
   'sources/import',
+  'sources/sync',
   'sources/conversations',
   'conversations',
   'artifacts',
@@ -23,6 +24,12 @@ export const DOMAIN_DIRS = [
 ] as const
 
 export const DOMAIN_MANIFEST_FILE = 'domaiNN_NN.md'
+
+/** The sources catalog: where Synchronization elements are declared. */
+export const SOURCES_CATALOG_FILE = 'sources/sources_NN.md'
+
+const SOURCES_BLUEPRINT_URL =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md'
 
 export interface DomainScaffoldInput {
   /** Display name of the domaiNN (the manifest `title`). */
@@ -70,10 +77,32 @@ export function planDomainScaffold(input: DomainScaffoldInput): DomainScaffoldPl
     '',
   ].join('\n')
 
+  const catalog = [
+    '---',
+    'level: 3',
+    'parent_spec:',
+    '  name: "sources"',
+    `  url: ${esc(SOURCES_BLUEPRINT_URL)}`,
+    'knowledge_version: "V_0-1-0"',
+    `title: ${esc(`${name} Sources`)}`,
+    '---',
+    '',
+    '# NN index',
+    '',
+    '* [[Source]]',
+    '* [[Synchronization]]',
+    '',
+    '# NN Source',
+    '',
+    '# NN Synchronization',
+    '',
+  ].join('\n')
+
   return {
     dirs: [...DOMAIN_DIRS],
     files: [
       { path: DOMAIN_MANIFEST_FILE, content: manifest },
+      { path: SOURCES_CATALOG_FILE, content: catalog },
       { path: '.gitattributes', content: '* -text\n' },
     ],
     workspaceId,

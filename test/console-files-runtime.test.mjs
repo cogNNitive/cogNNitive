@@ -55,12 +55,21 @@ const FILES_PAYLOAD = {
       snippetTruncated: false,
     },
   ],
-  watchRoots: [{ path: 'sources', status: 'active', fileCount: 2, lastSync: '2026-11-01T10:00:00.000Z' }],
+  origins: [
+    {
+      id: 'org',
+      alias: 'org',
+      origin: '/shared/org',
+      kind: 'folder',
+      state: 'active',
+      files: ['sources/import/spec.md'],
+    },
+  ],
   stats: {
     totalFiles: 3,
     totalBytes: 6656,
-    categoryCounts: { watch_root: 1, source: 2, imported_domain: 0, asset: 0, evidence: 0, artifact: 1 },
-    storageByCategory: { watch_root: 0, source: 2560, imported_domain: 0, asset: 0, evidence: 0, artifact: 4096 },
+    categoryCounts: { source: 2, asset: 0, evidence: 0, artifact: 1, unclassified: 0 },
+    storageByCategory: { source: 2560, asset: 0, evidence: 0, artifact: 4096, unclassified: 0 },
     sourceCoverageRate: 0.5,
     uncitedSourceCount: 1,
     sidecarMissingCount: 1,
@@ -143,7 +152,10 @@ describe('Files tab runtime', () => {
     const kpis = panel.querySelectorAll('.nn-kpi-card')
     assert.equal(kpis.length, 4, 'four KPI cards')
     assert.ok(panel.querySelector('.nn-storage-bar'), 'storage distribution renders')
-    assert.ok(panel.querySelector('.nn-watch-table'), 'watch roots table renders')
+    assert.ok(panel.querySelector('.nn-origins-table'), 'origins table renders')
+    assert.ok(panel.querySelector('.nn-origins-table').textContent.includes('org'))
+    assert.equal(panel.querySelector('.nn-watch-table'), null, 'no watch roots table')
+    assert.ok(!/Watch roots|Watch Folders|Imported Domains/.test(panel.textContent), 'no legacy wording')
     assert.ok(panel.querySelector('.nn-integrity-alert'), 'integrity signals render')
   })
 
@@ -167,6 +179,29 @@ describe('Files tab runtime', () => {
     // Back to the dashboard.
     detail.querySelector('.nn-file-detail-breadcrumb a').click()
     assert.ok(document.getElementById('nn-files-detail').querySelector('.nn-files-dashboard'))
+  })
+
+  it('shows Unclassified only when a file has that category', () => {
+    const headersOf = (model) => {
+      const document = bootFromShell(model)
+      document.querySelector('.nn-view-tab[data-tab="files"]').click()
+      return [...document.querySelectorAll('.nn-category-header')].map((h) => h.textContent)
+    }
+    assert.ok(!headersOf(FILES_MODEL).some((h) => h.includes('Unclassified')))
+    const loose = {
+      id: 'misc/loose.bin',
+      path: 'misc/loose.bin',
+      category: 'unclassified',
+      size: 10,
+      sha256: 'd'.repeat(64),
+      mimeType: 'application/octet-stream',
+      citationsCount: 0,
+      excerptCount: 0,
+      changesCount: 0,
+      uncited: false,
+    }
+    const withLoose = { ...FILES_MODEL, files: { ...FILES_PAYLOAD, inventory: [...FILES_PAYLOAD.inventory, loose] } }
+    assert.ok(headersOf(withLoose).some((h) => h.includes('Unclassified')))
   })
 
   it('opens the preview dialog with inert content', () => {
@@ -234,6 +269,37 @@ describe('Files tab runtime', () => {
     assert.ok(!sourceNode.classList.contains('nn-pipeline-selected'), 'second click clears the selection')
     assert.equal(sourceNode.style.order, '', 'clearing restores natural order')
     assert.equal(artifactNode.style.order, '', 'clearing restores connected node order')
+  })
+
+  it('hides the Origins stage and card when there are no origins', () => {
+    const model = { ...FILES_MODEL, files: { ...FILES_PAYLOAD, origins: [] } }
+    const document = bootFromShell(model)
+    document.querySelector('.nn-view-tab[data-tab="files"]').click()
+    const panel = document.getElementById('nn-tab-files')
+    assert.equal(panel.querySelector('.nn-origins-table'), null, 'no origins card')
+    document.getElementById('nn-files-mode-pipeline').click()
+    const stages = [...document.getElementById('nn-files-pipeline').querySelectorAll('.nn-pipeline-stage')]
+    assert.equal(stages.length, 4)
+    assert.ok(!stages.some((st) => st.textContent.includes('Origins')))
+  })
+
+  it('builds the Origins stage from origins[].files and traces to its files', () => {
+    const document = bootFromShell(FILES_MODEL)
+    document.querySelector('.nn-view-tab[data-tab="files"]').click()
+    document.getElementById('nn-files-mode-pipeline').click()
+    const pipeline = document.getElementById('nn-files-pipeline')
+    const originNode = pipeline.querySelector('.nn-pipeline-node[data-node="origin:org"]')
+    assert.ok(originNode, 'one node per origin')
+    originNode.click()
+    const lit = (path) => pipeline.querySelector('.nn-pipeline-node[data-node="file:' + path + '"]')
+    assert.ok(lit('sources/import/spec.md').classList.contains('nn-pipeline-connected'), 'attributed file is connected')
+    assert.ok(!lit('sources/import/orphan.txt').classList.contains('nn-pipeline-connected'), 'other files are not')
+  })
+
+  it('shows the Files tab for origins only', () => {
+    const model = { ...FILES_MODEL, files: { ...FILES_PAYLOAD, inventory: [] } }
+    const document = bootFromShell(model)
+    assert.ok(document.querySelector('.nn-view-tab[data-tab="files"]'), 'files tab exists')
   })
 
   it('opens the unit modal when clicking the three vertical dots on a pipeline unit node', () => {

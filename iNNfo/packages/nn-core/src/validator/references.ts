@@ -2,6 +2,7 @@ import type { Concept, ElementNode, ParsedKnowledge } from '../types/index.js'
 import { IMPLICIT_REF_FIELDS } from './elementIndex.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
 import { isAddressError, parseAddress } from '../address/index.js'
+import { parseMirrorAddress } from '../sync/address.js'
 
 export interface ReferenceDiagnostic {
   path: string
@@ -313,6 +314,8 @@ export function validateElementFieldReferences(
             })
             continue
           }
+          // A mirror address is resolved by the workspace pass, which sees the mirror folders.
+          if (parsed.kind === 'source' && fieldDef?.type === 'reference' && parseMirrorAddress(rawValue)) continue
           if (parsed.kind === 'blueprint' || parsed.kind === 'source') {
             diagnostics.push({
               path: fieldPath,

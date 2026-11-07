@@ -9,6 +9,7 @@ import {
   isSidecarPath,
   sidecarSubjectPath,
   isTextMime,
+  buildOrigins,
 } from '../dist/console/files-inventory.js'
 import type { FileInventoryEntry } from '../dist/console/files-inventory.js'
 
@@ -63,10 +64,13 @@ describe('Domain Console Files Payload Precomputation', () => {
     assert.equal(classifyFileCategory('evidence/survey.csv'), 'evidence')
     assert.equal(classifyFileCategory('artifacts/report.html'), 'artifact')
     assert.equal(classifyFileCategory('domaiNN_console.html'), 'artifact')
-    assert.equal(classifyFileCategory('watch/inbox/doc.txt'), 'watch_root')
-    // Foreign domain snapshots.
-    assert.equal(classifyFileCategory('imported/other-domain/domaiNN_NN.md'), 'imported_domain')
-    assert.equal(classifyFileCategory('.domains/other/kNNowledge/x_NN.md'), 'imported_domain')
+    // Mirrored models are sources.
+    assert.equal(classifyFileCategory('sources/sync/org/organization_NN.md'), 'source')
+    // A file that matches no known layout is never promoted to a source.
+    assert.equal(classifyFileCategory('misc/notes.bin'), 'unclassified')
+    assert.equal(classifyFileCategory('external/doc.txt'), 'unclassified')
+    assert.equal(classifyFileCategory('watch/inbox/doc.txt'), 'unclassified')
+    assert.equal(classifyFileCategory('imported/other-domain/domaiNN_NN.md'), 'unclassified')
   })
 
   it('detects MIME types from paths', () => {
@@ -189,6 +193,23 @@ describe('Domain Console Files Payload Precomputation', () => {
     assert.deepEqual(entry.sourcePaths, [])
   })
 
+  it('does not count the sources catalog as a missing sidecar', () => {
+    const catalog: FileInventoryEntry = {
+      sha256: 'a'.repeat(64),
+      mimeType: 'text/markdown',
+      excerptCount: 0,
+      id: 'sources/sources_NN.md',
+      path: 'sources/sources_NN.md',
+      category: 'source',
+      size: 100,
+      citationsCount: 0,
+      changesCount: 0,
+      uncited: false,
+      sidecar: { path: 'sources/sources_NN.md_sidecar_NN.md', exists: false, valid: false },
+    }
+    assert.equal(calculateFilesStats([catalog]).sidecarMissingCount, 0)
+  })
+
   it('computes coverage, sidecar integrity and excerpt metrics', () => {
     const base = {
       sha256: 'a'.repeat(64),
@@ -243,13 +264,25 @@ describe('Domain Console Files Payload Precomputation', () => {
       },
       {
         ...base,
-        id: 'imported/finance/kNNowledge/finance_NN.md',
-        path: 'imported/finance/kNNowledge/finance_NN.md',
-        category: 'imported_domain',
+        id: 'misc/loose.bin',
+        path: 'misc/loose.bin',
+        category: 'unclassified',
         size: 250,
         citationsCount: 0,
         changesCount: 0,
-        uncited: true,
+        uncited: false,
+        sidecar: { path: 'misc/loose.bin_sidecar_NN.md', exists: false, valid: false },
+      },
+      {
+        ...base,
+        id: 'sources/sync/org/organization_NN.md',
+        path: 'sources/sync/org/organization_NN.md',
+        category: 'source',
+        size: 0,
+        citationsCount: 1,
+        changesCount: 0,
+        uncited: false,
+        sidecar: { path: 'sources/sync/org/organization_NN.md_sidecar_NN.md', exists: false, valid: false },
       },
       {
         ...base,
@@ -264,26 +297,131 @@ describe('Domain Console Files Payload Precomputation', () => {
       },
     ]
 
-    const stats = calculateFilesStats(inventory, [{ path: 'sources', status: 'active', fileCount: 4 }])
+    const stats = calculateFilesStats(inventory)
 
-    assert.equal(stats.totalFiles, 6)
+    assert.equal(stats.totalFiles, 7)
     assert.equal(stats.totalBytes, 10250)
-    assert.equal(stats.categoryCounts.source, 4)
-    assert.equal(stats.categoryCounts.imported_domain, 1)
+    assert.equal(stats.categoryCounts.source, 5)
+    assert.equal(stats.categoryCounts.unclassified, 1)
     assert.equal(stats.categoryCounts.artifact, 1)
-    assert.equal(stats.categoryCounts.watch_root, 1)
+    assert.equal('watch_root' in stats.categoryCounts, false)
+    assert.equal('imported_domain' in stats.categoryCounts, false)
+    assert.equal('watch_root' in stats.storageByCategory, false)
     assert.equal(stats.storageByCategory.source, 5000)
+    assert.equal(stats.storageByCategory.unclassified, 250)
     assert.equal(stats.storageByCategory.artifact, 5000)
 
-    // 5 source-like files (4 sources + 1 imported domain), 2 uncited -> 3/5 = 0.6
-    assert.equal(stats.uncitedSourceCount, 2)
-    assert.equal(stats.sourceCoverageRate, 0.6)
+    // 5 sources, 1 uncited -> 4/5 = 0.8. The unclassified file is neither.
+    assert.equal(stats.uncitedSourceCount, 1)
+    assert.equal(stats.sourceCoverageRate, 0.8)
 
     // doc4 has no sidecar, doc3 has an invalid one, doc2's digest drifted.
+    // The unclassified file and the mirrored model (no sidecar by design) are not gaps.
     assert.equal(stats.sidecarMissingCount, 1)
     assert.equal(stats.sidecarInvalidCount, 1)
     assert.equal(stats.sidecarMismatchCount, 1)
 
     assert.equal(stats.excerptCount, 1)
+  })
+
+  it('reads the origin keys of a sidecar', () => {
+    const doc = [
+      '---',
+      'source_file: sources/import/org/a.pdf',
+      `sha256: ${SHA_A}`,
+      'synchronization: org',
+      'origin_uri: /shared/org',
+      'origin_path: docs/a.pdf',
+      'retrieved_at: 2026-11-01T12:14:00Z',
+      '---',
+      '',
+    ].join('\n')
+    const sidecar = parseAndValidateSidecar(doc, 'sources/import/org/a.pdf_sidecar_NN.md', SHA_A)
+    assert.equal(sidecar.synchronization, 'org')
+    assert.equal(sidecar.originUri, '/shared/org')
+    assert.equal(sidecar.originPath, 'docs/a.pdf')
+    const plain = parseAndValidateSidecar(SIDECAR_MD('a.pdf', SHA_A), 'a.pdf_sidecar_NN.md')
+    assert.equal(plain.synchronization, undefined)
+    assert.equal(plain.originUri, undefined)
+  })
+})
+
+describe('buildOrigins', () => {
+  const entry = (path: string, sidecar?: Record<string, unknown>): FileInventoryEntry => ({
+    id: path,
+    path,
+    category: classifyFileCategory(path),
+    size: 1,
+    sha256: SHA_A,
+    mimeType: 'application/octet-stream',
+    citationsCount: 0,
+    excerptCount: 0,
+    changesCount: 0,
+    uncited: false,
+    ...(sidecar ? { sidecar: { path: path + '_sidecar_NN.md', exists: true, valid: true, ...sidecar } } : {}),
+  })
+
+  it('is empty without Synchronization elements or sidecar origin keys, whatever the folders are called', () => {
+    const inventory = [entry('sources/import/a.pdf', {}), entry('external/x.txt'), entry('sources/watch/y.txt')]
+    assert.deepEqual(buildOrigins([], inventory), [])
+  })
+
+  it('builds one origin per Synchronization with its mirror and landed files', () => {
+    const inventory = [
+      entry('sources/sync/org/organization_NN.md'),
+      entry('sources/sync/org/teams/team_NN.md'),
+      entry('sources/import/org/docs/a_1.pdf', {
+        synchronization: 'org',
+        originUri: '/shared/org',
+        originPath: 'docs/a.pdf',
+      }),
+      entry('sources/import/b.pdf', {}),
+    ]
+    const origins = buildOrigins(
+      [
+        { alias: 'org', origin: '/shared/org', kind: 'folder', state: 'active' },
+        { alias: 'idle', origin: '/shared/idle', kind: 'folder', state: 'paused' },
+      ],
+      inventory,
+    )
+    assert.deepEqual(origins, [
+      {
+        id: 'org',
+        alias: 'org',
+        origin: '/shared/org',
+        kind: 'folder',
+        state: 'active',
+        files: [
+          'sources/import/org/docs/a_1.pdf',
+          'sources/sync/org/organization_NN.md',
+          'sources/sync/org/teams/team_NN.md',
+        ],
+      },
+      { id: 'idle', alias: 'idle', origin: '/shared/idle', kind: 'folder', state: 'paused', files: [] },
+    ])
+  })
+
+  it('turns sidecar origin keys without a Synchronization into adhoc origins', () => {
+    const inventory = [
+      entry('sources/import/web/page.html', { originUri: 'https://example.com/page', originPath: 'page' }),
+      entry('sources/import/web/page2.html', { originUri: 'https://example.com/page', originPath: 'page2' }),
+      entry('sources/import/lost/a.txt', { synchronization: 'gone', originUri: '/old/place', originPath: 'a.txt' }),
+    ]
+    assert.deepEqual(buildOrigins([], inventory), [
+      {
+        id: 'gone',
+        origin: '/old/place',
+        kind: 'file',
+        state: 'adhoc',
+        files: ['sources/import/lost/a.txt'],
+      },
+      {
+        id: 'https://example.com/page',
+        origin: 'https://example.com/page',
+        kind: 'url',
+        state: 'adhoc',
+        files: ['sources/import/web/page.html', 'sources/import/web/page2.html'],
+      },
+    ])
   })
 })

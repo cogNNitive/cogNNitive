@@ -30,6 +30,9 @@ const OWNED_KEYS = new Set([
   'derived_from',
 ])
 
+/** Keys that predate the origin keys; never written, even when a normalizer supplies them. */
+const DROPPED_KEYS = new Set(['source_url', 'downloaded_at'])
+
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
 
 /** Raw frontmatter of a sidecar (no key normalization, so unknown keys survive); `null` when absent or invalid. */
@@ -73,7 +76,7 @@ export function buildSidecar(i: SidecarInput): string {
   if (i.normalizedBy) fm['normalized_by'] = i.normalizedBy
   for (const extras of [i.previous ?? {}, i.metadata ?? {}]) {
     for (const [key, value] of Object.entries(extras)) {
-      if (!OWNED_KEYS.has(key)) fm[key] = value
+      if (!OWNED_KEYS.has(key) && !DROPPED_KEYS.has(key)) fm[key] = value
     }
   }
   const head = `---\n${yamlStringify(fm, { lineWidth: 0 })}---\n`

@@ -8946,20 +8946,20 @@ input[type="text"], input[type="search"], textarea, select {
   border-radius: 50%;
 }
 
-.nn-watch-table {
+.nn-origins-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
 
-.nn-watch-table th,
-.nn-watch-table td {
+.nn-origins-table th,
+.nn-origins-table td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
 
-.nn-watch-table th {
+.nn-origins-table th {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -8968,7 +8968,7 @@ input[type="text"], input[type="search"], textarea, select {
   background: var(--surface-2);
 }
 
-.nn-watch-status-dot {
+.nn-origin-state-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -8976,9 +8976,9 @@ input[type="text"], input[type="search"], textarea, select {
   margin-right: 6px;
 }
 
-.nn-watch-status-dot.active { background: #10b981; }
-.nn-watch-status-dot.idle { background: #f59e0b; }
-.nn-watch-status-dot.offline { background: #ef4444; }
+.nn-origin-state-dot.active { background: #10b981; }
+.nn-origin-state-dot.paused { background: #f59e0b; }
+.nn-origin-state-dot.adhoc { background: #94a3b8; }
 
 .nn-files-alerts {
   display: flex;

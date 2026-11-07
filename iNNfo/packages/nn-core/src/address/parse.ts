@@ -79,7 +79,7 @@ function parseModelId(part: string): ModelId | AddressError {
   return part as ModelId
 }
 
-function parseUnit(rest: string): Unit | AddressError {
+export function parseUnit(rest: string): Unit | AddressError {
   const parts = rest.split('&')
   const [head, second, third, ...extra] = parts
   if (extra.length > 0) return malformed(rest, 'a unit with at most three parts')

@@ -5,6 +5,7 @@
  */
 
 import { slugifyHeading, parseCitation } from '../sourceRef.js'
+import { parseMirrorAddress, SYNC_DIR } from '../sync/address.js'
 
 function assertIdentifier(value: string, name: string): string {
   const trimmed = (value ?? '').trim()
@@ -114,10 +115,27 @@ function isValidModelPath(rawPath: string): boolean {
   return true
 }
 
+/** A mirror address (`sources/sync/<alias>/<path>_NN.md@<slug>[&field]`) is a source chip. */
+function parseMirror(trimmed: string): ParsedUnitAddress | null {
+  const mirror = parseMirrorAddress(trimmed)
+  if (!mirror) return null
+  const unit = mirror.unit
+  return {
+    kind: 'source',
+    filePath: `${SYNC_DIR}/${mirror.alias}/${mirror.path}`,
+    slug: unit.kind === 'element' || unit.kind === 'body' ? unit.slug : undefined,
+    subunits: unit.kind === 'element' && unit.field ? [unit.field] : [],
+    raw: trimmed,
+  }
+}
+
 export function parseUnitAddress(address: string): ParsedUnitAddress | null {
   if (!address || typeof address !== 'string') return null
   const trimmed = address.trim()
   if (!trimmed) return null
+
+  const mirror = parseMirror(trimmed)
+  if (mirror) return mirror
 
   // 1. Bare domain entrypoint
   if (trimmed === 'domaiNN_NN.md') {
