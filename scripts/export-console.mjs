@@ -820,7 +820,7 @@ function injectChangesNotice(html, info) {
   if (d && n) d.addEventListener('click', function(){ n.remove(); });
 })();
 </script>`
-  return html.replace(/<\/body>/i, banner + '\n</body>')
+  return html.replace(/<\/body>/i, () => banner + '\n</body>')
 }
 
 function snippetCharCap() {
@@ -2057,6 +2057,7 @@ async function runMain(argv, options = {}) {
     open: args.open,
     launcher: args.launcher,
     files: args.files,
+    changes: args.changes,
     models,
     log: (line) => console.log(line),
   })
