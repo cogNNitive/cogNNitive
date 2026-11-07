@@ -4,6 +4,8 @@ import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { topmostModal, submitEdit } from './console-contract.mjs'
+
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
 export const consoleDir = join(here, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
@@ -101,21 +103,9 @@ export function bootConsoleFromShell() {
 // tag is proposed as a plain value until the ChipEditor lands — issue #490.)
 export function addCommentDraft(document) {
   const Ev = document.defaultView.Event
-  const fire = (node, type) => node.dispatchEvent(new Ev(type, { bubbles: true }))
-  fire(document.querySelector('[data-nn-ctl="tag-add"]'), 'click')
-
-  const modal = document.querySelector('[data-nn-component="edit-modal"]')
+  document.querySelector('[data-nn-ctl="tag-add"]').dispatchEvent(new Ev('click', { bubbles: true }))
+  const modal = topmostModal(document)
   if (!modal) throw new Error('addCommentDraft: the unit editor did not open')
-  const editTab = [...modal.querySelectorAll('.nn-modal-tab-btn')].find(
-    (b) => b.textContent.trim() === 'Edit',
-  )
-  if (editTab) fire(editTab, 'click')
-
-  const input = modal.querySelector('.nn-edit-input')
-  if (!input) throw new Error('addCommentDraft: the edit form has no value input')
-  input.value = 'looks wrong'
-  const save = modal.querySelector('.nn-edit-btn-save')
-  if (!save) throw new Error('addCommentDraft: the edit form has no save control')
-  fire(save, 'click')
+  submitEdit(modal, 'looks wrong')
 }
 
