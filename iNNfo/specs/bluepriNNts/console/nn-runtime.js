@@ -2581,6 +2581,12 @@
             name: k,
             value: val,
             type: fieldTypeOf(schema, element.concept, k),
+            // Per-field citations drive the row's citation icon. The header still
+            // shows the `sources::` group even though that field is never a row.
+            citations:
+              element.citations && Array.isArray(element.citations[k])
+                ? element.citations[k]
+                : undefined,
             ref: target
               ? {
                   id: target.id || String(val),

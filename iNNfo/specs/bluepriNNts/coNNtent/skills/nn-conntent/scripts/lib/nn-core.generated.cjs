@@ -17674,6 +17674,10 @@ function inferKnowledgeVersion(explicit, blueprintFrontmatter) {
   const inferred = blueprintFrontmatter?.blueprint_version ?? blueprintFrontmatter?.spec_version;
   return typeof inferred === "string" && inferred !== "" ? inferred : DEFAULT_KNOWLEDGE_VERSION;
 }
+function inferBlueprintVersion(blueprintFrontmatter) {
+  const declared2 = blueprintFrontmatter?.blueprint_version;
+  return typeof declared2 === "string" && declared2 !== "" ? declared2 : void 0;
+}
 function scaffoldKnowledgeDocument(input) {
   const body = input.schema ? scaffoldBodyFromSchema(input.schema, input.root) : "";
   const knowledgeVersion = inferKnowledgeVersion(input.knowledgeVersion, input.blueprintFrontmatter);
@@ -17681,6 +17685,7 @@ function scaffoldKnowledgeDocument(input) {
   const title = input.title || instanceSlug || input.id;
   const modelSlug = input.modelSlug || instanceSlug || slugify2(input.id);
   const spec = resolveScaffoldSpec(input.blueprintFrontmatter);
+  const blueprintVersion = inferBlueprintVersion(input.blueprintFrontmatter);
   const esc = (s) => JSON.stringify(s);
   const frontmatter = [
     "---",
@@ -17692,6 +17697,9 @@ function scaffoldKnowledgeDocument(input) {
     `  name: ${esc(input.blueprintName)}`,
     `  url: ${esc(input.blueprintUrl)}`,
     `knowledge_version: ${esc(knowledgeVersion)}`,
+    // The pin producers compare against the installed bluepriNNt. Written right
+    // after knowledge_version to match the serializer's canonical order.
+    ...blueprintVersion ? [`blueprint_version: ${esc(blueprintVersion)}`] : [],
     `title: ${esc(title)}`,
     "---"
   ].join("\n");

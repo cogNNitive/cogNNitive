@@ -894,9 +894,19 @@
     var order = ['error', 'agent', 'human', 'reviewer', 'document']
     order.forEach(function (variant) {
       if (!present[variant]) return
+      // The group icon must carry the entry it stands for: the host opens the
+      // citation dialog with `{ field, entry }`, and `citationSource` reads the
+      // source path from it.
+      var entry = null
+      for (var i = 0; i < list.length; i++) {
+        if (originVariantOf(list[i]) === variant) {
+          entry = list[i]
+          break
+        }
+      }
       wrap.appendChild(
         CitationIcon(
-          { variant: variant, field: fieldName },
+          { variant: variant, field: fieldName, entry: entry },
           { doc: doc, onOpen: opts && typeof opts.onOpen === 'function' ? opts.onOpen : undefined },
         ),
       )
@@ -1148,6 +1158,7 @@
         }
         wrap.appendChild(
           CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
+            doc: doc,
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -1764,7 +1775,7 @@
     head.appendChild(badgesWrap)
 
     // Resolved citations ride on the element, keyed by field. A `sources::` row is
-    // never rendered as a field (the property is banned on L3), but its provenance
+    // never rendered as a field (the property is banned on L3), but its citation
     // affordance stays reachable here, next to the unit's identity.
     var headerCitations = []
     if (data.citations && typeof data.citations === 'object' && !Array.isArray(data.citations)) {
@@ -2244,7 +2255,11 @@
         })
       })
     }
-    if (headerCitations.length && typeof CitationIcons === 'function') {
+    if (
+      headerCitations.length &&
+      typeof CitationIcons === 'function' &&
+      typeof opts.onCite === 'function'
+    ) {
       var citeWrap = CitationIcons('evidence', headerCitations, {
         doc: doc,
         onOpen: opts.onCite,

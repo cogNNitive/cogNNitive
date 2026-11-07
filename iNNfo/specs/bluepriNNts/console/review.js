@@ -915,7 +915,12 @@
       }
 
       lastAnchor = focused && focused !== doc.body ? focused : null
-      if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      if (anchorData.comment) {
+        target = Object.assign({}, target, { isComment: true })
+        // A comment on the whole element has no value to propose: the modal is
+        // comment-only. A field comment keeps the Propose/Comment toggle.
+        if (!target.fieldName) target = Object.assign({}, target, { commentOnly: true })
+      }
       if (anchorData.structure) target = Object.assign({}, target, { structure: true })
       openModalFor(anchorData, target)
       return true

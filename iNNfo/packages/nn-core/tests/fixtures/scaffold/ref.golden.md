@@ -7,6 +7,7 @@ parent_spec:
   name: "reftpl_V_0-1-0"
   url: "https://example.com/reftpl_V_0-1-0_NN.md"
 knowledge_version: "V_0-1-0"
+blueprint_version: "V_0-1-0"
 title: "RefModel"
 ---
 

@@ -99,18 +99,20 @@ describe('S2b shared mount context', () => {
     assert.equal(ctxs.alpha.modalEdit, undefined)
   })
 
-  it('the controller opens a single modal slot', () => {
+  it('each open stacks one modal and the newest is on top', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
-    const modals = () => document.querySelectorAll('.nn-edit-modal')
+    const modals = () => Array.from(document.querySelectorAll('.nn-edit-modal'))
     assert.equal(modals().length, 0)
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     assert.equal(modals().length, 1)
     const first = modals()[0]
     editSlot.edit({ elementId: 'ecto-1', field: '__name' })
-    assert.equal(modals().length, 1, 'the second view replaced the open modal')
-    assert.notEqual(modals()[0], first)
+    assert.equal(modals().length, 2, 'a second open stacks on top of the first')
+    const top = modals()[1]
+    assert.notEqual(top, first, 'the newest modal is a new node')
+    assert.equal(top.getAttribute('data-nested-modal'), 'true')
     editSlot.comment({ elementId: 'ecto-1' })
-    assert.equal(modals().length, 1, 'a comment modal takes the same slot')
+    assert.equal(modals().length, 3, 'a comment modal stacks on the same slot')
   })
 
   it('a comment modal save lands one comment draft in the shared store', () => {
@@ -411,10 +413,15 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     const open = document.querySelector('.nn-edit-modal')
     assert.equal(editSlot.edit({ elementId: 'nope', field: 'role' }), false)
-    assert.equal(editSlot.edit({ elementId: 'ecto-1' }), false, 'no field and no comment mode')
     assert.equal(editSlot.comment({ elementId: 'nope' }), false)
     assert.equal(document.querySelectorAll('.nn-edit-modal').length, 1)
     assert.equal(document.querySelector('.nn-edit-modal'), open, 'same modal node survives')
+  })
+
+  it('a field-less open targets the element modal', () => {
+    const { document, editSlot } = bootViews([def('alpha')])
+    assert.equal(editSlot.edit({ elementId: 'ecto-1' }), true)
+    assert.ok(document.querySelector('.nn-edit-modal'))
   })
 
   it('cancel restores focus to the element focused when the view opened the modal', () => {
@@ -425,7 +432,9 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     opener.focus()
     assert.equal(document.activeElement, opener)
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    document.querySelector('.nn-edit-modal textarea, .nn-edit-modal input').focus()
+    // The modal opens on the View tab, so the edit inputs are hidden: focus a
+    // control that is visible in every tab.
+    ;(document.querySelector('.nn-edit-modal .nn-edit-modal-close')).focus()
     assert.notEqual(document.activeElement, opener)
     document.querySelector('.nn-edit-btn-cancel').click()
     assert.equal(document.querySelectorAll('.nn-edit-modal').length, 0)
