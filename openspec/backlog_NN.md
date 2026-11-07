@@ -30,9 +30,6 @@ captured:: 2026-10-31
 ## NN Idea: OKF trustFor and stale_after fields (deferred, no consumer yet)
 captured:: 2026-10-31
 
-## NN Idea: Surface EDITED_WITHOUT_RECORD in validate_knowledge, not only in the console export
-captured:: 2026-10-31
-
 ## NN Idea: Fix the canonical-vocabulary spec scenario that still points at the retired backlog identifier-migration item
 captured:: 2026-10-31
 
@@ -82,7 +79,7 @@ risk:: H
 status:: partial
 lane:: heavy
 verdict:: current
-evidence:: scripts/regen.js and scripts/lib/freshness-guards.js already give one regen entry, but committed derived files remain (console/nn-console.bundle.js, console-payload.generated.cjs, nn-address.generated.js, nn-slug.generated.js, iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js, five skills/*/scripts/lib/*.generated.cjs) with eleven roFresh steps at scripts/verify.js:577-632; a fifth generated skill file now lives inside the blueprint skill (iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs). Re-check the pays-a-ripple premise before starting.
+evidence:: scripts/regen.js and scripts/lib/freshness-guards.js already give one regen entry, but committed derived files remain (console/nn-console.bundle.js, console-payload.generated.cjs, nn-address.generated.js, nn-slug.generated.js, iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js, five skills/*/scripts/lib/*.generated.cjs) with twelve roFresh steps at scripts/verify.js; a fifth generated skill file now lives inside the blueprint skill (iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs). Re-check the pays-a-ripple premise before starting.
 merged_from:: derived-artifact-consolidation, console-bundle-derived-on-release
 batch:: b4a-derived-artifacts
 
@@ -166,7 +163,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: The coNNtent blueprint has no actor layer type, defaults/video-defaults_NN.md:22-23 still points at WaveSpeed (wavespeed-ai/z-image/turbo, wavespeed-ai/infinitetalk-fast), the Layer types at coNNtent/spec_NN.md:182 are presenter, background, b-roll, title, lower-third, caption, brand, quote, watermark and animation (a HyperFrames project directory, the likely carrier for an actor), and the assets/characters rig does not exist in the tree. Re-checked 2026-11-01 after the presets and folder-contract releases: unchanged.
+evidence:: The coNNtent blueprint's Layer type options are avatar, media, text and animation (coNNtent/spec_NN.md:282-285), so an actor layer type exists; what is missing is the actor catalog and rig (no assets/characters in the tree), and defaults/video-defaults_NN.md:21-23 still points at WaveSpeed (wavespeed-ai/z-image/turbo, wavespeed-ai/infinitetalk-fast). Re-checked 2026-11-07.
 
 ## NN Item: docs-skills-retirement
 value:: L
@@ -188,7 +185,6 @@ lane:: heavy
 verdict:: current
 evidence:: The coNNtent blueprint ships a procedures/ folder containing only usage_procedures_NN.md (checked 2026-11-04): neither draft-scene-visuals nor produce-video exists, and openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
-ref:: issue-429
 
 ## NN Item: cognitivize-archive-and-gc-decisions
 value:: L
@@ -199,18 +195,6 @@ lane:: light
 verdict:: current
 evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no archive rule; scripts/export-console.mjs:216 findModelFiles and skills/nn-sources/SKILL.md:43 conversations naming remain from the cognitivize-in-place follow-ups. Some smaller bullets were not individually verified.
 
-## NN Item: console-local-parent-spec
-value:: M
-effort:: M
-risk:: M
-status:: open
-lane:: light
-verdict:: current
-evidence:: iNNfo/packages/nn-core/src/console/schema-resolution.ts:80,88 uses parent_spec.url only for a canonical lookup (findCanonicalBlueprint); no branch resolves it as a workspace-relative path, so a Level-3 model pointing at `specs/<name>_NN.md` exports with a derived schema. Verified 2026-11-04. Resolved by PR #567 (resolveLocalSpecPath): retire this item when it merges.
-done_when:: A model whose parent_spec.url is a workspace-relative path exports the console with that blueprint's schema and views, covered by a test under test/.
-ref:: issue-487
-batch:: b3d-console-shell-and-resolver
-
 ## NN Item: console-shell-actions
 value:: M
 effort:: M
@@ -218,7 +202,7 @@ risk:: L
 status:: open
 lane:: light
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/console/ui-kit.js:3417-3469 renders "Save Snapshot" and "Copy AI Prompt" as always-visible inline buttons in the navbar group; there is no collapse menu, and views still have no generic chip/field editor component. Verified 2026-11-04.
+evidence:: iNNfo/specs/bluepriNNts/console/ui-kit.js:3731,3745 render "Save Snapshot" and "Copy AI Prompt" as always-visible inline buttons in the navbar group; there is no collapse menu, and views still have no generic chip/field editor component (no ChipEditor in the tree; test/helpers/console-boot.mjs:97 notes tag proposals are plain values until it lands). Verified 2026-11-07.
 done_when:: The header actions collapse behind one menu at narrow widths, and a generic chip/field editor component is available to views.
 ref:: issue-490
 batch:: b3d-console-shell-and-resolver
@@ -230,7 +214,7 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: scripts/console-views.mjs:525 fixes warnBytes 5_000_000 and failBytes 15_000_000, and scripts/export-console.mjs:1302 throws CONSOLE_TOO_LARGE before the first write; the payload is one pretty-printed JSON array, so a valid domain above 15 MB exports nothing at all. Verified 2026-11-04. Partly addressed by PR #567: compact serialization plus a degrade path that drops resolved citations and reports the strategy; the citation-table compaction (~21% on the reported domain) and a per-domain console.sizeBudget remain.
+evidence:: scripts/console-views.mjs:525 fixes warnBytes 5_000_000 and failBytes 15_000_000, and scripts/export-console.mjs:1672 throws CONSOLE_TOO_LARGE; the export now degrades first (scripts/export-console.mjs:1656) instead of aborting, so a domain above the threshold still writes. The payload is compacted but citation objects are still repeated per element. Verified 2026-11-04. Partly addressed by PR #567: compact serialization plus a degrade path that drops resolved citations and reports the strategy; the citation-table compaction (~21% on the reported domain) and a per-domain console.sizeBudget remain.
 done_when:: The export degrades instead of aborting (compact payload or lazily loaded chunks), a domain above the current fail threshold still exports, and the size gate reports the chosen strategy.
 ref:: issue-488
 batch:: b3e-console-payload-size
@@ -256,6 +240,17 @@ verdict:: current
 evidence:: Every path that sets a `type:: number` field delivers a string and validation rejects it with MUTATION_FAILED: Invalid numeric value "5" for "peso", so the field can never be created or filled through a changeset.
 done_when:: add_element plus update_field can create and set a `type:: number` field through propose_changeset and apply_change, with a test covering both a bare number and a quoted one, and no MUTATION_FAILED.
 ref:: issue-558
+
+## NN Item: episode-layout-drift
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: The coNNtent engine writes series/<s>/assets/<slug>/ while references/folder-contract.md declares series/<s>/episodes/<slug>/, and produce.modelIdOf only recognizes the assets/ parent (produce.mjs:101-107), so an episode outside assets/ yields a bare slug. Verified 2026-11-07.
+done_when:: The blueprint's declared folder contract and the engine agree on one layout, the id derivation follows the contract wherever an episode lives, and a test covers an episode outside assets/.
+ref:: issue-565
 
 # NN Batch
 
@@ -283,7 +278,7 @@ state:: planned
 ## NN Batch: b3d-console-shell-and-resolver
 order:: 5
 lane:: light
-items:: console-local-parent-spec, console-shell-actions
+items:: console-shell-actions
 risk:: M
 state:: planned
 
