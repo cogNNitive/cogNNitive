@@ -439,16 +439,18 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
       const tabEdit = modal.querySelector('.nn-modal-tab-panel[data-tab="edit"]')
       const tabHistory = modal.querySelector('.nn-modal-tab-panel[data-tab="history"]')
+      const tabView = modal.querySelector('.nn-modal-tab-panel[data-tab="view"]')
       assert.ok(tabEdit, 'Edit tab panel exists')
       assert.ok(tabHistory, 'History tab panel exists')
+      assert.ok(tabView, 'View tab panel exists')
 
-      // Default active tab is edit
-      assert.equal(tabEdit.style.display !== 'none', true)
+      // The unified modal opens on View; Edit is one click away.
+      assert.equal(tabView.style.display !== 'none', true)
       assert.equal(tabHistory.style.display, 'none')
 
-      // Clicking history tab switches view
-      tabs[1].dispatchEvent(new window.Event('click', { bubbles: true }))
-      assert.equal(tabEdit.style.display, 'none')
+      // Clicking the Changes tab switches view
+      tabs[2].dispatchEvent(new window.Event('click', { bubbles: true }))
+      assert.equal(tabView.style.display, 'none')
       assert.equal(tabHistory.style.display !== 'none', true)
 
       // The Changes tab renders the change history as standard element sheets (one

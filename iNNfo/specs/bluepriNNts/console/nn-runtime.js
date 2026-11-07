@@ -2603,6 +2603,8 @@
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          citations:
+            element.citations && typeof element.citations === 'object' ? element.citations : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.location || element.modelFile || element.modelTitle || null,
@@ -2633,6 +2635,8 @@
           },
           onCite: function (citeData) {
             var fName = citeData && citeData.field
+            var elCitations =
+              element.citations && typeof element.citations === 'object' ? element.citations : {}
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
             if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
