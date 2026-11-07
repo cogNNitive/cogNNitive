@@ -7,6 +7,7 @@ parent_spec:
   name: "blank_V_0-2-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md"
 knowledge_version: "V_0-4-1"
+blueprint_version: "V_0-4-1"
 title: "BlankModel"
 ---
 

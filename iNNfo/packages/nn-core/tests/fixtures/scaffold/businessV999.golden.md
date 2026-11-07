@@ -7,6 +7,7 @@ parent_spec:
   name: "business_V_0-2-0"
   url: "https://example.com/business_V_0-2-0_NN.md"
 knowledge_version: "V_9-9-9"
+blueprint_version: "V_0-2-0"
 title: "Acme"
 ---
 
