@@ -184,3 +184,15 @@ function save(el) {
   if (!btn) throw new Error('save: the modal has no save control')
   fire(btn)
 }
+
+// Clicks a citation icon under `root` (the first one, or the first for `field`) the
+// way a reader would, and returns it. Throws when there is none: that is the
+// contract when the host gave no handler.
+export function openCitation(root, { field } = {}) {
+  const icon = [...root.querySelectorAll('[data-nn-component="citation-icon"]')].find(
+    (n) => field === undefined || n.getAttribute('data-field') === field,
+  )
+  if (!icon) throw new Error(`openCitation: no citation icon${field ? ` for "${field}"` : ''}`)
+  fire(icon)
+  return icon
+}

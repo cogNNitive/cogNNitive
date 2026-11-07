@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
+import { openUnitModal, openCitation } from './helpers/console-contract.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -200,22 +201,22 @@ describe('S3b parity (groups 9-12) on a real export', () => {
 
   describe('group 10: select, reference, media in the booted console', () => {
     it('a declared select renders a pill and edits through a select with no free-text input', () => {
-      const { document, controller, idOf } = boot()
+      const booted = boot()
+      const { document, idOf } = booted
       assert.ok(
         [...document.querySelectorAll('.nn-field-select')].some((n) => n.textContent === 'build'),
         'stage renders as a pill',
       )
-      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'stage' }), true)
-      const modal = document.querySelector('.nn-edit-modal')
+      const modal = openUnitModal(booted, { elementId: idOf('Alpha'), field: 'stage' }).el
       assert.ok(modal.querySelector('select[data-nn-widget="select"]'))
       assert.equal(modal.querySelector('input[type="text"]'), null, 'no free-text input for a select')
     })
 
     it('reference candidates come from the target concepts of the collection, by address', () => {
-      const { document, controller, idOf } = boot()
+      const booted = boot()
+      const { document, idOf } = booted
       const window = document.defaultView
-      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'owner' }), true)
-      const modal = document.querySelector('.nn-edit-modal')
+      const modal = openUnitModal(booted, { elementId: idOf('Alpha'), field: 'owner' }).el
       const options = [...modal.querySelectorAll('[data-nn-reference-option]')].map((o) => o.textContent)
       // Every Person in the domaiNN, titled and addressed (a range, not a bare name).
       assert.ok(options.some((t) => /^Ana - /.test(t)), 'Ana is offered with her address')
@@ -232,9 +233,9 @@ describe('S3b parity (groups 9-12) on a real export', () => {
     })
 
     it('a reference with no declared targets offers every concept of the collection', () => {
-      const { document, controller, idOf } = boot()
-      assert.equal(controller.openEdit({ elementId: idOf('Alpha'), field: 'peer' }), true)
-      const options = [...document.querySelectorAll('.nn-edit-modal [data-nn-reference-option]')].map((o) => o.textContent)
+      const booted = boot()
+      const modal = openUnitModal(booted, { elementId: booted.idOf('Alpha'), field: 'peer' })
+      const options = [...modal.el.querySelectorAll('[data-nn-reference-option]')].map((o) => o.textContent)
       assert.ok(options.some((t) => /^Alpha - /.test(t)))
       assert.ok(options.some((t) => /^Beta - /.test(t)))
       assert.ok(options.some((t) => /^Ana - /.test(t)))
@@ -326,7 +327,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       document.defaultView.HTMLDialogElement.prototype.showModal ||= function () {
         this.setAttribute('open', '')
       }
-      cardOf(document, idOf('Alpha')).querySelector('.cite-icons .cite-icon').click()
+      openCitation(cardOf(document, idOf('Alpha')), { field: 'sources' })
       const link = document.getElementById('nn-citation-dialog').querySelector('a.nn-cite-open')
       assert.ok(link, 'Open original link')
       assert.equal(link.getAttribute('href'), './sources/nn/interview.md')
@@ -355,7 +356,7 @@ describe('Open original: unsafe and unresolved entries get no link', () => {
     document.defaultView.HTMLDialogElement.prototype.showModal ||= function () {
       this.setAttribute('open', '')
     }
-    document.querySelector('.cite-icons .cite-icon').click()
+    openCitation(document.querySelector('[data-nn-component="element-card"]'))
     const dialog = document.getElementById('nn-citation-dialog')
     assert.ok(dialog, 'dialog opened')
     assert.equal(dialog.querySelector('a'), null)
