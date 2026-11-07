@@ -1110,3 +1110,113 @@ describe('console size budget', () => {
   })
 })
 
+
+describe('change history embedding and omission', () => {
+  const MODEL = `---
+title: "Business"
+knowledge_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+  slug:: enterprise
+
+  Enterprise tier.
+`
+  const changeBlock = (n) => `
+## NN Change: c-${String(n).padStart(5, '0')}
+op:: comment
+target:: business@enterprise
+notes:: "note ${n}"
+`
+  const changeset = (count) =>
+    `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: applied\ntitle: "C"\n---\n\n# NN Change\n` +
+    Array.from({ length: count }, (_, i) => changeBlock(i + 1)).join('')
+
+  let root
+  const domainFile = () => join(root, 'domaiNN_console.html')
+  const exportDomain = async (extraArgs = []) => {
+    const res = await runCli([root, '--domain', ...extraArgs])
+    assert.equal(res.code, 0, res.stderr)
+    const html = await readFile(domainFile(), 'utf-8')
+    return { html, slot: JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]) }
+  }
+  const seed = async (count) => {
+    await mkdir(join(root, 'models'), { recursive: true })
+    await mkdir(join(root, 'changes'), { recursive: true })
+    await writeFile(join(root, 'models', 'business_V_1-0-0_NN.md'), MODEL, 'utf-8')
+    await writeFile(join(root, 'changes', 'c1_changes_NN.md'), changeset(count), 'utf-8')
+  }
+  const assertOmitted = ({ html, slot }, count) => {
+    assert.deepEqual(slot.changes, [], 'no changeset is embedded')
+    assert.equal(slot.meta.changesOmitted.count, count)
+    assert.ok(slot.meta.changesOmitted.bytes > 0)
+    assert.equal(slot.meta.models.some((m) => m.filePath === '<changes>'), false, 'no materialized Changes model')
+    assert.equal(slot.elements.some((e) => e.modelId === 'changes'), false, 'no materialized Change elements')
+    const enterprise = slot.elements.find((e) => e.slug === 'enterprise')
+    assert.ok(enterprise, 'the model element itself is still embedded')
+    assert.ok(!enterprise.history || enterprise.history.length === 0, 'no per-element history')
+    assert.ok(!enterprise.provenance, 'no per-element provenance')
+    assert.match(html, /id="nn-changes-omitted"/, 'the notice banner is injected')
+    assert.match(html, /id="nn-copy-changes-prompt"/)
+  }
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-changes-omit-'))
+  })
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('embeds the full history under the thresholds and records no omission', async () => {
+    await seed(3)
+    const { html, slot } = await exportDomain()
+    assert.equal(slot.meta.changesOmitted, undefined)
+    assert.equal(slot.changes.length, 1)
+    assert.equal(slot.changes[0].changes.length, 3)
+    assert.ok(slot.meta.models.some((m) => m.filePath === '<changes>'), 'the Changes model is materialized')
+    assert.equal(slot.elements.filter((e) => e.modelId === 'changes').length, 3)
+    assert.equal(slot.elements.find((e) => e.slug === 'enterprise').history.length, 3)
+    assert.doesNotMatch(html, /nn-changes-omitted/)
+  })
+
+  it('--no-changes omits the history, records changesOmitted and injects the banner', async () => {
+    await seed(3)
+    assertOmitted(await exportDomain(['--no-changes']), 3)
+  })
+
+  it('the programmatic opts.changes === false behaves like --no-changes', async () => {
+    await seed(2)
+    const { writeConsole } = await import('./export-console.mjs')
+    await writeConsole({ rootDir: root, open: false, changes: false })
+    const html = await readFile(domainFile(), 'utf-8')
+    const slot = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+    assertOmitted({ html, slot }, 2)
+  })
+
+  it('omits automatically above the change-count threshold', async () => {
+    await seed(5001)
+    assertOmitted(await exportDomain(), 5001)
+  })
+
+  it('keeps the history at exactly the change-count threshold', async () => {
+    await seed(5000)
+    const { slot } = await exportDomain()
+    assert.equal(slot.meta.changesOmitted, undefined)
+    assert.equal(slot.changes[0].changes.length, 5000)
+  })
+
+  it('allows the banner inline script through the page CSP', async () => {
+    await seed(2)
+    const { html } = await exportDomain(['--no-changes'])
+    const csp = html.match(/http-equiv="Content-Security-Policy"\s+content="([^"]*)"/i)
+    assert.ok(csp, 'the page declares a CSP')
+    const banner = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].find((m) =>
+      m[1].includes('nn-copy-changes-prompt'),
+    )
+    assert.ok(banner, 'the banner script is present')
+    const hash = `'sha256-${createHash('sha256').update(banner[1].replace(/\r\n?/g, '\n'), 'utf8').digest('base64')}'`
+    assert.ok(csp[1].includes(hash), 'the banner script hash is in script-src')
+  })
+})
