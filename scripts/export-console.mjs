@@ -1643,12 +1643,16 @@ export async function writeConsole(opts = {}) {
     },
   }
 
+  // The conditional `changesOmitted` spread above closes the inferred meta type, so
+  // widen it before adding the optional scope.
+  /** @type {Record<string, unknown>} */
+  const payloadMeta = domainPayload.model.meta
   if (scoped) {
     const scope = { models: [...scopeModelIds].sort(), label: scopeLabelOf(selected) }
     if (view) scope.view = view
-    domainPayload.model.meta.consoleScope = scope
+    payloadMeta.consoleScope = scope
   } else if (view) {
-    domainPayload.model.meta.consoleScope = { view: view }
+    payloadMeta.consoleScope = { view: view }
   }
 
   // Output location. A console (whole-domaiNN or model-scoped) owns ONE stable file
