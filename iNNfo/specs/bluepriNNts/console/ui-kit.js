@@ -1763,6 +1763,30 @@
     )
     head.appendChild(badgesWrap)
 
+    // Resolved citations ride on the element, keyed by field. A `sources::` row is
+    // never rendered as a field (the property is banned on L3), but its provenance
+    // affordance stays reachable here, next to the unit's identity.
+    var headerCitations = []
+    if (data.citations && typeof data.citations === 'object' && !Array.isArray(data.citations)) {
+      Object.keys(data.citations).forEach(function (citeField) {
+        var list = data.citations[citeField]
+        if (!Array.isArray(list) || !list.length) return
+        headerCitations.push({ field: citeField, entries: list })
+      })
+    }
+    if (headerCitations.length && typeof CitationIcons === 'function') {
+      headerCitations.forEach(function (group) {
+        var citeNodes = CitationIcons(group.field, group.entries, {
+          doc: doc,
+          onOpen: opts && opts.onCite,
+        })
+        var citeList = Array.isArray(citeNodes) ? citeNodes : [citeNodes]
+        citeList.forEach(function (node) {
+          if (node) head.appendChild(node)
+        })
+      })
+    }
+
     // Surface semantic status pill in header if element has a status field
     var statusField = null
     var summaryField = null

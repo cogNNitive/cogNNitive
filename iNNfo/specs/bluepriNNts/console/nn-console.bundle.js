@@ -2870,6 +2870,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     )
     head.appendChild(badgesWrap)
 
+    // Resolved citations ride on the element, keyed by field. A `sources::` row is
+    // never rendered as a field (the property is banned on L3), but its provenance
+    // affordance stays reachable here, next to the unit's identity.
+    var headerCitations = []
+    if (data.citations && typeof data.citations === 'object' && !Array.isArray(data.citations)) {
+      Object.keys(data.citations).forEach(function (citeField) {
+        var list = data.citations[citeField]
+        if (!Array.isArray(list) || !list.length) return
+        headerCitations.push({ field: citeField, entries: list })
+      })
+    }
+    if (headerCitations.length && typeof CitationIcons === 'function') {
+      headerCitations.forEach(function (group) {
+        var citeNodes = CitationIcons(group.field, group.entries, {
+          doc: doc,
+          onOpen: opts && opts.onCite,
+        })
+        var citeList = Array.isArray(citeNodes) ? citeNodes : [citeNodes]
+        citeList.forEach(function (node) {
+          if (node) head.appendChild(node)
+        })
+      })
+    }
+
     // Surface semantic status pill in header if element has a status field
     var statusField = null
     var summaryField = null
@@ -11417,6 +11441,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          citations:
+            element.citations && typeof element.citations === 'object' ? element.citations : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.location || element.modelFile || element.modelTitle || null,
@@ -11447,6 +11473,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           onCite: function (citeData) {
             var fName = citeData && citeData.field
+            var elCitations =
+              element.citations && typeof element.citations === 'object' ? element.citations : {}
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
             if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
