@@ -2747,7 +2747,7 @@
         },
         {
           domId: 'el-' + String(element.id || ''),
-          modelId: modelId || element.modelId || '',
+          modelId: (element && element.modelId) || modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
@@ -2855,7 +2855,7 @@
         var pill = UI.Ku(
           'element',
           {
-            model: modelId || element.modelId || '',
+            model: (element && element.modelId) || modelId || '',
             id: element.id,
             label: element.name || element.id || '',
             concept: element.concept,
@@ -2902,7 +2902,7 @@
           },
           {
             doc: doc,
-            modelId: modelId || element.modelId || '',
+            modelId: (element && element.modelId) || modelId || '',
             concept: cMeta,
             onClick: function () {
               renderRefDialog(doc, element)
@@ -3099,7 +3099,7 @@
       if (element._draft) tr.classList.add('nn-element-table-draft')
 
       var rowCMeta = conceptMetaOf(conceptList, element.concept)
-      var rowModel = modelId || element.modelId || ''
+      var rowModel = (element && element.modelId) || modelId || ''
       var nameTd = el('td', 'nn-element-table-name')
       var elBadge =
         UI && typeof UI.Ku === 'function'
