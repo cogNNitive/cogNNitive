@@ -28,7 +28,7 @@ const resolver = ({ name }: { name: string }) =>
 function model(
   path: string,
   elements: ReadonlyArray<[concept: string, slug: string]>,
-  pin = 'coNNtent_V_0-15-0',
+  pin = 'coNNtent_V_0-15-1',
 ): DomainModelInput {
   return {
     path,
@@ -50,8 +50,8 @@ const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
 
 describe('coNNtent declares its storage (video-blueprint; design A16, section 5)', () => {
-  it('pins bluepriNNt V_0-15-0 against iNNfo V_0-7-0', () => {
-    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-15-0"$/m)
+  it('pins bluepriNNt V_0-15-1 against iNNfo V_0-7-0', () => {
+    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-15-1"$/m)
     expect(CONNTENT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 
@@ -158,7 +158,7 @@ describe('Scenes and Layers are elements, not models (coNNtent-model)', () => {
 })
 
 describe('existing episodes pinning other versions (video-blueprint; placement-validation)', () => {
-  it('reports a V_0-14-1 episode among V_0-15-0 as skew and leaves its pin untouched', () => {
+  it('reports a V_0-14-1 episode among V_0-15-1 as skew and leaves its pin untouched', () => {
     const old = episodeModel('villabotijos-today', 'intro', [], 'coNNtent_V_0-14-1')
     const current = episodeModel('villabotijos-today', 'nuevo')
     const index = buildDomainIndex([seriesModel('villabotijos-today'), old, current], resolver)
