@@ -9,6 +9,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
 import { runExportConsole } from '../scripts/export-console.mjs'
+import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
@@ -824,10 +825,10 @@ scenarioMonths:: 12
     it('fails an oversized export through the size budget and writes no artifact', async () => {
       const viewsDir = join(tempDir, 'consoles', 'views')
       await mkdir(viewsDir, { recursive: true })
-      await writeFile(join(viewsDir, 'huge.js'), `/* ${'x'.repeat(16_000_000)} */\n`, 'utf-8')
+      await writeFile(join(viewsDir, 'huge.js'), `/* ${'x'.repeat(CONSOLE_SIZE_BUDGET.failBytes + 1_000_000)} */\n`, 'utf-8')
       const res = await runCli([tempDir, '--domain'])
       assert.notEqual(res.code, 0, 'an oversized export must fail')
-      assert.match(res.stderr, /larger than 15000000 B/)
+      assert.match(res.stderr, new RegExp(`larger than ${CONSOLE_SIZE_BUDGET.failBytes} B`))
       assert.equal(existsSync(domainFile()), false, 'no artifact is written on budget failure')
     })
   })
