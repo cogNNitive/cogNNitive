@@ -47,9 +47,6 @@ icon:: pie-chart
 type:: list
 color:: green
 weight:: 80
-storage:: distributed
-container:: Stakeholder
-placement:: "{container}/segments/{slug}/"
 
 ### Summary
 Distinct group or niche within a stakeholder category sharing specific attributes, operational context, or market behaviors.
