@@ -1774,7 +1774,12 @@
         headerCitations.push({ field: citeField, entries: list })
       })
     }
-    if (headerCitations.length && typeof CitationIcons === 'function') {
+    if (
+      headerCitations.length &&
+      typeof CitationIcons === 'function' &&
+      opts &&
+      typeof opts.onCite === 'function'
+    ) {
       headerCitations.forEach(function (group) {
         var citeNodes = CitationIcons(group.field, group.entries, {
           doc: doc,
