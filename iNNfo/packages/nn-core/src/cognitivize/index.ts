@@ -2,6 +2,8 @@ export { cognitivize, importRaw } from './cognitivize.js'
 export type {
   CognitivizeOptions,
   CognitivizeResult,
+  ImportOrigin,
+  ImportRawOptions,
   ImportRawResult,
   RejectReason,
 } from './cognitivize.js'

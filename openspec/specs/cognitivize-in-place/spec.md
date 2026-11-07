@@ -3,7 +3,6 @@
 ## Purpose
 
 `cognitivize(path)` makes any file in a domaiNN citable without moving it: it writes a co-located sidecar `<file>.<ext>_sidecar_NN.md`. One core operation backs the nn-trannsform CLI and the innfo-mcp tool. Raw imports land verbatim in `sources/import/` and are cognitivized there.
-
 ## Requirements
 ### Requirement: Cognitivize is one innfo-core operation
 
@@ -21,8 +20,8 @@ innfo-core MUST export `cognitivize(root, rel, options)` (workspace root, worksp
 
 ### Requirement: Sidecar is co-located and carries origin metadata
 
-`cognitivize` MUST write the sidecar in the same directory as the raw file, named per `nn-naming-contract`. Its frontmatter MUST contain `level: 3`, `parent_spec` naming the `sidecar` bluepriNNt, `source_file` (workspace-relative path of the subject), `sha256` (hash of the raw bytes), `size_bytes`, `source_format`, and `normalized_at` (UTC ISO 8601); it MAY contain `normalized_by`. It MUST NOT contain a `sources` key: the upstream of a derived file is the evidence of its `produce_artifact` change. For markdown, CSV, and JSON files the sidecar MUST NOT contain a normalized body. For every other (binary) format it MUST contain the normalized markdown body produced by the injected normalizer so headings stay citable. Metadata the normalizer returns (for example `source_type`, a CSV column profile, or origin URL) MAY be added to the frontmatter.
-(Previously: the sidecar MAY contain `sources`, the upstream citations of a binary subject.)
+`cognitivize` MUST write the sidecar in the same directory as the raw file, named per `nn-naming-contract`. Its frontmatter MUST contain `level: 3`, `parent_spec` naming the `sidecar` bluepriNNt, `source_file` (workspace-relative path of the subject), `sha256` (hash of the raw bytes), `size_bytes`, `source_format`, and `normalized_at` (UTC ISO 8601); it MAY contain `normalized_by`. When the file was copied by a Synchronization, it MUST also contain `synchronization`, `origin_path`, `origin_uri` and `retrieved_at` (see `synchronization-sidecar-origin`). It MUST NOT contain a `sources` key: the upstream of a derived file is the evidence of its `produce_artifact` change. It MUST NOT contain `source_url` or `downloaded_at`. For markdown, CSV, and JSON files the sidecar MUST NOT contain a normalized body. For every other (binary) format it MUST contain the normalized markdown body produced by the injected normalizer so headings stay citable. Metadata the normalizer returns (for example `source_type` or a CSV column profile) MAY be added to the frontmatter, except for the keys listed above as forbidden.
+(Previously: normalizer metadata could include an origin URL, and no Synchronization origin keys existed.)
 
 #### Scenario: Text-native file gets a bodyless sidecar
 - GIVEN `sources/import/prices.csv`
@@ -49,6 +48,16 @@ innfo-core MUST export `cognitivize(root, rel, options)` (workspace root, worksp
 - GIVEN any cognitivized file
 - WHEN its sidecar frontmatter is read
 - THEN it has no `sources` key
+
+#### Scenario: Synchronized file carries origin keys
+- GIVEN a file copied by Synchronization `org`
+- WHEN it is cognitivized
+- THEN its sidecar contains `synchronization`, `origin_path`, `origin_uri` and `retrieved_at`
+
+#### Scenario: Normalizer cannot inject legacy keys
+- GIVEN a normalizer returning `source_url`
+- WHEN the sidecar is written
+- THEN it has no `source_url` key
 
 ### Requirement: Cognitivize is idempotent and refreshes on change
 
@@ -151,20 +160,6 @@ Importing an external file (core `importRaw`) MUST copy its bytes unchanged into
 - WHEN the import runs
 - THEN a new suffixed member and its sidecar are written and the earlier member's bytes are unchanged
 
-### Requirement: Watch roots only observe
-
-External watch roots (`## NN External Watch Roots`) MUST only be read. The `static`/`dynamic` cadence MUST control only how often a watch root is re-checked; it MUST NOT change whether imports are suffixed.
-
-#### Scenario: Static cadence import is suffixed
-- GIVEN a `static` watch root with a new file
-- WHEN the scan imports it
-- THEN the copy in `sources/import/` carries a UTC suffix
-
-#### Scenario: Watch root is never written
-- GIVEN any import
-- WHEN it completes
-- THEN no file under the watch root was created, changed, or deleted
-
 ### Requirement: Retired source folders do not exist at runtime
 
 The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sources/export/`, or `sources/archive/`. Only the migration detector and rewriter MAY mention these paths. Sidecar field `staging_file` MUST be removed. Pre-existing `sources/archive/` snapshots in user domaiNNs are inert files: no ingest or projection code walks them, and a citation into one still resolves as a plain path (see `workspace-template-upgrade` for the migration warning).
@@ -194,10 +189,17 @@ A transcript promoted to `sources/conversations/` MUST be a write-once markdown 
 
 ### Requirement: Cognitivize, scan and import record no provenance change
 
-`cognitivize`, `--scan`, `--cognitivize` and raw imports MUST NOT write a changeset, a journal entry or any lineage record. The record of such runs is the sidecar (`normalized_at`, `normalized_by`) and git history. Only an artifact-producing procedure emits a `produce_artifact` change.
+`cognitivize`, `--scan`, `--cognitivize` and manual raw imports MUST NOT write a changeset, a journal entry or any lineage record. The record of such runs is the sidecar (`normalized_at`, `normalized_by`) and git history. Only an artifact-producing procedure emits a `produce_artifact` change. The one exception is a Synchronization refresh, which MUST print one ready change payload as defined by `synchronization-refresh-change` (the CLI never writes it; the agent applies it); the cognitivize step the refresh runs on copied files still writes no change by itself.
+(Previously: no exception existed for Synchronization refresh.)
 
 #### Scenario: Scan writes only sidecars and imports
 - GIVEN `--scan` over two new files
 - WHEN it completes
 - THEN the only new files are the imported members and their sidecars
 - AND `changes/` is unchanged
+
+#### Scenario: Refresh prints its own change payload
+- GIVEN a Synchronization refresh that copies one new file
+- WHEN it completes
+- THEN exactly one change payload is printed for the refresh and `changes/` is unchanged
+

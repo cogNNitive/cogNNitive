@@ -16,6 +16,8 @@ export * from './unit-address.js'
 export { buildChangeLogFromChangesets } from '../changelog/load.js'
 export type { ChangeLog, LoggedChange } from '../changelog/index.js'
 export { parseFrontmatter, parseYaml } from '../parser/index.js'
+// The sources catalog's Synchronization elements feed the exporter's origins.
+export { readSynchronizations } from '../sync/declarations.js'
 // Naming-contract predicates for scripts that load only the console payload mirror.
 export {
   displayStem,

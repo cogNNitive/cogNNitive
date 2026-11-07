@@ -4,7 +4,7 @@
  */
 import type { ChangeItem, ChangeOp, ChangeStatus } from '../changeset/types.js'
 import type { FileSnapshot } from '../queryUnits.js'
-import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
+import { isNNName, isSidecarName, isUnderRootSources, parseName } from '../naming/contract.js'
 import { parseChangeset } from '../changeset/parser.js'
 import { splitEvidence } from '../changeset/evidence.js'
 import { createChangeLog, type ChangeLog, type LoggedChange } from './index.js'
@@ -52,8 +52,13 @@ export interface ChangeLike {
   fields?: Record<string, string>
 }
 
-/** A `changes/` document: an `_NN.md` file (not a sidecar) whose stem ends in `_changes`. */
+/**
+ * A changeset document: an `_NN.md` file (not a sidecar) whose stem ends in `_changes`,
+ * outside the root `sources/` folder. A changeset copied there (an import, a mirror) is
+ * evidence, never a record of this domaiNN.
+ */
 export function isChangesetPath(path: string): boolean {
+  if (isUnderRootSources(path)) return false
   const name = path.split('/').pop() ?? ''
   if (!isNNName(name) || isSidecarName(name)) return false
   const parsed = parseName(name)

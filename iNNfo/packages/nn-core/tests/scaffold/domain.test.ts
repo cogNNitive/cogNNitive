@@ -8,6 +8,7 @@ describe('planDomainScaffold', () => {
     expect(plan.dirs).toEqual([
       'kNNowledge',
       'sources/import',
+      'sources/sync',
       'sources/conversations',
       'conversations',
       'artifacts',
@@ -15,6 +16,16 @@ describe('planDomainScaffold', () => {
       'staging',
       'changes',
     ])
+  })
+
+  it('scaffolds an empty sources catalog with no Synchronization element', () => {
+    const catalog = plan.files.find((f) => f.path === 'sources/sources_NN.md')!
+    const parsed = parseKnowledge(catalog.content)
+    expect(parsed.frontmatter.level).toBe(3)
+    expect(parsed.frontmatter.parent_spec).toMatchObject({ name: 'sources' })
+    expect(parsed.elements.get('Synchronization') ?? []).toHaveLength(0)
+    expect(parsed.elements.get('Source') ?? []).toHaveLength(0)
+    expect(catalog.content).toContain('[[Synchronization]]')
   })
 
   it('writes .gitattributes with * -text', () => {

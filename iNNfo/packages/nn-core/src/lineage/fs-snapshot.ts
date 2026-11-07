@@ -9,6 +9,7 @@ import * as path from 'node:path'
 import { parseKnowledge } from '../parser/core.js'
 import type { FileSnapshot } from '../queryUnits.js'
 import { isExcludedPath, isNNName, isSidecarName, roleOf } from '../naming/contract.js'
+import { SYNC_DIR } from '../sync/address.js'
 
 /** Formats read as text; any other extension is a binary represented by its sidecar. */
 const TEXT_EXTENSIONS = new Set(['.md', '.csv', '.json', '.html', '.htm'])
@@ -19,6 +20,8 @@ function walkDir(dir: string, baseDir: string, out: string[]): void {
     const fullPath = path.join(dir, entry.name)
     const relPath = path.relative(baseDir, fullPath).split('\\').join('/')
     if (isExcludedPath(relPath)) continue
+    // Mirrors are models owned by an origin; their elements are not this domaiNN's lineage.
+    if (relPath === SYNC_DIR) continue
     if (entry.isDirectory()) {
       walkDir(fullPath, baseDir, out)
     } else if (entry.isFile() && TEXT_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {

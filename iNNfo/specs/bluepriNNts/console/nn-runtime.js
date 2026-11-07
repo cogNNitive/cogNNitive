@@ -3478,7 +3478,7 @@
     var hasFiles =
       !!filesPayload &&
       ((Array.isArray(filesPayload.inventory) && filesPayload.inventory.length > 0) ||
-        (Array.isArray(filesPayload.watchRoots) && filesPayload.watchRoots.length > 0))
+        (Array.isArray(filesPayload.origins) && filesPayload.origins.length > 0))
     var scoped = consoleScopeOf(meta)
     // A standalone --view artifact mounts that view alone.
     if (scoped) {
@@ -4070,21 +4070,19 @@
      ------------------------------------------------------------------------- */
 
   var FILES_CATEGORIES = [
-    { id: 'watch_root', title: 'Watch Folders' },
     { id: 'source', title: 'Sources' },
-    { id: 'imported_domain', title: 'Imported Domains' },
     { id: 'asset', title: 'Assets' },
     { id: 'evidence', title: 'Evidence' },
     { id: 'artifact', title: 'Artifacts' },
+    { id: 'unclassified', title: 'Unclassified' },
   ]
 
   var FILES_CATEGORY_LABEL = {
-    watch_root: 'watch root',
     source: 'source',
-    imported_domain: 'imported domain',
     asset: 'asset',
     evidence: 'evidence',
     artifact: 'artifact',
+    unclassified: 'unclassified',
   }
 
   var FILES_PIPELINE_STAGES = [
@@ -4134,7 +4132,20 @@
 
     var inventory = files.inventory
     var stats = files.stats || {}
-    var watchRoots = Array.isArray(files.watchRoots) ? files.watchRoots : []
+    var origins = Array.isArray(files.origins) ? files.origins : []
+    // Origin ids that contributed each file, so tracing never matches by path prefix.
+    var originIdsByPath = {}
+    origins.forEach(function (o) {
+      ;(Array.isArray(o.files) ? o.files : []).forEach(function (p) {
+        if (!originIdsByPath[p]) originIdsByPath[p] = []
+        originIdsByPath[p].push(o.id)
+      })
+    })
+    function lightOrigins(out, path) {
+      ;(originIdsByPath[path] || []).forEach(function (id) {
+        out['origin:' + id] = true
+      })
+    }
     var lineage = files.lineage || {}
     var elements = Array.isArray(opts.elements) ? opts.elements : []
     var byPath = {}
@@ -4411,39 +4422,38 @@
       storageWrap.appendChild(legend)
       dash.appendChild(storageWrap)
 
-      if (watchRoots.length) {
+      if (origins.length) {
         var table = doc.createElement('table')
-        table.className = 'nn-watch-table'
-        // Watch-root rows are filesystem facts, not knowledge-unit references, so
+        table.className = 'nn-origins-table'
+        // Origin rows are filesystem facts, not knowledge-unit references, so
         // the Ku tree guard's exemption marker applies to the whole table.
         table.setAttribute('data-ku-exempt', '1')
         var thead = doc.createElement('thead')
         var hr = doc.createElement('tr')
-        ;['Root', 'Status', 'Files', 'Last change'].forEach(function (h) {
+        ;['Origin', 'State', 'Files'].forEach(function (h) {
           hr.appendChild(el('th', null, h))
         })
         thead.appendChild(hr)
         table.appendChild(thead)
         var tbody = doc.createElement('tbody')
-        watchRoots.forEach(function (root) {
+        origins.forEach(function (o) {
           var tr = doc.createElement('tr')
-          var tdRoot = doc.createElement('td')
-          tdRoot.appendChild(el('code', null, String(root.path)))
-          tr.appendChild(tdRoot)
-          var tdStatus = doc.createElement('td')
-          var dot = el('span', 'nn-watch-status-dot ' + (root.status || 'idle'))
-          tdStatus.appendChild(dot)
-          tdStatus.appendChild(el('span', null, ' ' + String(root.status || 'idle')))
-          tr.appendChild(tdStatus)
-          tr.appendChild(el('td', null, String(root.fileCount || 0)))
-          tr.appendChild(el('td', null, root.lastSync ? String(root.lastSync) : '\u2014'))
+          var tdOrigin = doc.createElement('td')
+          tdOrigin.appendChild(el('code', null, String(o.alias || o.id)))
+          if (o.origin) tdOrigin.appendChild(el('span', null, ' ' + String(o.origin)))
+          tr.appendChild(tdOrigin)
+          var tdState = doc.createElement('td')
+          tdState.appendChild(el('span', 'nn-origin-state-dot ' + (o.state || 'adhoc')))
+          tdState.appendChild(el('span', null, ' ' + String(o.state || 'adhoc')))
+          tr.appendChild(tdState)
+          tr.appendChild(el('td', null, String((o.files || []).length)))
           tbody.appendChild(tr)
         })
         table.appendChild(tbody)
-        var rootsWrap = el('div', 'nn-files-roots')
-        rootsWrap.appendChild(el('h3', 'nn-files-section-title', 'Watch roots'))
-        rootsWrap.appendChild(table)
-        dash.appendChild(rootsWrap)
+        var originsWrap = el('div', 'nn-files-origins')
+        originsWrap.appendChild(el('h3', 'nn-files-section-title', 'Origins'))
+        originsWrap.appendChild(table)
+        dash.appendChild(originsWrap)
       }
 
       var alerts = el('div', 'nn-files-alerts')
@@ -4638,7 +4648,7 @@
       if (!pipeline) return
       pipeline.innerHTML = ''
       var sourcesStage = inventory.filter(function (f) {
-        return f.category === 'source' || f.category === 'imported_domain'
+        return f.category === 'source'
       })
       var artifactsStage = inventory.filter(function (f) {
         return f.category === 'artifact'
@@ -4675,8 +4685,12 @@
       var changeIds = Object.keys(changeNode).sort()
 
       var content = {
-        origins: watchRoots.map(function (r) {
-          return { id: 'root:' + r.path, name: r.path, sub: (r.fileCount || 0) + ' files · ' + (r.status || 'idle') }
+        origins: origins.map(function (o) {
+          return {
+            id: 'origin:' + o.id,
+            name: o.alias || o.id,
+            sub: (o.files || []).length + ' files · ' + (o.state || 'adhoc'),
+          }
         }),
         sources: sourcesStage.map(function (f) {
           return { id: 'file:' + f.path, name: filesBaseName(f.path), sub: FILES_CATEGORY_LABEL[f.category] + ' · ' + filesFmtBytes(f.size) }
@@ -4699,6 +4713,8 @@
       }
 
       FILES_PIPELINE_STAGES.forEach(function (stage) {
+        // The Origins column exists only when something declares an origin.
+        if (stage.id === 'origins' && !origins.length) return
         var col = el('div', 'nn-pipeline-stage')
         var head = el('div', 'nn-pipeline-stage-head')
         head.appendChild(el('span', null, stage.title))
@@ -4799,9 +4815,7 @@
 
       if (nodeId.indexOf('file:') === 0) {
         var path = nodeId.slice(5)
-        watchRoots.forEach(function (r) {
-          if (path.indexOf(r.path) === 0) out['root:' + r.path] = true
-        })
+        lightOrigins(out, path)
         var units = unitsByPath[path] || []
         units.forEach(function (uid) {
           out['unit:' + uid] = true
@@ -4813,9 +4827,7 @@
           var entry = lineage[path]
           ;(entry.sourcePaths || []).forEach(function (sp) {
             out['file:' + sp] = true
-            watchRoots.forEach(function (r) {
-              if (sp.indexOf(r.path) === 0) out['root:' + r.path] = true
-            })
+            lightOrigins(out, sp)
           })
           ;(entry.unitIds || []).forEach(function (uid) {
             out['unit:' + uid] = true
@@ -4843,9 +4855,7 @@
         Object.keys(unitsByPath).forEach(function (p) {
           if ((unitsByPath[p] || []).indexOf(uid) >= 0) {
             out['file:' + p] = true
-            watchRoots.forEach(function (r) {
-              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
-            })
+            lightOrigins(out, p)
             ;(changesByPath[p] || []).forEach(function (csId) {
               out['change:' + csId] = true
             })
@@ -4871,9 +4881,7 @@
         Object.keys(changesByPath).forEach(function (p) {
           if ((changesByPath[p] || []).indexOf(csId) >= 0) {
             out['file:' + p] = true
-            watchRoots.forEach(function (r) {
-              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
-            })
+            lightOrigins(out, p)
             ;(unitsByPath[p] || []).forEach(function (uid) {
               out['unit:' + uid] = true
             })
@@ -4885,10 +4893,10 @@
             out['file:' + artifactPath] = true
           }
         })
-      } else if (nodeId.indexOf('root:') === 0) {
-        var rootPath = nodeId.slice(5)
+      } else if (nodeId.indexOf('origin:') === 0) {
+        var originId = nodeId.slice(7)
         inventory.forEach(function (f) {
-          if (f.path.indexOf(rootPath) === 0) {
+          if ((originIdsByPath[f.path] || []).indexOf(originId) >= 0) {
             out['file:' + f.path] = true
             ;(unitsByPath[f.path] || []).forEach(function (uid) {
               out['unit:' + uid] = true

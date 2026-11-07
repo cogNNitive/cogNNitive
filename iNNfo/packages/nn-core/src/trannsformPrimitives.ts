@@ -54,4 +54,6 @@ export * from './writeOnce/index.js'
 
 export * from './cognitivize/index.js'
 
+export { readSynchronizations, refreshSynchronization, removeOrphanMirrors } from './sync/index.js'
+
 export { resolveJsonPointer, isJsonPointer } from './jsonPointer.js'

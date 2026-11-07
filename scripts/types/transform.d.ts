@@ -5,8 +5,8 @@
  */
 
 interface SourceFrontmatterExtra {
-  source_url?: string;
-  downloaded_at?: string;
+  origin_uri?: string;
+  retrieved_at?: string;
   title?: string;
   description?: string;
   author?: string;
@@ -19,8 +19,8 @@ interface SourceFrontmatterFields {
   size_bytes?: string | number;
   normalized_at?: string;
   normalized_by?: string;
-  source_url?: string;
-  downloaded_at?: string;
+  origin_uri?: string;
+  retrieved_at?: string;
   title?: string;
   description?: string;
   author?: string;

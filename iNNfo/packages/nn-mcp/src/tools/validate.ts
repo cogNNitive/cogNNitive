@@ -30,8 +30,11 @@ import {
   CANONICAL_BLUEPRINTS,
   checkRemovedMarkerConstructs,
   fileLocalDiagnostics,
+  readSynchronizations,
+  SYNC_DIR,
 } from '@cognnitive/nn-core'
 import type {
+  MirrorLookup,
   SpecDocument,
   ValidationError,
   ConceptDriftDiagnostic,
@@ -352,12 +355,44 @@ export async function collectWorkspaceDiagnostics(
     }))
   return [
     ...droppedElements,
-    ...validateWorkspaceReferences(result, index, (await buildNodeDomainIndex(rootDir)).index, (id) =>
-      log.successorOf(id as ModelId),
+    ...validateWorkspaceReferences(
+      result,
+      index,
+      (await buildNodeDomainIndex(rootDir)).index,
+      (id) => log.successorOf(id as ModelId),
+      await buildMirrorLookup(rootDir),
     ),
+    ...collectSynchronizationDiagnostics(rootDir),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
     ...collectEvidenceDiagnostics(rootDir),
   ]
+}
+
+const SOURCES_CATALOG = 'sources/sources_NN.md'
+
+/**
+ * One `DomainIndex` per alias folder under `sources/sync/`, built only when that
+ * folder exists. The lookup is synchronous, so the (async) indexes are built up front.
+ */
+async function buildMirrorLookup(rootDir: string): Promise<MirrorLookup> {
+  const syncDir = join(rootDir, SYNC_DIR)
+  const indexes = new Map<string, Awaited<ReturnType<typeof buildNodeDomainIndex>>['index']>()
+  if (existsSync(syncDir)) {
+    for (const entry of readdirSync(syncDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) indexes.set(entry.name, (await buildNodeDomainIndex(join(syncDir, entry.name))).index)
+    }
+  }
+  return (alias) => indexes.get(alias)
+}
+
+/** `SYNC_ALIAS_INVALID` / `SYNC_ALIAS_DUPLICATE` of the sources catalog, filed against it. */
+function collectSynchronizationDiagnostics(rootDir: string): ReferenceDiagnostic[] {
+  const catalog = join(rootDir, SOURCES_CATALOG)
+  if (!existsSync(catalog)) return []
+  return readSynchronizations(readFileSync(catalog, 'utf-8')).diagnostics.map((d) => ({
+    ...d,
+    path: `${SOURCES_CATALOG}#${d.path}`,
+  }))
 }
 
 /** Pure. Diagnostics whose `path` names `resolvedModelPath`. */
@@ -475,8 +510,6 @@ async function loadBaselineFile(baselinePath: string): Promise<ValidationBaselin
 const RESERVED_STRUCTURAL_HEADINGS = new Set([
   'index',
   'matrices',
-  'external watch roots',
-  'external watch roots:',
   'agent modification',
   'agent modification:',
   'agent modifications',
@@ -492,7 +525,6 @@ function isReservedStructuralHeading(concept: string): boolean {
   const norm = concept.trim().toLowerCase().replace(/^#+\s*(nn\s*)?/i, '')
   if (RESERVED_STRUCTURAL_HEADINGS.has(norm)) return true
   if (norm.startsWith('matrices:') || norm.startsWith('matrices')) return true
-  if (norm.startsWith('external watch roots')) return true
   if (norm.startsWith('agent modification')) return true
   return false
 }

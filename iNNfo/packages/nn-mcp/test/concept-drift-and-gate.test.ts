@@ -189,9 +189,6 @@ relationship_model:: B2B
 | :--- | :---: |
 | Enterprise Customer | X |
 
-## NN External Watch Roots:
-sources:: [sources/import/watch.md]
-
 ## NN Agent Modification: test-mod
 rationale:: Added core platform
 author:: Antigravity
@@ -201,10 +198,40 @@ author:: Antigravity
 
       const result = await validateKnowledge(rootDir, 'Structural_V_0-1-0_NN', undefined, undefined, false)
 
-      // None of index, matrices, External Watch Roots, or Agent Modification should trigger CONCEPT_DRIFT_WARNING
+      // None of index, matrices, or Agent Modification should trigger CONCEPT_DRIFT_WARNING
       const driftWarnings = result.warnings.filter((w) => w.code === 'CONCEPT_DRIFT_WARNING')
       expect(driftWarnings).toHaveLength(0)
       expect(result.valid).toBe(true)
+    })
+  })
+
+  describe('Removed External Watch Roots block', () => {
+    it('is no longer exempt: a leftover block gets the generic concept-drift diagnostic', async () => {
+      const leftover = `---
+spec_version: "V_0-2-0"
+level: 3
+parent_spec:
+  name: "business"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/business_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Leftover Watch Roots Model"
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise Customer
+relationship_model:: B2B
+
+# NN External Watch Roots
+## NN External Watch Roots: docs
+sources:: [sources/import/watch.md]
+`
+      const modelPath = join(rootDir, 'models', 'Leftover_V_0-1-0_NN.md')
+      await writeFile(modelPath, leftover, 'utf-8')
+
+      const result = await validateKnowledge(rootDir, 'Leftover_V_0-1-0_NN', undefined, undefined, false)
+
+      const drift = result.warnings.filter((w) => w.code === 'CONCEPT_DRIFT_WARNING')
+      expect(drift.some((w) => /external watch roots/i.test(w.message))).toBe(true)
     })
   })
 

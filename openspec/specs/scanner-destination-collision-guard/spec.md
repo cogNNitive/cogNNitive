@@ -3,9 +3,7 @@
 ## Purpose
 
 Destination collisions cannot occur when every written path is unique and sidecars are co-located with their raw file. The ownership guard goes away; content deduplication stays, re-keyed on sidecars.
-
 ## Requirements
-
 ### Requirement: Normalized Markdown Body Deduplication
 
 `duplicate-guards.js` and workspace indexing MUST determine duplicate/alias identity from co-located sidecars:
@@ -28,3 +26,19 @@ Destination collisions cannot occur when every written path is unique and sideca
 - GIVEN a workspace with sidecars
 - WHEN `indexWorkspaceSources` runs
 - THEN no sidecar appears as an indexed source entry
+
+### Requirement: Same-name files from different origin folders do not collide
+
+Files that share a name but come from different origin-relative directories MUST be written to different destinations and MUST be indexed as different sources. Content deduplication MUST still group files with identical `sha256` as aliases, regardless of their directory.
+
+#### Scenario: Two README files stay separate
+- GIVEN `a/README.pdf` and `b/README.pdf` with different bytes imported by one Synchronization
+- WHEN `indexWorkspaceSources` runs
+- THEN two sources exist with distinct paths
+- AND they are not grouped as aliases
+
+#### Scenario: Identical bytes in two folders are aliases
+- GIVEN `a/logo.png` and `b/logo.png` with identical bytes imported by one Synchronization
+- WHEN `indexWorkspaceSources` runs
+- THEN both are grouped under the same `sha256` and one is reported as an alias
+

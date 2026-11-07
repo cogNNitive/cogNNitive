@@ -20,7 +20,16 @@ import {
   type Normalizer,
 } from './sidecar.js'
 
+/** Where a copied file came from: merged into its sidecar as the origin keys. */
+export interface ImportOrigin {
+  synchronization: string
+  origin_uri: string
+  origin_path: string
+}
+
 export interface CognitivizeOptions {
+  /** Origin keys for the sidecar; `retrieved_at` is the copy time. */
+  origin?: ImportOrigin
   normalizer?: Normalizer
   now?: () => Date
   /** Platform whose path budget applies; defaults to `process.platform`. A test seam. */
@@ -86,15 +95,16 @@ export async function cognitivize(
   const textNative = TEXT_NATIVE_FORMATS.has(format)
   if (!textNative && !o.normalizer) return { status: 'requires-normalizer', path: relPath }
   const normalized = o.normalizer ? await o.normalizer({ path: relPath, ext: format, bytes }) : undefined
+  const nowIso = isoSeconds((o.now ?? (() => new Date()))())
   const text = buildSidecar({
     sourceFile: relPath,
     sha256,
     sizeBytes: bytes.byteLength,
     sourceFormat: format,
-    normalizedAt: isoSeconds((o.now ?? (() => new Date()))()),
+    normalizedAt: nowIso,
     normalizedBy: normalized?.normalizedBy,
     previous,
-    metadata: normalized?.metadata,
+    metadata: { ...normalized?.metadata, ...(o.origin ? { ...o.origin, retrieved_at: nowIso } : {}) },
     body: textNative ? undefined : normalized?.body,
   })
   await fsp.writeFile(sidecarAbs, text, 'utf8')
@@ -105,18 +115,23 @@ export type ImportRawResult =
   | { status: 'imported' | 'deduplicated'; path: string; cognitivize: CognitivizeResult }
   | { status: 'rejected'; path: string; reason: 'sidecar' | 'nn-document' | 'not-found' }
 
-/** Directory of the canonical raw-import location. */
+/** Directory of the default raw-import location. */
 const IMPORT_DIR = 'sources/import'
 
+export interface ImportRawOptions extends CognitivizeOptions {
+  /** Workspace-relative landing directory; defaults to `sources/import`. */
+  dir?: string
+}
+
 /**
- * Copies an external file verbatim into `sources/import/` as a new write-once
+ * Copies an external file verbatim into `o.dir` (default `sources/import/`) as a new write-once
  * family member (always suffixed, identical bytes dedupe), then cognitivizes
  * the copy. The external location is only read.
  */
 export async function importRaw(
   root: string,
   externalAbs: string,
-  o: CognitivizeOptions = {},
+  o: ImportRawOptions = {},
 ): Promise<ImportRawResult> {
   const base = path.basename(externalAbs)
   const rejected = (reason: 'sidecar' | 'nn-document' | 'not-found'): ImportRawResult => ({
@@ -132,7 +147,7 @@ export async function importRaw(
 
   const written: WriteOnceResult = await writeOnce(
     root,
-    { dir: IMPORT_DIR, key: parsed.key, ext: parsed.ext },
+    { dir: o.dir ?? IMPORT_DIR, key: parsed.key, ext: parsed.ext },
     bytes,
     { now: o.now, platform: o.platform },
   )

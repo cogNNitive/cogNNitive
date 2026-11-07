@@ -52,7 +52,7 @@ the generated block inside a `SKILL.md` by hand — the drift check will reject 
 **Canonical Source Taxonomy & Citation Contract**
 
 1. **Primary Source**: the immutable, original evidence files under
-   `sources/import/` or watched via `## NN External Watch Roots:` (read-only).
+   `sources/import/` or kept in sync with an external origin through a `## NN Synchronization:` element (`nn-sources --sync`).
 2. **Normalized / Secondary Source**: cognitivized in place — a co-located sidecar
    `<file>.<ext>_sidecar_NN.md` carries origin metadata (`source_file`, `sha256`,
    `size_bytes`, `source_format`, `normalized_at`); binary sources also carry the

@@ -9,13 +9,7 @@
 import { createHash } from 'node:crypto'
 import { isSidecarName } from '../naming/contract.js'
 
-export type FileCategory =
-  | 'watch_root'
-  | 'source'
-  | 'imported_domain'
-  | 'asset'
-  | 'evidence'
-  | 'artifact'
+export type FileCategory = 'source' | 'asset' | 'evidence' | 'artifact' | 'unclassified'
 
 export interface FileSidecarStatus {
   path: string
@@ -28,6 +22,12 @@ export interface FileSidecarStatus {
   sourceFormat?: string
   author?: string
   normalizedAt?: string
+  /** Alias of the Synchronization that landed the file (sidecar key `synchronization`). */
+  synchronization?: string
+  /** Where the file came from (sidecar key `origin_uri`). */
+  originUri?: string
+  /** Path of the file at its origin (sidecar key `origin_path`). */
+  originPath?: string
   error?: string
 }
 
@@ -56,12 +56,15 @@ export interface FileInventoryEntry {
   snippetTruncated?: boolean
 }
 
-export interface WatchRootDescriptor {
-  path: string
-  status: 'active' | 'idle' | 'offline'
-  fileCount: number
-  /** Newest mtime observed under the root (deterministic, not wall-clock). */
-  lastSync?: string
+/** A Synchronization origin, or an origin known only from sidecar keys (`adhoc`). */
+export interface OriginDescriptor {
+  id: string
+  alias?: string
+  origin: string
+  kind: 'file' | 'folder' | 'url'
+  state: 'active' | 'paused' | 'adhoc'
+  /** Inventory ids attributed to the origin. */
+  files: string[]
 }
 
 export interface FilesStats {
@@ -89,40 +92,39 @@ export interface ArtifactReverseLineageEntry {
 
 export interface ConsolePayloadFiles {
   inventory: FileInventoryEntry[]
-  watchRoots: WatchRootDescriptor[]
+  origins: OriginDescriptor[]
   stats: FilesStats
   lineage: Record<string, ArtifactReverseLineageEntry>
 }
 
-const SOURCE_LIKE: FileCategory[] = ['source', 'imported_domain']
-
 export function isSourceLike(category: FileCategory): boolean {
-  return SOURCE_LIKE.indexOf(category) >= 0
+  return category === 'source'
 }
 
 /**
- * Classifies a workspace relative path into one of the 6 canonical categories.
+ * Models that live under `sources/` have no sidecar by design: the mirrored
+ * models under `sources/sync/` and the `sources/sources_NN.md` catalog.
+ */
+export function isMirrorFile(relPath: string): boolean {
+  const p = relPath.replace(/\\/g, '/').replace(/^\/+/, '')
+  return p.startsWith('sources/sync/') || p === 'sources/sources_NN.md'
+}
+
+/**
+ * Classifies a workspace relative path into one of the canonical categories.
  *
  * Real workspace layout (see nn-sources): `sources/import/` holds the raw
- * imported documents, `sources/assets/` the media, `sources/conversations/`
- * the transcripts and `sources/archive/` the retired items. A foreign domain
- * snapshot lives under `imported/`, `.domains/` or `domains/import/`.
+ * imported documents, `sources/sync/` the mirrored models, `sources/assets/`
+ * the media, `sources/conversations/` the transcripts and `sources/archive/`
+ * the retired items. A path that matches no known layout is `unclassified`.
  */
 export function classifyFileCategory(relPath: string): FileCategory {
   const norm = relPath.replace(/\\/g, '/').replace(/^\/+/, '')
   if (norm.startsWith('artifacts/') || norm === 'domaiNN_console.html') return 'artifact'
   if (norm.startsWith('assets/') || norm.startsWith('sources/assets/')) return 'asset'
   if (norm.startsWith('evidence/') || norm.startsWith('sources/evidence/')) return 'evidence'
-  if (
-    norm.startsWith('imported/') ||
-    norm.startsWith('.domains/') ||
-    norm.startsWith('domains/import/')
-  ) {
-    return 'imported_domain'
-  }
-  if (norm.startsWith('watch/') || norm.startsWith('sources/watch/')) return 'watch_root'
   if (norm.startsWith('sources/') || norm.startsWith('conversations/')) return 'source'
-  return 'source'
+  return 'unclassified'
 }
 
 /**
@@ -230,6 +232,9 @@ export function parseAndValidateSidecar(
     sourceFormat: frontmatterEntry(block, 'source_format'),
     author: frontmatterEntry(block, 'author'),
     normalizedAt: frontmatterEntry(block, 'normalized_at'),
+    synchronization: frontmatterEntry(block, 'synchronization'),
+    originUri: frontmatterEntry(block, 'origin_uri'),
+    originPath: frontmatterEntry(block, 'origin_path'),
   }
 }
 
@@ -354,18 +359,66 @@ export function resolveArtifactReverseLineage(
   return result
 }
 
-/** Calculates aggregate stats and coverage rates across file inventory and watch roots. */
-export function calculateFilesStats(
+/**
+ * Origins of the workspace: one per Synchronization element, plus the origins
+ * known only from sidecar origin keys (`adhoc`). A folder name never makes one.
+ */
+export function buildOrigins(
+  synchronizations: Array<{ alias: string; origin: string; kind: 'file' | 'folder'; state: 'active' | 'paused' }>,
   inventory: FileInventoryEntry[],
-  watchRoots: WatchRootDescriptor[] = [],
-): FilesStats {
+): OriginDescriptor[] {
+  const declared = new Set(synchronizations.map((s) => s.alias))
+  const byAlias = new Map<string, string[]>()
+  const adhoc = new Map<string, { origin: string; files: string[] }>()
+
+  for (const entry of inventory) {
+    const sc = entry.sidecar
+    const alias = sc?.synchronization
+    if (alias && declared.has(alias)) {
+      byAlias.set(alias, [...(byAlias.get(alias) ?? []), entry.id])
+      continue
+    }
+    const mirror = /^sources\/sync\/([^/]+)\//.exec(entry.path)
+    if (mirror && declared.has(mirror[1])) {
+      byAlias.set(mirror[1], [...(byAlias.get(mirror[1]) ?? []), entry.id])
+      continue
+    }
+    const key = alias || sc?.originUri
+    if (!key) continue
+    const group = adhoc.get(key) ?? { origin: sc?.originUri ?? '', files: [] }
+    group.files.push(entry.id)
+    adhoc.set(key, group)
+  }
+
+  const origins: OriginDescriptor[] = synchronizations.map((s) => ({
+    id: s.alias,
+    alias: s.alias,
+    origin: s.origin,
+    kind: s.kind,
+    state: s.state,
+    files: (byAlias.get(s.alias) ?? []).sort(),
+  }))
+  for (const id of [...adhoc.keys()].sort()) {
+    const group = adhoc.get(id)!
+    origins.push({
+      id,
+      origin: group.origin,
+      kind: /^https?:\/\//i.test(group.origin) ? 'url' : 'file',
+      state: 'adhoc',
+      files: group.files.sort(),
+    })
+  }
+  return origins
+}
+
+/** Calculates aggregate stats and coverage rates across the file inventory. */
+export function calculateFilesStats(inventory: FileInventoryEntry[]): FilesStats {
   const empty = (): Record<FileCategory, number> => ({
-    watch_root: 0,
     source: 0,
-    imported_domain: 0,
     asset: 0,
     evidence: 0,
     artifact: 0,
+    unclassified: 0,
   })
   const categoryCounts = empty()
   const storageByCategory = empty()
@@ -392,14 +445,11 @@ export function calculateFilesStats(
 
     const sidecar = entry.sidecar
     if (sidecar && isSourceLike(entry.category)) {
-      if (!sidecar.exists) sidecarMissingCount++
-      else if (!sidecar.valid) sidecarInvalidCount++
+      if (!sidecar.exists) {
+        if (!isMirrorFile(entry.path)) sidecarMissingCount++
+      } else if (!sidecar.valid) sidecarInvalidCount++
       else if (sidecar.sha256Matches === false) sidecarMismatchCount++
     }
-  }
-
-  if (categoryCounts.watch_root === 0 && watchRoots.length > 0) {
-    categoryCounts.watch_root = watchRoots.length
   }
 
   return {

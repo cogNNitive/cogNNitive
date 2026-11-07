@@ -7,6 +7,7 @@ import { buildDomainIndex, type DomainIndex, type StorageDeclarationsResolver } 
 import { normalizePathKey } from '../recursiveParser/paths.js'
 import { slugify } from '../parser/slug.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
+import { parseMirrorAddress, type MirrorAddress, type MirrorLookup } from '../sync/address.js'
 
 /**
  * Thrown when a workspace-scope validator is called without a resolvable
@@ -161,6 +162,67 @@ function diagnosticPath(root: KnowledgeNode, concept: string, element: Knowledge
 }
 
 /**
+ * Resolves a mirror address (`sources/sync/<alias>/<path>_NN.md@<slug>`) through the
+ * index the host built over that alias folder. A missing alias folder or file is
+ * `REF_MODEL_NOT_FOUND`; the unit and concept checks are the ordinary index ones.
+ */
+function checkMirrorToken(
+  token: string,
+  mirror: MirrorAddress,
+  ctx: TypedFieldValue,
+  mirrors?: MirrorLookup,
+): ReferenceDiagnostic[] {
+  const { root, element, concept, fieldDef } = ctx
+  const path = diagnosticPath(root, concept, element, fieldDef)
+  const where = `${root.source.path} (${concept} "${element.name}", field "${fieldDef.name}")`
+  const model = mirrors?.(mirror.alias)?.byPath(mirror.path)
+  if (!mirrors || !model) {
+    return [
+      {
+        path,
+        message: `REF_MODEL_NOT_FOUND: ${token} - no mirrored model "${mirror.path}" under alias "${mirror.alias}"; run the synchronization or fix the address; referenced from ${where}`,
+        severity: 'error',
+        code: 'REF_MODEL_NOT_FOUND',
+        meta: { field: fieldDef.name },
+      },
+    ]
+  }
+  const resolved = mirrors(mirror.alias)!.resolve(
+    { kind: 'unit', model: model.id, unit: mirror.unit },
+    undefined,
+    fieldDef.target_concepts ? { concepts: fieldDef.target_concepts } : undefined,
+  )
+  if (!resolved.ok) {
+    return [
+      {
+        path,
+        message: `${resolved.problem.code}: ${token} - ${resolved.problem.message.split(' - ').slice(1).join(' - ')}; referenced from ${where}`,
+        severity: 'error',
+        code: resolved.problem.code,
+        meta: { field: fieldDef.name },
+      },
+    ]
+  }
+  const diagnostics: ReferenceDiagnostic[] = resolved.warnings.map((w) => ({
+    path,
+    message: w.message.replace(/^(\w+): [^ ]+ - /, `$1: ${token} - `),
+    severity: 'warning' as const,
+    code: w.code,
+    meta: { field: fieldDef.name },
+  }))
+  if (fieldDef.target_blueprint && !matchesTargetBlueprint(fieldDef.target_blueprint, { name: resolved.model.blueprint.name })) {
+    diagnostics.push({
+      path,
+      message: `REF_BLUEPRINT_MISMATCH: ${token} - field "${fieldDef.name}" expects bluepriNNt "${fieldDef.target_blueprint}", but the mirrored model uses "${resolved.model.blueprint.name}"; point it at a model of that bluepriNNt`,
+      severity: 'warning',
+      code: 'REF_BLUEPRINT_MISMATCH',
+      meta: { field: fieldDef.name },
+    })
+  }
+  return diagnostics
+}
+
+/**
  * Checks one address token of a typed field: malformed or removed forms are
  * errors (`[[Title :: Name]]`, `[[Name]]`, a bare title), a relative `@slug`
  * is the per-file validator's job, and an absolute address must resolve
@@ -172,9 +234,12 @@ function checkToken(
   index: WorkspaceIndex,
   domain: DomainIndex,
   successor?: (id: string) => string | undefined,
+  mirrors?: MirrorLookup,
 ): ReferenceDiagnostic[] {
   const { root, element, concept, fieldDef } = ctx
   const path = diagnosticPath(root, concept, element, fieldDef)
+  const mirror = fieldDef.type === 'reference' ? parseMirrorAddress(token) : null
+  if (mirror) return checkMirrorToken(token, mirror, ctx, mirrors)
   const parsed = parseAddress(token)
 
   if (isAddressError(parsed)) {
@@ -300,12 +365,14 @@ export function validateWorkspaceReferences(
    * went; without it the error still names the old id (design A11).
    */
   successor?: (id: string) => string | undefined,
+  /** Resolves a `sources/sync/<alias>/...` address through the index of that mirror folder. */
+  mirrors?: MirrorLookup,
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = [...validateMultivalueSyntax(result, index)]
   for (const value of iterateTypedFieldValues(result, index)) {
     const scalars = Array.isArray(value.raw) ? value.raw.map(String) : [String(value.raw)]
     if (scalars.some(isCommaJoinedMultivalue)) continue // reported once as MULTIVALUE_SYNTAX
-    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor))
+    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor, mirrors))
   }
   return diagnostics
 }
