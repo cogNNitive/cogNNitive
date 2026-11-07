@@ -273,9 +273,9 @@ describe('filter help and field facet values (S4/U4)', () => {
     const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
     const { document } = bootConsole({ model: MODEL, schema })
     const toolbar = document.querySelector('.nn-toolbar')
-    const host = document.createElement('div')
-    host.id = 'nn-filter-facets'
-    toolbar.appendChild(host)
+    // The shell fixture already provides the filter hosts; reuse them (creating a
+    // duplicate id would leave getElementById pointing at the fixture's empty div).
+    const host = document.getElementById('nn-filter-facets')
 
     // Two tokens so an AND/OR connector is rendered between them.
     nnConsole.renderFilterBar(
@@ -317,16 +317,9 @@ describe('filter help and field facet values (S4/U4)', () => {
     }
     const schema = { concepts: [{ name: 'C', fields: [{ name: 'tags', type: 'select', multiple: true }] }] }
     const { document } = bootConsole({ model: MODEL, schema })
-    const toolbar = document.querySelector('.nn-toolbar')
     // The connector and the addressed pills live in the active-filters host, which
-    // the shell provides but this minimal DOM does not: create it so the connector
-    // path (rendered only with >= 2 clauses) runs.
-    const facets = document.createElement('div')
-    facets.id = 'nn-filter-facets'
-    toolbar.appendChild(facets)
-    const active = document.createElement('div')
-    active.id = 'nn-active-filters'
-    toolbar.appendChild(active)
+    // the shell fixture provides.
+    const active = document.getElementById('nn-active-filters')
 
     let nextQuery = null
     nnConsole.renderFilterBar(

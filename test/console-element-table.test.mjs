@@ -149,3 +149,72 @@ describe('Model Explorer element table view', () => {
     assert.ok(document.querySelector('#nn-content .nn-card'), 'shell still renders cards')
   })
 })
+
+describe('Universal Explorer Sort dropdown', () => {
+  it('renders the sort dropdown in the filter bar', () => {
+    const { document } = bootConsole({ model: MODEL })
+    const sortBtn = document.getElementById('nn-sort-btn')
+    assert.ok(sortBtn, 'sort button exists')
+    assert.match(sortBtn.textContent, /Sort/)
+  })
+
+  it('sorts Cards view when selecting a field from the dropdown', () => {
+    const { document } = bootConsole({ model: MODEL })
+    let cardIds = [...document.querySelectorAll('#nn-content .nn-card')].map(c => c.id)
+    assert.deepEqual(cardIds, ['el-a', 'el-b', 'el-c'])
+
+    click(document.getElementById('nn-sort-btn'))
+    const sortMenu = document.querySelector('.nn-sort-menu')
+    assert.ok(sortMenu.classList.contains('open'))
+
+    const nameBtn = [...sortMenu.querySelectorAll('.nn-facet-item')].find(b => b.textContent.includes('Name'))
+    assert.ok(nameBtn, 'Name option present')
+    click(nameBtn)
+
+    cardIds = [...document.querySelectorAll('#nn-content .nn-card')].map(c => c.id)
+    assert.deepEqual(cardIds, ['el-b', 'el-a', 'el-c'])
+
+    click(document.getElementById('nn-sort-btn'))
+    const descBtn = [...document.querySelectorAll('.nn-sort-menu button')].find(b => b.textContent.includes('Desc'))
+    assert.ok(descBtn, 'Desc button present')
+    click(descBtn)
+
+    cardIds = [...document.querySelectorAll('#nn-content .nn-card')].map(c => c.id)
+    assert.deepEqual(cardIds, ['el-c', 'el-a', 'el-b'])
+  })
+
+  it('sorts Badges view and MiniCards view', () => {
+    const { document } = bootConsole({ model: MODEL })
+    click(document.getElementById('nn-sort-btn'))
+    const nameBtn = [...document.querySelectorAll('.nn-sort-menu .nn-facet-item')].find(b => b.textContent.includes('Name'))
+    click(nameBtn)
+
+    click(document.querySelector('.nn-viewmode-btn[data-mode="badges"]'))
+    const badgeUnits = [...document.querySelectorAll('.nn-element-badges-wrap [data-nn-component="ku-unit"]')].map(u => u.textContent.trim())
+    assert.ok(badgeUnits[0].includes('Alpha'))
+    assert.ok(badgeUnits[1].includes('Beta'))
+    assert.ok(badgeUnits[2].includes('Gamma'))
+
+    click(document.querySelector('.nn-viewmode-btn[data-mode="cards"]'))
+    const miniCards = [...document.querySelectorAll('.nn-element-minicards-grid [data-nn-component="element-mini"]')].map(m => m.textContent.trim())
+    assert.equal(miniCards.length, 3)
+    assert.ok(miniCards[0].includes('Alpha'))
+    assert.ok(miniCards[1].includes('Beta'))
+    assert.ok(miniCards[2].includes('Gamma'))
+  })
+
+  it('syncs sort state bi-directionally between Table headers and Header Sort dropdown', () => {
+    const { document } = bootConsole({ model: MODEL })
+    click(document.querySelector('.nn-viewmode-btn[data-mode="table"]'))
+
+    click(document.querySelector('.nn-element-table th[data-sort-key="rank"] .nn-element-table-sort'))
+    const sortBtn = document.getElementById('nn-sort-btn')
+    assert.match(sortBtn.textContent, /Sort: rank/)
+
+    const clearBtn = sortBtn.querySelector('.nn-facet-clear')
+    assert.ok(clearBtn, 'clear sort button present')
+    click(clearBtn)
+    assert.equal(document.querySelector('.nn-element-table th[data-sort-key="rank"]').getAttribute('aria-sort'), null)
+    assert.match(document.getElementById('nn-sort-btn').textContent, /Sort/)
+  })
+})
