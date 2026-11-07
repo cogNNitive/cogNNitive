@@ -30,6 +30,22 @@ title: "Global Business"
 type:: text
 `
 
+/**
+ * A flat, domain-local blueprint whose filename derives a family
+ * (`resources_innfo`) that no blueprint name matches, so only reading
+ * `parent_spec.url` as a path can resolve it.
+ */
+const FLAT_BLUEPRINT = `---
+level: 2
+spec_version: V_0-3-0
+title: "Resources"
+---
+
+# NN Concept Definition
+## NN Concept Definition: Resource
+type:: list
+`
+
 describe('resolveConsoleSchema', () => {
   let rootDir: string
   let globalDir: string
@@ -70,6 +86,41 @@ describe('resolveConsoleSchema', () => {
     expect(result.schemaSource).toBe('blueprint')
     const names = result.schema?.concepts.map((c) => c.name)
     expect(names).toEqual(['Mission', 'Service'])
+  })
+
+  it('reads a workspace-relative parent_spec.url before any name matching', async () => {
+    fs.mkdirSync(path.join(rootDir, 'specs'), { recursive: true })
+    fs.writeFileSync(path.join(rootDir, 'specs', 'resources_iNNfo_NN.md'), FLAT_BLUEPRINT)
+
+    const result = await resolveConsoleSchema({
+      rootDir,
+      parentName: 'resources',
+      parentUrl: 'specs/resources_iNNfo_NN.md',
+      globalDir,
+      skillsDir,
+    })
+
+    expect(result.schemaSource).toBe('blueprint')
+    expect(result.schema?.concepts.map((c) => c.name)).toEqual(['Resource'])
+    expect(result.warnings).toEqual([])
+  })
+
+  it('refuses a parent_spec.url that escapes the domaiNN root', async () => {
+    const outside = path.join(path.dirname(rootDir), `escaped-${path.basename(rootDir)}.md`)
+    fs.writeFileSync(outside, FLAT_BLUEPRINT)
+    try {
+      const result = await resolveConsoleSchema({
+        rootDir,
+        parentName: 'resources',
+        parentUrl: `../${path.basename(outside)}`,
+        globalDir,
+        skillsDir,
+      })
+
+      expect(result.schemaSource).toBe('derived')
+    } finally {
+      fs.rmSync(outside, { force: true })
+    }
   })
 
   it('falls back to the canonical registry when no workspace or global package exists', async () => {

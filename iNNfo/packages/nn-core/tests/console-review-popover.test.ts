@@ -70,7 +70,7 @@ describe('console-review-popover (annotation)', () => {
     vi.restoreAllMocks()
   })
 
-  it('cards expose no annotate anchor; tag proposals open a correction-only popover', () => {
+  it('cards expose no annotate anchor; a tag proposal opens the one KU modal', () => {
     enableReview()
     const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The card-level annotate anchor was retired: element edits/comments go
@@ -80,15 +80,11 @@ describe('console-review-popover (annotation)', () => {
     expect(anchor).not.toBeNull()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const pop = env.document.querySelector('[data-nn-component="annotation-popover"]')!
-    expect(pop).not.toBeNull()
-    const kinds = Array.from(pop.querySelectorAll('.nn-popover-kind')).map((b) =>
-      b.getAttribute('data-kind'),
-    )
-    // A tag proposal is a `correction` on the `tags` Field (applied as update_field).
-    expect(kinds).toContain('correction')
-    expect(kinds).not.toContain('comment')
-    expect(kinds).not.toContain('delete')
+    // The annotation popover is retired: every edit, tag add included, opens the
+    // unified element modal. (The chip editor it still lacks is issue #490.)
+    expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]') as HTMLElement
+    expect(modal).not.toBeNull()
   })
 
   it('field row anchor opens the unified edit modal, prefilled with the payload value', () => {
@@ -179,7 +175,7 @@ describe('console-review-popover (annotation)', () => {
     expect(raw.drafts[0].comment).toBe('looks fine')
   })
 
-  it('Escape closes the popover without saving and restores focus to the anchor', () => {
+  it('Escape closes the modal without saving and restores focus to the anchor', () => {
     enableReview()
     const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The tag row lives in the card body, which starts collapsed; expand it so
@@ -190,10 +186,13 @@ describe('console-review-popover (annotation)', () => {
     anchor.focus()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const pop = env.document.querySelector('[data-nn-component="annotation-popover"]')!
-    pop.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    const modal = env.document.querySelector('[data-nn-component="edit-modal"]') as HTMLElement
+    expect(modal).not.toBeNull()
+    // Escape on a <dialog> fires `cancel`; the kit intercepts it, closes and
+    // returns focus. Dispatching the event is the jsdom-equivalent of the key.
+    modal.dispatchEvent(new env.window.Event('cancel', { bubbles: false }))
 
-    expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-component="edit-modal"]')).toBeNull()
     expect(env.document.activeElement).toBe(anchor)
     const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
     expect(raw.drafts || []).toHaveLength(0)

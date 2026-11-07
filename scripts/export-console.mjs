@@ -514,7 +514,7 @@ async function renderTree(models, root, consoles) {
 function injectSlots(shell, config, schema, model, viewData) {
   const serialize = payloadHelper?.serializeConsoleSlot
     ? (json) => payloadHelper.serializeConsoleSlot(json)
-    : (json) => JSON.stringify(json, null, 2).replace(/</g, '\\u003c')
+    : (json) => JSON.stringify(json).replace(/</g, '\\u003c')
   const slot = (html, id, json) =>
     html.replace(
       new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`),
@@ -1640,15 +1640,35 @@ export async function writeConsole(opts = {}) {
     }
     return html
   }
-  const html = buildHtml(new Date().toISOString())
-
   // Final size gate, before the first write of this run.
   const bytes = (text) => Buffer.byteLength(text, 'utf8')
-  const budget = viewsLib.evaluateSizeBudget({
-    bundle: bytes(preparedAssets.bundleScript) + bytes(preparedAssets.css),
-    models: bytes(JSON.stringify(domainPayload.schema)) + bytes(JSON.stringify(domainPayload.model)),
-    views: preparedAssets.viewScripts.reduce((sum, script) => sum + bytes(script), 0),    total: bytes(html),
-  })
+  const budgetOf = (rendered) =>
+    viewsLib.evaluateSizeBudget({
+      bundle: bytes(preparedAssets.bundleScript) + bytes(preparedAssets.css),
+      models: bytes(JSON.stringify(domainPayload.schema)) + bytes(JSON.stringify(domainPayload.model)),
+      views: preparedAssets.viewScripts.reduce((sum, script) => sum + bytes(script), 0),
+      total: bytes(rendered),
+    })
+
+  let html = buildHtml(new Date().toISOString())
+  let budget = budgetOf(html)
+
+  // Degrade instead of refusing to write: a domain that outgrew the hard limit still
+  // exports, with the resolved citation payload dropped and the strategy reported.
+  let slimmed = false
+  if (budget.status === 'fail') {
+    const stripped = viewsLib.stripConsoleCitations(domainPayload)
+    if (stripped > 0) {
+      html = buildHtml(new Date().toISOString())
+      budget = budgetOf(html)
+      slimmed = true
+      process.stderr.write(
+        `WARNING: [export-console] console exceeded ${viewsLib.CONSOLE_SIZE_BUDGET.failBytes} B; ` +
+          `exported slimmed — dropped the resolved citations of ${stripped} elements ` +
+          `(their raw field values are untouched).\n`,
+      )
+    }
+  }
   if (budget.status === 'fail') throw new ConsoleExportError(budget.message, 'CONSOLE_TOO_LARGE')
   if (budget.status === 'warn') process.stderr.write(`WARNING: [export-console] ${budget.message}\n`)
   log(budget.breakdown)
@@ -1664,7 +1684,7 @@ export async function writeConsole(opts = {}) {
     absPath = join(root, relativePath)
     relPath = relativePath
     let isUnchanged = false
-    if (existsSync(absPath)) {
+    if (!slimmed && existsSync(absPath)) {
       const previous = await readFile(absPath, 'utf-8')
       const previousGenerated = extractModelMetaFromHtml(previous)?.generated
       // Re-render with the previous generated stamp: identical bytes mean nothing changed.

@@ -2677,15 +2677,9 @@
 
     var buildElementCard = function (element) {
       var fields = []
-      var elCitations = element && isObject(element.citations) ? element.citations : {}
-      var sourcesEntries = []
-      Object.keys(elCitations).forEach(function (k) {
-        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
-          sourcesEntries = sourcesEntries.concat(elCitations[k])
-        }
-      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
           var val = element.fields[k]
           var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
           var target =
@@ -2705,12 +2699,17 @@
                   : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
             }
           }
-          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, element.concept, k),
+            // Per-field citations drive the row's citation icon. The header still
+            // shows the `sources::` group even though that field is never a row.
+            citations:
+              element.citations && Array.isArray(element.citations[k])
+                ? element.citations[k]
+                : undefined,
             ref: target
               ? {
                   id: target.id || String(val),
@@ -2722,7 +2721,6 @@
                   index: targetCMeta && targetCMeta.index,
                 }
               : undefined,
-            citations: fieldCites,
           })
         })
       }
@@ -2734,6 +2732,8 @@
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          citations:
+            element.citations && typeof element.citations === 'object' ? element.citations : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.location || element.modelFile || element.modelTitle || null,
@@ -2751,14 +2751,6 @@
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
-          head:
-            UI && typeof UI.CitationIcons === 'function'
-              ? UI.CitationIcons('sources', sourcesEntries, {
-                  onOpen: function () {
-                    renderCitationDialog(doc, 'sources', sourcesEntries)
-                  },
-                })
-              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onTag: actions && actions.onTag,
@@ -2772,6 +2764,8 @@
           },
           onCite: function (citeData) {
             var fName = citeData && citeData.field
+            var elCitations =
+              element.citations && typeof element.citations === 'object' ? element.citations : {}
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
             if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
@@ -4296,6 +4290,8 @@
 
     // Which units cite which file, matched the same way export does. A unit cites
     // the sidecar document, so the path is folded back to its subject file.
+    // Changesets are materialized as `Change` pseudo-units (`<batch>#<id>`); they
+    // are NOT knowledge units and get their own bucket and badge.
     var SIDECAR_SUFFIX = '_sidecar_NN.md'
     function citationSubject(raw) {
       var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
@@ -4305,9 +4301,21 @@
       return norm
     }
 
+    function isChangeUnit(e) {
+      return !!(e && e.concept === 'Change' && String(e.id).indexOf('#') >= 0)
+    }
+
+    // `testlab_admin_intake_changes_NN#a-01` -> `testlab_admin_intake` (the
+    // changeset node id the pipeline Changes column uses).
+    function changeNodeIdOf(unitId) {
+      return String(unitId).split('#')[0].replace(/_changes_NN$/, '')
+    }
+
     var unitsByPath = {}
+    var changesByPath = {}
     elements.forEach(function (e) {
       if (!e || !e.citations) return
+      var asChange = isChangeUnit(e)
       Object.keys(e.citations).forEach(function (field) {
         var list = e.citations[field]
         if (!Array.isArray(list)) return
@@ -4317,36 +4325,91 @@
           var norm = citationSubject(raw)
           inventory.forEach(function (f) {
             if (f.path === norm || f.path.endsWith('/' + norm) || norm.endsWith('/' + f.path)) {
-              if (!unitsByPath[f.path]) unitsByPath[f.path] = []
-              if (unitsByPath[f.path].indexOf(e.id) < 0) unitsByPath[f.path].push(e.id)
+              var bucket = asChange ? changesByPath : unitsByPath
+              var key = asChange ? changeNodeIdOf(e.id) : e.id
+              if (!bucket[f.path]) bucket[f.path] = []
+              if (bucket[f.path].indexOf(key) < 0) bucket[f.path].push(key)
             }
           })
         })
       })
     })
 
-    var state = { mode: 'explorer', selected: '', collapsed: {}, query: '' }
+    var state = { mode: 'explorer', selected: '', pipelineSelected: '', collapsed: {}, query: '' }
 
     var elementsById = {}
     elements.forEach(function (e) {
-      if (e && e.id) elementsById[e.id] = e
+      if (!e) return
+      if (e.id) elementsById[e.id] = e
+      if (e.slug && !elementsById[e.slug]) elementsById[e.slug] = e
+      if (typeof e.id === 'string') {
+        var at = e.id.indexOf('@')
+        if (at !== -1) {
+          var bare = e.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = e
+        }
+        var hash = e.id.indexOf('#')
+        if (hash !== -1) {
+          var bareHash = e.id.slice(hash + 1)
+          if (!elementsById[bareHash]) elementsById[bareHash] = e
+        }
+      }
     })
 
     function kuBadge(unitId) {
       var target = elementsById[unitId]
-      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      var ref = {
+        id: (target && target.id) ? target.id : String(unitId),
+        label: (target && (target.name || target.slug)) || String(unitId),
+      }
       if (target && target.concept) ref.concept = target.concept
+      // The address needs the owning model: without it the badge renders a bare
+      // `@slug`, which is not a parseable unit address.
+      if (target && target.modelId) ref.model = target.modelId
       if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', ref.label)
       try {
         return UI.Ku('element', ref, {
           doc: doc,
-          onAction: function (action, descriptor) {
-            if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
+          onReveal: function (descriptor) {
+            if (typeof opts.onReveal === 'function') opts.onReveal(descriptor)
           },
         })
       } catch {
         return el('span', 'nn-badge', ref.label)
       }
+    }
+
+    // A non-KU node still reads like a console badge: same `nn-ku` shell and
+    // nature grammar, custom icon, semantic colors, but no unit affordances.
+    var NON_KU_BADGE = {
+      origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+      artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+    }
+
+    function similarBadge(kindKey, label, title) {
+      if (UI && typeof UI.ConceptBadge === 'function') {
+        return UI.ConceptBadge(kindKey, label, { title: title, doc: doc })
+      }
+      var spec = NON_KU_BADGE[kindKey] || NON_KU_BADGE.sources
+      var badge = el('span', 'nn-ku nn-concept-badge')
+      badge.setAttribute('data-ku-kind', spec.kind)
+      badge.setAttribute('data-ku-nature', spec.nature)
+      badge.setAttribute('data-ku-home', spec.home)
+      if (title) badge.setAttribute('title', title)
+      if (spec.icon && typeof nnIcons !== 'undefined' && typeof nnIcons.getSvg === 'function') {
+        var iconEl = el('span', 'nn-ku-icon')
+        iconEl.setAttribute('aria-hidden', 'true')
+        iconEl.innerHTML = nnIcons.getSvg(spec.icon, { size: 13 })
+        badge.appendChild(iconEl)
+      }
+      badge.appendChild(el('span', 'nn-ku-label', String(label == null ? '' : label)))
+      return badge
     }
 
     function matchesQuery(entry) {
@@ -4646,6 +4709,7 @@
       }
 
       var citedUnits = unitsByPath[entry.path] || []
+      var citedChanges = changesByPath[entry.path] || []
       var citSection = el('div', 'nn-file-section')
       citSection.appendChild(
         el('h3', 'nn-files-section-title', 'Knowledge units (' + String(citedUnits.length) + ')'),
@@ -4658,10 +4722,29 @@
         citSection.appendChild(list)
       } else {
         citSection.appendChild(
-          el('p', 'nn-file-hint', 'No knowledge unit cites this file, and no change uses it as evidence.'),
+          el(
+            'p',
+            'nn-file-hint',
+            citedChanges.length
+              ? 'No knowledge unit cites this file directly; the changes below reference it.'
+              : 'No knowledge unit cites this file, and no change uses it as evidence.',
+          ),
         )
       }
       card.appendChild(citSection)
+
+      if (citedChanges.length) {
+        var changeSection = el('div', 'nn-file-section')
+        changeSection.appendChild(
+          el('h3', 'nn-files-section-title', 'Changes (' + String(citedChanges.length) + ')'),
+        )
+        var changeList = el('div', 'nn-lineage-units')
+        citedChanges.forEach(function (csId) {
+          changeList.appendChild(similarBadge('change', csId))
+        })
+        changeSection.appendChild(changeList)
+        card.appendChild(changeSection)
+      }
 
       var line = lineage[entry.path]
       if (line) {
@@ -4751,6 +4834,7 @@
           var target = elementsById[id]
           return {
             id: 'unit:' + id,
+            unitId: id,
             name: (target && (target.name || target.slug)) || id,
             sub: 'knowledge unit',
           }
@@ -4766,70 +4850,237 @@
         head.appendChild(el('span', null, stage.title))
         head.appendChild(el('span', 'nn-category-badge', String(content[stage.id].length)))
         col.appendChild(head)
-        var cards = el('div', 'nn-pipeline-cards')
+        var nodes = el('div', 'nn-pipeline-nodes')
         content[stage.id].forEach(function (item) {
-          var card = el('div', 'nn-pipeline-card')
-          card.setAttribute('data-node', item.id)
-          card.appendChild(el('span', 'nn-pipeline-card-name', item.name))
-          card.appendChild(el('span', 'nn-pipeline-card-sub', item.sub))
-          card.addEventListener('mouseenter', function () {
-            highlight(item.id)
-          })
-          card.addEventListener('mouseleave', clearHighlight)
-          card.addEventListener('click', function () {
-            var path = item.id.indexOf('file:') === 0 ? item.id.slice(5) : ''
-            if (path && byPath[path]) selectFile(path)
-          })
-          cards.appendChild(card)
+          nodes.appendChild(pipelineNode(stage.id, item))
         })
-        col.appendChild(cards)
+        col.appendChild(nodes)
         pipeline.appendChild(col)
+      })
+
+      // Clicking the empty area of the flow clears the pinned selection.
+      pipeline.onclick = function (ev) {
+        if (ev && ev.target === pipeline) clearPipelineSelection()
+      }
+    }
+
+    function pipelineNode(stageId, item) {
+      var node = el('div', 'nn-pipeline-node')
+      node.setAttribute('data-node', item.id)
+      node.setAttribute('role', 'button')
+      node.setAttribute('tabindex', '0')
+      node.setAttribute('aria-pressed', 'false')
+      node.setAttribute('title', item.name + ' \u2014 ' + item.sub)
+      // Units use the official console badge; every other stage is not a KU and
+      // gets the matching non-unit badge.
+      var badge =
+        stageId === 'units' && item.unitId
+          ? kuBadge(item.unitId)
+          : similarBadge(stageId, item.name, item.sub)
+      node.appendChild(badge)
+      node.addEventListener('click', function (ev) {
+        // Badge affordances (kebab, actions, change pip) belong to the KU
+        // framework: do not swallow them, and do not select on their click.
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
+        selectPipelineNode(item.id)
+      })
+      node.addEventListener('keydown', function (ev) {
+        var key = ev && ev.key
+        if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
+        if (ev.preventDefault) ev.preventDefault()
+        selectPipelineNode(item.id)
+      })
+      return node
+    }
+
+    // Selection replaces the old hover trace: a click pins the node and its
+    // connected chain; clicking the same node (or the empty column area) clears.
+    function selectPipelineNode(nodeId) {
+      state.pipelineSelected = state.pipelineSelected === nodeId ? '' : nodeId
+      syncPipelineSelection()
+      // A file node keeps its explorer detail in sync with the pinned node.
+      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
+      if (state.pipelineSelected && path && byPath[path]) selectFile(path)
+    }
+
+    function clearPipelineSelection() {
+      state.pipelineSelected = ''
+      syncPipelineSelection()
+    }
+
+    function syncPipelineSelection() {
+      if (!pipeline) return
+      if (state.pipelineSelected) highlight(state.pipelineSelected)
+      else clearHighlight()
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var on = node.getAttribute('data-node') === state.pipelineSelected
+        node.classList.toggle('nn-pipeline-selected', on)
+        node.setAttribute('aria-pressed', on ? 'true' : 'false')
       })
     }
 
-    // Hover tracing: a source lights up the units that cite it and the artifacts
-    // whose reverse lineage points back at it. Everything else dims.
+    // Selection tracing: a source lights up the units that cite it, the changes
+    // that use it as evidence, and the artifacts whose reverse lineage points
+    // back at it. Tracing works bidirectionally from any stage (origins, sources,
+    // changes, units, artifacts). Everything else dims.
     function connectedTo(nodeId) {
       var out = {}
       out[nodeId] = true
-      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
-      if (!path) return out
-      var units = unitsByPath[path] || []
-      units.forEach(function (uid) {
-        out['unit:' + uid] = true
-      })
-      Object.keys(lineage).forEach(function (artifactPath) {
-        var entry = lineage[artifactPath]
-        var hit =
-          (entry.sourcePaths || []).indexOf(path) >= 0 ||
-          (entry.unitIds || []).some(function (uid) {
-            return units.indexOf(uid) >= 0
+
+      if (nodeId.indexOf('file:') === 0) {
+        var path = nodeId.slice(5)
+        watchRoots.forEach(function (r) {
+          if (path.indexOf(r.path) === 0) out['root:' + r.path] = true
+        })
+        var units = unitsByPath[path] || []
+        units.forEach(function (uid) {
+          out['unit:' + uid] = true
+        })
+        ;(changesByPath[path] || []).forEach(function (csId) {
+          out['change:' + csId] = true
+        })
+        if (lineage[path]) {
+          var entry = lineage[path]
+          ;(entry.sourcePaths || []).forEach(function (sp) {
+            out['file:' + sp] = true
+            watchRoots.forEach(function (r) {
+              if (sp.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
           })
-        if (hit) {
-          out['file:' + artifactPath] = true
-          ;(entry.changesetIds || []).forEach(function (id) {
-            out['change:' + id] = true
+          ;(entry.unitIds || []).forEach(function (uid) {
+            out['unit:' + uid] = true
+          })
+          ;(entry.changesetIds || []).forEach(function (csId) {
+            out['change:' + csId] = true
           })
         }
-      })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          var hit =
+            (entry.sourcePaths || []).indexOf(path) >= 0 ||
+            (entry.unitIds || []).some(function (uid) {
+              return units.indexOf(uid) >= 0
+            })
+          if (hit) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('unit:') === 0) {
+        var uid = nodeId.slice(5)
+        Object.keys(unitsByPath).forEach(function (p) {
+          if ((unitsByPath[p] || []).indexOf(uid) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(changesByPath[p] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+        var targetEl = elementsById[uid]
+        if (targetEl && Array.isArray(targetEl.history)) {
+          targetEl.history.forEach(function (h) {
+            if (h.batch) out['change:' + h.batch.replace(/_changes_NN$/, '')] = true
+          })
+        }
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.unitIds || []).indexOf(uid) >= 0) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('change:') === 0) {
+        var csId = nodeId.slice(7)
+        Object.keys(changesByPath).forEach(function (p) {
+          if ((changesByPath[p] || []).indexOf(csId) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(unitsByPath[p] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+          }
+        })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.changesetIds || []).indexOf(csId) >= 0) {
+            out['file:' + artifactPath] = true
+          }
+        })
+      } else if (nodeId.indexOf('root:') === 0) {
+        var rootPath = nodeId.slice(5)
+        inventory.forEach(function (f) {
+          if (f.path.indexOf(rootPath) === 0) {
+            out['file:' + f.path] = true
+            ;(unitsByPath[f.path] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+            ;(changesByPath[f.path] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+      }
+
       return out
     }
 
     function highlight(nodeId) {
       var keep = connectedTo(nodeId)
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        var id = card.getAttribute('data-node')
-        card.classList.toggle('nn-pipeline-highlight', id === nodeId)
-        card.classList.toggle('dimmed', !keep[id])
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var id = node.getAttribute('data-node')
+        var isSelected = id === nodeId
+        var isConnected = !!keep[id]
+        node.classList.toggle('nn-pipeline-highlight', isSelected)
+        node.classList.toggle('nn-pipeline-connected', isConnected && !isSelected)
+        node.classList.toggle('dimmed', !isConnected)
+        if (isSelected) {
+          node.style.order = '-2'
+        } else if (isConnected) {
+          node.style.order = '-1'
+        } else {
+          node.style.order = '0'
+        }
+      })
+      // Reset scroll to top on all stages so elevated items are immediately visible
+      var cols = pipeline.querySelectorAll('.nn-pipeline-nodes')
+      ;[].slice.call(cols).forEach(function (col) {
+        col.scrollTop = 0
       })
     }
 
     function clearHighlight() {
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        card.classList.remove('dimmed')
-        card.classList.remove('nn-pipeline-highlight')
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        node.classList.remove('dimmed')
+        node.classList.remove('nn-pipeline-highlight')
+        node.classList.remove('nn-pipeline-connected')
+        node.style.order = ''
       })
     }
 
@@ -5191,7 +5442,7 @@
     if (body && isObject(element.fields)) {
       var dl = el('dl', 'nn-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
-        if (!dl) return
+        if (!dl || k === 'sources' || k === 'source') return
         var dt = el('dt', null, null)
         if (UI && typeof UI.Ku === 'function') {
           dt.appendChild(
@@ -7532,18 +7783,23 @@
             revealUnit(descriptor)
             return
           }
+          var handled = false
           var ctrl = state.controller
           if (ctrl && typeof ctrl.handleKuAction === 'function') {
-            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
-            return
+            handled = ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
           }
-          if (action === 'info' || action === 'changes') {
+          if (!handled && (action === 'info' || action === 'changes')) {
             var withFacts = Object.assign({}, descriptor, {
               facts: Object.assign({}, (descriptor && descriptor.facts) || {}, unitFacts(descriptor)),
             })
-            var panel = UI.KuInfoPanel(withFacts)
+            var panel = UI.KuInfoPanel(withFacts, {
+              onReveal: function () {
+                revealUnit(descriptor)
+              },
+            })
             if (active.body) active.body.appendChild(panel)
             if (panel && typeof panel.showModal === 'function') panel.showModal()
+            else if (panel) panel.setAttribute('open', 'true')
           }
         },
       })

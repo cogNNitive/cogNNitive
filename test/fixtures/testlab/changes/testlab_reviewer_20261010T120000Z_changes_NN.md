@@ -21,5 +21,6 @@ applied_at: 2026-10-10T12:00:00.000Z
 ## NN Change: fb-001
 op:: comment
 target:: TestLab Coverage Model@concept-1-element-1b&photo
+resolved_target:: kNNowledge/TestLab_coverage_TestLab@element-1b&photo
 evidence:: decision
 notes:: "Review note: verify the changeset lineage for Element 1B."

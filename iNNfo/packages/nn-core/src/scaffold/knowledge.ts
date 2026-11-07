@@ -181,6 +181,18 @@ export function inferKnowledgeVersion(
 }
 
 /**
+ * The bluepriNNt version a new document is pinned to (`blueprint_version`), the
+ * value producers compare against the installed bluepriNNt. Empty when the
+ * bluepriNNt declares none: an invented pin is worse than no pin.
+ */
+export function inferBlueprintVersion(
+  blueprintFrontmatter: Record<string, unknown> | null | undefined,
+): string | undefined {
+  const declared = blueprintFrontmatter?.blueprint_version
+  return typeof declared === 'string' && declared !== '' ? declared : undefined
+}
+
+/**
  * The single scaffold of a new Level-3 kNNowledge document: canonical frontmatter, the
  * document notice, and a starter body derived from the bluepriNNt schema. Shared by the
  * `add_model` apply path (and so by `init_knowledge`) and by strict replay, which rebuilds
@@ -195,6 +207,7 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
   const title = input.title || instanceSlug || input.id
   const modelSlug = input.modelSlug || instanceSlug || slugify(input.id)
   const spec = resolveScaffoldSpec(input.blueprintFrontmatter)
+  const blueprintVersion = inferBlueprintVersion(input.blueprintFrontmatter)
 
   const esc = (s: string) => JSON.stringify(s)
   const frontmatter = [
@@ -207,6 +220,9 @@ export function scaffoldKnowledgeDocument(input: ScaffoldKnowledgeInput): string
     `  name: ${esc(input.blueprintName)}`,
     `  url: ${esc(input.blueprintUrl)}`,
     `knowledge_version: ${esc(knowledgeVersion)}`,
+    // The pin producers compare against the installed bluepriNNt. Written right
+    // after knowledge_version to match the serializer's canonical order.
+    ...(blueprintVersion ? [`blueprint_version: ${esc(blueprintVersion)}`] : []),
     `title: ${esc(title)}`,
     '---',
   ].join('\n')

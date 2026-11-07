@@ -1062,7 +1062,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   "skip": "<polygon points=\"5 4 15 12 5 20 5 4\" /> <line x1=\"19\" x2=\"19\" y1=\"5\" y2=\"19\" />",
   "clipboard-check": "<rect width=\"8\" height=\"4\" x=\"8\" y=\"2\" rx=\"1\" ry=\"1\" /> <path d=\"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2\" /> <path d=\"m9 14 2 2 4-4\" />",
   "receipt": "<path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z\" /> <path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\" /> <path d=\"M12 17.5v-11\" />",
-  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />"
+  "edit": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />",
+  "more-vertical": "<circle cx=\"12\" cy=\"12\" r=\"1.5\" fill=\"currentColor\" /> <circle cx=\"12\" cy=\"5\" r=\"1.5\" fill=\"currentColor\" /> <circle cx=\"12\" cy=\"19\" r=\"1.5\" fill=\"currentColor\" />"
 };
 
   function getIconPaths(name) {
@@ -1247,7 +1248,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '@media (max-width:640px){.nn-change-toast{left:1rem;right:1rem;max-width:none}}',
     '.nn-popover-comment,.nn-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.nn-annotation-popover{width:100%}.nn-new-element{width:100%}}',
-    '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-edit-modal{border:1px solid var(--nn-border);border-radius:var(--nn-radius-lg);padding:0;max-width:880px;width:min(880px,calc(100vw - 32px));max-height:88vh;overflow:auto;background:var(--nn-surface);color:var(--nn-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.nn-modal-nested{max-width:740px;width:min(740px,calc(100vw - 48px));box-shadow:0 24px 64px rgba(0,0,0,.35)}',
+    '.nn-modal-nested::backdrop{background:rgba(0,0,0,.45)}',
+    '.nn-view-modal-body{padding:16px 20px}',
+    '.nn-view-modal-body .nn-card{border:none;box-shadow:none;background:transparent;padding:0;margin:0}',
+    '.nn-field-view-box{display:flex;flex-direction:column;gap:16px;padding:4px 0}',
+    '.nn-field-view-subtitle{margin:0 0 8px 0;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--nn-muted)}',
+    '.nn-field-view-val-section{padding:14px;background:var(--nn-surface-2);border-radius:var(--nn-radius-md,8px);border:1px solid var(--nn-border)}',
+    '.nn-field-view-val-text{font-size:.92rem;line-height:1.5;color:var(--nn-text);word-break:break-word}',
+    '.nn-change-diff-preview{font-family:var(--nn-mono);font-size:.78rem;background:var(--nn-surface-2);color:var(--nn-text);padding:2px 8px;border-radius:var(--nn-radius-sm);border:1px solid var(--nn-border);max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:4px}',
     '.nn-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.nn-edit-modal-head,.nn-export-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--nn-border)}',
     '.nn-edit-modal-head h2,.nn-export-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -1412,8 +1422,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted);cursor:pointer;flex:0 0 auto}',
     '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text);background:var(--nn-surface-2)}',
     '.nn-ku-more:focus-visible{outline:2px solid var(--nn-focus);outline-offset:1px}',
-    '.nn-ku-actions{position:fixed;z-index:60;display:none;align-items:center;gap:.1em;padding:.2em;background:var(--nn-surface);border:1px solid var(--nn-border);border-radius:var(--nn-radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap}',
-    '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:inline-flex}',
+    '.nn-ku-actions{display:none !important}',
+    '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
     '.nn-ku-action{appearance:none;border:1px solid transparent;background:transparent;color:var(--nn-muted);font:inherit;padding:.1em .3em;border-radius:var(--nn-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px}',
     '.nn-ku-action:hover{color:var(--nn-text);border-color:var(--nn-border);background:var(--nn-surface-2)}',
     '.nn-ku-action[data-ku-action=edit]:hover{color:var(--nn-link)}',
@@ -1469,8 +1479,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.nn-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-nn-component=element-card] .nn-card-thumb--empty,[data-nn-component=element-card] .nn-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--nn-accent));background:var(--card-concept-bg,var(--nn-surface-2));border:1.5px solid var(--card-concept-color,var(--nn-border))}',
     '[data-nn-component=element-card] .nn-card-count{font-size:.75rem;font-weight:600;color:var(--nn-muted);background:var(--nn-surface-2);border:1px solid var(--nn-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
-    '[data-nn-component=element-card] .nn-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--nn-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--nn-radius-sm);flex:0 0 auto}',
-    '[data-nn-component=element-card] .nn-card-toggle:hover{color:var(--nn-text);border-color:var(--nn-border);background:var(--nn-surface)}',
+    '[data-nn-component=element-card] .nn-card-toggle{appearance:none;border:1px solid var(--nn-border);background:var(--nn-surface-2);color:var(--nn-text);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;min-height:28px;padding:0;border-radius:var(--nn-radius-sm);flex:0 0 auto;transition:background-color .15s ease,border-color .15s ease;z-index:2;position:relative}',
+    '[data-nn-component=element-card] .nn-card-toggle:hover{color:var(--nn-text);border-color:var(--nn-muted);background:var(--nn-surface)}',
     '[data-nn-component=element-card] .nn-card-toggle .nn-icon{transition:transform .15s ease}',
     '[data-nn-component=element-card][data-open=true] .nn-card-toggle .nn-icon{transform:rotate(180deg)}',
     '[data-nn-component=element-card][data-open=false] .nn-card-body{display:none}',
@@ -1702,6 +1712,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     shield: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
     wrench: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
     'git-branch': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>',
+    'more-vertical': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle><circle cx="12" cy="5" r="1.5" fill="currentColor"></circle><circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>',
   }
 
   function icon(name, size, cls) {
@@ -1991,9 +2002,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var order = ['error', 'agent', 'human', 'reviewer', 'document']
     order.forEach(function (variant) {
       if (!present[variant]) return
+      // The group icon must carry the entry it stands for: the host opens the
+      // citation dialog with `{ field, entry }`, and `citationSource` reads the
+      // source path from it.
+      var entry = null
+      for (var i = 0; i < list.length; i++) {
+        if (originVariantOf(list[i]) === variant) {
+          entry = list[i]
+          break
+        }
+      }
       wrap.appendChild(
         CitationIcon(
-          { variant: variant, field: fieldName },
+          { variant: variant, field: fieldName, entry: entry },
           { doc: doc, onOpen: opts && typeof opts.onOpen === 'function' ? opts.onOpen : undefined },
         ),
       )
@@ -2245,6 +2266,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         wrap.appendChild(
           CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
+            doc: doc,
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -2842,19 +2864,52 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           label: conceptId,
           index: conceptOpts.index,
           color: conceptOpts.color,
-        }),
+        }, { doc: doc }),
       )
+    }
+    var elSlug = data.id
+    if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+      elSlug = elSlug.slice(unitModel.length + 1)
     }
     badgesWrap.appendChild(
       Ku('element', {
         model: unitModel,
-        id: data.id,
+        id: elSlug,
         label: data.name || data.id,
         index: conceptOpts.index,
         color: conceptOpts.color,
-      }),
+      }, { doc: doc }),
     )
     head.appendChild(badgesWrap)
+
+    // Resolved citations ride on the element, keyed by field. A `sources::` row is
+    // never rendered as a field (the property is banned on L3), but its citation
+    // affordance stays reachable here, next to the unit's identity.
+    var headerCitations = []
+    if (data.citations && typeof data.citations === 'object' && !Array.isArray(data.citations)) {
+      Object.keys(data.citations).forEach(function (citeField) {
+        var list = data.citations[citeField]
+        if (!Array.isArray(list) || !list.length) return
+        headerCitations.push({ field: citeField, entries: list })
+      })
+    }
+    if (
+      headerCitations.length &&
+      typeof CitationIcons === 'function' &&
+      opts &&
+      typeof opts.onCite === 'function'
+    ) {
+      headerCitations.forEach(function (group) {
+        var citeNodes = CitationIcons(group.field, group.entries, {
+          doc: doc,
+          onOpen: opts && opts.onCite,
+        })
+        var citeList = Array.isArray(citeNodes) ? citeNodes : [citeNodes]
+        citeList.forEach(function (node) {
+          if (node) head.appendChild(node)
+        })
+      })
+    }
 
     // Surface semantic status pill in header if element has a status field
     var statusField = null
@@ -2909,13 +2964,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (open) mountBody()
       card.setAttribute('data-open', open ? 'true' : 'false')
       var tg = head.querySelector('.nn-card-toggle')
-      if (tg) tg.setAttribute('aria-expanded', open ? 'true' : 'false')
+      if (tg) {
+        tg.setAttribute('aria-expanded', open ? 'true' : 'false')
+        tg.setAttribute('title', open ? 'Collapse sheet details' : 'Expand sheet details')
+        tg.setAttribute('aria-label', open ? 'Collapse sheet details' : 'Expand sheet details')
+      }
     }
 
     if (collapsible) {
       var toggle = makeEl(doc, 'button', 'nn-card-toggle')
       toggle.setAttribute('type', 'button')
-      toggle.setAttribute('aria-label', 'Toggle details')
+      toggle.setAttribute('aria-label', open ? 'Collapse sheet details' : 'Expand sheet details')
+      toggle.setAttribute('title', open ? 'Collapse sheet details' : 'Expand sheet details')
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
       toggle.innerHTML = icon('chevron', 16)
       toggle.addEventListener('click', function (ev) {
@@ -2926,7 +2986,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       head.addEventListener('click', function (ev) {
         var t = ev && ev.target
-        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea')) {
+        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea, [data-ku-more]')) {
           return
         }
         setOpen(!open)
@@ -3051,10 +3111,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                 ref: fr.ref,
                 citations: fr.citations,
                 model: unitModel,
-                element: data.id,
+                element: elSlug || data.id,
                 inherited: inheritedInfo,
               },
               {
+                doc: doc,
                 onRef: opts && opts.onRef,
                 onCite: opts && opts.onCite,
                 onKnowledge: opts && opts.onKnowledge,
@@ -3274,6 +3335,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       opts.stateKind || (variant === 'draft' ? 'unsent' : String(entry.status || 'applied'))
     var op = opts.op || entry.op || draftOp(entry)
     var head = []
+
+    // Diff preview: original -> changed (visible both collapsed and expanded)
+    var diff = cardDiff(op, entry)
+    if (diff) {
+      var diffEl = makeEl(doc, 'span', 'nn-change-diff-preview', diff)
+      diffEl.setAttribute('title', diff)
+      head.push(diffEl)
+    }
+
+    // Evidence / citation icon in header (visible both collapsed and expanded)
+    var rawEvidence =
+      variant === 'draft' ? entry.sources || entry.evidence : entry.evidence || entry.sources
+    var evidenceList =
+      rawEvidence == null ? [] : Array.isArray(rawEvidence) ? rawEvidence : [rawEvidence]
+    var headerCitations = []
+    if (entry.evidenceCitation) {
+      headerCitations.push(entry.evidenceCitation)
+    } else if (evidenceList.length) {
+      evidenceList.forEach(function (src) {
+        if (src == null || src === '') return
+        headerCitations.push({
+          origin: typeof src === 'object' && src.origin ? src.origin : 'document',
+          path: typeof src === 'object' && src.path ? src.path : String(src),
+          exists: true,
+          field: 'evidence',
+        })
+      })
+    }
+    if (
+      headerCitations.length &&
+      typeof CitationIcons === 'function' &&
+      typeof opts.onCite === 'function'
+    ) {
+      var citeWrap = CitationIcons('evidence', headerCitations, {
+        doc: doc,
+        onOpen: opts.onCite,
+      })
+      if (Array.isArray(citeWrap)) {
+        citeWrap.forEach(function (n) {
+          if (n) head.push(n)
+        })
+      } else if (citeWrap) {
+        head.push(citeWrap)
+      }
+    }
 
     if (variant === 'draft' && typeof StatusBadge === 'function') {
       var badge = StatusBadge({ status: 'local', label: COPY.unsent })
@@ -3805,7 +3911,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     head.appendChild(title)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
     closeBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    modal.addEventListener('cancel', function (ev) {
+      if (ev && ev.preventDefault) ev.preventDefault()
       if (typeof modal.close === 'function') modal.close()
       else modal.removeAttribute('open')
       if (opts && typeof opts.onCancel === 'function') opts.onCancel()
@@ -3859,18 +3972,183 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       modal.appendChild(proposeAs)
     }
 
-    // Unified Modal Navigation: Tabs (Edit vs Lineage)
+    // Unified Modal Navigation: Tabs (View, Edit, Changes, Connections)
     var navTabs = makeEl(doc, 'div', 'nn-modal-tabs')
-    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'Edit')
+    var tabBtnView = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'View')
+    tabBtnView.setAttribute('type', 'button')
+    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Edit')
     tabBtnEdit.setAttribute('type', 'button')
     var tabBtnHistory = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Changes')
     tabBtnHistory.setAttribute('type', 'button')
     var tabBtnConnections = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Connections')
     tabBtnConnections.setAttribute('type', 'button')
+    navTabs.appendChild(tabBtnView)
     navTabs.appendChild(tabBtnEdit)
     navTabs.appendChild(tabBtnHistory)
     navTabs.appendChild(tabBtnConnections)
     modal.appendChild(navTabs)
+
+    // Panel 0: View (Element Sheet / Unit Inspector)
+    var panelView = makeEl(doc, 'div', 'nn-modal-tab-panel nn-view-modal-body')
+    panelView.setAttribute('data-tab', 'view')
+
+    var el = data.element
+    if (el && !data.fieldName) {
+      var cardFields = []
+      var fieldsSource = Array.isArray(el.fields) ? el.fields.slice() : []
+      if (!fieldsSource.length && el.fields && typeof el.fields === 'object') {
+        Object.keys(el.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
+          var val = el.fields[k]
+          var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
+          var target = null
+          if (Array.isArray(el.relations)) {
+            var relMatch = el.relations.find(function (r) {
+              return r && r.field === k && r.target
+            })
+            if (relMatch) {
+              var tRec = (opts && opts.byId && opts.byId[relMatch.target]) || null
+              target = {
+                id: relMatch.target,
+                label: relMatch.targetLabel || (tRec && tRec.name) || cleanKey || relMatch.target,
+                concept: relMatch.targetConcept || (tRec && tRec.concept),
+                slot: relMatch.targetSlot || (tRec && tRec._conceptSlot),
+                color: relMatch.targetColor || (tRec && tRec._conceptColor),
+                hexColor: relMatch.targetHexColor || (tRec && tRec._conceptHexColor),
+              }
+            }
+          }
+          if (!target && typeof val === 'string' && val.startsWith('@')) {
+            var slug = val.slice(1)
+            var tRec = (opts && opts.byId && (opts.byId[slug] || opts.byId[val])) || null
+            target = {
+              id: slug,
+              label: tRec && tRec.name ? tRec.name : val,
+              concept: tRec && tRec.concept,
+              slot: tRec && tRec._conceptSlot,
+              color: tRec && tRec._conceptColor,
+              hexColor: tRec && tRec._conceptHexColor,
+            }
+          }
+          cardFields.push({
+            name: k,
+            value: val,
+            ref: target || undefined,
+          })
+        })
+      } else {
+        cardFields = fieldsSource.filter(function (f) {
+          return f && f.name !== 'sources' && f.name !== 'source'
+        })
+      }
+
+      var card = ElementCard(
+        {
+          id: el.id,
+          name: el.name || el.id || '',
+          conceptId: el.concept,
+          description: el.description,
+          fields: cardFields,
+          history: el.history,
+          tags: el.tags,
+          relations: el.relations,
+          incomingRelations: el.incomingRelations,
+          path: el.path || el.location,
+        },
+        {
+          doc: doc,
+          collapsible: false,
+          open: true,
+          modelId: data.modelId || el.modelId || '',
+          byId: (opts && opts.byId) || {},
+          onRef: opts && opts.onRef,
+          onCite: opts && opts.onCite,
+          onKnowledge: opts && opts.onKnowledge,
+        },
+      )
+      panelView.appendChild(card)
+    } else if (data.fieldName) {
+      var fieldBox = makeEl(doc, 'div', 'nn-field-view-box')
+      var headBadges = makeEl(doc, 'div', 'nn-card-badges')
+      var unitModel = (opts && (opts.modelId || opts.model)) || data.modelId || (el && (el.modelId || el.model)) || ''
+      if (data.concept) {
+        headBadges.appendChild(
+          Ku('section', {
+            model: unitModel,
+            concept: data.concept,
+            label: data.concept,
+          }, { doc: doc }),
+        )
+      }
+      if (el) {
+        var elSlug = el.id
+        if (typeof elSlug === 'string' && unitModel && elSlug.startsWith(unitModel + '@')) {
+          elSlug = elSlug.slice(unitModel.length + 1)
+        }
+        headBadges.appendChild(
+          Ku('element', {
+            model: unitModel,
+            id: elSlug,
+            label: el.name || el.id,
+          }, { doc: doc }),
+        )
+      }
+      headBadges.appendChild(
+        Ku('field', {
+          model: unitModel,
+          concept: data.concept || '',
+          name: data.fieldName,
+          label: data.fieldName,
+        }, { doc: doc }),
+      )
+      fieldBox.appendChild(headBadges)
+
+      var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
+      var fieldRows = [
+        ['Field', data.fieldName],
+        ['Declared Type', data.type || 'string'],
+        ['Element', el ? (el.name || el.id) : (data.elementId || '')],
+        ['Concept', data.concept || ''],
+      ]
+      fieldRows.forEach(function (pair) {
+        if (!pair[1]) return
+        dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
+        dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
+      })
+      fieldBox.appendChild(dl)
+
+      var valSection = makeEl(doc, 'div', 'nn-field-view-val-section')
+      valSection.appendChild(makeEl(doc, 'h4', 'nn-field-view-subtitle', 'Current Value'))
+      var valNode = null
+      if (typeof FieldValue === 'function') {
+        valNode = FieldValue({
+          name: data.fieldName,
+          value: data.value,
+          type: data.type,
+        }, { doc: doc })
+      }
+      if (!valNode) {
+        valNode = makeEl(doc, 'div', 'nn-field-view-val-text', String(data.value == null ? '' : data.value))
+      }
+      valSection.appendChild(valNode)
+      fieldBox.appendChild(valSection)
+
+      panelView.appendChild(fieldBox)
+    } else {
+      var dl = makeEl(doc, 'dl', 'nn-ku-info-list')
+      var rows = [
+        ['Kind', data.kind || 'element'],
+        ['Address', data.address || data.modelId || ''],
+        ['Value', data.value != null ? String(data.value) : ''],
+      ]
+      rows.forEach(function (pair) {
+        if (!pair[1]) return
+        dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
+        dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
+      })
+      panelView.appendChild(dl)
+    }
+    modal.appendChild(panelView)
 
     // Panel 1: Edit Form
     var panelEdit = makeEl(doc, 'div', 'nn-modal-tab-panel nn-edit-modal-body')
@@ -3975,6 +4253,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var histSection = makeEl(doc, 'div', 'nn-history-section')
     histSection.appendChild(makeEl(doc, 'h3', 'nn-history-title', 'Changes'))
     var historyItems = Array.isArray(data.history) ? data.history.slice() : []
+    if (data.fieldName) {
+      historyItems = historyItems.filter(function (h) {
+        if (!h) return false
+        // An entry that names no field is a change to the element as a whole: it
+        // belongs in every field-scoped view instead of vanishing from all of them.
+        if (h.field == null && typeof h.target !== 'string') return true
+        return (
+          h.field === data.fieldName ||
+          (typeof h.target === 'string' && h.target.endsWith('&' + data.fieldName))
+        )
+      })
+    }
     historyItems.sort(function (a, b) {
       return String((b && b.timestamp) || '').localeCompare(String((a && a.timestamp) || ''))
     })
@@ -3985,8 +4275,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             { entry: h, variant: 'applied' },
             {
               doc: doc,
-              collapsible: false,
-              open: true,
+              collapsible: true,
+              open: false,
               onCite: opts && typeof opts.onEvidence === 'function' ? opts.onEvidence : undefined,
             },
           ),
@@ -3994,7 +4284,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     } else {
       histSection.appendChild(
-        makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes for this element.'),
+        makeEl(doc, 'div', 'nn-history-empty', data.fieldName ? 'No recorded changes for this field.' : 'No recorded changes for this element.'),
       )
     }
     panelHistory.appendChild(histSection)
@@ -4015,8 +4305,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     saveError.style.display = 'none'
 
     // Tab switcher events
-    var tabButtons = { edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
-    var tabPanels = { edit: panelEdit, history: panelHistory, connections: panelConnections }
+    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
     function showTab(name) {
       Object.keys(tabButtons).forEach(function (k) {
         tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
@@ -4025,6 +4315,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       actions.style.display = name === 'edit' ? '' : 'none'
       if (name !== 'edit') saveError.style.display = 'none'
     }
+    tabBtnView.addEventListener('click', function () {
+      showTab('view')
+    })
     tabBtnEdit.addEventListener('click', function () {
       showTab('edit')
     })
@@ -4035,8 +4328,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       showTab('connections')
     })
 
-    var startTab = data.startTab === 'history' ? 'history' : data.startTab === 'connections' ? 'connections' : 'edit'
-    if (startTab !== 'edit') showTab(startTab)
+    var startTab = data.startTab || 'view'
+    showTab(startTab)
 
     saveBtn.addEventListener('click', function () {
       if (isComment && String(commentTa.value).trim() === '') {
@@ -5052,6 +5345,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     element: 'content',
     value: 'content',
     source: 'content',
+    origin: 'container',
+    change: 'container',
+    artifact: 'content',
   }
 
   // Change A: a unit's edit affordance derives from its model's declared
@@ -5093,9 +5389,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ? api.unitAddress.section(ref.model, ref.concept || ref.inheritedFrom || ref.name)
         : String(ref.model || '') + '@concept:' + slug(ref.concept || ref.inheritedFrom || ref.name)
     }
+    var elId = ref.element || ref.id
+    if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+      elId = elId.slice(ref.model.length + 1)
+    }
     return api && api.unitAddress
-      ? api.unitAddress.element(ref.model, ref.element || ref.id)
-      : String(ref.model || '') + '@' + slug(ref.element || ref.id)
+      ? api.unitAddress.element(ref.model, elId)
+      : String(ref.model || '') + '@' + slug(elId)
   }
 
   function unitAddressFor(kind, ref) {
@@ -5113,7 +5413,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           case 'section':
             return api.unitAddress.section(ref.model, ref.concept || ref.name)
           case 'element':
-            return api.unitAddress.element(ref.model, ref.id || ref.element)
+            var elId = ref.id || ref.element
+            if (typeof elId === 'string' && ref.model && elId.startsWith(ref.model + '@')) {
+              elId = elId.slice(ref.model.length + 1)
+            }
+            return api.unitAddress.element(ref.model, elId)
           case 'value':
             if (ref.row && ref.col) {
               return api.unitAddress.cell(
@@ -5144,7 +5448,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       case 'section':
         return m + '@concept:' + slug(ref.concept || ref.name)
       case 'element':
-        return m + '@' + slug(ref.id || ref.element)
+        var fallbackElId = ref.id || ref.element
+        if (typeof fallbackElId === 'string' && m && fallbackElId.startsWith(m + '@')) {
+          fallbackElId = fallbackElId.slice(m.length + 1)
+        }
+        return m + '@' + slug(fallbackElId)
       case 'value':
         if (ref.row && ref.col) {
           return (
@@ -5259,15 +5567,54 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '.nn-ku--block{display:flex;width:100%;padding:.5em .7em}',
       '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted,#64748b);cursor:pointer}',
       '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
-      '.nn-ku-actions{position:fixed;z-index:60;display:none;align-items:center;gap:.15em;padding:.2em;background:var(--nn-surface,#fff);border:1px solid var(--nn-border,#e5e5e5);border-radius:.4em;box-shadow:0 8px 24px rgba(0,0,0,.18);white-space:nowrap}',
-      '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:inline-flex}',
+      '.nn-ku-actions{display:none !important}',
+      '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
       '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted,#64748b)}',
       '.nn-ku-action:hover{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
+      '.nn-ku[data-ku-kind=change]{border:1.5px solid var(--nn-amber,#d97706);background:color-mix(in srgb,var(--nn-amber,#d97706) 12%,var(--nn-surface,#fff));--c:var(--nn-amber,#d97706)}',
+      '.nn-ku[data-ku-kind=change]>.nn-ku-icon,.nn-ku[data-ku-kind=change]>.nn-ku-label{color:var(--nn-amber-text,#b45309)}',
+      '.nn-ku[data-ku-kind=origin]{border:1.5px solid var(--nn-purple,#8b5cf6);background:color-mix(in srgb,var(--nn-purple,#8b5cf6) 12%,var(--nn-surface,#fff));--c:var(--nn-purple,#8b5cf6)}',
+      '.nn-ku[data-ku-kind=origin]>.nn-ku-icon,.nn-ku[data-ku-kind=origin]>.nn-ku-label{color:var(--nn-purple-text,#7c3aed)}',
+      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--nn-slate,#64748b) 10%,var(--nn-surface,#fff));--c:var(--nn-slate,#64748b)}',
+      '.nn-ku[data-ku-kind=artifact]>.nn-ku-icon,.nn-ku[data-ku-kind=artifact]>.nn-ku-label{color:var(--nn-slate-text,#475569)}',
+      '.nn-ku[data-ku-kind=source]{border:1px solid color-mix(in srgb,var(--nn-cyan,#0284c7) 35%,var(--nn-border,#cbd5e1));background:color-mix(in srgb,var(--nn-cyan,#0284c7) 10%,var(--nn-surface,#fff));--c:var(--nn-cyan,#0284c7)}',
+      '.nn-ku[data-ku-kind=source]>.nn-ku-icon,.nn-ku[data-ku-kind=source]>.nn-ku-label{color:var(--nn-cyan-text,#0369a1)}',
       // No mode gates: an edit only ever creates a draft, so the pencil is always
       // emitted and always live. Structure edits warn inside the modal instead.
       '.nn-ku-change-pip{min-width:1.35em;height:1.35em;border-radius:999px;border:0;background:#b45309;color:#fff;font-size:.72rem;cursor:pointer}',
     ].join('')
     doc.head.appendChild(style)
+  }
+
+  var CONCEPT_BADGE_SPECS = {
+    origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+    origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+    source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+    sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+    change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+    changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+    artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+    artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+  }
+
+  function ConceptBadge(kindKey, label, opts) {
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    ensureKuCss(doc)
+    var spec = CONCEPT_BADGE_SPECS[kindKey] || CONCEPT_BADGE_SPECS.sources
+    var badge = makeEl(doc, 'span', 'nn-ku nn-concept-badge')
+    badge.setAttribute('data-ku-kind', spec.kind)
+    badge.setAttribute('data-ku-nature', spec.nature)
+    badge.setAttribute('data-ku-home', spec.home)
+    if (opts.title) badge.setAttribute('title', opts.title)
+    if (spec.icon) {
+      var iconEl = makeEl(doc, 'span', 'nn-ku-icon')
+      iconEl.setAttribute('aria-hidden', 'true')
+      iconEl.innerHTML = icon(spec.icon, 13)
+      badge.appendChild(iconEl)
+    }
+    badge.appendChild(makeEl(doc, 'span', 'nn-ku-label', String(label == null ? '' : label)))
+    return badge
   }
 
   function Ku(kind, ref, opts) {
@@ -5312,14 +5659,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     badge.setAttribute('aria-label', desc.nature + ', lives in ' + desc.home + ': ' + desc.label)
     wrap.appendChild(badge)
 
-    // ONE affordance sits beside the badge; everything else floats below on demand.
+    // ONE affordance sits beside the badge; clicking it directly opens the unit modal.
     var more = makeEl(doc, 'button', 'nn-ku-more')
     more.setAttribute('type', 'button')
     more.setAttribute('data-ku-more', 'true')
     more.setAttribute('aria-expanded', 'false')
-    more.setAttribute('aria-label', 'Actions for ' + desc.label)
-    more.innerHTML =
-      '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>'
+    more.setAttribute('aria-label', 'Details for ' + desc.label)
+    more.setAttribute('title', 'Details for ' + desc.label)
+    more.innerHTML = icon('more-vertical', 14)
     wrap.setAttribute('data-ku-open', 'false')
     wrap.appendChild(more)
 
@@ -5342,12 +5689,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     actions.appendChild(actionButton('info', 'info', 'Unit info', opts.onInfo))
     actions.appendChild(actionButton('reveal', 'arrow-up-right', 'Reveal in context', opts.onReveal))
-    var citations = ref && ref.citations && Array.isArray(ref.citations.sources) ? ref.citations.sources : null
-    if (citations && citations.length) {
-      actions.appendChild(
-        actionButton('citations', 'cite-document', citations.length + ' citations', opts.onCitations),
-      )
-    }
     if (desc.editability !== 'none') {
       var editBtn = actionButton('edit', 'pencil', 'Edit unit', opts.onEdit)
       if (desc.editability === 'structure') editBtn.setAttribute('data-ku-structure', 'true')
@@ -5406,30 +5747,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function onClick(ev) {
       var t = ev && ev.target
       if (!t || !t.closest) return
-      // The "+" toggles the flyout; only one is open at a time.
+      // The kebab button directly opens the unit modal.
       var moreEl = t.closest('[data-ku-more]')
       if (moreEl) {
-        var owner = moreEl.closest('.nn-ku-wrap')
-        var wasOpen = !!(owner && owner.getAttribute('data-ku-open') === 'true')
+        if (ev && ev.preventDefault) ev.preventDefault()
+        if (ev && ev.stopPropagation) ev.stopPropagation()
         closeFlyouts()
-        if (owner && !wasOpen) {
-          owner.setAttribute('data-ku-open', 'true')
-          moreEl.setAttribute('aria-expanded', 'true')
-          // The flyout is position:fixed, so an `overflow` ancestor (a table wrapper)
-          // can no longer clip it. Anchor it to the badge, clamped to the viewport.
-          var fly = owner.querySelector('.nn-ku-actions')
-          if (fly && owner.getBoundingClientRect) {
-            var rect = owner.getBoundingClientRect()
-            var view = doc.defaultView
-            var vw = view && view.innerWidth ? view.innerWidth : 0
-            var fw = fly.getBoundingClientRect ? fly.getBoundingClientRect().width : 0
-            var left = rect.left
-            if (vw && fw && left + fw > vw - 8) left = Math.max(8, vw - fw - 8)
-            fly.style.left = left + 'px'
-            fly.style.top = rect.bottom + 5 + 'px'
-          }
+        var desc = descriptorOf(moreEl)
+        if (desc && typeof opts.onAction === 'function') {
+          opts.onAction('info', desc, ev)
         }
-        if (ev.preventDefault) ev.preventDefault()
         return
       }
       var actionEl = t.closest('[data-ku-action]')
@@ -5504,18 +5831,58 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     )
   }
 
-  function KuInfoPanel(descriptor) {
+  function KuInfoPanel(descriptor, opts) {
     if (!descriptor || typeof descriptor !== 'object') {
       throw new TypeError('KuInfoPanel: descriptor required')
     }
-    var doc = resolveDoc(null)
-    var dlg = makeEl(doc, 'dialog', 'nn-ku-info-panel')
+    opts = opts || {}
+    var doc = resolveDoc(opts)
+    var dlg = makeEl(doc, 'dialog', 'nn-edit-modal nn-ku-info-panel')
     dlg.setAttribute('data-nn-component', 'ku-info-panel')
     dlg.setAttribute('role', 'dialog')
+    dlg.setAttribute('aria-modal', 'true')
+
+    function dismiss() {
+      if (typeof dlg.close === 'function') dlg.close()
+      else dlg.removeAttribute('open')
+      if (dlg.parentNode) dlg.parentNode.removeChild(dlg)
+    }
+    function cancel() {
+      dismiss()
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    }
+
+    var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var h = makeEl(doc, 'h2', 'nn-ku-info-title', descriptor.label || descriptor.address)
     h.setAttribute('tabindex', '-1')
-    dlg.appendChild(h)
-    dlg.appendChild(
+    head.appendChild(h)
+    var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
+    closeBtn.addEventListener('click', cancel)
+    head.appendChild(closeBtn)
+    dlg.appendChild(head)
+
+    // Navigation Tabs (View, Edit, Changes, Connections)
+    var navTabs = makeEl(doc, 'div', 'nn-modal-tabs')
+    var tabBtnView = makeEl(doc, 'button', 'nn-modal-tab-btn active', 'View')
+    tabBtnView.setAttribute('type', 'button')
+    var tabBtnEdit = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Edit')
+    tabBtnEdit.setAttribute('type', 'button')
+    var tabBtnHistory = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Changes')
+    tabBtnHistory.setAttribute('type', 'button')
+    var tabBtnConnections = makeEl(doc, 'button', 'nn-modal-tab-btn', 'Connections')
+    tabBtnConnections.setAttribute('type', 'button')
+    navTabs.appendChild(tabBtnView)
+    navTabs.appendChild(tabBtnEdit)
+    navTabs.appendChild(tabBtnHistory)
+    navTabs.appendChild(tabBtnConnections)
+    dlg.appendChild(navTabs)
+
+    // Panel 0: View (Sheet definition & facts)
+    var panelView = makeEl(doc, 'div', 'nn-modal-tab-panel nn-view-modal-body')
+    panelView.setAttribute('data-tab', 'view')
+    panelView.appendChild(
       makeEl(doc, 'p', 'nn-ku-info-sub', descriptor.nature + ', lives in ' + descriptor.home),
     )
     var rows = [
@@ -5532,13 +5899,81 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', pair[0]))
       dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(pair[1])))
     })
-    dlg.appendChild(dl)
     var facts = descriptor.facts || {}
     Object.keys(facts).forEach(function (k) {
       if (facts[k] == null || facts[k] === '') return
       dl.appendChild(makeEl(doc, 'dt', 'nn-ku-info-term', k))
       dl.appendChild(makeEl(doc, 'dd', 'nn-ku-info-def', String(facts[k])))
     })
+    panelView.appendChild(dl)
+    dlg.appendChild(panelView)
+
+    // Panel 1: Edit
+    var panelEdit = makeEl(doc, 'div', 'nn-modal-tab-panel nn-edit-modal-body')
+    panelEdit.setAttribute('data-tab', 'edit')
+    panelEdit.style.display = 'none'
+    if (descriptor.editability === 'structure') {
+      var warn = makeEl(doc, 'div', 'nn-edit-warn')
+      warn.innerHTML = '<strong>Structural BluepriNNt Unit:</strong> Changes to this unit affect schema contracts across the domain.'
+      panelEdit.appendChild(warn)
+    } else if (descriptor.editability === 'none') {
+      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'This unit is read-only (evidence source or container).'))
+    } else {
+      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'Use review mode or edit controls to propose changes.'))
+    }
+    dlg.appendChild(panelEdit)
+
+    // Panel 2: Changes
+    var panelHistory = makeEl(doc, 'div', 'nn-modal-tab-panel nn-history-modal-body')
+    panelHistory.setAttribute('data-tab', 'history')
+    panelHistory.style.display = 'none'
+    panelHistory.appendChild(makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes targeting this unit.'))
+    dlg.appendChild(panelHistory)
+
+    // Panel 3: Connections
+    var panelConnections = makeEl(doc, 'div', 'nn-modal-tab-panel nn-connections-modal-body')
+    panelConnections.setAttribute('data-tab', 'connections')
+    panelConnections.style.display = 'none'
+    panelConnections.appendChild(makeEl(doc, 'p', 'nn-ku-info-sub', 'Connections and usages for ' + (descriptor.label || descriptor.address)))
+    dlg.appendChild(panelConnections)
+
+    // Tab switcher events
+    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
+    function showTab(name) {
+      Object.keys(tabButtons).forEach(function (k) {
+        tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
+        tabPanels[k].style.display = k === name ? 'block' : 'none'
+      })
+    }
+    tabBtnView.addEventListener('click', function () { showTab('view') })
+    tabBtnEdit.addEventListener('click', function () { showTab('edit') })
+    tabBtnHistory.addEventListener('click', function () { showTab('history') })
+    tabBtnConnections.addEventListener('click', function () { showTab('connections') })
+
+    var foot = makeEl(doc, 'div', 'nn-edit-modal-foot')
+    if (typeof opts.onReveal === 'function') {
+      var revBtn = makeEl(doc, 'button', 'nn-btn nn-btn-ghost', 'Reveal in context')
+      revBtn.setAttribute('type', 'button')
+      revBtn.addEventListener('click', function () {
+        dismiss()
+        opts.onReveal(descriptor)
+      })
+      foot.appendChild(revBtn)
+    }
+    var okBtn = makeEl(doc, 'button', 'nn-btn nn-btn-primary', 'Close')
+    okBtn.setAttribute('type', 'button')
+    okBtn.addEventListener('click', cancel)
+    foot.appendChild(okBtn)
+    dlg.appendChild(foot)
+
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target === dlg) cancel()
+    })
+    dlg.addEventListener('close', function () {
+      if (dlg.parentNode) dlg.parentNode.removeChild(dlg)
+    })
+
     return dlg
   }
 
@@ -5559,6 +5994,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     setUnitChanges: setUnitChanges,
     setModelOwnership: setModelOwnership,
     Ku: Ku,
+    ConceptBadge: ConceptBadge,
+    conceptBadge: ConceptBadge,
+    CONCEPT_BADGE_SPECS: CONCEPT_BADGE_SPECS,
     KuInfoPanel: KuInfoPanel,
     resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
@@ -5667,6 +6105,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function docFieldValue(el, key) {
     if (el && isObject(el.rawFields) && Object.prototype.hasOwnProperty.call(el.rawFields, key)) {
       return el.rawFields[key]
+    }
+    if (el && Array.isArray(el.fields)) {
+      var match = el.fields.find(function (f) {
+        return f && f.name === key
+      })
+      if (match) return match.value
     }
     return el && el.fields ? el.fields[key] : undefined
   }
@@ -6053,15 +6497,37 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var needs = Array.isArray(options.needs) ? options.needs : []
     var store = options.store
     var elementsById = {}
-    elements.forEach(function (el) {
-      if (el && el.id) elementsById[el.id] = el
-    })
+    function indexElement(el) {
+      if (!el) return
+      if (el.id) elementsById[el.id] = el
+      if (el.slug && !elementsById[el.slug]) elementsById[el.slug] = el
+      if (typeof el.id === 'string') {
+        var at = el.id.indexOf('@')
+        if (at !== -1) {
+          var bare = el.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = el
+        }
+      }
+    }
+    elements.forEach(indexElement)
+
+    function resolveElement(id, modelId) {
+      if (!id) return null
+      if (elementsById[id]) return elementsById[id]
+      if (modelId && elementsById[modelId + '@' + id]) return elementsById[modelId + '@' + id]
+      if (typeof id === 'string') {
+        var at = id.indexOf('@')
+        if (at !== -1 && elementsById[id.slice(at + 1)]) return elementsById[id.slice(at + 1)]
+      }
+      return null
+    }
 
     // No review mode: an edit only ever creates a draft, so there is nothing to
     // "arm". Decoration and the edit affordance are always live; the changeset bar
     // is driven by the DRAFTS (see syncChangesetBar), not by a mode switch.
     var enabled = true
     var openPopover = null
+    var modalStack = []
     var lastAnchor = null
     var toastEl = null
     var toastTimer = null
@@ -6102,7 +6568,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function closePopover() {
       if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover)
+      if (modalStack.length > 0) {
+        openPopover = modalStack.pop()
+        if (openPopover && typeof openPopover.focus === 'function') {
+          openPopover.focus()
+        }
+      } else {
+        openPopover = null
+      }
+    }
+
+    function closeAllPopovers() {
+      if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover)
       openPopover = null
+      while (modalStack.length > 0) {
+        var m = modalStack.pop()
+        if (m && m.parentNode) m.parentNode.removeChild(m)
+      }
     }
 
     function valueKeyOf(v) {
@@ -6247,14 +6729,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: [],
         }
       }
-      var el = elementsById[anchorData.elementId]
+      var el = resolveElement(anchorData.elementId, anchorData.modelId)
       if (!el || typeof UI.EditModal !== 'function') return null
       var base = {
         citations: flattenCitations(el.citations),
         history: Array.isArray(el.history) ? el.history : [],
       }
       if (anchorData.relRetarget) {
-        var relTargetEl = elementsById[anchorData.relTarget]
+        var relTargetEl = resolveElement(anchorData.relTarget, anchorData.modelId)
         return {
           title: 'Retarget ' + (el.name || anchorData.elementId) + ' \u2192 ' + anchorData.relField,
           fieldName: anchorData.relField,
@@ -6271,7 +6753,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       var field = anchorData.field
-      if (!field) return null
+      if (!field) {
+        return {
+          title: el.name || anchorData.elementId,
+          fieldName: null,
+          value: null,
+          citations: base.citations,
+          history: base.history,
+          modelId: el.modelId || meta.modelId,
+        }
+      }
       if (field === '__name') {
         return {
           title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 name',
@@ -6357,22 +6848,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function openModalFor(anchorData, target) {
+      var targetEl = resolveElement(anchorData.elementId, anchorData.modelId)
+      var modalTitle = target.title
+      if (anchorData.info) {
+        if (anchorData.field) {
+          modalTitle = (targetEl ? (targetEl.name || anchorData.elementId) : anchorData.elementId) + ' \u2192 ' + anchorData.field
+        } else if (targetEl) {
+          modalTitle = targetEl.name || anchorData.elementId
+        }
+      }
       var modal = UI.EditModal(
         {
-          title: target.title,
+          title: modalTitle,
+          element: targetEl,
+          elementId: anchorData.elementId,
+          concept: targetEl && targetEl.concept,
           fieldName: target.fieldName,
           type: target.type,
           value: target.value,
           options: target.options,
           candidates: target.candidates,
           modelId: target.modelId,
-          citations: target.citations,
           history: target.history,
           isComment: !!target.isComment,
           structure: !!target.structure,
           reviewer: typeof options.getReviewer === 'function' ? String(options.getReviewer() || '') : '',
           warning: (function () {
-            var targetEl = elementsById[anchorData.elementId]
             var hasHash = !!(targetEl && typeof targetEl.hash === 'string' && BASE_HASH_PATTERN.test(targetEl.hash))
             if (targetEl && !hasHash) {
               return (
@@ -6384,11 +6885,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           })(),
           commentOnly: !!target.commentOnly,
           valueCommentOnly: !!target.valueCommentOnly,
-          connections: connectionsFor(elementsById[anchorData.elementId]),
-          startTab: anchorData.info ? 'history' : 'edit',
+          connections: connectionsFor(targetEl),
+          startTab: anchorData.startTab || (anchorData.info ? 'view' : (anchorData.edit ? 'edit' : 'view')),
         },
         {
           doc: doc,
+          byId: elementsById,
           onEvidence:
             typeof options.onEvidence === 'function' ? options.onEvidence : undefined,
           onSave: function (res) {
@@ -6409,10 +6911,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           onCancel: function () {
             closePopover()
-            if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
+            if (!openPopover && lastAnchor && typeof lastAnchor.focus === 'function') {
+              lastAnchor.focus()
+            }
           },
         },
       )
+      if (modalStack.length > 0) {
+        modal.classList.add('nn-modal-nested')
+        modal.setAttribute('data-nested-modal', 'true')
+      }
       doc.body.appendChild(modal)
       openPopover = modal
       if (typeof modal.showModal === 'function') {
@@ -6429,7 +6937,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Validate first: an invalid call must not close the open popover or
       // move the focus anchor.
       var target = kuModalTarget(anchorData)
-      var el = elementsById[anchorData.elementId]
+      var el = resolveElement(anchorData.elementId, anchorData.modelId)
       if (!target && anchorData.comment && el) {
         target = {
           title: 'Comment on ' + (el.name || anchorData.elementId),
@@ -6446,9 +6954,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // inside the modal being replaced does not count.
       var focused = doc.activeElement
       if (openPopover && focused && openPopover.contains(focused)) focused = lastAnchor
-      closePopover()
+
+      if (openPopover) {
+        if (openPopover.tagName === 'DIALOG') {
+          modalStack.push(openPopover)
+        } else if (openPopover.parentNode) {
+          openPopover.parentNode.removeChild(openPopover)
+          openPopover = null
+        }
+      }
+
       lastAnchor = focused && focused !== doc.body ? focused : null
-      if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      if (anchorData.comment) {
+        target = Object.assign({}, target, { isComment: true })
+        // A comment on the whole element has no value to propose: the modal is
+        // comment-only. A field comment keeps the Propose/Comment toggle.
+        if (!target.fieldName) target = Object.assign({}, target, { commentOnly: true })
+      }
       if (anchorData.structure) target = Object.assign({}, target, { structure: true })
       openModalFor(anchorData, target)
       return true
@@ -6466,7 +6988,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // Tag membership is a `correction` on the `tags` Field carrying the full
       // new array (applied as `update_field`), never a comment draft.
       if (anchorData.tagRemove) {
-        var elTag = elementsById[anchorData.elementId]
+        var elTag = resolveElement(anchorData.elementId, anchorData.modelId)
         var curTags = effectiveTagsOf(elTag)
         var nextTags = curTags.filter(function (t) {
           return valueKeyOf(t) !== valueKeyOf(anchorData.tagRemove)
@@ -6509,9 +7031,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               ? 'Annotate field'
               : 'Annotate element',
       }
-      if (anchorData.field && elementsById[anchorData.elementId]) {
-        var el = elementsById[anchorData.elementId]
-        data.original = docFieldValue(el, anchorData.field)
+      var targetEl = resolveElement(anchorData.elementId, anchorData.modelId)
+      if (anchorData.field && targetEl) {
+        data.original = docFieldValue(targetEl, anchorData.field)
       }
       var pop = UI.AnnotationPopover(data, {
         doc: doc,
@@ -6627,7 +7149,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function openNew() {
       var concepts = schemaConcepts()
       if (!concepts.length || typeof UI.NewElementModal !== 'function') return false
-      closePopover()
+      if (openPopover) {
+        if (openPopover.tagName === 'DIALOG') {
+          modalStack.push(openPopover)
+        } else if (openPopover.parentNode) {
+          openPopover.parentNode.removeChild(openPopover)
+          openPopover = null
+        }
+      }
       var modal = UI.NewElementModal(
         {
           concepts: concepts.map(function (c) {
@@ -6693,7 +7222,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var tag = target && target.tagName ? String(target.tagName).toLowerCase() : ''
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return
       if (target && target.isContentEditable) return
-      if (openPopover) return
+      if (openPopover || (modalStack && modalStack.length)) return
 
       var visible = []
       Array.prototype.forEach.call(
@@ -7180,7 +7709,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (subs.length === 1) {
         return { elementId: unit, modelId: model, field: subs[0] }
       }
-      return { elementId: unit, modelId: model, field: '__name' }
+      return { elementId: unit, modelId: model, field: null }
     }
 
     // One descriptor-driven entry point for every Ku action. `Ku` never knows
@@ -11019,15 +11548,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var buildElementCard = function (element) {
       var fields = []
-      var elCitations = element && isObject(element.citations) ? element.citations : {}
-      var sourcesEntries = []
-      Object.keys(elCitations).forEach(function (k) {
-        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
-          sourcesEntries = sourcesEntries.concat(elCitations[k])
-        }
-      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
+          if (k === 'sources' || k === 'source') return
           var val = element.fields[k]
           var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
           var target =
@@ -11047,12 +11570,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                   : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
             }
           }
-          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, element.concept, k),
+            // Per-field citations drive the row's citation icon. The header still
+            // shows the `sources::` group even though that field is never a row.
+            citations:
+              element.citations && Array.isArray(element.citations[k])
+                ? element.citations[k]
+                : undefined,
             ref: target
               ? {
                   id: target.id || String(val),
@@ -11064,7 +11592,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                   index: targetCMeta && targetCMeta.index,
                 }
               : undefined,
-            citations: fieldCites,
           })
         })
       }
@@ -11076,6 +11603,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          citations:
+            element.citations && typeof element.citations === 'object' ? element.citations : undefined,
           history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.location || element.modelFile || element.modelTitle || null,
@@ -11093,14 +11622,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
-          head:
-            UI && typeof UI.CitationIcons === 'function'
-              ? UI.CitationIcons('sources', sourcesEntries, {
-                  onOpen: function () {
-                    renderCitationDialog(doc, 'sources', sourcesEntries)
-                  },
-                })
-              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onTag: actions && actions.onTag,
@@ -11114,6 +11635,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           onCite: function (citeData) {
             var fName = citeData && citeData.field
+            var elCitations =
+              element.citations && typeof element.citations === 'object' ? element.citations : {}
             var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
             if (citeData && citeData.entry) list = [citeData.entry]
             renderCitationDialog(doc, fName || element.name || element.id, list)
@@ -12638,6 +13161,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // Which units cite which file, matched the same way export does. A unit cites
     // the sidecar document, so the path is folded back to its subject file.
+    // Changesets are materialized as `Change` pseudo-units (`<batch>#<id>`); they
+    // are NOT knowledge units and get their own bucket and badge.
     var SIDECAR_SUFFIX = '_sidecar_NN.md'
     function citationSubject(raw) {
       var norm = String(raw).replace(/\\/g, '/').replace(/^\/+/, '').split('#')[0]
@@ -12647,9 +13172,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return norm
     }
 
+    function isChangeUnit(e) {
+      return !!(e && e.concept === 'Change' && String(e.id).indexOf('#') >= 0)
+    }
+
+    // `testlab_admin_intake_changes_NN#a-01` -> `testlab_admin_intake` (the
+    // changeset node id the pipeline Changes column uses).
+    function changeNodeIdOf(unitId) {
+      return String(unitId).split('#')[0].replace(/_changes_NN$/, '')
+    }
+
     var unitsByPath = {}
+    var changesByPath = {}
     elements.forEach(function (e) {
       if (!e || !e.citations) return
+      var asChange = isChangeUnit(e)
       Object.keys(e.citations).forEach(function (field) {
         var list = e.citations[field]
         if (!Array.isArray(list)) return
@@ -12659,36 +13196,91 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var norm = citationSubject(raw)
           inventory.forEach(function (f) {
             if (f.path === norm || f.path.endsWith('/' + norm) || norm.endsWith('/' + f.path)) {
-              if (!unitsByPath[f.path]) unitsByPath[f.path] = []
-              if (unitsByPath[f.path].indexOf(e.id) < 0) unitsByPath[f.path].push(e.id)
+              var bucket = asChange ? changesByPath : unitsByPath
+              var key = asChange ? changeNodeIdOf(e.id) : e.id
+              if (!bucket[f.path]) bucket[f.path] = []
+              if (bucket[f.path].indexOf(key) < 0) bucket[f.path].push(key)
             }
           })
         })
       })
     })
 
-    var state = { mode: 'explorer', selected: '', collapsed: {}, query: '' }
+    var state = { mode: 'explorer', selected: '', pipelineSelected: '', collapsed: {}, query: '' }
 
     var elementsById = {}
     elements.forEach(function (e) {
-      if (e && e.id) elementsById[e.id] = e
+      if (!e) return
+      if (e.id) elementsById[e.id] = e
+      if (e.slug && !elementsById[e.slug]) elementsById[e.slug] = e
+      if (typeof e.id === 'string') {
+        var at = e.id.indexOf('@')
+        if (at !== -1) {
+          var bare = e.id.slice(at + 1)
+          if (!elementsById[bare]) elementsById[bare] = e
+        }
+        var hash = e.id.indexOf('#')
+        if (hash !== -1) {
+          var bareHash = e.id.slice(hash + 1)
+          if (!elementsById[bareHash]) elementsById[bareHash] = e
+        }
+      }
     })
 
     function kuBadge(unitId) {
       var target = elementsById[unitId]
-      var ref = { id: String(unitId), label: (target && (target.name || target.slug)) || String(unitId) }
+      var ref = {
+        id: (target && target.id) ? target.id : String(unitId),
+        label: (target && (target.name || target.slug)) || String(unitId),
+      }
       if (target && target.concept) ref.concept = target.concept
+      // The address needs the owning model: without it the badge renders a bare
+      // `@slug`, which is not a parseable unit address.
+      if (target && target.modelId) ref.model = target.modelId
       if (!UI || typeof UI.Ku !== 'function') return el('span', 'nn-badge', ref.label)
       try {
         return UI.Ku('element', ref, {
           doc: doc,
-          onAction: function (action, descriptor) {
-            if (action === 'reveal' && typeof opts.onReveal === 'function') opts.onReveal(descriptor)
+          onReveal: function (descriptor) {
+            if (typeof opts.onReveal === 'function') opts.onReveal(descriptor)
           },
         })
       } catch {
         return el('span', 'nn-badge', ref.label)
       }
+    }
+
+    // A non-KU node still reads like a console badge: same `nn-ku` shell and
+    // nature grammar, custom icon, semantic colors, but no unit affordances.
+    var NON_KU_BADGE = {
+      origins: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      origin: { kind: 'origin', nature: 'container', home: 'domain', icon: 'database' },
+      sources: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      source: { kind: 'source', nature: 'content', home: 'source', icon: 'file-text' },
+      changes: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      change: { kind: 'change', nature: 'container', home: 'model', icon: 'git-branch' },
+      artifacts: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+      artifact: { kind: 'artifact', nature: 'content', home: 'source', icon: 'package' },
+    }
+
+    function similarBadge(kindKey, label, title) {
+      if (UI && typeof UI.ConceptBadge === 'function') {
+        return UI.ConceptBadge(kindKey, label, { title: title, doc: doc })
+      }
+      var spec = NON_KU_BADGE[kindKey] || NON_KU_BADGE.sources
+      var badge = el('span', 'nn-ku nn-concept-badge')
+      badge.setAttribute('data-ku-kind', spec.kind)
+      badge.setAttribute('data-ku-nature', spec.nature)
+      badge.setAttribute('data-ku-home', spec.home)
+      if (title) badge.setAttribute('title', title)
+      if (spec.icon && typeof nnIcons !== 'undefined' && typeof nnIcons.getSvg === 'function') {
+        var iconEl = el('span', 'nn-ku-icon')
+        iconEl.setAttribute('aria-hidden', 'true')
+        iconEl.innerHTML = nnIcons.getSvg(spec.icon, { size: 13 })
+        badge.appendChild(iconEl)
+      }
+      badge.appendChild(el('span', 'nn-ku-label', String(label == null ? '' : label)))
+      return badge
     }
 
     function matchesQuery(entry) {
@@ -12988,6 +13580,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       var citedUnits = unitsByPath[entry.path] || []
+      var citedChanges = changesByPath[entry.path] || []
       var citSection = el('div', 'nn-file-section')
       citSection.appendChild(
         el('h3', 'nn-files-section-title', 'Knowledge units (' + String(citedUnits.length) + ')'),
@@ -13000,10 +13593,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         citSection.appendChild(list)
       } else {
         citSection.appendChild(
-          el('p', 'nn-file-hint', 'No knowledge unit cites this file, and no change uses it as evidence.'),
+          el(
+            'p',
+            'nn-file-hint',
+            citedChanges.length
+              ? 'No knowledge unit cites this file directly; the changes below reference it.'
+              : 'No knowledge unit cites this file, and no change uses it as evidence.',
+          ),
         )
       }
       card.appendChild(citSection)
+
+      if (citedChanges.length) {
+        var changeSection = el('div', 'nn-file-section')
+        changeSection.appendChild(
+          el('h3', 'nn-files-section-title', 'Changes (' + String(citedChanges.length) + ')'),
+        )
+        var changeList = el('div', 'nn-lineage-units')
+        citedChanges.forEach(function (csId) {
+          changeList.appendChild(similarBadge('change', csId))
+        })
+        changeSection.appendChild(changeList)
+        card.appendChild(changeSection)
+      }
 
       var line = lineage[entry.path]
       if (line) {
@@ -13093,6 +13705,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var target = elementsById[id]
           return {
             id: 'unit:' + id,
+            unitId: id,
             name: (target && (target.name || target.slug)) || id,
             sub: 'knowledge unit',
           }
@@ -13108,70 +13721,237 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         head.appendChild(el('span', null, stage.title))
         head.appendChild(el('span', 'nn-category-badge', String(content[stage.id].length)))
         col.appendChild(head)
-        var cards = el('div', 'nn-pipeline-cards')
+        var nodes = el('div', 'nn-pipeline-nodes')
         content[stage.id].forEach(function (item) {
-          var card = el('div', 'nn-pipeline-card')
-          card.setAttribute('data-node', item.id)
-          card.appendChild(el('span', 'nn-pipeline-card-name', item.name))
-          card.appendChild(el('span', 'nn-pipeline-card-sub', item.sub))
-          card.addEventListener('mouseenter', function () {
-            highlight(item.id)
-          })
-          card.addEventListener('mouseleave', clearHighlight)
-          card.addEventListener('click', function () {
-            var path = item.id.indexOf('file:') === 0 ? item.id.slice(5) : ''
-            if (path && byPath[path]) selectFile(path)
-          })
-          cards.appendChild(card)
+          nodes.appendChild(pipelineNode(stage.id, item))
         })
-        col.appendChild(cards)
+        col.appendChild(nodes)
         pipeline.appendChild(col)
+      })
+
+      // Clicking the empty area of the flow clears the pinned selection.
+      pipeline.onclick = function (ev) {
+        if (ev && ev.target === pipeline) clearPipelineSelection()
+      }
+    }
+
+    function pipelineNode(stageId, item) {
+      var node = el('div', 'nn-pipeline-node')
+      node.setAttribute('data-node', item.id)
+      node.setAttribute('role', 'button')
+      node.setAttribute('tabindex', '0')
+      node.setAttribute('aria-pressed', 'false')
+      node.setAttribute('title', item.name + ' \u2014 ' + item.sub)
+      // Units use the official console badge; every other stage is not a KU and
+      // gets the matching non-unit badge.
+      var badge =
+        stageId === 'units' && item.unitId
+          ? kuBadge(item.unitId)
+          : similarBadge(stageId, item.name, item.sub)
+      node.appendChild(badge)
+      node.addEventListener('click', function (ev) {
+        // Badge affordances (kebab, actions, change pip) belong to the KU
+        // framework: do not swallow them, and do not select on their click.
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
+        selectPipelineNode(item.id)
+      })
+      node.addEventListener('keydown', function (ev) {
+        var key = ev && ev.key
+        if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') return
+        var target = ev && ev.target
+        if (
+          target &&
+          typeof target.closest === 'function' &&
+          target.closest('[data-ku-more], .nn-ku-more, [data-ku-action], .nn-ku-action, .nn-ku-change-pip, [data-nn-component="ku-change-pip"]')
+        ) {
+          return
+        }
+        if (ev.preventDefault) ev.preventDefault()
+        selectPipelineNode(item.id)
+      })
+      return node
+    }
+
+    // Selection replaces the old hover trace: a click pins the node and its
+    // connected chain; clicking the same node (or the empty column area) clears.
+    function selectPipelineNode(nodeId) {
+      state.pipelineSelected = state.pipelineSelected === nodeId ? '' : nodeId
+      syncPipelineSelection()
+      // A file node keeps its explorer detail in sync with the pinned node.
+      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
+      if (state.pipelineSelected && path && byPath[path]) selectFile(path)
+    }
+
+    function clearPipelineSelection() {
+      state.pipelineSelected = ''
+      syncPipelineSelection()
+    }
+
+    function syncPipelineSelection() {
+      if (!pipeline) return
+      if (state.pipelineSelected) highlight(state.pipelineSelected)
+      else clearHighlight()
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var on = node.getAttribute('data-node') === state.pipelineSelected
+        node.classList.toggle('nn-pipeline-selected', on)
+        node.setAttribute('aria-pressed', on ? 'true' : 'false')
       })
     }
 
-    // Hover tracing: a source lights up the units that cite it and the artifacts
-    // whose reverse lineage points back at it. Everything else dims.
+    // Selection tracing: a source lights up the units that cite it, the changes
+    // that use it as evidence, and the artifacts whose reverse lineage points
+    // back at it. Tracing works bidirectionally from any stage (origins, sources,
+    // changes, units, artifacts). Everything else dims.
     function connectedTo(nodeId) {
       var out = {}
       out[nodeId] = true
-      var path = nodeId.indexOf('file:') === 0 ? nodeId.slice(5) : ''
-      if (!path) return out
-      var units = unitsByPath[path] || []
-      units.forEach(function (uid) {
-        out['unit:' + uid] = true
-      })
-      Object.keys(lineage).forEach(function (artifactPath) {
-        var entry = lineage[artifactPath]
-        var hit =
-          (entry.sourcePaths || []).indexOf(path) >= 0 ||
-          (entry.unitIds || []).some(function (uid) {
-            return units.indexOf(uid) >= 0
+
+      if (nodeId.indexOf('file:') === 0) {
+        var path = nodeId.slice(5)
+        watchRoots.forEach(function (r) {
+          if (path.indexOf(r.path) === 0) out['root:' + r.path] = true
+        })
+        var units = unitsByPath[path] || []
+        units.forEach(function (uid) {
+          out['unit:' + uid] = true
+        })
+        ;(changesByPath[path] || []).forEach(function (csId) {
+          out['change:' + csId] = true
+        })
+        if (lineage[path]) {
+          var entry = lineage[path]
+          ;(entry.sourcePaths || []).forEach(function (sp) {
+            out['file:' + sp] = true
+            watchRoots.forEach(function (r) {
+              if (sp.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
           })
-        if (hit) {
-          out['file:' + artifactPath] = true
-          ;(entry.changesetIds || []).forEach(function (id) {
-            out['change:' + id] = true
+          ;(entry.unitIds || []).forEach(function (uid) {
+            out['unit:' + uid] = true
+          })
+          ;(entry.changesetIds || []).forEach(function (csId) {
+            out['change:' + csId] = true
           })
         }
-      })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          var hit =
+            (entry.sourcePaths || []).indexOf(path) >= 0 ||
+            (entry.unitIds || []).some(function (uid) {
+              return units.indexOf(uid) >= 0
+            })
+          if (hit) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('unit:') === 0) {
+        var uid = nodeId.slice(5)
+        Object.keys(unitsByPath).forEach(function (p) {
+          if ((unitsByPath[p] || []).indexOf(uid) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(changesByPath[p] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+        var targetEl = elementsById[uid]
+        if (targetEl && Array.isArray(targetEl.history)) {
+          targetEl.history.forEach(function (h) {
+            if (h.batch) out['change:' + h.batch.replace(/_changes_NN$/, '')] = true
+          })
+        }
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.unitIds || []).indexOf(uid) >= 0) {
+            out['file:' + artifactPath] = true
+            ;(entry.changesetIds || []).forEach(function (id) {
+              out['change:' + id] = true
+            })
+          }
+        })
+      } else if (nodeId.indexOf('change:') === 0) {
+        var csId = nodeId.slice(7)
+        Object.keys(changesByPath).forEach(function (p) {
+          if ((changesByPath[p] || []).indexOf(csId) >= 0) {
+            out['file:' + p] = true
+            watchRoots.forEach(function (r) {
+              if (p.indexOf(r.path) === 0) out['root:' + r.path] = true
+            })
+            ;(unitsByPath[p] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+          }
+        })
+        Object.keys(lineage).forEach(function (artifactPath) {
+          var entry = lineage[artifactPath]
+          if ((entry.changesetIds || []).indexOf(csId) >= 0) {
+            out['file:' + artifactPath] = true
+          }
+        })
+      } else if (nodeId.indexOf('root:') === 0) {
+        var rootPath = nodeId.slice(5)
+        inventory.forEach(function (f) {
+          if (f.path.indexOf(rootPath) === 0) {
+            out['file:' + f.path] = true
+            ;(unitsByPath[f.path] || []).forEach(function (uid) {
+              out['unit:' + uid] = true
+            })
+            ;(changesByPath[f.path] || []).forEach(function (csId) {
+              out['change:' + csId] = true
+            })
+          }
+        })
+      }
+
       return out
     }
 
     function highlight(nodeId) {
       var keep = connectedTo(nodeId)
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        var id = card.getAttribute('data-node')
-        card.classList.toggle('nn-pipeline-highlight', id === nodeId)
-        card.classList.toggle('dimmed', !keep[id])
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        var id = node.getAttribute('data-node')
+        var isSelected = id === nodeId
+        var isConnected = !!keep[id]
+        node.classList.toggle('nn-pipeline-highlight', isSelected)
+        node.classList.toggle('nn-pipeline-connected', isConnected && !isSelected)
+        node.classList.toggle('dimmed', !isConnected)
+        if (isSelected) {
+          node.style.order = '-2'
+        } else if (isConnected) {
+          node.style.order = '-1'
+        } else {
+          node.style.order = '0'
+        }
+      })
+      // Reset scroll to top on all stages so elevated items are immediately visible
+      var cols = pipeline.querySelectorAll('.nn-pipeline-nodes')
+      ;[].slice.call(cols).forEach(function (col) {
+        col.scrollTop = 0
       })
     }
 
     function clearHighlight() {
-      var cards = pipeline.querySelectorAll('.nn-pipeline-card')
-      ;[].slice.call(cards).forEach(function (card) {
-        card.classList.remove('dimmed')
-        card.classList.remove('nn-pipeline-highlight')
+      var nodes = pipeline.querySelectorAll('.nn-pipeline-node')
+      ;[].slice.call(nodes).forEach(function (node) {
+        node.classList.remove('dimmed')
+        node.classList.remove('nn-pipeline-highlight')
+        node.classList.remove('nn-pipeline-connected')
+        node.style.order = ''
       })
     }
 
@@ -13533,7 +14313,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (body && isObject(element.fields)) {
       var dl = el('dl', 'nn-ref-fields')
       Object.keys(element.fields).forEach(function (k) {
-        if (!dl) return
+        if (!dl || k === 'sources' || k === 'source') return
         var dt = el('dt', null, null)
         if (UI && typeof UI.Ku === 'function') {
           dt.appendChild(
@@ -15874,18 +16654,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             revealUnit(descriptor)
             return
           }
+          var handled = false
           var ctrl = state.controller
           if (ctrl && typeof ctrl.handleKuAction === 'function') {
-            ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
-            return
+            handled = ctrl.handleKuAction(action === 'changes' ? 'info' : action, descriptor)
           }
-          if (action === 'info' || action === 'changes') {
+          if (!handled && (action === 'info' || action === 'changes')) {
             var withFacts = Object.assign({}, descriptor, {
               facts: Object.assign({}, (descriptor && descriptor.facts) || {}, unitFacts(descriptor)),
             })
-            var panel = UI.KuInfoPanel(withFacts)
+            var panel = UI.KuInfoPanel(withFacts, {
+              onReveal: function () {
+                revealUnit(descriptor)
+              },
+            })
             if (active.body) active.body.appendChild(panel)
             if (panel && typeof panel.showModal === 'function') panel.showModal()
+            else if (panel) panel.setAttribute('open', 'true')
           }
         },
       })
