@@ -18,7 +18,7 @@
  * `usage` entry is surfaced first by the console ("Getting started").
  */
 
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { parseFrontmatter } from '../parser/index.js'
@@ -69,6 +69,23 @@ interface ResolvedBlueprint {
  * blueprint's own `blueprint_version`, a warning is pushed (never a silent
  * degrade to the derived schema).
  */
+/**
+ * Absolute path of the blueprint a `parent_spec.url` names, when that url is a
+ * workspace-relative path to an existing file. Null for remote urls, for paths
+ * that escape the domaiNN root, and for anything that is not on disk.
+ *
+ * A local url is the blueprint itself, so it must be read directly: the name
+ * tier cannot find it, because a flat spec such as `resources_iNNfo_NN.md`
+ * derives the family `resources_innfo`, which matches no blueprint name.
+ */
+async function resolveLocalSpecPath(rootDir: string, url: string | undefined): Promise<string | null> {
+  if (!url || /^(?:https?|data|file):/i.test(url)) return null
+  const absolute = isAbsolute(url) ? url : resolve(rootDir, url)
+  const rel = relative(rootDir, absolute)
+  if (rel.startsWith('..') || isAbsolute(rel)) return null
+  return existsSync(absolute) ? absolute : null
+}
+
 async function resolveBlueprintContent(
   rootDir: string,
   name: string,
@@ -77,6 +94,12 @@ async function resolveBlueprintContent(
   skillsDir: string | undefined,
   warnings: string[],
 ): Promise<ResolvedBlueprint | null> {
+  const local = await resolveLocalSpecPath(rootDir, url)
+  if (local !== null) {
+    const content = await readFile(local, 'utf-8').catch(() => null)
+    if (content !== null) return { content, dir: dirname(local) }
+  }
+
   const version = url ? parseSpecName(basename(url)).version : undefined
 
   const resolveOnce = async (refName: string): Promise<ResolvedBlueprint | null> => {

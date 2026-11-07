@@ -29,6 +29,11 @@ into the source-of-truth engineering tracker (`cogNNitive/cogNNitive`).
 | 245 | 16 | Design: matrix-cell drafts end-to-end (custom views -> Changes -> apply) | 2026-10-20 |
 | 246 | 17 | innfo-mcp sync_domain_manifest emits legacy '# NN Models' inventory instead of the canonical domaiNN '# NN kNNowledge' | 2026-10-20 |
 | 247 | 18 | innfo-mcp Level-2 blueprint authoring corrupts files: add_field block malformed; bump_version silently drops unknown frontmatter keys | 2026-10-20 |
+| 561 | 22 | init_knowledge scaffolds a compact document for concepts the blueprint declares distributed (coNNtent Series/Video), and no operation can reach the declared layout | 2026-11-06 |
+| 562 | 23 | produce: asset-cost-estimator never passes scriptDir to the scene compiler, so every declared Scene Kind is rejected (available: Libre) | 2026-11-06 |
+| 563 | 24 | add_model for a distributed concept (Series) silently falls back to a compact document when its placement folder is absent, and the container is then rejected as CONTAINER_MISSING | 2026-11-06 |
+| 564 | 25 | add_model does not stamp blueprint_version, so produce refuses the coNNtent episode that add_model just created | 2026-11-06 |
+| 565 | 26 | Episode layout drift: the engine writes series/\<s\>/assets/\<slug\>/ while conntent-folder-contract declares series/\<s\>/episodes/\<slug\>/, and produce.modelIdOf drops the series container outside assets/ | 2026-11-06 |
 
 Notes on the 2026-10-20 sweep:
 

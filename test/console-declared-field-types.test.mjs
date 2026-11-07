@@ -163,10 +163,13 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
 
   it('opens the modal with each concept\'s own definition for a shared field name', () => {
     const { document, controller, idOf } = bootExport()
-    const optionsOf = () =>
-      [...document.querySelectorAll('.nn-edit-modal select[data-nn-widget="select"] option')].map(
-        (o) => o.value,
-      )
+    // A second openEdit stacks a new dialog on top (stacked modal layers), so read
+    // the TOPMOST one: the modal below keeps the previous field's options.
+    const optionsOf = () => {
+      const modals = [...document.querySelectorAll('.nn-edit-modal')]
+      const top = modals[modals.length - 1]
+      return [...top.querySelectorAll('select[data-nn-widget="select"] option')].map((o) => o.value)
+    }
     assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
     assert.deepEqual(optionsOf(), ['', 'active', 'retired'])
     assert.equal(controller.openEdit({ elementId: idOf('Slimer'), field: 'status' }), true)

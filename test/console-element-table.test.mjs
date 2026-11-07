@@ -101,7 +101,7 @@ describe('Model Explorer element table view', () => {
     assert.equal(ctl().getAttribute('data-dir'), 'desc', 'the rebuilt control marks descending')
   })
 
-  it('clicking a header field badge + opens the field options without sorting', () => {
+  it('clicking a header field badge + opens the unit modal without sorting', () => {
     const { document } = bootConsole({ model: MODEL })
     click(document.querySelector('.nn-viewmode-btn[data-mode="table"]'))
     const before = nameCells(document)
@@ -115,10 +115,9 @@ describe('Model Explorer element table view', () => {
       'clicking + does not sort the column',
     )
     assert.deepEqual(nameCells(document), before, 'rows stay in payload order')
-    assert.equal(
-      rankTh.querySelector('.nn-ku-wrap').getAttribute('data-ku-open'),
-      'true',
-      'the field options flyout opened',
+    assert.ok(
+      document.querySelector('[data-nn-component="ku-info-panel"]'),
+      'the unit modal opened',
     )
   })
 
