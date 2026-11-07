@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
+import { openModals, topmostModal, wrapModal, submitEdit, submitComment, offersPropose } from './helpers/console-contract.mjs'
 
 const def = (id, over = {}) => ({
   id,
@@ -100,40 +101,38 @@ describe('S2b shared mount context', () => {
   })
 
   it('each open stacks one modal and the newest is on top', () => {
-    const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
-    const modals = () => Array.from(document.querySelectorAll('.nn-edit-modal'))
-    assert.equal(modals().length, 0)
+    const { document, editSlot } = bootViews([def('alpha'), def('beta')])
+    const top = () => wrapModal(topmostModal(document))
+    assert.equal(openModals(document).length, 0)
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    assert.equal(modals().length, 1)
-    const first = modals()[0]
+    assert.equal(openModals(document).length, 1)
+    const first = top()
+    assert.equal(first.field, 'role')
     editSlot.edit({ elementId: 'ecto-1', field: '__name' })
-    assert.equal(modals().length, 2, 'a second open stacks on top of the first')
-    const top = modals()[1]
-    assert.notEqual(top, first, 'the newest modal is a new node')
-    assert.equal(top.getAttribute('data-nested-modal'), 'true')
+    assert.equal(openModals(document).length, 2, 'a second open stacks on top of the first')
+    assert.equal(top().field, '__name', 'the newest modal is the one on top')
+    assert.equal(openModals(document)[0], first.el, 'the first modal stays underneath')
     editSlot.comment({ elementId: 'ecto-1' })
-    assert.equal(modals().length, 3, 'a comment modal stacks on the same slot')
+    assert.equal(openModals(document).length, 3, 'a comment modal stacks on the same slot')
+    assert.equal(top().elementId, 'ecto-1')
+    assert.equal(top().field, null, 'the element-level comment is on top')
   })
 
   it('a comment modal save lands one comment draft in the shared store', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha'), def('beta')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.nn-edit-modal')
-    modal.querySelector('.nn-edit-form-comment textarea').value = 'needs a source'
-    modal.querySelector('.nn-edit-btn-save').click()
+    submitComment(topmostModal(document), 'needs a source')
     const drafts = ctxs.beta.store.drafts()
     assert.equal(drafts.length, 1)
     assert.equal(drafts[0].kind, 'comment')
     assert.equal(drafts[0].comment, 'needs a source')
-    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 0, 'slot freed after save')
+    assert.equal(openModals(document).length, 0, 'slot freed after save')
   })
 
   it('an edit modal save lands a correction for the chosen field', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    const modal = document.querySelector('.nn-edit-modal')
-    modal.querySelector('.nn-edit-form-propose input, .nn-edit-form-propose textarea').value = 'Hearse'
-    modal.querySelector('.nn-edit-btn-save').click()
+    submitEdit(topmostModal(document), 'Hearse')
     const [draft] = ctxs.alpha.store.drafts()
     assert.equal(draft.kind, 'correction')
     assert.equal(draft.field, 'role')
@@ -284,31 +283,29 @@ describe('S2b review follow-up: comment-only modal', () => {
   it('a comment-only target has no mode toggle to flip into Propose value', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.nn-edit-modal')
+    const modal = topmostModal(document)
     assert.ok(modal)
-    assert.equal(modal.querySelector('.nn-edit-mode-selector'), null)
-    assert.equal(modal.querySelector('.nn-edit-mode-btn'), null)
+    assert.equal(offersPropose(modal), false, 'an element-level comment has nothing to propose')
   })
 
   it('an empty comment is rejected with a visible message and no draft', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1' })
-    const modal = document.querySelector('.nn-edit-modal')
-    modal.querySelector('.nn-edit-form-comment textarea').value = '   '
-    modal.querySelector('.nn-edit-btn-save').click()
+    const modal = topmostModal(document)
+    submitComment(modal, '   ')
     assert.equal(ctxs.alpha.store.drafts().length, 0)
-    const err = document.querySelector('.nn-edit-modal .nn-edit-error')
+    const err = modal.querySelector('.nn-edit-error')
     assert.ok(err, 'validation message rendered in the modal')
     assert.equal(err.style.display, 'block')
     assert.match(err.textContent, /comment/i)
-    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 1, 'modal stays open')
+    assert.equal(openModals(document).length, 1, 'modal stays open')
   })
 
   it('a field comment modal also rejects an empty comment but keeps the toggle', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.comment({ elementId: 'ecto-1', field: 'role' })
-    const modal = document.querySelector('.nn-edit-modal')
-    assert.ok(modal.querySelector('.nn-edit-mode-selector'), 'field targets may still propose')
+    const modal = topmostModal(document)
+    assert.equal(offersPropose(modal), true, 'field targets may still propose')
     modal.querySelector('.nn-edit-btn-save').click()
     assert.equal(ctxs.alpha.store.drafts().length, 0)
     assert.equal(modal.querySelector('.nn-edit-error').style.display, 'block')
@@ -411,17 +408,19 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
   it('an invalid call leaves an open modal untouched', () => {
     const { document, ctxs, editSlot } = bootViews([def('alpha')])
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    const open = document.querySelector('.nn-edit-modal')
+    const open = topmostModal(document)
     assert.equal(editSlot.edit({ elementId: 'nope', field: 'role' }), false)
     assert.equal(editSlot.comment({ elementId: 'nope' }), false)
-    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 1)
-    assert.equal(document.querySelector('.nn-edit-modal'), open, 'same modal node survives')
+    assert.equal(openModals(document).length, 1)
+    assert.equal(topmostModal(document), open, 'same modal node survives')
   })
 
   it('a field-less open targets the element modal', () => {
     const { document, editSlot } = bootViews([def('alpha')])
     assert.equal(editSlot.edit({ elementId: 'ecto-1' }), true)
-    assert.ok(document.querySelector('.nn-edit-modal'))
+    const modal = wrapModal(topmostModal(document))
+    assert.equal(modal.elementId, 'ecto-1')
+    assert.equal(modal.field, null, 'no field: the modal is for the element')
   })
 
   it('cancel restores focus to the element focused when the view opened the modal', () => {
@@ -434,10 +433,10 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     // The modal opens on the View tab, so the edit inputs are hidden: focus a
     // control that is visible in every tab.
-    ;(document.querySelector('.nn-edit-modal .nn-edit-modal-close')).focus()
+    ;topmostModal(document).querySelector('button[aria-label="Close"]').focus()
     assert.notEqual(document.activeElement, opener)
     document.querySelector('.nn-edit-btn-cancel').click()
-    assert.equal(document.querySelectorAll('.nn-edit-modal').length, 0)
+    assert.equal(openModals(document).length, 0)
     assert.equal(document.activeElement, opener)
   })
 
@@ -447,7 +446,7 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     ctxs.alpha.container.appendChild(opener)
     opener.focus()
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
-    document.querySelector('.nn-edit-modal textarea, .nn-edit-modal input').focus()
+    topmostModal(document).querySelector('textarea, input').focus()
     editSlot.comment({ elementId: 'ecto-1' })
     document.querySelector('.nn-edit-btn-cancel').click()
     assert.equal(document.activeElement, opener)
