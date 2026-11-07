@@ -4234,7 +4234,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var historyItems = Array.isArray(data.history) ? data.history.slice() : []
     if (data.fieldName) {
       historyItems = historyItems.filter(function (h) {
-        return h && (h.field === data.fieldName || (typeof h.target === 'string' && h.target.endsWith('&' + data.fieldName)))
+        if (!h) return false
+        // An entry that names no field is a change to the element as a whole: it
+        // belongs in every field-scoped view instead of vanishing from all of them.
+        if (h.field == null && typeof h.target !== 'string') return true
+        return (
+          h.field === data.fieldName ||
+          (typeof h.target === 'string' && h.target.endsWith('&' + data.fieldName))
+        )
       })
     }
     historyItems.sort(function (a, b) {
