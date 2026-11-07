@@ -48,6 +48,8 @@ artifacts. Regenerate them in the **same** commit, or the guards redden:
 npm run sync:versions
 npm --workspace=@cognnitive/nn-mcp run build
 npm --workspace=@cognnitive/nn-mcp run build:bundle
+# the root lockfile pins the package versions: sync it or `lockfile-agreement` fails verify
+npm install --package-lock-only
 
 # nn-console bump: the bundle banner + the CDN pin in generated console shells
 node scripts/build-console-bundle.mjs        # banner derived from console/package.json
@@ -58,10 +60,28 @@ The console shells carry an `<!-- nn:console-shell:start/end -->` marker; the pi
 them is generated from `console/package.json` and `node scripts/build-console-shells.mjs
 --check` (a `verify.js` step) fails a stale one. Never hand-edit the pin.
 
-> ⚠️ Session worktrees now use a real `npm ci` (no junctions), so generated files such as
-> `skills/nn-sources/scripts/lib/nn-core.generated.cjs` regenerate canonically from a
-> worktree. If a diff shows non-canonical `../<repo>/node_modules/...` paths, the worktree
-> predates that change: re-create it with `nn-session.mjs start`.
+> ⚠️ **Which keys need a release.** `batch-status` marks `bump needed` **only** for the
+> keys with an authored version (`nn-mcp`, `nn-console`). `skills` and `blueprints` are
+> **content-driven**: a non-zero `changed file(s)` means a release is due even though no
+> bump-needed flag appears. Missing this ships a manifest that still pins the old version.
+> Confirm the key set and the version numbers with the maintainer **before** bumping.
+
+> ⚠️ **Environment.** Session worktrees link `node_modules` to the primary checkout via a
+> directory junction (`nn-session.mjs` links when lockfiles match; `--full-install` forces
+> a real `npm ci`). Two consequences:
+> - The npm workspace link `node_modules/@cognnitive/nn-core` is **shared**: it points at
+>   whichever worktree built `nn-core` last. Repoint it to the active worktree and rebuild,
+>   or the `nn-mcp` tests resolve another checkout's core.
+> - `node_modules/.bin` can be empty, so any script calling `tsc`/`tsup` bare fails. Run
+>   the tools through their paths (`node node_modules/typescript/bin/tsc`,
+>   `node node_modules/tsup/dist/cli-default.js`), and push with `--no-verify` (the
+>   pre-push freshness guards false-positive through the junction). CI is authoritative.
+
+> ⚠️ **Landing a batch of older branches.** When several session branches land together,
+> merge `dev` into each, regenerate the derived artifacts, and re-run the "Fresh" guards
+> **before** `dev → main`: two branches can both touch a generated file
+> (`nn-console.bundle.js`, a `*.generated.cjs`) and merge it silently stale.
+
 
 ---
 
@@ -75,7 +95,11 @@ Every tag attempt is **irreversible**: it can never be re-used, moved, or delete
 once published, and it leaves a mirror tag + manifest snapshot on `cogNNitive-web`.
 There is no "undo release". Run **all** of these before `git tag`:
 
-1. **Branch is clean and merged:** the changes to release are on `main` and the
+1. **Key set and versions are agreed with the maintainer.** Decide which keys ship and the
+   exact `<semver>` for each, in chat, before bumping anything. `batch-status` flags
+   `bump needed` only for `nn-mcp`/`nn-console`; `skills` and `blueprints` ship whenever
+   their `changed file(s)` count is non-zero (see the note in §1).
+2. **Branch is clean and merged:** the changes to release are on `main` and the
    latest `CI & Verify` run on the **exact** `origin/main` tip is `success`
    (`gh run list --branch main --workflow "CI & Verify" --limit 1`).
    - **A red `dev` blocks the whole pipeline, and not every red is yours.** The tag
@@ -88,27 +112,27 @@ There is no "undo release". Run **all** of these before `git tag`:
      batch. If it does not reproduce on the base, it is yours: fix-forward on `dev` first.
    - **Never cut a tag "to see if it passes."** The tag is irreversible; a red main blocks
      tagging outright (§4).
-2. **The tagged commit already contains the CURRENT release scripts.** The workflow
+3. **The tagged commit already contains the CURRENT release scripts.** The workflow
    checks out the tag and runs `scripts/**` **from that commit** — a fix merged
    after the tag does NOT reach the tag's re-run. If you are about to tag the tip
    of `main`, confirm `main` already carries the release-script fixes.
-3. **Authored version matches (for `nn-mcp` and `nn-console`):**
+4. **Authored version matches (for `nn-mcp` and `nn-console`):**
    - `nn-mcp`: `version` in `iNNfo/packages/nn-mcp/package.json` equals `<semver>`.
    - `nn-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
-4. **Strictly greater than existing tags:** `<semver>` MUST be greater than the
+5. **Strictly greater than existing tags:** `<semver>` MUST be greater than the
    highest existing tag for that `<key>` in BOTH the monorepo and
    `cogNNitive/cogNNitive-web`.
-5. **`release.yml` env is complete.** Every step that touches the GitHub API carries
+6. **`release.yml` env is complete.** Every step that touches the GitHub API carries
    a token — in particular the **Post-Publish Smoke Test** step, whose validator
    (`validateManifestText`) calls the GitHub API and fails with HTTP 403/429 when
    unauthenticated. Inspect that step's `env:` block for `GITHUB_TOKEN`.
-6. **`vars.RELEASE_ENABLED == 'true'`.** Otherwise a tag push silently runs as a
+7. **`vars.RELEASE_ENABLED == 'true'`.** Otherwise a tag push silently runs as a
    **dry run** (the workflow sets `DRY_RUN` when the variable is absent/false) and
    the smoke test is skipped — a green-looking no-op that publishes nothing.
-7. **Release freeze.** No other session/agent may push to `dev`/`main` while the
+8. **Release freeze.** No other session/agent may push to `dev`/`main` while the
    release workflow is in flight: a moved `origin/main` breaks the tag's own
    verification (see §4). Announce the freeze before tagging.
-8. **Release order for a batch with a new blueprint.** When several keys ship
+9. **Release order for a batch with a new blueprint.** When several keys ship
    together and the `blueprints` release adds a blueprint absent from
    `manifest/source.yaml`'s published manifest, dispatch **`blueprints` first**.
    `assemble-manifest.js` retains each blueprint's pin from the previous
