@@ -217,6 +217,8 @@ describe('Unified KU Inspector Modal - Element Sheet View', () => {
       },
       {
         doc: document,
+        // A citation icon is only painted when the host can open it.
+        onEvidence: () => {},
       },
     )
 

@@ -2001,9 +2001,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var order = ['error', 'agent', 'human', 'reviewer', 'document']
     order.forEach(function (variant) {
       if (!present[variant]) return
+      // The group icon must carry the entry it stands for: the host opens the
+      // citation dialog with `{ field, entry }`, and `citationSource` reads the
+      // source path from it.
+      var entry = null
+      for (var i = 0; i < list.length; i++) {
+        if (originVariantOf(list[i]) === variant) {
+          entry = list[i]
+          break
+        }
+      }
       wrap.appendChild(
         CitationIcon(
-          { variant: variant, field: fieldName },
+          { variant: variant, field: fieldName, entry: entry },
           { doc: doc, onOpen: opts && typeof opts.onOpen === 'function' ? opts.onOpen : undefined },
         ),
       )
@@ -2255,6 +2265,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         wrap.appendChild(
           CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
+            doc: doc,
             onOpen: opts && opts.onCite ? opts.onCite : undefined,
           }),
         )
@@ -2871,7 +2882,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     head.appendChild(badgesWrap)
 
     // Resolved citations ride on the element, keyed by field. A `sources::` row is
-    // never rendered as a field (the property is banned on L3), but its provenance
+    // never rendered as a field (the property is banned on L3), but its citation
     // affordance stays reachable here, next to the unit's identity.
     var headerCitations = []
     if (data.citations && typeof data.citations === 'object' && !Array.isArray(data.citations)) {
@@ -3351,7 +3362,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       })
     }
-    if (headerCitations.length && typeof CitationIcons === 'function') {
+    if (
+      headerCitations.length &&
+      typeof CitationIcons === 'function' &&
+      typeof opts.onCite === 'function'
+    ) {
       var citeWrap = CitationIcons('evidence', headerCitations, {
         doc: doc,
         onOpen: opts.onCite,
@@ -6949,7 +6964,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       lastAnchor = focused && focused !== doc.body ? focused : null
-      if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      if (anchorData.comment) {
+        target = Object.assign({}, target, { isComment: true })
+        // A comment on the whole element has no value to propose: the modal is
+        // comment-only. A field comment keeps the Propose/Comment toggle.
+        if (!target.fieldName) target = Object.assign({}, target, { commentOnly: true })
+      }
       if (anchorData.structure) target = Object.assign({}, target, { structure: true })
       openModalFor(anchorData, target)
       return true
@@ -11431,6 +11451,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             name: k,
             value: val,
             type: fieldTypeOf(schema, element.concept, k),
+            // Per-field citations drive the row's citation icon. The header still
+            // shows the `sources::` group even though that field is never a row.
+            citations:
+              element.citations && Array.isArray(element.citations[k])
+                ? element.citations[k]
+                : undefined,
             ref: target
               ? {
                   id: target.id || String(val),
