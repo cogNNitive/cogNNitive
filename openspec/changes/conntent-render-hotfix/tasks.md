@@ -24,7 +24,7 @@ Markers: `[P]` independent (parallel-safe only if the tasks own disjoint files),
 | Delivery strategy | `ask-on-risk` |
 | Chain strategy | not applicable (single PR) |
 
-Decision needed before apply: Yes. The estimate exceeds 400 lines, so under `ask-on-risk` the orchestrator must confirm either one PR with `size:exception` (recommended) or a split. If a split is chosen, the cleanest cut is Phases 1-4 (render visibility and QA) versus Phases 5-8 (avatar, TTS, `scriptDir`).
+Decision needed before apply: No. Resolved 2026-11-08: the user confirmed one PR with `size:exception`.
 Chained PRs recommended: No
 Chain strategy: not applicable
 400-line budget risk: High
