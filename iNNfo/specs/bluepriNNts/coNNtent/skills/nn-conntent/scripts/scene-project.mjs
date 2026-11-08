@@ -148,6 +148,8 @@ ${tween}
         frame,
         trackIndex: 10 + i,
         zIndex: 200 + i,
+        width,
+        height,
       });
     })
     .filter(Boolean)
@@ -185,7 +187,7 @@ ${tween}
       const slug = sceneSlug(scene);
       const start = frameSeconds(scene.fromFrame, fps);
       const dur = frameSeconds(scene.durationInFrames, fps);
-      return `  <div id="scene-${esc(slug)}" class="clip" data-composition-id="${esc(slug)}" data-composition-src="compositions/${esc(slug)}.html" data-start="${start}" data-duration="${dur}" data-track-index="0" data-track-kind="graphics" data-width="${width}" data-height="${height}"></div>`;
+      return `  <div id="scene-${esc(slug)}" class="clip" data-composition-id="${esc(slug)}" data-composition-src="compositions/${esc(slug)}.html" data-start="${start}" data-duration="${dur}" data-track-index="0" data-track-kind="graphics" data-width="${width}" data-height="${height}" style="position:absolute;inset:0;"></div>`;
     })
     .join('\n');
 
@@ -208,10 +210,14 @@ ${tween}
   <head>
     <meta charset="utf-8" />
     <title>${esc(compositionId)}</title>
+    <style>
+      #root { position: relative; width: ${width}px; height: ${height}px; overflow: hidden; }
+      .clip { position: absolute; inset: 0; }
+    </style>
     <script src="vendor/gsap.min.js"></script>
   </head>
   <body>
-    <div id="root" data-composition-id="${esc(compositionId)}" data-start="0" data-duration="${total}" data-width="${width}" data-height="${height}" data-fps="${fps}">
+    <div id="root" data-composition-id="${esc(compositionId)}" data-start="0" data-duration="${total}" data-width="${width}" data-height="${height}" data-fps="${fps}" style="position:relative;width:${width}px;height:${height}px;overflow:hidden;">
 ${sceneHosts}
 ${overlayHosts}
 ${animationHosts}
