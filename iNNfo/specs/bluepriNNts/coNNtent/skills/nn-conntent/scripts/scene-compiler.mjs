@@ -359,13 +359,24 @@ export class SceneCompiler {
         errors.push({ code: 'layer-type-required', message: `Layer "${layer.name}" has no type::` });
         continue;
       }
+      if (type === 'text') {
+        const style = layer.fields?.style;
+        const binding = style ? TYPE_RENDERERS[style] : null;
+        if (!style || !binding || binding.kind !== 'overlay') {
+          errors.push({
+            code: 'unknown-text-style',
+            message: `Layer "${layer.name}" (type:: text) has unknown or missing style:: "${style}"`,
+          });
+          continue;
+        }
+      }
       const required = conditional[type];
       if (!required) {
         errors.push({ code: 'unknown-layer-type', message: `Layer "${layer.name}" has type:: "${type}"` });
         continue;
       }
       // caption defaults to the owning Scene body: `text` is not strictly required.
-      if (type === 'caption') continue;
+      if (type === 'caption' || (type === 'text' && layer.fields?.style === 'caption')) continue;
       const hasAny = required.some((field) => {
         const value = layer.fields?.[field];
         if (value !== undefined && String(value).trim() !== '') return true;
@@ -581,15 +592,16 @@ export class SceneCompiler {
   lowerLayer(layer, sceneId, index, bags = {}) {
     const fields = layer.fields || {};
     const declared = fields.type;
-    const binding = TYPE_RENDERERS[declared] || { kind: 'layer', manifest: declared };
+    const effectiveType = declared === 'text' ? fields.style : declared;
+    const binding = TYPE_RENDERERS[effectiveType] || { kind: 'layer', manifest: declared };
     const fit = resolve('fit', { ...bags, layer: fields }).value;
     const avatarModel = resolve('avatar_model', { ...bags, layer: fields }).value;
     // A presenter with no local asset takes the cascaded `avatar` as its source
     // (design D7); every other Layer type uses `asset` only.
     const cascadedAvatar =
-      declared === 'presenter' && !fields.asset ? resolve('avatar', { ...bags, layer: fields }).value : null;
+      (declared === 'presenter' || declared === 'avatar') && !fields.asset ? resolve('avatar', { ...bags, layer: fields }).value : null;
     const properties = {
-      layer_type: internalLayerType(declared, fields.asset),
+      layer_type: internalLayerType(effectiveType, fields.asset),
       layer_asset_source: fields.asset || cascadedAvatar || undefined,
       layer_prompt: fields.prompt,
       layer_text_content: fields.text,
@@ -606,7 +618,7 @@ export class SceneCompiler {
       id: `layer_${layer.slug || slugify(layer.name)}`,
       name: layer.name,
       slug: layer.slug || slugify(layer.name),
-      type: declared,
+      type: effectiveType,
       kind: binding.kind,
       manifestKind: binding.manifest,
       text: fields.text,
