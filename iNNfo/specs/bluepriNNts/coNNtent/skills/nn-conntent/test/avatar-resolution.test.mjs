@@ -67,3 +67,82 @@ test('collectAvatarJobs honors the layer resolution and keys differ by resolutio
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('episode whose Series declares kind Gancho resolves without unknown-kind in synthesizeAvatars', async () => {
+  const { synthesizeAvatars } = await import('../scripts/synthesize-avatar.mjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'av-gancho-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
+    const seriesDir = path.join(dir, 'series', 's');
+    const episodeDir = path.join(seriesDir, 'assets', 'e');
+    fs.mkdirSync(episodeDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(seriesDir, 's_coNNtent_NN.md'),
+      `---
+level: 3
+scope: true
+title: "Series"
+---
+
+# NN Series
+## NN Series: S
+slug:: s
+language:: es
+
+# NN Scene Kind
+## NN Scene Kind: Gancho
+slug:: gancho
+`,
+      'utf8',
+    );
+
+    const facePath = path.join(episodeDir, 'media', 'face.png');
+    fs.mkdirSync(path.dirname(facePath), { recursive: true });
+    fs.writeFileSync(facePath, Buffer.from('img'));
+    const audioPath = path.join(episodeDir, 'media', 'narration.mp3');
+    fs.writeFileSync(audioPath, Buffer.from('audio'));
+
+    const scriptPath = path.join(episodeDir, 'e_coNNtent_NN.md');
+    fs.writeFileSync(
+      scriptPath,
+      `---
+level: 3
+title: "Episode"
+---
+
+# NN Video
+## NN Video: E
+slug:: e
+language:: es
+
+# NN Scene
+## NN Scene: Hook
+slug:: hook
+kind:: Gancho
+
+Narration text for hook.
+
+# NN Layer
+## NN Layer: Presenter
+type:: avatar
+asset:: media/face.png
+`,
+      'utf8',
+    );
+
+    const { synthesizeEpisodeAssets } = await import('../scripts/lib/compile.mjs');
+    await synthesizeEpisodeAssets({ scriptPath });
+
+    // Should not throw ScriptValidationError with unknown-kind
+    const res = await synthesizeAvatars({
+      scriptPath,
+      dryRun: true,
+      measure: async () => ({ seconds: 3 }),
+    });
+    assert.ok(res.jobs, 'synthesizeAvatars completes plan with jobs');
+    assert.equal(res.jobs.length, 1);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
