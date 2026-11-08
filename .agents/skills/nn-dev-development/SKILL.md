@@ -67,6 +67,20 @@ any other path runs the full gate). Do all writes, commits and pushes from that
 worktree. If the tool environment refuses a worktree as `cwd`, keep the primary as `cwd`
 and use absolute paths or `git -C <worktree>`.
 
+> ⚠️ **The linked `node_modules` is shared, and `.bin` may be empty.** The workspace link
+> `node_modules/@cognnitive/nn-core` inside the junction points at whichever worktree built
+> `nn-core` last; tests that import `@cognnitive/nn-core` then resolve another checkout.
+> Repoint it to the active worktree before testing:
+> ```powershell
+> cmd /c "rmdir node_modules\@cognnitive\nn-core"
+> cmd /c "mklink /J node_modules\@cognnitive\nn-core <abs path to this worktree>\iNNfo\packages\nn-core"
+> node node_modules/typescript/bin/tsc   # run in iNNfo/packages/nn-core
+> ```
+> With an empty `node_modules/.bin`, `nn-session`'s build step warns and leaves the worktree
+> without `dist`; run tools through their paths (`node node_modules/typescript/bin/tsc`,
+> `node node_modules/tsup/dist/cli-default.js`) and push with `--no-verify` (the pre-push
+> guards false-positive through the junction). CI is authoritative.
+
 **Inner-loop verification.** After an edit, run the affected suite directly
 (`node --test <file>`) or a targeted filter (`node scripts/verify.js --only=<substring>`);
 for a broader but still fast pass run `npm run verify:fast` (`verify.js --fast`, which

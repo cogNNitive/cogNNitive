@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { runExportConsole } from '../scripts/export-console.mjs'
+import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
@@ -127,6 +128,8 @@ describe('export-console size budget and --view (S2c2)', () => {
   })
 
   describe('size budget', () => {
+    const { warnBytes, failBytes } = CONSOLE_SIZE_BUDGET
+    const OVER = 1_000_000
     const padded = (bytes) => editableView('Pad') + '/*' + 'x'.repeat(bytes) + '*/\n'
 
     it('prints the breakdown on every export', async () => {
@@ -136,31 +139,37 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.doesNotMatch(res.stderr, /larger than/)
     })
 
-    it('warns on stderr above 5 MB, still writes, and exits 0', async () => {
-      await addView('pad', padded(6_000_000))
+    it('warns on stderr above warnBytes, still writes, and exits 0', async () => {
+      await addView('pad', padded(warnBytes + OVER))
       const res = await runCli([root, '--domain'])
       assert.equal(res.code, 0, res.stderr)
-      assert.match(res.stderr, /WARNING: \[export-console\] console is larger than 5000000 B; size: total \d+ B/)
-      assert.match(res.stderr, /views 6\d{6} B/)
+      assert.match(
+        res.stderr,
+        new RegExp(`WARNING: \\[export-console\\] console is larger than ${warnBytes} B; size: total \\d+ B`),
+      )
+      assert.ok(Number(/views (\d+) B/.exec(res.stderr)[1]) >= warnBytes + OVER, 'the views part carries the padding')
       assert.equal(existsSync(domainFile()), true)
     })
 
-    it('fails above 15 MB with the breakdown and writes nothing', async () => {
-      await addView('pad', padded(16_000_000))
+    it('fails above failBytes with the breakdown and writes nothing', async () => {
+      await addView('pad', padded(failBytes + OVER))
       const res = await runCli([root, '--domain'])
       assert.notEqual(res.code, 0)
       assert.match(
         res.stderr,
-        /console is larger than 15000000 B; size: total \d+ B \(bundle \d+ B, models \d+ B, views 16\d{6} B\)/,
+        new RegExp(
+          `console is larger than ${failBytes} B; size: total \\d+ B \\(bundle \\d+ B, models \\d+ B, views \\d+ B\\)`,
+        ),
       )
+      assert.ok(Number(/views (\d+) B/.exec(res.stderr)[1]) >= failBytes + OVER, 'the views part carries the padding')
       await untouched()
     })
 
     it('applies to --view as well', async () => {
-      await addView('pad', padded(16_000_000))
+      await addView('pad', padded(failBytes + OVER))
       const res = await runCli([root, '--view', 'pad'])
       assert.notEqual(res.code, 0)
-      assert.match(res.stderr, /larger than 15000000 B/)
+      assert.match(res.stderr, new RegExp(`larger than ${failBytes} B`))
       await untouched()
     })
   })

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
+import { openUnitModal } from './helpers/console-contract.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -162,23 +163,23 @@ describe('P0-1 declared field types reach the console (end to end)', () => {
   })
 
   it('opens the modal with each concept\'s own definition for a shared field name', () => {
-    const { document, controller, idOf } = bootExport()
-    // A second openEdit stacks a new dialog on top (stacked modal layers), so read
-    // the TOPMOST one: the modal below keeps the previous field's options.
-    const optionsOf = () => {
-      const modals = [...document.querySelectorAll('.nn-edit-modal')]
-      const top = modals[modals.length - 1]
-      return [...top.querySelectorAll('select[data-nn-widget="select"] option')].map((o) => o.value)
-    }
-    assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'status' }), true)
-    assert.deepEqual(optionsOf(), ['', 'active', 'retired'])
-    assert.equal(controller.openEdit({ elementId: idOf('Slimer'), field: 'status' }), true)
-    assert.deepEqual(optionsOf(), ['', 'free', 'trapped'])
+    const booted = bootExport()
+    const { idOf } = booted
+    // Each open stacks a new modal; the helper returns the topmost one, which is
+    // the modal for the unit just opened.
+    const optionsOf = (modal) =>
+      [...modal.el.querySelectorAll('select[data-nn-widget="select"] option')].map((o) => o.value)
+    const vehicle = openUnitModal(booted, { elementId: idOf('Ecto-1'), field: 'status' })
+    assert.equal(vehicle.field, 'status')
+    assert.deepEqual(optionsOf(vehicle), ['', 'active', 'retired'])
+    const ghost = openUnitModal(booted, { elementId: idOf('Slimer'), field: 'status' })
+    assert.equal(ghost.elementId, idOf('Slimer'))
+    assert.deepEqual(optionsOf(ghost), ['', 'free', 'trapped'])
   })
 
   it('opens an undeclared numeric field as a number input', () => {
-    const { document, controller, idOf } = bootExport()
-    assert.equal(controller.openEdit({ elementId: idOf('Ecto-1'), field: 'mileage' }), true)
-    assert.ok(document.querySelector('.nn-edit-modal input[type="number"]'))
+    const booted = bootExport()
+    const modal = openUnitModal(booted, { elementId: booted.idOf('Ecto-1'), field: 'mileage' })
+    assert.ok(modal.el.querySelector('input[type="number"]'))
   })
 })
