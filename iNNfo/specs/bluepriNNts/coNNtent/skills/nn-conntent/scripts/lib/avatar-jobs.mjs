@@ -57,7 +57,7 @@ export function normalizeAvatarResolution(requested, model) {
  * and a name such as "Avatar Intro" alone is not enough.
  */
 export function isAvatarLayer(l) {
-  const t = String(l.properties?.layer_type ?? l.type ?? '').toLowerCase().trim();
+  const t = String(l?.properties?.layer_type ?? l?.fields?.type ?? l?.type ?? '').toLowerCase().trim();
   return t === 'talking_avatar' || t === 'talking-avatar' || t === 'avatar';
 }
 

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 import { EXIT_BUDGET, EXIT_DONE, EXIT_REVIEW, produce, ProduceStop } from '../scripts/produce.mjs';
 import { readEpisode } from '../scripts/lib/episode.mjs';
+import { isAvatarLayer } from '../scripts/lib/avatar-jobs.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BLUEPRINT = path.resolve(SKILL, '..', '..');
@@ -280,13 +281,18 @@ test('daily_budget leaves a run alone when there is headroom', async () => {
   }
 });
 
+test('isAvatarLayer identifies avatar layers from model fields or type', () => {
+  assert.equal(isAvatarLayer({ fields: { type: 'avatar' } }), true);
+  assert.equal(isAvatarLayer({ type: 'avatar' }), true);
+  assert.equal(isAvatarLayer({ fields: { type: 'media' } }), false);
+});
+
 test('produce runs the avatar stage before render when the episode has an avatar layer', async () => {
   const withAvatar = `${SCENE}
 # NN Layer
 
 ## NN Layer: Avatar Intro
 type:: avatar
-avatar:: true
 asset:: media/face.png
 `;
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', scenes: withAvatar }));

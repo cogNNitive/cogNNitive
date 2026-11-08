@@ -267,9 +267,7 @@ export async function produce(options) {
   // 4b. The avatar stage. Talking avatars are the costliest call and the only stage a
   // render cannot do itself: it refuses a layer with no cached clip. produce therefore runs
   // it here, before the render, whenever the episode actually has one.
-  const avatarLayers = (episode.model.elements?.Layer || []).filter(
-    (layer) => isAvatarLayer(layer) || String(layer.fields?.avatar ?? '').toLowerCase() === 'true',
-  );
+  const avatarLayers = (episode.model.elements?.Layer || []).filter(isAvatarLayer);
   if (avatarLayers.length > 0 && !options.dryRun) {
     const sync = (deps.synthesizeAvatars || synthesizeAvatars);
     await sync({ scriptPath });
