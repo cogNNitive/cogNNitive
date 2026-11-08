@@ -51,6 +51,7 @@ export async function renderVideo(options) {
       height: options.height,
       cacheDir: options.cacheDir,
       synthesizeAssets: options.synthesizeAssets,
+      recordSynthesisStages: options.recordSynthesisStages,
       model: options.model,
       modelPath: options.modelPath,
       allowModels: options.allowModels,

@@ -57,7 +57,7 @@ export function normalizeAvatarResolution(requested, model) {
  * and a name such as "Avatar Intro" alone is not enough.
  */
 export function isAvatarLayer(l) {
-  const t = String(l.properties?.layer_type ?? l.type ?? '').toLowerCase().trim();
+  const t = String(l?.properties?.layer_type ?? l?.fields?.type ?? l?.type ?? '').toLowerCase().trim();
   return t === 'talking_avatar' || t === 'talking-avatar' || t === 'avatar';
 }
 
@@ -86,7 +86,7 @@ export function ttsCachePathFor(sc, { cacheManager, config, models = {}, bags = 
   if (!narration) return undefined;
   const options = resolveRegisteredVoice(buildTtsVoiceOptions(sc, models, bags), config);
   const key = cacheManager.computeHash(narration, options);
-  return cacheManager.getSync(key, 'mp3', 'tts') || undefined;
+  return cacheManager.getSync(key, 'mp3', 'tts') || cacheManager.getSync(key + '-offline', 'mp3', 'tts') || undefined;
 }
 
 /**

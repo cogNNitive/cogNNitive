@@ -18,6 +18,9 @@ import { fileURLToPath } from 'node:url';
 
 import { EXIT_BUDGET, EXIT_DONE, EXIT_REVIEW, produce, ProduceStop } from '../scripts/produce.mjs';
 import { readEpisode } from '../scripts/lib/episode.mjs';
+import { isAvatarLayer } from '../scripts/lib/avatar-jobs.mjs';
+
+for (const k of ['WAVESPEED_API_KEY', 'REPLICATE_API_TOKEN', 'TTS_PROVIDER', 'MEDIA_PROVIDER']) delete process.env[k];
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BLUEPRINT = path.resolve(SKILL, '..', '..');
@@ -31,10 +34,10 @@ kind:: Libre
 one two three four five six seven eight nine ten
 `;
 
-const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-15-1' } = {}) => `---
+const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-15-2' } = {}) => `---
 level: 3
 parent_spec:
-  name: "coNNtent_V_0-15-1"
+  name: "coNNtent_V_0-15-2"
   url: "https://example.invalid/coNNtent/spec_NN.md"
 knowledge_version: "V_0-1-0"
 blueprint_version: "${pin}"
@@ -59,14 +62,14 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
   // and versioned (Tier 1b): a CI runner has no global blueprint cache to fall back on,
   // so the fixture must not depend on one.
   fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-1'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2'), { recursive: true });
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
     path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'spec_NN.md'),
   );
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
-    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-1', 'spec_NN.md'),
+    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2', 'spec_NN.md'),
   );
   fs.copyFileSync(path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'), path.join(root, 'video-defaults_NN.md'));
   fs.mkdirSync(path.join(root, 'changes'), { recursive: true });
@@ -95,7 +98,7 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
 const done = (dir) => fs.rmSync(dir, { recursive: true, force: true });
 
 /** A render seam: writes the master and reports cost/timing without touching a provider. */
-function fakeRender() {
+function fakeRender({ indexHtml, overlayManifest } = {}) {
   const calls = [];
   const render = async (opts) => {
     calls.push(opts);
@@ -104,19 +107,31 @@ function fakeRender() {
     fs.writeFileSync(master, 'master-bytes');
     const hyperframesDir = path.join(dir, 'hyperframes');
     fs.mkdirSync(hyperframesDir, { recursive: true });
+    const manifest = {
+      fps: 30,
+      tracks: {
+        scenes: [
+          { id: 'scene_one', slug: 'one', fromFrame: 0, props: { title: 'Opening', layers: [] } },
+          { id: 'scene_two', slug: 'two', fromFrame: 90, props: { title: 'Explaining', layers: [] } },
+        ],
+        overlays: overlayManifest || [],
+      },
+      metadata: { scriptSource: opts.scriptPath },
+    };
     fs.writeFileSync(
       path.join(hyperframesDir, 'manifest.json'),
-      JSON.stringify({
-        fps: 30,
-        tracks: {
-          scenes: [
-            { fromFrame: 0, props: { title: 'Opening' } },
-            { fromFrame: 90, props: { title: 'Explaining' } },
-          ],
-        },
-        metadata: { scriptSource: opts.scriptPath },
-      }),
+      JSON.stringify(manifest),
     );
+    if (indexHtml !== null) {
+      let html = indexHtml;
+      if (!html) {
+        const overlayDivs = (manifest.tracks.overlays || [])
+          .map((o) => `<div id="${o.id}" class="clip nn-overlay"></div>`)
+          .join('\n');
+        html = `<!doctype html><html><body><div id="root">\n${overlayDivs}\n</div></body></html>`;
+      }
+      fs.writeFileSync(path.join(hyperframesDir, 'index.html'), html);
+    }
     return { outputVideoPath: master, renderTimeMs: 1, linkMode: 'link', spentUsd: 0.25 };
   };
   return { render, calls };
@@ -268,13 +283,18 @@ test('daily_budget leaves a run alone when there is headroom', async () => {
   }
 });
 
+test('isAvatarLayer identifies avatar layers from model fields or type', () => {
+  assert.equal(isAvatarLayer({ fields: { type: 'avatar' } }), true);
+  assert.equal(isAvatarLayer({ type: 'avatar' }), true);
+  assert.equal(isAvatarLayer({ fields: { type: 'media' } }), false);
+});
+
 test('produce runs the avatar stage before render when the episode has an avatar layer', async () => {
   const withAvatar = `${SCENE}
 # NN Layer
 
 ## NN Layer: Avatar Intro
 type:: avatar
-avatar:: true
 asset:: media/face.png
 `;
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', scenes: withAvatar }));
@@ -296,6 +316,46 @@ asset:: media/face.png
     });
     assert.equal(result.code, EXIT_DONE);
     assert.deepEqual(order, ['avatars', 'render'], 'the avatar stage runs before the render, once');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('produce runs TTS and image synthesis before avatar stage on cold cache with narrated avatar', async () => {
+  const withAvatar = `${SCENE}
+# NN Layer
+
+## NN Layer: Avatar Intro
+type:: avatar
+asset:: media/face.png
+`;
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', scenes: withAvatar }));
+  try {
+    const order = [];
+    const result = await produce({
+      episodePath: ws.scriptPath,
+      deps: {
+        synthesizeEpisodeAssets: async () => {
+          order.push('synthesize-assets');
+          return { audioAssets: {} };
+        },
+        synthesizeAvatars: async () => {
+          order.push('synthesize-avatars');
+          return { jobs: [] };
+        },
+        render: async (opts) => {
+          order.push('render');
+          return fakeRender().render(opts);
+        },
+        log: () => {},
+      },
+    });
+    assert.equal(result.code, EXIT_DONE);
+    assert.deepEqual(
+      order,
+      ['synthesize-assets', 'synthesize-avatars', 'render'],
+      'synthesis runs before avatars and render on cold cache',
+    );
   } finally {
     done(ws.root);
   }
@@ -444,7 +504,7 @@ test('an episode pinned to another blueprint version is refused naming both', as
       (err) => {
         assert.equal(err.code, 'blueprint-version-mismatch');
         assert.match(err.message, /V_0-14-1/);
-        assert.match(err.message, /V_0-15-1/);
+        assert.match(err.message, /V_0-15-2/);
         return true;
       },
     );
@@ -487,3 +547,61 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
     done(ws.root);
   }
 });
+
+test('overlay QA: a removed host makes produce exit 1 with overlay-qa-failed, status stays approved, no master written, master exists on disk', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
+  const { render } = fakeRender({ overlayManifest: overlays, indexHtml: '<!doctype html><html><body><div id="root"></div></body></html>' });
+  try {
+    await assert.rejects(
+      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      (err) => {
+        assert.equal(err.code, 'overlay-qa-failed');
+        assert.equal(err.exitCode, 1);
+        assert.match(err.message, /overlay_scene_one_1/);
+        return true;
+      },
+    );
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'approved', 'status stays approved');
+    assert.equal(ep.master, undefined, 'no master field written');
+    const masterPath = path.join(ws.episode, 'probe_1920x1920.mp4');
+    assert.ok(fs.existsSync(masterPath), 'the rendered master file still exists on disk');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('overlay QA: a complete project proceeds to formats and status:: produced', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
+  const { render } = fakeRender({ overlayManifest: overlays });
+  try {
+    const result = await produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } });
+    assert.equal(result.code, EXIT_DONE);
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'produced');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('overlay QA: a missing index.html fails with overlay-qa-failed', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const { render } = fakeRender({ indexHtml: null });
+  try {
+    await assert.rejects(
+      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      (err) => {
+        assert.equal(err.code, 'overlay-qa-failed');
+        assert.equal(err.exitCode, 1);
+        return true;
+      },
+    );
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'approved');
+  } finally {
+    done(ws.root);
+  }
+});
+

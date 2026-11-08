@@ -131,9 +131,9 @@ export async function synthesizeAvatars(o) {
   const model = o.model || loadKnowledgeModel(scriptPath, { model: o.model, modelPath: o.modelPath });
   // The script's own Presets shadow Series and domain ones (design D3).
   const chainBags = withScriptPresets(bags, model, scriptPath);
-  const scriptGuard = compiler.checkScript(model, { ...o, bags: chainBags });
+  const scriptGuard = compiler.checkScript(model, { ...o, bags: chainBags, scriptDir });
   if (!scriptGuard.ok) throw new ScriptValidationError(scriptGuard.errors);
-  const parsed = compiler.lowerKnowledgeModel(model, { bags: chainBags });
+  const parsed = compiler.lowerKnowledgeModel(model, { bags: chainBags, scriptDir });
   const sceneFilter = o.scenes?.length ? [...new Set(o.scenes)] : undefined;
   if (sceneFilter) {
     const unknown = sceneFilter.filter((id) => !parsed.scenes.some((s) => s.id === id));

@@ -163,9 +163,9 @@ async function runTests() {
     }
   }
 
-  // 6. The blueprint contract itself (capability video-blueprint and video-presets), V_0-15-1.
+  // 6. The blueprint contract itself (capability video-blueprint and video-presets), V_0-15-2.
   {
-    assert.match(SPEC, /^blueprint_version: "V_0-15-1"$/m, 'the blueprint declares V_0-15-1');
+    assert.match(SPEC, /^blueprint_version: "V_0-15-2"$/m, 'the blueprint declares V_0-15-2');
     assert.match(SPEC, /^## NN Concept Definition: Preset$/m, 'Preset is a top-level Concept');
     assert.doesNotMatch(SPEC, /^## NN Concept Definition: Template$/m, 'Template is gone');
     assert.doesNotMatch(SPEC, /^## NN Field Definition: Template$/m);
