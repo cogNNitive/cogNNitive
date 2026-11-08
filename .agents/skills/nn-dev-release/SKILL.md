@@ -1,6 +1,6 @@
 ---
 name: nn-dev-release
-version: "3.1.0"
+version: "3.2.0"
 description: Internal developer skill for cogNNitive maintainers. Manages monorepo git status, gate checks, version bumping, release tagging, manifest generation, and distribution validation.
 ---
 
@@ -64,7 +64,30 @@ them is generated from `console/package.json` and `node scripts/build-console-sh
 > keys with an authored version (`nn-mcp`, `nn-console`). `skills` and `blueprints` are
 > **content-driven**: a non-zero `changed file(s)` means a release is due even though no
 > bump-needed flag appears. Missing this ships a manifest that still pins the old version.
-> Confirm the key set and the version numbers with the maintainer **before** bumping.
+> The agent derives the key set and the version numbers itself (§1b) and **reports** them
+> in chat; it does not ask for confirmation before bumping.
+
+### 1b. Deriving the key set and the versions (no confirmation needed)
+
+Decide both from `batch-status` and the commits since each key's latest tag:
+
+- **Key set:** every key with `bump needed` (`nn-mcp`, `nn-console`) plus every
+  content-driven key (`skills`, `blueprints`) whose `changed file(s)` is non-zero. Keys
+  with 0 changed files do not ship.
+- **Version** (from the Conventional Commits touching that key since its latest tag):
+  - any `feat` or new capability → **minor**;
+  - only `fix`, `perf`, `refactor`, `test`, `docs`, `chore`, `build`, `ci` → **patch**;
+  - a breaking change (`!` or a `BREAKING CHANGE` footer) → **major**.
+- The result must be strictly greater than the highest existing tag in BOTH the monorepo
+  and `cogNNitive/cogNNitive-web` (Step 1 item 5).
+- State the derived set and versions, with the one-line reason for each, in chat **as an
+  announcement, not a question**, then continue.
+
+**The one stop.** A **major** bump is the only version decision that still needs the
+maintainer: it is a compatibility promise, not a mechanical result. Stop and ask for it.
+This does not relax the other gates: every tag stays irreversible, the pre-release
+checklist in §2 Step 1 still applies in full, and the repo-wide rule in
+`nn-dev-development` §4 on cutting tags is unchanged.
 
 > ⚠️ **Environment.** Session worktrees link `node_modules` to the primary checkout via a
 > directory junction (`nn-session.mjs` links when lockfiles match; `--full-install` forces
@@ -95,10 +118,11 @@ Every tag attempt is **irreversible**: it can never be re-used, moved, or delete
 once published, and it leaves a mirror tag + manifest snapshot on `cogNNitive-web`.
 There is no "undo release". Run **all** of these before `git tag`:
 
-1. **Key set and versions are agreed with the maintainer.** Decide which keys ship and the
-   exact `<semver>` for each, in chat, before bumping anything. `batch-status` flags
-   `bump needed` only for `nn-mcp`/`nn-console`; `skills` and `blueprints` ship whenever
-   their `changed file(s)` count is non-zero (see the note in §1).
+1. **Key set and versions are derived and announced (§1b).** Work out which keys ship and
+   the exact `<semver>` for each from `batch-status` and the commits since each tag, and
+   state them in chat before bumping. No confirmation is needed, except for a **major**
+   bump. `batch-status` flags `bump needed` only for `nn-mcp`/`nn-console`; `skills` and
+   `blueprints` ship whenever their `changed file(s)` count is non-zero (see §1).
 2. **Branch is clean and merged:** the changes to release are on `main` and the
    latest `CI & Verify` run on the **exact** `origin/main` tip is `success`
    (`gh run list --branch main --workflow "CI & Verify" --limit 1`).
