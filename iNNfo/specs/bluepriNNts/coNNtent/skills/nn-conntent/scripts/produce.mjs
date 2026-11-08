@@ -44,6 +44,8 @@ import { renderVideo } from './lib/render.mjs';
 import { synthesizeAvatars } from './synthesize-avatar.mjs';
 import { isAvatarLayer } from './lib/avatar-jobs.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
+import { checkOverlays } from './lib/overlay-qa.mjs';
+import { recordStage } from './lib/compile.mjs';
 
 export const EXIT_DONE = 0;
 export const EXIT_REVIEW = 10;
@@ -282,6 +284,28 @@ export async function produce(options) {
   const masterPath = rendered.outputVideoPath;
   log(`render: ${masterPath} (${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'})`);
 
+  // 5b. Overlay QA gate: verify index.html exists and contains mount hosts for all overlays in manifest
+  const qaStart = Date.now();
+  const projectIndexHtmlPath = path.join(episodeDir, 'hyperframes', 'index.html');
+  if (!fs.existsSync(projectIndexHtmlPath)) {
+    throw new ProduceStop(
+      'overlay-qa-failed',
+      `HyperFrames index.html missing at ${projectIndexHtmlPath}`,
+      { exitCode: EXIT_ERROR, details: { missing: ['index.html'] } },
+    );
+  }
+  const indexHtml = fs.readFileSync(projectIndexHtmlPath, 'utf8');
+  const { manifest } = readManifestForFinalize({ episodeDir, scriptPath });
+  const missingOverlays = checkOverlays({ manifest, indexHtml });
+  if (missingOverlays.length > 0) {
+    throw new ProduceStop(
+      'overlay-qa-failed',
+      `Overlay QA gate failed: missing host elements in index.html for overlays: ${missingOverlays.join(', ')}`,
+      { exitCode: EXIT_ERROR, details: { missing: missingOverlays } },
+    );
+  }
+  recordStage(facts, { stage: 'qa', start: qaStart, end: Date.now() });
+
   // 6. Formats: every declared output after the first must exist.
   const declared = resolveForEpisode(episode.model, scriptPath, 'output_formats').value;
   const sizes = Array.isArray(declared) ? declared.map(String) : [];
@@ -311,7 +335,6 @@ export async function produce(options) {
 
   // 6b. Chapters: the printable block comes from the manifest the render just wrote.
   // An authored description.md wins — produce only seeds one when it is absent.
-  const { manifest } = readManifestForFinalize({ episodeDir, scriptPath });
   const chapters = chapterLines(manifest);
   const descriptionPath = path.join(episodeDir, 'description.md');
   if (!fs.existsSync(descriptionPath)) {

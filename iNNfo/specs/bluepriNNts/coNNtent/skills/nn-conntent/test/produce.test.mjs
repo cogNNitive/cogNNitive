@@ -95,7 +95,7 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
 const done = (dir) => fs.rmSync(dir, { recursive: true, force: true });
 
 /** A render seam: writes the master and reports cost/timing without touching a provider. */
-function fakeRender() {
+function fakeRender({ indexHtml, overlayManifest } = {}) {
   const calls = [];
   const render = async (opts) => {
     calls.push(opts);
@@ -104,19 +104,31 @@ function fakeRender() {
     fs.writeFileSync(master, 'master-bytes');
     const hyperframesDir = path.join(dir, 'hyperframes');
     fs.mkdirSync(hyperframesDir, { recursive: true });
+    const manifest = {
+      fps: 30,
+      tracks: {
+        scenes: [
+          { id: 'scene_one', slug: 'one', fromFrame: 0, props: { title: 'Opening', layers: [] } },
+          { id: 'scene_two', slug: 'two', fromFrame: 90, props: { title: 'Explaining', layers: [] } },
+        ],
+        overlays: overlayManifest || [],
+      },
+      metadata: { scriptSource: opts.scriptPath },
+    };
     fs.writeFileSync(
       path.join(hyperframesDir, 'manifest.json'),
-      JSON.stringify({
-        fps: 30,
-        tracks: {
-          scenes: [
-            { fromFrame: 0, props: { title: 'Opening' } },
-            { fromFrame: 90, props: { title: 'Explaining' } },
-          ],
-        },
-        metadata: { scriptSource: opts.scriptPath },
-      }),
+      JSON.stringify(manifest),
     );
+    if (indexHtml !== null) {
+      let html = indexHtml;
+      if (!html) {
+        const overlayDivs = (manifest.tracks.overlays || [])
+          .map((o) => `<div id="${o.id}" class="clip nn-overlay"></div>`)
+          .join('\n');
+        html = `<!doctype html><html><body><div id="root">\n${overlayDivs}\n</div></body></html>`;
+      }
+      fs.writeFileSync(path.join(hyperframesDir, 'index.html'), html);
+    }
     return { outputVideoPath: master, renderTimeMs: 1, linkMode: 'link', spentUsd: 0.25 };
   };
   return { render, calls };
@@ -487,3 +499,61 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
     done(ws.root);
   }
 });
+
+test('overlay QA: a removed host makes produce exit 1 with overlay-qa-failed, status stays approved, no master written, master exists on disk', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
+  const { render } = fakeRender({ overlayManifest: overlays, indexHtml: '<!doctype html><html><body><div id="root"></div></body></html>' });
+  try {
+    await assert.rejects(
+      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      (err) => {
+        assert.equal(err.code, 'overlay-qa-failed');
+        assert.equal(err.exitCode, 1);
+        assert.match(err.message, /overlay_scene_one_1/);
+        return true;
+      },
+    );
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'approved', 'status stays approved');
+    assert.equal(ep.master, undefined, 'no master field written');
+    const masterPath = path.join(ws.episode, 'probe_1920x1920.mp4');
+    assert.ok(fs.existsSync(masterPath), 'the rendered master file still exists on disk');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('overlay QA: a complete project proceeds to formats and status:: produced', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
+  const { render } = fakeRender({ overlayManifest: overlays });
+  try {
+    const result = await produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } });
+    assert.equal(result.code, EXIT_DONE);
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'produced');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('overlay QA: a missing index.html fails with overlay-qa-failed', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
+  const { render } = fakeRender({ indexHtml: null });
+  try {
+    await assert.rejects(
+      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      (err) => {
+        assert.equal(err.code, 'overlay-qa-failed');
+        assert.equal(err.exitCode, 1);
+        return true;
+      },
+    );
+    const ep = readEpisode(ws.scriptPath);
+    assert.equal(ep.status, 'approved');
+  } finally {
+    done(ws.root);
+  }
+});
+
