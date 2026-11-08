@@ -23,9 +23,29 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 
 ## Slice 1 — Structure (PRs 1a–1c)
 
-- [ ] 1a Not started. Base: tracker. (gated by V only for finish, not start)
-- [ ] 1b Not started.
-- [ ] 1c Not started.
+### PR 1a — layout contract. **SPLIT into two chained PRs** (each < 400 lines, repo rule).
+
+#### PR 1a-layout (`feature/conntent-redesign-v1a-layout`, base: tracker) — DONE, green
+- [x] 1a.1 RED `T/layout.test.mjs` — LAYOUT_LEGACY per legacy path; clean tree passes.
+- [x] 1a.2 GREEN `E/lib/layout.mjs` `assertLayout(root)` — 6 tests green.
+- Diff vs tracker: `layout.mjs` + `layout.test.mjs`, 239 insertions, **under budget**.
+
+#### PR 1a-chain (`feature/conntent-redesign-v1a`, base: v1a-layout) — DONE, green
+- [x] 1a.3 RED `T/export-console-episodes.test.mjs` — assets episode reported, episodes/ discovered.
+- [x] 1a.4 GREEN `scripts/export-console.mjs` (silent LEGACY_EPISODE skip → `assertLayout` warning),
+      data module `EPISODE_DIRS=['episodes']` only, `E/produce.mjs modelIdOf` on `episodes/`.
+- [x] 1a.5 RED `T/placement.test.mjs` — placement `{container}/episodes/{slug}/`.
+- [x] 1a.6 GREEN `BP/spec_NN.md` Video placement → `episodes/` + `blueprint_version` → `V_0-16-0`,
+      derived artifacts regenerated (catalog.json, field-registry).
+- [x] 1a.7 Data module `EPISODE_DIRS` narrowed to `['episodes']` (dropped `assets`).
+- [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
+- Diff vs v1a-layout: 288 insertions, **under budget**.
+
+**Status:** PR 1a delivered as two chained, OPEN PRs (fresh adversarial review done; verify:fast 227/227 on both):
+- **PR #591** (1a-layout) → base `feat/conntent-redesign`, head `feature/conntent-redesign-v1a-layout` (layout contract, 2 files).
+- **PR #592** (1a-chain) → base `feature/conntent-redesign-v1a-layout`, head `feature/conntent-redesign-v1a` (discovery/placement/spec/version, 14 chain files).
+
+Review fixes landed: spec Chrome-media homes → `library/media/`; export-console legacy warnings gated on a coNNtent doc (`isCoNNtentDoc`); `assertLayout` skips heavy dirs, restricts legacy-kind to root/series-root/episode, reports loose files under `series/<s>/assets/`; vacuous placement test removed. **Next slice: 1b (library).**
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 

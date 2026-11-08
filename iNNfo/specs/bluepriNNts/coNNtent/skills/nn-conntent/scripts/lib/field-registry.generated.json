@@ -1,6 +1,6 @@
 {
   "blueprint": "coNNtent",
-  "blueprint_version": "V_0-15-2",
+  "blueprint_version": "V_0-16-0",
   "generated_from": "spec_NN.md",
   "fields": {
     "adapter": {
@@ -145,7 +145,7 @@
       "options": [],
       "multiple": false,
       "cascade": false,
-      "description": "Series bumper media for this language, resolved under `series/<s>/assets/`."
+      "description": "Series bumper media for this language, resolved as a logical name under `series/<s>/library/media/`."
     },
     "capability": {
       "concepts": [
@@ -389,7 +389,7 @@
       "options": [],
       "multiple": false,
       "cascade": false,
-      "description": "Series music bed for this language, resolved under `series/<s>/assets/`. Retired on Scene and Preset, where `background_audio` is the only field."
+      "description": "Series music bed for this language, resolved as a logical name under `series/<s>/library/media/`. Retired on Scene and Preset, where `background_audio` is the only field."
     },
     "name": {
       "concepts": [
