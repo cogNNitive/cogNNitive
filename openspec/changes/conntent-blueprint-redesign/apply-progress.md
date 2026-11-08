@@ -23,9 +23,22 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 
 ## Slice 1 — Structure (PRs 1a–1c)
 
-- [ ] 1a Not started. Base: tracker. (gated by V only for finish, not start)
-- [ ] 1b Not started.
-- [ ] 1c Not started.
+### PR 1a — layout contract (base: tracker; PR opens against `feat/conntent-redesign`)
+
+- [x] 1a.1 RED `T/layout.test.mjs` — LAYOUT_LEGACY per legacy path; clean tree passes.
+- [x] 1a.2 GREEN `E/lib/layout.mjs` `assertLayout(root)` — 6 tests green.
+- [x] 1a.3 RED `T/export-console-episodes.test.mjs` — assets episode reported, episodes/ discovered.
+- [x] 1a.4 GREEN `scripts/export-console.mjs` (silent LEGACY_EPISODE skip → `assertLayout` warning),
+      data module `EPISODE_DIRS=['episodes']` only, `E/produce.mjs modelIdOf` on `episodes/`.
+- [x] 1a.5 RED `T/placement.test.mjs` — placement `{container}/episodes/{slug}/`.
+- [x] 1a.6 GREEN `BP/spec_NN.md` Video placement → `episodes/` (produce suite back to 23/23 green).
+- [x] 1a.7 Data module `EPISODE_DIRS` narrowed to `['episodes']` (dropped `assets`).
+- [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
+
+**Status:** PR 1a code complete. Verify gates GREEN: `verify.js --only=conntent`,
+`test/export-console-episodes` + `console-export-files` + `console-view-episode-review` (35/35).
+Not yet opened. Before push: run `npm run verify:fast`, fresh adversarial review, then open
+PR 1a against `feat/conntent-redesign`. Next slice: 1b (library).
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 

@@ -50,6 +50,19 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const repoConsoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
+/** Lazily loads the coNNtent layout checker, or null when that blueprint is not present. */
+async function loadLayoutChecker() {
+  const layoutUrl = new URL(
+    '../iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/layout.mjs',
+    import.meta.url,
+  ).href
+  try {
+    return await import(layoutUrl)
+  } catch {
+    return null
+  }
+}
+
 const SHELL_FILENAME = 'artifact_shell.html'
 const LEGACY_SHELL_FILENAME = 'artifact_blueprint.html'
 
@@ -222,9 +235,19 @@ function parseArgs(argv) {
 async function findModelFiles(dir) {
   const out = []
   const skip = new Set(['node_modules', '.git', '.cogNNitive', 'artifacts', 'dist', 'docs'])
-  // `series/<s>/assets/` is the pre-V_0-15-0 episode layout: the contract says those folders
-  // are ignored and reorganised by hand, so the console must not list them next to the
-  // real `episodes/` documents (it produced two models per episode, with colliding slugs).
+  // A legacy episode layout under `series/<s>/assets/` is rejected by `layout.mjs`, not
+  // silently skipped (task 1a.4). Report each finding; still skip the folder so a legacy
+  // document is never listed as a real episode next to the `episodes/` ones.
+  const layout = await loadLayoutChecker()
+  let legacyFindings = []
+  try {
+    legacyFindings = layout ? layout.assertLayout(dir) : []
+  } catch {
+    legacyFindings = []
+  }
+  for (const f of legacyFindings) {
+    process.stderr.write(`WARNING: [export-console] ${f.path}: ${f.message}\n`)
+  }
   const LEGACY_EPISODE = /(^|[\\/])series[\\/][^\\/]+[\\/]assets([\\/]|$)/
   async function walk(d) {
     let entries

@@ -63,7 +63,10 @@ function layerKindOf(type, fields) {
 }
 
 const FACTS_DIR = ['.cognnitive', 'video']
-const EPISODE_DIRS = ['episodes', 'assets']
+// The redesign discovers episodes under `series/<s>/episodes/<slug>/` only. A legacy
+// episode left under `series/<s>/assets/<slug>/` is rejected by `assertLayout` (task
+// 1a.4), never discovered as a normal episode here.
+const EPISODE_DIRS = ['episodes']
 
 // The console CSP is `img-src data: blob:` — a file path can never load, so every preview
 // has to be embedded. A full still is far too heavy (the pilot holds a 6.3 MB avatar), so

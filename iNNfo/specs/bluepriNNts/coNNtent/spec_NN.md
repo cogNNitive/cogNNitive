@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-7-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md"
 blueprint_name: "coNNtent"
-blueprint_version: "V_0-15-2"
+blueprint_version: "V_0-16-0"
 title: "coNNtent App"
 relationship_types:
   hierarchy:
@@ -50,7 +50,7 @@ color:: blue
 weight:: 100
 storage:: distributed
 container:: Series
-placement:: "{container}/assets/{slug}/"
+placement:: "{container}/episodes/{slug}/"
 
 ## NN Concept Definition: Scene
 slug:: scene
