@@ -41,11 +41,11 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** PR 1a delivered as two chained, OPEN PRs (fresh adversarial review done; verify:fast 227/227 on both):
-- **PR #591** (1a-layout) → base `feat/conntent-redesign`, head `feature/conntent-redesign-v1a-layout` (layout contract, 2 files).
-- **PR #592** (1a-chain) → base `feature/conntent-redesign-v1a-layout`, head `feature/conntent-redesign-v1a` (discovery/placement/spec/version, 14 chain files).
+**Status:** tracker `feat/conntent-redesign` (HEAD 7f24c2dc) verde y empujado. Aterrizado:
+- **Slice 1a completa** — PRs #591 + #592 fusionados; `verify:fast` 227/227 verde.
+- **Slice 1b núcleo** — `library.mjs` (`resolveLibrary` + `validateLibrary`) + `library.test.mjs` (8) + `library-folders.test.mjs` (4), verde.
 
-Review fixes landed: spec Chrome-media homes → `library/media/`; export-console legacy warnings gated on a coNNtent doc (`isCoNNtentDoc`); `assertLayout` skips heavy dirs, restricts legacy-kind to root/series-root/episode, reports loose files under `series/<s>/assets/`; vacuous placement test removed. **Next slice: 1b (library).**
+**Pausa por honestidad de alcance:** el cambio OpenSpec total (`1b.4+`, `1c`, `2`, `3a`, `3b`, `4`, `5`, `Phase 7`) es un programa de muchas sesiones. El wiring 1b.4 implica convertir frames/components a *carpetas* (rompe el engine `.html`/`.md` actual y ~118 tests que montan raíces viejas); 3b-3 depende de instalar whisper.cpp y 3b-4/QA de renders reales (gasto); 4a de verificaciones de navegador tuyas. Forzar el merge de un redesign a medias a `dev` rompería cada domaiNN coNNtent (justo lo que `feature-branch-chain` evita). Se deja el tracker verde como punto de integración correcto; la fusión a `dev`/`main` es el último paso cuando el cambio completo y `verify.js` estén verdes.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
