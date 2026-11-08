@@ -195,9 +195,9 @@ The directory handle and the reviewer name MUST NOT be written into any exported
 
 ### Requirement: Directly written changesets are consumed by produce on start
 
-<!-- shared with slice 3: the apply-on-start behaviour itself is specified by conntent-produce-command "Produce applies pending human changesets on start"; this requirement fixes what the console must write so that behaviour works. -->
-
 A changeset written to `changes/` by the console MUST satisfy every precondition `produce` imposes before applying it on start: `status: proposed`, a valid seal, the frontmatter markers `author_kind: human`, `origin: console` and `reviewer`, and a `target` that names the episode, its series or its domaiNN. Because the human-origin markers sit in the changeset frontmatter, a single file MAY hold verdicts and field edits together, and `produce` applies both on start. The file-name pattern MUST sort chronologically, so that `produce` applying "in file order" applies them in the order they were written.
+
+<!-- shared with slice 3: the apply-on-start behaviour itself is specified by conntent-produce-command "Produce applies pending human changesets on start"; this requirement fixes what the console must write so that behaviour works. -->
 
 #### Scenario: Verdict applied on start
 - GIVEN a console-written changeset approving the `script` gate of an episode

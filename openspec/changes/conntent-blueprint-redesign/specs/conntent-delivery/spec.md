@@ -133,9 +133,10 @@ The description file and the thumbnails in a delivery MUST be those produced by 
 - THEN the delivered description and thumbnails were produced by `r`
 
 ### Requirement: The delivery HTML is a read-only scoped view
-<!-- shared with slice 4: view and runtime in conntent-domain-console and console-scope -->
 
 Each `deliveries/v<N>/` MUST contain `<slug>_delivery.html`, produced by the same console writer and runtime as the domaiNN console through a read-only `delivery` view scoped to the one episode, referencing its sibling files by relative path. The HTML MUST carry no edit control and MUST NOT be part of the output hash. If the delivery view cannot be produced, delivery MUST fail with a named error (exit 1) and create no folder; it MUST NOT create a folder without the HTML.
+
+<!-- shared with slice 4: view and runtime in conntent-domain-console and console-scope -->
 
 #### Scenario: HTML present and relative
 

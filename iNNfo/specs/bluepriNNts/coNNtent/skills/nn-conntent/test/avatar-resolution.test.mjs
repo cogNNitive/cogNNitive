@@ -6,6 +6,8 @@ import path from 'node:path';
 import { defaultResolutionFor, validResolutionsFor, normalizeAvatarResolution, collectAvatarJobs } from '../scripts/lib/avatar-jobs.mjs';
 import { SceneCompiler } from '../scripts/scene-compiler.mjs';
 
+for (const k of ['WAVESPEED_API_KEY', 'REPLICATE_API_TOKEN', 'TTS_PROVIDER', 'MEDIA_PROVIDER']) delete process.env[k];
+
 const PRUNA = 'pruna-ai/p-video-2-pro/avatar';
 const INF = 'wavespeed-ai/infinitetalk-fast';
 
@@ -138,7 +140,7 @@ asset:: media/face.png
     const res = await synthesizeAvatars({
       scriptPath,
       dryRun: true,
-      measure: async () => ({ seconds: 3 }),
+      measureDuration: async () => 3,
     });
     assert.ok(res.jobs, 'synthesizeAvatars completes plan with jobs');
     assert.equal(res.jobs.length, 1);

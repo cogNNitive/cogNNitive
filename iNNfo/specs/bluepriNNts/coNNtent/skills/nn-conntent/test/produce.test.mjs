@@ -20,6 +20,8 @@ import { EXIT_BUDGET, EXIT_DONE, EXIT_REVIEW, produce, ProduceStop } from '../sc
 import { readEpisode } from '../scripts/lib/episode.mjs';
 import { isAvatarLayer } from '../scripts/lib/avatar-jobs.mjs';
 
+for (const k of ['WAVESPEED_API_KEY', 'REPLICATE_API_TOKEN', 'TTS_PROVIDER', 'MEDIA_PROVIDER']) delete process.env[k];
+
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BLUEPRINT = path.resolve(SKILL, '..', '..');
 
@@ -32,10 +34,10 @@ kind:: Libre
 one two three four five six seven eight nine ten
 `;
 
-const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-15-1' } = {}) => `---
+const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-15-2' } = {}) => `---
 level: 3
 parent_spec:
-  name: "coNNtent_V_0-15-1"
+  name: "coNNtent_V_0-15-2"
   url: "https://example.invalid/coNNtent/spec_NN.md"
 knowledge_version: "V_0-1-0"
 blueprint_version: "${pin}"
@@ -60,14 +62,14 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
   // and versioned (Tier 1b): a CI runner has no global blueprint cache to fall back on,
   // so the fixture must not depend on one.
   fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-1'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2'), { recursive: true });
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
     path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'spec_NN.md'),
   );
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
-    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-1', 'spec_NN.md'),
+    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2', 'spec_NN.md'),
   );
   fs.copyFileSync(path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'), path.join(root, 'video-defaults_NN.md'));
   fs.mkdirSync(path.join(root, 'changes'), { recursive: true });
@@ -502,7 +504,7 @@ test('an episode pinned to another blueprint version is refused naming both', as
       (err) => {
         assert.equal(err.code, 'blueprint-version-mismatch');
         assert.match(err.message, /V_0-14-1/);
-        assert.match(err.message, /V_0-15-1/);
+        assert.match(err.message, /V_0-15-2/);
         return true;
       },
     );

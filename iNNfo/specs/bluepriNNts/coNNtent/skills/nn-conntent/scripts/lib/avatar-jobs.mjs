@@ -86,7 +86,7 @@ export function ttsCachePathFor(sc, { cacheManager, config, models = {}, bags = 
   if (!narration) return undefined;
   const options = resolveRegisteredVoice(buildTtsVoiceOptions(sc, models, bags), config);
   const key = cacheManager.computeHash(narration, options);
-  return cacheManager.getSync(key, 'mp3', 'tts') || undefined;
+  return cacheManager.getSync(key, 'mp3', 'tts') || cacheManager.getSync(key + '-offline', 'mp3', 'tts') || undefined;
 }
 
 /**

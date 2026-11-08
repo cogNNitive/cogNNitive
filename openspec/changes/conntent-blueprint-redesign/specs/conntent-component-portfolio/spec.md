@@ -219,9 +219,9 @@ This requirement is the single owner of the package base set. The blueprint pack
 
 ### Requirement: The Console Data Exposes The Portfolio To The Picker
 
-<!-- shared with slice 4: the picker UI is specified by conntent-domain-console "Component picker" -->
-
 The coNNtent console data module MUST list, for every level that can set `components` (domaiNN, series, and the episode), the components visible from that level through the library lookup of `conntent-library`, each with `name`, `slot`, `variables`, `duration`, `aspect`, `source`, `tokens`, the level it comes from, whether a nearer item of the same name shadows it, and the path of its `preview.mp4` relative to the console file (absent when the file is missing). It MUST read these from `COMPONENT.md` through the engine's loader and MUST NOT parse them a second time. A component that fails `component-invalid` MUST be listed with its error and MUST NOT be selectable. The package floor items MUST be included at level `package`.
+
+<!-- shared with slice 4: the picker UI is specified by conntent-domain-console "Component picker" -->
 
 #### Scenario: Visible set per level
 - GIVEN a series component `boxed` and a domaiNN component `boxed` and a package component `plain`
