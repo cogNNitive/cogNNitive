@@ -107,6 +107,12 @@ description:: High-level engagement or commercial governance model.
 
 <!-- Segment fields -->
 
+## NN Field Definition: stakeholder
+concept:: Segment
+type:: reference
+target_concepts:: [Stakeholder]
+description:: Parent stakeholder aggregate to which this cohort belongs.
+
 ## NN Field Definition: market_size
 concept:: Segment
 type:: string
@@ -124,6 +130,12 @@ type:: string
 description:: Bounded criteria range defining cohort inclusion.
 
 <!-- Profile fields -->
+
+## NN Field Definition: segment
+concept:: Profile
+type:: reference
+target_concepts:: [Segment]
+description:: Parent segment cohort in which this profile operates.
 
 ## NN Field Definition: decision_role
 concept:: Profile
