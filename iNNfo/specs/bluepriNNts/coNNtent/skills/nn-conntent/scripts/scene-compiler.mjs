@@ -467,6 +467,8 @@ export class SceneCompiler {
       if (typeof voiceEmotion === 'string' && voiceEmotion.trim() !== '') {
         properties.scene_voice_emotion = voiceEmotion.trim();
       }
+      const sceneLanguage = resolve('language', sceneBags).value || language;
+      if (sceneLanguage) properties.scene_language = sceneLanguage;
       // `voice_tone` is authoring guidance only and is deliberately not read
       // here: it must never reach the TTS payload or the cache key (design D6).
 

@@ -288,6 +288,30 @@ async function runTests() {
     console.log('✔ checkScript fails with unknown-text-style on missing or unknown text style');
   }
 
+  // Test 11 (Phase 7): language cascades to properties.scene_language; missing language fails
+  {
+    const modelWithLang = model({
+      title: 'Spanish Video',
+      scenes: [scene('Scene Uno', 'scene-uno', 'Hola')],
+    });
+    modelWithLang.elements.Video[0].fields.language = 'es';
+    const lowered = compiler.lowerKnowledgeModel(modelWithLang, { fps: 30, width: 1920, height: 1920 });
+    assert.strictEqual(lowered.scenes[0].properties.scene_language, 'es', 'scene_language is cascaded from Video');
+
+    const modelNoLang = model({
+      title: 'No Language Video',
+      scenes: [scene('Scene One', 'scene-one', 'Hello', { kind: 'Libre' })],
+    });
+    modelNoLang.frontmatter.blueprint_version = 'V_0-15-0';
+    delete modelNoLang.elements.Video[0].fields.language;
+    assert.throws(
+      () => compiler.lowerKnowledgeModel(modelNoLang, { fps: 30, width: 1920, height: 1920 }),
+      (err) => err.code === 'missing-language',
+      'fails with missing-language when no language is declared',
+    );
+    console.log('✔ language cascades to scene_language; missing language fails');
+  }
+
   console.log('\nAll scene compiler unit tests passed! ✨');
 }
 
