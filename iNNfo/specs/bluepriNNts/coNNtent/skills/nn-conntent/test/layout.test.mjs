@@ -108,3 +108,34 @@ test('several legacy paths are aggregated in one call', () => {
   assert.equal(findings.length, 3, `expected 3 aggregated findings, got ${findings.length}`);
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test('heavy/generated directories do not trigger legacy-kind findings', () => {
+  const root = cleanDomain();
+  fs.mkdirSync(path.join(root, 'node_modules', '@scope', 'pkg', 'components'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'dist', 'components'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'docs', 'sounds'), { recursive: true });
+  assert.equal(assertLayout(root).length, 0, 'node_modules/dist/docs are never part of the authored layout');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('a series whose slug equals a legacy kind name is not a legacy finding', () => {
+  const root = tmp('layout-seriesnames-');
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
+  // A series legitimately slugged "sounds" — the kind-folder rule only fires at the
+  // series *root* (`series/<s>/sounds/`), not for a series folder named `sounds`.
+  fs.mkdirSync(path.join(root, 'series', 'sounds', 'episodes', 'e'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'series', 'sounds', 'sounds_coNNtent_NN.md'), '---\nlevel: 3\nscope: true\n---\n', 'utf8');
+  fs.writeFileSync(path.join(root, 'series', 'sounds', 'episodes', 'e', 'e_coNNtent_NN.md'), EPISODE_DOC('e'), 'utf8');
+  assert.equal(assertLayout(root).length, 0, 'a series slug equal to a kind name is not a legacy finding');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('a loose file under series/<s>/assets/ is reported as legacy series media', () => {
+  const root = cleanDomain();
+  fs.mkdirSync(path.join(root, 'series', 's', 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'series', 's', 'assets', 'cover.png'), 'x', 'utf8');
+  const hit = assertLayout(root).find((f) => f.code === LAYOUT_LEGACY && /series\/s\/assets$/.test(f.path));
+  assert.ok(hit, 'a loose file under assets/ must be reported');
+  assert.match(hit.message, /library\/<kind>\//);
+  fs.rmSync(root, { recursive: true, force: true });
+});

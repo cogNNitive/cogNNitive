@@ -8,8 +8,8 @@
  * A clean tree returns `[]`.
  *
  * Premise: no backwards compatibility. These layouts are rejected, never adapted;
- * no alias, reader or migration script exists. Called by `produce`, the console
- * data module and the entry point.
+ * no alias, reader or migration script exists. Wired into the console export in Slice 1a;
+ * `produce`, `check_domain` and the entry point adopt it in the slices that rewrite them.
  *
  * (capability conntent-folder-contract "Legacy Layouts Are Rejected, Not Adapted";
  * conntent-library "Legacy Root Folders Are Rejected").
@@ -22,6 +22,9 @@ import path from 'node:path';
 export const LAYOUT_LEGACY = 'legacy-layout';
 
 const EPISODE_DOC_RE = /_coNNtent_NN\.md$/;
+
+/** Heavy or generated directories that are never part of a domaiNN's authored layout. */
+const SKIP_DIRS = new Set(['node_modules', '.git', '.cogNNitive', 'artifacts', 'dist', 'docs']);
 
 /**
  * Legacy kind folders that used to live at a root or series root and now live under
@@ -41,6 +44,7 @@ function listDescendantDirs(root, dir) {
   }
   for (const e of entries) {
     if (!e.isDirectory()) continue;
+    if (SKIP_DIRS.has(e.name)) continue;
     const next = path.join(dir, e.name);
     out.push(path.relative(root, next).split(path.sep).join('/'));
     out.push(...listDescendantDirs(root, next));
@@ -66,7 +70,28 @@ export function assertLayout(root) {
     const series = rel.split('/')[1];
     const isLeaf = rel === `series/${series}/assets`;
     if (isLeaf) {
-      seriesAssets.set(rel, { abs: path.join(root, rel), hasEP: false, episodeSlugs: new Set(), other: false });
+      // The `assets/` folder itself: report it as legacy "series media" if it holds any
+      // entry that is not a legacy episode subfolder (e.g. a loose file) — the episode
+      // subfolders are each reported separately below.
+      let loose = false;
+      try {
+        for (const child of fs.readdirSync(path.join(root, rel))) {
+          const childAbs = path.join(root, rel, child);
+          let isDir = false;
+          try {
+            isDir = fs.statSync(childAbs).isDirectory();
+          } catch {
+            isDir = false;
+          }
+          if (!isDir) {
+            loose = true;
+            break;
+          }
+        }
+      } catch {
+        loose = true;
+      }
+      seriesAssets.set(rel, { abs: path.join(root, rel), hasEP: false, episodeSlugs: new Set(), other: loose });
       continue;
     }
     const tail = rel.slice(`series/${series}/assets/`.length);
@@ -103,10 +128,16 @@ export function assertLayout(root) {
 
   // Legacy kind folders at the domaiNN root, at a series root, or inside an episode.
   // `library/` and `media/` are the supported homes for those names, so a path under
-  // either is never a legacy finding.
+  // either is never a legacy finding. Only those three locations are matched, never an
+  // arbitrary depth or a series slug that happens to equal a kind name.
   for (const rel of dirs) {
-    if (rel.split('/').some((seg) => seg === 'library' || seg === 'media')) continue;
     const seg = rel.split('/');
+    if (seg.some((s) => s === 'library' || s === 'media')) continue;
+    const inKindRoot =
+      seg.length === 1 || // domaiNN root: `sounds/`
+      (seg.length === 3 && seg[0] === 'series' && seg[2] !== 'episodes') || // series root: `series/<s>/sounds/`
+      (seg.length === 4 && seg[0] === 'series' && seg[2] === 'episodes'); // episode: `series/<s>/episodes/<slug>/sounds/`
+    if (!inKindRoot) continue;
     const base = seg[seg.length - 1];
     if (!LEGACY_KIND_FOLDERS.has(base)) continue;
     findings.push({
