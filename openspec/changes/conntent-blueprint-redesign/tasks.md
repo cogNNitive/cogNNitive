@@ -25,11 +25,11 @@ Paths: `BP` = `iNNfo/specs/bluepriNNts/coNNtent/`; `E` = `BP/skills/nn-conntent/
 | Chained PRs recommended | Yes |
 | Suggested split | PR 0 (separate change) then 1a-1c, 2a-2e, 3a-i/3a-ii (parallel to 1-2), 3b-1..3b-5, 4a-4d, 5a-5b |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | feature-branch-chain (recommended; pending user confirmation) |
+| Chain strategy | feature-branch-chain (confirmed by the user 2026-11-08) |
 
-Decision needed before apply: Yes
+Decision needed before apply: No (chained PRs chosen)
 Chained PRs recommended: Yes
-Chain strategy: pending (recommended: feature-branch-chain)
+Chain strategy: feature-branch-chain
 400-line budget risk: High
 
 Why feature-branch-chain over stacked-to-main: (1) the premise rejects old layouts, so a slice merged alone to main would break every existing coNNtent domaiNN and its consoles while later slices are still in flight; only the finished tracker should reach `main`. (2) `validate-manifest` byte-checks main against the `templates-v*` pin, so each blueprint-touching merge to main would need its own tag and repin; one tracker merge needs one release run. (3) Rollback is one revert of the tracker merge, plus the per-PR revert inside the tracker. (4) Multi-PR stacked merges to main have caused incidents before. Cost: the tracker lives long, so rebase it onto `dev` after each child merges. If the user prefers speed, stacked-to-main is workable only if every PR leaves `verify:fast` green and the release is cut once at the end.
