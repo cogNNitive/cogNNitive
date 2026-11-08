@@ -45,7 +45,7 @@ import { synthesizeAvatars } from './synthesize-avatar.mjs';
 import { isAvatarLayer } from './lib/avatar-jobs.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
 import { checkOverlays } from './lib/overlay-qa.mjs';
-import { recordStage } from './lib/compile.mjs';
+import { recordStage, synthesizeEpisodeAssets } from './lib/compile.mjs';
 
 export const EXIT_DONE = 0;
 export const EXIT_REVIEW = 10;
@@ -264,7 +264,14 @@ export async function produce(options) {
     return { code: EXIT_DONE, summary: { planHash, total, budget: budgetUsd, dryRun: true } };
   }
 
-  // 4b. The avatar stage. Talking avatars are the costliest call and the only stage a
+  const runId = deps.runId || randomUUID();
+  const facts = { rootDir, runId, episode: episode.slug, planHash };
+
+  // 4b. Synthesis of audio and images (before avatars so narration audio is cached for avatars)
+  const synthAssets = deps.synthesizeEpisodeAssets || synthesizeEpisodeAssets;
+  await synthAssets({ scriptPath, facts, recordSynthesisStages: true });
+
+  // 4c. The avatar stage. Talking avatars are the costliest call and the only stage a
   // render cannot do itself: it refuses a layer with no cached clip. produce therefore runs
   // it here, before the render, whenever the episode actually has one.
   const avatarLayers = (episode.model.elements?.Layer || []).filter(isAvatarLayer);
@@ -275,10 +282,14 @@ export async function produce(options) {
   }
 
   // 5. Compile + render the master.
-  const runId = deps.runId || randomUUID();
-  const facts = { rootDir, runId, episode: episode.slug, planHash };
   const render = deps.render || renderVideo;
-  const rendered = await render({ scriptPath, facts, gsapPath: deps.gsapPath, stageDeps: deps.stageDeps });
+  const rendered = await render({
+    scriptPath,
+    facts,
+    gsapPath: deps.gsapPath,
+    stageDeps: deps.stageDeps,
+    recordSynthesisStages: false,
+  });
   const masterPath = rendered.outputVideoPath;
   log(`render: ${masterPath} (${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'})`);
 

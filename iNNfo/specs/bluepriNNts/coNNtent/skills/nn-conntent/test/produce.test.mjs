@@ -319,6 +319,46 @@ asset:: media/face.png
   }
 });
 
+test('produce runs TTS and image synthesis before avatar stage on cold cache with narrated avatar', async () => {
+  const withAvatar = `${SCENE}
+# NN Layer
+
+## NN Layer: Avatar Intro
+type:: avatar
+asset:: media/face.png
+`;
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', scenes: withAvatar }));
+  try {
+    const order = [];
+    const result = await produce({
+      episodePath: ws.scriptPath,
+      deps: {
+        synthesizeEpisodeAssets: async () => {
+          order.push('synthesize-assets');
+          return { audioAssets: {} };
+        },
+        synthesizeAvatars: async () => {
+          order.push('synthesize-avatars');
+          return { jobs: [] };
+        },
+        render: async (opts) => {
+          order.push('render');
+          return fakeRender().render(opts);
+        },
+        log: () => {},
+      },
+    });
+    assert.equal(result.code, EXIT_DONE);
+    assert.deepEqual(
+      order,
+      ['synthesize-assets', 'synthesize-avatars', 'render'],
+      'synthesis runs before avatars and render on cold cache',
+    );
+  } finally {
+    done(ws.root);
+  }
+});
+
 test('produce never runs the avatar stage for an episode without avatar layers', async () => {
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
   try {

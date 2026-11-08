@@ -490,6 +490,80 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
 }
 
 /**
+ * Synthesizes every TTS and image asset an episode script needs into cache.
+ * Records 'tts' and 'image' stage timing rows to facts if provided.
+ */
+export async function synthesizeEpisodeAssets(options = {}) {
+  const scriptPath = path.resolve(options.scriptPath);
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Script file not found: ${scriptPath}`);
+  }
+  const scriptDir = path.dirname(scriptPath);
+  const loaded = loadGuard(scriptDir);
+  const allowModels = options.allowModels || [];
+  const cacheDir = options.cacheDir || resolveDefaultCacheDir(scriptDir);
+  const bags = options.bags || loadCascadeBags(scriptDir);
+  const models = options.models || {
+    image: normalizeModelId(resolve('image_model', bags).value),
+    tts: normalizeModelId(resolve('voice_model', bags).value),
+    avatar: normalizeModelId(resolve('avatar_model', bags).value),
+  };
+  const dailyBudgetRaw = resolve('daily_budget', bags).value;
+  const dailyBudgetUsd =
+    dailyBudgetRaw === null || dailyBudgetRaw === undefined || dailyBudgetRaw === '' ? null : Number(dailyBudgetRaw);
+  const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
+  const makeGuard = (dryRun) =>
+    new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: () => ({ ok: true }), dailyBudgetUsd });
+
+  const compiler = new SceneCompiler({
+    fps: options.fps,
+    width: options.width,
+    height: options.height,
+  });
+
+  const model = options.model || loadKnowledgeModel(scriptPath, { model: options.model, modelPath: options.modelPath });
+  const scriptBags = withScriptPresets(bags, model, scriptPath);
+  const guard = compiler.checkScript(model, { ...options, bags: scriptBags });
+  if (!guard.ok) throw new ScriptValidationError(guard.errors);
+  const parsed = compiler.lowerKnowledgeModel(model, { bags: scriptBags, scriptDir, fps: options.fps, width: options.width, height: options.height });
+  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
+
+  // Pass 1: plan & preflight
+  const planGuard = makeGuard(true);
+  const planSynth = new AssetSynthesizer({
+    cacheManager: new CacheManager({ baseDir: cacheDir, readOnly: true }),
+    guard: planGuard,
+    ...synthOptions,
+  });
+  await synthesizeScriptAssets(structuredClone(parsed), planSynth, models, () => {}, new Map(), bags, catalog);
+  planGuard.assertPlanAffordable();
+
+  const costByRef = new Map();
+  for (const item of planGuard.planned) {
+    if (item.blocked) continue;
+    costByRef.set(item.ref, Math.round(((costByRef.get(item.ref) || 0) + item.estUsd) * 1e6) / 1e6);
+  }
+
+  // Pass 2: synthesize for real
+  const synthesizer = new AssetSynthesizer({
+    cacheManager: new CacheManager({ baseDir: cacheDir }),
+    guard: makeGuard(false),
+    ...synthOptions,
+  });
+  const res = await synthesizeScriptAssets(parsed, synthesizer, models, options.onProgress || (() => {}), costByRef, bags, catalog);
+
+  if (options.facts && options.recordSynthesisStages !== false) {
+    for (const stage of ['tts', 'image']) {
+      const t = res.stageTimings?.[stage];
+      if (!t || t.calls === 0) continue;
+      recordStage(options.facts, { stage, start: t.start, end: t.end, cache: { hits: t.hits, misses: t.misses } });
+    }
+  }
+
+  return res;
+}
+
+/**
  * Compiles a video script into a Composition Manifest, synthesizing and caching
  * TTS/media assets. Billable work is planned first (no spend, no writes) and the WHOLE run
  * is refused before the first charge when it is unapproved, uses a blocked model, or would
@@ -681,10 +755,12 @@ export async function compileVideo(options) {
     } = await synthesizeScriptAssets(parsed, synthesizer, models, onProgress, costByRef, bags, catalog));
     // One row per synthesis stage, before the compile row (capability video-run-facts
     // "Stage Timing Row Schema" and the fixed stage order of video-produce-command).
-    for (const stage of ['tts', 'image']) {
-      const t = synthesisStages?.[stage];
-      if (!t || t.calls === 0) continue;
-      queueStage({ stage, start: t.start, end: t.end, cache: { hits: t.hits, misses: t.misses } });
+    if (options.recordSynthesisStages !== false) {
+      for (const stage of ['tts', 'image']) {
+        const t = synthesisStages?.[stage];
+        if (!t || t.calls === 0) continue;
+        queueStage({ stage, start: t.start, end: t.end, cache: { hits: t.hits, misses: t.misses } });
+      }
     }
   }
 
