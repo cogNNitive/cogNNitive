@@ -23,22 +23,27 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 
 ## Slice 1 — Structure (PRs 1a–1c)
 
-### PR 1a — layout contract (base: tracker; PR opens against `feat/conntent-redesign`)
+### PR 1a — layout contract. **SPLIT into two chained PRs** (each < 400 lines, repo rule).
 
+#### PR 1a-layout (`feature/conntent-redesign-v1a-layout`, base: tracker) — DONE, green
 - [x] 1a.1 RED `T/layout.test.mjs` — LAYOUT_LEGACY per legacy path; clean tree passes.
 - [x] 1a.2 GREEN `E/lib/layout.mjs` `assertLayout(root)` — 6 tests green.
+- Diff vs tracker: `layout.mjs` + `layout.test.mjs`, 239 insertions, **under budget**.
+
+#### PR 1a-chain (`feature/conntent-redesign-v1a`, base: v1a-layout) — DONE, green
 - [x] 1a.3 RED `T/export-console-episodes.test.mjs` — assets episode reported, episodes/ discovered.
 - [x] 1a.4 GREEN `scripts/export-console.mjs` (silent LEGACY_EPISODE skip → `assertLayout` warning),
       data module `EPISODE_DIRS=['episodes']` only, `E/produce.mjs modelIdOf` on `episodes/`.
 - [x] 1a.5 RED `T/placement.test.mjs` — placement `{container}/episodes/{slug}/`.
-- [x] 1a.6 GREEN `BP/spec_NN.md` Video placement → `episodes/` (produce suite back to 23/23 green).
+- [x] 1a.6 GREEN `BP/spec_NN.md` Video placement → `episodes/` + `blueprint_version` → `V_0-16-0`,
+      derived artifacts regenerated (catalog.json, field-registry).
 - [x] 1a.7 Data module `EPISODE_DIRS` narrowed to `['episodes']` (dropped `assets`).
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
+- Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** PR 1a code complete. Verify gates GREEN: `verify.js --only=conntent`,
-`test/export-console-episodes` + `console-export-files` + `console-view-episode-review` (35/35).
-Not yet opened. Before push: run `npm run verify:fast`, fresh adversarial review, then open
-PR 1a against `feat/conntent-redesign`. Next slice: 1b (library).
+**Status:** both PR 1a slices code-complete and green (`verify.js --only=conntent`, `verify:fast` 227/227 on
+the chain). Not yet opened. Before push: fresh adversarial review per PR, then open PR 1a-layout against
+`feat/conntent-redesign` and PR 1a-chain against `feature/conntent-redesign-v1a-layout`. Next slice: 1b.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
