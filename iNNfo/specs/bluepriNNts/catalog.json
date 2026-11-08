@@ -326,6 +326,23 @@
         }
       ]
     },
+    "stakeholders": {
+      "name": "stakeholders",
+      "adopted": "V_0-1-0",
+      "tier": "free",
+      "access": "public",
+      "when_to_use": null,
+      "release_tag": null,
+      "embedded_skills": [],
+      "versions": [
+        {
+          "blueprint_version": "V_0-1-0",
+          "spec_version": "V_0-5-0",
+          "title": "Stakeholders Blueprint",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/stakeholders/spec_NN.md"
+        }
+      ]
+    },
     "visual-catalog": {
       "name": "visual-catalog",
       "adopted": "V_0-3-4",

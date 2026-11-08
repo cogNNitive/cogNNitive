@@ -596,7 +596,7 @@ var nnAddress = (() => {
     }
     return trimmed;
   }
-  var MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+  var MODEL_SEGMENT_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]*$/;
   function assertModelId(value, name) {
     const id = assertIdentifier(value, name);
     if (!id.split("/").every((segment) => MODEL_SEGMENT_RE.test(segment))) {
@@ -11677,7 +11677,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           domId: 'el-' + String(element.id || ''),
-          modelId: modelId || element.modelId || '',
+          modelId: (element && element.modelId) || modelId || '',
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
           lazy: Array.isArray(elements) && elements.length > 20,
@@ -11785,7 +11785,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var pill = UI.Ku(
           'element',
           {
-            model: modelId || element.modelId || '',
+            model: (element && element.modelId) || modelId || '',
             id: element.id,
             label: element.name || element.id || '',
             concept: element.concept,
@@ -11832,7 +11832,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           {
             doc: doc,
-            modelId: modelId || element.modelId || '',
+            modelId: (element && element.modelId) || modelId || '',
             concept: cMeta,
             onClick: function () {
               renderRefDialog(doc, element)
@@ -12029,7 +12029,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (element._draft) tr.classList.add('nn-element-table-draft')
 
       var rowCMeta = conceptMetaOf(conceptList, element.concept)
-      var rowModel = modelId || element.modelId || ''
+      var rowModel = (element && element.modelId) || modelId || ''
       var nameTd = el('td', 'nn-element-table-name')
       var elBadge =
         UI && typeof UI.Ku === 'function'

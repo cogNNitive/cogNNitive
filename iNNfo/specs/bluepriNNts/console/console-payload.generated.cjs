@@ -12597,7 +12597,7 @@ function assertIdentifier(value, name) {
   }
   return trimmed;
 }
-var MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+var MODEL_SEGMENT_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]*$/;
 function assertModelId(value, name) {
   const id = assertIdentifier(value, name);
   if (!id.split("/").every((segment) => MODEL_SEGMENT_RE.test(segment))) {

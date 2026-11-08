@@ -24,12 +24,12 @@ Primary operational workspace for Ghostbusters Inc. paranormal investigation, co
 
 # NN Models
 
-## NN Models: Ghostbusters Business Model
-path:: kNNowledge/Ghostbusters_business_NN.md
+## NN Models: Ghostbusters Business Model (Archived)
+path:: kNNowledge/archive/Ghostbusters_business_NN.md
 template:: business
-status:: active
+status:: archived
 author:: Peter Venkman
-Executive business model capturing value propositions, revenue streams, and customer segments for paranormal services.
+Legacy monolithic business model archived in favor of decoupled modular blueprints (stakeholders, business-model, organization, etc.).
 
 ## NN Models: Ghostbusters Business Model Canvas
 path:: kNNowledge/Ghostbusters_business-model_NN.md
@@ -94,6 +94,23 @@ status:: active
 author:: Egon Spengler
 Software architecture, firmware repositories, and telemetry systems for the containment grid.
 
+## NN Models: Executive Remediation Report 1984
+<!-- nn:auto -->
+path:: artifacts/models/executive_remediation_report_business_NN.md
+template:: [[business]]
+status:: active
+
+## NN Models: Ghostbusters Inc. Visual Design Presets
+<!-- nn:auto -->
+path:: kNNowledge/Ghostbusters_design-presets_NN.md
+template:: [[design-presets_V_0-4-1]]
+status:: active
+
+## NN Models: Commercial Clients Stakeholder
+<!-- nn:auto -->
+path:: stakeholders/commercial-clients/commercial-clients_stakeholders_NN.md
+template:: [[stakeholders_V_0-1-0]]
+status:: active
 # NN Sources
 
 ## NN Sources: Sources Catalog

@@ -16,7 +16,7 @@ function assertIdentifier(value: string, name: string): string {
 }
 
 /** One model-id segment; a hierarchical id is these joined by a slash. */
-const MODEL_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
+const MODEL_SEGMENT_RE = /^[A-Za-z0-9_][A-Za-z0-9_-]*$/
 
 function assertModelId(value: string, name: string): string {
   const id = assertIdentifier(value, name)
