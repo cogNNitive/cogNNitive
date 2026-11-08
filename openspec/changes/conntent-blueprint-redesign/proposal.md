@@ -329,6 +329,8 @@ The 20 decisions and 10 fixes were settled in a structured interview, so this ro
 
 Raised by the spec reconciliation. The specs implement the recommended default of each one and mark the spot; a different answer changes only the named requirement.
 
+**Resolved 2026-11-08:** the user accepted the recommended default for all 11 questions. The `[Q<n>]` tags in tasks.md need no patching.
+
 | # | Question | Recommended default (what the specs say now) | Where |
 |---|---|---|---|
 | 1 | **Double approval when the pre-preview spend alone exceeds `budget`.** With `preview` on, TTS and images are spent before the preview gate. If that subtotal alone is over budget, C3's "never two approvals" cannot hold. | Insert a `budget` gate before TTS and images carrying the episode `plan_hash`; the later preview gate then reviews content only and asks for no spend approval. Alternative: a spend stop (exit 11) asking the human to raise `budget`. | `conntent-review-gates` "A budget gate is inserted…" |
