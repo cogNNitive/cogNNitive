@@ -212,13 +212,13 @@ Settable at: `Chrome`.
 
 ### `bumper`
 
-Series bumper media for this language, resolved under `series/<s>/assets/`.
+Series bumper media for this language, resolved as a logical name under `series/<s>/library/media/`.
 
 Settable at: `Chrome`.
 
 ### `music`
 
-Series music bed for this language, resolved under `series/<s>/assets/`. Retired on Scene and Preset, where `background_audio` is the only field.
+Series music bed for this language, resolved as a logical name under `series/<s>/library/media/`. Retired on Scene and Preset, where `background_audio` is the only field.
 
 Settable at: `Chrome`.
 

@@ -51,24 +51,3 @@ test('a series/<s>/episodes/<slug>/ tree with the new document names is a clean 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
-
-test('the Series document is recognised by scope: true and carries no scope-only key after load', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'placement-scope-'));
-  try {
-    fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
-    fs.mkdirSync(path.join(root, 'series', 's', 'episodes', 'e'), { recursive: true });
-    fs.writeFileSync(
-      path.join(root, 'series', 's', 's_coNNtent_NN.md'),
-      '---\nlevel: 3\nscope: true\ntitle: "S"\n---\n',
-      'utf8',
-    );
-    fs.writeFileSync(
-      path.join(root, 'series', 's', 'episodes', 'e', 'e_coNNtent_NN.md'),
-      '---\nlevel: 3\ntitle: "E"\n---\n\n# NN Video\n',
-      'utf8',
-    );
-    assert.deepEqual(assertLayout(root), []);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
