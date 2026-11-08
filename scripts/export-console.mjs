@@ -50,6 +50,25 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const repoConsoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 
+/** Lazily loads the coNNtent layout checker, or null when that blueprint is not present. */
+async function loadLayoutChecker() {
+  const layoutUrl = new URL(
+    '../iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/layout.mjs',
+    import.meta.url,
+  ).href
+  try {
+    return await import(layoutUrl)
+  } catch {
+    return null
+  }
+}
+
+/** True when the filename is a coNNtent bluepriNNt instance document (from the naming contract). */
+function isCoNNtentDoc(name) {
+  const parsed = payloadHelper.parseName ? payloadHelper.parseName(name) : null
+  return Boolean(parsed && parsed.kind === 'nn' && /_coNNtent$/i.test(parsed.stem))
+}
+
 const SHELL_FILENAME = 'artifact_shell.html'
 const LEGACY_SHELL_FILENAME = 'artifact_blueprint.html'
 
@@ -222,9 +241,15 @@ function parseArgs(argv) {
 async function findModelFiles(dir) {
   const out = []
   const skip = new Set(['node_modules', '.git', '.cogNNitive', 'artifacts', 'dist', 'docs'])
-  // `series/<s>/assets/` is the pre-V_0-15-0 episode layout: the contract says those folders
-  // are ignored and reorganised by hand, so the console must not list them next to the
-  // real `episodes/` documents (it produced two models per episode, with colliding slugs).
+  // A legacy episode layout under `series/<s>/assets/` is rejected by coNNtent `layout.mjs`,
+  // not silently skipped (task 1a.4). Only a domaiNN that actually contains coNNtent
+  // documents gets these coNNtent-specific warnings; unrelated blueprints never do. The
+  // warnings are emitted lazily on the first coNNtent document, and the legacy folder is
+  // still skipped so a legacy document is never listed as a real episode next to the real
+  // `episodes/` ones.
+  const layout = await loadLayoutChecker()
+  let legacyFindings = null // computed lazily, only when a coNNtent document is seen
+  let warnedLegacy = false
   const LEGACY_EPISODE = /(^|[\\/])series[\\/][^\\/]+[\\/]assets([\\/]|$)/
   async function walk(d) {
     let entries
@@ -245,6 +270,18 @@ async function findModelFiles(dir) {
         !payloadHelper.isSidecarName(e.name)
       ) {
         out.push(join(d, e.name))
+        // Emit the coNNtent legacy findings only once a coNNtent document is actually seen.
+        if (!warnedLegacy && layout && isCoNNtentDoc(e.name)) {
+          warnedLegacy = true
+          try {
+            legacyFindings = layout.assertLayout(dir)
+          } catch {
+            legacyFindings = null
+          }
+          for (const f of legacyFindings ?? []) {
+            process.stderr.write(`WARNING: [export-console] ${f.path}: ${f.message}\n`)
+          }
+        }
       }
     }
   }

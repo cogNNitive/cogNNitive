@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-7-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md"
 blueprint_name: "coNNtent"
-blueprint_version: "V_0-15-2"
+blueprint_version: "V_0-16-0"
 title: "coNNtent App"
 relationship_types:
   hierarchy:
@@ -50,7 +50,7 @@ color:: blue
 weight:: 100
 storage:: distributed
 container:: Series
-placement:: "{container}/assets/{slug}/"
+placement:: "{container}/episodes/{slug}/"
 
 ## NN Concept Definition: Scene
 slug:: scene
@@ -223,12 +223,12 @@ description:: Call-to-action text for this language.
 ## NN Field Definition: bumper
 concept:: Chrome
 type:: file
-description:: Series bumper media for this language, resolved under `series/<s>/assets/`.
+description:: Series bumper media for this language, resolved as a logical name under `series/<s>/library/media/`.
 
 ## NN Field Definition: music
 concept:: Chrome
 type:: file
-description:: Series music bed for this language, resolved under `series/<s>/assets/`. Retired on Scene and Preset, where `background_audio` is the only field.
+description:: Series music bed for this language, resolved as a logical name under `series/<s>/library/media/`. Retired on Scene and Preset, where `background_audio` is the only field.
 
 ## NN Field Definition: presets
 concept:: [Video, Scene, Scene Kind, Series, Video Defaults]
@@ -518,7 +518,7 @@ reach the document only through changesets applied by the apply engine.
 ## Structure
 
 - **Video** — a distributed concept: one Video instance model per episode, at
-  `series/<s>/assets/<slug>/<slug>_coNNtent_NN.md`, holding exactly one Video element.
+  `series/<s>/episodes/<slug>/<slug>_coNNtent_NN.md`, holding exactly one Video element.
   Carries the episode record (`status`, `published_url`, `script`, `master`, `thumbnail`),
   the human `title` and the pinned `blueprint_version` in the document frontmatter.
 - **Scene** — child of Video. Order equals the order of the `# NN index` list; no `order::`
@@ -799,7 +799,7 @@ One element per language holding the series wallpaper applied by kind.
 ### Description
 
 One `## NN Chrome: <language>` element declares `language` and any of `watermark`, `cta`,
-`bumper` and `music`; its media resolve under `series/<s>/assets/`. A kind's `chrome` list
+`bumper` and `music`; its media resolve as logical names under `series/<s>/library/media/`. A kind's `chrome` list
 names the items applied to its scenes. When a kind lists an item and no Chrome element for
 the resolved language declares it, the run fails before spend naming the item and the
 language.
@@ -807,7 +807,7 @@ language.
 ### Methodologies
 
 - Declare the chrome text once per language, not per episode.
-- Keep the media in `series/<s>/assets/`, never inside an episode.
+- Keep the media in `series/<s>/library/media/`, never inside an episode.
 - Remember that the episode's `language` selects the element.
 
 ### Prompts

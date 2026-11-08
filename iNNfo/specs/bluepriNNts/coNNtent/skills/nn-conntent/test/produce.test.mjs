@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * nn-conntent/test/produce.test.mjs
@@ -34,10 +34,10 @@ kind:: Libre
 one two three four five six seven eight nine ten
 `;
 
-const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-15-2' } = {}) => `---
+const episodeDoc = ({ status = 'draft', budget = '1.5', review = 'skip', scenes = SCENE, pin = 'V_0-16-0' } = {}) => `---
 level: 3
 parent_spec:
-  name: "coNNtent_V_0-15-2"
+  name: "coNNtent_V_0-16-0"
   url: "https://example.invalid/coNNtent/spec_NN.md"
 knowledge_version: "V_0-1-0"
 blueprint_version: "${pin}"
@@ -62,14 +62,14 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
   // and versioned (Tier 1b): a CI runner has no global blueprint cache to fall back on,
   // so the fixture must not depend on one.
   fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent'), { recursive: true });
-  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-16-0'), { recursive: true });
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
     path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'spec_NN.md'),
   );
   fs.copyFileSync(
     path.join(BLUEPRINT, 'spec_NN.md'),
-    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-15-2', 'spec_NN.md'),
+    path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-16-0', 'spec_NN.md'),
   );
   fs.copyFileSync(path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'), path.join(root, 'video-defaults_NN.md'));
   fs.mkdirSync(path.join(root, 'changes'), { recursive: true });
@@ -81,7 +81,7 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
     'utf8',
   );
   const seriesDir = path.join(root, 'series', 's');
-  const episode = path.join(seriesDir, 'assets', 'e');
+  const episode = path.join(seriesDir, 'episodes', 'e');
   fs.mkdirSync(episode, { recursive: true });
   if (series) {
     fs.writeFileSync(
@@ -504,7 +504,7 @@ test('an episode pinned to another blueprint version is refused naming both', as
       (err) => {
         assert.equal(err.code, 'blueprint-version-mismatch');
         assert.match(err.message, /V_0-14-1/);
-        assert.match(err.message, /V_0-15-2/);
+        assert.match(err.message, /V_0-16-0/);
         return true;
       },
     );

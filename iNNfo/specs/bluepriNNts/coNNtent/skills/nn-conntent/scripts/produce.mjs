@@ -97,14 +97,15 @@ export function resolveEpisodePath(input) {
 /**
  * The model id the changeset target uses. `Video` is a distributed concept, so an
  * episode is an instance model addressed by its container chain and its own slug
- * (`<series>/<episode>`), never by its file stem (`e_coNNtent`). A document that is not
- * placed under `<container>/assets/<slug>/` keeps the compact-model rule: the stem.
+ * (`<series>/<episode>`), never by its file stem (`e_coNNtent`). A document placed
+ * under `<container>/episodes/<slug>/` keeps the distributed rule; anything else uses
+ * the compact-model rule: the stem.
  */
 export const modelIdOf = (scriptPath) => {
   const folder = path.dirname(scriptPath);
   const slug = path.basename(folder);
   const parent = path.basename(path.dirname(folder));
-  if (parent === 'assets') {
+  if (parent === 'episodes') {
     const container = path.basename(path.dirname(path.dirname(folder)));
     if (container) return `${container}/${slug}`;
   }
