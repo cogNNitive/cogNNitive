@@ -41,9 +41,11 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** both PR 1a slices code-complete and green (`verify.js --only=conntent`, `verify:fast` 227/227 on
-the chain). Not yet opened. Before push: fresh adversarial review per PR, then open PR 1a-layout against
-`feat/conntent-redesign` and PR 1a-chain against `feature/conntent-redesign-v1a-layout`. Next slice: 1b.
+**Status:** PR 1a delivered as two chained, OPEN PRs (fresh adversarial review done; verify:fast 227/227 on both):
+- **PR #591** (1a-layout) → base `feat/conntent-redesign`, head `feature/conntent-redesign-v1a-layout` (layout contract, 2 files).
+- **PR #592** (1a-chain) → base `feature/conntent-redesign-v1a-layout`, head `feature/conntent-redesign-v1a` (discovery/placement/spec/version, 14 chain files).
+
+Review fixes landed: spec Chrome-media homes → `library/media/`; export-console legacy warnings gated on a coNNtent doc (`isCoNNtentDoc`); `assertLayout` skips heavy dirs, restricts legacy-kind to root/series-root/episode, reports loose files under `series/<s>/assets/`; vacuous placement test removed. **Next slice: 1b (library).**
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
