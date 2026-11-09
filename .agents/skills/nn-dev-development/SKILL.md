@@ -164,9 +164,18 @@ Match the ceremony to the blast radius — never run the heavy lane "just in cas
   session worktree, commit, push, PR, and let CI verify. **No** OpenSpec change, **no**
   `nn-dev-check-integrity`. Covers most bug fixes and internal refactors.
 - **Heavy lane.** Public contract changes, product behavior, a release/version bump, a
-  migration, or anything cross-cutting: full SDD cycle, then the batched merge in §4.
+  migration, or anything cross-cutting: full OpenSpec change cycle, then the batched merge
+  in §4.
 
 Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
+
+**Two workflows, never blended.** Agent behavior is owned by Gentle-AI, whose v4 line runs
+ODD (Organic Driven Development) and retired the `sdd-*` skills, the `/sdd-*` commands and
+its OpenSpec integration. The spec process belongs to this repository: `openspec/` plus
+`npm run check:openspec`, with no dependency on Gentle-AI. So "full OpenSpec change cycle"
+means the repo-owned flow under `openspec/changes/` — never a `/sdd-*` command, which no
+longer exists. When older notes or an agent's routing guidance says "SDD cycle", read it as
+the repository's OpenSpec cycle, not as a Gentle-AI workflow.
 
 ### 2c. Keep the backlog shrinking
 
