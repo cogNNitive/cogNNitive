@@ -1,8 +1,8 @@
 #!/bin/sh
 # pre-push: forward git's stdin ref lines to scripts/pre-push-check.js, which owns
 # the whole gate:
-#   1. fast-path — a push whose commits are all `wip:` checkpoints on
-#      refs/heads/session/* exits 0 without running the heavy pipeline,
+#   1. fast-path — a push of `refs/heads/session/*` branches only exits 0 without
+#      running the heavy pipeline; CI gates the pull request.
 #   2. `npm run typecheck` and the docs-derived-facts prerequisite,
 #   3. the derived-artifact freshness guards, run concurrently,
 #   4. eslint, scoped to files changed against origin/dev.

@@ -1,4 +1,5 @@
 import type { ParsedKnowledge, ElementNode, TaxonomyEdge, MatrixCell } from './types/index.js'
+import type { ConceptField } from './types/parser.js'
 import { ElementsMap } from './types/index.js'
 import type { BlueprintSchema } from './schema/index.js'
 import {
@@ -807,10 +808,19 @@ function matchesElement(e: ElementNode, target: string): boolean {
  * on `price:: 5` stays the number 7 and serializes `price:: 7`, never
  * `price:: "7"`. A field with no existing value, or an incoming string the
  * existing shape cannot express, keeps the string received.
+ *
+ * A fresh field has no existing value to infer from, so the declared field type
+ * decides: `update_field to:: 5` on an unset `type:: number` must arrive as the
+ * number 5, or validation rejects a changeset that is valid by contract.
  */
-function coerceFieldValue(existing: unknown, incoming: unknown): unknown {
+function coerceFieldValue(
+  existing: unknown,
+  incoming: unknown,
+  def?: ConceptField,
+): unknown {
   if (typeof incoming !== 'string') return incoming
-  if (typeof existing === 'number') {
+  const declared = def?.type
+  if (declared === 'number' || (declared === undefined && typeof existing === 'number')) {
     const trimmed = incoming.trim()
     if (trimmed !== '') {
       const asNumber = Number(trimmed)
@@ -818,7 +828,7 @@ function coerceFieldValue(existing: unknown, incoming: unknown): unknown {
     }
     return incoming
   }
-  if (typeof existing === 'boolean') {
+  if (declared === 'boolean' || (declared === undefined && typeof existing === 'boolean')) {
     const lower = incoming.trim().toLowerCase()
     if (lower === 'true') return true
     if (lower === 'false') return false
@@ -938,10 +948,12 @@ function updateField(
     }
   }
 
-  // Schema-aware field value validation
+  // Schema-aware field value validation. Coerce first: the declared type decides
+  // what a field with no existing value holds, so validation sees the real value.
+  let fieldDef: ConceptField | undefined
   if (schema && foundConcept) {
     const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === foundConcept!.toLowerCase())
-    let fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
+    fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
     if (!fieldDef && Array.isArray((schema as any).fields)) {
       fieldDef = (schema as any).fields.find(
         (f: any) =>
@@ -953,19 +965,22 @@ function updateField(
               : String(f.concept).toLowerCase() === foundConcept!.toLowerCase())),
       )
     }
-    if (fieldDef) {
-      const diags = validateFieldValue(fieldDef, parsedVal, `${foundConcept}.${fieldName}`)
-      const errors = diags.filter((d) => d.severity === 'error')
-      if (errors.length > 0) {
-        return {
-          success: false,
-          errors: errors.map((e) => ({ path: e.path, message: e.message })),
-        }
+  }
+
+  const coercedVal = coerceFieldValue(foundElement.fields[fieldName], parsedVal, fieldDef)
+
+  if (fieldDef) {
+    const diags = validateFieldValue(fieldDef, coercedVal, `${foundConcept}.${fieldName}`)
+    const errors = diags.filter((d) => d.severity === 'error')
+    if (errors.length > 0) {
+      return {
+        success: false,
+        errors: errors.map((e) => ({ path: e.path, message: e.message })),
       }
     }
   }
 
-  foundElement.fields[fieldName] = coerceFieldValue(foundElement.fields[fieldName], parsedVal)
+  foundElement.fields[fieldName] = coercedVal
   if (foundElement.rawFields && fieldName in foundElement.rawFields) {
     delete foundElement.rawFields[fieldName]
   }

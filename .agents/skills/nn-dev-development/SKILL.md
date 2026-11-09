@@ -179,6 +179,12 @@ change that touches core + mcp + docs but alters no contract stays light.
 
 Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
 
+**Open the PR freely; ask before merging it.** When a work unit is done and verified, open
+the PR to `dev` without asking — that is the normal end of a unit. Merging that PR into
+`dev` is the maintainer's call: ask at the moment, per PR. Pushing the session branch is
+always allowed. The `dev -> main` batch and its tags stay gated by §4 and `nn-dev-release`;
+this rule does not touch them.
+
 ### 2b.1 OpenSpec only at the contract boundary
 
 OpenSpec is used twice per heavy change, never as per-step ceremony:
@@ -187,7 +193,9 @@ OpenSpec is used twice per heavy change, never as per-step ceremony:
    `openspec/changes/<slug>/specs/<capability>/spec.md` with only the requirements that
    changed (`## ADDED|MODIFIED|REMOVED Requirements`). Keep each normative sentence on one
    physical line: the validator reads only the line after `### Requirement:`.
-2. **At archive** — fold that delta into `openspec/specs/<capability>/spec.md`.
+2. **At archive** — the delta moves with its change into `openspec/changes/archive/`. There
+   is no living-spec merge: `openspec/specs/` was retired because nothing consumed it (see
+   `AGENTS.md`, "No archive is a contract").
 
 Do **not** write `proposal.md`, `design.md` or `tasks.md` for a heavy change. ODD already
 produces `odd/tasks/<feature>.md` with objective, scope, checklist, acceptance criteria and
@@ -195,9 +203,8 @@ evidence; duplicating it in a second format is pure friction. `check:openspec` o
 delta spec files under `openspec/changes/*/specs/`, so leaving those three out breaks no
 gate.
 
-The living specs are **current state, not history** — git keeps the history. A change that
-retires a feature must update, or explicitly retire, every living spec that still requires
-it, in the same PR.
+A delta states what changes; once archived it is history. Anything that must stay in force
+belongs in a test or in a published `iNNfo/specs/` spec.
 
 ### 2b.2 Inner loop vs. batch gate
 
