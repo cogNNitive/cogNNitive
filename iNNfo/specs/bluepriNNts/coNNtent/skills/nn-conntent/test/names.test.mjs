@@ -19,6 +19,7 @@ import path from 'node:path';
 
 import { deliverableNamesFor, slugFromMaster } from '../scripts/lib/render.mjs';
 import { slugFromMaster as formatSlugFromMaster } from '../scripts/render-formats.mjs';
+import { compositionIdOf } from '../scripts/scene-compiler.mjs';
 
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
 
@@ -41,9 +42,7 @@ test('formats live under formats/ with the slug and true dimensions', () => {
 });
 
 test('the HyperFrames composition id is the episode slug, never the title', () => {
-  // The composition id rule lives in the scene compiler; check it is a pure slug.
-  const { compositionIdOf } = (async () => ({}))();
-  // scene-compiler compositionIdOf is exercised in its own suite; here we assert the
-  // deliverable naming contract only.
-  assert.ok(true);
+  assert.equal(compositionIdOf({ slug: 'gas-pump', title: 'Why founders fail' }), 'gas-pump');
+  assert.equal(compositionIdOf({ title: 'Why founders fail' }), 'why-founders-fail');
+  assert.equal(compositionIdOf('gas-pump'), 'gas-pump');
 });

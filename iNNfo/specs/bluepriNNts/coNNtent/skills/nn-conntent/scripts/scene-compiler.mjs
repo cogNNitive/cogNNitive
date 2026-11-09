@@ -173,9 +173,20 @@ function internalLayerType(declared, asset) {
   }
 }
 
-/** The manifest `compositionId` derived from the Video title (one slug source). */
-export function compositionIdOf(title) {
-  return String(title || 'composition')
+/**
+ * The manifest `compositionId`: the episode slug, never derived from the title
+ * (design D-S2; conntent-folder-contract "Composition id is the slug"). Accepts either
+ * the slug string or `{ slug, title }`; when no slug is known it falls back to a
+ * slugified title so existing callers keep working.
+ */
+export function compositionIdOf(input) {
+  // A real episode slug comes from an object `{ slug, title }`; a bare string is
+  // treated as the title (back-compat with existing callers).
+  const isObj = input && typeof input === 'object';
+  const slug = isObj ? input.slug : null;
+  const title = isObj ? input.title : input;
+  const raw = String(slug || title || 'composition');
+  return String(slug || raw)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
