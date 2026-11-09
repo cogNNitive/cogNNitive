@@ -41,11 +41,13 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado. Aterrizado (verify:fast 227/227 tras cada uno):
-- **Slice 1a completa** (PRs #591+#592), **1b núcleo**, **2c** (frame-carpeta), **1c.3+1c.4** (ledger único).
-- **Slice 1b COMPLETA** — 1b.4 (wiring compile/render-thumbnail a `resolveLibrary`; `findNearest*` borrado; tests frame/sounds/overlay migrados a `library/`), 1b.5+1b.6 (`libraryResolutionRecord`; refs que escalan → `LIBRARY_PATH_INVALID`).
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD 6362cde7, verify:fast 227/227 tras cada uno). Aterrizado en esta pasada:
+- **Slice 1b COMPLETA** (1b.1-1b.6): library.mjs lookup+validación+records; wiring compile/render-thumbnail a `resolveLibrary`; `findNearest*` borrado; tests frame/sounds/overlay migrados a `library/`; F9 refs que escalan → `LIBRARY_PATH_INVALID`.
+- **1c.1**: nombres canónicos de entregables (`<slug>_<W>x<H>.mp4`, `<slug>_thumbnail_<W>x<H>.png`, `<slug>_description.md`, `<slug>_animatic_...`, `plan.json`/`qa.json`).
+- **1c.7**: plan persistido en `<episode>/plan.json`; engine nunca confía en su body.
+- (Antes) 1a, 1b núcleo, 2c (frame-carpeta), 1c.3+1c.4 (ledger único).
 
-**Pendiente:** 1c.1/1c.2 (nombres de entregables), 1c.5 (retirar `video-guard.json`), 1c.7 (plan.json), 1c.8 (docs), y slices 2/3a/3b/4/5 + Phase 7. Con permisos concedidos (whisper/render/navegador) puedo completar más, incluyendo V.3 y 3b-3/4. La fusión a `dev`/`main` es el último paso cuando el cambio completo y `verify.js` estén verdes.
+**Pendiente:** 1c.5/1c.6 (retirar `video-guard.json`; SpendGuard lee cascade+catálogo; Model `max_seconds`/`max_concurrency`), 1c.2 (aplicar nombres en render-thumbnail/formats/compiler), 1c.8 (docs/procedures), y slices 2a-2e, 3a, 3b-1..5, 4a-4d, 5a-5b, Phase 7. Con permisos concedidos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4 y botijos-today. La fusión a `dev`/`main` es el último paso cuando el cambio completo y `verify.js` estén verdes.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
