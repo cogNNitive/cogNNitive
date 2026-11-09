@@ -41,25 +41,32 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD e787ab15, verify:fast 254/254 tras cada commit). En esta pasada:
-- **Slice 2d COMPLETO** (2d.1-2d.5): `lib/characters.mjs` (CHARACTER.md + frontmatter validado, findCharacter, characterValues, characterOverrides warning `character-override` dedup field+source, assertCharacterVoice → `missing-character-voice`), campos `character`/`pose`/`background` render-class (levels derivados de Concepts: densos sin Layer), character node en cascade (`nivel:character:name`, explicit > character > preset, D19).
-- **Slice 2e COMPLETO** (2e.1-2e.7): `lib/component-portfolio.mjs` (COMPONENT.md schema completo: variables objects, duration/aspect/source pin/license), 6 componentes a folder form `library/components/<name>/{COMPONENT.md,index.html,preview.mp4}`, contracts a `skills/nn-conntent/slots/<slot>.html`, `resolveLibrary` con components como FOLDER_KIND, `resolveComponents` lee index.html; thumbnail hermético (vendor/gsap.min.js local, sin CDN); V.5 fallback aplicado (6 engine-authored, archivo `local`, sin URLs de red en index.html); manifest del paquete en la sección Structure del spec.
-- (Antes) 1a, 1b, 2c, 1c.1-1c.5+1c.7, 2a completo, 2b completo.
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD ccec1e5a, verify:fast OK tras cada commit; nn-core changeset 165/165). En esta pasada:
+- **Slice 3a-i.1+3a-i.2 (parcial)**: `review_gate` añadido a `CHANGE_OPS`; `ChangeItem` con `gate`/`verdict`/`reviewed_hash`/`plan_hash`/`rawKeys`; frontmatter `author_kind`/`origin`/`reviewer`; `reviewGateProblems()` (shape + keys no declaradas + verdict enum + hash hex64); parser lee las keys y exige los 3 markers cuando hay review_gate; hasher sella verdict keys + provenance (PROPOSAL_KEYS + computeProposalSha(frontmatter)); tests `review-gate.test.ts` 8/8 y `hasher.test.ts` actualizado. Mirror `nn-core.generated.cjs` y console-payload regenerados.
+- **Slice 2 COMPLETO** (2a, 2b, 2c, 2d, 2e) — ver abajo.
+- (Antes) 1a, 1b, 1c.1-1c.5+1c.7.
 
-**Pendiente:** ninguno de 1a-2e (SLICE 2 COMPLETO: 2a, 2b, 2c, 2d, 2e). **Luego:** 3a (review_gates en nn-core), 3b-1..5 (incluye whisper + renders reales), 4a-4d (consola, navegador), 5a-5b (procedures), Phase 7 (living specs, botijos-today, verify.js full, archive). 1c.6/1c.8 dependientes de 3b (rewire spendGuard callers a cascade+catalog). Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, 4a (V.1/V.2), botijos-today. Fusión a dev/main al final con verify.js verde.
+**Pendiente:** 3a-i.3→.6, 3a-ii.1→.5, 3b-1..5 (incluye whisper + renders reales), 4a-4d (consola, navegador), 5a-5b (procedures), Phase 7 (living specs, botijos-today, verify.js full, archive). 1c.6/1c.8 dependientes de 3b (rewire spendGuard callers a cascade+catalog). Permisos ya concedidos: whisper.cpp, gasto proveedor, navegador (V.1/V.2/V.3/V.4/V.5). Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
-- [ ] 2a–2e Not started. 2e requires V.5 recorded (done).
+- [x] 2a COMPLETO (resolver único con source-trace, registry scope/levels, contract test, avatar_resolution render cascade).
+- [x] 2b COMPLETO (lenguaje/voz, capability video rechazada, campos captions/thumbnail/review_gates, parity estimator/compiler).
+- [x] 2c COMPLETO (frame folder).
+- [x] 2d COMPLETO (Character folder + node + override warning + missing-character-voice).
+- [x] 2e COMPLETO (portfolio folder form, slots contracts, hermetic thumbnail, V.5 fallback, manifest).
 
 ## Slice 3a — nn-core `review_gate` (PR 3a-i, 3a-ii)
 
-- [ ] Not started. Parallel to Phases 1–2.
+- [x] 3a-i.1 + 3a-i.2 (op parse/validate/seal + provenance markers).
+- [ ] 3a-i.3 + 3a-i.4 (blueprint `gates` frontmatter + GATE_UNDECLARED/GATE_TARGET_INVALID; `gates:` in coNNtent spec_NN.md).
+- [ ] 3a-i.5 + 3a-i.6 (apply requires human origin: GATE_NOT_HUMAN/GATE_REVIEWER_REQUIRED; build nn-core).
+- [ ] 3a-ii.1..5 (nn-mcp refuses verdicts; export frontmatter parser through core-mirror; build-core-mirrors).
 
 ## Slice 3b — Pipeline and review (PRs 3b-1..3b-5)
 
 - [ ] 3b-1..3b-3, 3b-5 Not started.
-- [ ] 3b-3 requires V.3; 3b-4 requires V.4.
+- [ ] 3b-3 requires V.3 (whisper); 3b-4 requires V.4 (renders).
 
 ## Slice 4 — Console (PRs 4a–4d)
 
