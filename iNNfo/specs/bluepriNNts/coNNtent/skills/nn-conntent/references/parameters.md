@@ -78,7 +78,13 @@ Legend: ● can be written at this scope, · cannot.
 | `budget` | number | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `daily_budget` | number | — | ● | · | · | · | · | · | · | · | · | · | · | · |
 | `output_formats` | select (multi) | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
-| `script_review` | select | `required`, `skip` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `review_gates` | select (multi) | `script`, `preview` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `captions` | select | `off`, `words`, `lines` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `caption_model` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `thumbnail_formats` | list | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `thumbnail_base` | file | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `thumbnail_title` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `thumbnail_badge` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `name` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
 | `api_base` | url | — | · | · | · | · | · | · | · | · | · | ● | · | · |
 | `provider` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
@@ -426,9 +432,45 @@ Ordered list of delivery sizes as `<W>x<H>`. The first entry is the master size;
 
 Settable at: `Video`, `Series`, `Video Defaults`.
 
-### `script_review`
+### `review_gates`
 
-Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
+The gates that stop the run before spend, in order. Defaults to `[script, preview]`. Replaces the retired single script-review flag.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `captions`
+
+Caption mode: `off` produces no captions, `words` word-level timing, `lines` segment-level timing. Defaults to `off`.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `caption_model`
+
+The transcript alignment model override. Defaults to the package model.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `thumbnail_formats`
+
+Ordered thumbnail sizes as `<W>x<H>`. Defaults to `[2560x1440, 1080x1920]`.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `thumbnail_base`
+
+A text-free clean composite used as the thumbnail base; defaults to the first scene still.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `thumbnail_title`
+
+The title text drawn on the thumbnail; defaults to the Video `title`.
+
+Settable at: `Video`, `Series`, `Video Defaults`.
+
+### `thumbnail_badge`
+
+An optional small badge drawn on the thumbnail; defaults to none.
 
 Settable at: `Video`, `Series`, `Video Defaults`.
 

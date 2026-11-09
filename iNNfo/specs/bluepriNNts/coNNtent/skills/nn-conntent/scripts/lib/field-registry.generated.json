@@ -220,6 +220,52 @@
       "cascade": false,
       "description": "What the Model produces. Capability is declared, never inferred from the id."
     },
+    "caption_model": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "kind",
+        "video",
+        "scene",
+        "layer"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "The transcript alignment model override. Defaults to the package model."
+    },
+    "captions": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "kind",
+        "video",
+        "scene",
+        "layer"
+      ],
+      "type": "select",
+      "options": [
+        "off",
+        "words",
+        "lines"
+      ],
+      "multiple": false,
+      "cascade": true,
+      "description": "Caption mode: `off` produces no captions, `words` word-level timing, `lines` segment-level timing. Defaults to `off`."
+    },
     "chrome": {
       "concepts": [
         "Scene Kind"
@@ -742,6 +788,27 @@
       "cascade": false,
       "description": "The reviewer's verdict on the scene. Every scene must be `approved` before the episode can reach `approved`; a reason is a changeset comment, never a field."
     },
+    "review_gates": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "video",
+      "levels": [
+        "domain",
+        "series",
+        "video"
+      ],
+      "type": "select",
+      "options": [
+        "script",
+        "preview"
+      ],
+      "multiple": true,
+      "cascade": true,
+      "description": "The gates that stop the run before spend, in order. Defaults to `[script, preview]`. Replaces the retired single script-review flag."
+    },
     "role": {
       "concepts": [
         "Scene Kind"
@@ -765,23 +832,6 @@
       "multiple": false,
       "cascade": false,
       "description": "The episode's script document, resolved under the owning model's directory."
-    },
-    "script_review": {
-      "concepts": [
-        "Video",
-        "Series",
-        "Video Defaults"
-      ],
-      "scope": "record",
-      "levels": [],
-      "type": "select",
-      "options": [
-        "required",
-        "skip"
-      ],
-      "multiple": false,
-      "cascade": false,
-      "description": "Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`."
     },
     "sizes": {
       "concepts": [
@@ -915,6 +965,78 @@
       "multiple": false,
       "cascade": false,
       "description": "The episode's cover image, resolved under the owning model's directory."
+    },
+    "thumbnail_badge": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "video",
+      "levels": [
+        "domain",
+        "series",
+        "video"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "An optional small badge drawn on the thumbnail; defaults to none."
+    },
+    "thumbnail_base": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "video",
+      "levels": [
+        "domain",
+        "series",
+        "video"
+      ],
+      "type": "file",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "A text-free clean composite used as the thumbnail base; defaults to the first scene still."
+    },
+    "thumbnail_formats": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "video",
+      "levels": [
+        "domain",
+        "series",
+        "video"
+      ],
+      "type": "list",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "Ordered thumbnail sizes as `<W>x<H>`. Defaults to `[2560x1440, 1080x1920]`."
+    },
+    "thumbnail_title": {
+      "concepts": [
+        "Video",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "video",
+      "levels": [
+        "domain",
+        "series",
+        "video"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "The title text drawn on the thumbnail; defaults to the Video `title`."
     },
     "timing": {
       "concepts": [

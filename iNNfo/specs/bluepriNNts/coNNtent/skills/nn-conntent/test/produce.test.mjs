@@ -50,7 +50,7 @@ title: "Probe episode"
 slug:: e
 title:: Probe
 status:: ${status}${budget === null ? '' : `\nbudget:: ${budget}`}
-script_review:: ${review}
+review_gates:: ${review === 'skip' ? '[preview]' : '[script, preview]'}
 output_formats:: [1920x1920]
 
 ${scenes}`;

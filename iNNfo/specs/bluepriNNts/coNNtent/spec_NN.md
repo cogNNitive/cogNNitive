@@ -435,11 +435,50 @@ type:: select
 multiple:: true
 description:: Ordered list of delivery sizes as `<W>x<H>`. The first entry is the master size; the rest are derived from the master. Defaults to `[1920x1920, 1080x1920, 1920x1080, 1080x1080]`.
 
-## NN Field Definition: script_review
+## NN Field Definition: review_gates
 concept:: [Video, Series, Video Defaults]
+scope:: video
 type:: select
-options:: [required, skip]
-description:: Whether the script review gate stops the run. `skip` treats the script as approved; it never bypasses the budget gate. Defaults to `required`.
+multiple:: true
+options:: [script, preview]
+description:: The gates that stop the run before spend, in order. Defaults to `[script, preview]`. Replaces the retired single script-review flag.
+
+## NN Field Definition: captions
+concept:: [Video, Series, Video Defaults]
+scope:: render
+type:: select
+options:: [off, words, lines]
+description:: Caption mode: `off` produces no captions, `words` word-level timing, `lines` segment-level timing. Defaults to `off`.
+
+## NN Field Definition: caption_model
+concept:: [Video, Series, Video Defaults]
+scope:: render
+type:: string
+description:: The transcript alignment model override. Defaults to the package model.
+
+## NN Field Definition: thumbnail_formats
+concept:: [Video, Series, Video Defaults]
+scope:: video
+type:: list
+description:: Ordered thumbnail sizes as `<W>x<H>`. Defaults to `[2560x1440, 1080x1920]`.
+
+## NN Field Definition: thumbnail_base
+concept:: [Video, Series, Video Defaults]
+scope:: video
+type:: file
+description:: A text-free clean composite used as the thumbnail base; defaults to the first scene still.
+
+## NN Field Definition: thumbnail_title
+concept:: [Video, Series, Video Defaults]
+scope:: video
+type:: string
+description:: The title text drawn on the thumbnail; defaults to the Video `title`.
+
+## NN Field Definition: thumbnail_badge
+concept:: [Video, Series, Video Defaults]
+scope:: video
+type:: string
+description:: An optional small badge drawn on the thumbnail; defaults to none.
 
 ## NN Field Definition: name
 concept:: Provider

@@ -190,9 +190,10 @@ export async function produce(options) {
     episode = readEpisode(scriptPath);
   }
 
-  // 2. Review gate.
-  const reviewMode = String(resolveForEpisode(episode.model, scriptPath, 'script_review').value || 'required');
-  if (reviewMode !== 'skip') {
+  // 2. Review gate (script gate only here; the full gate ladder lands in slice 3b).
+  const gates = resolveForEpisode(episode.model, scriptPath, 'review_gates').value;
+  const gateList = Array.isArray(gates) ? gates.map(String) : gates ? [String(gates)] : ['script', 'preview'];
+  if (gateList.includes('script')) {
     const comments = readComments(rootDir, modelId);
     const pending = pendingReviews(episode, comments);
     if (pending.length > 0) {

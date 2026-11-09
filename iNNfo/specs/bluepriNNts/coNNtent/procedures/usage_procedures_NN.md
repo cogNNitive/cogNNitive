@@ -60,7 +60,7 @@ input:: [[Proposed Changeset]]
 output:: [[Approved Episode]]
 tool:: [[AI Agent]]
 scope:: internal
-Run the cost estimator and read the plan. When the estimate exceeds the Episode's `budget::`, the human decides and the run proceeds only with `--approve <plan_hash>` matching the current hash: a price or model change makes the hash differ, so a stale approval cannot be replayed. Never invent a hash. `produce` then sets `status:: approved` and retires the consumed `Variant` elements through a changeset; `script_review:: skip` keeps them.
+Run the cost estimator and read the plan. When the estimate exceeds the Episode's `budget::`, the human decides and the run proceeds only with `--approve <plan_hash>` matching the current hash: a price or model change makes the hash differ, so a stale approval cannot be replayed. Never invent a hash. `produce` then sets `status:: approved` and retires the consumed `Variant` elements through a changeset; a run whose `review_gates::` omit `script` (no script gate) keeps them.
 
 ## NN Work: Produce the Master
 parent:: [[Using the coNNtent Blueprint]]

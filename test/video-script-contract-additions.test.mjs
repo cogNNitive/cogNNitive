@@ -216,7 +216,7 @@ async function runTests() {
     assert.match(SPEC, /^    text: \[text, text_from\]$/m, 'the blueprint frontmatter agrees');
 
     // New cascade and record fields.
-    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'script_review', 'published_url', 'kind', 'review']) {
+    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'review_gates', 'captions', 'caption_model', 'thumbnail_formats', 'thumbnail_base', 'thumbnail_title', 'thumbnail_badge', 'published_url', 'kind', 'review']) {
       assert.ok(fieldDefinition(name), `${name} is declared`);
     }
     assert.match(fieldDefinition('status'), /^options:: \[idea, draft, approved, produced, published, archived\]$/m);
@@ -234,7 +234,7 @@ async function runTests() {
     assert.match(DEFAULTS, /^background_audio_volume:: 0\.2$/m);
     assert.match(DEFAULTS, /^image_size:: 1024x1024$/m);
     assert.match(DEFAULTS, /^output_formats:: \[1920x1920, 1080x1920, 1920x1080, 1080x1080\]$/m);
-    assert.match(DEFAULTS, /^script_review:: required$/m);
+    assert.match(DEFAULTS, /^review_gates:: \[script, preview\]$/m);
     assert.match(DEFAULTS, /^parent_spec:\n  name: "coNNtent_V_0-15-0"$/m);
 
     // The declared master replaces master_resolution; delivery formats are derived.
