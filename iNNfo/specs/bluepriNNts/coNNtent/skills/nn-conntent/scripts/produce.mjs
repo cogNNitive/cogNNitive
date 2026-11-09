@@ -36,8 +36,12 @@ import {
   fieldChange,
 } from './lib/changes.mjs';
 import { evaluateGate, readAppliedVerdicts } from './lib/gates.mjs';
-import { scriptGateStates, scriptSubjectsForEpisode } from './lib/review-subject.mjs';
+import { lowerEpisode, scriptGateStates, scriptSubjectsFromScenes } from './lib/review-subject.mjs';
+import { previewGateStates, previewSubjectsFromScenes } from './lib/preview-subject.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
+import { CacheManager } from './cache-manager.mjs';
+import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { resolve as cascadeResolve } from './lib/cascade.mjs';
 import { estimateScriptCost } from './asset-cost-estimator.mjs';
 import { randomUUID } from 'node:crypto';
 import { readTimingRows, readLedgerRows } from './lib/facts.mjs';
@@ -205,12 +209,8 @@ export async function produce(options) {
   const gateList = Array.isArray(gates) ? gates.map(String) : gates ? [String(gates)] : ['script', 'preview'];
   if (gateList.includes('script')) {
     const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
-    const subjects = scriptSubjectsForEpisode({
-      model: episode.model,
-      bags,
-      scriptDir: path.dirname(scriptPath),
-      language,
-    });
+    const parsed = lowerEpisode({ model: episode.model, bags, scriptDir: path.dirname(scriptPath) });
+    const subjects = scriptSubjectsFromScenes(parsed.scenes || [], language);
     const verdicts = readAppliedVerdicts(rootDir, modelId);
     const pending = scriptGateStates(subjects, verdicts).filter((state) => state.state !== 'approved');
     if (pending.length > 0) {
@@ -267,16 +267,6 @@ export async function produce(options) {
       );
     }
   }
-  if (gateList.includes('preview') && Number(total) > Number(budgetUsd) + 1e-9) {
-    // Safety until the per-scene preview hash lands with the asset cache keys: an
-    // over-budget run is never spent past the preview gate.
-    throw new ProduceStop(
-      'preview-required',
-      `The estimate $${total.toFixed(4)} exceeds the budget $${Number(budgetUsd).toFixed(2)} ` +
-        `(plan ${planHash}). Approve the preview gate in the console before spending.`,
-      { exitCode: EXIT_REVIEW, details: { planHash, total, budget: budgetUsd } },
-    );
-  }
 
   // The rolling daily ceiling is a domain/blueprint declaration (design A14), not a
   // per-run knob: it is checked against what the facts ledger already charged in the
@@ -313,6 +303,49 @@ export async function produce(options) {
   // 4b. Synthesis of audio and images (before avatars so narration audio is cached for avatars)
   const synthAssets = deps.synthesizeEpisodeAssets || synthesizeEpisodeAssets;
   await synthAssets({ scriptPath, facts, recordSynthesisStages: true });
+
+  // 4b. Preview gate: after the cheap spend (TTS, images, captions, animatic) and before
+  // any avatar call. The hash covers what the reviewer heard and saw.
+  if (gateList.includes('preview')) {
+    const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
+    const parsed = lowerEpisode({ model: episode.model, bags, scriptDir: path.dirname(scriptPath) });
+    const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language);
+    const scriptByScene = Object.fromEntries(scriptEntries.map((entry) => [entry.scene, entry]));
+    const cacheManager = new CacheManager({
+      baseDir: deps.cacheDir || resolveDefaultCacheDir(path.dirname(scriptPath)),
+      readOnly: true,
+    });
+    const models = deps.models || {
+      image: normalizeModelId(cascadeResolve('image_model', bags).value),
+      tts: normalizeModelId(cascadeResolve('voice_model', bags).value),
+      avatar: normalizeModelId(cascadeResolve('avatar_model', bags).value),
+    };
+    const config = deps.guardConfig || loadGuard(path.dirname(scriptPath)).config;
+    const build = deps.previewSubjects || previewSubjectsFromScenes;
+    const previewEntries = build(parsed.scenes || [], scriptByScene, {
+      cacheManager,
+      config,
+      models,
+      bags,
+      alignmentKeys: deps.alignmentKeys,
+      stills: deps.stills,
+      planHashes: deps.planHashes,
+    });
+    const verdicts = readAppliedVerdicts(rootDir, modelId);
+    const open = previewGateStates(previewEntries, verdicts).filter((state) => state.state !== 'approved');
+    if (open.length > 0) {
+      const lines = open.map((state) => {
+        const notes = state.notes ? ` — ${state.notes}` : '';
+        return `  - ${state.scene}: ${state.state}${notes}`;
+      });
+      throw new ProduceStop(
+        'preview-required',
+        `Review required: ${open.length} scene(s) are not approved for preview.\n${lines.join('\n')}\n` +
+          `Open the console, approve the preview gate, then run produce again.`,
+        { exitCode: EXIT_REVIEW, details: { pending: open, planHash } },
+      );
+    }
+  }
 
   // 4c. The avatar stage. Talking avatars are the costliest call and the only stage a
   // render cannot do itself: it refuses a layer with no cached clip. produce therefore runs

@@ -43,6 +43,11 @@ export function scriptSubjectsFromScenes(scenes = [], language = null, sourcesBy
   });
 }
 
+export function lowerEpisode({ model, bags, scriptDir, fps, width, height }) {
+  const compiler = new SceneCompiler();
+  return compiler.lowerKnowledgeModel(model, { bags, scriptDir, fps, width, height });
+}
+
 /**
  * Lower the model and build its script subjects. This is the engine entry point; the
  * pure mapper above is what the tests drive.
@@ -51,8 +56,7 @@ export function scriptSubjectsFromScenes(scenes = [], language = null, sourcesBy
  *   fps?: number, width?: number, height?: number }} input
  */
 export function scriptSubjectsForEpisode({ model, bags, scriptDir, language = null, fps, width, height }) {
-  const compiler = new SceneCompiler();
-  const parsed = compiler.lowerKnowledgeModel(model, { bags, scriptDir, fps, width, height });
+  const parsed = lowerEpisode({ model, bags, scriptDir, fps, width, height });
   return scriptSubjectsFromScenes(parsed.scenes || [], language);
 }
 

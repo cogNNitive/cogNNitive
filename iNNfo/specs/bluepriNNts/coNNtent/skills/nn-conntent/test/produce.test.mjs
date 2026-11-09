@@ -52,7 +52,7 @@ title: "Probe episode"
 slug:: e
 title:: Probe
 status:: ${status}${budget === null ? '' : `\nbudget:: ${budget}`}
-review_gates:: ${review === 'off' ? '[]' : review === 'skip' ? '[preview]' : '[script, preview]'}
+review_gates:: ${review === 'off' ? '[]' : review === 'preview' ? '[preview]' : review === 'skip' ? '[]' : '[script, preview]'}
 output_formats:: [1920x1920]
 
 ${scenes}`;
@@ -143,7 +143,7 @@ function fakeRender({ indexHtml, overlayManifest } = {}) {
  * Writes an applied human console verdict for the episode's first scene, hashed against
  * the current script subject (so the state is `approved` or `needs-change`, never stale).
  */
-function applyVerdict(ws, { gate = 'script', verdict = 'approved', notes = null } = {}) {
+function applyVerdict(ws, { gate = 'script', verdict = 'approved', notes = null, reviewedHash = null, planHash = null } = {}) {
   const model = readEpisode(ws.scriptPath).model;
   const bags = withScriptPresets(loadCascadeBags(path.dirname(ws.scriptPath)), model, ws.scriptPath);
   const [subject] = scriptSubjectsForEpisode({
@@ -152,6 +152,7 @@ function applyVerdict(ws, { gate = 'script', verdict = 'approved', notes = null 
     scriptDir: path.dirname(ws.scriptPath),
     language: 'es',
   });
+  const hash = reviewedHash || subject.hash;
   const doc = `---
 spec_version: "V_0-4-0"
 level: 3
@@ -177,10 +178,10 @@ op:: review_gate
 target:: s/e@one
 gate:: ${gate}
 verdict:: ${verdict}
-reviewed_hash:: ${subject.hash}${notes ? `\nnotes:: ${notes}` : ''}
+reviewed_hash:: ${hash}${planHash ? `\nplan_hash:: ${planHash}` : ''}${notes ? `\nnotes:: ${notes}` : ''}
 `;
   fs.writeFileSync(path.join(ws.root, 'changes', 'ws_ana_1_changes_NN.md'), doc, 'utf8');
-  return subject.hash;
+  return hash;
 }
 
 const assertStop = async (promise, code, exitCode) => {
@@ -317,6 +318,58 @@ evidence:: decision
     const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     assert.equal(readEpisode(ws.scriptPath).fields.title, 'Console title', 'the human edit landed first');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('the preview gate stops after cheap spend with exit 10, before any render', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'preview' }));
+  const { render, calls } = fakeRender();
+  let synthesized = false;
+  try {
+    await assertStop(
+      produce({
+        episodePath: ws.scriptPath,
+        deps: {
+          render,
+          synthesizeEpisodeAssets: async () => {
+            synthesized = true;
+            return {};
+          },
+          previewSubjects: () => [{ scene: 'one', hash: 'a'.repeat(64), planHash: 'b'.repeat(64), subject: {} }],
+          log: () => {},
+        },
+      }),
+      'preview-required',
+      EXIT_REVIEW,
+    );
+    assert.equal(synthesized, true, 'cheap spend happened before the preview gate');
+    assert.equal(calls.length, 0, 'no render was reached');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('a matching preview verdict lets the run continue to the render', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'preview' }));
+  const hash = 'a'.repeat(64);
+  const planHash = 'b'.repeat(64);
+  applyVerdict(ws, { gate: 'preview', reviewedHash: hash, planHash });
+  const { render, calls } = fakeRender();
+  try {
+    const result = await produce({
+      episodePath: ws.scriptPath,
+      deps: {
+        render,
+        synthesizeEpisodeAssets: async () => ({}),
+        previewSubjects: () => [{ scene: 'one', hash, planHash, subject: {} }],
+        log: () => {},
+      },
+    });
+    assert.equal(result.code, EXIT_DONE);
+    assert.equal(calls.length, 1);
+    assert.equal(readEpisode(ws.scriptPath).status, 'produced');
   } finally {
     done(ws.root);
   }
