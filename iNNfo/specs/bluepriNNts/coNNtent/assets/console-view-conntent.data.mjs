@@ -152,14 +152,21 @@ const INHERIT_RELEVANT = new Set([
   'components',
 ])
 
-/** The values a scene inherits, as `{name, source}` for the origin chips. */
+/** The values a scene inherits, grouped by the level they come from. */
 function inheritedSources(fields) {
   const out = []
   for (const [name, field] of Object.entries(fields || {})) {
     if (!INHERIT_RELEVANT.has(name)) continue
     if (!field || field.value === null || field.value === undefined || field.value === '') continue
     if (field.source === 'scene' || field.source === 'video' || field.source === 'layer') continue
-    out.push({ name, source: String(field.source) })
+    const def = registry.fields?.[name] || {}
+    out.push({
+      name,
+      source: String(field.source),
+      value: field.value,
+      // The declared type drives the read-only widget the view renders.
+      type: String(def.type || 'string'),
+    })
   }
   return out.sort((a, b) => a.name.localeCompare(b.name))
 }

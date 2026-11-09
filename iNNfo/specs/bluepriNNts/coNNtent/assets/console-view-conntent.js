@@ -35,6 +35,8 @@ registerView({
       qa: { label: 'Automatic QA', protects: 'always on, no approval' },
     }
     var GATE_ORDER = ['script', 'preview', 'budget']
+    // Broadest to narrowest, so a reader starts at the level that shapes the most.
+    var CONTEXT_ORDER = ['blueprint', 'domain', 'series', 'kind', 'preset', 'video', 'scene']
     // The content a gate reviews, and the hash the payload published for it.
     function hashFor(scene, gate) {
       if (gate === 'preview') return scene.previewHash
@@ -386,20 +388,44 @@ registerView({
           }
           if ((scene.sources || []).length > 0) {
             var sSection = labelled('Inherited from above')
-            var sourceDetails = el('details', 'nn-conntent-fields')
-            sourceDetails.appendChild(
-              el('summary', null, scene.sources.length + ' value' + (scene.sources.length === 1 ? '' : 's') + ' inherited'),
-            )
-            var sourceChips = el('div', 'nn-cascade-chips nn-source-chips')
-            sourceChips.setAttribute('data-nn-source-line', '')
+            var byContext = {}
             scene.sources.forEach(function (entry) {
-              var chip = el('span', 'nn-cascade-chip nn-source-chip')
-              chip.setAttribute('data-nn-source', typeof entry === 'string' ? entry : entry.name)
-              chip.appendChild(el('span', null, typeof entry === 'string' ? entry : entry.name))
-              if (entry && entry.source) chip.appendChild(badge(entry.source, 'nn-src-badge'))
-              sourceChips.appendChild(chip)
+              var context = entry.source || 'unknown'
+              if (!byContext[context]) byContext[context] = []
+              byContext[context].push(entry)
             })
-            sourceDetails.appendChild(sourceChips)
+            var contexts = Object.keys(byContext).sort(function (a, b) {
+              return CONTEXT_ORDER.indexOf(a) - CONTEXT_ORDER.indexOf(b)
+            })
+            var summaryText = contexts
+              .map(function (context) {
+                return context + ' ' + byContext[context].length
+              })
+              .join(' · ')
+            var sourceDetails = el('details', 'nn-conntent-fields nn-source-details')
+            sourceDetails.open = true
+            sourceDetails.setAttribute('data-nn-sources', '')
+            sourceDetails.appendChild(el('summary', null, 'Inherited from above · ' + summaryText))
+            contexts.forEach(function (context) {
+              var group = el('div', 'nn-source-group')
+              group.setAttribute('data-nn-source-context', context)
+              group.appendChild(el('span', 'nn-source-context', context))
+              byContext[context].forEach(function (entry) {
+                var row = el('div', 'nn-source-row')
+                row.setAttribute('data-nn-source', entry.name)
+                row.appendChild(el('span', 'nn-param-label', entry.name))
+                var valueBox = el('span', 'nn-param-value')
+                var widget =
+                  ctx.ui && typeof ctx.ui.FieldValue === 'function'
+                    ? ctx.ui.FieldValue({ name: entry.name, value: entry.value, type: entry.type }, { doc: doc })
+                    : null
+                if (widget) valueBox.appendChild(widget)
+                else valueBox.textContent = String(entry.value)
+                row.appendChild(valueBox)
+                group.appendChild(row)
+              })
+              sourceDetails.appendChild(group)
+            })
             sSection.appendChild(sourceDetails)
             sceneBody.appendChild(sSection)
           }

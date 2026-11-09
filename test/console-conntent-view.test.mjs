@@ -65,8 +65,8 @@ const VIEW_DATA = {
                 planHash: HASH,
                 fields: { voice: { value: 'series-voice', source: 'series' } },
                 sources: [
-                  { name: 'voice', source: 'series' },
-                  { name: 'transition', source: 'series' },
+                  { name: 'voice', source: 'series', value: 'series-voice', type: 'string' },
+                  { name: 'transition', source: 'domain', value: 'fade', type: 'select' },
                 ],
                 still: 'series/s/episodes/e/media/one.png',
                 audio: '.cognnitive/cache/video/tts/one.mp3',
@@ -145,9 +145,13 @@ test('a scene card shows its still, audio, layers and inherited source line', ()
   assert.equal(scene.querySelector('[data-nn-narration-audio]').getAttribute('src'), '.cognnitive/cache/video/tts/one.mp3')
   assert.match(scene.querySelector('[data-nn-layer="one-bg"]').textContent, /media/)
   const voiceSource = scene.querySelector('[data-nn-source="voice"]')
-  assert.ok(voiceSource, 'the inherited voice is a chip')
-  assert.match(voiceSource.textContent, /series/, 'the chip names where the value came from')
-  assert.equal(scene.querySelectorAll('[data-nn-source]').length, 2, 'one chip per inherited value')
+  assert.ok(voiceSource, 'the inherited voice is listed')
+  assert.match(voiceSource.textContent, /series-voice/, 'the inherited value is shown')
+  const transitionSource = scene.querySelector('[data-nn-source="transition"]')
+  assert.ok(transitionSource.querySelector('.nn-field-select'), 'a select value renders with the select widget')
+  const contexts = [...scene.querySelectorAll('[data-nn-source-context]')].map((c) => c.getAttribute('data-nn-source-context'))
+  assert.deepEqual(contexts, ['domain', 'series'], 'the context comes first, broadest to narrowest')
+  assert.equal(scene.querySelectorAll('[data-nn-source]').length, 2, 'one row per inherited value')
 })
 
 test('approving a scene writes a review_gate verdict with the payload hash', () => {
