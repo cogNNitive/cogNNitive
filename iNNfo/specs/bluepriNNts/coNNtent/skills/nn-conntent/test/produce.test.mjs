@@ -258,23 +258,23 @@ test('an over-budget estimate with preview on asks for the budget gate before ch
   }
 });
 
-test('produce writes the description.md chapter block and never overwrites an authored body', async () => {
+test('produce writes the e_description.md chapter block and never overwrites an authored body', async () => {
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
   try {
     const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
 
-    const desc = fs.readFileSync(path.join(ws.episode, 'description.md'), 'utf8');
+    const desc = fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8');
     assert.match(desc, /^00:00 Opening$/m, 'the first scene starts at zero');
     assert.match(desc, /^00:03 Explaining$/m, 'the second scene starts at its frame time');
 
     // An authored body wins: a second run must not clobber it.
-    fs.writeFileSync(path.join(ws.episode, 'description.md'), 'Authored prose.', 'utf8');
+    fs.writeFileSync(path.join(ws.episode, 'e_description.md'), 'Authored prose.', 'utf8');
     await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
     assert.equal(
-      fs.readFileSync(path.join(ws.episode, 'description.md'), 'utf8'),
+      fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8'),
       'Authored prose.',
-      'the authored description.md is never overwritten',
+      'the authored e_description.md is never overwritten',
     );
   } finally {
     done(ws.root);

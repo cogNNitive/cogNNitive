@@ -437,9 +437,9 @@ export async function produce(options) {
   }
 
   // 6b. Chapters: the printable block comes from the manifest the render just wrote.
-  // An authored description.md wins — produce only seeds one when it is absent.
+  // An authored `<slug>_description.md` wins; produce only seeds one when it is absent.
   const chapters = chapterLines(manifest);
-  const descriptionPath = path.join(episodeDir, 'description.md');
+  const descriptionPath = path.join(episodeDir, `${episode.slug}_description.md`);
   if (!fs.existsSync(descriptionPath)) {
     fs.writeFileSync(descriptionPath, chapters.join('\n') + '\n', 'utf8');
     log(`description: chapters written to ${descriptionPath}`);
