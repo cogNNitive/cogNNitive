@@ -232,50 +232,59 @@ description:: Series music bed for this language, resolved as a logical name und
 
 ## NN Field Definition: presets
 concept:: [Video, Scene, Scene Kind, Series, Video Defaults]
+  scope:: render
 type:: select
 multiple:: true
 description:: Ordered list of Preset names that apply at this level, written as bare names such as `[Lucas, Studio Warm]` (no reference brackets). Each level's list sits directly under that level's explicit fields: the last Preset of a list wins, a level's explicit fields beat its own Presets, and lists are additive across levels. Optional.
 
 ## NN Field Definition: background_audio
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: file
 description:: Background audio file for the Scene. Resolves through the Universal Parameter Cascade. Background audio is a Field and MUST NOT be modeled as a Layer.
 
 ## NN Field Definition: background_audio_volume
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Volume for the resolved `background_audio::` track (a number 0–1, e.g. `0.1`). Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: transition
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: select
 options:: [fade, slide-left, slide-right, wipe, none]
 description:: Transition into the Scene. Resolves through the Universal Parameter Cascade. Optional.
 
 ## NN Field Definition: frame
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Name of the frame document (`frames/<name>.md`) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: components
 concept:: [Video, Preset, Series, Video Defaults]
+  scope:: render
 type:: select
 multiple:: true
 description:: Keyed list of slot→component-name bindings (`slot=name`, e.g. `[lower-third=pill]`). Resolves per key through the Universal Parameter Cascade. Engine code names no component.
 
 ## NN Field Definition: sounds
 concept:: [Video, Preset, Series, Video Defaults]
+  scope:: render
 type:: select
 multiple:: true
 description:: Keyed list of engine-event→sound-name bindings (`event=name`, e.g. `[scene-boundary=whoosh]`). Resolves per key through the Universal Parameter Cascade. Engine code names no sound.
 
 ## NN Field Definition: avatar
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: file
 description:: Image used as the source for an `avatar` Layer that declares no `asset::`. Resolves through the Universal Parameter Cascade. Optional.
 
 ## NN Field Definition: intro
 concept:: [Video, Preset, Series, Video Defaults]
+  scope:: render
 type:: file
 description:: Intro media reused by the episode's fixed first Scene. Resolves through the Universal Parameter Cascade. Optional; per episode, so not a Scene field.
 
@@ -347,68 +356,81 @@ description:: Paint order of the Layer as a numeric string (higher renders on to
 
 ## NN Field Definition: avatar_model
 concept:: [Layer, Scene, Video, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade.
 
 ## NN Field Definition: avatar_resolution
 concept:: Layer
+  scope:: render
 type:: select
 options:: [480p, 720p, 768p]
 description:: Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types.
 
 ## NN Field Definition: fit
 concept:: [Layer, Scene, Video, Preset, Series, Video Defaults]
+  scope:: render
 type:: select
 options:: [cover, contain]
 description:: How a `media` Layer fits its box. `cover` fills and crops; `contain` shows the whole asset with margins. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: voice
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity.
 
 ## NN Field Definition: voice_model
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity.
 
 ## NN Field Definition: voice_speed
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Playback rate the provider synthesizes the narration at (a number, e.g. `1.1` for 10% faster). Optional; when no level declares it the provider default applies and the value stays out of the cache key. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
 
 ## NN Field Definition: voice_emotion
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Delivery the provider synthesizes the narration with (e.g. `happy`, `neutral`). Optional; when no level declares it the provider default applies and the value stays out of the cache key. Part of the synthesized-audio cache identity, so changing it re-synthesizes.
 
 ## NN Field Definition: image_model
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade.
 
 ## NN Field Definition: image_size
 concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
 type:: string
 description:: Requested image size as `<W>x<H>`, validated against the resolved image Model's `sizes`. Part of the image cache key. Defaults to `1024x1024` in the blueprint Video Defaults.
 
 ## NN Field Definition: language
 concept:: [Video, Series, Video Defaults, Chrome]
+  scope:: video
 type:: string
 description:: Language code (for example `es`, `en`) driving voice selection, chrome text, narration rules and the description language. The blueprint ships no default: an unset language is a validation error.
 
 ## NN Field Definition: budget
 concept:: [Video, Series, Video Defaults]
+  scope:: video
 type:: number
 description:: Per-episode budget in the domaiNN's single currency. The blueprint ships no default: an unset budget always asks at the budget gate. An estimate within the budget is auto-approved.
 
 ## NN Field Definition: daily_budget
 concept:: Video Defaults
+  scope:: domain
 type:: number
 description:: Rolling 24-hour cap in the domaiNN's single currency. Settable only in a Video Defaults document (domain or blueprint level); the blueprint ships no default (no daily cap).
 
 ## NN Field Definition: output_formats
 concept:: [Video, Series, Video Defaults]
+  scope:: video
 type:: select
 multiple:: true
 description:: Ordered list of delivery sizes as `<W>x<H>`. The first entry is the master size; the rest are derived from the master. Defaults to `[1920x1920, 1080x1920, 1920x1080, 1080x1080]`.

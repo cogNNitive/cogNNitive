@@ -31,6 +31,33 @@ const DEFAULT_OUT = path.join(here, 'lib', 'field-registry.generated.json');
 /** Concepts that make a Field a cascade parameter. */
 const CASCADE_CONCEPTS = ['Video Defaults', 'Series', 'Scene Kind', 'Preset', 'Video', 'Scene'];
 
+/** Non-cascading fields that MAY sit on cascade concepts but are record-class (spec list). */
+const RECORD_FIELDS = new Set([
+  'tags', 'title', 'description', 'script', 'master', 'thumbnail', 'status', 'translation_of', 'kind',
+  'review', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'asset', 'prompt', 'text',
+  'position', 'type', 'placement', 'timing', 'style', 'source', 'enter_animation', 'exit_animation', 'z_index',
+  'published_url', 'script_review', 'log', 'version', 'file',
+]);
+
+/**
+ * The one scope-class table (capability conntent-field-registry "Every Field Declares
+ * One Scope Class"). Non-cascading fields are `record`.
+ */
+export const SCOPE_CLASSES = {
+  render: new Set(['Video Defaults', 'Series', 'Scene Kind', 'Preset', 'Video', 'Scene', 'Layer']),
+  video: new Set(['Video Defaults', 'Series', 'Video']),
+  domain: new Set(['Video Defaults']),
+  record: new Set([]),
+};
+
+/** Levels per class, in cascade order (outer → inner) for resolution. */
+export const SCOPE_LEVELS = {
+  render: ['domain', 'series', 'kind', 'video', 'scene', 'layer'],
+  video: ['domain', 'series', 'video'],
+  domain: ['domain'],
+  record: [],
+};
+
 /** Reads `validation.conditional_fields` from the blueprint frontmatter (OR groups). */
 export function parseConditionalFields(specText) {
   const out = {};
@@ -68,12 +95,38 @@ export function buildRegistry(specText) {
   for (const element of parsed.elements.get('Field Definition') || []) {
     const raw = element.fields || {};
     const concepts = conceptsOf(raw.concept);
+    const scope = raw.scope === undefined || raw.scope === null ? null : String(raw.scope).toLowerCase();
+    const cascadeCandidates = concepts.some((c) => CASCADE_CONCEPTS.includes(c));
+
+    // Validate scope class. A known record field (or explicit `scope:: record`) is never
+    // cascade even when its Concepts touch cascade levels.
+    if (scope === 'record' || RECORD_FIELDS.has(element.name)) {
+      // non-cascading
+    } else if (cascadeCandidates) {
+      if (!scope || !(scope in SCOPE_CLASSES)) {
+        throw new Error(`scope-missing: field "${element.name}" is a cascade parameter and must declare scope:: render|video|domain`);
+      }
+      const allowed = SCOPE_CLASSES[scope];
+      for (const c of concepts) {
+        if (CASCADE_CONCEPTS.includes(c) && !allowed.has(c)) {
+          throw new Error(
+            `scope-concept-mismatch: field "${element.name}" (class ${scope}) does not allow concept "${c}"; allowed: ${[...allowed].sort().join(', ')}`,
+          );
+        }
+      }
+    }
+
+    const isCascade = !(scope === 'record' || RECORD_FIELDS.has(element.name)) && Boolean(scope in SCOPE_CLASSES) && cascadeCandidates;
+    const cls = isCascade ? scope : 'record';
+    const levels = isCascade ? (SCOPE_LEVELS[scope] || []) : [];
     fields[element.name] = {
       concepts,
+      scope: cls,
+      levels: levels.slice(),
       type: raw.type === undefined ? null : String(raw.type),
       options: Array.isArray(raw.options) ? raw.options.map(String) : raw.options ? [String(raw.options)] : [],
       multiple: raw.multiple === true || raw.multiple === 'true',
-      cascade: concepts.some((c) => CASCADE_CONCEPTS.includes(c)),
+      cascade: isCascade,
       description: raw.description === undefined ? '' : String(raw.description),
     };
   }
