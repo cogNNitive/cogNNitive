@@ -37,6 +37,10 @@ export const PROPOSAL_KEYS = [
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
+  'gate',
+  'verdict',
+  'reviewed_hash',
+  'plan_hash',
 ] as const
 
 /**
@@ -75,12 +79,23 @@ function canonicalizeChangeItem(change: ChangeItem): Record<string, unknown> {
 }
 
 /**
- * Computes a deterministic SHA-256 seal (64-char lowercase hex) over an array of proposed changes.
+ * Computes a deterministic SHA-256 seal (64-char lowercase hex) over an array of
+ * proposed changes, plus the human-provenance markers (`author_kind`, `origin`,
+ * `reviewer`) when present, so a verdict seal covers them
+ * (changeset-review-gate "The seal covers verdict keys and provenance").
  */
-export function computeProposalSha(changes: ChangeItem[]): string {
+export function computeProposalSha(changes: ChangeItem[], frontmatter?: { author_kind?: string; origin?: string; reviewer?: string }): string {
   const canonicalItems = changes.map(canonicalizeChangeItem)
   const serialized = JSON.stringify(canonicalItems)
-  return createHash('sha256').update(serialized, 'utf8').digest('hex').toLowerCase()
+  const hash = createHash('sha256').update(serialized, 'utf8')
+  if (frontmatter && (frontmatter.author_kind !== undefined || frontmatter.origin !== undefined || frontmatter.reviewer !== undefined)) {
+    const markers: Record<string, unknown> = {}
+    for (const key of ['author_kind', 'origin', 'reviewer'] as const) {
+      if (frontmatter[key] !== undefined) markers[key] = frontmatter[key]
+    }
+    hash.update('\n:::provenance:::\n').update(JSON.stringify(markers))
+  }
+  return hash.digest('hex').toLowerCase()
 }
 
 /**
@@ -89,6 +104,6 @@ export function computeProposalSha(changes: ChangeItem[]): string {
 export function verifyProposalSha(doc: ChangesetDocument): boolean {
   if (!doc.frontmatter?.proposal_sha) return false
   const expectedSha = doc.frontmatter.proposal_sha.trim().toLowerCase()
-  const computedSha = computeProposalSha(doc.changes)
+  const computedSha = computeProposalSha(doc.changes, doc.frontmatter)
   return expectedSha === computedSha
 }

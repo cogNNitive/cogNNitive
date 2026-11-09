@@ -1,11 +1,13 @@
 import { parse as parseYaml } from 'yaml'
-import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems } from './types.js'
+import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems, reviewGateProblems } from './types.js'
 import { splitSourceFieldValue } from '../sourceRef.js'
 import type {
   ChangesetDocument,
   ChangesetFrontmatter,
   ChangeItem,
 } from './types.js'
+
+export { reviewGateProblems } from './types.js'
 
 function stripQuotes(str: string): string {
   const trimmed = str.trim()
@@ -202,6 +204,18 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
       case 'evidence':
         currentChange.evidence = stripQuotes(rawVal)
         break
+      case 'gate':
+        currentChange.gate = stripQuotes(rawVal)
+        break
+      case 'verdict':
+        currentChange.verdict = stripQuotes(rawVal)
+        break
+      case 'reviewed_hash':
+        currentChange.reviewed_hash = stripQuotes(rawVal)
+        break
+      case 'plan_hash':
+        currentChange.plan_hash = stripQuotes(rawVal)
+        break
       case 'blueprint_name':
         currentChange.blueprint_name = stripQuotes(rawVal)
         break
@@ -257,7 +271,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
         break
       }
       default:
-        // Ignore unrecognized keys or comments
+        // Record every key so a per-op validator can reject undeclared ones
+        // (review_gate has no fallback-compatible keys).
+        currentChange.rawKeys = currentChange.rawKeys ?? []
+        currentChange.rawKeys.push(key)
         break
     }
   }
@@ -277,6 +294,17 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   const extractProblems = changes.flatMap(extractInstanceProblems)
   if (extractProblems.length > 0) {
     throw new Error(`Invalid extract_instance change: ${extractProblems.join('; ')}`)
+  }
+
+  // A file carrying any review_gate change must declare the three provenance
+  // markers (author_kind human, origin, reviewer) — verified here and at apply.
+  const hasGate = changes.some((c) => c.op === 'review_gate')
+  if (hasGate) {
+    for (const key of ['author_kind', 'origin', 'reviewer'] as const) {
+      if (frontmatter[key] === undefined || frontmatter[key] === null || String(frontmatter[key]).trim() === '') {
+        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`)
+      }
+    }
   }
 
   return {

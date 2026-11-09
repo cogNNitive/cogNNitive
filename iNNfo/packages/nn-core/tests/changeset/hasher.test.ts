@@ -19,6 +19,10 @@ const SEALED_KEY_SPEC = [
   'blueprint_name',
   'blueprint_url',
   'knowledge_version',
+  'gate',
+  'verdict',
+  'reviewed_hash',
+  'plan_hash',
 ] as const
 
 describe('Proposal Hasher', () => {

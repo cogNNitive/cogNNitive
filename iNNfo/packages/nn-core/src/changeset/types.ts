@@ -26,6 +26,7 @@ export const CHANGE_OPS = [
   'repin_blueprint',
   'rename_field',
   'set_field_default',
+  'review_gate',
 ] as const
 
 /** Version levels a `bump_version` change may request (carried in `to`). */
@@ -87,6 +88,14 @@ export interface ChangeItem {
   blueprint_name?: string
   blueprint_url?: string
   knowledge_version?: string
+  /** `review_gate` only: the gate this verdict addresses (declared by the target's bluepriNNt). */
+  gate?: string
+  /** `review_gate` only: exactly `approved` or `needs-change`. */
+  verdict?: string
+  /** `review_gate` only: the sha256 hex the verdict reviewed (opaque to nn-core). */
+  reviewed_hash?: string
+  /** `review_gate` only: optional sha256 hex of the plan the verdict did not approve. */
+  plan_hash?: string
   /** Execution / Resolution annotations (excluded from proposal_sha) */
   status?: ChangeStatus
   resolution?: string
@@ -109,6 +118,8 @@ export interface ChangeItem {
   applied_at?: string
   /** Per-change execution fact: the batch identity, the changeset stem (excluded from proposal_sha). */
   batch?: string
+  /** Every `key::` seen on this change, in order — including undeclared ones. Not serialized. */
+  rawKeys?: string[]
 }
 
 export interface ModelVersionTransition {
@@ -145,6 +156,12 @@ export interface ChangesetFrontmatter {
   title?: string
   author?: string
   workspace_id?: string
+  /** Provenance of every change in the file: exactly `human`, `agent` or `engine`. */
+  author_kind?: string
+  /** A token naming the writer (for example `console`). */
+  origin?: string
+  /** Non-empty text naming a person (required when the file carries a `review_gate` change). */
+  reviewer?: string
   [key: string]: unknown
 }
 
@@ -327,6 +344,55 @@ export function lineageChangeProblems(change: ChangeItem): string[] {
     }
   }
 
+  return problems
+}
+
+/** The closed verdict values of a `review_gate` change (changeset-review-gate). */
+export const GATE_VERDICTS = ['approved', 'needs-change'] as const
+
+/** A hex sha256: 64 lowercase hex characters, opaque to nn-core. */
+const HEX64 = /^[0-9a-f]{64}$/
+
+/**
+ * Structural problems of one `review_gate` change, as human-readable messages naming
+ * the change id. An empty list means the change is well formed.
+ *
+ * A `review_gate` change carries `gate`, `verdict` and `reviewed_hash`, MAY carry
+ * `plan_hash` and `notes`, and MUST NOT carry a mutation payload or an evidence
+ * citation (its provenance is the human reviewer, see `author_kind`) — any other key
+ * is undeclared. `target` is a canonical unit address (a bare model id or
+ * `model@element`).
+ */
+export function reviewGateProblems(change: ChangeItem): string[] {
+  if (change.op !== 'review_gate') return []
+  const problems: string[] = []
+  const id = change.id
+
+  if (!change.gate || String(change.gate).trim() === '') {
+    problems.push(`change "${id}": review_gate requires "gate"`)
+  }
+  if (!change.verdict || !(GATE_VERDICTS as readonly string[]).includes(change.verdict)) {
+    problems.push(
+      `change "${id}": review_gate "verdict" must be one of ${GATE_VERDICTS.join(', ')}`,
+    )
+  }
+  if (typeof change.reviewed_hash !== 'string' || !HEX64.test(change.reviewed_hash)) {
+    problems.push(`change "${id}": review_gate requires "reviewed_hash" as a 64-char lowercase hex sha256`)
+  }
+  if (change.plan_hash !== undefined && (typeof change.plan_hash !== 'string' || !HEX64.test(change.plan_hash))) {
+    problems.push(`change "${id}": review_gate "plan_hash" must be a 64-char lowercase hex sha256`)
+  }
+  const allowed = new Set(['gate', 'verdict', 'reviewed_hash', 'plan_hash', 'notes'])
+  for (const key of change.rawKeys || []) {
+    if (!allowed.has(key)) {
+      problems.push(`change "${id}": review_gate declares undeclared key "${key}"`)
+    }
+  }
+  for (const key of ['from', 'to', 'base_hash', 'fields', 'slug', 'concept', 'name', 'evidence'] as const) {
+    if (change[key] !== undefined) {
+      problems.push(`change "${id}": review_gate must not carry "${key}"`)
+    }
+  }
   return problems
 }
 
