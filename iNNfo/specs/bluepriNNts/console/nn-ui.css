@@ -8523,23 +8523,23 @@ input[type="text"], input[type="search"], textarea, select {
 .nn-review-audio { width: 260px; max-width: 100%; }
 .nn-source-line { margin: 0; font-size: 11.5px; color: #64748b; overflow-wrap: anywhere; }
 .nn-source-chip { padding: 4px 8px; font-size: 11.5px; gap: 6px; }
-/* Inherited values: the element sheet's own field rows, grouped by the level they come from. */
+/* Fields: one flat list of the element sheet's own rows, origin as a badge. */
 .nn-source-details { margin-top: 2px; }
-.nn-source-group {
-  display: block;
-  padding: 8px 0 4px;
+.nn-source-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  padding-top: 6px;
   border-top: 1px dashed rgba(148, 163, 184, 0.3);
 }
-.nn-source-context {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #2563eb;
+.nn-source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
-.nn-source-group [data-nn-source] { margin: 2px 0; }
+.nn-source-row > .nn-ku-wrap { flex: 1 1 auto; min-width: 0; }
+.nn-source-from { flex: 0 0 auto; }
 .nn-verdict-approved { margin: 0; font-size: 12.5px; color: #059669; }
 .nn-comment.is-invalid { border-color: #dc2626; }
 /* ── Visual options, motion tiers and the storyboard lightbox ────────────────── */

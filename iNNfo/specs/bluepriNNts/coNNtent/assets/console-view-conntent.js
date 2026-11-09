@@ -331,22 +331,31 @@ registerView({
           var sceneBody = el('div', 'nn-scene-body is-open')
           sceneCard.appendChild(sceneBody)
 
-          // Media: the still from the first image layer, and the narration audio.
+          // Media: the still from the first image layer, and the narration audio. Reuses the
+          // console's visual card (thumb + details), the same one the retired review view used.
           var media = el('div', 'nn-review-media')
+          var visual = el('div', 'nn-visual-card')
+          var thumb = el('div', 'nn-visual-thumb')
           if (scene.still) {
             var img = doc.createElement('img')
             img.className = 'nn-review-still'
             img.src = scene.still
             img.alt = ''
-            media.appendChild(img)
+            thumb.appendChild(img)
           } else {
-            var placeholder = el('div', 'nn-review-still is-empty')
             var videoLayer = (scene.layers || []).filter(function (l) {
               return l.assetKind === 'video'
             })[0]
-            placeholder.textContent = videoLayer ? 'video · ' + videoLayer.asset.split('/').pop() : 'no still'
-            media.appendChild(placeholder)
+            thumb.appendChild(el('span', 'nn-visual-icon', videoLayer ? 'video · ' + videoLayer.asset.split('/').pop() : 'no still'))
           }
+          visual.appendChild(thumb)
+          var visualDetails = el('div', 'nn-visual-details')
+          visualDetails.appendChild(el('div', 'nn-visual-title', scene.kind || scene.slug))
+          visualDetails.appendChild(
+            el('div', 'nn-visual-sub', scene.still ? scene.still.split('/').pop() : (scene.layers || []).length + ' layer(s)'),
+          )
+          visual.appendChild(visualDetails)
+          media.appendChild(visual)
           if (scene.audio) {
             var audio = doc.createElement('audio')
             audio.className = 'nn-review-audio'
@@ -385,51 +394,57 @@ registerView({
             sceneBody.appendChild(lSection)
           }
           if ((scene.sources || []).length > 0) {
-            var sSection = labelled('Inherited from above')
-            var byContext = {}
-            scene.sources.forEach(function (entry) {
-              var context = entry.source || 'unknown'
-              if (!byContext[context]) byContext[context] = []
-              byContext[context].push(entry)
-            })
-            var contexts = Object.keys(byContext).sort(function (a, b) {
-              return CONTEXT_ORDER.indexOf(a) - CONTEXT_ORDER.indexOf(b)
-            })
-            var summaryText = contexts
-              .map(function (context) {
-                return context + ' ' + byContext[context].length
-              })
-              .join(' · ')
+            var sSection = labelled('Fields')
             var sourceDetails = el('details', 'nn-conntent-fields nn-source-details')
             sourceDetails.open = true
             sourceDetails.setAttribute('data-nn-sources', '')
-            sourceDetails.appendChild(el('summary', null, 'Inherited from above · ' + summaryText))
-            contexts.forEach(function (context) {
-              var group = el('div', 'nn-source-group')
-              group.setAttribute('data-nn-source-context', context)
-              group.appendChild(el('span', 'nn-source-context', context))
-              byContext[context].forEach(function (entry) {
-                // The element sheet's own field row: value widget by declared type, the
-                // "inherited from <level>" badge, and the kebab that opens the unit modal.
-                var row = ctx.ui && typeof ctx.ui.FieldRow === 'function'
+            var perContext = {}
+            scene.sources.forEach(function (entry) {
+              perContext[entry.source] = (perContext[entry.source] || 0) + 1
+            })
+            var counts = Object.keys(perContext)
+              .sort(function (a, b) {
+                return CONTEXT_ORDER.indexOf(a) - CONTEXT_ORDER.indexOf(b)
+              })
+              .map(function (context) {
+                return perContext[context] + ' from ' + context
+              })
+              .join(', ')
+            sourceDetails.appendChild(
+              el('summary', null, scene.sources.length + ' field' + (scene.sources.length === 1 ? '' : 's') + ' · ' + counts),
+            )
+            var fieldGrid = el('div', 'nn-source-grid')
+            // One flat list, ordered by where each value comes from; the origin rides on the
+            // row as a badge, and the kebab opens the console's own unit sheet.
+            scene.sources
+              .slice()
+              .sort(function (a, b) {
+                var byContext = CONTEXT_ORDER.indexOf(a.source) - CONTEXT_ORDER.indexOf(b.source)
+                return byContext !== 0 ? byContext : a.name.localeCompare(b.name)
+              })
+              .forEach(function (entry) {
+                var row = el('div', 'nn-source-row')
+                row.setAttribute('data-nn-source', entry.name)
+                row.setAttribute('data-nn-source-from', entry.source)
+                // No `inherited` flag: it would replace the field name with "inherited from …"
+                // and point the address at a pseudo-element the console cannot open.
+                var fieldRow = ctx.ui && typeof ctx.ui.FieldRow === 'function'
                   ? ctx.ui.FieldRow(
                       {
                         name: entry.name,
                         value: entry.value,
                         type: entry.type,
-                        inherited: { from: context },
                         model: episode.knowledgeId,
                         element: scene.slug,
                       },
                       { doc: doc, modelId: episode.knowledgeId, elementId: scene.elementId },
                     )
-                  : el('div', 'nn-source-row', entry.name + ': ' + String(entry.value))
-                row.setAttribute('data-nn-source', entry.name)
-                row.setAttribute('data-nn-source-from', context)
-                group.appendChild(row)
+                  : el('span', 'nn-param-label', entry.name)
+                row.appendChild(fieldRow)
+                row.appendChild(badge(entry.source, 'nn-src-badge nn-source-from'))
+                fieldGrid.appendChild(row)
               })
-              sourceDetails.appendChild(group)
-            })
+            sourceDetails.appendChild(fieldGrid)
             sSection.appendChild(sourceDetails)
             sceneBody.appendChild(sSection)
           }

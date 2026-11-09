@@ -149,8 +149,13 @@ test('a scene card shows its still, audio, layers and inherited source line', ()
   assert.match(voiceSource.textContent, /series-voice/, 'the inherited value is shown')
   const transitionSource = scene.querySelector('[data-nn-source="transition"]')
   assert.ok(transitionSource.querySelector('.nn-field-select'), 'a select value renders with the select widget')
-  const contexts = [...scene.querySelectorAll('[data-nn-source-context]')].map((c) => c.getAttribute('data-nn-source-context'))
-  assert.deepEqual(contexts, ['domain', 'series'], 'the context comes first, broadest to narrowest')
+  assert.equal(
+    transitionSource.getAttribute('data-nn-source-from'),
+    'domain',
+    'the origin rides on the row',
+  )
+  assert.match(transitionSource.textContent, /domain/, 'the origin badge is visible')
+  assert.match(transitionSource.textContent, /transition/, 'the field name is not replaced by the origin')
   assert.equal(scene.querySelectorAll('[data-nn-source]').length, 2, 'one row per inherited value')
 })
 
