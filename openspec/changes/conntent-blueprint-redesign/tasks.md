@@ -284,7 +284,7 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 4c.3 RED+GREEN approval flow: verdict draft -> `changes/`; an approval whose `reviewed_hash` no longer matches is refused with the C7 message. (console-regeneration, C7)
 - [x] 4c.4 RED+GREEN regeneration after every engine exit and every applied changeset (`pipeline.mjs` `finally`). 
 - [ ] 4c.5 Delete `BP/assets/console-view-episode-review.*`, `BP/assets/console-view-series.*`; fix references (`rg "console-view-episode-review|console-view-series"` returns nothing). Accept: no dangling imports.
-- [ ] 4c.6 RED+GREEN domaiNN console stays small regardless of episode count (size assertion with 50 fixture episodes).
+- [x] 4c.6 RED+GREEN domaiNN console stays small regardless of episode count (size assertion with 50 fixture episodes).
 
 ### PR 4d: delivery view and picker. Start: 4c merged. Finish: read-only per-episode delivery HTML. Verify: `node --test test/console-delivery-view.test.mjs`. Rollback: revert PR 4d.
 
