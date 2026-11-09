@@ -14,7 +14,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { writeProposedChangeset, executeChangesetApply } = require('./nn-core.generated.cjs');
+const { parseChangeset, writeProposedChangeset, executeChangesetApply } = require('./nn-core.generated.cjs');
 
 export const ENGINE_AUTHOR = 'engine';
 
@@ -80,6 +80,40 @@ export function fieldChange(modelSlug, elementSlug, field, to, from) {
 /** `remove_element` op. */
 export function removeElement(modelSlug, elementSlug, concept) {
   return { op: 'remove_element', target: `${modelSlug}@${elementSlug}`, concept };
+}
+
+/**
+ * Apply every proposed HUMAN console changeset waiting under `changes/` (the console
+ * download fallback). The engine uses the same writer/apply path, so the human-origin
+ * policy of `executeChangesetApply` is the one that decides. A non-human or non-console
+ * proposal is left untouched (an agent's proposal goes through review, never here).
+ *
+ * @param {string} rootDir
+ * @returns {Promise<Array<{ changeset: string, changesetPath?: string, success: boolean, status?: string }>>}
+ */
+export async function applyPendingHumanChangesets(rootDir) {
+  const dir = path.join(rootDir, 'changes');
+  if (!fs.existsSync(dir)) return [];
+  const applied = [];
+  for (const entry of fs.readdirSync(dir).sort()) {
+    if (!entry.endsWith('.md') || entry.endsWith('_spec_NN.md')) continue;
+    let doc;
+    try {
+      doc = parseChangeset(fs.readFileSync(path.join(dir, entry), 'utf8'));
+    } catch {
+      continue;
+    }
+    if (doc.frontmatter?.status !== 'proposed') continue;
+    if (doc.frontmatter.author_kind !== 'human' || doc.frontmatter.origin !== 'console') continue;
+    const result = await executeChangesetApply(rootDir, path.join(dir, entry));
+    applied.push({
+      changeset: entry,
+      changesetPath: result.changesetPath,
+      success: Boolean(result.success),
+      status: result.status,
+    });
+  }
+  return applied;
 }
 
 /** Only the workspace files a changeset apply needs, so a dry apply is cheap. */

@@ -31,6 +31,7 @@ import {
   ChangesetError,
   applyChanges,
   applyChangesetFile,
+  applyPendingHumanChangesets,
   dryApply as defaultDryApply,
   fieldChange,
 } from './lib/changes.mjs';
@@ -168,6 +169,13 @@ export async function produce(options) {
   const episodeDir = path.dirname(scriptPath);
   const rootDir = resolveWorkspace(episodeDir).root;
   const installed = deps.installedVersion || installedBlueprintVersion(deps.packageDir);
+
+  // 0. Apply the human console changesets that are waiting (download fallback). They
+  // are the only input that can change the episode before this run reads it.
+  const pendingHuman = await (deps.applyPending || applyPendingHumanChangesets)(rootDir);
+  for (const outcome of pendingHuman) {
+    log(`intake: applied pending ${outcome.changeset} (${outcome.status})`);
+  }
 
   let episode = readEpisode(scriptPath, { model: deps.model });
   try {

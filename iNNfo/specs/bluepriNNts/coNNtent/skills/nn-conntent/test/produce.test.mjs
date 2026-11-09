@@ -281,6 +281,47 @@ test('produce writes the description.md chapter block and never overwrites an au
 });
 
 
+test('produce applies a pending human console changeset before it reads the episode', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
+  try {
+    fs.writeFileSync(
+      path.join(ws.root, 'changes', 'ws_ana_1_changes_NN.md'),
+      `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.invalid/changes/spec_NN.md"
+blueprint_version: "0.1.0"
+status: proposed
+title: "Human edit"
+author_kind: human
+origin: console
+reviewer: Ana
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: update_field
+target:: s/e@e&title
+to:: Console title
+evidence:: decision
+`,
+      'utf8',
+    );
+    const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    assert.equal(result.code, EXIT_DONE);
+    assert.equal(readEpisode(ws.scriptPath).fields.title, 'Console title', 'the human edit landed first');
+  } finally {
+    done(ws.root);
+  }
+});
+
 test('daily_budget stops the run when the 24h window would be exceeded', async () => {
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
   try {
