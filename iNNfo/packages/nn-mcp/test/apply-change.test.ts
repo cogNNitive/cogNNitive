@@ -66,7 +66,6 @@ target_year:: 2030
 price:: 5
 statement_source:: sources/interview.md@## Vision
 target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
-sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## Timeline]
 `
 
   beforeEach(async () => {

@@ -21,7 +21,7 @@ Corporate real estate, hospitality, and commercial venue operators requiring rap
 
 ## NN Segment: Luxury Hospitality
 slug:: luxury-hospitality
-stakeholder:: [[commercial-clients]]
+stakeholder:: @commercial-clients
 priority:: High
 market_size:: 45 Manhattan landmark hotels
 target_range:: 4-5 star rating, >200 rooms, historic heritage properties
@@ -32,7 +32,7 @@ High-end hotels and historic cultural venues experiencing supernatural disturban
 
 ## NN Profile: Hotel General Manager
 slug:: hotel-general-manager
-segment:: [[luxury-hospitality]]
+segment:: @luxury-hospitality
 decision_role:: Economic Buyer
 persona:: personas/hotel_general_manager.md
 pain_points:: Paranormal disturbances threatening guest discretion and brand prestige.
@@ -40,7 +40,7 @@ tags:: [executive, decision-maker, confidential]
 
 ## NN Profile: Facilities Director
 slug:: facilities-director
-segment:: [[luxury-hospitality]]
+segment:: @luxury-hospitality
 decision_role:: Technical Evaluator
 pain_points:: Structural integrity risks and uncontainable physical ectoplasmic residue in ventilation.
 tags:: [operations, engineering, physical-plant]

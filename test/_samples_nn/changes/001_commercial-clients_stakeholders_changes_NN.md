@@ -35,11 +35,11 @@ batch:: 001_commercial-clients_stakeholders_changes_NN
 resolution:: Created model "commercial-clients_stakeholders"
 
 ## NN Change: c-02
+slug:: commercial-clients
 op:: add_element
 target:: commercial-clients_stakeholders@commercial-clients
 concept:: Stakeholder
 name:: Commercial Clients
-slug:: commercial-clients
 fields:: {"category":"Commercial","influence_level":"High","relationship_model":"Retainer & Emergency On-Demand SLAs","tags":["b2b","primary-revenue","enterprise"]}
 evidence:: decision
 author:: Egon Spengler
@@ -50,12 +50,12 @@ resolution:: Applied successfully
 resolved_slug:: commercial-clients
 
 ## NN Change: c-03
+slug:: luxury-hospitality
 op:: add_element
 target:: commercial-clients_stakeholders@luxury-hospitality
 concept:: Segment
 name:: Luxury Hospitality
-slug:: luxury-hospitality
-fields:: {"stakeholder":"[[commercial-clients]]","priority":"High","market_size":"45 Manhattan landmark hotels","target_range":"4-5 star rating, >200 rooms, historic heritage properties","tags":["b2b","commercial","premium"]}
+fields:: {"stakeholder":"@commercial-clients","priority":"High","market_size":"45 Manhattan landmark hotels","target_range":"4-5 star rating, >200 rooms, historic heritage properties","tags":["b2b","commercial","premium"]}
 evidence:: decision
 author:: Egon Spengler
 status:: applied
@@ -65,12 +65,12 @@ resolution:: Applied successfully
 resolved_slug:: luxury-hospitality
 
 ## NN Change: c-04
+slug:: hotel-general-manager
 op:: add_element
 target:: commercial-clients_stakeholders@hotel-general-manager
 concept:: Profile
 name:: Hotel General Manager
-slug:: hotel-general-manager
-fields:: {"segment":"[[luxury-hospitality]]","decision_role":"Economic Buyer","persona":"personas/hotel_general_manager.md","pain_points":"Paranormal disturbances threatening guest discretion and brand prestige.","tags":["executive","decision-maker","confidential"]}
+fields:: {"segment":"@luxury-hospitality","decision_role":"Economic Buyer","persona":"personas/hotel_general_manager.md","pain_points":"Paranormal disturbances threatening guest discretion and brand prestige.","tags":["executive","decision-maker","confidential"]}
 evidence:: decision
 author:: Egon Spengler
 status:: applied
@@ -80,12 +80,12 @@ resolution:: Applied successfully
 resolved_slug:: hotel-general-manager
 
 ## NN Change: c-05
+slug:: facilities-director
 op:: add_element
 target:: commercial-clients_stakeholders@facilities-director
 concept:: Profile
 name:: Facilities Director
-slug:: facilities-director
-fields:: {"segment":"[[luxury-hospitality]]","decision_role":"Technical Evaluator","pain_points":"Structural integrity risks and uncontainable physical ectoplasmic residue in ventilation.","tags":["operations","engineering","physical-plant"]}
+fields:: {"segment":"@luxury-hospitality","decision_role":"Technical Evaluator","pain_points":"Structural integrity risks and uncontainable physical ectoplasmic residue in ventilation.","tags":["operations","engineering","physical-plant"]}
 evidence:: decision
 author:: Egon Spengler
 status:: applied
@@ -95,11 +95,11 @@ resolution:: Applied successfully
 resolved_slug:: facilities-director
 
 ## NN Change: c-06
+slug:: reputational-risk
 op:: add_element
 target:: commercial-clients_stakeholders@reputational-risk
 concept:: Segmentation criteria
 name:: Reputational risk
-slug:: reputational-risk
 fields:: {"criterion_type":"Strategic"}
 evidence:: decision
 author:: Egon Spengler
@@ -110,11 +110,11 @@ resolution:: Applied successfully
 resolved_slug:: reputational-risk
 
 ## NN Change: c-07
+slug:: budget-elasticity
 op:: add_element
 target:: commercial-clients_stakeholders@budget-elasticity
 concept:: Segmentation criteria
 name:: Budget elasticity
-slug:: budget-elasticity
 fields:: {"criterion_type":"Firmographic"}
 evidence:: decision
 author:: Egon Spengler
@@ -125,11 +125,11 @@ resolution:: Applied successfully
 resolved_slug:: budget-elasticity
 
 ## NN Change: c-08
+slug:: operational-discretion
 op:: add_element
 target:: commercial-clients_stakeholders@operational-discretion
 concept:: Segmentation criteria
 name:: Operational discretion
-slug:: operational-discretion
 fields:: {"criterion_type":"Behavioral"}
 evidence:: decision
 author:: Egon Spengler

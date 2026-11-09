@@ -9122,6 +9122,7 @@ function parseConceptSection(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
   let current = null;
+  let currentHasProperty = false;
   let descriptionLines = [];
   const leadingLines = [];
   let seenElement = false;
@@ -9165,6 +9166,7 @@ function parseConceptSection(conceptName, content) {
     });
     descriptionLines = [];
     seenElement = true;
+    currentHasProperty = false;
     return node;
   };
   const conceptFields = {};
@@ -9178,8 +9180,14 @@ function parseConceptSection(conceptName, content) {
       continue;
     }
     if (current) {
+      if (!currentHasProperty && /^\s*<!--.*-->\s*$/.test(line)) {
+        current.rawLeading = current.rawLeading ?? [];
+        current.rawLeading.push(line.trim());
+        continue;
+      }
       const prop = parsePropertyLine(line);
       if (prop !== null) {
+        currentHasProperty = true;
         if (prop[0] === "slug") {
           current.slug = String(prop[1]);
           current.slugExplicit = true;

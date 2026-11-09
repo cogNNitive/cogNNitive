@@ -7825,6 +7825,7 @@ function parseConceptSection2(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
   let current = null;
+  let currentHasProperty = false;
   let descriptionLines = [];
   const leadingLines = [];
   let seenElement = false;
@@ -7868,6 +7869,7 @@ function parseConceptSection2(conceptName, content) {
     });
     descriptionLines = [];
     seenElement = true;
+    currentHasProperty = false;
     return node;
   };
   const conceptFields = {};
@@ -7881,8 +7883,14 @@ function parseConceptSection2(conceptName, content) {
       continue;
     }
     if (current) {
+      if (!currentHasProperty && /^\s*<!--.*-->\s*$/.test(line)) {
+        current.rawLeading = current.rawLeading ?? [];
+        current.rawLeading.push(line.trim());
+        continue;
+      }
       const prop = parsePropertyLine2(line);
       if (prop !== null) {
+        currentHasProperty = true;
         if (prop[0] === "slug") {
           current.slug = String(prop[1]);
           current.slugExplicit = true;
@@ -8213,6 +8221,10 @@ function serializeKnowledge2(model) {
     lines.push(`${hashes} NN ${node.type}: ${node.name}`);
     if (node.slugExplicit && node.slug)
       lines.push(`slug:: ${node.slug}`);
+    if (node.rawLeading) {
+      for (const leading of node.rawLeading)
+        lines.push(leading);
+    }
     for (const [k, v] of Object.entries(node.fields)) {
       const value = v;
       const raw = value === v ? node.rawFields?.[k] : void 0;
@@ -19241,6 +19253,7 @@ function parseConceptSection(conceptName, content) {
   const nodes = [];
   const lines = content.split("\n");
   let current = null;
+  let currentHasProperty = false;
   let descriptionLines = [];
   const leadingLines = [];
   let seenElement = false;
@@ -19284,6 +19297,7 @@ function parseConceptSection(conceptName, content) {
     });
     descriptionLines = [];
     seenElement = true;
+    currentHasProperty = false;
     return node;
   };
   const conceptFields = {};
@@ -19297,8 +19311,14 @@ function parseConceptSection(conceptName, content) {
       continue;
     }
     if (current) {
+      if (!currentHasProperty && /^\s*<!--.*-->\s*$/.test(line)) {
+        current.rawLeading = current.rawLeading ?? [];
+        current.rawLeading.push(line.trim());
+        continue;
+      }
       const prop = parsePropertyLine(line);
       if (prop !== null) {
+        currentHasProperty = true;
         if (prop[0] === "slug") {
           current.slug = String(prop[1]);
           current.slugExplicit = true;
@@ -19604,6 +19624,9 @@ function serializeKnowledge(model) {
     const hashes = "#".repeat(hDepth);
     lines.push(`${hashes} NN ${node.type}: ${node.name}`);
     if (node.slugExplicit && node.slug) lines.push(`slug:: ${node.slug}`);
+    if (node.rawLeading) {
+      for (const leading of node.rawLeading) lines.push(leading);
+    }
     for (const [k, v] of Object.entries(node.fields)) {
       const value = v;
       const raw = value === v ? node.rawFields?.[k] : void 0;

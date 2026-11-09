@@ -233,6 +233,12 @@ export interface ElementNode {
   /** Optional slug derived from YAML `slug` field or auto-derived from name. */
   slug?: string
   /**
+   * HTML comment lines between the element heading and its first `key:: value`
+   * (for example the manifest's `<!-- nn:auto -->` ownership marker). They are
+   * outside `description` so the serializer can replay them in place.
+   */
+  rawLeading?: string[]
+  /**
    * Whether a blank line separated this element from the next one in the
    * source (undefined for a programmatically constructed element, which
    * `serializeKnowledge` treats as `true`). The shipped corpus is not uniform:

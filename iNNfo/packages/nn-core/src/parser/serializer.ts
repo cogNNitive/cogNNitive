@@ -321,6 +321,10 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     // An authored `slug::` is an identity declaration and leads the
     // element. A derived slug is not written: see `slugExplicit`.
     if (node.slugExplicit && node.slug) lines.push(`slug:: ${node.slug}`)
+    // Element metadata captured between the heading and the first field, in place.
+    if (node.rawLeading) {
+      for (const leading of node.rawLeading) lines.push(leading)
+    }
     for (const [k, v] of Object.entries(node.fields)) {
       // A citation field with a repeated pointer is rewritten (dropping
       // its raw text, deliberately); anything else keeps the author's

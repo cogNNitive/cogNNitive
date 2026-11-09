@@ -97,20 +97,21 @@ Software architecture, firmware repositories, and telemetry systems for the cont
 ## NN Models: Executive Remediation Report 1984
 <!-- nn:auto -->
 path:: artifacts/models/executive_remediation_report_business_NN.md
-template:: [[business]]
+template:: business
 status:: active
 
 ## NN Models: Ghostbusters Inc. Visual Design Presets
 <!-- nn:auto -->
 path:: kNNowledge/Ghostbusters_design-presets_NN.md
-template:: [[design-presets_V_0-4-1]]
+template:: design-presets_V_0-4-1
 status:: active
 
 ## NN Models: Commercial Clients Stakeholder
 <!-- nn:auto -->
 path:: stakeholders/commercial-clients/commercial-clients_stakeholders_NN.md
-template:: [[stakeholders_V_0-1-0]]
+template:: stakeholders_V_0-1-0
 status:: active
+
 # NN Sources
 
 ## NN Sources: Sources Catalog

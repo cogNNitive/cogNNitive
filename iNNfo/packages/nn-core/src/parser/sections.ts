@@ -133,6 +133,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
   const nodes: ElementNode[] = []
   const lines = content.split('\n')
   let current: ElementNode | null = null
+  let currentHasProperty = false
   let descriptionLines: string[] = []
   const leadingLines: string[] = []
   let seenElement = false
@@ -193,6 +194,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
 
     descriptionLines = []
     seenElement = true
+    currentHasProperty = false
     return node
   }
 
@@ -211,8 +213,16 @@ export function parseConceptSection(conceptName: string, content: string): Parse
 
     // Unified property line: `key:: value` (immediately after an element heading)
     if (current) {
+      // An HTML comment between the heading and the first property is element
+      // metadata (the manifest's `<!-- nn:auto -->`), not prose: keep it in order.
+      if (!currentHasProperty && /^\s*<!--.*-->\s*$/.test(line)) {
+        current.rawLeading = current.rawLeading ?? []
+        current.rawLeading.push(line.trim())
+        continue
+      }
       const prop = parsePropertyLine(line)
       if (prop !== null) {
+        currentHasProperty = true
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
           current.slugExplicit = true
