@@ -175,3 +175,78 @@ export function gateState({ targets = [], verdicts = [] }) {
 /** The engine's message for a verdict applied after its content changed (C7). */
 export const STALE_APPROVAL_MESSAGE =
   'content changed since you reviewed it; reopen the console';
+
+/* ── Re-open causes (design D-P2) ───────────────────────────────────────────── */
+
+/** The machine-local record directory; gitignored, absence only degrades a cause. */
+export function reviewsDir(rootDir) {
+  return path.join(rootDir, '.cognnitive', 'video', 'reviews');
+}
+
+/** `<root>/.cognnitive/video/reviews/<series>__<episode>.json`. */
+export function reviewSnapshotPath(rootDir, series, episode) {
+  return path.join(reviewsDir(rootDir), `${series}__${episode}.json`);
+}
+
+/** The last stored review record of one episode, or an empty one. */
+export function readReviewSnapshot(rootDir, series, episode) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(reviewSnapshotPath(rootDir, series, episode), 'utf8'));
+    return { scenes: parsed?.scenes && typeof parsed.scenes === 'object' ? parsed.scenes : {} };
+  } catch {
+    return { scenes: {} };
+  }
+}
+
+/** Overwrites the episode's record in place (never appended, never committed). */
+export function writeReviewSnapshot(rootDir, series, episode, scenes) {
+  fs.mkdirSync(reviewsDir(rootDir), { recursive: true });
+  fs.writeFileSync(
+    reviewSnapshotPath(rootDir, series, episode),
+    JSON.stringify({ scenes }, null, 2),
+    'utf8',
+  );
+}
+
+/** The first differing key between two field objects, in insertion order. */
+function firstChangedKey(previous = {}, current = {}) {
+  for (const key of Object.keys(current)) {
+    if (JSON.stringify(previous[key]) !== JSON.stringify(current[key])) return key;
+  }
+  for (const key of Object.keys(previous)) {
+    if (!(key in current)) return key;
+  }
+  return null;
+}
+
+/**
+ * The cause of a re-open: kind and detail, or null when the subject did not change.
+ * `sources` maps a resolved parameter to the level that supplied it, so a cause can
+ * say "series voice changed" (design D-P2).
+ *
+ * @param {{ previous?: object|null, current: object, sources?: Record<string, string> }} input
+ * @returns {{ kind: string, detail?: string }|null}
+ */
+export function reopenCause({ previous, current, sources = {} }) {
+  if (!previous) return { kind: 'unknown' };
+  if (previous.narration !== current.narration) return { kind: 'narration-changed' };
+
+  const previousLayers = previous.layers || [];
+  const currentLayers = current.layers || [];
+  if (previousLayers.length !== currentLayers.length) {
+    return { kind: 'layer-changed', detail: 'layers' };
+  }
+  for (let index = 0; index < currentLayers.length; index++) {
+    if (JSON.stringify(previousLayers[index]) !== JSON.stringify(currentLayers[index])) {
+      const label = currentLayers[index]?.name || currentLayers[index]?.slug || `layer ${index + 1}`;
+      return { kind: 'layer-changed', detail: String(label) };
+    }
+  }
+
+  const changedParam = firstChangedKey(previous.params || {}, current.params || {});
+  if (changedParam) {
+    const level = sources[changedParam];
+    return { kind: 'param-changed', detail: level ? `${level} ${changedParam}` : changedParam };
+  }
+  return null;
+}
