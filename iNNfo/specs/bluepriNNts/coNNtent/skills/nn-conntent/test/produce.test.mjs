@@ -327,6 +327,7 @@ test('the preview gate stops after cheap spend with exit 10, before any render',
   const ws = workspace(episodeDoc({ status: 'draft', review: 'preview' }));
   const { render, calls } = fakeRender();
   let synthesized = false;
+  let animatic = 0;
   try {
     await assertStop(
       produce({
@@ -337,6 +338,10 @@ test('the preview gate stops after cheap spend with exit 10, before any render',
             synthesized = true;
             return {};
           },
+          renderAnimatic: async () => {
+            animatic++;
+            return { outputVideoPath: 'probe_animatic_640x640.mp4' };
+          },
           previewSubjects: () => [{ scene: 'one', hash: 'a'.repeat(64), planHash: 'b'.repeat(64), subject: {} }],
           log: () => {},
         },
@@ -345,6 +350,7 @@ test('the preview gate stops after cheap spend with exit 10, before any render',
       EXIT_REVIEW,
     );
     assert.equal(synthesized, true, 'cheap spend happened before the preview gate');
+    assert.equal(animatic, 1, 'the animatic is the thing the reviewer approves');
     assert.equal(calls.length, 0, 'no render was reached');
   } finally {
     done(ws.root);
@@ -363,6 +369,7 @@ test('a matching preview verdict lets the run continue to the render', async () 
       deps: {
         render,
         synthesizeEpisodeAssets: async () => ({}),
+        renderAnimatic: async () => ({ outputVideoPath: 'probe_animatic_640x640.mp4' }),
         previewSubjects: () => [{ scene: 'one', hash, planHash, subject: {} }],
         log: () => {},
       },
@@ -678,7 +685,7 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
   }
 });
 
-test('overlay QA: a removed host makes produce exit 1 with overlay-qa-failed, status stays approved, no master written, master exists on disk', async () => {
+test('overlay QA: a removed host makes produce exit 12 with overlay-qa-failed, status stays approved, no master written, master exists on disk', async () => {
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
   const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
   const { render } = fakeRender({ overlayManifest: overlays, indexHtml: '<!doctype html><html><body><div id="root"></div></body></html>' });
@@ -687,7 +694,7 @@ test('overlay QA: a removed host makes produce exit 1 with overlay-qa-failed, st
       produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'overlay-qa-failed');
-        assert.equal(err.exitCode, 1);
+        assert.equal(err.exitCode, 12);
         assert.match(err.message, /overlay_scene_one_1/);
         return true;
       },
@@ -724,7 +731,7 @@ test('overlay QA: a missing index.html fails with overlay-qa-failed', async () =
       produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'overlay-qa-failed');
-        assert.equal(err.exitCode, 1);
+        assert.equal(err.exitCode, 12);
         return true;
       },
     );

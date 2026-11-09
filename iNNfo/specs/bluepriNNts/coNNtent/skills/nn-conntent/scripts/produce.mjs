@@ -38,6 +38,7 @@ import {
 import { evaluateGate, readAppliedVerdicts } from './lib/gates.mjs';
 import { lowerEpisode, scriptGateStates, scriptSubjectsFromScenes } from './lib/review-subject.mjs';
 import { previewGateStates, previewSubjectsFromScenes } from './lib/preview-subject.mjs';
+import { renderAnimatic as defaultRenderAnimatic } from './lib/animatic.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
@@ -57,6 +58,7 @@ import { recordStage, synthesizeEpisodeAssets } from './lib/compile.mjs';
 export const EXIT_DONE = 0;
 export const EXIT_REVIEW = 10;
 export const EXIT_BUDGET = 11;
+export const EXIT_QA = 12;
 export const EXIT_ERROR = 1;
 
 export const PROPOSAL_FILENAME = 'proposal_changes_NN.md';
@@ -307,6 +309,20 @@ export async function produce(options) {
   // 4b. Preview gate: after the cheap spend (TTS, images, captions, animatic) and before
   // any avatar call. The hash covers what the reviewer heard and saw.
   if (gateList.includes('preview')) {
+    // The animatic shows the reviewer the episode with real audio and the pose still.
+    const declaredSizes = resolveForEpisode(episode.model, scriptPath, 'output_formats').value;
+    const masterSize = Array.isArray(declaredSizes) && declaredSizes.length > 0 ? String(declaredSizes[0]) : '1920x1920';
+    const [masterWidth, masterHeight] = masterSize.split('x').map((value) => Number(value));
+    const renderAnimatic = deps.renderAnimatic || defaultRenderAnimatic;
+    const animatic = await renderAnimatic({
+      scriptPath,
+      masterWidth: Number.isFinite(masterWidth) ? masterWidth : 1920,
+      masterHeight: Number.isFinite(masterHeight) ? masterHeight : 1920,
+      facts,
+      stageDeps: deps.stageDeps,
+    });
+    log(`animatic: ${animatic.outputVideoPath}`);
+
     const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
     const parsed = lowerEpisode({ model: episode.model, bags, scriptDir: path.dirname(scriptPath) });
     const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language);
@@ -376,7 +392,7 @@ export async function produce(options) {
     throw new ProduceStop(
       'overlay-qa-failed',
       `HyperFrames index.html missing at ${projectIndexHtmlPath}`,
-      { exitCode: EXIT_ERROR, details: { missing: ['index.html'] } },
+      { exitCode: EXIT_QA, details: { missing: ['index.html'] } },
     );
   }
   const indexHtml = fs.readFileSync(projectIndexHtmlPath, 'utf8');
@@ -386,7 +402,7 @@ export async function produce(options) {
     throw new ProduceStop(
       'overlay-qa-failed',
       `Overlay QA gate failed: missing host elements in index.html for overlays: ${missingOverlays.join(', ')}`,
-      { exitCode: EXIT_ERROR, details: { missing: missingOverlays } },
+      { exitCode: EXIT_QA, details: { missing: missingOverlays } },
     );
   }
   recordStage(facts, { stage: 'qa', start: qaStart, end: Date.now() });

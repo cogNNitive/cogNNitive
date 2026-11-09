@@ -93,10 +93,14 @@ export async function renderVideo(options) {
   if (!hyperframesDir) throw new Error('The manifest has no metadata.hyperframesDir; render takes the script, which compile stamps');
   const slug = manifest.metadata?.videoSlug;
   if (!slug) throw new Error('The manifest has no metadata.videoSlug (the Video slug); recompile the script');
-  const tmpPath = path.join(hyperframesDir, 'render.tmp.mp4');
+  const tmpPath = path.join(hyperframesDir, options.kind === 'animatic' ? 'render.animatic.tmp.mp4' : 'render.tmp.mp4');
   const masterWidth = manifest.width || 1920;
   const masterHeight = manifest.height || 1920;
-  const outputPath = path.join(path.dirname(hyperframesDir), `${slug}_${masterWidth}x${masterHeight}.mp4`);
+  const outputName =
+    options.kind === 'animatic'
+      ? `${slug}_animatic_${masterWidth}x${masterHeight}.mp4`
+      : `${slug}_${masterWidth}x${masterHeight}.mp4`;
+  const outputPath = path.join(path.dirname(hyperframesDir), outputName);
   fs.mkdirSync(hyperframesDir, { recursive: true });
   fs.rmSync(tmpPath, { force: true });
 
