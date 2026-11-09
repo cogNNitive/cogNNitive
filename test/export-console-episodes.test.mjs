@@ -22,7 +22,7 @@ import { assertLayout, LAYOUT_LEGACY } from '../iNNfo/specs/bluepriNNts/coNNtent
 const ASSETS = path.resolve(
   'iNNfo/specs/bluepriNNts/coNNtent/assets',
 );
-const DATA_FILE = path.join(ASSETS, 'console-view-episode-review.data.mjs');
+const DATA_FILE = path.join(ASSETS, 'console-view-conntent.data.mjs');
 
 const EPISODE_DOC = (slug) =>
   `---
@@ -38,6 +38,12 @@ slug:: ${slug}
 
 function makeDomain() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-export-episodes-'));
+  fs.mkdirSync(path.join(root, 'series', 's'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'series', 's', 's_coNNtent_NN.md'),
+    `---\nlevel: 3\nscope: true\nparent_spec:\n  name: "coNNtent_V_0-17-0"\n  url: "x"\ntitle: "S"\n---\n\n# NN Series\n\n## NN Series: S\nslug:: s\n`,
+    'utf8',
+  );
   fs.mkdirSync(path.join(root, 'series', 's', 'episodes', 'ok'), { recursive: true });
   fs.writeFileSync(path.join(root, 'series', 's', 'episodes', 'ok', 'ok_coNNtent_NN.md'), EPISODE_DOC('ok'), 'utf8');
   // A legacy episode under assets/ must be reported, not discovered.
@@ -62,8 +68,9 @@ test('the console data module discovers an episode under episodes/ and does not 
   try {
     const mod = await import(pathToFileURL(DATA_FILE).href);
     const data = await mod.collect({ rootDir: root });
-    assert.ok(data.episodes.ok, 'the episodes/ episode is discovered');
-    assert.ok(!data.episodes.old, 'a legacy assets/ episode is NOT a discovered episode');
+    const slugs = data.tree.series.flatMap((series) => series.episodes.map((episode) => episode.slug));
+    assert.ok(slugs.includes('ok'), 'the episodes/ episode is discovered');
+    assert.ok(!slugs.includes('old'), 'a legacy assets/ episode is NOT a discovered episode');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
