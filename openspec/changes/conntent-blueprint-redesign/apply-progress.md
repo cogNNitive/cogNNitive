@@ -41,13 +41,11 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado. Aterrizado (verificar:fast 227/227 en cada uno):
-- **Slice 1a completa** — PRs #591 + #592 fusionados.
-- **Slice 1b núcleo** — `library.mjs` (`resolveLibrary` + `validateLibrary`) + 12 tests.
-- **Slice 2c** — frame como carpeta `library/frames/<name>/FRAME.md`; frontmatter parseado por nn-core (mirror `parseYaml`), `caption-skin.html`/`fonts/` opcionales, emisión a `hyperframes/frame.md`; `neutral.md` migrado (7c482479).
-- **1c.3+1c.4** — un solo ledger `.cognnitive/video/ledger.jsonl` propiedad de `facts.mjs`; `video-guard.mjs` delega en facts y reexporta; `video-ledger.jsonl` rechazado por `assertLayout` (b9933746).
+**Status:** tracker `feat/conntent-redesign` verde y empujado. Aterrizado (verify:fast 227/227 tras cada uno):
+- **Slice 1a completa** (PRs #591+#592), **1b núcleo**, **2c** (frame-carpeta), **1c.3+1c.4** (ledger único).
+- **Slice 1b COMPLETA** — 1b.4 (wiring compile/render-thumbnail a `resolveLibrary`; `findNearest*` borrado; tests frame/sounds/overlay migrados a `library/`), 1b.5+1b.6 (`libraryResolutionRecord`; refs que escalan → `LIBRARY_PATH_INVALID`).
 
-**Pendiente de alcance honesto:** 1b.4 wiring de `compile`/`render-thumbnail` a `resolveLibrary` (rompe ~37 tests que montan raíces viejas — migración del motor completa), 1c.1/1c.2 (nombres de entregables), y slices 2a/2b/2d/2e/3a/3b/4/5 + Phase 7. 3b-3 (whisper), 3b-4 (renders/QA), 4a (navegador) requieren recursos del maintainer. La fusión a `dev`/`main` es el último paso cuando el cambio completo y `verify.js` estén verdes.
+**Pendiente:** 1c.1/1c.2 (nombres de entregables), 1c.5 (retirar `video-guard.json`), 1c.7 (plan.json), 1c.8 (docs), y slices 2/3a/3b/4/5 + Phase 7. Con permisos concedidos (whisper/render/navegador) puedo completar más, incluyendo V.3 y 3b-3/4. La fusión a `dev`/`main` es el último paso cuando el cambio completo y `verify.js` estén verdes.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
