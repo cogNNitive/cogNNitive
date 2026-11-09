@@ -119,8 +119,11 @@ gate passed in ~60 s.
 ## Slice 4 — Console (PRs 4a–4d)
 
 - [x] 4a.1 + 4a.2 CSP: `img-src 'self' file: data: blob: https:`, `media-src 'self' file: blob:`; `test/console-csp.test.mjs` 2/2 (V.2 decided on Chrome 156).
-- [ ] 4a.3/4a.4 scope models + `readOnly` + per-scope draft-store key; `writeConsole` scope.
-- [ ] 4a.5-4a.9 FSA direct write, verdict draft, writer locator, refactor.
+- [x] 4a.3/4a.4 `consoleScopeMeta` (view/models/readOnly/label), payload narrowing, read-only controls, per-scope draft-store key; `console-scope-models.test` 5/5.
+- [x] 4a.5/4a.6 `nn-fsa.js`: workspace-matched folder, handle in IndexedDB, query→request permission, `wx` changeset write, download fallback; `console-direct-write.test` 5/5.
+- [x] 4a.7 verdict draft → `review_gate` with `author_kind: human`, `origin: console`, named reviewer (default refused); preview carries the scene slice `plan_hash`, budget the episode plan hash; `console-verdict-export.test` 6/6.
+- [x] 4a.8/4a.9 `resolveConsoleModulePath`/`devCheckoutRoot` moved to `CORE/src/console/locate-writer.ts`, exported by nn-core and the coNNtent mirror, imported by nn-mcp; mirrors and bundle regenerated.
+- [ ] `writeConsole` scope object (`{view, models, readOnly, outFile}`) lands with 4b.3 (export discovery).
 
 ## Slice 5 — Procedures (PRs 5a–5b)
 
