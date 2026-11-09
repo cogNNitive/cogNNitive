@@ -3,6 +3,9 @@
  *
  * The one resolver for every cascade parameter (design D-K2; capability
  * conntent-field-registry "One Resolver Serves The Compiler And The Estimator").
+ * `resolve`/`resolveKeyed` live HERE, not in video-scope.mjs, so every resolver
+ * (compiler, estimator, synthesize-avatar, render-thumbnail, produce) imports the
+ * same module and the same precedence.
  *
  * `createCascade({ model, scriptPath, bags, presetOf })` returns
  * `{ at(scene?, layer?), get(field), validateLevel(field, level) }`:
@@ -12,8 +15,8 @@
  *     explicit fields.
  *   - `get(field)` resolves through `bagsToChain` + nn-core `resolve` and returns
  *     `{ value, source, trace }`.
- *   - Node order per level is presets (list order) → character → explicit fields; the
- *     `kind` level holds Scene Kind direct fields and kind presets; a Chrome `music`
+ *   - Node order per level is presets (list order) → explicit fields; the `kind`
+ *     level holds Scene Kind direct fields and kind presets; a Chrome `music`
  *     value feeds `background_audio` at the kind level.
  *   - `validateLevel(field, level)` rejects a field set at a level its scope class
  *     forbids with `CASCADE_LEVEL_FORBIDDEN`.
@@ -21,7 +24,53 @@
  * Zero external dependencies (nn-core via the shared mirror). ESM module.
  */
 
-import { bagsToChain, resolve } from './video-scope.mjs';
+import { bagsToChain } from './video-scope.mjs';
+import { resolve as coreResolve } from './nn-core.generated.cjs';
+
+function usable(v) {
+  return v !== undefined && v !== null && String(v).trim() !== '';
+}
+
+/**
+ * Resolves one scalar parameter across bags using nn-core resolve (the shared
+ * precedence of the whole engine). Lives here so one resolver serves every caller.
+ * @param {string} param
+ * @param {Record<string, Record<string, unknown>>} [bags]
+ * @param {{ accept?: (v: unknown) => boolean }} [options]
+ * @returns {{ value: unknown, source: string | null }}
+ */
+export function resolve(param, bags = {}, options = {}) {
+  const loaded = bagsToChain(bags);
+  const accept = options.accept || usable;
+  const r = coreResolve(loaded, param, 'override', { accept });
+  return {
+    value: r.present ? r.value : null,
+    source: r.explain?.winner?.scope ?? null,
+  };
+}
+
+/**
+ * Resolves one key of a keyed-list parameter (`components`, `sounds`) across bags
+ * using nn-core resolve with union strategy.
+ * @param {string} param
+ * @param {string} key
+ * @param {Record<string, Record<string, unknown>>} [bags]
+ * @returns {{ value: string | null, source: string | null }}
+ */
+export function resolveKeyed(param, key, bags = {}) {
+  const loaded = bagsToChain(bags);
+  const r = coreResolve(loaded, param, 'union');
+  if (!r.present || !Array.isArray(r.value)) {
+    return { value: null, source: null };
+  }
+  const entry = r.value.find((e) => e.name === key);
+  if (!entry) return { value: null, source: null };
+  const explainEntry = r.explain?.entries?.find((e) => e.name === key);
+  return {
+    value: entry.value,
+    source: explainEntry?.from?.scope ?? null,
+  };
+}
 
 /** Error code when a cascade field is set at a level its scope class forbids. */
 export const CASCADE_LEVEL_FORBIDDEN = 'CASCADE_LEVEL_FORBIDDEN';

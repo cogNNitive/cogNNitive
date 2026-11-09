@@ -17,7 +17,8 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 import { parseKnowledgeDocument } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
-import { loadCascadeBags, resolve as resolveParam } from '../skills/nn-conntent/scripts/lib/video-scope.mjs'
+import { loadCascadeBags } from '../skills/nn-conntent/scripts/lib/video-scope.mjs';
+import { resolve as resolveParam } from '../skills/nn-conntent/scripts/lib/cascade.mjs'
 import { isPriceStale } from '../skills/nn-conntent/scripts/lib/catalog.mjs'
 
 const execFileAsync = promisify(execFile)

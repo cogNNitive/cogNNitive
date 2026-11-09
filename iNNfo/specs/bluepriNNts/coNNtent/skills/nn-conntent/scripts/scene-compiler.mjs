@@ -19,7 +19,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { isKnowledgeModel, slugify } from './lib/knowledge-model.mjs';
-import { resolve } from './lib/video-scope.mjs';
+import { resolve } from './lib/cascade.mjs';
 import { chromeFieldsFor, kindBagOf, loadSeriesGrammar, validateLanguage, validateSceneKinds } from './lib/kinds.mjs';
 
 /**

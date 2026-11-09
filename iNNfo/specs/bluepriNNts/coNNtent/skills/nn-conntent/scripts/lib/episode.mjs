@@ -12,7 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadKnowledgeModel } from './knowledge-model.mjs';
-import { loadCascadeBags, resolve, withScriptPresets } from './video-scope.mjs';
+import { loadCascadeBags, withScriptPresets } from './video-scope.mjs';
+import { resolve } from './cascade.mjs';
 
 /** The closed set of Episode states. */
 export const EPISODE_STATUSES = ['idea', 'draft', 'approved', 'produced', 'published', 'archived'];

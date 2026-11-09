@@ -17,7 +17,8 @@ import { loadKnowledgeModel, parseKnowledgeDocument } from './lib/knowledge-mode
 import { fileURLToPath } from 'node:url';
 import { computePlanHash, formatStamp } from './lib/plan.mjs';
 import { normalizeModelId } from './lib/video-guard.mjs';
-import { loadCascadeBags, resolve, withScriptPresets } from './lib/video-scope.mjs';
+import { loadCascadeBags, withScriptPresets } from './lib/video-scope.mjs';
+import { resolve } from './lib/cascade.mjs';
 import { isAvatarLayer, collectAvatarJobs, ttsCachePathFor, AVATAR_CACHE_EXT, AVATAR_CACHE_CATEGORY } from './lib/avatar-jobs.mjs';
 import { layerPrompt, imageCachePathFor } from './lib/image-options.mjs';
 import { loadMergedCatalog, assertImageSize, isPriceStale, DEFAULT_STALE_AFTER_DAYS } from './lib/catalog.mjs';

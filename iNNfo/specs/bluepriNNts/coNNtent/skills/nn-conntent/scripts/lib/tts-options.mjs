@@ -9,7 +9,7 @@
  * Zero external dependencies. ESM module.
  */
 
-import { resolve } from './video-scope.mjs';
+import { resolve } from './cascade.mjs';
 
 export const LANGUAGE_MAP = {
   es: 'Spanish',

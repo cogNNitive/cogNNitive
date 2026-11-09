@@ -15,7 +15,8 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import { SCOPE_ORDER, bagsToChain, resolve } from '../scripts/lib/video-scope.mjs';
+import { SCOPE_ORDER, bagsToChain } from '../scripts/lib/video-scope.mjs';
+import { resolve } from '../scripts/lib/cascade.mjs';
 
 const SCRIPTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const RETIRED_FLAGS = ['--image-model', '--tts-model', '--avatar-model'];

@@ -16,9 +16,9 @@ import { createRequire } from 'node:module';
 import { CacheManager } from './cache-manager.mjs';
 import { SpendGuard, loadGuard, isSystemVoice } from './lib/video-guard.mjs';
 import { resolveRegisteredVoice, mapTtsLanguage } from './lib/tts-options.mjs';
+import { resolve } from './lib/cascade.mjs';
 import { buildAvatarRequest } from './lib/avatar-request.mjs';
 import { estimateCallUsd, resolveModelId } from './asset-cost-estimator.mjs';
-import { resolve } from './lib/video-scope.mjs';
 import { probeDuration } from './lib/media-duration.mjs';
 import { defaultResolutionFor } from './lib/avatar-jobs.mjs';
 
