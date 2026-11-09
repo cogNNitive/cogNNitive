@@ -9508,7 +9508,8 @@ var CHANGE_OPS = [
   "produce_artifact",
   "repin_blueprint",
   "rename_field",
-  "set_field_default"
+  "set_field_default",
+  "review_gate"
 ];
 function isChangeStatus(val) {
   return typeof val === "string" && ["proposed", "applied", "partially_applied", "rejected", "conflict"].includes(val);
@@ -9748,6 +9749,18 @@ function parseChangeset(rawContent) {
       case "evidence":
         currentChange.evidence = stripQuotes(rawVal);
         break;
+      case "gate":
+        currentChange.gate = stripQuotes(rawVal);
+        break;
+      case "verdict":
+        currentChange.verdict = stripQuotes(rawVal);
+        break;
+      case "reviewed_hash":
+        currentChange.reviewed_hash = stripQuotes(rawVal);
+        break;
+      case "plan_hash":
+        currentChange.plan_hash = stripQuotes(rawVal);
+        break;
       case "blueprint_name":
         currentChange.blueprint_name = stripQuotes(rawVal);
         break;
@@ -9801,6 +9814,8 @@ function parseChangeset(rawContent) {
         break;
       }
       default:
+        currentChange.rawKeys = currentChange.rawKeys ?? [];
+        currentChange.rawKeys.push(key);
         break;
     }
   }
@@ -9818,6 +9833,14 @@ function parseChangeset(rawContent) {
   const extractProblems = changes.flatMap(extractInstanceProblems);
   if (extractProblems.length > 0) {
     throw new Error(`Invalid extract_instance change: ${extractProblems.join("; ")}`);
+  }
+  const hasGate = changes.some((c) => c.op === "review_gate");
+  if (hasGate) {
+    for (const key of ["author_kind", "origin", "reviewer"]) {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
+      }
+    }
   }
   return {
     frontmatter,

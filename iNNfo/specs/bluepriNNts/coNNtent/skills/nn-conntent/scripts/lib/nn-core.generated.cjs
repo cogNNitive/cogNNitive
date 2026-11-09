@@ -13222,7 +13222,8 @@ var init_types2 = __esm({
       "produce_artifact",
       "repin_blueprint",
       "rename_field",
-      "set_field_default"
+      "set_field_default",
+      "review_gate"
     ];
     BUMP_LEVELS = ["patch", "minor", "major"];
   }
@@ -13391,6 +13392,18 @@ function parseChangeset2(rawContent) {
       case "evidence":
         currentChange.evidence = stripQuotes2(rawVal);
         break;
+      case "gate":
+        currentChange.gate = stripQuotes2(rawVal);
+        break;
+      case "verdict":
+        currentChange.verdict = stripQuotes2(rawVal);
+        break;
+      case "reviewed_hash":
+        currentChange.reviewed_hash = stripQuotes2(rawVal);
+        break;
+      case "plan_hash":
+        currentChange.plan_hash = stripQuotes2(rawVal);
+        break;
       case "blueprint_name":
         currentChange.blueprint_name = stripQuotes2(rawVal);
         break;
@@ -13448,6 +13461,8 @@ function parseChangeset2(rawContent) {
         break;
       }
       default:
+        currentChange.rawKeys = currentChange.rawKeys ?? [];
+        currentChange.rawKeys.push(key);
         break;
     }
   }
@@ -13466,6 +13481,14 @@ function parseChangeset2(rawContent) {
   if (extractProblems.length > 0) {
     throw new Error(`Invalid extract_instance change: ${extractProblems.join("; ")}`);
   }
+  const hasGate = changes.some((c) => c.op === "review_gate");
+  if (hasGate) {
+    for (const key of ["author_kind", "origin", "reviewer"]) {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
+      }
+    }
+  }
   return {
     frontmatter,
     changes,
@@ -13479,6 +13502,7 @@ var init_parser3 = __esm({
     import_yaml13 = __toESM(require_dist(), 1);
     init_types2();
     init_sourceRef();
+    init_types2();
     CHANGESET_FRONTMATTER_INVALID2 = "CHANGESET_FRONTMATTER_INVALID";
   }
 });
@@ -16460,16 +16484,25 @@ function canonicalizeChangeItem2(change) {
   }
   return result;
 }
-function computeProposalSha2(changes) {
+function computeProposalSha2(changes, frontmatter) {
   const canonicalItems = changes.map(canonicalizeChangeItem2);
   const serialized = JSON.stringify(canonicalItems);
-  return (0, import_node_crypto2.createHash)("sha256").update(serialized, "utf8").digest("hex").toLowerCase();
+  const hash = (0, import_node_crypto2.createHash)("sha256").update(serialized, "utf8");
+  if (frontmatter && (frontmatter.author_kind !== void 0 || frontmatter.origin !== void 0 || frontmatter.reviewer !== void 0)) {
+    const markers = {};
+    for (const key of ["author_kind", "origin", "reviewer"]) {
+      if (frontmatter[key] !== void 0)
+        markers[key] = frontmatter[key];
+    }
+    hash.update("\n:::provenance:::\n").update(JSON.stringify(markers));
+  }
+  return hash.digest("hex").toLowerCase();
 }
 function verifyProposalSha(doc) {
   if (!doc.frontmatter?.proposal_sha)
     return false;
   const expectedSha = doc.frontmatter.proposal_sha.trim().toLowerCase();
-  const computedSha = computeProposalSha2(doc.changes);
+  const computedSha = computeProposalSha2(doc.changes, doc.frontmatter);
   return expectedSha === computedSha;
 }
 var import_node_crypto2, EXECUTION_FACT_KEYS2, PROPOSAL_KEYS2;
@@ -16499,7 +16532,11 @@ var init_hasher = __esm({
       "evidence",
       "blueprint_name",
       "blueprint_url",
-      "knowledge_version"
+      "knowledge_version",
+      "gate",
+      "verdict",
+      "reviewed_hash",
+      "plan_hash"
     ];
   }
 });
@@ -20924,7 +20961,8 @@ var CHANGE_OPS = [
   "produce_artifact",
   "repin_blueprint",
   "rename_field",
-  "set_field_default"
+  "set_field_default",
+  "review_gate"
 ];
 function isChangeStatus(val) {
   return typeof val === "string" && ["proposed", "applied", "partially_applied", "rejected", "conflict"].includes(val);
@@ -21108,7 +21146,11 @@ var PROPOSAL_KEYS = [
   "evidence",
   "blueprint_name",
   "blueprint_url",
-  "knowledge_version"
+  "knowledge_version",
+  "gate",
+  "verdict",
+  "reviewed_hash",
+  "plan_hash"
 ];
 function canonicalizeValue(val) {
   if (val === null || val === void 0) return void 0;
@@ -21137,10 +21179,18 @@ function canonicalizeChangeItem(change) {
   }
   return result;
 }
-function computeProposalSha(changes) {
+function computeProposalSha(changes, frontmatter) {
   const canonicalItems = changes.map(canonicalizeChangeItem);
   const serialized = JSON.stringify(canonicalItems);
-  return (0, import_node_crypto.createHash)("sha256").update(serialized, "utf8").digest("hex").toLowerCase();
+  const hash = (0, import_node_crypto.createHash)("sha256").update(serialized, "utf8");
+  if (frontmatter && (frontmatter.author_kind !== void 0 || frontmatter.origin !== void 0 || frontmatter.reviewer !== void 0)) {
+    const markers = {};
+    for (const key of ["author_kind", "origin", "reviewer"]) {
+      if (frontmatter[key] !== void 0) markers[key] = frontmatter[key];
+    }
+    hash.update("\n:::provenance:::\n").update(JSON.stringify(markers));
+  }
+  return hash.digest("hex").toLowerCase();
 }
 
 // iNNfo/packages/nn-core/src/changeset/parser.ts
@@ -21305,6 +21355,18 @@ function parseChangeset(rawContent) {
       case "evidence":
         currentChange.evidence = stripQuotes(rawVal);
         break;
+      case "gate":
+        currentChange.gate = stripQuotes(rawVal);
+        break;
+      case "verdict":
+        currentChange.verdict = stripQuotes(rawVal);
+        break;
+      case "reviewed_hash":
+        currentChange.reviewed_hash = stripQuotes(rawVal);
+        break;
+      case "plan_hash":
+        currentChange.plan_hash = stripQuotes(rawVal);
+        break;
       case "blueprint_name":
         currentChange.blueprint_name = stripQuotes(rawVal);
         break;
@@ -21358,6 +21420,8 @@ function parseChangeset(rawContent) {
         break;
       }
       default:
+        currentChange.rawKeys = currentChange.rawKeys ?? [];
+        currentChange.rawKeys.push(key);
         break;
     }
   }
@@ -21375,6 +21439,14 @@ function parseChangeset(rawContent) {
   const extractProblems = changes.flatMap(extractInstanceProblems);
   if (extractProblems.length > 0) {
     throw new Error(`Invalid extract_instance change: ${extractProblems.join("; ")}`);
+  }
+  const hasGate = changes.some((c) => c.op === "review_gate");
+  if (hasGate) {
+    for (const key of ["author_kind", "origin", "reviewer"]) {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
+      }
+    }
   }
   return {
     frontmatter,
