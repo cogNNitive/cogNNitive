@@ -105,3 +105,20 @@ test('a layer bag is the innermost level', () => {
   const c = createCascade({ bags });
   assert.equal(c.at('scene-1', 'layer-1').get('fit').value, 'contain');
 });
+
+test('an explicit empty list at a nearer level overrides a farther value', () => {
+  // `review_gates: []` is autopilot: it must beat the blueprint default and any
+  // farther list, not be treated as "unset" (conntent-review-gates, 3b-1.8).
+  const bags = bag();
+  bags.blueprint.review_gates = ['script', 'preview'];
+  bags.series.review_gates = [];
+  const c = createCascade({ bags });
+  const atSeries = c.at('scene-1').get('review_gates');
+  assert.deepEqual(atSeries.value, [], 'the series empty list wins');
+  assert.equal(atSeries.source, 'series');
+
+  bags.video.review_gates = ['script'];
+  const atVideo = c.at('scene-1').get('review_gates');
+  assert.deepEqual(atVideo.value, ['script']);
+  assert.equal(atVideo.source, 'video');
+});

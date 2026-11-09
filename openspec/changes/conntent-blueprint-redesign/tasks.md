@@ -1,6 +1,20 @@
 # Tasks: coNNtent bluepriNNt Redesign
 
-Strict TDD is ACTIVE. Every implementation task (GREEN) is preceded by a RED task (write the failing test, run it, see it fail for the stated reason). Then REFACTOR with the suite green. Never write GREEN first. `design.md` is authoritative; the delta specs were reconciled to it. No backwards-compat code: old layouts are rejected with one message, never adapted. YAGNI.
+Strict TDD is ACTIVE **per module, not per sub-task** (see "Delivery protocol"). Every implementation task (GREEN) is preceded by a RED task (write the failing test, run it, see it fail for the stated reason). Then REFACTOR with the suite green. Never write GREEN first. `design.md` is authoritative; the delta specs were reconciled to it. No backwards-compat code: old layouts are rejected with one message, never adapted. YAGNI.
+
+## Delivery protocol (revised 2026-11-09)
+
+The unit of work is a **PR slice** (`3b-1`, `3b-2`, `4a`, ...), not a sub-task. Per slice:
+
+1. **RED once per module.** One test file per module, cases driven from the delta-spec scenarios in a table (`for` of cases), not one `it` per scenario. Run it and see it fail for the stated reason.
+2. **GREEN.** Implement; the inner loop is the targeted runner (`node --test <file>` or `npx vitest run <file>`) — seconds, not minutes.
+3. **One scoped gate per slice:** `node scripts/verify.js --only=<area>` (`conntent`, `changeset`, `console`).
+4. **One `npm run verify:fast` per PR**, immediately before the single push. Never per sub-task.
+5. **One commit per module** (tests + code together). `regen`/build batched at PR close.
+6. **Docs, procedures and content:** no RED/GREEN ceremony; write, then accept with `rg` predicates.
+7. **Full `node scripts/verify.js`** only at Phase 7.3 and the final merge.
+
+Keep coverage of the guarantees the change sells: legacy rejection, hash exclusions, exit codes, no-write, gate provenance, delivery idempotency. Drop tests that only restate a spec string, duplicate another layer, or add a second E2E for a module the existing E2E already covers.
 
 Markers: `[P]` independent (parallel-safe if the lane owns disjoint files), `[S after X]` sequential. `[Q<n>]` marks a task that depends on open product question n of `proposal.md` (`## Open product questions (pre-apply)`); each is planned with the recommended default, and a different answer patches only the tagged tasks.
 

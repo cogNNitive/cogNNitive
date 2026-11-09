@@ -914,7 +914,8 @@
         "draft",
         "approved",
         "produced",
-        "published",
+        "failed_qa",
+        "delivered",
         "archived"
       ],
       "multiple": false,

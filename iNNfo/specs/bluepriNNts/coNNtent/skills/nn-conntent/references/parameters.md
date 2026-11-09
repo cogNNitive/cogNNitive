@@ -28,7 +28,7 @@ Legend: ● can be written at this scope, · cannot.
 | `tags` | select (multi) | — | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |
 | `title` | string | — | · | ● | · | · | ● | · | · | · | · | · | · | · |
 | `description` | markdown_inline | — | · | · | · | · | ● | · | · | · | · | · | · | · |
-| `status` | select | `idea`, `draft`, `approved`, `produced`, `published`, `archived` | · | · | · | · | ● | · | · | · | · | · | · | · |
+| `status` | select | `idea`, `draft`, `approved`, `produced`, `failed_qa`, `delivered`, `archived` | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `script` | file | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `master` | video | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail` | image | — | · | · | · | · | ● | · | · | · | · | · | · | · |

@@ -15,11 +15,19 @@ import { loadKnowledgeModel } from './knowledge-model.mjs';
 import { loadCascadeBags, withScriptPresets } from './video-scope.mjs';
 import { resolve } from './cascade.mjs';
 
-/** The closed set of Episode states. */
-export const EPISODE_STATUSES = ['idea', 'draft', 'approved', 'produced', 'published', 'archived'];
+/** The closed set of Episode states (conntent-episode-lifecycle). */
+export const EPISODE_STATUSES = [
+  'idea',
+  'draft',
+  'approved',
+  'produced',
+  'failed_qa',
+  'delivered',
+  'archived',
+];
 
-/** States `produce` refuses: they are history, not work. */
-export const REFUSED_STATUSES = new Set(['published', 'archived']);
+/** States `produce` refuses: the episode is discarded. `delivered` stays producible. */
+export const REFUSED_STATUSES = new Set(['archived']);
 
 const REGISTRY_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'field-registry.generated.json');
 
@@ -101,7 +109,7 @@ export function assertProducible(episode, installedVersion) {
     throw new EpisodeError(
       'refused-state',
       `Cannot produce ${path.basename(episode.scriptPath)}: its status is "${episode.status}". ` +
-        `Only idea, draft, approved and produced can be produced.`,
+        `Only idea, draft, approved, produced, failed_qa and delivered can be produced.`,
     );
   }
   if (!EPISODE_STATUSES.includes(episode.status)) {
@@ -152,4 +160,30 @@ export function pendingReviews(episode, comments = {}) {
     });
   }
   return pending;
+}
+
+/**
+ * Reconcile the stored status with the derived gate state (conntent-episode-lifecycle
+ * "Status follows gate state"). Content changes demote to `draft`; an autopilot
+ * episode (no configured gates) is `approved` without any verdict.
+ *
+ * `produced`/`delivered` are kept when every gate is satisfied: a re-run that finds
+ * nothing to do must not demote a delivered episode. Delivery and QA set those states
+ * themselves (tasks 3b-4/3b-5).
+ *
+ * @param {string} currentStatus
+ * @param {Array<{ state: string }>} gateStates
+ * @returns {string}
+ */
+export function reconcileStatus(currentStatus, gateStates) {
+  if (currentStatus === 'archived') return 'archived';
+  const unsatisfied = gateStates.some((gate) => gate.state !== 'approved');
+  if (unsatisfied) return 'draft';
+  if (currentStatus === 'produced' || currentStatus === 'delivered') return currentStatus;
+  return 'approved';
+}
+
+/** True when the engine must write a status changeset (the mirror is written only on change). */
+export function statusNeedsWrite(currentStatus, nextStatus) {
+  return currentStatus !== nextStatus;
 }

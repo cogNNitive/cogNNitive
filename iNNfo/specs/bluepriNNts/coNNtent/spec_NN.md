@@ -152,7 +152,7 @@ description:: What the episode is about, in one or two sentences. The agent writ
 ## NN Field Definition: status
 concept:: Video
 type:: select
-options:: [idea, draft, approved, produced, published, archived]
+options:: [idea, draft, approved, produced, failed_qa, delivered, archived]
 description:: Lifecycle position of the episode, written by the engine or the user through a changeset. `idea` carries a title and linked Sources only.
 
 ## NN Field Definition: script
@@ -725,8 +725,8 @@ the same document violates the one-video-per-script constraint.
 
 ### Prompts
 
-- "Create a `Video` named `<title>` for this script and pin `blueprint_version: V_0-15-0`."
-- "Set `status` of `<video>` to `published`; publishing is out of scope, so there is no `published_url` field."
+- "Create a `Video` named `<title>` for this script and pin `blueprint_version: V_0-17-0`."
+- "Produce `<video>`; the engine sets `delivered` after a passing QA and a new `deliveries/v<N>/`."
 
 ## Scene
 

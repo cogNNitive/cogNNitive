@@ -28,7 +28,11 @@ import { bagsToChain } from './video-scope.mjs';
 import { resolve as coreResolve } from './nn-core.generated.cjs';
 
 function usable(v) {
-  return v !== undefined && v !== null && String(v).trim() !== '';
+  if (v === undefined || v === null) return false;
+  // An explicit empty list is a value, not "unset": `review_gates: []` is autopilot
+  // and must beat a farther non-empty list (conntent-review-gates, 3b-1.8).
+  if (Array.isArray(v)) return true;
+  return String(v).trim() !== '';
 }
 
 /** The levels with an explicit node, outer → inner (the ones bagsToChain emits). */
