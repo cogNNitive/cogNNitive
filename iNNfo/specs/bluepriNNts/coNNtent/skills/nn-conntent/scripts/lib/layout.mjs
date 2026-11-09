@@ -156,5 +156,14 @@ export function assertLayout(root) {
     });
   }
 
+  // Retired single-ledger path: the ledger now lives under `.cognnitive/video/`.
+  if (fs.existsSync(path.join(root, '.cognnitive', 'video-ledger.jsonl'))) {
+    findings.push({
+      code: LAYOUT_LEGACY,
+      path: path.join('.cognnitive', 'video-ledger.jsonl').split(path.sep).join('/'),
+      message: 'the ledger now lives in `.cognnitive/video/ledger.jsonl`',
+    });
+  }
+
   return findings;
 }

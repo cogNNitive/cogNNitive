@@ -13,11 +13,52 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { acquireSlot, withFileLock } from './file-lock.mjs';
 import { findDomainRoot } from './nn-core.generated.cjs';
+import {
+  ledgerPath,
+  appendLedgerRow,
+  readLedgerRows as readLedger,
+} from './facts.mjs';
+
+/**
+ * Appends one ledger row, stamping `ts` (ISO) when the caller does not. The ledger is
+ * owned by `facts.mjs`; this wrapper keeps the historical guard API.
+ * @param {string} root
+ * @param {Record<string, any>} entry
+ */
+function appendLedger(root, entry) {
+  const row = { ts: new Date().toISOString(), ...entry, cacheHit: entry.cacheHit === true };
+  return appendLedgerRow(root, row);
+}
+
+// Re-export the facts ledger surface so consumers keep the historical names they import
+// from the guard module, still addressing one owner (facts.mjs) and one path
+// (`.cognnitive/video/ledger.jsonl`).
+export { ledgerPath, appendLedger, readLedger };
 
 export const GUARD_FILENAME = 'video-guard.json';
-export const LEDGER_RELATIVE_PATH = path.join('.cognnitive', 'video-ledger.jsonl');
 export const LOCKS_RELATIVE_DIR = path.join('.cognnitive', 'locks');
 const DAY_MS = 24 * 3600 * 1000;
+
+/**
+ * Sum of estimated spend recorded at or after `sinceMs` (cache hits and entries
+ * with a missing/invalid timestamp or amount do not count). Reads the single
+ * ledger owned by `facts.mjs` (`.cognnitive/video/ledger.jsonl`).
+ * @param {string} root
+ * @param {number} sinceMs Epoch milliseconds
+ * @returns {number}
+ */
+export function sumLedgerSince(root, sinceMs) {
+  let sum = 0;
+  for (const e of readLedger(root)) {
+    const t = Date.parse(e.ts);
+    if (Number.isNaN(t) || t < sinceMs) continue;
+    if (e.cacheHit === true) continue;
+    if (typeof e.estUsd !== 'number' || !Number.isFinite(e.estUsd) || e.estUsd < 0) continue;
+    sum += e.estUsd - (Number.isFinite(e.refundUsd) && e.refundUsd > 0 ? e.refundUsd : 0);
+  }
+  sum = Math.max(0, sum);
+  return Math.round(sum * 1e6) / 1e6;
+}
 
 /** Safe defaults used when no video-guard.json is found (also the shape of the file). */
 export const DEFAULT_GUARD = Object.freeze({
@@ -242,78 +283,6 @@ export class BudgetTracker {
     }
     this.totalUsd = next;
   }
-}
-
-/**
- * @param {string} root Workspace root
- * @returns {string}
- */
-export function ledgerPath(root) {
-  return path.join(root, LEDGER_RELATIVE_PATH);
-}
-
-/**
- * Appends one JSON line (a new line is started if the file ends mid-line).
- * @param {string} root Workspace root
- * @param {Record<string, any>} entry
- */
-export function appendLedger(root, entry) {
-  const file = ledgerPath(root);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  let prefix = '';
-  if (fs.existsSync(file) && fs.statSync(file).size > 0) {
-    const fd = fs.openSync(file, 'r');
-    try {
-      const last = Buffer.alloc(1);
-      fs.readSync(fd, last, 0, 1, fs.fstatSync(fd).size - 1);
-      if (last[0] !== 0x0a) prefix = '\n';
-    } finally {
-      fs.closeSync(fd);
-    }
-  }
-  const line = { ts: new Date().toISOString(), ...entry, cacheHit: entry.cacheHit === true };
-  fs.appendFileSync(file, prefix + JSON.stringify(line) + '\n', 'utf8');
-}
-
-/**
- * Tolerant ledger reader: corrupt or partial lines are skipped.
- * @param {string} root
- * @returns {Record<string, any>[]}
- */
-export function readLedger(root) {
-  const file = ledgerPath(root);
-  if (!fs.existsSync(file)) return [];
-  const out = [];
-  for (const raw of fs.readFileSync(file, 'utf8').split('\n')) {
-    if (!raw.trim()) continue;
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) out.push(parsed);
-    } catch {
-      // partial or corrupt line
-    }
-  }
-  return out;
-}
-
-/**
- * Sum of estimated spend recorded at or after `sinceMs` (cache hits and
- * entries with a missing/invalid timestamp or amount do not count).
- * @param {string} root
- * @param {number} sinceMs Epoch milliseconds
- * @returns {number}
- */
-export function sumLedgerSince(root, sinceMs) {
-  let sum = 0;
-  for (const e of readLedger(root)) {
-    const t = Date.parse(e.ts);
-    if (Number.isNaN(t) || t < sinceMs) continue;
-    if (e.cacheHit === true) continue;
-    if (typeof e.estUsd !== 'number' || !Number.isFinite(e.estUsd) || e.estUsd < 0) continue;
-    sum += e.estUsd - (Number.isFinite(e.refundUsd) && e.refundUsd > 0 ? e.refundUsd : 0);
-  }
-  sum = Math.max(0, sum);
-  return Math.round(sum * 1e6) / 1e6;
 }
 
 /**
