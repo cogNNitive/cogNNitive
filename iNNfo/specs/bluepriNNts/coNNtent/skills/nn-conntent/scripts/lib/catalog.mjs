@@ -198,6 +198,16 @@ export function loadMergedCatalog({ domainRoot, referencePath = REFERENCE_CATALO
   return mergeCatalog(reference, overlayDoc);
 }
 
+/** The merged catalog's voices as the registry the TTS layer expects (slug -> voice). */
+export function voiceRegistryOf(catalog) {
+  const out = {};
+  for (const [slug, voice] of Object.entries((catalog && catalog.voices) || {})) {
+    if (!voice || !voice.voice_id) continue;
+    out[slug] = { voice_id: voice.voice_id, language: voice.language, pending: false };
+  }
+  return out;
+}
+
 /** Error code when a catalog model declares `capability:: video` (D-K7). */
 export const UNSUPPORTED_CAPABILITY = 'unsupported-capability';
 

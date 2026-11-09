@@ -30,7 +30,7 @@ import { applyCachedAvatars } from './avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './tts-options.mjs';
 import { buildImageOptions } from './image-options.mjs';
 import { appendTimingRow, timingRow } from './facts.mjs';
-import { assertImageSize, loadMergedCatalog } from './catalog.mjs';
+import { assertImageSize, loadMergedCatalog, voiceRegistryOf } from './catalog.mjs';
 import { warnUnpricedAllowedModels } from '../asset-cost-estimator.mjs';
 import { loadFrame } from './frame-tokens.mjs';
 import { probeDuration } from './media-duration.mjs';
@@ -44,6 +44,8 @@ import { assetName, linkOrCopy } from './stage-assets.mjs';
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url));
 /** The skill's own folder: the fallback anchor for the nearest-folder walker. */
 const SKILL_DIR = path.resolve(SCRIPTS_DIR, '..', '..');
+/** The blueprint package root: its `library/` is the floor for frames and components. */
+const PACKAGE_FLOOR = path.resolve(SKILL_DIR, '..', '..');
 
 /**
  * Named error raised when the renderer cannot render and no mock was requested. Callers
@@ -72,7 +74,7 @@ function isInside(root, target) {
  * @param {{ entries: Array<{ value: unknown, source: string | null }>, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
  * @returns {{ name: string, source: string, path: string, tokens: object | null } | null}
  */
-export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = PACKAGE_FLOOR }) {
   const seen = new Set();
   let primary = null;
   for (const entry of entries || []) {
@@ -109,7 +111,7 @@ export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKI
  * @param {{ slots: string[], bags: object, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
  * @returns {Record<string, { name: string, path: string, noTimeline: boolean }>}
  */
-export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skillDir = PACKAGE_FLOOR }) {
   const resolved = {};
   for (const slot of slots || []) {
     const { value: name, source } = resolveKeyed('components', slot, bags || {});
@@ -129,7 +131,7 @@ export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skill
     // A component is a folder (`library/components/<name>/index.html`); the library
     // walk returns the folder for a folder kind, so point at its index.html.
     const componentFile = fs.statSync(compPath).isDirectory() ? path.join(compPath, 'index.html') : compPath;
-    const contractPath = path.join(skillDir, 'slots', `${slot}.html`);
+    const contractPath = path.join(SKILL_DIR, 'slots', `${slot}.html`);
     const contractHtml = fs.existsSync(contractPath) ? fs.readFileSync(contractPath, 'utf8') : '';
     const compHtml = fs.readFileSync(componentFile, 'utf8');
     assertSlotContract(slot, { path: componentFile, html: compHtml, contractHtml });
@@ -215,7 +217,7 @@ export function soundEventFrames(manifest) {
  * @param {{ bags?: object, scriptDir: string, workspaceRoot: string, skillDir?: string }} params
  * @returns {Record<string, { name: string, source: string, path: string }>}
  */
-export function resolveSoundFiles({ bags, scriptDir, workspaceRoot, skillDir = SKILL_DIR }) {
+export function resolveSoundFiles({ bags, scriptDir, workspaceRoot, skillDir = PACKAGE_FLOOR }) {
   const files = {};
   for (const key of SUPPORTED_SOUND_KEYS) {
     const { value: name, source } = resolveKeyed('sounds', key, bags || {});
@@ -531,8 +533,15 @@ export async function synthesizeEpisodeAssets(options = {}) {
   const dailyBudgetUsd =
     dailyBudgetRaw === null || dailyBudgetRaw === undefined || dailyBudgetRaw === '' ? null : Number(dailyBudgetRaw);
   const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
+  // Voices come from the merged catalog (reference + domaiNN overlay), not from a
+  // video-guard.json that no longer exists (2b.5 / 1c.6).
+  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
+  const config = {
+    ...loaded.config,
+    voices: { ...(loaded.config.voices || {}), ...voiceRegistryOf(catalog) },
+  };
   const makeGuard = (dryRun) =>
-    new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: () => ({ ok: true }), dailyBudgetUsd });
+    new SpendGuard({ config, root: loaded.root, allowModels, dryRun, approval: () => ({ ok: true }), dailyBudgetUsd });
 
   const compiler = new SceneCompiler({
     fps: options.fps,
@@ -545,7 +554,6 @@ export async function synthesizeEpisodeAssets(options = {}) {
   const guard = compiler.checkScript(model, { ...options, bags: scriptBags });
   if (!guard.ok) throw new ScriptValidationError(guard.errors);
   const parsed = compiler.lowerKnowledgeModel(model, { bags: scriptBags, scriptDir, fps: options.fps, width: options.width, height: options.height });
-  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
 
   // Pass 1: plan & preflight
   const planGuard = makeGuard(true);
@@ -631,10 +639,17 @@ export async function compileVideo(options) {
   const dailyBudgetUsd =
     dailyBudgetRaw === null || dailyBudgetRaw === undefined || dailyBudgetRaw === '' ? null : Number(dailyBudgetRaw);
   const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
+  // Voices come from the merged catalog (reference + domaiNN overlay), not a retired
+  // video-guard.json (2b.5 / 1c.6).
+  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
+  const config = {
+    ...loaded.config,
+    voices: { ...(loaded.config.voices || {}), ...voiceRegistryOf(catalog) },
+  };
   const makeGuard = (dryRun) =>
-    // `produce` owns the spending decision (the Episode's `status::` plus `--approve <plan_hash>`);
+    // `produce` owns the spending decision (the applied script/preview/budget verdicts);
     // this guard enforces the per-run and rolling 24h caps and the model allow/block lists.
-    new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: checkNow, dailyBudgetUsd });
+    new SpendGuard({ config, root: loaded.root, allowModels, dryRun, approval: checkNow, dailyBudgetUsd });
 
   const compiler = new SceneCompiler({
     fps: options.fps,
@@ -695,7 +710,6 @@ export async function compileVideo(options) {
     if (options.facts) stageRows.push(row);
   };
   // One merged catalog (reference + domaiNN overlay) answers `sizes`, allowlists and prices.
-  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
 
   if (options.synthesizeAssets !== false || options.dryRun) {
     // Pass 1: plan. Read-only cache, dry-run guard: nothing is spent or written.
@@ -790,7 +804,7 @@ export async function compileVideo(options) {
     parsed,
     scriptDir,
     cacheManager: new CacheManager({ baseDir: cacheDir, readOnly: true }),
-    config: loaded.config,
+    config,
     models,
     bags,
   });

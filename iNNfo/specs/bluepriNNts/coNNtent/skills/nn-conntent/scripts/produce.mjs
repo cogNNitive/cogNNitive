@@ -43,6 +43,7 @@ import { deliver as defaultDeliver } from './lib/delivery.mjs';
 import { canonicalJson, sha256Hex } from './lib/canonical.mjs';
 import { firstFrameFrom, renderEpisodeThumbnails } from './lib/thumbnails.mjs';
 import { resolveLibrary } from './lib/library.mjs';
+import { loadMergedCatalog, voiceRegistryOf } from './lib/catalog.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
@@ -340,7 +341,14 @@ export async function produce(options) {
       tts: normalizeModelId(cascadeResolve('voice_model', bags).value),
       avatar: normalizeModelId(cascadeResolve('avatar_model', bags).value),
     };
-    const config = deps.guardConfig || loadGuard(path.dirname(scriptPath)).config;
+    const baseGuardConfig = deps.guardConfig || loadGuard(path.dirname(scriptPath)).config;
+    const config = {
+      ...baseGuardConfig,
+      voices: {
+        ...(baseGuardConfig.voices || {}),
+        ...voiceRegistryOf(loadMergedCatalog({ domainRoot: rootDir })),
+      },
+    };
     const build = deps.previewSubjects || previewSubjectsFromScenes;
     const previewEntries = build(parsed.scenes || [], scriptByScene, {
       cacheManager,

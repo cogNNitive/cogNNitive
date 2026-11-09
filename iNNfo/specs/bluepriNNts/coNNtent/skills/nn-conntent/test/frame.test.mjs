@@ -18,6 +18,7 @@ import { MissingAssetError } from '../scripts/lib/missing-asset.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliPath = path.join(__dirname, '..', 'scripts', 'lib', 'compile.mjs');
+const BP = path.resolve(__dirname, '..', '..', '..');
 
 /** The scalar subset `{value, source}` of a resolved trace (the trace adds document). */
 function pickScalar(r) {
@@ -106,6 +107,23 @@ test('the compiler resolves frame per scene through the cascade', () => {
   assert.deepEqual(pickScalar(parsed.scenes[0].frame), { value: 'night', source: 'scene' });
   assert.deepEqual(pickScalar(parsed.scenes[1].frame), { value: 'brand', source: 'series' });
   assert.deepEqual(pickScalar(parsed.frame), { value: 'brand', source: 'series' });
+});
+
+test('the default package floor is the blueprint library, not the skill folder', () => {
+  const root = tmp('nn-frame-floor-');
+  const domain = path.join(root, 'domain');
+  const episode = path.join(domain, 'series-a', 'episodes', 'ep-01');
+  fs.mkdirSync(path.join(episode, 'media'), { recursive: true });
+  try {
+    const res = resolveFrame({
+      entries: [{ value: 'neutral', source: 'blueprint' }],
+      scriptDir: episode,
+      workspaceRoot: domain,
+    });
+    assert.equal(res.path, path.join(BP, 'library', 'frames', 'neutral', 'FRAME.md'));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('resolveFrame finds library/frames/<name>/FRAME.md episode > series > domain > skill', () => {
