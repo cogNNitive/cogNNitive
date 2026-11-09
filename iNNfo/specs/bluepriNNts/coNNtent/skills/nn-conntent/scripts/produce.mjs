@@ -18,11 +18,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { findBlueprintPackage } from './lib/video-scope.mjs';
+import { loadCascadeBags, withScriptPresets } from './lib/video-scope.mjs';
 import { parseKnowledgeDocument } from './lib/knowledge-model.mjs';
 import {
   EpisodeError,
   assertProducible,
-  pendingReviews,
   readEpisode,
   resolveForEpisode,
   unknownKeys,
@@ -33,8 +33,10 @@ import {
   applyChangesetFile,
   dryApply as defaultDryApply,
   fieldChange,
-  readComments,
 } from './lib/changes.mjs';
+import { evaluateGate, readAppliedVerdicts } from './lib/gates.mjs';
+import { scriptGateStates, scriptSubjectsForEpisode } from './lib/review-subject.mjs';
+import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { estimateScriptCost } from './asset-cost-estimator.mjs';
 import { randomUUID } from 'node:crypto';
 import { readTimingRows, readLedgerRows } from './lib/facts.mjs';
@@ -190,17 +192,28 @@ export async function produce(options) {
     episode = readEpisode(scriptPath);
   }
 
-  // 2. Review gate (script gate only here; the full gate ladder lands in slice 3b).
+  // 2. Script gate: derived from applied human verdicts and the current scene hashes.
   const gates = resolveForEpisode(episode.model, scriptPath, 'review_gates').value;
   const gateList = Array.isArray(gates) ? gates.map(String) : gates ? [String(gates)] : ['script', 'preview'];
   if (gateList.includes('script')) {
-    const comments = readComments(rootDir, modelId);
-    const pending = pendingReviews(episode, comments);
+    const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
+    const subjects = scriptSubjectsForEpisode({
+      model: episode.model,
+      bags,
+      scriptDir: path.dirname(scriptPath),
+      language,
+    });
+    const verdicts = readAppliedVerdicts(rootDir, modelId);
+    const pending = scriptGateStates(subjects, verdicts).filter((state) => state.state !== 'approved');
     if (pending.length > 0) {
-      const lines = pending.map((p) => `  - ${p.slug}: ${p.review}${p.comment ? ` — ${p.comment}` : ''}`);
+      const lines = pending.map((state) => {
+        const cause = state.cause?.detail ? ` (${state.cause.kind}: ${state.cause.detail})` : '';
+        const notes = state.notes ? ` — ${state.notes}` : '';
+        return `  - ${state.scene}: ${state.state}${notes}${cause}`;
+      });
       const detail =
         `Review required: ${pending.length} scene(s) are not approved.\n${lines.join('\n')}\n` +
-        `Open the Episode review view, or reply with the approvals, then run produce again.`;
+        `Open the console, approve the script gate, then run produce again.`;
       throw new ProduceStop('review-required', detail, { exitCode: EXIT_REVIEW, details: { pending } });
     }
   }
@@ -214,26 +227,46 @@ export async function produce(options) {
     episode = readEpisode(scriptPath);
   }
 
-  // 4. Estimate and the spend gates (before any provider call).
+  // 4. Estimate and the spend decision (before any provider call).
   const estimate = (deps.estimate || estimateScriptCost)(scriptPath);
   const planHash = estimate.planHash;
   const total = estimate.summary.grandTotalCost;
   const budget = resolveForEpisode(episode.model, scriptPath, 'budget').value;
   const budgetUsd = budget === null || budget === undefined || budget === '' ? null : Number(budget);
-  if (budgetUsd === null || !Number.isFinite(budgetUsd)) {
-    throw new ProduceStop(
-      'budget-unset',
-      `No budget is declared for this episode, so the engine always asks. Estimate: $${total.toFixed(4)} ` +
-        `(plan ${planHash.slice(0, 8)}). Declare budget:: at the episode or Series level, then re-run.`,
-      { exitCode: EXIT_BUDGET, details: { planHash, total } },
-    );
+  const spend = spendPlan({
+    reviewGates: gateList,
+    total,
+    budget: budgetUsd,
+    prePreviewSubtotal: (estimate.summary.totalImageCost || 0) + (estimate.summary.totalTtsCost || 0),
+    planHash,
+  });
+  if (spend.stop) {
+    throw new ProduceStop(spend.stop.code, spend.stop.message, {
+      exitCode: spend.stop.exitCode,
+      details: { planHash, total },
+    });
   }
-  if (total > budgetUsd && String(options.approve || '') !== planHash) {
+  if (spend.budgetGate) {
+    // The inserted episode-level budget gate: a human verdict carries the plan hash.
+    const verdicts = readAppliedVerdicts(rootDir, modelId);
+    const state = evaluateGate({ ...budgetGateTarget({ modelId, planHash }), verdicts });
+    if (state.state !== 'approved') {
+      throw new ProduceStop(
+        'budget-gate',
+        `The estimate $${total.toFixed(4)} exceeds the budget $${Number(budgetUsd).toFixed(2)} ` +
+          `(plan ${planHash}). Approve the budget gate in the console with this hash, or lower the script.`,
+        { exitCode: EXIT_REVIEW, details: { planHash, total, budget: budgetUsd } },
+      );
+    }
+  }
+  if (gateList.includes('preview') && Number(total) > Number(budgetUsd) + 1e-9) {
+    // Safety until the per-scene preview hash lands with the asset cache keys: an
+    // over-budget run is never spent past the preview gate.
     throw new ProduceStop(
-      'budget-exceeded',
-      `The estimate $${total.toFixed(4)} exceeds the budget $${budgetUsd.toFixed(2)} (plan ${planHash.slice(0, 8)}). ` +
-        `Approve it explicitly with --approve ${planHash}, or lower the script.`,
-      { exitCode: EXIT_BUDGET, details: { planHash, total, budget: budgetUsd } },
+      'preview-required',
+      `The estimate $${total.toFixed(4)} exceeds the budget $${Number(budgetUsd).toFixed(2)} ` +
+        `(plan ${planHash}). Approve the preview gate in the console before spending.`,
+      { exitCode: EXIT_REVIEW, details: { planHash, total, budget: budgetUsd } },
     );
   }
 
@@ -262,7 +295,7 @@ export async function produce(options) {
   }
 
   if (options.dryRun) {
-    log(`plan: $${total.toFixed(4)} of $${budgetUsd.toFixed(2)} (plan ${planHash.slice(0, 8)}); dry run, nothing spent.`);
+    log(`plan: $${total.toFixed(4)} of $${budgetUsd === null ? 'unset' : budgetUsd.toFixed(2)} (plan ${planHash.slice(0, 8)}); dry run, nothing spent.`);
     return { code: EXIT_DONE, summary: { planHash, total, budget: budgetUsd, dryRun: true } };
   }
 
@@ -383,10 +416,9 @@ export async function produce(options) {
 
 const USAGE = [
   'Usage: node produce.mjs <episode-doc-or-folder> [options]',
-  '  --approve <plan_hash>   proceed although the estimate exceeds the budget',
   '  --dry-run               estimate and stop before any spend',
   '',
-  'Exit codes: 0 done, 10 awaiting review, 11 over budget or budget unset, 1 error.',
+  'Exit codes: 0 done, 10 a gate is open, 11 a spend stop no verdict can satisfy, 1 error.',
 ].join('\n');
 
 function parseFlags(argv) {
@@ -399,7 +431,6 @@ function parseFlags(argv) {
     }
     const key = arg.slice(2);
     if (key === 'dry-run') out.dryRun = true;
-    else if (key === 'approve') out.approve = argv[++i];
     else throw new ProduceStop('unknown-option', `Unknown option --${key}`);
   }
   return out;
@@ -418,7 +449,7 @@ async function main() {
     process.exit(EXIT_ERROR);
   }
   try {
-    const result = await produce({ episodePath: flags._[0], approve: flags.approve, dryRun: flags.dryRun });
+    const result = await produce({ episodePath: flags._[0], dryRun: flags.dryRun });
     if (result.summary && result.summary.stages) {
       for (const stage of result.summary.stages) {
         console.log(

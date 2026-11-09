@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { EXIT_BUDGET, EXIT_DONE, EXIT_REVIEW, produce, ProduceStop } from '../scripts/produce.mjs';
 import { readEpisode } from '../scripts/lib/episode.mjs';
 import { isAvatarLayer } from '../scripts/lib/avatar-jobs.mjs';
+import { loadCascadeBags, withScriptPresets } from '../scripts/lib/video-scope.mjs';
+import { scriptSubjectsForEpisode } from '../scripts/lib/review-subject.mjs';
 
 for (const k of ['WAVESPEED_API_KEY', 'REPLICATE_API_TOKEN', 'TTS_PROVIDER', 'MEDIA_PROVIDER']) delete process.env[k];
 
@@ -50,7 +52,7 @@ title: "Probe episode"
 slug:: e
 title:: Probe
 status:: ${status}${budget === null ? '' : `\nbudget:: ${budget}`}
-review_gates:: ${review === 'skip' ? '[preview]' : '[script, preview]'}
+review_gates:: ${review === 'off' ? '[]' : review === 'skip' ? '[preview]' : '[script, preview]'}
 output_formats:: [1920x1920]
 
 ${scenes}`;
@@ -137,6 +139,50 @@ function fakeRender({ indexHtml, overlayManifest } = {}) {
   return { render, calls };
 }
 
+/**
+ * Writes an applied human console verdict for the episode's first scene, hashed against
+ * the current script subject (so the state is `approved` or `needs-change`, never stale).
+ */
+function applyVerdict(ws, { gate = 'script', verdict = 'approved', notes = null } = {}) {
+  const model = readEpisode(ws.scriptPath).model;
+  const bags = withScriptPresets(loadCascadeBags(path.dirname(ws.scriptPath)), model, ws.scriptPath);
+  const [subject] = scriptSubjectsForEpisode({
+    model,
+    bags,
+    scriptDir: path.dirname(ws.scriptPath),
+    language: 'es',
+  });
+  const doc = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.invalid/changes/spec_NN.md"
+blueprint_version: "0.1.0"
+status: applied
+title: "Verdicts"
+author_kind: human
+origin: console
+reviewer: Ana
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: c-01
+op:: review_gate
+target:: s/e@one
+gate:: ${gate}
+verdict:: ${verdict}
+reviewed_hash:: ${subject.hash}${notes ? `\nnotes:: ${notes}` : ''}
+`;
+  fs.writeFileSync(path.join(ws.root, 'changes', 'ws_ana_1_changes_NN.md'), doc, 'utf8');
+  return subject.hash;
+}
+
 const assertStop = async (promise, code, exitCode) => {
   await assert.rejects(promise, (err) => {
     assert.ok(err instanceof ProduceStop, `expected ProduceStop, got ${err?.name}: ${err?.message}`);
@@ -158,15 +204,15 @@ test('review required and no approval stops with exit 10 and spends nothing', as
   }
 });
 
-test('a needs-change scene is listed with its comment', async () => {
-  const scenes = SCENE.replace('kind:: Libre', 'kind:: Libre\nreview:: needs-change');
-  const ws = workspace(episodeDoc({ status: 'draft', review: 'required', scenes }));
+test('a needs-change scene is listed with its reviewer notes', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'required' }));
+  applyVerdict(ws, { verdict: 'needs-change', notes: 'too long' });
   try {
     await assert.rejects(
       produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'review-required');
-        assert.match(err.message, /one: needs-change/);
+        assert.match(err.message, /one: needs-change — too long/);
         return true;
       },
     );
@@ -192,30 +238,20 @@ test('an unset budget always asks: exit 11 naming the estimate and the hash', as
   }
 });
 
-test('an over-budget estimate stops with exit 11; the matching --approve proceeds', async () => {
-  const ws = workspace(episodeDoc({ status: 'draft', budget: '0.0001' }));
+test('an over-budget estimate with preview on asks for the budget gate before cheap spend (exit 10)', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', budget: '0.0001', review: 'skip' }));
   const { render, calls } = fakeRender();
   try {
-    let planHash;
     await assert.rejects(
       produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
       (err) => {
-        assert.equal(err.exitCode, EXIT_BUDGET);
-        assert.equal(err.code, 'budget-exceeded');
-        planHash = err.details.planHash;
-        assert.match(err.message, new RegExp(planHash.slice(0, 8)));
+        assert.equal(err.exitCode, EXIT_REVIEW);
+        assert.equal(err.code, 'budget-gate', 'the pre-preview subtotal alone is over budget (Q1)');
+        assert.match(err.message, /plan [0-9a-f]{64}/);
         return true;
       },
     );
     assert.equal(calls.length, 0, 'nothing was spent at the stop');
-
-    const result = await produce({ episodePath: ws.scriptPath, approve: planHash, deps: { render, log: () => {} } });
-    assert.equal(result.code, EXIT_DONE);
-    assert.equal(calls.length, 1);
-    const after = readEpisode(ws.scriptPath);
-    assert.equal(after.status, 'produced');
-    assert.equal(after.fields.master, 'probe_1920x1920.mp4');
-    assert.ok(fs.existsSync(path.join(ws.episode, 'probe_1920x1920.mp4')));
   } finally {
     done(ws.root);
   }
@@ -383,13 +419,13 @@ test('produce never runs the avatar stage for an episode without avatar layers',
   }
 });
 
-test('a stale --approve hash stops again', async () => {
-  const ws = workspace(episodeDoc({ status: 'draft', budget: '0.0001' }));
+test('preview off and over budget asks for the episode budget gate (exit 10)', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', budget: '0.0001', review: 'off' }));
   try {
     await assertStop(
-      produce({ episodePath: ws.scriptPath, approve: 'deadbeef', deps: { render: fakeRender().render, log: () => {} } }),
-      'budget-exceeded',
-      EXIT_BUDGET,
+      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      'budget-gate',
+      EXIT_REVIEW,
     );
   } finally {
     done(ws.root);

@@ -14,7 +14,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parseChangeset, writeProposedChangeset, executeChangesetApply } = require('./nn-core.generated.cjs');
+const { writeProposedChangeset, executeChangesetApply } = require('./nn-core.generated.cjs');
 
 export const ENGINE_AUTHOR = 'engine';
 
@@ -80,36 +80,6 @@ export function fieldChange(modelSlug, elementSlug, field, to, from) {
 /** `remove_element` op. */
 export function removeElement(modelSlug, elementSlug, concept) {
   return { op: 'remove_element', target: `${modelSlug}@${elementSlug}`, concept };
-}
-
-/**
- * Every applied `comment` op that targets this model, keyed by the element slug.
- * A reviewer's reason for `needs-change` lives here, not in the document (design A3).
- * @param {string} rootDir
- * @param {string} modelSlug
- */
-export function readComments(rootDir, modelSlug) {
-  const dir = path.join(rootDir, 'changes');
-  if (!fs.existsSync(dir)) return {};
-  const out = {};
-  for (const entry of fs.readdirSync(dir).sort()) {
-    if (!entry.endsWith('.md') || entry.endsWith('_spec_NN.md')) continue;
-    let doc;
-    try {
-      doc = parseChangeset(fs.readFileSync(path.join(dir, entry), 'utf8'));
-    } catch {
-      continue;
-    }
-    if (doc.frontmatter?.status !== 'applied') continue;
-    for (const change of doc.changes || []) {
-      if (change.op !== 'comment' || !change.target) continue;
-      const match = /^([^@]+)@([^&]+)/.exec(String(change.target));
-      if (!match || match[1].trim() !== modelSlug) continue;
-      const notes = change.notes || change.to;
-      if (notes) out[match[2].trim()] = String(notes);
-    }
-  }
-  return out;
 }
 
 /** Only the workspace files a changeset apply needs, so a dry apply is cheap. */

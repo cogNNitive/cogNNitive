@@ -142,27 +142,6 @@ export function resolveForEpisode(model, scriptPath, param) {
 }
 
 /**
- * The scenes that are not approved. `needs-change` wins over a missing verdict: the
- * engine reports the scene and the reviewer's comment when it knows one.
- * @param {{ scenes: Array<{ name: string, slug: string, review?: string }> }} episode
- * @param {Record<string, string>} [comments] by scene slug
- */
-export function pendingReviews(episode, comments = {}) {
-  const pending = [];
-  for (const scene of episode.scenes) {
-    if (scene.review === 'approved') continue;
-    pending.push({
-      slug: scene.slug,
-      name: scene.name,
-      review: scene.review || 'unreviewed',
-      needsChange: scene.review === 'needs-change',
-      comment: comments[scene.slug] || null,
-    });
-  }
-  return pending;
-}
-
-/**
  * Reconcile the stored status with the derived gate state (conntent-episode-lifecycle
  * "Status follows gate state"). Content changes demote to `draft`; an autopilot
  * episode (no configured gates) is `approved` without any verdict.
