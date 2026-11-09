@@ -82,18 +82,23 @@ function scopeDir(level, root, fromDir) {
   return null; // package handled separately
 }
 
-/** Matches a file by exact name or by stem (any extension of the kind). */
-function matchFile(dir, label) {
+/** Folder kinds: an "item" is a folder (`frames/<name>/`, `components/<name>/`, `characters/<name>/`). */
+const FOLDER_KINDS = new Set(['frames', 'components', 'characters']);
+
+/** Matches a file or folder by exact name or stem. Folder kinds (`frames`, `components`,
+ * `characters`) match a subfolder; file kinds match a file (any extension of the kind). */
+function matchFile(dir, kind, label) {
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return null;
   }
+  const wantDir = FOLDER_KINDS.has(kind);
   const target = path.basename(label);
   const nameNoExt = path.parse(target).name;
   for (const e of entries) {
-    if (!e.isFile()) continue;
+    if (wantDir ? !e.isDirectory() : !e.isFile()) continue;
     if (e.name === target) return path.join(dir, e.name);
     if (path.parse(e.name).name === nameNoExt) return path.join(dir, e.name);
   }
@@ -110,8 +115,8 @@ export function resolveLibrary({ kind, ref, fromDir, root, warn, packageFloor })
   if (isDirectName(ref)) {
     // A bare file name resolves inside the episode media only.
     const dir = path.join(fromDir, 'media', kind);
-    const file = matchFile(dir, kindRel);
-    return { file, level: file ? 'episode' : null, searched: [dir] };
+    const file = matchFile(dir, kind, kindRel);
+    return { file, level: file ? 'episode' : null, searched: [path.join(dir, kindRel)] };
   }
   const rootDir = root || inferRoot(fromDir);
   const searched = [];
@@ -132,7 +137,7 @@ export function resolveLibrary({ kind, ref, fromDir, root, warn, packageFloor })
   if (allowFloor && packageFloor) dirs.push(['package', packageFloor]);
 
   for (const [level, dir] of dirs) {
-    const file = matchFile(dir, kindRel);
+    const file = matchFile(dir, kind, kindRel);
     searched.push(path.join(dir, kindRel));
     if (file) return { file, level, searched };
   }
