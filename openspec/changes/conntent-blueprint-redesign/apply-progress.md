@@ -84,9 +84,13 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 3b-1.5 re-open cause: `.cognnitive/video/reviews/<series>__<episode>.json`, `reopenCause` (narration / layer / param with source level, `unknown` when the record is absent); `gate-snapshots.test.mjs`.
 - [ ] 3b-1.9 REFACTOR: delete `pendingReviews`, `--approve` and `script_review` consumers with the `produce` rewrite (3b-2), then `verify.js --only=conntent`.
 - [x] 3b-2.3 + 3b-2.4 (contract) `lib/spend-gate.mjs`: unset budget with a non-zero plan → exit 11; over budget with preview off (or pre-preview subtotal over) → exactly one episode `budget` gate carrying `plan_hash`; preview on otherwise asks at preview; no `--approve`. `spend-gate.test.mjs`.
-- [ ] 3b-2.1/.2/.5 + 3b-1.9 produce wiring: `pipeline.mjs` stage order, exit codes 0/10/11/12/1, per-scene script/preview gate evaluation (needs the asset cache keys), `produce` applies pending human changesets on start, `--approve`/`--skip-qa` removed.
+- [x] 3b-2.1 script gate (part) `produce` hashes the lowered scenes (`scriptSubjectsForEpisode`) and reads applied human verdicts only; `review::` approves nothing.
+- [x] 3b-2.3 + 3b-2.4 `lib/spend-gate.mjs` wired: unset budget exit 11 when the plan costs something, inserted `budget` gate exit 10 with `plan_hash`, no `--approve`.
+- [x] 3b-2.9 `produce` applies pending human console changesets on start (via the same apply engine).
+- [x] 3b-1.9 deleted `pendingReviews` and `readComments`; the 3 `--approve` tests are rewritten (produce.test 24/24).
+- [ ] 3b-2.1/.2 pipeline order + preview gate per scene (needs the asset cache keys), exit 12 (`failed_qa`).
 - [ ] 3b-2.6/.7 animatic (640 px / 15 fps, real audio + pose still).
-- [ ] 3b-2.8/.9 E2E cold cache; the 3 existing `--approve` tests rewritten to gate semantics.
+- [ ] 3b-2.8 E2E cold cache with fake providers.
 - Slice gate so far: `verify.js --only=conntent` green (99 steps), `verify:fast` green. 3b-1.1..1.4 + 1.6..1.8 are pushed; `.5` and `.9` remain.
 
 ## Delivery protocol revision (2026-11-09)
