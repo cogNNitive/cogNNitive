@@ -172,6 +172,37 @@ export function loadMergedCatalog({ domainRoot, referencePath = REFERENCE_CATALO
 /** Error code when a catalog model declares `capability:: video` (D-K7). */
 export const UNSUPPORTED_CAPABILITY = 'unsupported-capability';
 
+/** Error codes for voice-language validation (D-K6). */
+export const LANGUAGE_VOICE_MISMATCH = 'voice-language-mismatch';
+export const UNKNOWN_VOICE = 'unknown-voice';
+
+/**
+ * Validates the resolved Voice against the episode's language before spend: the Voice's
+ * `language` MUST equal the episode `language`, and the slug MUST exist in the catalog.
+ * (capability conntent-model-catalog "Voices Carry A Language And Must Match The
+ * Episode".)
+ * @param {{ voices: Record<string, { slug?: string, language?: string }>, language: string, voiceSlug: string }} input
+ * @returns {true}
+ */
+export function validateVoiceLanguage({ voices, language, voiceSlug }) {
+  const entry = voices && Object.hasOwn(voices, voiceSlug) ? voices[voiceSlug] : null;
+  if (!entry) {
+    const err = new Error(`unknown-voice: no Voice "${voiceSlug}" in the merged catalog`);
+    err.code = UNKNOWN_VOICE;
+    throw err;
+  }
+  const voiceLang = String(entry.language || '').toLowerCase().trim();
+  const epLang = String(language || '').toLowerCase().trim();
+  if (voiceLang !== epLang) {
+    const err = new Error(
+      `voice-language-mismatch: Voice "${voiceSlug}" is ${voiceLang || '(no language)'} but the episode is ${epLang}`,
+    );
+    err.code = LANGUAGE_VOICE_MISMATCH;
+    throw err;
+  }
+  return true;
+}
+
 /**
  * Builds the merged catalog from model arrays and rejects any `capability:: video`
  * model before spend. (capability conntent-model-catalog "Video Capability Is Not
