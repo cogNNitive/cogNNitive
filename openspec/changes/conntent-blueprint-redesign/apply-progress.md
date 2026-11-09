@@ -41,13 +41,15 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD d9290d7b, verify:fast 227/227 tras cada commit). En esta pasada:
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD 7a69bc37, verify:fast 241/241 tras cada commit). En esta pasada:
 - **2a.4** — `lib/cascade.mjs createCascade` (at/get con source+trace, kind level con Chrome `music`→`background_audio`, layer innermost, validateLevel → `CASCADE_LEVEL_FORBIDDEN`).
 - **2b.1** — `validateVoiceLanguage` (Voice.language === episode language o `LANGUAGE_VOICE_MISMATCH`; voz ausente → `unknown-voice`).
-- **2b.4** — catálogo mergeado rechaza `capability:: video` (`unsupported-capability`).
+- **2b.2** — `assertVoiceResolved` (escena narrada sin voz → `missing-voice`; no hay voice por defecto de paquete).
+- **2b.4** — catálogo mergeado rechaza `capability:: video` (`unsupported-capability`) + integra `buildMergedCatalog`.
+- **2b.6** — campos `captions`/`caption_model` (render), `thumbnail_formats`/`thumbnail_base`/`thumbnail_title`/`thumbnail_badge` y `review_gates` (video) en spec+registry+defaults; `script_review` retirado del spec, defaults, registry, consumers, `produce.mjs` (lee `review_gates`), procedure y tests de contrato; `rg script_review` vacío fuera de tests.
 - (Antes) 1a, 1b completa, 2c, 1c.1-1c.5+1c.7, 2a.1-2a.2.
 
-**Pendiente de 2a:** 2a.3 (contract test cascade-scope-classes — enorme: cada campo×nivel en compiler+estimator), 2a.5-2a.9 (rewiring compile/estimator). **2b:** 2b.2-2b.7 (missing-voice, campos nuevos, parity). Luego 2d, 2e, 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 dependientes de 3b. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
+**Pendiente de 2a:** 2a.3 (contract test cascade-scope-classes — enorme: cada campo×nivel en compiler+estimator), 2a.5-2a.9 (rewiring compile/estimator). **2b:** 2b.3 (voice.es Chrome + síntesis), 2b.5 (voice-clone escribe `Voice{language}`, voces `es` en catalog, ramas de video-clip del estimador), 2b.7 (parity estimator/compiler). Luego 2d, 2e, 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 dependientes de 3b. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 

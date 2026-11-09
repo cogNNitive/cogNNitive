@@ -60,6 +60,35 @@ export function parseCatalog(text) {
   return { providers: collect('Provider'), models: collect('Model'), voices: collect('Voice') };
 }
 
+/** Error codes for catalog Voice validation (D-K6). */
+export const VOICE_LANGUAGE_REQUIRED = 'voice-language-required';
+export const INVALID_LANGUAGE_CODE = 'invalid-language-code';
+
+/**
+ * Validates every catalog Voice carries a required `language` as an ISO 639-1 lowercase
+ * two-letter code (conntent-model-catalog "Blueprint Ships A Dated Reference Catalog").
+ * @param {{ voices: Record<string, { slug?: string, language?: string }> }} parsed
+ * @returns {true}
+ */
+export function validateCatalogVoices(parsed) {
+  for (const [slug, voice] of Object.entries(parsed?.voices || {})) {
+    const lang = voice?.language;
+    if (lang === undefined || lang === null || String(lang).trim() === '') {
+      const err = new Error(`voice-language-required: catalog Voice "${slug}" must declare a language (ISO 639-1 lowercase two-letter code)`);
+      err.code = VOICE_LANGUAGE_REQUIRED;
+      throw err;
+    }
+    if (!/^[a-z]{2}$/.test(String(lang).trim().toLowerCase())) {
+      const err = new Error(
+        `invalid-language-code: catalog Voice "${slug}" declares language "${lang}"; use the ISO 639-1 lowercase two-letter code (for example es or en)`,
+      );
+      err.code = INVALID_LANGUAGE_CODE;
+      throw err;
+    }
+  }
+  return true;
+}
+
 /** A Model must be complete enough to be priced, allowed and called. */
 const REQUIRED_MODEL_FIELDS = ['provider', 'api_id', 'capability', 'adapter', 'price', 'price_unit', 'price_date'];
 
