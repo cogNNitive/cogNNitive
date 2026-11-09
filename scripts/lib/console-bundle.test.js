@@ -59,6 +59,7 @@ function main() {
       'ui-kit.js',
       'review.js',
       'studio.js',
+      'nn-fsa.js',
       'nn-runtime.js',
       'render-procedure-stepper.js',
     ];

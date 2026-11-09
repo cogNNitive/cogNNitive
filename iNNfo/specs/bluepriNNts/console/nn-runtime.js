@@ -6601,6 +6601,32 @@
     errorContainer.style.display = 'block'
   }
 
+  // Direct write to a connected domaiNN folder (console-changes-direct-write, D-C2).
+  // The download path stays the fallback; these two calls are what the view wires to a
+  // "Connect folder" control.
+  function fsaWriter() {
+    var root = typeof window !== 'undefined' ? window : null
+    var api = root && root.nnFsa
+    if (!api) return null
+    return api.createWriter({ win: root, store: api.createIndexedDbStore() })
+  }
+
+  function connectFolder(workspaceId) {
+    var writer = fsaWriter()
+    if (!writer) return Promise.resolve({ ok: false, reason: 'fsa-unavailable' })
+    return writer.connect(String(workspaceId || ''))
+  }
+
+  function writeChangesetToFolder(workspaceId, reviewer, changesetText) {
+    var writer = fsaWriter()
+    if (!writer) return Promise.resolve({ ok: false, reason: 'fsa-unavailable' })
+    return writer.writeChangeset({
+      workspaceId: String(workspaceId || ''),
+      reviewer: reviewer,
+      text: changesetText,
+    })
+  }
+
   function downloadChangesetExport(doc, state) {
     var identifierInput = doc.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
@@ -8093,6 +8119,8 @@
     composeExport: composeExport,
     composeChangesetExport: composeChangesetExport,
     downloadChangesetExport: downloadChangesetExport,
+    connectFolder: connectFolder,
+    writeChangesetToFolder: writeChangesetToFolder,
     copyChangesetPrompt: copyChangesetPrompt,
     saveSnapshot: saveSnapshot,
     copyAgentPrompt: copyAgentPrompt,
