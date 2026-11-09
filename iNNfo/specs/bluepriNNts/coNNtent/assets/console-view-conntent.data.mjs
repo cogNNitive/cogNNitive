@@ -20,7 +20,6 @@ import { createCascade } from '../skills/nn-conntent/scripts/lib/cascade.mjs'
 import { lowerEpisode, scriptSubjectsFromScenes } from '../skills/nn-conntent/scripts/lib/review-subject.mjs'
 import { previewSubjectsFromScenes } from '../skills/nn-conntent/scripts/lib/preview-subject.mjs'
 import { evaluateGate, readAppliedVerdicts, reopenCause } from '../skills/nn-conntent/scripts/lib/gates.mjs'
-import { latestDelivery } from '../skills/nn-conntent/scripts/lib/delivery.mjs'
 import { CacheManager } from '../skills/nn-conntent/scripts/cache-manager.mjs'
 import { resolveDefaultCacheDir } from '../skills/nn-conntent/scripts/lib/video-guard.mjs'
 import { ttsCachePathFor } from '../skills/nn-conntent/scripts/lib/avatar-jobs.mjs'
@@ -278,11 +277,25 @@ async function episodeFacts({ rootDir, series, episode }) {
     }
   })
 
-  const latest = latestDelivery(episode.dir)
+  // Deliveries: one record per `deliveries/v<N>/` folder, newest first. Display only --
+  // nothing here deletes or supersedes a folder (conntent-domain-console, "Episode
+  // Deliveries section").
+  const episodeRel = rootRelative(rootDir, episode.dir)
   const deliveries = []
   for (const entry of await listDir(join(episode.dir, 'deliveries'))) {
-    if (entry.isDirectory() && /^v\d+$/.test(entry.name)) deliveries.push(entry.name)
+    if (!entry.isDirectory() || !/^v\d+$/.test(entry.name)) continue
+    const dir = join(episode.dir, 'deliveries', entry.name)
+    const files = (await listDir(dir)).filter((f) => f.isFile()).map((f) => f.name).sort()
+    const htmlName = files.find((name) => /_delivery\.html$/i.test(name)) || null
+    const folder = `${episodeRel}/deliveries/${entry.name}`
+    deliveries.push({
+      version: entry.name,
+      path: folder,
+      files,
+      html: htmlName ? `${folder}/${htmlName}` : null,
+    })
   }
+  deliveries.sort((a, b) => Number(b.version.slice(1)) - Number(a.version.slice(1)))
 
   return {
     slug,
@@ -298,8 +311,8 @@ async function episodeFacts({ rootDir, series, episode }) {
     scenes: sceneViews,
     gates,
     pending: gates.filter((g) => g.state !== 'approved'),
-    deliveries: deliveries.sort(),
-    latestDelivery: latest ? latest.version : null,
+    deliveries,
+    latestDelivery: deliveries.length > 0 ? deliveries[0].version : null,
     thumbnail: fields.thumbnail ? String(fields.thumbnail) : null,
   }
 }

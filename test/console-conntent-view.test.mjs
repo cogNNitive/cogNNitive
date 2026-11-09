@@ -78,7 +78,20 @@ const VIEW_DATA = {
             ],
             gates: [{ gate: 'script', scene: 'one', state: 'open', cause: null }],
             pending: [{ gate: 'script', scene: 'one', state: 'open' }],
-            deliveries: ['v1', 'v2'],
+            deliveries: [
+              {
+                version: 'v1',
+                path: 'series/s/episodes/e/deliveries/v1',
+                files: ['e_1920x1920.mp4', 'e_delivery.html'],
+                html: 'series/s/episodes/e/deliveries/v1/e_delivery.html',
+              },
+              {
+                version: 'v2',
+                path: 'series/s/episodes/e/deliveries/v2',
+                files: ['e_1920x1920.mp4'],
+                html: null,
+              },
+            ],
             latestDelivery: 'v2',
           },
         ],
@@ -210,7 +223,14 @@ test('the episode shows gate state, field source and deliveries', () => {
   assert.match(voice.textContent, /series/, 'the source level is shown')
   const v1 = card.querySelector('[data-nn-delivery="v1"]')
   assert.ok(v1.getAttribute('data-nn-superseded') !== null, 'v1 is marked superseded')
-  assert.match(card.querySelector('[data-nn-delivery="v2"]').textContent, /latest/)
+  assert.match(v1.textContent, /superseded/)
+  assert.match(v1.textContent, /series\/s\/episodes\/e\/deliveries\/v1/, 'the folder is copyable text')
+  const link = v1.querySelector('a[href="series/s/episodes/e/deliveries/v1/e_delivery.html"]')
+  assert.ok(link, 'v1 links to its delivery page by relative path')
+  const v2 = card.querySelector('[data-nn-delivery="v2"]')
+  assert.match(v2.textContent, /latest/)
+  assert.ok(!v2.getAttribute('data-nn-superseded'), 'the newest is not superseded')
+  assert.ok(!v1.querySelector('button'), 'the folder is text, not a control')
 })
 
 test('the view never writes the review field and offers no Deliver button', () => {

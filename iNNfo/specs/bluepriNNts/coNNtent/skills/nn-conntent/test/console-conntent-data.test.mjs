@@ -143,7 +143,7 @@ test('the scene hashes are the engine hashes and change with the narration', asy
   }
 });
 
-test('a delivered episode reports its versions', async () => {
+test('a delivered episode reports its versions, path, contents and delivery page', async () => {
   const ws = workspace()
   try {
     fs.mkdirSync(path.join(ws.episodeDir, 'deliveries', 'v1'), { recursive: true })
@@ -151,11 +151,24 @@ test('a delivered episode reports its versions', async () => {
       path.join(ws.episodeDir, 'deliveries', 'v1', 'delivery.json'),
       JSON.stringify({ version: 'v1', outputs_hash: 'x', input_fingerprint: 'y', files: [] }),
       'utf8',
-    )
-    const episode = (await collect({ rootDir: ws.root })).tree.series[0].episodes[0]
-    assert.deepEqual(episode.deliveries, ['v1'])
-    assert.equal(episode.latestDelivery, 'v1')
+    );
+    fs.writeFileSync(path.join(ws.episodeDir, 'deliveries', 'v1', 'e_1920x1920.mp4'), 'bytes', 'utf8');
+    fs.writeFileSync(path.join(ws.episodeDir, 'deliveries', 'v1', 'e_delivery.html'), '<html></html>', 'utf8');
+    fs.mkdirSync(path.join(ws.episodeDir, 'deliveries', 'v2'), { recursive: true });
+    fs.writeFileSync(path.join(ws.episodeDir, 'deliveries', 'v2', 'e_1920x1920.mp4'), 'bytes', 'utf8');
+    const episode = (await collect({ rootDir: ws.root })).tree.series[0].episodes[0];
+    assert.deepEqual(
+      episode.deliveries.map((d) => d.version),
+      ['v2', 'v1'],
+      'newest first',
+    );
+    assert.equal(episode.latestDelivery, 'v2');
+    const v1 = episode.deliveries.find((d) => d.version === 'v1');
+    assert.equal(v1.path, 'series/s/episodes/e/deliveries/v1');
+    assert.deepEqual(v1.files, ['delivery.json', 'e_1920x1920.mp4', 'e_delivery.html']);
+    assert.equal(v1.html, 'series/s/episodes/e/deliveries/v1/e_delivery.html');
+    assert.equal(episode.deliveries.find((d) => d.version === 'v2').html, null);
   } finally {
-    ws.cleanup()
+    ws.cleanup();
   }
 });

@@ -598,16 +598,32 @@ registerView({
         var deliveries = labelled('Deliveries')
         deliveries.setAttribute('data-nn-subsection', 'deliveries')
         if (!episode.deliveries || episode.deliveries.length === 0) {
-          deliveries.appendChild(el('p', 'empty-state', 'Not delivered yet.'))
+          deliveries.appendChild(
+            el('p', 'empty-state', 'Not delivered yet. Delivery is automatic: QA passing lands a deliveries/v<N>/ folder.'),
+          )
         } else {
-          var chips = el('div', 'nn-cascade-chips')
-          episode.deliveries.forEach(function (version) {
-            var chip = el('span', 'nn-cascade-chip', version + (version === episode.latestDelivery ? ' (latest)' : ''))
-            chip.setAttribute('data-nn-delivery', version)
-            if (version !== episode.latestDelivery) chip.setAttribute('data-nn-superseded', '')
-            chips.appendChild(chip)
+          var deliveryList = el('div', 'nn-delivery-list')
+          episode.deliveries.forEach(function (delivery) {
+            var row = el('div', 'nn-delivery-row')
+            row.setAttribute('data-nn-delivery', delivery.version)
+            var isLatest = delivery.version === episode.latestDelivery
+            if (!isLatest) row.setAttribute('data-nn-superseded', '')
+            row.appendChild(el('span', 'nn-cascade-chip', delivery.version))
+            row.appendChild(badge(isLatest ? 'latest' : 'superseded', 'nn-delivery-pill'))
+            row.appendChild(el('code', 'nn-delivery-path', delivery.path))
+            if (delivery.files && delivery.files.length > 0) {
+              row.appendChild(el('span', 'nn-delivery-files', delivery.files.join(' · ')))
+            }
+            if (delivery.html) {
+              var link = el('a', 'nn-delivery-link', 'Open delivery')
+              link.setAttribute('href', delivery.html)
+              link.setAttribute('target', '_blank')
+              link.setAttribute('rel', 'noopener')
+              row.appendChild(link)
+            }
+            deliveryList.appendChild(row)
           })
-          deliveries.appendChild(chips)
+          deliveries.appendChild(deliveryList)
         }
         body.appendChild(deliveries)
 
