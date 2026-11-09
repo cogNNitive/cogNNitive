@@ -77,8 +77,22 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 
 ## Slice 3b — Pipeline and review (PRs 3b-1..3b-5)
 
-- [ ] 3b-1..3b-3, 3b-5 Not started.
-- [ ] 3b-3 requires V.3 (whisper); 3b-4 requires V.4 (renders).
+- [x] 3b-1.1 + 3b-1.2 `lib/canonical.mjs`, `lib/review-hash.mjs` (`scriptSubject`/`previewSubject`/`reviewHash`), plan slices + `episodePlanHash`; `review-hash.test.mjs`.
+- [x] 3b-1.3 + 3b-1.4 `lib/gates.mjs` (`readAppliedVerdicts`, `evaluateGate`, `gateState`, `STALE_APPROVAL_MESSAGE`); applied-human-console-only, default reviewer ignored, preview needs `plan_hash`, fixed gate order; `gates.test.mjs`.
+- [x] 3b-1.6 + 3b-1.7 lifecycle: `EPISODE_STATUSES` = idea/draft/approved/produced/failed_qa/delivered/archived, only archived refused, `reconcileStatus`; blueprint `status` options + prompt examples; `lifecycle.test.mjs`.
+- [x] 3b-1.8 an explicit empty list now wins in the cascade (`review_gates: []` is autopilot); `cascade.test.mjs` case.
+- [ ] 3b-1.5 re-open cause snapshot/diff (`.cognnitive/video/reviews/<s>__<slug>.json`).
+- [ ] 3b-1.9 REFACTOR: delete `pendingReviews`, `--approve` and `script_review` consumers with the `produce` rewrite (3b-2), then `verify.js --only=conntent`.
+- Slice gate so far: `verify.js --only=conntent` green (99 steps), `verify:fast` green. 3b-1.1..1.4 + 1.6..1.8 are pushed; `.5` and `.9` remain.
+
+## Delivery protocol revision (2026-11-09)
+
+Per the maintainer's direction, the unit of work is a PR slice, not a sub-task (see
+`tasks.md` "Delivery protocol"): one RED per module with table-driven cases, targeted
+runner in the inner loop (seconds), one `verify.js --only=<area>` per slice, one
+`verify:fast` per PR, one commit per module, one push per PR. Full `verify.js` only at
+7.3 and merge. Measured: the 3b-1 modules ran their own suites in <1 s each; the scoped
+gate passed in ~60 s.
 
 ## Slice 4 — Console (PRs 4a–4d)
 
