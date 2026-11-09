@@ -16,6 +16,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { normalizeModelId } from './video-guard.mjs';
+import { canonicalJson, sha256Hex } from './canonical.mjs';
 
 /** The persisted plan location: `<episode>/plan.json` (design D-S5; conntent-run-facts). */
 export const PLAN_FILENAME = 'plan.json';
@@ -101,4 +102,58 @@ export function parsePlanMarkdown(markdown) {
   const total = m ? Number(m[2]) : NaN;
   if (!m || !Number.isFinite(total)) return { planHash: null, totalUsd: null, models: null };
   return { planHash: m[1], totalUsd: total, models: m[3] ? m[3].split(',') : [] };
+}
+
+/* ── Per-scene slices (design D-P1, X3; capability conntent-run-facts) ───────── */
+
+/** The fields of one plan item that carry its price identity. */
+function canonicalItem(item = {}) {
+  return {
+    kind: item.kind ?? null,
+    model: item.model ?? null,
+    cache_key: item.cache_key ?? null,
+    units: item.units ?? 0,
+    unit_price: item.unit_price === undefined || item.unit_price === null ? null : String(item.unit_price),
+    price_date: item.price_date ?? null,
+  };
+}
+
+/**
+ * The plan slice hash of one scene. Cached items stay in `items` with their price, so a
+ * cache change only alters the hash through `cache_key`.
+ * @param {string} scene
+ * @param {Array<Record<string, unknown>>} items
+ * @returns {string}
+ */
+export function planSliceHash(scene, items = []) {
+  return sha256Hex(canonicalJson({ scene: String(scene), items: items.map(canonicalItem) }));
+}
+
+/**
+ * Build the slices of a plan from resolved scenes (`{ scene, items }`). The order is the
+ * document order; only the episode hash sorts them.
+ * @param {Array<{ scene: string, items?: Array<Record<string, unknown>> }>} scenes
+ */
+export function buildPlanSlices(scenes = []) {
+  return scenes.map((entry) => ({
+    scene: String(entry.scene),
+    items: entry.items || [],
+    slice_hash: planSliceHash(entry.scene, entry.items || []),
+  }));
+}
+
+/**
+ * The episode `plan_hash`: canonical `{episode, blueprint_version, slices[]}` with the
+ * slices sorted by scene, so a one-scene edit changes only that slice and the episode hash.
+ * @param {{ episode: string, blueprintVersion?: string|null, slices?: Array<{ scene: string, slice_hash: string }> }} input
+ */
+export function episodePlanHash({ episode, blueprintVersion, slices = [] }) {
+  const sorted = [...slices].sort((a, b) => (a.scene < b.scene ? -1 : a.scene > b.scene ? 1 : 0));
+  return sha256Hex(
+    canonicalJson({
+      episode: String(episode),
+      blueprint_version: blueprintVersion === undefined ? null : blueprintVersion,
+      slices: sorted.map((slice) => ({ scene: String(slice.scene), slice_hash: slice.slice_hash })),
+    }),
+  );
 }
