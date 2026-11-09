@@ -167,6 +167,24 @@ function inferRoot(fromDir) {
   }
 }
 
+/**
+ * Reduces a resolution into the plan/console record `{ field, name, level, path }`.
+ * `path` is relative to the domaiNN root when `root` is given, else the absolute path.
+ * (capability conntent-library "The Plan And The Console Report The Resolved File".)
+ * @param {{ field: string, name: string, resolved: { file: string|null, level: string|null }, root?: string }} input
+ */
+export function libraryResolutionRecord({ field, name, resolved, root }) {
+  const rec = { field, name, level: resolved.level ?? null };
+  if (resolved.file && root) {
+    const file = resolved.file.split(path.sep).join('/');
+    const base = String(root).split(path.sep).join('/').replace(/\/+$/, '');
+    rec.path = file.startsWith(base + '/') ? file.slice(base.length + 1) : file;
+  } else {
+    rec.path = resolved.file;
+  }
+  return rec;
+}
+
 /** Item/file-name pattern: lowercase, each segment `[a-z0-9]+([-_][a-z0-9]+)*` before the extension. */
 const LIBRARY_ITEM_RE = /^[a-z0-9]+([-_][a-z0-9]+)*$/;
 
