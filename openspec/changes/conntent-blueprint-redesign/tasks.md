@@ -272,8 +272,8 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 4b.1 RED `T/console-conntent-data.test.mjs`: tree Domain -> Series -> Episode; Pending inbox lists every open gate with its re-open cause; every field returns effective value + source level from the same cascade trace; hashes equal `review-hash.mjs` output. Fails: module missing. (conntent-domain-console, conntent-console-views removed)
 - [ ] 4b.2 GREEN `BP/assets/console-view-conntent.data.mjs` calling `layout`, `cascade`, `gates`, `review-hash`, `library`.
 - [ ] 4b.3 RED+GREEN `scripts/export-console.mjs`: episode discovery under `episodes/`, regeneration hooks, scope `{models, readOnly, outFile}`.
-- [ ] 4b.4 RED+GREEN stale-translation flag when the original scene hash changes (`translation_of`). (conntent-domain-console, D4 display)
-- [ ] 4b.5 RED+GREEN superseded deliveries marked in display only (`v1` after `v2`). (proposal question 4)
+- [x] 4b.4 RED+GREEN stale-translation flag when the original scene hash changes (`translation_of`). (conntent-domain-console, D4 display)
+- [x] 4b.5 RED+GREEN superseded deliveries marked in display only (`v1` after `v2`). (proposal question 4)
 
 ### PR 4c: unified view and regeneration. Start: 4b merged. Finish: one registered `conntent` view; old views deleted. Verify: `node --test test/console-conntent-view.test.mjs`. Rollback: revert PR 4c.
 

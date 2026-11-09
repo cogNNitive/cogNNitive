@@ -1,6 +1,6 @@
 # Handoff — coNNtent bluepriNNt Redesign
 
-Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `58861def`.
+Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `724df27e`.
 Everything below is committed and pushed. The primary checkout is read-only; work in the worktree.
 
 ## State at handoff
@@ -14,7 +14,7 @@ Everything below is committed and pushed. The primary checkout is read-only; wor
 | 3b-4 (QA) | not started — **live tier**; now unblocked, real frames exist |
 | 3b-5 (delivery, thumbnails, description) | complete except 5.7/.8 (renderer description reconciliation, `delivered v1` E2E) |
 | 4a (console runtime) | **complete** |
-| 4b (console data + writeConsole scope) | 4b.1/.2/.3/.5 complete; 4b.4 (stale translation) blocked on the review snapshot writer -- see "Known gaps" |
+| 4b (console data + writeConsole scope) | **complete** |
 | 4c (unified view) | **complete** |
 | 4d (delivery view + picker) | not started |
 | 5a (procedures) | **complete** |
@@ -48,6 +48,12 @@ The full `node scripts/verify.js` is only run at Phase 7.3 and the final merge.
   `superseded` pills, files listed, link to `<slug>_delivery.html`. No folder control, no Deliver
   control; an empty episode states delivery is automatic after QA.
 
+- `724df27e` **4b.4**: a translation's review subject carries `source: { scene, hash }` (absent for
+  every other episode, so their hashes do not move). The script gate now writes the review snapshot
+  (`writeReviewSnapshot`) for approved scenes -- nothing wrote it before -- and the console data module
+  compares the recorded original hash with the current one, marking `stale` per scene plus the
+  episode header with the scene names. Display only, no gate opens. `translation_of` is a real consumer.
+
 ### Known gaps found while doing the above (read before the next slice)
 
 - **Picklists and allowlist-only overlays.** The console picks options from the domaiNN's own catalog
@@ -57,18 +63,10 @@ The full `node scripts/verify.js` is only run at Phase 7.3 and the final merge.
   (`z-image-turbo`), which `resolveModel` accepts, instead of `wavespeed-ai/z-image/turbo`. To get
   api_ids the console needs the reference catalog merged into the picklist source; the clean seam is a
   blueprint-frontmatter `catalog:` path resolved with the schema. Not done.
-- **`4b.4` (stale translation) is blocked on a missing writer.** The flag compares the original scene's
-  current hash with "the original hash the translation was last reviewed against". The only place that
-  can hold that value is the review snapshot (`.cognnitive/video/reviews/<s>__<slug>.json`), and
-  **nothing in the engine writes snapshots today** (`readReviewSnapshot`/`writeReviewSnapshot` exist in
-  `gates.mjs` and are only exercised by `gate-snapshots.test.mjs`). Shipping the flag without the writer
-  would ship a path that can never fire. The slice is: (1) `scriptSubject` gains an optional
-  `source: {episode, scene, hash}` for translations (absent for everything else, so no hash churn);
-  (2) `produce` writes the snapshot for approved scenes after it reads the verdicts, and lowers the
-  original episode to hash its scenes; (3) the console data module resolves the original, compares, and
-  flags `stale` per scene plus a tree-node mark; (4) the view renders the flag. Steps (2) and (4) are
-  the work; (1) and (3) are small. `translation_of` then moves from `PLANNED_CONSUMERS` to
-  `FIELD_CONSUMERS`.
+- **`4b.4` is done, and it changed the engine.** The script gate now writes
+  `.cognnitive/video/reviews/<series>__<episode>.json` for approved scenes (`writeReviewSnapshot`),
+  and `scriptSubject` carries `source: { scene, hash }` for translations. A translation's script and
+  preview hashes therefore changed once; nothing else moved.
 
 ## What landed before (previous session)
 
@@ -98,21 +96,20 @@ repo carries code and tests, the domain carries videos, deliveries and caches. I
 
 ## Remaining work, in order
 
-1. **4b.4** stale-translation flag — see "Known gaps": it needs the snapshot writer first.
-2. **4d** delivery view (`conntent-delivery`, read-only, `writeConsole` `scope.outFile` into
+1. **4d** delivery view (`conntent-delivery`, read-only, `writeConsole` `scope.outFile` into
    `deliveries/v<N>/<slug>_delivery.html`) + the component-portfolio picker.
-3. **3b-3.6-.9** captions: wire into `produce` (after TTS/images, before the animatic; under 90%
+2. **3b-3.6-.9** captions: wire into `produce` (after TTS/images, before the animatic; under 90%
    alignment stops with exit 1), ASR consent check before spend, `caption-skin.html` from the frame.
-4. **3b-2.8** cold-cache E2E with fake providers.
-5. **3b-5.7/.8** reconcile the description renderer with HyperFrames; E2E reaches `delivered v1`
+3. **3b-2.8** cold-cache E2E with fake providers.
+4. **3b-5.7/.8** reconcile the description renderer with HyperFrames; E2E reaches `delivered v1`
    and a rerun is a no-op.
-6. **Live tier**: 3b-4 QA (`qa.test.mjs`, `lib/qa.mjs`, output-set checkpoint) and calibrate
+5. **Live tier**: 3b-4 QA (`qa.test.mjs`, `lib/qa.mjs`, output-set checkpoint) and calibrate
    `QA_TEXT_EDGE_MIN` on the pilot's real frames (V.4).
-7. **5b.4** simulate U1-U7 on a fresh domaiNN fixture, fake providers.
-8. **Phase 7**: merge the 41 delta specs into `openspec/specs/` (remove `conntent-review` and
+6. **5b.4** simulate U1-U7 on a fresh domaiNN fixture, fake providers.
+7. **Phase 7**: merge the 41 delta specs into `openspec/specs/` (remove `conntent-review` and
    `conntent-console-views`); regen; full `node scripts/verify.js`; release via `nn-dev-release`;
    run U1-U7 against the end-user domain; archive.
-9. **Final**: merge the tracker into `dev` only with `verify.js` green.
+8. **Final**: merge the tracker into `dev` only with `verify.js` green.
 
 ## Decisions already made (do not re-open)
 
