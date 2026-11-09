@@ -3615,6 +3615,54 @@
     return isObject(scope) && nonEmptyString(scope.view) ? scope.view : ''
   }
 
+  // The full console scope: a view id, a model allow-list, a read-only flag and a
+  // human label. `writeConsole` writes it into `meta.consoleScope` (console-scope).
+  function consoleScopeMeta(meta) {
+    var scope = isObject(meta && meta.consoleScope) ? meta.consoleScope : {}
+    var models = Array.isArray(scope.models)
+      ? scope.models
+          .map(function (m) {
+            return String(m == null ? '' : m).trim()
+          })
+          .filter(function (m) {
+            return m !== ''
+          })
+      : []
+    return {
+      view: nonEmptyString(scope.view) ? String(scope.view) : '',
+      models: models,
+      readOnly: scope.readOnly === true,
+      label: nonEmptyString(scope.label) ? String(scope.label) : '',
+    }
+  }
+
+  // The draft store is keyed per scope so two scoped consoles sharing a domain id do
+  // not share drafts (console-scope).
+  function draftStoreId(baseId, scope) {
+    var id = String(baseId == null ? '' : baseId)
+    if (scope && scope.view) id += '::view:' + scope.view
+    if (scope && Array.isArray(scope.models) && scope.models.length > 0) {
+      id += '::models:' + scope.models.join(',')
+    }
+    return id
+  }
+
+  /** Read-only consoles never offer an edit control. */
+  function applyReadOnlyControls(doc) {
+    var selectors = [
+      '#nn-review-dock button',
+      '[data-nn-edit]',
+      '.nn-card-edit',
+      '[data-nn-propose]',
+      '#nn-edit',
+      '.nn-review-actions button',
+    ]
+    selectors.forEach(function (sel) {
+      var nodes = doc.querySelectorAll(sel)
+      for (var i = 0; i < nodes.length; i++) nodes[i].disabled = true
+    })
+  }
+
   // Built-in tabs, registered per boot (they are not in the registry).
   function builtinViews(doc, config, model, meta, shell, schema) {
     var views = []
@@ -7214,10 +7262,26 @@
     var schema = slots.schema
     var model = slots.model
     var meta = isObject(model.meta) ? model.meta : {}
+    var consoleScope = consoleScopeMeta(meta)
+    if (consoleScope.readOnly && active.documentElement) {
+      active.documentElement.setAttribute('data-nn-readonly', 'true')
+    }
     // Change A: install the model-ownership resolver so a `derived` model's units
     // offer no edit pencil (ui-kit unitEditability). Keyed by model id and title.
     var ownershipByModel = {}
     var modelList = Array.isArray(meta.models) ? meta.models : []
+    if (consoleScope.models.length > 0) {
+      var wantedModels = consoleScope.models.map(function (m) {
+        return m.toLowerCase()
+      })
+      modelList = modelList.filter(function (mm) {
+        if (!mm) return false
+        var key = String(mm.id != null ? mm.id : mm.slug != null ? mm.slug : mm.title || '').toLowerCase()
+        return wantedModels.indexOf(key) !== -1
+      })
+      // Every downstream consumer (picker, reference index, banner) sees the scope.
+      meta.models = modelList
+    }
     modelList.forEach(function (mm) {
       if (!mm) return
       if (mm.id != null) ownershipByModel[String(mm.id)] = mm.ownership || 'authored'
@@ -7303,7 +7367,7 @@
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         // A domain console keys its drafts by the stable domain id, never by content.
-        String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
+        String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : '') + (consoleScope.models.length > 0 ? '::models:' + consoleScope.models.join(',') : ''),
         {
           initialDrafts: Array.isArray(model.drafts) ? model.drafts : [],
           onError: function (err) {
@@ -7939,7 +8003,9 @@
     }
     onHash()
 
-    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller, registry: registry, state: state }
+    if (consoleScope.readOnly) applyReadOnlyControls(active)
+
+    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller, registry: registry, state: state, scope: consoleScope }
   }
 
   function autoBoot() {
@@ -7974,6 +8040,8 @@
     slugify: slugify,
     slugifyReviewer: slugifyReviewer,
     stampFromDate: stampFromDate,
+    consoleScopeMeta: consoleScopeMeta,
+    draftStoreId: draftStoreId,
     getReviewerName: getReviewerName,
     setReviewerName: setReviewerName,
     parseConfig: parseConfig,
@@ -8030,8 +8098,7 @@
     copyAgentPrompt: copyAgentPrompt,
     composeAgentPrompt: composeAgentPrompt,
     mountNavbarActions: mountNavbarActions,
-    boot: boot,
-    fieldDefOf: fieldDefOf,
+    boot: boot,    fieldDefOf: fieldDefOf,
   }
 
   return PUBLIC_API
