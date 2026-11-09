@@ -1,6 +1,6 @@
 ﻿import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { readFile, rm, mkdir, writeFile } from 'node:fs/promises'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
@@ -298,6 +298,54 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
         name: 'apply_change',
         arguments: { changeset: 'changes/does_not_exist_changes_NN.md' },
       })
+      expect(textOf(result as CallToolResult)).toMatch(/Failed to read changeset file/)
+    })
+  })
+
+  describe('verdicts are never produced or synthesized by an agent tool', () => {
+    const verdict = {
+      id: 'c-01',
+      op: 'review_gate',
+      target: 'acme@scene-1',
+      gate: 'script',
+      verdict: 'approved',
+      reviewed_hash: 'a'.repeat(64),
+    }
+
+    it('propose_changeset refuses a review_gate with GATE_VERDICT_REFUSED and writes nothing', async () => {
+      await stubBlueprintChain()
+      const result = await client.callTool({
+        name: 'propose_changeset',
+        arguments: { operations: [verdict], open: false },
+      })
+      expect(result.isError).toBe(true)
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.code).toBe('GATE_VERDICT_REFUSED')
+      // Nothing was written: the changes/ directory does not exist.
+      expect(() => readFileSync(join(rootDir, 'changes'), 'utf-8')).toThrow()
+    })
+
+    it('a bare-intent apply_change op rejects a review_gate with GATE_VERDICT_REFUSED', async () => {
+      const result = await client.callTool({
+        name: 'apply_change',
+        arguments: {
+          id: 'acme',
+          op: 'review_gate',
+          args: { gate: 'script', verdict: 'approved', reviewed_hash: 'a'.repeat(64) },
+          open: false,
+        },
+      })
+      expect(result.isError).toBe(true)
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.code).toBe('GATE_VERDICT_REFUSED')
+    })
+
+    it('a changeset file path is still routed to the engine (human console download)', async () => {
+      const result = await client.callTool({
+        name: 'apply_change',
+        arguments: { changeset: 'changes/missing_changes_NN.md' },
+      })
+      expect(textOf(result as CallToolResult)).not.toMatch(/GATE_VERDICT_REFUSED/)
       expect(textOf(result as CallToolResult)).toMatch(/Failed to read changeset file/)
     })
   })

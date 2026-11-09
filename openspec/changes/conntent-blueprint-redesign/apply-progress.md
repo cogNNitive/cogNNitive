@@ -46,7 +46,7 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - **Slice 2 COMPLETO** (2a, 2b, 2c, 2d, 2e) — ver abajo.
 - (Antes) 1a, 1b, 1c.1-1c.5+1c.7.
 
-**Pendiente:** 3a-i.3→.6, 3a-ii.1→.5, 3b-1..5 (incluye whisper + renders reales), 4a-4d (consola, navegador), 5a-5b (procedures), Phase 7 (living specs, botijos-today, verify.js full, archive). 1c.6/1c.8 dependientes de 3b (rewire spendGuard callers a cascade+catalog). Permisos ya concedidos: whisper.cpp, gasto proveedor, navegador (V.1/V.2/V.3/V.4/V.5). Fusión a dev/main al final con verify.js verde.
+**Pendiente:** 3b-1..5 (incluye whisper + renders reales), 4a-4d (consola, navegador), 5a-5b (procedures), Phase 7 (living specs, botijos-today, verify.js full, archive). 1c.6/1c.8 dependientes de 3b (rewire spendGuard callers a cascade+catalog). Permisos ya concedidos: whisper.cpp, gasto proveedor, navegador (V.1/V.2/V.3/V.4/V.5). Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
@@ -59,9 +59,12 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 ## Slice 3a — nn-core `review_gate` (PR 3a-i, 3a-ii)
 
 - [x] 3a-i.1 + 3a-i.2 (op parse/validate/seal + provenance markers).
-- [ ] 3a-i.3 + 3a-i.4 (blueprint `gates` frontmatter + GATE_UNDECLARED/GATE_TARGET_INVALID; `gates:` in coNNtent spec_NN.md).
-- [ ] 3a-i.5 + 3a-i.6 (apply requires human origin: GATE_NOT_HUMAN/GATE_REVIEWER_REQUIRED; build nn-core).
-- [ ] 3a-ii.1..5 (nn-mcp refuses verdicts; export frontmatter parser through core-mirror; build-core-mirrors).
+- [x] 3a-i.3 + 3a-i.4 (blueprint `gates` frontmatter; `parseGateDeclarations`, `gateDeclarationProblems`; GATE_UNDECLARED / GATE_TARGET_INVALID; `gates:` in coNNtent spec_NN.md, blueprint_version → V_0-17-0).
+- [x] 3a-i.5 + 3a-i.6 (`reviewGateProvenanceProblems`: GATE_NOT_HUMAN / GATE_REVIEWER_REQUIRED, Q9 default pseudonym; apply engine treats `review_gate` as non-mutating, skips evidence, seals provenance; `review-gate-apply.test.ts` 10/10; nn-core built).
+- [x] 3a-ii.1..3 (server handlers refuse `review_gate` with GATE_VERDICT_REFUSED for propose_changeset and bare-intent apply_change; changeset files still apply; `parseFrontmatter` exported through the coNNtent core mirror).
+- [x] 3a-ii.4 code-side only; living-spec text lands in 7.1/8.2.
+- [x] 3a-ii.5 risk R1 recorded in the `changeset-review-gate` delta spec notes.
+- Note: `nn-mcp/test/apply-change.test.ts` is red at tracker HEAD before this slice (its fixture keeps `sources::`, banned on L3 since b998756d); unrelated to review_gate.
 
 ## Slice 3b — Pipeline and review (PRs 3b-1..3b-5)
 

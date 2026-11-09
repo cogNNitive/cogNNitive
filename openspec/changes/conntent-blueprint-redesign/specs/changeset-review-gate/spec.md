@@ -239,3 +239,15 @@ nn-core MUST expose a read function that, given a model id, a target and a gate,
 - GIVEN a sealed `needs-change` verdict
 - WHEN `verdict` is edited to `approved` by hand and the changeset is applied
 - THEN it is refused with `PROPOSAL_TAMPERED`
+
+## Notes
+
+### Risk R1: a forged human file is undetectable
+
+A verdict is trusted because its changeset says `author_kind: human`, `origin: console`
+and names a `reviewer`. An agent that writes such a file directly into `changes/` is
+indistinguishable from a console download: the offline HTML console cannot hold a secret,
+so the marker is a policy statement, not a signature. Mitigations in this change: the
+agent-facing tools refuse `review_gate` (`GATE_VERDICT_REFUSED`), every verdict is sealed
+into `proposal_sha` with its provenance, and the reviewer name is shown in the inbox and
+the history. A real fix needs a shared secret and is out of scope.

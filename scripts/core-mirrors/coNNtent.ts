@@ -12,7 +12,7 @@ export {
   slugify,
   serializeKnowledge,
 } from '../../iNNfo/packages/nn-core/src/parser/index.js'
-export { parseYaml } from '../../iNNfo/packages/nn-core/src/parser/yaml.js'
+export { parseYaml, parseFrontmatter } from '../../iNNfo/packages/nn-core/src/parser/yaml.js'
 export {
   parseChangeset,
   serializeChangeset,

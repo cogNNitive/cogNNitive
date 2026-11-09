@@ -984,6 +984,14 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   const op = args.op as string | undefined
   const opArgs = (args.args as Record<string, unknown>) || {}
 
+  // changeset-review-gate: a verdict is a human console statement. An agent tool
+  // never synthesizes one; a console-downloaded human changeset file still applies.
+  if (!changesetPath && op === 'review_gate') {
+    return verdictRefusedResult(
+      'Pass the console changeset file with `changeset`; apply_change applies it after the human-origin check.',
+    )
+  }
+
   if (!changesetPath && (!id || !op || !args.args)) {
     return errorResult('Missing required arguments: id, op, args')
   }
@@ -998,6 +1006,20 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
 }
 
 async function handleProposeChangeset(args: Record<string, unknown>): Promise<CallToolResult> {
+  // changeset-review-gate: propose_changeset never produces a verdict. The refusal
+  // lives in the tool handler, not in the writer (the apply engine uses that writer).
+  const operations = Array.isArray(args.operations) ? args.operations : []
+  const hasVerdict = operations.some(
+    (operation) =>
+      typeof operation === 'object' &&
+      operation !== null &&
+      (operation as Record<string, unknown>).op === 'review_gate',
+  )
+  if (hasVerdict) {
+    return verdictRefusedResult(
+      'A review_gate is written by the console reviewer, not proposed by an agent.',
+    )
+  }
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const open = args.open === undefined ? true : Boolean(args.open)
   const result = await proposeChangeset(root, {
@@ -1197,6 +1219,20 @@ function textResult(text: string): CallToolResult {
 
 function errorResult(text: string): CallToolResult {
   return { content: [{ type: 'text', text }], isError: true }
+}
+
+/** changeset-review-gate: the one refusal an agent-facing tool returns for a verdict. */
+const GATE_VERDICT_REFUSED = 'GATE_VERDICT_REFUSED'
+
+function verdictRefusedResult(detail: string): CallToolResult {
+  return errorResult(
+    JSON.stringify({
+      ok: false,
+      code: GATE_VERDICT_REFUSED,
+      message:
+        `${GATE_VERDICT_REFUSED}: a review_gate is a human verdict written by the console. ${detail}`,
+    }),
+  )
 }
 
 /* ── Handlers ────────────────────────────────────────────────── */
