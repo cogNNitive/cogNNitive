@@ -261,7 +261,7 @@ description:: Transition into the Scene. Resolves through the Universal Paramete
 concept:: [Video, Scene, Preset, Series, Video Defaults]
   scope:: render
 type:: string
-description:: Name of the frame document (`frames/<name>.md`) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
+description:: Name of the frame folder (`library/frames/<name>/FRAME.md` at the episode, series, domain or package level) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: components
 concept:: [Video, Preset, Series, Video Defaults]
@@ -329,7 +329,7 @@ description:: For a `media` Layer: `scene` spans the whole scene, `slot` occupie
 concept:: Layer
 type:: select
 options:: [title, lower-third, caption, watermark, quote]
-description:: For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>.html`, episode → series → domain → skill fallback), so a Series can restyle it without a new type.
+description:: For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>`, a folder `library/components/<style>/` or `media/components/<style>/`, episode → series → domain → skill fallback), so a Series can restyle it without a new type.
 
 ## NN Field Definition: text_from
 concept:: Layer
@@ -607,7 +607,12 @@ reach the document only through changesets applied by the apply engine.
   cascade fields.
 - **Layer** — child of a Scene, never of the Video. Discriminated by the required `type::`
   with exactly four values: `avatar`, `media`, `text`, `animation`.
-- **Layer** - child of a Scene: one visual, overlay or avatar track.
+- **Library** — the package ships the reusable folders `library/frames/<name>/FRAME.md`
+  (frame tokens), `library/components/<name>/{COMPONENT.md,index.html,preview.mp4}` (the
+  component portfolio base set) and `library/characters/<name>/CHARACTER.md` (characters),
+  plus the slot contracts in `skills/nn-conntent/slots/<slot>.html`; a domaiNN or series
+  root may shadow any of them under its own `library/`, and an episode under `media/`.
+  Component `index.html` files never reference a network URL, so rendering is offline.
 - **Scene Kind** — element of the Series: the grammar of one kind of scene (role,
   narration, limits, fixed placement, chrome, presets).
 - **Chrome** — element of the Series, one per language: series-level wallpaper (watermark,

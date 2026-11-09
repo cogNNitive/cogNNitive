@@ -257,7 +257,7 @@ Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
 ### `frame`
 
-Name of the frame document (`frames/<name>.md`) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
+Name of the frame folder (`library/frames/<name>/FRAME.md` at the episode, series, domain or package level) whose tokens style this Video, Scene, Series or domain. Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
@@ -323,7 +323,7 @@ Settable at: `Layer`.
 
 ### `style`
 
-For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>.html`, episode → series → domain → skill fallback), so a Series can restyle it without a new type.
+For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>`, a folder `library/components/<style>/` or `media/components/<style>/`, episode → series → domain → skill fallback), so a Series can restyle it without a new type.
 
 Settable at: `Layer`.
 

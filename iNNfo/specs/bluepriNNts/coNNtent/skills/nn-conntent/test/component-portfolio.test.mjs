@@ -145,3 +145,34 @@ test('every packaged component validates', () => {
     assert.ok(c.slot, `${entry.name} declares a slot`);
   }
 });
+
+// The package base set (capability conntent-component-portfolio "The Package Vendors
+// A Pinned Base Set"; V5 fallback ships only the engine-authored items).
+test('every packaged index.html is free of network URLs (hermetic render)', () => {
+  if (!fs.existsSync(COMPONENTS_ROOT)) {
+    assert.ok(true, 'no packaged components yet (2e.2 not landed)');
+    return;
+  }
+  const urlRe = /(?:https?:)?\/\/|src="https?:/;
+  for (const entry of fs.readdirSync(COMPONENTS_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const html = fs.readFileSync(path.join(COMPONENTS_ROOT, entry.name, 'index.html'), 'utf8');
+    assert.doesNotMatch(html, urlRe, `${entry.name}/index.html must not reference the network`);
+  }
+});
+
+test('engine-authored package items are local and need no LICENSE (V5 fallback)', () => {
+  if (!fs.existsSync(COMPONENTS_ROOT)) return;
+  const vendored = [];
+  const locals = [];
+  for (const entry of fs.readdirSync(COMPONENTS_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const c = validateComponent(path.join(COMPONENTS_ROOT, entry.name));
+    if (isVendored(c.source)) vendored.push(c);
+    else locals.push(c);
+    assert.equal(fs.existsSync(path.join(COMPONENTS_ROOT, entry.name, 'preview.mp4')), true, `${entry.name} ships preview.mp4`);
+  }
+  // The V.5 fallback decision ships only engine-authored items: everything is local.
+  assert.deepEqual(vendored, [], 'no vendored registry item in the fallback set');
+  assert.equal(locals.length, 6, 'the six engine-authored components ship');
+});
