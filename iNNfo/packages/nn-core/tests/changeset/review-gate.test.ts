@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseChangeset, reviewGateProblems } from '../../src/changeset/parser.js'
-import { parseGateDeclarations, gateDeclarationProblems } from '../../src/changeset/gates.js'
+import { parseGateDeclarations, gateDeclarationProblems, reviewGateProvenanceProblems } from '../../src/changeset/gates.js'
 import { serializeChangeset } from '../../src/changeset/serializer.js'
 import { computeProposalSha } from '../../src/changeset/hasher.js'
 import type { ChangeItem, ChangesetDocument } from '../../src/changeset/types.js'
@@ -177,5 +177,72 @@ describe('gate declarations come from the bluepriNNt', () => {
       }
     }
     expect(hits).toEqual([])
+  })
+})
+
+describe('applying a verdict requires a human console changeset', () => {
+  /** A human console frontmatter plus the given overrides. */
+  const fm = (overrides: Record<string, unknown> = {}) => ({
+    author_kind: 'human',
+    origin: 'console',
+    reviewer: 'Ana',
+    ...overrides,
+  })
+  const verdict = (): ChangeItem => ({
+    id: 'c-01',
+    op: 'review_gate',
+    target: 'acme@scene-1',
+    gate: 'script',
+    verdict: 'approved',
+    reviewed_hash: 'a'.repeat(64),
+  })
+  const content = (): ChangeItem => ({
+    id: 'c-02',
+    op: 'update_field',
+    target: 'acme@scene-1&title',
+    to: 'Hello',
+  })
+
+  it('a human console changeset is accepted', () => {
+    expect(reviewGateProvenanceProblems([verdict()], fm())).toEqual([])
+  })
+
+  it('an agent-authored verdict is GATE_NOT_HUMAN', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ author_kind: 'agent' }))
+    expect(problems.some((p) => p.startsWith('GATE_NOT_HUMAN'))).toBe(true)
+  })
+
+  it('an engine-authored verdict is GATE_NOT_HUMAN', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ author_kind: 'engine' }))
+    expect(problems.some((p) => p.startsWith('GATE_NOT_HUMAN'))).toBe(true)
+  })
+
+  it('a human changeset that did not come from a console is GATE_NOT_HUMAN', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ origin: 'mcp' }))
+    expect(problems.some((p) => p.startsWith('GATE_NOT_HUMAN'))).toBe(true)
+  })
+
+  it('a missing origin is GATE_NOT_HUMAN', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ origin: undefined }))
+    expect(problems.some((p) => p.startsWith('GATE_NOT_HUMAN'))).toBe(true)
+  })
+
+  it('an empty reviewer is GATE_REVIEWER_REQUIRED', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ reviewer: '   ' }))
+    expect(problems.some((p) => p.startsWith('GATE_REVIEWER_REQUIRED'))).toBe(true)
+  })
+
+  it('the default pseudonym reviewer is refused (Q9)', () => {
+    const problems = reviewGateProvenanceProblems([verdict()], fm({ reviewer: 'reviewer' }))
+    expect(problems.some((p) => p.startsWith('GATE_REVIEWER_REQUIRED'))).toBe(true)
+  })
+
+  it('a changeset without verdicts needs no markers', () => {
+    expect(reviewGateProvenanceProblems([content()], {})).toEqual([])
+  })
+
+  it('a mixed agent changeset is refused whole by the same policy', () => {
+    const problems = reviewGateProvenanceProblems([content(), verdict()], fm({ author_kind: 'agent' }))
+    expect(problems.some((p) => p.startsWith('GATE_NOT_HUMAN'))).toBe(true)
   })
 })

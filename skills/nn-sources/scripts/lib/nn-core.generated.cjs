@@ -9837,7 +9837,7 @@ function parseChangeset(rawContent) {
   const hasGate = changes.some((c) => c.op === "review_gate");
   if (hasGate) {
     for (const key of ["author_kind", "origin", "reviewer"]) {
-      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null) {
         throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
       }
     }

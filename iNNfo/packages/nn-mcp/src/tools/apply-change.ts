@@ -37,6 +37,9 @@ import {
   slugifyHeading,
   isChangesetPath,
   isSidecarName,
+  reviewGateProblems,
+  gateDeclarationProblems,
+  reviewGateProvenanceProblems,
 } from '@cognnitive/nn-core'
 import type {
   SpecDocument,
@@ -59,6 +62,14 @@ import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 import { loadKnowledge, saveKnowledge, resolveBlueprintForKnowledge } from './knowledge-io.js'
 import { DEFAULT_WORKSPACE_IGNORE, validateBlueprint } from './validate.js'
+
+/**
+ * Ops that record a fact without mutating a model. `review_gate` is such an op
+ * (changeset-review-gate "A verdict-only changeset does not touch the model"): the
+ * verdict is published by its changeset, never written into the model file.
+ */
+const NON_MUTATING_OPS: ReadonlySet<string> = new Set(['comment', 'review_gate'])
+const isNonMutating = (op: string): boolean => NON_MUTATING_OPS.has(op)
 
 export interface ApplyChangeResult {
   success: boolean
@@ -617,6 +628,30 @@ export async function executeChangesetApply(
       }
     }
 
+    // 2b. Verdict policy (changeset-review-gate): the shape of every `review_gate`
+    // change, then the human provenance of the file. Both are intrinsic to the
+    // proposal, so they are persisted as rejected and write nothing.
+    const gateShapeProblems = csDoc.changes.flatMap(reviewGateProblems)
+    if (gateShapeProblems.length > 0) {
+      return recordRejection(
+        gateShapeProblems.map((message) => ({
+          path: relChangesetPath,
+          message,
+          code: message.split(':')[0],
+        })),
+      )
+    }
+    const governanceProblems = reviewGateProvenanceProblems(csDoc.changes, csDoc.frontmatter)
+    if (governanceProblems.length > 0) {
+      return recordRejection(
+        governanceProblems.map((message) => ({
+          path: relChangesetPath,
+          message,
+          code: message.split(':')[0],
+        })),
+      )
+    }
+
     // 3. Verify proposal_sha (tamper detection). A draft that arrives WITHOUT a
     // seal (e.g. the console review export) is stamped at intake: the engine
     // owns the canonical hash, so producers never duplicate it. A seal that IS
@@ -633,14 +668,14 @@ export async function executeChangesetApply(
           delete c.resolution
         }
       }
-      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes, csDoc.frontmatter)
     }
     if (!csDoc.frontmatter.proposal_sha) {
-      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes, csDoc.frontmatter)
     }
     if (!verifyProposalSha(csDoc)) {
       if (csDoc.frontmatter.status === 'conflict') {
-        csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+        csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes, csDoc.frontmatter)
       } else {
         return {
           success: false,
@@ -725,6 +760,9 @@ export async function executeChangesetApply(
     // writes nothing and releases the lock â€” the same all-or-nothing shape as PROPOSAL_TAMPERED.
     const citationResolver = createFsSourceResolver(rootDir)
     for (const change of csDoc.changes) {
+      // A verdict is published by its changeset; its provenance is the human
+      // reviewer, never an evidence citation (changeset-review-gate).
+      if (change.op === 'review_gate') continue
       // D2: evidence is mandatory on every change; a changeset with a change that carries
       // none is rejected whole, naming the offending change id.
       if (!change.evidence) {
@@ -1116,7 +1154,7 @@ export async function executeChangesetApply(
     }
 
     for (const [index, change] of csDoc.changes.entries()) {
-      if (change.op === 'comment' || change.op === 'add_model' || change.op === 'produce_artifact') continue
+      if (isNonMutating(change.op) || change.op === 'add_model' || change.op === 'produce_artifact') continue
       const targetModel = parseTargetAddress(change.target).modelSlug
       const createdAt = addModelIndex.get(targetModel.toLowerCase())
       if (createdAt !== undefined && createdAt > index) {
@@ -1235,7 +1273,7 @@ export async function executeChangesetApply(
           message: `MODEL_EXISTS: model "${change.target}" already exists; add_model never overwrites or repairs a model`,
         })
         for (const other of csDoc.changes) {
-          if (other.id === change.id || other.op === 'comment' || other.op === 'produce_artifact') continue
+          if (other.id === change.id || isNonMutating(other.op) || other.op === 'produce_artifact') continue
           if (parseTargetAddress(other.target).modelSlug.toLowerCase() !== key) continue
           blockedChanges.set(other.id, {
             code: 'DEPENDS_ON_CONFLICTED_CHANGE',
@@ -1567,6 +1605,35 @@ export async function executeChangesetApply(
       }
     }
 
+    // Gate declarations (changeset-review-gate): nn-core holds no gate name, so a
+    // verdict is accepted only when the target model's bluepriNNt declares the gate
+    // and the unit it accepts. A missing target is a per-change conflict, not a
+    // policy failure, so it is left to the conflict partition.
+    for (const change of csDoc.changes) {
+      if (change.op !== 'review_gate') continue
+      const { modelSlug } = parseTargetAddress(change.target)
+      const entry = loadedModels.get(modelSlug.toLowerCase())
+      if (!entry) continue
+      let gates: unknown
+      try {
+        const { template } = await resolveBlueprintForKnowledge(rootDir, entry.model)
+        gates = template?.frontmatter?.gates
+      } catch {
+        gates = undefined
+      }
+      const problems = gateDeclarationProblems(change, gates)
+      if (problems.length > 0) {
+        return recordRejection(
+          problems.map((message) => ({
+            path: change.target,
+            message,
+            code: message.split(':')[0],
+          })),
+          change.id,
+        )
+      }
+    }
+
     // D11: Batch Slug Resolution & Intra-Batch Rewriting
     const loadedModelAsts = new Map<string, ParsedKnowledge>()
     for (const [, v] of loadedModels) {
@@ -1608,10 +1675,10 @@ export async function executeChangesetApply(
     )
 
     // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
-    const actionableClean = cleanSubset.filter((c) => c.op !== 'comment')
+    const actionableClean = cleanSubset.filter((c) => !isNonMutating(c.op))
     if (actionableClean.length === 0 && conflictedSubset.length > 0) {
       for (const change of csDoc.changes) {
-        if (change.op === 'comment') continue
+        if (isNonMutating(change.op)) continue
         change.status = 'conflict'
         const diag = conflictDiagnostics.get(change.id)
         change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
@@ -1692,7 +1759,13 @@ export async function executeChangesetApply(
 
     // Apply mutations for clean subset in memory
     for (const change of cleanSubset) {
-      if (change.op === 'comment') continue
+      if (isNonMutating(change.op)) {
+        if (change.op === 'review_gate') {
+          change.status = 'applied'
+          change.resolution = `Recorded verdict "${String(change.verdict ?? '')}" for gate "${String(change.gate ?? '')}"`
+        }
+        continue
+      }
       if (change.op === 'produce_artifact') {
         change.status = 'applied'
         change.resolution = `Recorded artifact ${change.target}`
@@ -2145,8 +2218,8 @@ export async function executeChangesetApply(
       .map((entry) => entry.modelSlug)
 
     // Annotate changeset document
-    const totalActionable = csDoc.changes.filter((c) => c.op !== 'comment').length
-    const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
+    const totalActionable = csDoc.changes.filter((c) => !isNonMutating(c.op)).length
+    const cleanAppliedCount = cleanSubset.filter((c) => !isNonMutating(c.op)).length
     const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
 
     const batchId = displayStem(basename(resolvedChangesetPath))

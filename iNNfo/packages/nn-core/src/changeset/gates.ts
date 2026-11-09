@@ -83,3 +83,51 @@ export function gateDeclarationProblems(change: ChangeItem, rawDeclarations: unk
 
   return []
 }
+
+export const GATE_NOT_HUMAN = 'GATE_NOT_HUMAN'
+export const GATE_REVIEWER_REQUIRED = 'GATE_REVIEWER_REQUIRED'
+
+/** The default pseudonym a console may prefill; it names nobody, so it is not a reviewer (Q9). */
+const DEFAULT_REVIEWER = 'reviewer'
+
+export interface GatesetProvenance {
+  author_kind?: unknown
+  origin?: unknown
+  reviewer?: unknown
+  [key: string]: unknown
+}
+
+/**
+ * Problems with the provenance of a changeset that carries `review_gate` changes
+ * (changeset-review-gate "Applying a verdict requires a human console changeset").
+ * The decision applies to the changeset as a whole: a mixed agent changeset is
+ * refused even when it also carries ordinary content changes.
+ *
+ * `GATE_NOT_HUMAN`: `author_kind` is not `human`, or `origin` is not `console`.
+ * `GATE_REVIEWER_REQUIRED`: `reviewer` is empty, missing, or the default pseudonym.
+ */
+export function reviewGateProvenanceProblems(
+  changes: readonly ChangeItem[],
+  frontmatter: GatesetProvenance,
+): string[] {
+  if (!changes.some((c) => c.op === 'review_gate')) return []
+
+  const problems: string[] = []
+  const authorKind = typeof frontmatter.author_kind === 'string' ? frontmatter.author_kind.trim() : ''
+  const origin = typeof frontmatter.origin === 'string' ? frontmatter.origin.trim() : ''
+  if (authorKind !== 'human' || origin !== 'console') {
+    problems.push(
+      `${GATE_NOT_HUMAN}: a changeset with a review_gate must be authored by a human in the console ` +
+        `(author_kind: human, origin: console); got author_kind: "${authorKind}" and origin: "${origin}"`,
+    )
+  }
+
+  const reviewer = typeof frontmatter.reviewer === 'string' ? frontmatter.reviewer.trim() : ''
+  if (reviewer === '' || reviewer.toLowerCase() === DEFAULT_REVIEWER) {
+    problems.push(
+      `${GATE_REVIEWER_REQUIRED}: a changeset with a review_gate must name a reviewer (a person, not the default "${DEFAULT_REVIEWER}")`,
+    )
+  }
+
+  return problems
+}

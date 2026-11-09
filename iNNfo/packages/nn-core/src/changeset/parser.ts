@@ -297,11 +297,12 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   }
 
   // A file carrying any review_gate change must declare the three provenance
-  // markers (author_kind human, origin, reviewer) — verified here and at apply.
+  // markers. Presence is shape; emptiness and the human/console policy are decided
+  // by `reviewGateProvenanceProblems` at apply, which returns the named codes.
   const hasGate = changes.some((c) => c.op === 'review_gate')
   if (hasGate) {
     for (const key of ['author_kind', 'origin', 'reviewer'] as const) {
-      if (frontmatter[key] === undefined || frontmatter[key] === null || String(frontmatter[key]).trim() === '') {
+      if (frontmatter[key] === undefined || frontmatter[key] === null) {
         throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`)
       }
     }

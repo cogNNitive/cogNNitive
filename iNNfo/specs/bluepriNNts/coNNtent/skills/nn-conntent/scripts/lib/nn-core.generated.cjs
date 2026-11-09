@@ -13197,7 +13197,37 @@ function extractInstanceProblems2(change) {
   }
   return problems;
 }
-var CHANGE_OPS2, BUMP_LEVELS;
+function reviewGateProblems3(change) {
+  if (change.op !== "review_gate")
+    return [];
+  const problems = [];
+  const id = change.id;
+  if (!change.gate || String(change.gate).trim() === "") {
+    problems.push(`change "${id}": review_gate requires "gate"`);
+  }
+  if (!change.verdict || !GATE_VERDICTS.includes(change.verdict)) {
+    problems.push(`change "${id}": review_gate "verdict" must be one of ${GATE_VERDICTS.join(", ")}`);
+  }
+  if (typeof change.reviewed_hash !== "string" || !HEX64.test(change.reviewed_hash)) {
+    problems.push(`change "${id}": review_gate requires "reviewed_hash" as a 64-char lowercase hex sha256`);
+  }
+  if (change.plan_hash !== void 0 && (typeof change.plan_hash !== "string" || !HEX64.test(change.plan_hash))) {
+    problems.push(`change "${id}": review_gate "plan_hash" must be a 64-char lowercase hex sha256`);
+  }
+  const allowed = /* @__PURE__ */ new Set(["gate", "verdict", "reviewed_hash", "plan_hash", "notes"]);
+  for (const key of change.rawKeys || []) {
+    if (!allowed.has(key)) {
+      problems.push(`change "${id}": review_gate declares undeclared key "${key}"`);
+    }
+  }
+  for (const key of ["from", "to", "base_hash", "fields", "slug", "concept", "name", "evidence"]) {
+    if (change[key] !== void 0) {
+      problems.push(`change "${id}": review_gate must not carry "${key}"`);
+    }
+  }
+  return problems;
+}
+var CHANGE_OPS2, BUMP_LEVELS, GATE_VERDICTS, HEX64;
 var init_types2 = __esm({
   "iNNfo/packages/nn-core/dist/changeset/types.js"() {
     "use strict";
@@ -13226,6 +13256,8 @@ var init_types2 = __esm({
       "review_gate"
     ];
     BUMP_LEVELS = ["patch", "minor", "major"];
+    GATE_VERDICTS = ["approved", "needs-change"];
+    HEX64 = /^[0-9a-f]{64}$/;
   }
 });
 
@@ -13484,7 +13516,7 @@ function parseChangeset2(rawContent) {
   const hasGate = changes.some((c) => c.op === "review_gate");
   if (hasGate) {
     for (const key of ["author_kind", "origin", "reviewer"]) {
-      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null) {
         throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
       }
     }
@@ -16438,9 +16470,69 @@ var init_cognitivize2 = __esm({
 });
 
 // iNNfo/packages/nn-core/dist/changeset/gates.js
+function isGateUnit(value) {
+  return value === "model" || value === "element";
+}
+function declarationMap(raw) {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+    return {};
+  return raw;
+}
+function gateDeclarationProblems(change, rawDeclarations) {
+  if (change.op !== "review_gate")
+    return [];
+  const id = change.id;
+  const name = typeof change.gate === "string" ? change.gate.trim() : "";
+  const declarations = declarationMap(rawDeclarations);
+  const declared2 = name !== "" && Object.prototype.hasOwnProperty.call(declarations, name);
+  if (!declared2) {
+    return [
+      `${GATE_UNDECLARED}: change "${id}": the bluepriNNt of "${change.target}" declares no gate "${name}"`
+    ];
+  }
+  const unit = declarations[name];
+  if (!isGateUnit(unit)) {
+    return [
+      `${GATE_TARGET_INVALID}: change "${id}": gate "${name}" declares an unknown unit (expected "model" or "element")`
+    ];
+  }
+  const isElementTarget = change.target.includes("@");
+  if (unit === "element" && !isElementTarget) {
+    return [
+      `${GATE_TARGET_INVALID}: change "${id}": gate "${name}" accepts an element target (<model>@<element>), not the model "${change.target}"`
+    ];
+  }
+  if (unit === "model" && isElementTarget) {
+    return [
+      `${GATE_TARGET_INVALID}: change "${id}": gate "${name}" accepts a model target, not the element address "${change.target}"`
+    ];
+  }
+  return [];
+}
+function reviewGateProvenanceProblems(changes, frontmatter) {
+  if (!changes.some((c) => c.op === "review_gate"))
+    return [];
+  const problems = [];
+  const authorKind = typeof frontmatter.author_kind === "string" ? frontmatter.author_kind.trim() : "";
+  const origin = typeof frontmatter.origin === "string" ? frontmatter.origin.trim() : "";
+  if (authorKind !== "human" || origin !== "console") {
+    problems.push(`${GATE_NOT_HUMAN}: a changeset with a review_gate must be authored by a human in the console (author_kind: human, origin: console); got author_kind: "${authorKind}" and origin: "${origin}"`);
+  }
+  const reviewer = typeof frontmatter.reviewer === "string" ? frontmatter.reviewer.trim() : "";
+  if (reviewer === "" || reviewer.toLowerCase() === DEFAULT_REVIEWER) {
+    problems.push(`${GATE_REVIEWER_REQUIRED}: a changeset with a review_gate must name a reviewer (a person, not the default "${DEFAULT_REVIEWER}")`);
+  }
+  return problems;
+}
+var GATE_UNDECLARED, GATE_TARGET_INVALID, GATE_NOT_HUMAN, GATE_REVIEWER_REQUIRED, DEFAULT_REVIEWER;
 var init_gates = __esm({
   "iNNfo/packages/nn-core/dist/changeset/gates.js"() {
     "use strict";
+    GATE_UNDECLARED = "GATE_UNDECLARED";
+    GATE_TARGET_INVALID = "GATE_TARGET_INVALID";
+    GATE_NOT_HUMAN = "GATE_NOT_HUMAN";
+    GATE_REVIEWER_REQUIRED = "GATE_REVIEWER_REQUIRED";
+    DEFAULT_REVIEWER = "reviewer";
   }
 });
 
@@ -21451,7 +21543,7 @@ function parseChangeset(rawContent) {
   const hasGate = changes.some((c) => c.op === "review_gate");
   if (hasGate) {
     for (const key of ["author_kind", "origin", "reviewer"]) {
-      if (frontmatter[key] === void 0 || frontmatter[key] === null || String(frontmatter[key]).trim() === "") {
+      if (frontmatter[key] === void 0 || frontmatter[key] === null) {
         throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
       }
     }
@@ -22069,6 +22161,8 @@ var DEFAULT_WORKSPACE_IGNORE = /* @__PURE__ */ new Set([
 ]);
 
 // iNNfo/packages/nn-mcp/src/tools/apply-change.ts
+var NON_MUTATING_OPS = /* @__PURE__ */ new Set(["comment", "review_gate"]);
+var isNonMutating = (op) => NON_MUTATING_OPS.has(op);
 function parseVersion(v) {
   const m = v.trim().match(/^V?_?(\d+)[-.](\d+)[-.](\d+)$/i);
   if (!m) return null;
@@ -22421,6 +22515,26 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         errors: [{ path: relChangesetPath, message: `CHANGESET_REJECTED: ${recorded}`, code: "CHANGESET_REJECTED" }]
       };
     }
+    const gateShapeProblems = csDoc.changes.flatMap(reviewGateProblems3);
+    if (gateShapeProblems.length > 0) {
+      return recordRejection(
+        gateShapeProblems.map((message) => ({
+          path: relChangesetPath,
+          message,
+          code: message.split(":")[0]
+        }))
+      );
+    }
+    const governanceProblems = reviewGateProvenanceProblems(csDoc.changes, csDoc.frontmatter);
+    if (governanceProblems.length > 0) {
+      return recordRejection(
+        governanceProblems.map((message) => ({
+          path: relChangesetPath,
+          message,
+          code: message.split(":")[0]
+        }))
+      );
+    }
     if (wasRejected) {
       csDoc.frontmatter.status = "proposed";
       delete csDoc.frontmatter.resolution;
@@ -22430,14 +22544,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           delete c.resolution;
         }
       }
-      csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes);
+      csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes, csDoc.frontmatter);
     }
     if (!csDoc.frontmatter.proposal_sha) {
-      csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes);
+      csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes, csDoc.frontmatter);
     }
     if (!verifyProposalSha(csDoc)) {
       if (csDoc.frontmatter.status === "conflict") {
-        csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes);
+        csDoc.frontmatter.proposal_sha = computeProposalSha2(csDoc.changes, csDoc.frontmatter);
       } else {
         return {
           success: false,
@@ -22510,6 +22624,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     }
     const citationResolver = createFsSourceResolver(rootDir);
     for (const change of csDoc.changes) {
+      if (change.op === "review_gate") continue;
       if (!change.evidence) {
         return recordRejection(
           [
@@ -22796,7 +22911,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       plannedConcepts.set(toId.toLowerCase(), subtree.concept);
     }
     for (const [index, change] of csDoc.changes.entries()) {
-      if (change.op === "comment" || change.op === "add_model" || change.op === "produce_artifact") continue;
+      if (isNonMutating(change.op) || change.op === "add_model" || change.op === "produce_artifact") continue;
       const targetModel = parseTargetAddress(change.target).modelSlug;
       const createdAt = addModelIndex.get(targetModel.toLowerCase());
       if (createdAt !== void 0 && createdAt > index) {
@@ -22898,7 +23013,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           message: `MODEL_EXISTS: model "${change.target}" already exists; add_model never overwrites or repairs a model`
         });
         for (const other of csDoc.changes) {
-          if (other.id === change.id || other.op === "comment" || other.op === "produce_artifact") continue;
+          if (other.id === change.id || isNonMutating(other.op) || other.op === "produce_artifact") continue;
           if (parseTargetAddress(other.target).modelSlug.toLowerCase() !== key) continue;
           blockedChanges.set(other.id, {
             code: "DEPENDS_ON_CONFLICTED_CHANGE",
@@ -23185,6 +23300,30 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         }
       }
     }
+    for (const change of csDoc.changes) {
+      if (change.op !== "review_gate") continue;
+      const { modelSlug } = parseTargetAddress(change.target);
+      const entry = loadedModels.get(modelSlug.toLowerCase());
+      if (!entry) continue;
+      let gates;
+      try {
+        const { template } = await resolveBlueprintForKnowledge(rootDir, entry.model);
+        gates = template?.frontmatter?.gates;
+      } catch {
+        gates = void 0;
+      }
+      const problems = gateDeclarationProblems(change, gates);
+      if (problems.length > 0) {
+        return recordRejection(
+          problems.map((message) => ({
+            path: change.target,
+            message,
+            code: message.split(":")[0]
+          })),
+          change.id
+        );
+      }
+    }
     const loadedModelAsts = /* @__PURE__ */ new Map();
     for (const [, v] of loadedModels) {
       loadedModelAsts.set(v.modelSlug, v.model);
@@ -23215,10 +23354,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       referenceConflicts,
       blockedChanges
     );
-    const actionableClean = cleanSubset.filter((c) => c.op !== "comment");
+    const actionableClean = cleanSubset.filter((c) => !isNonMutating(c.op));
     if (actionableClean.length === 0 && conflictedSubset.length > 0) {
       for (const change of csDoc.changes) {
-        if (change.op === "comment") continue;
+        if (isNonMutating(change.op)) continue;
         change.status = "conflict";
         const diag = conflictDiagnostics.get(change.id);
         change.resolution = diag ? diag.message : change.resolution || "Precondition failed";
@@ -23284,7 +23423,13 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
     }
     for (const change of cleanSubset) {
-      if (change.op === "comment") continue;
+      if (isNonMutating(change.op)) {
+        if (change.op === "review_gate") {
+          change.status = "applied";
+          change.resolution = `Recorded verdict "${String(change.verdict ?? "")}" for gate "${String(change.gate ?? "")}"`;
+        }
+        continue;
+      }
       if (change.op === "produce_artifact") {
         change.status = "applied";
         change.resolution = `Recorded artifact ${change.target}`;
@@ -23648,8 +23793,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       throw err;
     }
     const createdModelIds = Array.from(loadedModels.values()).filter((entry) => entry.created).map((entry) => entry.modelSlug);
-    const totalActionable = csDoc.changes.filter((c) => c.op !== "comment").length;
-    const cleanAppliedCount = cleanSubset.filter((c) => c.op !== "comment").length;
+    const totalActionable = csDoc.changes.filter((c) => !isNonMutating(c.op)).length;
+    const cleanAppliedCount = cleanSubset.filter((c) => !isNonMutating(c.op)).length;
     const overallStatus = cleanAppliedCount === totalActionable ? "applied" : "partially_applied";
     const batchId = displayStem2((0, import_node_path17.basename)(resolvedChangesetPath));
     csDoc.frontmatter.status = overallStatus;
