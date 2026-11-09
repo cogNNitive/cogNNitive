@@ -220,7 +220,7 @@ async function runTests() {
       assert.ok(fieldDefinition(name), `${name} is declared`);
     }
     assert.doesNotMatch(SPEC, /^## NN Field Definition: published_url$/m, 'published_url is retired (publishing is out of scope)');
-    assert.match(fieldDefinition('status'), /^options:: \[idea, draft, approved, produced, published, archived\]$/m);
+    assert.match(fieldDefinition('status'), /^options:: \[idea, draft, approved, produced, failed_qa, delivered, archived\]$/m);
     assert.match(fieldDefinition('language'), /^concept:: \[Video, Series, Video Defaults, Chrome\]$/m);
     assert.match(fieldDefinition('daily_budget'), /^concept:: Video Defaults$/m);
 
