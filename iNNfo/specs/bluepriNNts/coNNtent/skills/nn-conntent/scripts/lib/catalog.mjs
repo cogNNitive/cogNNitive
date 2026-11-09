@@ -169,6 +169,34 @@ export function loadMergedCatalog({ domainRoot, referencePath = REFERENCE_CATALO
   return mergeCatalog(reference, overlayDoc);
 }
 
+/** Error code when a catalog model declares `capability:: video` (D-K7). */
+export const UNSUPPORTED_CAPABILITY = 'unsupported-capability';
+
+/**
+ * Builds the merged catalog from model arrays and rejects any `capability:: video`
+ * model before spend. (capability conntent-model-catalog "Video Capability Is Not
+ * Supported Yet".) Each model is `{ slug, capability, ... }`.
+ * @param {{ reference?: Array<{slug: string, capability: string}> , overlay?: Array<{slug: string, capability: string}> }} input
+ */
+export function buildMergedCatalog({ reference = [], overlay = [] } = {}) {
+  for (const model of [...reference, ...overlay]) {
+    if (String(model.capability || '').toLowerCase() === 'video') {
+      const err = new Error(
+        `generated video clips are not supported yet: model "${model.slug}" declares capability:: video. ` +
+          `Remove it from the catalog or use a tts/image/avatar model.`,
+      );
+      err.code = UNSUPPORTED_CAPABILITY;
+      throw err;
+    }
+  }
+  const toModels = (arr) =>
+    arr.reduce((acc, m) => {
+      acc[m.slug] = { ...m };
+      return acc;
+    }, {});
+  return mergeCatalog({ models: toModels(reference), providers: {}, voices: {} }, { models: toModels(overlay), providers: {}, voices: {} });
+}
+
 /** The catalog's `sizes` for an image model, used to validate `image_size`. */
 export function sizesOf(model) {
   return asList(model?.sizes);
