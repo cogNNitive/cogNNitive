@@ -81,8 +81,12 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 3b-1.3 + 3b-1.4 `lib/gates.mjs` (`readAppliedVerdicts`, `evaluateGate`, `gateState`, `STALE_APPROVAL_MESSAGE`); applied-human-console-only, default reviewer ignored, preview needs `plan_hash`, fixed gate order; `gates.test.mjs`.
 - [x] 3b-1.6 + 3b-1.7 lifecycle: `EPISODE_STATUSES` = idea/draft/approved/produced/failed_qa/delivered/archived, only archived refused, `reconcileStatus`; blueprint `status` options + prompt examples; `lifecycle.test.mjs`.
 - [x] 3b-1.8 an explicit empty list now wins in the cascade (`review_gates: []` is autopilot); `cascade.test.mjs` case.
-- [ ] 3b-1.5 re-open cause snapshot/diff (`.cognnitive/video/reviews/<s>__<slug>.json`).
+- [x] 3b-1.5 re-open cause: `.cognnitive/video/reviews/<series>__<episode>.json`, `reopenCause` (narration / layer / param with source level, `unknown` when the record is absent); `gate-snapshots.test.mjs`.
 - [ ] 3b-1.9 REFACTOR: delete `pendingReviews`, `--approve` and `script_review` consumers with the `produce` rewrite (3b-2), then `verify.js --only=conntent`.
+- [x] 3b-2.3 + 3b-2.4 (contract) `lib/spend-gate.mjs`: unset budget with a non-zero plan → exit 11; over budget with preview off (or pre-preview subtotal over) → exactly one episode `budget` gate carrying `plan_hash`; preview on otherwise asks at preview; no `--approve`. `spend-gate.test.mjs`.
+- [ ] 3b-2.1/.2/.5 + 3b-1.9 produce wiring: `pipeline.mjs` stage order, exit codes 0/10/11/12/1, per-scene script/preview gate evaluation (needs the asset cache keys), `produce` applies pending human changesets on start, `--approve`/`--skip-qa` removed.
+- [ ] 3b-2.6/.7 animatic (640 px / 15 fps, real audio + pose still).
+- [ ] 3b-2.8/.9 E2E cold cache; the 3 existing `--approve` tests rewritten to gate semantics.
 - Slice gate so far: `verify.js --only=conntent` green (99 steps), `verify:fast` green. 3b-1.1..1.4 + 1.6..1.8 are pushed; `.5` and `.9` remain.
 
 ## Delivery protocol revision (2026-11-09)
