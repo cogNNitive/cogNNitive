@@ -17,7 +17,7 @@ const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const SCRIPT = path.join(__dirname, 'pre-push-check.js');
-const { parseRefLines, isWipFastPath, isNoCodePush, collectGuardFailures } = require('./pre-push-check.js');
+const { parseRefLines, isSessionBranchPush, isNoCodePush, collectGuardFailures } = require('./pre-push-check.js');
 
 let REPO;
 let SHA0;
@@ -73,25 +73,20 @@ test('parseRefLines reads four-field git stdin lines', () => {
   assert.equal(parseRefLines(undefined).length, 0);
 });
 
-test('isWipFastPath is true for an all-wip: session branch push', () => {
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/session/x', SHA1)), REPO), true);
+test('isSessionBranchPush is true for any session branch push, wip: or not', () => {
+  assert.equal(isSessionBranchPush(parseRefLines(line('refs/heads/session/x', SHA1))), true);
+  assert.equal(isSessionBranchPush(parseRefLines(line('refs/heads/session/x', SHA2, SHA1))), true);
 });
 
-test('isWipFastPath is false when any pushed commit is not wip:', () => {
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/session/x', SHA2, SHA0)), REPO), false);
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/session/x', SHA2, SHA1)), REPO), false);
+test('isSessionBranchPush is false for dev, main, and empty input', () => {
+  assert.equal(isSessionBranchPush(parseRefLines(line('refs/heads/dev', SHA1))), false);
+  assert.equal(isSessionBranchPush(parseRefLines(line('refs/heads/main', SHA1))), false);
+  assert.equal(isSessionBranchPush(parseRefLines('')), false);
 });
 
-test('isWipFastPath is false for dev/main, new branches, and empty input', () => {
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/dev', SHA1)), REPO), false);
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/main', SHA1)), REPO), false);
-  assert.equal(isWipFastPath(parseRefLines(line('refs/heads/session/x', SHA1, '0'.repeat(40))), REPO), false);
-  assert.equal(isWipFastPath(parseRefLines(''), REPO), false);
-});
-
-test('isWipFastPath requires every pushed ref to be a wip: session branch', () => {
+test('isSessionBranchPush requires every pushed ref to be a session branch', () => {
   const refs = parseRefLines(`${line('refs/heads/session/x', SHA1)}\n${line('refs/heads/dev', SHA1, SHA1)}`);
-  assert.equal(isWipFastPath(refs, REPO), false);
+  assert.equal(isSessionBranchPush(refs), false);
 });
 
 test('isNoCodePush is true when every changed file is under openspec/', () => {
@@ -177,13 +172,24 @@ test('CLI lets tag-only pushes through without the fast-path notice', () => {
   assert.ok(!/fast-path/.test(res.stdout), 'tag push must not be classified as a WIP fast-path');
 });
 
-test('CLI does not fast-path a non-wip session push', () => {
+test('CLI fast-paths a session push whatever the commit message', () => {
   const res = spawnSync(process.execPath, [SCRIPT, 'origin', 'file:///x'], {
     cwd: REPO,
     input: `${line('refs/heads/session/x', SHA2, SHA0)}\n`,
     encoding: 'utf8',
+    env: { ...process.env, NN_PRE_PUSH_ROOT: REPO },
+  });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /fast-path/);
+});
+
+test('CLI runs the full pipeline for a dev push', () => {
+  const res = spawnSync(process.execPath, [SCRIPT, 'origin', 'file:///x'], {
+    cwd: REPO,
+    input: `${line('refs/heads/dev', SHA2, SHA0)}\n`,
+    encoding: 'utf8',
     env: { ...process.env, NN_PRE_PUSH_ROOT: REPO, NN_PRE_PUSH_SKIP_HEAVY: '1' },
   });
-  assert.ok(!/fast-path/.test(res.stdout), 'a non-wip push must run the full pipeline');
+  assert.ok(!/fast-path/.test(res.stdout), 'a dev push must run the full pipeline');
   assert.match(res.stdout, /freshness guards/);
 });

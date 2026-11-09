@@ -4,9 +4,8 @@
 /**
  * Local push gate (called by .githooks/pre-push). Owns the whole pre-push pipeline,
  * fed by git's stdin ref lines (`<local_ref> <local_sha> <remote_ref> <remote_sha>`):
- *   0. fast-path — when every pushed branch commit is a `wip:` checkpoint on
- *      `refs/heads/session/*`, skip the heavy build/typecheck/freshness pipeline
- *      entirely (design D5).
+ *   0. fast-path — when every pushed branch targets `refs/heads/session/*`, skip the
+ *      heavy build/typecheck/freshness pipeline entirely; CI gates the PR.
  *   1. heavy prerequisites — `npm run typecheck` and the docs-derived-facts check
  *      (after `build:dist`).
  *   2. FRESHNESS_GUARDS run concurrently via `Promise.all`.
@@ -54,25 +53,18 @@ function parseRefLines(text) {
 }
 
 /**
- * True when every non-deletion push targets `refs/heads/session/*` and every commit
- * in `<remote_sha>..<local_sha>` has a subject starting with `wip:`. A brand-new
- * branch (all-zero remote sha) never qualifies: there is no upstream range to prove.
+ * True when every pushed branch targets `refs/heads/session/*`. Session branches are
+ * integration candidates, not delivered work: CI gates their PR, so the local heavy
+ * pipeline (typecheck, docs facts, freshness guards, eslint) would only duplicate it.
+ * A brand-new session branch qualifies on purpose — there is nothing to compare, and
+ * the same CI run covers it.
  * @param {ReturnType<typeof parseRefLines>} refLines
- * @param {string} [cwd]
  * @returns {boolean}
  */
-function isWipFastPath(refLines, cwd = repoRoot) {
+function isSessionBranchPush(refLines) {
   const pushes = refLines.filter((l) => l.remoteRef.startsWith('refs/heads/') && !ZERO.test(l.localSha));
   if (pushes.length === 0) return false;
-  return pushes.every((l) => {
-    if (!l.remoteRef.startsWith('refs/heads/session/')) return false;
-    if (ZERO.test(l.remoteSha)) return false;
-    const subjects = (gitIn(cwd, 'log', '--format=%s', `${l.remoteSha}..${l.localSha}`) || '')
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return subjects.length > 0 && subjects.every((s) => s.startsWith('wip:'));
-  });
+  return pushes.every((l) => l.remoteRef.startsWith('refs/heads/session/'));
 }
 
 /**
@@ -167,8 +159,8 @@ async function main() {
   // Tag pushes and pure deletions carry nothing to gate.
   if (branchPushes.length === 0) return 0;
 
-  if (isWipFastPath(refLines)) {
-    console.log('pre-push: wip: checkpoint push on session/* — fast-path (skipping typecheck, docs build and freshness guards).');
+  if (isSessionBranchPush(refLines)) {
+    console.log('pre-push: session/* branch push — fast-path (skipping typecheck, docs build and freshness guards; CI gates the PR).');
     return 0;
   }
 
@@ -227,7 +219,7 @@ if (require.main === module) {
 
 module.exports = {
   parseRefLines,
-  isWipFastPath,
+  isSessionBranchPush,
   isNoCodePush,
   collectGuardFailures,
   changedLintableFiles,
