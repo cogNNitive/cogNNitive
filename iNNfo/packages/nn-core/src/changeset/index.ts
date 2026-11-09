@@ -1,4 +1,5 @@
 export * from './types.js'
+export * from './gates.js'
 export * from './evidence.js'
 export * from './resolved-target.js'
 export * from './utils.js'

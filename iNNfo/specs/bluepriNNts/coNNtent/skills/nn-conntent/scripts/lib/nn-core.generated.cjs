@@ -16437,6 +16437,13 @@ var init_cognitivize2 = __esm({
   }
 });
 
+// iNNfo/packages/nn-core/dist/changeset/gates.js
+var init_gates = __esm({
+  "iNNfo/packages/nn-core/dist/changeset/gates.js"() {
+    "use strict";
+  }
+});
+
 // iNNfo/packages/nn-core/dist/changeset/utils.js
 function escapeRegex2(str3) {
   return str3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -17624,6 +17631,7 @@ var init_changeset = __esm({
   "iNNfo/packages/nn-core/dist/changeset/index.js"() {
     "use strict";
     init_types2();
+    init_gates();
     init_evidence();
     init_resolved_target();
     init_utils();

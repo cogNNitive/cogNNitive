@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-7-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md"
 blueprint_name: "coNNtent"
-blueprint_version: "V_0-16-0"
+blueprint_version: "V_0-17-0"
 title: "coNNtent App"
 relationship_types:
   hierarchy:
@@ -24,6 +24,10 @@ validation:
     media: [asset, prompt]
     text: [text, text_from]
     animation: [asset]
+gates:
+  script: element
+  preview: element
+  budget: model
 ---
 
 # NN index

@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseChangeset, reviewGateProblems } from '../../src/changeset/parser.js'
+import { parseGateDeclarations, gateDeclarationProblems } from '../../src/changeset/gates.js'
 import { serializeChangeset } from '../../src/changeset/serializer.js'
 import { computeProposalSha } from '../../src/changeset/hasher.js'
-import type { ChangesetDocument } from '../../src/changeset/types.js'
+import type { ChangeItem, ChangesetDocument } from '../../src/changeset/types.js'
 
 /** A valid human console changeset with one `review_gate` change. */
 function gateDoc(reviewedHash = 'a'.repeat(64)): string {
@@ -103,5 +107,75 @@ describe('review_gate shape validation', () => {
     expect(sha(gateDoc().replace('reviewer: Ana', 'reviewer: Bea'))).not.toBe(base)
     // A tampered verdict changes the seal.
     expect(sha(gateDoc().replace('verdict:: approved', 'verdict:: needs-change'))).not.toBe(base)
+  })
+})
+
+describe('gate declarations come from the bluepriNNt', () => {
+  /** One `review_gate` change aimed at `target`, naming `gate`. */
+  const change = (target: string, gate: string): ChangeItem => ({
+    id: 'c-01',
+    op: 'review_gate',
+    target,
+    gate,
+    verdict: 'approved',
+    reviewed_hash: 'a'.repeat(64),
+  })
+
+  // Whatever the host blueprint declares is authoritative: no name is built in.
+  const gates = { script: 'element', preview: 'element', budget: 'model' }
+
+  it('a declared element gate on an element target is accepted', () => {
+    expect(gateDeclarationProblems(change('acme@scene-1', 'script'), gates)).toEqual([])
+  })
+
+  it('a declared model gate on a bare model target is accepted', () => {
+    expect(gateDeclarationProblems(change('acme', 'budget'), gates)).toEqual([])
+  })
+
+  it('a gate the blueprint does not declare is GATE_UNDECLARED', () => {
+    const problems = gateDeclarationProblems(change('acme', 'publish'), gates)
+    expect(problems.some((p) => p.startsWith('GATE_UNDECLARED'))).toBe(true)
+    expect(problems.join(' ')).toMatch(/publish/)
+  })
+
+  it('a blueprint that declares no gates rejects every gate', () => {
+    const problems = gateDeclarationProblems(change('acme@scene-1', 'script'), undefined)
+    expect(problems.some((p) => p.startsWith('GATE_UNDECLARED'))).toBe(true)
+  })
+
+  it('an element gate aimed at a bare model target is GATE_TARGET_INVALID', () => {
+    const problems = gateDeclarationProblems(change('acme', 'script'), gates)
+    expect(problems.some((p) => p.startsWith('GATE_TARGET_INVALID'))).toBe(true)
+  })
+
+  it('a model gate aimed at an element target is GATE_TARGET_INVALID', () => {
+    const problems = gateDeclarationProblems(change('acme@scene-1', 'budget'), gates)
+    expect(problems.some((p) => p.startsWith('GATE_TARGET_INVALID'))).toBe(true)
+  })
+
+  it('any declared gate name is honoured, proving no name is built into nn-core', () => {
+    const custom = { 'sign-off': 'model' }
+    expect(gateDeclarationProblems(change('acme', 'sign-off'), custom)).toEqual([])
+  })
+
+  it('parseGateDeclarations keeps the declared names and units', () => {
+    expect(parseGateDeclarations(gates)).toEqual([
+      { gate: 'script', unit: 'element' },
+      { gate: 'preview', unit: 'element' },
+      { gate: 'budget', unit: 'model' },
+    ])
+  })
+
+  it('nn-core holds no built-in gate name literal', () => {
+    const dir = fileURLToPath(new URL('../../src/changeset/', import.meta.url))
+    const hits: string[] = []
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith('.ts')) continue
+      const text = readFileSync(join(dir, name), 'utf-8')
+      for (const literal of ["'script'", '"script"', "'preview'", '"preview"', "'budget'", '"budget"']) {
+        if (text.includes(literal)) hits.push(`${name}: ${literal}`)
+      }
+    }
+    expect(hits).toEqual([])
   })
 })
